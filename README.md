@@ -1,4 +1,4 @@
-# Start Project
+# Starter Project
 Install Node.js, then within the dash-web folder run
 
 * `npm install`
