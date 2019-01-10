@@ -4,6 +4,7 @@
     "removeComments": true,
     "experimentalDecorators": true,
     "jsx": "react",
+    "sourceMap": true,
     "outDir": "dist",
     "lib": ["dom", "es2015"]
   },

@@ -6,6 +6,7 @@ module.exports = {
   devtool: 'eval',
   mode: 'development',
   entry: "./src/Main.tsx",
+  devtool: "source-map",
   output: {
     filename: "./bundle.js",
     path: path.resolve(__dirname, "build")
