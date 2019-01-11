@@ -41,11 +41,19 @@ export class FreeFormCanvas extends React.Component<IProps> {
         this.props.store.Y += e.movementY;
     }
 
+    onPointerWheel = (e: React.WheelEvent): void => {
+        e.stopPropagation();
+        e.preventDefault();
+
+        let scaleAmount = 1 - (e.deltaY / 1000);
+        this.props.store.Scale *= scaleAmount;
+    }
+
     render() {
         let store = this.props.store;
         return (
-            <div className="freeformcanvas-container" onPointerDown={this.onPointerDown}>
-                <div className="freeformcanvas" style={{ transform: store.Transform }}>
+            <div className="freeformcanvas-container" onPointerDown={this.onPointerDown} onWheel={this.onPointerWheel}>
+                <div className="freeformcanvas" style={{ transform: store.Transform, transformOrigin: '50% 50%' }}>
                     <NodeContainer store={store} />
                 </div>
             </div>
