@@ -1,4 +1,4 @@
-import { FieldController } from "./FieldController";
+import { FieldController, Opt } from "./FieldController";
 import { DocumentController } from "./DocumentController";
 import { KeyController } from "./KeyController";
 import { DocumentUpdatedArgs } from "./FieldUpdatedArgs";
@@ -20,6 +20,18 @@ export class DocumentReferenceController extends FieldController {
 
     private DocFieldUpdated(args: DocumentUpdatedArgs):void{
         this.FieldUpdated.emit(args.fieldArgs);
+    }
+
+    protected DereferenceImpl() : Opt<FieldController> {
+        return this.document.GetField(this.key);
+    }
+
+    protected DereferenceToRootImpl(): Opt<FieldController> {
+        let field: Opt<FieldController> = this;
+        while (field instanceof DocumentReferenceController) {
+            field = field.Dereference();
+        }
+        return field;
     }
 
     TrySetValue(value: any): boolean {

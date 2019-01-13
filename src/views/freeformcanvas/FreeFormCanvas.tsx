@@ -11,7 +11,7 @@ interface IProps {
 @observer
 export class FreeFormCanvas extends React.Component<IProps> {
 
-    private _isPointerDown: boolean;
+    private _isPointerDown: boolean = false;
 
     onPointerDown = (e: React.PointerEvent): void => {
         e.stopPropagation();

@@ -1,4 +1,4 @@
-import { FieldController } from "./FieldController";
+import { FieldController, Opt } from "./FieldController";
 import { DocumentController } from "./DocumentController";
 import { KeyController } from "./KeyController";
 
@@ -18,10 +18,10 @@ export interface DocumentUpdatedArgs {
     field: DocumentController;
     key: KeyController;
 
-    oldValue: FieldController;
-    newValue: FieldController;
+    oldValue: Opt<FieldController>;
+    newValue: Opt<FieldController>;
 
-    fieldArgs: FieldUpdatedArgs;
+    fieldArgs?: FieldUpdatedArgs;
 
     action: FieldUpdatedAction;
 }

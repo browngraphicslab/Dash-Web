@@ -1,39 +1,58 @@
 import { TypedEvent } from "../util/TypedEvent";
 import { FieldUpdatedArgs } from "./FieldUpdatedArgs";
 import { DocumentReferenceController } from "./DocumentReferenceController";
+import { Utils } from "../Utils";
+
+export function Cast<T extends FieldController>(field: Opt<FieldController>, ctor: { new(): T }): Opt<T> {
+    if (field) {
+        if (ctor && field instanceof ctor) {
+            return field;
+        }
+    }
+    return undefined;
+}
+
+export type Opt<T> = T | undefined;
 
 export abstract class FieldController {
-    Id: string;
+    FieldUpdated: TypedEvent<Opt<FieldUpdatedArgs>> = new TypedEvent<Opt<FieldUpdatedArgs>>();
 
-    FieldUpdated: TypedEvent<FieldUpdatedArgs>;
+    private id: string;
+    get Id(): string {
+        return this.id;
+    }
 
-    protected DereferenceImpl(): FieldController {
+    constructor(id: Opt<string> = undefined) {
+        this.id = id || Utils.GenerateGuid();
+    }
+
+    protected DereferenceImpl(): Opt<FieldController> {
         return this;
     }
-    protected DereferenceToRootImpl(): FieldController {
-        let field = this;
-        while(field instanceof DocumentReferenceController) {
-            field = field.Dereference();
-        }
-        return field;
+    protected DereferenceToRootImpl(): Opt<FieldController> {
+        return this;
     }
 
-    Dereference<T extends FieldController = FieldController>(ctor?: { new(): T }): T {
+    Dereference<T extends FieldController = FieldController>(ctor?: { new(): T }): Opt<T> {
         let field = this.DereferenceImpl();
         if (ctor && field instanceof ctor) {
             return field;
         } else {
-            return null;
+            return undefined;
         }
     }
 
-    DereferenceToRoot<T extends FieldController = FieldController>(ctor?: { new(): T }): T {
+    DereferenceToRoot<T extends FieldController = FieldController>(ctor?: { new(): T }): Opt<T> {
         let field = this.DereferenceToRootImpl();
         if (ctor && field instanceof ctor) {
             return field;
         } else {
-            return null;
+            return undefined;
         }
+    }
+
+    Equals(other: FieldController) : boolean {
+        return this.id === other.id;
     }
 
     abstract TrySetValue(value: any): boolean;

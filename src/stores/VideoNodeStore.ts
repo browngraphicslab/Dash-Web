@@ -9,9 +9,9 @@ export class VideoNodeStore extends NodeStore {
     }
 
     @observable
-    public Title: string;
+    public Title: string = "";
 
     @observable
-    public Url: string;
+    public Url: string = "";
 
 }

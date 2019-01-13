@@ -6,6 +6,8 @@ import { RootStore } from './stores/RootStore';
 import { StaticTextNodeStore } from './stores/StaticTextNodeStore';
 import { VideoNodeStore } from './stores/VideoNodeStore';
 import { FreeFormCanvas } from './views/freeformcanvas/FreeFormCanvas';
+import { KeyController } from './controllers/KeyController';
+import { NumberController } from './controllers/NumberController';
 
 
 const mainNodeCollection = new NodeCollectionStore();
@@ -29,4 +31,11 @@ for (let i = 0; i < numNodes; i++) {
 for (let i = 0; i < 20; i++) {
     nodes.push(new VideoNodeStore({ X: Math.random() * maxX, Y: Math.random() * maxY, Title: "Video Node Title", Url: "http://cs.brown.edu/people/peichman/downloads/cted.mp4" }));
 }
+
+let test1 = new KeyController("Test"), test2 = new KeyController("Test");
+let test3 = new NumberController(55);
+console.log(test1 == test2);
+console.log(test1 === test2);
+console.log(test1.Equals(test2));
+console.log(test1.Equals(test3));
 mainNodeCollection.AddNodes(nodes);

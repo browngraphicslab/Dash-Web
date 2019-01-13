@@ -1,4 +1,5 @@
 import { FieldController } from "./FieldController"
+import { Utils } from "../Utils";
 
 export class KeyController extends FieldController {
     get Name():string {
@@ -6,7 +7,7 @@ export class KeyController extends FieldController {
     }
 
     constructor(private name:string){
-        super();
+        super(Utils.GenerateDeterministicGuid(name));
     }
 
     TrySetValue(value: any): boolean {
@@ -22,4 +23,8 @@ export class KeyController extends FieldController {
     }
 
 
+}
+
+export namespace KeyStore {
+    export let Prototype = new KeyController("Prototype");
 }

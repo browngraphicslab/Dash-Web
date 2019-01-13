@@ -8,4 +8,8 @@ export class Utils {
         }
         return s4() + s4() + '-' + s4() + '-' + s4() + '-' + s4() + '-' + s4() + s4() + s4();
     }
+
+    public static GenerateDeterministicGuid(seed: string) {
+        return seed;
+    }
 }
