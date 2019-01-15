@@ -14,19 +14,17 @@ export class DocumentReferenceController extends FieldController {
 
     constructor(private document: DocumentController, private key: KeyController) {
         super();
-
-        document.AddFieldUpdatedHandler(key, this.DocFieldUpdated);
     }
 
     private DocFieldUpdated(args: DocumentUpdatedArgs):void{
-        this.FieldUpdated.emit(args.fieldArgs);
+        // this.FieldUpdated.emit(args.fieldArgs);
     }
 
-    protected DereferenceImpl() : Opt<FieldController> {
+    Dereference() : Opt<FieldController> {
         return this.document.GetField(this.key);
     }
 
-    protected DereferenceToRootImpl(): Opt<FieldController> {
+    DereferenceToRoot(): Opt<FieldController> {
         let field: Opt<FieldController> = this;
         while (field instanceof DocumentReferenceController) {
             field = field.Dereference();

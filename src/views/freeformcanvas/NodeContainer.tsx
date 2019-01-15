@@ -6,6 +6,7 @@ import { TextNodeView } from "../nodes/TextNodeView";
 import { VideoNodeView } from "../nodes/VideoNodeView";
 import "./FreeFormCanvas.scss";
 import React = require("react");
+import { DocumentView } from "../nodes/DocumentView";
 
 interface IProps {
     store: NodeCollectionStore
@@ -17,12 +18,8 @@ export class NodeContainer extends React.Component<IProps> {
     render() {
         return (
             <div className="node-container">
-                {this.props.store.Nodes.map(nodeStore => {
-                    if (nodeStore instanceof StaticTextNodeStore) {
-                        return (<TextNodeView key={nodeStore.Id} store={nodeStore as StaticTextNodeStore} />)
-                    } else if (nodeStore instanceof VideoNodeStore) {
-                        return (<VideoNodeView key={nodeStore.Id} store={nodeStore as VideoNodeStore} />)
-                    }
+                {this.props.store.Docs.map(doc => {
+                    return (<DocumentView key={doc.Id} doc={doc} />);
                 })}
             </div>
         );

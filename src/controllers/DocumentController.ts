@@ -2,25 +2,25 @@ import { FieldController, Cast, Opt } from "./FieldController"
 import { KeyController, KeyStore } from "./KeyController"
 import { TypedEvent, Listener, Disposable } from "../util/TypedEvent";
 import { DocumentUpdatedArgs, FieldUpdatedAction } from "./FieldUpdatedArgs";
+import { ObservableMap } from "mobx";
 
 export class DocumentController extends FieldController {
-    private fields: { [key: string]: { key: KeyController, field: FieldController, disposer: Disposable } } = {};
-    private fieldUpdateHandlers: { [key: string]: TypedEvent<DocumentUpdatedArgs> } = {};
+    private fields: ObservableMap<KeyController, FieldController> = new ObservableMap();
 
     GetField(key: KeyController, ignoreProto?: boolean): Opt<FieldController> {
         let field: Opt<FieldController>;
         if (ignoreProto) {
-            if (key.Id in this.fields) {
-                field = this.fields[key.Id].field;
+            if (this.fields.has(key)) {
+                field = this.fields.get(key);
             }
         } else {
             let doc: Opt<DocumentController> = this;
-            while (doc && !(key.Id in doc.fields)) {
+            while (doc && !(doc.fields.has(key))) {
                 doc = doc.GetPrototype();
             }
 
             if (doc) {
-                field = doc.fields[key.Id].field;
+                field = doc.fields.get(key);
             }
         }
 
@@ -32,45 +32,11 @@ export class DocumentController extends FieldController {
     }
 
     SetField(key: KeyController, field: Opt<FieldController>): void {
-        let oldField: Opt<FieldController>;
-        if (key.Id in this.fields) {
-            let old = this.fields[key.Id];
-            oldField = old.field;
-            old.disposer.dispose();
-        }
-
-        if (oldField === field) {
-            return;
-        }
-
-        if (field == null) {
-            delete this.fields[key.Id];
+        if (field) {
+            this.fields.set(key, field);
         } else {
-            this.fields[key.Id] = {
-                key: key,
-                field: field,
-                disposer: field.FieldUpdated.on((args) => this.DocumentFieldUpdated({
-                    action: FieldUpdatedAction.Update,
-                    oldValue: undefined,
-                    newValue: field,
-                    field: this,
-                    fieldArgs: args,
-                    key: key
-                }))
-            }
+            this.fields.delete(key);
         }
-
-        let action = oldField === null ? FieldUpdatedAction.Add :
-            (field === null ? FieldUpdatedAction.Remove :
-                FieldUpdatedAction.Replace);
-
-        this.DocumentFieldUpdated({
-            field: this,
-            key: key,
-            oldValue: oldField,
-            newValue: field,
-            action: action
-        })
     }
 
     SetFieldValue<T extends FieldController>(key: KeyController, value: any, ctor: { new(): T }): boolean {
@@ -108,27 +74,6 @@ export class DocumentController extends FieldController {
         delegate.SetField(KeyStore.Prototype, this);
 
         return delegate;
-    }
-
-    private DocumentFieldUpdated(args: DocumentUpdatedArgs) {
-        if (args.key.Id in this.fieldUpdateHandlers) {
-            this.fieldUpdateHandlers[args.key.Id].emit(args);
-        }
-        this.FieldUpdated.emit(args);
-    }
-
-    AddFieldUpdatedHandler(key: KeyController, listener: Listener<DocumentUpdatedArgs>): Disposable {
-        if (!(key.Id in this.fieldUpdateHandlers)) {
-            this.fieldUpdateHandlers[key.Id] = new TypedEvent<DocumentUpdatedArgs>();
-        }
-
-        return this.fieldUpdateHandlers[key.Id].on(listener);
-    }
-
-    RemoveFieldUpdatedHandler(key: KeyController, listener: Listener<DocumentUpdatedArgs>) {
-        if (key.Id in this.fieldUpdateHandlers) {
-            this.fieldUpdateHandlers[key.Id].off(listener);
-        }
     }
 
     TrySetValue(value: any): boolean {

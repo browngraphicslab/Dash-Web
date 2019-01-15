@@ -27,4 +27,10 @@ export class KeyController extends FieldController {
 
 export namespace KeyStore {
     export let Prototype = new KeyController("Prototype");
+    export let X = new KeyController("Y");
+    export let Y = new KeyController("Y");
+    export let Width = new KeyController("Width");
+    export let Height = new KeyController("Height");
+    export let Data = new KeyController("Data");
+    export let View = new KeyController("View");
 }

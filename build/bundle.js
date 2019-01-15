@@ -30122,6 +30122,8 @@ var NodeCollectionStore_1 = __webpack_require__(/*! ./stores/NodeCollectionStore
 var StaticTextNodeStore_1 = __webpack_require__(/*! ./stores/StaticTextNodeStore */ "./src/stores/StaticTextNodeStore.ts");
 var VideoNodeStore_1 = __webpack_require__(/*! ./stores/VideoNodeStore */ "./src/stores/VideoNodeStore.ts");
 var FreeFormCanvas_1 = __webpack_require__(/*! ./views/freeformcanvas/FreeFormCanvas */ "./src/views/freeformcanvas/FreeFormCanvas.tsx");
+var KeyController_1 = __webpack_require__(/*! ./controllers/KeyController */ "./src/controllers/KeyController.ts");
+var NumberController_1 = __webpack_require__(/*! ./controllers/NumberController */ "./src/controllers/NumberController.ts");
 var mainNodeCollection = new NodeCollectionStore_1.NodeCollectionStore();
 ReactDOM.render((React.createElement("div", null,
     React.createElement("h1", null, "Dash Web"),
@@ -30136,6 +30138,12 @@ for (var i = 0; i < numNodes; i++) {
 for (var i = 0; i < 20; i++) {
     nodes.push(new VideoNodeStore_1.VideoNodeStore({ X: Math.random() * maxX, Y: Math.random() * maxY, Title: "Video Node Title", Url: "http://cs.brown.edu/people/peichman/downloads/cted.mp4" }));
 }
+var test1 = new KeyController_1.KeyController("Test"), test2 = new KeyController_1.KeyController("Test");
+var test3 = new NumberController_1.NumberController(55);
+console.log(test1 == test2);
+console.log(test1 === test2);
+console.log(test1.Equals(test2));
+console.log(test1.Equals(test3));
 mainNodeCollection.AddNodes(nodes);
 
 
@@ -30160,9 +30168,257 @@ var Utils = (function () {
         }
         return s4() + s4() + '-' + s4() + '-' + s4() + '-' + s4() + '-' + s4() + s4() + s4();
     };
+    Utils.GenerateDeterministicGuid = function (seed) {
+        return seed;
+    };
     return Utils;
 }());
 exports.Utils = Utils;
+
+
+/***/ }),
+
+/***/ "./src/controllers/BasicFieldController.ts":
+/*!*************************************************!*\
+  !*** ./src/controllers/BasicFieldController.ts ***!
+  \*************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = function (d, b) {
+        extendStatics = Object.setPrototypeOf ||
+            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+        return extendStatics(d, b);
+    };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+var FieldController_1 = __webpack_require__(/*! ./FieldController */ "./src/controllers/FieldController.ts");
+var mobx_1 = __webpack_require__(/*! mobx */ "./node_modules/mobx/lib/mobx.module.js");
+var BasicFieldController = (function (_super) {
+    __extends(BasicFieldController, _super);
+    function BasicFieldController(data) {
+        var _this = _super.call(this) || this;
+        _this.data = data;
+        return _this;
+    }
+    Object.defineProperty(BasicFieldController.prototype, "Data", {
+        get: function () {
+            return this.data;
+        },
+        set: function (value) {
+            if (this.data === value) {
+                return;
+            }
+            this.data = value;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    BasicFieldController.prototype.TrySetValue = function (value) {
+        if (typeof value == typeof this.data) {
+            this.Data = value;
+            return true;
+        }
+        return false;
+    };
+    BasicFieldController.prototype.GetValue = function () {
+        return this.Data;
+    };
+    __decorate([
+        mobx_1.computed
+    ], BasicFieldController.prototype, "Data", null);
+    __decorate([
+        mobx_1.observable
+    ], BasicFieldController.prototype, "data", void 0);
+    __decorate([
+        mobx_1.action
+    ], BasicFieldController.prototype, "TrySetValue", null);
+    __decorate([
+        mobx_1.computed
+    ], BasicFieldController.prototype, "GetValue", null);
+    return BasicFieldController;
+}(FieldController_1.FieldController));
+exports.BasicFieldController = BasicFieldController;
+
+
+/***/ }),
+
+/***/ "./src/controllers/FieldController.ts":
+/*!********************************************!*\
+  !*** ./src/controllers/FieldController.ts ***!
+  \********************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+var Utils_1 = __webpack_require__(/*! ../Utils */ "./src/Utils.ts");
+function Cast(field, ctor) {
+    if (field) {
+        if (ctor && field instanceof ctor) {
+            return field;
+        }
+    }
+    return undefined;
+}
+exports.Cast = Cast;
+var FieldController = (function () {
+    function FieldController(id) {
+        if (id === void 0) { id = undefined; }
+        this.id = id || Utils_1.Utils.GenerateGuid();
+    }
+    Object.defineProperty(FieldController.prototype, "Id", {
+        get: function () {
+            return this.id;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    FieldController.prototype.DereferenceImpl = function () {
+        return this;
+    };
+    FieldController.prototype.DereferenceToRootImpl = function () {
+        return this;
+    };
+    FieldController.prototype.Dereference = function (ctor) {
+        var field = this.DereferenceImpl();
+        if (ctor && field instanceof ctor) {
+            return field;
+        }
+        else {
+            return undefined;
+        }
+    };
+    FieldController.prototype.DereferenceToRoot = function (ctor) {
+        var field = this.DereferenceToRootImpl();
+        if (ctor && field instanceof ctor) {
+            return field;
+        }
+        else {
+            return undefined;
+        }
+    };
+    FieldController.prototype.Equals = function (other) {
+        return this.id === other.id;
+    };
+    return FieldController;
+}());
+exports.FieldController = FieldController;
+
+
+/***/ }),
+
+/***/ "./src/controllers/KeyController.ts":
+/*!******************************************!*\
+  !*** ./src/controllers/KeyController.ts ***!
+  \******************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = function (d, b) {
+        extendStatics = Object.setPrototypeOf ||
+            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+        return extendStatics(d, b);
+    };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+var FieldController_1 = __webpack_require__(/*! ./FieldController */ "./src/controllers/FieldController.ts");
+var Utils_1 = __webpack_require__(/*! ../Utils */ "./src/Utils.ts");
+var KeyController = (function (_super) {
+    __extends(KeyController, _super);
+    function KeyController(name) {
+        var _this = _super.call(this, Utils_1.Utils.GenerateDeterministicGuid(name)) || this;
+        _this.name = name;
+        return _this;
+    }
+    Object.defineProperty(KeyController.prototype, "Name", {
+        get: function () {
+            return this.name;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    KeyController.prototype.TrySetValue = function (value) {
+        throw new Error("Method not implemented.");
+    };
+    KeyController.prototype.GetValue = function () {
+        return this.Name;
+    };
+    KeyController.prototype.Copy = function () {
+        return this;
+    };
+    return KeyController;
+}(FieldController_1.FieldController));
+exports.KeyController = KeyController;
+var KeyStore;
+(function (KeyStore) {
+    KeyStore.Prototype = new KeyController("Prototype");
+})(KeyStore = exports.KeyStore || (exports.KeyStore = {}));
+
+
+/***/ }),
+
+/***/ "./src/controllers/NumberController.ts":
+/*!*********************************************!*\
+  !*** ./src/controllers/NumberController.ts ***!
+  \*********************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = function (d, b) {
+        extendStatics = Object.setPrototypeOf ||
+            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+        return extendStatics(d, b);
+    };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+var BasicFieldController_1 = __webpack_require__(/*! ./BasicFieldController */ "./src/controllers/BasicFieldController.ts");
+var NumberController = (function (_super) {
+    __extends(NumberController, _super);
+    function NumberController(data) {
+        if (data === void 0) { data = 0; }
+        return _super.call(this, data) || this;
+    }
+    NumberController.prototype.Copy = function () {
+        return new NumberController(this.Data);
+    };
+    return NumberController;
+}(BasicFieldController_1.BasicFieldController));
+exports.NumberController = NumberController;
 
 
 /***/ }),

@@ -6,8 +6,10 @@ import { RootStore } from './stores/RootStore';
 import { StaticTextNodeStore } from './stores/StaticTextNodeStore';
 import { VideoNodeStore } from './stores/VideoNodeStore';
 import { FreeFormCanvas } from './views/freeformcanvas/FreeFormCanvas';
-import { KeyController } from './controllers/KeyController';
+import { KeyController, KeyStore as KS } from './controllers/KeyController';
 import { NumberController } from './controllers/NumberController';
+import { DocumentController } from './controllers/DocumentController';
+import { TextController } from './controllers/TextController';
 
 
 const mainNodeCollection = new NodeCollectionStore();
@@ -32,10 +34,11 @@ for (let i = 0; i < 20; i++) {
     nodes.push(new VideoNodeStore({ X: Math.random() * maxX, Y: Math.random() * maxY, Title: "Video Node Title", Url: "http://cs.brown.edu/people/peichman/downloads/cted.mp4" }));
 }
 
-let test1 = new KeyController("Test"), test2 = new KeyController("Test");
-let test3 = new NumberController(55);
-console.log(test1 == test2);
-console.log(test1 === test2);
-console.log(test1.Equals(test2));
-console.log(test1.Equals(test3));
 mainNodeCollection.AddNodes(nodes);
+let doc1 = new DocumentController();
+doc1.SetField(KS.X, new NumberController(5));
+doc1.SetField(KS.Y, new NumberController(5));
+doc1.SetField(KS.Width, new NumberController(5));
+doc1.SetField(KS.Height, new NumberController(5));
+doc1.SetField(KS.Data, new TextController("Hello world"));
+mainNodeCollection.Docs.push(doc1);

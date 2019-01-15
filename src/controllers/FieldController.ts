@@ -15,7 +15,7 @@ export function Cast<T extends FieldController>(field: Opt<FieldController>, cto
 export type Opt<T> = T | undefined;
 
 export abstract class FieldController {
-    FieldUpdated: TypedEvent<Opt<FieldUpdatedArgs>> = new TypedEvent<Opt<FieldUpdatedArgs>>();
+    //FieldUpdated: TypedEvent<Opt<FieldUpdatedArgs>> = new TypedEvent<Opt<FieldUpdatedArgs>>();
 
     private id: string;
     get Id(): string {
@@ -26,32 +26,22 @@ export abstract class FieldController {
         this.id = id || Utils.GenerateGuid();
     }
 
-    protected DereferenceImpl(): Opt<FieldController> {
+    Dereference(): Opt<FieldController> {
         return this;
     }
-    protected DereferenceToRootImpl(): Opt<FieldController> {
+    DereferenceToRoot(): Opt<FieldController> {
         return this;
     }
 
-    Dereference<T extends FieldController = FieldController>(ctor?: { new(): T }): Opt<T> {
-        let field = this.DereferenceImpl();
-        if (ctor && field instanceof ctor) {
-            return field;
-        } else {
-            return undefined;
-        }
+    DereferenceT<T extends FieldController = FieldController>(ctor: { new(): T }): Opt<T> {
+        return Cast(this.Dereference(), ctor);
     }
 
-    DereferenceToRoot<T extends FieldController = FieldController>(ctor?: { new(): T }): Opt<T> {
-        let field = this.DereferenceToRootImpl();
-        if (ctor && field instanceof ctor) {
-            return field;
-        } else {
-            return undefined;
-        }
+    DereferenceToRootT<T extends FieldController = FieldController>(ctor: { new(): T }): Opt<T> {
+        return Cast(this.DereferenceToRoot(), ctor);
     }
 
-    Equals(other: FieldController) : boolean {
+    Equals(other: FieldController): boolean {
         return this.id === other.id;
     }
 

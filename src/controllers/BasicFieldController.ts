@@ -1,7 +1,17 @@
 import { FieldController } from "./FieldController"
-import { FieldUpdatedAction } from "./FieldUpdatedArgs";
+import { observable, computed, action } from "mobx";
 
 export abstract class BasicFieldController<T> extends FieldController {
+    constructor(data: T) {
+        super();
+
+        this.data = data;
+    }
+
+    @observable
+    private data:T;
+
+    @computed
     get Data(): T {
         return this.data;
     }
@@ -11,17 +21,9 @@ export abstract class BasicFieldController<T> extends FieldController {
             return;
         }
         this.data = value;
-
-        this.FieldUpdated.emit({
-            field: this,
-            action: FieldUpdatedAction.Update
-        });
     }
 
-    constructor(private data: T) {
-        super();
-    }
-
+    @action
     TrySetValue(value: any): boolean {
         if (typeof value == typeof this.data) {
             this.Data = value;
