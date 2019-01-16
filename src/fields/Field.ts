@@ -1,9 +1,9 @@
 import { TypedEvent } from "../util/TypedEvent";
 import { FieldUpdatedArgs } from "./FieldUpdatedArgs";
-import { DocumentReferenceController } from "./DocumentReferenceController";
+import { DocumentReference } from "./DocumentReference";
 import { Utils } from "../Utils";
 
-export function Cast<T extends FieldController>(field: Opt<FieldController>, ctor: { new(): T }): Opt<T> {
+export function Cast<T extends Field>(field: Opt<Field>, ctor: { new(): T }): Opt<T> {
     if (field) {
         if (ctor && field instanceof ctor) {
             return field;
@@ -14,7 +14,7 @@ export function Cast<T extends FieldController>(field: Opt<FieldController>, cto
 
 export type Opt<T> = T | undefined;
 
-export abstract class FieldController {
+export abstract class Field {
     //FieldUpdated: TypedEvent<Opt<FieldUpdatedArgs>> = new TypedEvent<Opt<FieldUpdatedArgs>>();
 
     private id: string;
@@ -26,22 +26,22 @@ export abstract class FieldController {
         this.id = id || Utils.GenerateGuid();
     }
 
-    Dereference(): Opt<FieldController> {
+    Dereference(): Opt<Field> {
         return this;
     }
-    DereferenceToRoot(): Opt<FieldController> {
+    DereferenceToRoot(): Opt<Field> {
         return this;
     }
 
-    DereferenceT<T extends FieldController = FieldController>(ctor: { new(): T }): Opt<T> {
+    DereferenceT<T extends Field = Field>(ctor: { new(): T }): Opt<T> {
         return Cast(this.Dereference(), ctor);
     }
 
-    DereferenceToRootT<T extends FieldController = FieldController>(ctor: { new(): T }): Opt<T> {
+    DereferenceToRootT<T extends Field = Field>(ctor: { new(): T }): Opt<T> {
         return Cast(this.DereferenceToRoot(), ctor);
     }
 
-    Equals(other: FieldController): boolean {
+    Equals(other: Field): boolean {
         return this.id === other.id;
     }
 
@@ -49,6 +49,6 @@ export abstract class FieldController {
 
     abstract GetValue(): any;
 
-    abstract Copy(): FieldController;
+    abstract Copy(): Field;
 
 }

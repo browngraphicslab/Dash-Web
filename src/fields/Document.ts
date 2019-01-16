@@ -1,20 +1,18 @@
-import { FieldController, Cast, Opt } from "./FieldController"
-import { KeyController, KeyStore } from "./KeyController"
-import { TypedEvent, Listener, Disposable } from "../util/TypedEvent";
-import { DocumentUpdatedArgs, FieldUpdatedAction } from "./FieldUpdatedArgs";
+import { Field, Cast, Opt } from "./Field"
+import { Key, KeyStore } from "./Key"
 import { ObservableMap } from "mobx";
 
-export class DocumentController extends FieldController {
-    private fields: ObservableMap<KeyController, FieldController> = new ObservableMap();
+export class Document extends Field {
+    private fields: ObservableMap<Key, Field> = new ObservableMap();
 
-    GetField(key: KeyController, ignoreProto?: boolean): Opt<FieldController> {
-        let field: Opt<FieldController>;
+    GetField(key: Key, ignoreProto?: boolean): Opt<Field> {
+        let field: Opt<Field>;
         if (ignoreProto) {
             if (this.fields.has(key)) {
                 field = this.fields.get(key);
             }
         } else {
-            let doc: Opt<DocumentController> = this;
+            let doc: Opt<Document> = this;
             while (doc && !(doc.fields.has(key))) {
                 doc = doc.GetPrototype();
             }
@@ -27,11 +25,16 @@ export class DocumentController extends FieldController {
         return field;
     }
 
-    GetFieldT<T extends FieldController = FieldController>(key: KeyController, ctor: { new(): T }, ignoreProto?: boolean): Opt<T> {
+    GetFieldT<T extends Field = Field>(key: Key, ctor: { new(): T }, ignoreProto?: boolean): Opt<T> {
         return Cast(this.GetField(key, ignoreProto), ctor);
     }
 
-    SetField(key: KeyController, field: Opt<FieldController>): void {
+    GetFieldValue<T, U extends { Data: T }>(key: Key, ctor: { new(): U }, defaultVal: T): T {
+        let val = this.GetField(key);
+        return (val && val instanceof ctor) ? val.Data : defaultVal;
+    }
+
+    SetField(key: Key, field: Opt<Field>): void {
         if (field) {
             this.fields.set(key, field);
         } else {
@@ -39,7 +42,7 @@ export class DocumentController extends FieldController {
         }
     }
 
-    SetFieldValue<T extends FieldController>(key: KeyController, value: any, ctor: { new(): T }): boolean {
+    SetFieldValue<T extends Field>(key: Key, value: any, ctor: { new(): T }): boolean {
         let field = this.GetField(key);
         if (field != null) {
             return field.TrySetValue(value);
@@ -54,13 +57,13 @@ export class DocumentController extends FieldController {
         }
     }
 
-    GetPrototype(): Opt<DocumentController> {
-        return this.GetFieldT(KeyStore.Prototype, DocumentController, true);
+    GetPrototype(): Opt<Document> {
+        return this.GetFieldT(KeyStore.Prototype, Document, true);
     }
 
-    GetAllPrototypes(): DocumentController[] {
-        let protos: DocumentController[] = [];
-        let doc: Opt<DocumentController> = this;
+    GetAllPrototypes(): Document[] {
+        let protos: Document[] = [];
+        let doc: Opt<Document> = this;
         while (doc != null) {
             protos.push(doc);
             doc = doc.GetPrototype();
@@ -68,8 +71,8 @@ export class DocumentController extends FieldController {
         return protos;
     }
 
-    MakeDelegate(): DocumentController {
-        let delegate = new DocumentController();
+    MakeDelegate(): Document {
+        let delegate = new Document();
 
         delegate.SetField(KeyStore.Prototype, this);
 
@@ -82,7 +85,7 @@ export class DocumentController extends FieldController {
     GetValue() {
         throw new Error("Method not implemented.");
     }
-    Copy(): FieldController {
+    Copy(): Field {
         throw new Error("Method not implemented.");
     }
 

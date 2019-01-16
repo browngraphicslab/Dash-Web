@@ -1,7 +1,7 @@
-import { FieldController } from "./FieldController"
+import { Field } from "./Field"
 import { observable, computed, action } from "mobx";
 
-export abstract class BasicFieldController<T> extends FieldController {
+export abstract class BasicField<T> extends Field {
     constructor(data: T) {
         super();
 

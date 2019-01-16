@@ -1,15 +1,13 @@
-
+import v4 = require('uuid/v4');
+import v5 = require("uuid/v5");
 
 export class Utils {
 
-    public static GenerateGuid() {
-        function s4() {
-            return Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1);
-        }
-        return s4() + s4() + '-' + s4() + '-' + s4() + '-' + s4() + '-' + s4() + s4() + s4();
+    public static GenerateGuid(): string {
+        return v4();
     }
 
-    public static GenerateDeterministicGuid(seed: string) {
-        return seed;
+    public static GenerateDeterministicGuid(seed: string): string {
+        return v5(seed, v5.URL);
     }
 }

@@ -3,8 +3,10 @@ import { NodeCollectionStore } from "../../stores/NodeCollectionStore";
 import "./FreeFormCanvas.scss";
 import { NodeContainer } from "./NodeContainer";
 import React = require("react");
-import { KeyStore } from "../../controllers/KeyController";
-import { NumberController } from "../../controllers/NumberController";
+import { KeyStore } from "../../fields/Key";
+import { NumberField } from "../../fields/NumberField";
+import { TextField } from "../../fields/TextField";
+import { action } from "mobx";
 
 interface IProps {
     store: NodeCollectionStore
@@ -15,6 +17,7 @@ export class FreeFormCanvas extends React.Component<IProps> {
 
     private _isPointerDown: boolean = false;
 
+    @action
     onPointerDown = (e: React.PointerEvent): void => {
         e.stopPropagation();
         e.preventDefault();
@@ -25,6 +28,7 @@ export class FreeFormCanvas extends React.Component<IProps> {
         document.addEventListener("pointerup", this.onPointerUp);
     }
 
+    @action
     onPointerUp = (e: PointerEvent): void => {
         e.stopPropagation();
         e.preventDefault();
@@ -33,14 +37,12 @@ export class FreeFormCanvas extends React.Component<IProps> {
         document.removeEventListener("pointerup", this.onPointerUp);
 
         let doc = this.props.store.Docs[0];
-        let xField = doc.GetFieldT(KeyStore.X, NumberController);
-        let x = xField ? xField.Data : 0;
-        let yField = doc.GetFieldT(KeyStore.Y, NumberController);
-        let y = yField ? yField.Data : 0;
-        this.props.store.Docs[0].SetFieldValue(KeyStore.X, x + 10, NumberController);
-        this.props.store.Docs[0].SetFieldValue(KeyStore.Y, y + 10, NumberController);
+        let dataField = doc.GetFieldT(KeyStore.Data, TextField);
+        let data = dataField ? dataField.Data : "";
+        this.props.store.Docs[0].SetFieldValue(KeyStore.Data, data + " hello", TextField);
     }
 
+    @action
     onPointerMove = (e: PointerEvent): void => {
         e.stopPropagation();
         e.preventDefault();
@@ -51,6 +53,7 @@ export class FreeFormCanvas extends React.Component<IProps> {
         this.props.store.Y += e.movementY;
     }
 
+    @action
     onPointerWheel = (e: React.WheelEvent): void => {
         e.stopPropagation();
         e.preventDefault();

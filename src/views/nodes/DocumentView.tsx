@@ -1,27 +1,27 @@
 import { observer } from "mobx-react";
-import { DocumentController } from "../../controllers/DocumentController";
 import React = require("react");
 import { computed } from "mobx";
-import { KeyStore } from "../../controllers/KeyController";
-import { NumberController } from "../../controllers/NumberController";
-import { TextController } from "../../controllers/TextController";
+import { KeyStore, Key } from "../../fields/Key";
+import { NumberField } from "../../fields/NumberField";
+import { TextField } from "../../fields/TextField";
+import { DocumentViewModel } from "../../viewmodels/DocumentViewModel";
+import { ListField } from "../../fields/ListField";
+const JsxParser = require('react-jsx-parser').default;//TODO Why does this need to be imported like this?
 
 interface IProps {
-    doc:DocumentController;
+    dvm:DocumentViewModel;
 }
 
 @observer
 export class DocumentView extends React.Component<IProps> {
     @computed
     get x(): number {
-        let field = this.props.doc.GetFieldT(KeyStore.X, NumberController);
-        return field ? field.Data : 0;
+        return this.props.dvm.Doc.GetFieldValue(KeyStore.X, NumberField, Number(0));
     }
 
     @computed
     get y(): number {
-        let field = this.props.doc.GetFieldT(KeyStore.Y, NumberController);
-        return field ? field.Data : 0;
+        return this.props.dvm.Doc.GetFieldValue(KeyStore.Y, NumberField, Number(0));
     }
 
     @computed
@@ -31,31 +31,49 @@ export class DocumentView extends React.Component<IProps> {
 
     @computed
     get width(): number {
-        let field = this.props.doc.GetFieldT(KeyStore.Width, NumberController);
-        return field ? field.Data : 0;
+        return this.props.dvm.Doc.GetFieldValue(KeyStore.Width, NumberField, Number(0));
     }
 
     @computed
     get height(): number {
-        let field = this.props.doc.GetFieldT(KeyStore.Height, NumberController);
-        return field ? field.Data : 0;
+        return this.props.dvm.Doc.GetFieldValue(KeyStore.Height, NumberField, Number(0));
     }
 
     //Temp
     @computed
     get data(): string {
-        let field = this.props.doc.GetFieldT(KeyStore.Data, TextController);
-        return field ? field.Data : "";
+        return this.props.dvm.Doc.GetFieldValue(KeyStore.Data, TextField, String(""));
+    }
+
+    @computed
+    get layout(): string {
+        return this.props.dvm.Doc.GetFieldValue(KeyStore.View, TextField, String("<p>Error loading layout data</p>"));
+    }
+
+    @computed
+    get layoutFields(): Key[] {
+        return this.props.dvm.Doc.GetFieldValue(KeyStore.ViewProps, ListField, new Array<Key>());
     }
 
     render() {
+            let doc = this.props.dvm.Doc;
+        let bindings:any = {};
+        for (const key of this.layoutFields) {
+            let field = doc.GetField(key);
+            if(field) {
+                bindings[key.Name] = field.GetValue();
+            }
+        }
         return (
             <div className="node" style={{
                 transform: this.transform,
                 width: this.width,
                 height: this.height
             }}>
-                <p>{this.data}</p>
+                <JsxParser 
+                    bindings={bindings}
+                    jsx={this.layout}
+                />
             </div>
         );
     }

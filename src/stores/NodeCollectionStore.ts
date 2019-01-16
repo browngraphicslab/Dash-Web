@@ -1,6 +1,6 @@
 import { computed, observable, action } from "mobx";
 import { NodeStore } from "./NodeStore";
-import { DocumentController } from "../controllers/DocumentController";
+import { Document } from "../fields/Document";
 
 export class NodeCollectionStore extends NodeStore {
 
@@ -11,7 +11,7 @@ export class NodeCollectionStore extends NodeStore {
     public Nodes: NodeStore[] = new Array<NodeStore>();
 
     @observable
-    public Docs: DocumentController[] = [];
+    public Docs: Document[] = [];
 
     @computed
     public get Transform(): string {

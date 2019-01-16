@@ -1,18 +1,18 @@
-import { FieldController, Opt } from "./FieldController";
-import { DocumentController } from "./DocumentController";
-import { KeyController } from "./KeyController";
+import { Field, Opt } from "./Field";
+import { Document } from "./Document";
+import { Key } from "./Key";
 import { DocumentUpdatedArgs } from "./FieldUpdatedArgs";
 
-export class DocumentReferenceController extends FieldController {
-    get Key(): KeyController{
+export class DocumentReference extends Field {
+    get Key(): Key{
         return this.key;
     }
 
-    get Document(): DocumentController {
+    get Document(): Document {
         return this.document;
     }
 
-    constructor(private document: DocumentController, private key: KeyController) {
+    constructor(private document: Document, private key: Key) {
         super();
     }
 
@@ -20,13 +20,13 @@ export class DocumentReferenceController extends FieldController {
         // this.FieldUpdated.emit(args.fieldArgs);
     }
 
-    Dereference() : Opt<FieldController> {
+    Dereference() : Opt<Field> {
         return this.document.GetField(this.key);
     }
 
-    DereferenceToRoot(): Opt<FieldController> {
-        let field: Opt<FieldController> = this;
-        while (field instanceof DocumentReferenceController) {
+    DereferenceToRoot(): Opt<Field> {
+        let field: Opt<Field> = this;
+        while (field instanceof DocumentReference) {
             field = field.Dereference();
         }
         return field;
@@ -38,7 +38,7 @@ export class DocumentReferenceController extends FieldController {
     GetValue() {
         throw new Error("Method not implemented.");
     }
-    Copy(): FieldController {
+    Copy(): Field {
         throw new Error("Method not implemented.");
     }
 

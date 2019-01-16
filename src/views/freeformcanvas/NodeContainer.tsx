@@ -7,6 +7,7 @@ import { VideoNodeView } from "../nodes/VideoNodeView";
 import "./FreeFormCanvas.scss";
 import React = require("react");
 import { DocumentView } from "../nodes/DocumentView";
+import { DocumentViewModel } from "../../viewmodels/DocumentViewModel";
 
 interface IProps {
     store: NodeCollectionStore
@@ -19,7 +20,7 @@ export class NodeContainer extends React.Component<IProps> {
         return (
             <div className="node-container">
                 {this.props.store.Docs.map(doc => {
-                    return (<DocumentView key={doc.Id} doc={doc} />);
+                    return (<DocumentView key={doc.Id} dvm={new DocumentViewModel(doc)} />);
                 })}
             </div>
         );
