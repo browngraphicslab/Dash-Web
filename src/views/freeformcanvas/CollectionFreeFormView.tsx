@@ -1,22 +1,21 @@
 import { observer } from "mobx-react";
-import { Key } from "../../fields/Key";
-import { NodeCollectionStore } from "../../stores/NodeCollectionStore";
+import { Key, KeyStore } from "../../fields/Key";
 import "./FreeFormCanvas.scss";
 import React = require("react");
 import { action } from "mobx";
 import { Document } from "../../fields/Document";
 import {DocumentViewModel} from "../../viewmodels/DocumentViewModel";
 import {DocumentView} from "../nodes/DocumentView";
-import {TextField} from "../../fields/TextField";
 import {ListField} from "../../fields/ListField";
-import {Field} from "../../fields/Field";
+import {NumberField} from "../../fields/NumberField";
 
 interface IProps {
-    store: NodeCollectionStore;
+    fieldKey:Key;
+    doc:Document;
 }
 
 @observer
-export class FreeFormCanvas extends React.Component<IProps> {
+export class CollectionFreeFormView extends React.Component<IProps> {
 
     private _isPointerDown: boolean = false;
 
@@ -40,21 +39,20 @@ export class FreeFormCanvas extends React.Component<IProps> {
         this._isPointerDown = false;
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
-
-        // let doc = this.props.store.Docs[0];
-        // let dataField = doc.GetFieldT(KeyStore.Data, TextField);
-        // let data = dataField ? dataField.Data : "";
-        // this.props.store.Docs[0].SetFieldValue(KeyStore.Data, data + " hello", TextField);
     }
 
     @action
     onPointerMove = (e: PointerEvent): void => {
+        e.preventDefault();
         e.stopPropagation();
         if (!this._isPointerDown) {
             return;
         }
-        this.props.store.X += e.movementX;
-        this.props.store.Y += e.movementY;
+        const {doc} = this.props;
+        let x = doc.GetFieldValue(KeyStore.PanX, NumberField, Number(0));
+        let y = doc.GetFieldValue(KeyStore.PanY, NumberField, Number(0));
+        doc.SetFieldValue(KeyStore.PanX, x+e.movementX, NumberField);
+        doc.SetFieldValue(KeyStore.PanY, y+e.movementY, NumberField);
     }
 
     @action
@@ -62,16 +60,19 @@ export class FreeFormCanvas extends React.Component<IProps> {
         e.stopPropagation();
 
         let scaleAmount = 1 - (e.deltaY / 1000);
-        this.props.store.Scale *= scaleAmount;
+        //this.props.store.Scale *= scaleAmount;
     }
 
     render() {
-        let store = this.props.store;
+        const {fieldKey, doc} = this.props;
+        const value: Document[] = doc.GetFieldValue(fieldKey, ListField, []);
+        const panx: number = doc.GetFieldValue(KeyStore.PanX, NumberField, Number(0));
+        const pany: number = doc.GetFieldValue(KeyStore.PanY, NumberField, Number(0));
         return (
-            <div className="freeformcanvas-container" onPointerDown={this.onPointerDown} onWheel={this.onPointerWheel}>
-                <div className="freeformcanvas" style={{ transform: store.Transform, transformOrigin: '50% 50%' }}>
+            <div className="collectionfreeformview-container" onPointerDown={this.onPointerDown} onWheel={this.onPointerWheel}>
+                <div className="collectionfreeformview" style={{ transform: `translate(${panx}px, ${pany}px)`, transformOrigin: '50% 50%' }}>
                     <div className="node-container">
-                        {this.props.store.Docs.map(doc => {
+                        {value.map(doc => {
                             return (<DocumentView key={doc.Id} dvm={new DocumentViewModel(doc)} />);
                         })}
                     </div>

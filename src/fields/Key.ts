@@ -34,6 +34,8 @@ export namespace KeyStore {
     export let Prototype = new Key("Prototype");
     export let X = new Key("X");
     export let Y = new Key("Y");
+    export let PanX = new Key("PanX");
+    export let PanY = new Key("PanY");
     export let Width = new Key("Width");
     export let Height = new Key("Height");
     export let Data = new Key("Data");

@@ -2,17 +2,14 @@ import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import "./Main.scss";
 import { NodeCollectionStore } from './stores/NodeCollectionStore';
-import { RootStore } from './stores/RootStore';
 import { StaticTextNodeStore } from './stores/StaticTextNodeStore';
 import { VideoNodeStore } from './stores/VideoNodeStore';
 import { FreeFormCanvas } from './views/freeformcanvas/FreeFormCanvas';
 import { Key, KeyStore as KS } from './fields/Key';
 import { NumberField } from './fields/NumberField';
 import { Document } from './fields/Document';
-import { TextField } from './fields/TextField';
 import { configure, runInAction } from 'mobx';
 import { NodeStore } from './stores/NodeStore';
-import { ListField } from './fields/ListField';
 import { Documents } from './documents/Documents';
 
 configure({
@@ -48,9 +45,14 @@ runInAction(() => {
     doc2.SetField(KS.X, new NumberField(150));
     doc2.SetField(KS.Y, new NumberField(20));
     let doc3 = Documents.ImageDocument("https://static.boredpanda.com/blog/wp-content/uploads/2018/04/5acb63d83493f__700-png.jpg", {
+        x: 150, y: 500
+    });
+    let docset = new Array<Document>(doc1, doc2);
+    let doc4 = Documents.CollectionDocument(docset, {
         x: 100, y: 400
     });
     mainNodeCollection.Docs.push(doc1);
     mainNodeCollection.Docs.push(doc2);
+    mainNodeCollection.Docs.push(doc4);
     mainNodeCollection.Docs.push(doc3);
 });

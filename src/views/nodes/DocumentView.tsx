@@ -7,6 +7,8 @@ import { TextField } from "../../fields/TextField";
 import { DocumentViewModel } from "../../viewmodels/DocumentViewModel";
 import { ListField } from "../../fields/ListField";
 import { FieldTextBox } from "../nodes/FieldTextBox"
+import { FreeFormCanvas } from "../freeformcanvas/FreeFormCanvas"
+import { CollectionFreeFormView } from "../freeformcanvas/CollectionFreeFormView"
 import "./NodeView.scss"
 const JsxParser = require('react-jsx-parser').default;//TODO Why does this need to be imported like this?
 
@@ -83,7 +85,7 @@ export class DocumentView extends React.Component<IProps> {
                 height: this.height
             }}>
                 <JsxParser
-                    components={{ FieldTextBox }}
+                    components={{ FieldTextBox, FreeFormCanvas, CollectionFreeFormView }}
                     bindings={bindings}
                     jsx={this.layout}
                 />

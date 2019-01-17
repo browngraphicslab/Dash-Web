@@ -68,4 +68,25 @@ export namespace Documents {
         doc.SetField(KeyStore.Data, new TextField(url));
         return doc;
     }
+
+    let collectionProto:Document;
+    function GetCollectionPrototype(): Document {
+        if(!collectionProto) {
+            collectionProto = new Document();
+            collectionProto.SetField(KeyStore.X, new NumberField(150));
+            collectionProto.SetField(KeyStore.Y, new NumberField(0));
+            collectionProto.SetField(KeyStore.Width, new NumberField(300));
+            collectionProto.SetField(KeyStore.Height, new NumberField(300));
+            collectionProto.SetField(KeyStore.Layout, new TextField('<CollectionFreeFormView doc={doc} fieldKey={DataKey}/>'));
+            collectionProto.SetField(KeyStore.LayoutKeys, new ListField([KeyStore.Data]));
+        }
+        return collectionProto;
+    }
+
+    export function CollectionDocument( documents: Array<Document>, options:DocumentOptions = {}): Document {
+        let doc = GetCollectionPrototype().MakeDelegate();
+        setupOptions(doc, options);
+        doc.SetField(KeyStore.Data, new ListField(documents));
+        return doc;
+    }
 }
