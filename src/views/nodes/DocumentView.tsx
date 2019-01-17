@@ -6,10 +6,12 @@ import { NumberField } from "../../fields/NumberField";
 import { TextField } from "../../fields/TextField";
 import { DocumentViewModel } from "../../viewmodels/DocumentViewModel";
 import { ListField } from "../../fields/ListField";
+import { FieldTextBox } from "../nodes/FieldTextBox"
+import "./NodeView.scss"
 const JsxParser = require('react-jsx-parser').default;//TODO Why does this need to be imported like this?
 
 interface IProps {
-    dvm:DocumentViewModel;
+    dvm: DocumentViewModel;
 }
 
 @observer
@@ -47,20 +49,30 @@ export class DocumentView extends React.Component<IProps> {
 
     @computed
     get layout(): string {
-        return this.props.dvm.Doc.GetFieldValue(KeyStore.View, TextField, String("<p>Error loading layout data</p>"));
+        return this.props.dvm.Doc.GetFieldValue(KeyStore.Layout, TextField, String("<p>Error loading layout data</p>"));
+    }
+
+    @computed
+    get layoutKeys(): Key[] {
+        return this.props.dvm.Doc.GetFieldValue(KeyStore.LayoutKeys, ListField, new Array<Key>());
     }
 
     @computed
     get layoutFields(): Key[] {
-        return this.props.dvm.Doc.GetFieldValue(KeyStore.ViewProps, ListField, new Array<Key>());
+        return this.props.dvm.Doc.GetFieldValue(KeyStore.LayoutFields, ListField, new Array<Key>());
     }
 
     render() {
-            let doc = this.props.dvm.Doc;
-        let bindings:any = {};
+        let doc = this.props.dvm.Doc;
+        let bindings: any = {
+            doc: doc
+        };
+        for (const key of this.layoutKeys) {
+            bindings[key.Name + "Key"] = key;
+        }
         for (const key of this.layoutFields) {
             let field = doc.GetField(key);
-            if(field) {
+            if (field) {
                 bindings[key.Name] = field.GetValue();
             }
         }
@@ -70,7 +82,8 @@ export class DocumentView extends React.Component<IProps> {
                 width: this.width,
                 height: this.height
             }}>
-                <JsxParser 
+                <JsxParser
+                    components={{ FieldTextBox }}
                     bindings={bindings}
                     jsx={this.layout}
                 />

@@ -1,13 +1,18 @@
 import { Field } from "./Field"
 import { Utils } from "../Utils";
+import { observable } from "mobx";
 
 export class Key extends Field {
+    private name:string;
+
     get Name():string {
         return this.name;
     }
 
-    constructor(private name:string){
+    constructor(name:string){
         super(Utils.GenerateDeterministicGuid(name));
+
+        this.name = name;
     }
 
     TrySetValue(value: any): boolean {
@@ -32,6 +37,7 @@ export namespace KeyStore {
     export let Width = new Key("Width");
     export let Height = new Key("Height");
     export let Data = new Key("Data");
-    export let View = new Key("View");
-    export let ViewProps = new Key("ViewProps");
+    export let Layout = new Key("Layout");
+    export let LayoutKeys = new Key("LayoutKeys");
+    export let LayoutFields = new Key("LayoutFields");
 }

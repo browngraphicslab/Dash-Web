@@ -13,6 +13,7 @@ import { TextField } from './fields/TextField';
 import { configure, runInAction } from 'mobx';
 import { NodeStore } from './stores/NodeStore';
 import { ListField } from './fields/ListField';
+import { Documents } from './documents/Documents';
 
 configure({
     enforceActions: "observed"
@@ -42,17 +43,14 @@ for (let i = 0; i < 20; i++) {
 
 runInAction(() => {
     mainNodeCollection.AddNodes(nodes);
-    let doc1 = new Document();
-    doc1.SetField(KS.X, new NumberField(5));
-    doc1.SetField(KS.Y, new NumberField(5));
-    doc1.SetField(KS.Width, new NumberField(100));
-    doc1.SetField(KS.Height, new NumberField(50));
-    doc1.SetField(KS.Data, new TextField("Hello world"));
-    doc1.SetField(KS.View, new TextField('<p style="color:blue; font-size:40px">{Data + X}</p>'));
-    doc1.SetField(KS.ViewProps, new ListField([KS.Data, KS.X]));
+    let doc1 = Documents.TextDocument("Hello world");
     let doc2 = doc1.MakeDelegate();
     doc2.SetField(KS.X, new NumberField(150));
     doc2.SetField(KS.Y, new NumberField(20));
+    let doc3 = Documents.ImageDocument("https://static.boredpanda.com/blog/wp-content/uploads/2018/04/5acb63d83493f__700-png.jpg", {
+        x: 100, y: 400
+    });
     mainNodeCollection.Docs.push(doc1);
     mainNodeCollection.Docs.push(doc2);
+    mainNodeCollection.Docs.push(doc3);
 });

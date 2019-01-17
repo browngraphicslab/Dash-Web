@@ -20,7 +20,6 @@ export class FreeFormCanvas extends React.Component<IProps> {
     @action
     onPointerDown = (e: React.PointerEvent): void => {
         e.stopPropagation();
-        e.preventDefault();
         this._isPointerDown = true;
         document.removeEventListener("pointermove", this.onPointerMove);
         document.addEventListener("pointermove", this.onPointerMove);
@@ -31,21 +30,19 @@ export class FreeFormCanvas extends React.Component<IProps> {
     @action
     onPointerUp = (e: PointerEvent): void => {
         e.stopPropagation();
-        e.preventDefault();
         this._isPointerDown = false;
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
 
-        let doc = this.props.store.Docs[0];
-        let dataField = doc.GetFieldT(KeyStore.Data, TextField);
-        let data = dataField ? dataField.Data : "";
-        this.props.store.Docs[0].SetFieldValue(KeyStore.Data, data + " hello", TextField);
+        // let doc = this.props.store.Docs[0];
+        // let dataField = doc.GetFieldT(KeyStore.Data, TextField);
+        // let data = dataField ? dataField.Data : "";
+        // this.props.store.Docs[0].SetFieldValue(KeyStore.Data, data + " hello", TextField);
     }
 
     @action
     onPointerMove = (e: PointerEvent): void => {
         e.stopPropagation();
-        e.preventDefault();
         if (!this._isPointerDown) {
             return;
         }
@@ -56,7 +53,6 @@ export class FreeFormCanvas extends React.Component<IProps> {
     @action
     onPointerWheel = (e: React.WheelEvent): void => {
         e.stopPropagation();
-        e.preventDefault();
 
         let scaleAmount = 1 - (e.deltaY / 1000);
         this.props.store.Scale *= scaleAmount;
