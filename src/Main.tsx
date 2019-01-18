@@ -45,7 +45,7 @@ runInAction(() => {
     doc2.SetField(KS.X, new NumberField(150));
     doc2.SetField(KS.Y, new NumberField(20));
     let doc3 = Documents.ImageDocument("https://static.boredpanda.com/blog/wp-content/uploads/2018/04/5acb63d83493f__700-png.jpg", {
-        x: 150, y: 500
+        x: 450, y: 500
     });
     let docset = new Array<Document>(doc1, doc2);
     let doc4 = Documents.CollectionDocument(docset, {
