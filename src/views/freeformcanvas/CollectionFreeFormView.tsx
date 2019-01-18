@@ -27,19 +27,23 @@ export class CollectionFreeFormView extends React.Component<IProps> {
     @action
     onPointerDown = (e: React.PointerEvent): void => {
         e.stopPropagation();
-        this._isPointerDown = true;
-        document.removeEventListener("pointermove", this.onPointerMove);
-        document.addEventListener("pointermove", this.onPointerMove);
-        document.removeEventListener("pointerup", this.onPointerUp);
-        document.addEventListener("pointerup", this.onPointerUp);
+        if (e.button === 2) {
+            this._isPointerDown = true;
+            document.removeEventListener("pointermove", this.onPointerMove);
+            document.addEventListener("pointermove", this.onPointerMove);
+            document.removeEventListener("pointerup", this.onPointerUp);
+            document.addEventListener("pointerup", this.onPointerUp);
+        }
     }
 
     @action
     onPointerUp = (e: PointerEvent): void => {
         e.stopPropagation();
-        this._isPointerDown = false;
-        document.removeEventListener("pointermove", this.onPointerMove);
-        document.removeEventListener("pointerup", this.onPointerUp);
+        if (e.button === 2) {
+            this._isPointerDown = false;
+            document.removeEventListener("pointermove", this.onPointerMove);
+            document.removeEventListener("pointerup", this.onPointerUp);
+        }
     }
 
     @action
@@ -70,11 +74,12 @@ export class CollectionFreeFormView extends React.Component<IProps> {
         const panx: number = doc.GetFieldValue(KeyStore.PanX, NumberField, Number(0));
         const pany: number = doc.GetFieldValue(KeyStore.PanY, NumberField, Number(0));
         return (
+
             <div className="border" style={{
                     borderStyle: "solid",
                     borderWidth: "2px"
                 }}>
-                <div className="collectionfreeformview-container" onPointerDown={this.onPointerDown} onWheel={this.onPointerWheel} style={{
+                <div className="collectionfreeformview-container" onPointerDown={this.onPointerDown} onWheel={this.onPointerWheel} onContextMenu={(e) => e.preventDefault()} style={{
                     width: "100%",
                     height: "calc(100% - 4px)",
                     overflow: "hidden"

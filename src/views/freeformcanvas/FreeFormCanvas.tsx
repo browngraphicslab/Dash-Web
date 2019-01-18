@@ -27,19 +27,23 @@ export class FreeFormCanvas extends React.Component<IProps> {
     @action
     onPointerDown = (e: React.PointerEvent): void => {
         e.stopPropagation();
-        this._isPointerDown = true;
-        document.removeEventListener("pointermove", this.onPointerMove);
-        document.addEventListener("pointermove", this.onPointerMove);
-        document.removeEventListener("pointerup", this.onPointerUp);
-        document.addEventListener("pointerup", this.onPointerUp);
+        if (e.button === 2) {
+            this._isPointerDown = true;
+            document.removeEventListener("pointermove", this.onPointerMove);
+            document.addEventListener("pointermove", this.onPointerMove);
+            document.removeEventListener("pointerup", this.onPointerUp);
+            document.addEventListener("pointerup", this.onPointerUp);
+        }
     }
 
     @action
     onPointerUp = (e: PointerEvent): void => {
         e.stopPropagation();
-        this._isPointerDown = false;
-        document.removeEventListener("pointermove", this.onPointerMove);
-        document.removeEventListener("pointerup", this.onPointerUp);
+        if (e.button === 2) {
+            this._isPointerDown = false;
+            document.removeEventListener("pointermove", this.onPointerMove);
+            document.removeEventListener("pointerup", this.onPointerUp);
+        }
 
         // let doc = this.props.store.Docs[0];
         // let dataField = doc.GetFieldT(KeyStore.Data, TextField);
@@ -68,7 +72,7 @@ export class FreeFormCanvas extends React.Component<IProps> {
     render() {
         let store = this.props.store;
         return (
-            <div className="freeformcanvas-container" onPointerDown={this.onPointerDown} onWheel={this.onPointerWheel}>
+            <div className="freeformcanvas-container" onPointerDown={this.onPointerDown} onWheel={this.onPointerWheel} onContextMenu={(e) => e.preventDefault()}>
                 <div className="freeformcanvas" style={{ transform: store.Transform, transformOrigin: '50% 50%' }}>
                     <div className="node-container">
                         {this.props.store.Docs.map(doc => {

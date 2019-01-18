@@ -28,6 +28,14 @@ export class DocumentView extends React.Component<IProps> {
         return this.props.dvm.Doc.GetFieldValue(KeyStore.Y, NumberField, Number(0));
     }
 
+    set x(x: number) {
+        this.props.dvm.Doc.SetFieldValue(KeyStore.X, x, NumberField)
+    }
+
+    set y(y: number) {
+        this.props.dvm.Doc.SetFieldValue(KeyStore.Y, y, NumberField)
+    }
+
     @computed
     get transform(): string {
         return `translate(${this.x}px, ${this.y}px)`;
@@ -58,6 +66,39 @@ export class DocumentView extends React.Component<IProps> {
         return this.props.dvm.Doc.GetFieldValue(KeyStore.LayoutFields, ListField, new Array<Key>());
     }
 
+    private _isPointerDown = false;
+
+    onPointerDown = (e: React.PointerEvent): void => {
+        e.stopPropagation();
+        if (e.button === 2) {
+            this._isPointerDown = true;
+            document.removeEventListener("pointermove", this.onPointerMove);
+            document.addEventListener("pointermove", this.onPointerMove);
+            document.removeEventListener("pointerup", this.onPointerUp);
+            document.addEventListener("pointerup", this.onPointerUp);
+        }
+    }
+
+    onPointerUp = (e: PointerEvent): void => {
+        e.stopPropagation();
+        if (e.button === 2) {
+            e.preventDefault();
+            this._isPointerDown = false;
+            document.removeEventListener("pointermove", this.onPointerMove);
+            document.removeEventListener("pointerup", this.onPointerUp);
+        }
+    }
+
+    onPointerMove = (e: PointerEvent): void => {
+        e.stopPropagation();
+        e.preventDefault();
+        if (!this._isPointerDown) {
+            return;
+        }
+        this.x += e.movementX;
+        this.y += e.movementY;
+    }
+
     render() {
         let doc = this.props.dvm.Doc;
         let bindings: any = {
@@ -77,7 +118,10 @@ export class DocumentView extends React.Component<IProps> {
                 transform: this.transform,
                 width: this.width,
                 height: this.height
-            }}>
+            }} onPointerDown={this.onPointerDown} onContextMenu={
+                (e) => {
+                    e.preventDefault()
+                }}>
                 <JsxParser
                     components={{ FieldTextBox, FreeFormCanvas, CollectionFreeFormView }}
                     bindings={bindings}
