@@ -8,6 +8,7 @@ import { DocumentViewModel } from "../../viewmodels/DocumentViewModel";
 import { DocumentView } from "../nodes/DocumentView";
 import { ListField } from "../../fields/ListField";
 import { NumberField } from "../../fields/NumberField";
+import { SSL_OP_SINGLE_DH_USE } from "constants";
 
 interface IProps {
     fieldKey: Key;
@@ -79,12 +80,22 @@ export class CollectionFreeFormView extends React.Component<IProps> {
         const panx: number = doc.GetFieldValue(KeyStore.PanX, NumberField, Number(0));
         const pany: number = doc.GetFieldValue(KeyStore.PanY, NumberField, Number(0));
         return (
-            <div className="collectionfreeformview-container" onPointerDown={this.onPointerDown} onWheel={this.onPointerWheel} onContextMenu={(e) => e.preventDefault()}>
-                <div className="collectionfreeformview" style={{ transform: `translate(${panx}px, ${pany}px)`, transformOrigin: '50% 50%' }}>
-                    <div className="node-container">
-                        {value.map(doc => {
-                            return (<DocumentView key={doc.Id} dvm={new DocumentViewModel(doc)} />);
-                        })}
+
+            <div className="border" style={{
+                    borderStyle: "solid",
+                    borderWidth: "2px"
+                }}>
+                <div className="collectionfreeformview-container" onPointerDown={this.onPointerDown} onWheel={this.onPointerWheel} onContextMenu={(e) => e.preventDefault()} style={{
+                    width: "100%",
+                    height: "calc(100% - 4px)",
+                    overflow: "hidden"
+                }}>
+                    <div className="collectionfreeformview" style={{ transform: `translate(${panx}px, ${pany}px)`, transformOrigin: '50% 50%' }}>
+                        <div className="node-container">
+                            {value.map(doc => {
+                                return (<DocumentView key={doc.Id} dvm={new DocumentViewModel(doc)} />);
+                            })}
+                        </div>
                     </div>
                 </div>
             </div>

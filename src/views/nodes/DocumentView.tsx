@@ -52,12 +52,6 @@ export class DocumentView extends React.Component<IProps> {
         return this.props.dvm.Doc.GetFieldValue(KeyStore.Height, NumberField, Number(0));
     }
 
-    //Temp
-    @computed
-    get data(): string {
-        return this.props.dvm.Doc.GetFieldValue(KeyStore.Data, TextField, String(""));
-    }
-
     @computed
     get layout(): string {
         return this.props.dvm.Doc.GetFieldValue(KeyStore.Layout, TextField, String("<p>Error loading layout data</p>"));
