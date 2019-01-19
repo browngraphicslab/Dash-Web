@@ -74,8 +74,8 @@ export class DocumentView extends React.Component<IProps> {
     }
 
     @computed
-    get selected() : string {
-        return SelectionManager.IsSelected(this) ? "5px solid black" : "0px"
+    get selected() : boolean {
+        return SelectionManager.IsSelected(this)
     }
 
     private _isPointerDown = false;
@@ -116,7 +116,7 @@ export class DocumentView extends React.Component<IProps> {
         let doc = this.props.dvm.Doc;
         let bindings: any = {
             doc: doc,
-            isSelected: this.selected !== "0px"
+            isSelected: this.selected
         };
         for (const key of this.layoutKeys) {
             bindings[key.Name + "Key"] = key;
@@ -132,8 +132,7 @@ export class DocumentView extends React.Component<IProps> {
             <div className="node" ref={this._mainCont} style={{
                 transform: this.transform,
                 width: this.width,
-                height: this.height,
-                border: this.selected
+                height: this.height
             }} onPointerDown={this.onPointerDown} onContextMenu={
                 (e) => {
                     e.preventDefault()
