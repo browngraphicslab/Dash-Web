@@ -53,8 +53,12 @@ runInAction(() => {
     let doc4 = Documents.CollectionDocument(docset, {
         x: 100, y: 400
     });
+    let doc5 = Documents.ImageDocument("https://static.boredpanda.com/blog/wp-content/uploads/2018/04/5acb63d83493f__700-png.jpg", {
+        x: 650, y: 500
+    });
     mainNodeCollection.Docs.push(doc1);
     mainNodeCollection.Docs.push(doc2);
     mainNodeCollection.Docs.push(doc4);
     mainNodeCollection.Docs.push(doc3);
+    mainNodeCollection.Docs.push(doc5);
 });
