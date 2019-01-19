@@ -27,6 +27,10 @@ export class CollectionFreeFormView extends React.Component<IProps> {
 
     @action
     onPointerDown = (e: React.PointerEvent): void => {
+        if (!this.props.isSelected) {
+            return;
+        }
+
         e.stopPropagation();
         if (e.button === 2) {
             this._isPointerDown = true;

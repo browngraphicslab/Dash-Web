@@ -28,4 +28,12 @@ export namespace SelectionManager {
     export function IsSelected(doc: DocumentView): boolean {
         return manager.SelectedDocuments.indexOf(doc) !== -1;
     }
+
+    export function DeselectAll(): void {
+        manager.SelectedDocuments = []
+    }
+
+    export function SelectedDocuments(): Array<DocumentView> {
+        return manager.SelectedDocuments;
+    }
 }

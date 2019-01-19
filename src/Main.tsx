@@ -11,6 +11,7 @@ import { Document } from './fields/Document';
 import { configure, runInAction } from 'mobx';
 import { NodeStore } from './stores/NodeStore';
 import { Documents } from './documents/Documents';
+import { DocumentDecorations } from './DocumentDecorations';
 
 configure({
     enforceActions: "observed"
@@ -20,6 +21,7 @@ const mainNodeCollection = new NodeCollectionStore();
 ReactDOM.render((
     <div>
         <h1>Dash Web</h1>
+        <DocumentDecorations />
         <FreeFormCanvas store={mainNodeCollection} />
     </div>), document.getElementById('root'));
 

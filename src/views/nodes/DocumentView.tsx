@@ -19,6 +19,12 @@ interface IProps {
 
 @observer
 export class DocumentView extends React.Component<IProps> {
+    private _mainCont = React.createRef<HTMLDivElement>();
+
+    get mainCont(): React.RefObject<HTMLDivElement> {
+        return this._mainCont
+    }
+
     @computed
     get x(): number {
         return this.props.dvm.Doc.GetFieldValue(KeyStore.X, NumberField, Number(0));
@@ -110,7 +116,7 @@ export class DocumentView extends React.Component<IProps> {
         let doc = this.props.dvm.Doc;
         let bindings: any = {
             doc: doc,
-            isSelected: this.selected
+            isSelected: this.selected !== "0px"
         };
         for (const key of this.layoutKeys) {
             bindings[key.Name + "Key"] = key;
@@ -123,7 +129,7 @@ export class DocumentView extends React.Component<IProps> {
         }
         
         return (
-            <div className="node" style={{
+            <div className="node" ref={this._mainCont} style={{
                 transform: this.transform,
                 width: this.width,
                 height: this.height,
