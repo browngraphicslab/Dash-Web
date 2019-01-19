@@ -5,7 +5,7 @@ import { ObservableMap } from "mobx";
 export class Document extends Field {
     private fields: ObservableMap<Key, Field> = new ObservableMap();
 
-    GetField(key: Key, ignoreProto?: boolean): Opt<Field> {
+    GetField(key: Key, ignoreProto: boolean = false): Opt<Field> {
         let field: Opt<Field>;
         if (ignoreProto) {
             if (this.fields.has(key)) {
@@ -43,7 +43,7 @@ export class Document extends Field {
     }
 
     SetFieldValue<T extends Field>(key: Key, value: any, ctor: { new(): T }): boolean {
-        let field = this.GetField(key);
+        let field = this.GetField(key, true);
         if (field != null) {
             return field.TrySetValue(value);
         } else {
