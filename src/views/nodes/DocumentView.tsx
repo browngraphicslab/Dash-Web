@@ -1,6 +1,6 @@
 import { observer } from "mobx-react";
 import React = require("react");
-import { computed } from "mobx";
+import { computed, observable } from "mobx";
 import { KeyStore, Key } from "../../fields/Key";
 import { NumberField } from "../../fields/NumberField";
 import { TextField } from "../../fields/TextField";
@@ -10,6 +10,7 @@ import { FieldTextBox } from "../nodes/FieldTextBox"
 import { FreeFormCanvas } from "../freeformcanvas/FreeFormCanvas"
 import { CollectionFreeFormView } from "../freeformcanvas/CollectionFreeFormView"
 import "./NodeView.scss"
+import { SelectionManager } from "../../util/SelectionManager";
 const JsxParser = require('react-jsx-parser').default;//TODO Why does this need to be imported like this?
 
 interface IProps {
@@ -72,6 +73,11 @@ export class DocumentView extends React.Component<IProps> {
         return this.props.dvm.Doc.GetFieldValue(KeyStore.LayoutFields, ListField, new Array<Key>());
     }
 
+    @computed
+    get selected() : string {
+        return SelectionManager.IsSelected(this) ? "5px solid black" : "0px"
+    }
+
     private _isPointerDown = false;
 
     onPointerDown = (e: React.PointerEvent): void => {
@@ -83,6 +89,7 @@ export class DocumentView extends React.Component<IProps> {
             document.removeEventListener("pointerup", this.onPointerUp);
             document.addEventListener("pointerup", this.onPointerUp);
         }
+        SelectionManager.SelectDoc(this, e.ctrlKey)
     }
 
     onPointerUp = (e: PointerEvent): void => {
@@ -108,7 +115,8 @@ export class DocumentView extends React.Component<IProps> {
     render() {
         let doc = this.props.dvm.Doc;
         let bindings: any = {
-            doc: doc
+            doc: doc,
+            isSelected: this.selected
         };
         for (const key of this.layoutKeys) {
             bindings[key.Name + "Key"] = key;
@@ -119,11 +127,13 @@ export class DocumentView extends React.Component<IProps> {
                 bindings[key.Name] = field.GetValue();
             }
         }
+        
         return (
             <div className="node" style={{
                 transform: this.transform,
                 width: this.width,
-                height: this.height
+                height: this.height,
+                border: this.selected
             }} onPointerDown={this.onPointerDown} onContextMenu={
                 (e) => {
                     e.preventDefault()

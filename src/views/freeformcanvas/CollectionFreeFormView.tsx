@@ -4,14 +4,15 @@ import "./FreeFormCanvas.scss";
 import React = require("react");
 import { action } from "mobx";
 import { Document } from "../../fields/Document";
-import {DocumentViewModel} from "../../viewmodels/DocumentViewModel";
-import {DocumentView} from "../nodes/DocumentView";
-import {ListField} from "../../fields/ListField";
-import {NumberField} from "../../fields/NumberField";
+import { DocumentViewModel } from "../../viewmodels/DocumentViewModel";
+import { DocumentView } from "../nodes/DocumentView";
+import { ListField } from "../../fields/ListField";
+import { NumberField } from "../../fields/NumberField";
 
 interface IProps {
-    fieldKey:Key;
-    doc:Document;
+    fieldKey: Key;
+    doc: Document;
+    isSelected: boolean;
 }
 
 @observer
@@ -19,7 +20,7 @@ export class CollectionFreeFormView extends React.Component<IProps> {
 
     private _isPointerDown: boolean = false;
 
-    constructor(props:IProps) {
+    constructor(props: IProps) {
         super(props);
     }
 
@@ -52,11 +53,16 @@ export class CollectionFreeFormView extends React.Component<IProps> {
         if (!this._isPointerDown) {
             return;
         }
-        const {doc} = this.props;
+        const { doc } = this.props;
+
+        // if docView is selected, pan, else dont pan
+        console.log(this.props.isSelected)
+
+
         let x = doc.GetFieldValue(KeyStore.PanX, NumberField, Number(0));
         let y = doc.GetFieldValue(KeyStore.PanY, NumberField, Number(0));
-        doc.SetFieldValue(KeyStore.PanX, x+e.movementX, NumberField);
-        doc.SetFieldValue(KeyStore.PanY, y+e.movementY, NumberField);
+        doc.SetFieldValue(KeyStore.PanX, x + e.movementX, NumberField);
+        doc.SetFieldValue(KeyStore.PanY, y + e.movementY, NumberField);
     }
 
     @action
@@ -68,7 +74,7 @@ export class CollectionFreeFormView extends React.Component<IProps> {
     }
 
     render() {
-        const {fieldKey, doc} = this.props;
+        const { fieldKey, doc } = this.props;
         const value: Document[] = doc.GetFieldValue(fieldKey, ListField, []);
         const panx: number = doc.GetFieldValue(KeyStore.PanX, NumberField, Number(0));
         const pany: number = doc.GetFieldValue(KeyStore.PanY, NumberField, Number(0));
