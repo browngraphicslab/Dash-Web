@@ -77,7 +77,7 @@ export namespace Documents {
             collectionProto.SetField(KeyStore.Y, new NumberField(0));
             collectionProto.SetField(KeyStore.Width, new NumberField(300));
             collectionProto.SetField(KeyStore.Height, new NumberField(300));
-            collectionProto.SetField(KeyStore.Layout, new TextField('<CollectionFreeFormView doc={doc} fieldKey={DataKey}/>'));
+            collectionProto.SetField(KeyStore.Layout, new TextField('<CollectionFreeFormView doc={doc} fieldKey={DataKey} isSelected={isSelected}/>'));
             collectionProto.SetField(KeyStore.LayoutKeys, new ListField([KeyStore.Data]));
         }
         return collectionProto;

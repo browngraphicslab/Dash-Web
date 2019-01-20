@@ -10,6 +10,7 @@ import {DocumentView} from "../nodes/DocumentView";
 import {TextField} from "../../fields/TextField";
 import {ListField} from "../../fields/ListField";
 import {Field} from "../../fields/Field";
+import { SelectionManager } from "../../util/SelectionManager";
 
 interface IProps {
     store: NodeCollectionStore;
@@ -34,6 +35,8 @@ export class FreeFormCanvas extends React.Component<IProps> {
             document.removeEventListener("pointerup", this.onPointerUp);
             document.addEventListener("pointerup", this.onPointerUp);
         }
+
+        SelectionManager.DeselectAll()
     }
 
     @action
@@ -57,6 +60,7 @@ export class FreeFormCanvas extends React.Component<IProps> {
         if (!this._isPointerDown) {
             return;
         }
+
         this.props.store.X += e.movementX;
         this.props.store.Y += e.movementY;
     }

@@ -9,10 +9,12 @@ import { DocumentView } from "../nodes/DocumentView";
 import { ListField } from "../../fields/ListField";
 import { NumberField } from "../../fields/NumberField";
 import { SSL_OP_SINGLE_DH_USE } from "constants";
+import { DocumentDecorations } from "../../DocumentDecorations";
 
 interface IProps {
     fieldKey: Key;
     doc: Document;
+    isSelected: boolean;
 }
 
 @observer
@@ -26,6 +28,10 @@ export class CollectionFreeFormView extends React.Component<IProps> {
 
     @action
     onPointerDown = (e: React.PointerEvent): void => {
+        if (!this.props.isSelected) {
+            return;
+        }
+
         e.stopPropagation();
         if (e.button === 2) {
             this._isPointerDown = true;
@@ -54,10 +60,14 @@ export class CollectionFreeFormView extends React.Component<IProps> {
             return;
         }
         const { doc } = this.props;
+
         let x = doc.GetFieldValue(KeyStore.PanX, NumberField, Number(0));
         let y = doc.GetFieldValue(KeyStore.PanY, NumberField, Number(0));
         doc.SetFieldValue(KeyStore.PanX, x + e.movementX, NumberField);
         doc.SetFieldValue(KeyStore.PanY, y + e.movementY, NumberField);
+
+
+        DocumentDecorations.Instance.forceUpdate()
     }
 
     @action

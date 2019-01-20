@@ -1,6 +1,6 @@
 import { observer } from "mobx-react";
 import React = require("react");
-import { computed } from "mobx";
+import { computed, observable } from "mobx";
 import { KeyStore, Key } from "../../fields/Key";
 import { NumberField } from "../../fields/NumberField";
 import { TextField } from "../../fields/TextField";
@@ -10,6 +10,8 @@ import { FieldTextBox } from "../nodes/FieldTextBox"
 import { FreeFormCanvas } from "../freeformcanvas/FreeFormCanvas"
 import { CollectionFreeFormView } from "../freeformcanvas/CollectionFreeFormView"
 import "./NodeView.scss"
+import { SelectionManager } from "../../util/SelectionManager";
+import { DocumentDecorations } from "../../DocumentDecorations";
 const JsxParser = require('react-jsx-parser').default;//TODO Why does this need to be imported like this?
 
 interface IProps {
@@ -18,6 +20,12 @@ interface IProps {
 
 @observer
 export class DocumentView extends React.Component<IProps> {
+    private _mainCont = React.createRef<HTMLDivElement>();
+
+    get mainCont(): React.RefObject<HTMLDivElement> {
+        return this._mainCont
+    }
+
     @computed
     get x(): number {
         return this.props.dvm.Doc.GetFieldValue(KeyStore.X, NumberField, Number(0));
@@ -46,9 +54,17 @@ export class DocumentView extends React.Component<IProps> {
         return this.props.dvm.Doc.GetFieldValue(KeyStore.Width, NumberField, Number(0));
     }
 
+    set width(w: number) {
+        this.props.dvm.Doc.SetFieldValue(KeyStore.Width, w, NumberField)
+    }
+
     @computed
     get height(): number {
         return this.props.dvm.Doc.GetFieldValue(KeyStore.Height, NumberField, Number(0));
+    }
+
+    set height(h: number) {
+        this.props.dvm.Doc.SetFieldValue(KeyStore.Height, h, NumberField)
     }
 
     @computed
@@ -66,6 +82,11 @@ export class DocumentView extends React.Component<IProps> {
         return this.props.dvm.Doc.GetFieldValue(KeyStore.LayoutFields, ListField, new Array<Key>());
     }
 
+    @computed
+    get selected() : boolean {
+        return SelectionManager.IsSelected(this)
+    }
+
     private _isPointerDown = false;
 
     onPointerDown = (e: React.PointerEvent): void => {
@@ -77,6 +98,7 @@ export class DocumentView extends React.Component<IProps> {
             document.removeEventListener("pointerup", this.onPointerUp);
             document.addEventListener("pointerup", this.onPointerUp);
         }
+        SelectionManager.SelectDoc(this, e.ctrlKey)
     }
 
     onPointerUp = (e: PointerEvent): void => {
@@ -86,6 +108,9 @@ export class DocumentView extends React.Component<IProps> {
             this._isPointerDown = false;
             document.removeEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
+            console.log(this.x);
+            console.log(this.y)
+            DocumentDecorations.Instance.opacity = 1
         }
     }
 
@@ -97,12 +122,21 @@ export class DocumentView extends React.Component<IProps> {
         }
         this.x += e.movementX;
         this.y += e.movementY;
+        DocumentDecorations.Instance.opacity = 0
+    }
+
+    onDragStart = (e: React.DragEvent<HTMLDivElement>): void => {
+        if (this.mainCont.current !== null) {
+            this.mainCont.current.style.opacity = "0";
+            // e.dataTransfer.setDragImage()
+        }
     }
 
     render() {
         let doc = this.props.dvm.Doc;
         let bindings: any = {
-            doc: doc
+            doc: doc,
+            isSelected: this.selected
         };
         for (const key of this.layoutKeys) {
             bindings[key.Name + "Key"] = key;
@@ -113,15 +147,18 @@ export class DocumentView extends React.Component<IProps> {
                 bindings[key.Name] = field.GetValue();
             }
         }
+        
         return (
-            <div className="node" style={{
-                transform: this.transform,
-                width: this.width,
-                height: this.height
-            }} onPointerDown={this.onPointerDown} onContextMenu={
-                (e) => {
-                    e.preventDefault()
-                }}>
+            <div className="node" ref={this._mainCont} style={{
+                    transform: this.transform,
+                    width: this.width,
+                    height: this.height,
+                }}
+                onContextMenu={
+                    (e) => {
+                        e.preventDefault()
+                }}
+                onPointerDown={this.onPointerDown}>
                 <JsxParser
                     components={{ FieldTextBox, FreeFormCanvas, CollectionFreeFormView }}
                     bindings={bindings}
