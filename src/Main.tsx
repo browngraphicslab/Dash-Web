@@ -1,6 +1,7 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import "./Main.scss";
+import "normalize.css"
 import { NodeCollectionStore } from './stores/NodeCollectionStore';
 import { StaticTextNodeStore } from './stores/StaticTextNodeStore';
 import { VideoNodeStore } from './stores/VideoNodeStore';
