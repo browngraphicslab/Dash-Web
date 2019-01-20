@@ -11,6 +11,7 @@ import { FreeFormCanvas } from "../freeformcanvas/FreeFormCanvas"
 import { CollectionFreeFormView } from "../freeformcanvas/CollectionFreeFormView"
 import "./NodeView.scss"
 import { SelectionManager } from "../../util/SelectionManager";
+import { DocumentDecorations } from "../../DocumentDecorations";
 const JsxParser = require('react-jsx-parser').default;//TODO Why does this need to be imported like this?
 
 interface IProps {
@@ -53,9 +54,17 @@ export class DocumentView extends React.Component<IProps> {
         return this.props.dvm.Doc.GetFieldValue(KeyStore.Width, NumberField, Number(0));
     }
 
+    set width(w: number) {
+        this.props.dvm.Doc.SetFieldValue(KeyStore.Width, w, NumberField)
+    }
+
     @computed
     get height(): number {
         return this.props.dvm.Doc.GetFieldValue(KeyStore.Height, NumberField, Number(0));
+    }
+
+    set height(h: number) {
+        this.props.dvm.Doc.SetFieldValue(KeyStore.Height, h, NumberField)
     }
 
     @computed
@@ -99,6 +108,9 @@ export class DocumentView extends React.Component<IProps> {
             this._isPointerDown = false;
             document.removeEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
+            console.log(this.x);
+            console.log(this.y)
+            DocumentDecorations.Instance.opacity = 1
         }
     }
 
@@ -110,6 +122,14 @@ export class DocumentView extends React.Component<IProps> {
         }
         this.x += e.movementX;
         this.y += e.movementY;
+        DocumentDecorations.Instance.opacity = 0
+    }
+
+    onDragStart = (e: React.DragEvent<HTMLDivElement>): void => {
+        if (this.mainCont.current !== null) {
+            this.mainCont.current.style.opacity = "0";
+            // e.dataTransfer.setDragImage()
+        }
     }
 
     render() {
@@ -130,13 +150,15 @@ export class DocumentView extends React.Component<IProps> {
         
         return (
             <div className="node" ref={this._mainCont} style={{
-                transform: this.transform,
-                width: this.width,
-                height: this.height
-            }} onPointerDown={this.onPointerDown} onContextMenu={
-                (e) => {
-                    e.preventDefault()
-                }}>
+                    transform: this.transform,
+                    width: this.width,
+                    height: this.height,
+                }}
+                onContextMenu={
+                    (e) => {
+                        e.preventDefault()
+                }}
+                onPointerDown={this.onPointerDown}>
                 <JsxParser
                     components={{ FieldTextBox, FreeFormCanvas, CollectionFreeFormView }}
                     bindings={bindings}

@@ -9,6 +9,7 @@ import { DocumentView } from "../nodes/DocumentView";
 import { ListField } from "../../fields/ListField";
 import { NumberField } from "../../fields/NumberField";
 import { SSL_OP_SINGLE_DH_USE } from "constants";
+import { DocumentDecorations } from "../../DocumentDecorations";
 
 interface IProps {
     fieldKey: Key;
@@ -60,14 +61,13 @@ export class CollectionFreeFormView extends React.Component<IProps> {
         }
         const { doc } = this.props;
 
-        // if docView is selected, pan, else dont pan
-        console.log(this.props.isSelected)
-
-
         let x = doc.GetFieldValue(KeyStore.PanX, NumberField, Number(0));
         let y = doc.GetFieldValue(KeyStore.PanY, NumberField, Number(0));
         doc.SetFieldValue(KeyStore.PanX, x + e.movementX, NumberField);
         doc.SetFieldValue(KeyStore.PanY, y + e.movementY, NumberField);
+
+
+        DocumentDecorations.Instance.forceUpdate()
     }
 
     @action
