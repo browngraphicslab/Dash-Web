@@ -44,7 +44,7 @@ export namespace Documents {
     export function TextDocument(text: string, options:DocumentOptions = {}): Document {
         let doc = GetTextPrototype().MakeDelegate();
         setupOptions(doc, options);
-        doc.SetField(KeyStore.Data, new TextField(text));
+        // doc.SetField(KeyStore.Data, new TextField(text));
         return doc;
     }
 
