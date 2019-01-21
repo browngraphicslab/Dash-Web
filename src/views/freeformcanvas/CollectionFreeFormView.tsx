@@ -10,6 +10,7 @@ import { ListField } from "../../fields/ListField";
 import { NumberField } from "../../fields/NumberField";
 import { SSL_OP_SINGLE_DH_USE } from "constants";
 import { DocumentDecorations } from "../../DocumentDecorations";
+import { SelectionManager } from "../../util/SelectionManager";
 
 interface IProps {
     fieldKey: Key;
@@ -94,8 +95,8 @@ export class CollectionFreeFormView extends React.Component<IProps> {
                     height: "calc(100% - 4px)",
                     overflow: "hidden"
                 }}>
-                    <div className="collectionfreeformview" style={{ transform: `translate(${panx}px, ${pany}px)`, transformOrigin: '50% 50%' }}>
-                        <div className="node-container">
+                    <div className="collectionfreeformview" style={{ transform: `translate(${panx}px, ${pany}px)`, transformOrigin: '50% 50%', width: "100%", height: "100%" }}>
+                        <div className="node-container" style={{width: "100%", height: "100%"}}>
                             {value.map(doc => {
                                 return (<DocumentView key={doc.Id} dvm={new DocumentViewModel(doc)} />);
                             })}
