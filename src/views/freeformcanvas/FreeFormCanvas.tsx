@@ -79,9 +79,9 @@ export class FreeFormCanvas extends React.Component<IProps> {
             <div className="freeformcanvas-container" onPointerDown={this.onPointerDown} onWheel={this.onPointerWheel} onContextMenu={(e) => e.preventDefault()}>
                 <div className="freeformcanvas" style={{ transform: store.Transform, transformOrigin: '50% 50%' }}>
                     <div className="node-container">
-                        {this.props.store.Docs.map(doc => {
-                            return (<DocumentView key={doc.Id} dvm={new DocumentViewModel(doc)} />);
-                        })}
+                        {/* {this.props.store.Docs.map(doc => {
+                            return (<DocumentView key={doc.Id} parent={null} dvm={new DocumentViewModel(doc)} />);
+                        })} */}
                     </div>
                 </div>
             </div>

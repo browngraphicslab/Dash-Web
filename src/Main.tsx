@@ -9,7 +9,7 @@ import { FreeFormCanvas } from './views/freeformcanvas/FreeFormCanvas';
 import { Key, KeyStore as KS, KeyStore } from './fields/Key';
 import { NumberField } from './fields/NumberField';
 import { Document } from './fields/Document';
-import { configure, runInAction } from 'mobx';
+import { configure, runInAction, action } from 'mobx';
 import { NodeStore } from './stores/NodeStore';
 import { Documents } from './documents/Documents';
 import { DocumentDecorations } from './DocumentDecorations';
@@ -17,6 +17,7 @@ import { CollectionFreeFormView } from './views/freeformcanvas/CollectionFreeFor
 import { ListField } from './fields/ListField';
 import { DocumentView } from './views/nodes/DocumentView';
 import { DocumentViewModel } from './viewmodels/DocumentViewModel';
+import { ContextMenu } from './views/ContextMenu';
 
 configure({
     enforceActions: "observed"
@@ -26,11 +27,27 @@ const mainNodeCollection = new Array<Document>();
 let mainContainer = Documents.CollectionDocument(mainNodeCollection, {
     x: 0, y: 0, width: window.screen.width, height: window.screen.height
 })
+let mainContvm = new DocumentViewModel(mainContainer);
+mainContvm.IsMainDoc = true;
+
+window.addEventListener("drop", function(e) {
+    e.preventDefault();
+}, false)
+window.addEventListener("dragover", function(e) {
+    e.preventDefault();
+}, false)
+document.addEventListener("pointerdown", action(function(e: PointerEvent) {
+    if (!ContextMenu.Instance.intersects(e.pageX, e.pageY)) {
+        ContextMenu.Instance.clearItems()
+    }
+}), true)
+
 ReactDOM.render((
     <div style={{display: "grid", width: "100vw", height: "100vh"}}>
         <h1>Dash Web</h1>
+        <DocumentView dvm={mainContvm} parent={undefined} />
         <DocumentDecorations />
-        <DocumentView dvm={new DocumentViewModel(mainContainer)} />
+        <ContextMenu />
     </div>), document.getElementById('root'));
 
 

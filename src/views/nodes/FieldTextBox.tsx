@@ -13,6 +13,8 @@ import {baseKeymap} from "prosemirror-commands"
 import {undo, redo, history} from "prosemirror-history"
 import { Opt } from "../../fields/Field";
 
+import "./FieldTextBox.scss"
+
 interface IProps {
     fieldKey:Key;
     doc:Document;
@@ -34,7 +36,6 @@ interface IProps {
 //  specified Key and assigns it to an HTML input node.  When changes are made tot his node, 
 //  this will edit the document and assign the new value to that field.
 //
-@observer
 export class FieldTextBox extends React.Component<IProps> {
     private _ref: React.RefObject<HTMLDivElement>;
     private _editorView: Opt<EditorView>;
@@ -112,6 +113,6 @@ export class FieldTextBox extends React.Component<IProps> {
     }
 
     render() {
-        return (<div ref={this._ref} />)
+        return (<div className="fieldTextBox-cont" ref={this._ref} />)
     }
 }

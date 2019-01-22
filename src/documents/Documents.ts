@@ -35,7 +35,7 @@ export namespace Documents {
             textProto.SetField(KeyStore.Y, new NumberField(0));
             textProto.SetField(KeyStore.Width, new NumberField(300));
             textProto.SetField(KeyStore.Height, new NumberField(150));
-            textProto.SetField(KeyStore.Layout, new TextField("<FieldTextBox doc={doc} fieldKey={DataKey} />"));
+            textProto.SetField(KeyStore.Layout, new TextField("<FieldTextBox doc={dvm.Doc} fieldKey={DataKey} />"));
             textProto.SetField(KeyStore.LayoutKeys, new ListField([KeyStore.Data]));
         }
         return textProto;
@@ -73,11 +73,11 @@ export namespace Documents {
     function GetCollectionPrototype(): Document {
         if(!collectionProto) {
             collectionProto = new Document();
-            collectionProto.SetField(KeyStore.X, new NumberField(150));
+            collectionProto.SetField(KeyStore.X, new NumberField(0));
             collectionProto.SetField(KeyStore.Y, new NumberField(0));
             collectionProto.SetField(KeyStore.Width, new NumberField(300));
             collectionProto.SetField(KeyStore.Height, new NumberField(300));
-            collectionProto.SetField(KeyStore.Layout, new TextField('<CollectionFreeFormView doc={doc} fieldKey={DataKey} isSelected={isSelected}/>'));
+            collectionProto.SetField(KeyStore.Layout, new TextField('<CollectionFreeFormView dvm={dvm} fieldKey={DataKey} isSelected={isSelected}/>'));
             collectionProto.SetField(KeyStore.LayoutKeys, new ListField([KeyStore.Data]));
         }
         return collectionProto;

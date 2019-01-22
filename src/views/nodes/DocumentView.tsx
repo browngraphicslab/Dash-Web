@@ -1,6 +1,6 @@
 import { observer } from "mobx-react";
 import React = require("react");
-import { computed, observable } from "mobx";
+import { computed, observable, action } from "mobx";
 import { KeyStore, Key } from "../../fields/Key";
 import { NumberField } from "../../fields/NumberField";
 import { TextField } from "../../fields/TextField";
@@ -12,15 +12,19 @@ import { CollectionFreeFormView } from "../freeformcanvas/CollectionFreeFormView
 import "./NodeView.scss"
 import { SelectionManager } from "../../util/SelectionManager";
 import { DocumentDecorations } from "../../DocumentDecorations";
+import { ContextMenu } from "../ContextMenu";
+import { Opt } from "../../fields/Field";
 const JsxParser = require('react-jsx-parser').default;//TODO Why does this need to be imported like this?
 
 interface IProps {
     dvm: DocumentViewModel;
+    parent: Opt<CollectionFreeFormView>;
 }
 
 @observer
 export class DocumentView extends React.Component<IProps> {
     private _mainCont = React.createRef<HTMLDivElement>();
+    private _contextMenuCanOpen = false;
 
     get mainCont(): React.RefObject<HTMLDivElement> {
         return this._mainCont
@@ -91,8 +95,10 @@ export class DocumentView extends React.Component<IProps> {
 
     onPointerDown = (e: React.PointerEvent): void => {
         e.stopPropagation();
+
         if (e.button === 2) {
             this._isPointerDown = true;
+            this._contextMenuCanOpen = true;
             document.removeEventListener("pointermove", this.onPointerMove);
             document.addEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
@@ -120,6 +126,7 @@ export class DocumentView extends React.Component<IProps> {
         if (!this._isPointerDown) {
             return;
         }
+        this._contextMenuCanOpen = false
         this.x += e.movementX;
         this.y += e.movementY;
         DocumentDecorations.Instance.opacity = 0
@@ -132,10 +139,39 @@ export class DocumentView extends React.Component<IProps> {
         }
     }
 
+    onClick = (e: React.MouseEvent): void => {    }
+
+    deleteClicked = (e: React.MouseEvent): void => {
+        if (this.props.parent) {
+            this.props.parent.removeDocument(this.props.dvm.Doc)
+        }
+    }
+
+    @action
+    onContextMenu = (e: React.MouseEvent): void => {
+        e.preventDefault()
+
+        if (!this._contextMenuCanOpen) {
+            return;
+        }
+
+        if (this.props.dvm.IsMainDoc) {
+            ContextMenu.Instance.clearItems()
+        }
+        else {
+            // DocumentViews should stop propogation of this event
+            e.stopPropagation();
+
+            ContextMenu.Instance.clearItems();
+            ContextMenu.Instance.addItem({description: "Delete", event: this.deleteClicked})
+            ContextMenu.Instance.displayMenu(e.pageX, e.pageY)
+        }
+    }
+
     render() {
         let doc = this.props.dvm.Doc;
         let bindings: any = {
-            doc: doc,
+            dvm: this.props.dvm,
             isSelected: this.selected
         };
         for (const key of this.layoutKeys) {
@@ -154,11 +190,9 @@ export class DocumentView extends React.Component<IProps> {
                     width: this.width,
                     height: this.height,
                 }}
-                onContextMenu={
-                    (e) => {
-                        e.preventDefault()
-                }}
-                onPointerDown={this.onPointerDown}>
+                onContextMenu={this.onContextMenu}
+                onPointerDown={this.onPointerDown}
+                onClick={this.onClick}>
                 <JsxParser
                     components={{ FieldTextBox, FreeFormCanvas, CollectionFreeFormView }}
                     bindings={bindings}

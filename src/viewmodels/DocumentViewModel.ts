@@ -9,13 +9,13 @@ export class DocumentViewModel {
         return this.doc;
     }
 
-    private _selected = false;
+    private _isMainDoc = false
 
-    get Selected() : boolean {
-        return this._selected;
+    get IsMainDoc(): boolean {
+        return this._isMainDoc;
     }
 
-    set Selected(isSelected: boolean) {
-        this._selected = isSelected;
+    set IsMainDoc(v: boolean) {
+        this._isMainDoc = v;
     }
 }
