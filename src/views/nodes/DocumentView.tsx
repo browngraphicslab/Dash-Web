@@ -12,6 +12,8 @@ import { CollectionFreeFormView } from "../freeformcanvas/CollectionFreeFormView
 import "./NodeView.scss"
 import { SelectionManager } from "../../util/SelectionManager";
 import { DocumentDecorations } from "../../DocumentDecorations";
+import { SSL_OP_DONT_INSERT_EMPTY_FRAGMENTS } from "constants";
+import { DragManager } from "../../util/DragManager";
 const JsxParser = require('react-jsx-parser').default;//TODO Why does this need to be imported like this?
 
 interface IProps {
@@ -22,8 +24,11 @@ interface IProps {
 export class DocumentView extends React.Component<IProps> {
     private _mainCont = React.createRef<HTMLDivElement>();
 
-    get mainCont(): React.RefObject<HTMLDivElement> {
-        return this._mainCont
+    get screenRect(): ClientRect | DOMRect {
+        if(this._mainCont.current) {
+            return this._mainCont.current.getBoundingClientRect();
+        }
+        return new DOMRect();
     }
 
     @computed
@@ -83,13 +88,26 @@ export class DocumentView extends React.Component<IProps> {
     }
 
     @computed
-    get selected() : boolean {
+    get selected(): boolean {
         return SelectionManager.IsSelected(this)
     }
 
     private _isPointerDown = false;
 
+    componentDidMount() {
+        if(this._mainCont.current) {
+            DragManager.MakeDraggable(this._mainCont.current, {
+                buttons: 3,
+                handlers: {
+                    dragComplete: () => {},
+                    dragStart: () => {}
+                }
+            })
+        }
+    }
+
     onPointerDown = (e: React.PointerEvent): void => {
+        return;
         e.stopPropagation();
         if (e.button === 2) {
             this._isPointerDown = true;
@@ -97,8 +115,9 @@ export class DocumentView extends React.Component<IProps> {
             document.addEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
             document.addEventListener("pointerup", this.onPointerUp);
+        } else {
+            SelectionManager.SelectDoc(this, e.ctrlKey)
         }
-        SelectionManager.SelectDoc(this, e.ctrlKey)
     }
 
     onPointerUp = (e: PointerEvent): void => {
@@ -108,8 +127,6 @@ export class DocumentView extends React.Component<IProps> {
             this._isPointerDown = false;
             document.removeEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
-            console.log(this.x);
-            console.log(this.y)
             DocumentDecorations.Instance.opacity = 1
         }
     }
@@ -126,8 +143,8 @@ export class DocumentView extends React.Component<IProps> {
     }
 
     onDragStart = (e: React.DragEvent<HTMLDivElement>): void => {
-        if (this.mainCont.current !== null) {
-            this.mainCont.current.style.opacity = "0";
+        if (this._mainCont.current !== null) {
+            this._mainCont.current.style.opacity = "0";
             // e.dataTransfer.setDragImage()
         }
     }
@@ -136,7 +153,7 @@ export class DocumentView extends React.Component<IProps> {
         let doc = this.props.dvm.Doc;
         let bindings: any = {
             doc: doc,
-            isSelected: this.selected
+            isSelected: () => this.selected
         };
         for (const key of this.layoutKeys) {
             bindings[key.Name + "Key"] = key;
@@ -147,22 +164,24 @@ export class DocumentView extends React.Component<IProps> {
                 bindings[key.Name] = field.GetValue();
             }
         }
-        
+
         return (
             <div className="node" ref={this._mainCont} style={{
-                    transform: this.transform,
-                    width: this.width,
-                    height: this.height,
-                }}
+                transform: this.transform,
+                width: this.width,
+                height: this.height,
+            }}
                 onContextMenu={
                     (e) => {
                         e.preventDefault()
-                }}
+                    }}
                 onPointerDown={this.onPointerDown}>
                 <JsxParser
                     components={{ FieldTextBox, FreeFormCanvas, CollectionFreeFormView }}
                     bindings={bindings}
                     jsx={this.layout}
+                    showWarnings={true}
+                    onError={(test: any) => { console.log(test) }}
                 />
             </div>
         );

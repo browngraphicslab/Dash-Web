@@ -15,44 +15,21 @@ export class DocumentDecorations extends React.Component {
     }
 
     get x(): number {
-        let left = Number.MAX_VALUE;
-        SelectionManager.SelectedDocuments().forEach(element => {
-            if (element.mainCont.current !== null) {
-                left = Math.min(element.mainCont.current.getBoundingClientRect().left, left)
-            }
-        });
-        return left;
+        return SelectionManager.SelectedDocuments().reduce((left, element) => Math.min(element.screenRect.left, left), Number.MAX_VALUE);
     }
 
     get y(): number {
-        let top = Number.MAX_VALUE;
-        SelectionManager.SelectedDocuments().forEach(element => {
-            if (element.mainCont.current !== null) {
-                top = Math.min(element.mainCont.current.getBoundingClientRect().top, top)
-            }
-        });
-        return top;
+        return SelectionManager.SelectedDocuments().reduce((top, element) => Math.min(element.screenRect.top, top), Number.MAX_VALUE);
     }
 
     get height(): number {
-        return (SelectionManager.SelectedDocuments().reduce((bottom, element) => {
-            if (element.mainCont.current !== null) {
-                return Math.max(element.mainCont.current.getBoundingClientRect().bottom, bottom)
-            }
-            else {
-                return bottom
-            }
-        }, Number.MIN_VALUE)) - this.y;
+        return (SelectionManager.SelectedDocuments().reduce((bottom, element) => Math.max(element.screenRect.bottom, bottom),
+            Number.MIN_VALUE)) - this.y;
     }
 
     get width(): number {
-        let right = Number.MIN_VALUE;
-        SelectionManager.SelectedDocuments().forEach(element => {
-            if (element.mainCont.current !== null) {
-                right = Math.max(element.mainCont.current.getBoundingClientRect().right, right)
-            }
-        });
-        return right - this.x;
+        return SelectionManager.SelectedDocuments().reduce((right, element) => Math.max(element.screenRect.right, right),
+            Number.MIN_VALUE) - this.x;
     }
 
     private _resizer = ""
@@ -129,8 +106,9 @@ export class DocumentDecorations extends React.Component {
         }
 
         SelectionManager.SelectedDocuments().forEach(element => {
-            if (element.mainCont.current !== null) {
-                let scale = element.width / element.mainCont.current.getBoundingClientRect().width;
+            const rect = element.screenRect;
+            if (rect.width !== 0) {
+                let scale = element.width / rect.width;
                 let actualdW = Math.max(element.width + (dW * scale), 20);
                 let actualdH = Math.max(element.height + (dH * scale), 20);
                 element.x += dX * (actualdW - element.width);

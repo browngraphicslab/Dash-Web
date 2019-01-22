@@ -14,7 +14,7 @@ import { DocumentDecorations } from "../../DocumentDecorations";
 interface IProps {
     fieldKey: Key;
     doc: Document;
-    isSelected: boolean;
+    isSelected: () => boolean;
 }
 
 @observer
@@ -28,7 +28,7 @@ export class CollectionFreeFormView extends React.Component<IProps> {
 
     @action
     onPointerDown = (e: React.PointerEvent): void => {
-        if (!this.props.isSelected) {
+        if (!this.props.isSelected()) {
             return;
         }
 
