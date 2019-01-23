@@ -56,7 +56,7 @@ export namespace Documents {
             imageProto.SetField(KeyStore.Y, new NumberField(0));
             imageProto.SetField(KeyStore.Width, new NumberField(300));
             imageProto.SetField(KeyStore.Height, new NumberField(300));
-            imageProto.SetField(KeyStore.Layout, new TextField('<img src={Data} alt="Image not found"/>'));
+            imageProto.SetField(KeyStore.Layout, new TextField('<img src={Data} draggable="false" width="100%" alt="Image not found"/>'));
             // imageProto.SetField(KeyStore.Layout, new TextField('<div style={"background-image: " + {Data}} />'));
             imageProto.SetField(KeyStore.LayoutFields, new ListField([KeyStore.Data]));
         }

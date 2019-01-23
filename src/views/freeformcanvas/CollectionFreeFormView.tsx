@@ -54,7 +54,6 @@ export class CollectionFreeFormView extends React.Component<IProps> {
 
     @action
     onPointerMove = (e: PointerEvent): void => {
-        e.preventDefault();
         e.stopPropagation();
         if (!this._isPointerDown) {
             return;
@@ -97,7 +96,7 @@ export class CollectionFreeFormView extends React.Component<IProps> {
                     <div className="collectionfreeformview" style={{ transform: `translate(${panx}px, ${pany}px)`, transformOrigin: '50% 50%' }}>
                         <div className="node-container">
                             {value.map(doc => {
-                                return (<DocumentView key={doc.Id} dvm={new DocumentViewModel(doc)} />);
+                                return (<DocumentView key={doc.Id} dvm={doc} />);
                             })}
                         </div>
                     </div>

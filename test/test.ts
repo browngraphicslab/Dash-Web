@@ -40,8 +40,12 @@ describe("Document", () =>{
     it('should update', () => {
         let doc = new Document();
         let key = new Key("Test");
+        let key2 = new Key("Test2");
         let ran = false;
         reaction(() => doc.GetField(key), (field) => {ran = true});
+        expect(ran).to.equal(false);
+
+        doc.SetField(key2, new NumberField(4));
         expect(ran).to.equal(false);
 
         doc.SetField(key, new NumberField(5));

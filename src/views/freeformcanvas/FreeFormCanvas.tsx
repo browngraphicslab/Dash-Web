@@ -80,7 +80,7 @@ export class FreeFormCanvas extends React.Component<IProps> {
                 <div className="freeformcanvas" style={{ transform: store.Transform, transformOrigin: '50% 50%' }}>
                     <div className="node-container">
                         {this.props.store.Docs.map(doc => {
-                            return (<DocumentView key={doc.Id} dvm={new DocumentViewModel(doc)} />);
+                            return (<DocumentView key={doc.Id} dvm={doc} />);
                         })}
                     </div>
                 </div>

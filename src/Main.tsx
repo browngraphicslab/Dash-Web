@@ -23,12 +23,8 @@ ReactDOM.render((
     <div>
         <FreeFormCanvas store={mainNodeCollection} />
         <DocumentDecorations />
-        <button onClick={minus}>-</button>
     </div>), document.getElementById('root'));
 
-function minus() {
-
-}
 runInAction(() => {
     let doc1 = Documents.TextDocument("Hello world");
     let doc2 = doc1.MakeDelegate();
