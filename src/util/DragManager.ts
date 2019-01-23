@@ -14,7 +14,7 @@ export namespace DragManager {
         buttons: number;
     }
 
-    export interface DragDisposer {
+    export interface DragDropDisposer {
         (): void;
     }
 
@@ -34,7 +34,19 @@ export namespace DragManager {
         dragComplete: (e: DragCompleteEvent) => void;
     }
 
-    export function MakeDraggable(element: HTMLElement, options: DragOptions): DragDisposer {
+    export interface DropOptions {
+        handlers: DropHandlers;
+    }
+
+    export class DropEvent {
+        constructor(readonly x: number, readonly y: number) { }
+    }
+
+    export interface DropHandlers {
+        drop: (e: DropEvent) => void;
+    }
+
+    export function MakeDraggable(element: HTMLElement, options: DragOptions): DragDropDisposer {
         if ("draggable" in element.dataset) {
             throw new Error("Element is already draggable, can't make it draggable again");
         }
@@ -53,6 +65,7 @@ export namespace DragManager {
             dispose();
         };
         const downHandler = (e: PointerEvent) => {
+            e.stopPropagation();
             document.addEventListener("pointermove", startDragHandler);
             document.addEventListener("pointerup", upHandler);
         };
@@ -60,8 +73,24 @@ export namespace DragManager {
 
         return () => {
             element.removeEventListener("pointerdown", downHandler);
-            element.dataset["draggable"] = undefined;
+            delete element.dataset["draggable"];
         }
+    }
+
+    export function MakeDropTarget(element: HTMLElement, options: DropOptions): DragDropDisposer {
+        if ("draggable" in element.dataset) {
+            throw new Error("Element is already droppable, can't make it droppable again");
+        }
+        element.dataset["canDrop"] = "true";
+        const handler = (e: Event) => {
+            const ce = e as CustomEvent<DropEvent>;
+            options.handlers.drop(ce.detail);
+        };
+        element.addEventListener("dashOnDrop", handler);
+        return () => {
+            element.removeEventListener("dashOnDrop", handler);
+            delete element.dataset["canDrop"]
+        };
     }
 
     function StartDrag(ele: HTMLElement, e: PointerEvent, options: DragOptions) {
@@ -81,10 +110,16 @@ export namespace DragManager {
         if (event.cancelled) {
             return;
         }
-        let x = e.x, y = e.y;
+        const w = ele.offsetWidth, h = ele.offsetHeight;
+        const rect = ele.getBoundingClientRect();
+        const scaleX = rect.width / w, scaleY = rect.height / h;
+        let x = rect.left, y = rect.top;
+        // const offsetX = e.x - rect.left, offsetY = e.y - rect.top;
         let dragElement = ele.cloneNode(true) as HTMLElement;
+        dragElement.style.opacity = "0.7";
         dragElement.style.position = "absolute";
-        dragElement.style.transform = `translate(${x}px, ${y}px)`;
+        dragElement.style.transformOrigin = "0 0";
+        dragElement.style.transform = `translate(${x}px, ${y}px) scale(${scaleX}, ${scaleY})`;
         dragDiv.appendChild(dragElement);
 
         const moveHandler = (e: PointerEvent) => {
@@ -92,18 +127,29 @@ export namespace DragManager {
             e.preventDefault();
             x += e.movementX;
             y += e.movementY;
-            dragElement.style.transform = `translate(${x}px, ${y}px)`;
+            dragElement.style.transform = `translate(${x}px, ${y}px) scale(${scaleX}, ${scaleY})`;
         };
         const upHandler = (e: PointerEvent) => {
             document.removeEventListener("pointermove", moveHandler, true);
             document.removeEventListener("pointerup", upHandler);
-            FinishDrag(dragElement, options);
+            FinishDrag(dragElement, e, options);
         };
         document.addEventListener("pointermove", moveHandler, true);
         document.addEventListener("pointerup", upHandler);
     }
 
-    function FinishDrag(ele: HTMLElement, options: DragOptions) {
+    function FinishDrag(ele: HTMLElement, e: PointerEvent, options: DragOptions) {
         dragDiv.removeChild(ele);
+        const target = document.elementFromPoint(e.x, e.y);
+        if (!target) {
+            return;
+        }
+        target.dispatchEvent(new CustomEvent<DropEvent>("dashOnDrop", {
+            bubbles: true,
+            detail: {
+                x: e.x,
+                y: e.y,
+            }
+        }));
     }
 }

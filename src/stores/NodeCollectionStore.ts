@@ -15,7 +15,8 @@ export class NodeCollectionStore extends NodeStore {
 
     @computed
     public get Transform(): string {
-        return "translate(" + this.X + "px," + this.Y + "px) scale(" + this.Scale + "," + this.Scale + ")";
+        const halfWidth = window.innerWidth / 2, halfHeight = window.innerHeight / 2;
+        return `translate(${this.X + halfWidth}px, ${this.Y + halfHeight}px) scale(${this.Scale}) translate(${-halfWidth}px, ${-halfHeight}px)`;
     }
 
     @action

@@ -130,7 +130,6 @@ export class DocumentView extends React.Component<IProps> {
     private _isPointerDown = false;
 
     componentDidMount() {
-        return;
         // if(this._mainCont.current) {
         //     DragManager.MakeDraggable(this._mainCont.current, {
         //         buttons: 2,
@@ -143,6 +142,7 @@ export class DocumentView extends React.Component<IProps> {
     }
 
     onPointerDown = (e: React.PointerEvent): void => {
+        // return;
         e.stopPropagation();
         if (e.button === 2) {
             this._isPointerDown = true;

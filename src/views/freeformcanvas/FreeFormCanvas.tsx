@@ -77,7 +77,7 @@ export class FreeFormCanvas extends React.Component<IProps> {
         let store = this.props.store;
         return (
             <div className="freeformcanvas-container" onPointerDown={this.onPointerDown} onWheel={this.onPointerWheel} onContextMenu={(e) => e.preventDefault()}>
-                <div className="freeformcanvas" style={{ transform: store.Transform, transformOrigin: '50% 50%' }}>
+                <div className="freeformcanvas" style={{ transform: store.Transform}}>
                     <div className="node-container">
                         {this.props.store.Docs.map(doc => {
                             return (<DocumentView key={doc.Id} dvm={doc} />);
