@@ -5,7 +5,6 @@ import "normalize.css"
 import { NodeCollectionStore } from './stores/NodeCollectionStore';
 import { StaticTextNodeStore } from './stores/StaticTextNodeStore';
 import { VideoNodeStore } from './stores/VideoNodeStore';
-import { FreeFormCanvas } from './views/freeformcanvas/FreeFormCanvas';
 import { Key, KeyStore as KS, KeyStore } from './fields/Key';
 import { NumberField } from './fields/NumberField';
 import { Document } from './fields/Document';
@@ -27,8 +26,6 @@ const mainNodeCollection = new Array<Document>();
 let mainContainer = Documents.CollectionDocument(mainNodeCollection, {
     x: 0, y: 0, width: window.screen.width, height: window.screen.height
 })
-let mainContvm = new DocumentViewModel(mainContainer);
-mainContvm.IsMainDoc = true;
 
 window.addEventListener("drop", function(e) {
     e.preventDefault();
@@ -43,9 +40,9 @@ document.addEventListener("pointerdown", action(function(e: PointerEvent) {
 }), true)
 
 ReactDOM.render((
-    <div style={{display: "grid", width: "100vw", height: "100vh"}}>
+    <div style={{display: "grid"}}>
         <h1>Dash Web</h1>
-        <DocumentView dvm={mainContvm} parent={undefined} />
+        <DocumentView Document={mainContainer} ContainingCollectionView={undefined} ContainingDocumentView={undefined}/>
         <DocumentDecorations />
         <ContextMenu />
     </div>), document.getElementById('root'));
@@ -75,10 +72,10 @@ runInAction(() => {
     });
     let docset = new Array<Document>(doc1, doc2);
     let doc4 = Documents.CollectionDocument(docset, {
-        x: 100, y: 400
+        x: 0, y: 400
     });
     let doc5 = Documents.ImageDocument("https://static.boredpanda.com/blog/wp-content/uploads/2018/04/5acb63d83493f__700-png.jpg", {
-        x: 650, y: 500
+        x: 1280, y: 500
     });
     let mainNodes = mainContainer.GetFieldT(KeyStore.Data, ListField);
     if (!mainNodes) {

@@ -25,6 +25,9 @@ export namespace Documents {
         if(options.height) {
             doc.SetFieldValue(KeyStore.Height, options.height, NumberField);
         }
+        doc.SetFieldValue(KeyStore.Scale, 1, NumberField);
+        doc.SetFieldValue(KeyStore.PanX, 0, NumberField);
+        doc.SetFieldValue(KeyStore.PanY, 0, NumberField);
     }
 
     let textProto:Document;
@@ -35,7 +38,7 @@ export namespace Documents {
             textProto.SetField(KeyStore.Y, new NumberField(0));
             textProto.SetField(KeyStore.Width, new NumberField(300));
             textProto.SetField(KeyStore.Height, new NumberField(150));
-            textProto.SetField(KeyStore.Layout, new TextField("<FieldTextBox doc={dvm.Doc} fieldKey={DataKey} />"));
+            textProto.SetField(KeyStore.Layout, new TextField("<FieldTextBox doc={Document} fieldKey={DataKey} />"));
             textProto.SetField(KeyStore.LayoutKeys, new ListField([KeyStore.Data]));
         }
         return textProto;
@@ -75,9 +78,12 @@ export namespace Documents {
             collectionProto = new Document();
             collectionProto.SetField(KeyStore.X, new NumberField(0));
             collectionProto.SetField(KeyStore.Y, new NumberField(0));
+            collectionProto.SetField(KeyStore.Scale, new NumberField(1));
+            collectionProto.SetField(KeyStore.PanX, new NumberField(0));
+            collectionProto.SetField(KeyStore.PanY, new NumberField(0));
             collectionProto.SetField(KeyStore.Width, new NumberField(300));
             collectionProto.SetField(KeyStore.Height, new NumberField(300));
-            collectionProto.SetField(KeyStore.Layout, new TextField('<CollectionFreeFormView dvm={dvm} fieldKey={DataKey} isSelected={isSelected}/>'));
+            collectionProto.SetField(KeyStore.Layout, new TextField('<CollectionFreeFormView Document={Document} fieldKey={DataKey} ContainingDocumentView={ContainingDocumentView} isSelected={isSelected}/>'));
             collectionProto.SetField(KeyStore.LayoutKeys, new ListField([KeyStore.Data]));
         }
         return collectionProto;

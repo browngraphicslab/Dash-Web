@@ -7,7 +7,7 @@ import { TextField } from "../../fields/TextField";
 import { DocumentViewModel } from "../../viewmodels/DocumentViewModel";
 import { ListField } from "../../fields/ListField";
 import { FieldTextBox } from "../nodes/FieldTextBox"
-import { FreeFormCanvas } from "../freeformcanvas/FreeFormCanvas"
+import { Document } from "../../fields/Document";
 import { CollectionFreeFormView } from "../freeformcanvas/CollectionFreeFormView"
 import "./NodeView.scss"
 import { SelectionManager } from "../../util/SelectionManager";
@@ -17,14 +17,19 @@ import { Opt } from "../../fields/Field";
 const JsxParser = require('react-jsx-parser').default;//TODO Why does this need to be imported like this?
 
 interface IProps {
-    dvm: DocumentViewModel;
-    parent: Opt<CollectionFreeFormView>;
+    Document:    Document;
+    ContainingCollectionView: Opt<object>;
+    ContainingDocumentView:   Opt<DocumentView>
 }
 
 @observer
 export class DocumentView extends React.Component<IProps> {
     private _mainCont = React.createRef<HTMLDivElement>();
     private _contextMenuCanOpen = false;
+    private _downX:number = 0;
+    private _downY:number = 0;
+    private _lastX:number = 0;
+    private _lastY:number = 0;
 
     get mainCont(): React.RefObject<HTMLDivElement> {
         return this._mainCont
@@ -32,20 +37,20 @@ export class DocumentView extends React.Component<IProps> {
 
     @computed
     get x(): number {
-        return this.props.dvm.Doc.GetFieldValue(KeyStore.X, NumberField, Number(0));
+        return this.props.Document.GetFieldValue(KeyStore.X, NumberField, Number(0));
     }
 
     @computed
     get y(): number {
-        return this.props.dvm.Doc.GetFieldValue(KeyStore.Y, NumberField, Number(0));
+        return this.props.Document.GetFieldValue(KeyStore.Y, NumberField, Number(0));
     }
 
     set x(x: number) {
-        this.props.dvm.Doc.SetFieldValue(KeyStore.X, x, NumberField)
+        this.props.Document.SetFieldValue(KeyStore.X, x, NumberField)
     }
 
     set y(y: number) {
-        this.props.dvm.Doc.SetFieldValue(KeyStore.Y, y, NumberField)
+        this.props.Document.SetFieldValue(KeyStore.Y, y, NumberField)
     }
 
     @computed
@@ -55,35 +60,35 @@ export class DocumentView extends React.Component<IProps> {
 
     @computed
     get width(): number {
-        return this.props.dvm.Doc.GetFieldValue(KeyStore.Width, NumberField, Number(0));
+        return this.props.Document.GetFieldValue(KeyStore.Width, NumberField, Number(0));
     }
 
     set width(w: number) {
-        this.props.dvm.Doc.SetFieldValue(KeyStore.Width, w, NumberField)
+        this.props.Document.SetFieldValue(KeyStore.Width, w, NumberField)
     }
 
     @computed
     get height(): number {
-        return this.props.dvm.Doc.GetFieldValue(KeyStore.Height, NumberField, Number(0));
+        return this.props.Document.GetFieldValue(KeyStore.Height, NumberField, Number(0));
     }
 
     set height(h: number) {
-        this.props.dvm.Doc.SetFieldValue(KeyStore.Height, h, NumberField)
+        this.props.Document.SetFieldValue(KeyStore.Height, h, NumberField)
     }
 
     @computed
     get layout(): string {
-        return this.props.dvm.Doc.GetFieldValue(KeyStore.Layout, TextField, String("<p>Error loading layout data</p>"));
+        return this.props.Document.GetFieldValue(KeyStore.Layout, TextField, String("<p>Error loading layout data</p>"));
     }
 
     @computed
     get layoutKeys(): Key[] {
-        return this.props.dvm.Doc.GetFieldValue(KeyStore.LayoutKeys, ListField, new Array<Key>());
+        return this.props.Document.GetFieldValue(KeyStore.LayoutKeys, ListField, new Array<Key>());
     }
 
     @computed
     get layoutFields(): Key[] {
-        return this.props.dvm.Doc.GetFieldValue(KeyStore.LayoutFields, ListField, new Array<Key>());
+        return this.props.Document.GetFieldValue(KeyStore.LayoutFields, ListField, new Array<Key>());
     }
 
     @computed
@@ -91,45 +96,59 @@ export class DocumentView extends React.Component<IProps> {
         return SelectionManager.IsSelected(this)
     }
 
-    private _isPointerDown = false;
+    @computed
+    get active() : boolean {
+        return SelectionManager.IsSelected(this) ||  (this.props.ContainingCollectionView instanceof CollectionFreeFormView && this.props.ContainingCollectionView.active);
+    }
 
     onPointerDown = (e: React.PointerEvent): void => {
-        e.stopPropagation();
-
-        if (e.button === 2) {
-            this._isPointerDown = true;
-            this._contextMenuCanOpen = true;
-            document.removeEventListener("pointermove", this.onPointerMove);
-            document.addEventListener("pointermove", this.onPointerMove);
-            document.removeEventListener("pointerup", this.onPointerUp);
-            document.addEventListener("pointerup", this.onPointerUp);
-        }
-        SelectionManager.SelectDoc(this, e.ctrlKey)
+        this._downX = e.pageX;
+        this._downY = e.pageY;
+        this._lastX = e.pageX;
+        this._lastY = e.pageY;
+        this._contextMenuCanOpen = e.button == 2;
+        document.removeEventListener("pointermove", this.onPointerMove);
+        document.addEventListener("pointermove", this.onPointerMove);
+        document.removeEventListener("pointerup", this.onPointerUp);
+        document.addEventListener("pointerup", this.onPointerUp);
     }
 
     onPointerUp = (e: PointerEvent): void => {
-        e.stopPropagation();
-        if (e.button === 2) {
+        document.removeEventListener("pointermove", this.onPointerMove);
+        document.removeEventListener("pointerup", this.onPointerUp);
+        if (!e.cancelBubble) {
+            e.stopPropagation();
             e.preventDefault();
-            this._isPointerDown = false;
-            document.removeEventListener("pointermove", this.onPointerMove);
-            document.removeEventListener("pointerup", this.onPointerUp);
-            console.log(this.x);
-            console.log(this.y)
-            DocumentDecorations.Instance.opacity = 1
+            DocumentDecorations.Instance.opacity = 1;
+            if (this._downX == e.pageX && this._downY == e.pageY) {
+                SelectionManager.SelectDoc(this, e.ctrlKey)
+            }
         }
     }
 
     onPointerMove = (e: PointerEvent): void => {
-        e.stopPropagation();
-        e.preventDefault();
-        if (!this._isPointerDown) {
-            return;
+        if (this.active && !e.cancelBubble) {
+            e.stopPropagation();
+            e.preventDefault();
+            this._contextMenuCanOpen = false
+            let me = this;
+            var dx = e.pageX - this._lastX;
+            var dy = e.pageY - this._lastY;
+            this._lastX = e.pageX;
+            this._lastY = e.pageY;
+            let currScale:number = 1;
+            if (me.props.ContainingDocumentView != undefined) {
+                let pme = me.props.ContainingDocumentView!.props.Document;
+                currScale = pme.GetFieldValue(KeyStore.Scale, NumberField, Number(0)); 
+                if (me.props.ContainingDocumentView!.props.ContainingDocumentView != undefined) {
+                    let pme = me.props.ContainingDocumentView!.props.ContainingDocumentView!.props.Document;
+                    currScale *= pme.GetFieldValue(KeyStore.Scale, NumberField, Number(0));
+                } 
+            } 
+            this.x += dx/currScale;
+            this.y += dy/currScale;
+            DocumentDecorations.Instance.opacity = 0;
         }
-        this._contextMenuCanOpen = false
-        this.x += e.movementX;
-        this.y += e.movementY;
-        DocumentDecorations.Instance.opacity = 0
     }
 
     onDragStart = (e: React.DragEvent<HTMLDivElement>): void => {
@@ -142,8 +161,8 @@ export class DocumentView extends React.Component<IProps> {
     onClick = (e: React.MouseEvent): void => {    }
 
     deleteClicked = (e: React.MouseEvent): void => {
-        if (this.props.parent) {
-            this.props.parent.removeDocument(this.props.dvm.Doc)
+        if (this.props.ContainingCollectionView instanceof CollectionFreeFormView) {
+            this.props.ContainingCollectionView.removeDocument(this.props.Document)
         }
     }
 
@@ -155,7 +174,8 @@ export class DocumentView extends React.Component<IProps> {
             return;
         }
 
-        if (this.props.dvm.IsMainDoc) {
+        var topMost = this.props.ContainingCollectionView == undefined;
+        if (topMost) {
             ContextMenu.Instance.clearItems()
         }
         else {
@@ -169,10 +189,10 @@ export class DocumentView extends React.Component<IProps> {
     }
 
     render() {
-        let doc = this.props.dvm.Doc;
+        let doc = this.props.Document;
         let bindings: any = {
-            dvm: this.props.dvm,
-            isSelected: this.selected
+            Document: this.props.Document,
+            ContainingDocumentView: this
         };
         for (const key of this.layoutKeys) {
             bindings[key.Name + "Key"] = key;
@@ -194,7 +214,7 @@ export class DocumentView extends React.Component<IProps> {
                 onPointerDown={this.onPointerDown}
                 onClick={this.onClick}>
                 <JsxParser
-                    components={{ FieldTextBox, FreeFormCanvas, CollectionFreeFormView }}
+                    components={{ FieldTextBox, CollectionFreeFormView }}
                     bindings={bindings}
                     jsx={this.layout}
                 />

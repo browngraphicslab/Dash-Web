@@ -8,14 +8,4 @@ export class DocumentViewModel {
     get Doc(): Document {
         return this.doc;
     }
-
-    private _isMainDoc = false
-
-    get IsMainDoc(): boolean {
-        return this._isMainDoc;
-    }
-
-    set IsMainDoc(v: boolean) {
-        this._isMainDoc = v;
-    }
 }
