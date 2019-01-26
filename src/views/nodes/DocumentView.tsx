@@ -23,6 +23,51 @@ interface IProps {
 }
 
 @observer
+class DocumentContents extends React.Component<IProps> {
+
+    @computed
+    get layout(): string {
+        return this.props.Document.GetFieldValue(KeyStore.Layout, TextField, String("<p>Error loading layout data</p>"));
+    }
+
+    @computed
+    get layoutKeys(): Key[] {
+        return this.props.Document.GetFieldValue(KeyStore.LayoutKeys, ListField, new Array<Key>());
+    }
+
+    @computed
+    get layoutFields(): Key[] {
+        return this.props.Document.GetFieldValue(KeyStore.LayoutFields, ListField, new Array<Key>());
+    }
+    render() {
+        let doc = this.props.Document;
+        let bindings: any = {
+            doc: doc,
+            // isSelected: this.props.isSelected
+        };
+        for (const key of this.layoutKeys) {
+            bindings[key.Name + "Key"] = key;
+        }
+        for (const key of this.layoutFields) {
+            let field = doc.GetField(key);
+            if (field) {
+                bindings[key.Name] = field.GetValue();
+            }
+        }
+        return <JsxParser
+            components={{ FieldTextBox, CollectionFreeFormView }}
+            bindings={bindings}
+            jsx={this.layout}
+            showWarnings={true}
+            onError={(test: any) => { console.log(test) }}
+        />
+
+
+    }
+
+}
+
+@observer
 export class DocumentView extends React.Component<IProps> {
     private _mainCont = React.createRef<HTMLDivElement>();
     private _contextMenuCanOpen = false;
@@ -31,8 +76,11 @@ export class DocumentView extends React.Component<IProps> {
     private _lastX:number = 0;
     private _lastY:number = 0;
 
-    get mainCont(): React.RefObject<HTMLDivElement> {
-        return this._mainCont
+    get screenRect(): ClientRect | DOMRect {
+        if (this._mainCont.current) {
+            return this._mainCont.current.getBoundingClientRect();
+        }
+        return new DOMRect();
     }
 
     @computed
@@ -76,24 +124,16 @@ export class DocumentView extends React.Component<IProps> {
         this.props.Document.SetFieldValue(KeyStore.Height, h, NumberField)
     }
 
-    @computed
-    get layout(): string {
-        return this.props.Document.GetFieldValue(KeyStore.Layout, TextField, String("<p>Error loading layout data</p>"));
-    }
-
-    @computed
-    get layoutKeys(): Key[] {
-        return this.props.Document.GetFieldValue(KeyStore.LayoutKeys, ListField, new Array<Key>());
-    }
-
-    @computed
-    get layoutFields(): Key[] {
-        return this.props.Document.GetFieldValue(KeyStore.LayoutFields, ListField, new Array<Key>());
-    }
-
-    @computed
-    get selected() : boolean {
-        return SelectionManager.IsSelected(this)
+    componentDidMount() {
+        // if(this._mainCont.current) {
+        //     DragManager.MakeDraggable(this._mainCont.current, {
+        //         buttons: 2,
+        //         handlers: {
+        //             dragComplete: () => {},
+        //             dragStart: () => {}
+        //         }
+        //     })
+        // }
     }
 
     @computed
@@ -152,8 +192,8 @@ export class DocumentView extends React.Component<IProps> {
     }
 
     onDragStart = (e: React.DragEvent<HTMLDivElement>): void => {
-        if (this.mainCont.current !== null) {
-            this.mainCont.current.style.opacity = "0";
+        if (this._mainCont.current !== null) {
+            this._mainCont.current.style.opacity = "0";
             // e.dataTransfer.setDragImage()
         }
     }
@@ -189,35 +229,16 @@ export class DocumentView extends React.Component<IProps> {
     }
 
     render() {
-        let doc = this.props.Document;
-        let bindings: any = {
-            Document: this.props.Document,
-            ContainingDocumentView: this
-        };
-        for (const key of this.layoutKeys) {
-            bindings[key.Name + "Key"] = key;
-        }
-        for (const key of this.layoutFields) {
-            let field = doc.GetField(key);
-            if (field) {
-                bindings[key.Name] = field.GetValue();
-            }
-        }
-        
         return (
             <div className="node" ref={this._mainCont} style={{
-                    transform: this.transform,
-                    width: this.width,
-                    height: this.height,
-                }}
+                transform: this.transform,
+                width: this.width,
+                height: this.height,
+            }}
                 onContextMenu={this.onContextMenu}
                 onPointerDown={this.onPointerDown}
                 onClick={this.onClick}>
-                <JsxParser
-                    components={{ FieldTextBox, CollectionFreeFormView }}
-                    bindings={bindings}
-                    jsx={this.layout}
-                />
+                <DocumentContents {...this.props} />
             </div>
         );
     }

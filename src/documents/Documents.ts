@@ -59,7 +59,8 @@ export namespace Documents {
             imageProto.SetField(KeyStore.Y, new NumberField(0));
             imageProto.SetField(KeyStore.Width, new NumberField(300));
             imageProto.SetField(KeyStore.Height, new NumberField(300));
-            imageProto.SetField(KeyStore.Layout, new TextField('<img src={Data} alt="Image not found"/>'));
+            imageProto.SetField(KeyStore.Layout, new TextField('<img src={Data} draggable="false" width="100%" alt="Image not found"/>'));
+            // imageProto.SetField(KeyStore.Layout, new TextField('<div style={"background-image: " + {Data}} />'));
             imageProto.SetField(KeyStore.LayoutFields, new ListField([KeyStore.Data]));
         }
         return imageProto;
@@ -83,7 +84,7 @@ export namespace Documents {
             collectionProto.SetField(KeyStore.PanY, new NumberField(0));
             collectionProto.SetField(KeyStore.Width, new NumberField(300));
             collectionProto.SetField(KeyStore.Height, new NumberField(300));
-            collectionProto.SetField(KeyStore.Layout, new TextField('<CollectionFreeFormView Document={Document} fieldKey={DataKey} ContainingDocumentView={ContainingDocumentView} isSelected={isSelected}/>'));
+            collectionProto.SetField(KeyStore.Layout, new TextField('<CollectionFreeFormView Document={Document} fieldKey={DataKey} ContainingDocumentView={ContainingDocumentView}/>'));
             collectionProto.SetField(KeyStore.LayoutKeys, new ListField([KeyStore.Data]));
         }
         return collectionProto;

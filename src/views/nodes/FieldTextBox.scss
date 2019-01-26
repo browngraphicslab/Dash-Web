@@ -4,6 +4,10 @@
     height: 100%;
 }
 
+.ProseMirror:focus {
+    outline: none !important
+}
+
 .fieldTextBox-cont {
     background: white;
     padding: 1vw;
