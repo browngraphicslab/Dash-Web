@@ -5,24 +5,46 @@ import "normalize.css"
 import { NodeCollectionStore } from './stores/NodeCollectionStore';
 import { StaticTextNodeStore } from './stores/StaticTextNodeStore';
 import { VideoNodeStore } from './stores/VideoNodeStore';
-import { FreeFormCanvas } from './views/freeformcanvas/FreeFormCanvas';
-import { Key, KeyStore as KS } from './fields/Key';
+import { Key, KeyStore as KS, KeyStore } from './fields/Key';
 import { NumberField } from './fields/NumberField';
 import { Document } from './fields/Document';
-import { configure, runInAction } from 'mobx';
+import { configure, runInAction, action } from 'mobx';
 import { NodeStore } from './stores/NodeStore';
 import { Documents } from './documents/Documents';
 import { DocumentDecorations } from './DocumentDecorations';
+import { CollectionFreeFormView } from './views/freeformcanvas/CollectionFreeFormView';
+import { ListField } from './fields/ListField';
+import { DocumentView } from './views/nodes/DocumentView';
+import { DocumentViewModel } from './viewmodels/DocumentViewModel';
+import { ContextMenu } from './views/ContextMenu';
 
 configure({
     enforceActions: "observed"
 });
 
-const mainNodeCollection = new NodeCollectionStore();
+const mainNodeCollection = new Array<Document>();
+let mainContainer = Documents.CollectionDocument(mainNodeCollection, {
+    x: 0, y: 0, width: window.screen.width, height: window.screen.height
+})
+
+window.addEventListener("drop", function(e) {
+    e.preventDefault();
+}, false)
+window.addEventListener("dragover", function(e) {
+    e.preventDefault();
+}, false)
+document.addEventListener("pointerdown", action(function(e: PointerEvent) {
+    if (!ContextMenu.Instance.intersects(e.pageX, e.pageY)) {
+        ContextMenu.Instance.clearItems()
+    }
+}), true)
+
 ReactDOM.render((
-    <div>
-        <FreeFormCanvas store={mainNodeCollection} />
+    <div style={{display: "grid"}}>
+        <h1>Dash Web</h1>
+        <DocumentView Document={mainContainer} ContainingCollectionView={undefined} ContainingDocumentView={undefined}/>
         <DocumentDecorations />
+        <ContextMenu />
     </div>), document.getElementById('root'));
 
 runInAction(() => {
@@ -35,14 +57,19 @@ runInAction(() => {
     });
     let docset = new Array<Document>(doc1, doc2);
     let doc4 = Documents.CollectionDocument(docset, {
-        x: 100, y: 400
+        x: 0, y: 400
     });
     let doc5 = Documents.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", {
         x: 650, y: 500
     });
-    mainNodeCollection.Docs.push(doc1);
-    mainNodeCollection.Docs.push(doc2);
-    mainNodeCollection.Docs.push(doc4);
-    mainNodeCollection.Docs.push(doc3);
-    mainNodeCollection.Docs.push(doc5);
+    let mainNodes = mainContainer.GetFieldT(KeyStore.Data, ListField);
+    if (!mainNodes) {
+        mainNodes = new ListField<Document>();
+        mainContainer.SetField(KeyStore.Data, mainNodes);
+    }
+    mainNodes.Data.push(doc1);
+    mainNodes.Data.push(doc2);
+    mainNodes.Data.push(doc4);
+    mainNodes.Data.push(doc3);
+    mainNodes.Data.push(doc5);
 });

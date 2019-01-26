@@ -31,7 +31,8 @@ export class Document extends Field {
 
     GetFieldValue<T, U extends { Data: T }>(key: Key, ctor: { new(): U }, defaultVal: T): T {
         let val = this.GetField(key);
-        return (val && val instanceof ctor) ? val.Data : defaultVal;
+        let vval = (val && val instanceof ctor) ? val.Data : defaultVal;
+        return vval;
     }
 
     SetField(key: Key, field: Opt<Field>): void {

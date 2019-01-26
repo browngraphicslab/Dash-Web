@@ -113,6 +113,6 @@ export class FieldTextBox extends React.Component<IProps> {
     }
 
     render() {
-        return (<div ref={this._ref} />)
+        return (<div className="fieldTextBox-cont" ref={this._ref} />)
     }
 }
