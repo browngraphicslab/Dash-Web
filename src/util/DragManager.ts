@@ -45,7 +45,7 @@ export namespace DragManager {
     }
 
     export interface DropHandlers {
-        drop: (e: DropEvent) => void;
+        drop: (e:Event, de: DropEvent) => void;
     }
 
     export function MakeDraggable(element: HTMLElement, options: DragOptions): DragDropDisposer {
@@ -85,7 +85,7 @@ export namespace DragManager {
         element.dataset["canDrop"] = "true";
         const handler = (e: Event) => {
             const ce = e as CustomEvent<DropEvent>;
-            options.handlers.drop(ce.detail);
+            options.handlers.drop(e, ce.detail);
         };
         element.addEventListener("dashOnDrop", handler);
         return () => {

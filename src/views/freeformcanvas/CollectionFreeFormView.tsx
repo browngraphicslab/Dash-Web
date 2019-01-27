@@ -43,20 +43,21 @@ export class CollectionFreeFormView extends React.Component<IProps> {
             const ele = this._ref.current;
             DragManager.MakeDropTarget(this._ref.current, {
                 handlers: {
-                    drop: (e: DragManager.DropEvent) => {
-                        const doc = e.data["document"];
-                        const xOffset = e.data["xOffset"] as number || 0;
-                        const yOffset = e.data["yOffset"] as number || 0;
+                    drop: (e:Event, de: DragManager.DropEvent) => {
+                        const doc = de.data["document"];
+                        const xOffset = de.data["xOffset"] as number || 0;
+                        const yOffset = de.data["yOffset"] as number || 0;
                         if (doc instanceof DocumentView) {
                             const { scale, translateX, translateY } = Utils.GetScreenTransform(ele.children[0] as HTMLElement);
                             console.log(`${scale} ${translateX} ${translateY}`)
-                            const screenX = e.x - xOffset;
-                            const screenY = e.y - yOffset;
+                            const screenX = de.x - xOffset;
+                            const screenY = de.y - yOffset;
                             const docX = (screenX - translateX) / scale;
                             const docY = (screenY - translateY) / scale;
                             doc.x = docX;
                             doc.y = docY;
                         }
+                        e.stopPropagation();
                     }
                 }
             });
