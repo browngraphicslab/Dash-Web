@@ -14,6 +14,7 @@ import { SelectionManager } from "../../util/SelectionManager";
 import { DocumentDecorations } from "../../DocumentDecorations";
 import { ContextMenu } from "../ContextMenu";
 import { Opt } from "../../fields/Field";
+import { DragManager } from "../../util/DragManager";
 const JsxParser = require('react-jsx-parser').default;//TODO Why does this need to be imported like this?
 
 interface IProps {
@@ -41,10 +42,7 @@ class DocumentContents extends React.Component<IProps> {
     }
     render() {
         let doc = this.props.Document;
-        let bindings: any = {
-            doc: doc,
-            // isSelected: this.props.isSelected
-        };
+        let bindings = {...this.props} as any;
         for (const key of this.layoutKeys) {
             bindings[key.Name + "Key"] = key;
         }
@@ -125,15 +123,25 @@ export class DocumentView extends React.Component<IProps> {
     }
 
     componentDidMount() {
-        // if(this._mainCont.current) {
-        //     DragManager.MakeDraggable(this._mainCont.current, {
-        //         buttons: 2,
-        //         handlers: {
-        //             dragComplete: () => {},
-        //             dragStart: () => {}
-        //         }
-        //     })
-        // }
+        const that = this;
+        if(this._mainCont.current) {
+            DragManager.MakeDraggable(this._mainCont.current, {
+                buttons: 2,
+                handlers: {
+                    dragComplete: () => {},
+                    dragStart: (e: DragManager.DragStartEvent) => {
+                        if(!this.props.ContainingCollectionView) {
+                            e.cancel();
+                            return;
+                        }
+                        const rect = this.screenRect;
+                        e.data["document"] = this;
+                        e.data["xOffset"] = e.x - rect.left;
+                        e.data["yOffset"] = e.y - rect.top;
+                    }
+                }
+            })
+        }
     }
 
     @computed
@@ -147,8 +155,8 @@ export class DocumentView extends React.Component<IProps> {
         this._lastX = e.pageX;
         this._lastY = e.pageY;
         this._contextMenuCanOpen = e.button == 2;
-        document.removeEventListener("pointermove", this.onPointerMove);
-        document.addEventListener("pointermove", this.onPointerMove);
+        // document.removeEventListener("pointermove", this.onPointerMove);
+        // document.addEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
         document.addEventListener("pointerup", this.onPointerUp);
     }
@@ -238,7 +246,7 @@ export class DocumentView extends React.Component<IProps> {
                 onContextMenu={this.onContextMenu}
                 onPointerDown={this.onPointerDown}
                 onClick={this.onClick}>
-                <DocumentContents {...this.props} />
+                <DocumentContents {...this.props} ContainingDocumentView={this} />
             </div>
         );
     }

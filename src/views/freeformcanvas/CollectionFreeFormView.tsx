@@ -13,6 +13,8 @@ import { SelectionManager } from "../../util/SelectionManager";
 import { Documents } from "../../documents/Documents";
 import { ContextMenu } from "../ContextMenu";
 import { Opt } from "../../fields/Field";
+import { DragManager } from "../../util/DragManager";
+import { Utils } from "../../Utils";
 
 interface IProps {
     fieldKey: Key;
@@ -22,25 +24,50 @@ interface IProps {
 
 @observer
 export class CollectionFreeFormView extends React.Component<IProps> {
+    private _ref = React.createRef<HTMLDivElement>();
 
     constructor(props: IProps) {
         super(props);
     }
 
     @computed
-    public get active():boolean {
-        var isSelected    = (this.props.ContainingDocumentView != undefined &&  SelectionManager.IsSelected(this.props.ContainingDocumentView));
-        var childSelected = SelectionManager.SelectedDocuments().some(view => view.props.ContainingCollectionView == this );
-        var topMost       = this.props.ContainingDocumentView != undefined && this.props.ContainingDocumentView.props.ContainingCollectionView == undefined;
+    public get active(): boolean {
+        var isSelected = (this.props.ContainingDocumentView != undefined && SelectionManager.IsSelected(this.props.ContainingDocumentView));
+        var childSelected = SelectionManager.SelectedDocuments().some(view => view.props.ContainingCollectionView == this);
+        var topMost = this.props.ContainingDocumentView != undefined && this.props.ContainingDocumentView.props.ContainingCollectionView == undefined;
         return isSelected || childSelected || topMost;
     }
 
+    componentDidMount() {
+        if (this._ref.current) {
+            const ele = this._ref.current;
+            DragManager.MakeDropTarget(this._ref.current, {
+                handlers: {
+                    drop: (e: DragManager.DropEvent) => {
+                        const doc = e.data["document"];
+                        const xOffset = e.data["xOffset"] as number || 0;
+                        const yOffset = e.data["yOffset"] as number || 0;
+                        if (doc instanceof DocumentView) {
+                            const { scale, translateX, translateY } = Utils.GetScreenTransform(ele.children[0] as HTMLElement);
+                            console.log(`${scale} ${translateX} ${translateY}`)
+                            const screenX = e.x - xOffset;
+                            const screenY = e.y - yOffset;
+                            const docX = (screenX - translateX) / scale;
+                            const docY = (screenY - translateY) / scale;
+                            doc.x = docX;
+                            doc.y = docY;
+                        }
+                    }
+                }
+            });
+        }
+    }
+
     _lastX: number = 0;
-    _lastY:number = 0;
+    _lastY: number = 0;
     @action
-    onPointerDown = (e: React.PointerEvent): void => 
-    {
-        if (this.active && e.button === 2) {
+    onPointerDown = (e: React.PointerEvent): void => {
+        if (e.button === 2 && this.active) {
             e.stopPropagation();
             e.preventDefault();
             document.removeEventListener("pointermove", this.onPointerMove);
@@ -65,22 +92,21 @@ export class CollectionFreeFormView extends React.Component<IProps> {
     }
 
     @action
-    onPointerMove = (e: PointerEvent): void => 
-    {
+    onPointerMove = (e: PointerEvent): void => {
         if (!e.cancelBubble) {
             e.preventDefault();
             e.stopPropagation();
             const doc = this.props.Document;
             let me = this;
-            let currScale:number = this.props.Document.GetFieldValue(KeyStore.Scale, NumberField, Number(1));
+            let currScale: number = this.props.Document.GetFieldValue(KeyStore.Scale, NumberField, Number(1));
             if (me.props.ContainingDocumentView!.props.ContainingDocumentView != undefined) {
                 let pme = me.props.ContainingDocumentView!.props.ContainingDocumentView!.props.Document;
                 currScale = pme.GetFieldValue(KeyStore.Scale, NumberField, Number(0));
-            } 
+            }
             let x = doc.GetFieldValue(KeyStore.PanX, NumberField, Number(0));
             let y = doc.GetFieldValue(KeyStore.PanY, NumberField, Number(0));
-            doc.SetFieldValue(KeyStore.PanX, x + (e.pageX - this._lastX)/currScale, NumberField);
-            doc.SetFieldValue(KeyStore.PanY, y + (e.pageY - this._lastY)/currScale, NumberField);
+            doc.SetFieldValue(KeyStore.PanX, x + (e.pageX - this._lastX) / currScale, NumberField);
+            doc.SetFieldValue(KeyStore.PanY, y + (e.pageY - this._lastY) / currScale, NumberField);
             this._lastX = e.pageX;
             this._lastY = e.pageY;
 
@@ -89,46 +115,45 @@ export class CollectionFreeFormView extends React.Component<IProps> {
     }
 
 
-    private getLocalPoint(me:DocumentView, inputX: number, inputY: number) {
+    private getLocalPoint(me: DocumentView, inputX: number, inputY: number) {
         let ContainerX = inputX;
         let ContainerY = inputY;
         if (me.props.ContainingDocumentView != undefined) {
             let pme = me.props.ContainingDocumentView!;
-            let {LocalX, Ss, W, Panxx, Xx, LocalY, Panyy, Yy} = this.getLocalPoint(pme, ContainerX, ContainerY);
+            let { LocalX, LocalY } = this.getLocalPoint(pme, ContainerX, ContainerY);
             ContainerX = LocalX;
             ContainerY = LocalY;
-        } 
+        }
 
-        let W      = me.props.Document.GetFieldValue(KeyStore.Width, NumberField, Number(0));
-        let Xx     = me.props.Document.GetFieldValue(KeyStore.X, NumberField, Number(0));
-        let Yy     = me.props.Document.GetFieldValue(KeyStore.Y, NumberField, Number(0));
-        let Ss     = me.props.Document.GetFieldValue(KeyStore.Scale, NumberField, Number(1));
-        let Panxx  = me.props.Document.GetFieldValue(KeyStore.PanX, NumberField, Number(0));
-        let Panyy  = me.props.Document.GetFieldValue(KeyStore.PanY, NumberField, Number(0));
+        let W = me.props.Document.GetFieldValue(KeyStore.Width, NumberField, Number(0));
+        let Xx = me.props.Document.GetFieldValue(KeyStore.X, NumberField, Number(0));
+        let Yy = me.props.Document.GetFieldValue(KeyStore.Y, NumberField, Number(0));
+        let Ss = me.props.Document.GetFieldValue(KeyStore.Scale, NumberField, Number(1));
+        let Panxx = me.props.Document.GetFieldValue(KeyStore.PanX, NumberField, Number(0));
+        let Panyy = me.props.Document.GetFieldValue(KeyStore.PanY, NumberField, Number(0));
         let LocalX = W / 2 - (Xx + Panxx) / Ss + (ContainerX - W / 2) / Ss;
         let LocalY = -(Yy + Panyy) / Ss + ContainerY / Ss;
 
-        return {LocalX, Ss, W, Panxx, Xx, LocalY, Panyy, Yy, ContainerX, ContainerY};
+        return { LocalX, Ss, W, Panxx, Xx, LocalY, Panyy, Yy, ContainerX, ContainerY };
     }
 
     @action
-    onPointerWheel = (e: React.WheelEvent): void => 
-    {
+    onPointerWheel = (e: React.WheelEvent): void => {
         e.stopPropagation();
 
-        let {LocalX, Ss, W, Panxx, Xx, LocalY, Panyy, Yy, ContainerX, ContainerY} = this.getLocalPoint(this.props.ContainingDocumentView!, e.pageX, e.pageY);
+        let { LocalX, Ss, W, Panxx, Xx, LocalY, Panyy, Yy, ContainerX, ContainerY } = this.getLocalPoint(this.props.ContainingDocumentView!, e.pageX, e.pageY);
 
-        var deltaScale  = (1 - (e.deltaY / 1000)) * Ss;
+        var deltaScale = (1 - (e.deltaY / 1000)) * Ss;
 
-        var newContainerX = LocalX * deltaScale + W/2-W/2 * deltaScale + Panxx + Xx;
-        var newContainerY = LocalY * deltaScale + Panyy+ Yy;
+        var newContainerX = LocalX * deltaScale + W / 2 - W / 2 * deltaScale + Panxx + Xx;
+        var newContainerY = LocalY * deltaScale + Panyy + Yy;
 
         let dx = ContainerX - newContainerX;
         let dy = ContainerY - newContainerY;
 
         this.props.Document.SetField(KeyStore.Scale, new NumberField(deltaScale));
-        this.props.Document.SetFieldValue(KeyStore.PanX, Panxx+dx, NumberField);
-        this.props.Document.SetFieldValue(KeyStore.PanY, Panyy+dy, NumberField);
+        this.props.Document.SetFieldValue(KeyStore.PanX, Panxx + dx, NumberField);
+        this.props.Document.SetFieldValue(KeyStore.PanY, Panyy + dy, NumberField);
 
         DocumentDecorations.Instance.forceUpdate()
     }
@@ -180,7 +205,7 @@ export class CollectionFreeFormView extends React.Component<IProps> {
     }
     render() {
         const { fieldKey, Document: Document } = this.props;
-        
+
         const value: Document[] = Document.GetFieldValue(fieldKey, ListField, []);
         const panx: number = Document.GetFieldValue(KeyStore.PanX, NumberField, Number(0));
         const pany: number = Document.GetFieldValue(KeyStore.PanY, NumberField, Number(0));
@@ -188,19 +213,19 @@ export class CollectionFreeFormView extends React.Component<IProps> {
         // DocumentDecorations.Instance.forceUpdate()
         return (
             <div className="border" style={{
-                    borderStyle: "solid",
-                    borderWidth: "2px"
-                }}>
+                borderStyle: "solid",
+                borderWidth: "2px"
+            }}>
                 <div className="collectionfreeformview-container" onPointerDown={this.onPointerDown} onWheel={this.onPointerWheel} onContextMenu={(e) => e.preventDefault()} style={{
                     width: "100%",
                     height: "calc(100% - 4px)",
                     overflow: "hidden"
-                }} onDrop={this.onDrop} onDragOver={this.onDragOver}>
-                    <div className="collectionfreeformview" style={{ transform: `translate(${panx}px, ${pany}px) scale(${currScale}, ${currScale})` , transformOrigin: `left, top`}}>
-                        
+                }} onDrop={this.onDrop} onDragOver={this.onDragOver} ref={this._ref}>
+                    <div className="collectionfreeformview" style={{ transform: `translate(${panx}px, ${pany}px) scale(${currScale}, ${currScale})`, transformOrigin: `left, top` }}>
+
                         <div className="node-container">
                             {value.map(doc => {
-                                return (<DocumentView key={doc.Id} ContainingCollectionView={this} Document={doc} ContainingDocumentView={this.props.ContainingDocumentView}/>);
+                                return (<DocumentView key={doc.Id} ContainingCollectionView={this} Document={doc} ContainingDocumentView={this.props.ContainingDocumentView} />);
                             })}
                         </div>
                     </div>
