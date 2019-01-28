@@ -14,8 +14,6 @@ export namespace DragManager {
     interface DragOptions {
         handlers: DragHandlers;
 
-        buttons: number;
-
         hideSource: boolean | (() => boolean);
     }
 

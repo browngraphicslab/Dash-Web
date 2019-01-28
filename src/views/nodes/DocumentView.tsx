@@ -69,6 +69,8 @@ class DocumentContents extends React.Component<IProps> {
 export class DocumentView extends React.Component<IProps> {
     private _mainCont = React.createRef<HTMLDivElement>();
     private _contextMenuCanOpen = false;
+    private _downX: number = 0;
+    private _downY: number = 0;
 
     get screenRect(): ClientRect | DOMRect {
         if (this._mainCont.current) {
@@ -117,6 +119,7 @@ export class DocumentView extends React.Component<IProps> {
     set height(h: number) {
         this.props.Document.SetFieldValue(KeyStore.Height, h, NumberField)
     }
+
     @action
     dragComplete = (e: DragManager.DragCompleteEvent) => {
     }
@@ -126,8 +129,34 @@ export class DocumentView extends React.Component<IProps> {
         return SelectionManager.IsSelected(this) || this.props.ContainingCollectionView === undefined || this.props.ContainingCollectionView!.active;
     }
 
-    private _downX: number = 0;
-    private _downY: number = 0;
+    //
+    // Converts an input coordinate in application's screen space
+    // into a coordinate in the space of this document.
+    // NOTE: this is intended for use on DocumentViews that are CollectionFreeFormViews
+    //
+    public TransformToLocalPoint(screenX: number, screenY: number) {
+        let ContainerX = screenX;
+        let ContainerY = screenY;
+        // if this collection view is nested within another collection view, then 
+        // first transform the screen point into the parent collection's coordinate space.
+        if (this.props.ContainingDocumentView != undefined) {
+            let {LocalX, LocalY} = this.props.ContainingDocumentView!.TransformToLocalPoint(screenX, screenY);
+            ContainerX = LocalX;
+            ContainerY = LocalY;
+        }
+
+        let W = this.props.Document.GetFieldValue(KeyStore.Width, NumberField, Number(0));
+        let Xx = this.props.Document.GetFieldValue(KeyStore.X, NumberField, Number(0));
+        let Yy = this.props.Document.GetFieldValue(KeyStore.Y, NumberField, Number(0));
+        let Ss = this.props.Document.GetFieldValue(KeyStore.Scale, NumberField, Number(1));
+        let Panxx = this.props.Document.GetFieldValue(KeyStore.PanX, NumberField, Number(0));
+        let Panyy = this.props.Document.GetFieldValue(KeyStore.PanY, NumberField, Number(0));
+        let LocalX = W / 2 - (Xx + Panxx) / Ss + (ContainerX - W / 2) / Ss;
+        let LocalY = -(Yy + Panyy) / Ss + ContainerY / Ss;
+
+        return {LocalX, Ss, W, Panxx, Xx, LocalY, Panyy, Yy, ContainerX, ContainerY};
+    }
+
     onPointerDown = (e: React.PointerEvent): void => {
         let me = this;
         this._downX = e.clientX;
@@ -153,7 +182,6 @@ export class DocumentView extends React.Component<IProps> {
                 dragData[ "xOffset" ] = e.x - rect.left;
                 dragData[ "yOffset" ] = e.y - rect.top;
                 DragManager.StartDrag(this._mainCont.current, dragData, {
-                    buttons: 2,
                     handlers: {
                         dragComplete: this.dragComplete,
                     },

@@ -120,34 +120,11 @@ export class CollectionFreeFormView extends React.Component<IProps> {
         }
     }
 
-
-    private getLocalPoint(me: DocumentView, inputX: number, inputY: number) {
-        let ContainerX = inputX;
-        let ContainerY = inputY;
-        if (me.props.ContainingDocumentView != undefined) {
-            let pme = me.props.ContainingDocumentView!;
-            let {LocalX, LocalY} = this.getLocalPoint(pme, ContainerX, ContainerY);
-            ContainerX = LocalX;
-            ContainerY = LocalY;
-        }
-
-        let W = me.props.Document.GetFieldValue(KeyStore.Width, NumberField, Number(0));
-        let Xx = me.props.Document.GetFieldValue(KeyStore.X, NumberField, Number(0));
-        let Yy = me.props.Document.GetFieldValue(KeyStore.Y, NumberField, Number(0));
-        let Ss = me.props.Document.GetFieldValue(KeyStore.Scale, NumberField, Number(1));
-        let Panxx = me.props.Document.GetFieldValue(KeyStore.PanX, NumberField, Number(0));
-        let Panyy = me.props.Document.GetFieldValue(KeyStore.PanY, NumberField, Number(0));
-        let LocalX = W / 2 - (Xx + Panxx) / Ss + (ContainerX - W / 2) / Ss;
-        let LocalY = -(Yy + Panyy) / Ss + ContainerY / Ss;
-
-        return {LocalX, Ss, W, Panxx, Xx, LocalY, Panyy, Yy, ContainerX, ContainerY};
-    }
-
     @action
     onPointerWheel = (e: React.WheelEvent): void => {
         e.stopPropagation();
 
-        let {LocalX, Ss, W, Panxx, Xx, LocalY, Panyy, Yy, ContainerX, ContainerY} = this.getLocalPoint(this.props.ContainingDocumentView!, e.pageX, e.pageY);
+        let {LocalX, Ss, W, Panxx, Xx, LocalY, Panyy, Yy, ContainerX, ContainerY} = this.props.ContainingDocumentView!.TransformToLocalPoint(e.pageX, e.pageY);
 
         var deltaScale = (1 - (e.deltaY / 1000)) * Ss;
 
