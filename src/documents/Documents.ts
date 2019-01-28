@@ -1,8 +1,9 @@
-import { Document } from "../fields/Document";
-import { KeyStore } from "../fields/Key";
-import { TextField } from "../fields/TextField";
-import { NumberField } from "../fields/NumberField";
-import { ListField } from "../fields/ListField";
+import {Document} from "../fields/Document";
+import {KeyStore} from "../fields/Key";
+import {TextField} from "../fields/TextField";
+import {NumberField} from "../fields/NumberField";
+import {ListField} from "../fields/ListField";
+import {FieldTextBox} from "../views/nodes/FieldTextBox";
 
 interface DocumentOptions {
     x?: number;
@@ -38,8 +39,8 @@ export namespace Documents {
             textProto.SetField(KeyStore.Y, new NumberField(0));
             textProto.SetField(KeyStore.Width, new NumberField(300));
             textProto.SetField(KeyStore.Height, new NumberField(150));
-            textProto.SetField(KeyStore.Layout, new TextField("<FieldTextBox doc={Document} fieldKey={DataKey} />"));
-            textProto.SetField(KeyStore.LayoutKeys, new ListField([KeyStore.Data]));
+            textProto.SetField(KeyStore.Layout, new TextField(FieldTextBox.LayoutString()));
+            textProto.SetField(KeyStore.LayoutKeys, new ListField([ KeyStore.Data ]));
         }
         return textProto;
     }
@@ -61,7 +62,7 @@ export namespace Documents {
             imageProto.SetField(KeyStore.Height, new NumberField(300));
             imageProto.SetField(KeyStore.Layout, new TextField('<img src={Data} draggable="false" width="100%" alt="Image not found"/>'));
             // imageProto.SetField(KeyStore.Layout, new TextField('<div style={"background-image: " + {Data}} />'));
-            imageProto.SetField(KeyStore.LayoutFields, new ListField([KeyStore.Data]));
+            imageProto.SetField(KeyStore.LayoutFields, new ListField([ KeyStore.Data ]));
         }
         return imageProto;
     }
@@ -85,7 +86,7 @@ export namespace Documents {
             collectionProto.SetField(KeyStore.Width, new NumberField(300));
             collectionProto.SetField(KeyStore.Height, new NumberField(300));
             collectionProto.SetField(KeyStore.Layout, new TextField('<CollectionFreeFormView Document={Document} fieldKey={DataKey} ContainingDocumentView={ContainingDocumentView}/>'));
-            collectionProto.SetField(KeyStore.LayoutKeys, new ListField([KeyStore.Data]));
+            collectionProto.SetField(KeyStore.LayoutKeys, new ListField([ KeyStore.Data ]));
         }
         return collectionProto;
     }

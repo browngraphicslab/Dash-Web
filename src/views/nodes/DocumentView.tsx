@@ -1,20 +1,20 @@
-import {observer} from "mobx-react";
+import { observer } from "mobx-react";
 import React = require("react");
-import {computed, observable, action} from "mobx";
-import {KeyStore, Key} from "../../fields/Key";
-import {NumberField} from "../../fields/NumberField";
-import {TextField} from "../../fields/TextField";
-import {DocumentViewModel} from "../../viewmodels/DocumentViewModel";
-import {ListField} from "../../fields/ListField";
-import {FieldTextBox} from "../nodes/FieldTextBox"
-import {Document} from "../../fields/Document";
-import {CollectionFreeFormView} from "../freeformcanvas/CollectionFreeFormView"
+import { computed, observable, action } from "mobx";
+import { KeyStore, Key } from "../../fields/Key";
+import { NumberField } from "../../fields/NumberField";
+import { TextField } from "../../fields/TextField";
+import { DocumentViewModel } from "../../viewmodels/DocumentViewModel";
+import { ListField } from "../../fields/ListField";
+import { FieldTextBox } from "../nodes/FieldTextBox"
+import { Document } from "../../fields/Document";
+import { CollectionFreeFormView } from "../freeformcanvas/CollectionFreeFormView"
 import "./NodeView.scss"
-import {SelectionManager} from "../../util/SelectionManager";
-import {DocumentDecorations} from "../../DocumentDecorations";
-import {ContextMenu} from "../ContextMenu";
-import {Opt} from "../../fields/Field";
-import {DragManager} from "../../util/DragManager";
+import { SelectionManager } from "../../util/SelectionManager";
+import { DocumentDecorations } from "../../DocumentDecorations";
+import { ContextMenu } from "../ContextMenu";
+import { Opt } from "../../fields/Field";
+import { DragManager } from "../../util/DragManager";
 const JsxParser = require('react-jsx-parser').default;//TODO Why does this need to be imported like this?
 
 interface IProps {
@@ -42,7 +42,7 @@ class DocumentContents extends React.Component<IProps> {
     }
     render() {
         let doc = this.props.Document;
-        let bindings = {...this.props} as any;
+        let bindings = { ...this.props } as any;
         for (const key of this.layoutKeys) {
             bindings[ key.Name + "Key" ] = key;
         }
@@ -53,11 +53,11 @@ class DocumentContents extends React.Component<IProps> {
             }
         }
         return <JsxParser
-            components={{FieldTextBox, CollectionFreeFormView}}
+            components={{ FieldTextBox, CollectionFreeFormView }}
             bindings={bindings}
             jsx={this.layout}
             showWarnings={true}
-            onError={(test: any) => {console.log(test)}}
+            onError={(test: any) => { console.log(test) }}
         />
 
 
@@ -135,10 +135,9 @@ export class DocumentView extends React.Component<IProps> {
     //
     @computed
     public get ScalingToScreenSpace(): number {
-        let containingDocView = this.props.ContainingDocumentView;
-        if (containingDocView != undefined) {
-            let ss = containingDocView.props.Document.GetFieldValue(KeyStore.Scale, NumberField, Number(1));
-            return containingDocView.ScalingToScreenSpace * ss;
+        if (this.props.ContainingDocumentView != undefined) {
+            let ss = this.props.ContainingDocumentView.props.Document.GetFieldValue(KeyStore.Scale, NumberField, Number(1));
+            return this.props.ContainingDocumentView.ScalingToScreenSpace * ss;
         }
         return 1;
     }
@@ -153,7 +152,7 @@ export class DocumentView extends React.Component<IProps> {
         // if this collection view is nested within another collection view, then 
         // first transform the screen point into the parent collection's coordinate space.
         if (this.props.ContainingDocumentView != undefined) {
-            let {LocalX, LocalY} = this.props.ContainingDocumentView!.TransformToLocalPoint(screenX, screenY);
+            let { LocalX, LocalY } = this.props.ContainingDocumentView!.TransformToLocalPoint(screenX, screenY);
             ContainerX = LocalX - CollectionFreeFormView.BORDER_WIDTH;
             ContainerY = LocalY - CollectionFreeFormView.BORDER_WIDTH;
         }
@@ -167,13 +166,13 @@ export class DocumentView extends React.Component<IProps> {
         let LocalX = (ContainerX - (Xx + Panxx) - W / 2) / Ss + W / 2;
         let LocalY = (ContainerY - (Yy + Panyy)) / Ss;
 
-        return {LocalX, Ss, W, Panxx, Xx, LocalY, Panyy, Yy, ContainerX, ContainerY};
+        return { LocalX, Ss, W, Panxx, Xx, LocalY, Panyy, Yy, ContainerX, ContainerY };
     }
 
     //
     // Converts a point in the coordinate space of a document to a screen space coordinate.
     //
-    public TransformToScreenPoint(localX: number, localY: number, Ss: number = 1, Panxx: number = 0, Panyy: number = 0): {ScreenX: number, ScreenY: number} {
+    public TransformToScreenPoint(localX: number, localY: number, Ss: number = 1, Panxx: number = 0, Panyy: number = 0): { ScreenX: number, ScreenY: number } {
 
         let W = this.props.Document.GetFieldValue(KeyStore.Width, NumberField, Number(0));
         let H = CollectionFreeFormView.BORDER_WIDTH;
@@ -189,11 +188,11 @@ export class DocumentView extends React.Component<IProps> {
             let ss = containingDocView.props.Document.GetFieldValue(KeyStore.Scale, NumberField, Number(1));
             let panxx = containingDocView.props.Document.GetFieldValue(KeyStore.PanX, NumberField, Number(0)) + CollectionFreeFormView.BORDER_WIDTH * ss;
             let panyy = containingDocView.props.Document.GetFieldValue(KeyStore.PanY, NumberField, Number(0)) + CollectionFreeFormView.BORDER_WIDTH * ss;
-            let {ScreenX, ScreenY} = containingDocView.TransformToScreenPoint(parentX, parentY, ss, panxx, panyy);
+            let { ScreenX, ScreenY } = containingDocView.TransformToScreenPoint(parentX, parentY, ss, panxx, panyy);
             parentX = ScreenX;
             parentY = ScreenY;
         }
-        return {ScreenX: parentX, ScreenY: parentY};
+        return { ScreenX: parentX, ScreenY: parentY };
     }
 
     onPointerDown = (e: React.PointerEvent): void => {
@@ -202,7 +201,9 @@ export class DocumentView extends React.Component<IProps> {
         this._contextMenuCanOpen = e.button == 2;
         if (this.active) {
             e.stopPropagation();
-            e.preventDefault();
+            if (e.buttons === 2) {
+                e.preventDefault();
+            }
             document.removeEventListener("pointermove", this.onPointerMove)
             document.addEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp)
@@ -215,7 +216,7 @@ export class DocumentView extends React.Component<IProps> {
             if (this._mainCont.current != null && this.props.ContainingCollectionView != null) {
                 this._contextMenuCanOpen = false;
                 const rect = this.screenRect;
-                let dragData: {[ id: string ]: any} = {};
+                let dragData: { [ id: string ]: any } = {};
                 dragData[ "document" ] = this;
                 dragData[ "xOffset" ] = e.x - rect.left;
                 dragData[ "yOffset" ] = e.y - rect.top;
@@ -266,7 +267,7 @@ export class DocumentView extends React.Component<IProps> {
             e.stopPropagation();
 
             ContextMenu.Instance.clearItems();
-            ContextMenu.Instance.addItem({description: "Delete", event: this.deleteClicked})
+            ContextMenu.Instance.addItem({ description: "Delete", event: this.deleteClicked })
             ContextMenu.Instance.displayMenu(e.pageX, e.pageY)
             SelectionManager.SelectDoc(this, e.ctrlKey);
         }
