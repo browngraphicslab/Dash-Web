@@ -129,14 +129,15 @@ export class DocumentView extends React.Component<IProps> {
         return SelectionManager.IsSelected(this) || this.props.ContainingCollectionView === undefined || this.props.ContainingCollectionView!.active;
     }
 
+    hackToAccountForCollectionFreeFormBorderWidth: number = 2; // this is the border width of the collection
     //
     // Converts an input coordinate in application's screen space
     // into a coordinate in the space of this document.
     // NOTE: this is intended for use on DocumentViews that are CollectionFreeFormViews
     //
     public TransformToLocalPoint(screenX: number, screenY: number) {
-        let ContainerX = screenX;
-        let ContainerY = screenY;
+        let ContainerX = screenX - this.hackToAccountForCollectionFreeFormBorderWidth;
+        let ContainerY = screenY - this.hackToAccountForCollectionFreeFormBorderWidth;
         // if this collection view is nested within another collection view, then 
         // first transform the screen point into the parent collection's coordinate space.
         if (this.props.ContainingDocumentView != undefined) {
@@ -155,6 +156,30 @@ export class DocumentView extends React.Component<IProps> {
         let LocalY = -(Yy + Panyy) / Ss + ContainerY / Ss;
 
         return {LocalX, Ss, W, Panxx, Xx, LocalY, Panyy, Yy, ContainerX, ContainerY};
+    }
+    //
+    // Converts the coordinate space of a document to a screen space coordinate.
+    //
+    public TransformToScreenPoint(localX: number, localY: number, Ss: number = 1, Panxx: number = 0, Panyy: number = 0): {ScreenX: number, ScreenY: number} {
+
+        let W = this.props.Document.GetFieldValue(KeyStore.Width, NumberField, Number(0));
+        let Xx = this.props.Document.GetFieldValue(KeyStore.X, NumberField, Number(0));
+        let Yy = this.props.Document.GetFieldValue(KeyStore.Y, NumberField, Number(0));
+
+        let parentX = (localX + (Xx + Panxx) / Ss - W / 2) * Ss + W / 2;
+        let parentY = (localY + (Yy + Panyy) / Ss) * Ss;
+
+        // if this collection view is nested within another collection view, then 
+        // first transform the screen point into the parent collection's coordinate space.
+        if (this.props.ContainingDocumentView != undefined) {
+            let ss = this.props.ContainingDocumentView.props.Document.GetFieldValue(KeyStore.Scale, NumberField, Number(1));
+            let panxx = this.props.ContainingDocumentView.props.Document.GetFieldValue(KeyStore.PanX, NumberField, Number(0));
+            let panyy = this.props.ContainingDocumentView.props.Document.GetFieldValue(KeyStore.PanY, NumberField, Number(0));
+            let {ScreenX, ScreenY} = this.props.ContainingDocumentView.TransformToScreenPoint(parentX, parentY, ss, panxx, panyy);
+            return {ScreenX: ScreenX + this.hackToAccountForCollectionFreeFormBorderWidth, ScreenY: ScreenY + this.hackToAccountForCollectionFreeFormBorderWidth};
+        } else {
+            return {ScreenX: parentX, ScreenY: parentY};
+        }
     }
 
     onPointerDown = (e: React.PointerEvent): void => {

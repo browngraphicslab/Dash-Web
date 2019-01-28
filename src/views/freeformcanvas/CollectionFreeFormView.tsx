@@ -61,7 +61,6 @@ export class CollectionFreeFormView extends React.Component<IProps> {
             doc.y = docY;
         }
         e.stopPropagation();
-        DocumentDecorations.Instance.forceUpdate();
     }
 
     componentDidMount() {
@@ -115,8 +114,6 @@ export class CollectionFreeFormView extends React.Component<IProps> {
             doc.SetFieldValue(KeyStore.PanY, y + (e.pageY - this._lastY) / currScale, NumberField);
             this._lastX = e.pageX;
             this._lastY = e.pageY;
-
-            DocumentDecorations.Instance.forceUpdate()
         }
     }
 
@@ -137,8 +134,6 @@ export class CollectionFreeFormView extends React.Component<IProps> {
         this.props.Document.SetField(KeyStore.Scale, new NumberField(deltaScale));
         this.props.Document.SetFieldValue(KeyStore.PanX, Panxx + dx, NumberField);
         this.props.Document.SetFieldValue(KeyStore.PanY, Panyy + dy, NumberField);
-
-        DocumentDecorations.Instance.forceUpdate()
     }
 
     onDrop = (e: React.DragEvent): void => {
@@ -200,11 +195,10 @@ export class CollectionFreeFormView extends React.Component<IProps> {
         const panx: number = Document.GetFieldValue(KeyStore.PanX, NumberField, Number(0));
         const pany: number = Document.GetFieldValue(KeyStore.PanY, NumberField, Number(0));
         const currScale: number = Document.GetFieldValue(KeyStore.Scale, NumberField, Number(1));
-        // DocumentDecorations.Instance.forceUpdate()
         return (
             <div className="border" style={{
                 borderStyle: "solid",
-                borderWidth: "2px"
+                borderWidth: "2px",
             }}>
                 <div className="collectionfreeformview-container" onPointerDown={this.onPointerDown} onWheel={this.onPointerWheel} onContextMenu={(e) => e.preventDefault()} style={{
                     width: "100%",

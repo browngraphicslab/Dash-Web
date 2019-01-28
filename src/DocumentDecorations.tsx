@@ -1,8 +1,8 @@
-import { observable, computed } from "mobx";
+import {observable, computed} from "mobx";
 import React = require("react");
-import { DocumentView } from "./views/nodes/DocumentView";
-import { SelectionManager } from "./util/SelectionManager";
-import { observer } from "mobx-react";
+import {DocumentView} from "./views/nodes/DocumentView";
+import {SelectionManager} from "./util/SelectionManager";
+import {observer} from "mobx-react";
 import './DocumentDecorations.scss'
 
 @observer
@@ -14,21 +14,25 @@ export class DocumentDecorations extends React.Component {
         DocumentDecorations.Instance = this
     }
 
+    @computed
     get x(): number {
-        return SelectionManager.SelectedDocuments().reduce((left, element) => Math.min(element.screenRect.left, left), Number.MAX_VALUE);
+        return SelectionManager.SelectedDocuments().reduce((left, element) => Math.min(element.TransformToScreenPoint(0, 0).ScreenX, left), Number.MAX_VALUE);
     }
 
+    @computed
     get y(): number {
-        return SelectionManager.SelectedDocuments().reduce((top, element) => Math.min(element.screenRect.top, top), Number.MAX_VALUE);
+        return SelectionManager.SelectedDocuments().reduce((top, element) => Math.min(element.TransformToScreenPoint(0, 0).ScreenY, top), Number.MAX_VALUE);
     }
 
+    @computed
     get height(): number {
-        return (SelectionManager.SelectedDocuments().reduce((bottom, element) => Math.max(element.screenRect.bottom, bottom),
+        return (SelectionManager.SelectedDocuments().reduce((bottom, element) => Math.max(element.TransformToScreenPoint(0, element.height).ScreenY, bottom),
             Number.MIN_VALUE)) - this.y;
     }
 
+    @computed
     get width(): number {
-        return SelectionManager.SelectedDocuments().reduce((right, element) => Math.max(element.screenRect.right, right),
+        return SelectionManager.SelectedDocuments().reduce((right, element) => Math.max(element.TransformToScreenPoint(element.width, 0).ScreenX, right),
             Number.MIN_VALUE) - this.x;
     }
 
@@ -117,8 +121,6 @@ export class DocumentDecorations extends React.Component {
                 element.height = actualdH;
             }
         })
-
-        this.forceUpdate()
     }
 
     onPointerUp = (e: PointerEvent): void => {
