@@ -1,20 +1,20 @@
-import { observer } from "mobx-react";
+import {observer} from "mobx-react";
 import React = require("react");
-import { computed, observable, action } from "mobx";
-import { KeyStore, Key } from "../../fields/Key";
-import { NumberField } from "../../fields/NumberField";
-import { TextField } from "../../fields/TextField";
-import { DocumentViewModel } from "../../viewmodels/DocumentViewModel";
-import { ListField } from "../../fields/ListField";
-import { FieldTextBox } from "../nodes/FieldTextBox"
-import { Document } from "../../fields/Document";
-import { CollectionFreeFormView } from "../freeformcanvas/CollectionFreeFormView"
+import {computed, observable, action} from "mobx";
+import {KeyStore, Key} from "../../fields/Key";
+import {NumberField} from "../../fields/NumberField";
+import {TextField} from "../../fields/TextField";
+import {DocumentViewModel} from "../../viewmodels/DocumentViewModel";
+import {ListField} from "../../fields/ListField";
+import {FieldTextBox} from "../nodes/FieldTextBox"
+import {Document} from "../../fields/Document";
+import {CollectionFreeFormView} from "../freeformcanvas/CollectionFreeFormView"
 import "./NodeView.scss"
-import { SelectionManager } from "../../util/SelectionManager";
-import { DocumentDecorations } from "../../DocumentDecorations";
-import { ContextMenu } from "../ContextMenu";
-import { Opt } from "../../fields/Field";
-import { DragManager } from "../../util/DragManager";
+import {SelectionManager} from "../../util/SelectionManager";
+import {DocumentDecorations} from "../../DocumentDecorations";
+import {ContextMenu} from "../ContextMenu";
+import {Opt} from "../../fields/Field";
+import {DragManager} from "../../util/DragManager";
 const JsxParser = require('react-jsx-parser').default;//TODO Why does this need to be imported like this?
 
 interface IProps {
@@ -42,22 +42,22 @@ class DocumentContents extends React.Component<IProps> {
     }
     render() {
         let doc = this.props.Document;
-        let bindings = { ...this.props } as any;
+        let bindings = {...this.props} as any;
         for (const key of this.layoutKeys) {
-            bindings[key.Name + "Key"] = key;
+            bindings[ key.Name + "Key" ] = key;
         }
         for (const key of this.layoutFields) {
             let field = doc.GetField(key);
             if (field) {
-                bindings[key.Name] = field.GetValue();
+                bindings[ key.Name ] = field.GetValue();
             }
         }
         return <JsxParser
-            components={{ FieldTextBox, CollectionFreeFormView }}
+            components={{FieldTextBox, CollectionFreeFormView}}
             bindings={bindings}
             jsx={this.layout}
             showWarnings={true}
-            onError={(test: any) => { console.log(test) }}
+            onError={(test: any) => {console.log(test)}}
         />
 
 
@@ -117,56 +117,59 @@ export class DocumentView extends React.Component<IProps> {
     set height(h: number) {
         this.props.Document.SetFieldValue(KeyStore.Height, h, NumberField)
     }
-
-    @action
-    dragStarted = (e: DragManager.DragStartEvent) => {
-        this._contextMenuCanOpen = false;
-        if (!this.props.ContainingCollectionView) {
-            e.cancel();
-            return;
-        }
-        const rect = this.screenRect;
-        e.data["document"] = this;
-        e.data["xOffset"] = e.x - rect.left;
-        e.data["yOffset"] = e.y - rect.top;
-    }
-
     @action
     dragComplete = (e: DragManager.DragCompleteEvent) => {
     }
 
-    componentDidMount() {
-        if (this._mainCont.current) {
-            DragManager.MakeDraggable(this._mainCont.current, {
-                buttons: 2,
-                handlers: {
-                    dragComplete: this.dragComplete,
-                    dragStart: this.dragStarted
-                },
-                hideSource: true
-            })
-        }
-    }
-
     @computed
     get active(): boolean {
-        return SelectionManager.IsSelected(this) || (this.props.ContainingCollectionView !== undefined && this.props.ContainingCollectionView.active);
+        return SelectionManager.IsSelected(this) || this.props.ContainingCollectionView === undefined || this.props.ContainingCollectionView!.active;
     }
 
     private _downX: number = 0;
     private _downY: number = 0;
     onPointerDown = (e: React.PointerEvent): void => {
-        e.stopPropagation();
+        let me = this;
         this._downX = e.clientX;
         this._downY = e.clientY;
         this._contextMenuCanOpen = e.button == 2;
-        document.addEventListener("pointerup", this.onPointerUp);
+        if (this.active) {
+            e.stopPropagation();
+            e.preventDefault();
+            document.removeEventListener("pointermove", this.onPointerMove)
+            document.addEventListener("pointermove", this.onPointerMove);
+            document.removeEventListener("pointerup", this.onPointerUp)
+            document.addEventListener("pointerup", this.onPointerUp);
+        }
+    }
+
+    onPointerMove = (e: PointerEvent): void => {
+        if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3) {
+            if (this._mainCont.current != null && this.props.ContainingCollectionView != null) {
+                this._contextMenuCanOpen = false;
+                const rect = this.screenRect;
+                let dragData: {[ id: string ]: any} = {};
+                dragData[ "document" ] = this;
+                dragData[ "xOffset" ] = e.x - rect.left;
+                dragData[ "yOffset" ] = e.y - rect.top;
+                DragManager.StartDrag(this._mainCont.current, dragData, {
+                    buttons: 2,
+                    handlers: {
+                        dragComplete: this.dragComplete,
+                    },
+                    hideSource: true
+                })
+            }
+        }
+        e.stopPropagation();
+        e.preventDefault();
     }
 
     onPointerUp = (e: PointerEvent): void => {
+        document.removeEventListener("pointermove", this.onPointerMove)
         document.removeEventListener("pointerup", this.onPointerUp)
         e.stopPropagation();
-        if ((e.clientX - this._downX) == 0 && (e.clientY - this._downY) == 0) {
+        if (Math.abs(e.clientX - this._downX) < 4 && Math.abs(e.clientY - this._downY) < 4) {
             SelectionManager.SelectDoc(this, e.ctrlKey);
         }
     }
@@ -179,6 +182,9 @@ export class DocumentView extends React.Component<IProps> {
 
     @action
     onContextMenu = (e: React.MouseEvent): void => {
+        if (!SelectionManager.IsSelected(this)) {
+            return;
+        }
         e.preventDefault()
 
         if (!this._contextMenuCanOpen) {
@@ -194,7 +200,7 @@ export class DocumentView extends React.Component<IProps> {
             e.stopPropagation();
 
             ContextMenu.Instance.clearItems();
-            ContextMenu.Instance.addItem({ description: "Delete", event: this.deleteClicked })
+            ContextMenu.Instance.addItem({description: "Delete", event: this.deleteClicked})
             ContextMenu.Instance.displayMenu(e.pageX, e.pageY)
             SelectionManager.SelectDoc(this, e.ctrlKey);
         }

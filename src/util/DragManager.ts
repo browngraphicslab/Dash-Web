@@ -1,4 +1,7 @@
-import { Opt } from "../fields/Field";
+import {Opt} from "../fields/Field";
+import {DocumentView} from "../views/nodes/DocumentView";
+import {DocumentDecorations} from "../DocumentDecorations";
+import {SelectionManager} from "./SelectionManager";
 
 export namespace DragManager {
     export let rootId = "root";
@@ -20,20 +23,10 @@ export namespace DragManager {
         (): void;
     }
 
-    export class DragStartEvent {
-        private _cancelled: boolean = false;
-        get cancelled() { return this._cancelled };
-
-        cancel() { this._cancelled = true; };
-
-        constructor(readonly x: number, readonly y: number, readonly data: { [id: string]: any }) { }
-    }
-
     export class DragCompleteEvent {
     }
 
     export interface DragHandlers {
-        dragStart: (e: DragStartEvent) => void;
         dragComplete: (e: DragCompleteEvent) => void;
     }
 
@@ -42,48 +35,18 @@ export namespace DragManager {
     }
 
     export class DropEvent {
-        constructor(readonly x: number, readonly y: number, readonly data: { [id: string]: any }) { }
+        constructor(readonly x: number, readonly y: number, readonly data: {[ id: string ]: any}) {}
     }
 
     export interface DropHandlers {
         drop: (e: Event, de: DropEvent) => void;
     }
 
-    export function MakeDraggable(element: HTMLElement, options: DragOptions): DragDropDisposer {
-        if ("draggable" in element.dataset) {
-            throw new Error("Element is already draggable, can't make it draggable again");
-        }
-        element.dataset["draggable"] = "true";
-        const dispose = () => {
-            document.removeEventListener("pointerup", upHandler);
-            document.removeEventListener("pointermove", startDragHandler);
-        }
-        const startDragHandler = (e: PointerEvent) => {
-            e.stopImmediatePropagation();
-            e.preventDefault();
-            dispose();
-            StartDrag(element, e, options);
-        }
-        const upHandler = (e: PointerEvent) => {
-            dispose();
-        };
-        const downHandler = (e: PointerEvent) => {
-            document.addEventListener("pointermove", startDragHandler);
-            document.addEventListener("pointerup", upHandler);
-        };
-        element.addEventListener("pointerdown", downHandler);
-
-        return () => {
-            element.removeEventListener("pointerdown", downHandler);
-            delete element.dataset["draggable"];
-        }
-    }
-
     export function MakeDropTarget(element: HTMLElement, options: DropOptions): DragDropDisposer {
-        if ("draggable" in element.dataset) {
+        if ("canDrop" in element.dataset) {
             throw new Error("Element is already droppable, can't make it droppable again");
         }
-        element.dataset["canDrop"] = "true";
+        element.dataset[ "canDrop" ] = "true";
         const handler = (e: Event) => {
             const ce = e as CustomEvent<DropEvent>;
             options.handlers.drop(e, ce.detail);
@@ -91,11 +54,11 @@ export namespace DragManager {
         element.addEventListener("dashOnDrop", handler);
         return () => {
             element.removeEventListener("dashOnDrop", handler);
-            delete element.dataset["canDrop"]
+            delete element.dataset[ "canDrop" ]
         };
     }
 
-    function StartDrag(ele: HTMLElement, e: PointerEvent, options: DragOptions) {
+    export function StartDrag(ele: HTMLElement, dragData: {[ id: string ]: any}, options: DragOptions) {
         if (!dragDiv) {
             const root = document.getElementById(rootId);
             if (!root) {
@@ -103,17 +66,6 @@ export namespace DragManager {
             }
             dragDiv = document.createElement("div");
             root.appendChild(dragDiv);
-        }
-        if ((e.buttons & options.buttons) === 0) {
-            return;
-        }
-        e.stopPropagation();
-        e.preventDefault();
-        let dragData = {};
-        let event = new DragStartEvent(e.x, e.y, dragData);
-        options.handlers.dragStart(event);
-        if (event.cancelled) {
-            return;
         }
         const w = ele.offsetWidth, h = ele.offsetHeight;
         const rect = ele.getBoundingClientRect();
@@ -157,7 +109,7 @@ export namespace DragManager {
         document.addEventListener("pointerup", upHandler);
     }
 
-    function FinishDrag(dragEle: HTMLElement, e: PointerEvent, options: DragOptions, dragData: { [index: string]: any }) {
+    function FinishDrag(dragEle: HTMLElement, e: PointerEvent, options: DragOptions, dragData: {[ index: string ]: any}) {
         dragDiv.removeChild(dragEle);
         const target = document.elementFromPoint(e.x, e.y);
         if (!target) {
