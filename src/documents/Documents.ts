@@ -13,16 +13,16 @@ interface DocumentOptions {
 
 export namespace Documents {
     function setupOptions(doc: Document, options: DocumentOptions): void {
-        if(options.x) {
+        if (options.x) {
             doc.SetFieldValue(KeyStore.X, options.x, NumberField);
         }
-        if(options.y) {
+        if (options.y) {
             doc.SetFieldValue(KeyStore.Y, options.y, NumberField);
         }
-        if(options.width) {
+        if (options.width) {
             doc.SetFieldValue(KeyStore.Width, options.width, NumberField);
         }
-        if(options.height) {
+        if (options.height) {
             doc.SetFieldValue(KeyStore.Height, options.height, NumberField);
         }
         doc.SetFieldValue(KeyStore.Scale, 1, NumberField);
@@ -30,9 +30,9 @@ export namespace Documents {
         doc.SetFieldValue(KeyStore.PanY, 0, NumberField);
     }
 
-    let textProto:Document;
+    let textProto: Document;
     function GetTextPrototype(): Document {
-        if(!textProto) {
+        if (!textProto) {
             textProto = new Document();
             textProto.SetField(KeyStore.X, new NumberField(0));
             textProto.SetField(KeyStore.Y, new NumberField(0));
@@ -44,16 +44,16 @@ export namespace Documents {
         return textProto;
     }
 
-    export function TextDocument(text: string, options:DocumentOptions = {}): Document {
+    export function TextDocument(text: string, options: DocumentOptions = {}): Document {
         let doc = GetTextPrototype().MakeDelegate();
         setupOptions(doc, options);
         // doc.SetField(KeyStore.Data, new TextField(text));
         return doc;
     }
 
-    let imageProto:Document;
+    let imageProto: Document;
     function GetImagePrototype(): Document {
-        if(!imageProto) {
+        if (!imageProto) {
             imageProto = new Document();
             imageProto.SetField(KeyStore.X, new NumberField(0));
             imageProto.SetField(KeyStore.Y, new NumberField(0));
@@ -66,16 +66,16 @@ export namespace Documents {
         return imageProto;
     }
 
-    export function ImageDocument(url: string, options:DocumentOptions = {}): Document {
+    export function ImageDocument(url: string, options: DocumentOptions = {}): Document {
         let doc = GetImagePrototype().MakeDelegate();
         setupOptions(doc, options);
         doc.SetField(KeyStore.Data, new TextField(url));
         return doc;
     }
 
-    let collectionProto:Document;
+    let collectionProto: Document;
     function GetCollectionPrototype(): Document {
-        if(!collectionProto) {
+        if (!collectionProto) {
             collectionProto = new Document();
             collectionProto.SetField(KeyStore.X, new NumberField(0));
             collectionProto.SetField(KeyStore.Y, new NumberField(0));
@@ -90,7 +90,7 @@ export namespace Documents {
         return collectionProto;
     }
 
-    export function CollectionDocument( documents: Array<Document>, options:DocumentOptions = {}): Document {
+    export function CollectionDocument(documents: Array<Document>, options: DocumentOptions = {}): Document {
         let doc = GetCollectionPrototype().MakeDelegate();
         setupOptions(doc, options);
         doc.SetField(KeyStore.Data, new ListField(documents));

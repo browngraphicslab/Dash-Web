@@ -8,6 +8,4 @@ export class TextField extends BasicField<string> {
     Copy() {
         return new TextField(this.Data);
     }
-
-
 }

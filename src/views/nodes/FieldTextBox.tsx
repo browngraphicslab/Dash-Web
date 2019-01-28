@@ -5,19 +5,19 @@ import { TextField } from "../../fields/TextField";
 import React = require("react")
 import { action, observable, reaction, IReactionDisposer } from "mobx";
 
-import {schema} from "prosemirror-schema-basic";
-import {EditorState, Transaction} from "prosemirror-state"
-import {EditorView} from "prosemirror-view"
-import {keymap} from "prosemirror-keymap"
-import {baseKeymap} from "prosemirror-commands"
-import {undo, redo, history} from "prosemirror-history"
+import { schema } from "prosemirror-schema-basic";
+import { EditorState, Transaction } from "prosemirror-state"
+import { EditorView } from "prosemirror-view"
+import { keymap } from "prosemirror-keymap"
+import { baseKeymap } from "prosemirror-commands"
+import { undo, redo, history } from "prosemirror-history"
 import { Opt } from "../../fields/Field";
 
 import "./FieldTextBox.scss"
 
 interface IProps {
-    fieldKey:Key;
-    doc:Document;
+    fieldKey: Key;
+    doc: Document;
 }
 
 // FieldTextBox: Displays an editable plain text node that maps to a specified Key of a Document
@@ -41,7 +41,7 @@ export class FieldTextBox extends React.Component<IProps> {
     private _editorView: Opt<EditorView>;
     private _reactionDisposer: Opt<IReactionDisposer>;
 
-    constructor(props:IProps) {
+    constructor(props: IProps) {
         super(props);
 
         this._ref = React.createRef();
@@ -50,33 +50,33 @@ export class FieldTextBox extends React.Component<IProps> {
     }
 
     dispatchTransaction = (tx: Transaction) => {
-        if(this._editorView) {
+        if (this._editorView) {
             const state = this._editorView.state.apply(tx);
             this._editorView.updateState(state);
-            const {doc, fieldKey} = this.props;
+            const { doc, fieldKey } = this.props;
             doc.SetFieldValue(fieldKey, JSON.stringify(state.toJSON()), TextField);
         }
     }
 
     componentDidMount() {
-        let state:EditorState;
-        const {doc, fieldKey} = this.props;
+        let state: EditorState;
+        const { doc, fieldKey } = this.props;
         const config = {
             schema,
             plugins: [
                 history(),
-                keymap({"Mod-z": undo, "Mod-y": redo}),
+                keymap({ "Mod-z": undo, "Mod-y": redo }),
                 keymap(baseKeymap)
             ]
         };
 
         let field = doc.GetFieldT(fieldKey, TextField);
-        if(field) {
+        if (field) {
             state = EditorState.fromJSON(config, JSON.parse(field.Data));
         } else {
             state = EditorState.create(config);
         }
-        if(this._ref.current) {
+        if (this._ref.current) {
             this._editorView = new EditorView(this._ref.current, {
                 state,
                 dispatchTransaction: this.dispatchTransaction
@@ -87,17 +87,17 @@ export class FieldTextBox extends React.Component<IProps> {
             const field = this.props.doc.GetFieldT(this.props.fieldKey, TextField);
             return field ? field.Data : undefined;
         }, (field) => {
-            if(field && this._editorView) {
+            if (field && this._editorView) {
                 this._editorView.updateState(EditorState.fromJSON(config, JSON.parse(field)));
             }
         })
     }
 
     componentWillUnmount() {
-        if(this._editorView) {
+        if (this._editorView) {
             this._editorView.destroy();
         }
-        if(this._reactionDisposer) {
+        if (this._reactionDisposer) {
             this._reactionDisposer();
         }
     }
@@ -108,7 +108,7 @@ export class FieldTextBox extends React.Component<IProps> {
 
     @action
     onChange(e: React.ChangeEvent<HTMLInputElement>) {
-        const {fieldKey, doc} = this.props;
+        const { fieldKey, doc } = this.props;
         doc.SetFieldValue(fieldKey, e.target.value, TextField);
     }
 

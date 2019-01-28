@@ -3,13 +3,13 @@ import { Utils } from "../Utils";
 import { observable } from "mobx";
 
 export class Key extends Field {
-    private name:string;
+    private name: string;
 
-    get Name():string {
+    get Name(): string {
         return this.name;
     }
 
-    constructor(name:string){
+    constructor(name: string) {
         super(Utils.GenerateDeterministicGuid(name));
 
         this.name = name;

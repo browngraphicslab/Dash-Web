@@ -9,7 +9,7 @@ export abstract class BasicField<T> extends Field {
     }
 
     @observable
-    private data:T;
+    private data: T;
 
     @computed
     get Data(): T {
@@ -17,7 +17,7 @@ export abstract class BasicField<T> extends Field {
     }
 
     set Data(value: T) {
-        if(this.data === value) {
+        if (this.data === value) {
             return;
         }
         this.data = value;

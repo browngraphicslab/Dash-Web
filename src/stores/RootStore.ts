@@ -10,7 +10,7 @@ export class RootStore {
 
     private static _instance: RootStore;
 
-    public static get Instance():RootStore {
+    public static get Instance(): RootStore {
         return this._instance || (this._instance = new this());
     }
 }

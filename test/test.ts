@@ -17,14 +17,14 @@ describe('Number Controller', () => {
     it('Should update', () => {
         const numController = new NumberField(15);
         let ran = false;
-        reaction(() => numController.Data, (data) => {ran = true;})
+        reaction(() => numController.Data, (data) => { ran = true; })
         expect(ran).to.equal(false);
         numController.Data = 5;
         expect(ran).to.equal(true);
     });
 });
 
-describe("Document", () =>{
+describe("Document", () => {
     it('should hold fields', () => {
         let key = new Key("Test");
         let key2 = new Key("Test2");
@@ -42,7 +42,7 @@ describe("Document", () =>{
         let key = new Key("Test");
         let key2 = new Key("Test2");
         let ran = false;
-        reaction(() => doc.GetField(key), (field) => {ran = true});
+        reaction(() => doc.GetField(key), (field) => { ran = true });
         expect(ran).to.equal(false);
 
         doc.SetField(key2, new NumberField(4));
@@ -69,7 +69,7 @@ describe("Reference", () => {
 
         let ref3 = new DocumentReference(doc2, key2);
         let ref4 = new DocumentReference(doc2, key);
-        
+
         expect(ref.Dereference()).to.equal(numCont);
         expect(ref.DereferenceToRoot()).to.equal(numCont);
         expect(ref2.Dereference()).to.equal(undefined);
@@ -79,7 +79,7 @@ describe("Reference", () => {
         expect(ref4.Dereference()).to.equal(undefined);
         expect(ref4.DereferenceToRoot()).to.equal(undefined);
     });
-    
+
     it('should work with prototypes', () => {
         let doc = new Document;
         let doc2 = doc.MakeDelegate();
@@ -152,7 +152,7 @@ describe("Reference", () => {
         let ran = false;
         reaction(() => {
             let field = doc2.GetFieldT(key, NumberField);
-            if(field) {
+            if (field) {
                 return field.Data;
             }
             return undefined;

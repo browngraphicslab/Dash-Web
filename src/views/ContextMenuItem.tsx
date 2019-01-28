@@ -8,7 +8,7 @@ export interface ContextMenuProps {
 
 export class ContextMenuItem extends React.Component<ContextMenuProps> {
     render() {
-        return(
+        return (
             <div className="contextMenu-item" onClick={this.props.event}>
                 <div className="contextMenu-description">{this.props.description}</div>
             </div>

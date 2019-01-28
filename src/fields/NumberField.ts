@@ -8,6 +8,4 @@ export class NumberField extends BasicField<number> {
     Copy() {
         return new NumberField(this.Data);
     }
-
-
 }

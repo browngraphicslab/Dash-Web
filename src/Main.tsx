@@ -27,22 +27,22 @@ let mainContainer = Documents.CollectionDocument(mainNodeCollection, {
     x: 0, y: 0, width: window.screen.width, height: window.screen.height
 })
 
-window.addEventListener("drop", function(e) {
+window.addEventListener("drop", function (e) {
     e.preventDefault();
 }, false)
-window.addEventListener("dragover", function(e) {
+window.addEventListener("dragover", function (e) {
     e.preventDefault();
 }, false)
-document.addEventListener("pointerdown", action(function(e: PointerEvent) {
+document.addEventListener("pointerdown", action(function (e: PointerEvent) {
     if (!ContextMenu.Instance.intersects(e.pageX, e.pageY)) {
         ContextMenu.Instance.clearItems()
     }
 }), true)
 
 ReactDOM.render((
-    <div style={{display: "grid"}}>
+    <div style={{ display: "grid" }}>
         <h1>Dash Web</h1>
-        <DocumentView Document={mainContainer} ContainingCollectionView={undefined} ContainingDocumentView={undefined}/>
+        <DocumentView Document={mainContainer} ContainingCollectionView={undefined} ContainingDocumentView={undefined} />
         <DocumentDecorations />
         <ContextMenu />
     </div>), document.getElementById('root'));
