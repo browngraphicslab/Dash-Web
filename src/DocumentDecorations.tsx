@@ -4,10 +4,15 @@ import {DocumentView} from "./views/nodes/DocumentView";
 import {SelectionManager} from "./util/SelectionManager";
 import {observer} from "mobx-react";
 import './DocumentDecorations.scss'
+import {CollectionFreeFormView} from "./views/freeformcanvas/CollectionFreeFormView";
 
 @observer
 export class DocumentDecorations extends React.Component {
     static Instance: DocumentDecorations
+    private _resizer = ""
+    private _isPointerDown = false;
+    @observable private _opacity = 1;
+
     constructor(props: Readonly<{}>) {
         super(props)
 
@@ -15,30 +20,16 @@ export class DocumentDecorations extends React.Component {
     }
 
     @computed
-    get x(): number {
-        return SelectionManager.SelectedDocuments().reduce((left, element) => Math.min(element.TransformToScreenPoint(0, 0).ScreenX, left), Number.MAX_VALUE);
+    get Bounds(): {x: number, y: number, b: number, r: number} {
+        return SelectionManager.SelectedDocuments().reduce((bounds, element) => {
+            var spt = element.TransformToScreenPoint(0, 0);
+            var bpt = element.TransformToScreenPoint(element.width, element.height);
+            return {
+                x: Math.min(spt.ScreenX, bounds.x), y: Math.min(spt.ScreenY, bounds.y),
+                r: Math.max(bpt.ScreenX, bounds.r), b: Math.max(bpt.ScreenY, bounds.b)
+            }
+        }, {x: Number.MAX_VALUE, y: Number.MAX_VALUE, r: Number.MIN_VALUE, b: Number.MIN_VALUE});
     }
-
-    @computed
-    get y(): number {
-        return SelectionManager.SelectedDocuments().reduce((top, element) => Math.min(element.TransformToScreenPoint(0, 0).ScreenY, top), Number.MAX_VALUE);
-    }
-
-    @computed
-    get height(): number {
-        return (SelectionManager.SelectedDocuments().reduce((bottom, element) => Math.max(element.TransformToScreenPoint(0, element.height).ScreenY, bottom),
-            Number.MIN_VALUE)) - this.y;
-    }
-
-    @computed
-    get width(): number {
-        return SelectionManager.SelectedDocuments().reduce((right, element) => Math.max(element.TransformToScreenPoint(element.width, 0).ScreenX, right),
-            Number.MIN_VALUE) - this.x;
-    }
-
-    private _resizer = ""
-    private _isPointerDown = false;
-    @observable private _opacity = 1;
 
     @computed
     get opacity(): number {
@@ -134,12 +125,13 @@ export class DocumentDecorations extends React.Component {
     }
 
     render() {
+        var bounds = this.Bounds;
         return (
             <div id="documentDecorations-container" style={{
-                width: `${this.width + 40}px`,
-                height: `${this.height + 40}px`,
-                left: this.x - 20,
-                top: this.y - 20,
+                width: (bounds.r - bounds.x + 40) + "px",
+                height: (bounds.b - bounds.y + 40) + "px",
+                left: bounds.x - 20,
+                top: bounds.y - 20,
                 opacity: this.opacity
             }}>
                 <div id="documentDecorations-topLeftResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>

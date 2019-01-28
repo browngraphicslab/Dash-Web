@@ -31,6 +31,8 @@ export class CollectionFreeFormView extends React.Component<IProps> {
         super(props);
     }
 
+    public static BORDER_WIDTH = 2;
+
     @computed
     public get active(): boolean {
         var isSelected = (this.props.ContainingDocumentView != undefined && SelectionManager.IsSelected(this.props.ContainingDocumentView));
@@ -101,17 +103,11 @@ export class CollectionFreeFormView extends React.Component<IProps> {
         if (!e.cancelBubble) {
             e.preventDefault();
             e.stopPropagation();
-            const doc = this.props.Document;
-            let me = this;
-            let currScale: number = this.props.Document.GetFieldValue(KeyStore.Scale, NumberField, Number(1));
-            if (me.props.ContainingDocumentView!.props.ContainingDocumentView != undefined) {
-                let pme = me.props.ContainingDocumentView!.props.ContainingDocumentView!.props.Document;
-                currScale = pme.GetFieldValue(KeyStore.Scale, NumberField, Number(0));
-            }
-            let x = doc.GetFieldValue(KeyStore.PanX, NumberField, Number(0));
-            let y = doc.GetFieldValue(KeyStore.PanY, NumberField, Number(0));
-            doc.SetFieldValue(KeyStore.PanX, x + (e.pageX - this._lastX) / currScale, NumberField);
-            doc.SetFieldValue(KeyStore.PanY, y + (e.pageY - this._lastY) / currScale, NumberField);
+            let currScale: number = this.props.ContainingDocumentView!.ScalingToScreenSpace;
+            let x = this.props.Document.GetFieldValue(KeyStore.PanX, NumberField, Number(0));
+            let y = this.props.Document.GetFieldValue(KeyStore.PanY, NumberField, Number(0));
+            this.props.Document.SetFieldValue(KeyStore.PanX, x + (e.pageX - this._lastX) / currScale, NumberField);
+            this.props.Document.SetFieldValue(KeyStore.PanY, y + (e.pageY - this._lastY) / currScale, NumberField);
             this._lastX = e.pageX;
             this._lastY = e.pageY;
         }
@@ -198,11 +194,11 @@ export class CollectionFreeFormView extends React.Component<IProps> {
         return (
             <div className="border" style={{
                 borderStyle: "solid",
-                borderWidth: "2px",
+                borderWidth: `${CollectionFreeFormView.BORDER_WIDTH}px`,
             }}>
                 <div className="collectionfreeformview-container" onPointerDown={this.onPointerDown} onWheel={this.onPointerWheel} onContextMenu={(e) => e.preventDefault()} style={{
                     width: "100%",
-                    height: "calc(100% - 4px)",
+                    height: `calc(100% - 2*${CollectionFreeFormView.BORDER_WIDTH}px)`,
                     overflow: "hidden"
                 }} onDrop={this.onDrop} onDragOver={this.onDragOver} ref={this._containerRef}>
                     <div className="collectionfreeformview" style={{transform: `translate(${panx}px, ${pany}px) scale(${currScale}, ${currScale})`, transformOrigin: `left, top`}} ref={this._canvasRef}>
