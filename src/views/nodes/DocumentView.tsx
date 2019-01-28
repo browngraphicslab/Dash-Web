@@ -18,9 +18,9 @@ import { DragManager } from "../../util/DragManager";
 const JsxParser = require('react-jsx-parser').default;//TODO Why does this need to be imported like this?
 
 interface IProps {
-    Document:    Document;
-    ContainingCollectionView: Opt<object>;
-    ContainingDocumentView:   Opt<DocumentView>
+    Document: Document;
+    ContainingCollectionView: Opt<CollectionFreeFormView>;
+    ContainingDocumentView: Opt<DocumentView>
 }
 
 @observer
@@ -42,7 +42,7 @@ class DocumentContents extends React.Component<IProps> {
     }
     render() {
         let doc = this.props.Document;
-        let bindings = {...this.props} as any;
+        let bindings = { ...this.props } as any;
         for (const key of this.layoutKeys) {
             bindings[key.Name + "Key"] = key;
         }
@@ -69,10 +69,6 @@ class DocumentContents extends React.Component<IProps> {
 export class DocumentView extends React.Component<IProps> {
     private _mainCont = React.createRef<HTMLDivElement>();
     private _contextMenuCanOpen = false;
-    private _downX:number = 0;
-    private _downY:number = 0;
-    private _lastX:number = 0;
-    private _lastY:number = 0;
 
     get screenRect(): ClientRect | DOMRect {
         if (this._mainCont.current) {
@@ -122,91 +118,58 @@ export class DocumentView extends React.Component<IProps> {
         this.props.Document.SetFieldValue(KeyStore.Height, h, NumberField)
     }
 
+    @action
+    dragStarted = (e: DragManager.DragStartEvent) => {
+        this._contextMenuCanOpen = false;
+        if (!this.props.ContainingCollectionView) {
+            e.cancel();
+            return;
+        }
+        const rect = this.screenRect;
+        e.data["document"] = this;
+        e.data["xOffset"] = e.x - rect.left;
+        e.data["yOffset"] = e.y - rect.top;
+    }
+
+    @action
+    dragComplete = (e: DragManager.DragCompleteEvent) => {
+    }
+
     componentDidMount() {
-        const that = this;
-        if(this._mainCont.current) {
+        if (this._mainCont.current) {
             DragManager.MakeDraggable(this._mainCont.current, {
                 buttons: 2,
                 handlers: {
-                    dragComplete: () => {},
-                    dragStart: (e: DragManager.DragStartEvent) => {
-                        if(!this.props.ContainingCollectionView) {
-                            e.cancel();
-                            return;
-                        }
-                        const rect = this.screenRect;
-                        e.data["document"] = this;
-                        e.data["xOffset"] = e.x - rect.left;
-                        e.data["yOffset"] = e.y - rect.top;
-                    }
-                }
+                    dragComplete: this.dragComplete,
+                    dragStart: this.dragStarted
+                },
+                hideSource: true
             })
         }
     }
 
     @computed
-    get active() : boolean {
-        return SelectionManager.IsSelected(this) ||  (this.props.ContainingCollectionView instanceof CollectionFreeFormView && this.props.ContainingCollectionView.active);
+    get active(): boolean {
+        return SelectionManager.IsSelected(this) || (this.props.ContainingCollectionView !== undefined && this.props.ContainingCollectionView.active);
     }
 
+    private _downX: number = 0;
+    private _downY: number = 0;
     onPointerDown = (e: React.PointerEvent): void => {
-        this._downX = e.pageX;
-        this._downY = e.pageY;
-        this._lastX = e.pageX;
-        this._lastY = e.pageY;
+        e.stopPropagation();
+        this._downX = e.clientX;
+        this._downY = e.clientY;
         this._contextMenuCanOpen = e.button == 2;
-        // document.removeEventListener("pointermove", this.onPointerMove);
-        // document.addEventListener("pointermove", this.onPointerMove);
-        document.removeEventListener("pointerup", this.onPointerUp);
         document.addEventListener("pointerup", this.onPointerUp);
     }
 
     onPointerUp = (e: PointerEvent): void => {
-        document.removeEventListener("pointermove", this.onPointerMove);
-        document.removeEventListener("pointerup", this.onPointerUp);
-        if (!e.cancelBubble) {
-            e.stopPropagation();
-            e.preventDefault();
-            DocumentDecorations.Instance.opacity = 1;
-            if (this._downX == e.pageX && this._downY == e.pageY) {
-                SelectionManager.SelectDoc(this, e.ctrlKey)
-            }
+        document.removeEventListener("pointerup", this.onPointerUp)
+        e.stopPropagation();
+        if ((e.clientX - this._downX) == 0 && (e.clientY - this._downY) == 0) {
+            SelectionManager.SelectDoc(this, e.ctrlKey);
         }
     }
-
-    onPointerMove = (e: PointerEvent): void => {
-        if (this.active && !e.cancelBubble) {
-            e.stopPropagation();
-            e.preventDefault();
-            this._contextMenuCanOpen = false
-            let me = this;
-            var dx = e.pageX - this._lastX;
-            var dy = e.pageY - this._lastY;
-            this._lastX = e.pageX;
-            this._lastY = e.pageY;
-            let currScale:number = 1;
-            if (me.props.ContainingDocumentView != undefined) {
-                let pme = me.props.ContainingDocumentView!.props.Document;
-                currScale = pme.GetFieldValue(KeyStore.Scale, NumberField, Number(0)); 
-                if (me.props.ContainingDocumentView!.props.ContainingDocumentView != undefined) {
-                    let pme = me.props.ContainingDocumentView!.props.ContainingDocumentView!.props.Document;
-                    currScale *= pme.GetFieldValue(KeyStore.Scale, NumberField, Number(0));
-                } 
-            } 
-            this.x += dx/currScale;
-            this.y += dy/currScale;
-            DocumentDecorations.Instance.opacity = 0;
-        }
-    }
-
-    onDragStart = (e: React.DragEvent<HTMLDivElement>): void => {
-        if (this._mainCont.current !== null) {
-            this._mainCont.current.style.opacity = "0";
-            // e.dataTransfer.setDragImage()
-        }
-    }
-
-    onClick = (e: React.MouseEvent): void => {    }
 
     deleteClicked = (e: React.MouseEvent): void => {
         if (this.props.ContainingCollectionView instanceof CollectionFreeFormView) {
@@ -231,8 +194,9 @@ export class DocumentView extends React.Component<IProps> {
             e.stopPropagation();
 
             ContextMenu.Instance.clearItems();
-            ContextMenu.Instance.addItem({description: "Delete", event: this.deleteClicked})
+            ContextMenu.Instance.addItem({ description: "Delete", event: this.deleteClicked })
             ContextMenu.Instance.displayMenu(e.pageX, e.pageY)
+            SelectionManager.SelectDoc(this, e.ctrlKey);
         }
     }
 
@@ -244,8 +208,7 @@ export class DocumentView extends React.Component<IProps> {
                 height: this.height,
             }}
                 onContextMenu={this.onContextMenu}
-                onPointerDown={this.onPointerDown}
-                onClick={this.onClick}>
+                onPointerDown={this.onPointerDown}>
                 <DocumentContents {...this.props} ContainingDocumentView={this} />
             </div>
         );

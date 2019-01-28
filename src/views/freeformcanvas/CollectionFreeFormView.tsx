@@ -24,7 +24,8 @@ interface IProps {
 
 @observer
 export class CollectionFreeFormView extends React.Component<IProps> {
-    private _ref = React.createRef<HTMLDivElement>();
+    private _containerRef = React.createRef<HTMLDivElement>();
+    private _canvasRef = React.createRef<HTMLDivElement>();
 
     constructor(props: IProps) {
         super(props);
@@ -38,27 +39,36 @@ export class CollectionFreeFormView extends React.Component<IProps> {
         return isSelected || childSelected || topMost;
     }
 
+    drop = (e: Event, de: DragManager.DropEvent) => {
+        const ele = this._canvasRef.current;
+        if (!ele) {
+            return;
+        }
+        const doc = de.data["document"];
+        const xOffset = de.data["xOffset"] as number || 0;
+        const yOffset = de.data["yOffset"] as number || 0;
+        if (doc instanceof DocumentView) {
+            if (doc.props.ContainingCollectionView && doc.props.ContainingCollectionView !== this) {
+                doc.props.ContainingCollectionView.removeDocument(doc.props.Document);
+                this.addDocument(doc.props.Document);
+            }
+            const { scale, translateX, translateY } = Utils.GetScreenTransform(ele);
+            const screenX = de.x - xOffset;
+            const screenY = de.y - yOffset;
+            const docX = (screenX - translateX) / scale;
+            const docY = (screenY - translateY) / scale;
+            doc.x = docX;
+            doc.y = docY;
+        }
+        e.stopPropagation();
+
+    }
+
     componentDidMount() {
-        if (this._ref.current) {
-            const ele = this._ref.current;
-            DragManager.MakeDropTarget(this._ref.current, {
+        if (this._containerRef.current) {
+            DragManager.MakeDropTarget(this._containerRef.current, {
                 handlers: {
-                    drop: (e:Event, de: DragManager.DropEvent) => {
-                        const doc = de.data["document"];
-                        const xOffset = de.data["xOffset"] as number || 0;
-                        const yOffset = de.data["yOffset"] as number || 0;
-                        if (doc instanceof DocumentView) {
-                            const { scale, translateX, translateY } = Utils.GetScreenTransform(ele.children[0] as HTMLElement);
-                            console.log(`${scale} ${translateX} ${translateY}`)
-                            const screenX = de.x - xOffset;
-                            const screenY = de.y - yOffset;
-                            const docX = (screenX - translateX) / scale;
-                            const docY = (screenY - translateY) / scale;
-                            doc.x = docX;
-                            doc.y = docY;
-                        }
-                        e.stopPropagation();
-                    }
+                    drop: this.drop
                 }
             });
         }
@@ -191,8 +201,16 @@ export class CollectionFreeFormView extends React.Component<IProps> {
     }
 
     @action
+    addDocument = (doc: Document): void => {
+        //TODO This won't create the field if it doesn't already exist
+        const value = this.props.Document.GetFieldValue(this.props.fieldKey, ListField, new Array<Document>())
+        value.push(doc);
+    }
+
+    @action
     removeDocument = (doc: Document): void => {
-        const value: Document[] = this.props.Document.GetFieldValue(this.props.fieldKey, ListField, [])
+        //TODO This won't create the field if it doesn't already exist
+        const value = this.props.Document.GetFieldValue(this.props.fieldKey, ListField, new Array<Document>())
         if (value.indexOf(doc) !== -1) {
             value.splice(value.indexOf(doc), 1)
 
@@ -202,7 +220,6 @@ export class CollectionFreeFormView extends React.Component<IProps> {
     }
 
     onDragOver = (e: React.DragEvent): void => {
-        // console.log(e.dataTransfer)
     }
     render() {
         const { fieldKey, Document: Document } = this.props;
@@ -221,8 +238,8 @@ export class CollectionFreeFormView extends React.Component<IProps> {
                     width: "100%",
                     height: "calc(100% - 4px)",
                     overflow: "hidden"
-                }} onDrop={this.onDrop} onDragOver={this.onDragOver} ref={this._ref}>
-                    <div className="collectionfreeformview" style={{ transform: `translate(${panx}px, ${pany}px) scale(${currScale}, ${currScale})`, transformOrigin: `left, top` }}>
+                }} onDrop={this.onDrop} onDragOver={this.onDragOver} ref={this._containerRef}>
+                    <div className="collectionfreeformview" style={{ transform: `translate(${panx}px, ${pany}px) scale(${currScale}, ${currScale})`, transformOrigin: `left, top` }} ref={this._canvasRef}>
 
                         <div className="node-container">
                             {value.map(doc => {

@@ -12,6 +12,8 @@ export namespace DragManager {
         handlers: DragHandlers;
 
         buttons: number;
+
+        hideSource: boolean | (() => boolean);
     }
 
     export interface DragDropDisposer {
@@ -24,11 +26,10 @@ export namespace DragManager {
 
         cancel() { this._cancelled = true; };
 
-        constructor(readonly x:number, readonly y:number, readonly data: { [id: string]: any }) { }
+        constructor(readonly x: number, readonly y: number, readonly data: { [id: string]: any }) { }
     }
 
     export class DragCompleteEvent {
-
     }
 
     export interface DragHandlers {
@@ -45,7 +46,7 @@ export namespace DragManager {
     }
 
     export interface DropHandlers {
-        drop: (e:Event, de: DropEvent) => void;
+        drop: (e: Event, de: DropEvent) => void;
     }
 
     export function MakeDraggable(element: HTMLElement, options: DragOptions): DragDropDisposer {
@@ -126,6 +127,17 @@ export namespace DragManager {
         dragElement.style.transform = `translate(${x}px, ${y}px) scale(${scaleX}, ${scaleY})`;
         dragDiv.appendChild(dragElement);
 
+        let hideSource = false;
+        if (typeof options.hideSource === "boolean") {
+            hideSource = options.hideSource;
+        } else {
+            hideSource = options.hideSource();
+        }
+        const wasHidden = ele.hidden;
+        if (hideSource) {
+            ele.hidden = true;
+        }
+
         const moveHandler = (e: PointerEvent) => {
             e.stopPropagation();
             e.preventDefault();
@@ -137,13 +149,16 @@ export namespace DragManager {
             document.removeEventListener("pointermove", moveHandler, true);
             document.removeEventListener("pointerup", upHandler);
             FinishDrag(dragElement, e, options, dragData);
+            if (hideSource && !wasHidden) {
+                ele.hidden = false;
+            }
         };
         document.addEventListener("pointermove", moveHandler, true);
         document.addEventListener("pointerup", upHandler);
     }
 
-    function FinishDrag(ele: HTMLElement, e: PointerEvent, options: DragOptions, dragData: { [index: string]: any }) {
-        dragDiv.removeChild(ele);
+    function FinishDrag(dragEle: HTMLElement, e: PointerEvent, options: DragOptions, dragData: { [index: string]: any }) {
+        dragDiv.removeChild(dragEle);
         const target = document.elementFromPoint(e.x, e.y);
         if (!target) {
             return;
@@ -156,5 +171,6 @@ export namespace DragManager {
                 data: dragData
             }
         }));
+        options.handlers.dragComplete({});
     }
 }
