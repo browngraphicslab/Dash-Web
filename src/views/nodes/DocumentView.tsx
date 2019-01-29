@@ -167,7 +167,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     // Converts a coordinate in the screen space of the app into a local document coordinate.
     //
     public TransformToLocalPoint(screenX: number, screenY: number) {
-        let ContainerX = screenX;
+        let ContainerX = screenX - CollectionFreeFormView.BORDER_WIDTH;
         let ContainerY = screenY - CollectionFreeFormView.BORDER_WIDTH;
 
         // if this collection view is nested within another collection view, then 
@@ -178,16 +178,15 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             ContainerY = LocalY - CollectionFreeFormView.BORDER_WIDTH;
         }
 
-        let W = this.props.Document.GetFieldValue(KeyStore.Width, NumberField, Number(0));
         let Xx = this.props.Document.GetFieldValue(KeyStore.X, NumberField, Number(0));
         let Yy = this.props.Document.GetFieldValue(KeyStore.Y, NumberField, Number(0));
         let Ss = this.props.Document.GetFieldValue(KeyStore.Scale, NumberField, Number(1));
         let Panxx = this.props.Document.GetFieldValue(KeyStore.PanX, NumberField, Number(0));
         let Panyy = this.props.Document.GetFieldValue(KeyStore.PanY, NumberField, Number(0));
-        let LocalX = (ContainerX - (Xx + Panxx) - W / 2) / Ss + W / 2;
+        let LocalX = (ContainerX - (Xx + Panxx)) / Ss;
         let LocalY = (ContainerY - (Yy + Panyy)) / Ss;
 
-        return { LocalX, Ss, W, Panxx, Xx, LocalY, Panyy, Yy, ContainerX, ContainerY };
+        return { LocalX, Ss, Panxx, Xx, LocalY, Panyy, Yy, ContainerX, ContainerY };
     }
 
     //
@@ -197,11 +196,11 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         if (this.props.ContainingCollectionView != undefined && !(this.props.ContainingCollectionView instanceof CollectionFreeFormView)) {
             return { ScreenX: undefined, ScreenY: undefined };
         }
-        let W = this.props.Document.GetFieldValue(KeyStore.Width, NumberField, Number(0));
+        let W = CollectionFreeFormView.BORDER_WIDTH; // this.props.Document.GetFieldValue(KeyStore.Width, NumberField, Number(0));
         let H = CollectionFreeFormView.BORDER_WIDTH;
         let Xx = this.props.Document.GetFieldValue(KeyStore.X, NumberField, Number(0));
         let Yy = this.props.Document.GetFieldValue(KeyStore.Y, NumberField, Number(0));
-        let parentX: Opt<any> = (localX - W / 2) * Ss + (Xx + Panxx) + W / 2;
+        let parentX: Opt<any> = (localX - W) * Ss + (Xx + Panxx) + W;
         let parentY: Opt<any> = (localY - H) * Ss + (Yy + Panyy) + H;
 
         // if this collection view is nested within another collection view, then 
@@ -299,28 +298,16 @@ export class DocumentView extends React.Component<DocumentViewProps> {
 
     render() {
         var freestyling = this.props.ContainingCollectionView === undefined || this.props.ContainingCollectionView instanceof CollectionFreeFormView;
-        if (freestyling)
-            return (
-                <div className="node" ref={this._mainCont} style={{
-                    transform: this.transform,
-                    width: this.width,
-                    height: this.height,
-                }}
-                    onContextMenu={this.onContextMenu}
-                    onPointerDown={this.onPointerDown}>
-                    <DocumentContents {...this.props} ContainingDocumentView={this} />
-                </div>
-            );
-        else
-            return (
-                <div className="node" ref={this._mainCont} style={{
-                    width: "100%",
-                    height: "100%",
-                }}
-                    onContextMenu={this.onContextMenu}
-                    onPointerDown={this.onPointerDown}>
-                    <DocumentContents {...this.props} ContainingDocumentView={this} />
-                </div>
-            );
+        return (
+            <div className="node" ref={this._mainCont} style={{
+                transform: freestyling ? this.transform : "",
+                width: freestyling ? this.width : "100%",
+                height: freestyling ? this.height : "100%",
+            }}
+                onContextMenu={this.onContextMenu}
+                onPointerDown={this.onPointerDown}>
+                <DocumentContents {...this.props} ContainingDocumentView={this} />
+            </div>
+        );
     }
 }

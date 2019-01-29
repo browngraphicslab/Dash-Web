@@ -109,11 +109,11 @@ export class CollectionFreeFormView extends React.Component<CollectionViewProps>
     onPointerWheel = (e: React.WheelEvent): void => {
         e.stopPropagation();
 
-        let { LocalX, Ss, W, Panxx, Xx, LocalY, Panyy, Yy, ContainerX, ContainerY } = this.props.ContainingDocumentView!.TransformToLocalPoint(e.pageX, e.pageY);
+        let { LocalX, Ss, Panxx, Xx, LocalY, Panyy, Yy, ContainerX, ContainerY } = this.props.ContainingDocumentView!.TransformToLocalPoint(e.pageX, e.pageY);
 
         var deltaScale = (1 - (e.deltaY / 1000)) * Ss;
 
-        var newContainerX = LocalX * deltaScale + W / 2 - W / 2 * deltaScale + Panxx + Xx;
+        var newContainerX = LocalX * deltaScale + Panxx + Xx;
         var newContainerY = LocalY * deltaScale + Panyy + Yy;
 
         let dx = ContainerX - newContainerX;
