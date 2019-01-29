@@ -54,14 +54,14 @@ runInAction(() => {
     let doc3 = Documents.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", {
         x: 450, y: 500
     });
-    let docset = new Array<Document>(doc1, doc2);
+    let docset = new Array<Document>(doc1, doc2, doc3);
     let doc4 = Documents.CollectionDocument(docset, {
         x: 0, y: 400
     });
     let doc5 = Documents.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", {
         x: 650, y: 500, width: 600, height: 600
     });
-    let doc6 = Documents.DockDocument("", {
+    let doc6 = Documents.DockDocument(docset, {
         x: 350, y: 100
     });
     let mainNodes = mainContainer.GetFieldT(KeyStore.Data, ListField);
@@ -71,8 +71,10 @@ runInAction(() => {
     }
     // mainNodes.Data.push(doc1);
     // mainNodes.Data.push(doc2);
-    // mainNodes.Data.push(doc4);
+    mainNodes.Data.push(doc4);
     // mainNodes.Data.push(doc3);
-    // mainNodes.Data.push(doc5);
+    mainNodes.Data.push(doc5);
+    mainNodes.Data.push(doc1);
+    mainNodes.Data.push(doc2);
     mainNodes.Data.push(doc6);
 });

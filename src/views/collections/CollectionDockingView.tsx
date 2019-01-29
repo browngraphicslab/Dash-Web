@@ -37,7 +37,7 @@ export class CollectionDockingView extends React.Component<CollectionViewProps> 
                         {
                             "type": "tab",
                             "name": "CHILD #1",
-                            "component": "grid",
+                            "component": "doc1",
                         }
                     ]
                 },
@@ -49,7 +49,19 @@ export class CollectionDockingView extends React.Component<CollectionViewProps> 
                         {
                             "type": "tab",
                             "name": "CHILD #2",
-                            "component": "grid",
+                            "component": "doc2",
+                        }
+                    ]
+                },
+                {
+                    "type": "tabset",
+                    "weight": 50,
+                    "selected": 0,
+                    "children": [
+                        {
+                            "type": "tab",
+                            "name": "CHILD #3",
+                            "component": "doc3",
                         }
                     ]
                 }
@@ -107,7 +119,7 @@ export class CollectionDockingView extends React.Component<CollectionViewProps> 
             e.stopPropagation();
             e.preventDefault();
         } else {
-            if (e.buttons === 1 && SelectionManager.IsSelected(this.props.ContainingDocumentView!)) {
+            if (e.buttons === 1 && this.active) {
                 e.stopPropagation();
             }
         }
@@ -117,14 +129,20 @@ export class CollectionDockingView extends React.Component<CollectionViewProps> 
         if (component === "button") {
             return <button>{node.getName()}</button>;
         }
-        if (component === "grid") {
-            let which = this._times++ % 3;
-            if (which == 0)
-                return <div style={{ backgroundColor: "blue", width: 100, height: 100 }}></div>
-            if (which == 1)
-                return <div style={{ backgroundColor: "yellow", width: 100, height: 100 }}></div>
-            if (which == 2)
-                return <div style={{ backgroundColor: "red", width: 100, height: 100 }}></div>
+        console.log("Gettting " + component);
+        const { fieldKey, Document: Document } = this.props;
+        const value: Document[] = Document.GetFieldValue(fieldKey, ListField, []);
+        if (component === "doc1") {
+            return (<DocumentView key={value[ 0 ].Id} ContainingCollectionView={this} Document={value[ 0 ]} ContainingDocumentView={this.props.ContainingDocumentView} />);
+        }
+        if (component === "doc2") {
+            return (<DocumentView key={value[ 1 ].Id} ContainingCollectionView={this} Document={value[ 1 ]} ContainingDocumentView={this.props.ContainingDocumentView} />);
+        }
+        if (component === "doc3") {
+            return (<DocumentView key={value[ 2 ].Id} ContainingCollectionView={this} Document={value[ 2 ]} ContainingDocumentView={this.props.ContainingDocumentView} />);
+        }
+        if (component === "text") {
+            return (<div className="panel">Panel {node.getName()}</div>);
         }
     }
 
@@ -132,21 +150,20 @@ export class CollectionDockingView extends React.Component<CollectionViewProps> 
         const { fieldKey, Document: Document } = this.props;
 
         const value: Document[] = Document.GetFieldValue(fieldKey, ListField, []);
-        const panx: number = Document.GetFieldValue(KeyStore.PanX, NumberField, Number(0));
-        const pany: number = Document.GetFieldValue(KeyStore.PanY, NumberField, Number(0));
-        const currScale: number = Document.GetFieldValue(KeyStore.Scale, NumberField, Number(1));
+        // bcz: not sure why, but I need these to force the flexlayout to update when the collection size changes.
+        var w = Document.GetFieldValue(KeyStore.Width, NumberField, Number(0));
+        var h = Document.GetFieldValue(KeyStore.Height, NumberField, Number(0));
         return (
             <div className="border" style={{
                 borderStyle: "solid",
                 borderWidth: `${CollectionDockingView.BORDER_WIDTH}px`,
             }}>
-                <div className="collectiondockingview-container" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()} style={{
-                    width: "100%",
-                    height: `calc(100% - 2*${CollectionDockingView.BORDER_WIDTH}px)`,
-                }} ref={this._containerRef}>
-                    <div className="collectiondockingview" ref={this._canvasRef}>
-                        <FlexLayout.Layout model={this._model} factory={this.factory} />
-                    </div>
+                <div className="collectiondockingview-container" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()} ref={this._containerRef}
+                    style={{
+                        width: "100%",
+                        height: `calc(100% - 2*${CollectionDockingView.BORDER_WIDTH}px)`,
+                    }} >
+                    <FlexLayout.Layout model={this._model} factory={this.factory} />
                 </div>
             </div>
         );

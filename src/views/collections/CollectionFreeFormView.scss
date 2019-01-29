@@ -1,6 +1,11 @@
 .collectionfreeformview-container {
-    position: relative;
+    position: absolute;
     top: 0;
     left: 0;
     overflow: hidden;
+    .collectionfreeformview {
+        position: absolute;
+        top: 0;
+        left: 0;
+    }
 }

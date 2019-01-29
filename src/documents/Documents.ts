@@ -68,10 +68,10 @@ export namespace Documents {
         return dockProto;
     }
 
-    export function DockDocument(text: string, options: DocumentOptions = {}): Document {
+    export function DockDocument(documents: Array<Document>, options: DocumentOptions = {}): Document {
         let doc = GetDockPrototype().MakeDelegate();
         setupOptions(doc, options);
-        // doc.SetField(KeyStore.Data, new TextField(text));
+        doc.SetField(KeyStore.Data, new ListField(documents));
         return doc;
     }
 
