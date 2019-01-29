@@ -15,7 +15,6 @@ import { DocumentDecorations } from "../../DocumentDecorations";
 import { ContextMenu } from "../ContextMenu";
 import { Opt } from "../../fields/Field";
 import { DragManager } from "../../util/DragManager";
-import { number } from "prop-types";
 const JsxParser = require('react-jsx-parser').default;//TODO Why does this need to be imported like this?
 
 interface DocumentViewProps {
@@ -202,8 +201,8 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         let H = CollectionFreeFormView.BORDER_WIDTH;
         let Xx = this.props.Document.GetFieldValue(KeyStore.X, NumberField, Number(0));
         let Yy = this.props.Document.GetFieldValue(KeyStore.Y, NumberField, Number(0));
-        let parentX: Opt<number> = (localX - W / 2) * Ss + (Xx + Panxx) + W / 2;
-        let parentY: Opt<number> = (localY - H) * Ss + (Yy + Panyy) + H;
+        let parentX: Opt<any> = (localX - W / 2) * Ss + (Xx + Panxx) + W / 2;
+        let parentY: Opt<any> = (localY - H) * Ss + (Yy + Panyy) + H;
 
         // if this collection view is nested within another collection view, then 
         // first transform the local point into the parent collection's coordinate space.
@@ -297,18 +296,31 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         }
     }
 
+
     render() {
-        let freeStyling = this.props.ContainingCollectionView instanceof CollectionFreeFormView;
-        return (
-            <div className="node" ref={this._mainCont} style={{
-                transform: freeStyling ? this.transform : "",
-                width: freeStyling ? this.width : "100%",
-                height: freeStyling ? this.height : "100%",
-            }}
-                onContextMenu={this.onContextMenu}
-                onPointerDown={this.onPointerDown}>
-                <DocumentContents {...this.props} ContainingDocumentView={this} />
-            </div>
-        );
+        var freestyling = this.props.ContainingCollectionView === undefined || this.props.ContainingCollectionView instanceof CollectionFreeFormView;
+        if (freestyling)
+            return (
+                <div className="node" ref={this._mainCont} style={{
+                    transform: this.transform,
+                    width: this.width,
+                    height: this.height,
+                }}
+                    onContextMenu={this.onContextMenu}
+                    onPointerDown={this.onPointerDown}>
+                    <DocumentContents {...this.props} ContainingDocumentView={this} />
+                </div>
+            );
+        else
+            return (
+                <div className="node" ref={this._mainCont} style={{
+                    width: "100%",
+                    height: "100%",
+                }}
+                    onContextMenu={this.onContextMenu}
+                    onPointerDown={this.onPointerDown}>
+                    <DocumentContents {...this.props} ContainingDocumentView={this} />
+                </div>
+            );
     }
 }
