@@ -1,6 +1,8 @@
 import { Field, Cast, Opt } from "./Field"
 import { Key, KeyStore } from "./Key"
 import { ObservableMap } from "mobx";
+import { NumberField } from "./NumberField";
+import { TextField } from "./TextField";
 
 export class Document extends Field {
     private fields: ObservableMap<Key, Field> = new ObservableMap();
@@ -25,8 +27,18 @@ export class Document extends Field {
         return field;
     }
 
-    GetFieldT<T extends Field = Field>(key: Key, ctor: { new(): T }, ignoreProto?: boolean): Opt<T> {
+    GetFieldT<T extends Field = Field>(key: Key, ctor: { new(): T }, ignoreProto: boolean = false): Opt<T> {
         return Cast(this.GetField(key, ignoreProto), ctor);
+    }
+
+    GetFieldOrCreate<T extends Field>(key: Key, ctor: { new(): T }, ignoreProto: boolean = false): T {
+        const field = this.GetFieldT(key, ctor, ignoreProto);
+        if (field) {
+            return field;
+        }
+        const newField = new ctor();
+        this.SetField(key, newField);
+        return newField;
     }
 
     GetFieldValue<T, U extends { Data: T }>(key: Key, ctor: { new(): U }, defaultVal: T): T {
@@ -35,7 +47,15 @@ export class Document extends Field {
         return vval;
     }
 
-    SetField(key: Key, field: Opt<Field>): void {
+    GetNumberValue(key: Key, defaultVal: number): number {
+        return this.GetFieldValue(key, NumberField, defaultVal);
+    }
+
+    GetTextValue(key: Key, defaultVal: string): string {
+        return this.GetFieldValue(key, TextField, defaultVal);
+    }
+
+    SetField(key: Key, field: Field | undefined): void {
         if (field) {
             this.fields.set(key, field);
         } else {
