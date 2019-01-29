@@ -132,13 +132,13 @@ export class CollectionDockingView extends React.Component<CollectionViewProps> 
         console.log("Gettting " + component);
         const { fieldKey, Document: Document } = this.props;
         const value: Document[] = Document.GetFieldValue(fieldKey, ListField, []);
-        if (component === "doc1") {
+        if (component === "doc1" && value.length > 0) {
             return (<DocumentView key={value[ 0 ].Id} ContainingCollectionView={this} Document={value[ 0 ]} ContainingDocumentView={this.props.ContainingDocumentView} />);
         }
-        if (component === "doc2") {
+        if (component === "doc2" && value.length > 1) {
             return (<DocumentView key={value[ 1 ].Id} ContainingCollectionView={this} Document={value[ 1 ]} ContainingDocumentView={this.props.ContainingDocumentView} />);
         }
-        if (component === "doc3") {
+        if (component === "doc3" && value.length > 2) {
             return (<DocumentView key={value[ 2 ].Id} ContainingCollectionView={this} Document={value[ 2 ]} ContainingDocumentView={this.props.ContainingDocumentView} />);
         }
         if (component === "text") {

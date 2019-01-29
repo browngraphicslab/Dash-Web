@@ -193,9 +193,9 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     // Converts a point in the coordinate space of a document to a screen space coordinate.
     //
     public TransformToScreenPoint(localX: number, localY: number, Ss: number = 1, Panxx: number = 0, Panyy: number = 0): { ScreenX: Opt<number>, ScreenY: Opt<number> } {
-        if (this.props.ContainingCollectionView != undefined && !(this.props.ContainingCollectionView instanceof CollectionFreeFormView)) {
-            return { ScreenX: undefined, ScreenY: undefined };
-        }
+        // if (this.props.ContainingCollectionView != undefined && !(this.props.ContainingCollectionView instanceof CollectionFreeFormView)) {
+        //     return { ScreenX: undefined, ScreenY: undefined };
+        // }
         let W = CollectionFreeFormView.BORDER_WIDTH; // this.props.Document.GetFieldValue(KeyStore.Width, NumberField, Number(0));
         let H = CollectionFreeFormView.BORDER_WIDTH;
         let Xx = this.props.Document.GetFieldValue(KeyStore.X, NumberField, Number(0));
