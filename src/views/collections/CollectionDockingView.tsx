@@ -11,7 +11,9 @@ import { SSL_OP_SINGLE_DH_USE } from "constants";
 import { SelectionManager } from "../../util/SelectionManager";
 import { ContextMenu } from "../ContextMenu";
 import "./CollectionDockingView.scss"
-
+import 'golden-layout/src/css/goldenlayout-base.css';
+import 'golden-layout/src/css/goldenlayout-dark-theme.css';
+// import GoldenLayout, { Row, Stack, createGoldenLayoutComponent } from '../../../node_modules/react-golden-layout/src/internal/';
 
 @observer
 export class CollectionDockingView extends React.Component<CollectionViewProps> {
