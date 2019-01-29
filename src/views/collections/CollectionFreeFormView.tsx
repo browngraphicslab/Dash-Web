@@ -1,33 +1,25 @@
-import {observer} from "mobx-react";
-import {Key, KeyStore} from "../../fields/Key";
+import { observer } from "mobx-react";
+import { Key, KeyStore } from "../../fields/Key";
 import React = require("react");
-import {action, observable, computed} from "mobx";
-import {Document} from "../../fields/Document";
-import {DocumentViewModel} from "../../viewmodels/DocumentViewModel";
-import {DocumentView} from "../nodes/DocumentView";
-import {ListField} from "../../fields/ListField";
-import {NumberField} from "../../fields/NumberField";
-import {SSL_OP_SINGLE_DH_USE} from "constants";
-import {DocumentDecorations} from "../../DocumentDecorations";
-import {SelectionManager} from "../../util/SelectionManager";
-import {Documents} from "../../documents/Documents";
-import {ContextMenu} from "../ContextMenu";
-import {Opt} from "../../fields/Field";
-import {DragManager} from "../../util/DragManager";
-import {Utils} from "../../Utils";
-
-interface IProps {
-    fieldKey: Key;
-    Document: Document;
-    ContainingDocumentView: Opt<DocumentView>;
-}
+import { action, observable, computed } from "mobx";
+import { Document } from "../../fields/Document";
+import { DocumentView, CollectionViewProps } from "../nodes/DocumentView";
+import { ListField } from "../../fields/ListField";
+import { NumberField } from "../../fields/NumberField";
+import { SSL_OP_SINGLE_DH_USE } from "constants";
+import { SelectionManager } from "../../util/SelectionManager";
+import { Documents } from "../../documents/Documents";
+import { ContextMenu } from "../ContextMenu";
+import { DragManager } from "../../util/DragManager";
+import "./CollectionFreeFormView.scss";
+import { Utils } from "../../Utils";
 
 @observer
-export class CollectionFreeFormView extends React.Component<IProps> {
+export class CollectionFreeFormView extends React.Component<CollectionViewProps> {
     private _containerRef = React.createRef<HTMLDivElement>();
     private _canvasRef = React.createRef<HTMLDivElement>();
 
-    constructor(props: IProps) {
+    constructor(props: CollectionViewProps) {
         super(props);
     }
 
@@ -54,7 +46,7 @@ export class CollectionFreeFormView extends React.Component<IProps> {
                 doc.props.ContainingCollectionView.removeDocument(doc.props.Document);
                 this.addDocument(doc.props.Document);
             }
-            const {scale, translateX, translateY} = Utils.GetScreenTransform(ele);
+            const { scale, translateX, translateY } = Utils.GetScreenTransform(ele);
             const screenX = de.x - xOffset;
             const screenY = de.y - yOffset;
             const docX = (screenX - translateX) / scale;
@@ -117,7 +109,7 @@ export class CollectionFreeFormView extends React.Component<IProps> {
     onPointerWheel = (e: React.WheelEvent): void => {
         e.stopPropagation();
 
-        let {LocalX, Ss, W, Panxx, Xx, LocalY, Panyy, Yy, ContainerX, ContainerY} = this.props.ContainingDocumentView!.TransformToLocalPoint(e.pageX, e.pageY);
+        let { LocalX, Ss, W, Panxx, Xx, LocalY, Panyy, Yy, ContainerX, ContainerY } = this.props.ContainingDocumentView!.TransformToLocalPoint(e.pageX, e.pageY);
 
         var deltaScale = (1 - (e.deltaY / 1000)) * Ss;
 
@@ -185,7 +177,7 @@ export class CollectionFreeFormView extends React.Component<IProps> {
     onDragOver = (e: React.DragEvent): void => {
     }
     render() {
-        const {fieldKey, Document: Document} = this.props;
+        const { fieldKey, Document: Document } = this.props;
 
         const value: Document[] = Document.GetFieldValue(fieldKey, ListField, []);
         const panx: number = Document.GetFieldValue(KeyStore.PanX, NumberField, Number(0));
@@ -199,9 +191,8 @@ export class CollectionFreeFormView extends React.Component<IProps> {
                 <div className="collectionfreeformview-container" onPointerDown={this.onPointerDown} onWheel={this.onPointerWheel} onContextMenu={(e) => e.preventDefault()} style={{
                     width: "100%",
                     height: `calc(100% - 2*${CollectionFreeFormView.BORDER_WIDTH}px)`,
-                    overflow: "hidden"
                 }} onDrop={this.onDrop} onDragOver={this.onDragOver} ref={this._containerRef}>
-                    <div className="collectionfreeformview" style={{transform: `translate(${panx}px, ${pany}px) scale(${currScale}, ${currScale})`, transformOrigin: `left, top`}} ref={this._canvasRef}>
+                    <div className="collectionfreeformview" style={{ transform: `translate(${panx}px, ${pany}px) scale(${currScale}, ${currScale})`, transformOrigin: `left, top` }} ref={this._canvasRef}>
 
                         <div className="node-container">
                             {value.map(doc => {

@@ -1,9 +1,10 @@
-import {Document} from "../fields/Document";
-import {KeyStore} from "../fields/Key";
-import {TextField} from "../fields/TextField";
-import {NumberField} from "../fields/NumberField";
-import {ListField} from "../fields/ListField";
-import {FieldTextBox} from "../views/nodes/FieldTextBox";
+import { Document } from "../fields/Document";
+import { KeyStore } from "../fields/Key";
+import { TextField } from "../fields/TextField";
+import { NumberField } from "../fields/NumberField";
+import { ListField } from "../fields/ListField";
+import { FieldTextBox } from "../views/nodes/FieldTextBox";
+import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 
 interface DocumentOptions {
     x?: number;
@@ -51,6 +52,29 @@ export namespace Documents {
         // doc.SetField(KeyStore.Data, new TextField(text));
         return doc;
     }
+
+
+    let dockProto: Document;
+    function GetDockPrototype(): Document {
+        if (!dockProto) {
+            dockProto = new Document();
+            dockProto.SetField(KeyStore.X, new NumberField(0));
+            dockProto.SetField(KeyStore.Y, new NumberField(0));
+            dockProto.SetField(KeyStore.Width, new NumberField(300));
+            dockProto.SetField(KeyStore.Height, new NumberField(150));
+            dockProto.SetField(KeyStore.Layout, new TextField(CollectionDockingView.LayoutString()));
+            dockProto.SetField(KeyStore.LayoutKeys, new ListField([ KeyStore.Data ]));
+        }
+        return dockProto;
+    }
+
+    export function DockDocument(text: string, options: DocumentOptions = {}): Document {
+        let doc = GetDockPrototype().MakeDelegate();
+        setupOptions(doc, options);
+        // doc.SetField(KeyStore.Data, new TextField(text));
+        return doc;
+    }
+
 
     let imageProto: Document;
     function GetImagePrototype(): Document {

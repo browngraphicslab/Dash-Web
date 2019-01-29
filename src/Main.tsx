@@ -12,10 +12,9 @@ import { configure, runInAction, action } from 'mobx';
 import { NodeStore } from './stores/NodeStore';
 import { Documents } from './documents/Documents';
 import { DocumentDecorations } from './DocumentDecorations';
-import { CollectionFreeFormView } from './views/freeformcanvas/CollectionFreeFormView';
+import { CollectionFreeFormView } from './views/collections/CollectionFreeFormView';
 import { ListField } from './fields/ListField';
 import { DocumentView } from './views/nodes/DocumentView';
-import { DocumentViewModel } from './viewmodels/DocumentViewModel';
 import { ContextMenu } from './views/ContextMenu';
 
 configure({
@@ -60,16 +59,20 @@ runInAction(() => {
         x: 0, y: 400
     });
     let doc5 = Documents.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", {
-        x: 650, y: 500
+        x: 650, y: 500, width: 600, height: 600
+    });
+    let doc6 = Documents.DockDocument("", {
+        x: 350, y: 100
     });
     let mainNodes = mainContainer.GetFieldT(KeyStore.Data, ListField);
     if (!mainNodes) {
         mainNodes = new ListField<Document>();
         mainContainer.SetField(KeyStore.Data, mainNodes);
     }
-    mainNodes.Data.push(doc1);
-    mainNodes.Data.push(doc2);
-    mainNodes.Data.push(doc4);
-    mainNodes.Data.push(doc3);
-    mainNodes.Data.push(doc5);
+    // mainNodes.Data.push(doc1);
+    // mainNodes.Data.push(doc2);
+    // mainNodes.Data.push(doc4);
+    // mainNodes.Data.push(doc3);
+    // mainNodes.Data.push(doc5);
+    mainNodes.Data.push(doc6);
 });

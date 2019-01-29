@@ -4,11 +4,11 @@ import { computed, observable, action } from "mobx";
 import { KeyStore, Key } from "../../fields/Key";
 import { NumberField } from "../../fields/NumberField";
 import { TextField } from "../../fields/TextField";
-import { DocumentViewModel } from "../../viewmodels/DocumentViewModel";
 import { ListField } from "../../fields/ListField";
 import { FieldTextBox } from "../nodes/FieldTextBox"
 import { Document } from "../../fields/Document";
-import { CollectionFreeFormView } from "../freeformcanvas/CollectionFreeFormView"
+import { CollectionFreeFormView } from "../collections/CollectionFreeFormView"
+import { CollectionDockingView } from "../collections/CollectionDockingView"
 import "./NodeView.scss"
 import { SelectionManager } from "../../util/SelectionManager";
 import { DocumentDecorations } from "../../DocumentDecorations";
@@ -17,14 +17,35 @@ import { Opt } from "../../fields/Field";
 import { DragManager } from "../../util/DragManager";
 const JsxParser = require('react-jsx-parser').default;//TODO Why does this need to be imported like this?
 
-interface IProps {
+interface DocumentViewProps {
     Document: Document;
-    ContainingCollectionView: Opt<CollectionFreeFormView>;
+    ContainingCollectionView: Opt<CollectionView>;
     ContainingDocumentView: Opt<DocumentView>
 }
 
+export interface CollectionViewProps {
+    fieldKey: Key;
+    Document: Document;
+    ContainingDocumentView: Opt<DocumentView>;
+}
+
+// these properties are set via the render() method of the DocumentView when it creates this node.
+// However, these properties are set below in the LayoutString() static method
+export interface DocumentFieldViewProps {
+    fieldKey: Key;
+    doc: Document;
+    containingDocumentView: DocumentView
+}
+
+interface CollectionView {
+    addDocument: (doc: Document) => void;
+    removeDocument: (doc: Document) => void;
+    active: boolean;
+    props: CollectionViewProps;
+}
+
 @observer
-class DocumentContents extends React.Component<IProps> {
+class DocumentContents extends React.Component<DocumentViewProps> {
 
     @computed
     get layout(): string {
@@ -53,7 +74,7 @@ class DocumentContents extends React.Component<IProps> {
             }
         }
         return <JsxParser
-            components={{ FieldTextBox, CollectionFreeFormView }}
+            components={{ FieldTextBox, CollectionFreeFormView, CollectionDockingView }}
             bindings={bindings}
             jsx={this.layout}
             showWarnings={true}
@@ -66,7 +87,7 @@ class DocumentContents extends React.Component<IProps> {
 }
 
 @observer
-export class DocumentView extends React.Component<IProps> {
+export class DocumentView extends React.Component<DocumentViewProps> {
     private _mainCont = React.createRef<HTMLDivElement>();
     private _contextMenuCanOpen = false;
     private _downX: number = 0;

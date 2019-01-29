@@ -1,30 +1,23 @@
-import {Key, KeyStore} from "../../fields/Key";
-import {Document} from "../../fields/Document";
-import {observer} from "mobx-react";
-import {TextField} from "../../fields/TextField";
+import { Key, KeyStore } from "../../fields/Key";
+import { Document } from "../../fields/Document";
+import { observer } from "mobx-react";
+import { TextField } from "../../fields/TextField";
 import React = require("react")
-import {action, observable, reaction, IReactionDisposer} from "mobx";
+import { action, observable, reaction, IReactionDisposer } from "mobx";
 
-import {schema} from "prosemirror-schema-basic";
-import {EditorState, Transaction} from "prosemirror-state"
-import {EditorView} from "prosemirror-view"
-import {keymap} from "prosemirror-keymap"
-import {baseKeymap} from "prosemirror-commands"
-import {undo, redo, history} from "prosemirror-history"
-import {Opt} from "../../fields/Field";
+import { schema } from "prosemirror-schema-basic";
+import { EditorState, Transaction } from "prosemirror-state"
+import { EditorView } from "prosemirror-view"
+import { keymap } from "prosemirror-keymap"
+import { baseKeymap } from "prosemirror-commands"
+import { undo, redo, history } from "prosemirror-history"
+import { Opt } from "../../fields/Field";
 
 import "./FieldTextBox.scss"
-import {DocumentView} from "./DocumentView";
-import {SelectionManager} from "../../util/SelectionManager";
+import { DocumentFieldViewProps } from "./DocumentView";
+import { SelectionManager } from "../../util/SelectionManager";
 
 
-// these properties are set via the render() method of the DocumentView when it creates this node.
-// However, these properties are set below in the LayoutString() static method
-interface IProps {
-    fieldKey: Key;
-    doc: Document;
-    containingDocumentView: DocumentView
-}
 
 // FieldTextBox: Displays an editable plain text node that maps to a specified Key of a Document
 //
@@ -42,14 +35,14 @@ interface IProps {
 //  specified Key and assigns it to an HTML input node.  When changes are made tot his node, 
 //  this will edit the document and assign the new value to that field.
 //
-export class FieldTextBox extends React.Component<IProps> {
+export class FieldTextBox extends React.Component<DocumentFieldViewProps> {
 
-    public static LayoutString() {return "<FieldTextBox doc={Document} containingDocumentView={ContainingDocumentView} fieldKey={DataKey} />";}
+    public static LayoutString() { return "<FieldTextBox doc={Document} containingDocumentView={ContainingDocumentView} fieldKey={DataKey} />"; }
     private _ref: React.RefObject<HTMLDivElement>;
     private _editorView: Opt<EditorView>;
     private _reactionDisposer: Opt<IReactionDisposer>;
 
-    constructor(props: IProps) {
+    constructor(props: DocumentFieldViewProps) {
         super(props);
 
         this._ref = React.createRef();
@@ -61,19 +54,19 @@ export class FieldTextBox extends React.Component<IProps> {
         if (this._editorView) {
             const state = this._editorView.state.apply(tx);
             this._editorView.updateState(state);
-            const {doc, fieldKey} = this.props;
+            const { doc, fieldKey } = this.props;
             doc.SetFieldValue(fieldKey, JSON.stringify(state.toJSON()), TextField);
         }
     }
 
     componentDidMount() {
         let state: EditorState;
-        const {doc, fieldKey} = this.props;
+        const { doc, fieldKey } = this.props;
         const config = {
             schema,
             plugins: [
                 history(),
-                keymap({"Mod-z": undo, "Mod-y": redo}),
+                keymap({ "Mod-z": undo, "Mod-y": redo }),
                 keymap(baseKeymap)
             ]
         };
@@ -116,7 +109,7 @@ export class FieldTextBox extends React.Component<IProps> {
 
     @action
     onChange(e: React.ChangeEvent<HTMLInputElement>) {
-        const {fieldKey, doc} = this.props;
+        const { fieldKey, doc } = this.props;
         doc.SetFieldValue(fieldKey, e.target.value, TextField);
     }
     onPointerDown = (e: React.PointerEvent): void => {

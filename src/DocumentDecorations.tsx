@@ -1,10 +1,10 @@
-import {observable, computed} from "mobx";
+import { observable, computed } from "mobx";
 import React = require("react");
-import {DocumentView} from "./views/nodes/DocumentView";
-import {SelectionManager} from "./util/SelectionManager";
-import {observer} from "mobx-react";
+import { DocumentView } from "./views/nodes/DocumentView";
+import { SelectionManager } from "./util/SelectionManager";
+import { observer } from "mobx-react";
 import './DocumentDecorations.scss'
-import {CollectionFreeFormView} from "./views/freeformcanvas/CollectionFreeFormView";
+import { CollectionFreeFormView } from "./views/collections/CollectionFreeFormView";
 
 @observer
 export class DocumentDecorations extends React.Component {
@@ -20,7 +20,7 @@ export class DocumentDecorations extends React.Component {
     }
 
     @computed
-    get Bounds(): {x: number, y: number, b: number, r: number} {
+    get Bounds(): { x: number, y: number, b: number, r: number } {
         return SelectionManager.SelectedDocuments().reduce((bounds, element) => {
             var spt = element.TransformToScreenPoint(0, 0);
             var bpt = element.TransformToScreenPoint(element.width, element.height);
@@ -28,7 +28,7 @@ export class DocumentDecorations extends React.Component {
                 x: Math.min(spt.ScreenX, bounds.x), y: Math.min(spt.ScreenY, bounds.y),
                 r: Math.max(bpt.ScreenX, bounds.r), b: Math.max(bpt.ScreenY, bounds.b)
             }
-        }, {x: Number.MAX_VALUE, y: Number.MAX_VALUE, r: Number.MIN_VALUE, b: Number.MIN_VALUE});
+        }, { x: Number.MAX_VALUE, y: Number.MAX_VALUE, r: Number.MIN_VALUE, b: Number.MIN_VALUE });
     }
 
     @computed
