@@ -1,9 +1,14 @@
 import { Field, Cast, Opt } from "./Field"
 import { Key, KeyStore } from "./Key"
-import { ObservableMap } from "mobx";
+import { ObservableMap, computed } from "mobx";
+import { TextField } from "./TextField";
 
 export class Document extends Field {
     private fields: ObservableMap<Key, Field> = new ObservableMap();
+
+    static _untitledDocName = "<untitled>";
+    @computed
+    public get Title() { return this.GetFieldValue(KeyStore.Title, TextField, Document._untitledDocName); }
 
     GetField(key: Key, ignoreProto: boolean = false): Opt<Field> {
         let field: Opt<Field>;

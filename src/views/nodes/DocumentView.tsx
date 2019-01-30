@@ -11,7 +11,6 @@ import { CollectionFreeFormView } from "../collections/CollectionFreeFormView"
 import { CollectionDockingView } from "../collections/CollectionDockingView"
 import "./NodeView.scss"
 import { SelectionManager } from "../../util/SelectionManager";
-import { DocumentDecorations } from "../../DocumentDecorations";
 import { ContextMenu } from "../ContextMenu";
 import { Opt } from "../../fields/Field";
 import { DragManager } from "../../util/DragManager";
