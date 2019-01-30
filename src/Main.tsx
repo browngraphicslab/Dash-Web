@@ -22,7 +22,7 @@ configure({
 });
 
 const mainNodeCollection = new Array<Document>();
-let mainContainer = Documents.CollectionDocument(mainNodeCollection, {
+let mainContainer = Documents.DockDocument(mainNodeCollection, {
     x: 0, y: 0, width: window.screen.width, height: window.screen.height
 })
 
@@ -73,10 +73,10 @@ runInAction(() => {
     }
     // mainNodes.Data.push(doc1);
     // mainNodes.Data.push(doc2);
-    //mainNodes.Data.push(doc4);
+    mainNodes.Data.push(doc4);
     // mainNodes.Data.push(doc3);
-    //mainNodes.Data.push(doc5);
+    mainNodes.Data.push(doc5);
     // mainNodes.Data.push(doc1);
     // mainNodes.Data.push(doc2);
-    mainNodes.Data.push(doc6);
+    //mainNodes.Data.push(doc6);
 });

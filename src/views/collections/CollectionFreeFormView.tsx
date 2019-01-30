@@ -13,6 +13,7 @@ import { ContextMenu } from "../ContextMenu";
 import { DragManager } from "../../util/DragManager";
 import "./CollectionFreeFormView.scss";
 import { Utils } from "../../Utils";
+import { CollectionDockingView } from "./CollectionDockingView";
 
 @observer
 export class CollectionFreeFormView extends React.Component<CollectionViewProps> {
@@ -29,7 +30,9 @@ export class CollectionFreeFormView extends React.Component<CollectionViewProps>
     public get active(): boolean {
         var isSelected = (this.props.ContainingDocumentView != undefined && SelectionManager.IsSelected(this.props.ContainingDocumentView));
         var childSelected = SelectionManager.SelectedDocuments().some(view => view.props.ContainingCollectionView == this);
-        var topMost = this.props.ContainingDocumentView != undefined && this.props.ContainingDocumentView.props.ContainingCollectionView == undefined;
+        var topMost = this.props.ContainingDocumentView != undefined && (
+            this.props.ContainingDocumentView.props.ContainingCollectionView == undefined ||
+            this.props.ContainingDocumentView.props.ContainingCollectionView instanceof CollectionDockingView);
         return isSelected || childSelected || topMost;
     }
 

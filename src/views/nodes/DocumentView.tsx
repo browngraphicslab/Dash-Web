@@ -196,17 +196,15 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     //
     // Converts a point in the coordinate space of a document to a screen space coordinate.
     //
-    public TransformToScreenPoint(localX: number, localY: number, Ss: number = 1, Panxx: number = 0, Panyy: number = 0): { ScreenX: Opt<number>, ScreenY: Opt<number> } {
-        // if (this.props.ContainingCollectionView != undefined && !(this.props.ContainingCollectionView instanceof CollectionFreeFormView)) {
-        //     return { ScreenX: undefined, ScreenY: undefined };
-        // }
+    public TransformToScreenPoint(localX: number, localY: number, Ss: number = 1, Panxx: number = 0, Panyy: number = 0): { ScreenX: number, ScreenY: number } {
+
         let dockingViewChromeHack = this.props.ContainingCollectionView instanceof CollectionDockingView;
         let W = CollectionFreeFormView.BORDER_WIDTH; // this.props.Document.GetFieldValue(KeyStore.Width, NumberField, Number(0));
         let H = CollectionFreeFormView.BORDER_WIDTH;
         let Xx = dockingViewChromeHack ? 0 : this.props.Document.GetFieldValue(KeyStore.X, NumberField, Number(0));
         let Yy = dockingViewChromeHack ? CollectionDockingView.TAB_HEADER_HEIGHT : this.props.Document.GetFieldValue(KeyStore.Y, NumberField, Number(0));
-        let parentX: Opt<any> = (localX - W) * Ss + (Xx + Panxx) + W;
-        let parentY: Opt<any> = (localY - H) * Ss + (Yy + Panyy) + H;
+        let parentX = (localX - W) * Ss + (Xx + Panxx) + W;
+        let parentY = (localY - H) * Ss + (Yy + Panyy) + H;
 
         // if this collection view is nested within another collection view, then 
         // first transform the local point into the parent collection's coordinate space.

@@ -3,6 +3,7 @@ import React = require("react");
 import { SelectionManager } from "./util/SelectionManager";
 import { observer } from "mobx-react";
 import './DocumentDecorations.scss'
+import { CollectionFreeFormView } from "./views/collections/CollectionFreeFormView";
 
 @observer
 export class DocumentDecorations extends React.Component {
@@ -20,12 +21,13 @@ export class DocumentDecorations extends React.Component {
     @computed
     get Bounds(): { x: number, y: number, b: number, r: number } {
         return SelectionManager.SelectedDocuments().reduce((bounds, element) => {
+            if (element.props.ContainingCollectionView != undefined &&
+                !(element.props.ContainingCollectionView instanceof CollectionFreeFormView)) {
+                return bounds;
+            }
             var spt = element.TransformToScreenPoint(0, 0);
             var bpt = element.TransformToScreenPoint(element.width, element.height);
-            if (spt.ScreenX == undefined || spt.ScreenY == undefined ||
-                bpt.ScreenX == undefined || bpt.ScreenY == undefined)
-                return { x: bounds.x, y: bounds.y, r: bounds.r, b: bounds.b };
-            else return {
+            return {
                 x: Math.min(spt.ScreenX, bounds.x), y: Math.min(spt.ScreenY, bounds.y),
                 r: Math.max(bpt.ScreenX, bounds.r), b: Math.max(bpt.ScreenY, bounds.b)
             }
