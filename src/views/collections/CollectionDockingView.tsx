@@ -13,7 +13,9 @@ import { ContextMenu } from "../ContextMenu";
 import "./CollectionDockingView.scss"
 import 'golden-layout/src/css/goldenlayout-base.css';
 import 'golden-layout/src/css/goldenlayout-dark-theme.css';
-// import GoldenLayout, { Row, Stack, createGoldenLayoutComponent } from '../../../node_modules/react-golden-layout/src/internal/';
+import * as GoldenLayout from "golden-layout";
+import { CollectionFreeFormView } from './CollectionFreeFormView';
+import * as ReactDOM from 'react-dom';
 
 @observer
 export class CollectionDockingView extends React.Component<CollectionViewProps> {
@@ -87,15 +89,86 @@ export class CollectionDockingView extends React.Component<CollectionViewProps> 
         return isSelected || childSelected || topMost;
     }
 
+    myLayout: any = null;
     componentDidMount() {
-        // if (this._containerRef.current) {
-        //     DragManager.MakeDropTarget(this._containerRef.current, {
-        //         handlers: {
-        //             drop: this.drop
-        //         }
-        //     });
-        // }
+
+        const { fieldKey, Document: Document } = this.props;
+
+        const value: Document[] = Document.GetFieldValue(fieldKey, ListField, []);
+        if (this._containerRef.current) {
+            if (this.myLayout == null) {
+                this.myLayout = new GoldenLayout({
+                    content: [ {
+                        type: 'row',
+                        content: [ {
+                            type: 'component',
+                            componentName: 'documentViewComponent',
+                            componentState: { x: 0 }
+                        }, {
+                            type: 'component',
+                            componentName: 'documentViewComponent',
+                            componentState: { x: 1 }
+                        } ]
+                    } ]
+                });
+
+                this.myLayout.on('stackCreated', function (stack: any) {
+                    stack
+                        .header
+                        .controlsContainer
+                        .find('.lm_close') //get the close icon
+                        .off('click') //unbind the current click handler
+                        .click(function () {
+                            //add your own
+                            if (confirm('really close this?')) {
+                                stack.remove();
+                            }
+                        });
+                });
+
+                this.myLayout.on('tabCreated', function (tab: any) {
+                    tab
+                        .closeElement
+                        .off('click') //unbind the current click handler
+                        .click(function () {
+                            //add your own
+                            if (confirm('really close this?')) {
+                                tab.contentItem.remove();
+                            }
+                        });
+                });
+
+                var me = this;
+                var cv = this.props.ContainingDocumentView;
+                this.myLayout.registerComponent('documentViewComponent', this.registerComponentWithCallback);
+
+                this.myLayout.container = this._containerRef.current;
+                this.myLayout.init();
+            }
+        }
     }
+    private nextId = (function () { var _next_id = 0; return function () { return _next_id++; } })();
+
+    private registerComponentWithCallback = (container: any, state: any) => {
+        const { fieldKey, Document: Document } = this.props;
+        const value: Document[] = Document.GetFieldValue(fieldKey, ListField, []);
+        var containingDiv = "component_" + this.nextId();
+        container.getElement().html("<div id='" + containingDiv + "'></div>");
+        // var new_state = Object.assign({}, state);
+        // new_state[ "location" ] = containingDiv;
+        // container.setState(new_state);
+        var me = this;
+        var docToRender = value[ state.x ];
+        setTimeout(function () {
+            ReactDOM.render((
+                <div style={{ display: "grid" }}>
+                    <DocumentView key={docToRender.Id} Document={docToRender} ContainingCollectionView={me} ContainingDocumentView={me.props.ContainingDocumentView} />
+                </div>
+            ),
+                document.getElementById(containingDiv)
+            )
+        }, 1);
+    };
 
 
     @action
@@ -148,7 +221,9 @@ export class CollectionDockingView extends React.Component<CollectionViewProps> 
         }
     }
 
+
     render() {
+
         const { fieldKey, Document: Document } = this.props;
 
         const value: Document[] = Document.GetFieldValue(fieldKey, ListField, []);
@@ -157,6 +232,8 @@ export class CollectionDockingView extends React.Component<CollectionViewProps> 
         var w = Document.GetFieldValue(KeyStore.Width, NumberField, Number(0)) / s;
         var h = Document.GetFieldValue(KeyStore.Height, NumberField, Number(0)) / s;
 
+
+
         return (
             <div className="border" style={{
                 borderStyle: "solid",
@@ -164,12 +241,25 @@ export class CollectionDockingView extends React.Component<CollectionViewProps> 
             }}>
                 <div className="collectiondockingview-container" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()} ref={this._containerRef}
                     style={{
-                        width: s > 1 ? "100%" : w - 2 * CollectionDockingView.BORDER_WIDTH,
-                        height: s > 1 ? "100%" : h - 2 * CollectionDockingView.BORDER_WIDTH
+                        width: "100%",
+                        height: "100%"
                     }} >
-                    <FlexLayout.Layout model={this._model} factory={this.factory} />
                 </div>
             </div>
         );
+        // return (
+        //     <div className="border" style={{
+        //         borderStyle: "solid",
+        //         borderWidth: `${CollectionDockingView.BORDER_WIDTH}px`,
+        //     }}>
+        //         <div className="collectiondockingview-container" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()} ref={this._containerRef}
+        //             style={{
+        //                 width: s > 1 ? "100%" : w - 2 * CollectionDockingView.BORDER_WIDTH,
+        //                 height: s > 1 ? "100%" : h - 2 * CollectionDockingView.BORDER_WIDTH
+        //             }} >
+        //             <FlexLayout.Layout model={this._model} factory={this.factory} />
+        //         </div>
+        //     </div>
+        // );
     }
 }

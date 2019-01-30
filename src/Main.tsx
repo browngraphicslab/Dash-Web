@@ -44,7 +44,8 @@ ReactDOM.render((
         <DocumentView Document={mainContainer} ContainingCollectionView={undefined} ContainingDocumentView={undefined} />
         <DocumentDecorations />
         <ContextMenu />
-    </div>), document.getElementById('root'));
+    </div>),
+    document.getElementById('root'));
 
 runInAction(() => {
     let doc1 = Documents.TextDocument("Hello world");
@@ -63,7 +64,7 @@ runInAction(() => {
     });
     let docset2 = new Array<Document>(doc4, doc1, doc3);
     let doc6 = Documents.DockDocument(docset2, {
-        x: 350, y: 100
+        x: 350, y: 100, width: 600, height: 600
     });
     let mainNodes = mainContainer.GetFieldT(KeyStore.Data, ListField);
     if (!mainNodes) {
@@ -72,9 +73,9 @@ runInAction(() => {
     }
     // mainNodes.Data.push(doc1);
     // mainNodes.Data.push(doc2);
-    mainNodes.Data.push(doc4);
+    //mainNodes.Data.push(doc4);
     // mainNodes.Data.push(doc3);
-    mainNodes.Data.push(doc5);
+    //mainNodes.Data.push(doc5);
     // mainNodes.Data.push(doc1);
     // mainNodes.Data.push(doc2);
     mainNodes.Data.push(doc6);

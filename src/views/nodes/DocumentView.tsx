@@ -93,6 +93,9 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     private _downX: number = 0;
     private _downY: number = 0;
 
+    constructor(props: DocumentViewProps) {
+        super(props);
+    }
     get screenRect(): ClientRect | DOMRect {
         if (this._mainCont.current) {
             return this._mainCont.current.getBoundingClientRect();
@@ -223,7 +226,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         this._downX = e.clientX;
         this._downY = e.clientY;
         this._contextMenuCanOpen = e.button == 2;
-        if (this.active) {
+        if (this.active && !e.isDefaultPrevented()) {
             e.stopPropagation();
             if (e.buttons === 2) {
                 e.preventDefault();
