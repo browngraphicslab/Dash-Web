@@ -15,6 +15,7 @@ import 'golden-layout/src/css/goldenlayout-base.css';
 import 'golden-layout/src/css/goldenlayout-dark-theme.css';
 import * as GoldenLayout from "golden-layout";
 import * as ReactDOM from 'react-dom';
+import { DragManager } from "../../util/DragManager";
 
 @observer
 export class CollectionDockingView extends React.Component<CollectionViewProps> {
@@ -46,7 +47,11 @@ export class CollectionDockingView extends React.Component<CollectionViewProps> 
             var d = { type: 'component', componentName: 'documentViewComponent', componentState: { doc: doc } };
             return d;
         });
-        return new GoldenLayout({ content: [ { type: 'row', content: docs } ] });
+        return new GoldenLayout({
+            settings: {
+                selectionEnabled: true
+            }, content: [ { type: 'row', content: docs } ]
+        });
     }
     constructor(props: CollectionViewProps) {
         super(props);
@@ -114,10 +119,38 @@ export class CollectionDockingView extends React.Component<CollectionViewProps> 
         }
     }
 
-    goldenLayoutFactory() {
-        var myLayout = this.modelForGoldenLayout;
+    public static myLayout: any = null;
 
-        myLayout.on('stackCreated', function (stack: any) {
+    private static _dragSource: any = null;
+    private static _dragDiv: any = null;
+    private static _dragParent: HTMLElement | null = null;
+    public static StartOtherDrag(dragElement: HTMLDivElement, dragDoc: Document) {
+        var newItemConfig = {
+            type: 'component',
+            componentName: 'documentViewComponent',
+            componentState: { doc: dragDoc }
+        };
+        const root = document.getElementById(DragManager.rootId);
+        if (!this._dragDiv) {
+            if (!root) {
+                throw new Error("No root element found");
+            }
+            this._dragDiv = document.createElement("div");
+            this._dragSource = CollectionDockingView.myLayout.createDragSource(this._dragDiv, newItemConfig);
+            root.appendChild(this._dragDiv);
+        }
+        // var r = dragElement.getBoundingClientRect();
+        // var x = root!.getBoundingClientRect();
+        //this._dragDiv.style.transform = `translate(${r.left - x.left}px, ${r.top - x.top}px)`;
+        this._dragSource._itemConfig = newItemConfig;
+        this._dragParent = dragElement.parentElement;
+        this._dragDiv.appendChild(dragElement);
+    }
+    goldenLayoutFactory() {
+        CollectionDockingView.myLayout = this.modelForGoldenLayout;
+
+        CollectionDockingView.myLayout.on('stackCreated', function (stack: any) {
+            stack.header.controlsContainer.find('.lm_popout').hide();
             stack.header.controlsContainer.find('.lm_close') //get the close icon
                 .off('click') //unbind the current click handler
                 .click(function () {
@@ -127,7 +160,14 @@ export class CollectionDockingView extends React.Component<CollectionViewProps> 
                 });
         });
 
-        myLayout.on('tabCreated', function (tab: any) {
+        CollectionDockingView.myLayout.on('tabCreated', function (tab: any) {
+            if (CollectionDockingView._dragDiv) {
+                for (var i = 0; i < CollectionDockingView._dragDiv.childElementCount; i++) {
+                    var child = CollectionDockingView._dragDiv.childNodes[ CollectionDockingView._dragDiv.childElementCount - i - 1 ];
+                    CollectionDockingView._dragDiv.removeChild(child);
+                    CollectionDockingView._dragParent!.appendChild(child);
+                }
+            }
             tab.setTitle(tab.contentItem.config.componentState.doc.Title);
             tab.closeElement.off('click') //unbind the current click handler
                 .click(function () {
@@ -138,7 +178,7 @@ export class CollectionDockingView extends React.Component<CollectionViewProps> 
         });
 
         var me = this;
-        myLayout.registerComponent('documentViewComponent', function (container: any, state: any) {
+        CollectionDockingView.myLayout.registerComponent('documentViewComponent', function (container: any, state: any) {
             // bcz: this is crufty
             // calling html() causes a div tag to be added in the DOM with id 'containingDiv'. 
             // Apparently, we need to wait to allow a live html div element to actually be instantiated.
@@ -150,11 +190,11 @@ export class CollectionDockingView extends React.Component<CollectionViewProps> 
                     <DocumentView key={state.doc.Id} Document={state.doc} ContainingCollectionView={me} ContainingDocumentView={me.props.ContainingDocumentView} />
                 ),
                     document.getElementById(containingDiv)
-                )
+                );
             }, 0);
         });
-        myLayout.container = this._containerRef.current;
-        myLayout.init();
+        CollectionDockingView.myLayout.container = this._containerRef.current;
+        CollectionDockingView.myLayout.init();
     }
 
 
@@ -176,7 +216,7 @@ export class CollectionDockingView extends React.Component<CollectionViewProps> 
                 borderStyle: "solid",
                 borderWidth: `${COLLECTION_BORDER_WIDTH}px`,
             }}>
-                <div className="collectiondockingview-container" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()} ref={this._containerRef}
+                <div className="collectiondockingview-container" id="menuContainer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()} ref={this._containerRef}
                     style={{
                         width: CollectionDockingView.UseGoldenLayout || s > 1 ? "100%" : w - 2 * COLLECTION_BORDER_WIDTH,
                         height: CollectionDockingView.UseGoldenLayout || s > 1 ? "100%" : h - 2 * COLLECTION_BORDER_WIDTH

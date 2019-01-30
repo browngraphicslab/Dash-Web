@@ -2,6 +2,8 @@ import { Opt } from "../fields/Field";
 import { DocumentView } from "../views/nodes/DocumentView";
 import { DocumentDecorations } from "../DocumentDecorations";
 import { SelectionManager } from "./SelectionManager";
+import { CollectionDockingView } from "../views/collections/CollectionDockingView";
+import { Document } from "../fields/Document";
 
 export namespace DragManager {
     export let rootId = "root";

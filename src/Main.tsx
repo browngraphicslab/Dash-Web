@@ -46,14 +46,14 @@ document.addEventListener("pointerdown", action(function (e: PointerEvent) {
     doc2.SetField(KS.X, new NumberField(150));
     doc2.SetField(KS.Y, new NumberField(20));
     let doc3 = Documents.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", {
-        x: 450, y: 500
+        x: 450, y: 500, title: "cat 1"
     });
     let docset = new Array<Document>(doc1, doc2, doc3);
     let doc4 = Documents.CollectionDocument(docset, {
         x: 0, y: 400, title: "mini collection"
     });
     let doc5 = Documents.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", {
-        x: 650, y: 500, width: 600, height: 600, title: "cat"
+        x: 650, y: 500, width: 600, height: 600, title: "cat 2"
     });
     let docset2 = new Array<Document>(doc4, doc1, doc3);
     let doc6 = Documents.CollectionDocument(docset2, {

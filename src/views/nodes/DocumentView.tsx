@@ -15,6 +15,7 @@ import { ContextMenu } from "../ContextMenu";
 import { FieldTextBox } from "../nodes/FieldTextBox";
 import "./NodeView.scss";
 import React = require("react");
+import { cpus } from "os";
 const JsxParser = require('react-jsx-parser').default;//TODO Why does this need to be imported like this?
 
 interface DocumentViewProps {
@@ -230,6 +231,12 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     onPointerDown = (e: React.PointerEvent): void => {
         this._downX = e.clientX;
         this._downY = e.clientY;
+        var me = this;
+        if (e.shiftKey) {
+            CollectionDockingView.StartOtherDrag(this._mainCont.current!, this.props.Document);
+            e.stopPropagation();
+            return;
+        }
         this._contextMenuCanOpen = e.button == 2;
         if (this.active && !e.isDefaultPrevented()) {
             e.stopPropagation();
