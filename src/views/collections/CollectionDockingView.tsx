@@ -16,6 +16,7 @@ import 'golden-layout/src/css/goldenlayout-dark-theme.css';
 import * as GoldenLayout from "golden-layout";
 import { CollectionFreeFormView } from './CollectionFreeFormView';
 import * as ReactDOM from 'react-dom';
+import { TextField } from "../../fields/TextField";
 
 @observer
 export class CollectionDockingView extends React.Component<CollectionViewProps> {
@@ -97,18 +98,14 @@ export class CollectionDockingView extends React.Component<CollectionViewProps> 
         const value: Document[] = Document.GetFieldValue(fieldKey, ListField, []);
         if (this._containerRef.current) {
             if (this.myLayout == null) {
+                var docs = value.map(doc => {
+                    var d = { fcomponent: undefined, type: 'component', componentName: 'documentViewComponent', componentState: { doc: doc } };
+                    return d;
+                });
                 this.myLayout = new GoldenLayout({
                     content: [ {
                         type: 'row',
-                        content: [ {
-                            type: 'component',
-                            componentName: 'documentViewComponent',
-                            componentState: { x: 0 }
-                        }, {
-                            type: 'component',
-                            componentName: 'documentViewComponent',
-                            componentState: { x: 1 }
-                        } ]
+                        content: docs
                     } ]
                 });
 
@@ -127,6 +124,9 @@ export class CollectionDockingView extends React.Component<CollectionViewProps> 
                 });
 
                 this.myLayout.on('tabCreated', function (tab: any) {
+                    var docToRender = tab.contentItem.config.componentState.doc;
+                    var dflt: string = "<untitled>";
+                    tab.setTitle(docToRender.GetFieldValue(KeyStore.Title, TextField, dflt));
                     tab
                         .closeElement
                         .off('click') //unbind the current click handler
@@ -147,15 +147,11 @@ export class CollectionDockingView extends React.Component<CollectionViewProps> 
     private nextId = (function () { var _next_id = 0; return function () { return _next_id++; } })();
 
     private registerComponentWithCallback = (container: any, state: any) => {
-        const { fieldKey, Document: Document } = this.props;
-        const value: Document[] = Document.GetFieldValue(fieldKey, ListField, []);
         var containingDiv = "component_" + this.nextId();
         container.getElement().html("<div id='" + containingDiv + "'></div>");
-        // var new_state = Object.assign({}, state);
-        // new_state[ "location" ] = containingDiv;
-        // container.setState(new_state);
         var me = this;
-        var docToRender = value[ state.x ];
+        var docToRender = state.doc;
+        // bcz: ugly way to do this.  wait until containoing div has been created, then look it up in the DOM and render our document view into it.
         setTimeout(function () {
             ReactDOM.render((
                 <div style={{ display: "grid" }}>
@@ -164,7 +160,7 @@ export class CollectionDockingView extends React.Component<CollectionViewProps> 
             ),
                 document.getElementById(containingDiv)
             )
-        }, 1);
+        }, 0);
     };
 
 
@@ -228,8 +224,6 @@ export class CollectionDockingView extends React.Component<CollectionViewProps> 
         var s = this.props.ContainingDocumentView!.ScalingToScreenSpace;
         var w = Document.GetFieldValue(KeyStore.Width, NumberField, Number(0)) / s;
         var h = Document.GetFieldValue(KeyStore.Height, NumberField, Number(0)) / s;
-
-
 
         return (
             <div className="border" style={{

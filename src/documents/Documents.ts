@@ -11,6 +11,7 @@ interface DocumentOptions {
     y?: number;
     width?: number;
     height?: number;
+    title?: string;
 }
 
 export namespace Documents {
@@ -26,6 +27,9 @@ export namespace Documents {
         }
         if (options.height) {
             doc.SetFieldValue(KeyStore.Height, options.height, NumberField);
+        }
+        if (options.title) {
+            doc.SetFieldValue(KeyStore.Title, options.title, TextField);
         }
         doc.SetFieldValue(KeyStore.Scale, 1, NumberField);
         doc.SetFieldValue(KeyStore.PanX, 0, NumberField);

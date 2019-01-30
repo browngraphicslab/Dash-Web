@@ -23,7 +23,7 @@ configure({
 
 const mainNodeCollection = new Array<Document>();
 let mainContainer = Documents.DockDocument(mainNodeCollection, {
-    x: 0, y: 0, width: window.screen.width, height: window.screen.height
+    x: 0, y: 0, width: window.screen.width, height: window.screen.height, title: "main container"
 })
 
 window.addEventListener("drop", function (e) {
@@ -38,17 +38,10 @@ document.addEventListener("pointerdown", action(function (e: PointerEvent) {
     }
 }), true)
 
-ReactDOM.render((
-    <div style={{ display: "grid" }}>
-        <h1>Dash Web</h1>
-        <DocumentView Document={mainContainer} ContainingCollectionView={undefined} ContainingDocumentView={undefined} />
-        <DocumentDecorations />
-        <ContextMenu />
-    </div>),
-    document.getElementById('root'));
 
-runInAction(() => {
-    let doc1 = Documents.TextDocument("Hello world");
+//runInAction(() => 
+{
+    let doc1 = Documents.TextDocument("Hello world", { title: "hello" });
     let doc2 = doc1.MakeDelegate();
     doc2.SetField(KS.X, new NumberField(150));
     doc2.SetField(KS.Y, new NumberField(20));
@@ -57,19 +50,18 @@ runInAction(() => {
     });
     let docset = new Array<Document>(doc1, doc2, doc3);
     let doc4 = Documents.CollectionDocument(docset, {
-        x: 0, y: 400
+        x: 0, y: 400, title: "mini collection"
     });
     let doc5 = Documents.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", {
-        x: 650, y: 500, width: 600, height: 600
+        x: 650, y: 500, width: 600, height: 600, title: "cat"
     });
     let docset2 = new Array<Document>(doc4, doc1, doc3);
     let doc6 = Documents.DockDocument(docset2, {
-        x: 350, y: 100, width: 600, height: 600
+        x: 350, y: 100, width: 600, height: 600, title: "docking collection"
     });
-    let mainNodes = mainContainer.GetFieldT(KeyStore.Data, ListField);
+    let mainNodes = null;// mainContainer.GetFieldT(KeyStore.Data, ListField);
     if (!mainNodes) {
         mainNodes = new ListField<Document>();
-        mainContainer.SetField(KeyStore.Data, mainNodes);
     }
     // mainNodes.Data.push(doc1);
     // mainNodes.Data.push(doc2);
@@ -77,6 +69,17 @@ runInAction(() => {
     // mainNodes.Data.push(doc3);
     mainNodes.Data.push(doc5);
     // mainNodes.Data.push(doc1);
-    // mainNodes.Data.push(doc2);
+    mainNodes.Data.push(doc2);
     //mainNodes.Data.push(doc6);
-});
+    mainContainer.SetField(KeyStore.Data, mainNodes);
+}
+//);
+
+ReactDOM.render((
+    <div style={{ display: "grid" }}>
+        <h1>Dash Web</h1>
+        <DocumentView Document={mainContainer} ContainingCollectionView={undefined} ContainingDocumentView={undefined} />
+        <DocumentDecorations />
+        <ContextMenu />
+    </div>),
+    document.getElementById('root'));
