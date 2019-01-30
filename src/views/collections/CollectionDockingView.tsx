@@ -77,6 +77,7 @@ export class CollectionDockingView extends React.Component<CollectionViewProps> 
     }
 
     public static BORDER_WIDTH = 2;
+    public static TAB_HEADER_HEIGHT = 20;
 
     @computed
     public get active(): boolean {
@@ -131,7 +132,6 @@ export class CollectionDockingView extends React.Component<CollectionViewProps> 
         if (component === "button") {
             return <button>{node.getName()}</button>;
         }
-        console.log("Gettting " + component);
         const { fieldKey, Document: Document } = this.props;
         const value: Document[] = Document.GetFieldValue(fieldKey, ListField, []);
         if (component === "doc1" && value.length > 0) {
@@ -153,8 +153,10 @@ export class CollectionDockingView extends React.Component<CollectionViewProps> 
 
         const value: Document[] = Document.GetFieldValue(fieldKey, ListField, []);
         // bcz: not sure why, but I need these to force the flexlayout to update when the collection size changes.
-        var w = Document.GetFieldValue(KeyStore.Width, NumberField, Number(0));
-        var h = Document.GetFieldValue(KeyStore.Height, NumberField, Number(0));
+        var s = this.props.ContainingDocumentView!.ScalingToScreenSpace;
+        var w = Document.GetFieldValue(KeyStore.Width, NumberField, Number(0)) / s;
+        var h = Document.GetFieldValue(KeyStore.Height, NumberField, Number(0)) / s;
+
         return (
             <div className="border" style={{
                 borderStyle: "solid",
@@ -162,8 +164,8 @@ export class CollectionDockingView extends React.Component<CollectionViewProps> 
             }}>
                 <div className="collectiondockingview-container" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()} ref={this._containerRef}
                     style={{
-                        width: "100%",
-                        height: `calc(100% - 2*${CollectionDockingView.BORDER_WIDTH}px)`,
+                        width: s > 1 ? "100%" : w - 2 * CollectionDockingView.BORDER_WIDTH,
+                        height: s > 1 ? "100%" : h - 2 * CollectionDockingView.BORDER_WIDTH
                     }} >
                     <FlexLayout.Layout model={this._model} factory={this.factory} />
                 </div>

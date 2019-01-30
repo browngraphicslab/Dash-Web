@@ -178,8 +178,9 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             ContainerY = LocalY - CollectionFreeFormView.BORDER_WIDTH;
         }
 
-        let Xx = this.props.Document.GetFieldValue(KeyStore.X, NumberField, Number(0));
-        let Yy = this.props.Document.GetFieldValue(KeyStore.Y, NumberField, Number(0));
+        let dockingViewChromeHack = this.props.ContainingCollectionView instanceof CollectionDockingView;
+        let Xx = dockingViewChromeHack ? 0 : this.props.Document.GetFieldValue(KeyStore.X, NumberField, Number(0));
+        let Yy = dockingViewChromeHack ? CollectionDockingView.TAB_HEADER_HEIGHT : this.props.Document.GetFieldValue(KeyStore.Y, NumberField, Number(0));
         let Ss = this.props.Document.GetFieldValue(KeyStore.Scale, NumberField, Number(1));
         let Panxx = this.props.Document.GetFieldValue(KeyStore.PanX, NumberField, Number(0));
         let Panyy = this.props.Document.GetFieldValue(KeyStore.PanY, NumberField, Number(0));
@@ -196,10 +197,11 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         // if (this.props.ContainingCollectionView != undefined && !(this.props.ContainingCollectionView instanceof CollectionFreeFormView)) {
         //     return { ScreenX: undefined, ScreenY: undefined };
         // }
+        let dockingViewChromeHack = this.props.ContainingCollectionView instanceof CollectionDockingView;
         let W = CollectionFreeFormView.BORDER_WIDTH; // this.props.Document.GetFieldValue(KeyStore.Width, NumberField, Number(0));
         let H = CollectionFreeFormView.BORDER_WIDTH;
-        let Xx = this.props.Document.GetFieldValue(KeyStore.X, NumberField, Number(0));
-        let Yy = this.props.Document.GetFieldValue(KeyStore.Y, NumberField, Number(0));
+        let Xx = dockingViewChromeHack ? 0 : this.props.Document.GetFieldValue(KeyStore.X, NumberField, Number(0));
+        let Yy = dockingViewChromeHack ? CollectionDockingView.TAB_HEADER_HEIGHT : this.props.Document.GetFieldValue(KeyStore.Y, NumberField, Number(0));
         let parentX: Opt<any> = (localX - W) * Ss + (Xx + Panxx) + W;
         let parentY: Opt<any> = (localY - H) * Ss + (Yy + Panyy) + H;
 
