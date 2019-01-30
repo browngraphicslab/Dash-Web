@@ -56,7 +56,7 @@ document.addEventListener("pointerdown", action(function (e: PointerEvent) {
         x: 650, y: 500, width: 600, height: 600, title: "cat"
     });
     let docset2 = new Array<Document>(doc4, doc1, doc3);
-    let doc6 = Documents.DockDocument(docset2, {
+    let doc6 = Documents.CollectionDocument(docset2, {
         x: 350, y: 100, width: 600, height: 600, title: "docking collection"
     });
     let mainNodes = null;// mainContainer.GetFieldT(KeyStore.Data, ListField);
@@ -69,15 +69,14 @@ document.addEventListener("pointerdown", action(function (e: PointerEvent) {
     // mainNodes.Data.push(doc3);
     mainNodes.Data.push(doc5);
     // mainNodes.Data.push(doc1);
-    mainNodes.Data.push(doc2);
-    //mainNodes.Data.push(doc6);
+    //mainNodes.Data.push(doc2);
+    mainNodes.Data.push(doc6);
     mainContainer.SetField(KeyStore.Data, mainNodes);
 }
 //);
 
 ReactDOM.render((
     <div style={{ display: "grid" }}>
-        <h1>Dash Web</h1>
         <DocumentView Document={mainContainer} ContainingCollectionView={undefined} ContainingDocumentView={undefined} />
         <DocumentDecorations />
         <ContextMenu />

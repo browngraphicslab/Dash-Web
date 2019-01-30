@@ -4,7 +4,7 @@ import React = require("react");
 import FlexLayout from "flexlayout-react";
 import { action, observable, computed } from "mobx";
 import { Document } from "../../fields/Document";
-import { DocumentView, CollectionViewProps } from "../nodes/DocumentView";
+import { DocumentView, CollectionViewProps, COLLECTION_BORDER_WIDTH } from "../nodes/DocumentView";
 import { ListField } from "../../fields/ListField";
 import { NumberField } from "../../fields/NumberField";
 import { SSL_OP_SINGLE_DH_USE } from "constants";
@@ -51,9 +51,6 @@ export class CollectionDockingView extends React.Component<CollectionViewProps> 
     constructor(props: CollectionViewProps) {
         super(props);
     }
-
-    public static BORDER_WIDTH = 2;
-    public static TAB_HEADER_HEIGHT = 20;
 
     @computed
     public get active(): boolean {
@@ -169,35 +166,24 @@ export class CollectionDockingView extends React.Component<CollectionViewProps> 
         var w = Document.GetFieldValue(KeyStore.Width, NumberField, Number(0)) / s;
         var h = Document.GetFieldValue(KeyStore.Height, NumberField, Number(0)) / s;
 
-        if (CollectionDockingView.UseGoldenLayout) {
-            return (
-                <div className="border" style={{
-                    borderStyle: "solid",
-                    borderWidth: `${CollectionDockingView.BORDER_WIDTH}px`,
-                }}>
-                    <div className="collectiondockingview-container" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()} ref={this._containerRef}
-                        style={{
-                            width: "100%",
-                            height: "100%"
-                        }} >
-                    </div>
-                </div>
-            );
-        } else {
-            return (
-                <div className="border" style={{
-                    borderStyle: "solid",
-                    borderWidth: `${CollectionDockingView.BORDER_WIDTH}px`,
-                }}>
-                    <div className="collectiondockingview-container" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()} ref={this._containerRef}
-                        style={{
-                            width: s > 1 ? "100%" : w - 2 * CollectionDockingView.BORDER_WIDTH,
-                            height: s > 1 ? "100%" : h - 2 * CollectionDockingView.BORDER_WIDTH
-                        }} >
-                        <FlexLayout.Layout model={this.modelForFlexLayout} factory={this.flexLayoutFactory} />
-                    </div>
-                </div>
-            );
+        var chooseLayout = () => {
+            if (!CollectionDockingView.UseGoldenLayout)
+                return <FlexLayout.Layout model={this.modelForFlexLayout} factory={this.flexLayoutFactory} />;
         }
+
+        return (
+            <div className="border" style={{
+                borderStyle: "solid",
+                borderWidth: `${COLLECTION_BORDER_WIDTH}px`,
+            }}>
+                <div className="collectiondockingview-container" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()} ref={this._containerRef}
+                    style={{
+                        width: CollectionDockingView.UseGoldenLayout || s > 1 ? "100%" : w - 2 * COLLECTION_BORDER_WIDTH,
+                        height: CollectionDockingView.UseGoldenLayout || s > 1 ? "100%" : h - 2 * COLLECTION_BORDER_WIDTH
+                    }} >
+                    {chooseLayout()}
+                </div>
+            </div>
+        );
     }
 }

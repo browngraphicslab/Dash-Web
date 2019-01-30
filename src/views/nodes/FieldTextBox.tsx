@@ -1,23 +1,28 @@
-import { Key, KeyStore } from "../../fields/Key";
-import { Document } from "../../fields/Document";
-import { observer } from "mobx-react";
-import { TextField } from "../../fields/TextField";
-import React = require("react")
-import { action, observable, reaction, IReactionDisposer } from "mobx";
-
+import { action, IReactionDisposer, reaction } from "mobx";
+import { baseKeymap } from "prosemirror-commands";
+import { history, redo, undo } from "prosemirror-history";
+import { keymap } from "prosemirror-keymap";
 import { schema } from "prosemirror-schema-basic";
-import { EditorState, Transaction } from "prosemirror-state"
-import { EditorView } from "prosemirror-view"
-import { keymap } from "prosemirror-keymap"
-import { baseKeymap } from "prosemirror-commands"
-import { undo, redo, history } from "prosemirror-history"
+import { EditorState, Transaction } from "prosemirror-state";
+import { EditorView } from "prosemirror-view";
+import { Document } from "../../fields/Document";
 import { Opt } from "../../fields/Field";
-
-import "./FieldTextBox.scss"
-import { DocumentFieldViewProps } from "./DocumentView";
+import { Key } from "../../fields/Key";
+import { TextField } from "../../fields/TextField";
 import { SelectionManager } from "../../util/SelectionManager";
+import { DocumentView } from "./DocumentView";
+import "./FieldTextBox.scss";
+import React = require("react")
 
-
+//
+// these properties get assigned through the render() method of the DocumentView when it creates this node.
+// However, that only happens because the properties are "defined" in FieldTextBox's LayoutString()  method
+//
+interface DocumentFieldViewProps {
+    fieldKey: Key;
+    doc: Document;
+    containingDocumentView: DocumentView
+}
 
 // FieldTextBox: Displays an editable plain text node that maps to a specified Key of a Document
 //
