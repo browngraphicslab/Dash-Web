@@ -90,7 +90,7 @@ export class CollectionDockingView extends React.Component<CollectionViewProps> 
     }
 
     myLayout: any = null;
-    componentDidMount() {
+    componentDidMount: () => void = () => {
 
         const { fieldKey, Document: Document } = this.props;
 
@@ -138,10 +138,7 @@ export class CollectionDockingView extends React.Component<CollectionViewProps> 
                         });
                 });
 
-                var me = this;
-                var cv = this.props.ContainingDocumentView;
                 this.myLayout.registerComponent('documentViewComponent', this.registerComponentWithCallback);
-
                 this.myLayout.container = this._containerRef.current;
                 this.myLayout.init();
             }
