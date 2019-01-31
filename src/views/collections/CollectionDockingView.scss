@@ -4,6 +4,17 @@
     top: 0;
     left: 0;
     overflow: hidden;
+      
+    .lm_controls>li {
+        opacity: 0.6;
+        transform: scale(1.2);
+    }
+    .lm_maximised .lm_controls .lm_maximise {
+        opacity:1;
+        transform: scale(0.8);
+        background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAkAAAAJCAYAAADgkQYQAAAAKElEQVR4nGP8////fwYCgImQAgYGBgYWKM2IR81/okwajIpgvsMbVgAwgQYRVakEKQAAAABJRU5ErkJggg==) !important;
+    }
+
     .flexlayout__layout {
         left: 0;
         top: 0;
@@ -110,12 +121,10 @@
     }
     
     .flexlayout__tab_button_leading {
-        float: left;
         display:inline-block;
     }
     
     .flexlayout__tab_button_content {
-        float: left;
         display:inline-block;
     }
     
@@ -130,7 +139,6 @@
     }
     
     .flexlayout__tab_button_trailing {
-        float: left;
         display:inline-block;
         margin-left:5px;
         margin-top:3px;

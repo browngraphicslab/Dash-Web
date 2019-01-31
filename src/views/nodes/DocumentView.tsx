@@ -96,6 +96,10 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         return new DOMRect();
     }
 
+    get MainContent() {
+        return this._mainCont;
+    }
+
     @computed
     get x(): number {
         return this.props.Document.GetFieldValue(KeyStore.X, NumberField, Number(0));

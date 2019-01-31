@@ -16,7 +16,6 @@ import 'golden-layout/src/css/goldenlayout-dark-theme.css';
 import * as GoldenLayout from "golden-layout";
 import * as ReactDOM from 'react-dom';
 import { DragManager } from "../../util/DragManager";
-import { CollectionFreeFormView } from "./CollectionFreeFormView";
 
 @observer
 export class CollectionDockingView extends React.Component<CollectionViewProps> {
@@ -69,10 +68,11 @@ export class CollectionDockingView extends React.Component<CollectionViewProps> 
     componentDidMount: () => void = () => {
         if (this._containerRef.current && CollectionDockingView.UseGoldenLayout) {
             this.goldenLayoutFactory();
-            window.addEventListener('resize', function (event) {
-                CollectionDockingView.myLayout.updateSize(window.innerWidth, window.innerHeight);
-            });
+            window.addEventListener('resize', this.onResize); // bcz: would rather add this event to the parent node, but resize events only come from Window
         }
+    }
+    componentWillUnmount: () => void = () => {
+        window.removeEventListener('resize', this.onResize);
     }
     private nextId = (function () { var _next_id = 0; return function () { return _next_id++; } })();
 
@@ -94,6 +94,15 @@ export class CollectionDockingView extends React.Component<CollectionViewProps> 
             ContextMenu.Instance.clearItems()
         }
     }
+
+    @action
+    onResize = (event: any) => {
+        var cur = this.props.ContainingDocumentView!.MainContent.current;
+
+        // bcz: since GoldenLayout isn't a React component itself, we need to notify it to resize when its document container's size has changed
+        CollectionDockingView.myLayout.updateSize(cur!.getBoundingClientRect().width, cur!.getBoundingClientRect().height);
+    }
+
     @action
     onPointerDown = (e: React.PointerEvent): void => {
         if (e.button === 2 && this.active) {
@@ -154,21 +163,10 @@ export class CollectionDockingView extends React.Component<CollectionViewProps> 
         this._dragFakeElement = dragElement.cloneNode(true) as HTMLDivElement;
         this._dragParent!.appendChild(this._dragFakeElement);
 
-        // all of this must be undone when the document has been dropped (see registerComponent())
+        // all of this must be undone when the document has been dropped (see tabCreated)
     }
     goldenLayoutFactory() {
         CollectionDockingView.myLayout = this.modelForGoldenLayout;
-
-        CollectionDockingView.myLayout.on('stackCreated', function (stack: any) {
-            stack.header.controlsContainer.find('.lm_popout').hide();
-            stack.header.controlsContainer.find('.lm_close') //get the close icon
-                .off('click') //unbind the current click handler
-                .click(function () {
-                    if (confirm('really close this?')) {
-                        stack.remove();
-                    }
-                });
-        });
 
         CollectionDockingView.myLayout.on('tabCreated', function (tab: any) {
             if (CollectionDockingView._dragDiv) {
@@ -181,9 +179,20 @@ export class CollectionDockingView extends React.Component<CollectionViewProps> 
             tab.setTitle(tab.contentItem.config.componentState.doc.Title);
             tab.closeElement.off('click') //unbind the current click handler
                 .click(function () {
-                    if (confirm('really close this?')) {
-                        tab.contentItem.remove();
-                    }
+                    //if (confirm('really close this?')) {
+                    tab.contentItem.remove();
+                    //}
+                });
+        });
+
+        CollectionDockingView.myLayout.on('stackCreated', function (stack: any) {
+            stack.header.controlsContainer.find('.lm_popout').hide();
+            stack.header.controlsContainer.find('.lm_close') //get the close icon
+                .off('click') //unbind the current click handler
+                .click(function () {
+                    //if (confirm('really close this?')) {
+                    stack.remove();
+                    //}
                 });
         });
 
