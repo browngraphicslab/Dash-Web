@@ -23,7 +23,7 @@ configure({
 
 const mainNodeCollection = new Array<Document>();
 let mainContainer = Documents.DockDocument(mainNodeCollection, {
-    x: 0, y: 0, width: window.screen.width, height: window.screen.height, title: "main container"
+    x: 0, y: 0, title: "main container"
 })
 
 window.addEventListener("drop", function (e) {
@@ -76,7 +76,7 @@ document.addEventListener("pointerdown", action(function (e: PointerEvent) {
 //);
 
 ReactDOM.render((
-    <div style={{ display: "grid" }}>
+    <div style={{ position: "absolute", width: "100%", height: "100%" }}>
         <DocumentView Document={mainContainer} ContainingCollectionView={undefined} ContainingDocumentView={undefined} />
         <DocumentDecorations />
         <ContextMenu />

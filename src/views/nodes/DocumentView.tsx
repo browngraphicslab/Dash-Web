@@ -312,7 +312,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
 
 
     render() {
-        var freestyling = this.props.ContainingCollectionView === undefined || this.props.ContainingCollectionView instanceof CollectionFreeFormView;
+        var freestyling = this.props.ContainingCollectionView instanceof CollectionFreeFormView;
         return (
             <div className="node" ref={this._mainCont} style={{
                 transform: freestyling ? this.transform : "",

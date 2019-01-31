@@ -16,6 +16,7 @@ import 'golden-layout/src/css/goldenlayout-dark-theme.css';
 import * as GoldenLayout from "golden-layout";
 import * as ReactDOM from 'react-dom';
 import { DragManager } from "../../util/DragManager";
+import { CollectionFreeFormView } from "./CollectionFreeFormView";
 
 @observer
 export class CollectionDockingView extends React.Component<CollectionViewProps> {
@@ -68,6 +69,9 @@ export class CollectionDockingView extends React.Component<CollectionViewProps> 
     componentDidMount: () => void = () => {
         if (this._containerRef.current && CollectionDockingView.UseGoldenLayout) {
             this.goldenLayoutFactory();
+            window.addEventListener('resize', function (event) {
+                CollectionDockingView.myLayout.updateSize(window.innerWidth, window.innerHeight);
+            });
         }
     }
     private nextId = (function () { var _next_id = 0; return function () { return _next_id++; } })();
