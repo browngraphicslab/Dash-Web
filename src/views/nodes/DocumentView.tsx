@@ -16,12 +16,13 @@ import { FieldTextBox } from "../nodes/FieldTextBox";
 import "./NodeView.scss";
 import React = require("react");
 import { cpus } from "os";
+import { relative } from "path";
 const JsxParser = require('react-jsx-parser').default;//TODO Why does this need to be imported like this?
 
 interface DocumentViewProps {
     Document: Document;
     ContainingCollectionView: Opt<CollectionView>;
-    ContainingDocumentView: Opt<DocumentView>
+    ContainingDocumentView: Opt<DocumentView>;
 }
 
 export interface CollectionViewProps {
@@ -75,10 +76,7 @@ class DocumentContents extends React.Component<DocumentViewProps> {
             showWarnings={true}
             onError={(test: any) => { console.log(test) }}
         />
-
-
     }
-
 }
 
 @observer
@@ -232,7 +230,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         this._downX = e.clientX;
         this._downY = e.clientY;
         var me = this;
-        if (e.shiftKey) {
+        if (e.shiftKey && e.buttons === 1) {
             CollectionDockingView.StartOtherDrag(this._mainCont.current!, this.props.Document);
             e.stopPropagation();
             return;
@@ -320,6 +318,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
                 transform: freestyling ? this.transform : "",
                 width: freestyling ? this.width : "100%",
                 height: freestyling ? this.height : "100%",
+                position: freestyling ? "absolute" : "relative",
             }}
                 onContextMenu={this.onContextMenu}
                 onPointerDown={this.onPointerDown}>

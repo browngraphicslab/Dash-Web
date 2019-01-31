@@ -6,7 +6,14 @@ import { CollectionDockingView } from "../views/collections/CollectionDockingVie
 import { Document } from "../fields/Document";
 
 export namespace DragManager {
-    export let rootId = "root";
+    export function Root() {
+        const root = document.getElementById("root");
+        if (!root) {
+            throw new Error("No root element found");
+        }
+        return root;
+    }
+
     let dragDiv: HTMLDivElement;
 
     export enum DragButtons {
@@ -63,12 +70,8 @@ export namespace DragManager {
     let _lastPointerY: number = 0;
     export function StartDrag(ele: HTMLElement, dragData: { [ id: string ]: any }, options: DragOptions) {
         if (!dragDiv) {
-            const root = document.getElementById(rootId);
-            if (!root) {
-                throw new Error("No root element found");
-            }
             dragDiv = document.createElement("div");
-            root.appendChild(dragDiv);
+            DragManager.Root().appendChild(dragDiv);
         }
         const w = ele.offsetWidth, h = ele.offsetHeight;
         const rect = ele.getBoundingClientRect();

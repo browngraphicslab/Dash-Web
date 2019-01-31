@@ -121,30 +121,36 @@ export class CollectionDockingView extends React.Component<CollectionViewProps> 
 
     public static myLayout: any = null;
 
-    private static _dragSource: any = null;
     private static _dragDiv: any = null;
     private static _dragParent: HTMLElement | null = null;
+    private static _dragElement: HTMLDivElement;
+    private static _dragFakeElement: HTMLDivElement;
     public static StartOtherDrag(dragElement: HTMLDivElement, dragDoc: Document) {
         var newItemConfig = {
             type: 'component',
             componentName: 'documentViewComponent',
             componentState: { doc: dragDoc }
         };
-        const root = document.getElementById(DragManager.rootId);
-        if (!this._dragDiv) {
-            if (!root) {
-                throw new Error("No root element found");
-            }
-            this._dragDiv = document.createElement("div");
-            this._dragSource = CollectionDockingView.myLayout.createDragSource(this._dragDiv, newItemConfig);
-            root.appendChild(this._dragDiv);
-        }
-        // var r = dragElement.getBoundingClientRect();
-        // var x = root!.getBoundingClientRect();
-        //this._dragDiv.style.transform = `translate(${r.left - x.left}px, ${r.top - x.top}px)`;
-        this._dragSource._itemConfig = newItemConfig;
+        this._dragElement = dragElement;
         this._dragParent = dragElement.parentElement;
-        this._dragDiv.appendChild(dragElement);
+        // bcz: we want to copy this document into the header, not move it there.
+        //   However, GoldenLayout is setup to move things, so we have to do some kludgy stuff:
+
+        //   - create a temporary invisible div and register that as a DragSource with GoldenLayout
+        this._dragDiv = document.createElement("div");
+        this._dragDiv.style.opacity = 0;
+        DragManager.Root().appendChild(this._dragDiv);
+        CollectionDockingView.myLayout.createDragSource(this._dragDiv, newItemConfig);
+
+        //   - add our document to that div so that GoldenLayout will get the move events its listening for
+        this._dragDiv.appendChild(this._dragElement);
+
+        //   - add a duplicate of our document to the original document's container 
+        //     (GoldenLayout will be removing our original one)
+        this._dragFakeElement = dragElement.cloneNode(true) as HTMLDivElement;
+        this._dragParent!.appendChild(this._dragFakeElement);
+
+        // all of this must be undone when the document has been dropped (see registerComponent())
     }
     goldenLayoutFactory() {
         CollectionDockingView.myLayout = this.modelForGoldenLayout;
@@ -162,11 +168,11 @@ export class CollectionDockingView extends React.Component<CollectionViewProps> 
 
         CollectionDockingView.myLayout.on('tabCreated', function (tab: any) {
             if (CollectionDockingView._dragDiv) {
-                for (var i = 0; i < CollectionDockingView._dragDiv.childElementCount; i++) {
-                    var child = CollectionDockingView._dragDiv.childNodes[ CollectionDockingView._dragDiv.childElementCount - i - 1 ];
-                    CollectionDockingView._dragDiv.removeChild(child);
-                    CollectionDockingView._dragParent!.appendChild(child);
-                }
+                CollectionDockingView._dragDiv.removeChild(CollectionDockingView._dragElement);
+                CollectionDockingView._dragParent!.removeChild(CollectionDockingView._dragFakeElement);
+                CollectionDockingView._dragParent!.appendChild(CollectionDockingView._dragElement);
+                DragManager.Root().removeChild(CollectionDockingView._dragDiv);
+                CollectionDockingView._dragDiv = null;
             }
             tab.setTitle(tab.contentItem.config.componentState.doc.Title);
             tab.closeElement.off('click') //unbind the current click handler
