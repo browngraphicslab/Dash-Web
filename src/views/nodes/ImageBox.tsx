@@ -1,20 +1,10 @@
-import { action, IReactionDisposer, reaction } from "mobx";
-import { baseKeymap } from "prosemirror-commands";
-import { history, redo, undo } from "prosemirror-history";
-import { keymap } from "prosemirror-keymap";
-import { schema } from "prosemirror-schema-basic";
-import { EditorState, Transaction } from "prosemirror-state";
-import { EditorView } from "prosemirror-view";
-import { Document } from "../../fields/Document";
-import { Opt } from "../../fields/Field";
-import { Key, KeyStore } from "../../fields/Key";
-import { TextField } from "../../fields/TextField";
-import { SelectionManager } from "../../util/SelectionManager";
-import { DocumentView, DocumentFieldViewProps } from "./DocumentView";
-import "./ImageBox.scss";
-import React = require("react")
+
 import Lightbox from 'react-image-lightbox';
 import 'react-image-lightbox/style.css'; // This only needs to be imported once in your app
+import { SelectionManager } from "../../util/SelectionManager";
+import { DocumentFieldViewProps } from "./DocumentView";
+import "./ImageBox.scss";
+import React = require("react")
 
 interface ImageBoxState {
     photoIndex: number,
