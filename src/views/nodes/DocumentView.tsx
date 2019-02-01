@@ -9,6 +9,7 @@ import { FieldTextBox } from "../nodes/FieldTextBox"
 import { Document } from "../../fields/Document";
 import { CollectionFreeFormView } from "../collections/CollectionFreeFormView"
 import { CollectionDockingView } from "../collections/CollectionDockingView"
+import { CollectionSchemaView } from "../collections/CollectionSchemaView"
 import "./NodeView.scss"
 import { SelectionManager } from "../../util/SelectionManager";
 import { ContextMenu } from "../ContextMenu";
@@ -64,16 +65,16 @@ class DocumentContents extends React.Component<DocumentViewProps> {
         let doc = this.props.Document;
         let bindings = { ...this.props } as any;
         for (const key of this.layoutKeys) {
-            bindings[ key.Name + "Key" ] = key;
+            bindings[key.Name + "Key"] = key;
         }
         for (const key of this.layoutFields) {
             let field = doc.GetField(key);
             if (field) {
-                bindings[ key.Name ] = field.GetValue();
+                bindings[key.Name] = field.GetValue();
             }
         }
         return <JsxParser
-            components={{ FieldTextBox, CollectionFreeFormView, CollectionDockingView }}
+            components={{ FieldTextBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView }}
             bindings={bindings}
             jsx={this.layout}
             showWarnings={true}
@@ -240,10 +241,10 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             if (this._mainCont.current != null && this.props.ContainingCollectionView != null) {
                 this._contextMenuCanOpen = false;
                 const rect = this.screenRect;
-                let dragData: { [ id: string ]: any } = {};
-                dragData[ "document" ] = this;
-                dragData[ "xOffset" ] = e.x - rect.left;
-                dragData[ "yOffset" ] = e.y - rect.top;
+                let dragData: { [id: string]: any } = {};
+                dragData["document"] = this;
+                dragData["xOffset"] = e.x - rect.left;
+                dragData["yOffset"] = e.y - rect.top;
                 DragManager.StartDrag(this._mainCont.current, dragData, {
                     handlers: {
                         dragComplete: this.dragComplete,

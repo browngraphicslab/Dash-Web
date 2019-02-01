@@ -5,6 +5,7 @@ import { NumberField } from "../fields/NumberField";
 import { ListField } from "../fields/ListField";
 import { FieldTextBox } from "../views/nodes/FieldTextBox";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
+import { CollectionSchemaView } from "../views/collections/CollectionSchemaView";
 
 interface DocumentOptions {
     x?: number;
@@ -45,7 +46,7 @@ export namespace Documents {
             textProto.SetField(KeyStore.Width, new NumberField(300));
             textProto.SetField(KeyStore.Height, new NumberField(150));
             textProto.SetField(KeyStore.Layout, new TextField(FieldTextBox.LayoutString()));
-            textProto.SetField(KeyStore.LayoutKeys, new ListField([ KeyStore.Data ]));
+            textProto.SetField(KeyStore.LayoutKeys, new ListField([KeyStore.Data]));
         }
         return textProto;
     }
@@ -54,6 +55,27 @@ export namespace Documents {
         let doc = GetTextPrototype().MakeDelegate();
         setupOptions(doc, options);
         // doc.SetField(KeyStore.Data, new TextField(text));
+        return doc;
+    }
+
+    let schemaProto: Document;
+    function GetSchemaPrototype(): Document {
+        if (!schemaProto) {
+            schemaProto = new Document();
+            schemaProto.SetField(KeyStore.X, new NumberField(0));
+            schemaProto.SetField(KeyStore.Y, new NumberField(0));
+            schemaProto.SetField(KeyStore.Width, new NumberField(300));
+            schemaProto.SetField(KeyStore.Height, new NumberField(150));
+            schemaProto.SetField(KeyStore.Layout, new TextField(CollectionSchemaView.LayoutString()));
+            schemaProto.SetField(KeyStore.LayoutKeys, new ListField([KeyStore.Data]));
+        }
+        return schemaProto;
+    }
+
+    export function SchemaDocument(documents: Array<Document>, options: DocumentOptions = {}): Document {
+        let doc = GetSchemaPrototype().MakeDelegate();
+        setupOptions(doc, options);
+        doc.SetField(KeyStore.Data, new ListField(documents));
         return doc;
     }
 
@@ -67,7 +89,7 @@ export namespace Documents {
             dockProto.SetField(KeyStore.Width, new NumberField(300));
             dockProto.SetField(KeyStore.Height, new NumberField(150));
             dockProto.SetField(KeyStore.Layout, new TextField(CollectionDockingView.LayoutString()));
-            dockProto.SetField(KeyStore.LayoutKeys, new ListField([ KeyStore.Data ]));
+            dockProto.SetField(KeyStore.LayoutKeys, new ListField([KeyStore.Data]));
         }
         return dockProto;
     }
@@ -90,7 +112,7 @@ export namespace Documents {
             imageProto.SetField(KeyStore.Height, new NumberField(300));
             imageProto.SetField(KeyStore.Layout, new TextField('<img src={Data} draggable="false" width="100%" alt="Image not found"/>'));
             // imageProto.SetField(KeyStore.Layout, new TextField('<div style={"background-image: " + {Data}} />'));
-            imageProto.SetField(KeyStore.LayoutFields, new ListField([ KeyStore.Data ]));
+            imageProto.SetField(KeyStore.LayoutFields, new ListField([KeyStore.Data]));
         }
         return imageProto;
     }
@@ -114,7 +136,7 @@ export namespace Documents {
             collectionProto.SetField(KeyStore.Width, new NumberField(300));
             collectionProto.SetField(KeyStore.Height, new NumberField(300));
             collectionProto.SetField(KeyStore.Layout, new TextField('<CollectionFreeFormView Document={Document} fieldKey={DataKey} ContainingDocumentView={ContainingDocumentView}/>'));
-            collectionProto.SetField(KeyStore.LayoutKeys, new ListField([ KeyStore.Data ]));
+            collectionProto.SetField(KeyStore.LayoutKeys, new ListField([KeyStore.Data]));
         }
         return collectionProto;
     }

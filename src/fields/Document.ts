@@ -3,6 +3,7 @@ import { Key, KeyStore } from "./Key"
 import { NumberField } from "./NumberField";
 import { ObservableMap, computed } from "mobx";
 import { TextField } from "./TextField";
+import { ListField } from "./ListField";
 
 export class Document extends Field {
     private fields: ObservableMap<Key, Field> = new ObservableMap();
@@ -51,12 +52,16 @@ export class Document extends Field {
         return vval;
     }
 
-    GetNumberValue(key: Key, defaultVal: number): number {
+    GetNumberField(key: Key, defaultVal: number): number {
         return this.GetFieldValue(key, NumberField, defaultVal);
     }
 
-    GetTextValue(key: Key, defaultVal: string): string {
+    GetTextField(key: Key, defaultVal: string): string {
         return this.GetFieldValue(key, TextField, defaultVal);
+    }
+
+    GetListField<T extends Field>(key: Key, defaultVal: T[]): T[] {
+        return this.GetFieldValue<T[], ListField<T>>(key, ListField, defaultVal)
     }
 
     SetField(key: Key, field: Field | undefined): void {

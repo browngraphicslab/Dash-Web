@@ -174,10 +174,10 @@ export class CollectionFreeFormView extends React.Component<CollectionViewProps>
     render() {
         const { fieldKey, Document: Document } = this.props;
 
-        const value: Document[] = Document.GetFieldValue(fieldKey, ListField, []);
-        const panx: number = Document.GetFieldValue(KeyStore.PanX, NumberField, Number(0));
-        const pany: number = Document.GetFieldValue(KeyStore.PanY, NumberField, Number(0));
-        const currScale: number = Document.GetFieldValue(KeyStore.Scale, NumberField, Number(1));
+        const value: Document[] = Document.GetListField<Document>(fieldKey, []);
+        const panx: number = Document.GetNumberField(KeyStore.PanX, 0);
+        const pany: number = Document.GetNumberField(KeyStore.PanY, 0);
+        const currScale: number = Document.GetNumberField(KeyStore.Scale, 1);
         return (
             <div className="border" style={{
                 borderStyle: "solid",

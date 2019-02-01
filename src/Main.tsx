@@ -16,6 +16,7 @@ import { CollectionFreeFormView } from './views/collections/CollectionFreeFormVi
 import { ListField } from './fields/ListField';
 import { DocumentView } from './views/nodes/DocumentView';
 import { ContextMenu } from './views/ContextMenu';
+import { TextField } from './fields/TextField';
 
 configure({
     enforceActions: "observed"
@@ -48,7 +49,14 @@ document.addEventListener("pointerdown", action(function (e: PointerEvent) {
     let doc3 = Documents.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", {
         x: 450, y: 500
     });
-    let docset = new Array<Document>(doc1, doc2, doc3);
+    const schemaDocs = Array.from(Array(5).keys()).map(v => Documents.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", {
+        x: 50 + 100 * v, y: 50, width: 100, height: 100, title: "cat" + v
+    }));
+    schemaDocs[0].SetFieldValue(KS.Author, "Tyler", TextField);
+    schemaDocs[4].SetFieldValue(KS.Author, "Bob", TextField);
+    schemaDocs.push(doc2);
+    const doc7 = Documents.SchemaDocument(schemaDocs)
+    const docset = [doc1, doc2, doc3, doc7];
     let doc4 = Documents.CollectionDocument(docset, {
         x: 0, y: 400, title: "mini collection"
     });
