@@ -1,6 +1,4 @@
-import { TypedEvent } from "../util/TypedEvent";
-import { FieldUpdatedArgs } from "./FieldUpdatedArgs";
-import { DocumentReference } from "./DocumentReference";
+
 import { Utils } from "../Utils";
 
 export function Cast<T extends Field>(field: Opt<Field>, ctor: { new(): T }): Opt<T> {

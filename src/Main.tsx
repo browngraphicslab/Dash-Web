@@ -2,14 +2,10 @@ import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import "./Main.scss";
 import "normalize.css"
-import { NodeCollectionStore } from './stores/NodeCollectionStore';
-import { StaticTextNodeStore } from './stores/StaticTextNodeStore';
-import { VideoNodeStore } from './stores/VideoNodeStore';
 import { Key, KeyStore as KS, KeyStore } from './fields/Key';
 import { NumberField } from './fields/NumberField';
 import { Document } from './fields/Document';
 import { configure, runInAction, action } from 'mobx';
-import { NodeStore } from './stores/NodeStore';
 import { Documents } from './documents/Documents';
 import { DocumentDecorations } from './DocumentDecorations';
 import { CollectionFreeFormView } from './views/collections/CollectionFreeFormView';

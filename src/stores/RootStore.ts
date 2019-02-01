@@ -1,5 +1,4 @@
 import { action, observable } from "mobx";
-import { NodeStore } from "./NodeStore";
 
 // This globally accessible store might come in handy, although you may decide that you don't need it.
 export class RootStore {

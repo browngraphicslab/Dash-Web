@@ -1,7 +1,6 @@
 import { Field, Opt } from "./Field";
 import { Document } from "./Document";
 import { Key } from "./Key";
-import { DocumentUpdatedArgs } from "./FieldUpdatedArgs";
 
 export class DocumentReference extends Field {
     get Key(): Key {
@@ -14,10 +13,6 @@ export class DocumentReference extends Field {
 
     constructor(private document: Document, private key: Key) {
         super();
-    }
-
-    private DocFieldUpdated(args: DocumentUpdatedArgs): void {
-        // this.FieldUpdated.emit(args.fieldArgs);
     }
 
     Dereference(): Opt<Field> {
