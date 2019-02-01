@@ -2,9 +2,18 @@ import { Opt } from "../fields/Field";
 import { DocumentView } from "../views/nodes/DocumentView";
 import { DocumentDecorations } from "../DocumentDecorations";
 import { SelectionManager } from "./SelectionManager";
+import { CollectionDockingView } from "../views/collections/CollectionDockingView";
+import { Document } from "../fields/Document";
 
 export namespace DragManager {
-    export let rootId = "root";
+    export function Root() {
+        const root = document.getElementById("root");
+        if (!root) {
+            throw new Error("No root element found");
+        }
+        return root;
+    }
+
     let dragDiv: HTMLDivElement;
 
     export enum DragButtons {
@@ -33,7 +42,7 @@ export namespace DragManager {
     }
 
     export class DropEvent {
-        constructor(readonly x: number, readonly y: number, readonly data: { [ id: string ]: any }) { }
+        constructor(readonly x: number, readonly y: number, readonly data: { [id: string]: any }) { }
     }
 
     export interface DropHandlers {
@@ -44,7 +53,7 @@ export namespace DragManager {
         if ("canDrop" in element.dataset) {
             throw new Error("Element is already droppable, can't make it droppable again");
         }
-        element.dataset[ "canDrop" ] = "true";
+        element.dataset["canDrop"] = "true";
         const handler = (e: Event) => {
             const ce = e as CustomEvent<DropEvent>;
             options.handlers.drop(e, ce.detail);
@@ -52,21 +61,17 @@ export namespace DragManager {
         element.addEventListener("dashOnDrop", handler);
         return () => {
             element.removeEventListener("dashOnDrop", handler);
-            delete element.dataset[ "canDrop" ]
+            delete element.dataset["canDrop"]
         };
     }
 
 
     let _lastPointerX: number = 0;
     let _lastPointerY: number = 0;
-    export function StartDrag(ele: HTMLElement, dragData: { [ id: string ]: any }, options: DragOptions) {
+    export function StartDrag(ele: HTMLElement, dragData: { [id: string]: any }, options: DragOptions) {
         if (!dragDiv) {
-            const root = document.getElementById(rootId);
-            if (!root) {
-                throw new Error("No root element found");
-            }
             dragDiv = document.createElement("div");
-            root.appendChild(dragDiv);
+            DragManager.Root().appendChild(dragDiv);
         }
         const w = ele.offsetWidth, h = ele.offsetHeight;
         const rect = ele.getBoundingClientRect();
@@ -79,8 +84,8 @@ export namespace DragManager {
         dragElement.style.transformOrigin = "0 0";
         dragElement.style.transform = `translate(${x}px, ${y}px) scale(${scaleX}, ${scaleY})`;
         dragDiv.appendChild(dragElement);
-        _lastPointerX = dragData[ "xOffset" ] + rect.left;
-        _lastPointerY = dragData[ "yOffset" ] + rect.top;
+        _lastPointerX = dragData["xOffset"] + rect.left;
+        _lastPointerY = dragData["yOffset"] + rect.top;
 
         let hideSource = false;
         if (typeof options.hideSource === "boolean") {
@@ -112,7 +117,7 @@ export namespace DragManager {
         document.addEventListener("pointerup", upHandler);
     }
 
-    function FinishDrag(dragEle: HTMLElement, e: PointerEvent, options: DragOptions, dragData: { [ index: string ]: any }) {
+    function FinishDrag(dragEle: HTMLElement, e: PointerEvent, options: DragOptions, dragData: { [index: string]: any }) {
         dragDiv.removeChild(dragEle);
         const target = document.elementFromPoint(e.x, e.y);
         if (!target) {

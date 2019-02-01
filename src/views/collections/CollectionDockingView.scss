@@ -4,10 +4,23 @@
     top: 0;
     left: 0;
     overflow: hidden;
+      
+    .lm_controls>li {
+        opacity: 0.6;
+        transform: scale(1.2);
+    }
+    .lm_maximised .lm_controls .lm_maximise {
+        opacity:1;
+        transform: scale(0.8);
+        background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAkAAAAJCAYAAADgkQYQAAAAKElEQVR4nGP8////fwYCgImQAgYGBgYWKM2IR81/okwajIpgvsMbVgAwgQYRVakEKQAAAABJRU5ErkJggg==) !important;
+    }
+
     .flexlayout__layout {
-        width: 100%;
-        height: 100%;
-        position: relative;
+        left: 0;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        position: absolute;
         overflow:hidden;
     }
     
@@ -79,9 +92,10 @@
     
     .flexlayout__tab {
         overflow: auto;
-        position: absolute;
+        position:absolute;
         box-sizing: border-box;
         background-color: #222;
+        color:black;
     }
     
     .flexlayout__tab_button {
@@ -107,12 +121,10 @@
     }
     
     .flexlayout__tab_button_leading {
-        float: left;
         display:inline-block;
     }
     
     .flexlayout__tab_button_content {
-        float: left;
         display:inline-block;
     }
     
@@ -127,7 +139,6 @@
     }
     
     .flexlayout__tab_button_trailing {
-        float: left;
         display:inline-block;
         margin-left:5px;
         margin-top:3px;
@@ -137,7 +148,7 @@
     
     .flexlayout__tab_button:hover .flexlayout__tab_button_trailing,
     .flexlayout__tab_button--selected .flexlayout__tab_button_trailing{
-        //background: transparent url("../images/close_white.png") no-repeat center;
+        background: transparent url("../../../node_modules/flexlayout-react/images/close_white.png") no-repeat center;
     }
     
     .flexlayout__tab_button_overflow {
@@ -150,7 +161,7 @@
         font-size: 10px;
         color:lightgray;
         font-family: Arial, sans-serif;
-        //background: transparent url("../images/more.png") no-repeat left;
+        background: transparent url("../../../node_modules/flexlayout-react/images/more.png") no-repeat left;
     }
     
     .flexlayout__tabset_header
@@ -185,12 +196,12 @@
     
     .flexlayout__tabset-selected
     {
-        //background-image: linear-gradient(#111, #444);
+        background-image: linear-gradient(#111, #444);
     }
     
     .flexlayout__tabset-maximized
     {
-        //background-image: linear-gradient(#666, #333);
+        background-image: linear-gradient(#666, #333);
     }
     
     .flexlayout__tab_toolbar {
@@ -208,7 +219,7 @@
         height:20px;
         border:none;
         outline-width: 0;
-        //background: transparent url("../images/maximize.png") no-repeat center;
+        background: transparent url("../../../node_modules/flexlayout-react/images/maximize.png") no-repeat center;
     
     }
     .flexlayout__tab_toolbar_button-max {
@@ -216,7 +227,7 @@
         height:20px;
         border:none;
         outline-width: 0;
-        //background: transparent url("../images/restore.png") no-repeat center;
+        background: transparent url("../../../node_modules/flexlayout-react/images/restore.png") no-repeat center;
     }
     
     .flexlayout__popup_menu {
@@ -339,7 +350,7 @@
     
     .flexlayout__border_button:hover .flexlayout__border_button_trailing,
     .flexlayout__border_button--selected .flexlayout__border_button_trailing{
-        //background: transparent url("../images/close_white.png") no-repeat center;
+        background: transparent url("../../../node_modules/flexlayout-react/images/close_white.png") no-repeat center;
     }
     
     

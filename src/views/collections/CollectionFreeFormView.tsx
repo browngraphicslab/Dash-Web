@@ -3,7 +3,7 @@ import { Key, KeyStore } from "../../fields/Key";
 import React = require("react");
 import { action, observable, computed } from "mobx";
 import { Document } from "../../fields/Document";
-import { DocumentView, CollectionViewProps } from "../nodes/DocumentView";
+import { DocumentView, CollectionViewProps, COLLECTION_BORDER_WIDTH } from "../nodes/DocumentView";
 import { ListField } from "../../fields/ListField";
 import { NumberField } from "../../fields/NumberField";
 import { SSL_OP_SINGLE_DH_USE } from "constants";
@@ -24,8 +24,6 @@ export class CollectionFreeFormView extends React.Component<CollectionViewProps>
         super(props);
     }
 
-    public static BORDER_WIDTH = 2;
-
     @computed
     public get active(): boolean {
         var isSelected = (this.props.ContainingDocumentView != undefined && SelectionManager.IsSelected(this.props.ContainingDocumentView));
@@ -37,17 +35,22 @@ export class CollectionFreeFormView extends React.Component<CollectionViewProps>
     }
 
     drop = (e: Event, de: DragManager.DropEvent) => {
-        const doc = de.data[ "document" ];
+        const doc = de.data["document"];
         if (doc instanceof DocumentView) {
             if (doc.props.ContainingCollectionView && doc.props.ContainingCollectionView !== this) {
                 doc.props.ContainingCollectionView.removeDocument(doc.props.Document);
                 this.addDocument(doc.props.Document);
             }
-            const xOffset = de.data[ "xOffset" ] as number || 0;
-            const yOffset = de.data[ "yOffset" ] as number || 0;
-            let { LocalX, LocalY } = this.props.ContainingDocumentView!.TransformToLocalPoint(de.x - xOffset, de.y - yOffset);
-            doc.x = LocalX;
-            doc.y = LocalY;
+            const xOffset = de.data["xOffset"] as number || 0;
+            const yOffset = de.data["yOffset"] as number || 0;
+            const { scale, translateX, translateY } = Utils.GetScreenTransform(this._canvasRef.current!);
+            let sscale = this.props.ContainingDocumentView!.props.Document.GetFieldValue(KeyStore.Scale, NumberField, Number(1))
+            const screenX = de.x - xOffset;
+            const screenY = de.y - yOffset;
+            const docX = (screenX - translateX) / sscale / scale;
+            const docY = (screenY - translateY) / sscale / scale;
+            doc.x = docX;
+            doc.y = docY;
         }
         e.stopPropagation();
     }
@@ -67,8 +70,6 @@ export class CollectionFreeFormView extends React.Component<CollectionViewProps>
     @action
     onPointerDown = (e: React.PointerEvent): void => {
         if (e.button === 2 && this.active) {
-            e.stopPropagation();
-            e.preventDefault();
             document.removeEventListener("pointermove", this.onPointerMove);
             document.addEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
@@ -123,7 +124,7 @@ export class CollectionFreeFormView extends React.Component<CollectionViewProps>
         e.stopPropagation()
         e.preventDefault()
         let fReader = new FileReader()
-        let file = e.dataTransfer.items[ 0 ].getAsFile();
+        let file = e.dataTransfer.items[0].getAsFile();
         let that = this;
         const panx: number = this.props.Document.GetFieldValue(KeyStore.PanX, NumberField, Number(0));
         const pany: number = this.props.Document.GetFieldValue(KeyStore.PanY, NumberField, Number(0));
@@ -178,14 +179,15 @@ export class CollectionFreeFormView extends React.Component<CollectionViewProps>
         const panx: number = Document.GetNumberField(KeyStore.PanX, 0);
         const pany: number = Document.GetNumberField(KeyStore.PanY, 0);
         const currScale: number = Document.GetNumberField(KeyStore.Scale, 1);
+        console.log("DocsR " + value.length);
         return (
             <div className="border" style={{
                 borderStyle: "solid",
-                borderWidth: `${CollectionFreeFormView.BORDER_WIDTH}px`,
+                borderWidth: `${COLLECTION_BORDER_WIDTH}px`,
             }}>
                 <div className="collectionfreeformview-container" onPointerDown={this.onPointerDown} onWheel={this.onPointerWheel} onContextMenu={(e) => e.preventDefault()} style={{
                     width: "100%",
-                    height: `calc(100% - 2*${CollectionFreeFormView.BORDER_WIDTH}px)`,
+                    height: `calc(100% - 2*${COLLECTION_BORDER_WIDTH}px)`,
                 }} onDrop={this.onDrop} onDragOver={this.onDragOver} ref={this._containerRef}>
                     <div className="collectionfreeformview" style={{ transform: `translate(${panx}px, ${pany}px) scale(${currScale}, ${currScale})`, transformOrigin: `left, top` }} ref={this._canvasRef}>
 

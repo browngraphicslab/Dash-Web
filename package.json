@@ -15,7 +15,7 @@
     "awesome-typescript-loader": "^5.2.1",
     "chai": "^4.2.0",
     "copy-webpack-plugin": "^4.6.0",
-    "css-loader": "^2.0.1",
+    "css-loader": "^2.1.0",
     "mocha": "^5.2.0",
     "sass-loader": "^7.1.0",
     "scss-loader": "0.0.1",
@@ -61,6 +61,7 @@
     "react-jsx-parser": "^1.13.0",
     "react-mosaic": "0.0.20",
     "react-table": "^6.9.0",
+    "url-loader": "^1.1.2",
     "uuid": "^3.3.2"
   }
 }

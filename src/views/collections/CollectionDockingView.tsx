@@ -4,7 +4,7 @@ import React = require("react");
 import FlexLayout from "flexlayout-react";
 import { action, observable, computed } from "mobx";
 import { Document } from "../../fields/Document";
-import { DocumentView, CollectionViewProps } from "../nodes/DocumentView";
+import { DocumentView, CollectionViewProps, COLLECTION_BORDER_WIDTH } from "../nodes/DocumentView";
 import { ListField } from "../../fields/ListField";
 import { NumberField } from "../../fields/NumberField";
 import { SSL_OP_SINGLE_DH_USE } from "constants";
@@ -15,6 +15,7 @@ import 'golden-layout/src/css/goldenlayout-base.css';
 import 'golden-layout/src/css/goldenlayout-dark-theme.css';
 import * as GoldenLayout from "golden-layout";
 import * as ReactDOM from 'react-dom';
+import { DragManager } from "../../util/DragManager";
 
 @observer
 export class CollectionDockingView extends React.Component<CollectionViewProps> {
@@ -45,14 +46,15 @@ export class CollectionDockingView extends React.Component<CollectionViewProps> 
         var docs = value.map(doc => {
             return { type: 'component', componentName: 'documentViewComponent', componentState: { doc: doc } };
         });
-        return new GoldenLayout({ content: [ { type: 'row', content: docs } ] });
+        return new GoldenLayout({
+            settings: {
+                selectionEnabled: true
+            }, content: [ { type: 'row', content: docs } ]
+        });
     }
     constructor(props: CollectionViewProps) {
         super(props);
     }
-
-    public static BORDER_WIDTH = 2;
-    public static TAB_HEADER_HEIGHT = 20;
 
     @computed
     public get active(): boolean {
@@ -65,7 +67,11 @@ export class CollectionDockingView extends React.Component<CollectionViewProps> 
     componentDidMount: () => void = () => {
         if (this._containerRef.current && CollectionDockingView.UseGoldenLayout) {
             this.goldenLayoutFactory();
+            window.addEventListener('resize', this.onResize); // bcz: would rather add this event to the parent node, but resize events only come from Window
         }
+    }
+    componentWillUnmount: () => void = () => {
+        window.removeEventListener('resize', this.onResize);
     }
     private nextId = (function () { var _next_id = 0; return function () { return _next_id++; } })();
 
@@ -87,6 +93,15 @@ export class CollectionDockingView extends React.Component<CollectionViewProps> 
             ContextMenu.Instance.clearItems()
         }
     }
+
+    @action
+    onResize = (event: any) => {
+        var cur = this.props.ContainingDocumentView!.MainContent.current;
+
+        // bcz: since GoldenLayout isn't a React component itself, we need to notify it to resize when its document container's size has changed
+        CollectionDockingView.myLayout.updateSize(cur!.getBoundingClientRect().width, cur!.getBoundingClientRect().height);
+    }
+
     @action
     onPointerDown = (e: React.PointerEvent): void => {
         if (e.button === 2 && this.active) {
@@ -116,31 +131,94 @@ export class CollectionDockingView extends React.Component<CollectionViewProps> 
         }
     }
 
+    public static myLayout: any = null;
+
+    private static _dragDiv: any = null;
+    private static _dragParent: HTMLElement | null = null;
+    private static _dragElement: HTMLDivElement;
+    private static _dragFakeElement: HTMLDivElement;
+    public static StartOtherDrag(dragElement: HTMLDivElement, dragDoc: Document) {
+        var newItemConfig = {
+            type: 'component',
+            componentName: 'documentViewComponent',
+            componentState: { doc: dragDoc }
+        };
+        this._dragElement = dragElement;
+        this._dragParent = dragElement.parentElement;
+        // bcz: we want to copy this document into the header, not move it there.
+        //   However, GoldenLayout is setup to move things, so we have to do some kludgy stuff:
+
+        //   - create a temporary invisible div and register that as a DragSource with GoldenLayout
+        this._dragDiv = document.createElement("div");
+        this._dragDiv.style.opacity = 0;
+        DragManager.Root().appendChild(this._dragDiv);
+        CollectionDockingView.myLayout.createDragSource(this._dragDiv, newItemConfig);
+
+        //   - add our document to that div so that GoldenLayout will get the move events its listening for
+        this._dragDiv.appendChild(this._dragElement);
+
+        //   - add a duplicate of our document to the original document's container 
+        //     (GoldenLayout will be removing our original one)
+        this._dragFakeElement = dragElement.cloneNode(true) as HTMLDivElement;
+        this._dragParent!.appendChild(this._dragFakeElement);
+
+        // all of this must be undone when the document has been dropped (see tabCreated)
+    }
+
+    _makeFullScreen: boolean = false;
+    _maximizedStack: any = null;
+    public static OpenFullScreen(dv: DocumentView) {
+        var newItemConfig = {
+            type: 'component',
+            componentName: 'documentViewComponent',
+            componentState: { doc: dv.props.Document }
+        };
+        CollectionDockingView.myLayout._makeFullScreen = true;
+        CollectionDockingView.myLayout.root.contentItems[ 0 ].addChild(newItemConfig);
+    }
+    public static CloseFullScreen() {
+        if (CollectionDockingView.myLayout._maximizedStack != null) {
+            CollectionDockingView.myLayout._maximizedStack.header.controlsContainer.find('.lm_close').click();
+            CollectionDockingView.myLayout._maximizedStack = null;
+        }
+    }
     goldenLayoutFactory() {
-        var myLayout = this.modelForGoldenLayout;
+        CollectionDockingView.myLayout = this.modelForGoldenLayout;
 
-        myLayout.on('stackCreated', function (stack: any) {
-            stack.header.controlsContainer.find('.lm_close') //get the close icon
-                .off('click') //unbind the current click handler
-                .click(function () {
-                    if (confirm('really close this?')) {
-                        stack.remove();
-                    }
-                });
-        });
-
-        myLayout.on('tabCreated', function (tab: any) {
+        CollectionDockingView.myLayout.on('tabCreated', function (tab: any) {
+            if (CollectionDockingView._dragDiv) {
+                CollectionDockingView._dragDiv.removeChild(CollectionDockingView._dragElement);
+                CollectionDockingView._dragParent!.removeChild(CollectionDockingView._dragFakeElement);
+                CollectionDockingView._dragParent!.appendChild(CollectionDockingView._dragElement);
+                DragManager.Root().removeChild(CollectionDockingView._dragDiv);
+                CollectionDockingView._dragDiv = null;
+            }
             tab.setTitle(tab.contentItem.config.componentState.doc.Title);
             tab.closeElement.off('click') //unbind the current click handler
                 .click(function () {
-                    if (confirm('really close this?')) {
-                        tab.contentItem.remove();
-                    }
+                    //if (confirm('really close this?')) {
+                    tab.contentItem.remove();
+                    //}
+                });
+        });
+
+        CollectionDockingView.myLayout.on('stackCreated', function (stack: any) {
+            if (CollectionDockingView.myLayout._makeFullScreen) {
+                CollectionDockingView.myLayout._maximizedStack = stack;
+                CollectionDockingView.myLayout._maxstack = stack.header.controlsContainer.find('.lm_maximise');
+            }
+            stack.header.controlsContainer.find('.lm_popout').hide();
+            stack.header.controlsContainer.find('.lm_close') //get the close icon
+                .off('click') //unbind the current click handler
+                .click(function () {
+                    //if (confirm('really close this?')) {
+                    stack.remove();
+                    //}
                 });
         });
 
         var me = this;
-        myLayout.registerComponent('documentViewComponent', function (container: any, state: any) {
+        CollectionDockingView.myLayout.registerComponent('documentViewComponent', function (container: any, state: any) {
             // bcz: this is crufty
             // calling html() causes a div tag to be added in the DOM with id 'containingDiv'. 
             // Apparently, we need to wait to allow a live html div element to actually be instantiated.
@@ -152,11 +230,14 @@ export class CollectionDockingView extends React.Component<CollectionViewProps> 
                     <DocumentView key={state.doc.Id} Document={state.doc} ContainingCollectionView={me} ContainingDocumentView={me.props.ContainingDocumentView} />
                 ),
                     document.getElementById(containingDiv)
-                )
+                );
+                if (CollectionDockingView.myLayout._maxstack != null) {
+                    CollectionDockingView.myLayout._maxstack.click();
+                }
             }, 0);
         });
-        myLayout.container = this._containerRef.current;
-        myLayout.init();
+        CollectionDockingView.myLayout.container = this._containerRef.current;
+        CollectionDockingView.myLayout.init();
     }
 
 
@@ -168,35 +249,24 @@ export class CollectionDockingView extends React.Component<CollectionViewProps> 
         var w = Document.GetFieldValue(KeyStore.Width, NumberField, Number(0)) / s;
         var h = Document.GetFieldValue(KeyStore.Height, NumberField, Number(0)) / s;
 
-        if (CollectionDockingView.UseGoldenLayout) {
-            return (
-                <div className="border" style={{
-                    borderStyle: "solid",
-                    borderWidth: `${CollectionDockingView.BORDER_WIDTH}px`,
-                }}>
-                    <div className="collectiondockingview-container" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()} ref={this._containerRef}
-                        style={{
-                            width: "100%",
-                            height: "100%"
-                        }} >
-                    </div>
-                </div>
-            );
-        } else {
-            return (
-                <div className="border" style={{
-                    borderStyle: "solid",
-                    borderWidth: `${CollectionDockingView.BORDER_WIDTH}px`,
-                }}>
-                    <div className="collectiondockingview-container" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()} ref={this._containerRef}
-                        style={{
-                            width: s > 1 ? "100%" : w - 2 * CollectionDockingView.BORDER_WIDTH,
-                            height: s > 1 ? "100%" : h - 2 * CollectionDockingView.BORDER_WIDTH
-                        }} >
-                        <FlexLayout.Layout model={this.modelForFlexLayout} factory={this.flexLayoutFactory} />
-                    </div>
-                </div>
-            );
+        var chooseLayout = () => {
+            if (!CollectionDockingView.UseGoldenLayout)
+                return <FlexLayout.Layout model={this.modelForFlexLayout} factory={this.flexLayoutFactory} />;
         }
+
+        return (
+            <div className="border" style={{
+                borderStyle: "solid",
+                borderWidth: `${COLLECTION_BORDER_WIDTH}px`,
+            }}>
+                <div className="collectiondockingview-container" id="menuContainer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()} ref={this._containerRef}
+                    style={{
+                        width: CollectionDockingView.UseGoldenLayout || s > 1 ? "100%" : w - 2 * COLLECTION_BORDER_WIDTH,
+                        height: CollectionDockingView.UseGoldenLayout || s > 1 ? "100%" : h - 2 * COLLECTION_BORDER_WIDTH
+                    }} >
+                    {chooseLayout()}
+                </div>
+            </div>
+        );
     }
 }
