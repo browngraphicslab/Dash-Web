@@ -15,6 +15,7 @@ import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { CollectionFreeFormView } from "../collections/CollectionFreeFormView";
 import { ContextMenu } from "../ContextMenu";
 import { FieldTextBox } from "../nodes/FieldTextBox";
+import { ImageBox } from "../nodes/ImageBox";
 import "./NodeView.scss";
 import React = require("react");
 const JsxParser = require('react-jsx-parser').default;//TODO Why does this need to be imported like this?
@@ -80,7 +81,7 @@ class DocumentContents extends React.Component<DocumentViewProps> {
             }
         }
         return <JsxParser
-            components={{ FieldTextBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView }}
+            components={{ FieldTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView }}
             bindings={bindings}
             jsx={this.layout}
             showWarnings={true}
@@ -151,6 +152,15 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         this.props.Document.SetFieldValue(KeyStore.Height, h, NumberField)
     }
 
+    @computed
+    get zIndex(): number {
+        return this.props.Document.GetFieldValue(KeyStore.ZIndex, NumberField, Number(0));
+    }
+
+    set zIndex(h: number) {
+        this.props.Document.SetFieldValue(KeyStore.ZIndex, h, NumberField)
+    }
+
     @action
     dragComplete = (e: DragManager.DragCompleteEvent) => {
     }
@@ -158,6 +168,11 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     @computed
     get active(): boolean {
         return SelectionManager.IsSelected(this) || this.props.ContainingCollectionView === undefined || this.props.ContainingCollectionView!.active;
+    }
+
+    @computed
+    get topMost(): boolean {
+        return this.props.ContainingCollectionView == undefined || this.props.ContainingCollectionView instanceof CollectionDockingView;
     }
 
 
@@ -269,7 +284,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         }
         if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3) {
             this._contextMenuCanOpen = false;
-            if (this._mainCont.current != null && this.props.ContainingCollectionView != null) {
+            if (this._mainCont.current != null && !this.topMost) {
                 this._contextMenuCanOpen = false;
                 const rect = this.screenRect;
                 let dragData: { [id: string]: any } = {};
@@ -328,9 +343,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             return;
         }
 
-        var topMost = this.props.ContainingCollectionView == undefined ||
-            this.props.ContainingCollectionView instanceof CollectionDockingView;
-        if (topMost) {
+        if (this.topMost) {
             ContextMenu.Instance.clearItems()
             ContextMenu.Instance.addItem({ description: "Full Screen", event: this.fullScreenClicked })
             ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15)
@@ -356,6 +369,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
                 width: freestyling ? this.width : "100%",
                 height: freestyling ? this.height : "100%",
                 position: freestyling ? "absolute" : "relative",
+                zIndex: freestyling ? this.zIndex : 0,
             }}
                 onContextMenu={this.onContextMenu}
                 onPointerDown={this.onPointerDown}>

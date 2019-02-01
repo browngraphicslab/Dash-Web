@@ -8,6 +8,7 @@ import { CollectionDockingView } from "../views/collections/CollectionDockingVie
 import { CollectionSchemaView } from "../views/collections/CollectionSchemaView";
 import { ImageField } from "../fields/ImageField";
 import { RichTextField } from "../fields/RichTextField";
+import { ImageBox } from "../views/nodes/ImageBox";
 
 interface DocumentOptions {
     x?: number;
@@ -112,9 +113,9 @@ export namespace Documents {
             imageProto.SetField(KeyStore.Y, new NumberField(0));
             imageProto.SetField(KeyStore.Width, new NumberField(300));
             imageProto.SetField(KeyStore.Height, new NumberField(300));
-            imageProto.SetField(KeyStore.Layout, new TextField('<img src={Data} draggable="false" width="100%" alt="Image not found"/>'));
+            imageProto.SetField(KeyStore.Layout, new TextField(ImageBox.LayoutString()));
             // imageProto.SetField(KeyStore.Layout, new TextField('<div style={"background-image: " + {Data}} />'));
-            imageProto.SetField(KeyStore.LayoutFields, new ListField([KeyStore.Data]));
+            imageProto.SetField(KeyStore.LayoutKeys, new ListField([KeyStore.Data]));
         }
         return imageProto;
     }

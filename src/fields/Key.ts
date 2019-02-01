@@ -41,6 +41,7 @@ export namespace KeyStore {
     export const Scale = new Key("Scale");
     export const Width = new Key("Width");
     export const Height = new Key("Height");
+    export const ZIndex = new Key("ZIndex");
     export const Data = new Key("Data");
     export const Layout = new Key("Layout");
     export const LayoutKeys = new Key("LayoutKeys");

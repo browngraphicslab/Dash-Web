@@ -58,6 +58,7 @@
     "react": "^16.5.2",
     "react-dom": "^16.7.0",
     "react-golden-layout": "^1.0.6",
+    "react-image-lightbox": "^5.1.0",
     "react-jsx-parser": "^1.13.0",
     "react-mosaic": "0.0.20",
     "react-table": "^6.9.0",

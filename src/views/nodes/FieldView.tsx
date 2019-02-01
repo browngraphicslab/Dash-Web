@@ -8,6 +8,7 @@ import { NumberField } from "../../fields/NumberField";
 import { RichTextField } from "../../fields/RichTextField";
 import { FieldTextBox } from "./FieldTextBox";
 import { ImageField } from "../../fields/ImageField";
+import { ImageBox } from "./ImageBox";
 
 @observer
 export class FieldView extends React.Component<DocumentFieldViewProps> {
@@ -28,7 +29,7 @@ export class FieldView extends React.Component<DocumentFieldViewProps> {
             return <FieldTextBox {...this.props} />
         }
         else if (field instanceof ImageField) {
-            return <img src={field.Data.href}></img>
+            return <ImageBox {...this.props} />
         }
         else if (field instanceof NumberField) {
             return <p>{field.Data}</p>

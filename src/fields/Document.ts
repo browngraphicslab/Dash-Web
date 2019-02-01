@@ -32,7 +32,7 @@ export class Document extends Field {
         return field;
     }
 
-    GetFieldT<T extends Field = Field>(key: Key, ctor: { new(): T }, ignoreProto: boolean = false): Opt<T> {
+    GetFieldT<T extends Field = Field>(key: Key, ctor: { new(...args: any[]): T }, ignoreProto: boolean = false): Opt<T> {
         return Cast(this.GetField(key, ignoreProto), ctor);
     }
 
