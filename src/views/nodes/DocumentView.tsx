@@ -172,6 +172,11 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         return SelectionManager.IsSelected(this) || this.props.ContainingCollectionView === undefined || this.props.ContainingCollectionView!.active;
     }
 
+    @computed
+    get topMost(): boolean {
+        return this.props.ContainingCollectionView == undefined || this.props.ContainingCollectionView instanceof CollectionDockingView;
+    }
+
 
     // 
     // returns the cumulative scaling between the document and the screen
@@ -281,7 +286,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         }
         if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3) {
             this._contextMenuCanOpen = false;
-            if (this._mainCont.current != null && this.props.ContainingCollectionView != null) {
+            if (this._mainCont.current != null && !this.topMost) {
                 this._contextMenuCanOpen = false;
                 const rect = this.screenRect;
                 let dragData: { [id: string]: any } = {};
@@ -340,9 +345,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             return;
         }
 
-        var topMost = this.props.ContainingCollectionView == undefined ||
-            this.props.ContainingCollectionView instanceof CollectionDockingView;
-        if (topMost) {
+        if (this.topMost) {
             ContextMenu.Instance.clearItems()
             ContextMenu.Instance.addItem({ description: "Full Screen", event: this.fullScreenClicked })
             ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15)

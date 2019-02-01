@@ -20,6 +20,8 @@ export class CollectionFreeFormView extends React.Component<CollectionViewProps>
     private _containerRef = React.createRef<HTMLDivElement>();
     private _canvasRef = React.createRef<HTMLDivElement>();
     private _nodeContainerRef = React.createRef<HTMLDivElement>();
+    private _lastX: number = 0;
+    private _lastY: number = 0;
 
     constructor(props: CollectionViewProps) {
         super(props);
@@ -35,6 +37,7 @@ export class CollectionFreeFormView extends React.Component<CollectionViewProps>
         return isSelected || childSelected || topMost;
     }
 
+    @action
     drop = (e: Event, de: DragManager.DropEvent) => {
         const doc = de.data["document"];
         if (doc instanceof DocumentView) {
@@ -57,23 +60,6 @@ export class CollectionFreeFormView extends React.Component<CollectionViewProps>
         e.stopPropagation();
     }
 
-    private bringToFront(doc: DocumentView) {
-        const { fieldKey, Document: Document } = this.props;
-
-        const value: Document[] = Document.GetListField<Document>(fieldKey, []);
-        var topmost = value.reduce((topmost, d) => Math.max(d.GetNumberField(KeyStore.ZIndex, 0), topmost), -1000);
-        value.map(d => {
-            var zind = d.GetNumberField(KeyStore.ZIndex, 0);
-            if (zind != topmost - 1 - (topmost - zind) && d != doc.props.Document) {
-                d.SetFieldValue(KeyStore.ZIndex, topmost - 1 - (topmost - zind), NumberField);
-            }
-        })
-
-        if (doc.props.Document.GetNumberField(KeyStore.ZIndex, 0) != 0) {
-            doc.props.Document.SetFieldValue(KeyStore.ZIndex, 0, NumberField);
-        }
-    }
-
     componentDidMount() {
         if (this._containerRef.current) {
             DragManager.MakeDropTarget(this._containerRef.current, {
@@ -84,8 +70,6 @@ export class CollectionFreeFormView extends React.Component<CollectionViewProps>
         }
     }
 
-    _lastX: number = 0;
-    _lastY: number = 0;
     @action
     onPointerDown = (e: React.PointerEvent): void => {
         if (e.button === 2 && this.active) {
@@ -139,6 +123,7 @@ export class CollectionFreeFormView extends React.Component<CollectionViewProps>
         this.props.Document.SetFieldValue(KeyStore.PanY, Panyy + dy, NumberField);
     }
 
+    @action
     onDrop = (e: React.DragEvent): void => {
         e.stopPropagation()
         e.preventDefault()
@@ -170,6 +155,9 @@ export class CollectionFreeFormView extends React.Component<CollectionViewProps>
         }
     }
 
+    onDragOver = (e: React.DragEvent): void => {
+    }
+
     @action
     addDocument = (doc: Document): void => {
         //TODO This won't create the field if it doesn't already exist
@@ -189,16 +177,31 @@ export class CollectionFreeFormView extends React.Component<CollectionViewProps>
         }
     }
 
-    onDragOver = (e: React.DragEvent): void => {
-    }
-    render() {
+    @action
+    bringToFront(doc: DocumentView) {
         const { fieldKey, Document: Document } = this.props;
 
+        const value: Document[] = Document.GetListField<Document>(fieldKey, []);
+        var topmost = value.reduce((topmost, d) => Math.max(d.GetNumberField(KeyStore.ZIndex, 0), topmost), -1000);
+        value.map(d => {
+            var zind = d.GetNumberField(KeyStore.ZIndex, 0);
+            if (zind != topmost - 1 - (topmost - zind) && d != doc.props.Document) {
+                d.SetFieldValue(KeyStore.ZIndex, topmost - 1 - (topmost - zind), NumberField);
+            }
+        })
+
+        if (doc.props.Document.GetNumberField(KeyStore.ZIndex, 0) != 0) {
+            doc.props.Document.SetFieldValue(KeyStore.ZIndex, 0, NumberField);
+        }
+    }
+
+    render() {
+        const { fieldKey, Document: Document } = this.props;
         const value: Document[] = Document.GetListField<Document>(fieldKey, []);
         const panx: number = Document.GetNumberField(KeyStore.PanX, 0);
         const pany: number = Document.GetNumberField(KeyStore.PanY, 0);
         const currScale: number = Document.GetNumberField(KeyStore.Scale, 1);
-        console.log("DocsR " + value.length);
+
         return (
             <div className="border" style={{
                 borderStyle: "solid",

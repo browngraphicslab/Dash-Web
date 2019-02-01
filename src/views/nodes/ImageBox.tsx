@@ -15,7 +15,9 @@ export class ImageBox extends React.Component<DocumentFieldViewProps, ImageBoxSt
 
     public static LayoutString() { return "<ImageBox doc={Document} containingDocumentView={ContainingDocumentView} fieldKey={DataKey} />"; }
     private _ref: React.RefObject<HTMLDivElement>;
-    private _wasSelected: boolean = false;
+    private _downX: number = 0;
+    private _downY: number = 0;
+    private _lastTap: number = 0;
 
     constructor(props: DocumentFieldViewProps) {
         super(props);
@@ -33,14 +35,9 @@ export class ImageBox extends React.Component<DocumentFieldViewProps, ImageBoxSt
     componentWillUnmount() {
     }
 
-    _downX: number = 0;
-    _downY: number = 0;
-    _singleTap = false;
-    _lastTap: number = 0;
     onPointerDown = (e: React.PointerEvent): void => {
-        const { containingDocumentView } = this.props;
         if (Date.now() - this._lastTap < 300) {
-            if (e.buttons === 1 && SelectionManager.IsSelected(containingDocumentView)) {
+            if (e.buttons === 1 && SelectionManager.IsSelected(this.props.containingDocumentView)) {
                 e.stopPropagation();
                 this._downX = e.clientX;
                 this._downY = e.clientY;
