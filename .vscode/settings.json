@@ -7,5 +7,7 @@
         "**/.DS_Store": true,
         "**/node_modules": true
     },
-    "editor.formatOnSave": true
+    "editor.formatOnSave": true,
+    "typescript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBrackets": true,
+    "typescript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": true,
 }

@@ -1,7 +1,7 @@
-import {Opt} from "../fields/Field";
-import {DocumentView} from "../views/nodes/DocumentView";
-import {DocumentDecorations} from "../DocumentDecorations";
-import {SelectionManager} from "./SelectionManager";
+import { Opt } from "../fields/Field";
+import { DocumentView } from "../views/nodes/DocumentView";
+import { DocumentDecorations } from "../DocumentDecorations";
+import { SelectionManager } from "./SelectionManager";
 
 export namespace DragManager {
     export let rootId = "root";
@@ -33,7 +33,7 @@ export namespace DragManager {
     }
 
     export class DropEvent {
-        constructor(readonly x: number, readonly y: number, readonly data: {[ id: string ]: any}) {}
+        constructor(readonly x: number, readonly y: number, readonly data: { [ id: string ]: any }) { }
     }
 
     export interface DropHandlers {
@@ -56,7 +56,10 @@ export namespace DragManager {
         };
     }
 
-    export function StartDrag(ele: HTMLElement, dragData: {[ id: string ]: any}, options: DragOptions) {
+
+    let _lastPointerX: number = 0;
+    let _lastPointerY: number = 0;
+    export function StartDrag(ele: HTMLElement, dragData: { [ id: string ]: any }, options: DragOptions) {
         if (!dragDiv) {
             const root = document.getElementById(rootId);
             if (!root) {
@@ -76,6 +79,8 @@ export namespace DragManager {
         dragElement.style.transformOrigin = "0 0";
         dragElement.style.transform = `translate(${x}px, ${y}px) scale(${scaleX}, ${scaleY})`;
         dragDiv.appendChild(dragElement);
+        _lastPointerX = dragData[ "xOffset" ] + rect.left;
+        _lastPointerY = dragData[ "yOffset" ] + rect.top;
 
         let hideSource = false;
         if (typeof options.hideSource === "boolean") {
@@ -91,8 +96,8 @@ export namespace DragManager {
         const moveHandler = (e: PointerEvent) => {
             e.stopPropagation();
             e.preventDefault();
-            x += e.movementX;
-            y += e.movementY;
+            x += e.clientX - _lastPointerX; _lastPointerX = e.clientX;
+            y += e.clientY - _lastPointerY; _lastPointerY = e.clientY;
             dragElement.style.transform = `translate(${x}px, ${y}px) scale(${scaleX}, ${scaleY})`;
         };
         const upHandler = (e: PointerEvent) => {
@@ -107,7 +112,7 @@ export namespace DragManager {
         document.addEventListener("pointerup", upHandler);
     }
 
-    function FinishDrag(dragEle: HTMLElement, e: PointerEvent, options: DragOptions, dragData: {[ index: string ]: any}) {
+    function FinishDrag(dragEle: HTMLElement, e: PointerEvent, options: DragOptions, dragData: { [ index: string ]: any }) {
         dragDiv.removeChild(dragEle);
         const target = document.elementFromPoint(e.x, e.y);
         if (!target) {

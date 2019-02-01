@@ -14,11 +14,10 @@ import { undo, redo, history } from "prosemirror-history"
 import { Opt } from "../../fields/Field";
 
 import "./FieldTextBox.scss"
+import { DocumentFieldViewProps } from "./DocumentView";
+import { SelectionManager } from "../../util/SelectionManager";
 
-interface IProps {
-    fieldKey: Key;
-    doc: Document;
-}
+
 
 // FieldTextBox: Displays an editable plain text node that maps to a specified Key of a Document
 //
@@ -36,12 +35,14 @@ interface IProps {
 //  specified Key and assigns it to an HTML input node.  When changes are made tot his node, 
 //  this will edit the document and assign the new value to that field.
 //
-export class FieldTextBox extends React.Component<IProps> {
+export class FieldTextBox extends React.Component<DocumentFieldViewProps> {
+
+    public static LayoutString() { return "<FieldTextBox doc={Document} containingDocumentView={ContainingDocumentView} fieldKey={DataKey} />"; }
     private _ref: React.RefObject<HTMLDivElement>;
     private _editorView: Opt<EditorView>;
     private _reactionDisposer: Opt<IReactionDisposer>;
 
-    constructor(props: IProps) {
+    constructor(props: DocumentFieldViewProps) {
         super(props);
 
         this._ref = React.createRef();
@@ -111,8 +112,13 @@ export class FieldTextBox extends React.Component<IProps> {
         const { fieldKey, doc } = this.props;
         doc.SetFieldValue(fieldKey, e.target.value, TextField);
     }
-
+    onPointerDown = (e: React.PointerEvent): void => {
+        let me = this;
+        if (e.buttons === 1 && SelectionManager.IsSelected(me.props.containingDocumentView)) {
+            e.stopPropagation();
+        }
+    }
     render() {
-        return (<div className="fieldTextBox-cont" ref={this._ref} />)
+        return (<div className="fieldTextBox-cont" onPointerDown={this.onPointerDown} ref={this._ref} />)
     }
 }

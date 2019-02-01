@@ -4,27 +4,47 @@ import { computed, observable, action } from "mobx";
 import { KeyStore, Key } from "../../fields/Key";
 import { NumberField } from "../../fields/NumberField";
 import { TextField } from "../../fields/TextField";
-import { DocumentViewModel } from "../../viewmodels/DocumentViewModel";
 import { ListField } from "../../fields/ListField";
 import { FieldTextBox } from "../nodes/FieldTextBox"
 import { Document } from "../../fields/Document";
-import { CollectionFreeFormView } from "../freeformcanvas/CollectionFreeFormView"
+import { CollectionFreeFormView } from "../collections/CollectionFreeFormView"
+import { CollectionDockingView } from "../collections/CollectionDockingView"
 import "./NodeView.scss"
 import { SelectionManager } from "../../util/SelectionManager";
-import { DocumentDecorations } from "../../DocumentDecorations";
 import { ContextMenu } from "../ContextMenu";
 import { Opt } from "../../fields/Field";
 import { DragManager } from "../../util/DragManager";
 const JsxParser = require('react-jsx-parser').default;//TODO Why does this need to be imported like this?
 
-interface IProps {
+interface DocumentViewProps {
     Document: Document;
-    ContainingCollectionView: Opt<CollectionFreeFormView>;
+    ContainingCollectionView: Opt<CollectionView>;
     ContainingDocumentView: Opt<DocumentView>
 }
 
+export interface CollectionViewProps {
+    fieldKey: Key;
+    Document: Document;
+    ContainingDocumentView: Opt<DocumentView>;
+}
+
+// these properties are set via the render() method of the DocumentView when it creates this node.
+// However, these properties are set below in the LayoutString() static method
+export interface DocumentFieldViewProps {
+    fieldKey: Key;
+    doc: Document;
+    containingDocumentView: DocumentView
+}
+
+interface CollectionView {
+    addDocument: (doc: Document) => void;
+    removeDocument: (doc: Document) => void;
+    active: boolean;
+    props: CollectionViewProps;
+}
+
 @observer
-class DocumentContents extends React.Component<IProps> {
+class DocumentContents extends React.Component<DocumentViewProps> {
 
     @computed
     get layout(): string {
@@ -44,16 +64,16 @@ class DocumentContents extends React.Component<IProps> {
         let doc = this.props.Document;
         let bindings = { ...this.props } as any;
         for (const key of this.layoutKeys) {
-            bindings[key.Name + "Key"] = key;
+            bindings[ key.Name + "Key" ] = key;
         }
         for (const key of this.layoutFields) {
             let field = doc.GetField(key);
             if (field) {
-                bindings[key.Name] = field.GetValue();
+                bindings[ key.Name ] = field.GetValue();
             }
         }
         return <JsxParser
-            components={{ FieldTextBox, CollectionFreeFormView }}
+            components={{ FieldTextBox, CollectionFreeFormView, CollectionDockingView }}
             bindings={bindings}
             jsx={this.layout}
             showWarnings={true}
@@ -66,12 +86,15 @@ class DocumentContents extends React.Component<IProps> {
 }
 
 @observer
-export class DocumentView extends React.Component<IProps> {
+export class DocumentView extends React.Component<DocumentViewProps> {
     private _mainCont = React.createRef<HTMLDivElement>();
     private _contextMenuCanOpen = false;
     private _downX: number = 0;
     private _downY: number = 0;
 
+    constructor(props: DocumentViewProps) {
+        super(props);
+    }
     get screenRect(): ClientRect | DOMRect {
         if (this._mainCont.current) {
             return this._mainCont.current.getBoundingClientRect();
@@ -135,10 +158,9 @@ export class DocumentView extends React.Component<IProps> {
     //
     @computed
     public get ScalingToScreenSpace(): number {
-        let containingDocView = this.props.ContainingDocumentView;
-        if (containingDocView != undefined) {
-            let ss = containingDocView.props.Document.GetFieldValue(KeyStore.Scale, NumberField, Number(1));
-            return containingDocView.ScalingToScreenSpace * ss;
+        if (this.props.ContainingDocumentView != undefined) {
+            let ss = this.props.ContainingDocumentView.props.Document.GetFieldValue(KeyStore.Scale, NumberField, Number(1));
+            return this.props.ContainingDocumentView.ScalingToScreenSpace * ss;
         }
         return 1;
     }
@@ -147,7 +169,7 @@ export class DocumentView extends React.Component<IProps> {
     // Converts a coordinate in the screen space of the app into a local document coordinate.
     //
     public TransformToLocalPoint(screenX: number, screenY: number) {
-        let ContainerX = screenX;
+        let ContainerX = screenX - CollectionFreeFormView.BORDER_WIDTH;
         let ContainerY = screenY - CollectionFreeFormView.BORDER_WIDTH;
 
         // if this collection view is nested within another collection view, then 
@@ -158,16 +180,16 @@ export class DocumentView extends React.Component<IProps> {
             ContainerY = LocalY - CollectionFreeFormView.BORDER_WIDTH;
         }
 
-        let W = this.props.Document.GetFieldValue(KeyStore.Width, NumberField, Number(0));
-        let Xx = this.props.Document.GetFieldValue(KeyStore.X, NumberField, Number(0));
-        let Yy = this.props.Document.GetFieldValue(KeyStore.Y, NumberField, Number(0));
+        let dockingViewChromeHack = this.props.ContainingCollectionView instanceof CollectionDockingView;
+        let Xx = dockingViewChromeHack ? 0 : this.props.Document.GetFieldValue(KeyStore.X, NumberField, Number(0));
+        let Yy = dockingViewChromeHack ? CollectionDockingView.TAB_HEADER_HEIGHT : this.props.Document.GetFieldValue(KeyStore.Y, NumberField, Number(0));
         let Ss = this.props.Document.GetFieldValue(KeyStore.Scale, NumberField, Number(1));
         let Panxx = this.props.Document.GetFieldValue(KeyStore.PanX, NumberField, Number(0));
         let Panyy = this.props.Document.GetFieldValue(KeyStore.PanY, NumberField, Number(0));
-        let LocalX = (ContainerX - (Xx + Panxx) - W / 2) / Ss + W / 2;
+        let LocalX = (ContainerX - (Xx + Panxx)) / Ss;
         let LocalY = (ContainerY - (Yy + Panyy)) / Ss;
 
-        return { LocalX, Ss, W, Panxx, Xx, LocalY, Panyy, Yy, ContainerX, ContainerY };
+        return { LocalX, Ss, Panxx, Xx, LocalY, Panyy, Yy, ContainerX, ContainerY };
     }
 
     //
@@ -175,11 +197,12 @@ export class DocumentView extends React.Component<IProps> {
     //
     public TransformToScreenPoint(localX: number, localY: number, Ss: number = 1, Panxx: number = 0, Panyy: number = 0): { ScreenX: number, ScreenY: number } {
 
-        let W = this.props.Document.GetFieldValue(KeyStore.Width, NumberField, Number(0));
+        let dockingViewChromeHack = this.props.ContainingCollectionView instanceof CollectionDockingView;
+        let W = CollectionFreeFormView.BORDER_WIDTH; // this.props.Document.GetFieldValue(KeyStore.Width, NumberField, Number(0));
         let H = CollectionFreeFormView.BORDER_WIDTH;
-        let Xx = this.props.Document.GetFieldValue(KeyStore.X, NumberField, Number(0));
-        let Yy = this.props.Document.GetFieldValue(KeyStore.Y, NumberField, Number(0));
-        let parentX = (localX - W / 2) * Ss + (Xx + Panxx) + W / 2;
+        let Xx = dockingViewChromeHack ? 0 : this.props.Document.GetFieldValue(KeyStore.X, NumberField, Number(0));
+        let Yy = dockingViewChromeHack ? CollectionDockingView.TAB_HEADER_HEIGHT : this.props.Document.GetFieldValue(KeyStore.Y, NumberField, Number(0));
+        let parentX = (localX - W) * Ss + (Xx + Panxx) + W;
         let parentY = (localY - H) * Ss + (Yy + Panyy) + H;
 
         // if this collection view is nested within another collection view, then 
@@ -200,9 +223,11 @@ export class DocumentView extends React.Component<IProps> {
         this._downX = e.clientX;
         this._downY = e.clientY;
         this._contextMenuCanOpen = e.button == 2;
-        if (this.active) {
+        if (this.active && !e.isDefaultPrevented()) {
             e.stopPropagation();
-            // e.preventDefault();
+            if (e.buttons === 2) {
+                e.preventDefault();
+            }
             document.removeEventListener("pointermove", this.onPointerMove)
             document.addEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp)
@@ -215,10 +240,10 @@ export class DocumentView extends React.Component<IProps> {
             if (this._mainCont.current != null && this.props.ContainingCollectionView != null) {
                 this._contextMenuCanOpen = false;
                 const rect = this.screenRect;
-                let dragData: { [id: string]: any } = {};
-                dragData["document"] = this;
-                dragData["xOffset"] = e.x - rect.left;
-                dragData["yOffset"] = e.y - rect.top;
+                let dragData: { [ id: string ]: any } = {};
+                dragData[ "document" ] = this;
+                dragData[ "xOffset" ] = e.x - rect.left;
+                dragData[ "yOffset" ] = e.y - rect.top;
                 DragManager.StartDrag(this._mainCont.current, dragData, {
                     handlers: {
                         dragComplete: this.dragComplete,
@@ -272,12 +297,14 @@ export class DocumentView extends React.Component<IProps> {
         }
     }
 
+
     render() {
+        var freestyling = this.props.ContainingCollectionView === undefined || this.props.ContainingCollectionView instanceof CollectionFreeFormView;
         return (
             <div className="node" ref={this._mainCont} style={{
-                transform: this.transform,
-                width: this.width,
-                height: this.height,
+                transform: freestyling ? this.transform : "",
+                width: freestyling ? this.width : "100%",
+                height: freestyling ? this.height : "100%",
             }}
                 onContextMenu={this.onContextMenu}
                 onPointerDown={this.onPointerDown}>
@@ -285,5 +312,4 @@ export class DocumentView extends React.Component<IProps> {
             </div>
         );
     }
-
 }
