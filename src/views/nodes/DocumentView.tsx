@@ -154,6 +154,15 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         this.props.Document.SetFieldValue(KeyStore.Height, h, NumberField)
     }
 
+    @computed
+    get zIndex(): number {
+        return this.props.Document.GetFieldValue(KeyStore.ZIndex, NumberField, Number(0));
+    }
+
+    set zIndex(h: number) {
+        this.props.Document.SetFieldValue(KeyStore.ZIndex, h, NumberField)
+    }
+
     @action
     dragComplete = (e: DragManager.DragCompleteEvent) => {
     }
@@ -359,6 +368,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
                 width: freestyling ? this.width : "100%",
                 height: freestyling ? this.height : "100%",
                 position: freestyling ? "absolute" : "relative",
+                zIndex: freestyling ? this.zIndex : 0,
             }}
                 onContextMenu={this.onContextMenu}
                 onPointerDown={this.onPointerDown}>

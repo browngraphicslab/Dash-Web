@@ -19,6 +19,7 @@ import { CollectionDockingView } from "./CollectionDockingView";
 export class CollectionFreeFormView extends React.Component<CollectionViewProps> {
     private _containerRef = React.createRef<HTMLDivElement>();
     private _canvasRef = React.createRef<HTMLDivElement>();
+    private _nodeContainerRef = React.createRef<HTMLDivElement>();
 
     constructor(props: CollectionViewProps) {
         super(props);
@@ -51,8 +52,26 @@ export class CollectionFreeFormView extends React.Component<CollectionViewProps>
             const docY = (screenY - translateY) / sscale / scale;
             doc.x = docX;
             doc.y = docY;
+            this.bringToFront(doc);
         }
         e.stopPropagation();
+    }
+
+    private bringToFront(doc: DocumentView) {
+        const { fieldKey, Document: Document } = this.props;
+
+        const value: Document[] = Document.GetListField<Document>(fieldKey, []);
+        var topmost = value.reduce((topmost, d) => Math.max(d.GetNumberField(KeyStore.ZIndex, 0), topmost), -1000);
+        value.map(d => {
+            var zind = d.GetNumberField(KeyStore.ZIndex, 0);
+            if (zind != topmost - 1 - (topmost - zind) && d != doc.props.Document) {
+                d.SetFieldValue(KeyStore.ZIndex, topmost - 1 - (topmost - zind), NumberField);
+            }
+        })
+
+        if (doc.props.Document.GetNumberField(KeyStore.ZIndex, 0) != 0) {
+            doc.props.Document.SetFieldValue(KeyStore.ZIndex, 0, NumberField);
+        }
     }
 
     componentDidMount() {
@@ -191,7 +210,7 @@ export class CollectionFreeFormView extends React.Component<CollectionViewProps>
                 }} onDrop={this.onDrop} onDragOver={this.onDragOver} ref={this._containerRef}>
                     <div className="collectionfreeformview" style={{ transform: `translate(${panx}px, ${pany}px) scale(${currScale}, ${currScale})`, transformOrigin: `left, top` }} ref={this._canvasRef}>
 
-                        <div className="node-container">
+                        <div className="node-container" ref={this._nodeContainerRef}>
                             {value.map(doc => {
                                 return (<DocumentView key={doc.Id} ContainingCollectionView={this} Document={doc} ContainingDocumentView={this.props.ContainingDocumentView} />);
                             })}

@@ -33,13 +33,30 @@ export class ImageBox extends React.Component<DocumentFieldViewProps, ImageBoxSt
     componentWillUnmount() {
     }
 
+    _downX: number = 0;
+    _downY: number = 0;
+    _singleTap = false;
+    _lastTap: number = 0;
     onPointerDown = (e: React.PointerEvent): void => {
         const { containingDocumentView } = this.props;
-        this._wasSelected = SelectionManager.IsSelected(containingDocumentView);
-        let me = this;
-        if (e.buttons === 1 && SelectionManager.IsSelected(me.props.containingDocumentView)) {
-            e.stopPropagation();
+        if (Date.now() - this._lastTap < 300) {
+            if (e.buttons === 1 && SelectionManager.IsSelected(containingDocumentView)) {
+                e.stopPropagation();
+                this._downX = e.clientX;
+                this._downY = e.clientY;
+                document.removeEventListener("pointerup", this.onPointerUp);
+                document.addEventListener("pointerup", this.onPointerUp);
+            }
+        } else {
+            this._lastTap = Date.now();
         }
+    }
+    onPointerUp = (e: PointerEvent): void => {
+        document.removeEventListener("pointerup", this.onPointerUp);
+        if (Math.abs(e.clientX - this._downX) < 2 && Math.abs(e.clientY - this._downY) < 2) {
+            this.setState({ isOpen: true })
+        }
+        e.stopPropagation();
     }
 
     render() {
@@ -63,9 +80,7 @@ export class ImageBox extends React.Component<DocumentFieldViewProps, ImageBoxSt
         }
         return (
             <div className="imageBox-cont" onPointerDown={this.onPointerDown} ref={this._ref} >
-                <button className="imageBox-button" type="button" onClick={() => this.setState({ isOpen: this._wasSelected })}>
-                    <img src={images[0]} width="100%" alt="Image not found" />
-                </button>
+                <img src={images[0]} width="100%" alt="Image not found" />
                 {lightbox()}
             </div>)
     }
