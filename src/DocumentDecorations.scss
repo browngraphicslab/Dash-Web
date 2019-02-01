@@ -1,6 +1,7 @@
 #documentDecorations-container {
     position: absolute;
     display: grid;
+    z-index: 1000;
     grid-template-rows: 20px 1fr 20px;
     grid-template-columns: 20px 1fr 20px;
     pointer-events: none;
