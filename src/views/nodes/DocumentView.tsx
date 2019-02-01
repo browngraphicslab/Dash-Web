@@ -15,6 +15,7 @@ import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { CollectionFreeFormView } from "../collections/CollectionFreeFormView";
 import { ContextMenu } from "../ContextMenu";
 import { FieldTextBox } from "../nodes/FieldTextBox";
+import { ImageBox } from "../nodes/ImageBox";
 import "./NodeView.scss";
 import React = require("react");
 import { cpus } from "os";
@@ -82,7 +83,7 @@ class DocumentContents extends React.Component<DocumentViewProps> {
             }
         }
         return <JsxParser
-            components={{ FieldTextBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView }}
+            components={{ FieldTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView }}
             bindings={bindings}
             jsx={this.layout}
             showWarnings={true}
