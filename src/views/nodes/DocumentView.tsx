@@ -17,8 +17,6 @@ import { ContextMenu } from "../ContextMenu";
 import { FieldTextBox } from "../nodes/FieldTextBox";
 import "./NodeView.scss";
 import React = require("react");
-import { cpus } from "os";
-import { relative } from "path";
 const JsxParser = require('react-jsx-parser').default;//TODO Why does this need to be imported like this?
 
 interface DocumentViewProps {

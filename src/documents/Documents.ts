@@ -6,6 +6,8 @@ import { ListField } from "../fields/ListField";
 import { FieldTextBox } from "../views/nodes/FieldTextBox";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import { CollectionSchemaView } from "../views/collections/CollectionSchemaView";
+import { ImageField } from "../fields/ImageField";
+import { RichTextField } from "../fields/RichTextField";
 
 interface DocumentOptions {
     x?: number;
@@ -51,10 +53,10 @@ export namespace Documents {
         return textProto;
     }
 
-    export function TextDocument(text: string, options: DocumentOptions = {}): Document {
+    export function TextDocument(options: DocumentOptions = {}): Document {
         let doc = GetTextPrototype().MakeDelegate();
         setupOptions(doc, options);
-        // doc.SetField(KeyStore.Data, new TextField(text));
+        doc.SetField(KeyStore.Data, new RichTextField());
         return doc;
     }
 
@@ -120,7 +122,7 @@ export namespace Documents {
     export function ImageDocument(url: string, options: DocumentOptions = {}): Document {
         let doc = GetImagePrototype().MakeDelegate();
         setupOptions(doc, options);
-        doc.SetField(KeyStore.Data, new TextField(url));
+        doc.SetField(KeyStore.Data, new ImageField(new URL(url)));
         return doc;
     }
 

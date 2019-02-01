@@ -38,7 +38,7 @@ document.addEventListener("pointerdown", action(function (e: PointerEvent) {
 
 //runInAction(() => 
 {
-    let doc1 = Documents.TextDocument("Hello world", { title: "hello" });
+    let doc1 = Documents.TextDocument({ title: "hello" });
     let doc2 = doc1.MakeDelegate();
     doc2.SetField(KS.X, new NumberField(150));
     doc2.SetField(KS.Y, new NumberField(20));

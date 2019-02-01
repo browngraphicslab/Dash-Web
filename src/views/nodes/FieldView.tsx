@@ -5,6 +5,9 @@ import { computed } from "mobx";
 import { Field, Opt } from "../../fields/Field";
 import { TextField } from "../../fields/TextField";
 import { NumberField } from "../../fields/NumberField";
+import { RichTextField } from "../../fields/RichTextField";
+import { FieldTextBox } from "./FieldTextBox";
+import { ImageField } from "../../fields/ImageField";
 
 @observer
 export class FieldView extends React.Component<DocumentFieldViewProps> {
@@ -20,6 +23,12 @@ export class FieldView extends React.Component<DocumentFieldViewProps> {
         }
         if (field instanceof TextField) {
             return <p>{field.Data}</p>
+        }
+        else if (field instanceof RichTextField) {
+            return <FieldTextBox {...this.props} />
+        }
+        else if (field instanceof ImageField) {
+            return <img src={field.Data.href}></img>
         }
         else if (field instanceof NumberField) {
             return <p>{field.Data}</p>
