@@ -28,7 +28,7 @@ export class CollectionDockingView extends React.Component<CollectionViewProps> 
         const { fieldKey, Document: Document } = this.props;
         const value: Document[] = Document.GetFieldValue(fieldKey, ListField, []);
         var docs = value.map(doc => {
-            return { type: 'tabset', weight: 50, selected: 0, children: [ { type: "tab", name: doc.Title, component: doc.Id } ] };
+            return { type: 'tabset', weight: 50, selected: 0, children: [{ type: "tab", name: doc.Title, component: doc.Id }] };
         });
         return FlexLayout.Model.fromJson({
             global: {}, borders: [],
@@ -49,7 +49,7 @@ export class CollectionDockingView extends React.Component<CollectionViewProps> 
         return new GoldenLayout({
             settings: {
                 selectionEnabled: true
-            }, content: [ { type: 'row', content: docs } ]
+            }, content: [{ type: 'row', content: docs }]
         });
     }
     constructor(props: CollectionViewProps) {
@@ -122,8 +122,8 @@ export class CollectionDockingView extends React.Component<CollectionViewProps> 
         const { fieldKey, Document: Document } = this.props;
         const value: Document[] = Document.GetFieldValue(fieldKey, ListField, []);
         for (var i: number = 0; i < value.length; i++) {
-            if (value[ i ].Id === component) {
-                return (<DocumentView key={value[ i ].Id} ContainingCollectionView={this} Document={value[ i ]} ContainingDocumentView={this.props.ContainingDocumentView} />);
+            if (value[i].Id === component) {
+                return (<DocumentView key={value[i].Id} ContainingCollectionView={this} Document={value[i]} ContainingDocumentView={this.props.ContainingDocumentView} />);
             }
         }
         if (component === "text") {
@@ -174,7 +174,7 @@ export class CollectionDockingView extends React.Component<CollectionViewProps> 
             componentState: { doc: dv.props.Document }
         };
         CollectionDockingView.myLayout._makeFullScreen = true;
-        CollectionDockingView.myLayout.root.contentItems[ 0 ].addChild(newItemConfig);
+        CollectionDockingView.myLayout.root.contentItems[0].addChild(newItemConfig);
     }
     public static CloseFullScreen() {
         if (CollectionDockingView.myLayout._maximizedStack != null) {
