@@ -182,9 +182,48 @@ export class CollectionDockingView extends React.Component<CollectionViewProps> 
             CollectionDockingView.myLayout._maximizedStack = null;
         }
     }
+
+    //
+    //  Creates a vertical split on the right side of the docking view, and then adds the Document to that split
+    //
+    public static AddRightSplit(document: Document) {
+        var newItemConfig = {
+            type: 'component',
+            componentName: 'documentViewComponent',
+            componentState: { doc: document }
+        }
+        let newItemStackConfig = {
+            type: 'stack',
+            content: [newItemConfig]
+        };
+        var newContentItem = new CollectionDockingView.myLayout._typeToItem[newItemStackConfig.type](CollectionDockingView.myLayout, newItemStackConfig, parent);
+
+        if (CollectionDockingView.myLayout.root.contentItems[0].isRow) {
+            var rowlayout = CollectionDockingView.myLayout.root.contentItems[0];
+            var lastRowItem = rowlayout.contentItems[rowlayout.contentItems.length - 1];
+
+            lastRowItem.config["width"] *= 0.5;
+            newContentItem.config["width"] = lastRowItem.config["width"];
+            rowlayout.addChild(newContentItem, rowlayout.contentItems.length, true);
+            rowlayout.callDownwards('setSize');
+        }
+        else {
+            var collayout = CollectionDockingView.myLayout.root.contentItems[0];
+            var newRow = collayout.layoutManager.createContentItem({ type: "row" }, CollectionDockingView.myLayout);
+            collayout.parent.replaceChild(collayout, newRow);
+
+            newRow.addChild(newContentItem, undefined, true);
+            newRow.addChild(collayout, 0, true);
+
+            collayout.config["width"] = 50;
+            newContentItem.config["width"] = 50;
+            collayout.parent.callDownwards('setSize');
+        }
+    }
     goldenLayoutFactory() {
         CollectionDockingView.myLayout = this.modelForGoldenLayout;
 
+        var layout = CollectionDockingView.myLayout;
         CollectionDockingView.myLayout.on('tabCreated', function (tab: any) {
             if (CollectionDockingView._dragDiv) {
                 CollectionDockingView._dragDiv.removeChild(CollectionDockingView._dragElement);
@@ -196,9 +235,7 @@ export class CollectionDockingView extends React.Component<CollectionViewProps> 
             tab.setTitle(tab.contentItem.config.componentState.doc.Title);
             tab.closeElement.off('click') //unbind the current click handler
                 .click(function () {
-                    //if (confirm('really close this?')) {
                     tab.contentItem.remove();
-                    //}
                 });
         });
 
