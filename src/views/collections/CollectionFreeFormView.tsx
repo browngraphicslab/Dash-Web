@@ -70,8 +70,6 @@ export class CollectionFreeFormView extends React.Component<CollectionViewProps>
     @action
     onPointerDown = (e: React.PointerEvent): void => {
         if (e.button === 2 && this.active) {
-            e.stopPropagation();
-            e.preventDefault();
             document.removeEventListener("pointermove", this.onPointerMove);
             document.addEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);

@@ -253,7 +253,12 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     }
 
     onPointerMove = (e: PointerEvent): void => {
+        if (e.cancelBubble) {
+            this._contextMenuCanOpen = false;
+            return;
+        }
         if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3) {
+            this._contextMenuCanOpen = false;
             if (this._mainCont.current != null && this.props.ContainingCollectionView != null) {
                 this._contextMenuCanOpen = false;
                 const rect = this.screenRect;
@@ -287,6 +292,20 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             this.props.ContainingCollectionView.removeDocument(this.props.Document)
         }
     }
+    @action
+    fullScreenClicked = (e: React.MouseEvent): void => {
+        CollectionDockingView.OpenFullScreen(this);
+        ContextMenu.Instance.clearItems();
+        ContextMenu.Instance.addItem({ description: "Close Full Screen", event: this.closeFullScreenClicked });
+        ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15)
+    }
+    @action
+    closeFullScreenClicked = (e: React.MouseEvent): void => {
+        CollectionDockingView.CloseFullScreen();
+        ContextMenu.Instance.clearItems();
+        ContextMenu.Instance.addItem({ description: "Full Screen", event: this.fullScreenClicked })
+        ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15)
+    }
 
     @action
     onContextMenu = (e: React.MouseEvent): void => {
@@ -299,17 +318,21 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             return;
         }
 
-        var topMost = this.props.ContainingCollectionView == undefined;
+        var topMost = this.props.ContainingCollectionView == undefined ||
+            this.props.ContainingCollectionView instanceof CollectionDockingView;
         if (topMost) {
             ContextMenu.Instance.clearItems()
+            ContextMenu.Instance.addItem({ description: "Full Screen", event: this.fullScreenClicked })
+            ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15)
         }
         else {
             // DocumentViews should stop propogation of this event
             e.stopPropagation();
 
             ContextMenu.Instance.clearItems();
+            ContextMenu.Instance.addItem({ description: "Full Screen", event: this.fullScreenClicked })
             ContextMenu.Instance.addItem({ description: "Delete", event: this.deleteClicked })
-            ContextMenu.Instance.displayMenu(e.pageX, e.pageY)
+            ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15)
             SelectionManager.SelectDoc(this, e.ctrlKey);
         }
     }

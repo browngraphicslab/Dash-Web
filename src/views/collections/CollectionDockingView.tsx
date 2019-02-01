@@ -165,6 +165,24 @@ export class CollectionDockingView extends React.Component<CollectionViewProps> 
 
         // all of this must be undone when the document has been dropped (see tabCreated)
     }
+
+    _makeFullScreen: boolean = false;
+    _maximizedStack: any = null;
+    public static OpenFullScreen(dv: DocumentView) {
+        var newItemConfig = {
+            type: 'component',
+            componentName: 'documentViewComponent',
+            componentState: { doc: dv.props.Document }
+        };
+        CollectionDockingView.myLayout._makeFullScreen = true;
+        CollectionDockingView.myLayout.root.contentItems[ 0 ].addChild(newItemConfig);
+    }
+    public static CloseFullScreen() {
+        if (CollectionDockingView.myLayout._maximizedStack != null) {
+            CollectionDockingView.myLayout._maximizedStack.header.controlsContainer.find('.lm_close').click();
+            CollectionDockingView.myLayout._maximizedStack = null;
+        }
+    }
     goldenLayoutFactory() {
         CollectionDockingView.myLayout = this.modelForGoldenLayout;
 
@@ -186,6 +204,10 @@ export class CollectionDockingView extends React.Component<CollectionViewProps> 
         });
 
         CollectionDockingView.myLayout.on('stackCreated', function (stack: any) {
+            if (CollectionDockingView.myLayout._makeFullScreen) {
+                CollectionDockingView.myLayout._maximizedStack = stack;
+                CollectionDockingView.myLayout._maxstack = stack.header.controlsContainer.find('.lm_maximise');
+            }
             stack.header.controlsContainer.find('.lm_popout').hide();
             stack.header.controlsContainer.find('.lm_close') //get the close icon
                 .off('click') //unbind the current click handler
@@ -210,6 +232,9 @@ export class CollectionDockingView extends React.Component<CollectionViewProps> 
                 ),
                     document.getElementById(containingDiv)
                 );
+                if (CollectionDockingView.myLayout._maxstack != null) {
+                    CollectionDockingView.myLayout._maxstack.click();
+                }
             }, 0);
         });
         CollectionDockingView.myLayout.container = this._containerRef.current;
