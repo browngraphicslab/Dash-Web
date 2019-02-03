@@ -312,6 +312,10 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         }
     }
 
+    openRight = (e: React.MouseEvent): void => {
+        CollectionDockingView.AddRightSplit(this.props.Document);
+    }
+
     deleteClicked = (e: React.MouseEvent): void => {
         if (this.props.ContainingCollectionView instanceof CollectionFreeFormView) {
             this.props.ContainingCollectionView.removeDocument(this.props.Document)
@@ -354,6 +358,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
 
             ContextMenu.Instance.clearItems();
             ContextMenu.Instance.addItem({ description: "Full Screen", event: this.fullScreenClicked })
+            ContextMenu.Instance.addItem({ description: "Open Right", event: this.openRight })
             ContextMenu.Instance.addItem({ description: "Delete", event: this.deleteClicked })
             ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15)
             SelectionManager.SelectDoc(this, e.ctrlKey);
