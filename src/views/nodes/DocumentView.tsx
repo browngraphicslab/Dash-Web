@@ -52,7 +52,7 @@ interface CollectionView {
 }
 
 @observer
-class DocumentContents extends React.Component<DocumentViewProps> {
+export class DocumentContents extends React.Component<DocumentViewProps> {
 
     @computed
     get layout(): string {
@@ -80,13 +80,15 @@ class DocumentContents extends React.Component<DocumentViewProps> {
                 bindings[key.Name] = field.GetValue();
             }
         }
-        return <JsxParser
-            components={{ FieldTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView }}
-            bindings={bindings}
-            jsx={this.layout}
-            showWarnings={true}
-            onError={(test: any) => { console.log(test) }}
-        />
+        return (
+            <JsxParser
+                components={{ FieldTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView }}
+                bindings={bindings}
+                jsx={this.layout}
+                showWarnings={true}
+                onError={(test: any) => { console.log(test) }}
+            />
+        )
     }
 }
 
@@ -364,7 +366,6 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             SelectionManager.SelectDoc(this, e.ctrlKey);
         }
     }
-
 
     render() {
         var freestyling = this.props.ContainingCollectionView instanceof CollectionFreeFormView;

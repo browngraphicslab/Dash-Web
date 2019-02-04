@@ -8,11 +8,11 @@ import { EditorView } from "prosemirror-view";
 import { Document } from "../../fields/Document";
 import { Opt } from "../../fields/Field";
 import { Key } from "../../fields/Key";
-import { TextField } from "../../fields/TextField";
 import { SelectionManager } from "../../util/SelectionManager";
 import { DocumentView, DocumentFieldViewProps } from "./DocumentView";
 import "./FieldTextBox.scss";
 import React = require("react")
+import { RichTextField } from "../../fields/RichTextField";
 
 
 // FieldTextBox: Displays an editable plain text node that maps to a specified Key of a Document
@@ -51,7 +51,7 @@ export class FieldTextBox extends React.Component<DocumentFieldViewProps> {
             const state = this._editorView.state.apply(tx);
             this._editorView.updateState(state);
             const { doc, fieldKey } = this.props;
-            doc.SetFieldValue(fieldKey, JSON.stringify(state.toJSON()), TextField);
+            doc.SetFieldValue(fieldKey, JSON.stringify(state.toJSON()), RichTextField);
         }
     }
 
@@ -67,7 +67,7 @@ export class FieldTextBox extends React.Component<DocumentFieldViewProps> {
             ]
         };
 
-        let field = doc.GetFieldT(fieldKey, TextField);
+        let field = doc.GetFieldT(fieldKey, RichTextField);
         if (field) {
             state = EditorState.fromJSON(config, JSON.parse(field.Data));
         } else {
@@ -81,7 +81,7 @@ export class FieldTextBox extends React.Component<DocumentFieldViewProps> {
         }
 
         this._reactionDisposer = reaction(() => {
-            const field = this.props.doc.GetFieldT(this.props.fieldKey, TextField);
+            const field = this.props.doc.GetFieldT(this.props.fieldKey, RichTextField);
             return field ? field.Data : undefined;
         }, (field) => {
             if (field && this._editorView) {
@@ -106,7 +106,7 @@ export class FieldTextBox extends React.Component<DocumentFieldViewProps> {
     @action
     onChange(e: React.ChangeEvent<HTMLInputElement>) {
         const { fieldKey, doc } = this.props;
-        doc.SetFieldValue(fieldKey, e.target.value, TextField);
+        doc.SetFieldValue(fieldKey, e.target.value, RichTextField);
     }
     onPointerDown = (e: React.PointerEvent): void => {
         let me = this;
@@ -115,6 +115,12 @@ export class FieldTextBox extends React.Component<DocumentFieldViewProps> {
         }
     }
     render() {
-        return (<div className="fieldTextBox-cont" onPointerDown={this.onPointerDown} ref={this._ref} />)
+        return (<div className="fieldTextBox-cont"
+            style={{
+                color: "initial",
+                whiteSpace: "initial"
+            }}
+            onPointerDown={this.onPointerDown}
+            ref={this._ref} />)
     }
 }

@@ -204,13 +204,15 @@ export class CollectionFreeFormView extends React.Component<CollectionViewProps>
 
         return (
             <div className="border" style={{
-                borderStyle: "solid",
                 borderWidth: `${COLLECTION_BORDER_WIDTH}px`,
             }}>
-                <div className="collectionfreeformview-container" onPointerDown={this.onPointerDown} onWheel={this.onPointerWheel} onContextMenu={(e) => e.preventDefault()} style={{
-                    width: "100%",
-                    height: `calc(100% - 2*${COLLECTION_BORDER_WIDTH}px)`,
-                }} onDrop={this.onDrop} onDragOver={this.onDragOver} ref={this._containerRef}>
+                <div className="collectionfreeformview-container"
+                    onPointerDown={this.onPointerDown}
+                    onWheel={this.onPointerWheel}
+                    onContextMenu={(e) => e.preventDefault()}
+                    onDrop={this.onDrop}
+                    onDragOver={this.onDragOver}
+                    ref={this._containerRef}>
                     <div className="collectionfreeformview" style={{ transform: `translate(${panx}px, ${pany}px) scale(${currScale}, ${currScale})`, transformOrigin: `left, top` }} ref={this._canvasRef}>
 
                         <div className="node-container" ref={this._nodeContainerRef}>

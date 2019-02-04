@@ -57,7 +57,7 @@ export namespace Documents {
     export function TextDocument(options: DocumentOptions = {}): Document {
         let doc = GetTextPrototype().MakeDelegate();
         setupOptions(doc, options);
-        doc.SetField(KeyStore.Data, new RichTextField());
+        // doc.SetField(KeyStore.Data, new RichTextField());
         return doc;
     }
 
