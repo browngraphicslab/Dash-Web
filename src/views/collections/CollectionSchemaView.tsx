@@ -6,10 +6,11 @@ import { KeyStore as KS, Key } from "../../fields/Key";
 import { Document } from "../../fields/Document";
 import { FieldView } from "../nodes/FieldView";
 import "react-table/react-table.css"
-import { observable, action } from "mobx";
+import { observable, action, computed } from "mobx";
 import SplitPane from "react-split-pane"
 import "./CollectionSchemaView.scss"
 import { ScrollBox } from "../../util/ScrollBox";
+import { SelectionManager } from "../../util/SelectionManager";
 
 @observer
 export class CollectionSchemaView extends React.Component<CollectionViewProps> {
@@ -54,10 +55,25 @@ export class CollectionSchemaView extends React.Component<CollectionViewProps> {
         };
     }
 
+    @computed
+    public get active(): boolean {
+        var isSelected = (this.props.ContainingDocumentView != undefined && SelectionManager.IsSelected(this.props.ContainingDocumentView));
+        var childSelected = false; // SelectionManager.SelectedDocuments().some(view => view.props.ContainingCollectionView == this);
+        var topMost = this.props.ContainingDocumentView != undefined && this.props.ContainingDocumentView.props.ContainingCollectionView == undefined;
+        return isSelected || childSelected || topMost;
+    }
     onPointerDown = (e: React.PointerEvent) => {
         let target = e.target as HTMLElement;
         if (target.tagName == "SPAN" && target.className.includes("Resizer")) {
             e.stopPropagation();
+        }
+        if (e.button === 2 && this.active) {
+            e.stopPropagation();
+            e.preventDefault();
+        } else {
+            if (e.buttons === 1 && this.active) {
+                e.stopPropagation();
+            }
         }
     }
 
