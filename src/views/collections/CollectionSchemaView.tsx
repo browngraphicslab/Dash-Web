@@ -1,4 +1,4 @@
-import { DocumentContents } from "../nodes/DocumentView";
+import { DocumentContentsView } from "../nodes/DocumentView";
 import React = require("react")
 import ReactTable, { ReactTableDefaults, CellInfo, ComponentPropsGetterRC, ComponentPropsGetterR } from "react-table";
 import { observer } from "mobx-react";
@@ -14,19 +14,19 @@ import { CollectionViewBase } from "./CollectionViewBase";
 
 @observer
 export class CollectionSchemaView extends CollectionViewBase {
-    public static LayoutString() { return '<CollectionSchemaView Document={Document} fieldKey={DataKey} ContainingDocumentView={ContainingDocumentView}/>'; }
+    public static LayoutString() { return '<CollectionSchemaView DocumentForCollection={Document} CollectionFieldKey={DataKey} ContainingDocumentView={ContainingDocumentContentsView}/>'; }
 
     @observable
     selectedIndex = 0;
 
     renderCell = (rowProps: CellInfo) => {
-        if (!this.props.ContainingDocumentView) {
+        if (!this.props.DocumentContentsContainingCollection) {
             return <div></div>
         }
         let props: FieldViewProps = {
             doc: rowProps.value[0],
             fieldKey: rowProps.value[1],
-            documentViewContainer: this.props.ContainingDocumentView
+            documentViewContainer: this.props.DocumentContentsContainingCollection
         }
         return (
             <FieldView {...props} />
@@ -71,15 +71,15 @@ export class CollectionSchemaView extends CollectionViewBase {
     }
 
     render() {
-        const { Document, fieldKey } = this.props;
+        const { DocumentForCollection: Document, CollectionFieldKey: fieldKey } = this.props;
         const children = Document.GetListField<Document>(fieldKey, []);
         const columns = Document.GetListField(KS.ColumnsKey,
             [KS.Title, KS.Data, KS.Author])
         let content;
         if (this.selectedIndex != -1) {
-            content = (<DocumentContents Document={children[this.selectedIndex]}
-                ContainingDocumentView={this.props.ContainingDocumentView}
-                ContainingCollectionView={undefined} />)
+            content = (<DocumentContentsView Document={children[this.selectedIndex]}
+                ContainingDocumentContentsView={this.props.DocumentContentsContainingCollection}
+                ContainingCollectionView={this} />)
         } else {
             content = <div />
         }

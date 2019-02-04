@@ -1,5 +1,5 @@
 import React = require("react")
-import { DocumentView } from "./DocumentView";
+import { DocumentView, DocumentContentsView } from "./DocumentView";
 import { Document } from "../../fields/Document";
 import { observer } from "mobx-react";
 import { computed } from "mobx";
@@ -20,7 +20,7 @@ import { Key } from "../../fields/Key";
 export interface FieldViewProps {
     fieldKey: Key;
     doc: Document;
-    documentViewContainer: DocumentView
+    documentViewContainer: DocumentContentsView
 }
 
 @observer

@@ -13,6 +13,7 @@ import "./FieldTextBox.scss";
 import React = require("react")
 import { RichTextField } from "../../fields/RichTextField";
 import { FieldViewProps } from "./FieldView";
+import { DocumentView } from "./DocumentView";
 
 
 // FieldTextBox: Displays an editable plain text node that maps to a specified Key of a Document
@@ -110,7 +111,7 @@ export class FieldTextBox extends React.Component<FieldViewProps> {
     }
     onPointerDown = (e: React.PointerEvent): void => {
         let me = this;
-        if (e.buttons === 1 && SelectionManager.IsSelected(me.props.documentViewContainer)) {
+        if (e.buttons === 1 && me.props.documentViewContainer instanceof DocumentView && SelectionManager.IsSelected(me.props.documentViewContainer)) {
             e.stopPropagation();
         }
     }

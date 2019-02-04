@@ -9,6 +9,7 @@ import { CollectionSchemaView } from "../views/collections/CollectionSchemaView"
 import { ImageField } from "../fields/ImageField";
 import { RichTextField } from "../fields/RichTextField";
 import { ImageBox } from "../views/nodes/ImageBox";
+import { CollectionFreeFormView } from "../views/collections/CollectionFreeFormView";
 
 interface DocumentOptions {
     x?: number;
@@ -138,7 +139,7 @@ export namespace Documents {
             collectionProto.SetField(KeyStore.PanY, new NumberField(0));
             collectionProto.SetField(KeyStore.Width, new NumberField(300));
             collectionProto.SetField(KeyStore.Height, new NumberField(300));
-            collectionProto.SetField(KeyStore.Layout, new TextField('<CollectionFreeFormView Document={Document} fieldKey={DataKey} ContainingDocumentView={ContainingDocumentView}/>'));
+            collectionProto.SetField(KeyStore.Layout, new TextField(CollectionFreeFormView.LayoutString()));
             collectionProto.SetField(KeyStore.LayoutKeys, new ListField([KeyStore.Data]));
         }
         return collectionProto;

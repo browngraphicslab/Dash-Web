@@ -6,6 +6,7 @@ import "./ImageBox.scss";
 import React = require("react")
 import { ImageField } from '../../fields/ImageField';
 import { FieldViewProps } from './FieldView';
+import { DocumentView } from './DocumentView';
 
 interface ImageBoxState {
     photoIndex: number,
@@ -38,7 +39,7 @@ export class ImageBox extends React.Component<FieldViewProps, ImageBoxState> {
 
     onPointerDown = (e: React.PointerEvent): void => {
         if (Date.now() - this._lastTap < 300) {
-            if (e.buttons === 1 && SelectionManager.IsSelected(this.props.documentViewContainer)) {
+            if (e.buttons === 1 && this.props.documentViewContainer instanceof DocumentView && SelectionManager.IsSelected(this.props.documentViewContainer)) {
                 e.stopPropagation();
                 this._downX = e.clientX;
                 this._downY = e.clientY;
@@ -66,7 +67,7 @@ export class ImageBox extends React.Component<FieldViewProps, ImageBoxState> {
         const images = [path,];
         var lightbox = () => {
             const { photoIndex } = this.state;
-            if (this.state.isOpen && SelectionManager.IsSelected(this.props.documentViewContainer)) {
+            if (this.state.isOpen && this.props.documentViewContainer instanceof DocumentView && SelectionManager.IsSelected(this.props.documentViewContainer)) {
                 return (<Lightbox
                     mainSrc={images[photoIndex]}
                     nextSrc={photoIndex + 1 < images.length ? images[(photoIndex + 1) % images.length] : undefined}

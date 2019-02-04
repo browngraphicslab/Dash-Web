@@ -1,18 +1,17 @@
+import { action, configure } from 'mobx';
+import "normalize.css";
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
-import "./Main.scss";
-import "normalize.css"
-import { Key, KeyStore as KS, KeyStore } from './fields/Key';
-import { NumberField } from './fields/NumberField';
-import { Document } from './fields/Document';
-import { configure, runInAction, action } from 'mobx';
-import { Documents } from './documents/Documents';
 import { DocumentDecorations } from './DocumentDecorations';
-import { CollectionFreeFormView } from './views/collections/CollectionFreeFormView';
+import { Documents } from './documents/Documents';
+import { Document } from './fields/Document';
+import { KeyStore, KeyStore as KS } from './fields/Key';
 import { ListField } from './fields/ListField';
-import { DocumentView } from './views/nodes/DocumentView';
-import { ContextMenu } from './views/ContextMenu';
+import { NumberField } from './fields/NumberField';
 import { TextField } from './fields/TextField';
+import "./Main.scss";
+import { ContextMenu } from './views/ContextMenu';
+import { DocumentView, DocumentContentsView } from './views/nodes/DocumentView';
 
 configure({
     enforceActions: "observed"
@@ -52,7 +51,7 @@ document.addEventListener("pointerdown", action(function (e: PointerEvent) {
     schemaDocs[4].SetFieldValue(KS.Author, "Bob", TextField);
     schemaDocs.push(doc2);
     const doc7 = Documents.SchemaDocument(schemaDocs)
-    const docset = [doc1, doc2, doc3, doc7];
+    const docset = [doc3];//[doc1, doc2, doc3, doc7];
     let doc4 = Documents.CollectionDocument(docset, {
         x: 0, y: 400, title: "mini collection"
     });
@@ -71,17 +70,17 @@ document.addEventListener("pointerdown", action(function (e: PointerEvent) {
     // mainNodes.Data.push(doc2);
     mainNodes.Data.push(doc4);
     // mainNodes.Data.push(doc3);
-    mainNodes.Data.push(doc5);
+    //mainNodes.Data.push(doc5);
     // mainNodes.Data.push(doc1);
     //mainNodes.Data.push(doc2);
-    mainNodes.Data.push(doc6);
+    //mainNodes.Data.push(doc6);
     mainContainer.SetField(KeyStore.Data, mainNodes);
 }
 //);
 
 ReactDOM.render((
     <div style={{ position: "absolute", width: "100%", height: "100%" }}>
-        <DocumentView Document={mainContainer} ContainingCollectionView={undefined} ContainingDocumentView={undefined} />
+        <DocumentContentsView Document={mainContainer} ContainingCollectionView={undefined} ContainingDocumentContentsView={undefined} />
         <DocumentDecorations />
         <ContextMenu />
     </div>),
