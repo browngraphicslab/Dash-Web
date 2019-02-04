@@ -1,5 +1,6 @@
 import React = require("react")
-import { DocumentFieldViewProps } from "./DocumentView";
+import { DocumentView } from "./DocumentView";
+import { Document } from "../../fields/Document";
 import { observer } from "mobx-react";
 import { computed } from "mobx";
 import { Field, Opt } from "../../fields/Field";
@@ -9,9 +10,21 @@ import { RichTextField } from "../../fields/RichTextField";
 import { FieldTextBox } from "./FieldTextBox";
 import { ImageField } from "../../fields/ImageField";
 import { ImageBox } from "./ImageBox";
+import { Key } from "../../fields/Key";
+
+//
+// these properties get assigned through the render() method of the DocumentView when it creates this node.
+// However, that only happens because the properties are "defined" in the markup for the field view.
+// See the LayoutString method on each field view :   ImageBox, FieldTextBox, etc. 
+//
+export interface FieldViewProps {
+    fieldKey: Key;
+    doc: Document;
+    documentViewContainer: DocumentView
+}
 
 @observer
-export class FieldView extends React.Component<DocumentFieldViewProps> {
+export class FieldView extends React.Component<FieldViewProps> {
     @computed
     get field(): Opt<Field> {
         const { doc, fieldKey } = this.props;

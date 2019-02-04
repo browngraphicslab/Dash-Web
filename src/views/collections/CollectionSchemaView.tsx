@@ -1,19 +1,19 @@
-import { CollectionViewProps, DocumentFieldViewProps, DocumentView, DocumentContents } from "../nodes/DocumentView";
+import { DocumentContents } from "../nodes/DocumentView";
 import React = require("react")
 import ReactTable, { ReactTableDefaults, CellInfo, ComponentPropsGetterRC, ComponentPropsGetterR } from "react-table";
 import { observer } from "mobx-react";
 import { KeyStore as KS, Key } from "../../fields/Key";
 import { Document } from "../../fields/Document";
-import { FieldView } from "../nodes/FieldView";
+import { FieldView, FieldViewProps } from "../nodes/FieldView";
 import "react-table/react-table.css"
 import { observable, action, computed } from "mobx";
 import SplitPane from "react-split-pane"
 import "./CollectionSchemaView.scss"
 import { ScrollBox } from "../../util/ScrollBox";
-import { SelectionManager } from "../../util/SelectionManager";
+import { CollectionViewBase } from "./CollectionViewBase";
 
 @observer
-export class CollectionSchemaView extends React.Component<CollectionViewProps> {
+export class CollectionSchemaView extends CollectionViewBase {
     public static LayoutString() { return '<CollectionSchemaView Document={Document} fieldKey={DataKey} ContainingDocumentView={ContainingDocumentView}/>'; }
 
     @observable
@@ -23,10 +23,10 @@ export class CollectionSchemaView extends React.Component<CollectionViewProps> {
         if (!this.props.ContainingDocumentView) {
             return <div></div>
         }
-        let props: DocumentFieldViewProps = {
+        let props: FieldViewProps = {
             doc: rowProps.value[0],
             fieldKey: rowProps.value[1],
-            containingDocumentView: this.props.ContainingDocumentView
+            documentViewContainer: this.props.ContainingDocumentView
         }
         return (
             <FieldView {...props} />
@@ -55,13 +55,6 @@ export class CollectionSchemaView extends React.Component<CollectionViewProps> {
         };
     }
 
-    @computed
-    public get active(): boolean {
-        var isSelected = (this.props.ContainingDocumentView != undefined && SelectionManager.IsSelected(this.props.ContainingDocumentView));
-        var childSelected = false; // SelectionManager.SelectedDocuments().some(view => view.props.ContainingCollectionView == this);
-        var topMost = this.props.ContainingDocumentView != undefined && this.props.ContainingDocumentView.props.ContainingCollectionView == undefined;
-        return isSelected || childSelected || topMost;
-    }
     onPointerDown = (e: React.PointerEvent) => {
         let target = e.target as HTMLElement;
         if (target.tagName == "SPAN" && target.className.includes("Resizer")) {

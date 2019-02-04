@@ -3,20 +3,18 @@ import { Key, KeyStore } from "../../fields/Key";
 import React = require("react");
 import { action, observable, computed } from "mobx";
 import { Document } from "../../fields/Document";
-import { DocumentView, CollectionViewProps, COLLECTION_BORDER_WIDTH } from "../nodes/DocumentView";
+import { DocumentView } from "../nodes/DocumentView";
 import { ListField } from "../../fields/ListField";
 import { NumberField } from "../../fields/NumberField";
 import { SSL_OP_SINGLE_DH_USE } from "constants";
-import { SelectionManager } from "../../util/SelectionManager";
 import { Documents } from "../../documents/Documents";
-import { ContextMenu } from "../ContextMenu";
 import { DragManager } from "../../util/DragManager";
 import "./CollectionFreeFormView.scss";
 import { Utils } from "../../Utils";
-import { CollectionDockingView } from "./CollectionDockingView";
+import { CollectionViewBase, CollectionViewProps, COLLECTION_BORDER_WIDTH } from "./CollectionViewBase";
 
 @observer
-export class CollectionFreeFormView extends React.Component<CollectionViewProps> {
+export class CollectionFreeFormView extends CollectionViewBase {
     private _containerRef = React.createRef<HTMLDivElement>();
     private _canvasRef = React.createRef<HTMLDivElement>();
     private _nodeContainerRef = React.createRef<HTMLDivElement>();
@@ -25,16 +23,6 @@ export class CollectionFreeFormView extends React.Component<CollectionViewProps>
 
     constructor(props: CollectionViewProps) {
         super(props);
-    }
-
-    @computed
-    public get active(): boolean {
-        var isSelected = (this.props.ContainingDocumentView != undefined && SelectionManager.IsSelected(this.props.ContainingDocumentView));
-        var childSelected = SelectionManager.SelectedDocuments().some(view => view.props.ContainingCollectionView == this);
-        var topMost = this.props.ContainingDocumentView != undefined && (
-            this.props.ContainingDocumentView.props.ContainingCollectionView == undefined ||
-            this.props.ContainingDocumentView.props.ContainingCollectionView instanceof CollectionDockingView);
-        return isSelected || childSelected || topMost;
     }
 
     @action
@@ -156,25 +144,6 @@ export class CollectionFreeFormView extends React.Component<CollectionViewProps>
     }
 
     onDragOver = (e: React.DragEvent): void => {
-    }
-
-    @action
-    addDocument = (doc: Document): void => {
-        //TODO This won't create the field if it doesn't already exist
-        const value = this.props.Document.GetFieldValue(this.props.fieldKey, ListField, new Array<Document>())
-        value.push(doc);
-    }
-
-    @action
-    removeDocument = (doc: Document): void => {
-        //TODO This won't create the field if it doesn't already exist
-        const value = this.props.Document.GetFieldValue(this.props.fieldKey, ListField, new Array<Document>())
-        if (value.indexOf(doc) !== -1) {
-            value.splice(value.indexOf(doc), 1)
-
-            SelectionManager.DeselectAll()
-            ContextMenu.Instance.clearItems()
-        }
     }
 
     @action

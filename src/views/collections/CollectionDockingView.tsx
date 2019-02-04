@@ -4,21 +4,20 @@ import React = require("react");
 import FlexLayout from "flexlayout-react";
 import { action, observable, computed } from "mobx";
 import { Document } from "../../fields/Document";
-import { DocumentView, CollectionViewProps, COLLECTION_BORDER_WIDTH } from "../nodes/DocumentView";
+import { DocumentView } from "../nodes/DocumentView";
 import { ListField } from "../../fields/ListField";
 import { NumberField } from "../../fields/NumberField";
 import { SSL_OP_SINGLE_DH_USE } from "constants";
-import { SelectionManager } from "../../util/SelectionManager";
-import { ContextMenu } from "../ContextMenu";
 import "./CollectionDockingView.scss"
 import 'golden-layout/src/css/goldenlayout-base.css';
 import 'golden-layout/src/css/goldenlayout-dark-theme.css';
 import * as GoldenLayout from "golden-layout";
 import * as ReactDOM from 'react-dom';
 import { DragManager } from "../../util/DragManager";
+import { CollectionViewBase, CollectionViewProps, COLLECTION_BORDER_WIDTH } from "./CollectionViewBase";
 
 @observer
-export class CollectionDockingView extends React.Component<CollectionViewProps> {
+export class CollectionDockingView extends CollectionViewBase {
 
     private static UseGoldenLayout = true;
     public static LayoutString() { return '<CollectionDockingView Document={Document} fieldKey={DataKey} ContainingDocumentView={ContainingDocumentView}/>'; }
@@ -56,14 +55,6 @@ export class CollectionDockingView extends React.Component<CollectionViewProps> 
         super(props);
     }
 
-    @computed
-    public get active(): boolean {
-        var isSelected = (this.props.ContainingDocumentView != undefined && SelectionManager.IsSelected(this.props.ContainingDocumentView));
-        var childSelected = SelectionManager.SelectedDocuments().some(view => view.props.ContainingCollectionView == this);
-        var topMost = this.props.ContainingDocumentView != undefined && this.props.ContainingDocumentView.props.ContainingCollectionView == undefined;
-        return isSelected || childSelected || topMost;
-    }
-
     componentDidMount: () => void = () => {
         if (this._containerRef.current && CollectionDockingView.UseGoldenLayout) {
             this.goldenLayoutFactory();
@@ -75,24 +66,6 @@ export class CollectionDockingView extends React.Component<CollectionViewProps> 
     }
     private nextId = (function () { var _next_id = 0; return function () { return _next_id++; } })();
 
-    @action
-    addDocument = (doc: Document): void => {
-        //TODO This won't create the field if it doesn't already exist
-        const value = this.props.Document.GetFieldValue(this.props.fieldKey, ListField, new Array<Document>())
-        value.push(doc);
-    }
-
-    @action
-    removeDocument = (doc: Document): void => {
-        //TODO This won't create the field if it doesn't already exist
-        const value = this.props.Document.GetFieldValue(this.props.fieldKey, ListField, new Array<Document>())
-        if (value.indexOf(doc) !== -1) {
-            value.splice(value.indexOf(doc), 1)
-
-            SelectionManager.DeselectAll()
-            ContextMenu.Instance.clearItems()
-        }
-    }
 
     @action
     onResize = (event: any) => {
@@ -167,11 +140,11 @@ export class CollectionDockingView extends React.Component<CollectionViewProps> 
 
     _makeFullScreen: boolean = false;
     _maximizedStack: any = null;
-    public static OpenFullScreen(dv: DocumentView) {
+    public static OpenFullScreen(document: Document) {
         var newItemConfig = {
             type: 'component',
             componentName: 'documentViewComponent',
-            componentState: { doc: dv.props.Document }
+            componentState: { doc: document }
         };
         CollectionDockingView.myLayout._makeFullScreen = true;
         CollectionDockingView.myLayout.root.contentItems[0].addChild(newItemConfig);

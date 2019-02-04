@@ -9,10 +9,10 @@ import { Document } from "../../fields/Document";
 import { Opt } from "../../fields/Field";
 import { Key } from "../../fields/Key";
 import { SelectionManager } from "../../util/SelectionManager";
-import { DocumentView, DocumentFieldViewProps } from "./DocumentView";
 import "./FieldTextBox.scss";
 import React = require("react")
 import { RichTextField } from "../../fields/RichTextField";
+import { FieldViewProps } from "./FieldView";
 
 
 // FieldTextBox: Displays an editable plain text node that maps to a specified Key of a Document
@@ -31,14 +31,14 @@ import { RichTextField } from "../../fields/RichTextField";
 //  specified Key and assigns it to an HTML input node.  When changes are made tot his node, 
 //  this will edit the document and assign the new value to that field.
 //
-export class FieldTextBox extends React.Component<DocumentFieldViewProps> {
+export class FieldTextBox extends React.Component<FieldViewProps> {
 
-    public static LayoutString() { return "<FieldTextBox doc={Document} containingDocumentView={ContainingDocumentView} fieldKey={DataKey} />"; }
+    public static LayoutString() { return "<FieldTextBox doc={Document} documentViewContainer={ContainingDocumentView} fieldKey={DataKey} />"; }
     private _ref: React.RefObject<HTMLDivElement>;
     private _editorView: Opt<EditorView>;
     private _reactionDisposer: Opt<IReactionDisposer>;
 
-    constructor(props: DocumentFieldViewProps) {
+    constructor(props: FieldViewProps) {
         super(props);
 
         this._ref = React.createRef();
@@ -110,7 +110,7 @@ export class FieldTextBox extends React.Component<DocumentFieldViewProps> {
     }
     onPointerDown = (e: React.PointerEvent): void => {
         let me = this;
-        if (e.buttons === 1 && SelectionManager.IsSelected(me.props.containingDocumentView)) {
+        if (e.buttons === 1 && SelectionManager.IsSelected(me.props.documentViewContainer)) {
             e.stopPropagation();
         }
     }

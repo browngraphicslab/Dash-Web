@@ -2,26 +2,25 @@
 import Lightbox from 'react-image-lightbox';
 import 'react-image-lightbox/style.css'; // This only needs to be imported once in your app
 import { SelectionManager } from "../../util/SelectionManager";
-import { DocumentFieldViewProps } from "./DocumentView";
 import "./ImageBox.scss";
 import React = require("react")
 import { ImageField } from '../../fields/ImageField';
-import { NumberField } from '../../fields/NumberField';
+import { FieldViewProps } from './FieldView';
 
 interface ImageBoxState {
     photoIndex: number,
     isOpen: boolean,
 };
 
-export class ImageBox extends React.Component<DocumentFieldViewProps, ImageBoxState> {
+export class ImageBox extends React.Component<FieldViewProps, ImageBoxState> {
 
-    public static LayoutString() { return "<ImageBox doc={Document} containingDocumentView={ContainingDocumentView} fieldKey={DataKey} />"; }
+    public static LayoutString() { return "<ImageBox doc={Document} documentViewContainer={ContainingDocumentView} fieldKey={DataKey} />"; }
     private _ref: React.RefObject<HTMLDivElement>;
     private _downX: number = 0;
     private _downY: number = 0;
     private _lastTap: number = 0;
 
-    constructor(props: DocumentFieldViewProps) {
+    constructor(props: FieldViewProps) {
         super(props);
 
         this._ref = React.createRef();
@@ -39,7 +38,7 @@ export class ImageBox extends React.Component<DocumentFieldViewProps, ImageBoxSt
 
     onPointerDown = (e: React.PointerEvent): void => {
         if (Date.now() - this._lastTap < 300) {
-            if (e.buttons === 1 && SelectionManager.IsSelected(this.props.containingDocumentView)) {
+            if (e.buttons === 1 && SelectionManager.IsSelected(this.props.documentViewContainer)) {
                 e.stopPropagation();
                 this._downX = e.clientX;
                 this._downY = e.clientY;
@@ -67,7 +66,7 @@ export class ImageBox extends React.Component<DocumentFieldViewProps, ImageBoxSt
         const images = [path,];
         var lightbox = () => {
             const { photoIndex } = this.state;
-            if (this.state.isOpen && SelectionManager.IsSelected(this.props.containingDocumentView)) {
+            if (this.state.isOpen && SelectionManager.IsSelected(this.props.documentViewContainer)) {
                 return (<Lightbox
                     mainSrc={images[photoIndex]}
                     nextSrc={photoIndex + 1 < images.length ? images[(photoIndex + 1) % images.length] : undefined}

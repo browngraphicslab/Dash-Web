@@ -11,6 +11,7 @@ import "./NodeView.scss"
 import { DragManager } from "../../util/DragManager";
 import { SelectionManager } from "../../util/SelectionManager";
 import { Utils } from "../../Utils";
+import { CollectionViewBase, COLLECTION_BORDER_WIDTH } from "../collections/CollectionViewBase";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { CollectionFreeFormView } from "../collections/CollectionFreeFormView";
 import { ContextMenu } from "../ContextMenu";
@@ -22,35 +23,9 @@ const JsxParser = require('react-jsx-parser').default;//TODO Why does this need 
 
 interface DocumentViewProps {
     Document: Document;
-    ContainingCollectionView: Opt<CollectionView>;
+    ContainingCollectionView: Opt<CollectionViewBase>;
     ContainingDocumentView: Opt<DocumentView>;
 }
-
-export interface CollectionViewProps {
-    fieldKey: Key;
-    Document: Document;
-    ContainingDocumentView: Opt<DocumentView>;
-}
-
-//
-// these properties get assigned through the render() method of the DocumentView when it creates this node.
-// However, that only happens because the properties are "defined" in FieldTextBox's LayoutString()  method
-//
-export interface DocumentFieldViewProps {
-    fieldKey: Key;
-    doc: Document;
-    containingDocumentView: DocumentView
-}
-
-export const COLLECTION_BORDER_WIDTH = 2;
-
-interface CollectionView {
-    addDocument: (doc: Document) => void;
-    removeDocument: (doc: Document) => void;
-    active: boolean;
-    props: CollectionViewProps;
-}
-
 @observer
 export class DocumentContents extends React.Component<DocumentViewProps> {
 
@@ -325,7 +300,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     }
     @action
     fullScreenClicked = (e: React.MouseEvent): void => {
-        CollectionDockingView.OpenFullScreen(this);
+        CollectionDockingView.OpenFullScreen(this.props.Document);
         ContextMenu.Instance.clearItems();
         ContextMenu.Instance.addItem({ description: "Close Full Screen", event: this.closeFullScreenClicked });
         ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15)
