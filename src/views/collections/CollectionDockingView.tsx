@@ -96,7 +96,7 @@ export class CollectionDockingView extends CollectionViewBase {
         const value: Document[] = Document.GetFieldValue(fieldKey, ListField, []);
         for (var i: number = 0; i < value.length; i++) {
             if (value[i].Id === component) {
-                return (<DocumentView key={value[i].Id} ContainingCollectionView={this} Document={value[i]} DocumentContentsView={undefined} />);
+                return (<DocumentView key={value[i].Id} ContainingCollectionView={this} Document={value[i]} DocumentView={undefined} />);
             }
         }
         if (component === "text") {
@@ -237,7 +237,7 @@ export class CollectionDockingView extends CollectionViewBase {
             container.getElement().html("<div id='" + containingDiv + "'></div>");
             setTimeout(function () {
                 ReactDOM.render((
-                    <DocumentView key={state.doc.Id} Document={state.doc} ContainingCollectionView={me} DocumentContentsView={undefined} /> // bcz: need to fill in DocumentContentsView with value of DocumentContents when created...
+                    <DocumentView key={state.doc.Id} Document={state.doc} ContainingCollectionView={me} DocumentView={undefined} />
                 ),
                     document.getElementById(containingDiv)
                 );

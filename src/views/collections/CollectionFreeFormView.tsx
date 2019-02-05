@@ -198,7 +198,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
                         <div className="node-container" ref={this._nodeContainerRef}>
                             {value.map(doc => {
-                                return (<CollectionFreeFormDocumentView key={doc.Id} ContainingCollectionView={this} Document={doc} DocumentContentsView={this.props.DocumentViewForCollection} />);
+                                return (<CollectionFreeFormDocumentView key={doc.Id} ContainingCollectionView={this} Document={doc} DocumentView={this.props.DocumentViewForCollection} />);
                             })}
                         </div>
                     </div>

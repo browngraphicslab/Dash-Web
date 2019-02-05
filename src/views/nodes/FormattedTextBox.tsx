@@ -109,7 +109,7 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
     }
     onPointerDown = (e: React.PointerEvent): void => {
         let me = this;
-        if (e.buttons === 1 && me.props.documentViewContainer instanceof CollectionFreeFormDocumentView && SelectionManager.IsSelected(me.props.documentViewContainer)) {
+        if (e.buttons === 1 && me.props.DocumentViewForField instanceof CollectionFreeFormDocumentView && SelectionManager.IsSelected(me.props.DocumentViewForField)) {
             e.stopPropagation();
         }
     }

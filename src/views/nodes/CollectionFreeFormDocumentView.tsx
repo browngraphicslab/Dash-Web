@@ -215,7 +215,7 @@ export class CollectionFreeFormDocumentView extends DocumentView {
                 onContextMenu={this.onContextMenu}
                 onPointerDown={this.onPointerDown}>
 
-                <DocumentView {...this.props} DocumentContentsView={this} />
+                <DocumentView {...this.props} DocumentView={this} />
             </div>
         );
     }

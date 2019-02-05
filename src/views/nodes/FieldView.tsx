@@ -20,12 +20,12 @@ import { DocumentView } from "./DocumentView";
 export interface FieldViewProps {
     fieldKey: Key;
     doc: Document;
-    documentViewContainer: DocumentView
+    DocumentViewForField: Opt<DocumentView>
 }
 
 @observer
 export class FieldView extends React.Component<FieldViewProps> {
-    public static LayoutString(fieldType: string) { return `<${fieldType} doc={Document} documentViewContainer={DocumentContentsView} fieldKey={DataKey} />`; }
+    public static LayoutString(fieldType: string) { return `<${fieldType} doc={Document} DocumentViewForField={DocumentView} fieldKey={DataKey} />`; }
     @computed
     get field(): Opt<Field> {
         const { doc, fieldKey } = this.props;

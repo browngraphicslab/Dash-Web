@@ -20,7 +20,7 @@ const JsxParser = require('react-jsx-parser').default;//TODO Why does this need 
 export interface DocumentViewProps {
     Document: Document;
     ContainingCollectionView: Opt<CollectionViewBase>;
-    DocumentContentsView: Opt<DocumentView>
+    DocumentView: Opt<DocumentView>
 }
 @observer
 export class DocumentView extends React.Component<DocumentViewProps> {
@@ -111,7 +111,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
 
         // if this collection view is nested within another collection view, then 
         // first transform the local point into the parent collection's coordinate space.
-        let containingDocView = this.props.ContainingCollectionView != undefined ? this.props.ContainingCollectionView.props.DocumentViewForCollection : undefined;//.ContainingDocumentContentsView;
+        let containingDocView = this.props.ContainingCollectionView != undefined ? this.props.ContainingCollectionView.props.DocumentViewForCollection : undefined;
         if (containingDocView != undefined) {
             let ss = containingDocView.props.Document.GetFieldValue(KeyStore.Scale, NumberField, Number(1));
             let panxx = containingDocView.props.Document.GetFieldValue(KeyStore.PanX, NumberField, Number(0)) + COLLECTION_BORDER_WIDTH * ss;
@@ -130,8 +130,8 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         for (const key of this.layoutKeys) {
             bindings[key.Name + "Key"] = key;
         }
-        if (this.props.DocumentContentsView == undefined)
-            bindings.DocumentContentsView = this;
+        if (this.props.DocumentView == undefined)
+            bindings.DocumentView = this;
         for (const key of this.layoutFields) {
             let field = doc.GetField(key);
             if (field) {
