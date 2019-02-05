@@ -1,8 +1,10 @@
 // import * as ts from "typescript"
 import { Opt, Field } from "../fields/Field";
-import { Document } from "../fields/Document";
-import { NumberField } from "../fields/NumberField";
-import { KeyStore } from "../fields/Key";
+import { Document as DocumentImport } from "../fields/Document";
+import { NumberField as NumberFieldImport } from "../fields/NumberField";
+import { TextField as TextFieldImport } from "../fields/TextField";
+import { RichTextField as RichTextFieldImport } from "../fields/RichTextField";
+import { KeyStore as KeyStoreImport } from "../fields/Key";
 
 export interface ExecutableScript {
     (): any;
@@ -16,9 +18,12 @@ function ExecScript(script: string, diagnostics: Opt<any[]>): ExecutableScript {
     let func: () => Opt<Field>;
     if (compiled) {
         func = function (): Opt<Field> {
+            let KeyStore = KeyStoreImport;
+            let Document = DocumentImport;
+            let NumberField = NumberFieldImport;
+            let TextField = TextFieldImport;
             let window = undefined;
             let document = undefined;
-            let KS = KeyStore;
             let retVal = eval(script);
 
             return retVal;
