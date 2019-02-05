@@ -5,7 +5,7 @@ import { keymap } from "prosemirror-keymap";
 import { schema } from "prosemirror-schema-basic";
 import { EditorState, Transaction } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
-import { Opt } from "../../fields/Field";
+import { Opt, WAITING } from "../../fields/Field";
 import { SelectionManager } from "../../util/SelectionManager";
 import "./FormattedTextBox.scss";
 import React = require("react")
@@ -46,7 +46,7 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
     }
 
     dispatchTransaction = (tx: Transaction) => {
-        if (this._editorView) {
+        if (this._editorView && this._editorView != WAITING) {
             const state = this._editorView.state.apply(tx);
             this._editorView.updateState(state);
             const { doc, fieldKey } = this.props;
@@ -67,7 +67,7 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
         };
 
         let field = doc.GetFieldT(fieldKey, RichTextField);
-        if (field) {
+        if (field && field != WAITING) {  // bcz: don't think this works
             state = EditorState.fromJSON(config, JSON.parse(field.Data));
         } else {
             state = EditorState.create(config);
@@ -81,19 +81,19 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
 
         this._reactionDisposer = reaction(() => {
             const field = this.props.doc.GetFieldT(this.props.fieldKey, RichTextField);
-            return field ? field.Data : undefined;
+            return field && field != WAITING ? field.Data : undefined;
         }, (field) => {
-            if (field && this._editorView) {
+            if (field && this._editorView && this._editorView != WAITING) {
                 this._editorView.updateState(EditorState.fromJSON(config, JSON.parse(field)));
             }
         })
     }
 
     componentWillUnmount() {
-        if (this._editorView) {
+        if (this._editorView && this._editorView != WAITING) {
             this._editorView.destroy();
         }
-        if (this._reactionDisposer) {
+        if (this._reactionDisposer && this._reactionDisposer != WAITING) {
             this._reactionDisposer();
         }
     }

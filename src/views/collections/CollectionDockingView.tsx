@@ -15,6 +15,7 @@ import * as GoldenLayout from "golden-layout";
 import * as ReactDOM from 'react-dom';
 import { DragManager } from "../../util/DragManager";
 import { CollectionViewBase, CollectionViewProps, COLLECTION_BORDER_WIDTH } from "./CollectionViewBase";
+import { WAITING } from "../../fields/Field";
 
 @observer
 export class CollectionDockingView extends CollectionViewBase {
@@ -69,6 +70,8 @@ export class CollectionDockingView extends CollectionViewBase {
 
     @action
     onResize = (event: any) => {
+        if (this.props.ContainingDocumentView == WAITING)
+            return;
         var cur = this.props.ContainingDocumentView!.MainContent.current;
 
         // bcz: since GoldenLayout isn't a React component itself, we need to notify it to resize when its document container's size has changed
@@ -217,7 +220,7 @@ export class CollectionDockingView extends CollectionViewBase {
                 CollectionDockingView.myLayout._maximizedStack = stack;
                 CollectionDockingView.myLayout._maxstack = stack.header.controlsContainer.find('.lm_maximise');
             }
-            stack.header.controlsContainer.find('.lm_popout').hide();
+            //stack.header.controlsContainer.find('.lm_popout').hide();
             stack.header.controlsContainer.find('.lm_close') //get the close icon
                 .off('click') //unbind the current click handler
                 .click(function () {
@@ -252,6 +255,8 @@ export class CollectionDockingView extends CollectionViewBase {
 
 
     render() {
+        if (this.props.ContainingDocumentView == WAITING)
+            return;
         const { CollectionFieldKey: fieldKey, DocumentForCollection: Document } = this.props;
         const value: Document[] = Document.GetFieldValue(fieldKey, ListField, []);
         // bcz: not sure why, but I need these to force the flexlayout to update when the collection size changes.

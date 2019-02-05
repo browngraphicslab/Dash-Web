@@ -10,7 +10,9 @@ export function Cast<T extends Field>(field: Opt<Field>, ctor: { new(): T }): Op
     return undefined;
 }
 
-export type Opt<T> = T | undefined;
+export type Waiting = "<Waiting>";
+export type Opt<T> = T | undefined | Waiting;
+export let WAITING: Waiting = "<Waiting>";
 
 export abstract class Field {
     //FieldUpdated: TypedEvent<Opt<FieldUpdatedArgs>> = new TypedEvent<Opt<FieldUpdatedArgs>>();

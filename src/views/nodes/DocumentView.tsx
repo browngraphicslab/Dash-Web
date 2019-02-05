@@ -1,7 +1,7 @@
 import { action, computed } from "mobx";
 import { observer } from "mobx-react";
 import { Document } from "../../fields/Document";
-import { Opt } from "../../fields/Field";
+import { Opt, WAITING } from "../../fields/Field";
 import { Key, KeyStore } from "../../fields/Key";
 import { ListField } from "../../fields/ListField";
 import { NumberField } from "../../fields/NumberField";
@@ -49,7 +49,8 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     //
     @computed
     public get ScalingToScreenSpace(): number {
-        if (this.props.ContainingCollectionView != undefined && this.props.ContainingCollectionView.props.ContainingDocumentView != undefined) {
+        if (this.props.ContainingCollectionView != undefined && this.props.ContainingCollectionView != WAITING &&
+            this.props.ContainingCollectionView.props.ContainingDocumentView != undefined && this.props.ContainingCollectionView.props.ContainingDocumentView != WAITING) {
             let ss = this.props.ContainingCollectionView.props.DocumentForCollection.GetFieldValue(KeyStore.Scale, NumberField, Number(1));
             return this.props.ContainingCollectionView.props.ContainingDocumentView.ScalingToScreenSpace * ss;
         }
@@ -62,7 +63,8 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     public TransformToLocalPoint(screenX: number, screenY: number) {
         // if this collection view is nested within another collection view, then 
         // first transform the screen point into the parent collection's coordinate space.
-        let { LocalX: parentX, LocalY: parentY } = this.props.ContainingCollectionView != undefined && this.props.ContainingCollectionView.props.ContainingDocumentView != undefined ?
+        let { LocalX: parentX, LocalY: parentY } = this.props.ContainingCollectionView != undefined && this.props.ContainingCollectionView != WAITING &&
+            this.props.ContainingCollectionView.props.ContainingDocumentView != undefined && this.props.ContainingCollectionView.props.ContainingDocumentView != WAITING ?
             this.props.ContainingCollectionView.props.ContainingDocumentView.TransformToLocalPoint(screenX, screenY) :
             { LocalX: screenX, LocalY: screenY };
         let ContainerX: number = parentX - COLLECTION_BORDER_WIDTH;
@@ -111,8 +113,8 @@ export class DocumentView extends React.Component<DocumentViewProps> {
 
         // if this collection view is nested within another collection view, then 
         // first transform the local point into the parent collection's coordinate space.
-        let containingDocView = this.props.ContainingCollectionView != undefined ? this.props.ContainingCollectionView.props.ContainingDocumentView : undefined;
-        if (containingDocView != undefined) {
+        let containingDocView = this.props.ContainingCollectionView != undefined && this.props.ContainingCollectionView != WAITING ? this.props.ContainingCollectionView.props.ContainingDocumentView : undefined;
+        if (containingDocView != undefined && containingDocView != WAITING) {
             let ss = containingDocView.props.Document.GetFieldValue(KeyStore.Scale, NumberField, Number(1));
             let panxx = containingDocView.props.Document.GetFieldValue(KeyStore.PanX, NumberField, Number(0)) + COLLECTION_BORDER_WIDTH * ss;
             let panyy = containingDocView.props.Document.GetFieldValue(KeyStore.PanY, NumberField, Number(0)) + COLLECTION_BORDER_WIDTH * ss;
@@ -134,7 +136,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             bindings.DocumentView = this;
         for (const key of this.layoutFields) {
             let field = doc.GetField(key);
-            if (field) {
+            if (field && field != WAITING) {
                 bindings[key.Name] = field.GetValue();
             }
         }

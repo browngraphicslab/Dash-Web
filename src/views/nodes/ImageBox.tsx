@@ -7,6 +7,7 @@ import React = require("react")
 import { ImageField } from '../../fields/ImageField';
 import { FieldViewProps, FieldView } from './FieldView';
 import { CollectionFreeFormDocumentView } from './CollectionFreeFormDocumentView';
+import { WAITING } from '../../fields/Field';
 
 interface ImageBoxState {
     photoIndex: number,
@@ -62,7 +63,11 @@ export class ImageBox extends React.Component<FieldViewProps, ImageBoxState> {
         let field = this.props.doc.GetFieldT(this.props.fieldKey, ImageField);
         let path = "";
         if (field) {
-            path = field.Data.href;
+            if (field === WAITING) {
+                path = "https://image.flaticon.com/icons/svg/66/66163.svg"
+            } else {
+                path = field.Data.href;
+            }
         }
         const images = [path,];
         var lightbox = () => {

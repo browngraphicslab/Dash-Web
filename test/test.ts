@@ -6,7 +6,7 @@ import { Document } from "../src/fields/Document";
 import { autorun, reaction } from "mobx";
 import { DocumentReference } from "../src/fields/DocumentReference";
 import { TextField } from "../src/fields/TextField";
-import { Field } from "../src/fields/Field";
+import { Field, WAITING } from "../src/fields/Field";
 
 describe('Number Controller', () => {
     it('Should be constructable', () => {
@@ -152,9 +152,9 @@ describe("Reference", () => {
         let ran = false;
         reaction(() => {
             let field = doc2.GetFieldT(key, NumberField);
-            if (field) {
-                return field.Data;
-            }
+            // if (field && field != WAITING) {
+            //     return field.Data;
+            // }
             return undefined;
         }, (field) => {
             ran = true;

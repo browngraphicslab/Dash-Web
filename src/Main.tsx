@@ -51,7 +51,7 @@ document.addEventListener("pointerdown", action(function (e: PointerEvent) {
     schemaDocs[4].SetFieldValue(KS.Author, "Bob", TextField);
     schemaDocs.push(doc2);
     const doc7 = Documents.SchemaDocument(schemaDocs)
-    const docset = [doc1, doc2, doc3, doc7];
+    const docset = [doc3]; // [doc1, doc2, doc3, doc7];
     let doc4 = Documents.CollectionDocument(docset, {
         x: 0, y: 400, title: "mini collection"
     });
@@ -73,7 +73,7 @@ document.addEventListener("pointerdown", action(function (e: PointerEvent) {
     // mainNodes.Data.push(doc5);
     // mainNodes.Data.push(doc1);
     //mainNodes.Data.push(doc2);
-    mainNodes.Data.push(doc6);
+    //mainNodes.Data.push(doc6);
     mainContainer.SetField(KeyStore.Data, mainNodes);
 }
 //);
