@@ -18,12 +18,8 @@ function ExecScript(script: string, diagnostics: Opt<any[]>): ExecutableScript {
         func = function (): Opt<Field> {
             let window = undefined;
             let document = undefined;
-            let scope = {
-                Document,
-                NumberField,
-                KeyStore
-            }
-            let retVal = function () { return eval(script); }.call(scope);
+            let KS = KeyStore;
+            let retVal = eval(script);
 
             return retVal;
         };
