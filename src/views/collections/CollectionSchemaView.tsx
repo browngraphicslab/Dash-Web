@@ -74,9 +74,7 @@ export class CollectionSchemaView extends CollectionViewBase {
             [KS.Title, KS.Data, KS.Author])
         let content;
         if (this.selectedIndex != -1) {
-            content = (<DocumentView Document={children[this.selectedIndex]}
-                DocumentView={undefined}
-                ContainingCollectionView={this} />)
+            content = (<DocumentView Document={children[this.selectedIndex]} DocumentView={undefined} ContainingCollectionView={this} />)
         } else {
             content = <div />
         }

@@ -19,8 +19,8 @@ const JsxParser = require('react-jsx-parser').default;//TODO Why does this need 
 
 export interface DocumentViewProps {
     Document: Document;
+    DocumentView: Opt<DocumentView>  // needed only to set ContainingDocumentView on CollectionViewProps when invoked from JsxParser -- is there a better way?
     ContainingCollectionView: Opt<CollectionViewBase>;
-    DocumentView: Opt<DocumentView>
 }
 @observer
 export class DocumentView extends React.Component<DocumentViewProps> {
@@ -49,9 +49,9 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     //
     @computed
     public get ScalingToScreenSpace(): number {
-        if (this.props.ContainingCollectionView != undefined && this.props.ContainingCollectionView.props.DocumentViewForCollection != undefined) {
+        if (this.props.ContainingCollectionView != undefined && this.props.ContainingCollectionView.props.ContainingDocumentView != undefined) {
             let ss = this.props.ContainingCollectionView.props.DocumentForCollection.GetFieldValue(KeyStore.Scale, NumberField, Number(1));
-            return this.props.ContainingCollectionView.props.DocumentViewForCollection.ScalingToScreenSpace * ss;
+            return this.props.ContainingCollectionView.props.ContainingDocumentView.ScalingToScreenSpace * ss;
         }
         return 1;
     }
@@ -62,8 +62,8 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     public TransformToLocalPoint(screenX: number, screenY: number) {
         // if this collection view is nested within another collection view, then 
         // first transform the screen point into the parent collection's coordinate space.
-        let { LocalX: parentX, LocalY: parentY } = this.props.ContainingCollectionView != undefined && this.props.ContainingCollectionView.props.DocumentViewForCollection != undefined ?
-            this.props.ContainingCollectionView.props.DocumentViewForCollection.TransformToLocalPoint(screenX, screenY) :
+        let { LocalX: parentX, LocalY: parentY } = this.props.ContainingCollectionView != undefined && this.props.ContainingCollectionView.props.ContainingDocumentView != undefined ?
+            this.props.ContainingCollectionView.props.ContainingDocumentView.TransformToLocalPoint(screenX, screenY) :
             { LocalX: screenX, LocalY: screenY };
         let ContainerX: number = parentX - COLLECTION_BORDER_WIDTH;
         let ContainerY: number = parentY - COLLECTION_BORDER_WIDTH;
@@ -111,7 +111,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
 
         // if this collection view is nested within another collection view, then 
         // first transform the local point into the parent collection's coordinate space.
-        let containingDocView = this.props.ContainingCollectionView != undefined ? this.props.ContainingCollectionView.props.DocumentViewForCollection : undefined;
+        let containingDocView = this.props.ContainingCollectionView != undefined ? this.props.ContainingCollectionView.props.ContainingDocumentView : undefined;
         if (containingDocView != undefined) {
             let ss = containingDocView.props.Document.GetFieldValue(KeyStore.Scale, NumberField, Number(1));
             let panxx = containingDocView.props.Document.GetFieldValue(KeyStore.PanX, NumberField, Number(0)) + COLLECTION_BORDER_WIDTH * ss;
@@ -130,8 +130,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         for (const key of this.layoutKeys) {
             bindings[key.Name + "Key"] = key;
         }
-        if (this.props.DocumentView == undefined)
-            bindings.DocumentView = this;
+        bindings.DocumentView = this;
         for (const key of this.layoutFields) {
             let field = doc.GetField(key);
             if (field) {
