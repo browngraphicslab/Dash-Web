@@ -3,7 +3,7 @@ import { Key, KeyStore } from "../../fields/Key";
 import React = require("react");
 import { action, observable, computed } from "mobx";
 import { Document } from "../../fields/Document";
-import { DocumentView } from "../nodes/DocumentView";
+import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
 import { ListField } from "../../fields/ListField";
 import { NumberField } from "../../fields/NumberField";
 import { SSL_OP_SINGLE_DH_USE } from "constants";
@@ -12,10 +12,11 @@ import { DragManager } from "../../util/DragManager";
 import "./CollectionFreeFormView.scss";
 import { Utils } from "../../Utils";
 import { CollectionViewBase, CollectionViewProps, COLLECTION_BORDER_WIDTH } from "./CollectionViewBase";
+import { SelectionManager } from "../../util/SelectionManager";
 
 @observer
 export class CollectionFreeFormView extends CollectionViewBase {
-    public static LayoutString() { return '<CollectionFreeFormView DocumentForCollection={Document} CollectionFieldKey={DataKey} DocumentContentsContainingCollection={ContainingDocumentContentsView}/>'; }
+    public static LayoutString() { return CollectionViewBase.LayoutString("CollectionFreeFormView"); }
     private _containerRef = React.createRef<HTMLDivElement>();
     private _canvasRef = React.createRef<HTMLDivElement>();
     private _nodeContainerRef = React.createRef<HTMLDivElement>();
@@ -29,7 +30,8 @@ export class CollectionFreeFormView extends CollectionViewBase {
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
         const doc = de.data["document"];
-        if (doc instanceof DocumentView) {
+        var me = this;
+        if (doc instanceof CollectionFreeFormDocumentView) {
             if (doc.props.ContainingCollectionView && doc.props.ContainingCollectionView !== this) {
                 doc.props.ContainingCollectionView.removeDocument(doc.props.Document);
                 this.addDocument(doc.props.Document);
@@ -37,14 +39,14 @@ export class CollectionFreeFormView extends CollectionViewBase {
             const xOffset = de.data["xOffset"] as number || 0;
             const yOffset = de.data["yOffset"] as number || 0;
             const { scale, translateX, translateY } = Utils.GetScreenTransform(this._canvasRef.current!);
-            let sscale = this.props.DocumentContentsContainingCollection!.props.Document.GetFieldValue(KeyStore.Scale, NumberField, Number(1))
+            let sscale = this.props.DocumentContentsOfCollection!.props.Document.GetFieldValue(KeyStore.Scale, NumberField, Number(1))
             const screenX = de.x - xOffset;
             const screenY = de.y - yOffset;
             const docX = (screenX - translateX) / sscale / scale;
             const docY = (screenY - translateY) / sscale / scale;
             doc.x = docX;
             doc.y = docY;
-            //this.bringToFront(doc);
+            this.bringToFront(doc);
         }
         e.stopPropagation();
     }
@@ -59,9 +61,14 @@ export class CollectionFreeFormView extends CollectionViewBase {
         }
     }
 
+    downactive: boolean = false;
     @action
     onPointerDown = (e: React.PointerEvent): void => {
-        if (e.button === 2 && this.active) {
+        var me = this;
+        me.downactive = this.active;
+        var title = this.props.DocumentForCollection.Title;
+        if ((e.button === 2 && this.active) ||
+            !e.defaultPrevented) {
             document.removeEventListener("pointermove", this.onPointerMove);
             document.addEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
@@ -76,28 +83,32 @@ export class CollectionFreeFormView extends CollectionViewBase {
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
         e.stopPropagation();
+        SelectionManager.DeselectAll();
     }
 
     @action
     onPointerMove = (e: PointerEvent): void => {
-        if (!e.cancelBubble) {
+        var me = this;
+        var act = me.active;
+        var title = me.props.DocumentForCollection.Title;
+        if (!e.cancelBubble && this.active) {
             e.preventDefault();
             e.stopPropagation();
-            let currScale: number = this.props.DocumentContentsContainingCollection!.ScalingToScreenSpace;
+            let currScale: number = this.props.DocumentContentsOfCollection!.ScalingToScreenSpace;
             let x = this.props.DocumentForCollection.GetFieldValue(KeyStore.PanX, NumberField, Number(0));
             let y = this.props.DocumentForCollection.GetFieldValue(KeyStore.PanY, NumberField, Number(0));
             this.props.DocumentForCollection.SetFieldValue(KeyStore.PanX, x + (e.pageX - this._lastX) / currScale, NumberField);
             this.props.DocumentForCollection.SetFieldValue(KeyStore.PanY, y + (e.pageY - this._lastY) / currScale, NumberField);
-            this._lastX = e.pageX;
-            this._lastY = e.pageY;
         }
+        this._lastX = e.pageX;
+        this._lastY = e.pageY;
     }
 
     @action
     onPointerWheel = (e: React.WheelEvent): void => {
         e.stopPropagation();
 
-        let { LocalX, Ss, Panxx, Xx, LocalY, Panyy, Yy, ContainerX, ContainerY } = this.props.DocumentContentsContainingCollection!.TransformToLocalPoint(e.pageX, e.pageY);
+        let { LocalX, Ss, Panxx, Xx, LocalY, Panyy, Yy, ContainerX, ContainerY } = this.props.DocumentContentsOfCollection!.TransformToLocalPoint(e.pageX, e.pageY);
 
         var deltaScale = (1 - (e.deltaY / 1000)) * Ss;
 
@@ -148,7 +159,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
     }
 
     @action
-    bringToFront(doc: DocumentView) {
+    bringToFront(doc: CollectionFreeFormDocumentView) {
         const { CollectionFieldKey: fieldKey, DocumentForCollection: Document } = this.props;
 
         const value: Document[] = Document.GetListField<Document>(fieldKey, []);
@@ -187,7 +198,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
                         <div className="node-container" ref={this._nodeContainerRef}>
                             {value.map(doc => {
-                                return (<DocumentView key={doc.Id} ContainingCollectionView={this} Document={doc} ContainingDocumentContentsView={this.props.DocumentContentsContainingCollection} />);
+                                return (<CollectionFreeFormDocumentView key={doc.Id} ContainingCollectionView={this} Document={doc} DocumentContentsView={this.props.DocumentContentsOfCollection} />);
                             })}
                         </div>
                     </div>

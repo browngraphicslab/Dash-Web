@@ -4,7 +4,7 @@ import React = require("react");
 import FlexLayout from "flexlayout-react";
 import { action, observable, computed } from "mobx";
 import { Document } from "../../fields/Document";
-import { DocumentView, DocumentContentsView } from "../nodes/DocumentView";
+import { DocumentView } from "../nodes/DocumentView";
 import { ListField } from "../../fields/ListField";
 import { NumberField } from "../../fields/NumberField";
 import { SSL_OP_SINGLE_DH_USE } from "constants";
@@ -20,7 +20,7 @@ import { CollectionViewBase, CollectionViewProps, COLLECTION_BORDER_WIDTH } from
 export class CollectionDockingView extends CollectionViewBase {
 
     private static UseGoldenLayout = true;
-    public static LayoutString() { return '<CollectionDockingView DocumentForCollection={Document} CollectionFieldKey={DataKey} DocumentContentsContainingCollection={ContainingDocumentContentsView}/>'; }
+    public static LayoutString() { return CollectionViewBase.LayoutString("CollectionDockingView"); }
     private _containerRef = React.createRef<HTMLDivElement>();
     @computed
     private get modelForFlexLayout() {
@@ -69,7 +69,7 @@ export class CollectionDockingView extends CollectionViewBase {
 
     @action
     onResize = (event: any) => {
-        var cur = this.props.DocumentContentsContainingCollection!.MainContent.current;
+        var cur = this.props.DocumentContentsOfCollection!.MainContent.current;
 
         // bcz: since GoldenLayout isn't a React component itself, we need to notify it to resize when its document container's size has changed
         CollectionDockingView.myLayout.updateSize(cur!.getBoundingClientRect().width, cur!.getBoundingClientRect().height);
@@ -96,7 +96,7 @@ export class CollectionDockingView extends CollectionViewBase {
         const value: Document[] = Document.GetFieldValue(fieldKey, ListField, []);
         for (var i: number = 0; i < value.length; i++) {
             if (value[i].Id === component) {
-                return (<DocumentView key={value[i].Id} ContainingCollectionView={this} Document={value[i]} ContainingDocumentContentsView={this.props.DocumentContentsContainingCollection} />);
+                return (<DocumentView key={value[i].Id} ContainingCollectionView={this} Document={value[i]} DocumentContentsView={undefined} />);
             }
         }
         if (component === "text") {
@@ -237,7 +237,7 @@ export class CollectionDockingView extends CollectionViewBase {
             container.getElement().html("<div id='" + containingDiv + "'></div>");
             setTimeout(function () {
                 ReactDOM.render((
-                    <DocumentContentsView key={state.doc.Id} Document={state.doc} ContainingCollectionView={me} ContainingDocumentContentsView={me.props.DocumentContentsContainingCollection} /> // bcz: need to fill in containingdoccontnents with value of DocumentContents when created...
+                    <DocumentView key={state.doc.Id} Document={state.doc} ContainingCollectionView={me} DocumentContentsView={undefined} /> // bcz: need to fill in DocumentContentsView with value of DocumentContents when created...
                 ),
                     document.getElementById(containingDiv)
                 );
@@ -255,7 +255,7 @@ export class CollectionDockingView extends CollectionViewBase {
         const { CollectionFieldKey: fieldKey, DocumentForCollection: Document } = this.props;
         const value: Document[] = Document.GetFieldValue(fieldKey, ListField, []);
         // bcz: not sure why, but I need these to force the flexlayout to update when the collection size changes.
-        var s = this.props.DocumentContentsContainingCollection != undefined ? this.props.DocumentContentsContainingCollection!.ScalingToScreenSpace : 1;
+        var s = this.props.DocumentContentsOfCollection != undefined ? this.props.DocumentContentsOfCollection!.ScalingToScreenSpace : 1;
         var w = Document.GetFieldValue(KeyStore.Width, NumberField, Number(0)) / s;
         var h = Document.GetFieldValue(KeyStore.Height, NumberField, Number(0)) / s;
 

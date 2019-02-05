@@ -1,4 +1,3 @@
-import { DocumentContentsView } from "../nodes/DocumentView";
 import React = require("react")
 import ReactTable, { ReactTableDefaults, CellInfo, ComponentPropsGetterRC, ComponentPropsGetterR } from "react-table";
 import { observer } from "mobx-react";
@@ -11,22 +10,23 @@ import SplitPane from "react-split-pane"
 import "./CollectionSchemaView.scss"
 import { ScrollBox } from "../../util/ScrollBox";
 import { CollectionViewBase } from "./CollectionViewBase";
+import { DocumentView } from "../nodes/DocumentView";
 
 @observer
 export class CollectionSchemaView extends CollectionViewBase {
-    public static LayoutString() { return '<CollectionSchemaView DocumentForCollection={Document} CollectionFieldKey={DataKey} ContainingDocumentView={ContainingDocumentContentsView}/>'; }
+    public static LayoutString() { return CollectionViewBase.LayoutString("CollectionSchemaView"); }
 
     @observable
     selectedIndex = 0;
 
     renderCell = (rowProps: CellInfo) => {
-        if (!this.props.DocumentContentsContainingCollection) {
+        if (!this.props.DocumentContentsOfCollection) {
             return <div></div>
         }
         let props: FieldViewProps = {
             doc: rowProps.value[0],
             fieldKey: rowProps.value[1],
-            documentViewContainer: this.props.DocumentContentsContainingCollection
+            documentViewContainer: this.props.DocumentContentsOfCollection
         }
         return (
             <FieldView {...props} />
@@ -77,8 +77,8 @@ export class CollectionSchemaView extends CollectionViewBase {
             [KS.Title, KS.Data, KS.Author])
         let content;
         if (this.selectedIndex != -1) {
-            content = (<DocumentContentsView Document={children[this.selectedIndex]}
-                ContainingDocumentContentsView={this.props.DocumentContentsContainingCollection}
+            content = (<DocumentView Document={children[this.selectedIndex]}
+                DocumentContentsView={this.props.DocumentContentsOfCollection}
                 ContainingCollectionView={this} />)
         } else {
             content = <div />

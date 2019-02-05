@@ -1,5 +1,4 @@
 import React = require("react")
-import { DocumentView, DocumentContentsView } from "./DocumentView";
 import { Document } from "../../fields/Document";
 import { observer } from "mobx-react";
 import { computed } from "mobx";
@@ -11,6 +10,7 @@ import { FieldTextBox } from "./FieldTextBox";
 import { ImageField } from "../../fields/ImageField";
 import { ImageBox } from "./ImageBox";
 import { Key } from "../../fields/Key";
+import { DocumentView } from "./DocumentView";
 
 //
 // these properties get assigned through the render() method of the DocumentView when it creates this node.
@@ -20,7 +20,7 @@ import { Key } from "../../fields/Key";
 export interface FieldViewProps {
     fieldKey: Key;
     doc: Document;
-    documentViewContainer: DocumentContentsView
+    documentViewContainer: DocumentView
 }
 
 @observer
