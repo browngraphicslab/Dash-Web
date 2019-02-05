@@ -5,23 +5,21 @@ import { keymap } from "prosemirror-keymap";
 import { schema } from "prosemirror-schema-basic";
 import { EditorState, Transaction } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
-import { Document } from "../../fields/Document";
 import { Opt } from "../../fields/Field";
-import { Key } from "../../fields/Key";
 import { SelectionManager } from "../../util/SelectionManager";
-import "./FieldTextBox.scss";
+import "./FormattedTextBox.scss";
 import React = require("react")
 import { RichTextField } from "../../fields/RichTextField";
-import { FieldViewProps } from "./FieldView";
+import { FieldViewProps, FieldView } from "./FieldView";
 import { CollectionFreeFormDocumentView } from "./CollectionFreeFormDocumentView";
 
 
-// FieldTextBox: Displays an editable plain text node that maps to a specified Key of a Document
+// FormattedTextBox: Displays an editable plain text node that maps to a specified Key of a Document
 //
-//  HTML Markup:  <FieldTextBox Doc={Document's ID} FieldKey={Key's name + "Key"}
+//  HTML Markup:  <FormattedTextBox Doc={Document's ID} FieldKey={Key's name + "Key"}
 // 
 //  In Code, the node's HTML is specified in the document's parameterized structure as:
-//        document.SetField(KeyStore.Layout,  "<FieldTextBox doc={doc} fieldKey={<KEYNAME>Key} />");
+//        document.SetField(KeyStore.Layout,  "<FormattedTextBox doc={doc} fieldKey={<KEYNAME>Key} />");
 //  and the node's binding to the specified document KEYNAME as:
 //        document.SetField(KeyStore.LayoutKeys, new ListField([KeyStore.<KEYNAME>]));
 //  The Jsx parser at run time will bind:
@@ -32,9 +30,9 @@ import { CollectionFreeFormDocumentView } from "./CollectionFreeFormDocumentView
 //  specified Key and assigns it to an HTML input node.  When changes are made tot his node, 
 //  this will edit the document and assign the new value to that field.
 //
-export class FieldTextBox extends React.Component<FieldViewProps> {
+export class FormattedTextBox extends React.Component<FieldViewProps> {
 
-    public static LayoutString() { return "<FieldTextBox doc={Document} documentViewContainer={DocumentContentsView} fieldKey={DataKey} />"; }
+    public static LayoutString() { return FieldView.LayoutString("FormattedTextBox"); }
     private _ref: React.RefObject<HTMLDivElement>;
     private _editorView: Opt<EditorView>;
     private _reactionDisposer: Opt<IReactionDisposer>;
@@ -116,7 +114,7 @@ export class FieldTextBox extends React.Component<FieldViewProps> {
         }
     }
     render() {
-        return (<div className="fieldTextBox-cont"
+        return (<div className="formattedTextBox-cont"
             style={{
                 color: "initial",
                 whiteSpace: "initial"

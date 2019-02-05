@@ -39,7 +39,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
             const xOffset = de.data["xOffset"] as number || 0;
             const yOffset = de.data["yOffset"] as number || 0;
             const { scale, translateX, translateY } = Utils.GetScreenTransform(this._canvasRef.current!);
-            let sscale = this.props.DocumentContentsOfCollection!.props.Document.GetFieldValue(KeyStore.Scale, NumberField, Number(1))
+            let sscale = this.props.DocumentViewForCollection!.props.Document.GetFieldValue(KeyStore.Scale, NumberField, Number(1))
             const screenX = de.x - xOffset;
             const screenY = de.y - yOffset;
             const docX = (screenX - translateX) / sscale / scale;
@@ -94,7 +94,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
         if (!e.cancelBubble && this.active) {
             e.preventDefault();
             e.stopPropagation();
-            let currScale: number = this.props.DocumentContentsOfCollection!.ScalingToScreenSpace;
+            let currScale: number = this.props.DocumentViewForCollection!.ScalingToScreenSpace;
             let x = this.props.DocumentForCollection.GetFieldValue(KeyStore.PanX, NumberField, Number(0));
             let y = this.props.DocumentForCollection.GetFieldValue(KeyStore.PanY, NumberField, Number(0));
             this.props.DocumentForCollection.SetFieldValue(KeyStore.PanX, x + (e.pageX - this._lastX) / currScale, NumberField);
@@ -108,7 +108,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
     onPointerWheel = (e: React.WheelEvent): void => {
         e.stopPropagation();
 
-        let { LocalX, Ss, Panxx, Xx, LocalY, Panyy, Yy, ContainerX, ContainerY } = this.props.DocumentContentsOfCollection!.TransformToLocalPoint(e.pageX, e.pageY);
+        let { LocalX, Ss, Panxx, Xx, LocalY, Panyy, Yy, ContainerX, ContainerY } = this.props.DocumentViewForCollection!.TransformToLocalPoint(e.pageX, e.pageY);
 
         var deltaScale = (1 - (e.deltaY / 1000)) * Ss;
 
@@ -198,7 +198,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
                         <div className="node-container" ref={this._nodeContainerRef}>
                             {value.map(doc => {
-                                return (<CollectionFreeFormDocumentView key={doc.Id} ContainingCollectionView={this} Document={doc} DocumentContentsView={this.props.DocumentContentsOfCollection} />);
+                                return (<CollectionFreeFormDocumentView key={doc.Id} ContainingCollectionView={this} Document={doc} DocumentContentsView={this.props.DocumentViewForCollection} />);
                             })}
                         </div>
                     </div>

@@ -20,13 +20,13 @@ export class CollectionSchemaView extends CollectionViewBase {
     selectedIndex = 0;
 
     renderCell = (rowProps: CellInfo) => {
-        if (!this.props.DocumentContentsOfCollection) {
+        if (!this.props.DocumentViewForCollection) {
             return <div></div>
         }
         let props: FieldViewProps = {
             doc: rowProps.value[0],
             fieldKey: rowProps.value[1],
-            documentViewContainer: this.props.DocumentContentsOfCollection
+            documentViewContainer: this.props.DocumentViewForCollection
         }
         return (
             <FieldView {...props} />
@@ -78,7 +78,7 @@ export class CollectionSchemaView extends CollectionViewBase {
         let content;
         if (this.selectedIndex != -1) {
             content = (<DocumentView Document={children[this.selectedIndex]}
-                DocumentContentsView={this.props.DocumentContentsOfCollection}
+                DocumentContentsView={this.props.DocumentViewForCollection}
                 ContainingCollectionView={this} />)
         } else {
             content = <div />

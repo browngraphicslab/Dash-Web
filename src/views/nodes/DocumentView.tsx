@@ -11,7 +11,7 @@ import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { CollectionFreeFormView } from "../collections/CollectionFreeFormView";
 import { CollectionSchemaView } from "../collections/CollectionSchemaView";
 import { CollectionViewBase, COLLECTION_BORDER_WIDTH } from "../collections/CollectionViewBase";
-import { FieldTextBox } from "../nodes/FieldTextBox";
+import { FormattedTextBox } from "../nodes/FormattedTextBox";
 import { ImageBox } from "../nodes/ImageBox";
 import "./NodeView.scss";
 import React = require("react");
@@ -49,9 +49,9 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     //
     @computed
     public get ScalingToScreenSpace(): number {
-        if (this.props.ContainingCollectionView != undefined && this.props.ContainingCollectionView.props.DocumentContentsOfCollection != undefined) {
+        if (this.props.ContainingCollectionView != undefined && this.props.ContainingCollectionView.props.DocumentViewForCollection != undefined) {
             let ss = this.props.ContainingCollectionView.props.DocumentForCollection.GetFieldValue(KeyStore.Scale, NumberField, Number(1));
-            return this.props.ContainingCollectionView.props.DocumentContentsOfCollection.ScalingToScreenSpace * ss;
+            return this.props.ContainingCollectionView.props.DocumentViewForCollection.ScalingToScreenSpace * ss;
         }
         return 1;
     }
@@ -62,8 +62,8 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     public TransformToLocalPoint(screenX: number, screenY: number) {
         // if this collection view is nested within another collection view, then 
         // first transform the screen point into the parent collection's coordinate space.
-        let { LocalX: parentX, LocalY: parentY } = this.props.ContainingCollectionView != undefined && this.props.ContainingCollectionView.props.DocumentContentsOfCollection != undefined ?
-            this.props.ContainingCollectionView.props.DocumentContentsOfCollection.TransformToLocalPoint(screenX, screenY) :
+        let { LocalX: parentX, LocalY: parentY } = this.props.ContainingCollectionView != undefined && this.props.ContainingCollectionView.props.DocumentViewForCollection != undefined ?
+            this.props.ContainingCollectionView.props.DocumentViewForCollection.TransformToLocalPoint(screenX, screenY) :
             { LocalX: screenX, LocalY: screenY };
         let ContainerX: number = parentX - COLLECTION_BORDER_WIDTH;
         let ContainerY: number = parentY - COLLECTION_BORDER_WIDTH;
@@ -111,7 +111,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
 
         // if this collection view is nested within another collection view, then 
         // first transform the local point into the parent collection's coordinate space.
-        let containingDocView = this.props.ContainingCollectionView != undefined ? this.props.ContainingCollectionView.props.DocumentContentsOfCollection : undefined;//.ContainingDocumentContentsView;
+        let containingDocView = this.props.ContainingCollectionView != undefined ? this.props.ContainingCollectionView.props.DocumentViewForCollection : undefined;//.ContainingDocumentContentsView;
         if (containingDocView != undefined) {
             let ss = containingDocView.props.Document.GetFieldValue(KeyStore.Scale, NumberField, Number(1));
             let panxx = containingDocView.props.Document.GetFieldValue(KeyStore.PanX, NumberField, Number(0)) + COLLECTION_BORDER_WIDTH * ss;
@@ -144,7 +144,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
                 height: "100%",
             }}>
                 <JsxParser
-                    components={{ FieldTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView }}
+                    components={{ FormattedTextBox: FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView }}
                     bindings={bindings}
                     jsx={this.layout}
                     showWarnings={true}

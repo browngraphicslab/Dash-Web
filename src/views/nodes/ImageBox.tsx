@@ -5,7 +5,7 @@ import { SelectionManager } from "../../util/SelectionManager";
 import "./ImageBox.scss";
 import React = require("react")
 import { ImageField } from '../../fields/ImageField';
-import { FieldViewProps } from './FieldView';
+import { FieldViewProps, FieldView } from './FieldView';
 import { CollectionFreeFormDocumentView } from './CollectionFreeFormDocumentView';
 
 interface ImageBoxState {
@@ -15,7 +15,7 @@ interface ImageBoxState {
 
 export class ImageBox extends React.Component<FieldViewProps, ImageBoxState> {
 
-    public static LayoutString() { return "<ImageBox doc={Document} documentViewContainer={DocumentContentsView} fieldKey={DataKey} />"; }
+    public static LayoutString() { return FieldView.LayoutString("ImageBox"); }
     private _ref: React.RefObject<HTMLDivElement>;
     private _downX: number = 0;
     private _downY: number = 0;
