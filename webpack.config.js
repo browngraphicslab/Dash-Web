@@ -7,6 +7,10 @@ module.exports = {
   mode: 'development',
   entry: "./src/Main.tsx",
   devtool: "source-map",
+  node: {
+    fs: 'empty',
+    module: 'empty'
+  },
   output: {
     filename: "./bundle.js",
     path: path.resolve(__dirname, "build")
