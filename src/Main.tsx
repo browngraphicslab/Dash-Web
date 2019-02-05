@@ -66,14 +66,14 @@ document.addEventListener("pointerdown", action(function (e: PointerEvent) {
     if (!mainNodes) {
         mainNodes = new ListField<Document>();
     }
-    mainNodes.Data.push(doc1);
+    // mainNodes.Data.push(doc6);
     // mainNodes.Data.push(doc2);
     mainNodes.Data.push(doc4);
     // mainNodes.Data.push(doc3);
     // mainNodes.Data.push(doc5);
     // mainNodes.Data.push(doc1);
     //mainNodes.Data.push(doc2);
-    mainNodes.Data.push(doc7);
+    mainNodes.Data.push(doc6);
     mainContainer.SetField(KeyStore.Data, mainNodes);
 }
 //);

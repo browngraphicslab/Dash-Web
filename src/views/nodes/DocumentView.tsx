@@ -130,7 +130,8 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         for (const key of this.layoutKeys) {
             bindings[key.Name + "Key"] = key;
         }
-        bindings.DocumentView = this;
+        if (bindings.DocumentView === undefined)
+            bindings.DocumentView = this;
         for (const key of this.layoutFields) {
             let field = doc.GetField(key);
             if (field) {
@@ -138,10 +139,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             }
         }
         return (
-            <div className="node" ref={this._mainCont} style={{
-                width: "100%",
-                height: "100%",
-            }}>
+            <div className="node" ref={this._mainCont} style={{ width: "100%", height: "100%", }}>
                 <JsxParser
                     components={{ FormattedTextBox: FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView }}
                     bindings={bindings}
