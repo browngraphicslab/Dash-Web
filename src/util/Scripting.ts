@@ -22,6 +22,7 @@ function ExecScript(script: string, diagnostics: Opt<any[]>): ExecutableScript {
             let Document = DocumentImport;
             let NumberField = NumberFieldImport;
             let TextField = TextFieldImport;
+            let RichTextField = RichTextFieldImport;
             let window = undefined;
             let document = undefined;
             let retVal = eval(script);

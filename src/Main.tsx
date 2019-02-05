@@ -46,7 +46,6 @@ doc2.SetField(KS.Y, new NumberField(20));
 let doc3 = Documents.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", {
     x: 450, y: 500, title: "cat 1"
 });
-console.log("script: " + CompileScript("(function(doc: Document): any {return doc.GetNumberField(KeyStore.X, 0)})")()(doc3));
 const schemaDocs = Array.from(Array(5).keys()).map(v => Documents.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", {
     x: 50 + 100 * v, y: 50, width: 100, height: 100, title: "cat" + v
 }));
@@ -81,19 +80,10 @@ mainContainer.SetField(KeyStore.Data, mainNodes);
 //}
 //);
 
-function keydown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key == "Enter" && e.ctrlKey) {
-        console.log(CompileScript(e.currentTarget.value)()([doc1, doc2, doc3, doc4, doc5]));
-        e.preventDefault();
-        e.stopPropagation();
-    }
-}
-
 ReactDOM.render((
     <div style={{ position: "absolute", width: "100%", height: "100%" }}>
         <DocumentView Document={mainContainer} ContainingCollectionView={undefined} ContainingDocumentView={undefined} />
         <DocumentDecorations />
         <ContextMenu />
-        <textarea onKeyDown={keydown} style={{ position: "absolute", left: "0px", top: "0px" }} />
     </div>),
     document.getElementById('root'));
