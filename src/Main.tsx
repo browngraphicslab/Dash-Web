@@ -12,6 +12,8 @@ import { TextField } from './fields/TextField';
 import "./Main.scss";
 import { ContextMenu } from './views/ContextMenu';
 import { DocumentView } from './views/nodes/DocumentView';
+import { CompileScript } from './util/Scripting';
+
 
 configure({
     enforceActions: "observed"
@@ -76,6 +78,7 @@ document.addEventListener("pointerdown", action(function (e: PointerEvent) {
     mainNodes.Data.push(doc6);
     mainContainer.SetField(KeyStore.Data, mainNodes);
 }
+//}
 //);
 
 ReactDOM.render((

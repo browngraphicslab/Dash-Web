@@ -5,7 +5,6 @@
         "**/.hg": true,
         "**/CVS": true,
         "**/.DS_Store": true,
-        "**/node_modules": true
     },
     "editor.formatOnSave": true,
     "typescript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBrackets": false,
