@@ -207,7 +207,6 @@ export class CollectionFreeFormDocumentView extends DocumentView {
 
     render() {
         var freestyling = this.props.ContainingCollectionView instanceof CollectionFreeFormView;
-        console.log("CollectionFFDocView " + this.props.Document.Title);
         return (
             <div className="node" ref={this._mainCont} style={{
                 transform: freestyling ? this.transform : "",

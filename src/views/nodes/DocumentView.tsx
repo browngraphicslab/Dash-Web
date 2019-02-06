@@ -129,17 +129,15 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     render() {
         let bindings = { ...this.props } as any;
         for (const key of this.layoutKeys) {
-            //let val = this.props.Document.GetField(key); // bcz: ARGH!  Why do I need to call this here? (e.g., it's needed and used in ImageBox- shouldn't that trigger a re-render?)
-            bindings[key.Name + "Key"] = key;
+            bindings[key.Name + "Key"] = key;  // this maps string values of the form <keyname>Key to an actual key Kestore.keyname  e.g,   "DataKey" => KeyStore.Data
         }
         for (const key of this.layoutFields) {
             let field = this.props.Document.GetField(key);
             bindings[key.Name] = field && field != WAITING ? field.GetValue() : field;
         }
         if (bindings.DocumentView === undefined) {
-            bindings.DocumentView = this;
+            bindings.DocumentView = this; // set the DocumentView to this if it hasn't already been set by a sub-class during its render method.
         }
-        console.log("DocumentView Rendering " + this.props.Document.Title);
         return (
             <div className="node" ref={this._mainCont} style={{ width: "100%", height: "100%", }}>
                 <JsxParser

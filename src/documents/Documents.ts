@@ -117,9 +117,8 @@ export namespace Documents {
             imageProto.SetFieldValue(KeyStore.Height, 300, NumberField);
             imageProto.SetFieldValue(KeyStore.Layout, ImageBox.LayoutString(), TextField);
             // imageProto.SetField(KeyStore.Layout, new TextField('<div style={"background-image: " + {Data}} />'));
-            // bcz: use LayoutKeys or LayoutFields?
             imageProto.SetFieldValue(KeyStore.LayoutKeys, [KeyStore.Data], ListField);
-            //imageProto.SetFieldValue(KeyStore.LayoutFields, [KeyStore.Data], ListField);
+            imageProto.SetFieldValue(KeyStore.Data, "", TextField); // bcz: just for testing purposes
         }
         return imageProto;
     }

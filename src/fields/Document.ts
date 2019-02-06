@@ -1,7 +1,7 @@
 import { Field, Cast, Opt, Waiting, WAITING } from "./Field"
 import { Key, KeyStore } from "./Key"
 import { NumberField } from "./NumberField";
-import { ObservableMap, computed, action, observable } from "mobx";
+import { ObservableMap, computed, action } from "mobx";
 import { TextField } from "./TextField";
 import { ListField } from "./ListField";
 
@@ -20,17 +20,16 @@ export class Document extends Field {
             this.fields.set(key, sfield);
     }
 
-    @observable
+    static times = 0;
     GetFieldFromServerDeferred(key: Key) {
         var me = this;
         setTimeout(function () {
             if (me) {
                 me.DeferredSetField(key);
             }
-        }, key == KeyStore.Data ? 5000 : key == KeyStore.X ? 2500 : 500)
+        }, key == KeyStore.Data ? (Document.times++ == 0 ? 5000 : 1000) : key == KeyStore.X ? 2500 : 500)
     }
 
-    @observable
     GetField(key: Key, ignoreProto: boolean = false): Opt<Field> {
         let field: Opt<Field> = WAITING;
         if (ignoreProto) {
@@ -55,7 +54,6 @@ export class Document extends Field {
         return field;
     }
 
-    @observable
     GetFieldT<T extends Field = Field>(key: Key, ctor: { new(...args: any[]): T }, ignoreProto: boolean = false): Opt<T> {
         var getfield = this.GetField(key, ignoreProto);
         if (getfield != WAITING) {
@@ -64,7 +62,6 @@ export class Document extends Field {
         return WAITING;
     }
 
-    @observable
     GetFieldOrCreate<T extends Field>(key: Key, ctor: { new(): T }, ignoreProto: boolean = false): T {
         const field = this.GetFieldT(key, ctor, ignoreProto);
         if (field && field != WAITING) {
@@ -75,24 +72,20 @@ export class Document extends Field {
         return newField;
     }
 
-    @observable
     GetFieldValue<T, U extends { Data: T }>(key: Key, ctor: { new(): U }, defaultVal: T): T {
         let val = this.GetField(key);
         let vval = (val && val instanceof ctor) ? val.Data : defaultVal;
         return vval;
     }
 
-    @observable
     GetNumberField(key: Key, defaultVal: number): number {
         return this.GetFieldValue(key, NumberField, defaultVal);
     }
 
-    @observable
     GetTextField(key: Key, defaultVal: string): string {
         return this.GetFieldValue(key, TextField, defaultVal);
     }
 
-    @observable
     GetListField<T extends Field>(key: Key, defaultVal: T[]): T[] {
         return this.GetFieldValue<T[], ListField<T>>(key, ListField, defaultVal)
     }
@@ -130,12 +123,10 @@ export class Document extends Field {
         // return false;
     }
 
-    @observable
     GetPrototype(): Opt<Document> {
         return this.GetFieldT(KeyStore.Prototype, Document, true);
     }
 
-    @observable
     GetAllPrototypes(): Document[] {
         let protos: Document[] = [];
         let doc: Opt<Document> = this;
