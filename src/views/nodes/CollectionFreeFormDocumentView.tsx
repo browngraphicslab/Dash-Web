@@ -207,8 +207,7 @@ export class CollectionFreeFormDocumentView extends DocumentView {
 
     render() {
         var freestyling = this.props.ContainingCollectionView instanceof CollectionFreeFormView;
-        let data = this.props.Document.GetFieldT(KeyStore.Data, ImageField);
-        console.log("CollectionFFDocView " + this.props.Document.Title + "<" + data + "> x=" + this.x);
+        console.log("CollectionFFDocView " + this.props.Document.Title);
         return (
             <div className="node" ref={this._mainCont} style={{
                 transform: freestyling ? this.transform : "",
@@ -220,7 +219,7 @@ export class CollectionFreeFormDocumentView extends DocumentView {
                 onContextMenu={this.onContextMenu}
                 onPointerDown={this.onPointerDown}>
 
-                <DocumentView {...this.props} DocumentView={this} Data={data} />
+                <DocumentView {...this.props} DocumentView={this} />
             </div>
         );
     }

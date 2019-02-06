@@ -21,7 +21,6 @@ export interface DocumentViewProps {
     Document: Document;
     DocumentView: Opt<DocumentView>  // needed only to set ContainingDocumentView on CollectionViewProps when invoked from JsxParser -- is there a better way?
     ContainingCollectionView: Opt<CollectionViewBase>;
-    Data: any;
 }
 @observer
 export class DocumentView extends React.Component<DocumentViewProps> {
@@ -128,19 +127,19 @@ export class DocumentView extends React.Component<DocumentViewProps> {
 
 
     render() {
-        let doc = this.props.Document;
         let bindings = { ...this.props } as any;
         for (const key of this.layoutKeys) {
+            //let val = this.props.Document.GetField(key); // bcz: ARGH!  Why do I need to call this here? (e.g., it's needed and used in ImageBox- shouldn't that trigger a re-render?)
             bindings[key.Name + "Key"] = key;
-            let val = this.props.Document.GetField(key);
         }
-        if (bindings.DocumentView === undefined)
-            bindings.DocumentView = this;
         for (const key of this.layoutFields) {
-            let field = doc.GetField(key);
+            let field = this.props.Document.GetField(key);
             bindings[key.Name] = field && field != WAITING ? field.GetValue() : field;
         }
-        console.log("DocumentView Rendering " + doc.Title + " data = " + this.props.Data);
+        if (bindings.DocumentView === undefined) {
+            bindings.DocumentView = this;
+        }
+        console.log("DocumentView Rendering " + this.props.Document.Title);
         return (
             <div className="node" ref={this._mainCont} style={{ width: "100%", height: "100%", }}>
                 <JsxParser

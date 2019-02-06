@@ -17,7 +17,7 @@ interface ImageBoxState {
 
 export class ImageBox extends React.Component<FieldViewProps, ImageBoxState> {
 
-    public static LayoutString() { return FieldView.LayoutString("ImageBox"); }
+    public static LayoutString() { return FieldView.LayoutString("ImageBox DataVal={Data} "); }
     private _ref: React.RefObject<HTMLDivElement>;
     private _downX: number = 0;
     private _downY: number = 0;
@@ -60,33 +60,41 @@ export class ImageBox extends React.Component<FieldViewProps, ImageBoxState> {
         e.stopPropagation();
     }
 
+    lightbox = (path: string) => {
+        const images = [path, "http://www.cs.brown.edu/~bcz/face.gif"];
+        const { photoIndex } = this.state;
+        if (this.state.isOpen && this.props.DocumentViewForField instanceof CollectionFreeFormDocumentView && SelectionManager.IsSelected(this.props.DocumentViewForField)) {
+            return (<Lightbox
+                mainSrc={images[photoIndex]}
+                nextSrc={images[(photoIndex + 1) % images.length]}
+                prevSrc={images[(photoIndex + images.length - 1) % images.length]}
+                onCloseRequest={() => this.setState({ isOpen: false })}
+                onMovePrevRequest={() =>
+                    this.setState({ photoIndex: (photoIndex + images.length - 1) % images.length, })
+                }
+                onMoveNextRequest={() =>
+                    this.setState({ photoIndex: (photoIndex + 1) % images.length, })
+                }
+            />)
+        }
+    }
+
     render() {
+
+        // bcz: use LayoutFields (here) or LayoutKeys (below)?
+        // let field = (this.props as any).DataVal;//this.props.doc.GetFieldT(this.props.fieldKey, ImageField);
+        // let path = field == WAITING ? "https://image.flaticon.com/icons/svg/66/66163.svg" :
+        //     field instanceof URL ? field.href : "";
+
         let field = this.props.doc.GetFieldT(this.props.fieldKey, ImageField);
         let path = field == WAITING ? "https://image.flaticon.com/icons/svg/66/66163.svg" :
             field instanceof ImageField ? field.Data.href : "";
         console.log("ImageBox Rendering " + this.props.doc.Title);
-        var lightbox = () => {
-            const images = [path, "http://www.cs.brown.edu/~bcz/face.gif"];
-            const { photoIndex } = this.state;
-            if (this.state.isOpen && this.props.DocumentViewForField instanceof CollectionFreeFormDocumentView && SelectionManager.IsSelected(this.props.DocumentViewForField)) {
-                return (<Lightbox
-                    mainSrc={images[photoIndex]}
-                    nextSrc={images[(photoIndex + 1) % images.length]}
-                    prevSrc={images[(photoIndex + images.length - 1) % images.length]}
-                    onCloseRequest={() => this.setState({ isOpen: false })}
-                    onMovePrevRequest={() =>
-                        this.setState({ photoIndex: (photoIndex + images.length - 1) % images.length, })
-                    }
-                    onMoveNextRequest={() =>
-                        this.setState({ photoIndex: (photoIndex + 1) % images.length, })
-                    }
-                />)
-            }
-        }
+
         return (
             <div className="imageBox-cont" onPointerDown={this.onPointerDown} ref={this._ref} >
                 <img src={path} width="100%" alt="Image not found" />
-                {lightbox()}
+                {this.lightbox(path)}
             </div>)
     }
 }

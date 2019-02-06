@@ -75,7 +75,7 @@ export class CollectionSchemaView extends CollectionViewBase {
         let content;
         if (this.selectedIndex != -1) {
             var data = this.props.DocumentForCollection.GetField(KS.Data);
-            content = (<DocumentView Document={children[this.selectedIndex]} DocumentView={undefined} ContainingCollectionView={this} Data={data} />)
+            content = (<DocumentView Document={children[this.selectedIndex]} DocumentView={undefined} ContainingCollectionView={this} />)
         } else {
             content = <div />
         }
