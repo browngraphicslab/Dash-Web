@@ -11,6 +11,7 @@ import "./NodeView.scss";
 import React = require("react");
 import { DocumentView, DocumentViewProps } from "./DocumentView";
 import { WAITING } from "../../fields/Field";
+import { ImageField } from '../../fields/ImageField';
 
 
 @observer
@@ -206,6 +207,8 @@ export class CollectionFreeFormDocumentView extends DocumentView {
 
     render() {
         var freestyling = this.props.ContainingCollectionView instanceof CollectionFreeFormView;
+        let data = this.props.Document.GetFieldT(KeyStore.Data, ImageField);
+        console.log("CollectionFFDocView " + this.props.Document.Title + "<" + data + "> x=" + this.x);
         return (
             <div className="node" ref={this._mainCont} style={{
                 transform: freestyling ? this.transform : "",
@@ -217,7 +220,7 @@ export class CollectionFreeFormDocumentView extends DocumentView {
                 onContextMenu={this.onContextMenu}
                 onPointerDown={this.onPointerDown}>
 
-                <DocumentView {...this.props} DocumentView={this} />
+                <DocumentView {...this.props} DocumentView={this} Data={data} />
             </div>
         );
     }

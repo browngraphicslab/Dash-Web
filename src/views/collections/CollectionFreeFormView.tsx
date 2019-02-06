@@ -189,6 +189,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
         const panx: number = Document.GetNumberField(KeyStore.PanX, 0);
         const pany: number = Document.GetNumberField(KeyStore.PanY, 0);
         const currScale: number = Document.GetNumberField(KeyStore.Scale, 1);
+        const data = Document.GetField(KeyStore.Data);
 
         return (
             <div className="border" style={{
@@ -205,7 +206,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
                         <div className="node-container" ref={this._nodeContainerRef}>
                             {value.map(doc => {
-                                return (<CollectionFreeFormDocumentView key={doc.Id} ContainingCollectionView={this} Document={doc} DocumentView={undefined} />);
+                                return (<CollectionFreeFormDocumentView key={doc.Id} ContainingCollectionView={this} Document={doc} DocumentView={undefined} Data={data} />);
                             })}
                         </div>
                     </div>

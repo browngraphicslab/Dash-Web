@@ -21,6 +21,9 @@ interface DocumentOptions {
 
 export namespace Documents {
     function setupOptions(doc: Document, options: DocumentOptions): void {
+        if (options.title) {
+            doc.SetField(KeyStore.Title, new TextField(options.title));
+        }
         if (options.x) {
             doc.SetFieldValue(KeyStore.X, options.x, NumberField);
         }
@@ -32,9 +35,6 @@ export namespace Documents {
         }
         if (options.height) {
             doc.SetFieldValue(KeyStore.Height, options.height, NumberField);
-        }
-        if (options.title) {
-            doc.SetFieldValue(KeyStore.Title, options.title, TextField);
         }
         doc.SetFieldValue(KeyStore.Scale, 1, NumberField);
         doc.SetFieldValue(KeyStore.PanX, 0, NumberField);
@@ -110,13 +110,14 @@ export namespace Documents {
     function GetImagePrototype(): Document {
         if (!imageProto) {
             imageProto = new Document();
-            imageProto.SetField(KeyStore.X, new NumberField(0));
-            imageProto.SetField(KeyStore.Y, new NumberField(0));
-            imageProto.SetField(KeyStore.Width, new NumberField(300));
-            imageProto.SetField(KeyStore.Height, new NumberField(300));
-            imageProto.SetField(KeyStore.Layout, new TextField(ImageBox.LayoutString()));
+            imageProto.SetFieldValue(KeyStore.Title, "IMAGE PROTO", TextField);
+            imageProto.SetFieldValue(KeyStore.X, 0, NumberField);
+            imageProto.SetFieldValue(KeyStore.Y, 0, NumberField);
+            imageProto.SetFieldValue(KeyStore.Width, 300, NumberField);
+            imageProto.SetFieldValue(KeyStore.Height, 300, NumberField);
+            imageProto.SetFieldValue(KeyStore.Layout, ImageBox.LayoutString(), TextField);
             // imageProto.SetField(KeyStore.Layout, new TextField('<div style={"background-image: " + {Data}} />'));
-            imageProto.SetField(KeyStore.LayoutKeys, new ListField([KeyStore.Data]));
+            imageProto.SetFieldValue(KeyStore.LayoutKeys, [KeyStore.Data], ListField);
         }
         return imageProto;
     }
@@ -124,7 +125,7 @@ export namespace Documents {
     export function ImageDocument(url: string, options: DocumentOptions = {}): Document {
         let doc = GetImagePrototype().MakeDelegate();
         setupOptions(doc, options);
-        doc.SetField(KeyStore.Data, new ImageField(new URL(url)));
+        doc.SetFieldValue(KeyStore.Data, new URL(url), ImageField);
         return doc;
     }
 

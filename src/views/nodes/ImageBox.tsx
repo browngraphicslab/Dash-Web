@@ -8,6 +8,7 @@ import { ImageField } from '../../fields/ImageField';
 import { FieldViewProps, FieldView } from './FieldView';
 import { CollectionFreeFormDocumentView } from './CollectionFreeFormDocumentView';
 import { WAITING } from '../../fields/Field';
+import { Key, KeyStore } from '../../fields/Key';
 
 interface ImageBoxState {
     photoIndex: number,
@@ -61,22 +62,17 @@ export class ImageBox extends React.Component<FieldViewProps, ImageBoxState> {
 
     render() {
         let field = this.props.doc.GetFieldT(this.props.fieldKey, ImageField);
-        let path = "";
-        if (field) {
-            if (field === WAITING) {
-                path = "https://image.flaticon.com/icons/svg/66/66163.svg"
-            } else {
-                path = field.Data.href;
-            }
-        }
-        const images = [path,];
+        let path = field == WAITING ? "https://image.flaticon.com/icons/svg/66/66163.svg" :
+            field instanceof ImageField ? field.Data.href : "";
+        console.log("ImageBox Rendering " + this.props.doc.Title);
         var lightbox = () => {
+            const images = [path, "http://www.cs.brown.edu/~bcz/face.gif"];
             const { photoIndex } = this.state;
             if (this.state.isOpen && this.props.DocumentViewForField instanceof CollectionFreeFormDocumentView && SelectionManager.IsSelected(this.props.DocumentViewForField)) {
                 return (<Lightbox
                     mainSrc={images[photoIndex]}
-                    nextSrc={photoIndex + 1 < images.length ? images[(photoIndex + 1) % images.length] : undefined}
-                    prevSrc={photoIndex - 1 > 0 ? images[(photoIndex + images.length - 1) % images.length] : undefined}
+                    nextSrc={images[(photoIndex + 1) % images.length]}
+                    prevSrc={images[(photoIndex + images.length - 1) % images.length]}
                     onCloseRequest={() => this.setState({ isOpen: false })}
                     onMovePrevRequest={() =>
                         this.setState({ photoIndex: (photoIndex + images.length - 1) % images.length, })
@@ -89,7 +85,7 @@ export class ImageBox extends React.Component<FieldViewProps, ImageBoxState> {
         }
         return (
             <div className="imageBox-cont" onPointerDown={this.onPointerDown} ref={this._ref} >
-                <img src={images[0]} width="100%" alt="Image not found" />
+                <img src={path} width="100%" alt="Image not found" />
                 {lightbox()}
             </div>)
     }

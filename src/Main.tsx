@@ -80,7 +80,7 @@ document.addEventListener("pointerdown", action(function (e: PointerEvent) {
 
 ReactDOM.render((
     <div style={{ position: "absolute", width: "100%", height: "100%" }}>
-        <DocumentView Document={mainContainer} ContainingCollectionView={undefined} DocumentView={undefined} />
+        <DocumentView Document={mainContainer} ContainingCollectionView={undefined} DocumentView={undefined} Data={mainContainer.GetField(KeyStore.Data)} />
         <DocumentDecorations />
         <ContextMenu />
     </div>),

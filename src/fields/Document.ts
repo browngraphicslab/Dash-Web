@@ -21,42 +21,34 @@ export class Document extends Field {
     }
 
     @observable
+    GetFieldFromServerDeferred(key: Key) {
+        var me = this;
+        setTimeout(function () {
+            if (me) {
+                me.DeferredSetField(key);
+            }
+        }, key == KeyStore.Data ? 5000 : key == KeyStore.X ? 2500 : 500)
+    }
+
+    @observable
     GetField(key: Key, ignoreProto: boolean = false): Opt<Field> {
-        if (KeyStore.X == key) {
-            console.log("");
-        }
-        let field: Opt<Field>;
+        let field: Opt<Field> = WAITING;
         if (ignoreProto) {
             if (this.fields.has(key)) {
-                if (KeyStore.X == key) {
-                    console.log("");
-                }
                 field = this.fields.get(key);
             } else {
-                field = WAITING;
-                var me = this;
-                setTimeout(function () {
-                    me.DeferredSetField(key);
-                }, 100)
+                this.GetFieldFromServerDeferred(key); // bcz: only want to do this if the field is on the server
             }
         } else {
             let doc: Opt<Document> = this;
             while (doc && doc != WAITING) {
-                if (!(doc.fields.has(key))) {
-                    var me = this;
-                    setTimeout(function () {
-                        me.DeferredSetField(key);
-                    }, 1000)
+                if (!doc.fields.has(key)) {
+                    doc.GetFieldFromServerDeferred(key); // bcz: only want to do this if the field is on the server
                     doc = doc.GetPrototype();
-                } else
+                } else {
+                    field = doc.fields.get(key);
                     break;
-            }
-
-            if (doc && doc != WAITING) {
-                if (KeyStore.X == key) {
-                    console.log("");
                 }
-                field = doc.fields.get(key);
             }
         }
 
@@ -67,7 +59,7 @@ export class Document extends Field {
     GetFieldT<T extends Field = Field>(key: Key, ctor: { new(...args: any[]): T }, ignoreProto: boolean = false): Opt<T> {
         var getfield = this.GetField(key, ignoreProto);
         if (getfield != WAITING) {
-            return Cast(this.GetField(key, ignoreProto), ctor);
+            return Cast(getfield, ctor);
         }
         return WAITING;
     }
@@ -105,49 +97,45 @@ export class Document extends Field {
         return this.GetFieldValue<T[], ListField<T>>(key, ListField, defaultVal)
     }
 
+    @action
     SetField(key: Key, field: Field | undefined): void {
         if (field) {
-            if (KeyStore.X == key) {
-                console.log("");
-            }
             this.fields.set(key, field);
         } else {
             this.fields.delete(key);
         }
     }
 
+    @action
     SetFieldValue<T extends Field>(key: Key, value: any, ctor: { new(): T }): boolean {
-        if (KeyStore.X == key) {
-            console.log("");
-        }
         let field = new ctor();
         if (field.TrySetValue(value)) {
             this._sfields.set(key, field);
             return true;
-        } else {
-            return false;
         }
+        return false;
 
         // let field = this.GetField(key, true);
-        // if (field == WAITING)
-        //     return true;
-        // if (field != null) {
-        //     return field.TrySetValue(value);
-        // } else {
-        //     field = new ctor();
-        //     if (field.TrySetValue(value)) {
-        //         this.SetField(key, field);
-        //         return true;
+        // if (field != WAITING) {
+        //     if (field) {
+        //         return field.TrySetValue(value);
         //     } else {
-        //         return false;
+        //         field = new ctor();
+        //         if (field.TrySetValue(value)) {
+        //             this.SetField(key, field);
+        //             return true;
+        //         } 
         //     }
         // }
+        // return false;
     }
 
+    @observable
     GetPrototype(): Opt<Document> {
         return this.GetFieldT(KeyStore.Prototype, Document, true);
     }
 
+    @observable
     GetAllPrototypes(): Document[] {
         let protos: Document[] = [];
         let doc: Opt<Document> = this;
