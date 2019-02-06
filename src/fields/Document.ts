@@ -1,49 +1,41 @@
-import { Field, Cast, Opt, Waiting, WAITING } from "./Field"
+import { Field, Cast, Opt, FieldWaiting, FIELD_ID, DOC_ID } from "./Field"
 import { Key, KeyStore } from "./Key"
 import { NumberField } from "./NumberField";
-import { ObservableMap, computed, action } from "mobx";
+import { ObservableMap, computed, action, observable } from "mobx";
 import { TextField } from "./TextField";
 import { ListField } from "./ListField";
+import { findDOMNode } from "react-dom";
+import { Server } from "../Server";
 
 export class Document extends Field {
-    private fields: ObservableMap<Key, Opt<Field>> = new ObservableMap();
-    private _sfields: ObservableMap<Key, Field> = new ObservableMap();
+    public fields: ObservableMap<Key, Opt<Field>> = new ObservableMap();
+    public _proxies: ObservableMap<Key, FIELD_ID> = new ObservableMap();
 
-    static _untitledDocName = "<untitled>";
     @computed
-    public get Title() { return this.GetFieldValue(KeyStore.Title, TextField, Document._untitledDocName); }
-
-    @action
-    DeferredSetField(key: Key) {
-        var sfield = this._sfields.get(key);
-        if (sfield != undefined)
-            this.fields.set(key, sfield);
+    public get Title() {
+        return this.GetText(KeyStore.Title, "<untitled>");
     }
 
-    static times = 0;
-    GetFieldFromServerDeferred(key: Key) {
-        var me = this;
-        setTimeout(function () {
-            if (me) {
-                me.DeferredSetField(key);
-            }
-        }, key == KeyStore.Data ? (Document.times++ == 0 ? 5000 : 1000) : key == KeyStore.X ? 2500 : 500)
-    }
-
-    GetField(key: Key, ignoreProto: boolean = false): Opt<Field> {
-        let field: Opt<Field> = WAITING;
+    Get(key: Key, ignoreProto: boolean = false): Opt<Field> {
+        let field: Opt<Field>;
         if (ignoreProto) {
             if (this.fields.has(key)) {
                 field = this.fields.get(key);
-            } else {
-                this.GetFieldFromServerDeferred(key); // bcz: only want to do this if the field is on the server
+            } else if (this._proxies.has(key)) {
+                field = Server.GetDocumentField(this, key);
             }
         } else {
             let doc: Opt<Document> = this;
-            while (doc && doc != WAITING) {
+            while (doc && doc != FieldWaiting && field != FieldWaiting) {
                 if (!doc.fields.has(key)) {
-                    doc.GetFieldFromServerDeferred(key); // bcz: only want to do this if the field is on the server
-                    doc = doc.GetPrototype();
+                    if (doc._proxies.has(key)) {
+                        field = Server.GetDocumentField(doc, key);
+                        break;
+                    }
+                    if ((doc.fields.has(KeyStore.Prototype) || doc._proxies.has(KeyStore.Prototype))) {
+                        doc = doc.GetPrototype();
+                    } else
+                        break;
                 } else {
                     field = doc.fields.get(key);
                     break;
@@ -54,83 +46,87 @@ export class Document extends Field {
         return field;
     }
 
-    GetFieldT<T extends Field = Field>(key: Key, ctor: { new(...args: any[]): T }, ignoreProto: boolean = false): Opt<T> {
-        var getfield = this.GetField(key, ignoreProto);
-        if (getfield != WAITING) {
+    GetT<T extends Field = Field>(key: Key, ctor: { new(...args: any[]): T }, ignoreProto: boolean = false): Opt<T> {
+        var getfield = this.Get(key, ignoreProto);
+        if (getfield != FieldWaiting) {
             return Cast(getfield, ctor);
         }
-        return WAITING;
+        return FieldWaiting;
     }
 
-    GetFieldOrCreate<T extends Field>(key: Key, ctor: { new(): T }, ignoreProto: boolean = false): T {
-        const field = this.GetFieldT(key, ctor, ignoreProto);
-        if (field && field != WAITING) {
+    GetOrCreate<T extends Field>(key: Key, ctor: { new(): T }, ignoreProto: boolean = false): T {
+        const field = this.GetT(key, ctor, ignoreProto);
+        if (field && field != FieldWaiting) {
             return field;
         }
         const newField = new ctor();
-        this.SetField(key, newField);
+        this.Set(key, newField);
         return newField;
     }
 
-    GetFieldValue<T, U extends { Data: T }>(key: Key, ctor: { new(): U }, defaultVal: T): T {
-        let val = this.GetField(key);
+    GetData<T, U extends Field & { Data: T }>(key: Key, ctor: { new(): U }, defaultVal: T): T {
+        let val = this.Get(key);
         let vval = (val && val instanceof ctor) ? val.Data : defaultVal;
         return vval;
     }
 
-    GetNumberField(key: Key, defaultVal: number): number {
-        return this.GetFieldValue(key, NumberField, defaultVal);
+    GetNumber(key: Key, defaultVal: number): number {
+        return this.GetData(key, NumberField, defaultVal);
     }
 
-    GetTextField(key: Key, defaultVal: string): string {
-        return this.GetFieldValue(key, TextField, defaultVal);
+    GetText(key: Key, defaultVal: string): string {
+        return this.GetData(key, TextField, defaultVal);
     }
 
-    GetListField<T extends Field>(key: Key, defaultVal: T[]): T[] {
-        return this.GetFieldValue<T[], ListField<T>>(key, ListField, defaultVal)
+    GetList<T extends Field>(key: Key, defaultVal: T[]): T[] {
+        return this.GetData<T[], ListField<T>>(key, ListField, defaultVal)
     }
 
     @action
-    SetField(key: Key, field: Field | undefined): void {
+    Set(key: Key, field: Field | undefined): void {
         if (field) {
             this.fields.set(key, field);
+            Server.AddDocumentField(this, key, field);
         } else {
             this.fields.delete(key);
+            Server.DeleteDocumentField(this, key);
         }
     }
 
     @action
-    SetFieldValue<T extends Field>(key: Key, value: any, ctor: { new(): T }): boolean {
-        let field = new ctor();
-        if (field.TrySetValue(value)) {
-            this._sfields.set(key, field);
-            return true;
-        }
-        return false;
+    SetData<T, U extends Field & { Data: T }>(key: Key, value: T, ctor: { new(): U }, replaceWrongType = true) {
 
-        // let field = this.GetField(key, true);
-        // if (field != WAITING) {
-        //     if (field) {
-        //         return field.TrySetValue(value);
-        //     } else {
-        //         field = new ctor();
-        //         if (field.TrySetValue(value)) {
-        //             this.SetField(key, field);
-        //             return true;
-        //         } 
-        //     }
-        // }
-        // return false;
+        let field = this.Get(key, true);
+        //if (field != WAITING) {  // do we want to wait for the field to come back from the server to set it, or do we overwrite?
+        if (field instanceof ctor) {
+            field.Data = value;
+            Server.SetFieldValue(field, value);
+        } else if (!field || replaceWrongType) {
+            let newField = new ctor();
+            newField.Data = value;
+            this.Set(key, newField);
+        }
+        //}
+    }
+
+    @action
+    SetText(key: Key, value: string, replaceWrongType = true) {
+        this.SetData(key, value, TextField, replaceWrongType);
+    }
+
+    @action
+    SetNumber(key: Key, value: number, replaceWrongType = true) {
+        this.SetData(key, value, NumberField, replaceWrongType);
     }
 
     GetPrototype(): Opt<Document> {
-        return this.GetFieldT(KeyStore.Prototype, Document, true);
+        return this.GetT(KeyStore.Prototype, Document, true);
     }
 
     GetAllPrototypes(): Document[] {
         let protos: Document[] = [];
         let doc: Opt<Document> = this;
-        while (doc && doc != WAITING) {
+        while (doc && doc != FieldWaiting) {
             protos.push(doc);
             doc = doc.GetPrototype();
         }
@@ -140,7 +136,7 @@ export class Document extends Field {
     MakeDelegate(): Document {
         let delegate = new Document();
 
-        delegate.SetField(KeyStore.Prototype, this);
+        delegate.Set(KeyStore.Prototype, this);
 
         return delegate;
     }

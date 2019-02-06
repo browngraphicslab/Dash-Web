@@ -2,7 +2,7 @@ import React = require("react")
 import { Document } from "../../fields/Document";
 import { observer } from "mobx-react";
 import { computed } from "mobx";
-import { Field, Opt, WAITING } from "../../fields/Field";
+import { Field, Opt, FieldWaiting } from "../../fields/Field";
 import { TextField } from "../../fields/TextField";
 import { NumberField } from "../../fields/NumberField";
 import { RichTextField } from "../../fields/RichTextField";
@@ -29,7 +29,7 @@ export class FieldView extends React.Component<FieldViewProps> {
     @computed
     get field(): Opt<Field> {
         const { doc, fieldKey } = this.props;
-        return doc.GetField(fieldKey);
+        return doc.Get(fieldKey);
     }
     render() {
         const field = this.field;
@@ -47,7 +47,7 @@ export class FieldView extends React.Component<FieldViewProps> {
         }
         else if (field instanceof NumberField) {
             return <p>{field.Data}</p>
-        } else if (field != WAITING) {
+        } else if (field != FieldWaiting) {
             return <p>{field.GetValue}</p>
         } else
             return <p> {"Waiting for server..."} </p>

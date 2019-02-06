@@ -6,7 +6,7 @@ import { keymap } from "prosemirror-keymap";
 import { schema } from "prosemirror-schema-basic";
 import { EditorState, Transaction } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
-import { Opt, WAITING } from "../../fields/Field";
+import { Opt, FieldWaiting } from "../../fields/Field";
 import { SelectionManager } from "../../util/SelectionManager";
 import "./FormattedTextBox.scss";
 import React = require("react")
@@ -48,11 +48,11 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
     }
 
     dispatchTransaction = (tx: Transaction) => {
-        if (this._editorView && this._editorView != WAITING) {
+        if (this._editorView && this._editorView != FieldWaiting) {
             const state = this._editorView.state.apply(tx);
             this._editorView.updateState(state);
             const { doc, fieldKey } = this.props;
-            doc.SetFieldValue(fieldKey, JSON.stringify(state.toJSON()), RichTextField);
+            doc.SetData(fieldKey, JSON.stringify(state.toJSON()), RichTextField);
         }
     }
 
@@ -68,8 +68,8 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
             ]
         };
 
-        let field = doc.GetFieldT(fieldKey, RichTextField);
-        if (field && field != WAITING) {  // bcz: don't think this works
+        let field = doc.GetT(fieldKey, RichTextField);
+        if (field && field != FieldWaiting) {  // bcz: don't think this works
             state = EditorState.fromJSON(config, JSON.parse(field.Data));
         } else {
             state = EditorState.create(config);
@@ -82,20 +82,20 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
         }
 
         this._reactionDisposer = reaction(() => {
-            const field = this.props.doc.GetFieldT(this.props.fieldKey, RichTextField);
-            return field && field != WAITING ? field.Data : undefined;
+            const field = this.props.doc.GetT(this.props.fieldKey, RichTextField);
+            return field && field != FieldWaiting ? field.Data : undefined;
         }, (field) => {
-            if (field && this._editorView && this._editorView != WAITING) {
+            if (field && this._editorView && this._editorView != FieldWaiting) {
                 this._editorView.updateState(EditorState.fromJSON(config, JSON.parse(field)));
             }
         })
     }
 
     componentWillUnmount() {
-        if (this._editorView && this._editorView != WAITING) {
+        if (this._editorView && this._editorView != FieldWaiting) {
             this._editorView.destroy();
         }
-        if (this._reactionDisposer && this._reactionDisposer != WAITING) {
+        if (this._reactionDisposer && this._reactionDisposer != FieldWaiting) {
             this._reactionDisposer();
         }
     }
@@ -107,7 +107,7 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
     @action
     onChange(e: React.ChangeEvent<HTMLInputElement>) {
         const { fieldKey, doc } = this.props;
-        doc.SetFieldValue(fieldKey, e.target.value, RichTextField);
+        doc.SetData(fieldKey, e.target.value, RichTextField);
     }
     onPointerDown = (e: React.PointerEvent): void => {
         let me = this;

@@ -7,7 +7,7 @@ import React = require("react")
 import { ImageField } from '../../fields/ImageField';
 import { FieldViewProps, FieldView } from './FieldView';
 import { CollectionFreeFormDocumentView } from './CollectionFreeFormDocumentView';
-import { WAITING } from '../../fields/Field';
+import { FieldWaiting } from '../../fields/Field';
 import { observer } from "mobx-react"
 import { observable, action } from 'mobx';
 
@@ -79,9 +79,9 @@ export class ImageBox extends React.Component<FieldViewProps> {
     }
 
     render() {
-        let field = this.props.doc.GetFieldT(this.props.fieldKey, ImageField);
-        let path = field == WAITING ? "https://image.flaticon.com/icons/svg/66/66163.svg" :
-            field instanceof ImageField ? field.Data.href : "";
+        let field = this.props.doc.Get(this.props.fieldKey);
+        let path = field == FieldWaiting ? "https://image.flaticon.com/icons/svg/66/66163.svg" :
+            field instanceof ImageField ? field.Data.href : "http://www.cs.brown.edu/~bcz/face.gif";
 
         return (
             <div className="imageBox-cont" onPointerDown={this.onPointerDown} ref={this._ref} >

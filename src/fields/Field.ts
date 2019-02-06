@@ -10,19 +10,21 @@ export function Cast<T extends Field>(field: Opt<Field>, ctor: { new(): T }): Op
     return undefined;
 }
 
-export type Waiting = "<Waiting>";
-export type Opt<T> = T | undefined | Waiting;
-export let WAITING: Waiting = "<Waiting>";
+export let FieldWaiting: FIELD_WAITING = "<Waiting>";
+export type FIELD_WAITING = "<Waiting>";
+export type FIELD_ID = string | undefined;
+export type DOC_ID = FIELD_ID;
+export type Opt<T> = T | undefined | FIELD_WAITING;
 
 export abstract class Field {
     //FieldUpdated: TypedEvent<Opt<FieldUpdatedArgs>> = new TypedEvent<Opt<FieldUpdatedArgs>>();
 
-    private id: string;
-    get Id(): string {
+    private id: FIELD_ID;
+    get Id(): FIELD_ID {
         return this.id;
     }
 
-    constructor(id: Opt<string> = undefined) {
+    constructor(id: FIELD_ID = undefined) {
         this.id = id || Utils.GenerateGuid();
     }
 

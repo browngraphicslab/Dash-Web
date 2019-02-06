@@ -1,7 +1,7 @@
 import { action, computed } from "mobx";
 import { observer } from "mobx-react";
 import { Document } from "../../fields/Document";
-import { Opt, WAITING } from "../../fields/Field";
+import { Opt, FieldWaiting } from "../../fields/Field";
 import { Key, KeyStore } from "../../fields/Key";
 import { ListField } from "../../fields/ListField";
 import { SelectionManager } from "../../util/SelectionManager";
@@ -31,7 +31,7 @@ export class CollectionViewBase extends React.Component<CollectionViewProps> {
         var isSelected = (this.props.ContainingDocumentView instanceof CollectionFreeFormDocumentView && SelectionManager.IsSelected(this.props.ContainingDocumentView));
         var childSelected = SelectionManager.SelectedDocuments().some(view => view.props.ContainingCollectionView == this);
         var topMost = this.props.ContainingDocumentView != undefined &&
-            this.props.ContainingDocumentView != WAITING && this.props.ContainingDocumentView.props.ContainingCollectionView != WAITING && (
+            this.props.ContainingDocumentView != FieldWaiting && this.props.ContainingDocumentView.props.ContainingCollectionView != FieldWaiting && (
                 this.props.ContainingDocumentView.props.ContainingCollectionView == undefined ||
                 this.props.ContainingDocumentView.props.ContainingCollectionView instanceof CollectionDockingView);
         return isSelected || childSelected || topMost;
@@ -39,14 +39,14 @@ export class CollectionViewBase extends React.Component<CollectionViewProps> {
     @action
     addDocument = (doc: Document): void => {
         //TODO This won't create the field if it doesn't already exist
-        const value = this.props.DocumentForCollection.GetFieldValue(this.props.CollectionFieldKey, ListField, new Array<Document>())
+        const value = this.props.DocumentForCollection.GetData(this.props.CollectionFieldKey, ListField, new Array<Document>())
         value.push(doc);
     }
 
     @action
     removeDocument = (doc: Document): void => {
         //TODO This won't create the field if it doesn't already exist
-        const value = this.props.DocumentForCollection.GetFieldValue(this.props.CollectionFieldKey, ListField, new Array<Document>())
+        const value = this.props.DocumentForCollection.GetData(this.props.CollectionFieldKey, ListField, new Array<Document>())
         if (value.indexOf(doc) !== -1) {
             value.splice(value.indexOf(doc), 1)
 

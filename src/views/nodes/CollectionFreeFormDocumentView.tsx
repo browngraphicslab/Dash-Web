@@ -10,8 +10,7 @@ import { ContextMenu } from "../ContextMenu";
 import "./NodeView.scss";
 import React = require("react");
 import { DocumentView, DocumentViewProps } from "./DocumentView";
-import { WAITING } from "../../fields/Field";
-import { ImageField } from '../../fields/ImageField';
+import { FieldWaiting } from "../../fields/Field";
 
 
 @observer
@@ -32,20 +31,20 @@ export class CollectionFreeFormDocumentView extends DocumentView {
 
     @computed
     get x(): number {
-        return this.props.Document.GetFieldValue(KeyStore.X, NumberField, Number(0));
+        return this.props.Document.GetData(KeyStore.X, NumberField, Number(0));
     }
 
     @computed
     get y(): number {
-        return this.props.Document.GetFieldValue(KeyStore.Y, NumberField, Number(0));
+        return this.props.Document.GetData(KeyStore.Y, NumberField, Number(0));
     }
 
     set x(x: number) {
-        this.props.Document.SetFieldValue(KeyStore.X, x, NumberField)
+        this.props.Document.SetData(KeyStore.X, x, NumberField)
     }
 
     set y(y: number) {
-        this.props.Document.SetFieldValue(KeyStore.Y, y, NumberField)
+        this.props.Document.SetData(KeyStore.Y, y, NumberField)
     }
 
     @computed
@@ -55,29 +54,29 @@ export class CollectionFreeFormDocumentView extends DocumentView {
 
     @computed
     get width(): number {
-        return this.props.Document.GetFieldValue(KeyStore.Width, NumberField, Number(0));
+        return this.props.Document.GetData(KeyStore.Width, NumberField, Number(0));
     }
 
     set width(w: number) {
-        this.props.Document.SetFieldValue(KeyStore.Width, w, NumberField)
+        this.props.Document.SetData(KeyStore.Width, w, NumberField)
     }
 
     @computed
     get height(): number {
-        return this.props.Document.GetFieldValue(KeyStore.Height, NumberField, Number(0));
+        return this.props.Document.GetData(KeyStore.Height, NumberField, Number(0));
     }
 
     set height(h: number) {
-        this.props.Document.SetFieldValue(KeyStore.Height, h, NumberField)
+        this.props.Document.SetData(KeyStore.Height, h, NumberField)
     }
 
     @computed
     get zIndex(): number {
-        return this.props.Document.GetFieldValue(KeyStore.ZIndex, NumberField, Number(0));
+        return this.props.Document.GetData(KeyStore.ZIndex, NumberField, Number(0));
     }
 
     set zIndex(h: number) {
-        this.props.Document.SetFieldValue(KeyStore.ZIndex, h, NumberField)
+        this.props.Document.SetData(KeyStore.ZIndex, h, NumberField)
     }
 
     @action
@@ -87,7 +86,7 @@ export class CollectionFreeFormDocumentView extends DocumentView {
     @computed
     get active(): boolean {
         return SelectionManager.IsSelected(this) || this.props.ContainingCollectionView === undefined ||
-            (this.props.ContainingCollectionView != WAITING && this.props.ContainingCollectionView!.active);
+            (this.props.ContainingCollectionView != FieldWaiting && this.props.ContainingCollectionView!.active);
     }
 
     @computed
