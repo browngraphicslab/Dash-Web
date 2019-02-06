@@ -20,11 +20,11 @@ import { CollectionViewBase, CollectionViewProps, COLLECTION_BORDER_WIDTH } from
 export class CollectionDockingView extends CollectionViewBase {
 
     private static UseGoldenLayout = true;
-    public static LayoutString() { return '<CollectionDockingView Document={Document} fieldKey={DataKey} ContainingDocumentView={ContainingDocumentView}/>'; }
+    public static LayoutString() { return CollectionViewBase.LayoutString("CollectionDockingView"); }
     private _containerRef = React.createRef<HTMLDivElement>();
     @computed
     private get modelForFlexLayout() {
-        const { fieldKey, Document: Document } = this.props;
+        const { CollectionFieldKey: fieldKey, DocumentForCollection: Document } = this.props;
         const value: Document[] = Document.GetFieldValue(fieldKey, ListField, []);
         var docs = value.map(doc => {
             return { type: 'tabset', weight: 50, selected: 0, children: [{ type: "tab", name: doc.Title, component: doc.Id }] };
@@ -40,7 +40,7 @@ export class CollectionDockingView extends CollectionViewBase {
     }
     @computed
     private get modelForGoldenLayout(): any {
-        const { fieldKey, Document: Document } = this.props;
+        const { CollectionFieldKey: fieldKey, DocumentForCollection: Document } = this.props;
         const value: Document[] = Document.GetFieldValue(fieldKey, ListField, []);
         var docs = value.map(doc => {
             return { type: 'component', componentName: 'documentViewComponent', componentState: { doc: doc } };
@@ -92,11 +92,11 @@ export class CollectionDockingView extends CollectionViewBase {
         if (component === "button") {
             return <button>{node.getName()}</button>;
         }
-        const { fieldKey, Document: Document } = this.props;
+        const { CollectionFieldKey: fieldKey, DocumentForCollection: Document } = this.props;
         const value: Document[] = Document.GetFieldValue(fieldKey, ListField, []);
         for (var i: number = 0; i < value.length; i++) {
             if (value[i].Id === component) {
-                return (<DocumentView key={value[i].Id} ContainingCollectionView={this} Document={value[i]} ContainingDocumentView={this.props.ContainingDocumentView} />);
+                return (<DocumentView key={value[i].Id} ContainingCollectionView={this} Document={value[i]} DocumentView={undefined} />);
             }
         }
         if (component === "text") {
@@ -237,7 +237,7 @@ export class CollectionDockingView extends CollectionViewBase {
             container.getElement().html("<div id='" + containingDiv + "'></div>");
             setTimeout(function () {
                 ReactDOM.render((
-                    <DocumentView key={state.doc.Id} Document={state.doc} ContainingCollectionView={me} ContainingDocumentView={me.props.ContainingDocumentView} />
+                    <DocumentView key={state.doc.Id} Document={state.doc} ContainingCollectionView={me} DocumentView={undefined} />
                 ),
                     document.getElementById(containingDiv)
                 );
@@ -252,10 +252,10 @@ export class CollectionDockingView extends CollectionViewBase {
 
 
     render() {
-        const { fieldKey, Document: Document } = this.props;
+        const { CollectionFieldKey: fieldKey, DocumentForCollection: Document } = this.props;
         const value: Document[] = Document.GetFieldValue(fieldKey, ListField, []);
         // bcz: not sure why, but I need these to force the flexlayout to update when the collection size changes.
-        var s = this.props.ContainingDocumentView!.ScalingToScreenSpace;
+        var s = this.props.ContainingDocumentView != undefined ? this.props.ContainingDocumentView!.ScalingToScreenSpace : 1;
         var w = Document.GetFieldValue(KeyStore.Width, NumberField, Number(0)) / s;
         var h = Document.GetFieldValue(KeyStore.Height, NumberField, Number(0)) / s;
 

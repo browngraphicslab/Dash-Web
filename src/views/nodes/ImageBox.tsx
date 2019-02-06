@@ -5,7 +5,8 @@ import { SelectionManager } from "../../util/SelectionManager";
 import "./ImageBox.scss";
 import React = require("react")
 import { ImageField } from '../../fields/ImageField';
-import { FieldViewProps } from './FieldView';
+import { FieldViewProps, FieldView } from './FieldView';
+import { CollectionFreeFormDocumentView } from './CollectionFreeFormDocumentView';
 
 interface ImageBoxState {
     photoIndex: number,
@@ -14,7 +15,7 @@ interface ImageBoxState {
 
 export class ImageBox extends React.Component<FieldViewProps, ImageBoxState> {
 
-    public static LayoutString() { return "<ImageBox doc={Document} documentViewContainer={ContainingDocumentView} fieldKey={DataKey} />"; }
+    public static LayoutString() { return FieldView.LayoutString("ImageBox"); }
     private _ref: React.RefObject<HTMLDivElement>;
     private _downX: number = 0;
     private _downY: number = 0;
@@ -38,7 +39,7 @@ export class ImageBox extends React.Component<FieldViewProps, ImageBoxState> {
 
     onPointerDown = (e: React.PointerEvent): void => {
         if (Date.now() - this._lastTap < 300) {
-            if (e.buttons === 1 && SelectionManager.IsSelected(this.props.documentViewContainer)) {
+            if (e.buttons === 1 && this.props.DocumentViewForField instanceof CollectionFreeFormDocumentView && SelectionManager.IsSelected(this.props.DocumentViewForField)) {
                 e.stopPropagation();
                 this._downX = e.clientX;
                 this._downY = e.clientY;
@@ -66,7 +67,7 @@ export class ImageBox extends React.Component<FieldViewProps, ImageBoxState> {
         const images = [path,];
         var lightbox = () => {
             const { photoIndex } = this.state;
-            if (this.state.isOpen && SelectionManager.IsSelected(this.props.documentViewContainer)) {
+            if (this.state.isOpen && this.props.DocumentViewForField instanceof CollectionFreeFormDocumentView && SelectionManager.IsSelected(this.props.DocumentViewForField)) {
                 return (<Lightbox
                     mainSrc={images[photoIndex]}
                     nextSrc={photoIndex + 1 < images.length ? images[(photoIndex + 1) % images.length] : undefined}

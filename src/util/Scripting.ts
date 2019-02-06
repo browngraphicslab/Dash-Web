@@ -1,4 +1,5 @@
 // import * as ts from "typescript"
+let ts = (window as any).ts;
 import { Opt, Field } from "../fields/Field";
 import { Document as DocumentImport } from "../fields/Document";
 import { NumberField as NumberFieldImport } from "../fields/NumberField";
@@ -13,7 +14,7 @@ export interface ExecutableScript {
 }
 
 function ExecScript(script: string, diagnostics: Opt<any[]>): ExecutableScript {
-    const compiled = !(diagnostics && diagnostics.some(diag => diag.category == 1));
+    const compiled = !(diagnostics && diagnostics.some(diag => diag.category == ts.DiagnosticCategory.Error));
 
     let func: () => Opt<Field>;
     if (compiled) {

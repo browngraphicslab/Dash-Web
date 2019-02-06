@@ -1,13 +1,13 @@
-import { DocumentView } from "../views/nodes/DocumentView";
+import { CollectionFreeFormDocumentView } from "../views/nodes/CollectionFreeFormDocumentView";
 import { observable, action } from "mobx";
 
 export namespace SelectionManager {
     class Manager {
         @observable
-        SelectedDocuments: Array<DocumentView> = [];
+        SelectedDocuments: Array<CollectionFreeFormDocumentView> = [];
 
         @action
-        SelectDoc(doc: DocumentView, ctrlPressed: boolean): void {
+        SelectDoc(doc: CollectionFreeFormDocumentView, ctrlPressed: boolean): void {
             // if doc is not in SelectedDocuments, add it
             if (!ctrlPressed) {
                 manager.SelectedDocuments = [];
@@ -21,11 +21,11 @@ export namespace SelectionManager {
 
     const manager = new Manager;
 
-    export function SelectDoc(doc: DocumentView, ctrlPressed: boolean): void {
+    export function SelectDoc(doc: CollectionFreeFormDocumentView, ctrlPressed: boolean): void {
         manager.SelectDoc(doc, ctrlPressed)
     }
 
-    export function IsSelected(doc: DocumentView): boolean {
+    export function IsSelected(doc: CollectionFreeFormDocumentView): boolean {
         return manager.SelectedDocuments.indexOf(doc) !== -1;
     }
 
@@ -33,7 +33,7 @@ export namespace SelectionManager {
         manager.SelectedDocuments = []
     }
 
-    export function SelectedDocuments(): Array<DocumentView> {
+    export function SelectedDocuments(): Array<CollectionFreeFormDocumentView> {
         return manager.SelectedDocuments;
     }
 }

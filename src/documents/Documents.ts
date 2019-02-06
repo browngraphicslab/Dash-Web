@@ -3,12 +3,13 @@ import { KeyStore } from "../fields/Key";
 import { TextField } from "../fields/TextField";
 import { NumberField } from "../fields/NumberField";
 import { ListField } from "../fields/ListField";
-import { FieldTextBox } from "../views/nodes/FieldTextBox";
+import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import { CollectionSchemaView } from "../views/collections/CollectionSchemaView";
 import { ImageField } from "../fields/ImageField";
 import { RichTextField } from "../fields/RichTextField";
 import { ImageBox } from "../views/nodes/ImageBox";
+import { CollectionFreeFormView } from "../views/collections/CollectionFreeFormView";
 
 interface DocumentOptions {
     x?: number;
@@ -48,7 +49,7 @@ export namespace Documents {
             textProto.SetField(KeyStore.Y, new NumberField(0));
             textProto.SetField(KeyStore.Width, new NumberField(300));
             textProto.SetField(KeyStore.Height, new NumberField(150));
-            textProto.SetField(KeyStore.Layout, new TextField(FieldTextBox.LayoutString()));
+            textProto.SetField(KeyStore.Layout, new TextField(FormattedTextBox.LayoutString()));
             textProto.SetField(KeyStore.LayoutKeys, new ListField([KeyStore.Data]));
         }
         return textProto;
@@ -138,7 +139,7 @@ export namespace Documents {
             collectionProto.SetField(KeyStore.PanY, new NumberField(0));
             collectionProto.SetField(KeyStore.Width, new NumberField(300));
             collectionProto.SetField(KeyStore.Height, new NumberField(300));
-            collectionProto.SetField(KeyStore.Layout, new TextField('<CollectionFreeFormView Document={Document} fieldKey={DataKey} ContainingDocumentView={ContainingDocumentView}/>'));
+            collectionProto.SetField(KeyStore.Layout, new TextField(CollectionFreeFormView.LayoutString()));
             collectionProto.SetField(KeyStore.LayoutKeys, new ListField([KeyStore.Data]));
         }
         return collectionProto;

@@ -1,4 +1,3 @@
-import { DocumentContents } from "../nodes/DocumentView";
 import React = require("react")
 import ReactTable, { ReactTableDefaults, CellInfo, ComponentPropsGetterRC, ComponentPropsGetterR } from "react-table";
 import { observer } from "mobx-react";
@@ -11,22 +10,20 @@ import SplitPane from "react-split-pane"
 import "./CollectionSchemaView.scss"
 import { ScrollBox } from "../../util/ScrollBox";
 import { CollectionViewBase } from "./CollectionViewBase";
+import { DocumentView } from "../nodes/DocumentView";
 
 @observer
 export class CollectionSchemaView extends CollectionViewBase {
-    public static LayoutString() { return '<CollectionSchemaView Document={Document} fieldKey={DataKey} ContainingDocumentView={ContainingDocumentView}/>'; }
+    public static LayoutString() { return CollectionViewBase.LayoutString("CollectionSchemaView"); }
 
     @observable
     selectedIndex = 0;
 
     renderCell = (rowProps: CellInfo) => {
-        if (!this.props.ContainingDocumentView) {
-            return <div></div>
-        }
         let props: FieldViewProps = {
             doc: rowProps.value[0],
             fieldKey: rowProps.value[1],
-            documentViewContainer: this.props.ContainingDocumentView
+            DocumentViewForField: undefined
         }
         return (
             <FieldView {...props} />
@@ -71,15 +68,13 @@ export class CollectionSchemaView extends CollectionViewBase {
     }
 
     render() {
-        const { Document, fieldKey } = this.props;
+        const { DocumentForCollection: Document, CollectionFieldKey: fieldKey } = this.props;
         const children = Document.GetListField<Document>(fieldKey, []);
         const columns = Document.GetListField(KS.ColumnsKey,
             [KS.Title, KS.Data, KS.Author])
         let content;
         if (this.selectedIndex != -1) {
-            content = (<DocumentContents Document={children[this.selectedIndex]}
-                ContainingDocumentView={this.props.ContainingDocumentView}
-                ContainingCollectionView={undefined} />)
+            content = (<DocumentView Document={children[this.selectedIndex]} DocumentView={undefined} ContainingCollectionView={this} />)
         } else {
             content = <div />
         }

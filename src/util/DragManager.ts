@@ -1,5 +1,5 @@
 import { Opt } from "../fields/Field";
-import { DocumentView } from "../views/nodes/DocumentView";
+import { CollectionFreeFormDocumentView } from "../views/nodes/CollectionFreeFormDocumentView";
 import { DocumentDecorations } from "../DocumentDecorations";
 import { SelectionManager } from "./SelectionManager";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
