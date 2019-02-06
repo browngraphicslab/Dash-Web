@@ -6,7 +6,6 @@ import { Document } from "./fields/Document"
 export class Server {
     static FieldStore: ObservableMap<FIELD_ID, Field> = new ObservableMap();
     static DocumentStore: ObservableMap<DOC_ID, ObservableMap<Key, FIELD_ID>> = new ObservableMap();
-    public static ClientFieldsWaiting: ObservableMap<FIELD_ID, boolean> = new ObservableMap();
     public static ClientFieldsCached: ObservableMap<DOC_ID, Field | FIELD_WAITING> = new ObservableMap();
 
     // 'hack' is here temoporarily for simplicity when debugging things.
@@ -95,7 +94,6 @@ export class Server {
 
     @action
     static receivedDocumentField(doc: Document, key: Key, fieldid: FIELD_ID, fieldfromserver: Field | undefined) {
-        this.ClientFieldsWaiting.delete(fieldid);
         doc._proxies.delete(key);
         var cachedField = this.cacheField(fieldfromserver!);
 
