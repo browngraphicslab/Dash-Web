@@ -10,9 +10,11 @@ export class Document extends Field {
 
     static _untitledDocName = "<untitled>";
     @computed
-    public get Title() { return this.GetFieldValue(KeyStore.Title, TextField, Document._untitledDocName); }
+    public get Title() {
+        return this.GetData(KeyStore.Title, TextField, Document._untitledDocName);
+    }
 
-    GetField(key: Key, ignoreProto: boolean = false): Opt<Field> {
+    Get(key: Key, ignoreProto: boolean = false): Opt<Field> {
         let field: Opt<Field>;
         if (ignoreProto) {
             if (this.fields.has(key)) {
@@ -32,39 +34,39 @@ export class Document extends Field {
         return field;
     }
 
-    GetFieldT<T extends Field = Field>(key: Key, ctor: { new(...args: any[]): T }, ignoreProto: boolean = false): Opt<T> {
-        return Cast(this.GetField(key, ignoreProto), ctor);
+    GetT<T extends Field = Field>(key: Key, ctor: { new(...args: any[]): T }, ignoreProto: boolean = false): Opt<T> {
+        return Cast(this.Get(key, ignoreProto), ctor);
     }
 
-    GetFieldOrCreate<T extends Field>(key: Key, ctor: { new(): T }, ignoreProto: boolean = false): T {
-        const field = this.GetFieldT(key, ctor, ignoreProto);
+    GetOrCreate<T extends Field>(key: Key, ctor: { new(): T }, ignoreProto: boolean = false): T {
+        const field = this.GetT(key, ctor, ignoreProto);
         if (field) {
             return field;
         }
         const newField = new ctor();
-        this.SetField(key, newField);
+        this.Set(key, newField);
         return newField;
     }
 
-    GetFieldValue<T, U extends { Data: T }>(key: Key, ctor: { new(): U }, defaultVal: T): T {
-        let val = this.GetField(key);
+    GetData<T, U extends Field & { Data: T }>(key: Key, ctor: { new(): U }, defaultVal: T): T {
+        let val = this.Get(key);
         let vval = (val && val instanceof ctor) ? val.Data : defaultVal;
         return vval;
     }
 
-    GetNumberField(key: Key, defaultVal: number): number {
-        return this.GetFieldValue(key, NumberField, defaultVal);
+    GetNumber(key: Key, defaultVal: number): number {
+        return this.GetData(key, NumberField, defaultVal);
     }
 
-    GetTextField(key: Key, defaultVal: string): string {
-        return this.GetFieldValue(key, TextField, defaultVal);
+    GetText(key: Key, defaultVal: string): string {
+        return this.GetData(key, TextField, defaultVal);
     }
 
-    GetListField<T extends Field>(key: Key, defaultVal: T[]): T[] {
-        return this.GetFieldValue<T[], ListField<T>>(key, ListField, defaultVal)
+    GetList<T extends Field>(key: Key, defaultVal: T[]): T[] {
+        return this.GetData<T[], ListField<T>>(key, ListField, defaultVal)
     }
 
-    SetField(key: Key, field: Field | undefined): void {
+    Set(key: Key, field: Field | undefined): void {
         if (field) {
             this.fields.set(key, field);
         } else {
@@ -72,23 +74,44 @@ export class Document extends Field {
         }
     }
 
-    SetFieldValue<T extends Field>(key: Key, value: any, ctor: { new(): T }): boolean {
-        let field = this.GetField(key, true);
+    SetData<T, U extends Field & { Data: T }>(key: Key, value: T, ctor: { new(): U }, replaceWrongType = true) {
+        let field = this.Get(key, true);
+        if (field instanceof ctor) {
+            field.Data = value;
+        } else if (!field || replaceWrongType) {
+            let newField = new ctor();
+            newField.Data = value;
+            this.Set(key, newField);
+        }
+    }
+
+    SetVal<T extends Field>(key: Key, value: any, ctor: { new(): T }, replaceWrongType = true): boolean {
+        let field = this.Get(key, true);
         if (field != null) {
             return field.TrySetValue(value);
-        } else {
+        } else if (field && replaceWrongType) {
             field = new ctor();
             if (field.TrySetValue(value)) {
-                this.SetField(key, field);
+                this.Set(key, field);
                 return true;
             } else {
                 return false;
             }
+        } else {
+            return false;
         }
     }
 
+    SetText(key: Key, value: string, replaceWrongType = true) {
+        this.SetData(key, value, TextField, replaceWrongType);
+    }
+
+    SetNumber(key: Key, value: number, replaceWrongType = true) {
+        this.SetData(key, value, NumberField, replaceWrongType);
+    }
+
     GetPrototype(): Opt<Document> {
-        return this.GetFieldT(KeyStore.Prototype, Document, true);
+        return this.GetT(KeyStore.Prototype, Document, true);
     }
 
     GetAllPrototypes(): Document[] {
@@ -104,7 +127,7 @@ export class Document extends Field {
     MakeDelegate(): Document {
         let delegate = new Document();
 
-        delegate.SetField(KeyStore.Prototype, this);
+        delegate.Set(KeyStore.Prototype, this);
 
         return delegate;
     }

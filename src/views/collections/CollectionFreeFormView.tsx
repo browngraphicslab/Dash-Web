@@ -39,7 +39,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
             const xOffset = de.data["xOffset"] as number || 0;
             const yOffset = de.data["yOffset"] as number || 0;
             const { scale, translateX, translateY } = Utils.GetScreenTransform(this._canvasRef.current!);
-            let sscale = this.props.ContainingDocumentView!.props.Document.GetFieldValue(KeyStore.Scale, NumberField, Number(1))
+            let sscale = this.props.ContainingDocumentView!.props.Document.GetData(KeyStore.Scale, NumberField, Number(1))
             const screenX = de.x - xOffset;
             const screenY = de.y - yOffset;
             const docX = (screenX - translateX) / sscale / scale;
@@ -95,10 +95,10 @@ export class CollectionFreeFormView extends CollectionViewBase {
             e.preventDefault();
             e.stopPropagation();
             let currScale: number = this.props.ContainingDocumentView!.ScalingToScreenSpace;
-            let x = this.props.DocumentForCollection.GetFieldValue(KeyStore.PanX, NumberField, Number(0));
-            let y = this.props.DocumentForCollection.GetFieldValue(KeyStore.PanY, NumberField, Number(0));
-            this.props.DocumentForCollection.SetFieldValue(KeyStore.PanX, x + (e.pageX - this._lastX) / currScale, NumberField);
-            this.props.DocumentForCollection.SetFieldValue(KeyStore.PanY, y + (e.pageY - this._lastY) / currScale, NumberField);
+            let x = this.props.DocumentForCollection.GetData(KeyStore.PanX, NumberField, Number(0));
+            let y = this.props.DocumentForCollection.GetData(KeyStore.PanY, NumberField, Number(0));
+            this.props.DocumentForCollection.SetData(KeyStore.PanX, x + (e.pageX - this._lastX) / currScale, NumberField);
+            this.props.DocumentForCollection.SetData(KeyStore.PanY, y + (e.pageY - this._lastY) / currScale, NumberField);
         }
         this._lastX = e.pageX;
         this._lastY = e.pageY;
@@ -118,9 +118,9 @@ export class CollectionFreeFormView extends CollectionViewBase {
         let dx = ContainerX - newContainerX;
         let dy = ContainerY - newContainerY;
 
-        this.props.DocumentForCollection.SetField(KeyStore.Scale, new NumberField(deltaScale));
-        this.props.DocumentForCollection.SetFieldValue(KeyStore.PanX, Panxx + dx, NumberField);
-        this.props.DocumentForCollection.SetFieldValue(KeyStore.PanY, Panyy + dy, NumberField);
+        this.props.DocumentForCollection.Set(KeyStore.Scale, new NumberField(deltaScale));
+        this.props.DocumentForCollection.SetData(KeyStore.PanX, Panxx + dx, NumberField);
+        this.props.DocumentForCollection.SetData(KeyStore.PanY, Panyy + dy, NumberField);
     }
 
     @action
@@ -130,8 +130,8 @@ export class CollectionFreeFormView extends CollectionViewBase {
         let fReader = new FileReader()
         let file = e.dataTransfer.items[0].getAsFile();
         let that = this;
-        const panx: number = this.props.DocumentForCollection.GetFieldValue(KeyStore.PanX, NumberField, Number(0));
-        const pany: number = this.props.DocumentForCollection.GetFieldValue(KeyStore.PanY, NumberField, Number(0));
+        const panx: number = this.props.DocumentForCollection.GetData(KeyStore.PanX, NumberField, Number(0));
+        const pany: number = this.props.DocumentForCollection.GetData(KeyStore.PanY, NumberField, Number(0));
         let x = e.pageX - panx
         let y = e.pageY - pany
 
@@ -141,10 +141,10 @@ export class CollectionFreeFormView extends CollectionViewBase {
                 let doc = Documents.ImageDocument(url, {
                     x: x, y: y
                 })
-                let docs = that.props.DocumentForCollection.GetFieldT(KeyStore.Data, ListField);
+                let docs = that.props.DocumentForCollection.GetT(KeyStore.Data, ListField);
                 if (!docs) {
                     docs = new ListField<Document>();
-                    that.props.DocumentForCollection.SetField(KeyStore.Data, docs)
+                    that.props.DocumentForCollection.Set(KeyStore.Data, docs)
                 }
                 docs.Data.push(doc);
             }
@@ -162,26 +162,26 @@ export class CollectionFreeFormView extends CollectionViewBase {
     bringToFront(doc: CollectionFreeFormDocumentView) {
         const { CollectionFieldKey: fieldKey, DocumentForCollection: Document } = this.props;
 
-        const value: Document[] = Document.GetListField<Document>(fieldKey, []);
-        var topmost = value.reduce((topmost, d) => Math.max(d.GetNumberField(KeyStore.ZIndex, 0), topmost), -1000);
+        const value: Document[] = Document.GetList<Document>(fieldKey, []);
+        var topmost = value.reduce((topmost, d) => Math.max(d.GetNumber(KeyStore.ZIndex, 0), topmost), -1000);
         value.map(d => {
-            var zind = d.GetNumberField(KeyStore.ZIndex, 0);
+            var zind = d.GetNumber(KeyStore.ZIndex, 0);
             if (zind != topmost - 1 - (topmost - zind) && d != doc.props.Document) {
-                d.SetFieldValue(KeyStore.ZIndex, topmost - 1 - (topmost - zind), NumberField);
+                d.SetData(KeyStore.ZIndex, topmost - 1 - (topmost - zind), NumberField);
             }
         })
 
-        if (doc.props.Document.GetNumberField(KeyStore.ZIndex, 0) != 0) {
-            doc.props.Document.SetFieldValue(KeyStore.ZIndex, 0, NumberField);
+        if (doc.props.Document.GetNumber(KeyStore.ZIndex, 0) != 0) {
+            doc.props.Document.SetData(KeyStore.ZIndex, 0, NumberField);
         }
     }
 
     render() {
         const { CollectionFieldKey: fieldKey, DocumentForCollection: Document } = this.props;
-        const value: Document[] = Document.GetListField<Document>(fieldKey, []);
-        const panx: number = Document.GetNumberField(KeyStore.PanX, 0);
-        const pany: number = Document.GetNumberField(KeyStore.PanY, 0);
-        const currScale: number = Document.GetNumberField(KeyStore.Scale, 1);
+        const value: Document[] = Document.GetList<Document>(fieldKey, []);
+        const panx: number = Document.GetNumber(KeyStore.PanX, 0);
+        const pany: number = Document.GetNumber(KeyStore.PanY, 0);
+        const currScale: number = Document.GetNumber(KeyStore.Scale, 1);
 
         return (
             <div className="border" style={{

@@ -50,7 +50,7 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
             const state = this._editorView.state.apply(tx);
             this._editorView.updateState(state);
             const { doc, fieldKey } = this.props;
-            doc.SetFieldValue(fieldKey, JSON.stringify(state.toJSON()), RichTextField);
+            doc.SetData(fieldKey, JSON.stringify(state.toJSON()), RichTextField);
         }
     }
 
@@ -66,7 +66,7 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
             ]
         };
 
-        let field = doc.GetFieldT(fieldKey, RichTextField);
+        let field = doc.GetT(fieldKey, RichTextField);
         if (field) {
             state = EditorState.fromJSON(config, JSON.parse(field.Data));
         } else {
@@ -80,7 +80,7 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
         }
 
         this._reactionDisposer = reaction(() => {
-            const field = this.props.doc.GetFieldT(this.props.fieldKey, RichTextField);
+            const field = this.props.doc.GetT(this.props.fieldKey, RichTextField);
             return field ? field.Data : undefined;
         }, (field) => {
             if (field && this._editorView) {
@@ -105,7 +105,7 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
     @action
     onChange(e: React.ChangeEvent<HTMLInputElement>) {
         const { fieldKey, doc } = this.props;
-        doc.SetFieldValue(fieldKey, e.target.value, RichTextField);
+        doc.SetData(fieldKey, e.target.value, RichTextField);
     }
     onPointerDown = (e: React.PointerEvent): void => {
         let me = this;

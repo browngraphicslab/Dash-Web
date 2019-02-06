@@ -59,7 +59,7 @@ export class ImageBox extends React.Component<FieldViewProps, ImageBoxState> {
     }
 
     render() {
-        let field = this.props.doc.GetFieldT(this.props.fieldKey, ImageField);
+        let field = this.props.doc.GetT(this.props.fieldKey, ImageField);
         let path = "";
         if (field) {
             path = field.Data.href;

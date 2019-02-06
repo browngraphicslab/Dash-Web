@@ -16,7 +16,7 @@ export class DocumentReference extends Field {
     }
 
     Dereference(): Opt<Field> {
-        return this.document.GetField(this.key);
+        return this.document.Get(this.key);
     }
 
     DereferenceToRoot(): Opt<Field> {

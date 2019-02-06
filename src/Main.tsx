@@ -41,16 +41,16 @@ document.addEventListener("pointerdown", action(function (e: PointerEvent) {
 {
     let doc1 = Documents.TextDocument({ title: "hello" });
     let doc2 = doc1.MakeDelegate();
-    doc2.SetField(KS.X, new NumberField(150));
-    doc2.SetField(KS.Y, new NumberField(20));
+    doc2.Set(KS.X, new NumberField(150));
+    doc2.Set(KS.Y, new NumberField(20));
     let doc3 = Documents.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", {
         x: 450, y: 500, title: "cat 1"
     });
     const schemaDocs = Array.from(Array(5).keys()).map(v => Documents.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", {
         x: 50 + 100 * v, y: 50, width: 100, height: 100, title: "cat" + v
     }));
-    schemaDocs[0].SetFieldValue(KS.Author, "Tyler", TextField);
-    schemaDocs[4].SetFieldValue(KS.Author, "Bob", TextField);
+    schemaDocs[0].SetData(KS.Author, "Tyler", TextField);
+    schemaDocs[4].SetData(KS.Author, "Bob", TextField);
     schemaDocs.push(doc2);
     const doc7 = Documents.SchemaDocument(schemaDocs)
     const docset = [doc1, doc2, doc3, doc7];
@@ -76,7 +76,7 @@ document.addEventListener("pointerdown", action(function (e: PointerEvent) {
     // mainNodes.Data.push(doc1);
     //mainNodes.Data.push(doc2);
     mainNodes.Data.push(doc6);
-    mainContainer.SetField(KeyStore.Data, mainNodes);
+    mainContainer.Set(KeyStore.Data, mainNodes);
 }
 //}
 //);

@@ -69,8 +69,8 @@ export class CollectionSchemaView extends CollectionViewBase {
 
     render() {
         const { DocumentForCollection: Document, CollectionFieldKey: fieldKey } = this.props;
-        const children = Document.GetListField<Document>(fieldKey, []);
-        const columns = Document.GetListField(KS.ColumnsKey,
+        const children = Document.GetList<Document>(fieldKey, []);
+        const columns = Document.GetList(KS.ColumnsKey,
             [KS.Title, KS.Data, KS.Author])
         let content;
         if (this.selectedIndex != -1) {

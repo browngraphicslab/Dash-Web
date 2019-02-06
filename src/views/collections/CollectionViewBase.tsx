@@ -38,14 +38,14 @@ export class CollectionViewBase extends React.Component<CollectionViewProps> {
     @action
     addDocument = (doc: Document): void => {
         //TODO This won't create the field if it doesn't already exist
-        const value = this.props.DocumentForCollection.GetFieldValue(this.props.CollectionFieldKey, ListField, new Array<Document>())
+        const value = this.props.DocumentForCollection.GetData(this.props.CollectionFieldKey, ListField, new Array<Document>())
         value.push(doc);
     }
 
     @action
     removeDocument = (doc: Document): void => {
         //TODO This won't create the field if it doesn't already exist
-        const value = this.props.DocumentForCollection.GetFieldValue(this.props.CollectionFieldKey, ListField, new Array<Document>())
+        const value = this.props.DocumentForCollection.GetData(this.props.CollectionFieldKey, ListField, new Array<Document>())
         if (value.indexOf(doc) !== -1) {
             value.splice(value.indexOf(doc), 1)
 

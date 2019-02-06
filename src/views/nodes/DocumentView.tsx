@@ -31,17 +31,17 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     }
     @computed
     get layout(): string {
-        return this.props.Document.GetFieldValue(KeyStore.Layout, TextField, String("<p>Error loading layout data</p>"));
+        return this.props.Document.GetData(KeyStore.Layout, TextField, String("<p>Error loading layout data</p>"));
     }
 
     @computed
     get layoutKeys(): Key[] {
-        return this.props.Document.GetFieldValue(KeyStore.LayoutKeys, ListField, new Array<Key>());
+        return this.props.Document.GetData(KeyStore.LayoutKeys, ListField, new Array<Key>());
     }
 
     @computed
     get layoutFields(): Key[] {
-        return this.props.Document.GetFieldValue(KeyStore.LayoutFields, ListField, new Array<Key>());
+        return this.props.Document.GetData(KeyStore.LayoutFields, ListField, new Array<Key>());
     }
 
     // 
@@ -50,7 +50,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     @computed
     public get ScalingToScreenSpace(): number {
         if (this.props.ContainingCollectionView != undefined && this.props.ContainingCollectionView.props.ContainingDocumentView != undefined) {
-            let ss = this.props.ContainingCollectionView.props.DocumentForCollection.GetFieldValue(KeyStore.Scale, NumberField, Number(1));
+            let ss = this.props.ContainingCollectionView.props.DocumentForCollection.GetData(KeyStore.Scale, NumberField, Number(1));
             return this.props.ContainingCollectionView.props.ContainingDocumentView.ScalingToScreenSpace * ss;
         }
         return 1;
@@ -68,8 +68,8 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         let ContainerX: number = parentX - COLLECTION_BORDER_WIDTH;
         let ContainerY: number = parentY - COLLECTION_BORDER_WIDTH;
 
-        var Xx = this.props.Document.GetFieldValue(KeyStore.X, NumberField, Number(0));
-        var Yy = this.props.Document.GetFieldValue(KeyStore.Y, NumberField, Number(0));
+        var Xx = this.props.Document.GetData(KeyStore.X, NumberField, Number(0));
+        var Yy = this.props.Document.GetData(KeyStore.Y, NumberField, Number(0));
         // CollectionDockingViews change the location of their children frames without using a Dash transformation.
         // They also ignore any transformation that may have been applied to their content document.
         // NOTE: this currently assumes CollectionDockingViews aren't nested.
@@ -79,9 +79,9 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             Yy = ry - COLLECTION_BORDER_WIDTH;
         }
 
-        let Ss = this.props.Document.GetFieldValue(KeyStore.Scale, NumberField, Number(1));
-        let Panxx = this.props.Document.GetFieldValue(KeyStore.PanX, NumberField, Number(0));
-        let Panyy = this.props.Document.GetFieldValue(KeyStore.PanY, NumberField, Number(0));
+        let Ss = this.props.Document.GetData(KeyStore.Scale, NumberField, Number(1));
+        let Panxx = this.props.Document.GetData(KeyStore.PanX, NumberField, Number(0));
+        let Panyy = this.props.Document.GetData(KeyStore.PanY, NumberField, Number(0));
         let LocalX = (ContainerX - (Xx + Panxx)) / Ss;
         let LocalY = (ContainerY - (Yy + Panyy)) / Ss;
 
@@ -93,8 +93,8 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     //
     public TransformToScreenPoint(localX: number, localY: number, Ss: number = 1, Panxx: number = 0, Panyy: number = 0): { ScreenX: number, ScreenY: number } {
 
-        var Xx = this.props.Document.GetFieldValue(KeyStore.X, NumberField, Number(0));
-        var Yy = this.props.Document.GetFieldValue(KeyStore.Y, NumberField, Number(0));
+        var Xx = this.props.Document.GetData(KeyStore.X, NumberField, Number(0));
+        var Yy = this.props.Document.GetData(KeyStore.Y, NumberField, Number(0));
         // CollectionDockingViews change the location of their children frames without using a Dash transformation.
         // They also ignore any transformation that may have been applied to their content document.
         // NOTE: this currently assumes CollectionDockingViews aren't nested.
@@ -113,9 +113,9 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         // first transform the local point into the parent collection's coordinate space.
         let containingDocView = this.props.ContainingCollectionView != undefined ? this.props.ContainingCollectionView.props.ContainingDocumentView : undefined;
         if (containingDocView != undefined) {
-            let ss = containingDocView.props.Document.GetFieldValue(KeyStore.Scale, NumberField, Number(1));
-            let panxx = containingDocView.props.Document.GetFieldValue(KeyStore.PanX, NumberField, Number(0)) + COLLECTION_BORDER_WIDTH * ss;
-            let panyy = containingDocView.props.Document.GetFieldValue(KeyStore.PanY, NumberField, Number(0)) + COLLECTION_BORDER_WIDTH * ss;
+            let ss = containingDocView.props.Document.GetData(KeyStore.Scale, NumberField, Number(1));
+            let panxx = containingDocView.props.Document.GetData(KeyStore.PanX, NumberField, Number(0)) + COLLECTION_BORDER_WIDTH * ss;
+            let panyy = containingDocView.props.Document.GetData(KeyStore.PanY, NumberField, Number(0)) + COLLECTION_BORDER_WIDTH * ss;
             let { ScreenX, ScreenY } = containingDocView.TransformToScreenPoint(parentX, parentY, ss, panxx, panyy);
             parentX = ScreenX;
             parentY = ScreenY;
@@ -133,7 +133,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         if (bindings.DocumentView === undefined)
             bindings.DocumentView = this;
         for (const key of this.layoutFields) {
-            let field = doc.GetField(key);
+            let field = doc.Get(key);
             if (field) {
                 bindings[key.Name] = field.GetValue();
             }

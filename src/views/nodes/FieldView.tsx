@@ -29,7 +29,7 @@ export class FieldView extends React.Component<FieldViewProps> {
     @computed
     get field(): Opt<Field> {
         const { doc, fieldKey } = this.props;
-        return doc.GetField(fieldKey);
+        return doc.Get(fieldKey);
     }
     render() {
         const field = this.field;
