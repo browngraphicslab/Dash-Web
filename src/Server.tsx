@@ -1,11 +1,11 @@
-import { Field, FieldWaiting, FIELD_ID, DOC_ID, FIELD_WAITING } from "./fields/Field"
+import { Field, FieldWaiting, FIELD_ID, FIELD_WAITING } from "./fields/Field"
 import { Key, KeyStore } from "./fields/Key"
 import { ObservableMap, action } from "mobx";
 import { Document } from "./fields/Document"
 import { SocketStub } from "./SocketStub";
 
 export class Server {
-    private static ClientFieldsCached: ObservableMap<DOC_ID, Field | FIELD_WAITING> = new ObservableMap();
+    private static ClientFieldsCached: ObservableMap<FIELD_ID, Field | FIELD_WAITING> = new ObservableMap();
 
     // Retrieves the cached value of the field and sends a request to the server for the real value (if it's not cached).
     // Call this is from within a reaction and test whether the return value is FieldWaiting.
@@ -25,14 +25,14 @@ export class Server {
 
     static times = 0; // hack for testing
     public static GetDocumentField(doc: Document, key: Key) {
-        var timeoutHack: number = key == KeyStore.Data ? (this.times++ == 0 ? 5000 : 1000) : key == KeyStore.X ? 2500 : 500;
+        var hackTimeout: number = key == KeyStore.Data ? (this.times++ == 0 ? 5000 : 1000) : key == KeyStore.X ? 2500 : 500;
 
         var field = this.GetField(doc._proxies.get(key),
             action((fieldfromserver: Field) => {
                 doc._proxies.delete(key);
                 doc.fields.set(key, this.cacheField(fieldfromserver));
             })
-            , timeoutHack);
+            , hackTimeout);
         if (field != FieldWaiting) {
             doc._proxies.delete(key); // perhaps another document inquired the same field 
         }

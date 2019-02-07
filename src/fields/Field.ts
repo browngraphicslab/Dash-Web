@@ -13,7 +13,6 @@ export function Cast<T extends Field>(field: Opt<Field>, ctor: { new(): T }): Op
 export let FieldWaiting: FIELD_WAITING = "<Waiting>";
 export type FIELD_WAITING = "<Waiting>";
 export type FIELD_ID = string | undefined;
-export type DOC_ID = FIELD_ID;
 export type Opt<T> = T | undefined | FIELD_WAITING;
 
 export abstract class Field {

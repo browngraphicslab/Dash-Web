@@ -1,4 +1,4 @@
-import { Field, FieldWaiting, FIELD_ID, DOC_ID, FIELD_WAITING } from "./fields/Field"
+import { Field, FIELD_ID } from "./fields/Field"
 import { Key, KeyStore } from "./fields/Key"
 import { ObservableMap, action } from "mobx";
 import { Document } from "./fields/Document"
