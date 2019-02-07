@@ -11,14 +11,14 @@ export class Server {
     // Call this is from within a reaction and test whether the return value is FieldWaiting.
     // 'hackTimeout' is here temporarily for simplicity when debugging things.
     public static GetField(fieldid: FIELD_ID, callback: (field: Field) => void = (f) => { }, hackTimeout: number = -1) {
-        if (!this.ClientFieldsCached.has(fieldid)) {
+        if (!this.ClientFieldsCached.get(fieldid)) {
             this.ClientFieldsCached.set(fieldid, FieldWaiting);
             //simulating a server call with a registered callback action
             SocketStub.SEND_FIELD_REQUEST(fieldid,
-                action((field: Field) => {
-                    Server.cacheField(field);
-                    callback(field);
-                }), hackTimeout);
+                action((field: Field) => callback(Server.cacheField(field))),
+                hackTimeout);
+        } else if (this.ClientFieldsCached.get(fieldid) != FieldWaiting) {
+            callback(this.ClientFieldsCached.get(fieldid) as Field);
         }
         return this.ClientFieldsCached.get(fieldid);
     }
@@ -27,16 +27,12 @@ export class Server {
     public static GetDocumentField(doc: Document, key: Key) {
         var hackTimeout: number = key == KeyStore.Data ? (this.times++ == 0 ? 5000 : 1000) : key == KeyStore.X ? 2500 : 500;
 
-        var field = this.GetField(doc._proxies.get(key),
+        return this.GetField(doc._proxies.get(key),
             action((fieldfromserver: Field) => {
                 doc._proxies.delete(key);
-                doc.fields.set(key, this.cacheField(fieldfromserver));
+                doc.fields.set(key, fieldfromserver);
             })
             , hackTimeout);
-        if (field != FieldWaiting) {
-            doc._proxies.delete(key); // perhaps another document inquired the same field 
-        }
-        return field;
     }
 
     public static AddDocument(document: Document) {
