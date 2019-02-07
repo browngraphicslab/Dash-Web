@@ -141,6 +141,10 @@ export class Document extends Field {
         return delegate;
     }
 
+    ToScriptString(): string {
+        return "";
+    }
+
     TrySetValue(value: any): boolean {
         throw new Error("Method not implemented.");
     }

@@ -47,6 +47,8 @@ export abstract class Field {
         return this.id === other.id;
     }
 
+    abstract ToScriptString(): string;
+
     abstract TrySetValue(value: any): boolean;
 
     abstract GetValue(): any;
