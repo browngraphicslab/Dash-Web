@@ -85,7 +85,7 @@ export class CollectionFreeFormDocumentView extends DocumentView {
     @computed
     get active(): boolean {
         return SelectionManager.IsSelected(this) || this.props.ContainingCollectionView === undefined ||
-            this.props.ContainingCollectionView!.active;
+            this.props.ContainingCollectionView.active;
     }
 
     @computed
