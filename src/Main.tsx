@@ -13,6 +13,7 @@ import "./Main.scss";
 import { ContextMenu } from './views/ContextMenu';
 import { DocumentView } from './views/nodes/DocumentView';
 import { CompileScript } from './util/Scripting';
+import { ImageField } from './fields/ImageField';
 
 
 configure({
@@ -46,6 +47,7 @@ document.addEventListener("pointerdown", action(function (e: PointerEvent) {
     let doc3 = Documents.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", {
         x: 450, y: 500, title: "cat 1"
     });
+    doc3.Set(KeyStore.Data, new ImageField);
     const schemaDocs = Array.from(Array(5).keys()).map(v => Documents.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", {
         x: 50 + 100 * v, y: 50, width: 100, height: 100, title: "cat" + v
     }));
