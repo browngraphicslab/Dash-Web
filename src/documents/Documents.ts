@@ -123,7 +123,7 @@ export namespace Documents {
             Server.AddDocument(imageProto);
             return imageProto;
         }
-        return Server.GetDocument(imageProtoId, true)!;
+        return Server.GetField(imageProtoId) as Document;
     }
 
     export function ImageDocument(url: string, options: DocumentOptions = {}): Document {
@@ -131,7 +131,8 @@ export namespace Documents {
         setupOptions(doc, options);
         doc.Set(KeyStore.Data, new ImageField(new URL(url)));
         Server.AddDocument(doc);
-        return Server.GetDocument(doc.Id, true)!;
+        var sdoc = Server.GetField(doc.Id) as Document;
+        return sdoc;
     }
 
     let collectionProto: Document;
