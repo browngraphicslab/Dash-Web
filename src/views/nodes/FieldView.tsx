@@ -2,7 +2,7 @@ import React = require("react")
 import { Document } from "../../fields/Document";
 import { observer } from "mobx-react";
 import { computed } from "mobx";
-import { Field, Opt, FieldWaiting } from "../../fields/Field";
+import { Field, Opt, FieldWaiting, FieldValue } from "../../fields/Field";
 import { TextField } from "../../fields/TextField";
 import { NumberField } from "../../fields/NumberField";
 import { RichTextField } from "../../fields/RichTextField";
@@ -27,7 +27,7 @@ export interface FieldViewProps {
 export class FieldView extends React.Component<FieldViewProps> {
     public static LayoutString(fieldType: string) { return `<${fieldType} doc={Document} DocumentViewForField={DocumentView} fieldKey={DataKey} />`; }
     @computed
-    get field(): Opt<Field> {
+    get field(): FieldValue<Field> {
         const { doc, fieldKey } = this.props;
         return doc.Get(fieldKey);
     }

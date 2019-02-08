@@ -10,6 +10,10 @@ export class ImageField extends BasicField<URL> {
         return this.Data.href;
     }
 
+    ToScriptString(): string {
+        return `new ImageField(${this.Data})`;
+    }
+
     Copy(): Field {
         return new ImageField(this.Data);
     }

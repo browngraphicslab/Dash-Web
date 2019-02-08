@@ -33,23 +33,21 @@ export class CollectionFreeFormView extends CollectionViewBase {
         const doc = de.data["document"];
         var me = this;
         if (doc instanceof CollectionFreeFormDocumentView) {
-            if (doc.props.ContainingCollectionView && doc.props.ContainingCollectionView !== this && doc.props.ContainingCollectionView != FieldWaiting) {
+            if (doc.props.ContainingCollectionView && doc.props.ContainingCollectionView !== this) {
                 doc.props.ContainingCollectionView.removeDocument(doc.props.Document);
                 this.addDocument(doc.props.Document);
             }
             const xOffset = de.data["xOffset"] as number || 0;
             const yOffset = de.data["yOffset"] as number || 0;
             const { scale, translateX, translateY } = Utils.GetScreenTransform(this._canvasRef.current!);
-            if (this.props.ContainingDocumentView != FieldWaiting) {
-                let sscale = this.props.ContainingDocumentView!.props.Document.GetData(KeyStore.Scale, NumberField, Number(1))
-                const screenX = de.x - xOffset;
-                const screenY = de.y - yOffset;
-                const docX = (screenX - translateX) / sscale / scale;
-                const docY = (screenY - translateY) / sscale / scale;
-                doc.x = docX;
-                doc.y = docY;
-                this.bringToFront(doc);
-            }
+            let sscale = this.props.ContainingDocumentView!.props.Document.GetData(KeyStore.Scale, NumberField, Number(1))
+            const screenX = de.x - xOffset;
+            const screenY = de.y - yOffset;
+            const docX = (screenX - translateX) / sscale / scale;
+            const docY = (screenY - translateY) / sscale / scale;
+            doc.x = docX;
+            doc.y = docY;
+            this.bringToFront(doc);
         }
         e.stopPropagation();
     }
@@ -88,7 +86,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
     @action
     onPointerMove = (e: PointerEvent): void => {
         var me = this;
-        if (!e.cancelBubble && this.active && this.props.ContainingDocumentView != FieldWaiting) {
+        if (!e.cancelBubble && this.active) {
             e.preventDefault();
             e.stopPropagation();
             let currScale: number = this.props.ContainingDocumentView!.ScalingToScreenSpace;
@@ -105,8 +103,6 @@ export class CollectionFreeFormView extends CollectionViewBase {
     onPointerWheel = (e: React.WheelEvent): void => {
         e.stopPropagation();
 
-        if (this.props.ContainingDocumentView == FieldWaiting)
-            return;
         let { LocalX, Ss, Panxx, Xx, LocalY, Panyy, Yy, ContainerX, ContainerY } = this.props.ContainingDocumentView!.TransformToLocalPoint(e.pageX, e.pageY);
 
         var deltaScale = (1 - (e.deltaY / 1000)) * Ss;
