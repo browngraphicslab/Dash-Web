@@ -12,7 +12,7 @@ import { ScrollBox } from "../../util/ScrollBox";
 import { CollectionViewBase } from "./CollectionViewBase";
 import { DocumentView } from "../nodes/DocumentView";
 import { EditableView } from "../EditableView";
-import { CompileScript } from "../../util/Scripting";
+import { CompileScript, ToField } from "../../util/Scripting";
 import { Field } from "../../fields/Field";
 
 @observer
@@ -47,6 +47,12 @@ export class CollectionSchemaView extends CollectionViewBase {
                 if (field instanceof Field) {
                     props.doc.Set(props.fieldKey, field);
                     return true;
+                } else {
+                    let dataField = ToField(field);
+                    if (dataField) {
+                        props.doc.Set(props.fieldKey, dataField);
+                        return true;
+                    }
                 }
                 return false;
             }}></EditableView>

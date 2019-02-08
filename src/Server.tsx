@@ -1,4 +1,4 @@
-import { Field, FieldWaiting, FIELD_ID, DOC_ID, FIELD_WAITING } from "./fields/Field"
+import { Field, FieldWaiting, FIELD_ID, DOC_ID, FIELD_WAITING, FieldValue } from "./fields/Field"
 import { Key, KeyStore } from "./fields/Key"
 import { ObservableMap, computed, action, observable } from "mobx";
 import { Document } from "./fields/Document"
@@ -44,7 +44,7 @@ export class Server {
 
 
     @action
-    public static GetDocumentField(doc: Document, key: Key) {
+    public static GetDocumentField(doc: Document, key: Key): FieldValue<Field> {
         var fieldid = doc._proxies.get(key);
         if (!this.ClientFieldsCached.has(fieldid)) {
             this.ClientFieldsCached.set(fieldid, FieldWaiting);
@@ -72,8 +72,8 @@ export class Server {
 
     public static SEND_DOCUMENT_FIELD_REQUEST(doc: Document, key: Key, fieldid: FIELD_ID) {
         //simulating a server call with a registered callback action
-        setTimeout(() => this.receivedDocumentField(doc, key, fieldid, this.FieldStore.get(fieldid)),
-            key == KeyStore.Data ? (this.times++ == 0 ? 5000 : 1000) : key == KeyStore.X ? 2500 : 500
+        setTimeout(() => this.receivedDocumentField(doc, key, fieldid, this.FieldStore.get(fieldid)), 50
+            // key == KeyStore.Data ? (this.times++ == 0 ? 5000 : 1000) : key == KeyStore.X ? 2500 : 500
         )
     }
 
@@ -82,7 +82,7 @@ export class Server {
             this.receivedDocument(docid, this.DocumentStore.get(docid)!)
         } else {
             //simulating a server call with a registered callback action
-            setTimeout(() => this.receivedDocument(docid, this.DocumentStore.get(docid)!), 1500);
+            setTimeout(() => this.receivedDocument(docid, this.DocumentStore.get(docid)!), 50);
         }
     }
 

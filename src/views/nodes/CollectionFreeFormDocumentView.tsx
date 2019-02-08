@@ -10,7 +10,6 @@ import { ContextMenu } from "../ContextMenu";
 import "./NodeView.scss";
 import React = require("react");
 import { DocumentView, DocumentViewProps } from "./DocumentView";
-import { FieldWaiting } from "../../fields/Field";
 
 
 @observer
@@ -86,7 +85,7 @@ export class CollectionFreeFormDocumentView extends DocumentView {
     @computed
     get active(): boolean {
         return SelectionManager.IsSelected(this) || this.props.ContainingCollectionView === undefined ||
-            (this.props.ContainingCollectionView != FieldWaiting && this.props.ContainingCollectionView!.active);
+            this.props.ContainingCollectionView!.active;
     }
 
     @computed

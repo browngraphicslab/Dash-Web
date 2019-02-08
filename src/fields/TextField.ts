@@ -5,6 +5,10 @@ export class TextField extends BasicField<string> {
         super(data);
     }
 
+    ToScriptString(): string {
+        return `new TextField("${this.Data}")`;
+    }
+
     Copy() {
         return new TextField(this.Data);
     }
