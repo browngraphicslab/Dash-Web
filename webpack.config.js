@@ -9,7 +9,10 @@ module.exports = {
   devtool: "source-map",
   node: {
     fs: 'empty',
-    module: 'empty'
+    module: 'empty',
+    dns: 'mock',
+    tls: 'mock',
+    net: 'mock'
   },
   output: {
     filename: "./bundle.js",

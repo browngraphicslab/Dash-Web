@@ -14,6 +14,7 @@ import { ContextMenu } from './views/ContextMenu';
 import { DocumentView } from './views/nodes/DocumentView';
 import { CompileScript } from './util/Scripting';
 import { ImageField } from './fields/ImageField';
+import { database } from './database';
 
 
 configure({
@@ -40,6 +41,8 @@ document.addEventListener("pointerdown", action(function (e: PointerEvent) {
 
 //runInAction(() => 
 {
+    let db = new database();
+    db.update('1', '2', '3');
     let doc1 = Documents.TextDocument({ title: "hello" });
     let doc2 = doc1.MakeDelegate();
     doc2.Set(KS.X, new NumberField(150));

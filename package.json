@@ -29,6 +29,7 @@
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^1.2.14",
     "@types/jquery": "^3.3.29",
+    "@types/mongodb": "^3.1.19",
     "@types/prosemirror-commands": "^1.0.1",
     "@types/prosemirror-history": "^1.0.1",
     "@types/prosemirror-keymap": "^1.0.1",
@@ -45,6 +46,7 @@
     "mobx": "^5.9.0",
     "mobx-react": "^5.3.5",
     "mobx-react-devtools": "^6.0.3",
+    "mongodb": "^3.1.13",
     "node-sass": "^4.11.0",
     "normalize.css": "^8.0.1",
     "npm": "^6.7.0",
