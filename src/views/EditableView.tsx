@@ -25,7 +25,8 @@ export class EditableView extends React.Component<EditableProps> {
 
     render() {
         if (this.editing) {
-            return <input defaultValue={this.props.GetValue()} onKeyDown={this.onKeyDown} autoFocus onBlur={action(() => this.editing = false)}></input>
+            return <input defaultValue={this.props.GetValue()} onKeyDown={this.onKeyDown} autoFocus onBlur={action(() => this.editing = false)}
+                style={{ width: "100%" }}></input>
         } else {
             return (
                 <div>
