@@ -3,7 +3,6 @@ var webpack = require('webpack');
 const CopyWebpackPlugin = require("copy-webpack-plugin");
 
 module.exports = {
-  devtool: 'eval',
   mode: 'development',
   entry: "./src/client/views/Main.tsx",
   devtool: "source-map",
