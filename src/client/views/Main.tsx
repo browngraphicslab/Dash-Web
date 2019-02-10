@@ -44,7 +44,7 @@ document.addEventListener("pointerdown", action(function (e: PointerEvent) {
     doc2.Set(KS.X, new NumberField(150));
     doc2.Set(KS.Y, new NumberField(20));
     let doc3 = Documents.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", {
-        x: 450, y: 500, title: "cat 1"
+        x: 450, y: 100, title: "cat 1"
     });
     doc3.Set(KeyStore.Data, new ImageField);
     const schemaDocs = Array.from(Array(5).keys()).map(v => Documents.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", {

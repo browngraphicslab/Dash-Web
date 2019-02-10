@@ -2,6 +2,7 @@ import * as express from 'express'
 const app = express()
 import * as webpack from 'webpack'
 import * as wdm from 'webpack-dev-middleware';
+import * as whm from 'webpack-hot-middleware';
 import * as path from 'path'
 const config = require('../../webpack.config')
 const compiler = webpack(config)
@@ -19,6 +20,8 @@ app.get("/hello", (req, res) => {
 app.use(wdm(compiler, {
     publicPath: config.output.publicPath
 }))
+
+app.use(whm(compiler))
 
 // start the Express server
 app.listen(port, () => {
