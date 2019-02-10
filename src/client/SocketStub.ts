@@ -1,7 +1,7 @@
-import { Field, FIELD_ID } from "./fields/Field"
-import { Key, KeyStore } from "./fields/Key"
+import { Field, FIELD_ID } from "../fields/Field"
+import { Key, KeyStore } from "../fields/Key"
 import { ObservableMap, action } from "mobx";
-import { Document } from "./fields/Document"
+import { Document } from "../fields/Document"
 
 export class SocketStub {
 

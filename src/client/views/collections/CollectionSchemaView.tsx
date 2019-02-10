@@ -1,8 +1,6 @@
 import React = require("react")
 import ReactTable, { ReactTableDefaults, CellInfo, ComponentPropsGetterRC, ComponentPropsGetterR } from "react-table";
 import { observer } from "mobx-react";
-import { KeyStore as KS, Key } from "../../fields/Key";
-import { Document } from "../../fields/Document";
 import { FieldView, FieldViewProps } from "../nodes/FieldView";
 import "react-table/react-table.css"
 import { observable, action, computed } from "mobx";
@@ -13,7 +11,9 @@ import { CollectionViewBase } from "./CollectionViewBase";
 import { DocumentView } from "../nodes/DocumentView";
 import { EditableView } from "../EditableView";
 import { CompileScript, ToField } from "../../util/Scripting";
-import { Field } from "../../fields/Field";
+import { KeyStore as KS, Key } from "../../../fields/Key";
+import { Document } from "../../../fields/Document";
+import { Field } from "../../../fields/Field";
 
 @observer
 export class CollectionSchemaView extends CollectionViewBase {

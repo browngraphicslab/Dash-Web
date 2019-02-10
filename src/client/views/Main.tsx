@@ -3,17 +3,16 @@ import "normalize.css";
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import { DocumentDecorations } from './DocumentDecorations';
-import { Documents } from './documents/Documents';
-import { Document } from './fields/Document';
-import { KeyStore, KeyStore as KS } from './fields/Key';
-import { ListField } from './fields/ListField';
-import { NumberField } from './fields/NumberField';
-import { TextField } from './fields/TextField';
+import { Documents } from '../documents/Documents';
+import { Document } from '../../fields/Document';
+import { KeyStore, KeyStore as KS } from '../../fields/Key';
+import { ListField } from '../../fields/ListField';
+import { NumberField } from '../../fields/NumberField';
+import { TextField } from '../../fields/TextField';
 import "./Main.scss";
-import { ContextMenu } from './views/ContextMenu';
-import { DocumentView } from './views/nodes/DocumentView';
-import { CompileScript } from './util/Scripting';
-import { ImageField } from './fields/ImageField';
+import { ContextMenu } from './ContextMenu';
+import { DocumentView } from './nodes/DocumentView';
+import { ImageField } from '../../fields/ImageField';
 
 
 configure({

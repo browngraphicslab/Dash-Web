@@ -1,15 +1,15 @@
 import React = require("react")
-import { Document } from "../../fields/Document";
 import { observer } from "mobx-react";
 import { computed } from "mobx";
-import { Field, Opt, FieldWaiting, FieldValue } from "../../fields/Field";
-import { TextField } from "../../fields/TextField";
-import { NumberField } from "../../fields/NumberField";
-import { RichTextField } from "../../fields/RichTextField";
+import { Field, Opt, FieldWaiting, FieldValue } from "../../../fields/Field";
+import { Document } from "../../../fields/Document";
+import { TextField } from "../../../fields/TextField";
+import { NumberField } from "../../../fields/NumberField";
+import { RichTextField } from "../../../fields/RichTextField";
+import { ImageField } from "../../../fields/ImageField";
+import { Key } from "../../../fields/Key";
 import { FormattedTextBox } from "./FormattedTextBox";
-import { ImageField } from "../../fields/ImageField";
 import { ImageBox } from "./ImageBox";
-import { Key } from "../../fields/Key";
 import { DocumentView } from "./DocumentView";
 
 //

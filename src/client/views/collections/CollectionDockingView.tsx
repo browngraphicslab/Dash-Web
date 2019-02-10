@@ -1,13 +1,12 @@
 import { observer } from "mobx-react";
-import { KeyStore } from "../../fields/Key";
+import { KeyStore } from "../../../fields/Key";
 import React = require("react");
 import FlexLayout from "flexlayout-react";
 import { action, observable, computed } from "mobx";
-import { Document } from "../../fields/Document";
+import { Document } from "../../../fields/Document";
 import { DocumentView } from "../nodes/DocumentView";
-import { ListField } from "../../fields/ListField";
-import { NumberField } from "../../fields/NumberField";
-import { SSL_OP_SINGLE_DH_USE } from "constants";
+import { ListField } from "../../../fields/ListField";
+import { NumberField } from "../../../fields/NumberField";
 import "./CollectionDockingView.scss"
 import 'golden-layout/src/css/goldenlayout-base.css';
 import 'golden-layout/src/css/goldenlayout-dark-theme.css';

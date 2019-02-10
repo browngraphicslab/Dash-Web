@@ -5,7 +5,7 @@ const CopyWebpackPlugin = require("copy-webpack-plugin");
 module.exports = {
   devtool: 'eval',
   mode: 'development',
-  entry: "./src/Main.tsx",
+  entry: "./src/client/views/Main.tsx",
   devtool: "source-map",
   node: {
     fs: 'empty',

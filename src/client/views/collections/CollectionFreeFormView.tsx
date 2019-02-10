@@ -1,19 +1,18 @@
 import { observer } from "mobx-react";
-import { Key, KeyStore } from "../../fields/Key";
 import React = require("react");
 import { action, observable, computed } from "mobx";
-import { Document } from "../../fields/Document";
 import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
-import { ListField } from "../../fields/ListField";
-import { NumberField } from "../../fields/NumberField";
-import { SSL_OP_SINGLE_DH_USE } from "constants";
-import { Documents } from "../../documents/Documents";
 import { DragManager } from "../../util/DragManager";
 import "./CollectionFreeFormView.scss";
-import { Utils } from "../../Utils";
+import { Utils } from "../../../Utils";
 import { CollectionViewBase, CollectionViewProps, COLLECTION_BORDER_WIDTH } from "./CollectionViewBase";
 import { SelectionManager } from "../../util/SelectionManager";
-import { FieldWaiting } from "../../fields/Field";
+import { Key, KeyStore } from "../../../fields/Key";
+import { Document } from "../../../fields/Document";
+import { ListField } from "../../../fields/ListField";
+import { NumberField } from "../../../fields/NumberField";
+import { Documents } from "../../documents/Documents";
+import { FieldWaiting } from "../../../fields/Field";
 
 @observer
 export class CollectionFreeFormView extends CollectionViewBase {

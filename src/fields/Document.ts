@@ -5,7 +5,7 @@ import { ObservableMap, computed, action, observable } from "mobx";
 import { TextField } from "./TextField";
 import { ListField } from "./ListField";
 import { findDOMNode } from "react-dom";
-import { Server } from "../Server";
+import { Server } from "../client/Server";
 
 export class Document extends Field {
     public fields: ObservableMap<Key, Opt<Field>> = new ObservableMap();

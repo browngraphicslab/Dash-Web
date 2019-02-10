@@ -1,9 +1,9 @@
 import { observable, computed } from "mobx";
 import React = require("react");
-import { SelectionManager } from "./util/SelectionManager";
+import { SelectionManager } from "../util/SelectionManager";
 import { observer } from "mobx-react";
 import './DocumentDecorations.scss'
-import { CollectionFreeFormView } from "./views/collections/CollectionFreeFormView";
+import { CollectionFreeFormView } from "./collections/CollectionFreeFormView";
 
 @observer
 export class DocumentDecorations extends React.Component {

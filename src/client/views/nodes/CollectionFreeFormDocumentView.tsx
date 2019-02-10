@@ -1,7 +1,7 @@
 import { action, computed } from "mobx";
 import { observer } from "mobx-react";
-import { Key, KeyStore } from "../../fields/Key";
-import { NumberField } from "../../fields/NumberField";
+import { Key, KeyStore } from "../../../fields/Key";
+import { NumberField } from "../../../fields/NumberField";
 import { DragManager } from "../../util/DragManager";
 import { SelectionManager } from "../../util/SelectionManager";
 import { CollectionDockingView } from "../collections/CollectionDockingView";

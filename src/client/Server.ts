@@ -1,7 +1,7 @@
-import { Field, FieldWaiting, FIELD_ID, FIELD_WAITING, FieldValue } from "./fields/Field"
-import { Key, KeyStore } from "./fields/Key"
+import { Field, FieldWaiting, FIELD_ID, FIELD_WAITING, FieldValue } from "../fields/Field"
+import { Key, KeyStore } from "../fields/Key"
 import { ObservableMap, action } from "mobx";
-import { Document } from "./fields/Document"
+import { Document } from "../fields/Document"
 import { SocketStub } from "./SocketStub";
 
 export class Server {

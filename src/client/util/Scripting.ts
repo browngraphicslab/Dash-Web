@@ -1,12 +1,12 @@
 // import * as ts from "typescript"
 let ts = (window as any).ts;
-import { Opt, Field } from "../fields/Field";
-import { Document as DocumentImport } from "../fields/Document";
-import { NumberField as NumberFieldImport, NumberField } from "../fields/NumberField";
-import { ImageField as ImageFieldImport } from "../fields/ImageField";
-import { TextField as TextFieldImport, TextField } from "../fields/TextField";
-import { RichTextField as RichTextFieldImport } from "../fields/RichTextField";
-import { KeyStore as KeyStoreImport } from "../fields/Key";
+import { Opt, Field } from "../../fields/Field";
+import { Document as DocumentImport } from "../../fields/Document";
+import { NumberField as NumberFieldImport, NumberField } from "../../fields/NumberField";
+import { ImageField as ImageFieldImport } from "../../fields/ImageField";
+import { TextField as TextFieldImport, TextField } from "../../fields/TextField";
+import { RichTextField as RichTextFieldImport } from "../../fields/RichTextField";
+import { KeyStore as KeyStoreImport } from "../../fields/Key";
 
 export interface ExecutableScript {
     (): any;

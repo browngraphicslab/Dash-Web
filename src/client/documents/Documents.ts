@@ -1,16 +1,16 @@
-import { Document } from "../fields/Document";
+import { Document } from "../../fields/Document";
 import { Server } from "../Server";
-import { KeyStore } from "../fields/Key";
-import { TextField } from "../fields/TextField";
-import { NumberField } from "../fields/NumberField";
-import { ListField } from "../fields/ListField";
+import { KeyStore } from "../../fields/Key";
+import { TextField } from "../../fields/TextField";
+import { NumberField } from "../../fields/NumberField";
+import { ListField } from "../../fields/ListField";
 import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import { CollectionSchemaView } from "../views/collections/CollectionSchemaView";
-import { ImageField } from "../fields/ImageField";
+import { ImageField } from "../../fields/ImageField";
 import { ImageBox } from "../views/nodes/ImageBox";
 import { CollectionFreeFormView } from "../views/collections/CollectionFreeFormView";
-import { FIELD_ID } from "../fields/Field";
+import { FIELD_ID } from "../../fields/Field";
 
 interface DocumentOptions {
     x?: number;
