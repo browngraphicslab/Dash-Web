@@ -22,10 +22,24 @@ export class CollectionFreeFormView extends CollectionViewBase {
     private _nodeContainerRef = React.createRef<HTMLDivElement>();
     private _lastX: number = 0;
     private _lastY: number = 0;
+    private _downX: number = 0;
+    private _downY: number = 0;
 
     constructor(props: CollectionViewProps) {
         super(props);
     }
+
+    @computed
+    get isAnnotationOverlay() { return this.props.CollectionFieldKey == KeyStore.Annotations; }
+
+    @computed
+    get nativeWidth() { return this.props.DocumentForCollection.GetNumber(KeyStore.NativeWidth, 0); }
+
+    @computed
+    get zoomScaling() { return this.props.DocumentForCollection.GetNumber(KeyStore.Scale, 1); }
+
+    @computed
+    get resizeScaling() { return this.isAnnotationOverlay ? this.props.DocumentForCollection.GetNumber(KeyStore.Width, 0) / this.nativeWidth : 1; }
 
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
@@ -38,12 +52,12 @@ export class CollectionFreeFormView extends CollectionViewBase {
             }
             const xOffset = de.data["xOffset"] as number || 0;
             const yOffset = de.data["yOffset"] as number || 0;
-            const { scale, translateX, translateY } = Utils.GetScreenTransform(this._canvasRef.current!);
-            let sscale = this.props.ContainingDocumentView!.props.Document.GetData(KeyStore.Scale, NumberField, Number(1))
+            const { translateX, translateY } = Utils.GetScreenTransform(this._canvasRef.current!);
+            const currScale = this.resizeScaling * this.zoomScaling * this.props.ContainingDocumentView!.ScalingToScreenSpace;
             const screenX = de.x - xOffset;
             const screenY = de.y - yOffset;
-            const docX = (screenX - translateX) / sscale / scale;
-            const docY = (screenY - translateY) / sscale / scale;
+            const docX = (screenX - translateX) / currScale;
+            const docY = (screenY - translateY) / currScale;
             doc.x = docX;
             doc.y = docY;
             this.bringToFront(doc);
@@ -69,8 +83,8 @@ export class CollectionFreeFormView extends CollectionViewBase {
             document.addEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
             document.addEventListener("pointerup", this.onPointerUp);
-            this._lastX = e.pageX;
-            this._lastY = e.pageY;
+            this._downX = this._lastX = e.pageX;
+            this._downY = this._lastY = e.pageY;
         }
     }
 
@@ -79,20 +93,23 @@ export class CollectionFreeFormView extends CollectionViewBase {
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
         e.stopPropagation();
-        SelectionManager.DeselectAll();
+        if (Math.abs(this._downX - e.clientX) < 3 && Math.abs(this._downY - e.clientY) < 3) {
+            if (!SelectionManager.IsSelected(this.props.ContainingDocumentView as CollectionFreeFormDocumentView)) {
+                SelectionManager.SelectDoc(this.props.ContainingDocumentView as CollectionFreeFormDocumentView, false);
+            }
+        }
     }
 
     @action
     onPointerMove = (e: PointerEvent): void => {
-        var me = this;
         if (!e.cancelBubble && this.active) {
             e.preventDefault();
             e.stopPropagation();
             let currScale: number = this.props.ContainingDocumentView!.ScalingToScreenSpace;
-            let x = this.props.DocumentForCollection.GetData(KeyStore.PanX, NumberField, Number(0));
-            let y = this.props.DocumentForCollection.GetData(KeyStore.PanY, NumberField, Number(0));
-            this.props.DocumentForCollection.SetData(KeyStore.PanX, x + (e.pageX - this._lastX) / currScale, NumberField);
-            this.props.DocumentForCollection.SetData(KeyStore.PanY, y + (e.pageY - this._lastY) / currScale, NumberField);
+            let x = this.props.DocumentForCollection.GetNumber(KeyStore.PanX, 0);
+            let y = this.props.DocumentForCollection.GetNumber(KeyStore.PanY, 0);
+
+            this.SetPan(x + (e.pageX - this._lastX) / currScale, y + (e.pageY - this._lastY) / currScale);
         }
         this._lastX = e.pageX;
         this._lastY = e.pageY;
@@ -105,16 +122,18 @@ export class CollectionFreeFormView extends CollectionViewBase {
         let { LocalX, Ss, Panxx, Xx, LocalY, Panyy, Yy, ContainerX, ContainerY } = this.props.ContainingDocumentView!.TransformToLocalPoint(e.pageX, e.pageY);
 
         var deltaScale = (1 - (e.deltaY / 1000)) * Ss;
+        var newDeltaScale = this.isAnnotationOverlay ? Math.max(1, deltaScale) : deltaScale;
 
-        var newContainerX = LocalX * deltaScale + Panxx + Xx;
-        var newContainerY = LocalY * deltaScale + Panyy + Yy;
+        this.props.DocumentForCollection.SetNumber(KeyStore.Scale, newDeltaScale);
+        this.SetPan(ContainerX - (LocalX * newDeltaScale + Xx), ContainerY - (LocalY * newDeltaScale + Yy));
+    }
 
-        let dx = ContainerX - newContainerX;
-        let dy = ContainerY - newContainerY;
-
-        this.props.DocumentForCollection.Set(KeyStore.Scale, new NumberField(deltaScale));
-        this.props.DocumentForCollection.SetData(KeyStore.PanX, Panxx + dx, NumberField);
-        this.props.DocumentForCollection.SetData(KeyStore.PanY, Panyy + dy, NumberField);
+    @action
+    private SetPan(panX: number, panY: number) {
+        const newPanX = Math.max(-(this.resizeScaling * this.zoomScaling - this.resizeScaling) * this.nativeWidth, Math.min(0, panX));
+        const newPanY = Math.min(0, panY);
+        this.props.DocumentForCollection.SetNumber(KeyStore.PanX, this.isAnnotationOverlay ? newPanX : panX);
+        this.props.DocumentForCollection.SetNumber(KeyStore.PanY, this.isAnnotationOverlay ? newPanY : panY);
     }
 
     @action
@@ -173,11 +192,10 @@ export class CollectionFreeFormView extends CollectionViewBase {
     }
 
     render() {
-        const { CollectionFieldKey: fieldKey, DocumentForCollection: Document } = this.props;
-        const value: Document[] = Document.GetList<Document>(fieldKey, []);
+        const Document: Document = this.props.DocumentForCollection;
+        const value: Document[] = Document.GetList<Document>(this.props.CollectionFieldKey, []);
         const panx: number = Document.GetNumber(KeyStore.PanX, 0);
         const pany: number = Document.GetNumber(KeyStore.PanY, 0);
-        const currScale: number = Document.GetNumber(KeyStore.Scale, 1);
 
         return (
             <div className="border" style={{
@@ -190,11 +208,12 @@ export class CollectionFreeFormView extends CollectionViewBase {
                     onDrop={this.onDrop}
                     onDragOver={this.onDragOver}
                     ref={this._containerRef}>
-                    <div className="collectionfreeformview" style={{ transform: `translate(${panx}px, ${pany}px) scale(${currScale}, ${currScale})`, transformOrigin: `left, top` }} ref={this._canvasRef}>
+                    <div className="collectionfreeformview" style={{ transform: `translate(${panx}px, ${pany}px) scale(${this.zoomScaling}, ${this.zoomScaling})`, transformOrigin: `left, top` }} ref={this._canvasRef}>
 
                         <div className="node-container" ref={this._nodeContainerRef}>
+                            {this.props.BackgroundView}
                             {value.map(doc => {
-                                return (<CollectionFreeFormDocumentView key={doc.Id} ContainingCollectionView={this} Document={doc} DocumentView={undefined} />);
+                                return (<CollectionFreeFormDocumentView Scaling={this.resizeScaling} key={doc.Id} ContainingCollectionView={this} Document={doc} DocumentView={undefined} />);
                             })}
                         </div>
                     </div>

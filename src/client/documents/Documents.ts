@@ -115,11 +115,13 @@ export namespace Documents {
             imageProto.Set(KeyStore.Title, new TextField("IMAGE PROTO"));
             imageProto.Set(KeyStore.X, new NumberField(0));
             imageProto.Set(KeyStore.Y, new NumberField(0));
-            imageProto.Set(KeyStore.Width, new NumberField(300));
-            imageProto.Set(KeyStore.Height, new NumberField(300));
-            imageProto.Set(KeyStore.Layout, new TextField(ImageBox.LayoutString()));
+            imageProto.Set(KeyStore.NativeWidth, new NumberField(606));
+            imageProto.Set(KeyStore.Width, new NumberField(606));
+            imageProto.Set(KeyStore.Height, new NumberField(446));
+            imageProto.Set(KeyStore.Layout, new TextField("<CollectionFreeFormView DocumentForCollection={Document} CollectionFieldKey={AnnotationsKey} BackgroundView={BackgroundView} ContainingDocumentView={DocumentView} />"));
+            imageProto.Set(KeyStore.AnnotatedLayout, new TextField(ImageBox.LayoutString()));
             // imageProto.SetField(KeyStore.Layout, new TextField('<div style={"background-image: " + {Data}} />'));
-            imageProto.Set(KeyStore.LayoutKeys, new ListField([KeyStore.Data]));
+            imageProto.Set(KeyStore.LayoutKeys, new ListField([KeyStore.Data, KeyStore.Annotations]));
             Server.AddDocument(imageProto);
             return imageProto;
         }
@@ -130,6 +132,10 @@ export namespace Documents {
         let doc = GetImagePrototype().MakeDelegate();
         setupOptions(doc, options);
         doc.Set(KeyStore.Data, new ImageField(new URL(url)));
+
+        let annotation = Documents.TextDocument({ title: "hello" });
+        Server.AddDocument(annotation);
+        doc.Set(KeyStore.Annotations, new ListField([annotation]));
         Server.AddDocument(doc);
         var sdoc = Server.GetField(doc.Id) as Document;
         return sdoc;
