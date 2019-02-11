@@ -1,5 +1,4 @@
 import { action, IReactionDisposer, reaction } from "mobx";
-import { observer } from "mobx-react"
 import { baseKeymap } from "prosemirror-commands";
 import { history, redo, undo } from "prosemirror-history";
 import { keymap } from "prosemirror-keymap";
@@ -31,7 +30,6 @@ import { CollectionFreeFormDocumentView } from "./CollectionFreeFormDocumentView
 //  specified Key and assigns it to an HTML input node.  When changes are made tot his node, 
 //  this will edit the document and assign the new value to that field.
 //]
-@observer
 export class FormattedTextBox extends React.Component<FieldViewProps> {
 
     public static LayoutString() { return FieldView.LayoutString("FormattedTextBox"); }
