@@ -2,10 +2,16 @@ import { Field, FieldWaiting, FIELD_ID, DOC_ID, FIELD_WAITING } from "./fields/F
 import { Key, KeyStore } from "./fields/Key"
 import { ObservableMap, computed, action, observable } from "mobx";
 import { Document } from "./fields/Document"
+import * as OpenSocket from 'socket.io-client';
+import { Utils } from "./Utils";
+import { MessageStore } from "./server/Message";
 
 export class Server {
     static FieldStore: ObservableMap<FIELD_ID, Field> = new ObservableMap();
     static DocumentStore: ObservableMap<DOC_ID, ObservableMap<Key, FIELD_ID>> = new ObservableMap();
+    static Socket: SocketIOClient.Socket = OpenSocket("http://localhost:8080")
+    static GUID: string = Utils.GenerateGuid()
+
     public static ClientFieldsCached: ObservableMap<DOC_ID, Field | FIELD_WAITING> = new ObservableMap();
 
     // 'hack' is here temoporarily for simplicity when debugging things.
@@ -87,6 +93,12 @@ export class Server {
     }
 
     @action
+    static connected(message: string) {
+        console.log(message)
+        Server.Socket.emit("id", Server.GUID)
+    }
+
+    @action
     static receivedDocument(docid: DOC_ID, fieldlist: ObservableMap<Key, FIELD_ID>) {
         var cachedDoc = this.cacheField(new Document(docid));
         fieldlist!.forEach((field: FIELD_ID, key: Key) => (cachedDoc as Document)._proxies.set(key, field));
@@ -104,3 +116,5 @@ export class Server {
         doc.fields.set(key, cachedField);
     }
 }
+
+Server.Socket.on(MessageStore.Handshake.Message, Server.connected);
