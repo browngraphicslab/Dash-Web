@@ -86,10 +86,11 @@ export class CollectionSchemaView extends CollectionViewBase {
         if (target.tagName == "SPAN" && target.className.includes("Resizer")) {
             e.stopPropagation();
         }
-        if (e.button === 2 && this.active) {
-            e.stopPropagation();
-            e.preventDefault();
-        } else {
+        // if (e.button === 2 && this.active) {
+        //     e.stopPropagation();
+        //     e.preventDefault();
+        // } else 
+        {
             if (e.buttons === 1 && this.active) {
                 e.stopPropagation();
             }
@@ -104,7 +105,7 @@ export class CollectionSchemaView extends CollectionViewBase {
         let content;
         if (this.selectedIndex != -1) {
             content = (
-                <DocumentView Document={children[this.selectedIndex]} DocumentView={undefined} ContainingCollectionView={this} />
+                <DocumentView Scaling={1} Document={children[this.selectedIndex]} DocumentView={undefined} ContainingCollectionView={this} />
             )
         } else {
             content = <div />
@@ -119,7 +120,8 @@ export class CollectionSchemaView extends CollectionViewBase {
                             page={0}
                             showPagination={false}
                             style={{
-                                display: "inline-block"
+                                display: "inline-block",
+                                width: "100%"
                             }}
                             columns={columns.map(col => {
                                 return (

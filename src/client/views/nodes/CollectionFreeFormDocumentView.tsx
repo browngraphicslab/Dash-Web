@@ -48,7 +48,7 @@ export class CollectionFreeFormDocumentView extends DocumentView {
 
     @computed
     get transform(): string {
-        return `translate(${this.x}px, ${this.y}px)`;
+        return `scale(${this.props.Scaling}, ${this.props.Scaling}) translate(${this.x}px, ${this.y}px)`;
     }
 
     @computed
@@ -207,6 +207,7 @@ export class CollectionFreeFormDocumentView extends DocumentView {
         var freestyling = this.props.ContainingCollectionView instanceof CollectionFreeFormView;
         return (
             <div className="node" ref={this._mainCont} style={{
+                transformOrigin: "left top",
                 transform: freestyling ? this.transform : "",
                 width: freestyling ? this.width : "100%",
                 height: freestyling ? this.height : "100%",

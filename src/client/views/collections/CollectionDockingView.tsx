@@ -95,7 +95,7 @@ export class CollectionDockingView extends CollectionViewBase {
         const value: Document[] = Document.GetData(fieldKey, ListField, []);
         for (var i: number = 0; i < value.length; i++) {
             if (value[i].Id === component) {
-                return (<DocumentView key={value[i].Id} ContainingCollectionView={this} Document={value[i]} DocumentView={undefined} />);
+                return (<DocumentView key={value[i].Id} Scaling={1} ContainingCollectionView={this} Document={value[i]} DocumentView={undefined} />);
             }
         }
         if (component === "text") {
@@ -236,7 +236,7 @@ export class CollectionDockingView extends CollectionViewBase {
             container.getElement().html("<div id='" + containingDiv + "'></div>");
             setTimeout(function () {
                 ReactDOM.render((
-                    <DocumentView key={state.doc.Id} Document={state.doc} ContainingCollectionView={me} DocumentView={undefined} />
+                    <DocumentView key={state.doc.Id} Scaling={1} Document={state.doc} ContainingCollectionView={me} DocumentView={undefined} />
                 ),
                     document.getElementById(containingDiv)
                 );

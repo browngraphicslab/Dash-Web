@@ -16,6 +16,7 @@ export interface CollectionViewProps {
     CollectionFieldKey: Key;
     DocumentForCollection: Document;
     ContainingDocumentView: Opt<DocumentView>;
+    BackgroundView: Opt<DocumentView>;
 }
 
 export const COLLECTION_BORDER_WIDTH = 2;
