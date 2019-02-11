@@ -1,7 +1,7 @@
 
 import { Utils } from "../Utils";
 
-export function Cast<T extends Field>(field: Opt<Field>, ctor: { new(): T }): Opt<T> {
+export function Cast<T extends Field>(field: FieldValue<Field>, ctor: { new(): T }): Opt<T> {
     if (field) {
         if (ctor && field instanceof ctor) {
             return field;
@@ -13,8 +13,8 @@ export function Cast<T extends Field>(field: Opt<Field>, ctor: { new(): T }): Op
 export let FieldWaiting: FIELD_WAITING = "<Waiting>";
 export type FIELD_WAITING = "<Waiting>";
 export type FIELD_ID = string | undefined;
-export type DOC_ID = FIELD_ID;
-export type Opt<T> = T | undefined | FIELD_WAITING;
+export type Opt<T> = T | undefined;
+export type FieldValue<T> = Opt<T> | FIELD_WAITING;
 
 export abstract class Field {
     //FieldUpdated: TypedEvent<Opt<FieldUpdatedArgs>> = new TypedEvent<Opt<FieldUpdatedArgs>>();
@@ -28,24 +28,26 @@ export abstract class Field {
         this.id = id || Utils.GenerateGuid();
     }
 
-    Dereference(): Opt<Field> {
+    Dereference(): FieldValue<Field> {
         return this;
     }
-    DereferenceToRoot(): Opt<Field> {
+    DereferenceToRoot(): FieldValue<Field> {
         return this;
     }
 
-    DereferenceT<T extends Field = Field>(ctor: { new(): T }): Opt<T> {
+    DereferenceT<T extends Field = Field>(ctor: { new(): T }): FieldValue<T> {
         return Cast(this.Dereference(), ctor);
     }
 
-    DereferenceToRootT<T extends Field = Field>(ctor: { new(): T }): Opt<T> {
+    DereferenceToRootT<T extends Field = Field>(ctor: { new(): T }): FieldValue<T> {
         return Cast(this.DereferenceToRoot(), ctor);
     }
 
     Equals(other: Field): boolean {
         return this.id === other.id;
     }
+
+    abstract ToScriptString(): string;
 
     abstract TrySetValue(value: any): boolean;
 

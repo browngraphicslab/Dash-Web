@@ -1,13 +1,12 @@
 import { observer } from "mobx-react";
-import { KeyStore } from "../../fields/Key";
+import { KeyStore } from "../../../fields/Key";
 import React = require("react");
 import FlexLayout from "flexlayout-react";
 import { action, observable, computed } from "mobx";
-import { Document } from "../../fields/Document";
+import { Document } from "../../../fields/Document";
 import { DocumentView } from "../nodes/DocumentView";
-import { ListField } from "../../fields/ListField";
-import { NumberField } from "../../fields/NumberField";
-import { SSL_OP_SINGLE_DH_USE } from "constants";
+import { ListField } from "../../../fields/ListField";
+import { NumberField } from "../../../fields/NumberField";
 import "./CollectionDockingView.scss"
 import 'golden-layout/src/css/goldenlayout-base.css';
 import 'golden-layout/src/css/goldenlayout-dark-theme.css';
@@ -15,7 +14,6 @@ import * as GoldenLayout from "golden-layout";
 import * as ReactDOM from 'react-dom';
 import { DragManager } from "../../util/DragManager";
 import { CollectionViewBase, CollectionViewProps, COLLECTION_BORDER_WIDTH } from "./CollectionViewBase";
-import { FieldWaiting } from "../../fields/Field";
 
 @observer
 export class CollectionDockingView extends CollectionViewBase {
@@ -70,8 +68,6 @@ export class CollectionDockingView extends CollectionViewBase {
 
     @action
     onResize = (event: any) => {
-        if (this.props.ContainingDocumentView == FieldWaiting)
-            return;
         var cur = this.props.ContainingDocumentView!.MainContent.current;
 
         // bcz: since GoldenLayout isn't a React component itself, we need to notify it to resize when its document container's size has changed
@@ -255,8 +251,6 @@ export class CollectionDockingView extends CollectionViewBase {
 
 
     render() {
-        if (this.props.ContainingDocumentView == FieldWaiting)
-            return;
         const { CollectionFieldKey: fieldKey, DocumentForCollection: Document } = this.props;
         const value: Document[] = Document.GetData(fieldKey, ListField, []);
         // bcz: not sure why, but I need these to force the flexlayout to update when the collection size changes.

@@ -5,6 +5,10 @@ export class NumberField extends BasicField<number> {
         super(data);
     }
 
+    ToScriptString(): string {
+        return "new NumberField(this.Data)";
+    }
+
     Copy() {
         return new NumberField(this.Data);
     }

@@ -1,7 +1,7 @@
 import { action, computed } from "mobx";
 import { observer } from "mobx-react";
-import { Key, KeyStore } from "../../fields/Key";
-import { NumberField } from "../../fields/NumberField";
+import { Key, KeyStore } from "../../../fields/Key";
+import { NumberField } from "../../../fields/NumberField";
 import { DragManager } from "../../util/DragManager";
 import { SelectionManager } from "../../util/SelectionManager";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
@@ -10,7 +10,6 @@ import { ContextMenu } from "../ContextMenu";
 import "./NodeView.scss";
 import React = require("react");
 import { DocumentView, DocumentViewProps } from "./DocumentView";
-import { FieldWaiting } from "../../fields/Field";
 
 
 @observer
@@ -86,7 +85,7 @@ export class CollectionFreeFormDocumentView extends DocumentView {
     @computed
     get active(): boolean {
         return SelectionManager.IsSelected(this) || this.props.ContainingCollectionView === undefined ||
-            (this.props.ContainingCollectionView != FieldWaiting && this.props.ContainingCollectionView!.active);
+            this.props.ContainingCollectionView.active;
     }
 
     @computed

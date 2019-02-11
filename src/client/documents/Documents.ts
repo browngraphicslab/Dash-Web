@@ -1,16 +1,16 @@
-import { Document } from "../fields/Document";
+import { Document } from "../../fields/Document";
 import { Server } from "../Server";
-import { KeyStore } from "../fields/Key";
-import { TextField } from "../fields/TextField";
-import { NumberField } from "../fields/NumberField";
-import { ListField } from "../fields/ListField";
+import { KeyStore } from "../../fields/Key";
+import { TextField } from "../../fields/TextField";
+import { NumberField } from "../../fields/NumberField";
+import { ListField } from "../../fields/ListField";
 import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import { CollectionSchemaView } from "../views/collections/CollectionSchemaView";
-import { ImageField } from "../fields/ImageField";
+import { ImageField } from "../../fields/ImageField";
 import { ImageBox } from "../views/nodes/ImageBox";
 import { CollectionFreeFormView } from "../views/collections/CollectionFreeFormView";
-import { FIELD_ID } from "../fields/Field";
+import { FIELD_ID } from "../../fields/Field";
 
 interface DocumentOptions {
     x?: number;
@@ -123,7 +123,7 @@ export namespace Documents {
             Server.AddDocument(imageProto);
             return imageProto;
         }
-        return Server.GetDocument(imageProtoId, true)!;
+        return Server.GetField(imageProtoId) as Document;
     }
 
     export function ImageDocument(url: string, options: DocumentOptions = {}): Document {
@@ -131,7 +131,8 @@ export namespace Documents {
         setupOptions(doc, options);
         doc.Set(KeyStore.Data, new ImageField(new URL(url)));
         Server.AddDocument(doc);
-        return Server.GetDocument(doc.Id, true)!;
+        var sdoc = Server.GetField(doc.Id) as Document;
+        return sdoc;
     }
 
     let collectionProto: Document;

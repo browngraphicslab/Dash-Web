@@ -27,6 +27,9 @@ export class Key extends Field {
         return this;
     }
 
+    ToScriptString(): string {
+        return name;
+    }
 
 }
 

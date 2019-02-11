@@ -4,10 +4,10 @@ import 'react-image-lightbox/style.css'; // This only needs to be imported once 
 import { SelectionManager } from "../../util/SelectionManager";
 import "./ImageBox.scss";
 import React = require("react")
-import { ImageField } from '../../fields/ImageField';
+import { ImageField } from '../../../fields/ImageField';
 import { FieldViewProps, FieldView } from './FieldView';
 import { CollectionFreeFormDocumentView } from './CollectionFreeFormDocumentView';
-import { FieldWaiting } from '../../fields/Field';
+import { FieldWaiting } from '../../../fields/Field';
 import { observer } from "mobx-react"
 import { observable, action } from 'mobx';
 
