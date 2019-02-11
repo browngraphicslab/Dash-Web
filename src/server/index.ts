@@ -13,6 +13,7 @@ import { FIELD_ID, Field } from '../fields/Field';
 const config = require('../../webpack.config')
 const compiler = webpack(config)
 const port = 1050; // default port to listen
+const serverPort = 1234;
 
 let FieldStore: ObservableMap<FIELD_ID, Field> = new ObservableMap();
 
@@ -48,9 +49,7 @@ server.on("connection", function (socket: Socket) {
     Utils.Emit(socket, MessageStore.Foo, "handshooken")
 
     Utils.AddServerHandler(socket, MessageStore.Bar, barReceived)
-    // Utils.AddServerHandler(socket, MessageStore.AddDocument, addDocument)
     Utils.AddServerHandler(socket, MessageStore.SetField, setField)
-    // socket.on(MessageStore.SetField.Message, setField)
     Utils.AddServerHandlerCallback(socket, MessageStore.GetField, getField)
 })
 
@@ -71,8 +70,7 @@ function setField(newValue: SetFieldArgs) {
 function getField([fieldRequest, callback]: [GetFieldArgs, (field: Field) => void]) {
     let fieldid: string = fieldRequest.field
     callback(FieldStore.get(fieldid) as Field)
-    console.log(fieldid)
 }
 
-server.listen(1234);
-console.log("listening on port 1234");
+server.listen(serverPort);
+console.log(`listening on port ${serverPort}`);
