@@ -159,6 +159,11 @@ export class CollectionFreeFormDocumentView extends DocumentView {
             this.props.ContainingCollectionView.removeDocument(this.props.Document)
         }
     }
+
+    viewAsTreeview = (e: React.MouseEvent): void => {
+        // do something
+    }
+
     @action
     fullScreenClicked = (e: React.MouseEvent): void => {
         CollectionDockingView.OpenFullScreen(this.props.Document);
@@ -198,6 +203,7 @@ export class CollectionFreeFormDocumentView extends DocumentView {
             ContextMenu.Instance.addItem({ description: "Full Screen", event: this.fullScreenClicked })
             ContextMenu.Instance.addItem({ description: "Open Right", event: this.openRight })
             ContextMenu.Instance.addItem({ description: "Delete", event: this.deleteClicked })
+            ContextMenu.Instance.addItem({ description: "View as Treeview", event: this.viewAsTreeview })
             ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15)
             SelectionManager.SelectDoc(this, e.ctrlKey);
         }
