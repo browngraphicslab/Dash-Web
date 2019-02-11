@@ -2,6 +2,9 @@ import { Field, FIELD_ID } from "../fields/Field"
 import { Key, KeyStore } from "../fields/Key"
 import { ObservableMap, action } from "mobx";
 import { Document } from "../fields/Document"
+import { MessageStore, SetFieldArgs, GetFieldArgs } from "../server/Message";
+import { Utils } from "../Utils";
+import { Server } from "./Server";
 
 export class SocketStub {
 
@@ -17,25 +20,14 @@ export class SocketStub {
         // server stores stripped down document (w/ only field id proxies) in the field store
         this.FieldStore.set(document.Id, new Document(document.Id));
         document.fields.forEach((f, key) => (this.FieldStore.get(document.Id) as Document)._proxies.set(key, (f as Field).Id));
+
+        // Server.Socket.emit(MessageStore.AddDocument.Message, document)
     }
 
-    public static SEND_FIELD_REQUEST(fieldid: FIELD_ID, callback: (field: Field) => void, timeout: number) {
-
-        if (timeout < 0)// this is a hack to make things easier to setup until we have a server... won't be neededa fter that.
-            callback(this.FieldStore.get(fieldid) as Field);
-        else { // actual logic here... 
-
-            // Send a request for fieldid to the server
-            // ...SOCKET(RETRIEVE_FIELD, fieldid)
-
-            // server responds (simulated with a timeout) and the callback is invoked
-            setTimeout(() =>
-
-                // when the field data comes back, call the callback() function 
-                callback(this.FieldStore.get(fieldid) as Field),
-
-
-                timeout);
+    public static SEND_FIELD_REQUEST(fieldid: FIELD_ID, callback: (field: Field) => void) {
+        if (fieldid) {
+            let args: GetFieldArgs = new GetFieldArgs(fieldid)
+            Utils.EmitCallback(Server.Socket, MessageStore.GetField, args, (field: Field) => callback(field))
         }
     }
 
@@ -72,7 +64,7 @@ export class SocketStub {
         // ...SOCKET(SET_FIELD, field id, serialized field value)
 
         // Server updates the value of the field in its fieldstore
-        if (this.FieldStore.get(field.Id))
-            this.FieldStore.get(field.Id)!.TrySetValue(value);
+        let msg: SetFieldArgs = new SetFieldArgs(field.Id as string, value)
+        Utils.Emit(Server.Socket, MessageStore.SetField, msg)
     }
 }

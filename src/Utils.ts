@@ -1,5 +1,7 @@
 import v4 = require('uuid/v4');
 import v5 = require("uuid/v5");
+import { Socket } from 'socket.io';
+import { Message } from './server/Message';
 
 export class Utils {
 
@@ -18,5 +20,21 @@ export class Utils {
         const translateY = rect.top;
 
         return { scale, translateX, translateY };
+    }
+
+    public static Emit<T>(socket: Socket | SocketIOClient.Socket, message: Message<T>, args: T) {
+        socket.emit(message.Message, args);
+    }
+
+    public static EmitCallback<T>(socket: Socket | SocketIOClient.Socket, message: Message<T>, args: T, fn: (args: any) => any) {
+        socket.emit(message.Message, args, fn);
+    }
+
+    public static AddServerHandler<T>(socket: Socket, message: Message<T>, handler: (args: T) => any) {
+        socket.on(message.Message, handler);
+    }
+
+    public static AddServerHandlerCallback<T>(socket: Socket, message: Message<T>, handler: (args: [T, (res: any) => any]) => any) {
+        socket.on(message.Message, (arg: T, fn: (res: any) => any) => handler([arg, fn]));
     }
 }

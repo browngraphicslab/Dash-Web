@@ -9,7 +9,7 @@ import { MessageStore } from "./../server/Message";
 
 export class Server {
     private static ClientFieldsCached: ObservableMap<FIELD_ID, Field | FIELD_WAITING> = new ObservableMap();
-    static Socket: SocketIOClient.Socket = OpenSocket("http://localhost:8080")
+    static Socket: SocketIOClient.Socket = OpenSocket("http://localhost:1234")
     static GUID: string = Utils.GenerateGuid()
 
     // Retrieves the cached value of the field and sends a request to the server for the real value (if it's not cached).
@@ -20,8 +20,7 @@ export class Server {
             this.ClientFieldsCached.set(fieldid, FieldWaiting);
             //simulating a server call with a registered callback action
             SocketStub.SEND_FIELD_REQUEST(fieldid,
-                action((field: Field) => callback(Server.cacheField(field))),
-                hackTimeout);
+                action((field: Field) => callback(Server.cacheField(field))));
         } else if (this.ClientFieldsCached.get(fieldid) != FieldWaiting) {
             callback(this.ClientFieldsCached.get(fieldid) as Field);
         }
@@ -53,6 +52,10 @@ export class Server {
         SocketStub.SEND_SET_FIELD(field, value);
     }
 
+    static connected(message: string) {
+        Server.Socket.emit(MessageStore.Bar.Message, Server.GUID);
+    }
+
     @action
     private static cacheField(clientField: Field) {
         var cached = this.ClientFieldsCached.get(clientField.Id);
@@ -64,3 +67,5 @@ export class Server {
         return this.ClientFieldsCached.get(clientField.Id) as Field;
     }
 }
+
+Server.Socket.on(MessageStore.Foo.Message, Server.connected);

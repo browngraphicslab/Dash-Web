@@ -4,9 +4,17 @@ import * as webpack from 'webpack'
 import * as wdm from 'webpack-dev-middleware';
 import * as whm from 'webpack-hot-middleware';
 import * as path from 'path'
+import { MessageStore, Message, SetFieldArgs, GetFieldArgs } from "./Message";
+import { Client } from './Client';
+import { Socket } from 'socket.io';
+import { Utils } from '../Utils';
+import { ObservableMap } from 'mobx';
+import { FIELD_ID, Field } from '../fields/Field';
 const config = require('../../webpack.config')
 const compiler = webpack(config)
 const port = 1050; // default port to listen
+
+let FieldStore: ObservableMap<FIELD_ID, Field> = new ObservableMap();
 
 // define a route handler for the default home page
 app.get("/", (req, res) => {
@@ -26,4 +34,45 @@ app.use(whm(compiler))
 // start the Express server
 app.listen(port, () => {
     console.log(`server started at http://localhost:${port}`);
-});
+})
+
+const server = require("socket.io")();
+interface Map {
+    [key: string]: Client;
+}
+let clients: Map = {}
+
+server.on("connection", function (socket: Socket) {
+    console.log("a user has connected")
+
+    Utils.Emit(socket, MessageStore.Foo, "handshooken")
+
+    Utils.AddServerHandler(socket, MessageStore.Bar, barReceived)
+    // Utils.AddServerHandler(socket, MessageStore.AddDocument, addDocument)
+    Utils.AddServerHandler(socket, MessageStore.SetField, setField)
+    // socket.on(MessageStore.SetField.Message, setField)
+    Utils.AddServerHandlerCallback(socket, MessageStore.GetField, getField)
+})
+
+function barReceived(guid: String) {
+    clients[guid.toString()] = new Client(guid.toString());
+}
+
+function addDocument(document: Document) {
+
+}
+
+function setField(newValue: SetFieldArgs) {
+    if (FieldStore.get(newValue.field)) {
+        FieldStore.get(newValue.field)!.TrySetValue(newValue.value);
+    }
+}
+
+function getField([fieldRequest, callback]: [GetFieldArgs, (field: Field) => void]) {
+    let fieldid: string = fieldRequest.field
+    callback(FieldStore.get(fieldid) as Field)
+    console.log(fieldid)
+}
+
+server.listen(1234);
+console.log("listening on port 1234");
