@@ -1,15 +1,14 @@
-import { Field, Cast, Opt, FieldWaiting, FIELD_ID, FieldValue } from "./Field"
+import { Field, Cast, Opt, FieldWaiting, FieldId, FieldValue } from "./Field"
 import { Key, KeyStore } from "./Key"
 import { NumberField } from "./NumberField";
 import { ObservableMap, computed, action, observable } from "mobx";
 import { TextField } from "./TextField";
 import { ListField } from "./ListField";
-import { findDOMNode } from "react-dom";
 import { Server } from "../client/Server";
 
 export class Document extends Field {
-    public fields: ObservableMap<Key, Opt<Field>> = new ObservableMap();
-    public _proxies: ObservableMap<Key, FIELD_ID> = new ObservableMap();
+    public fields: ObservableMap<Key, Field> = new ObservableMap();
+    public _proxies: ObservableMap<Key, FieldId> = new ObservableMap();
 
     @computed
     public get Title() {

@@ -10,7 +10,7 @@ import { CollectionSchemaView } from "../views/collections/CollectionSchemaView"
 import { ImageField } from "../../fields/ImageField";
 import { ImageBox } from "../views/nodes/ImageBox";
 import { CollectionFreeFormView } from "../views/collections/CollectionFreeFormView";
-import { FIELD_ID } from "../../fields/Field";
+import { FieldId } from "../../fields/Field";
 
 interface DocumentOptions {
     x?: number;
@@ -107,7 +107,7 @@ export namespace Documents {
     }
 
 
-    let imageProtoId: FIELD_ID;
+    let imageProtoId: FieldId;
     function GetImagePrototype(): Document {
         if (imageProtoId === undefined) {
             let imageProto = new Document();

@@ -1,16 +1,16 @@
-import { Field, FieldWaiting, FIELD_ID, FIELD_WAITING, FieldValue } from "../fields/Field"
+import { Field, FieldWaiting, FieldId, FIELD_WAITING, FieldValue, Opt } from "../fields/Field"
 import { Key, KeyStore } from "../fields/Key"
 import { ObservableMap, action } from "mobx";
 import { Document } from "../fields/Document"
 import { SocketStub } from "./SocketStub";
 
 export class Server {
-    private static ClientFieldsCached: ObservableMap<FIELD_ID, Field | FIELD_WAITING> = new ObservableMap();
+    private static ClientFieldsCached: ObservableMap<FieldId, Field | FIELD_WAITING> = new ObservableMap();
 
     // Retrieves the cached value of the field and sends a request to the server for the real value (if it's not cached).
     // Call this is from within a reaction and test whether the return value is FieldWaiting.
     // 'hackTimeout' is here temporarily for simplicity when debugging things.
-    public static GetField(fieldid: FIELD_ID, callback: (field: Field) => void = (f) => { }, hackTimeout: number = -1) {
+    public static GetField(fieldid: FieldId, callback: (field: Field) => void = (f) => { }, hackTimeout: number = -1) {
         if (!this.ClientFieldsCached.get(fieldid)) {
             this.ClientFieldsCached.set(fieldid, FieldWaiting);
             //simulating a server call with a registered callback action
@@ -24,15 +24,18 @@ export class Server {
     }
 
     static times = 0; // hack for testing
-    public static GetDocumentField(doc: Document, key: Key) {
+    public static GetDocumentField(doc: Document, key: Key): FieldValue<Field> {
         var hackTimeout: number = key == KeyStore.Data ? (this.times++ == 0 ? 5000 : 1000) : key == KeyStore.X ? 2500 : 500;
 
-        return this.GetField(doc._proxies.get(key),
-            action((fieldfromserver: Field) => {
-                doc._proxies.delete(key);
-                doc.fields.set(key, fieldfromserver);
-            })
-            , hackTimeout);
+        let fieldId = doc._proxies.get(key);
+        if (fieldId) {
+            return this.GetField(fieldId,
+                action((fieldfromserver: Field) => {
+                    doc._proxies.delete(key);
+                    doc.fields.set(key, fieldfromserver);
+                })
+                , hackTimeout);
+        }
     }
 
     public static AddDocument(document: Document) {

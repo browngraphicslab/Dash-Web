@@ -12,6 +12,7 @@ import React = require("react")
 import { RichTextField } from "../../../fields/RichTextField";
 import { FieldViewProps, FieldView } from "./FieldView";
 import { CollectionFreeFormDocumentView } from "./CollectionFreeFormDocumentView";
+import { observer } from "mobx-react";
 
 
 // FormattedTextBox: Displays an editable plain text node that maps to a specified Key of a Document

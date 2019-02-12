@@ -17,6 +17,7 @@ export class CollectionFreeFormDocumentView extends DocumentView {
     private _contextMenuCanOpen = false;
     private _downX: number = 0;
     private _downY: number = 0;
+    // private _mainCont = React.createRef<HTMLDivElement>();
 
     constructor(props: DocumentViewProps) {
         super(props);
@@ -216,7 +217,7 @@ export class CollectionFreeFormDocumentView extends DocumentView {
                 onContextMenu={this.onContextMenu}
                 onPointerDown={this.onPointerDown}>
 
-                <DocumentView {...this.props} DocumentView={this} />
+                <DocumentView {...this.props} DocumentView={this.props.DocumentView} />
             </div>
         );
     }
