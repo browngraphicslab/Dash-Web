@@ -1,20 +1,21 @@
-import { observer } from "mobx-react";
-import { KeyStore } from "../../../fields/Key";
-import React = require("react");
 import FlexLayout from "flexlayout-react";
-import { action, observable, computed } from "mobx";
-import { Document } from "../../../fields/Document";
-import { DocumentView } from "../nodes/DocumentView";
-import { ListField } from "../../../fields/ListField";
-import { NumberField } from "../../../fields/NumberField";
-import "./CollectionDockingView.scss"
+import * as GoldenLayout from "golden-layout";
 import 'golden-layout/src/css/goldenlayout-base.css';
 import 'golden-layout/src/css/goldenlayout-dark-theme.css';
-import * as GoldenLayout from "golden-layout";
+import { action, computed } from "mobx";
+import { observer } from "mobx-react";
 import * as ReactDOM from 'react-dom';
+import { Document } from "../../../fields/Document";
+import { KeyStore } from "../../../fields/Key";
+import { ListField } from "../../../fields/ListField";
+import { NumberField } from "../../../fields/NumberField";
 import { DragManager } from "../../util/DragManager";
-import { CollectionViewBase, CollectionViewProps, COLLECTION_BORDER_WIDTH } from "./CollectionViewBase";
 import { Transform } from "../../util/Transform";
+import { DocumentView } from "../nodes/DocumentView";
+import "./CollectionDockingView.scss";
+import { CollectionViewBase, CollectionViewProps, COLLECTION_BORDER_WIDTH } from "./CollectionViewBase";
+import React = require("react");
+import { changeDependenciesStateTo0 } from "mobx/lib/internal";
 
 @observer
 export class CollectionDockingView extends CollectionViewBase {
@@ -240,6 +241,11 @@ export class CollectionDockingView extends CollectionViewBase {
             var containingDiv = "component_" + me.nextId();
             container.getElement().html("<div id='" + containingDiv + "'></div>");
             setTimeout(function () {
+                var htmlElement = document.getElementById(containingDiv);
+                container.on('resize', (e: any) => {
+                    state.doc.SetNumber(KeyStore.Width, htmlElement!.clientWidth);
+                    state.doc.SetNumber(KeyStore.Height, htmlElement!.clientHeight);
+                })
                 ReactDOM.render((
                     <DocumentView key={state.doc.Id} Document={state.doc}
                         AddDocument={me.addDocument} RemoveDocument={me.removeDocument}
@@ -247,7 +253,7 @@ export class CollectionDockingView extends CollectionViewBase {
                         Scaling={1}
                         ContainingCollectionView={me} DocumentView={undefined} />
                 ),
-                    document.getElementById(containingDiv)
+                    htmlElement
                 );
                 if (CollectionDockingView.myLayout._maxstack != null) {
                     CollectionDockingView.myLayout._maxstack.click();
