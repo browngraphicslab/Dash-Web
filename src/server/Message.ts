@@ -47,6 +47,72 @@ export class GetFieldArgs {
     }
 }
 
+export enum Types {
+    Number, List, Key, Image, Document, Text, RichText, DocumentReference
+}
+
+export class DocumentTransfer implements Transferable {
+    readonly type = Types.Document
+
+    constructor(readonly id: string) { }
+}
+
+export class ImageTransfer implements Transferable {
+    readonly type = Types.Image
+
+    constructor(readonly id: string) { }
+}
+
+export class KeyTransfer implements Transferable {
+    name: string
+    readonly id: string
+    readonly type = Types.Key
+
+    constructor(i: string, n: string) {
+        this.name = n
+        this.id = i
+    }
+}
+
+export class ListTransfer implements Transferable {
+    type = Types.List;
+
+    constructor(readonly id: string) { }
+}
+
+export class NumberTransfer implements Transferable {
+    readonly type = Types.Number
+
+    constructor(readonly value: number, readonly id: string) { }
+}
+
+export class TextTransfer implements Transferable {
+    value: string
+    readonly id: string
+    readonly type = Types.Text
+
+    constructor(t: string, i: string) {
+        this.value = t
+        this.id = i
+    }
+}
+
+export class RichTextTransfer implements Transferable {
+    value: string
+    readonly id: string
+    readonly type = Types.Text
+
+    constructor(t: string, i: string) {
+        this.value = t
+        this.id = i
+    }
+}
+
+interface Transferable {
+    readonly id: string
+    readonly type: Types
+}
+
 export namespace MessageStore {
     export const Foo = new Message("Foo", String);
     export const Bar = new Message("Bar", String);

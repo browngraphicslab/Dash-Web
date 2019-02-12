@@ -1,9 +1,10 @@
-import { Field } from "./Field";
+import { Field, FIELD_ID } from "./Field";
 import { BasicField } from "./BasicField";
+import { Types } from "../server/Message";
 
 export class ListField<T extends Field> extends BasicField<T[]> {
-    constructor(data: T[] = []) {
-        super(data.slice());
+    constructor(data: T[] = [], id: FIELD_ID = undefined) {
+        super(data.slice(), id);
     }
 
     ToScriptString(): string {
@@ -12,5 +13,13 @@ export class ListField<T extends Field> extends BasicField<T[]> {
 
     Copy(): Field {
         return new ListField<T>(this.Data);
+    }
+
+    ToJson(): { type: Types, data: T[], id: string } {
+        return {
+            type: Types.List,
+            data: this.Data,
+            id: this.Id as string
+        }
     }
 }

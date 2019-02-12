@@ -1,5 +1,14 @@
 
 import { Utils } from "../Utils";
+import { Types } from "../server/Message";
+import { NumberField } from "./NumberField";
+import { TextField } from "./TextField";
+import { RichTextField } from "./RichTextField";
+import { KeyStore } from "./Key";
+import { ImageField } from "./ImageField";
+import { ListField } from "./ListField";
+import { Document } from "./Document";
+import { Server } from "../client/Server";
 
 export function Cast<T extends Field>(field: FieldValue<Field>, ctor: { new(): T }): Opt<T> {
     if (field) {
@@ -55,4 +64,38 @@ export abstract class Field {
 
     abstract Copy(): Field;
 
+    abstract ToJson(): { id: string, type: Types, data: any }
+
+    public static FromJson(obj: { id: string, type: number, data: any }): Field {
+        let data: any = obj.data
+        let id: string = obj.id
+
+        switch (obj.type) {
+            case Types.Number:
+                return new NumberField(data, id)
+            case Types.Text:
+                return new TextField(data, id)
+            case Types.RichText:
+                return new RichTextField(data, id)
+            case Types.Key:
+                return KeyStore.Get(data)
+            case Types.Image:
+                return new ImageField(data, id)
+            case Types.List:
+                return new ListField(data, id)
+            case Types.Document:
+                let doc: Document = new Document(id)
+                let fields: [string, string][] = data as [string, string][]
+                fields.forEach(element => {
+                    let keyName: string = element[0]
+                    let valueId: string = element[1]
+                    let key = KeyStore.Get(keyName)
+                    Server.GetField(valueId, (field: Field) => {
+                        doc.Set(key, field)
+                    })
+                });
+                return doc
+        }
+        return new TextField(data, id)
+    }
 }

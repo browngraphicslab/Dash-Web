@@ -1,9 +1,9 @@
-import { Field } from "./Field"
+import { Field, FIELD_ID } from "./Field"
 import { observable, computed, action } from "mobx";
 
 export abstract class BasicField<T> extends Field {
-    constructor(data: T) {
-        super();
+    constructor(data: T, id: FIELD_ID = undefined) {
+        super(id);
 
         this.data = data;
     }

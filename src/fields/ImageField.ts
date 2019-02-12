@@ -1,9 +1,10 @@
 import { BasicField } from "./BasicField";
-import { Field } from "./Field";
+import { Field, FIELD_ID } from "./Field";
+import { Types } from "../server/Message";
 
 export class ImageField extends BasicField<URL> {
-    constructor(data: URL | undefined = undefined) {
-        super(data == undefined ? new URL("http://cs.brown.edu/~bcz/bob_fettucine.jpg") : data);
+    constructor(data: URL | undefined = undefined, id: FIELD_ID = undefined) {
+        super(data == undefined ? new URL("http://cs.brown.edu/~bcz/bob_fettucine.jpg") : data, id);
     }
 
     toString(): string {
@@ -18,4 +19,11 @@ export class ImageField extends BasicField<URL> {
         return new ImageField(this.Data);
     }
 
+    ToJson(): { type: Types, data: URL, id: string } {
+        return {
+            type: Types.Image,
+            data: this.Data,
+            id: this.Id as string
+        }
+    }
 }

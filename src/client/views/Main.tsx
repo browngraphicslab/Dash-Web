@@ -13,8 +13,7 @@ import "./Main.scss";
 import { ContextMenu } from './ContextMenu';
 import { DocumentView } from './nodes/DocumentView';
 import { ImageField } from '../../fields/ImageField';
-import { CompileScript } from './util/Scripting';
-import { database } from './database';
+import { CompileScript } from './../util/Scripting';
 
 
 configure({
@@ -41,8 +40,6 @@ document.addEventListener("pointerdown", action(function (e: PointerEvent) {
 
 //runInAction(() => 
 {
-    let db = new database();
-    db.update('1', '2', '3');
     let doc1 = Documents.TextDocument({ title: "hello" });
     let doc2 = doc1.MakeDelegate();
     doc2.Set(KS.X, new NumberField(150));

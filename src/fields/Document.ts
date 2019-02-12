@@ -6,6 +6,7 @@ import { TextField } from "./TextField";
 import { ListField } from "./ListField";
 import { findDOMNode } from "react-dom";
 import { Server } from "../client/Server";
+import { Types } from "../server/Message";
 
 export class Document extends Field {
     public fields: ObservableMap<Key, Opt<Field>> = new ObservableMap();
@@ -155,5 +156,19 @@ export class Document extends Field {
         throw new Error("Method not implemented.");
     }
 
+    ToJson(): { type: Types, data: [string, string][], id: string } {
+        let fields: [string, string][] = []
+        this._proxies.forEach((field, key) => {
+            if (field) {
+                fields.push([key.Name, field as string])
+            }
+        });
+
+        return {
+            type: Types.Document,
+            data: fields,
+            id: this.Id as string
+        }
+    }
 
 }

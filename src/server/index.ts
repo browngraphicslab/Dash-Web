@@ -10,6 +10,7 @@ import { Socket } from 'socket.io';
 import { Utils } from '../Utils';
 import { ObservableMap } from 'mobx';
 import { FIELD_ID, Field } from '../fields/Field';
+import { Database } from './database';
 const config = require('../../webpack.config')
 const compiler = webpack(config)
 const port = 1050; // default port to listen
@@ -55,6 +56,7 @@ server.on("connection", function (socket: Socket) {
 
 function barReceived(guid: String) {
     clients[guid.toString()] = new Client(guid.toString());
+    Database.Instance.print()
 }
 
 function addDocument(document: Document) {
@@ -62,6 +64,7 @@ function addDocument(document: Document) {
 }
 
 function setField(newValue: SetFieldArgs) {
+    Database.Instance.update(newValue.field, newValue.value)
     if (FieldStore.get(newValue.field)) {
         FieldStore.get(newValue.field)!.TrySetValue(newValue.value);
     }

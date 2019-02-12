@@ -1,6 +1,7 @@
-import { Field } from "./Field"
+import { Field, FIELD_ID } from "./Field"
 import { Utils } from "../Utils";
 import { observable } from "mobx";
+import { Types } from "../server/Message";
 
 export class Key extends Field {
     private name: string;
@@ -31,6 +32,13 @@ export class Key extends Field {
         return name;
     }
 
+    ToJson(): { type: Types, data: string, id: string } {
+        return {
+            type: Types.Key,
+            data: this.name,
+            id: this.Id as string
+        }
+    }
 }
 
 export namespace KeyStore {
@@ -50,4 +58,8 @@ export namespace KeyStore {
     export const LayoutKeys = new Key("LayoutKeys");
     export const LayoutFields = new Key("LayoutFields");
     export const ColumnsKey = new Key("SchemaColumns");
+
+    export function Get(name: string): Key {
+        return new Key(name)
+    }
 }
