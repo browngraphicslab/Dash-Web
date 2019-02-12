@@ -121,8 +121,8 @@ export class CollectionFreeFormView extends CollectionViewBase {
         e.preventDefault();
         let modes = ['pixels', 'lines', 'page'];
         let coefficient = 1000;
-        if (modes[e.deltaMode] == 'pixels') coefficient = 50;
-        else if (modes[e.deltaMode] == 'lines') coefficient = 1000; // This should correspond to line-height??
+        // if (modes[e.deltaMode] == 'pixels') coefficient = 50;
+        // else if (modes[e.deltaMode] == 'lines') coefficient = 1000; // This should correspond to line-height??
 
         let { LocalX, Ss, Panxx, Xx, LocalY, Panyy, Yy, ContainerX, ContainerY } = this.props.ContainingDocumentView!.TransformToLocalPoint(e.pageX, e.pageY);
 
