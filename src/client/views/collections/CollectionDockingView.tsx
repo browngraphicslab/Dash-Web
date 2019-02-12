@@ -1,21 +1,21 @@
-import { observer } from "mobx-react";
-import { KeyStore } from "../../fields/Key";
-import React = require("react");
 import FlexLayout from "flexlayout-react";
-import { action, observable, computed } from "mobx";
-import { Document } from "../../fields/Document";
-import { DocumentView } from "../nodes/DocumentView";
-import { ListField } from "../../fields/ListField";
-import { NumberField } from "../../fields/NumberField";
-import { SSL_OP_SINGLE_DH_USE } from "constants";
-import "./CollectionDockingView.scss"
+import * as GoldenLayout from "golden-layout";
 import 'golden-layout/src/css/goldenlayout-base.css';
 import 'golden-layout/src/css/goldenlayout-dark-theme.css';
-import * as GoldenLayout from "golden-layout";
+import { action, computed, reaction, observable } from "mobx";
+import { observer } from "mobx-react";
 import * as ReactDOM from 'react-dom';
+import { Document } from "../../../fields/Document";
+import { KeyStore } from "../../../fields/Key";
+import { ListField } from "../../../fields/ListField";
+import { NumberField } from "../../../fields/NumberField";
 import { DragManager } from "../../util/DragManager";
+import { Transform } from "../../util/Transform";
+import { DocumentView } from "../nodes/DocumentView";
+import "./CollectionDockingView.scss";
 import { CollectionViewBase, CollectionViewProps, COLLECTION_BORDER_WIDTH } from "./CollectionViewBase";
-import { FieldWaiting } from "../../fields/Field";
+import React = require("react");
+import { changeDependenciesStateTo0 } from "mobx/lib/internal";
 
 @observer
 export class CollectionDockingView extends CollectionViewBase {
@@ -44,7 +44,7 @@ export class CollectionDockingView extends CollectionViewBase {
         const { CollectionFieldKey: fieldKey, DocumentForCollection: Document } = this.props;
         const value: Document[] = Document.GetData(fieldKey, ListField, []);
         var docs = value.map(doc => {
-            return { type: 'component', componentName: 'documentViewComponent', componentState: { doc: doc } };
+            return { type: 'component', componentName: 'documentViewComponent', componentState: { doc: doc, scaling: 1 } };
         });
         return new GoldenLayout({
             settings: {
@@ -70,8 +70,6 @@ export class CollectionDockingView extends CollectionViewBase {
 
     @action
     onResize = (event: any) => {
-        if (this.props.ContainingDocumentView == FieldWaiting)
-            return;
         var cur = this.props.ContainingDocumentView!.MainContent.current;
 
         // bcz: since GoldenLayout isn't a React component itself, we need to notify it to resize when its document container's size has changed
@@ -99,7 +97,11 @@ export class CollectionDockingView extends CollectionViewBase {
         const value: Document[] = Document.GetData(fieldKey, ListField, []);
         for (var i: number = 0; i < value.length; i++) {
             if (value[i].Id === component) {
-                return (<DocumentView key={value[i].Id} ContainingCollectionView={this} Document={value[i]} DocumentView={undefined} />);
+                return (<DocumentView key={value[i].Id} Document={value[i]}
+                    AddDocument={this.addDocument} RemoveDocument={this.removeDocument}
+                    GetTransform={() => Transform.Identity}
+                    Scaling={1}
+                    ContainingCollectionView={this} DocumentView={undefined} />);
             }
         }
         if (component === "text") {
@@ -109,6 +111,7 @@ export class CollectionDockingView extends CollectionViewBase {
 
     public static myLayout: any = null;
 
+    public rcs: Array<RenderClass> = new Array();
     private static _dragDiv: any = null;
     private static _dragParent: HTMLElement | null = null;
     private static _dragElement: HTMLDivElement;
@@ -117,7 +120,7 @@ export class CollectionDockingView extends CollectionViewBase {
         var newItemConfig = {
             type: 'component',
             componentName: 'documentViewComponent',
-            componentState: { doc: dragDoc }
+            componentState: { doc: dragDoc, scaling: 1 }
         };
         this._dragElement = dragElement;
         this._dragParent = dragElement.parentElement;
@@ -158,7 +161,6 @@ export class CollectionDockingView extends CollectionViewBase {
             CollectionDockingView.myLayout._maximizedStack = null;
         }
     }
-
     //
     //  Creates a vertical split on the right side of the docking view, and then adds the Document to that split
     //
@@ -239,11 +241,8 @@ export class CollectionDockingView extends CollectionViewBase {
             var containingDiv = "component_" + me.nextId();
             container.getElement().html("<div id='" + containingDiv + "'></div>");
             setTimeout(function () {
-                ReactDOM.render((
-                    <DocumentView key={state.doc.Id} Document={state.doc} ContainingCollectionView={me} DocumentView={undefined} />
-                ),
-                    document.getElementById(containingDiv)
-                );
+                state.rc = new RenderClass(containingDiv, state.doc, me, container);
+                me.rcs.push(state.rc);
                 if (CollectionDockingView.myLayout._maxstack != null) {
                     CollectionDockingView.myLayout._maxstack.click();
                 }
@@ -255,8 +254,6 @@ export class CollectionDockingView extends CollectionViewBase {
 
 
     render() {
-        if (this.props.ContainingDocumentView == FieldWaiting)
-            return;
         const { CollectionFieldKey: fieldKey, DocumentForCollection: Document } = this.props;
         const value: Document[] = Document.GetData(fieldKey, ListField, []);
         // bcz: not sure why, but I need these to force the flexlayout to update when the collection size changes.
@@ -282,6 +279,44 @@ export class CollectionDockingView extends CollectionViewBase {
                     {chooseLayout()}
                 </div>
             </div>
+        );
+    }
+}
+
+class RenderClass {
+
+    @observable _resizeCount: number = 0;
+
+    _collectionDockingView: CollectionDockingView;
+    _htmlElement: any;
+    _document: Document;
+    constructor(containingDiv: string, doc: Document, me: CollectionDockingView, container: any) {
+        this._collectionDockingView = me;
+        this._htmlElement = document.getElementById(containingDiv);
+        this._document = doc;
+        container.on('resize', action((e: any) => {
+            var nativeWidth = doc.GetNumber(KeyStore.NativeWidth, 0);
+            if (this._htmlElement != null && this._htmlElement.childElementCount > 0 && nativeWidth > 0) {
+                let scaling = nativeWidth > 0 ? this._htmlElement!.clientWidth / nativeWidth : 1;
+                (this._htmlElement!.children[0] as any).style.transformOrigin = "0px 0px";
+                (this._htmlElement!.children[0] as any).style.transform = `translate(0px,0px)  scale(${scaling}, ${scaling}) `;
+                (this._htmlElement!.children[0] as any).style.width = nativeWidth.toString() + "px";
+            }
+        }));
+
+        this.render();
+    }
+    render() {
+        var nativeWidth = this._document.GetNumber(KeyStore.NativeWidth, 0);
+        let scaling = nativeWidth > 0 ? this._htmlElement!.clientWidth / nativeWidth : 1;
+        ReactDOM.render((
+            <DocumentView key={this._document.Id} Document={this._document}
+                AddDocument={this._collectionDockingView.addDocument} RemoveDocument={this._collectionDockingView.removeDocument}
+                GetTransform={() => Transform.Identity}
+                Scaling={scaling}
+                ContainingCollectionView={this._collectionDockingView} DocumentView={undefined} />
+        ),
+            this._htmlElement
         );
     }
 }

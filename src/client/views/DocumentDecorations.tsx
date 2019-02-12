@@ -1,9 +1,9 @@
 import { observable, computed } from "mobx";
 import React = require("react");
-import { SelectionManager } from "./util/SelectionManager";
+import { SelectionManager } from "../util/SelectionManager";
 import { observer } from "mobx-react";
 import './DocumentDecorations.scss'
-import { CollectionFreeFormView } from "./views/collections/CollectionFreeFormView";
+import { CollectionFreeFormView } from "./collections/CollectionFreeFormView";
 
 @observer
 export class DocumentDecorations extends React.Component {
@@ -111,8 +111,10 @@ export class DocumentDecorations extends React.Component {
                 let actualdH = Math.max(element.height + (dH * scale), 20);
                 element.x += dX * (actualdW - element.width);
                 element.y += dY * (actualdH - element.height);
-                element.width = actualdW;
-                element.height = actualdH;
+                if (Math.abs(dW) > Math.abs(dH))
+                    element.width = actualdW;
+                else
+                    element.height = actualdH;
             }
         })
     }

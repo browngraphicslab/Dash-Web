@@ -1,18 +1,18 @@
 import { action, IReactionDisposer, reaction } from "mobx";
-import { observer } from "mobx-react"
 import { baseKeymap } from "prosemirror-commands";
 import { history, redo, undo } from "prosemirror-history";
 import { keymap } from "prosemirror-keymap";
 import { schema } from "prosemirror-schema-basic";
 import { EditorState, Transaction } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
-import { Opt, FieldWaiting } from "../../fields/Field";
+import { Opt, FieldWaiting, FieldValue } from "../../../fields/Field";
 import { SelectionManager } from "../../util/SelectionManager";
 import "./FormattedTextBox.scss";
 import React = require("react")
-import { RichTextField } from "../../fields/RichTextField";
+import { RichTextField } from "../../../fields/RichTextField";
 import { FieldViewProps, FieldView } from "./FieldView";
 import { CollectionFreeFormDocumentView } from "./CollectionFreeFormDocumentView";
+import { observer } from "mobx-react";
 
 
 // FormattedTextBox: Displays an editable plain text node that maps to a specified Key of a Document
@@ -31,7 +31,6 @@ import { CollectionFreeFormDocumentView } from "./CollectionFreeFormDocumentView
 //  specified Key and assigns it to an HTML input node.  When changes are made tot his node, 
 //  this will edit the document and assign the new value to that field.
 //]
-@observer
 export class FormattedTextBox extends React.Component<FieldViewProps> {
 
     public static LayoutString() { return FieldView.LayoutString("FormattedTextBox"); }
@@ -48,7 +47,7 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
     }
 
     dispatchTransaction = (tx: Transaction) => {
-        if (this._editorView && this._editorView != FieldWaiting) {
+        if (this._editorView) {
             const state = this._editorView.state.apply(tx);
             this._editorView.updateState(state);
             const { doc, fieldKey } = this.props;
@@ -85,17 +84,17 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
             const field = this.props.doc.GetT(this.props.fieldKey, RichTextField);
             return field && field != FieldWaiting ? field.Data : undefined;
         }, (field) => {
-            if (field && this._editorView && this._editorView != FieldWaiting) {
+            if (field && this._editorView) {
                 this._editorView.updateState(EditorState.fromJSON(config, JSON.parse(field)));
             }
         })
     }
 
     componentWillUnmount() {
-        if (this._editorView && this._editorView != FieldWaiting) {
+        if (this._editorView) {
             this._editorView.destroy();
         }
-        if (this._reactionDisposer && this._reactionDisposer != FieldWaiting) {
+        if (this._reactionDisposer) {
             this._reactionDisposer();
         }
     }
@@ -119,7 +118,7 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
         return (<div className="formattedTextBox-cont"
             style={{
                 color: "initial",
-                whiteSpace: "initial"
+                whiteSpace: "initial",
             }}
             onPointerDown={this.onPointerDown}
             ref={this._ref} />)

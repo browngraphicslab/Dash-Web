@@ -5,6 +5,10 @@ export class RichTextField extends BasicField<string> {
         super(data);
     }
 
+    ToScriptString(): string {
+        return `new RichTextField(${this.Data})`;
+    }
+
     Copy() {
         return new RichTextField(this.Data);
     }

@@ -4,12 +4,13 @@ import 'react-image-lightbox/style.css'; // This only needs to be imported once 
 import { SelectionManager } from "../../util/SelectionManager";
 import "./ImageBox.scss";
 import React = require("react")
-import { ImageField } from '../../fields/ImageField';
+import { ImageField } from '../../../fields/ImageField';
 import { FieldViewProps, FieldView } from './FieldView';
 import { CollectionFreeFormDocumentView } from './CollectionFreeFormDocumentView';
-import { FieldWaiting } from '../../fields/Field';
+import { FieldWaiting } from '../../../fields/Field';
 import { observer } from "mobx-react"
-import { observable, action } from 'mobx';
+import { observable, action, spy } from 'mobx';
+import { KeyStore } from '../../../fields/Key';
 
 @observer
 export class ImageBox extends React.Component<FieldViewProps> {
@@ -67,7 +68,9 @@ export class ImageBox extends React.Component<FieldViewProps> {
                 mainSrc={images[this._photoIndex]}
                 nextSrc={images[(this._photoIndex + 1) % images.length]}
                 prevSrc={images[(this._photoIndex + images.length - 1) % images.length]}
-                onCloseRequest={() => this.setState({ isOpen: false })}
+                onCloseRequest={action(() =>
+                    this._isOpen = false
+                )}
                 onMovePrevRequest={action(() =>
                     this._photoIndex = (this._photoIndex + images.length - 1) % images.length
                 )}
@@ -82,10 +85,11 @@ export class ImageBox extends React.Component<FieldViewProps> {
         let field = this.props.doc.Get(this.props.fieldKey);
         let path = field == FieldWaiting ? "https://image.flaticon.com/icons/svg/66/66163.svg" :
             field instanceof ImageField ? field.Data.href : "http://www.cs.brown.edu/~bcz/face.gif";
+        let nativeWidth = this.props.doc.GetNumber(KeyStore.NativeWidth, 1);
 
         return (
             <div className="imageBox-cont" onPointerDown={this.onPointerDown} ref={this._ref} >
-                <img src={path} width="100%" alt="Image not found" />
+                <img src={path} width={nativeWidth} alt="Image not found" />
                 {this.lightbox(path)}
             </div>)
     }

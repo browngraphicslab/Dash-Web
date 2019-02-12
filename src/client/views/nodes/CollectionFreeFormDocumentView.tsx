@@ -1,7 +1,7 @@
 import { action, computed } from "mobx";
 import { observer } from "mobx-react";
-import { Key, KeyStore } from "../../fields/Key";
-import { NumberField } from "../../fields/NumberField";
+import { Key, KeyStore } from "../../../fields/Key";
+import { NumberField } from "../../../fields/NumberField";
 import { DragManager } from "../../util/DragManager";
 import { SelectionManager } from "../../util/SelectionManager";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
@@ -10,7 +10,7 @@ import { ContextMenu } from "../ContextMenu";
 import "./NodeView.scss";
 import React = require("react");
 import { DocumentView, DocumentViewProps } from "./DocumentView";
-import { FieldWaiting } from "../../fields/Field";
+import { Transform } from "../../util/Transform";
 
 
 @observer
@@ -18,6 +18,7 @@ export class CollectionFreeFormDocumentView extends DocumentView {
     private _contextMenuCanOpen = false;
     private _downX: number = 0;
     private _downY: number = 0;
+    // private _mainCont = React.createRef<HTMLDivElement>();
 
     constructor(props: DocumentViewProps) {
         super(props);
@@ -49,25 +50,40 @@ export class CollectionFreeFormDocumentView extends DocumentView {
 
     @computed
     get transform(): string {
-        return `translate(${this.x}px, ${this.y}px)`;
+        return `scale(${this.props.Scaling}, ${this.props.Scaling}) translate(${this.x}px, ${this.y}px)`;
     }
 
     @computed
     get width(): number {
-        return this.props.Document.GetData(KeyStore.Width, NumberField, Number(0));
+        return this.props.Document.GetNumber(KeyStore.Width, 0);
+    }
+
+    @computed
+    get nativeWidth(): number {
+        return this.props.Document.GetNumber(KeyStore.NativeWidth, 0);
     }
 
     set width(w: number) {
         this.props.Document.SetData(KeyStore.Width, w, NumberField)
+        if (this.nativeWidth > 0 && this.nativeHeight > 0) {
+            this.props.Document.SetNumber(KeyStore.Height, this.nativeHeight / this.nativeWidth * w)
+        }
     }
 
     @computed
     get height(): number {
-        return this.props.Document.GetData(KeyStore.Height, NumberField, Number(0));
+        return this.props.Document.GetNumber(KeyStore.Height, 0);
+    }
+    @computed
+    get nativeHeight(): number {
+        return this.props.Document.GetNumber(KeyStore.NativeHeight, 0);
     }
 
     set height(h: number) {
-        this.props.Document.SetData(KeyStore.Height, h, NumberField)
+        this.props.Document.SetData(KeyStore.Height, h, NumberField);
+        if (this.nativeWidth > 0 && this.nativeHeight > 0) {
+            this.props.Document.SetNumber(KeyStore.Width, this.nativeWidth / this.nativeHeight * h)
+        }
     }
 
     @computed
@@ -86,7 +102,7 @@ export class CollectionFreeFormDocumentView extends DocumentView {
     @computed
     get active(): boolean {
         return SelectionManager.IsSelected(this) || this.props.ContainingCollectionView === undefined ||
-            (this.props.ContainingCollectionView != FieldWaiting && this.props.ContainingCollectionView!.active);
+            this.props.ContainingCollectionView.active;
     }
 
     @computed
@@ -212,10 +228,15 @@ export class CollectionFreeFormDocumentView extends DocumentView {
         }
     }
 
+    getTransform = (): Transform => {
+        return this.props.GetTransform().translated(this.x, this.y);
+    }
+
     render() {
         var freestyling = this.props.ContainingCollectionView instanceof CollectionFreeFormView;
         return (
             <div className="node" ref={this._mainCont} style={{
+                transformOrigin: "left top",
                 transform: freestyling ? this.transform : "",
                 width: freestyling ? this.width : "100%",
                 height: freestyling ? this.height : "100%",
@@ -225,7 +246,7 @@ export class CollectionFreeFormDocumentView extends DocumentView {
                 onContextMenu={this.onContextMenu}
                 onPointerDown={this.onPointerDown}>
 
-                <DocumentView {...this.props} DocumentView={this} />
+                <DocumentView {...this.props} Scaling={this.width / this.nativeWidth} GetTransform={this.getTransform} DocumentView={this} />
             </div>
         );
     }

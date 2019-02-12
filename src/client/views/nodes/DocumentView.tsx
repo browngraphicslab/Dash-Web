@@ -1,12 +1,12 @@
 import { action, computed } from "mobx";
 import { observer } from "mobx-react";
-import { Document } from "../../fields/Document";
-import { Opt, FieldWaiting } from "../../fields/Field";
-import { Key, KeyStore } from "../../fields/Key";
-import { ListField } from "../../fields/ListField";
-import { NumberField } from "../../fields/NumberField";
-import { TextField } from "../../fields/TextField";
-import { Utils } from "../../Utils";
+import { Document } from "../../../fields/Document";
+import { Opt, FieldWaiting } from "../../../fields/Field";
+import { Key, KeyStore } from "../../../fields/Key";
+import { ListField } from "../../../fields/ListField";
+import { NumberField } from "../../../fields/NumberField";
+import { TextField } from "../../../fields/TextField";
+import { Utils } from "../../../Utils";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { CollectionFreeFormView } from "../collections/CollectionFreeFormView";
 import { CollectionSchemaView } from "../collections/CollectionSchemaView";
@@ -15,13 +15,20 @@ import { FormattedTextBox } from "../nodes/FormattedTextBox";
 import { ImageBox } from "../nodes/ImageBox";
 import "./NodeView.scss";
 import React = require("react");
+import { Transform } from "../../util/Transform";
 const JsxParser = require('react-jsx-parser').default;//TODO Why does this need to be imported like this?
 
 export interface DocumentViewProps {
-    Document: Document;
     DocumentView: Opt<DocumentView>  // needed only to set ContainingDocumentView on CollectionViewProps when invoked from JsxParser -- is there a better way?
     ContainingCollectionView: Opt<CollectionViewBase>;
+
+    Document: Document;
+    AddDocument?: (doc: Document) => void;
+    RemoveDocument?: (doc: Document) => boolean;
+    GetTransform: () => Transform;
+    Scaling: number;
 }
+
 @observer
 export class DocumentView extends React.Component<DocumentViewProps> {
 
@@ -32,6 +39,11 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     @computed
     get layout(): string {
         return this.props.Document.GetData(KeyStore.Layout, TextField, String("<p>Error loading layout data</p>"));
+    }
+
+    @computed
+    get backgroundLayout(): string {
+        return this.props.Document.GetData(KeyStore.BackgroundLayout, TextField, String("<p>Error loading layout data</p>"));
     }
 
     @computed
@@ -49,9 +61,9 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     //
     @computed
     public get ScalingToScreenSpace(): number {
-        if (this.props.ContainingCollectionView != undefined && this.props.ContainingCollectionView != FieldWaiting &&
-            this.props.ContainingCollectionView.props.ContainingDocumentView != undefined && this.props.ContainingCollectionView.props.ContainingDocumentView != FieldWaiting) {
-            let ss = this.props.ContainingCollectionView.props.DocumentForCollection.GetData(KeyStore.Scale, NumberField, Number(1));
+        if (this.props.ContainingCollectionView != undefined &&
+            this.props.ContainingCollectionView.props.ContainingDocumentView != undefined) {
+            let ss = this.props.ContainingCollectionView.props.DocumentForCollection.GetNumber(KeyStore.Scale, 1);
             return this.props.ContainingCollectionView.props.ContainingDocumentView.ScalingToScreenSpace * ss;
         }
         return 1;
@@ -63,8 +75,8 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     public TransformToLocalPoint(screenX: number, screenY: number) {
         // if this collection view is nested within another collection view, then 
         // first transform the screen point into the parent collection's coordinate space.
-        let { LocalX: parentX, LocalY: parentY } = this.props.ContainingCollectionView != undefined && this.props.ContainingCollectionView != FieldWaiting &&
-            this.props.ContainingCollectionView.props.ContainingDocumentView != undefined && this.props.ContainingCollectionView.props.ContainingDocumentView != FieldWaiting ?
+        let { LocalX: parentX, LocalY: parentY } = this.props.ContainingCollectionView != undefined &&
+            this.props.ContainingCollectionView.props.ContainingDocumentView != undefined ?
             this.props.ContainingCollectionView.props.ContainingDocumentView.TransformToLocalPoint(screenX, screenY) :
             { LocalX: screenX, LocalY: screenY };
         let ContainerX: number = parentX - COLLECTION_BORDER_WIDTH;
@@ -81,7 +93,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             Yy = ry - COLLECTION_BORDER_WIDTH;
         }
 
-        let Ss = this.props.Document.GetData(KeyStore.Scale, NumberField, Number(1));
+        let Ss = this.props.Document.GetNumber(KeyStore.Scale, 1);
         let Panxx = this.props.Document.GetData(KeyStore.PanX, NumberField, Number(0));
         let Panyy = this.props.Document.GetData(KeyStore.PanY, NumberField, Number(0));
         let LocalX = (ContainerX - (Xx + Panxx)) / Ss;
@@ -103,7 +115,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         if (this.props.ContainingCollectionView instanceof CollectionDockingView) {
             var { translateX: rx, translateY: ry } = Utils.GetScreenTransform(this.MainContent.current!);
             Xx = rx - COLLECTION_BORDER_WIDTH;
-            Yy = ry - COLLECTION_BORDER_WIDTH;
+            Yy = ry - COLLECTION_BORDER_WIDTH + 18 * Ss;
         }
 
         let W = COLLECTION_BORDER_WIDTH;
@@ -113,9 +125,9 @@ export class DocumentView extends React.Component<DocumentViewProps> {
 
         // if this collection view is nested within another collection view, then 
         // first transform the local point into the parent collection's coordinate space.
-        let containingDocView = this.props.ContainingCollectionView != undefined && this.props.ContainingCollectionView != FieldWaiting ? this.props.ContainingCollectionView.props.ContainingDocumentView : undefined;
-        if (containingDocView != undefined && containingDocView != FieldWaiting) {
-            let ss = containingDocView.props.Document.GetData(KeyStore.Scale, NumberField, Number(1));
+        let containingDocView = this.props.ContainingCollectionView != undefined ? this.props.ContainingCollectionView.props.ContainingDocumentView : undefined;
+        if (containingDocView != undefined) {
+            let ss = containingDocView.props.Document.GetNumber(KeyStore.Scale, 1) * this.props.Scaling;
             let panxx = containingDocView.props.Document.GetData(KeyStore.PanX, NumberField, Number(0)) + COLLECTION_BORDER_WIDTH * ss;
             let panyy = containingDocView.props.Document.GetData(KeyStore.PanY, NumberField, Number(0)) + COLLECTION_BORDER_WIDTH * ss;
             let { ScreenX, ScreenY } = containingDocView.TransformToScreenPoint(parentX, parentY, ss, panxx, panyy);
@@ -138,8 +150,21 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         if (bindings.DocumentView === undefined) {
             bindings.DocumentView = this; // set the DocumentView to this if it hasn't already been set by a sub-class during its render method.
         }
+        var annotated = <JsxParser
+            components={{ FormattedTextBox: FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView }}
+            bindings={bindings}
+            jsx={this.backgroundLayout}
+            showWarnings={true}
+            onError={(test: any) => { console.log(test) }}
+        />;
+        bindings["BackgroundView"] = this.backgroundLayout ? annotated : null;
+
+        var width = this.props.Document.GetNumber(KeyStore.NativeWidth, 0);
+        var strwidth = width > 0 ? width.toString() + "px" : "100%";
+        var height = this.props.Document.GetNumber(KeyStore.NativeHeight, 0);
+        var strheight = height > 0 ? height.toString() + "px" : "100%";
         return (
-            <div className="node" ref={this._mainCont} style={{ width: "100%", height: "100%", }}>
+            <div className="node" ref={this._mainCont} style={{ width: strwidth, height: strheight, transformOrigin: "left top", transform: `scale(${this.props.Scaling},${this.props.Scaling})` }}>
                 <JsxParser
                     components={{ FormattedTextBox: FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView }}
                     bindings={bindings}

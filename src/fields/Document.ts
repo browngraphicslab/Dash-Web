@@ -1,23 +1,22 @@
-import { Field, Cast, Opt, FieldWaiting, FIELD_ID, DOC_ID } from "./Field"
+import { Field, Cast, Opt, FieldWaiting, FieldId, FieldValue } from "./Field"
 import { Key, KeyStore } from "./Key"
 import { NumberField } from "./NumberField";
 import { ObservableMap, computed, action, observable } from "mobx";
 import { TextField } from "./TextField";
 import { ListField } from "./ListField";
-import { findDOMNode } from "react-dom";
-import { Server } from "../Server";
+import { Server } from "../client/Server";
 
 export class Document extends Field {
-    public fields: ObservableMap<Key, Opt<Field>> = new ObservableMap();
-    public _proxies: ObservableMap<Key, FIELD_ID> = new ObservableMap();
+    public fields: ObservableMap<Key, Field> = new ObservableMap();
+    public _proxies: ObservableMap<Key, FieldId> = new ObservableMap();
 
     @computed
     public get Title() {
         return this.GetText(KeyStore.Title, "<untitled>");
     }
 
-    Get(key: Key, ignoreProto: boolean = false): Opt<Field> {
-        let field: Opt<Field>;
+    Get(key: Key, ignoreProto: boolean = false): FieldValue<Field> {
+        let field: FieldValue<Field>;
         if (ignoreProto) {
             if (this.fields.has(key)) {
                 field = this.fields.get(key);
@@ -25,7 +24,7 @@ export class Document extends Field {
                 field = Server.GetDocumentField(this, key);
             }
         } else {
-            let doc: Opt<Document> = this;
+            let doc: FieldValue<Document> = this;
             while (doc && doc != FieldWaiting && field != FieldWaiting) {
                 if (!doc.fields.has(key)) {
                     if (doc._proxies.has(key)) {
@@ -46,7 +45,7 @@ export class Document extends Field {
         return field;
     }
 
-    GetT<T extends Field = Field>(key: Key, ctor: { new(...args: any[]): T }, ignoreProto: boolean = false): Opt<T> {
+    GetT<T extends Field = Field>(key: Key, ctor: { new(...args: any[]): T }, ignoreProto: boolean = false): FieldValue<T> {
         var getfield = this.Get(key, ignoreProto);
         if (getfield != FieldWaiting) {
             return Cast(getfield, ctor);
@@ -119,13 +118,13 @@ export class Document extends Field {
         this.SetData(key, value, NumberField, replaceWrongType);
     }
 
-    GetPrototype(): Opt<Document> {
+    GetPrototype(): FieldValue<Document> {
         return this.GetT(KeyStore.Prototype, Document, true);
     }
 
     GetAllPrototypes(): Document[] {
         let protos: Document[] = [];
-        let doc: Opt<Document> = this;
+        let doc: FieldValue<Document> = this;
         while (doc && doc != FieldWaiting) {
             protos.push(doc);
             doc = doc.GetPrototype();
@@ -139,6 +138,10 @@ export class Document extends Field {
         delegate.Set(KeyStore.Prototype, this);
 
         return delegate;
+    }
+
+    ToScriptString(): string {
+        return "";
     }
 
     TrySetValue(value: any): boolean {

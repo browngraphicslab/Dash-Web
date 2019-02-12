@@ -1,9 +1,3 @@
-import { Opt } from "../fields/Field";
-import { CollectionFreeFormDocumentView } from "../views/nodes/CollectionFreeFormDocumentView";
-import { DocumentDecorations } from "../DocumentDecorations";
-import { SelectionManager } from "./SelectionManager";
-import { CollectionDockingView } from "../views/collections/CollectionDockingView";
-import { Document } from "../fields/Document";
 
 export namespace DragManager {
     export function Root() {

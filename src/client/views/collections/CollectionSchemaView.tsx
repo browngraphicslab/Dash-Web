@@ -1,8 +1,6 @@
 import React = require("react")
 import ReactTable, { ReactTableDefaults, CellInfo, ComponentPropsGetterRC, ComponentPropsGetterR } from "react-table";
 import { observer } from "mobx-react";
-import { KeyStore as KS, Key } from "../../fields/Key";
-import { Document } from "../../fields/Document";
 import { FieldView, FieldViewProps } from "../nodes/FieldView";
 import "react-table/react-table.css"
 import { observable, action, computed } from "mobx";
@@ -11,6 +9,12 @@ import "./CollectionSchemaView.scss"
 import { ScrollBox } from "../../util/ScrollBox";
 import { CollectionViewBase } from "./CollectionViewBase";
 import { DocumentView } from "../nodes/DocumentView";
+import { EditableView } from "../EditableView";
+import { CompileScript, ToField } from "../../util/Scripting";
+import { KeyStore as KS, Key } from "../../../fields/Key";
+import { Document } from "../../../fields/Document";
+import { Field } from "../../../fields/Field";
+import { Transform } from "../../util/Transform";
 
 @observer
 export class CollectionSchemaView extends CollectionViewBase {
@@ -23,10 +27,36 @@ export class CollectionSchemaView extends CollectionViewBase {
         let props: FieldViewProps = {
             doc: rowProps.value[0],
             fieldKey: rowProps.value[1],
-            DocumentViewForField: undefined
+            DocumentViewForField: undefined,
         }
-        return (
+        let contents = (
             <FieldView {...props} />
+        )
+        return (
+            <EditableView contents={contents} GetValue={() => {
+                let field = props.doc.Get(props.fieldKey);
+                if (field && field instanceof Field) {
+                    return field.ToScriptString();
+                }
+                return field || "";
+            }} SetValue={(value: string) => {
+                let script = CompileScript(value);
+                if (!script.compiled) {
+                    return false;
+                }
+                let field = script();
+                if (field instanceof Field) {
+                    props.doc.Set(props.fieldKey, field);
+                    return true;
+                } else {
+                    let dataField = ToField(field);
+                    if (dataField) {
+                        props.doc.Set(props.fieldKey, dataField);
+                        return true;
+                    }
+                }
+                return false;
+            }}></EditableView>
         )
     }
 
@@ -57,10 +87,11 @@ export class CollectionSchemaView extends CollectionViewBase {
         if (target.tagName == "SPAN" && target.className.includes("Resizer")) {
             e.stopPropagation();
         }
-        if (e.button === 2 && this.active) {
-            e.stopPropagation();
-            e.preventDefault();
-        } else {
+        // if (e.button === 2 && this.active) {
+        //     e.stopPropagation();
+        //     e.preventDefault();
+        // } else 
+        {
             if (e.buttons === 1 && this.active) {
                 e.stopPropagation();
             }
@@ -74,7 +105,13 @@ export class CollectionSchemaView extends CollectionViewBase {
             [KS.Title, KS.Data, KS.Author])
         let content;
         if (this.selectedIndex != -1) {
-            content = (<DocumentView Document={children[this.selectedIndex]} DocumentView={undefined} ContainingCollectionView={this} />)
+            content = (
+                <DocumentView Document={children[this.selectedIndex]}
+                    AddDocument={this.addDocument} RemoveDocument={this.removeDocument}
+                    GetTransform={() => Transform.Identity}//TODO This should probably be an actual transform
+                    Scaling={1}
+                    DocumentView={undefined} ContainingCollectionView={this} />
+            )
         } else {
             content = <div />
         }
@@ -88,7 +125,8 @@ export class CollectionSchemaView extends CollectionViewBase {
                             page={0}
                             showPagination={false}
                             style={{
-                                display: "inline-block"
+                                display: "inline-block",
+                                width: "100%"
                             }}
                             columns={columns.map(col => {
                                 return (

@@ -1,4 +1,4 @@
-import { Field, Opt } from "./Field";
+import { Field, Opt, FieldValue } from "./Field";
 import { Document } from "./Document";
 import { Key } from "./Key";
 
@@ -15,12 +15,12 @@ export class DocumentReference extends Field {
         super();
     }
 
-    Dereference(): Opt<Field> {
+    Dereference(): FieldValue<Field> {
         return this.document.Get(this.key);
     }
 
-    DereferenceToRoot(): Opt<Field> {
-        let field: Opt<Field> = this;
+    DereferenceToRoot(): FieldValue<Field> {
+        let field: FieldValue<Field> = this;
         while (field instanceof DocumentReference) {
             field = field.Dereference();
         }
@@ -37,5 +37,8 @@ export class DocumentReference extends Field {
         throw new Error("Method not implemented.");
     }
 
+    ToScriptString(): string {
+        return "";
+    }
 
 }
