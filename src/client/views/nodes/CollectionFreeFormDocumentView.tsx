@@ -238,7 +238,7 @@ export class CollectionFreeFormDocumentView extends DocumentView {
                 onContextMenu={this.onContextMenu}
                 onPointerDown={this.onPointerDown}>
 
-                <DocumentView {...this.props} GetTransform={this.getTransform} DocumentView={this.props.DocumentView} />
+                <DocumentView {...this.props} GetTransform={this.getTransform} DocumentView={this} />
             </div>
         );
     }
