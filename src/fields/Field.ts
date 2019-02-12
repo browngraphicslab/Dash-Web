@@ -4,7 +4,7 @@ import { Types } from "../server/Message";
 import { NumberField } from "./NumberField";
 import { TextField } from "./TextField";
 import { RichTextField } from "./RichTextField";
-import { KeyStore } from "./Key";
+import { KeyStore, Key } from "./Key";
 import { ImageField } from "./ImageField";
 import { ListField } from "./ListField";
 import { Document } from "./Document";
@@ -78,7 +78,7 @@ export abstract class Field {
             case Types.RichText:
                 return new RichTextField(data, id)
             case Types.Key:
-                return KeyStore.Get(data)
+                return new Key(data, id)
             case Types.Image:
                 return new ImageField(data, id)
             case Types.List:
@@ -87,11 +87,17 @@ export abstract class Field {
                 let doc: Document = new Document(id)
                 let fields: [string, string][] = data as [string, string][]
                 fields.forEach(element => {
-                    let keyName: string = element[0]
+                    let keyId: string = element[0]
                     let valueId: string = element[1]
-                    let key = KeyStore.Get(keyName)
-                    Server.GetField(valueId, (field: Field) => {
-                        doc.Set(key, field)
+                    Server.GetField(keyId, (key: Field) => {
+                        if (key instanceof Key) {
+                            Server.GetField(valueId, (field: Field) => {
+                                doc.Set(key as Key, field)
+                            })
+                        }
+                        else {
+                            console.log("how did you get a key that isnt a key wtf")
+                        }
                     })
                 });
                 return doc

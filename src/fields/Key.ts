@@ -10,8 +10,8 @@ export class Key extends Field {
         return this.name;
     }
 
-    constructor(name: string) {
-        super(Utils.GenerateDeterministicGuid(name));
+    constructor(name: string, id?: string) {
+        super(id || Utils.GenerateDeterministicGuid(name));
 
         this.name = name;
     }

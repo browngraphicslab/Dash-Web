@@ -160,7 +160,7 @@ export class Document extends Field {
         let fields: [string, string][] = []
         this._proxies.forEach((field, key) => {
             if (field) {
-                fields.push([key.Name, field as string])
+                fields.push([key.Id as string, field as string])
             }
         });
 
