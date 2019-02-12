@@ -85,11 +85,10 @@ export class ImageBox extends React.Component<FieldViewProps> {
         let field = this.props.doc.Get(this.props.fieldKey);
         let path = field == FieldWaiting ? "https://image.flaticon.com/icons/svg/66/66163.svg" :
             field instanceof ImageField ? field.Data.href : "http://www.cs.brown.edu/~bcz/face.gif";
-        let width = this.props.doc.GetNumber(KeyStore.Width, 1);
 
         return (
             <div className="imageBox-cont" onPointerDown={this.onPointerDown} ref={this._ref} >
-                <img src={path} width={width} alt="Image not found" />
+                <img src={path} width="100%" alt="Image not found" />
                 {this.lightbox(path)}
             </div>)
     }

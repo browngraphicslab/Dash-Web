@@ -243,8 +243,9 @@ export class CollectionDockingView extends CollectionViewBase {
             setTimeout(function () {
                 var htmlElement = document.getElementById(containingDiv);
                 container.on('resize', (e: any) => {
-                    state.doc.SetNumber(KeyStore.Width, htmlElement!.clientWidth);
-                    state.doc.SetNumber(KeyStore.Height, htmlElement!.clientHeight);
+                    // state.doc.SetNumber(KeyStore.Width, htmlElement!.clientWidth);
+                    // if (htmlElement!.clientHeight > 0)
+                    //     state.doc.SetNumber(KeyStore.Height, htmlElement!.clientHeight);
                 })
                 ReactDOM.render((
                     <DocumentView key={state.doc.Id} Document={state.doc}

@@ -231,7 +231,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
                 }}
                 ref={this._containerRef}>
                 <div className="collectionfreeformview"
-                    style={{ transform: `translate(${panx}px, ${pany}px) scale(${this.zoomScaling}, ${this.zoomScaling})`, transformOrigin: `left, top` }}
+                    style={{ width: "100%", transform: `translate(${panx}px, ${pany}px) scale(${this.zoomScaling}, ${this.zoomScaling})`, transformOrigin: `left, top` }}
                     ref={this._canvasRef}>
 
                     {this.props.BackgroundView}
