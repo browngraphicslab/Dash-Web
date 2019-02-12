@@ -43,6 +43,7 @@ export namespace KeyStore {
     export const PanY = new Key("PanY");
     export const Scale = new Key("Scale");
     export const NativeWidth = new Key("NativeWidth");
+    export const NativeHeight = new Key("NativeHeight");
     export const Width = new Key("Width");
     export const Height = new Key("Height");
     export const ZIndex = new Key("ZIndex");

@@ -17,6 +17,8 @@ interface DocumentOptions {
     y?: number;
     width?: number;
     height?: number;
+    nativeWidth?: number;
+    nativeHeight?: number;
     title?: string;
 }
 
@@ -33,6 +35,12 @@ export namespace Documents {
         }
         if (options.height) {
             doc.SetData(KeyStore.Height, options.height, NumberField);
+        }
+        if (options.nativeWidth) {
+            doc.SetData(KeyStore.NativeWidth, options.nativeWidth, NumberField);
+        }
+        if (options.nativeHeight) {
+            doc.SetData(KeyStore.NativeHeight, options.nativeHeight, NumberField);
         }
         if (options.title) {
             doc.SetData(KeyStore.Title, options.title, TextField);
@@ -115,9 +123,10 @@ export namespace Documents {
             imageProto.Set(KeyStore.Title, new TextField("IMAGE PROTO"));
             imageProto.Set(KeyStore.X, new NumberField(0));
             imageProto.Set(KeyStore.Y, new NumberField(0));
-            imageProto.Set(KeyStore.NativeWidth, new NumberField(606));
-            imageProto.Set(KeyStore.Width, new NumberField(606));
-            imageProto.Set(KeyStore.Height, new NumberField(446));
+            imageProto.Set(KeyStore.NativeWidth, new NumberField(300));
+            imageProto.Set(KeyStore.NativeHeight, new NumberField(300));
+            imageProto.Set(KeyStore.Width, new NumberField(300));
+            imageProto.Set(KeyStore.Height, new NumberField(300));
             imageProto.Set(KeyStore.Layout, new TextField("<CollectionFreeFormView DocumentForCollection={Document} CollectionFieldKey={AnnotationsKey} BackgroundView={BackgroundView} ContainingDocumentView={DocumentView} />"));
             imageProto.Set(KeyStore.AnnotatedLayout, new TextField(ImageBox.LayoutString()));
             // imageProto.SetField(KeyStore.Layout, new TextField('<div style={"background-image: " + {Data}} />'));

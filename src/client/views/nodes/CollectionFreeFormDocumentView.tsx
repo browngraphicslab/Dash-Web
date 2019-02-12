@@ -53,20 +53,35 @@ export class CollectionFreeFormDocumentView extends DocumentView {
 
     @computed
     get width(): number {
-        return this.props.Document.GetData(KeyStore.Width, NumberField, Number(0));
+        return this.props.Document.GetNumber(KeyStore.Width, 0);
+    }
+
+    @computed
+    get nativeWidth(): number {
+        return this.props.Document.GetNumber(KeyStore.NativeWidth, 0);
     }
 
     set width(w: number) {
         this.props.Document.SetData(KeyStore.Width, w, NumberField)
+        if (this.nativeWidth > 0 && this.nativeHeight > 0) {
+            this.props.Document.SetNumber(KeyStore.Height, this.nativeHeight / this.nativeWidth * w)
+        }
     }
 
     @computed
     get height(): number {
-        return this.props.Document.GetData(KeyStore.Height, NumberField, Number(0));
+        return this.props.Document.GetNumber(KeyStore.Height, 0);
+    }
+    @computed
+    get nativeHeight(): number {
+        return this.props.Document.GetNumber(KeyStore.NativeHeight, 0);
     }
 
     set height(h: number) {
-        this.props.Document.SetData(KeyStore.Height, h, NumberField)
+        this.props.Document.SetData(KeyStore.Height, h, NumberField);
+        if (this.nativeWidth > 0 && this.nativeHeight > 0) {
+            this.props.Document.SetNumber(KeyStore.Width, this.nativeWidth / this.nativeHeight * h)
+        }
     }
 
     @computed
