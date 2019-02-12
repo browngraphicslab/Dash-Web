@@ -50,7 +50,7 @@ export namespace KeyStore {
     export const Data = new Key("Data");
     export const Annotations = new Key("Annotations");
     export const Layout = new Key("Layout");
-    export const AnnotatedLayout = new Key("AnnotatedLayout");
+    export const BackgroundLayout = new Key("BackgroundLayout");
     export const LayoutKeys = new Key("LayoutKeys");
     export const LayoutFields = new Key("LayoutFields");
     export const ColumnsKey = new Key("SchemaColumns");

@@ -36,8 +36,8 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     }
 
     @computed
-    get annotatedlayout(): string {
-        return this.props.Document.GetData(KeyStore.AnnotatedLayout, TextField, String("<p>Error loading layout data</p>"));
+    get backgroundLayout(): string {
+        return this.props.Document.GetData(KeyStore.BackgroundLayout, TextField, String("<p>Error loading layout data</p>"));
     }
 
     @computed
@@ -147,11 +147,11 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         var annotated = <JsxParser
             components={{ FormattedTextBox: FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView }}
             bindings={bindings}
-            jsx={this.annotatedlayout}
+            jsx={this.backgroundLayout}
             showWarnings={true}
             onError={(test: any) => { console.log(test) }}
         />;
-        bindings["BackgroundView"] = this.annotatedlayout ? annotated : null;
+        bindings["BackgroundView"] = this.backgroundLayout ? annotated : null;
         return (
             <div className="node" ref={this._mainCont} style={{ width: "100%", height: "100%", }}>
                 <JsxParser
