@@ -175,6 +175,13 @@ export class CollectionFreeFormDocumentView extends DocumentView {
         ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15)
     }
 
+    //MONIKA TODO
+    //needs to be @action?
+    @action
+    centerNode = (e: React.MouseEvent): void => {
+        
+    }
+
     @action
     onContextMenu = (e: React.MouseEvent): void => {
         if (!SelectionManager.IsSelected(this)) {
@@ -196,6 +203,7 @@ export class CollectionFreeFormDocumentView extends DocumentView {
             e.stopPropagation();
 
             ContextMenu.Instance.clearItems();
+            ContextMenu.Instance.addItem({ description: "Center", event: this.centerNode })
             ContextMenu.Instance.addItem({ description: "Full Screen", event: this.fullScreenClicked })
             ContextMenu.Instance.addItem({ description: "Open Right", event: this.openRight })
             ContextMenu.Instance.addItem({ description: "Delete", event: this.deleteClicked })

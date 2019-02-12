@@ -13,6 +13,7 @@ import "./Main.scss";
 import { ContextMenu } from './views/ContextMenu';
 import { DocumentView } from './views/nodes/DocumentView';
 import { CompileScript } from './util/Scripting';
+import { TempTreeView } from './TempTreeView';
 
 
 configure({
@@ -20,6 +21,7 @@ configure({
 });
 
 const mainNodeCollection = new Array<Document>();
+let mainNodes = null;// mainContainer.GetFieldT(KeyStore.Data, ListField);
 let mainContainer = Documents.DockDocument(mainNodeCollection, {
     x: 0, y: 0, title: "main container"
 })
@@ -86,5 +88,6 @@ ReactDOM.render((
         <DocumentView Document={mainContainer} ContainingCollectionView={undefined} DocumentView={undefined} />
         <DocumentDecorations />
         <ContextMenu />
+        <TempTreeView mainCollection={mainNodes} />
     </div>),
     document.getElementById('root'));
