@@ -123,14 +123,17 @@ export class CollectionFreeFormView extends CollectionViewBase {
         let coefficient = 1000;
         // if (modes[e.deltaMode] == 'pixels') coefficient = 50;
         // else if (modes[e.deltaMode] == 'lines') coefficient = 1000; // This should correspond to line-height??
+        let transform = this.getTransform();
+        let localTransform = this.getLocalTransform();
 
-        let { LocalX, Ss, Panxx, Xx, LocalY, Panyy, Yy, ContainerX, ContainerY } = this.props.ContainingDocumentView!.TransformToLocalPoint(e.pageX, e.pageY);
+        let deltaScale = (1 - (e.deltaY / coefficient)) * transform.Scale;
+        let newDeltaScale = this.isAnnotationOverlay ? Math.max(1, deltaScale) : deltaScale;
+        let [x, y] = transform.transformPoint(e.clientX, e.clientY);
 
-        var deltaScale = (1 - (e.deltaY / coefficient)) * Ss;
-        var newDeltaScale = this.isAnnotationOverlay ? Math.max(1, deltaScale) : deltaScale;
+        localTransform.scaleAbout(newDeltaScale, x, y);
 
         this.props.DocumentForCollection.SetNumber(KeyStore.Scale, newDeltaScale);
-        this.SetPan(ContainerX - (LocalX * newDeltaScale + Xx), ContainerY - (LocalY * newDeltaScale + Yy));
+        this.SetPan(localTransform.TranslateX, localTransform.TranslateY);
     }
 
     @action
@@ -211,6 +214,11 @@ export class CollectionFreeFormView extends CollectionViewBase {
     getTransform = (): Transform => {
         const [x, y] = this.translate;
         return this.props.GetTransform().scaled(this.scale).translate(x, y);
+    }
+
+    getLocalTransform = (): Transform => {
+        const [x, y] = this.translate;
+        return new Transform(x, y, this.scale);
     }
 
     render() {

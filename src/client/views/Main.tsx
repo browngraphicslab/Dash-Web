@@ -67,10 +67,7 @@ document.addEventListener("pointerdown", action(function (e: PointerEvent) {
     let doc6 = Documents.CollectionDocument(docset2, {
         x: 350, y: 100, width: 600, height: 600, title: "docking collection"
     });
-    let mainNodes = null;// mainContainer.GetFieldT(KeyStore.Data, ListField);
-    if (!mainNodes) {
-        mainNodes = new ListField<Document>();
-    }
+    let mainNodes = mainContainer.GetOrCreate<ListField<Document>>(KeyStore.Data, ListField);
     // mainNodes.Data.push(doc6);
     // mainNodes.Data.push(doc2);
     mainNodes.Data.push(doc4);
@@ -79,7 +76,6 @@ document.addEventListener("pointerdown", action(function (e: PointerEvent) {
     // mainNodes.Data.push(doc1);
     // mainNodes.Data.push(doc2);
     mainNodes.Data.push(doc6);
-    mainContainer.Set(KeyStore.Data, mainNodes);
 }
 //}
 //);

@@ -28,7 +28,9 @@ export const COLLECTION_BORDER_WIDTH = 2;
 export class CollectionViewBase extends React.Component<CollectionViewProps> {
 
     public static LayoutString(collectionType: string, fieldKey: string = "DataKey") {
-        return `<${collectionType} Scaling={Scaling} DocumentForCollection={Document} CollectionFieldKey={${fieldKey}} ContainingDocumentView={DocumentView} BackgroundView={BackgroundView} />`;
+        return `<${collectionType} DocumentForCollection={Document} CollectionFieldKey={${fieldKey}}
+                    GetTransform={GetTransform}
+                    ContainingDocumentView={DocumentView}/>`;
     }
     @computed
     public get active(): boolean {

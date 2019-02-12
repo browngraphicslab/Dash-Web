@@ -25,11 +25,12 @@ export class DocumentDecorations extends React.Component {
                 !(element.props.ContainingCollectionView instanceof CollectionFreeFormView)) {
                 return bounds;
             }
-            var spt = element.TransformToScreenPoint(0, 0);
-            var bpt = element.TransformToScreenPoint(element.width, element.height);
+            let transform = element.getTransform().inverse();
+            var [sptX, sptY] = transform.transformPoint(0, 0);
+            var [bptX, bptY] = transform.transformDirection(element.width, element.height);
             return {
-                x: Math.min(spt.ScreenX, bounds.x), y: Math.min(spt.ScreenY, bounds.y),
-                r: Math.max(bpt.ScreenX, bounds.r), b: Math.max(bpt.ScreenY, bounds.b)
+                x: Math.min(sptX, bounds.x), y: Math.min(sptY, bounds.y),
+                r: Math.max(bptX, bounds.r), b: Math.max(bptY, bounds.b)
             }
         }, { x: Number.MAX_VALUE, y: Number.MAX_VALUE, r: Number.MIN_VALUE, b: Number.MIN_VALUE });
     }

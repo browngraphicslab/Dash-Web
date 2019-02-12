@@ -7,6 +7,10 @@ export class Transform {
         return new Transform(0, 0, 1);
     }
 
+    get TranslateX(): number { return this._translateX; }
+    get TranslateY(): number { return this._translateY; }
+    get Scale(): number { return this._scale; }
+
     constructor(x: number, y: number, scale: number) {
         this._translateX = x;
         this._translateY = y;
@@ -40,6 +44,17 @@ export class Transform {
 
     scaled = (scale: number): Transform => {
         return this.copy().scale(scale);
+    }
+
+    scaleAbout = (scale: number, x: number, y: number): Transform => {
+        this._translateX += x * this._scale - x * this._scale * scale;
+        this._translateY += y * this._scale - y * this._scale * scale;
+        this._scale *= scale;
+        return this;
+    }
+
+    scaledAbout = (scale: number, x: number, y: number): Transform => {
+        return this.copy().scaleAbout(scale, x, y);
     }
 
     preScale = (scale: number): Transform => {
@@ -81,6 +96,10 @@ export class Transform {
         y *= this._scale;
         y += this._translateY;
         return [x, y];
+    }
+
+    transformDirection = (x: number, y: number): [number, number] => {
+        return [x * this._scale, y * this._scale];
     }
 
     inverse = () => {
