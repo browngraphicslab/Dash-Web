@@ -27,7 +27,7 @@ export class CollectionSchemaView extends CollectionViewBase {
         let props: FieldViewProps = {
             doc: rowProps.value[0],
             fieldKey: rowProps.value[1],
-            DocumentViewForField: undefined
+            DocumentViewForField: undefined,
         }
         let contents = (
             <FieldView {...props} />

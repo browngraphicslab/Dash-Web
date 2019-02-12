@@ -17,7 +17,7 @@ import { Transform } from "../../util/Transform";
 
 @observer
 export class CollectionFreeFormView extends CollectionViewBase {
-    public static LayoutString() { return CollectionViewBase.LayoutString("CollectionFreeFormView"); }
+    public static LayoutString(fieldKey: string = "DataKey") { return CollectionViewBase.LayoutString("CollectionFreeFormView", fieldKey); }
     private _containerRef = React.createRef<HTMLDivElement>();
     private _canvasRef = React.createRef<HTMLDivElement>();
     private _lastX: number = 0;
@@ -218,6 +218,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
         const value: Document[] = Document.GetList<Document>(this.props.CollectionFieldKey, []);
         const panx: number = Document.GetNumber(KeyStore.PanX, 0);
         const pany: number = Document.GetNumber(KeyStore.PanY, 0);
+        var me = this;
 
         return (
             <div className="collectionfreeformview-container"
@@ -231,7 +232,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
                 }}
                 ref={this._containerRef}>
                 <div className="collectionfreeformview"
-                    style={{ width: "100%", transform: `translate(${panx}px, ${pany}px) scale(${this.zoomScaling}, ${this.zoomScaling})`, transformOrigin: `left, top` }}
+                    style={{ width: "100%", transformOrigin: "left top", transform: ` translate(${panx}px, ${pany}px) scale(${this.zoomScaling}, ${this.zoomScaling})` }}
                     ref={this._canvasRef}>
 
                     {this.props.BackgroundView}
@@ -240,7 +241,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
                             AddDocument={this.addDocument}
                             RemoveDocument={this.removeDocument}
                             GetTransform={this.getTransform}
-                            Scaling={this.resizeScaling}
+                            Scaling={1}
                             ContainingCollectionView={this} DocumentView={undefined} />);
                     })}
                 </div>

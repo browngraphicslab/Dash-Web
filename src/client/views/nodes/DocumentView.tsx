@@ -115,7 +115,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         if (this.props.ContainingCollectionView instanceof CollectionDockingView) {
             var { translateX: rx, translateY: ry } = Utils.GetScreenTransform(this.MainContent.current!);
             Xx = rx - COLLECTION_BORDER_WIDTH;
-            Yy = ry - COLLECTION_BORDER_WIDTH;
+            Yy = ry - COLLECTION_BORDER_WIDTH + 18 * Ss;
         }
 
         let W = COLLECTION_BORDER_WIDTH;
@@ -158,8 +158,13 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             onError={(test: any) => { console.log(test) }}
         />;
         bindings["BackgroundView"] = this.backgroundLayout ? annotated : null;
+
+        var width = this.props.Document.GetNumber(KeyStore.NativeWidth, 0);
+        var strwidth = width > 0 ? width.toString() + "px" : "100%";
+        var height = this.props.Document.GetNumber(KeyStore.NativeHeight, 0);
+        var strheight = height > 0 ? height.toString() + "px" : "100%";
         return (
-            <div className="node" ref={this._mainCont} style={{ width: "100%", height: "100%", }}>
+            <div className="node" ref={this._mainCont} style={{ width: strwidth, height: strheight, transformOrigin: "left top", transform: `scale(${this.props.Scaling},${this.props.Scaling})` }}>
                 <JsxParser
                     components={{ FormattedTextBox: FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView }}
                     bindings={bindings}

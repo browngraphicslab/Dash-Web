@@ -127,7 +127,7 @@ export namespace Documents {
             imageProto.Set(KeyStore.NativeHeight, new NumberField(300));
             imageProto.Set(KeyStore.Width, new NumberField(300));
             imageProto.Set(KeyStore.Height, new NumberField(300));
-            imageProto.Set(KeyStore.Layout, new TextField("<CollectionFreeFormView DocumentForCollection={Document} CollectionFieldKey={AnnotationsKey} BackgroundView={BackgroundView} ContainingDocumentView={DocumentView} />"));
+            imageProto.Set(KeyStore.Layout, new TextField(CollectionFreeFormView.LayoutString("AnnotationsKey")));
             imageProto.Set(KeyStore.BackgroundLayout, new TextField(ImageBox.LayoutString()));
             // imageProto.SetField(KeyStore.Layout, new TextField('<div style={"background-image: " + {Data}} />'));
             imageProto.Set(KeyStore.LayoutKeys, new ListField([KeyStore.Data, KeyStore.Annotations]));
@@ -161,7 +161,7 @@ export namespace Documents {
             collectionProto.Set(KeyStore.PanY, new NumberField(0));
             collectionProto.Set(KeyStore.Width, new NumberField(300));
             collectionProto.Set(KeyStore.Height, new NumberField(300));
-            collectionProto.Set(KeyStore.Layout, new TextField(CollectionFreeFormView.LayoutString()));
+            collectionProto.Set(KeyStore.Layout, new TextField(CollectionFreeFormView.LayoutString("DataKey")));
             collectionProto.Set(KeyStore.LayoutKeys, new ListField([KeyStore.Data]));
         }
         return collectionProto;

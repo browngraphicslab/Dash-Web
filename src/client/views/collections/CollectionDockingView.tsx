@@ -2,7 +2,7 @@ import FlexLayout from "flexlayout-react";
 import * as GoldenLayout from "golden-layout";
 import 'golden-layout/src/css/goldenlayout-base.css';
 import 'golden-layout/src/css/goldenlayout-dark-theme.css';
-import { action, computed } from "mobx";
+import { action, computed, reaction, observable } from "mobx";
 import { observer } from "mobx-react";
 import * as ReactDOM from 'react-dom';
 import { Document } from "../../../fields/Document";
@@ -44,7 +44,7 @@ export class CollectionDockingView extends CollectionViewBase {
         const { CollectionFieldKey: fieldKey, DocumentForCollection: Document } = this.props;
         const value: Document[] = Document.GetData(fieldKey, ListField, []);
         var docs = value.map(doc => {
-            return { type: 'component', componentName: 'documentViewComponent', componentState: { doc: doc } };
+            return { type: 'component', componentName: 'documentViewComponent', componentState: { doc: doc, scaling: 1 } };
         });
         return new GoldenLayout({
             settings: {
@@ -111,6 +111,7 @@ export class CollectionDockingView extends CollectionViewBase {
 
     public static myLayout: any = null;
 
+    public rcs: Array<RenderClass> = new Array();
     private static _dragDiv: any = null;
     private static _dragParent: HTMLElement | null = null;
     private static _dragElement: HTMLDivElement;
@@ -119,7 +120,7 @@ export class CollectionDockingView extends CollectionViewBase {
         var newItemConfig = {
             type: 'component',
             componentName: 'documentViewComponent',
-            componentState: { doc: dragDoc }
+            componentState: { doc: dragDoc, scaling: 1 }
         };
         this._dragElement = dragElement;
         this._dragParent = dragElement.parentElement;
@@ -160,7 +161,6 @@ export class CollectionDockingView extends CollectionViewBase {
             CollectionDockingView.myLayout._maximizedStack = null;
         }
     }
-
     //
     //  Creates a vertical split on the right side of the docking view, and then adds the Document to that split
     //
@@ -241,21 +241,8 @@ export class CollectionDockingView extends CollectionViewBase {
             var containingDiv = "component_" + me.nextId();
             container.getElement().html("<div id='" + containingDiv + "'></div>");
             setTimeout(function () {
-                var htmlElement = document.getElementById(containingDiv);
-                container.on('resize', (e: any) => {
-                    // state.doc.SetNumber(KeyStore.Width, htmlElement!.clientWidth);
-                    // if (htmlElement!.clientHeight > 0)
-                    //     state.doc.SetNumber(KeyStore.Height, htmlElement!.clientHeight);
-                })
-                ReactDOM.render((
-                    <DocumentView key={state.doc.Id} Document={state.doc}
-                        AddDocument={me.addDocument} RemoveDocument={me.removeDocument}
-                        GetTransform={() => Transform.Identity}
-                        Scaling={1}
-                        ContainingCollectionView={me} DocumentView={undefined} />
-                ),
-                    htmlElement
-                );
+                state.rc = new RenderClass(containingDiv, state.doc, me, container);
+                me.rcs.push(state.rc);
                 if (CollectionDockingView.myLayout._maxstack != null) {
                     CollectionDockingView.myLayout._maxstack.click();
                 }
@@ -292,6 +279,44 @@ export class CollectionDockingView extends CollectionViewBase {
                     {chooseLayout()}
                 </div>
             </div>
+        );
+    }
+}
+
+class RenderClass {
+
+    @observable _resizeCount: number = 0;
+
+    _collectionDockingView: CollectionDockingView;
+    _htmlElement: any;
+    _document: Document;
+    constructor(containingDiv: string, doc: Document, me: CollectionDockingView, container: any) {
+        this._collectionDockingView = me;
+        this._htmlElement = document.getElementById(containingDiv);
+        this._document = doc;
+        container.on('resize', action((e: any) => {
+            var nativeWidth = doc.GetNumber(KeyStore.NativeWidth, 0);
+            if (this._htmlElement != null && this._htmlElement.childElementCount > 0 && nativeWidth > 0) {
+                let scaling = nativeWidth > 0 ? this._htmlElement!.clientWidth / nativeWidth : 1;
+                (this._htmlElement!.children[0] as any).style.transformOrigin = "0px 0px";
+                (this._htmlElement!.children[0] as any).style.transform = `translate(0px,0px)  scale(${scaling}, ${scaling}) `;
+                (this._htmlElement!.children[0] as any).style.width = nativeWidth.toString() + "px";
+            }
+        }));
+
+        this.render();
+    }
+    render() {
+        var nativeWidth = this._document.GetNumber(KeyStore.NativeWidth, 0);
+        let scaling = nativeWidth > 0 ? this._htmlElement!.clientWidth / nativeWidth : 1;
+        ReactDOM.render((
+            <DocumentView key={this._document.Id} Document={this._document}
+                AddDocument={this._collectionDockingView.addDocument} RemoveDocument={this._collectionDockingView.removeDocument}
+                GetTransform={() => Transform.Identity}
+                Scaling={scaling}
+                ContainingCollectionView={this._collectionDockingView} DocumentView={undefined} />
+        ),
+            this._htmlElement
         );
     }
 }
