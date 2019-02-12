@@ -7,9 +7,11 @@ import { TextField } from "../../../fields/TextField";
 import { NumberField } from "../../../fields/NumberField";
 import { RichTextField } from "../../../fields/RichTextField";
 import { ImageField } from "../../../fields/ImageField";
+import { WebField } from "../../../fields/WebField";
 import { Key } from "../../../fields/Key";
 import { FormattedTextBox } from "./FormattedTextBox";
 import { ImageBox } from "./ImageBox";
+import { WebBox } from "./WebBox";
 import { DocumentView } from "./DocumentView";
 
 //
@@ -44,6 +46,9 @@ export class FieldView extends React.Component<FieldViewProps> {
         }
         else if (field instanceof ImageField) {
             return <ImageBox {...this.props} />
+        }
+        else if (field instanceof WebField) {
+            return <WebBox {...this.props} />
         }
         else if (field instanceof NumberField) {
             return <p>{field.Data}</p>

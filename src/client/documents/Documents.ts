@@ -9,6 +9,8 @@ import { CollectionDockingView } from "../views/collections/CollectionDockingVie
 import { CollectionSchemaView } from "../views/collections/CollectionSchemaView";
 import { ImageField } from "../../fields/ImageField";
 import { ImageBox } from "../views/nodes/ImageBox";
+import { WebField } from "../../fields/WebField";
+import { WebBox } from "../views/nodes/WebBox";
 import { CollectionFreeFormView } from "../views/collections/CollectionFreeFormView";
 import { FieldId } from "../../fields/Field";
 
@@ -147,6 +149,37 @@ export namespace Documents {
         doc.Set(KeyStore.Annotations, new ListField([annotation]));
         Server.AddDocument(doc);
         var sdoc = Server.GetField(doc.Id) as Document;
+        return sdoc;
+    }
+
+    let webProtoId: FieldId;
+    function GetWebPrototype(): Document {
+        if (webProtoId === undefined) {
+            let webProto = new Document();
+            webProtoId = webProto.Id;
+            webProto.Set(KeyStore.Title, new TextField("WEB PROTO"));
+            webProto.Set(KeyStore.X, new NumberField(0));
+            webProto.Set(KeyStore.Y, new NumberField(0));
+            webProto.Set(KeyStore.NativeWidth, new NumberField(300));
+            webProto.Set(KeyStore.NativeHeight, new NumberField(300));
+            webProto.Set(KeyStore.Width, new NumberField(300));
+            webProto.Set(KeyStore.Height, new NumberField(300));
+            webProto.Set(KeyStore.Layout, new TextField(CollectionFreeFormView.LayoutString("AnnotationsKey")));
+            webProto.Set(KeyStore.BackgroundLayout, new TextField(WebBox.LayoutString()));
+            webProto.Set(KeyStore.LayoutKeys, new ListField([KeyStore.Data, KeyStore.Annotations]));
+            Server.AddDocument(webProto);
+            return webProto;
+        }
+        return Server.GetField(webProtoId) as Document;
+    }
+
+    export function WebDocument(url: string, options: DocumentOptions = {}): Document {
+        let doc = GetWebPrototype().MakeDelegate();
+        setupOptions(doc, options);
+        doc.Set(KeyStore.Data, new WebField(new URL(url)));
+        Server.AddDocument(doc);
+        var sdoc = Server.GetField(doc.Id) as Document;
+        console.log(sdoc);
         return sdoc;
     }
 
