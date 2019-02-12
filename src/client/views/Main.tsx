@@ -13,6 +13,7 @@ import "./Main.scss";
 import { ContextMenu } from './ContextMenu';
 import { DocumentView } from './nodes/DocumentView';
 import { ImageField } from '../../fields/ImageField';
+import { Transform } from '../util/Transform';
 
 
 configure({
@@ -84,7 +85,9 @@ document.addEventListener("pointerdown", action(function (e: PointerEvent) {
 
 ReactDOM.render((
     <div style={{ position: "absolute", width: "100%", height: "100%" }}>
-        <DocumentView Document={mainContainer} ContainingCollectionView={undefined} DocumentView={undefined} />
+        <DocumentView Document={mainContainer}
+            AddDocument={undefined} RemoveDocument={undefined} GetTransform={() => Transform.Identity}
+            ContainingCollectionView={undefined} DocumentView={undefined} />
         <DocumentDecorations />
         <ContextMenu />
     </div>),

@@ -15,13 +15,19 @@ import { FormattedTextBox } from "../nodes/FormattedTextBox";
 import { ImageBox } from "../nodes/ImageBox";
 import "./NodeView.scss";
 import React = require("react");
+import { Transform } from "../../util/Transform";
 const JsxParser = require('react-jsx-parser').default;//TODO Why does this need to be imported like this?
 
 export interface DocumentViewProps {
-    Document: Document;
     DocumentView: Opt<DocumentView>  // needed only to set ContainingDocumentView on CollectionViewProps when invoked from JsxParser -- is there a better way?
     ContainingCollectionView: Opt<CollectionViewBase>;
+
+    Document: Document;
+    AddDocument?: (doc: Document) => void;
+    RemoveDocument?: (doc: Document) => boolean;
+    GetTransform: () => Transform;
 }
+
 @observer
 export class DocumentView extends React.Component<DocumentViewProps> {
 

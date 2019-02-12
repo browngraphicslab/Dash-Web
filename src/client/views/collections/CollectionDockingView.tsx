@@ -14,6 +14,7 @@ import * as GoldenLayout from "golden-layout";
 import * as ReactDOM from 'react-dom';
 import { DragManager } from "../../util/DragManager";
 import { CollectionViewBase, CollectionViewProps, COLLECTION_BORDER_WIDTH } from "./CollectionViewBase";
+import { Transform } from "../../util/Transform";
 
 @observer
 export class CollectionDockingView extends CollectionViewBase {
@@ -95,7 +96,10 @@ export class CollectionDockingView extends CollectionViewBase {
         const value: Document[] = Document.GetData(fieldKey, ListField, []);
         for (var i: number = 0; i < value.length; i++) {
             if (value[i].Id === component) {
-                return (<DocumentView key={value[i].Id} ContainingCollectionView={this} Document={value[i]} DocumentView={undefined} />);
+                return (<DocumentView key={value[i].Id} Document={value[i]}
+                    AddDocument={this.addDocument} RemoveDocument={this.removeDocument}
+                    GetTransform={() => Transform.Identity}
+                    ContainingCollectionView={this} DocumentView={undefined} />);
             }
         }
         if (component === "text") {
@@ -236,7 +240,10 @@ export class CollectionDockingView extends CollectionViewBase {
             container.getElement().html("<div id='" + containingDiv + "'></div>");
             setTimeout(function () {
                 ReactDOM.render((
-                    <DocumentView key={state.doc.Id} Document={state.doc} ContainingCollectionView={me} DocumentView={undefined} />
+                    <DocumentView key={state.doc.Id} Document={state.doc}
+                        AddDocument={me.addDocument} RemoveDocument={me.removeDocument}
+                        GetTransform={() => Transform.Identity}
+                        ContainingCollectionView={me} DocumentView={undefined} />
                 ),
                     document.getElementById(containingDiv)
                 );

@@ -13,6 +13,7 @@ import { ListField } from "../../../fields/ListField";
 import { NumberField } from "../../../fields/NumberField";
 import { Documents } from "../../documents/Documents";
 import { FieldWaiting } from "../../../fields/Field";
+import { Transform } from "../../util/Transform";
 
 @observer
 export class CollectionFreeFormView extends CollectionViewBase {
@@ -172,6 +173,23 @@ export class CollectionFreeFormView extends CollectionViewBase {
         }
     }
 
+    @computed
+    get translate(): [number, number] {
+        const x = this.props.DocumentForCollection.GetNumber(KeyStore.PanX, 0);
+        const y = this.props.DocumentForCollection.GetNumber(KeyStore.PanY, 0);
+        return [x, y];
+    }
+
+    @computed
+    get scale(): number {
+        return this.props.DocumentForCollection.GetNumber(KeyStore.Scale, 1);
+    }
+
+    getTransform = (): Transform => {
+        const [x, y] = this.translate;
+        return this.props.GetTransform().scaled(this.scale).translate(x, y);
+    }
+
     render() {
         const { CollectionFieldKey: fieldKey, DocumentForCollection: Document } = this.props;
         const value: Document[] = Document.GetList<Document>(fieldKey, []);
@@ -194,7 +212,11 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
                         <div className="node-container" ref={this._nodeContainerRef}>
                             {value.map(doc => {
-                                return (<CollectionFreeFormDocumentView key={doc.Id} ContainingCollectionView={this} Document={doc} DocumentView={undefined} />);
+                                return (<CollectionFreeFormDocumentView key={doc.Id} Document={doc}
+                                    AddDocument={this.addDocument}
+                                    RemoveDocument={this.removeDocument}
+                                    GetTransform={this.getTransform}
+                                    ContainingCollectionView={this} DocumentView={undefined} />);
                             })}
                         </div>
                     </div>

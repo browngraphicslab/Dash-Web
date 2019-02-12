@@ -10,12 +10,14 @@ import React = require("react");
 import { DocumentView } from "../nodes/DocumentView";
 import { CollectionDockingView } from "./CollectionDockingView";
 import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
+import { Transform } from "../../util/Transform";
 
 
 export interface CollectionViewProps {
     CollectionFieldKey: Key;
     DocumentForCollection: Document;
     ContainingDocumentView: Opt<DocumentView>;
+    GetTransform: () => Transform;
 }
 
 export const COLLECTION_BORDER_WIDTH = 2;
@@ -43,15 +45,18 @@ export class CollectionViewBase extends React.Component<CollectionViewProps> {
     }
 
     @action
-    removeDocument = (doc: Document): void => {
+    removeDocument = (doc: Document): boolean => {
         //TODO This won't create the field if it doesn't already exist
         const value = this.props.DocumentForCollection.GetData(this.props.CollectionFieldKey, ListField, new Array<Document>())
-        if (value.indexOf(doc) !== -1) {
-            value.splice(value.indexOf(doc), 1)
+        let index = value.indexOf(doc);
+        if (index !== -1) {
+            value.splice(index, 1)
 
             SelectionManager.DeselectAll()
             ContextMenu.Instance.clearItems()
+            return true;
         }
+        return false
     }
 
 }

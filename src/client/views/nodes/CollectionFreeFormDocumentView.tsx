@@ -10,6 +10,7 @@ import { ContextMenu } from "../ContextMenu";
 import "./NodeView.scss";
 import React = require("react");
 import { DocumentView, DocumentViewProps } from "./DocumentView";
+import { Transform } from "../../util/Transform";
 
 
 @observer
@@ -204,6 +205,10 @@ export class CollectionFreeFormDocumentView extends DocumentView {
         }
     }
 
+    getTransform = (): Transform => {
+        return this.props.GetTransform().translated(this.x, this.y);
+    }
+
     render() {
         var freestyling = this.props.ContainingCollectionView instanceof CollectionFreeFormView;
         return (
@@ -217,7 +222,7 @@ export class CollectionFreeFormDocumentView extends DocumentView {
                 onContextMenu={this.onContextMenu}
                 onPointerDown={this.onPointerDown}>
 
-                <DocumentView {...this.props} DocumentView={this.props.DocumentView} />
+                <DocumentView {...this.props} GetTransform={this.getTransform} DocumentView={this.props.DocumentView} />
             </div>
         );
     }

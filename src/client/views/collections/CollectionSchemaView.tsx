@@ -14,6 +14,7 @@ import { CompileScript, ToField } from "../../util/Scripting";
 import { KeyStore as KS, Key } from "../../../fields/Key";
 import { Document } from "../../../fields/Document";
 import { Field } from "../../../fields/Field";
+import { Transform } from "../../util/Transform";
 
 @observer
 export class CollectionSchemaView extends CollectionViewBase {
@@ -104,7 +105,10 @@ export class CollectionSchemaView extends CollectionViewBase {
         let content;
         if (this.selectedIndex != -1) {
             content = (
-                <DocumentView Document={children[this.selectedIndex]} DocumentView={undefined} ContainingCollectionView={this} />
+                <DocumentView Document={children[this.selectedIndex]}
+                    AddDocument={this.addDocument} RemoveDocument={this.removeDocument}
+                    GetTransform={() => Transform.Identity}//TODO This should probably be an actual transform
+                    DocumentView={undefined} ContainingCollectionView={this} />
             )
         } else {
             content = <div />
