@@ -19,6 +19,7 @@ export interface CollectionViewProps {
     ContainingDocumentView: Opt<DocumentView>;
     GetTransform: () => Transform;
     BackgroundView: Opt<DocumentView>;
+    Scaling: number;
 }
 
 export const COLLECTION_BORDER_WIDTH = 2;
@@ -26,10 +27,10 @@ export const COLLECTION_BORDER_WIDTH = 2;
 @observer
 export class CollectionViewBase extends React.Component<CollectionViewProps> {
 
-    public static LayoutString(collectionType: string) {
-        return `<${collectionType} DocumentForCollection={Document} CollectionFieldKey={DataKey}
-                    GetTransform={GetTransform}
-                    ContainingDocumentView={DocumentView}/>`;
+    public static LayoutString(collectionType: string, fieldKey: string = "DataKey") {
+        return `<${collectionType} Scaling={Scaling} DocumentForCollection={Document}
+                    GetTransform={GetTransform} CollectionFieldKey={${fieldKey}}
+                    ContainingDocumentView={DocumentView} BackgroundView={BackgroundView} />`;
     }
     @computed
     public get active(): boolean {
