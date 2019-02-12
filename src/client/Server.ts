@@ -31,9 +31,9 @@ export class Server {
     public static GetDocumentField(doc: Document, key: Key) {
         var hackTimeout: number = key == KeyStore.Data ? (this.times++ == 0 ? 5000 : 1000) : key == KeyStore.X ? 2500 : 500;
 
-        return this.GetField(doc._proxies.get(key),
+        return this.GetField(doc._proxies.get(key.Id),
             action((fieldfromserver: Field) => {
-                doc._proxies.delete(key);
+                doc._proxies.delete(key.Id);
                 doc.fields.set(key, fieldfromserver);
             })
             , hackTimeout);

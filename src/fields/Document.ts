@@ -10,7 +10,7 @@ import { Types } from "../server/Message";
 
 export class Document extends Field {
     public fields: ObservableMap<Key, Opt<Field>> = new ObservableMap();
-    public _proxies: ObservableMap<Key, FIELD_ID> = new ObservableMap();
+    public _proxies: ObservableMap<string, FIELD_ID> = new ObservableMap();
 
     @computed
     public get Title() {
@@ -22,18 +22,18 @@ export class Document extends Field {
         if (ignoreProto) {
             if (this.fields.has(key)) {
                 field = this.fields.get(key);
-            } else if (this._proxies.has(key)) {
+            } else if (this._proxies.has(key.Id)) {
                 field = Server.GetDocumentField(this, key);
             }
         } else {
             let doc: FieldValue<Document> = this;
             while (doc && doc != FieldWaiting && field != FieldWaiting) {
                 if (!doc.fields.has(key)) {
-                    if (doc._proxies.has(key)) {
+                    if (doc._proxies.has(key.Id)) {
                         field = Server.GetDocumentField(doc, key);
                         break;
                     }
-                    if ((doc.fields.has(KeyStore.Prototype) || doc._proxies.has(KeyStore.Prototype))) {
+                    if ((doc.fields.has(KeyStore.Prototype) || doc._proxies.has(KeyStore.Prototype.Id))) {
                         doc = doc.GetPrototype();
                     } else
                         break;
@@ -160,7 +160,7 @@ export class Document extends Field {
         let fields: [string, string][] = []
         this._proxies.forEach((field, key) => {
             if (field) {
-                fields.push([key.Id as string, field as string])
+                fields.push([key, field as string])
             }
         });
 

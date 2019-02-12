@@ -28,8 +28,8 @@ export type FieldValue<T> = Opt<T> | FIELD_WAITING;
 export abstract class Field {
     //FieldUpdated: TypedEvent<Opt<FieldUpdatedArgs>> = new TypedEvent<Opt<FieldUpdatedArgs>>();
 
-    private id: FIELD_ID;
-    get Id(): FIELD_ID {
+    private id: string;
+    get Id(): string {
         return this.id;
     }
 
@@ -87,6 +87,7 @@ export abstract class Field {
                 let doc: Document = new Document(id)
                 let fields: [string, string][] = data as [string, string][]
                 fields.forEach(element => {
+                    doc._proxies.set(element[0], element[1]);
                     let keyId: string = element[0]
                     let valueId: string = element[1]
                     Server.GetField(keyId, (key: Field) => {

@@ -19,7 +19,7 @@ export class SocketStub {
 
         // server stores stripped down document (w/ only field id proxies) in the field store
         this.FieldStore.set(document.Id, new Document(document.Id));
-        document.fields.forEach((f, key) => (this.FieldStore.get(document.Id) as Document)._proxies.set(key, (f as Field).Id));
+        document.fields.forEach((f, key) => (this.FieldStore.get(document.Id) as Document)._proxies.set(key.Id, (f as Field).Id));
 
         // Server.Socket.emit(MessageStore.AddDocument.Message, document)
     }
@@ -41,7 +41,7 @@ export class SocketStub {
         // server updates its document to hold a proxy mapping from key => fieldId
         var document = this.FieldStore.get(doc.Id) as Document;
         if (document)
-            document._proxies.set(key, value.Id);
+            document._proxies.set(key.Id, value.Id);
 
         // server adds the field to its repository of fields
         this.FieldStore.set(value.Id, value);
@@ -55,7 +55,7 @@ export class SocketStub {
         // Server removes the field id from the document's list of field proxies
         var document = this.FieldStore.get(doc.Id) as Document;
         if (document)
-            document._proxies.delete(key);
+            document._proxies.delete(key.Id);
     }
 
     public static SEND_SET_FIELD(field: Field, value: any) {
