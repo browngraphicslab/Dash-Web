@@ -18,6 +18,7 @@ export interface CollectionViewProps {
     DocumentForCollection: Document;
     ContainingDocumentView: Opt<DocumentView>;
     GetTransform: () => Transform;
+    BackgroundView: Opt<DocumentView>;
 }
 
 export const COLLECTION_BORDER_WIDTH = 2;

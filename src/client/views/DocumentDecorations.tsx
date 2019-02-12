@@ -111,8 +111,10 @@ export class DocumentDecorations extends React.Component {
                 let actualdH = Math.max(element.height + (dH * scale), 20);
                 element.x += dX * (actualdW - element.width);
                 element.y += dY * (actualdH - element.height);
-                element.width = actualdW;
-                element.height = actualdH;
+                if (Math.abs(dW) > Math.abs(dH))
+                    element.width = actualdW;
+                else
+                    element.height = actualdH;
             }
         })
     }

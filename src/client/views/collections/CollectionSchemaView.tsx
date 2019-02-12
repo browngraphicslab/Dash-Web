@@ -87,10 +87,11 @@ export class CollectionSchemaView extends CollectionViewBase {
         if (target.tagName == "SPAN" && target.className.includes("Resizer")) {
             e.stopPropagation();
         }
-        if (e.button === 2 && this.active) {
-            e.stopPropagation();
-            e.preventDefault();
-        } else {
+        // if (e.button === 2 && this.active) {
+        //     e.stopPropagation();
+        //     e.preventDefault();
+        // } else 
+        {
             if (e.buttons === 1 && this.active) {
                 e.stopPropagation();
             }
@@ -108,6 +109,7 @@ export class CollectionSchemaView extends CollectionViewBase {
                 <DocumentView Document={children[this.selectedIndex]}
                     AddDocument={this.addDocument} RemoveDocument={this.removeDocument}
                     GetTransform={() => Transform.Identity}//TODO This should probably be an actual transform
+                    Scaling={1}
                     DocumentView={undefined} ContainingCollectionView={this} />
             )
         } else {
@@ -123,7 +125,8 @@ export class CollectionSchemaView extends CollectionViewBase {
                             page={0}
                             showPagination={false}
                             style={{
-                                display: "inline-block"
+                                display: "inline-block",
+                                width: "100%"
                             }}
                             columns={columns.map(col => {
                                 return (

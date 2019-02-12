@@ -99,6 +99,7 @@ export class CollectionDockingView extends CollectionViewBase {
                 return (<DocumentView key={value[i].Id} Document={value[i]}
                     AddDocument={this.addDocument} RemoveDocument={this.removeDocument}
                     GetTransform={() => Transform.Identity}
+                    Scaling={1}
                     ContainingCollectionView={this} DocumentView={undefined} />);
             }
         }
@@ -243,6 +244,7 @@ export class CollectionDockingView extends CollectionViewBase {
                     <DocumentView key={state.doc.Id} Document={state.doc}
                         AddDocument={me.addDocument} RemoveDocument={me.removeDocument}
                         GetTransform={() => Transform.Identity}
+                        Scaling={1}
                         ContainingCollectionView={me} DocumentView={undefined} />
                 ),
                     document.getElementById(containingDiv)

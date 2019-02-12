@@ -26,6 +26,7 @@ export interface DocumentViewProps {
     AddDocument?: (doc: Document) => void;
     RemoveDocument?: (doc: Document) => boolean;
     GetTransform: () => Transform;
+    Scaling: number;
 }
 
 @observer
@@ -38,6 +39,11 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     @computed
     get layout(): string {
         return this.props.Document.GetData(KeyStore.Layout, TextField, String("<p>Error loading layout data</p>"));
+    }
+
+    @computed
+    get backgroundLayout(): string {
+        return this.props.Document.GetData(KeyStore.BackgroundLayout, TextField, String("<p>Error loading layout data</p>"));
     }
 
     @computed
@@ -57,7 +63,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     public get ScalingToScreenSpace(): number {
         if (this.props.ContainingCollectionView != undefined &&
             this.props.ContainingCollectionView.props.ContainingDocumentView != undefined) {
-            let ss = this.props.ContainingCollectionView.props.DocumentForCollection.GetData(KeyStore.Scale, NumberField, Number(1));
+            let ss = this.props.ContainingCollectionView.props.DocumentForCollection.GetNumber(KeyStore.Scale, 1);
             return this.props.ContainingCollectionView.props.ContainingDocumentView.ScalingToScreenSpace * ss;
         }
         return 1;
@@ -87,7 +93,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             Yy = ry - COLLECTION_BORDER_WIDTH;
         }
 
-        let Ss = this.props.Document.GetData(KeyStore.Scale, NumberField, Number(1));
+        let Ss = this.props.Document.GetNumber(KeyStore.Scale, 1);
         let Panxx = this.props.Document.GetData(KeyStore.PanX, NumberField, Number(0));
         let Panyy = this.props.Document.GetData(KeyStore.PanY, NumberField, Number(0));
         let LocalX = (ContainerX - (Xx + Panxx)) / Ss;
@@ -121,7 +127,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         // first transform the local point into the parent collection's coordinate space.
         let containingDocView = this.props.ContainingCollectionView != undefined ? this.props.ContainingCollectionView.props.ContainingDocumentView : undefined;
         if (containingDocView != undefined) {
-            let ss = containingDocView.props.Document.GetData(KeyStore.Scale, NumberField, Number(1));
+            let ss = containingDocView.props.Document.GetNumber(KeyStore.Scale, 1) * this.props.Scaling;
             let panxx = containingDocView.props.Document.GetData(KeyStore.PanX, NumberField, Number(0)) + COLLECTION_BORDER_WIDTH * ss;
             let panyy = containingDocView.props.Document.GetData(KeyStore.PanY, NumberField, Number(0)) + COLLECTION_BORDER_WIDTH * ss;
             let { ScreenX, ScreenY } = containingDocView.TransformToScreenPoint(parentX, parentY, ss, panxx, panyy);
@@ -144,6 +150,14 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         if (bindings.DocumentView === undefined) {
             bindings.DocumentView = this; // set the DocumentView to this if it hasn't already been set by a sub-class during its render method.
         }
+        var annotated = <JsxParser
+            components={{ FormattedTextBox: FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView }}
+            bindings={bindings}
+            jsx={this.backgroundLayout}
+            showWarnings={true}
+            onError={(test: any) => { console.log(test) }}
+        />;
+        bindings["BackgroundView"] = this.backgroundLayout ? annotated : null;
         return (
             <div className="node" ref={this._mainCont} style={{ width: "100%", height: "100%", }}>
                 <JsxParser
