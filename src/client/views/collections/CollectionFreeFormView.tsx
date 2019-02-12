@@ -20,7 +20,6 @@ export class CollectionFreeFormView extends CollectionViewBase {
     public static LayoutString() { return CollectionViewBase.LayoutString("CollectionFreeFormView"); }
     private _containerRef = React.createRef<HTMLDivElement>();
     private _canvasRef = React.createRef<HTMLDivElement>();
-    private _nodeContainerRef = React.createRef<HTMLDivElement>();
     private _lastX: number = 0;
     private _lastY: number = 0;
     private _downX: number = 0;
@@ -221,30 +220,29 @@ export class CollectionFreeFormView extends CollectionViewBase {
         const pany: number = Document.GetNumber(KeyStore.PanY, 0);
 
         return (
-            <div className="border" style={{
-                borderWidth: `${COLLECTION_BORDER_WIDTH}px`,
-            }}>
-                <div className="collectionfreeformview-container"
-                    onPointerDown={this.onPointerDown}
-                    onWheel={this.onPointerWheel}
-                    onContextMenu={(e) => e.preventDefault()}
-                    onDrop={this.onDrop}
-                    onDragOver={this.onDragOver}
-                    ref={this._containerRef}>
-                    <div className="collectionfreeformview" style={{ transform: `translate(${panx}px, ${pany}px) scale(${this.zoomScaling}, ${this.zoomScaling})`, transformOrigin: `left, top` }} ref={this._canvasRef}>
+            <div className="collectionfreeformview-container"
+                onPointerDown={this.onPointerDown}
+                onWheel={this.onPointerWheel}
+                onContextMenu={(e) => e.preventDefault()}
+                onDrop={this.onDrop}
+                onDragOver={this.onDragOver}
+                style={{
+                    borderWidth: `${COLLECTION_BORDER_WIDTH}px`,
+                }}
+                ref={this._containerRef}>
+                <div className="collectionfreeformview"
+                    style={{ transform: `translate(${panx}px, ${pany}px) scale(${this.zoomScaling}, ${this.zoomScaling})`, transformOrigin: `left, top` }}
+                    ref={this._canvasRef}>
 
-                        <div className="node-container" ref={this._nodeContainerRef}>
-                            {this.props.BackgroundView}
-                            {value.map(doc => {
-                                return (<CollectionFreeFormDocumentView key={doc.Id} Document={doc}
-                                    AddDocument={this.addDocument}
-                                    RemoveDocument={this.removeDocument}
-                                    GetTransform={this.getTransform}
-                                    Scaling={this.resizeScaling}
-                                    ContainingCollectionView={this} DocumentView={undefined} />);
-                            })}
-                        </div>
-                    </div>
+                    {this.props.BackgroundView}
+                    {value.map(doc => {
+                        return (<CollectionFreeFormDocumentView key={doc.Id} Document={doc}
+                            AddDocument={this.addDocument}
+                            RemoveDocument={this.removeDocument}
+                            GetTransform={this.getTransform}
+                            Scaling={this.resizeScaling}
+                            ContainingCollectionView={this} DocumentView={undefined} />);
+                    })}
                 </div>
             </div>
         );
