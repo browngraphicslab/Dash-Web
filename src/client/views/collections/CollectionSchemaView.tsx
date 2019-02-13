@@ -117,10 +117,7 @@ export class CollectionSchemaView extends CollectionViewBase {
         }
         return (
             <div onPointerDown={this.onPointerDown} className="collectionSchemaView-container"
-                style={{
-                    borderWidth: `${COLLECTION_BORDER_WIDTH}px`,
-                }}
-            >
+                style={{ borderWidth: `${COLLECTION_BORDER_WIDTH}px`, }} >
                 <SplitPane split={"vertical"} defaultSize="60%" style={{ position: "relative", overflow: "none" }}>
                     <ScrollBox>
                         <ReactTable
@@ -128,11 +125,6 @@ export class CollectionSchemaView extends CollectionViewBase {
                             pageSize={children.length}
                             page={0}
                             showPagination={false}
-                            style={{
-                                display: "inline-block",
-                                width: "100%",
-                                postion: "absolute"
-                            }}
                             columns={columns.map(col => {
                                 return (
                                     {

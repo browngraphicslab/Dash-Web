@@ -10,7 +10,9 @@
         max-height:100%;
     }
     .ReactTable {
-        position: absolute
+        position: absolute;
+        display: inline-block;
+        width: 100%;
     }
     .ReactTable .rt-th, .ReactTable .rt-td {
         max-height: 75px;
