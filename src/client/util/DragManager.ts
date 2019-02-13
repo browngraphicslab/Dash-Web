@@ -78,6 +78,8 @@ export namespace DragManager {
         dragElement.style.transformOrigin = "0 0";
         dragElement.style.zIndex = "1000";
         dragElement.style.transform = `translate(${x}px, ${y}px) scale(${scaleX}, ${scaleY})`;
+        dragElement.style.width = `${rect.width}px`;
+        dragElement.style.height = `${rect.height}px`;
         dragDiv.appendChild(dragElement);
         _lastPointerX = dragData["xOffset"] + rect.left;
         _lastPointerY = dragData["yOffset"] + rect.top;
