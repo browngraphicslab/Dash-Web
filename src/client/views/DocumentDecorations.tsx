@@ -26,8 +26,8 @@ export class DocumentDecorations extends React.Component {
                 !(element.props.ContainingCollectionView instanceof CollectionFreeFormView)) {
                 return bounds;
             }
-            var spt = element.TransformToScreenPoint(0, 0, 1, 0, 0, false);
-            var bpt = element.TransformToScreenPoint(element.width, element.height, 1, 0, 0, false);
+            var spt = element.TransformToScreenPoint(0, 0);
+            var bpt = element.TransformToScreenPoint(element.width, element.height);
             return {
                 x: Math.min(spt.ScreenX, bounds.x), y: Math.min(spt.ScreenY, bounds.y),
                 r: Math.max(bpt.ScreenX, bounds.r), b: Math.max(bpt.ScreenY, bounds.b)

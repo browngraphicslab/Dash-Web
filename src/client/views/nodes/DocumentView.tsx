@@ -130,7 +130,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     //
     // Converts a point in the coordinate space of the document to coordinate in app screen coordinates
     //
-    public TransformToScreenPoint(localX: number, localY: number, Ss: number = 1, Panxx: number = 0, Panyy: number = 0, apply: boolean = true): { ScreenX: number, ScreenY: number } {
+    public TransformToScreenPoint(localX: number, localY: number, Ss: number = 1, Panxx: number = 0, Panyy: number = 0, apply: boolean = false): { ScreenX: number, ScreenY: number } {
         var parentScaling = apply ? this.parentScaling : 1;
 
         let parentX = (Panxx + (localX - COLLECTION_BORDER_WIDTH) * Ss) * parentScaling + this.LeftCorner();
@@ -143,7 +143,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             let ss = containingDocView.props.Document.GetNumber(KeyStore.Scale, 1);
             let panxx = containingDocView.props.Document.GetNumber(KeyStore.PanX, 0) + COLLECTION_BORDER_WIDTH * ss * parentScaling;
             let panyy = containingDocView.props.Document.GetNumber(KeyStore.PanY, 0) + COLLECTION_BORDER_WIDTH * ss * parentScaling;
-            let { ScreenX, ScreenY } = containingDocView.TransformToScreenPoint(parentX, parentY, ss, panxx, panyy);
+            let { ScreenX, ScreenY } = containingDocView.TransformToScreenPoint(parentX, parentY, ss, panxx, panyy, true);
             parentX = ScreenX;
             parentY = ScreenY;
         }
@@ -163,20 +163,28 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         if (bindings.DocumentView === undefined) {
             bindings.DocumentView = this; // set the DocumentView to this if it hasn't already been set by a sub-class during its render method.
         }
-        var annotated = <JsxParser
-            components={{ FormattedTextBox: FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView }}
-            bindings={bindings}
-            jsx={this.backgroundLayout}
-            showWarnings={true}
-            onError={(test: any) => { console.log(test) }}
-        />;
-        bindings["BackgroundView"] = this.backgroundLayout ? annotated : null;
+        if (this.backgroundLayout) {
+            var backgroundview = <JsxParser
+                components={{ FormattedTextBox: FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView }}
+                bindings={bindings}
+                jsx={this.backgroundLayout}
+                showWarnings={true}
+                onError={(test: any) => { console.log(test) }}
+            />;
+            bindings["BackgroundView"] = backgroundview;
+        }
         var nativewidth = this.props.Document.GetNumber(KeyStore.NativeWidth, 0);
         var nativeheight = this.props.Document.GetNumber(KeyStore.NativeHeight, 0);
         var width = nativewidth > 0 ? nativewidth + "px" : "100%";
         var height = nativeheight > 0 ? nativeheight + "px" : "100%";
         return (
-            <div className="node" ref={this._mainCont} style={{ width: width, height: height, transformOrigin: "0 0", transform: `scale(${this.props.ParentScaling},${this.props.ParentScaling})` }}>
+            <div className="node" ref={this._mainCont}
+                style={{
+                    width: width,
+                    height: height,
+                    transformOrigin: "top left",
+                    transform: `scale(${this.props.ParentScaling},${this.props.ParentScaling})`
+                }}>
                 <JsxParser
                     components={{ FormattedTextBox: FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView }}
                     bindings={bindings}
