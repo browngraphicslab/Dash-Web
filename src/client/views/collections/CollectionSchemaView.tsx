@@ -27,7 +27,8 @@ export class CollectionSchemaView extends CollectionViewBase {
         let props: FieldViewProps = {
             doc: rowProps.value[0],
             fieldKey: rowProps.value[1],
-            DocumentViewForField: undefined,
+            isSelected: () => false,
+            isTopMost: false
         }
         let contents = (
             <FieldView {...props} />
@@ -110,6 +111,7 @@ export class CollectionSchemaView extends CollectionViewBase {
                     AddDocument={this.addDocument} RemoveDocument={this.removeDocument}
                     GetTransform={() => Transform.Identity}//TODO This should probably be an actual transform
                     Scaling={1}
+                    isTopMost={false}
                     DocumentView={undefined} ContainingCollectionView={this} />
             )
         } else {

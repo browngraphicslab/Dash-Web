@@ -41,7 +41,7 @@ export class ImageBox extends React.Component<FieldViewProps> {
 
     onPointerDown = (e: React.PointerEvent): void => {
         if (Date.now() - this._lastTap < 300) {
-            if (e.buttons === 1 && this.props.DocumentViewForField instanceof CollectionFreeFormDocumentView && SelectionManager.IsSelected(this.props.DocumentViewForField)) {
+            if (e.buttons === 1 && this.props.isSelected()) {
                 e.stopPropagation();
                 this._downX = e.clientX;
                 this._downY = e.clientY;
@@ -63,7 +63,7 @@ export class ImageBox extends React.Component<FieldViewProps> {
 
     lightbox = (path: string) => {
         const images = [path, "http://www.cs.brown.edu/~bcz/face.gif"];
-        if (this._isOpen && this.props.DocumentViewForField instanceof CollectionFreeFormDocumentView && SelectionManager.IsSelected(this.props.DocumentViewForField)) {
+        if (this._isOpen && this.props.isSelected()) {
             return (<Lightbox
                 mainSrc={images[this._photoIndex]}
                 nextSrc={images[(this._photoIndex + 1) % images.length]}

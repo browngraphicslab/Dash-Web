@@ -16,6 +16,7 @@ import "./CollectionDockingView.scss";
 import { CollectionViewBase, CollectionViewProps, COLLECTION_BORDER_WIDTH } from "./CollectionViewBase";
 import React = require("react");
 import { changeDependenciesStateTo0 } from "mobx/lib/internal";
+import { Utils } from "../../../Utils";
 
 @observer
 export class CollectionDockingView extends CollectionViewBase {
@@ -100,6 +101,7 @@ export class CollectionDockingView extends CollectionViewBase {
                 return (<DocumentView key={value[i].Id} Document={value[i]}
                     AddDocument={this.addDocument} RemoveDocument={this.removeDocument}
                     GetTransform={() => Transform.Identity}
+                    isTopMost={true}
                     Scaling={1}
                     ContainingCollectionView={this} DocumentView={undefined} />);
             }
@@ -307,12 +309,16 @@ class RenderClass {
         this.render();
     }
     render() {
-        var nativeWidth = this._document.GetNumber(KeyStore.NativeWidth, 0);
+        let nativeWidth = this._document.GetNumber(KeyStore.NativeWidth, 0);
         let scaling = nativeWidth > 0 ? this._htmlElement!.clientWidth / nativeWidth : 1;
         ReactDOM.render((
             <DocumentView key={this._document.Id} Document={this._document}
                 AddDocument={this._collectionDockingView.addDocument} RemoveDocument={this._collectionDockingView.removeDocument}
-                GetTransform={() => Transform.Identity}
+                GetTransform={() => {
+                    let { scale, translateX, translateY } = Utils.GetScreenTransform(this._htmlElement);
+                    return this._collectionDockingView.props.GetTransform().scale(scale).translate(-translateX, -translateY)
+                }}
+                isTopMost={true}
                 Scaling={scaling}
                 ContainingCollectionView={this._collectionDockingView} DocumentView={undefined} />
         ),
