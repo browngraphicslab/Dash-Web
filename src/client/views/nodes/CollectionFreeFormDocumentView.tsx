@@ -79,7 +79,7 @@ export class CollectionFreeFormDocumentView extends DocumentView {
 
     @computed
     get zIndex(): number {
-        return this.props.Document.GetData(KeyStore.ZIndex, NumberField, Number(0));
+        return this.props.Document.GetNumber(KeyStore.ZIndex, 0);
     }
 
     set zIndex(h: number) {

@@ -265,8 +265,8 @@ export class CollectionDockingView extends CollectionViewBase {
         const value: Document[] = Document.GetData(fieldKey, ListField, []);
         // bcz: not sure why, but I need these to force the flexlayout to update when the collection size changes.
         var s = this.props.ContainingDocumentView != undefined ? this.props.ContainingDocumentView!.ScalingToScreenSpace : 1;
-        var w = Document.GetData(KeyStore.Width, NumberField, Number(0)) / s;
-        var h = Document.GetData(KeyStore.Height, NumberField, Number(0)) / s;
+        var w = Document.GetNumber(KeyStore.Width, 0) / s;
+        var h = Document.GetNumber(KeyStore.Height, 0) / s;
 
         var chooseLayout = () => {
             if (!CollectionDockingView.UseGoldenLayout)

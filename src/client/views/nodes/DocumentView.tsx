@@ -41,12 +41,12 @@ export class DocumentView extends React.Component<DocumentViewProps> {
 
     @computed
     get parentScaling(): number {
-        return this._renderDoc.current ? this._renderDoc.current.props.ParentScaling : this.props.ParentScaling > 1 ? this.props.ParentScaling : 1;
+        return this._renderDoc.current ? this._renderDoc.current.props.ParentScaling : this.props.ParentScaling > 0 ? this.props.ParentScaling : 1;
     }
 
     @computed
     get layout(): string {
-        return this.props.Document.GetData(KeyStore.Layout, TextField, String("<p>Error loading layout data</p>"));
+        return this.props.Document.GetText(KeyStore.Layout, "<p>Error loading layout data</p>");
     }
 
     @computed
@@ -130,20 +130,19 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     //
     // Converts a point in the coordinate space of the document to coordinate in app screen coordinates
     //
-    public TransformToScreenPoint(localX: number, localY: number, Ss: number = 1, Panxx: number = 0, Panyy: number = 0, apply: boolean = false): { ScreenX: number, ScreenY: number } {
-        var parentScaling = apply ? this.parentScaling : 1;
+    public TransformToScreenPoint(localX: number, localY: number, applyViewXf: boolean = false): { ScreenX: number, ScreenY: number } {
+        var parentScaling = applyViewXf ? this.parentScaling : 1;
+        let Panxx = applyViewXf ? this.props.Document.GetNumber(KeyStore.PanX, 0) : 0;
+        let Panyy = applyViewXf ? this.props.Document.GetNumber(KeyStore.PanY, 0) : 0;
+        var Zoom = applyViewXf ? this.props.Document.GetNumber(KeyStore.Scale, 1) : 1;
 
-        let parentX = (Panxx + (localX - COLLECTION_BORDER_WIDTH) * Ss) * parentScaling + this.LeftCorner();
-        let parentY = (Panyy + (localY - COLLECTION_BORDER_WIDTH) * Ss) * parentScaling + this.TopCorner();
-
+        let parentX = this.LeftCorner() + (Panxx + (localX - COLLECTION_BORDER_WIDTH) * Zoom) * parentScaling;
+        let parentY = this.TopCorner() + (Panyy + (localY - COLLECTION_BORDER_WIDTH) * Zoom) * parentScaling;
         // if this collection view is nested within another collection view, then 
         // first transform the local point into the parent collection's coordinate space.
-        let containingDocView = this.props.ContainingCollectionView != undefined ? this.props.ContainingCollectionView.props.ContainingDocumentView : undefined;
+        let containingDocView = this.props.ContainingCollectionView ? this.props.ContainingCollectionView.props.ContainingDocumentView : undefined;
         if (containingDocView) {
-            let ss = containingDocView.props.Document.GetNumber(KeyStore.Scale, 1);
-            let panxx = containingDocView.props.Document.GetNumber(KeyStore.PanX, 0) + COLLECTION_BORDER_WIDTH * ss * parentScaling;
-            let panyy = containingDocView.props.Document.GetNumber(KeyStore.PanY, 0) + COLLECTION_BORDER_WIDTH * ss * parentScaling;
-            let { ScreenX, ScreenY } = containingDocView.TransformToScreenPoint(parentX, parentY, ss, panxx, panyy, true);
+            let { ScreenX, ScreenY } = containingDocView.TransformToScreenPoint(parentX + COLLECTION_BORDER_WIDTH * parentScaling, parentY + COLLECTION_BORDER_WIDTH * parentScaling, true);
             parentX = ScreenX;
             parentY = ScreenY;
         }

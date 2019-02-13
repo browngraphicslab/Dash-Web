@@ -149,8 +149,8 @@ export class CollectionFreeFormView extends CollectionViewBase {
         let fReader = new FileReader()
         let file = e.dataTransfer.items[0].getAsFile();
         let that = this;
-        const panx: number = this.props.DocumentForCollection.GetData(KeyStore.PanX, NumberField, Number(0));
-        const pany: number = this.props.DocumentForCollection.GetData(KeyStore.PanY, NumberField, Number(0));
+        const panx: number = this.props.DocumentForCollection.GetNumber(KeyStore.PanX, 0);
+        const pany: number = this.props.DocumentForCollection.GetNumber(KeyStore.PanY, 0);
         let x = e.pageX - panx
         let y = e.pageY - pany
 
