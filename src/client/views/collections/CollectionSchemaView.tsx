@@ -7,7 +7,7 @@ import { observable, action, computed } from "mobx";
 import SplitPane from "react-split-pane"
 import "./CollectionSchemaView.scss"
 import { ScrollBox } from "../../util/ScrollBox";
-import { CollectionViewBase } from "./CollectionViewBase";
+import { CollectionViewBase, COLLECTION_BORDER_WIDTH } from "./CollectionViewBase";
 import { DocumentView } from "../nodes/DocumentView";
 import { EditableView } from "../EditableView";
 import { CompileScript, ToField } from "../../util/Scripting";
@@ -116,8 +116,12 @@ export class CollectionSchemaView extends CollectionViewBase {
             content = <div />
         }
         return (
-            <div onPointerDown={this.onPointerDown} className="collectionSchemaView-container">
-                <SplitPane split={"vertical"} defaultSize="60%">
+            <div onPointerDown={this.onPointerDown} className="collectionSchemaView-container"
+                style={{
+                    borderWidth: `${COLLECTION_BORDER_WIDTH}px`,
+                }}
+            >
+                <SplitPane split={"vertical"} defaultSize="60%" style={{ position: "relative", overflow: "none" }}>
                     <ScrollBox>
                         <ReactTable
                             data={children}
@@ -126,7 +130,8 @@ export class CollectionSchemaView extends CollectionViewBase {
                             showPagination={false}
                             style={{
                                 display: "inline-block",
-                                width: "100%"
+                                width: "100%",
+                                postion: "absolute"
                             }}
                             columns={columns.map(col => {
                                 return (

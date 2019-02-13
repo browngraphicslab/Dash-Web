@@ -1,9 +1,16 @@
 
 .collectionSchemaView-container {
-    
+    border-style: solid;
+    box-sizing: border-box;
+    .collectionfreeformview-container {
+        border-width: 0px !important
+    }
     .imageBox-cont {
         position:relative;
         max-height:100%;
+    }
+    .ReactTable {
+        position: absolute
     }
     .ReactTable .rt-th, .ReactTable .rt-td {
         max-height: 75px;
@@ -12,7 +19,7 @@
         object-fit: contain;
         height: 100%
     }
-    .node {
+    .documentView-node {
         width:100% !important;
         height:100% !important;
         .imageBox-cont img {

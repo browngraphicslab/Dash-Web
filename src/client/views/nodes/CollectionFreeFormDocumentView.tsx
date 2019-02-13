@@ -7,11 +7,10 @@ import { SelectionManager } from "../../util/SelectionManager";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { CollectionFreeFormView } from "../collections/CollectionFreeFormView";
 import { ContextMenu } from "../ContextMenu";
-import "./NodeView.scss";
+import "./DocumentView.scss";
 import React = require("react");
 import { DocumentView, DocumentViewProps } from "./DocumentView";
 import { Transform } from "../../util/Transform";
-import { COLLECTION_BORDER_WIDTH } from '../../views/collections/CollectionViewBase';
 
 
 @observer
@@ -218,7 +217,7 @@ export class CollectionFreeFormDocumentView extends DocumentView {
     render() {
         var parentScaling = this.nativeWidth > 0 ? this.width / this.nativeWidth : 1;
         return (
-            <div className="node" ref={this._mainCont}
+            <div className="documentView-node" ref={this._mainCont}
                 onContextMenu={this.onContextMenu}
                 onPointerDown={this.onPointerDown}
                 style={{

@@ -4,8 +4,6 @@ import { Document } from "../../../fields/Document";
 import { Opt, FieldWaiting } from "../../../fields/Field";
 import { Key, KeyStore } from "../../../fields/Key";
 import { ListField } from "../../../fields/ListField";
-import { NumberField } from "../../../fields/NumberField";
-import { TextField } from "../../../fields/TextField";
 import { Utils } from "../../../Utils";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { CollectionFreeFormView } from "../collections/CollectionFreeFormView";
@@ -13,7 +11,7 @@ import { CollectionSchemaView } from "../collections/CollectionSchemaView";
 import { CollectionViewBase, COLLECTION_BORDER_WIDTH } from "../collections/CollectionViewBase";
 import { FormattedTextBox } from "../nodes/FormattedTextBox";
 import { ImageBox } from "../nodes/ImageBox";
-import "./NodeView.scss";
+import "./DocumentView.scss";
 import React = require("react");
 import { Transform } from "../../util/Transform";
 const JsxParser = require('react-jsx-parser').default;//TODO Why does this need to be imported like this?
@@ -177,7 +175,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         var width = nativewidth > 0 ? nativewidth + "px" : "100%";
         var height = nativeheight > 0 ? nativeheight + "px" : "100%";
         return (
-            <div className="node" ref={this._mainCont}
+            <div className="documentView-node" ref={this._mainCont}
                 style={{
                     width: width,
                     height: height,
