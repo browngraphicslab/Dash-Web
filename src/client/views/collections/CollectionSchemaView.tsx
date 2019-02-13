@@ -116,7 +116,7 @@ export class CollectionSchemaView extends CollectionViewBase {
             content = <div />
         }
         return (
-            <div onPointerDown={this.onPointerDown} >
+            <div onPointerDown={this.onPointerDown} className="collectionSchemaView-container">
                 <SplitPane split={"vertical"} defaultSize="60%">
                     <ScrollBox>
                         <ReactTable

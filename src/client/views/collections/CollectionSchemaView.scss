@@ -1,3 +1,28 @@
+
+.collectionSchemaView-container {
+    
+    .imageBox-cont {
+        position:relative;
+        max-height:100%;
+    }
+    .ReactTable .rt-th, .ReactTable .rt-td {
+        max-height: 75px;
+    }
+    .imageBox-cont img {
+        object-fit: contain;
+        height: 100%
+    }
+    .node {
+        width:100% !important;
+        height:100% !important;
+        .imageBox-cont img {
+            object-fit: contain;
+            max-width: 100%;
+            height: 100%
+        }
+    }
+}
+
 .Resizer {
     box-sizing: border-box;
     background: #000;
