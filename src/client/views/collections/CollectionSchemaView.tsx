@@ -11,10 +11,11 @@ import { CollectionViewBase, COLLECTION_BORDER_WIDTH } from "./CollectionViewBas
 import { DocumentView } from "../nodes/DocumentView";
 import { EditableView } from "../EditableView";
 import { CompileScript, ToField } from "../../util/Scripting";
-import { KeyStore as KS, Key } from "../../../fields/Key";
+import { KeyStore as KS, Key, KeyStore } from "../../../fields/Key";
 import { Document } from "../../../fields/Document";
 import { Field } from "../../../fields/Field";
 import { Transform } from "../../util/Transform";
+import Measure from "react-measure";
 
 @observer
 export class CollectionSchemaView extends CollectionViewBase {
@@ -98,19 +99,35 @@ export class CollectionSchemaView extends CollectionViewBase {
         }
     }
 
+
+    @observable
+    private _parentScaling = 1; // used to transfer the dimensions of the content pane in the DOM to the ParentScaling prop of the DocumentView
     render() {
         const { DocumentForCollection: Document, CollectionFieldKey: fieldKey } = this.props;
         const children = Document.GetList<Document>(fieldKey, []);
         const columns = Document.GetList(KS.ColumnsKey,
             [KS.Title, KS.Data, KS.Author])
         let content;
+        var me = this;
         if (this.selectedIndex != -1) {
             content = (
-                <DocumentView Document={children[this.selectedIndex]}
-                    AddDocument={this.addDocument} RemoveDocument={this.removeDocument}
-                    GetTransform={() => Transform.Identity}//TODO This should probably be an actual transform
-                    ParentScaling={1}
-                    DocumentView={undefined} ContainingCollectionView={this} />
+                <Measure onResize={action((r: any) => {
+                    var doc = children[this.selectedIndex];
+                    var n = doc.GetNumber(KeyStore.NativeWidth, 0);
+                    if (n > 0 && r.entry.width > 0) {
+                        this._parentScaling = r.entry.width / n;
+                    }
+                })}>
+                    {({ measureRef }) =>
+                        <div ref={measureRef}>
+                            <DocumentView Document={children[this.selectedIndex]}
+                                AddDocument={this.addDocument} RemoveDocument={this.removeDocument}
+                                GetTransform={() => Transform.Identity}//TODO This should probably be an actual transform
+                                ParentScaling={this._parentScaling}
+                                DocumentView={undefined} ContainingCollectionView={me} />
+                        </div>
+                    }
+                </Measure>
             )
         } else {
             content = <div />

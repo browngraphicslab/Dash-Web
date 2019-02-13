@@ -7,7 +7,6 @@ import { observer } from "mobx-react";
 import { Document } from "../../../fields/Document";
 import { KeyStore } from "../../../fields/Key";
 import { ListField } from "../../../fields/ListField";
-import { NumberField } from "../../../fields/NumberField";
 import { DragManager } from "../../util/DragManager";
 import { Transform } from "../../util/Transform";
 import { DocumentView } from "../nodes/DocumentView";
@@ -15,6 +14,7 @@ import "./CollectionDockingView.scss";
 import { CollectionViewBase, CollectionViewProps, COLLECTION_BORDER_WIDTH } from "./CollectionViewBase";
 import React = require("react");
 import * as ReactDOM from 'react-dom';
+import Measure from "react-measure";
 
 @observer
 export class CollectionDockingView extends CollectionViewBase {
@@ -65,7 +65,6 @@ export class CollectionDockingView extends CollectionViewBase {
         window.removeEventListener('resize', this.onResize);
     }
     private nextId = (function () { var _next_id = 0; return function () { return _next_id++; } })();
-
 
     @action
     onResize = (event: any) => {
@@ -297,22 +296,27 @@ interface DockingProps {
 }
 @observer
 export class RenderClass extends React.Component<DockingProps> {
-    @observable _forceRerender = 0;
-    constructor(props: DockingProps) {
-        super(props);
-        this.props.Container.on('resize', action((e: any) => this._forceRerender++));
-    }
+    @observable
+    private _parentScaling = 1; // used to transfer the dimensions of the content pane in the DOM to the ParentScaling prop of the DocumentView
+
     render() {
-        let x = this._forceRerender;
         let nativeWidth = this.props.Document.GetNumber(KeyStore.NativeWidth, 0);
-        let parentScaling = nativeWidth > 0 ? this.props.HtmlElement!.clientWidth / nativeWidth : 1;
-        return <div>
+        var layout = this.props.Document.GetText(KeyStore.Layout, "");
+        var content =
             <DocumentView key={this.props.Document.Id} Document={this.props.Document}
                 AddDocument={this.props.CollectionDockingView.addDocument}
                 RemoveDocument={this.props.CollectionDockingView.removeDocument}
                 GetTransform={() => Transform.Identity}
-                ParentScaling={parentScaling}
+                ParentScaling={this._parentScaling}
                 ContainingCollectionView={this.props.CollectionDockingView} DocumentView={undefined} />
-        </div>
+
+        if (nativeWidth > 0 && (layout.indexOf("CollectionFreeForm") == -1 || layout.indexOf("AnnotationsKey") != -1)) {
+            return <Measure onResize={
+                action((r: any) => this._parentScaling = nativeWidth > 0 ? r.entry.width / nativeWidth : 1)}
+            >
+                {({ measureRef }) => <div ref={measureRef}> {content} </div>}
+            </Measure>
+        }
+        return <div> {content} </div>
     }
 }

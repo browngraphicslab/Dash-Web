@@ -15,7 +15,6 @@ import "./DocumentView.scss";
 import React = require("react");
 import { Transform } from "../../util/Transform";
 const JsxParser = require('react-jsx-parser').default;//TODO Why does this need to be imported like this?
-import { CollectionFreeFormDocumentView } from '../../views/nodes/CollectionFreeFormDocumentView';
 
 export interface DocumentViewProps {
     DocumentView: Opt<DocumentView>  // needed only to set ContainingDocumentView on CollectionViewProps when invoked from JsxParser -- is there a better way?
@@ -146,7 +145,6 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         }
         return { ScreenX: parentX, ScreenY: parentY };
     }
-
 
     render() {
         let bindings = { ...this.props } as any;
