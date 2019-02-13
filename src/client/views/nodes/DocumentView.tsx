@@ -17,6 +17,7 @@ import "./NodeView.scss";
 import React = require("react");
 import { Transform } from "../../util/Transform";
 const JsxParser = require('react-jsx-parser').default;//TODO Why does this need to be imported like this?
+import { CollectionFreeFormDocumentView } from '../../views/nodes/CollectionFreeFormDocumentView';
 
 export interface DocumentViewProps {
     DocumentView: Opt<DocumentView>  // needed only to set ContainingDocumentView on CollectionViewProps when invoked from JsxParser -- is there a better way?
@@ -26,16 +27,23 @@ export interface DocumentViewProps {
     AddDocument?: (doc: Document) => void;
     RemoveDocument?: (doc: Document) => boolean;
     GetTransform: () => Transform;
-    Scaling: number;
+    ParentScaling: number;
 }
 
 @observer
 export class DocumentView extends React.Component<DocumentViewProps> {
 
+    protected _renderDoc = React.createRef<any>();
     protected _mainCont = React.createRef<any>();
     get MainContent() {
         return this._mainCont;
     }
+
+    @computed
+    get parentScaling(): number {
+        return this._renderDoc.current ? this._renderDoc.current.props.ParentScaling : this.props.ParentScaling > 1 ? this.props.ParentScaling : 1;
+    }
+
     @computed
     get layout(): string {
         return this.props.Document.GetData(KeyStore.Layout, TextField, String("<p>Error loading layout data</p>"));
@@ -43,7 +51,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
 
     @computed
     get backgroundLayout(): string {
-        return this.props.Document.GetData(KeyStore.BackgroundLayout, TextField, String("<p>Error loading layout data</p>"));
+        return this.props.Document.GetText(KeyStore.BackgroundLayout, "");
     }
 
     @computed
@@ -69,67 +77,72 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         return 1;
     }
 
+
+    public LeftCorner(): number {
+        if (this.props.ContainingCollectionView) {
+            if (this.props.ContainingCollectionView instanceof CollectionDockingView) {
+                // this is a hacky way to account for the titles/pane placement/etc of a CollectionDockingView 
+                // this only works if the collectionDockingView is the root collection, too.
+                // need to find a better way.
+                var { translateX: rx, translateY: ry } = Utils.GetScreenTransform(this.MainContent.current!);
+                return rx + COLLECTION_BORDER_WIDTH;
+            }
+            return COLLECTION_BORDER_WIDTH; // assumes all collections have the same border
+        }
+        return 0;
+    }
+
+    public TopCorner(): number {
+        if (this.props.ContainingCollectionView) {
+            if (this.props.ContainingCollectionView instanceof CollectionDockingView) {
+                // this is a hacky way to account for the titles/pane placement/etc of a CollectionDockingView 
+                // this only works if the collectionDockingView is the root collection, too.
+                // need to find a better way.
+                var { translateX: rx, translateY: ry } = Utils.GetScreenTransform(this.MainContent.current!);
+                return ry + COLLECTION_BORDER_WIDTH;
+            }
+            return COLLECTION_BORDER_WIDTH;  // assumes all collections have the same border
+        }
+        return 0;
+    }
     //
     // Converts a coordinate in the screen space of the app into a local document coordinate.
     //
     public TransformToLocalPoint(screenX: number, screenY: number) {
         // if this collection view is nested within another collection view, then 
         // first transform the screen point into the parent collection's coordinate space.
-        let { LocalX: parentX, LocalY: parentY } = this.props.ContainingCollectionView != undefined &&
-            this.props.ContainingCollectionView.props.ContainingDocumentView != undefined ?
+        let { LocalX: parentX, LocalY: parentY } = this.props.ContainingCollectionView &&
+            this.props.ContainingCollectionView.props.ContainingDocumentView ?
             this.props.ContainingCollectionView.props.ContainingDocumentView.TransformToLocalPoint(screenX, screenY) :
             { LocalX: screenX, LocalY: screenY };
         let ContainerX: number = parentX - COLLECTION_BORDER_WIDTH;
         let ContainerY: number = parentY - COLLECTION_BORDER_WIDTH;
 
-        var Xx = this.props.Document.GetData(KeyStore.X, NumberField, Number(0));
-        var Yy = this.props.Document.GetData(KeyStore.Y, NumberField, Number(0));
-        // CollectionDockingViews change the location of their children frames without using a Dash transformation.
-        // They also ignore any transformation that may have been applied to their content document.
-        // NOTE: this currently assumes CollectionDockingViews aren't nested.
-        if (this.props.ContainingCollectionView instanceof CollectionDockingView) {
-            var { translateX: rx, translateY: ry } = Utils.GetScreenTransform(this.MainContent.current!);
-            Xx = rx - COLLECTION_BORDER_WIDTH;
-            Yy = ry - COLLECTION_BORDER_WIDTH;
-        }
-
         let Ss = this.props.Document.GetNumber(KeyStore.Scale, 1);
-        let Panxx = this.props.Document.GetData(KeyStore.PanX, NumberField, Number(0));
-        let Panyy = this.props.Document.GetData(KeyStore.PanY, NumberField, Number(0));
-        let LocalX = (ContainerX - (Xx + Panxx)) / Ss;
-        let LocalY = (ContainerY - (Yy + Panyy)) / Ss;
+        let Panxx = this.props.Document.GetNumber(KeyStore.PanX, 0);
+        let Panyy = this.props.Document.GetNumber(KeyStore.PanY, 0);
+        let LocalX = (ContainerX - (this.LeftCorner() + Panxx)) / Ss;
+        let LocalY = (ContainerY - (this.TopCorner() + Panyy)) / Ss;
 
-        return { LocalX, Ss, Panxx, Xx, LocalY, Panyy, Yy, ContainerX, ContainerY };
+        return { LocalX, Ss, Xx: this.LeftCorner(), LocalY, Yy: this.TopCorner(), ContainerX, ContainerY };
     }
 
     //
     // Converts a point in the coordinate space of a document to a screen space coordinate.
     //
-    public TransformToScreenPoint(localX: number, localY: number, Ss: number = 1, Panxx: number = 0, Panyy: number = 0): { ScreenX: number, ScreenY: number } {
+    public TransformToScreenPoint(localX: number, localY: number, Ss: number = 1, Panxx: number = 0, Panyy: number = 0, apply: boolean = true): { ScreenX: number, ScreenY: number } {
+        var parentScaling = apply ? this.parentScaling : 1;
 
-        var Xx = this.props.Document.GetData(KeyStore.X, NumberField, Number(0));
-        var Yy = this.props.Document.GetData(KeyStore.Y, NumberField, Number(0));
-        // CollectionDockingViews change the location of their children frames without using a Dash transformation.
-        // They also ignore any transformation that may have been applied to their content document.
-        // NOTE: this currently assumes CollectionDockingViews aren't nested.
-        if (this.props.ContainingCollectionView instanceof CollectionDockingView) {
-            var { translateX: rx, translateY: ry } = Utils.GetScreenTransform(this.MainContent.current!);
-            Xx = rx - COLLECTION_BORDER_WIDTH;
-            Yy = ry - COLLECTION_BORDER_WIDTH + 18 * Ss;
-        }
-
-        let W = COLLECTION_BORDER_WIDTH;
-        let H = COLLECTION_BORDER_WIDTH;
-        let parentX = (localX - W) * Ss + (Xx + Panxx) + W;
-        let parentY = (localY - H) * Ss + (Yy + Panyy) + H;
+        let parentX = (Panxx + (localX - COLLECTION_BORDER_WIDTH) * Ss) * parentScaling + this.LeftCorner();
+        let parentY = (Panyy + (localY - COLLECTION_BORDER_WIDTH) * Ss) * parentScaling + this.TopCorner();
 
         // if this collection view is nested within another collection view, then 
         // first transform the local point into the parent collection's coordinate space.
         let containingDocView = this.props.ContainingCollectionView != undefined ? this.props.ContainingCollectionView.props.ContainingDocumentView : undefined;
-        if (containingDocView != undefined) {
-            let ss = containingDocView.props.Document.GetNumber(KeyStore.Scale, 1) * this.props.Scaling;
-            let panxx = containingDocView.props.Document.GetData(KeyStore.PanX, NumberField, Number(0)) + COLLECTION_BORDER_WIDTH * ss;
-            let panyy = containingDocView.props.Document.GetData(KeyStore.PanY, NumberField, Number(0)) + COLLECTION_BORDER_WIDTH * ss;
+        if (containingDocView) {
+            let ss = containingDocView.props.Document.GetNumber(KeyStore.Scale, 1);
+            let panxx = containingDocView.props.Document.GetNumber(KeyStore.PanX, 0) + COLLECTION_BORDER_WIDTH * ss * parentScaling;
+            let panyy = containingDocView.props.Document.GetNumber(KeyStore.PanY, 0) + COLLECTION_BORDER_WIDTH * ss * parentScaling;
             let { ScreenX, ScreenY } = containingDocView.TransformToScreenPoint(parentX, parentY, ss, panxx, panyy);
             parentX = ScreenX;
             parentY = ScreenY;
@@ -158,13 +171,13 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             onError={(test: any) => { console.log(test) }}
         />;
         bindings["BackgroundView"] = this.backgroundLayout ? annotated : null;
-
+        bindings["ParentScaling"] = 1;
         var width = this.props.Document.GetNumber(KeyStore.NativeWidth, 0);
         var strwidth = width > 0 ? width.toString() + "px" : "100%";
         var height = this.props.Document.GetNumber(KeyStore.NativeHeight, 0);
         var strheight = height > 0 ? height.toString() + "px" : "100%";
         return (
-            <div className="node" ref={this._mainCont} style={{ width: strwidth, height: strheight, transformOrigin: "left top", transform: `scale(${this.props.Scaling},${this.props.Scaling})` }}>
+            <div className="node" ref={this._mainCont} style={{ width: strwidth, height: strheight, transformOrigin: "0 0", transform: `scale(${this.props.ParentScaling},${this.props.ParentScaling})` }}>
                 <JsxParser
                     components={{ FormattedTextBox: FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView }}
                     bindings={bindings}

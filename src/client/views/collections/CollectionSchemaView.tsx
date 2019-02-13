@@ -109,7 +109,7 @@ export class CollectionSchemaView extends CollectionViewBase {
                 <DocumentView Document={children[this.selectedIndex]}
                     AddDocument={this.addDocument} RemoveDocument={this.removeDocument}
                     GetTransform={() => Transform.Identity}//TODO This should probably be an actual transform
-                    Scaling={1}
+                    ParentScaling={1}
                     DocumentView={undefined} ContainingCollectionView={this} />
             )
         } else {

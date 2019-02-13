@@ -58,8 +58,8 @@ export class CollectionFreeFormView extends CollectionViewBase {
             const currScale = this.resizeScaling * this.zoomScaling * this.props.ContainingDocumentView!.ScalingToScreenSpace;
             const screenX = de.x - xOffset;
             const screenY = de.y - yOffset;
-            doc.x = (screenX - translateX) / currScale;
-            doc.y = (screenY - translateY) / currScale;
+            doc.props.Document.SetNumber(KeyStore.X, (screenX - translateX) / currScale);
+            doc.props.Document.SetNumber(KeyStore.Y, (screenY - translateY) / currScale);
             this.bringToFront(doc);
         }
         e.stopPropagation();
@@ -124,7 +124,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
         // if (modes[e.deltaMode] == 'pixels') coefficient = 50;
         // else if (modes[e.deltaMode] == 'lines') coefficient = 1000; // This should correspond to line-height??
 
-        let { LocalX, Ss, Panxx, Xx, LocalY, Panyy, Yy, ContainerX, ContainerY } = this.props.ContainingDocumentView!.TransformToLocalPoint(e.pageX, e.pageY);
+        let { LocalX, Ss, Xx, LocalY, Yy, ContainerX, ContainerY } = this.props.ContainingDocumentView!.TransformToLocalPoint(e.pageX, e.pageY);
 
         var deltaScale = (1 - (e.deltaY / coefficient)) * Ss;
         var newDeltaScale = this.isAnnotationOverlay ? Math.max(1, deltaScale) : deltaScale;
@@ -135,8 +135,8 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
     @action
     private SetPan(panX: number, panY: number) {
-        const newPanX = Math.max(-(this.resizeScaling * this.zoomScaling - this.resizeScaling) * this.nativeWidth, Math.min(0, panX));
-        const newPanY = Math.max(-(this.resizeScaling * this.zoomScaling - this.resizeScaling) * this.nativeHeight, Math.min(0, panY));
+        const newPanX = Math.max((1 - this.zoomScaling) * this.nativeWidth, Math.min(0, panX));
+        const newPanY = Math.max((1 - this.zoomScaling) * this.nativeHeight, Math.min(0, panY));
         this.props.DocumentForCollection.SetNumber(KeyStore.PanX, this.isAnnotationOverlay ? newPanX : panX);
         this.props.DocumentForCollection.SetNumber(KeyStore.PanY, this.isAnnotationOverlay ? newPanY : panY);
     }
@@ -241,7 +241,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
                             AddDocument={this.addDocument}
                             RemoveDocument={this.removeDocument}
                             GetTransform={this.getTransform}
-                            Scaling={1}
+                            ParentScaling={1}
                             ContainingCollectionView={this} DocumentView={undefined} />);
                     })}
                 </div>

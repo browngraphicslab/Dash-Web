@@ -62,7 +62,7 @@ document.addEventListener("pointerdown", action(function (e: PointerEvent) {
     // let doc5 = Documents.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", {
     //     x: 650, y: 500, width: 600, height: 600, title: "cat 2"
     // });
-    let docset2 = [doc3, doc1, doc2];
+    let docset2 = [doc3, doc4, doc2];
     let doc6 = Documents.CollectionDocument(docset2, {
         x: 350, y: 100, width: 600, height: 600, title: "docking collection"
     });
@@ -87,7 +87,7 @@ ReactDOM.render((
     <div style={{ position: "absolute", width: "100%", height: "100%" }}>
         <DocumentView Document={mainContainer}
             AddDocument={undefined} RemoveDocument={undefined} GetTransform={() => Transform.Identity}
-            Scaling={1}
+            ParentScaling={1}
             ContainingCollectionView={undefined} DocumentView={undefined} />
         <DocumentDecorations />
         <ContextMenu />

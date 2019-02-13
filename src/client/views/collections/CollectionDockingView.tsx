@@ -100,7 +100,7 @@ export class CollectionDockingView extends CollectionViewBase {
                 return (<DocumentView key={value[i].Id} Document={value[i]}
                     AddDocument={this.addDocument} RemoveDocument={this.removeDocument}
                     GetTransform={() => Transform.Identity}
-                    Scaling={1}
+                    ParentScaling={1}
                     ContainingCollectionView={this} DocumentView={undefined} />);
             }
         }
@@ -267,17 +267,15 @@ export class CollectionDockingView extends CollectionViewBase {
         }
 
         return (
-            <div className="border" style={{
-                borderStyle: "solid",
-                borderWidth: `${COLLECTION_BORDER_WIDTH}px`,
-            }}>
-                <div className="collectiondockingview-container" id="menuContainer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()} ref={this._containerRef}
-                    style={{
-                        width: CollectionDockingView.UseGoldenLayout || s > 1 ? "100%" : w - 2 * COLLECTION_BORDER_WIDTH,
-                        height: CollectionDockingView.UseGoldenLayout || s > 1 ? "100%" : h - 2 * COLLECTION_BORDER_WIDTH
-                    }} >
-                    {chooseLayout()}
-                </div>
+            <div className="collectiondockingview-container" id="menuContainer"
+                onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()} ref={this._containerRef}
+                style={{
+                    width: CollectionDockingView.UseGoldenLayout || s > 1 ? "100%" : w - 2 * COLLECTION_BORDER_WIDTH,
+                    height: CollectionDockingView.UseGoldenLayout || s > 1 ? "100%" : h - 2 * COLLECTION_BORDER_WIDTH,
+                    borderStyle: "solid",
+                    borderWidth: `${COLLECTION_BORDER_WIDTH}px`,
+                }} >
+                {chooseLayout()}
             </div>
         );
     }
@@ -295,25 +293,19 @@ class RenderClass {
         this._htmlElement = document.getElementById(containingDiv);
         this._document = doc;
         container.on('resize', action((e: any) => {
-            var nativeWidth = doc.GetNumber(KeyStore.NativeWidth, 0);
-            if (this._htmlElement != null && this._htmlElement.childElementCount > 0 && nativeWidth > 0) {
-                let scaling = nativeWidth > 0 ? this._htmlElement!.clientWidth / nativeWidth : 1;
-                (this._htmlElement!.children[0] as any).style.transformOrigin = "0px 0px";
-                (this._htmlElement!.children[0] as any).style.transform = `translate(0px,0px)  scale(${scaling}, ${scaling}) `;
-                (this._htmlElement!.children[0] as any).style.width = nativeWidth.toString() + "px";
-            }
+            this.render();
         }));
 
         this.render();
     }
     render() {
         var nativeWidth = this._document.GetNumber(KeyStore.NativeWidth, 0);
-        let scaling = nativeWidth > 0 ? this._htmlElement!.clientWidth / nativeWidth : 1;
+        let parentScaling = nativeWidth > 0 ? this._htmlElement!.clientWidth / nativeWidth : 1;
         ReactDOM.render((
             <DocumentView key={this._document.Id} Document={this._document}
                 AddDocument={this._collectionDockingView.addDocument} RemoveDocument={this._collectionDockingView.removeDocument}
                 GetTransform={() => Transform.Identity}
-                Scaling={scaling}
+                ParentScaling={parentScaling}
                 ContainingCollectionView={this._collectionDockingView} DocumentView={undefined} />
         ),
             this._htmlElement

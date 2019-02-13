@@ -4,6 +4,7 @@ import { SelectionManager } from "../util/SelectionManager";
 import { observer } from "mobx-react";
 import './DocumentDecorations.scss'
 import { CollectionFreeFormView } from "./collections/CollectionFreeFormView";
+import { KeyStore } from '../../fields/Key'
 
 @observer
 export class DocumentDecorations extends React.Component {
@@ -25,8 +26,8 @@ export class DocumentDecorations extends React.Component {
                 !(element.props.ContainingCollectionView instanceof CollectionFreeFormView)) {
                 return bounds;
             }
-            var spt = element.TransformToScreenPoint(0, 0);
-            var bpt = element.TransformToScreenPoint(element.width, element.height);
+            var spt = element.TransformToScreenPoint(0, 0, 1, 0, 0, false);
+            var bpt = element.TransformToScreenPoint(element.width, element.height, 1, 0, 0, false);
             return {
                 x: Math.min(spt.ScreenX, bounds.x), y: Math.min(spt.ScreenY, bounds.y),
                 r: Math.max(bpt.ScreenX, bounds.r), b: Math.max(bpt.ScreenY, bounds.b)
@@ -109,8 +110,8 @@ export class DocumentDecorations extends React.Component {
                 let scale = element.width / rect.width;
                 let actualdW = Math.max(element.width + (dW * scale), 20);
                 let actualdH = Math.max(element.height + (dH * scale), 20);
-                element.x += dX * (actualdW - element.width);
-                element.y += dY * (actualdH - element.height);
+                element.props.Document.SetNumber(KeyStore.X, element.props.Document.GetNumber(KeyStore.X, 0) + dX * (actualdW - element.width));
+                element.props.Document.SetNumber(KeyStore.Y, element.props.Document.GetNumber(KeyStore.Y, 0) + dY * (actualdH - element.height));
                 if (Math.abs(dW) > Math.abs(dH))
                     element.width = actualdW;
                 else
