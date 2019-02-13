@@ -159,7 +159,7 @@ export class Document extends Field {
         throw new Error("Method not implemented.");
     }
 
-    ToJson(): { type: Types, data: [string, string][], _id: ObjectID } {
+    ToJson(): { type: Types, data: [string, string][], _id: String } {
         let fields: [string, string][] = []
         this._proxies.forEach((field, key) => {
             if (field) {

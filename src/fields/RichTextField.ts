@@ -16,11 +16,11 @@ export class RichTextField extends BasicField<string> {
         return new RichTextField(this.Data);
     }
 
-    ToJson(): { type: Types, data: string, _id: ObjectID } {
+    ToJson(): { type: Types, data: string, _id: String } {
         return {
             type: Types.RichText,
             data: this.Data,
-            _id: new ObjectID(this.Id)
+            _id: this.Id
         }
     }
 

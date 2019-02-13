@@ -9,7 +9,7 @@ export class Database {
     private MongoClient = mongodb.MongoClient;
     private url = 'mongodb://localhost:27017/Dash';
 
-    public update(id: mongodb.ObjectID, value: any) {
+    public update(id: String, value: any) {
         this.MongoClient.connect(this.url, (err, db) => {
             let collection = db.db().collection('documents');
             collection.update({ _id: id }, { $set: value });
@@ -33,7 +33,7 @@ export class Database {
         });
     }
 
-    public getDocument(id: mongodb.ObjectID): string | undefined {
+    public getDocument(id: String): string | undefined {
         var result: JSON;
         this.MongoClient.connect(this.url, (err, db) => {
             if (err) {
@@ -41,7 +41,7 @@ export class Database {
                 return undefined
             }
             let collection = db.db().collection('documents');
-            collection.findOne({ _id: Utils.GenerateDeterministicGuid(id.toHexString()) }, (err: any, res: any) => result = res)
+            collection.findOne({ _id: id }, (err: any, res: any) => result = res)
             console.log(result)
             db.close();
             if (!result) {

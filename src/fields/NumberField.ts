@@ -16,9 +16,9 @@ export class NumberField extends BasicField<number> {
         return new NumberField(this.Data);
     }
 
-    ToJson(): { _id: ObjectID, type: Types, data: number } {
+    ToJson(): { _id: String, type: Types, data: number } {
         return {
-            _id: new ObjectID(this.Id),
+            _id: this.Id,
             type: Types.Number,
             data: this.Data
         }

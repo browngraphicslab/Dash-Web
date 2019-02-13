@@ -1,6 +1,5 @@
 import { Utils } from "../Utils";
 import { FIELD_ID, Field } from "../fields/Field";
-import { ObjectId } from "bson";
 
 export class Message<T> {
     private name: string;
@@ -52,9 +51,9 @@ export enum Types {
 
 export class DocumentTransfer implements Transferable {
     readonly type = Types.Document
-    _id: ObjectId;
+    _id: String;
 
-    constructor(readonly obj: { type: Types, data: [string, string][], _id: ObjectId }) {
+    constructor(readonly obj: { type: Types, data: [string, string][], _id: String }) {
         this._id = obj._id
     }
 }
@@ -62,56 +61,56 @@ export class DocumentTransfer implements Transferable {
 export class ImageTransfer implements Transferable {
     readonly type = Types.Image
 
-    constructor(readonly _id: ObjectId) { }
+    constructor(readonly _id: String) { }
 }
 
 export class KeyTransfer implements Transferable {
     name: string
-    readonly _id: ObjectId
+    readonly _id: String
     readonly type = Types.Key
 
     constructor(i: string, n: string) {
         this.name = n
-        this._id = new ObjectId(i)
+        this._id = i
     }
 }
 
 export class ListTransfer implements Transferable {
     type = Types.List;
 
-    constructor(readonly _id: ObjectId) { }
+    constructor(readonly _id: String) { }
 }
 
 export class NumberTransfer implements Transferable {
     readonly type = Types.Number
 
-    constructor(readonly value: number, readonly _id: ObjectId) { }
+    constructor(readonly value: number, readonly _id: String) { }
 }
 
 export class TextTransfer implements Transferable {
     value: string
-    readonly _id: ObjectId
+    readonly _id: String
     readonly type = Types.Text
 
     constructor(t: string, i: string) {
         this.value = t
-        this._id = new ObjectId(i)
+        this._id = i
     }
 }
 
 export class RichTextTransfer implements Transferable {
     value: string
-    readonly _id: ObjectId
+    readonly _id: String
     readonly type = Types.Text
 
     constructor(t: string, i: string) {
         this.value = t
-        this._id = new ObjectId(i)
+        this._id = i
     }
 }
 
 export interface Transferable {
-    readonly _id: ObjectId
+    readonly _id: String
     readonly type: Types
 }
 
@@ -119,6 +118,6 @@ export namespace MessageStore {
     export const Foo = new Message<string>("Foo");
     export const Bar = new Message<string>("Bar");
     export const AddDocument = new Message<DocumentTransfer>("Add Document");
-    export const SetField = new Message<{ _id: ObjectId, data: any, type: Types }>("Set Field")
+    export const SetField = new Message<{ _id: String, data: any, type: Types }>("Set Field")
     export const GetField = new Message<GetFieldArgs>("Get Field")
 }

@@ -76,8 +76,8 @@ function setField(newValue: Transferable) {
 }
 
 function getField([fieldRequest, callback]: [GetFieldArgs, (field: Field) => void]) {
-    let fieldid: string = fieldRequest.field
-    let result: string | undefined = Database.Instance.getDocument(new ObjectID(fieldid))
+    let fieldId: string = fieldRequest.field
+    let result: string | undefined = Database.Instance.getDocument(fieldId)
     if (result) {
         let fromJson: Field = ServerUtils.FromJson(result)
     }

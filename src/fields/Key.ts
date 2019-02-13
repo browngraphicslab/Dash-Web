@@ -33,11 +33,11 @@ export class Key extends Field {
         return name;
     }
 
-    ToJson(): { type: Types, data: string, _id: ObjectID } {
+    ToJson(): { type: Types, data: string, _id: String } {
         return {
             type: Types.Key,
             data: this.name,
-            _id: new ObjectID(this.Id)
+            _id: this.Id
         }
     }
 }

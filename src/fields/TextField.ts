@@ -16,11 +16,11 @@ export class TextField extends BasicField<string> {
         return new TextField(this.Data);
     }
 
-    ToJson(): { type: Types, data: string, _id: ObjectID } {
+    ToJson(): { type: Types, data: string, _id: String } {
         return {
             type: Types.Text,
             data: this.Data,
-            _id: new ObjectID(this.Id)
+            _id: this.Id
         }
     }
 }

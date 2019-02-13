@@ -16,11 +16,11 @@ export class ListField<T extends Field> extends BasicField<T[]> {
         return new ListField<T>(this.Data);
     }
 
-    ToJson(): { type: Types, data: T[], _id: ObjectId } {
+    ToJson(): { type: Types, data: T[], _id: String } {
         return {
             type: Types.List,
             data: this.Data,
-            _id: new ObjectId(this.Id)
+            _id: this.Id
         }
     }
 }
