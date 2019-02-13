@@ -216,7 +216,6 @@ export class CollectionFreeFormDocumentView extends DocumentView {
     }
 
     render() {
-        var freestyling = this.props.ContainingCollectionView instanceof CollectionFreeFormView;
         var parentScaling = this.nativeWidth > 0 ? this.width / this.nativeWidth : 1;
         return (
             <div className="node" ref={this._mainCont}
@@ -224,11 +223,11 @@ export class CollectionFreeFormDocumentView extends DocumentView {
                 onPointerDown={this.onPointerDown}
                 style={{
                     transformOrigin: "left top",
-                    transform: freestyling ? this.transform : "",
-                    width: freestyling ? this.width : "100%",
-                    height: freestyling ? this.height : "100%",
-                    position: freestyling ? "absolute" : "relative",
-                    zIndex: freestyling ? this.zIndex : 0,
+                    transform: this.transform,
+                    width: this.width,
+                    height: this.height,
+                    position: "absolute",
+                    zIndex: this.zIndex,
                 }}>
 
                 <DocumentView {...this.props} ref={this._renderDoc} ParentScaling={parentScaling} GetTransform={this.getTransform} DocumentView={this} />

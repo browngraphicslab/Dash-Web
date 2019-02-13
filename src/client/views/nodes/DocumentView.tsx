@@ -171,13 +171,12 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             onError={(test: any) => { console.log(test) }}
         />;
         bindings["BackgroundView"] = this.backgroundLayout ? annotated : null;
-        bindings["ParentScaling"] = 1;
-        var width = this.props.Document.GetNumber(KeyStore.NativeWidth, 0);
-        var strwidth = width > 0 ? width.toString() + "px" : "100%";
-        var height = this.props.Document.GetNumber(KeyStore.NativeHeight, 0);
-        var strheight = height > 0 ? height.toString() + "px" : "100%";
+        var nativewidth = this.props.Document.GetNumber(KeyStore.NativeWidth, 0);
+        var nativeheight = this.props.Document.GetNumber(KeyStore.NativeHeight, 0);
+        var width = nativewidth > 0 ? nativewidth + "px" : "100%";
+        var height = nativeheight > 0 ? nativeheight + "px" : "100%";
         return (
-            <div className="node" ref={this._mainCont} style={{ width: strwidth, height: strheight, transformOrigin: "0 0", transform: `scale(${this.props.ParentScaling},${this.props.ParentScaling})` }}>
+            <div className="node" ref={this._mainCont} style={{ width: width, height: height, transformOrigin: "0 0", transform: `scale(${this.props.ParentScaling},${this.props.ParentScaling})` }}>
                 <JsxParser
                     components={{ FormattedTextBox: FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView }}
                     bindings={bindings}
