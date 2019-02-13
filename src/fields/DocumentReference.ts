@@ -2,6 +2,7 @@ import { Field, Opt, FieldValue, FIELD_ID } from "./Field";
 import { Document } from "./Document";
 import { Key } from "./Key";
 import { Types } from "../server/Message";
+import { ObjectID } from "bson";
 
 export class DocumentReference extends Field {
     get Key(): Key {
@@ -42,11 +43,11 @@ export class DocumentReference extends Field {
         return "";
     }
 
-    ToJson(): { type: Types, data: FIELD_ID, id: string } {
+    ToJson(): { type: Types, data: FIELD_ID, _id: ObjectID } {
         return {
             type: Types.DocumentReference,
             data: this.document.Id,
-            id: this.Id as string
+            _id: new ObjectID(this.Id)
         }
     }
 }

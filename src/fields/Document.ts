@@ -7,6 +7,8 @@ import { ListField } from "./ListField";
 import { findDOMNode } from "react-dom";
 import { Server } from "../client/Server";
 import { Types } from "../server/Message";
+import { ObjectID } from "bson";
+import { Utils } from "../Utils";
 
 export class Document extends Field {
     public fields: ObservableMap<Key, Opt<Field>> = new ObservableMap();
@@ -87,11 +89,12 @@ export class Document extends Field {
     Set(key: Key, field: Field | undefined): void {
         if (field) {
             this.fields.set(key, field);
-            Server.AddDocumentField(this, key, field);
+            // Server.AddDocumentField(this, key, field);
         } else {
             this.fields.delete(key);
-            Server.DeleteDocumentField(this, key);
+            // Server.DeleteDocumentField(this, key);
         }
+        Server.UpdateField(this);
     }
 
     @action
@@ -101,7 +104,7 @@ export class Document extends Field {
         //if (field != WAITING) {  // do we want to wait for the field to come back from the server to set it, or do we overwrite?
         if (field instanceof ctor) {
             field.Data = value;
-            Server.SetFieldValue(field, value);
+            // Server.SetFieldValue(field, value);
         } else if (!field || replaceWrongType) {
             let newField = new ctor();
             newField.Data = value;
@@ -156,7 +159,7 @@ export class Document extends Field {
         throw new Error("Method not implemented.");
     }
 
-    ToJson(): { type: Types, data: [string, string][], id: string } {
+    ToJson(): { type: Types, data: [string, string][], _id: ObjectID } {
         let fields: [string, string][] = []
         this._proxies.forEach((field, key) => {
             if (field) {
@@ -167,7 +170,7 @@ export class Document extends Field {
         return {
             type: Types.Document,
             data: fields,
-            id: this.Id as string
+            _id: this.Id
         }
     }
 

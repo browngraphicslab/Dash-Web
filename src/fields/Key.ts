@@ -2,6 +2,7 @@ import { Field, FIELD_ID } from "./Field"
 import { Utils } from "../Utils";
 import { observable } from "mobx";
 import { Types } from "../server/Message";
+import { ObjectID } from "bson";
 
 export class Key extends Field {
     private name: string;
@@ -32,11 +33,11 @@ export class Key extends Field {
         return name;
     }
 
-    ToJson(): { type: Types, data: string, id: string } {
+    ToJson(): { type: Types, data: string, _id: ObjectID } {
         return {
             type: Types.Key,
             data: this.name,
-            id: this.Id as string
+            _id: new ObjectID(this.Id)
         }
     }
 }

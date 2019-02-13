@@ -120,19 +120,20 @@ export namespace Documents {
             imageProto.Set(KeyStore.Layout, new TextField(ImageBox.LayoutString()));
             // imageProto.SetField(KeyStore.Layout, new TextField('<div style={"background-image: " + {Data}} />'));
             imageProto.Set(KeyStore.LayoutKeys, new ListField([KeyStore.Data]));
-            Server.AddDocument(imageProto);
+            // Server.AddDocument(imageProto);
             return imageProto;
         }
-        return Server.GetField(imageProtoId) as Document;
+        return new Document();
+        // return Server.GetField(imageProtoId) as Document;
     }
 
     export function ImageDocument(url: string, options: DocumentOptions = {}): Document {
         let doc = GetImagePrototype().MakeDelegate();
         setupOptions(doc, options);
         doc.Set(KeyStore.Data, new ImageField(new URL(url)));
-        Server.AddDocument(doc);
-        var sdoc = Server.GetField(doc.Id) as Document;
-        return sdoc;
+        // Server.AddDocument(doc);
+        // var sdoc = Server.GetField(doc.Id) as Document;
+        return doc;
     }
 
     let collectionProto: Document;

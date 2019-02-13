@@ -1,16 +1,27 @@
 import v4 = require('uuid/v4');
 import v5 = require("uuid/v5");
 import { Socket } from 'socket.io';
-import { Message } from './server/Message';
+import { Message, Types } from './server/Message';
+import { Field } from './fields/Field';
+import { TextField } from './fields/TextField';
+import { NumberField } from './fields/NumberField';
+import { RichTextField } from './fields/RichTextField';
+import { Key } from './fields/Key';
+import { ImageField } from './fields/ImageField';
+import { ListField } from './fields/ListField';
+import { Document } from './fields/Document';
+import { Server } from './client/Server';
 
 export class Utils {
 
     public static GenerateGuid(): string {
-        return v4();
+        return v4()
+        // return new Buffer(v4()).toString("hex").substr(0, 24);
     }
 
     public static GenerateDeterministicGuid(seed: string): string {
-        return v5(seed, v5.URL);
+        return v5(seed, v5.URL)
+        // return new Buffer(v5(seed, v5.URL)).toString("hex").substr(0, 24);
     }
 
     public static GetScreenTransform(ele: HTMLElement): { scale: number, translateX: number, translateY: number } {

@@ -1,5 +1,6 @@
 import { Field, FIELD_ID } from "./Field"
 import { observable, computed, action } from "mobx";
+import { Server } from "../client/Server";
 
 export abstract class BasicField<T> extends Field {
     constructor(data: T, id: FIELD_ID = undefined) {
@@ -21,6 +22,7 @@ export abstract class BasicField<T> extends Field {
             return;
         }
         this.data = value;
+        Server.UpdateField(this);
     }
 
     @action

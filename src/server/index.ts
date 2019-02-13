@@ -4,13 +4,15 @@ import * as webpack from 'webpack'
 import * as wdm from 'webpack-dev-middleware';
 import * as whm from 'webpack-hot-middleware';
 import * as path from 'path'
-import { MessageStore, Message, SetFieldArgs, GetFieldArgs } from "./Message";
+import { MessageStore, Message, SetFieldArgs, GetFieldArgs, Transferable } from "./Message";
 import { Client } from './Client';
 import { Socket } from 'socket.io';
 import { Utils } from '../Utils';
 import { ObservableMap } from 'mobx';
 import { FIELD_ID, Field } from '../fields/Field';
 import { Database } from './database';
+import { ServerUtils } from './ServerUtil';
+import { ObjectID } from 'mongodb';
 const config = require('../../webpack.config')
 const compiler = webpack(config)
 const port = 1050; // default port to listen
@@ -63,16 +65,22 @@ function addDocument(document: Document) {
 
 }
 
-function setField(newValue: SetFieldArgs) {
-    Database.Instance.update(newValue.field, newValue.value)
-    if (FieldStore.get(newValue.field)) {
-        FieldStore.get(newValue.field)!.TrySetValue(newValue.value);
+function setField(newValue: Transferable) {
+    console.log(newValue._id)
+    if (Database.Instance.getDocument(newValue._id)) {
+        Database.Instance.update(newValue._id, newValue)
+    }
+    else {
+        Database.Instance.insert(newValue)
     }
 }
 
 function getField([fieldRequest, callback]: [GetFieldArgs, (field: Field) => void]) {
     let fieldid: string = fieldRequest.field
-    callback(FieldStore.get(fieldid) as Field)
+    let result: string | undefined = Database.Instance.getDocument(new ObjectID(fieldid))
+    if (result) {
+        let fromJson: Field = ServerUtils.FromJson(result)
+    }
 }
 
 server.listen(serverPort);

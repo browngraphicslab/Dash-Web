@@ -1,10 +1,10 @@
 import { Utils } from "../Utils";
 import { FIELD_ID, Field } from "../fields/Field";
+import { ObjectId } from "bson";
 
 export class Message<T> {
     private name: string;
     private guid: string;
-    readonly ArgsCtor: new (...args: any) => T;
 
     get Name(): string {
         return this.name;
@@ -14,10 +14,9 @@ export class Message<T> {
         return this.guid
     }
 
-    constructor(name: string, ctor: new (...args: any) => T) {
+    constructor(name: string) {
         this.name = name;
         this.guid = Utils.GenerateDeterministicGuid(name)
-        this.ArgsCtor = ctor;
     }
 
     GetValue() {
@@ -53,70 +52,73 @@ export enum Types {
 
 export class DocumentTransfer implements Transferable {
     readonly type = Types.Document
+    _id: ObjectId;
 
-    constructor(readonly id: string) { }
+    constructor(readonly obj: { type: Types, data: [string, string][], _id: ObjectId }) {
+        this._id = obj._id
+    }
 }
 
 export class ImageTransfer implements Transferable {
     readonly type = Types.Image
 
-    constructor(readonly id: string) { }
+    constructor(readonly _id: ObjectId) { }
 }
 
 export class KeyTransfer implements Transferable {
     name: string
-    readonly id: string
+    readonly _id: ObjectId
     readonly type = Types.Key
 
     constructor(i: string, n: string) {
         this.name = n
-        this.id = i
+        this._id = new ObjectId(i)
     }
 }
 
 export class ListTransfer implements Transferable {
     type = Types.List;
 
-    constructor(readonly id: string) { }
+    constructor(readonly _id: ObjectId) { }
 }
 
 export class NumberTransfer implements Transferable {
     readonly type = Types.Number
 
-    constructor(readonly value: number, readonly id: string) { }
+    constructor(readonly value: number, readonly _id: ObjectId) { }
 }
 
 export class TextTransfer implements Transferable {
     value: string
-    readonly id: string
+    readonly _id: ObjectId
     readonly type = Types.Text
 
     constructor(t: string, i: string) {
         this.value = t
-        this.id = i
+        this._id = new ObjectId(i)
     }
 }
 
 export class RichTextTransfer implements Transferable {
     value: string
-    readonly id: string
+    readonly _id: ObjectId
     readonly type = Types.Text
 
     constructor(t: string, i: string) {
         this.value = t
-        this.id = i
+        this._id = new ObjectId(i)
     }
 }
 
-interface Transferable {
-    readonly id: string
+export interface Transferable {
+    readonly _id: ObjectId
     readonly type: Types
 }
 
 export namespace MessageStore {
-    export const Foo = new Message("Foo", String);
-    export const Bar = new Message("Bar", String);
-    export const AddDocument = new Message("Add Document", TestMessageArgs);
-    export const SetField = new Message("Set Field", SetFieldArgs)
-    export const GetField = new Message("Get Field", GetFieldArgs)
+    export const Foo = new Message<string>("Foo");
+    export const Bar = new Message<string>("Bar");
+    export const AddDocument = new Message<DocumentTransfer>("Add Document");
+    export const SetField = new Message<{ _id: ObjectId, data: any, type: Types }>("Set Field")
+    export const GetField = new Message<GetFieldArgs>("Get Field")
 }

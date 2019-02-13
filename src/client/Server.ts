@@ -48,8 +48,8 @@ export class Server {
     public static DeleteDocumentField(doc: Document, key: Key) {
         SocketStub.SEND_DELETE_DOCUMENT_FIELD(doc, key);
     }
-    public static SetFieldValue(field: Field, value: any) {
-        SocketStub.SEND_SET_FIELD(field, value);
+    public static UpdateField(field: Field) {
+        SocketStub.SEND_SET_FIELD(field);
     }
 
     static connected(message: string) {
