@@ -4,7 +4,6 @@ import 'golden-layout/src/css/goldenlayout-base.css';
 import 'golden-layout/src/css/goldenlayout-dark-theme.css';
 import { action, computed, reaction, observable } from "mobx";
 import { observer } from "mobx-react";
-import * as ReactDOM from 'react-dom';
 import { Document } from "../../../fields/Document";
 import { KeyStore } from "../../../fields/Key";
 import { ListField } from "../../../fields/ListField";
@@ -15,7 +14,7 @@ import { DocumentView } from "../nodes/DocumentView";
 import "./CollectionDockingView.scss";
 import { CollectionViewBase, CollectionViewProps, COLLECTION_BORDER_WIDTH } from "./CollectionViewBase";
 import React = require("react");
-import { changeDependenciesStateTo0 } from "mobx/lib/internal";
+import * as ReactDOM from 'react-dom';
 
 @observer
 export class CollectionDockingView extends CollectionViewBase {
@@ -111,7 +110,6 @@ export class CollectionDockingView extends CollectionViewBase {
 
     public static myLayout: any = null;
 
-    public rcs: Array<RenderClass> = new Array();
     private static _dragDiv: any = null;
     private static _dragParent: HTMLElement | null = null;
     private static _dragElement: HTMLDivElement;
@@ -241,10 +239,19 @@ export class CollectionDockingView extends CollectionViewBase {
             var containingDiv = "component_" + me.nextId();
             container.getElement().html("<div id='" + containingDiv + "'></div>");
             setTimeout(function () {
-                state.rc = new RenderClass(containingDiv, state.doc, me, container);
-                me.rcs.push(state.rc);
-                if (CollectionDockingView.myLayout._maxstack != null) {
-                    CollectionDockingView.myLayout._maxstack.click();
+                let divContainer = document.getElementById(containingDiv);
+                if (divContainer) {
+                    let props: DockingProps = {
+                        ContainingDiv: containingDiv,
+                        Document: state.doc,
+                        Container: container,
+                        CollectionDockingView: me,
+                        HtmlElement: divContainer
+                    }
+                    ReactDOM.render((<RenderClass {...props} />), divContainer);
+                    if (CollectionDockingView.myLayout._maxstack) {
+                        CollectionDockingView.myLayout._maxstack.click();
+                    }
                 }
             }, 0);
         });
@@ -281,34 +288,31 @@ export class CollectionDockingView extends CollectionViewBase {
     }
 }
 
-class RenderClass {
-
-    @observable _resizeCount: number = 0;
-
-    _collectionDockingView: CollectionDockingView;
-    _htmlElement: any;
-    _document: Document;
-    constructor(containingDiv: string, doc: Document, me: CollectionDockingView, container: any) {
-        this._collectionDockingView = me;
-        this._htmlElement = document.getElementById(containingDiv);
-        this._document = doc;
-        container.on('resize', action((e: any) => {
-            this.render();
-        }));
-
-        this.render();
+interface DockingProps {
+    ContainingDiv: string,
+    Document: Document,
+    Container: any,
+    HtmlElement: HTMLElement,
+    CollectionDockingView: CollectionDockingView
+}
+@observer
+export class RenderClass extends React.Component<DockingProps> {
+    @observable _forceRerender = 0;
+    constructor(props: DockingProps) {
+        super(props);
+        this.props.Container.on('resize', action((e: any) => this._forceRerender++));
     }
     render() {
-        var nativeWidth = this._document.GetNumber(KeyStore.NativeWidth, 0);
-        let parentScaling = nativeWidth > 0 ? this._htmlElement!.clientWidth / nativeWidth : 1;
-        ReactDOM.render((
-            <DocumentView key={this._document.Id} Document={this._document}
-                AddDocument={this._collectionDockingView.addDocument} RemoveDocument={this._collectionDockingView.removeDocument}
+        let x = this._forceRerender;
+        let nativeWidth = this.props.Document.GetNumber(KeyStore.NativeWidth, 0);
+        let parentScaling = nativeWidth > 0 ? this.props.HtmlElement!.clientWidth / nativeWidth : 1;
+        return <div>
+            <DocumentView key={this.props.Document.Id} Document={this.props.Document}
+                AddDocument={this.props.CollectionDockingView.addDocument}
+                RemoveDocument={this.props.CollectionDockingView.removeDocument}
                 GetTransform={() => Transform.Identity}
                 ParentScaling={parentScaling}
-                ContainingCollectionView={this._collectionDockingView} DocumentView={undefined} />
-        ),
-            this._htmlElement
-        );
+                ContainingCollectionView={this.props.CollectionDockingView} DocumentView={undefined} />
+        </div>
     }
 }
