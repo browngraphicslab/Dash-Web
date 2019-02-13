@@ -1,0 +1,12 @@
+.temptree {
+    background: #ADD8E6;
+    width: 300px;
+    height: 100px;
+    z-index: 100;
+    position: fixed;
+    bottom: 0px;
+    .list {
+        padding: 5px;
+        color: #1e5162;
+    }
+}

@@ -16,6 +16,7 @@ import { ImageBox } from "../nodes/ImageBox";
 import "./NodeView.scss";
 import React = require("react");
 import { Transform } from "../../util/Transform";
+import { DocumentManager } from "../DocumentManager";
 const JsxParser = require('react-jsx-parser').default;//TODO Why does this need to be imported like this?
 
 export interface DocumentViewProps {
@@ -31,6 +32,9 @@ export interface DocumentViewProps {
 
 @observer
 export class DocumentView extends React.Component<DocumentViewProps> {
+
+    public Id: string = Utils.GenerateGuid();
+    public tempTitle: string = "hello there"
 
     protected _mainCont = React.createRef<any>();
     get MainContent() {
@@ -67,6 +71,20 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             return this.props.ContainingCollectionView.props.ContainingDocumentView.ScalingToScreenSpace * ss;
         }
         return 1;
+    }
+
+    //adds doc to global list
+    componentDidMount: () => void = () => {
+        DocumentManager.Instance.DocumentViews.push(this);
+    }
+
+    //removes doc from global list
+    componentWillUnmount: () => void = () => {
+        for (let node of DocumentManager.Instance.DocumentViews) {
+            if (Object.is(node, this)) {
+                DocumentManager.Instance.DocumentViews.splice(DocumentManager.Instance.DocumentViews.indexOf(this), 1);
+            }
+        }
     }
 
 
