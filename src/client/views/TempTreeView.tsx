@@ -19,7 +19,7 @@ export class TempTreeView extends React.Component<IProps>{
             console.log(view.Id)
             console.log(view.props.Document.Title)
             if (view.props.ContainingCollectionView != undefined) {
-                console.log(view.props.ContainingCollectionView.Id)
+                //console.log(view.props.ContainingCollectionView.Id)
             }
             else {
                 console.log("containing collection is undefined")
