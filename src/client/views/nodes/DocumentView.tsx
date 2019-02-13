@@ -106,15 +106,15 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         return 0;
     }
     //
-    // Converts a coordinate in the screen space of the app into a local document coordinate.
+    // Converts a coordinate in the screen space of the app to a local point in the space of the DocumentView.
+    // This also returns the point in the coordinate space of this document's containing CollectionView
     //
     public TransformToLocalPoint(screenX: number, screenY: number) {
         // if this collection view is nested within another collection view, then 
         // first transform the screen point into the parent collection's coordinate space.
-        let { LocalX: parentX, LocalY: parentY } = this.props.ContainingCollectionView &&
-            this.props.ContainingCollectionView.props.ContainingDocumentView ?
-            this.props.ContainingCollectionView.props.ContainingDocumentView.TransformToLocalPoint(screenX, screenY) :
-            { LocalX: screenX, LocalY: screenY };
+        let containingCollectionViewDoc = this.props.ContainingCollectionView ? this.props.ContainingCollectionView.props.ContainingDocumentView : undefined;
+        let { LocalX: parentX, LocalY: parentY } = !containingCollectionViewDoc ? { LocalX: screenX, LocalY: screenY } :
+            containingCollectionViewDoc.TransformToLocalPoint(screenX, screenY);
         let ContainerX: number = parentX - COLLECTION_BORDER_WIDTH;
         let ContainerY: number = parentY - COLLECTION_BORDER_WIDTH;
 
@@ -124,11 +124,11 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         let LocalX = (ContainerX - (this.LeftCorner() + Panxx)) / Ss;
         let LocalY = (ContainerY - (this.TopCorner() + Panyy)) / Ss;
 
-        return { LocalX, Ss, Xx: this.LeftCorner(), LocalY, Yy: this.TopCorner(), ContainerX, ContainerY };
+        return { LocalX, LocalY, ContainerX, ContainerY };
     }
 
     //
-    // Converts a point in the coordinate space of a document to a screen space coordinate.
+    // Converts a point in the coordinate space of the document to coordinate in app screen coordinates
     //
     public TransformToScreenPoint(localX: number, localY: number, Ss: number = 1, Panxx: number = 0, Panyy: number = 0, apply: boolean = true): { ScreenX: number, ScreenY: number } {
         var parentScaling = apply ? this.parentScaling : 1;

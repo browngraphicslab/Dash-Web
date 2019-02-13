@@ -124,9 +124,10 @@ export class CollectionFreeFormView extends CollectionViewBase {
         // if (modes[e.deltaMode] == 'pixels') coefficient = 50;
         // else if (modes[e.deltaMode] == 'lines') coefficient = 1000; // This should correspond to line-height??
 
-        let { LocalX, Ss, Xx, LocalY, Yy, ContainerX, ContainerY } = this.props.ContainingDocumentView!.TransformToLocalPoint(e.pageX, e.pageY);
-
-        var deltaScale = (1 - (e.deltaY / coefficient)) * Ss;
+        let { LocalX, LocalY, ContainerX, ContainerY } = this.props.ContainingDocumentView!.TransformToLocalPoint(e.pageX, e.pageY);
+        var Xx = this.props.ContainingDocumentView!.LeftCorner();
+        var Yy = this.props.ContainingDocumentView!.TopCorner();
+        var deltaScale = (1 - (e.deltaY / coefficient)) * this.props.ContainingDocumentView!.props.Document.GetNumber(KeyStore.Scale, 1);
         var newDeltaScale = this.isAnnotationOverlay ? Math.max(1, deltaScale) : deltaScale;
 
         this.props.DocumentForCollection.SetNumber(KeyStore.Scale, newDeltaScale);
