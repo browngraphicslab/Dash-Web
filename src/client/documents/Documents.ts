@@ -69,7 +69,7 @@ export namespace Documents {
     export function TextDocument(options: DocumentOptions = {}): Document {
         let doc = GetTextPrototype().MakeDelegate();
         setupOptions(doc, options);
-        // doc.SetField(KeyStore.Data, new RichTextField());
+        // doc.Set(KeyStore.Data, new RichTextField());
         return doc;
     }
 
@@ -131,7 +131,7 @@ export namespace Documents {
             imageProto.Set(KeyStore.Height, new NumberField(300));
             imageProto.Set(KeyStore.Layout, new TextField(CollectionFreeFormView.LayoutString("AnnotationsKey")));
             imageProto.Set(KeyStore.BackgroundLayout, new TextField(ImageBox.LayoutString()));
-            // imageProto.SetField(KeyStore.Layout, new TextField('<div style={"background-image: " + {Data}} />'));
+            // imageProto.Set(KeyStore.Layout, new TextField('<div style={"background-image: " + {Data}} />'));
             imageProto.Set(KeyStore.LayoutKeys, new ListField([KeyStore.Data, KeyStore.Annotations]));
             Server.AddDocument(imageProto);
             return imageProto;

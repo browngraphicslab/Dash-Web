@@ -13,6 +13,7 @@ import { CollectionSchemaView } from "../collections/CollectionSchemaView";
 import { CollectionViewBase, COLLECTION_BORDER_WIDTH } from "../collections/CollectionViewBase";
 import { FormattedTextBox } from "../nodes/FormattedTextBox";
 import { ImageBox } from "../nodes/ImageBox";
+import { WebBox } from "../nodes/WebBox";
 import "./NodeView.scss";
 import React = require("react");
 import { Transform } from "../../util/Transform";
@@ -151,7 +152,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             bindings.DocumentView = this; // set the DocumentView to this if it hasn't already been set by a sub-class during its render method.
         }
         var annotated = <JsxParser
-            components={{ FormattedTextBox: FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView }}
+            components={{ FormattedTextBox: FormattedTextBox, ImageBox, WebBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView }}
             bindings={bindings}
             jsx={this.backgroundLayout}
             showWarnings={true}
@@ -166,7 +167,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         return (
             <div className="node" ref={this._mainCont} style={{ width: strwidth, height: strheight, transformOrigin: "left top", transform: `scale(${this.props.Scaling},${this.props.Scaling})` }}>
                 <JsxParser
-                    components={{ FormattedTextBox: FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView }}
+                    components={{ FormattedTextBox: FormattedTextBox, ImageBox, WebBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView }}
                     bindings={bindings}
                     jsx={this.layout}
                     showWarnings={true}
