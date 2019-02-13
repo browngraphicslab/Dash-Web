@@ -33,7 +33,7 @@ export class CollectionSchemaView extends CollectionViewBase {
             <FieldView {...props} />
         )
         return (
-            <EditableView contents={contents} GetValue={() => {
+            <EditableView contents={contents} height={36} GetValue={() => {
                 let field = props.doc.Get(props.fieldKey);
                 if (field && field instanceof Field) {
                     return field.ToScriptString();
@@ -118,28 +118,26 @@ export class CollectionSchemaView extends CollectionViewBase {
         return (
             <div onPointerDown={this.onPointerDown} className="collectionSchemaView-container"
                 style={{ borderWidth: `${COLLECTION_BORDER_WIDTH}px`, }} >
-                <SplitPane split={"vertical"} defaultSize="60%" style={{ position: "relative", overflow: "none" }}>
-                    <ScrollBox>
-                        <ReactTable
-                            data={children}
-                            pageSize={children.length}
-                            page={0}
-                            showPagination={false}
-                            columns={columns.map(col => {
-                                return (
-                                    {
-                                        Header: col.Name,
-                                        accessor: (doc: Document) => [doc, col],
-                                        id: col.Id
-                                    })
-                            })}
-                            column={{
-                                ...ReactTableDefaults.column,
-                                Cell: this.renderCell
-                            }}
-                            getTrProps={this.getTrProps}
-                        />
-                    </ScrollBox>
+                <SplitPane split={"vertical"} defaultSize="60%" style={{ height: "100%", position: "relative", overflow: "none" }}>
+                    <ReactTable
+                        data={children}
+                        pageSize={children.length}
+                        page={0}
+                        showPagination={false}
+                        columns={columns.map(col => {
+                            return (
+                                {
+                                    Header: col.Name,
+                                    accessor: (doc: Document) => [doc, col],
+                                    id: col.Id
+                                })
+                        })}
+                        column={{
+                            ...ReactTableDefaults.column,
+                            Cell: this.renderCell
+                        }}
+                        getTrProps={this.getTrProps}
+                    />
                     {content}
                 </SplitPane>
             </div>
