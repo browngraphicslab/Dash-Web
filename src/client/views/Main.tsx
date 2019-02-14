@@ -15,6 +15,7 @@ import { DocumentView } from './../views/nodes/DocumentView';
 import { CompileScript } from './../util/Scripting';
 import { TempTreeView } from './../views/TempTreeView';
 import { Transform } from '../util/Transform';
+import { DocumentManager } from './DocumentManager';
 
 
 configure({
@@ -77,6 +78,7 @@ mainNodes.Data.push(doc3);
 mainNodes.Data.push(doc6);
 //}
 //);
+
 
 ReactDOM.render((
     <div style={{ position: "absolute", width: "100%", height: "100%" }}>

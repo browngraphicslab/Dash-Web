@@ -182,8 +182,9 @@ export class DocumentView extends React.Component<DocumentViewProps> {
 
     @action
     Center = (e: React.MouseEvent): void => {
-        //DocumentManager.Instance.centerNode()
-        console.log("centering...")
+        DocumentManager.Instance.centerNode(this.props.Document)
+        DocumentManager.Instance.centerNode(this)
+        //console.log(this.props.ContainingCollectionView.props.)
     }
 
     @action
