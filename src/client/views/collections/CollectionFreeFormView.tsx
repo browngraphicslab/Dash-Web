@@ -54,7 +54,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
         }
         const xOffset = de.data["xOffset"] as number || 0;
         const yOffset = de.data["yOffset"] as number || 0;
-        const transform = doc.props.GetTransform();
+        const transform = me.props.GetTransform();
         const screenX = de.x - xOffset;
         const screenY = de.y - yOffset;
         const [x, y] = transform.transformPoint(screenX, screenY);
