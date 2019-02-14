@@ -212,7 +212,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
     getTransform = (): Transform => {
         const [x, y] = this.translate;
-        return this.props.GetTransform().translate(-COLLECTION_BORDER_WIDTH, -COLLECTION_BORDER_WIDTH).transform(this.getLocalTransform().inverse())
+        return this.getLocalTransform().inverse().translate(-COLLECTION_BORDER_WIDTH, -COLLECTION_BORDER_WIDTH).transform(this.props.GetTransform())
     }
 
     getLocalTransform = (): Transform => {
