@@ -11,7 +11,7 @@ import { Socket } from 'socket.io';
 import { Utils } from '../Utils';
 import { ObservableMap } from 'mobx';
 import { FIELD_ID, Field } from '../fields/Field';
-import { Database } from './database';
+// import { Database } from './database';
 import { ServerUtils } from './ServerUtil';
 import * as passportConfig from './authentication/config/passport';
 import { getLogin, postLogin, getSignup, postSignup } from './authentication/controllers/user';
@@ -19,15 +19,50 @@ const config = require('../../webpack.config');
 const compiler = webpack(config);
 const port = 1050; // default port to listen
 const serverPort = 1234;
-import expressValidator = require('express-validator');
+import * as expressValidator from 'express-validator';
 import expressFlash = require('express-flash');
-import bodyParser = require('body-parser');
+import * as bodyParser from 'body-parser';
+import * as session from 'express-session';
 import c = require("crypto");
+const MongoStore = require('connect-mongo')(session);
+const mongoose = require('mongoose');
+const bluebird = require('bluebird');
 
-app.use(bodyParser());
+const mongoUrl = 'mongodb://localhost:27017/Dash';
+// mongoose.Promise = bluebird;
+mongoose.connect(mongoUrl)//.then(
+// () => { /** ready to use. The `mongoose.connect()` promise resolves to undefined. */ },
+// ).catch((err: any) => {
+// console.log("MongoDB connection error. Please make sure MongoDB is running. " + err);
+// process.exit();
+// });
+mongoose.connection.on('connected', function () {
+    console.log("connected");
+})
+
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 app.use(expressValidator());
 app.use(expressFlash());
-app.use(require('express-session')({ secret: `${c.randomBytes(64)}`, resave: true, saveUninitialized: true }));
+app.use(require('express-session')({
+    secret: `${c.randomBytes(64)}`,
+    resave: true,
+    saveUninitialized: true,
+    store: new MongoStore({
+        url: 'mongodb://localhost:27017/Dash'
+    })
+}));
+app.use(passport.initialize());
+app.use(passport.session());
+app.use((req, res, next) => {
+    res.locals.user = req.user;
+    next();
+});
+
+app.get("/signup", getSignup);
+app.post("/signup", postSignup);
+app.get("/login", getLogin);
+app.post("/login", postLogin);
 
 let FieldStore: ObservableMap<FIELD_ID, Field> = new ObservableMap();
 
@@ -69,7 +104,7 @@ server.on("connection", function (socket: Socket) {
 
 function barReceived(guid: String) {
     clients[guid.toString()] = new Client(guid.toString());
-    Database.Instance.print()
+    // Database.Instance.print()
 }
 
 function addDocument(document: Document) {
@@ -78,35 +113,21 @@ function addDocument(document: Document) {
 
 function setField(newValue: Transferable) {
     console.log(newValue._id)
-    if (Database.Instance.getDocument(newValue._id)) {
-        Database.Instance.update(newValue._id, newValue)
-    }
-    else {
-        Database.Instance.insert(newValue)
-    }
+    // if (Database.Instance.getDocument(newValue._id)) {
+    //     Database.Instance.update(newValue._id, newValue)
+    // }
+    // else {
+    //     Database.Instance.insert(newValue)
+    // }
 }
 
 function getField([fieldRequest, callback]: [GetFieldArgs, (field: Field) => void]) {
     let fieldId: string = fieldRequest.field
-    let result: string | undefined = Database.Instance.getDocument(fieldId)
-    if (result) {
-        let fromJson: Field = ServerUtils.FromJson(result)
-    }
+    // let result: string | undefined = Database.Instance.getDocument(fieldId)
+    // if (result) {
+    //     let fromJson: Field = ServerUtils.FromJson(result)
+    // }
 }
-
-// initialize passport
-app.use(passport.initialize());
-app.use(passport.session());
-
-app.use((req, res, next) => {
-    res.locals.user = req.user;
-    next();
-});
-
-app.get("/signup", getSignup);
-app.post("/signup", postSignup);
-app.get("/login", getLogin);
-app.post("/login", postLogin);
 
 server.listen(serverPort);
 console.log(`listening on port ${serverPort}`);

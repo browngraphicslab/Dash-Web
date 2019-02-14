@@ -1,7 +1,21 @@
+//@ts-ignore
 import * as bcrypt from "bcrypt-nodejs";
 import * as crypto from "crypto";
+//@ts-ignore
 import * as mongoose from "mongoose";
+var url = 'mongodb://localhost:27017/Dash'
 
+mongoose.connect(url, { useNewUrlParser: true });
+
+mongoose.connection.on('connected', function () {
+    console.log('Stablished connection on ' + url);
+});
+mongoose.connection.on('error', function (error) {
+    console.log('Something wrong happened: ' + error);
+});
+mongoose.connection.on('disconnected', function () {
+    console.log('connection closed');
+});
 export type UserModel = mongoose.Document & {
     email: string,
     password: string,
@@ -18,7 +32,6 @@ export type UserModel = mongoose.Document & {
     },
 
     comparePassword: comparePasswordFunction,
-    gravatar: (size: number) => string
 };
 
 type comparePasswordFunction = (candidatePassword: string, cb: (err: any, isMatch: any) => {}) => void;

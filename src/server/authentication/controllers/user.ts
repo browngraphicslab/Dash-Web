@@ -17,7 +17,7 @@ export let getSignup = (req: Request, res: Response) => {
         return res.redirect("/");
     }
     res.render("signup.pug", {
-        title: "Create Account"
+        title: "Sign Up"
     });
 };
 
