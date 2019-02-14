@@ -25,6 +25,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
     private _lastY: number = 0;
     private _downX: number = 0;
     private _downY: number = 0;
+    private _borderColor: string = "red"
 
     constructor(props: CollectionViewProps) {
         super(props);

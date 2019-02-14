@@ -55,6 +55,13 @@ export class Transform {
         return this;
     }
 
+    //MONIKA
+    center = (x: number, y: number): Transform => {
+        this._translateX = x
+        this._translateY = y
+        return this;
+    }
+
     preTransform = (transform: Transform): Transform => {
         this._translateX = transform._translateX + this._translateX * transform._scale;
         this._translateY = transform._translateY + this._translateY * transform._scale;

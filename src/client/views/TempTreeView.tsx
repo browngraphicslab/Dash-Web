@@ -17,13 +17,18 @@ export class TempTreeView extends React.Component<IProps>{
         let view = DocumentManager.Instance.getDocumentView(doc);
         if (view != null) {
             console.log(view.Id)
+            console.log(view.props.GetTransform().TranslateX)
+
             console.log(view.props.Document.Title)
             if (view.props.ContainingCollectionView != undefined) {
                 //console.log(view.props.ContainingCollectionView.Id)
+                // view.props.ContainingCollectionView
             }
             else {
                 console.log("containing collection is undefined")
             }
+
+            view.switchColor();
         }
     }
 

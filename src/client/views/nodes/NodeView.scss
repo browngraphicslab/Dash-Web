@@ -2,6 +2,8 @@
     position: absolute;
     background: #cdcdcd;
     overflow: hidden;
+    border-style: solid;
+    border-width: 2px; //border-color: blue;
     &.minimized {
         width: 30px;
         height: 30px;

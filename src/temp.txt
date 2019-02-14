@@ -29,6 +29,12 @@
 
     }
 
+    @observable
+    public SetViewportXY(x: number, y: number) {
+        this.ViewportX = x;
+        this.ViewportY = y;
+    }
+
 
     //NAV
     /**

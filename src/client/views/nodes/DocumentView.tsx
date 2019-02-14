@@ -1,5 +1,6 @@
 import { action, computed } from "mobx";
 import { observer } from "mobx-react";
+import { observable } from "mobx";
 import { Document } from "../../../fields/Document";
 import { Opt, FieldWaiting } from "../../../fields/Field";
 import { Key, KeyStore } from "../../../fields/Key";
@@ -38,7 +39,14 @@ export interface DocumentViewProps {
 export class DocumentView extends React.Component<DocumentViewProps> {
 
     public Id: string = Utils.GenerateGuid();
-    public tempTitle: string = "hello there"
+
+    @observable
+    public Border: string = "white"
+
+    @action
+    public switchColor() {
+        this.Border = "red"
+    }
 
     private _mainCont = React.createRef<HTMLDivElement>();
     get MainContent() {
@@ -173,6 +181,12 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     }
 
     @action
+    Center = (e: React.MouseEvent): void => {
+        //DocumentManager.Instance.centerNode()
+        console.log("centering...")
+    }
+
+    @action
     onContextMenu = (e: React.MouseEvent): void => {
         if (!SelectionManager.IsSelected(this)) {
             return;
@@ -193,6 +207,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             e.stopPropagation();
 
             ContextMenu.Instance.clearItems();
+            ContextMenu.Instance.addItem({ description: "Center", event: this.Center })
             ContextMenu.Instance.addItem({ description: "Full Screen", event: this.fullScreenClicked })
             ContextMenu.Instance.addItem({ description: "Open Right", event: this.openRight })
             ContextMenu.Instance.addItem({ description: "Delete", event: this.deleteClicked })
@@ -268,7 +283,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         var height = this.props.Document.GetNumber(KeyStore.NativeHeight, 0);
         var strheight = height > 0 ? height.toString() + "px" : "100%";
         return (
-            <div className="node" ref={this._mainCont} style={{ width: strwidth, height: strheight, transformOrigin: "left top", transform: `scale(${this.props.Scaling},${this.props.Scaling})` }}
+            <div className="node" ref={this._mainCont} style={{ borderColor: this.Border, width: strwidth, height: strheight, transformOrigin: "left top", transform: `scale(${this.props.Scaling},${this.props.Scaling})` }}
                 onContextMenu={this.onContextMenu}
                 onPointerDown={this.onPointerDown} >
                 <JsxParser
