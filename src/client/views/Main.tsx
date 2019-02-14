@@ -95,6 +95,10 @@ Utils.EmitCallback(Server.Socket, MessageStore.GetField, "dash", (res: any) => {
         }));
     })
 
+    let clearDatabase = action(() => {
+        Utils.Emit(Server.Socket, MessageStore.DeleteAll, {});
+    })
+
     ReactDOM.render((
         <div style={{ position: "absolute", width: "100%", height: "100%" }}>
             <DocumentView Document={mainContainer} ContainingCollectionView={undefined} DocumentView={undefined} />
@@ -118,6 +122,12 @@ Utils.EmitCallback(Server.Socket, MessageStore.GetField, "dash", (res: any) => {
                 left: '0px',
                 width: '150px'
             }} onClick={addColNode}>Add Collection</button>
+            <button style={{
+                position: 'absolute',
+                bottom: '75px',
+                left: '0px',
+                width: '150px'
+            }} onClick={clearDatabase}>Clear Database</button>
         </div>),
         document.getElementById('root'));
 })

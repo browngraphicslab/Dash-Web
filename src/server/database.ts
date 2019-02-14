@@ -25,6 +25,13 @@ export class Database {
         });
     }
 
+    public deleteAll() {
+        this.MongoClient.connect(this.url, (err, db) => {
+            let collection = db.db().collection('documents');
+            collection.deleteMany({});
+        })
+    }
+
     public insert(kvpairs: any) {
         this.MongoClient.connect(this.url, { bufferMaxEntries: 1 }, (err, db) => {
             // console.log(kvpairs)

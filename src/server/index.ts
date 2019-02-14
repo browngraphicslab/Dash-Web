@@ -55,7 +55,12 @@ server.on("connection", function (socket: Socket) {
     Utils.AddServerHandler(socket, MessageStore.Bar, barReceived)
     Utils.AddServerHandler(socket, MessageStore.SetField, setField)
     Utils.AddServerHandlerCallback(socket, MessageStore.GetField, getField)
+    Utils.AddServerHandler(socket, MessageStore.DeleteAll, deleteAll)
 })
+
+function deleteAll() {
+    Database.Instance.deleteAll();
+}
 
 function barReceived(guid: String) {
     clients[guid.toString()] = new Client(guid.toString());

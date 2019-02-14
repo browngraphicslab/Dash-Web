@@ -122,4 +122,5 @@ export namespace MessageStore {
     export const SetField = new Message<{ _id: string, data: any, type: Types }>("Set Field")
     export const GetField = new Message<string>("Get Field")
     export const GetDocument = new Message<string>("Get Document");
+    export const DeleteAll = new Message<any>("Delete All");
 }
