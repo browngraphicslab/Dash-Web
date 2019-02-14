@@ -3,6 +3,8 @@ exports.__esModule = true;
 var express = require("express");
 var app = express();
 var port = 8080; // default port to listen
+import { Database } from './database';
+
 // define a route handler for the default home page
 app.get("/", function (req, res) {
     res.send("Hello world!");
