@@ -1,7 +1,6 @@
 import { BasicField } from "./BasicField"
 import { Types } from "../server/Message";
 import { FIELD_ID } from "./Field";
-import { ObjectID } from "bson";
 
 export class NumberField extends BasicField<number> {
     constructor(data: number = 0, id: FIELD_ID = undefined) {
@@ -16,9 +15,9 @@ export class NumberField extends BasicField<number> {
         return new NumberField(this.Data);
     }
 
-    ToJson(): { _id: ObjectID, type: Types, data: number } {
+    ToJson(): { _id: string, type: Types, data: number } {
         return {
-            _id: new ObjectID(this.Id),
+            _id: this.Id,
             type: Types.Number,
             data: this.Data
         }

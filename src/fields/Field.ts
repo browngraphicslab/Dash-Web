@@ -9,7 +9,6 @@ import { ImageField } from "./ImageField";
 import { ListField } from "./ListField";
 import { Document } from "./Document";
 import { Server } from "../client/Server";
-import { ObjectID } from "bson";
 
 export function Cast<T extends Field>(field: FieldValue<Field>, ctor: { new(): T }): Opt<T> {
     if (field) {
@@ -65,5 +64,5 @@ export abstract class Field {
 
     abstract Copy(): Field;
 
-    abstract ToJson(): { _id: ObjectID, type: Types, data: any }
+    abstract ToJson(): { _id: string, type: Types, data: any }
 }

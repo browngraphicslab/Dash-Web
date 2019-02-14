@@ -3,6 +3,7 @@ import { Utils } from "../Utils";
 import { observable } from "mobx";
 import { Types } from "../server/Message";
 import { ObjectID } from "bson";
+import { Server } from "../client/Server";
 
 export class Key extends Field {
     private name: string;
@@ -15,6 +16,7 @@ export class Key extends Field {
         super(id || Utils.GenerateDeterministicGuid(name));
 
         this.name = name;
+        Server.UpdateField(this)
     }
 
     TrySetValue(value: any): boolean {
@@ -33,11 +35,11 @@ export class Key extends Field {
         return name;
     }
 
-    ToJson(): { type: Types, data: string, _id: ObjectID } {
+    ToJson(): { type: Types, data: string, _id: string } {
         return {
             type: Types.Key,
             data: this.name,
-            _id: new ObjectID(this.Id)
+            _id: this.Id
         }
     }
 }

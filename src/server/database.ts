@@ -9,8 +9,8 @@ export class Database {
     private MongoClient = mongodb.MongoClient;
     private url = 'mongodb://localhost:27017/Dash';
 
-    public update(id: mongodb.ObjectID, value: any) {
-        this.MongoClient.connect(this.url, (err, db) => {
+    public update(id: string, value: any) {
+        this.MongoClient.connect(this.url, { bufferMaxEntries: 1 }, (err, db) => {
             let collection = db.db().collection('documents');
             collection.update({ _id: id }, { $set: value });
             db.close();
@@ -18,7 +18,7 @@ export class Database {
     }
 
     public delete(id: string) {
-        this.MongoClient.connect(this.url, (err, db) => {
+        this.MongoClient.connect(this.url, { bufferMaxEntries: 1 }, (err, db) => {
             let collection = db.db().collection('documents');
             collection.remove({ _id: id });
             db.close();
@@ -26,32 +26,40 @@ export class Database {
     }
 
     public insert(kvpairs: any) {
-        this.MongoClient.connect(this.url, (err, db) => {
+        this.MongoClient.connect(this.url, { bufferMaxEntries: 1 }, (err, db) => {
+            // console.log(kvpairs)
             let collection = db.db().collection('documents');
-            collection.insertOne(kvpairs, () => { });
+            collection.insertOne(kvpairs, (err: any, res: any) => {
+                if (err) {
+                    // console.log(err)
+                    return
+                }
+                // console.log(kvpairs)
+                // console.log("1 document inserted")
+            });
             db.close();
         });
     }
 
-    public getDocument(id: mongodb.ObjectID): string | undefined {
+    public getDocument(id: string, fn: (res: any) => void) {
         var result: JSON;
-        this.MongoClient.connect(this.url, (err, db) => {
+        this.MongoClient.connect(this.url, {
+            bufferMaxEntries: 1
+        }, (err, db) => {
             if (err) {
                 console.log(err)
                 return undefined
             }
             let collection = db.db().collection('documents');
-            collection.findOne({ _id: Utils.GenerateDeterministicGuid(id.toHexString()) }, (err: any, res: any) => result = res)
-            console.log(result)
+            collection.findOne({ _id: id }, (err: any, res: any) => {
+                result = res
+                if (!result) {
+                    fn(undefined)
+                }
+                fn(result)
+            })
             db.close();
-            if (!result) {
-                console.log("not found")
-                return undefined
-            }
-            console.log("found")
-            return result;
         });
-        return undefined
     }
 
     public print() {

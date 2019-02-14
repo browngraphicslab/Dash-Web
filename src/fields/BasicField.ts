@@ -7,6 +7,7 @@ export abstract class BasicField<T> extends Field {
         super(id);
 
         this.data = data;
+        Server.UpdateField(this)
     }
 
     @observable

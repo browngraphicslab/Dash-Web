@@ -1,7 +1,6 @@
 import { BasicField } from "./BasicField";
 import { Types } from "../server/Message";
 import { FIELD_ID } from "./Field";
-import { ObjectID } from "bson";
 
 export class RichTextField extends BasicField<string> {
     constructor(data: string = "", id: FIELD_ID = undefined) {
@@ -16,11 +15,11 @@ export class RichTextField extends BasicField<string> {
         return new RichTextField(this.Data);
     }
 
-    ToJson(): { type: Types, data: string, _id: ObjectID } {
+    ToJson(): { type: Types, data: string, _id: string } {
         return {
             type: Types.RichText,
             data: this.Data,
-            _id: new ObjectID(this.Id)
+            _id: this.Id
         }
     }
 

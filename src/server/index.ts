@@ -13,6 +13,7 @@ import { FIELD_ID, Field } from '../fields/Field';
 import { Database } from './database';
 import { ServerUtils } from './ServerUtil';
 import { ObjectID } from 'mongodb';
+import { Document } from '../fields/Document';
 const config = require('../../webpack.config')
 const compiler = webpack(config)
 const port = 1050; // default port to listen
@@ -65,22 +66,26 @@ function addDocument(document: Document) {
 
 }
 
-function setField(newValue: Transferable) {
-    console.log(newValue._id)
-    if (Database.Instance.getDocument(newValue._id)) {
-        Database.Instance.update(newValue._id, newValue)
-    }
-    else {
-        Database.Instance.insert(newValue)
-    }
+function getField([id, callback]: [string, (result: any) => void]) {
+    Database.Instance.getDocument(id, (result: any) => {
+        if (result) {
+            callback(result)
+        }
+        else {
+            callback(undefined)
+        }
+    })
 }
 
-function getField([fieldRequest, callback]: [GetFieldArgs, (field: Field) => void]) {
-    let fieldid: string = fieldRequest.field
-    let result: string | undefined = Database.Instance.getDocument(new ObjectID(fieldid))
-    if (result) {
-        let fromJson: Field = ServerUtils.FromJson(result)
-    }
+function setField(newValue: Transferable) {
+    Database.Instance.getDocument(newValue._id, (res: any) => {
+        if (res) {
+            Database.Instance.update(newValue._id, newValue)
+        }
+        else {
+            Database.Instance.insert(newValue)
+        }
+    })
 }
 
 server.listen(serverPort);

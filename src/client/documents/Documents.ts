@@ -137,9 +137,9 @@ export namespace Documents {
     }
 
     let collectionProto: Document;
-    function GetCollectionPrototype(): Document {
+    function GetCollectionPrototype(isMainDoc: boolean): Document {
         if (!collectionProto) {
-            collectionProto = new Document();
+            collectionProto = new Document(isMainDoc ? "dash" : undefined);
             collectionProto.Set(KeyStore.X, new NumberField(0));
             collectionProto.Set(KeyStore.Y, new NumberField(0));
             collectionProto.Set(KeyStore.Scale, new NumberField(1));
@@ -153,8 +153,8 @@ export namespace Documents {
         return collectionProto;
     }
 
-    export function CollectionDocument(documents: Array<Document>, options: DocumentOptions = {}): Document {
-        let doc = GetCollectionPrototype().MakeDelegate();
+    export function CollectionDocument(documents: Array<Document>, options: DocumentOptions = {}, isMainDoc: boolean = false): Document {
+        let doc = GetCollectionPrototype(isMainDoc).MakeDelegate();
         setupOptions(doc, options);
         doc.Set(KeyStore.Data, new ListField(documents));
         return doc;

@@ -8,11 +8,16 @@ import { findDOMNode } from "react-dom";
 import { Server } from "../client/Server";
 import { Types } from "../server/Message";
 import { ObjectID } from "bson";
-import { Utils } from "../Utils";
 
 export class Document extends Field {
     public fields: ObservableMap<Key, Opt<Field>> = new ObservableMap();
     public _proxies: ObservableMap<string, FIELD_ID> = new ObservableMap();
+
+    constructor(id?: string) {
+        super(id)
+
+        Server.UpdateField(this)
+    }
 
     @computed
     public get Title() {
@@ -89,9 +94,11 @@ export class Document extends Field {
     Set(key: Key, field: Field | undefined): void {
         if (field) {
             this.fields.set(key, field);
+            this._proxies.set(key.Id, field.Id)
             // Server.AddDocumentField(this, key, field);
         } else {
             this.fields.delete(key);
+            this._proxies.delete(key.Id)
             // Server.DeleteDocumentField(this, key);
         }
         Server.UpdateField(this);
@@ -159,13 +166,15 @@ export class Document extends Field {
         throw new Error("Method not implemented.");
     }
 
-    ToJson(): { type: Types, data: [string, string][], _id: ObjectID } {
+    ToJson(): { type: Types, data: [string, string][], _id: string } {
+        console.log(this.fields)
         let fields: [string, string][] = []
         this._proxies.forEach((field, key) => {
             if (field) {
                 fields.push([key, field as string])
             }
         });
+        console.log(fields)
 
         return {
             type: Types.Document,
@@ -173,5 +182,4 @@ export class Document extends Field {
             _id: this.Id
         }
     }
-
 }

@@ -12,9 +12,10 @@ import { Utils } from '../Utils';
 
 export class ServerUtils {
     public static FromJson(json: string): Field {
-        let obj = JSON.parse(json)
+        let obj = JSON.parse(JSON.stringify(json))
+        console.log(obj)
         let data: any = obj.data
-        let id: string = obj.id
+        let id: string = obj._id
         let type: Types = obj.type
 
         if (!(data && id && type != undefined)) {
@@ -40,19 +41,8 @@ export class ServerUtils {
                 let fields: [string, string][] = data as [string, string][]
                 fields.forEach(element => {
                     doc._proxies.set(element[0], element[1]);
-                    let keyId: string = element[0]
-                    let valueId: string = element[1]
-                    Server.GetField(keyId, (key: Field) => {
-                        if (key instanceof Key) {
-                            Server.GetField(valueId, (field: Field) => {
-                                doc.Set(key as Key, field)
-                            })
-                        }
-                        else {
-                            console.log("how did you get a key that isnt a key wtf")
-                        }
-                    })
                 });
+                console.log(doc._proxies)
                 return doc
         }
         return new TextField(data, id)

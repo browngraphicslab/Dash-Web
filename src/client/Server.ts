@@ -20,7 +20,9 @@ export class Server {
             this.ClientFieldsCached.set(fieldid, FieldWaiting);
             //simulating a server call with a registered callback action
             SocketStub.SEND_FIELD_REQUEST(fieldid,
-                action((field: Field) => callback(Server.cacheField(field))));
+                action((field: Field) => {
+                    callback(Server.cacheField(field))
+                }));
         } else if (this.ClientFieldsCached.get(fieldid) != FieldWaiting) {
             callback(this.ClientFieldsCached.get(fieldid) as Field);
         }
@@ -29,14 +31,24 @@ export class Server {
 
     static times = 0; // hack for testing
     public static GetDocumentField(doc: Document, key: Key) {
-        var hackTimeout: number = key == KeyStore.Data ? (this.times++ == 0 ? 5000 : 1000) : key == KeyStore.X ? 2500 : 500;
+        // let keyId: string = element[0]
+        // let valueId: string = element[1]
+        // Server.GetField(keyId, (key: Field) => {
+        //     if (key instanceof Key) {
+        //         Server.GetField(valueId, (field: Field) => {
+        //             console.log(field)
+        //             doc.Set(key as Key, field)
+        //         })
+        //     }
+        //     else {
+        //         console.log("how did you get a key that isnt a key wtf")
+        //     }
+        // })
 
         return this.GetField(doc._proxies.get(key.Id),
             action((fieldfromserver: Field) => {
-                doc._proxies.delete(key.Id);
                 doc.fields.set(key, fieldfromserver);
-            })
-            , hackTimeout);
+            }));
     }
 
     public static AddDocument(document: Document) {
@@ -48,8 +60,19 @@ export class Server {
     public static DeleteDocumentField(doc: Document, key: Key) {
         SocketStub.SEND_DELETE_DOCUMENT_FIELD(doc, key);
     }
+
+    private static lock: boolean = false;
+
     public static UpdateField(field: Field) {
-        SocketStub.SEND_SET_FIELD(field);
+        if (this.lock) {
+            setTimeout(this.UpdateField, 1000, field)
+        }
+        this.lock = true
+        SocketStub.SEND_SET_FIELD(field, (args: any) => {
+            if (this.lock) {
+                this.lock = false
+            }
+        });
     }
 
     static connected(message: string) {

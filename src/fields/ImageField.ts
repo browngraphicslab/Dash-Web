@@ -20,11 +20,11 @@ export class ImageField extends BasicField<URL> {
         return new ImageField(this.Data);
     }
 
-    ToJson(): { type: Types, data: URL, _id: ObjectID } {
+    ToJson(): { type: Types, data: URL, _id: string } {
         return {
             type: Types.Image,
             data: this.Data,
-            _id: new ObjectID(this.Id)
+            _id: this.Id
         }
     }
 }

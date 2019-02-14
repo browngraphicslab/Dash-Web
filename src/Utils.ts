@@ -16,12 +16,10 @@ export class Utils {
 
     public static GenerateGuid(): string {
         return v4()
-        // return new Buffer(v4()).toString("hex").substr(0, 24);
     }
 
     public static GenerateDeterministicGuid(seed: string): string {
         return v5(seed, v5.URL)
-        // return new Buffer(v5(seed, v5.URL)).toString("hex").substr(0, 24);
     }
 
     public static GetScreenTransform(ele: HTMLElement): { scale: number, translateX: number, translateY: number } {

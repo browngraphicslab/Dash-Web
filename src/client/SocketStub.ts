@@ -34,8 +34,7 @@ export class SocketStub {
 
     public static SEND_FIELD_REQUEST(fieldid: FIELD_ID, callback: (field: Field) => void) {
         if (fieldid) {
-            let args: GetFieldArgs = new GetFieldArgs(fieldid)
-            Utils.EmitCallback(Server.Socket, MessageStore.GetField, args, (field: Field) => callback(field))
+            Utils.EmitCallback(Server.Socket, MessageStore.GetField, fieldid, (field: Field) => callback(field))
         }
     }
 
@@ -67,12 +66,12 @@ export class SocketStub {
             document._proxies.delete(key.Id);
     }
 
-    public static SEND_SET_FIELD(field: Field) {
+    public static SEND_SET_FIELD(field: Field, fn: (args: any) => void) {
         // Send a request to set the value of a field
 
         // ...SOCKET(SET_FIELD, field id, serialized field value)
 
         // Server updates the value of the field in its fieldstore
-        Utils.Emit(Server.Socket, MessageStore.SetField, field.ToJson())
+        Utils.EmitCallback(Server.Socket, MessageStore.SetField, field.ToJson(), fn)
     }
 }
