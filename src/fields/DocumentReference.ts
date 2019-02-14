@@ -17,6 +17,10 @@ export class DocumentReference extends Field {
         super();
     }
 
+    UpdateFromServer() {
+
+    }
+
     Dereference(): FieldValue<Field> {
         return this.document.Get(this.key);
     }

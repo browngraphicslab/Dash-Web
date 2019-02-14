@@ -128,6 +128,10 @@ export class DocumentView extends React.Component<DocumentViewProps> {
 
     render() {
         let bindings = { ...this.props } as any;
+        let lkeys = this.props.Document.GetT(KeyStore.LayoutKeys, ListField);
+        if (!lkeys || lkeys === "<Waiting>") {
+            return <p>Error loading layout keys</p>;
+        }
         for (const key of this.layoutKeys) {
             bindings[key.Name + "Key"] = key;  // this maps string values of the form <keyname>Key to an actual key Kestore.keyname  e.g,   "DataKey" => KeyStore.Data
         }

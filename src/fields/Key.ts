@@ -12,11 +12,17 @@ export class Key extends Field {
         return this.name;
     }
 
-    constructor(name: string, id?: string) {
+    constructor(name: string, id?: string, save: boolean = true) {
         super(id || Utils.GenerateDeterministicGuid(name));
 
         this.name = name;
-        Server.UpdateField(this)
+        if (save) {
+            Server.UpdateField(this)
+        }
+    }
+
+    UpdateFromServer(data: string) {
+        this.name = data;
     }
 
     TrySetValue(value: any): boolean {

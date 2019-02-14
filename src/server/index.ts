@@ -14,6 +14,7 @@ import { Database } from './database';
 import { ServerUtils } from './ServerUtil';
 import { ObjectID } from 'mongodb';
 import { Document } from '../fields/Document';
+import * as io from 'socket.io'
 const config = require('../../webpack.config')
 const compiler = webpack(config)
 const port = 1050; // default port to listen
@@ -30,6 +31,11 @@ app.get("/hello", (req, res) => {
     res.send("<p>Hello</p>");
 })
 
+app.get("/delete", (req, res) => {
+    deleteAll();
+    res.redirect("/");
+});
+
 app.use(wdm(compiler, {
     publicPath: config.output.publicPath
 }))
@@ -41,7 +47,7 @@ app.listen(port, () => {
     console.log(`server started at http://localhost:${port}`);
 })
 
-const server = require("socket.io")();
+const server = io();
 interface Map {
     [key: string]: Client;
 }
@@ -53,8 +59,9 @@ server.on("connection", function (socket: Socket) {
     Utils.Emit(socket, MessageStore.Foo, "handshooken")
 
     Utils.AddServerHandler(socket, MessageStore.Bar, barReceived)
-    Utils.AddServerHandler(socket, MessageStore.SetField, setField)
+    Utils.AddServerHandler(socket, MessageStore.SetField, (args) => setField(socket, args))
     Utils.AddServerHandlerCallback(socket, MessageStore.GetField, getField)
+    Utils.AddServerHandlerCallback(socket, MessageStore.GetFields, getFields)
     Utils.AddServerHandler(socket, MessageStore.DeleteAll, deleteAll)
 })
 
@@ -82,15 +89,13 @@ function getField([id, callback]: [string, (result: any) => void]) {
     })
 }
 
-function setField(newValue: Transferable) {
-    Database.Instance.getDocument(newValue._id, (res: any) => {
-        if (res) {
-            Database.Instance.update(newValue._id, newValue)
-        }
-        else {
-            Database.Instance.insert(newValue)
-        }
-    })
+function getFields([ids, callback]: [string[], (result: any) => void]) {
+    Database.Instance.getDocuments(ids, callback);
+}
+
+function setField(socket: Socket, newValue: Transferable) {
+    Database.Instance.update(newValue._id, newValue)
+    socket.broadcast.emit(MessageStore.SetField.Message, newValue)
 }
 
 server.listen(serverPort);

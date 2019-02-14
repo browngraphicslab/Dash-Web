@@ -1,14 +1,6 @@
 
 import { Utils } from "../Utils";
 import { Types } from "../server/Message";
-import { NumberField } from "./NumberField";
-import { TextField } from "./TextField";
-import { RichTextField } from "./RichTextField";
-import { KeyStore, Key } from "./Key";
-import { ImageField } from "./ImageField";
-import { ListField } from "./ListField";
-import { Document } from "./Document";
-import { Server } from "../client/Server";
 
 export function Cast<T extends Field>(field: FieldValue<Field>, ctor: { new(): T }): Opt<T> {
     if (field) {
@@ -27,6 +19,10 @@ export type FieldValue<T> = Opt<T> | FIELD_WAITING;
 
 export abstract class Field {
     //FieldUpdated: TypedEvent<Opt<FieldUpdatedArgs>> = new TypedEvent<Opt<FieldUpdatedArgs>>();
+
+    init(callback: (res: Field) => any) {
+        callback(this);
+    }
 
     private id: string;
     get Id(): string {
@@ -55,6 +51,8 @@ export abstract class Field {
     Equals(other: Field): boolean {
         return this.id === other.id;
     }
+
+    abstract UpdateFromServer(serverData: any): void;
 
     abstract ToScriptString(): string;
 

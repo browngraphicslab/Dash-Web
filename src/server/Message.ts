@@ -121,6 +121,7 @@ export namespace MessageStore {
     export const AddDocument = new Message<DocumentTransfer>("Add Document");
     export const SetField = new Message<{ _id: string, data: any, type: Types }>("Set Field")
     export const GetField = new Message<string>("Get Field")
+    export const GetFields = new Message<string[]>("Get Fields")
     export const GetDocument = new Message<string>("Get Document");
     export const DeleteAll = new Message<any>("Delete All");
 }

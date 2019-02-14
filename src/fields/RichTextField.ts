@@ -3,8 +3,8 @@ import { Types } from "../server/Message";
 import { FIELD_ID } from "./Field";
 
 export class RichTextField extends BasicField<string> {
-    constructor(data: string = "", id: FIELD_ID = undefined) {
-        super(data, id);
+    constructor(data: string = "", id: FIELD_ID = undefined, save: boolean = true) {
+        super(data, save, id);
     }
 
     ToScriptString(): string {

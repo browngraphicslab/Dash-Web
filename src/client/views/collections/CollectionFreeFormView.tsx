@@ -17,7 +17,6 @@ import { FieldWaiting } from "../../../fields/Field";
 @observer
 export class CollectionFreeFormView extends CollectionViewBase {
     public static LayoutString() { return CollectionViewBase.LayoutString("CollectionFreeFormView"); }
-    private _containerRef = React.createRef<HTMLDivElement>();
     private _canvasRef = React.createRef<HTMLDivElement>();
     private _nodeContainerRef = React.createRef<HTMLDivElement>();
     private _lastX: number = 0;
@@ -51,9 +50,13 @@ export class CollectionFreeFormView extends CollectionViewBase {
         e.stopPropagation();
     }
 
-    componentDidMount() {
-        if (this._containerRef.current) {
-            DragManager.MakeDropTarget(this._containerRef.current, {
+    private dropDisposer?: DragManager.DragDropDisposer;
+    createDropTarget = (ele: HTMLDivElement) => {
+        if (this.dropDisposer) {
+            this.dropDisposer();
+        }
+        if (ele) {
+            this.dropDisposer = DragManager.MakeDropTarget(ele, {
                 handlers: {
                     drop: this.drop
                 }
@@ -174,7 +177,11 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
     render() {
         const { CollectionFieldKey: fieldKey, DocumentForCollection: Document } = this.props;
-        const value: Document[] = Document.GetList<Document>(fieldKey, []);
+        // const value: Document[] = Document.GetList<Document>(fieldKey, []);
+        const lvalue = Document.GetT<ListField<Document>>(fieldKey, ListField);
+        if (!lvalue || lvalue === "<Waiting>") {
+            return <p>Error loading collection data</p>
+        }
         const panx: number = Document.GetNumber(KeyStore.PanX, 0);
         const pany: number = Document.GetNumber(KeyStore.PanY, 0);
         const currScale: number = Document.GetNumber(KeyStore.Scale, 1);
@@ -189,11 +196,11 @@ export class CollectionFreeFormView extends CollectionViewBase {
                     onContextMenu={(e) => e.preventDefault()}
                     onDrop={this.onDrop}
                     onDragOver={this.onDragOver}
-                    ref={this._containerRef}>
+                    ref={this.createDropTarget}>
                     <div className="collectionfreeformview" style={{ transform: `translate(${panx}px, ${pany}px) scale(${currScale}, ${currScale})`, transformOrigin: `left, top` }} ref={this._canvasRef}>
 
                         <div className="node-container" ref={this._nodeContainerRef}>
-                            {value.map(doc => {
+                            {lvalue.Data.map(doc => {
                                 return (<CollectionFreeFormDocumentView key={doc.Id} ContainingCollectionView={this} Document={doc} DocumentView={undefined} />);
                             })}
                         </div>

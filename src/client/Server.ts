@@ -1,32 +1,55 @@
-import { Field, FieldWaiting, FIELD_ID, FIELD_WAITING, FieldValue } from "../fields/Field"
+import { Field, FieldWaiting, FIELD_ID, FIELD_WAITING, FieldValue, Opt } from "../fields/Field"
 import { Key, KeyStore } from "../fields/Key"
 import { ObservableMap, action } from "mobx";
 import { Document } from "../fields/Document"
 import { SocketStub } from "./SocketStub";
 import * as OpenSocket from 'socket.io-client';
 import { Utils } from "./../Utils";
-import { MessageStore } from "./../server/Message";
+import { MessageStore, Types } from "./../server/Message";
 
 export class Server {
     private static ClientFieldsCached: ObservableMap<FIELD_ID, Field | FIELD_WAITING> = new ObservableMap();
-    static Socket: SocketIOClient.Socket = OpenSocket("http://localhost:1234")
+    static Socket: SocketIOClient.Socket = OpenSocket("http://localhost:1234");
     static GUID: string = Utils.GenerateGuid()
+
+    private static Cache: { [id: string]: Field } = {};
+
+    @action
+    static updateField(field: { _id: string, data: any, type: Types }) {
+        if (field._id in Server.Cache) {
+            const f = Server.Cache[field._id];
+            f.UpdateFromServer(field.data);
+            f.init(() => { });
+        }
+    }
 
     // Retrieves the cached value of the field and sends a request to the server for the real value (if it's not cached).
     // Call this is from within a reaction and test whether the return value is FieldWaiting.
     // 'hackTimeout' is here temporarily for simplicity when debugging things.
-    public static GetField(fieldid: FIELD_ID, callback: (field: Field) => void = (f) => { }, hackTimeout: number = -1) {
+    public static GetField(fieldid: FIELD_ID, callback: (field: Opt<Field>) => void = (f) => { }, hackTimeout: number = -1) {
         if (!this.ClientFieldsCached.get(fieldid)) {
-            this.ClientFieldsCached.set(fieldid, FieldWaiting);
+            // this.ClientFieldsCached.set(fieldid, FieldWaiting);
             //simulating a server call with a registered callback action
-            SocketStub.SEND_FIELD_REQUEST(fieldid,
-                action((field: Field) => {
-                    callback(Server.cacheField(field))
-                }));
+            SocketStub.SEND_FIELD_REQUEST(fieldid, (field) => {
+                if (field) {
+                    this.Cache[field.Id] = field;
+                }
+                callback(field)
+            });
         } else if (this.ClientFieldsCached.get(fieldid) != FieldWaiting) {
             callback(this.ClientFieldsCached.get(fieldid) as Field);
         }
         return this.ClientFieldsCached.get(fieldid);
+    }
+
+    public static GetFields(fieldIds: FIELD_ID[], callback: (fields: { [id: string]: Field }) => any) {
+        SocketStub.SEND_FIELDS_REQUEST(fieldIds, (fields) => {
+            for (let key in fields) {
+                let field = fields[key];
+                this.Cache[field.Id] = field;
+            }
+            callback(fields)
+        });
     }
 
     static times = 0; // hack for testing
@@ -46,8 +69,10 @@ export class Server {
         // })
 
         return this.GetField(doc._proxies.get(key.Id),
-            action((fieldfromserver: Field) => {
-                doc.fields.set(key, fieldfromserver);
+            action((fieldfromserver: Opt<Field>) => {
+                if (fieldfromserver) {
+                    doc.fields.set(key.Id, { key, field: fieldfromserver });
+                }
             }));
     }
 
@@ -65,9 +90,10 @@ export class Server {
 
     public static UpdateField(field: Field) {
         if (this.lock) {
-            setTimeout(this.UpdateField, 1000, field)
+            // setTimeout(this.UpdateField, 1000, field)
         }
         this.lock = true
+        // console.log("updating field " + field.Id)
         SocketStub.SEND_SET_FIELD(field, (args: any) => {
             if (this.lock) {
                 this.lock = false
@@ -92,3 +118,4 @@ export class Server {
 }
 
 Server.Socket.on(MessageStore.Foo.Message, Server.connected);
+Server.Socket.on(MessageStore.SetField.Message, Server.updateField);

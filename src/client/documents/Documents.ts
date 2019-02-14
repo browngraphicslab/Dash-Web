@@ -21,6 +21,17 @@ interface DocumentOptions {
 }
 
 export namespace Documents {
+    export function initProtos(callback: () => void) {
+        Server.GetFields([collectionProtoId, textProtoId, imageProtoId, schemaProtoId, dockProtoId], (fields) => {
+            collectionProto = fields[collectionProtoId] as Document;
+            imageProto = fields[imageProtoId] as Document;
+            textProto = fields[textProtoId] as Document;
+            dockProto = fields[dockProtoId] as Document;
+            schemaProto = fields[schemaProtoId] as Document;
+            callback()
+        });
+    }
+
     function setupOptions(doc: Document, options: DocumentOptions): void {
         if (options.x) {
             doc.SetData(KeyStore.X, options.x, NumberField);
@@ -43,9 +54,10 @@ export namespace Documents {
     }
 
     let textProto: Document;
+    const textProtoId = "textProto";
     function GetTextPrototype(): Document {
         if (!textProto) {
-            textProto = new Document();
+            textProto = new Document(textProtoId);
             textProto.Set(KeyStore.X, new NumberField(0));
             textProto.Set(KeyStore.Y, new NumberField(0));
             textProto.Set(KeyStore.Width, new NumberField(300));
@@ -64,9 +76,10 @@ export namespace Documents {
     }
 
     let schemaProto: Document;
+    const schemaProtoId = "schemaProto";
     function GetSchemaPrototype(): Document {
         if (!schemaProto) {
-            schemaProto = new Document();
+            schemaProto = new Document(schemaProtoId);
             schemaProto.Set(KeyStore.X, new NumberField(0));
             schemaProto.Set(KeyStore.Y, new NumberField(0));
             schemaProto.Set(KeyStore.Width, new NumberField(300));
@@ -86,6 +99,7 @@ export namespace Documents {
 
 
     let dockProto: Document;
+    const dockProtoId = "dockProto";
     function GetDockPrototype(): Document {
         if (!dockProto) {
             dockProto = new Document();
@@ -107,11 +121,11 @@ export namespace Documents {
     }
 
 
-    let imageProtoId: FIELD_ID;
+    let imageProto: Document;
+    const imageProtoId = "imageProto";
     function GetImagePrototype(): Document {
-        if (imageProtoId === undefined) {
-            let imageProto = new Document();
-            imageProtoId = imageProto.Id;
+        if (!imageProto) {
+            imageProto = new Document(imageProtoId);
             imageProto.Set(KeyStore.Title, new TextField("IMAGE PROTO"));
             imageProto.Set(KeyStore.X, new NumberField(0));
             imageProto.Set(KeyStore.Y, new NumberField(0));
@@ -120,26 +134,23 @@ export namespace Documents {
             imageProto.Set(KeyStore.Layout, new TextField(ImageBox.LayoutString()));
             // imageProto.SetField(KeyStore.Layout, new TextField('<div style={"background-image: " + {Data}} />'));
             imageProto.Set(KeyStore.LayoutKeys, new ListField([KeyStore.Data]));
-            // Server.AddDocument(imageProto);
             return imageProto;
         }
-        return new Document();
-        // return Server.GetField(imageProtoId) as Document;
+        return imageProto;
     }
 
     export function ImageDocument(url: string, options: DocumentOptions = {}): Document {
         let doc = GetImagePrototype().MakeDelegate();
         setupOptions(doc, options);
         doc.Set(KeyStore.Data, new ImageField(new URL(url)));
-        // Server.AddDocument(doc);
-        // var sdoc = Server.GetField(doc.Id) as Document;
         return doc;
     }
 
     let collectionProto: Document;
-    function GetCollectionPrototype(isMainDoc: boolean): Document {
+    const collectionProtoId = "collectionProto";
+    function GetCollectionPrototype(): Document {
         if (!collectionProto) {
-            collectionProto = new Document(isMainDoc ? "dash" : undefined);
+            collectionProto = new Document(collectionProtoId);
             collectionProto.Set(KeyStore.X, new NumberField(0));
             collectionProto.Set(KeyStore.Y, new NumberField(0));
             collectionProto.Set(KeyStore.Scale, new NumberField(1));
@@ -153,8 +164,8 @@ export namespace Documents {
         return collectionProto;
     }
 
-    export function CollectionDocument(documents: Array<Document>, options: DocumentOptions = {}, isMainDoc: boolean = false): Document {
-        let doc = GetCollectionPrototype(isMainDoc).MakeDelegate();
+    export function CollectionDocument(documents: Array<Document>, options: DocumentOptions = {}, id?: string): Document {
+        let doc = GetCollectionPrototype().MakeDelegate(id);
         setupOptions(doc, options);
         doc.Set(KeyStore.Data, new ListField(documents));
         return doc;

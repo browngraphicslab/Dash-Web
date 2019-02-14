@@ -3,8 +3,8 @@ import { Types } from "../server/Message";
 import { FIELD_ID } from "./Field";
 
 export class NumberField extends BasicField<number> {
-    constructor(data: number = 0, id: FIELD_ID = undefined) {
-        super(data, id);
+    constructor(data: number = 0, id: FIELD_ID = undefined, save: boolean = true) {
+        super(data, save, id);
     }
 
     ToScriptString(): string {

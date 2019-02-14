@@ -12,7 +12,9 @@ export class Database {
     public update(id: string, value: any) {
         this.MongoClient.connect(this.url, { bufferMaxEntries: 1 }, (err, db) => {
             let collection = db.db().collection('documents');
-            collection.update({ _id: id }, { $set: value });
+            collection.update({ _id: id }, { $set: value }, {
+                upsert: true
+            });
             db.close();
         });
     }
@@ -34,15 +36,12 @@ export class Database {
 
     public insert(kvpairs: any) {
         this.MongoClient.connect(this.url, { bufferMaxEntries: 1 }, (err, db) => {
-            // console.log(kvpairs)
             let collection = db.db().collection('documents');
             collection.insertOne(kvpairs, (err: any, res: any) => {
                 if (err) {
                     // console.log(err)
                     return
                 }
-                // console.log(kvpairs)
-                // console.log("1 document inserted")
             });
             db.close();
         });
@@ -64,6 +63,24 @@ export class Database {
                     fn(undefined)
                 }
                 fn(result)
+            })
+            db.close();
+        });
+    }
+
+    public getDocuments(ids: string[], fn: (res: any) => void) {
+        var result: JSON;
+        this.MongoClient.connect(this.url, {
+            bufferMaxEntries: 1
+        }, (err, db) => {
+            if (err) {
+                console.log(err)
+                return undefined
+            }
+            let collection = db.db().collection('documents');
+            let cursor = collection.find({ _id: { "$in": ids } })
+            cursor.toArray((err, docs) => {
+                fn(docs);
             })
             db.close();
         });

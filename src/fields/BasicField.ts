@@ -3,11 +3,19 @@ import { observable, computed, action } from "mobx";
 import { Server } from "../client/Server";
 
 export abstract class BasicField<T> extends Field {
-    constructor(data: T, id: FIELD_ID = undefined) {
+    constructor(data: T, save: boolean, id: FIELD_ID = undefined) {
         super(id);
 
         this.data = data;
-        Server.UpdateField(this)
+        if (save) {
+            Server.UpdateField(this)
+        }
+    }
+
+    UpdateFromServer(data: any) {
+        if (this.data !== data) {
+            this.data = data;
+        }
     }
 
     @observable
