@@ -47,5 +47,15 @@
             "internalConsoleOptions": "openOnSessionStart",
             "protocol": "inspector"
         },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Launch via NPM",
+            "runtimeExecutable": "npm",
+            "runtimeArgs": [
+                "start"
+            ],
+            "port": 9229
+        }
     ]
 }

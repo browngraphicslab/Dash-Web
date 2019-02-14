@@ -4,6 +4,7 @@ import * as webpack from 'webpack'
 import * as wdm from 'webpack-dev-middleware';
 import * as whm from 'webpack-hot-middleware';
 import * as path from 'path'
+import * as passport from 'passport';
 import { MessageStore, Message, SetFieldArgs, GetFieldArgs, Transferable } from "./Message";
 import { Client } from './Client';
 import { Socket } from 'socket.io';
@@ -15,10 +16,56 @@ import { ServerUtils } from './ServerUtil';
 import { ObjectID } from 'mongodb';
 import { Document } from '../fields/Document';
 import * as io from 'socket.io'
-const config = require('../../webpack.config')
-const compiler = webpack(config)
+import * as passportConfig from './authentication/config/passport';
+import { getLogin, postLogin, getSignup, postSignup } from './authentication/controllers/user';
+const config = require('../../webpack.config');
+const compiler = webpack(config);
 const port = 1050; // default port to listen
 const serverPort = 1234;
+import * as expressValidator from 'express-validator';
+import expressFlash = require('express-flash');
+import * as bodyParser from 'body-parser';
+import * as session from 'express-session';
+import c = require("crypto");
+const MongoStore = require('connect-mongo')(session);
+const mongoose = require('mongoose');
+const bluebird = require('bluebird');
+
+const mongoUrl = 'mongodb://localhost:27017/Dash';
+// mongoose.Promise = bluebird;
+mongoose.connect(mongoUrl)//.then(
+// () => { /** ready to use. The `mongoose.connect()` promise resolves to undefined. */ },
+// ).catch((err: any) => {
+// console.log("MongoDB connection error. Please make sure MongoDB is running. " + err);
+// process.exit();
+// });
+mongoose.connection.on('connected', function () {
+    console.log("connected");
+})
+
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(expressValidator());
+app.use(expressFlash());
+app.use(require('express-session')({
+    secret: `${c.randomBytes(64)}`,
+    resave: true,
+    saveUninitialized: true,
+    store: new MongoStore({
+        url: 'mongodb://localhost:27017/Dash'
+    })
+}));
+app.use(passport.initialize());
+app.use(passport.session());
+app.use((req, res, next) => {
+    res.locals.user = req.user;
+    next();
+});
+
+app.get("/signup", getSignup);
+app.post("/signup", postSignup);
+app.get("/login", getLogin);
+app.post("/login", postLogin);
 
 let FieldStore: ObservableMap<FIELD_ID, Field> = new ObservableMap();
 
@@ -71,7 +118,7 @@ function deleteAll() {
 
 function barReceived(guid: String) {
     clients[guid.toString()] = new Client(guid.toString());
-    Database.Instance.print()
+    // Database.Instance.print()
 }
 
 function addDocument(document: Document) {

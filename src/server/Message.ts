@@ -1,6 +1,5 @@
 import { Utils } from "../Utils";
 import { FIELD_ID, Field } from "../fields/Field";
-import { ObjectId } from "bson";
 
 export class Message<T> {
     private name: string;
