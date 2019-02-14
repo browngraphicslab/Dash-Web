@@ -94,7 +94,7 @@ export class CollectionFreeFormDocumentView extends React.Component<DocumentView
 
 
     getTransform = (): Transform => {
-        return this.props.GetTransform().translated(this.x, this.y);
+        return new Transform(-this.x, -this.y, 1).transform(this.props.GetTransform());
     }
 
     render() {
