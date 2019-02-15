@@ -6,22 +6,13 @@ import { SocketStub } from "./SocketStub";
 import * as OpenSocket from 'socket.io-client';
 import { Utils } from "./../Utils";
 import { MessageStore, Types } from "./../server/Message";
+import { ListField } from "../fields/ListField";
 
 export class Server {
-    private static ClientFieldsCached: ObservableMap<FIELD_ID, Field | FIELD_WAITING> = new ObservableMap();
+    public static ClientFieldsCached: ObservableMap<FIELD_ID, Field | FIELD_WAITING> = new ObservableMap();
     static Socket: SocketIOClient.Socket = OpenSocket("http://localhost:1234");
     static GUID: string = Utils.GenerateGuid()
 
-    private static Cache: { [id: string]: Field } = {};
-
-    @action
-    static updateField(field: { _id: string, data: any, type: Types }) {
-        if (field._id in Server.Cache) {
-            const f = Server.Cache[field._id];
-            f.UpdateFromServer(field.data);
-            f.init(() => { });
-        }
-    }
 
     // Retrieves the cached value of the field and sends a request to the server for the real value (if it's not cached).
     // Call this is from within a reaction and test whether the return value is FieldWaiting.
@@ -29,18 +20,23 @@ export class Server {
     public static GetField(fieldid: FIELD_ID, callback: (field: Opt<Field>) => void = (f) => { }, doc: Document, key: Key, hackTimeout: number = -1) {
         if (!this.ClientFieldsCached.get(fieldid)) {
             var ft = this.times++;
-            var title = (doc._proxies.has(KeyStore.Title.Id) ? "???" : doc.Title) + "(" + doc.Id + ")";
-            var mesg = "-----> field(" + ft + ") " + title + " " + key.Name;
+            var title = (!doc.fields.has(KeyStore.Title.Id) ? "???" : doc.Title) + "(" + doc.Id + ")";
+            var mesg = "   Query> field(" + ft + ") " + title + " " + key.Name;
             console.log(mesg);
             this.ClientFieldsCached.set(fieldid, FieldWaiting);
             //simulating a server call with a registered callback action
-            SocketStub.SEND_FIELD_REQUEST(fieldid, (field) => {
-                if (field) {
-                    this.Cache[field.Id] = field;
+            SocketStub.SEND_FIELD_REQUEST(fieldid, action((field: Field | undefined) => {
+                console.log("   Reply> field(" + ft + ") " + title + " " + key.Name + " = " + (field ? field.GetValue() : "<undefined>"));
+
+                if (this.ClientFieldsCached.has(fieldid) && this.ClientFieldsCached.get(fieldid) != FieldWaiting)
+                    callback(this.ClientFieldsCached.get(fieldid) as Field);
+                else {
+                    if (field) {
+                        this.ClientFieldsCached.set(fieldid, field);
+                    }
+                    callback(field)
                 }
-                console.log("  <=== field(" + ft + ") " + title + " " + key.Name);
-                callback(field)
-            });
+            }));
         } else if (this.ClientFieldsCached.get(fieldid) != FieldWaiting) {
             callback(this.ClientFieldsCached.get(fieldid) as Field);
         }
@@ -51,7 +47,6 @@ export class Server {
         SocketStub.SEND_FIELDS_REQUEST(fieldIds, (fields) => {
             for (let key in fields) {
                 let field = fields[key];
-                this.Cache[field.Id] = field;
             }
             callback(fields)
         });
@@ -93,13 +88,37 @@ export class Server {
 
     private static lock: boolean = false;
 
+    static printfield(field: Field) {
+        if (field instanceof Key) {
+            return field.Name;
+        }
+        else if (field instanceof Document) {
+            var title = (field._proxies.has(KeyStore.Title.Id) ? field.Title : "???")
+            return title;
+        } else if (field instanceof ListField) {
+            var str = "[";
+            (field as ListField<Field>).Data.map(d => str += this.printfield(d));
+            str += "]";
+            return str;
+        }
+        return field.GetValue()
+    }
+
     public static UpdateField(field: Field) {
         if (this.lock) {
             // setTimeout(this.UpdateField, 1000, field)
         }
         this.lock = true
-        var title = field instanceof Document ? (((field as Document)._proxies.has(KeyStore.Title.Id) ? "doc:" : (field as Document).Title) + "(" + (field as Document).Id + ")") : field.GetValue();
-        console.log("updating field " + title)
+        var type = "field"
+        if (field instanceof Key) {
+            type = "Key";
+        }
+        else if (field instanceof Document) {
+            type = "Doc";
+        } else if (field instanceof ListField) {
+            type = "List"
+        }
+        console.log("Set: " + type + "(" + field.Id + ") =" + this.printfield(field));
         SocketStub.SEND_SET_FIELD(field, (args: any) => {
             if (this.lock) {
                 this.lock = false
@@ -120,6 +139,18 @@ export class Server {
             // probably should overwrite the values within any field that was already here...
         }
         return this.ClientFieldsCached.get(clientField.Id) as Field;
+    }
+
+    @action
+    static updateField(field: { _id: string, data: any, type: Types }) {
+        if (Server.ClientFieldsCached.has(field._id)) {
+            var f = Server.ClientFieldsCached.get(field._id);
+            if (f && f != FieldWaiting) {
+                console.log("Update from server:" + Server.printfield(f));
+                f.UpdateFromServer(field.data);
+                f.init(() => { });
+            }
+        }
     }
 }
 

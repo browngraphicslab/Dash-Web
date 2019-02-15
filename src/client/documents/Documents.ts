@@ -33,19 +33,19 @@ export namespace Documents {
     }
 
     function setupOptions(doc: Document, options: DocumentOptions): void {
-        if (options.x) {
+        if (options.x != undefined) {
             doc.SetData(KeyStore.X, options.x, NumberField);
         }
-        if (options.y) {
+        if (options.y != undefined) {
             doc.SetData(KeyStore.Y, options.y, NumberField);
         }
-        if (options.width) {
+        if (options.width != undefined) {
             doc.SetData(KeyStore.Width, options.width, NumberField);
         }
-        if (options.height) {
+        if (options.height != undefined) {
             doc.SetData(KeyStore.Height, options.height, NumberField);
         }
-        if (options.title) {
+        if (options.title != undefined) {
             doc.SetData(KeyStore.Title, options.title, TextField);
         }
         doc.SetData(KeyStore.Scale, 1, NumberField);

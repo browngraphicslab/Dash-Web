@@ -27,10 +27,9 @@ export abstract class BasicField<T> extends Field {
     }
 
     set Data(value: T) {
-        if (this.data === value) {
-            return;
+        if (this.data != value) {
+            this.data = value;
         }
-        this.data = value;
         Server.UpdateField(this);
     }
 

@@ -67,6 +67,7 @@ Documents.initProtos(() => {
         console.log("RESPONSE: " + res)
         let mainContainer: Document;
         if (res) {
+            var lid = KeyStore.Layout.Id;
             let obj = ServerUtils.FromJson(res) as Document
             mainContainer = obj
         }
@@ -75,6 +76,7 @@ Documents.initProtos(() => {
             let doc4 = Documents.CollectionDocument(docset, {
                 x: 0, y: 400, title: "mini collection"
             }, mainDocId);
+            var lid = KeyStore.Layout.Id;
             mainContainer = doc4;
             let args = new DocumentTransfer(mainContainer.ToJson())
             Utils.Emit(Server.Socket, MessageStore.AddDocument, args)

@@ -43,17 +43,14 @@ export class ListField<T extends Field> extends BasicField<T[]> {
     }
 
     init(callback: (field: Field) => any) {
-        console.log("requesting list fields " + this._proxies.length)
         Server.GetFields(this._proxies, action((fields: { [index: string]: Field }) => {
             if (!this.arraysEqual(this._proxies, this.Data.map(field => field.Id))) {
-                console.log("Got new fields " + this.Data.length)
                 this.Data = this._proxies.map(id => fields[id] as T)
                 observe(this.Data, () => {
                     this.updateProxies()
                     Server.UpdateField(this);
                 })
             }
-            console.log("received fields " + this.Data)
             callback(this);
         }))
     }

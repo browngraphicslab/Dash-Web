@@ -58,6 +58,8 @@ export class Document extends Field {
                     break;
                 }
             }
+            if (doc == FieldWaiting)
+                field = FieldWaiting;
         }
 
         return field;
@@ -101,6 +103,7 @@ export class Document extends Field {
 
     @action
     Set(key: Key, field: Field | undefined): void {
+        console.log("Assign: " + key.Name + " = " + (field ? field.GetValue() : "<undefined>") + " (" + (field ? field.Id : "<undefined>") + ")");
         if (field) {
             this.fields.set(key.Id, { key, field });
             this._proxies.set(key.Id, field.Id)

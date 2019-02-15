@@ -204,14 +204,13 @@ export class CollectionFreeFormDocumentView extends DocumentView {
     }
 
     render() {
-        var freestyling = this.props.ContainingCollectionView instanceof CollectionFreeFormView;
         return (
             <div className="node" ref={this._mainCont} style={{
-                transform: freestyling ? this.transform : "",
-                width: freestyling ? this.width : "100%",
-                height: freestyling ? this.height : "100%",
-                position: freestyling ? "absolute" : "relative",
-                zIndex: freestyling ? this.zIndex : 0,
+                transform: this.transform,
+                width: this.width,
+                height: this.height,
+                position: "absolute",
+                zIndex: this.zIndex,
             }}
                 onContextMenu={this.onContextMenu}
                 onPointerDown={this.onPointerDown}>
