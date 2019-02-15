@@ -73,11 +73,7 @@ Documents.initProtos(() => {
         }
         else {
             const docset: Document[] = [];
-            let doc4 = Documents.CollectionDocument(docset, {
-                x: 0, y: 400, title: "mini collection"
-            }, mainDocId);
-            var lid = KeyStore.Layout.Id;
-            mainContainer = doc4;
+            mainContainer = Documents.CollectionDocument(docset, { x: 0, y: 400, title: "mini collection" }, mainDocId);
             let args = new DocumentTransfer(mainContainer.ToJson())
             Utils.Emit(Server.Socket, MessageStore.AddDocument, args)
         }
