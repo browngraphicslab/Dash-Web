@@ -26,14 +26,19 @@ export class Server {
     // Retrieves the cached value of the field and sends a request to the server for the real value (if it's not cached).
     // Call this is from within a reaction and test whether the return value is FieldWaiting.
     // 'hackTimeout' is here temporarily for simplicity when debugging things.
-    public static GetField(fieldid: FIELD_ID, callback: (field: Opt<Field>) => void = (f) => { }, hackTimeout: number = -1) {
+    public static GetField(fieldid: FIELD_ID, callback: (field: Opt<Field>) => void = (f) => { }, doc: Document, key: Key, hackTimeout: number = -1) {
         if (!this.ClientFieldsCached.get(fieldid)) {
-            // this.ClientFieldsCached.set(fieldid, FieldWaiting);
+            var ft = this.times++;
+            var title = (doc._proxies.has(KeyStore.Title.Id) ? "???" : doc.Title) + "(" + doc.Id + ")";
+            var mesg = "-----> field(" + ft + ") " + title + " " + key.Name;
+            console.log(mesg);
+            this.ClientFieldsCached.set(fieldid, FieldWaiting);
             //simulating a server call with a registered callback action
             SocketStub.SEND_FIELD_REQUEST(fieldid, (field) => {
                 if (field) {
                     this.Cache[field.Id] = field;
                 }
+                console.log("  <=== field(" + ft + ") " + title + " " + key.Name);
                 callback(field)
             });
         } else if (this.ClientFieldsCached.get(fieldid) != FieldWaiting) {
@@ -67,19 +72,19 @@ export class Server {
         //         console.log("how did you get a key that isnt a key wtf")
         //     }
         // })
-
         return this.GetField(doc._proxies.get(key.Id),
             action((fieldfromserver: Opt<Field>) => {
                 if (fieldfromserver) {
                     doc.fields.set(key.Id, { key, field: fieldfromserver });
                 }
-            }));
+            }), doc, key);
     }
 
     public static AddDocument(document: Document) {
         SocketStub.SEND_ADD_DOCUMENT(document);
     }
     public static AddDocumentField(doc: Document, key: Key, value: Field) {
+        console.log("Add doc field " + doc.Title + " " + key.Name + " fid " + value.Id + " " + value);
         SocketStub.SEND_ADD_DOCUMENT_FIELD(doc, key, value);
     }
     public static DeleteDocumentField(doc: Document, key: Key) {
@@ -93,7 +98,8 @@ export class Server {
             // setTimeout(this.UpdateField, 1000, field)
         }
         this.lock = true
-        // console.log("updating field " + field.Id)
+        var title = field instanceof Document ? (((field as Document)._proxies.has(KeyStore.Title.Id) ? "doc:" : (field as Document).Title) + "(" + (field as Document).Id + ")") : field.GetValue();
+        console.log("updating field " + title)
         SocketStub.SEND_SET_FIELD(field, (args: any) => {
             if (this.lock) {
                 this.lock = false

@@ -30,6 +30,7 @@ export class SocketStub {
         // this.FieldStore.set(document.Id, new Document(document.Id));
         // document.fields.forEach((f, key) => (this.FieldStore.get(document.Id) as Document)._proxies.set(key.Id, (f as Field).Id));
 
+        console.log("sending " + document.Title);
         Utils.Emit(Server.Socket, MessageStore.AddDocument, new DocumentTransfer(document.ToJson()))
     }
 

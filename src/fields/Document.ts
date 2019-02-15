@@ -4,10 +4,8 @@ import { NumberField } from "./NumberField";
 import { ObservableMap, computed, action, observable } from "mobx";
 import { TextField } from "./TextField";
 import { ListField } from "./ListField";
-import { findDOMNode } from "react-dom";
 import { Server } from "../client/Server";
 import { Types } from "../server/Message";
-import { ObjectID } from "bson";
 
 export class Document extends Field {
     public fields: ObservableMap<string, { key: Key, field: Opt<Field> }> = new ObservableMap();
@@ -17,6 +15,8 @@ export class Document extends Field {
         super(id)
 
         if (save) {
+            var title = (this._proxies.has(KeyStore.Title.Id) ? "???" : this.Title) + "(" + this.Id + ")";
+            console.log("Save " + title);
             Server.UpdateField(this)
         }
     }
@@ -169,7 +169,9 @@ export class Document extends Field {
         throw new Error("Method not implemented.");
     }
     GetValue() {
-        throw new Error("Method not implemented.");
+        var title = (this._proxies.has(KeyStore.Title.Id) ? "???" : this.Title) + "(" + this.Id + ")";
+        return title;
+        //throw new Error("Method not implemented.");
     }
     Copy(): Field {
         throw new Error("Method not implemented.");
