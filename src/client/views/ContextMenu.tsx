@@ -59,10 +59,27 @@ export class ContextMenu extends React.Component {
     render() {
         return (
             <div className="contextMenu-cont" style={{ left: this._pageX, top: this._pageY, display: this._display }} ref={this.ref}>
+                <input className="contextMenu-item" type="text" id="mySearch" placeholder="Search . . ." onKeyUp={this.search}></input>
                 {this._items.map(prop => {
                     return <ContextMenuItem {...prop} key={prop.description} />
                 })}
             </div>
         )
+    }
+
+    search() {
+        let input = document.getElementById("mySearch");
+        let filter = (input as HTMLSelectElement).value.toUpperCase();
+        let li = document.getElementById("options");
+        let a = (li as HTMLSelectElement).getElementsByTagName("div");
+        for (let i = 0; i < a.length; i++) {
+            let txtValue = a[i].textContent || a[i].innerText;
+            if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                a[i].style.display = "";
+            }
+            else {
+                a[i].style.display = "none";
+            }
+        }
     }
 }

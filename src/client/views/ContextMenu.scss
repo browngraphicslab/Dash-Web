@@ -3,6 +3,7 @@
     display: flex;
     z-index: 1000;
     box-shadow: #AAAAAA .2vw .2vw .4vw;
+    flex-direction: column; //E
 }
 
 .contextMenu-item {
@@ -32,3 +33,7 @@
     text-align: left;
     width: 8vw;
 }
+
+// #mySearch {
+//     font-size: 1.5vw;
+// }
