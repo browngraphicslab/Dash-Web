@@ -13,6 +13,8 @@ import { ListField } from "../../../fields/ListField";
 import { NumberField } from "../../../fields/NumberField";
 import { Documents } from "../../documents/Documents";
 import { FieldWaiting } from "../../../fields/Field";
+import { Server } from "tls";
+var FontAwesomeIcon = require('react-fontawesome');
 
 @observer
 export class CollectionFreeFormView extends CollectionViewBase {
@@ -24,6 +26,8 @@ export class CollectionFreeFormView extends CollectionViewBase {
     private _lastY: number = 0;
     private _downX: number = 0;
     private _downY: number = 0;
+    //determines whether the blinking cursor for indicating whether a text will be made on key down is visible
+    private _previewCursorVisible: boolean = false;
 
     constructor(props: CollectionViewProps) {
         super(props);
@@ -81,10 +85,19 @@ export class CollectionFreeFormView extends CollectionViewBase {
             !e.defaultPrevented) {
             document.removeEventListener("pointermove", this.onPointerMove);
             document.addEventListener("pointermove", this.onPointerMove);
+            //document.removeEventListener("keypress", this.onKeyDown);
+            //document.addEventListener("keydown", this.onKeyDown);
             document.removeEventListener("pointerup", this.onPointerUp);
             document.addEventListener("pointerup", this.onPointerUp);
-            this._downX = this._lastX = e.pageX;
-            this._downY = this._lastY = e.pageY;
+            this._lastX = e.pageX;
+            this._lastY = e.pageY;
+            this._downX = e.pageX;
+            this._downY = e.pageY;
+            //update downX/downY to update UI (used for preview text cursor)
+            this.setState({
+                DownX: e.pageX,
+                DownY: e.pageY,
+            })
         }
     }
 
@@ -94,10 +107,12 @@ export class CollectionFreeFormView extends CollectionViewBase {
         document.removeEventListener("pointerup", this.onPointerUp);
         e.stopPropagation();
         if (Math.abs(this._downX - e.clientX) < 3 && Math.abs(this._downY - e.clientY) < 3) {
+            this._previewCursorVisible = true;
             if (!SelectionManager.IsSelected(this.props.ContainingDocumentView as CollectionFreeFormDocumentView)) {
                 SelectionManager.SelectDoc(this.props.ContainingDocumentView as CollectionFreeFormDocumentView, false);
             }
         }
+
     }
 
     @action
@@ -110,6 +125,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
             let y = this.props.DocumentForCollection.GetNumber(KeyStore.PanY, 0);
 
             this.SetPan(x + (e.pageX - this._lastX) / currScale, y + (e.pageY - this._lastY) / currScale);
+            console.log("SET PAN");
         }
         this._lastX = e.pageX;
         this._lastY = e.pageY;
@@ -174,6 +190,20 @@ export class CollectionFreeFormView extends CollectionViewBase {
     }
 
     @action
+    onKeyDown = (e: React.KeyboardEvent<Element>) => {
+        console.log("KEY PRESSED");
+        //if not these keys, make a textbox if preview cursor is active!
+        if (!e.ctrlKey && !e.altKey && !e.shiftKey) {
+            if (this._previewCursorVisible) {
+                //make textbox
+                let { LocalX, Ss, Panxx, Xx, LocalY, Panyy, Yy, ContainerX, ContainerY } = this.props.ContainingDocumentView!.TransformToLocalPoint(this._downX, this._downY);
+                let newBox = Documents.TextDocument({ width: 200, height: 100, x: LocalX, y: LocalY, title: "new" });
+                this.addDocument(newBox);
+            }
+        }
+    }
+
+    @action
     bringToFront(doc: CollectionFreeFormDocumentView) {
         const { CollectionFieldKey: fieldKey, DocumentForCollection: Document } = this.props;
 
@@ -197,21 +227,36 @@ export class CollectionFreeFormView extends CollectionViewBase {
         const panx: number = Document.GetNumber(KeyStore.PanX, 0);
         const pany: number = Document.GetNumber(KeyStore.PanY, 0);
 
+        let cursor = null;
+        //toggle for preview cursor -> will be on when user taps freeform
+        if (this._previewCursorVisible) {
+            //get local position and place cursor there!
+            let { LocalX, Ss, Panxx, Xx, LocalY, Panyy, Yy, ContainerX, ContainerY } = this.props.ContainingDocumentView!.TransformToLocalPoint(this._downX, this._downY);
+            cursor = <div id="prevCursor" onKeyPress={this.onKeyDown} style={{ color: "black", transform: `translate(${LocalX}px, ${LocalY}px)` }}>I</div>
+        }
+
+
+
         return (
             <div className="border" style={{
-                borderWidth: `${COLLECTION_BORDER_WIDTH}px`,
+                borderWidth: `${COLLECTION_BORDER_WIDTH} px`,
             }}>
-                <div className="collectionfreeformview-container"
+                <div
+                    className="collectionfreeformview-container"
                     onPointerDown={this.onPointerDown}
                     onWheel={this.onPointerWheel}
                     onContextMenu={(e) => e.preventDefault()}
                     onDrop={this.onDrop}
                     onDragOver={this.onDragOver}
+                    onKeyPress={this.onKeyDown}
                     ref={this._containerRef}>
                     <div className="collectionfreeformview" style={{ transform: `translate(${panx}px, ${pany}px) scale(${this.zoomScaling}, ${this.zoomScaling})`, transformOrigin: `left, top` }} ref={this._canvasRef}>
+                        {this.props.BackgroundView}
+                        <div className="node-container" ref={this._nodeContainerRef} onKeyPress={this.onKeyDown}>
 
-                        <div className="node-container" ref={this._nodeContainerRef}>
-                            {this.props.BackgroundView}
+
+                            {cursor}
+
                             {value.map(doc => {
                                 return (<CollectionFreeFormDocumentView Scaling={this.resizeScaling} key={doc.Id} ContainingCollectionView={this} Document={doc} DocumentView={undefined} />);
                             })}

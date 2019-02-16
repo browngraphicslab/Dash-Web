@@ -10,6 +10,7 @@ import { ContextMenu } from "../ContextMenu";
 import "./NodeView.scss";
 import React = require("react");
 import { DocumentView, DocumentViewProps } from "./DocumentView";
+var FontAwesomeIcon = require('react-fontawesome');
 
 
 @observer
@@ -17,6 +18,7 @@ export class CollectionFreeFormDocumentView extends DocumentView {
     private _contextMenuCanOpen = false;
     private _downX: number = 0;
     private _downY: number = 0;
+    //determines whether the blinking cursor for indicating whether a text will be made on key down is visible
 
     constructor(props: DocumentViewProps) {
         super(props);
@@ -205,6 +207,7 @@ export class CollectionFreeFormDocumentView extends DocumentView {
 
     render() {
         var freestyling = this.props.ContainingCollectionView instanceof CollectionFreeFormView;
+
         return (
             <div className="node" ref={this._mainCont} style={{
                 transformOrigin: "left top",
