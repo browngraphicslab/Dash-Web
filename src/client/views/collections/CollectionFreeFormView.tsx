@@ -7,7 +7,7 @@ import "./CollectionFreeFormView.scss";
 import { Utils } from "../../../Utils";
 import { CollectionViewBase, CollectionViewProps, COLLECTION_BORDER_WIDTH } from "./CollectionViewBase";
 import { SelectionManager } from "../../util/SelectionManager";
-import { Key, KeyStore } from "../../../fields/Key";
+import { KeyStore } from "../../../fields/KeyStore";
 import { Document } from "../../../fields/Document";
 import { ListField } from "../../../fields/ListField";
 import { NumberField } from "../../../fields/NumberField";

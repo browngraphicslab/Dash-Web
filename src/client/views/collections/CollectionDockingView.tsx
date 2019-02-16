@@ -1,5 +1,5 @@
 import { observer } from "mobx-react";
-import { KeyStore } from "../../../fields/Key";
+import { KeyStore } from "../../../fields/KeyStore";
 import React = require("react");
 import FlexLayout from "flexlayout-react";
 import { action, observable, computed } from "mobx";

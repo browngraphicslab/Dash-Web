@@ -30,6 +30,7 @@ import c = require("crypto");
 const MongoStore = require('connect-mongo')(session);
 const mongoose = require('mongoose');
 const bluebird = require('bluebird');
+import { performance } from 'perf_hooks'
 
 const mongoUrl = 'mongodb://localhost:27017/Dash';
 // mongoose.Promise = bluebird;

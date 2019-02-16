@@ -11,7 +11,7 @@ import { CollectionViewBase } from "./CollectionViewBase";
 import { DocumentView } from "../nodes/DocumentView";
 import { EditableView } from "../EditableView";
 import { CompileScript, ToField } from "../../util/Scripting";
-import { KeyStore as KS, Key } from "../../../fields/Key";
+import { KeyStore as KS } from "../../../fields/KeyStore";
 import { Document } from "../../../fields/Document";
 import { Field } from "../../../fields/Field";
 

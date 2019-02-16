@@ -5,7 +5,7 @@ import * as ReactDOM from 'react-dom';
 import { DocumentDecorations } from './DocumentDecorations';
 import { Documents } from '../documents/Documents';
 import { Document } from '../../fields/Document';
-import { KeyStore, KeyStore as KS } from '../../fields/Key';
+import { KeyStore } from '../../fields/KeyStore';
 import { ListField } from '../../fields/ListField';
 import { NumberField } from '../../fields/NumberField';
 import { TextField } from '../../fields/TextField';

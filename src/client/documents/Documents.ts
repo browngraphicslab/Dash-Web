@@ -1,6 +1,6 @@
 import { Document } from "../../fields/Document";
 import { Server } from "../Server";
-import { KeyStore } from "../../fields/Key";
+import { KeyStore } from "../../fields/KeyStore";
 import { TextField } from "../../fields/TextField";
 import { NumberField } from "../../fields/NumberField";
 import { ListField } from "../../fields/ListField";

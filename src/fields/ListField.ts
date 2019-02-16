@@ -45,7 +45,7 @@ export class ListField<T extends Field> extends BasicField<T[]> {
     init(callback: (field: Field) => any) {
         Server.GetFields(this._proxies, action((fields: { [index: string]: Field }) => {
             if (!this.arraysEqual(this._proxies, this.Data.map(field => field.Id))) {
-                this.Data = this._proxies.map(id => fields[id] as T)
+                this.data = this._proxies.map(id => fields[id] as T)
                 observe(this.Data, () => {
                     this.updateProxies()
                     Server.UpdateField(this);

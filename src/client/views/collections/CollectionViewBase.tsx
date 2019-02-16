@@ -2,7 +2,7 @@ import { action, computed } from "mobx";
 import { observer } from "mobx-react";
 import { Document } from "../../../fields/Document";
 import { Opt } from "../../../fields/Field";
-import { Key, KeyStore } from "../../../fields/Key";
+import { Key } from "../../../fields/Key";
 import { ListField } from "../../../fields/ListField";
 import { SelectionManager } from "../../util/SelectionManager";
 import { ContextMenu } from "../ContextMenu";

@@ -19,7 +19,7 @@ export abstract class BasicField<T> extends Field {
     }
 
     @observable
-    private data: T;
+    protected data: T;
 
     @computed
     get Data(): T {

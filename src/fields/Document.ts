@@ -1,5 +1,6 @@
 import { Field, Cast, Opt, FieldWaiting, FIELD_ID, FieldValue } from "./Field"
-import { Key, KeyStore } from "./Key"
+import { Key } from "./Key"
+import { KeyStore } from "./KeyStore";
 import { NumberField } from "./NumberField";
 import { ObservableMap, computed, action, observable } from "mobx";
 import { TextField } from "./TextField";

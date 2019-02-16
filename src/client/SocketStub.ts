@@ -1,5 +1,6 @@
 import { Field, FIELD_ID, Opt } from "../fields/Field"
-import { Key, KeyStore } from "../fields/Key"
+import { Key } from "../fields/Key"
+import { KeyStore } from "../fields/KeyStore"
 import { ObservableMap, action } from "mobx";
 import { Document } from "../fields/Document"
 import { MessageStore, SetFieldArgs, GetFieldArgs, DocumentTransfer, Types } from "../server/Message";
@@ -84,12 +85,12 @@ export class SocketStub {
             document._proxies.delete(key.Id);
     }
 
-    public static SEND_SET_FIELD(field: Field, fn: (args: any) => void) {
+    public static SEND_SET_FIELD(field: Field) {
         // Send a request to set the value of a field
 
         // ...SOCKET(SET_FIELD, field id, serialized field value)
 
         // Server updates the value of the field in its fieldstore
-        Utils.EmitCallback(Server.Socket, MessageStore.SetField, field.ToJson(), fn)
+        Utils.Emit(Server.Socket, MessageStore.SetField, field.ToJson())
     }
 }
