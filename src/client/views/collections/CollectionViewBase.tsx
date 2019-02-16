@@ -10,15 +10,21 @@ import React = require("react");
 import { DocumentView } from "../nodes/DocumentView";
 import { CollectionDockingView } from "./CollectionDockingView";
 import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
+import { Transform } from "../../util/Transform";
 
 
 export interface CollectionViewProps {
     CollectionFieldKey: Key;
     DocumentForCollection: Document;
     ContainingDocumentView: Opt<DocumentView>;
+    GetTransform: () => Transform;
     BackgroundView: Opt<DocumentView>;
+<<<<<<< HEAD
     DownX: number;
     DownY: number;
+=======
+    ParentScaling: number;
+>>>>>>> 3f98d6ec6050e7faa15179871f0d9669c1188a78
 }
 
 export const COLLECTION_BORDER_WIDTH = 2;
@@ -26,8 +32,8 @@ export const COLLECTION_BORDER_WIDTH = 2;
 @observer
 export class CollectionViewBase extends React.Component<CollectionViewProps> {
 
-    public static LayoutString(collectionType: string) {
-        return `<${collectionType} DocumentForCollection={Document} CollectionFieldKey={DataKey} ContainingDocumentView={DocumentView}/>`;
+    public static LayoutString(collectionType: string, fieldKey: string = "DataKey") {
+        return `<${collectionType} ParentScaling={ParentScaling} DocumentForCollection={Document} CollectionFieldKey={${fieldKey}} ContainingDocumentView={DocumentView} BackgroundView={BackgroundView} />`;
     }
     @computed
     public get active(): boolean {
@@ -46,15 +52,18 @@ export class CollectionViewBase extends React.Component<CollectionViewProps> {
     }
 
     @action
-    removeDocument = (doc: Document): void => {
+    removeDocument = (doc: Document): boolean => {
         //TODO This won't create the field if it doesn't already exist
         const value = this.props.DocumentForCollection.GetData(this.props.CollectionFieldKey, ListField, new Array<Document>())
-        if (value.indexOf(doc) !== -1) {
-            value.splice(value.indexOf(doc), 1)
+        let index = value.indexOf(doc);
+        if (index !== -1) {
+            value.splice(index, 1)
 
             SelectionManager.DeselectAll()
             ContextMenu.Instance.clearItems()
+            return true;
         }
+        return false
     }
 
 }

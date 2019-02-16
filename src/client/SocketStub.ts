@@ -1,11 +1,11 @@
-import { Field, FIELD_ID } from "../fields/Field"
+import { Field, FieldId } from "../fields/Field"
 import { Key, KeyStore } from "../fields/Key"
 import { ObservableMap, action } from "mobx";
 import { Document } from "../fields/Document"
 
 export class SocketStub {
 
-    static FieldStore: ObservableMap<FIELD_ID, Field> = new ObservableMap();
+    static FieldStore: ObservableMap<FieldId, Field> = new ObservableMap();
     public static SEND_ADD_DOCUMENT(document: Document) {
 
         // Send a serialized version of the document to the server
@@ -19,7 +19,7 @@ export class SocketStub {
         document.fields.forEach((f, key) => (this.FieldStore.get(document.Id) as Document)._proxies.set(key, (f as Field).Id));
     }
 
-    public static SEND_FIELD_REQUEST(fieldid: FIELD_ID, callback: (field: Field) => void, timeout: number) {
+    public static SEND_FIELD_REQUEST(fieldid: FieldId, callback: (field: Field) => void, timeout: number) {
 
         if (timeout < 0)// this is a hack to make things easier to setup until we have a server... won't be neededa fter that.
             callback(this.FieldStore.get(fieldid) as Field);

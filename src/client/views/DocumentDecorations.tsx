@@ -4,6 +4,7 @@ import { SelectionManager } from "../util/SelectionManager";
 import { observer } from "mobx-react";
 import './DocumentDecorations.scss'
 import { CollectionFreeFormView } from "./collections/CollectionFreeFormView";
+import { KeyStore } from '../../fields/Key'
 
 @observer
 export class DocumentDecorations extends React.Component {
@@ -109,10 +110,12 @@ export class DocumentDecorations extends React.Component {
                 let scale = element.width / rect.width;
                 let actualdW = Math.max(element.width + (dW * scale), 20);
                 let actualdH = Math.max(element.height + (dH * scale), 20);
-                element.x += dX * (actualdW - element.width);
-                element.y += dY * (actualdH - element.height);
-                element.width = actualdW;
-                element.height = actualdH;
+                element.props.Document.SetNumber(KeyStore.X, element.props.Document.GetNumber(KeyStore.X, 0) + dX * (actualdW - element.width));
+                element.props.Document.SetNumber(KeyStore.Y, element.props.Document.GetNumber(KeyStore.Y, 0) + dY * (actualdH - element.height));
+                if (Math.abs(dW) > Math.abs(dH))
+                    element.width = actualdW;
+                else
+                    element.height = actualdH;
             }
         })
     }

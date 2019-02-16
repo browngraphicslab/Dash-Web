@@ -1,4 +1,6 @@
 .collectionfreeformview-container {
+    border-style: solid;
+    box-sizing: border-box;
     position: relative;
     top: 0;
     left: 0;
@@ -10,6 +12,7 @@
         top: 0;
         left: 0;
     }
+<<<<<<< HEAD
 }
 
 .border {
@@ -28,4 +31,6 @@
 
 #prevCursor {
     animation: blink 1s infinite;
+=======
+>>>>>>> 3f98d6ec6050e7faa15179871f0d9669c1188a78
 }
