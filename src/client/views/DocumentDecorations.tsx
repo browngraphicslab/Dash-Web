@@ -4,7 +4,7 @@ import { SelectionManager } from "../util/SelectionManager";
 import { observer } from "mobx-react";
 import './DocumentDecorations.scss'
 import { CollectionFreeFormView } from "./collections/CollectionFreeFormView";
-import { KeyStore } from "../../fields/Key";
+import { KeyStore } from '../../fields/Key'
 import { NumberField } from "../../fields/NumberField";
 
 @observer

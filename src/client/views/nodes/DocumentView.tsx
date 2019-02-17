@@ -4,8 +4,6 @@ import { Document } from "../../../fields/Document";
 import { Opt, FieldWaiting } from "../../../fields/Field";
 import { Key, KeyStore } from "../../../fields/Key";
 import { ListField } from "../../../fields/ListField";
-import { NumberField } from "../../../fields/NumberField";
-import { TextField } from "../../../fields/TextField";
 import { Utils } from "../../../Utils";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { CollectionFreeFormView } from "../collections/CollectionFreeFormView";
@@ -13,12 +11,13 @@ import { CollectionSchemaView } from "../collections/CollectionSchemaView";
 import { CollectionViewBase, COLLECTION_BORDER_WIDTH } from "../collections/CollectionViewBase";
 import { FormattedTextBox } from "../nodes/FormattedTextBox";
 import { ImageBox } from "../nodes/ImageBox";
-import "./NodeView.scss";
+import "./DocumentView.scss";
 import React = require("react");
 import { Transform } from "../../util/Transform";
 import { SelectionManager } from "../../util/SelectionManager";
 import { DragManager } from "../../util/DragManager";
 import { ContextMenu } from "../ContextMenu";
+import { TextField } from "../../../fields/TextField";
 const JsxParser = require('react-jsx-parser').default;//TODO Why does this need to be imported like this?
 
 export interface DocumentViewProps {
@@ -48,7 +47,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     }
     @computed
     get layout(): string {
-        return this.props.Document.GetData(KeyStore.Layout, TextField, String("<p>Error loading layout data</p>"));
+        return this.props.Document.GetText(KeyStore.Layout, "<p>Error loading layout data</p>");
     }
 
     @computed
@@ -218,7 +217,6 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         SelectionManager.SelectDoc(this, ctrlPressed)
     }
 
-
     render() {
         let bindings = { ...this.props } as any;
         bindings.isSelected = this.isSelected;
@@ -233,18 +231,17 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             let field = this.props.Document.Get(key);
             bindings[key.Name] = field && field != FieldWaiting ? field.GetValue() : field;
         }
-        let annotated = null;
         let backgroundLayout = this.backgroundLayout;
         if (backgroundLayout) {
-            annotated = <JsxParser
+            let backgroundView = <JsxParser
                 components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView }}
                 bindings={bindings}
                 jsx={this.backgroundLayout}
                 showWarnings={true}
                 onError={(test: any) => { console.log(test) }}
             />;
+            bindings.BackgroundView = backgroundView;
         }
-        bindings.BackgroundView = annotated;
 
         var width = this.props.Document.GetNumber(KeyStore.NativeWidth, 0);
         var strwidth = width > 0 ? width.toString() + "px" : "100%";

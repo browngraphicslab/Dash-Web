@@ -22,7 +22,7 @@ export interface CollectionViewProps {
     isTopMost: boolean;
     select: (ctrlPressed: boolean) => void;
     BackgroundView: Opt<DocumentView>;
-    Scaling: number;
+    ParentScaling: number;
 }
 
 export const COLLECTION_BORDER_WIDTH = 2;

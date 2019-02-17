@@ -45,12 +45,13 @@ document.addEventListener("pointerdown", action(function (e: PointerEvent) {
     doc2.Set(KS.X, new NumberField(150));
     doc2.Set(KS.Y, new NumberField(20));
     let doc3 = Documents.ImageDocument("https://psmag.com/.image/t_share/MTMyNzc2NzM1MDY1MjgzMDM4/shutterstock_151341212jpg.jpg", {
-        x: 450, y: 100, title: "cat 1", width: 606, height: 386, nativeWidth: 606, nativeHeight: 386
+        x: 450, y: 100, title: "dog", width: 606, height: 386, nativeWidth: 606, nativeHeight: 386
     });
     //doc3.Set(KeyStore.Data, new ImageField);
     const schemaDocs = Array.from(Array(5).keys()).map(v => Documents.ImageDocument("https://psmag.com/.image/t_share/MTMyNzc2NzM1MDY1MjgzMDM4/shutterstock_151341212jpg.jpg", {
         x: 50 + 100 * v, y: 50, width: 100, height: 100, title: "cat" + v, nativeWidth: 606, nativeHeight: 386
     }));
+    schemaDocs.push(doc3);
     schemaDocs[0].SetData(KS.Author, "Tyler", TextField);
     schemaDocs[4].SetData(KS.Author, "Bob", TextField);
     schemaDocs.push(doc2);
@@ -62,7 +63,7 @@ document.addEventListener("pointerdown", action(function (e: PointerEvent) {
     // let doc5 = Documents.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", {
     //     x: 650, y: 500, width: 600, height: 600, title: "cat 2"
     // });
-    let docset2 = [doc3, doc1, doc2];
+    let docset2 = [doc3, doc4, doc2];
     let doc6 = Documents.CollectionDocument(docset2, {
         x: 350, y: 100, width: 600, height: 600, title: "docking collection"
     });
