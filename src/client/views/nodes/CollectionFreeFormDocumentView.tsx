@@ -10,6 +10,7 @@ import { ContextMenu } from "../ContextMenu";
 import "./NodeView.scss";
 import React = require("react");
 import { DocumentView, DocumentViewProps } from "./DocumentView";
+import { Utils } from "../../../Utils";
 
 
 @observer
@@ -188,7 +189,6 @@ export class CollectionFreeFormDocumentView extends DocumentView {
         if (this.topMost) {
             ContextMenu.Instance.clearItems()
             ContextMenu.Instance.addItem({ description: "Full Screen", event: this.fullScreenClicked })
-            ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15)
         }
         else {
             // DocumentViews should stop propogation of this event
@@ -198,9 +198,15 @@ export class CollectionFreeFormDocumentView extends DocumentView {
             ContextMenu.Instance.addItem({ description: "Full Screen", event: this.fullScreenClicked })
             ContextMenu.Instance.addItem({ description: "Open Right", event: this.openRight })
             ContextMenu.Instance.addItem({ description: "Delete", event: this.deleteClicked })
-            ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15)
             SelectionManager.SelectDoc(this, e.ctrlKey);
         }
+
+        ContextMenu.Instance.addItem({
+            description: "Copy ID", event: () => {
+                Utils.CopyText(this.props.Document.Id)
+            }
+        })
+        ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15)
     }
 
     render() {

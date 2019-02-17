@@ -31,6 +31,18 @@ export class Utils {
         return { scale, translateX, translateY };
     }
 
+    public static CopyText(text: string) {
+        var textArea = document.createElement("textarea");
+        textArea.value = text;
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+
+        try { document.execCommand('copy'); } catch (err) { }
+
+        document.body.removeChild(textArea);
+    }
+
     public static Emit<T>(socket: Socket | SocketIOClient.Socket, message: Message<T>, args: T) {
         socket.emit(message.Message, args);
     }

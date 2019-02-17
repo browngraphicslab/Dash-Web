@@ -9,7 +9,7 @@ import { Server } from "../client/Server";
 import { Types } from "../server/Message";
 
 export class Document extends Field {
-    public fields: ObservableMap<string, { key: Key, field: Opt<Field> }> = new ObservableMap();
+    public fields: ObservableMap<string, { key: Key, field: Field }> = new ObservableMap();
     public _proxies: ObservableMap<string, FIELD_ID> = new ObservableMap();
 
     constructor(id?: string, save: boolean = true) {
@@ -45,17 +45,20 @@ export class Document extends Field {
         } else {
             let doc: FieldValue<Document> = this;
             while (doc && doc != FieldWaiting && field != FieldWaiting) {
-                if (!doc.fields.has(key.Id)) {
-                    if (doc._proxies.has(key.Id)) {
+                let curField = doc.fields.get(key.Id);
+                let curProxy = doc._proxies.get(key.Id);
+                if (!curField || (curProxy && curField.field.Id !== curProxy)) {
+                    if (curProxy) {
                         field = Server.GetDocumentField(doc, key);
                         break;
                     }
                     if ((doc.fields.has(KeyStore.Prototype.Id) || doc._proxies.has(KeyStore.Prototype.Id))) {
                         doc = doc.GetPrototype();
-                    } else
+                    } else {
                         break;
+                    }
                 } else {
-                    field = doc.fields.get(key.Id)!.field;
+                    field = curField.field;
                     break;
                 }
             }

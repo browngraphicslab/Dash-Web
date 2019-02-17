@@ -17,7 +17,7 @@ import { Field } from "../../../fields/Field";
 
 @observer
 export class CollectionSchemaView extends CollectionViewBase {
-    public static LayoutString() { return CollectionViewBase.LayoutString("CollectionSchemaView"); }
+    public static LayoutString() { return FieldView.LayoutString(CollectionSchemaView); }
 
     @observable
     selectedIndex = 0;
@@ -97,7 +97,7 @@ export class CollectionSchemaView extends CollectionViewBase {
     }
 
     render() {
-        const { DocumentForCollection: Document, CollectionFieldKey: fieldKey } = this.props;
+        const { doc: Document, fieldKey: fieldKey } = this.props;
         const children = Document.GetList<Document>(fieldKey, []);
         const columns = Document.GetList(KS.ColumnsKey,
             [KS.Title, KS.Data, KS.Author])

@@ -14,7 +14,7 @@ import { observable, action } from 'mobx';
 @observer
 export class ImageBox extends React.Component<FieldViewProps> {
 
-    public static LayoutString() { return FieldView.LayoutString("ImageBox"); }
+    public static LayoutString() { return FieldView.LayoutString(ImageBox) }
     private _ref: React.RefObject<HTMLDivElement>;
     private _downX: number = 0;
     private _downY: number = 0;

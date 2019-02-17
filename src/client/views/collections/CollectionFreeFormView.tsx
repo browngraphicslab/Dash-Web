@@ -5,7 +5,7 @@ import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocum
 import { DragManager } from "../../util/DragManager";
 import "./CollectionFreeFormView.scss";
 import { Utils } from "../../../Utils";
-import { CollectionViewBase, CollectionViewProps, COLLECTION_BORDER_WIDTH } from "./CollectionViewBase";
+import { CollectionViewBase, COLLECTION_BORDER_WIDTH } from "./CollectionViewBase";
 import { SelectionManager } from "../../util/SelectionManager";
 import { KeyStore } from "../../../fields/KeyStore";
 import { Document } from "../../../fields/Document";
@@ -13,18 +13,16 @@ import { ListField } from "../../../fields/ListField";
 import { NumberField } from "../../../fields/NumberField";
 import { Documents } from "../../documents/Documents";
 import { FieldWaiting } from "../../../fields/Field";
+import { FakeJsxArgs } from "../nodes/DocumentView";
+import { FieldView } from "../nodes/FieldView";
 
 @observer
 export class CollectionFreeFormView extends CollectionViewBase {
-    public static LayoutString() { return CollectionViewBase.LayoutString("CollectionFreeFormView"); }
+    public static LayoutString() { return FieldView.LayoutString(CollectionFreeFormView); }
     private _canvasRef = React.createRef<HTMLDivElement>();
     private _nodeContainerRef = React.createRef<HTMLDivElement>();
     private _lastX: number = 0;
     private _lastY: number = 0;
-
-    constructor(props: CollectionViewProps) {
-        super(props);
-    }
 
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
@@ -38,7 +36,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
             const xOffset = de.data["xOffset"] as number || 0;
             const yOffset = de.data["yOffset"] as number || 0;
             const { scale, translateX, translateY } = Utils.GetScreenTransform(this._canvasRef.current!);
-            let sscale = this.props.ContainingDocumentView!.props.Document.GetData(KeyStore.Scale, NumberField, Number(1))
+            let sscale = this.props.DocumentViewForField!.props.Document.GetData(KeyStore.Scale, NumberField, Number(1))
             const screenX = de.x - xOffset;
             const screenY = de.y - yOffset;
             const docX = (screenX - translateX) / sscale / scale;
@@ -91,11 +89,11 @@ export class CollectionFreeFormView extends CollectionViewBase {
         if (!e.cancelBubble && this.active) {
             e.preventDefault();
             e.stopPropagation();
-            let currScale: number = this.props.ContainingDocumentView!.ScalingToScreenSpace;
-            let x = this.props.DocumentForCollection.GetData(KeyStore.PanX, NumberField, Number(0));
-            let y = this.props.DocumentForCollection.GetData(KeyStore.PanY, NumberField, Number(0));
-            this.props.DocumentForCollection.SetData(KeyStore.PanX, x + (e.pageX - this._lastX) / currScale, NumberField);
-            this.props.DocumentForCollection.SetData(KeyStore.PanY, y + (e.pageY - this._lastY) / currScale, NumberField);
+            let currScale: number = this.props.DocumentViewForField!.ScalingToScreenSpace;
+            let x = this.props.doc.GetData(KeyStore.PanX, NumberField, Number(0));
+            let y = this.props.doc.GetData(KeyStore.PanY, NumberField, Number(0));
+            this.props.doc.SetData(KeyStore.PanX, x + (e.pageX - this._lastX) / currScale, NumberField);
+            this.props.doc.SetData(KeyStore.PanY, y + (e.pageY - this._lastY) / currScale, NumberField);
         }
         this._lastX = e.pageX;
         this._lastY = e.pageY;
@@ -105,7 +103,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
     onPointerWheel = (e: React.WheelEvent): void => {
         e.stopPropagation();
 
-        let { LocalX, Ss, Panxx, Xx, LocalY, Panyy, Yy, ContainerX, ContainerY } = this.props.ContainingDocumentView!.TransformToLocalPoint(e.pageX, e.pageY);
+        let { LocalX, Ss, Panxx, Xx, LocalY, Panyy, Yy, ContainerX, ContainerY } = this.props.DocumentViewForField!.TransformToLocalPoint(e.pageX, e.pageY);
 
         var deltaScale = (1 - (e.deltaY / 1000)) * Ss;
 
@@ -115,9 +113,9 @@ export class CollectionFreeFormView extends CollectionViewBase {
         let dx = ContainerX - newContainerX;
         let dy = ContainerY - newContainerY;
 
-        this.props.DocumentForCollection.Set(KeyStore.Scale, new NumberField(deltaScale));
-        this.props.DocumentForCollection.SetData(KeyStore.PanX, Panxx + dx, NumberField);
-        this.props.DocumentForCollection.SetData(KeyStore.PanY, Panyy + dy, NumberField);
+        this.props.doc.Set(KeyStore.Scale, new NumberField(deltaScale));
+        this.props.doc.SetData(KeyStore.PanX, Panxx + dx, NumberField);
+        this.props.doc.SetData(KeyStore.PanY, Panyy + dy, NumberField);
     }
 
     @action
@@ -127,8 +125,8 @@ export class CollectionFreeFormView extends CollectionViewBase {
         let fReader = new FileReader()
         let file = e.dataTransfer.items[0].getAsFile();
         let that = this;
-        const panx: number = this.props.DocumentForCollection.GetData(KeyStore.PanX, NumberField, Number(0));
-        const pany: number = this.props.DocumentForCollection.GetData(KeyStore.PanY, NumberField, Number(0));
+        const panx: number = this.props.doc.GetData(KeyStore.PanX, NumberField, Number(0));
+        const pany: number = this.props.doc.GetData(KeyStore.PanY, NumberField, Number(0));
         let x = e.pageX - panx
         let y = e.pageY - pany
 
@@ -138,11 +136,11 @@ export class CollectionFreeFormView extends CollectionViewBase {
                 let doc = Documents.ImageDocument(url, {
                     x: x, y: y
                 })
-                let docs = that.props.DocumentForCollection.GetT(KeyStore.Data, ListField);
+                let docs = that.props.doc.GetT(KeyStore.Data, ListField);
                 if (docs != FieldWaiting) {
                     if (!docs) {
                         docs = new ListField<Document>();
-                        that.props.DocumentForCollection.Set(KeyStore.Data, docs)
+                        that.props.doc.Set(KeyStore.Data, docs)
                     }
                     docs.Data.push(doc);
                 }
@@ -159,7 +157,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
     @action
     bringToFront(doc: CollectionFreeFormDocumentView) {
-        const { CollectionFieldKey: fieldKey, DocumentForCollection: Document } = this.props;
+        const { fieldKey: fieldKey, doc: Document } = this.props;
 
         const value: Document[] = Document.GetList<Document>(fieldKey, []);
         var topmost = value.reduce((topmost, d) => Math.max(d.GetNumber(KeyStore.ZIndex, 0), topmost), -1000);
@@ -176,7 +174,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
     }
 
     render() {
-        const { CollectionFieldKey: fieldKey, DocumentForCollection: Document } = this.props;
+        const { fieldKey: fieldKey, doc: Document } = this.props;
         // const value: Document[] = Document.GetList<Document>(fieldKey, []);
         const lvalue = Document.GetT<ListField<Document>>(fieldKey, ListField);
         if (!lvalue || lvalue === "<Waiting>") {

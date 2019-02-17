@@ -25,7 +25,7 @@ export interface FieldViewProps {
 
 @observer
 export class FieldView extends React.Component<FieldViewProps> {
-    public static LayoutString(fieldType: string) { return `<${fieldType} doc={Document} DocumentViewForField={DocumentView} fieldKey={DataKey} />`; }
+    public static LayoutString(fieldType: { name: string }) { return `<${fieldType.name} doc={Document} DocumentViewForField={DocumentView} fieldKey={DataKey} />`; }
     @computed
     get field(): FieldValue<Field> {
         const { doc, fieldKey } = this.props;

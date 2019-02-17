@@ -32,7 +32,7 @@ export class ServerUtils {
             case Types.Key:
                 return new Key(data, id, false)
             case Types.Image:
-                return new ImageField(data, id, false)
+                return new ImageField(new URL(data), id, false)
             case Types.List:
                 return ListField.FromJson(id, data)
             case Types.Document:

@@ -34,7 +34,7 @@ import { CollectionFreeFormDocumentView } from "./CollectionFreeFormDocumentView
 @observer
 export class FormattedTextBox extends React.Component<FieldViewProps> {
 
-    public static LayoutString() { return FieldView.LayoutString("FormattedTextBox"); }
+    public static LayoutString() { return FieldView.LayoutString(FormattedTextBox) }
     private _ref: React.RefObject<HTMLDivElement>;
     private _editorView: Opt<EditorView>;
     private _reactionDisposer: Opt<IReactionDisposer>;
