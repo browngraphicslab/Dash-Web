@@ -80,9 +80,11 @@ export namespace DragManager {
         dragElement.style.transform = `translate(${x}px, ${y}px) scale(${scaleX}, ${scaleY})`;
         dragElement.style.width = `${rect.width / scaleX}px`;
         dragElement.style.height = `${rect.height / scaleY}px`;
+        // It seems like the above code should be able to just be this:
+        // dragElement.style.transform = `translate(${x}px, ${y}px)`;
+        // dragElement.style.width = `${rect.width}px`;
+        // dragElement.style.height = `${rect.height}px`;
         dragDiv.appendChild(dragElement);
-        _lastPointerX = dragData["xOffset"] + rect.left;
-        _lastPointerY = dragData["yOffset"] + rect.top;
 
         let hideSource = false;
         if (typeof options.hideSource === "boolean") {
@@ -98,8 +100,8 @@ export namespace DragManager {
         const moveHandler = (e: PointerEvent) => {
             e.stopPropagation();
             e.preventDefault();
-            x += e.clientX - _lastPointerX; _lastPointerX = e.clientX;
-            y += e.clientY - _lastPointerY; _lastPointerY = e.clientY;
+            x += e.movementX;
+            y += e.movementY;
             dragElement.style.transform = `translate(${x}px, ${y}px) scale(${scaleX}, ${scaleY})`;
         };
         const upHandler = (e: PointerEvent) => {
