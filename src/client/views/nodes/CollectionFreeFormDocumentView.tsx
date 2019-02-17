@@ -82,7 +82,7 @@ export class CollectionFreeFormDocumentView extends React.Component<DocumentView
     render() {
         var parentScaling = this.nativeWidth > 0 ? this.width / this.nativeWidth : 1;
         return (
-            <div className="node" ref={this._mainCont} style={{
+            <div ref={this._mainCont} style={{
                 transformOrigin: "left top",
                 transform: this.transform,
                 width: this.width,

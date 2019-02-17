@@ -248,7 +248,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         var height = this.props.Document.GetNumber(KeyStore.NativeHeight, 0);
         var strheight = height > 0 ? height.toString() + "px" : "100%";
         return (
-            <div className="node" ref={this._mainCont} style={{ width: strwidth, height: strheight, transformOrigin: "left top", transform: `scale(${this.props.Scaling},${this.props.Scaling})` }}
+            <div className="documentView-node" ref={this._mainCont} style={{ width: strwidth, height: strheight, transformOrigin: "left top", transform: `scale(${this.props.Scaling},${this.props.Scaling})` }}
                 onContextMenu={this.onContextMenu}
                 onPointerDown={this.onPointerDown} >
                 <JsxParser
