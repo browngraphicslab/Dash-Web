@@ -7,7 +7,7 @@ import { SelectionManager } from "../../util/SelectionManager";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { CollectionFreeFormView } from "../collections/CollectionFreeFormView";
 import { ContextMenu } from "../ContextMenu";
-import "./NodeView.scss";
+import "./DocumentView.scss";
 import React = require("react");
 import { DocumentView, DocumentViewProps } from "./DocumentView";
 import { Transform } from "../../util/Transform";
@@ -30,27 +30,17 @@ export class CollectionFreeFormDocumentView extends DocumentView {
         return new DOMRect();
     }
 
-    @computed
-    get x(): number {
-        return this.props.Document.GetData(KeyStore.X, NumberField, Number(0));
+    public LeftCorner(): number {
+        return this.props.Document.GetNumber(KeyStore.X, 0) + super.LeftCorner();
     }
 
-    @computed
-    get y(): number {
-        return this.props.Document.GetData(KeyStore.Y, NumberField, Number(0));
-    }
-
-    set x(x: number) {
-        this.props.Document.SetData(KeyStore.X, x, NumberField)
-    }
-
-    set y(y: number) {
-        this.props.Document.SetData(KeyStore.Y, y, NumberField)
+    public TopCorner(): number {
+        return this.props.Document.GetNumber(KeyStore.Y, 0) + super.TopCorner();
     }
 
     @computed
     get transform(): string {
-        return `scale(${this.props.Scaling}, ${this.props.Scaling}) translate(${this.x}px, ${this.y}px)`;
+        return `scale(${this.props.ParentScaling}, ${this.props.ParentScaling}) translate(${this.props.Document.GetNumber(KeyStore.X, 0)}px, ${this.props.Document.GetNumber(KeyStore.Y, 0)}px)`;
     }
 
     @computed
@@ -88,7 +78,7 @@ export class CollectionFreeFormDocumentView extends DocumentView {
 
     @computed
     get zIndex(): number {
-        return this.props.Document.GetData(KeyStore.ZIndex, NumberField, Number(0));
+        return this.props.Document.GetNumber(KeyStore.ZIndex, 0);
     }
 
     set zIndex(h: number) {
@@ -221,24 +211,25 @@ export class CollectionFreeFormDocumentView extends DocumentView {
     }
 
     getTransform = (): Transform => {
-        return this.props.GetTransform().translated(this.x, this.y);
+        return this.props.GetTransform().translated(this.props.Document.GetNumber(KeyStore.X, 0), this.props.Document.GetNumber(KeyStore.Y, 0));
     }
 
     render() {
-        var freestyling = this.props.ContainingCollectionView instanceof CollectionFreeFormView;
+        var parentScaling = this.nativeWidth > 0 ? this.width / this.nativeWidth : 1;
         return (
-            <div className="node" ref={this._mainCont} style={{
-                transformOrigin: "left top",
-                transform: freestyling ? this.transform : "",
-                width: freestyling ? this.width : "100%",
-                height: freestyling ? this.height : "100%",
-                position: freestyling ? "absolute" : "relative",
-                zIndex: freestyling ? this.zIndex : 0,
-            }}
+            <div className="documentView-node" ref={this._mainCont}
                 onContextMenu={this.onContextMenu}
-                onPointerDown={this.onPointerDown}>
+                onPointerDown={this.onPointerDown}
+                style={{
+                    transformOrigin: "left top",
+                    transform: this.transform,
+                    width: this.width,
+                    height: this.height,
+                    position: "absolute",
+                    zIndex: this.zIndex,
+                }}>
 
-                <DocumentView {...this.props} Scaling={this.width / this.nativeWidth} GetTransform={this.getTransform} DocumentView={this} />
+                <DocumentView {...this.props} ref={this._renderDoc} ParentScaling={parentScaling} GetTransform={this.getTransform} DocumentView={this} />
             </div>
         );
     }
