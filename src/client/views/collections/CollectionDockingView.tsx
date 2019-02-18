@@ -229,6 +229,7 @@ export class CollectionDockingView extends CollectionViewBase {
                 .off('click') //unbind the current click handler
                 .click(function () {
                     //if (confirm('really close this?')) {
+                    console.log("closing!")
                     stack.remove();
                     //}
                 });

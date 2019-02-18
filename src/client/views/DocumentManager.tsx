@@ -93,11 +93,10 @@ export class DocumentManager {
         //if the view exists in a freeform collection
         if (docView != null) {
             //view.props.GetTransform().TranslateX
-            width = docView.props.Document.GetNumber(KeyStore.NativeWidth, 0)
-            height = docView.props.Document.GetNumber(KeyStore.NativeHeight, 0)
+            width = docView.props.Document.GetNumber(KeyStore.Width, 0)
+            height = docView.props.Document.GetNumber(KeyStore.Height, 0)
 
-
-            //base case: parent does not exist (aka is parent)
+            //base case: parent of parent does not exist
             if (docView.props.ContainingCollectionView == null) {
                 // scale = RootStore.Instance.MainNodeCollection.Scale;
                 // XView = (-node.X * scale) + (window.innerWidth / 2) - (node.Width * scale / 2);
@@ -106,22 +105,37 @@ export class DocumentManager {
                 scale = docView.props.GetTransform().Scale
                 XView = (-docView.props.GetTransform().TranslateX * scale) + (window.innerWidth / 2) - (width * scale / 2)
                 YView = (-docView.props.GetTransform().TranslateY * scale) + (window.innerHeight / 2) - (height * scale / 2)
+                //set x and y view of parent
             }
             //parent is not main, parent is centered and calls itself
             else {
+                console.log("------------------------------------------")
+                console.log(docView.props.ContainingCollectionView.props.DocumentForCollection.Title)
+                console.log("------------------------------------------")
                 console.log("parent does exist")
-                if (docView.props.ContainingCollectionView.props.BackgroundView != null) {
+                if (docView.props.ContainingCollectionView.props.DocumentForCollection != null) {
                     console.log("view of parent exists")
-                    let parentWidth = docView.props.ContainingCollectionView.props.BackgroundView.props.Document.GetNumber(KeyStore.NativeWidth, 0)
-                    let parentHeight = docView.props.ContainingCollectionView.props.BackgroundView.props.Document.GetNumber(KeyStore.NativeHeight, 0)
 
-                    scale = docView.props.ContainingCollectionView.props.BackgroundView.props.GetTransform().Scale
-                    XView = (-docView.props.GetTransform().TranslateX * scale) + (parentWidth / 2) - (width * scale / 2);
-                    YView = (-docView.props.GetTransform().TranslateY * scale) + (parentHeight / 2) - (height * scale / 2);
-                    //node.Parent.setViewportXY(XView, YView);
-                    this.setViewportXY(docView.props.ContainingCollectionView, XView, YView)
+                    let tempView = this.getDocumentView(docView.props.ContainingCollectionView.props.DocumentForCollection)
 
-                    return this.centerNode(docView.props.ContainingCollectionView.props.BackgroundView.props.Document);
+                    console.log(docView.props.ContainingCollectionView.props.DocumentForCollection.GetNumber(KeyStore.Width, 0))
+
+                    let parentWidth = docView.props.ContainingCollectionView.props.DocumentForCollection.GetNumber(KeyStore.Width, 0)
+                    let parentHeight = docView.props.ContainingCollectionView.props.DocumentForCollection.GetNumber(KeyStore.Height, 0)
+
+                    console.log("parent width: " + parentWidth + ", parent height: " + parentHeight)
+
+
+                    if (tempView != null) {
+                        console.log("View is NOT null")
+                        scale = tempView.props.GetTransform().Scale
+                        XView = (-docView.props.GetTransform().TranslateX * scale) + (parentWidth / 2) - (width * scale / 2);
+                        YView = (-docView.props.GetTransform().TranslateY * scale) + (parentHeight / 2) - (height * scale / 2);
+                        //node.Parent.setViewportXY(XView, YView);
+                        this.setViewportXY(docView.props.ContainingCollectionView, XView, YView)
+
+                        return this.centerNode(docView.props.ContainingCollectionView.props.DocumentForCollection);
+                    }
                 }
             }
         }

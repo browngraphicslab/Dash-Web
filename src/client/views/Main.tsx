@@ -64,9 +64,9 @@ let doc4 = Documents.CollectionDocument(docset, {
 //     x: 650, y: 500, width: 600, height: 600, title: "cat 2"
 // });
 let docset2 = [doc3, doc1, doc2];
-let doc6 = Documents.CollectionDocument(docset2, {
-    x: 350, y: 100, width: 600, height: 600, title: "docking collection"
-});
+// let doc6 = Documents.CollectionDocument(docset2, {
+//     x: 350, y: 100, width: 600, height: 600, title: "docking collection"
+// });
 let mainNodes = mainContainer.GetOrCreate<ListField<Document>>(KeyStore.Data, ListField);
 // mainNodes.Data.push(doc6);
 // mainNodes.Data.push(doc2);
@@ -75,7 +75,7 @@ mainNodes.Data.push(doc3);
 // mainNodes.Data.push(doc5);
 // mainNodes.Data.push(doc1);
 // mainNodes.Data.push(doc2);
-mainNodes.Data.push(doc6);
+//mainNodes.Data.push(doc6);
 //}
 //);
 

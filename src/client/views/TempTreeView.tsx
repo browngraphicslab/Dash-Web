@@ -16,8 +16,9 @@ export class TempTreeView extends React.Component<IProps>{
     onClick(doc: Document) {
         let view = DocumentManager.Instance.getDocumentView(doc);
         if (view != null) {
-            console.log(view.Id)
-            console.log(view.props.GetTransform().TranslateX)
+            //console.log(view.Id)
+            //console.log(view.props.GetTransform().TranslateX)
+            DocumentManager.Instance.centerNode(view);
 
             console.log(view.props.Document.Title)
             if (view.props.ContainingCollectionView != undefined) {
