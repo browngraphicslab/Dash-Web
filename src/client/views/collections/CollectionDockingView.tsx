@@ -98,7 +98,7 @@ export class CollectionDockingView extends CollectionViewBase {
             if (value[i].Id === component) {
                 return (<DocumentView key={value[i].Id} Document={value[i]}
                     AddDocument={this.addDocument} RemoveDocument={this.removeDocument}
-                    GetTransform={() => Transform.Identity}
+                    ScreenToLocalTransform={() => Transform.Identity}
                     isTopMost={true}
                     Scaling={1}
                     ContainingCollectionView={this} DocumentView={undefined} />);
@@ -309,9 +309,9 @@ export class RenderClass extends React.Component<DockingProps> {
                 AddDocument={this.props.CollectionDockingView.addDocument}
                 RemoveDocument={this.props.CollectionDockingView.removeDocument}
                 Scaling={this._parentScaling}
-                GetTransform={() => {
+                ScreenToLocalTransform={() => {
                     let { scale, translateX, translateY } = Utils.GetScreenTransform(this.props.HtmlElement);
-                    return this.props.CollectionDockingView.props.GetTransform().scale(scale).translate(translateX, translateY)
+                    return this.props.CollectionDockingView.props.ScreenToLocalTransform().translate(-translateX, -translateY).scale(scale)
                 }}
                 isTopMost={true}
                 ContainingCollectionView={this.props.CollectionDockingView} DocumentView={undefined} />

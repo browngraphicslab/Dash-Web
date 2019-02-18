@@ -123,7 +123,7 @@ export class CollectionSchemaView extends CollectionViewBase {
                         <div ref={measureRef}>
                             <DocumentView Document={children[this.selectedIndex]}
                                 AddDocument={this.addDocument} RemoveDocument={this.removeDocument}
-                                GetTransform={() => Transform.Identity}//TODO This should probably be an actual transform
+                                ScreenToLocalTransform={() => Transform.Identity}//TODO This should probably be an actual transform
                                 Scaling={this._parentScaling}
                                 isTopMost={false}
                                 DocumentView={undefined} ContainingCollectionView={me} />

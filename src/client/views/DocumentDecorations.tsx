@@ -27,7 +27,7 @@ export class DocumentDecorations extends React.Component {
                 !(element.props.ContainingCollectionView instanceof CollectionFreeFormView)) {
                 return bounds;
             }
-            let transform = element.props.GetTransform().inverse();
+            let transform = element.props.ScreenToLocalTransform().inverse();
             var [sptX, sptY] = transform.transformPoint(0, 0);
             // var [bptX, bptY] = transform.transformDirection(element.width, element.height);
             let doc = element.props.Document;

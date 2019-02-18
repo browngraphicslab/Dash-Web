@@ -55,9 +55,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
         const xOffset = de.data["xOffset"] as number || 0;
         const yOffset = de.data["yOffset"] as number || 0;
         //this should be able to use translate and scale methods on an Identity transform, no?
-        const transform = new Transform(0, 0, 1 / me.props.DocumentForCollection.GetNumber(KeyStore.Scale, 1)).transform(
-            new Transform(-me.props.DocumentForCollection.GetNumber(KeyStore.PanX, 0), -me.props.DocumentForCollection.GetNumber(KeyStore.PanY, 0), 1)
-        ).transform(me.props.GetTransform());
+        const transform = me.getTransform();
         const screenX = de.x - xOffset;
         const screenY = de.y - yOffset;
         const [x, y] = transform.transformPoint(screenX, screenY);
@@ -109,7 +107,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
             e.stopPropagation();
             let x = this.props.DocumentForCollection.GetNumber(KeyStore.PanX, 0);
             let y = this.props.DocumentForCollection.GetNumber(KeyStore.PanY, 0);
-            let [dx, dy] = this.props.GetTransform().transformDirection(e.clientX - this._lastX, e.clientY - this._lastY);
+            let [dx, dy] = this.props.ScreenToLocalTransform().transformDirection(e.clientX - this._lastX, e.clientY - this._lastY);
 
             this.SetPan(x + dx, y + dy);
         }
@@ -131,7 +129,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
         let [x, y] = transform.transformPoint(e.clientX, e.clientY);
 
         let localTransform = this.getLocalTransform();
-        localTransform.scaleAbout(deltaScale, x, y);
+        localTransform = localTransform.inverse().scaleAbout(deltaScale, x, y)
 
         this.props.DocumentForCollection.SetNumber(KeyStore.Scale, localTransform.Scale);
         this.SetPan(localTransform.TranslateX, localTransform.TranslateY);
@@ -213,13 +211,12 @@ export class CollectionFreeFormView extends CollectionViewBase {
     }
 
     getTransform = (): Transform => {
-        const [x, y] = this.translate;
-        return this.getLocalTransform().inverse().translate(-COLLECTION_BORDER_WIDTH, -COLLECTION_BORDER_WIDTH).transform(this.props.GetTransform())
+        return this.props.ScreenToLocalTransform().translate(-COLLECTION_BORDER_WIDTH, -COLLECTION_BORDER_WIDTH).transform(this.getLocalTransform())
     }
 
     getLocalTransform = (): Transform => {
         const [x, y] = this.translate;
-        return Transform.Identity.scale(this.scale).translate(x, y);
+        return Transform.Identity.translate(-x, -y).scale(1 / this.scale);
     }
 
     render() {
@@ -249,7 +246,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
                         return (<CollectionFreeFormDocumentView key={doc.Id} Document={doc}
                             AddDocument={this.addDocument}
                             RemoveDocument={this.removeDocument}
-                            GetTransform={this.getTransform}
+                            ScreenToLocalTransform={this.getTransform}
                             isTopMost={false}
                             Scaling={1}
                             ContainingCollectionView={this} DocumentView={this.props.ContainingDocumentView} />);

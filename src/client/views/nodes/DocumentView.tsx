@@ -27,7 +27,7 @@ export interface DocumentViewProps {
     Document: Document;
     AddDocument?: (doc: Document) => void;
     RemoveDocument?: (doc: Document) => boolean;
-    GetTransform: () => Transform;
+    ScreenToLocalTransform: () => Transform;
     isTopMost: boolean;
     Scaling: number;
 }
@@ -117,7 +117,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             this._contextMenuCanOpen = false;
             if (this._mainCont.current != null && !this.topMost) {
                 this._contextMenuCanOpen = false;
-                const [left, top] = this.props.GetTransform().inverse().transformPoint(0, 0);
+                const [left, top] = this.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
                 let dragData: { [id: string]: any } = {};
                 dragData["document"] = this;
                 dragData["xOffset"] = e.x - left;
@@ -223,9 +223,6 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         bindings.select = this.select;
         for (const key of this.layoutKeys) {
             bindings[key.Name + "Key"] = key;  // this maps string values of the form <keyname>Key to an actual key Kestore.keyname  e.g,   "DataKey" => KeyStore.Data
-        }
-        if (!bindings.GetTransform) {
-            console.log("test");
         }
         for (const key of this.layoutFields) {
             let field = this.props.Document.Get(key);

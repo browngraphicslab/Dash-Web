@@ -17,7 +17,7 @@ export interface CollectionViewProps {
     CollectionFieldKey: Key;
     DocumentForCollection: Document;
     ContainingDocumentView: Opt<DocumentView>;
-    GetTransform: () => Transform;
+    ScreenToLocalTransform: () => Transform;
     isSelected: () => boolean;
     isTopMost: boolean;
     select: (ctrlPressed: boolean) => void;
@@ -32,7 +32,7 @@ export class CollectionViewBase extends React.Component<CollectionViewProps> {
 
     public static LayoutString(collectionType: string, fieldKey: string = "DataKey") {
         return `<${collectionType} Scaling={Scaling} DocumentForCollection={Document}
-                    GetTransform={GetTransform} CollectionFieldKey={${fieldKey}} isSelected={isSelected} select={select}
+                    ScreenToLocalTransform={ScreenToLocalTransform} CollectionFieldKey={${fieldKey}} isSelected={isSelected} select={select}
                     isTopMost={isTopMost}
                     ContainingDocumentView={DocumentView} BackgroundView={BackgroundView} />`;
     }
