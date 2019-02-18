@@ -11,12 +11,8 @@ import { CollectionSchemaView } from "../collections/CollectionSchemaView";
 import { CollectionViewBase, COLLECTION_BORDER_WIDTH } from "../collections/CollectionViewBase";
 import { FormattedTextBox } from "../nodes/FormattedTextBox";
 import { ImageBox } from "../nodes/ImageBox";
-<<<<<<< HEAD
 import { WebBox } from "../nodes/WebBox";
-import "./NodeView.scss";
-=======
 import "./DocumentView.scss";
->>>>>>> 3f98d6ec6050e7faa15179871f0d9669c1188a78
 import React = require("react");
 import { Transform } from "../../util/Transform";
 const JsxParser = require('react-jsx-parser').default;//TODO Why does this need to be imported like this?
