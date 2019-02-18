@@ -79,7 +79,7 @@ document.addEventListener("pointerdown", action(function (e: PointerEvent) {
     // mainNodes.Data.push(doc2);
     mainNodes.Data.push(doc6);
 
-    let doc9 = Documents.WebDocument("https://cs.brown.edu/", {
+    let doc9 = Documents.WebDocument("https://crossorigin.me/https://google.com", {
         x: 450, y: 100, title: "cat 1", width: 606, height: 386, nativeWidth: 606, nativeHeight: 386
     });
     mainNodes.Data.push(doc9);
