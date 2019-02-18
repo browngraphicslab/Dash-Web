@@ -161,7 +161,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         }
         if (this.backgroundLayout) {
             var backgroundview = <JsxParser
-                components={{ FormattedTextBox: FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView }}
+                components={{ FormattedTextBox: FormattedTextBox, ImageBox, WebBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView }}
                 bindings={bindings}
                 jsx={this.backgroundLayout}
                 showWarnings={true}
