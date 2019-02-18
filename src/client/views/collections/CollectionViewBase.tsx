@@ -21,7 +21,7 @@ export interface CollectionViewProps {
     isSelected: () => boolean;
     isTopMost: boolean;
     select: (ctrlPressed: boolean) => void;
-    BackgroundView: Opt<DocumentView>;
+    BackgroundView?: () => JSX.Element;
     ParentScaling: number;
 }
 

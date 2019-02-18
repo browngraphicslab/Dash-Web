@@ -241,7 +241,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
                     style={{ width: "100%", transformOrigin: "left top", transform: ` translate(${panx}px, ${pany}px) scale(${this.zoomScaling}, ${this.zoomScaling})` }}
                     ref={this._canvasRef}>
 
-                    {this.props.BackgroundView}
+                    {this.props.BackgroundView ? this.props.BackgroundView() : null}
                     {value.map(doc => {
                         return (<CollectionFreeFormDocumentView key={doc.Id} Document={doc}
                             AddDocument={this.addDocument}

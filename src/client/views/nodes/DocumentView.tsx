@@ -230,13 +230,13 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         }
         let backgroundLayout = this.backgroundLayout;
         if (backgroundLayout) {
-            let backgroundView = <JsxParser
+            let backgroundView = () => (<JsxParser
                 components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView }}
                 bindings={bindings}
                 jsx={this.backgroundLayout}
                 showWarnings={true}
                 onError={(test: any) => { console.log(test) }}
-            />;
+            />);
             bindings.BackgroundView = backgroundView;
         }
 
