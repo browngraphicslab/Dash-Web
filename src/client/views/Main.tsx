@@ -43,7 +43,7 @@ document.addEventListener("pointerdown", action(function (e: PointerEvent) {
     let doc1 = Documents.TextDocument({ title: "hello", width: 400, height: 300 });
     let doc2 = doc1.MakeDelegate();
     doc2.Set(KS.X, new NumberField(150));
-    doc2.Set(KS.Y, new NumberField(20));
+    doc2.Set(KS.Y, new NumberField(500));
     let doc3 = Documents.ImageDocument("https://psmag.com/.image/t_share/MTMyNzc2NzM1MDY1MjgzMDM4/shutterstock_151341212jpg.jpg", {
         x: 450, y: 100, title: "cat 1", width: 606, height: 386, nativeWidth: 606, nativeHeight: 386
     });

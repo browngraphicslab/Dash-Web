@@ -4,6 +4,7 @@ import { SelectionManager } from "../util/SelectionManager";
 import { observer } from "mobx-react";
 import './DocumentDecorations.scss'
 import { CollectionFreeFormView } from "./collections/CollectionFreeFormView";
+import ContentEditable from 'react-contenteditable'
 
 @observer
 export class DocumentDecorations extends React.Component {
@@ -14,9 +15,13 @@ export class DocumentDecorations extends React.Component {
 
     constructor(props: Readonly<{}>) {
         super(props)
-
         DocumentDecorations.Instance = this
+        this.state = { html: "hi" };
     }
+
+    // handleChange = evt => {
+    //     this.setState({ html: evt.target.value });
+    // };
 
     @computed
     get Bounds(): { x: number, y: number, b: number, r: number } {
@@ -47,6 +52,7 @@ export class DocumentDecorations extends React.Component {
         e.stopPropagation();
         if (e.button === 0) {
             this._isPointerDown = true;
+            console.log("Pointer down");
             this._resizer = e.currentTarget.id;
             document.removeEventListener("pointermove", this.onPointerMove);
             document.addEventListener("pointermove", this.onPointerMove);
@@ -133,12 +139,14 @@ export class DocumentDecorations extends React.Component {
         var bounds = this.Bounds;
         return (
             <div id="documentDecorations-container" style={{
-                width: (bounds.r - bounds.x + 40) + "px",
-                height: (bounds.b - bounds.y + 40) + "px",
+                width: (bounds.r - bounds.x + 20 + 20) + "px",
+                height: (bounds.b - bounds.y + 40 + 20) + "px",
                 left: bounds.x - 20,
-                top: bounds.y - 20,
+                top: bounds.y - 20 - 20,
                 opacity: this.opacity
             }}>
+                {/*<input className="title" name="dynbox" value="hey" onPointerDown={this.onPointerDown} />*/}
+                <div className="title" onPointerDown={this.onPointerDown}>{document.title}</div>
                 <div id="documentDecorations-topLeftResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-topResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-topRightResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
@@ -148,7 +156,6 @@ export class DocumentDecorations extends React.Component {
                 <div id="documentDecorations-bottomLeftResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-bottomResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-bottomRightResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
-
             </div>
         )
     }
