@@ -228,6 +228,11 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             let field = this.props.Document.Get(key);
             bindings[key.Name] = field && field != FieldWaiting ? field.GetValue() : field;
         }
+        /*
+        Should this be moved to CollectionFreeformView or another component that renders
+        Document backgrounds (or contents based on a layout key, which could be used here as well)
+         that CollectionFreeformView uses? It seems like a lot for it to be here considering only one view currently uses it...
+         */
         let backgroundLayout = this.backgroundLayout;
         if (backgroundLayout) {
             let backgroundView = () => (<JsxParser
