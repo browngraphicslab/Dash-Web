@@ -169,6 +169,7 @@ export namespace Documents {
 
     export function CollectionDocument(documents: Array<Document>, options: DocumentOptions = {}): Document {
         let doc = GetCollectionPrototype().MakeDelegate();
+        Server.AddDocument(doc);
         setupOptions(doc, options);
         doc.Set(KeyStore.Data, new ListField(documents));
         return doc;
