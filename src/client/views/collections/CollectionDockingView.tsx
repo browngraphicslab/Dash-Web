@@ -1,8 +1,8 @@
 import { observer } from "mobx-react";
-import { KeyStore } from "../../../fields/Key";
+import { KeyStore } from "../../../fields/KeyStore";
 import React = require("react");
 import FlexLayout from "flexlayout-react";
-import { action, observable, computed } from "mobx";
+import { action, computed } from "mobx";
 import { Document } from "../../../fields/Document";
 import { DocumentView } from "../nodes/DocumentView";
 import { ListField } from "../../../fields/ListField";
@@ -13,17 +13,18 @@ import 'golden-layout/src/css/goldenlayout-dark-theme.css';
 import * as GoldenLayout from "golden-layout";
 import * as ReactDOM from 'react-dom';
 import { DragManager } from "../../util/DragManager";
-import { CollectionViewBase, CollectionViewProps, COLLECTION_BORDER_WIDTH } from "./CollectionViewBase";
+import { CollectionViewBase, COLLECTION_BORDER_WIDTH } from "./CollectionViewBase";
+import { FieldView } from "../nodes/FieldView";
 
 @observer
 export class CollectionDockingView extends CollectionViewBase {
 
     private static UseGoldenLayout = true;
-    public static LayoutString() { return CollectionViewBase.LayoutString("CollectionDockingView"); }
+    public static LayoutString() { return FieldView.LayoutString(CollectionDockingView) }
     private _containerRef = React.createRef<HTMLDivElement>();
     @computed
     private get modelForFlexLayout() {
-        const { CollectionFieldKey: fieldKey, DocumentForCollection: Document } = this.props;
+        const { fieldKey: fieldKey, doc: Document } = this.props;
         const value: Document[] = Document.GetData(fieldKey, ListField, []);
         var docs = value.map(doc => {
             return { type: 'tabset', weight: 50, selected: 0, children: [{ type: "tab", name: doc.Title, component: doc.Id }] };
@@ -39,7 +40,7 @@ export class CollectionDockingView extends CollectionViewBase {
     }
     @computed
     private get modelForGoldenLayout(): any {
-        const { CollectionFieldKey: fieldKey, DocumentForCollection: Document } = this.props;
+        const { fieldKey: fieldKey, doc: Document } = this.props;
         const value: Document[] = Document.GetData(fieldKey, ListField, []);
         var docs = value.map(doc => {
             return { type: 'component', componentName: 'documentViewComponent', componentState: { doc: doc } };
@@ -49,9 +50,6 @@ export class CollectionDockingView extends CollectionViewBase {
                 selectionEnabled: true
             }, content: [{ type: 'row', content: docs }]
         });
-    }
-    constructor(props: CollectionViewProps) {
-        super(props);
     }
 
     componentDidMount: () => void = () => {
@@ -67,8 +65,8 @@ export class CollectionDockingView extends CollectionViewBase {
 
 
     @action
-    onResize = (event: any) => {
-        var cur = this.props.ContainingDocumentView!.MainContent.current;
+    onResize = () => {
+        var cur = this.props.DocumentViewForField!.MainContent.current;
 
         // bcz: since GoldenLayout isn't a React component itself, we need to notify it to resize when its document container's size has changed
         CollectionDockingView.myLayout.updateSize(cur!.getBoundingClientRect().width, cur!.getBoundingClientRect().height);
@@ -91,7 +89,7 @@ export class CollectionDockingView extends CollectionViewBase {
         if (component === "button") {
             return <button>{node.getName()}</button>;
         }
-        const { CollectionFieldKey: fieldKey, DocumentForCollection: Document } = this.props;
+        const { fieldKey: fieldKey, doc: Document } = this.props;
         const value: Document[] = Document.GetData(fieldKey, ListField, []);
         for (var i: number = 0; i < value.length; i++) {
             if (value[i].Id === component) {
@@ -195,7 +193,6 @@ export class CollectionDockingView extends CollectionViewBase {
     goldenLayoutFactory() {
         CollectionDockingView.myLayout = this.modelForGoldenLayout;
 
-        var layout = CollectionDockingView.myLayout;
         CollectionDockingView.myLayout.on('tabCreated', function (tab: any) {
             if (CollectionDockingView._dragDiv) {
                 CollectionDockingView._dragDiv.removeChild(CollectionDockingView._dragElement);
@@ -251,10 +248,9 @@ export class CollectionDockingView extends CollectionViewBase {
 
 
     render() {
-        const { CollectionFieldKey: fieldKey, DocumentForCollection: Document } = this.props;
-        const value: Document[] = Document.GetData(fieldKey, ListField, []);
+        const { fieldKey: fieldKey, doc: Document } = this.props;
         // bcz: not sure why, but I need these to force the flexlayout to update when the collection size changes.
-        var s = this.props.ContainingDocumentView != undefined ? this.props.ContainingDocumentView!.ScalingToScreenSpace : 1;
+        var s = this.props.DocumentViewForField != undefined ? this.props.DocumentViewForField!.ScalingToScreenSpace : 1;
         var w = Document.GetData(KeyStore.Width, NumberField, Number(0)) / s;
         var h = Document.GetData(KeyStore.Height, NumberField, Number(0)) / s;
 

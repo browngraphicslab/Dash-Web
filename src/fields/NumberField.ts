@@ -1,11 +1,10 @@
 import { BasicField } from "./BasicField"
 import { Types } from "../server/Message";
 import { FIELD_ID } from "./Field";
-import { ObjectID } from "bson";
 
 export class NumberField extends BasicField<number> {
-    constructor(data: number = 0, id: FIELD_ID = undefined) {
-        super(data, id);
+    constructor(data: number = 0, id: FIELD_ID = undefined, save: boolean = true) {
+        super(data, save, id);
     }
 
     ToScriptString(): string {
@@ -16,7 +15,7 @@ export class NumberField extends BasicField<number> {
         return new NumberField(this.Data);
     }
 
-    ToJson(): { _id: String, type: Types, data: number } {
+    ToJson(): { _id: string, type: Types, data: number } {
         return {
             _id: this.Id,
             type: Types.Number,

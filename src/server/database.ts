@@ -8,50 +8,71 @@ export class Database {
     public static Instance = new Database()
     private MongoClient = mongodb.MongoClient;
     private url = 'mongodb://localhost:27017/Dash';
+    private db?: mongodb.Db;
 
-    public update(id: String, value: any) {
-        this.MongoClient.connect(this.url, (err, db) => {
-            let collection = db.db().collection('documents');
-            collection.update({ _id: id }, { $set: value });
-            db.close();
-        });
+    constructor() {
+        this.MongoClient.connect(this.url, (err, client) => {
+            this.db = client.db()
+        })
+    }
+
+    public update(id: string, value: any) {
+        if (this.db) {
+            let collection = this.db.collection('documents');
+            collection.update({ _id: id }, { $set: value }, {
+                upsert: true
+            });
+        }
     }
 
     public delete(id: string) {
-        this.MongoClient.connect(this.url, (err, db) => {
-            let collection = db.db().collection('documents');
+        if (this.db) {
+            let collection = this.db.collection('documents');
             collection.remove({ _id: id });
-            db.close();
-        });
+        }
+    }
+
+    public deleteAll() {
+        if (this.db) {
+            let collection = this.db.collection('documents');
+            collection.deleteMany({});
+        }
     }
 
     public insert(kvpairs: any) {
-        this.MongoClient.connect(this.url, (err, db) => {
-            let collection = db.db().collection('documents');
-            collection.insertOne(kvpairs, () => { });
-            db.close();
-        });
+        if (this.db) {
+            let collection = this.db.collection('documents');
+            collection.insertOne(kvpairs, (err: any, res: any) => {
+                if (err) {
+                    // console.log(err)
+                    return
+                }
+            });
+        }
     }
 
-    public getDocument(id: String): string | undefined {
+    public getDocument(id: string, fn: (res: any) => void) {
         var result: JSON;
-        this.MongoClient.connect(this.url, (err, db) => {
-            if (err) {
-                console.log(err)
-                return undefined
-            }
-            let collection = db.db().collection('documents');
-            collection.findOne({ _id: id }, (err: any, res: any) => result = res)
-            console.log(result)
-            db.close();
-            if (!result) {
-                console.log("not found")
-                return undefined
-            }
-            console.log("found")
-            return result;
-        });
-        return undefined
+        if (this.db) {
+            let collection = this.db.collection('documents');
+            collection.findOne({ _id: id }, (err: any, res: any) => {
+                result = res
+                if (!result) {
+                    fn(undefined)
+                }
+                fn(result)
+            })
+        };
+    }
+
+    public getDocuments(ids: string[], fn: (res: any) => void) {
+        if (this.db) {
+            let collection = this.db.collection('documents');
+            let cursor = collection.find({ _id: { "$in": ids } })
+            cursor.toArray((err, docs) => {
+                fn(docs);
+            })
+        };
     }
 
     public print() {

@@ -16,12 +16,10 @@ export class Utils {
 
     public static GenerateGuid(): string {
         return v4()
-        // return new Buffer(v4()).toString("hex").substr(0, 24);
     }
 
     public static GenerateDeterministicGuid(seed: string): string {
         return v5(seed, v5.URL)
-        // return new Buffer(v5(seed, v5.URL)).toString("hex").substr(0, 24);
     }
 
     public static GetScreenTransform(ele: HTMLElement): { scale: number, translateX: number, translateY: number } {
@@ -31,6 +29,18 @@ export class Utils {
         const translateY = rect.top;
 
         return { scale, translateX, translateY };
+    }
+
+    public static CopyText(text: string) {
+        var textArea = document.createElement("textarea");
+        textArea.value = text;
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+
+        try { document.execCommand('copy'); } catch (err) { }
+
+        document.body.removeChild(textArea);
     }
 
     public static Emit<T>(socket: Socket | SocketIOClient.Socket, message: Message<T>, args: T) {

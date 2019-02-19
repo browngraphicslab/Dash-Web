@@ -11,13 +11,13 @@ import { CollectionViewBase } from "./CollectionViewBase";
 import { DocumentView } from "../nodes/DocumentView";
 import { EditableView } from "../EditableView";
 import { CompileScript, ToField } from "../../util/Scripting";
-import { KeyStore as KS, Key } from "../../../fields/Key";
+import { KeyStore as KS } from "../../../fields/KeyStore";
 import { Document } from "../../../fields/Document";
 import { Field } from "../../../fields/Field";
 
 @observer
 export class CollectionSchemaView extends CollectionViewBase {
-    public static LayoutString() { return CollectionViewBase.LayoutString("CollectionSchemaView"); }
+    public static LayoutString() { return FieldView.LayoutString(CollectionSchemaView); }
 
     @observable
     selectedIndex = 0;
@@ -97,7 +97,7 @@ export class CollectionSchemaView extends CollectionViewBase {
     }
 
     render() {
-        const { DocumentForCollection: Document, CollectionFieldKey: fieldKey } = this.props;
+        const { doc: Document, fieldKey: fieldKey } = this.props;
         const children = Document.GetList<Document>(fieldKey, []);
         const columns = Document.GetList(KS.ColumnsKey,
             [KS.Title, KS.Data, KS.Author])

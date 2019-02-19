@@ -1,15 +1,6 @@
 
 import { Utils } from "../Utils";
 import { Types } from "../server/Message";
-import { NumberField } from "./NumberField";
-import { TextField } from "./TextField";
-import { RichTextField } from "./RichTextField";
-import { KeyStore, Key } from "./Key";
-import { ImageField } from "./ImageField";
-import { ListField } from "./ListField";
-import { Document } from "./Document";
-import { Server } from "../client/Server";
-import { ObjectID } from "bson";
 
 export function Cast<T extends Field>(field: FieldValue<Field>, ctor: { new(): T }): Opt<T> {
     if (field) {
@@ -28,6 +19,10 @@ export type FieldValue<T> = Opt<T> | FIELD_WAITING;
 
 export abstract class Field {
     //FieldUpdated: TypedEvent<Opt<FieldUpdatedArgs>> = new TypedEvent<Opt<FieldUpdatedArgs>>();
+
+    init(callback: (res: Field) => any) {
+        callback(this);
+    }
 
     private id: string;
     get Id(): string {
@@ -57,6 +52,8 @@ export abstract class Field {
         return this.id === other.id;
     }
 
+    abstract UpdateFromServer(serverData: any): void;
+
     abstract ToScriptString(): string;
 
     abstract TrySetValue(value: any): boolean;
@@ -65,5 +62,5 @@ export abstract class Field {
 
     abstract Copy(): Field;
 
-    abstract ToJson(): { _id: String, type: Types, data: any }
+    abstract ToJson(): { _id: string, type: Types, data: any }
 }

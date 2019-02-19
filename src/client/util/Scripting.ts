@@ -6,7 +6,7 @@ import { NumberField as NumberFieldImport, NumberField } from "../../fields/Numb
 import { ImageField as ImageFieldImport } from "../../fields/ImageField";
 import { TextField as TextFieldImport, TextField } from "../../fields/TextField";
 import { RichTextField as RichTextFieldImport } from "../../fields/RichTextField";
-import { KeyStore as KeyStoreImport } from "../../fields/Key";
+import { KeyStore as KeyStoreImport } from "../../fields/KeyStore";
 
 export interface ExecutableScript {
     (): any;

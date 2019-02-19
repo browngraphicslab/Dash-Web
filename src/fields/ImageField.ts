@@ -4,8 +4,8 @@ import { Types } from "../server/Message";
 import { ObjectID } from "bson";
 
 export class ImageField extends BasicField<URL> {
-    constructor(data: URL | undefined = undefined, id: FIELD_ID = undefined) {
-        super(data == undefined ? new URL("http://cs.brown.edu/~bcz/bob_fettucine.jpg") : data, id);
+    constructor(data: URL | undefined = undefined, id: FIELD_ID = undefined, save: boolean = true) {
+        super(data == undefined ? new URL("http://cs.brown.edu/~bcz/bob_fettucine.jpg") : data, save, id);
     }
 
     toString(): string {
@@ -20,7 +20,7 @@ export class ImageField extends BasicField<URL> {
         return new ImageField(this.Data);
     }
 
-    ToJson(): { type: Types, data: URL, _id: String } {
+    ToJson(): { type: Types, data: URL, _id: string } {
         return {
             type: Types.Image,
             data: this.Data,

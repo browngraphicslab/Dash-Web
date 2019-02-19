@@ -1,6 +1,6 @@
 import { action, computed } from "mobx";
 import { observer } from "mobx-react";
-import { Key, KeyStore } from "../../../fields/Key";
+import { KeyStore } from "../../../fields/KeyStore";
 import { NumberField } from "../../../fields/NumberField";
 import { DragManager } from "../../util/DragManager";
 import { SelectionManager } from "../../util/SelectionManager";
@@ -10,6 +10,7 @@ import { ContextMenu } from "../ContextMenu";
 import "./NodeView.scss";
 import React = require("react");
 import { DocumentView, DocumentViewProps } from "./DocumentView";
+import { Utils } from "../../../Utils";
 
 
 @observer
@@ -188,7 +189,6 @@ export class CollectionFreeFormDocumentView extends DocumentView {
         if (this.topMost) {
             ContextMenu.Instance.clearItems()
             ContextMenu.Instance.addItem({ description: "Full Screen", event: this.fullScreenClicked })
-            ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15)
         }
         else {
             // DocumentViews should stop propogation of this event
@@ -198,20 +198,25 @@ export class CollectionFreeFormDocumentView extends DocumentView {
             ContextMenu.Instance.addItem({ description: "Full Screen", event: this.fullScreenClicked })
             ContextMenu.Instance.addItem({ description: "Open Right", event: this.openRight })
             ContextMenu.Instance.addItem({ description: "Delete", event: this.deleteClicked })
-            ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15)
             SelectionManager.SelectDoc(this, e.ctrlKey);
         }
+
+        ContextMenu.Instance.addItem({
+            description: "Copy ID", event: () => {
+                Utils.CopyText(this.props.Document.Id)
+            }
+        })
+        ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15)
     }
 
     render() {
-        var freestyling = this.props.ContainingCollectionView instanceof CollectionFreeFormView;
         return (
             <div className="node" ref={this._mainCont} style={{
-                transform: freestyling ? this.transform : "",
-                width: freestyling ? this.width : "100%",
-                height: freestyling ? this.height : "100%",
-                position: freestyling ? "absolute" : "relative",
-                zIndex: freestyling ? this.zIndex : 0,
+                transform: this.transform,
+                width: this.width,
+                height: this.height,
+                position: "absolute",
+                zIndex: this.zIndex,
             }}
                 onContextMenu={this.onContextMenu}
                 onPointerDown={this.onPointerDown}>

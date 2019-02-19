@@ -1,18 +1,33 @@
 import { Field, Cast, Opt, FieldWaiting, FIELD_ID, FieldValue } from "./Field"
-import { Key, KeyStore } from "./Key"
+import { Key } from "./Key"
+import { KeyStore } from "./KeyStore";
 import { NumberField } from "./NumberField";
 import { ObservableMap, computed, action, observable } from "mobx";
 import { TextField } from "./TextField";
 import { ListField } from "./ListField";
-import { findDOMNode } from "react-dom";
 import { Server } from "../client/Server";
 import { Types } from "../server/Message";
-import { ObjectID } from "bson";
-import { Utils } from "../Utils";
 
 export class Document extends Field {
-    public fields: ObservableMap<Key, Opt<Field>> = new ObservableMap();
+    public fields: ObservableMap<string, { key: Key, field: Field }> = new ObservableMap();
     public _proxies: ObservableMap<string, FIELD_ID> = new ObservableMap();
+
+    constructor(id?: string, save: boolean = true) {
+        super(id)
+
+        if (save) {
+            var title = (this._proxies.has(KeyStore.Title.Id) ? "???" : this.Title) + "(" + this.Id + ")";
+            console.log("Save " + title);
+            Server.UpdateField(this)
+        }
+    }
+
+    UpdateFromServer(data: [string, string][]) {
+        for (const key in data) {
+            const element = data[key];
+            this._proxies.set(element[0], element[1]);
+        }
+    }
 
     @computed
     public get Title() {
@@ -22,28 +37,33 @@ export class Document extends Field {
     Get(key: Key, ignoreProto: boolean = false): FieldValue<Field> {
         let field: FieldValue<Field>;
         if (ignoreProto) {
-            if (this.fields.has(key)) {
-                field = this.fields.get(key);
+            if (this.fields.has(key.Id)) {
+                field = this.fields.get(key.Id)!.field;
             } else if (this._proxies.has(key.Id)) {
                 field = Server.GetDocumentField(this, key);
             }
         } else {
             let doc: FieldValue<Document> = this;
             while (doc && doc != FieldWaiting && field != FieldWaiting) {
-                if (!doc.fields.has(key)) {
-                    if (doc._proxies.has(key.Id)) {
+                let curField = doc.fields.get(key.Id);
+                let curProxy = doc._proxies.get(key.Id);
+                if (!curField || (curProxy && curField.field.Id !== curProxy)) {
+                    if (curProxy) {
                         field = Server.GetDocumentField(doc, key);
                         break;
                     }
-                    if ((doc.fields.has(KeyStore.Prototype) || doc._proxies.has(KeyStore.Prototype.Id))) {
+                    if ((doc.fields.has(KeyStore.Prototype.Id) || doc._proxies.has(KeyStore.Prototype.Id))) {
                         doc = doc.GetPrototype();
-                    } else
+                    } else {
                         break;
+                    }
                 } else {
-                    field = doc.fields.get(key);
+                    field = curField.field;
                     break;
                 }
             }
+            if (doc == FieldWaiting)
+                field = FieldWaiting;
         }
 
         return field;
@@ -87,11 +107,14 @@ export class Document extends Field {
 
     @action
     Set(key: Key, field: Field | undefined): void {
+        console.log("Assign: " + key.Name + " = " + (field ? field.GetValue() : "<undefined>") + " (" + (field ? field.Id : "<undefined>") + ")");
         if (field) {
-            this.fields.set(key, field);
+            this.fields.set(key.Id, { key, field });
+            this._proxies.set(key.Id, field.Id)
             // Server.AddDocumentField(this, key, field);
         } else {
-            this.fields.delete(key);
+            this.fields.delete(key.Id);
+            this._proxies.delete(key.Id)
             // Server.DeleteDocumentField(this, key);
         }
         Server.UpdateField(this);
@@ -137,8 +160,8 @@ export class Document extends Field {
         return protos;
     }
 
-    MakeDelegate(): Document {
-        let delegate = new Document();
+    MakeDelegate(id?: string): Document {
+        let delegate = new Document(id);
 
         delegate.Set(KeyStore.Prototype, this);
 
@@ -153,19 +176,23 @@ export class Document extends Field {
         throw new Error("Method not implemented.");
     }
     GetValue() {
-        throw new Error("Method not implemented.");
+        var title = (this._proxies.has(KeyStore.Title.Id) ? "???" : this.Title) + "(" + this.Id + ")";
+        return title;
+        //throw new Error("Method not implemented.");
     }
     Copy(): Field {
         throw new Error("Method not implemented.");
     }
 
-    ToJson(): { type: Types, data: [string, string][], _id: String } {
+    ToJson(): { type: Types, data: [string, string][], _id: string } {
+        // console.log(this.fields)
         let fields: [string, string][] = []
         this._proxies.forEach((field, key) => {
             if (field) {
                 fields.push([key, field as string])
             }
         });
+        // console.log(fields)
 
         return {
             type: Types.Document,
@@ -173,5 +200,4 @@ export class Document extends Field {
             _id: this.Id
         }
     }
-
 }

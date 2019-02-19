@@ -51,9 +51,9 @@ export enum Types {
 
 export class DocumentTransfer implements Transferable {
     readonly type = Types.Document
-    _id: String;
+    _id: string
 
-    constructor(readonly obj: { type: Types, data: [string, string][], _id: String }) {
+    constructor(readonly obj: { type: Types, data: [string, string][], _id: string }) {
         this._id = obj._id
     }
 }
@@ -61,12 +61,12 @@ export class DocumentTransfer implements Transferable {
 export class ImageTransfer implements Transferable {
     readonly type = Types.Image
 
-    constructor(readonly _id: String) { }
+    constructor(readonly _id: string) { }
 }
 
 export class KeyTransfer implements Transferable {
     name: string
-    readonly _id: String
+    readonly _id: string
     readonly type = Types.Key
 
     constructor(i: string, n: string) {
@@ -78,18 +78,18 @@ export class KeyTransfer implements Transferable {
 export class ListTransfer implements Transferable {
     type = Types.List;
 
-    constructor(readonly _id: String) { }
+    constructor(readonly _id: string) { }
 }
 
 export class NumberTransfer implements Transferable {
     readonly type = Types.Number
 
-    constructor(readonly value: number, readonly _id: String) { }
+    constructor(readonly value: number, readonly _id: string) { }
 }
 
 export class TextTransfer implements Transferable {
     value: string
-    readonly _id: String
+    readonly _id: string
     readonly type = Types.Text
 
     constructor(t: string, i: string) {
@@ -100,7 +100,7 @@ export class TextTransfer implements Transferable {
 
 export class RichTextTransfer implements Transferable {
     value: string
-    readonly _id: String
+    readonly _id: string
     readonly type = Types.Text
 
     constructor(t: string, i: string) {
@@ -110,7 +110,7 @@ export class RichTextTransfer implements Transferable {
 }
 
 export interface Transferable {
-    readonly _id: String
+    readonly _id: string
     readonly type: Types
 }
 
@@ -118,6 +118,9 @@ export namespace MessageStore {
     export const Foo = new Message<string>("Foo");
     export const Bar = new Message<string>("Bar");
     export const AddDocument = new Message<DocumentTransfer>("Add Document");
-    export const SetField = new Message<{ _id: String, data: any, type: Types }>("Set Field")
-    export const GetField = new Message<GetFieldArgs>("Get Field")
+    export const SetField = new Message<{ _id: string, data: any, type: Types }>("Set Field")
+    export const GetField = new Message<string>("Get Field")
+    export const GetFields = new Message<string[]>("Get Fields")
+    export const GetDocument = new Message<string>("Get Document");
+    export const DeleteAll = new Message<any>("Delete All");
 }

@@ -4,7 +4,10 @@ const CopyWebpackPlugin = require("copy-webpack-plugin");
 
 module.exports = {
   mode: 'development',
-  entry: ["./src/client/views/Main.tsx", 'webpack-hot-middleware/client?reload=true'],
+  entry: {
+    bundle: ["./src/client/views/Main.tsx", 'webpack-hot-middleware/client?reload=true'],
+    viewer: ["./src/debug/Viewer.tsx", 'webpack-hot-middleware/client?reload=true'],
+  },
   devtool: "source-map",
   node: {
     fs: 'empty',
@@ -14,8 +17,9 @@ module.exports = {
     net: 'mock'
   },
   output: {
-    filename: "./bundle.js",
-    path: path.resolve(__dirname, "build")
+    filename: "[name].js",
+    path: path.resolve(__dirname, "build"),
+    publicPath: "/"
   },
   resolve: {
     extensions: ['.js', '.ts', '.tsx']

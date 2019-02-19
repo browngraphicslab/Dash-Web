@@ -1,10 +1,12 @@
-import { Field, FIELD_ID } from "../fields/Field"
-import { Key, KeyStore } from "../fields/Key"
+import { Field, FIELD_ID, Opt } from "../fields/Field"
+import { Key } from "../fields/Key"
+import { KeyStore } from "../fields/KeyStore"
 import { ObservableMap, action } from "mobx";
 import { Document } from "../fields/Document"
 import { MessageStore, SetFieldArgs, GetFieldArgs, DocumentTransfer, Types } from "../server/Message";
 import { Utils } from "../Utils";
 import { Server } from "./Server";
+import { ServerUtils } from "../server/ServerUtil";
 
 export class SocketStub {
 
@@ -29,14 +31,30 @@ export class SocketStub {
         // this.FieldStore.set(document.Id, new Document(document.Id));
         // document.fields.forEach((f, key) => (this.FieldStore.get(document.Id) as Document)._proxies.set(key.Id, (f as Field).Id));
 
+        console.log("sending " + document.Title);
         Utils.Emit(Server.Socket, MessageStore.AddDocument, new DocumentTransfer(document.ToJson()))
     }
 
-    public static SEND_FIELD_REQUEST(fieldid: FIELD_ID, callback: (field: Field) => void) {
+    public static SEND_FIELD_REQUEST(fieldid: FIELD_ID, callback: (field: Opt<Field>) => void) {
         if (fieldid) {
-            let args: GetFieldArgs = new GetFieldArgs(fieldid)
-            Utils.EmitCallback(Server.Socket, MessageStore.GetField, args, (field: Field) => callback(field))
+            Utils.EmitCallback(Server.Socket, MessageStore.GetField, fieldid, (field: any) => {
+                if (field) {
+                    ServerUtils.FromJson(field).init(callback);
+                } else {
+                    callback(undefined);
+                }
+            })
         }
+    }
+
+    public static SEND_FIELDS_REQUEST(fieldIds: FIELD_ID[], callback: (fields: { [key: string]: Field }) => any) {
+        Utils.EmitCallback(Server.Socket, MessageStore.GetFields, fieldIds, (fields: any[]) => {
+            let fieldMap: any = {};
+            for (let field of fields) {
+                fieldMap[field._id] = ServerUtils.FromJson(field);
+            }
+            callback(fieldMap)
+        });
     }
 
     public static SEND_ADD_DOCUMENT_FIELD(doc: Document, key: Key, value: Field) {

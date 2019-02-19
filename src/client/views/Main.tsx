@@ -5,7 +5,7 @@ import * as ReactDOM from 'react-dom';
 import { DocumentDecorations } from './DocumentDecorations';
 import { Documents } from '../documents/Documents';
 import { Document } from '../../fields/Document';
-import { KeyStore, KeyStore as KS } from '../../fields/Key';
+import { KeyStore } from '../../fields/KeyStore';
 import { ListField } from '../../fields/ListField';
 import { NumberField } from '../../fields/NumberField';
 import { TextField } from '../../fields/TextField';
@@ -14,16 +14,21 @@ import { ContextMenu } from './ContextMenu';
 import { DocumentView } from './nodes/DocumentView';
 import { ImageField } from '../../fields/ImageField';
 import { CompileScript } from './../util/Scripting';
+import { Server } from '../Server';
+import { Utils } from '../../Utils';
+import { ServerUtils } from '../../server/ServerUtil';
+import { MessageStore, DocumentTransfer } from '../../server/Message';
+import { Database } from '../../server/database';
 
 
 configure({
     enforceActions: "observed"
 });
 
-const mainNodeCollection = new Array<Document>();
-let mainContainer = Documents.DockDocument(mainNodeCollection, {
-    x: 0, y: 0, title: "main container"
-})
+// const mainNodeCollection = new Array<Document>();
+// let mainContainer = Documents.DockDocument(mainNodeCollection, {
+//     x: 0, y: 0, title: "main container"
+// })
 
 window.addEventListener("drop", function (e) {
     e.preventDefault();
@@ -54,11 +59,78 @@ document.addEventListener("pointerdown", action(function (e: PointerEvent) {
 // schemaDocs[4].SetData(KS.Author, "Bob", TextField);
 // schemaDocs.push(doc2);
 // const doc7 = Documents.SchemaDocument(schemaDocs)
-const docset: Document[] = [];
-let doc4 = Documents.CollectionDocument(docset, {
-    x: 0, y: 400, title: "mini collection"
+
+const mainDocId = "mainDoc";
+Documents.initProtos(() => {
+    Utils.EmitCallback(Server.Socket, MessageStore.GetField, mainDocId, (res: any) => {
+        console.log("HELLO WORLD")
+        console.log("RESPONSE: " + res)
+        let mainContainer: Document;
+        if (res) {
+            var lid = KeyStore.Layout.Id;
+            let obj = ServerUtils.FromJson(res) as Document
+            mainContainer = obj
+        }
+        else {
+            const docset: Document[] = [];
+            mainContainer = Documents.CollectionDocument(docset, { x: 0, y: 400, title: "mini collection" }, mainDocId);
+            let args = new DocumentTransfer(mainContainer.ToJson())
+            Utils.Emit(Server.Socket, MessageStore.AddDocument, args)
+        }
+
+        let addImageNode = action(() => {
+            mainContainer.GetList<Document>(KeyStore.Data, []).push(Documents.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", {
+                x: 0, y: 300, width: 200, height: 200, title: "added note"
+            }));
+        })
+        let addTextNode = action(() => {
+            mainContainer.GetList<Document>(KeyStore.Data, []).push(Documents.TextDocument({
+                x: 0, y: 300, width: 200, height: 200, title: "added note"
+            }));
+        })
+        let addColNode = action(() => {
+            mainContainer.GetList<Document>(KeyStore.Data, []).push(Documents.CollectionDocument([], {
+                x: 0, y: 300, width: 200, height: 200, title: "added note"
+            }));
+        })
+
+        let clearDatabase = action(() => {
+            Utils.Emit(Server.Socket, MessageStore.DeleteAll, {});
+        })
+
+        ReactDOM.render((
+            <div style={{ position: "absolute", width: "100%", height: "100%" }}>
+                <DocumentView Document={mainContainer} ContainingCollectionView={undefined} DocumentView={undefined} />
+                <DocumentDecorations />
+                <ContextMenu />
+                <button style={{
+                    position: 'absolute',
+                    bottom: '0px',
+                    left: '0px',
+                    width: '150px'
+                }} onClick={addImageNode}>Add Image</button>
+                <button style={{
+                    position: 'absolute',
+                    bottom: '25px',
+                    left: '0px',
+                    width: '150px'
+                }} onClick={addTextNode}>Add Text</button>
+                <button style={{
+                    position: 'absolute',
+                    bottom: '50px',
+                    left: '0px',
+                    width: '150px'
+                }} onClick={addColNode}>Add Collection</button>
+                <button style={{
+                    position: 'absolute',
+                    bottom: '75px',
+                    left: '0px',
+                    width: '150px'
+                }} onClick={clearDatabase}>Clear Database</button>
+            </div>),
+            document.getElementById('root'));
+    })
 });
-mainContainer = doc4;
 // let doc5 = Documents.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", {
 //     x: 650, y: 500, width: 600, height: 600, title: "cat 2"
 // });
@@ -78,45 +150,3 @@ mainContainer = doc4;
 // mainContainer.Set(KeyStore.Data, mainNodes);
 //}
 //);
-
-let addImageNode = action(() => {
-    doc4.GetList<Document>(KeyStore.Data, []).push(Documents.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", {
-        x: 0, y: 300, width: 200, height: 200, title: "added note"
-    }));
-})
-let addTextNode = action(() => {
-    doc4.GetList<Document>(KeyStore.Data, []).push(Documents.TextDocument({
-        x: 0, y: 300, width: 200, height: 200, title: "added note"
-    }));
-})
-let addColNode = action(() => {
-    doc4.GetList<Document>(KeyStore.Data, []).push(Documents.CollectionDocument([], {
-        x: 0, y: 300, width: 200, height: 200, title: "added note"
-    }));
-})
-
-ReactDOM.render((
-    <div style={{ position: "absolute", width: "100%", height: "100%" }}>
-        <DocumentView Document={mainContainer} ContainingCollectionView={undefined} DocumentView={undefined} />
-        <DocumentDecorations />
-        <ContextMenu />
-        <button style={{
-            position: 'absolute',
-            bottom: '0px',
-            left: '0px',
-            width: '150px'
-        }} onClick={addImageNode}>Add Image</button>
-        <button style={{
-            position: 'absolute',
-            bottom: '25px',
-            left: '0px',
-            width: '150px'
-        }} onClick={addTextNode}>Add Text</button>
-        <button style={{
-            position: 'absolute',
-            bottom: '50px',
-            left: '0px',
-            width: '150px'
-        }} onClick={addColNode}>Add Collection</button>
-    </div>),
-    document.getElementById('root'));

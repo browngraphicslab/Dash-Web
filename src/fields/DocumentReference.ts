@@ -17,6 +17,10 @@ export class DocumentReference extends Field {
         super();
     }
 
+    UpdateFromServer() {
+
+    }
+
     Dereference(): FieldValue<Field> {
         return this.document.Get(this.key);
     }
@@ -43,7 +47,7 @@ export class DocumentReference extends Field {
         return "";
     }
 
-    ToJson(): { type: Types, data: FIELD_ID, _id: String } {
+    ToJson(): { type: Types, data: FIELD_ID, _id: string } {
         return {
             type: Types.DocumentReference,
             data: this.document.Id,

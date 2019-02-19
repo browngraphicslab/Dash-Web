@@ -11,8 +11,11 @@ import { Socket } from 'socket.io';
 import { Utils } from '../Utils';
 import { ObservableMap } from 'mobx';
 import { FIELD_ID, Field } from '../fields/Field';
-// import { Database } from './database';
+import { Database } from './database';
 import { ServerUtils } from './ServerUtil';
+import { ObjectID } from 'mongodb';
+import { Document } from '../fields/Document';
+import * as io from 'socket.io'
 import * as passportConfig from './authentication/config/passport';
 import { getLogin, postLogin, getSignup, postSignup } from './authentication/controllers/user';
 const config = require('../../webpack.config');
@@ -27,6 +30,7 @@ import c = require("crypto");
 const MongoStore = require('connect-mongo')(session);
 const mongoose = require('mongoose');
 const bluebird = require('bluebird');
+import { performance } from 'perf_hooks'
 
 const mongoUrl = 'mongodb://localhost:27017/Dash';
 // mongoose.Promise = bluebird;
@@ -75,6 +79,11 @@ app.get("/hello", (req, res) => {
     res.send("<p>Hello</p>");
 })
 
+app.get("/delete", (req, res) => {
+    deleteAll();
+    res.redirect("/");
+});
+
 app.use(wdm(compiler, {
     publicPath: config.output.publicPath
 }))
@@ -86,7 +95,7 @@ app.listen(port, () => {
     console.log(`server started at http://localhost:${port}`);
 })
 
-const server = require("socket.io")();
+const server = io();
 interface Map {
     [key: string]: Client;
 }
@@ -98,9 +107,15 @@ server.on("connection", function (socket: Socket) {
     Utils.Emit(socket, MessageStore.Foo, "handshooken")
 
     Utils.AddServerHandler(socket, MessageStore.Bar, barReceived)
-    // Utils.AddServerHandler(socket, MessageStore.SetField, setField)
-    // Utils.AddServerHandlerCallback(socket, MessageStore.GetField, getField)
+    Utils.AddServerHandler(socket, MessageStore.SetField, (args) => setField(socket, args))
+    Utils.AddServerHandlerCallback(socket, MessageStore.GetField, getField)
+    Utils.AddServerHandlerCallback(socket, MessageStore.GetFields, getFields)
+    Utils.AddServerHandler(socket, MessageStore.DeleteAll, deleteAll)
 })
+
+function deleteAll() {
+    Database.Instance.deleteAll();
+}
 
 function barReceived(guid: String) {
     clients[guid.toString()] = new Client(guid.toString());
@@ -111,22 +126,24 @@ function addDocument(document: Document) {
 
 }
 
-function setField(newValue: Transferable) {
-    console.log(newValue._id)
-    // if (Database.Instance.getDocument(newValue._id)) {
-    //     Database.Instance.update(newValue._id, newValue)
-    // }
-    // else {
-    //     Database.Instance.insert(newValue)
-    // }
+function getField([id, callback]: [string, (result: any) => void]) {
+    Database.Instance.getDocument(id, (result: any) => {
+        if (result) {
+            callback(result)
+        }
+        else {
+            callback(undefined)
+        }
+    })
 }
 
-function getField([fieldRequest, callback]: [GetFieldArgs, (field: Field) => void]) {
-    let fieldId: string = fieldRequest.field
-    // let result: string | undefined = Database.Instance.getDocument(fieldId)
-    // if (result) {
-    //     let fromJson: Field = ServerUtils.FromJson(result)
-    // }
+function getFields([ids, callback]: [string[], (result: any) => void]) {
+    Database.Instance.getDocuments(ids, callback);
+}
+
+function setField(socket: Socket, newValue: Transferable) {
+    Database.Instance.update(newValue._id, newValue)
+    socket.broadcast.emit(MessageStore.SetField.Message, newValue)
 }
 
 server.listen(serverPort);
