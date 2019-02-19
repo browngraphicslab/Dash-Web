@@ -31,6 +31,8 @@ export let postSignup = (req: Request, res: Response, next: NextFunction) => {
     req.assert("confirmPassword", "Passwords do not match").equals(req.body.password);
     req.sanitize("email").normalizeEmail({ gmail_remove_dots: false });
 
+    req.flash("Working on something!!!");
+
     const errors = req.validationErrors();
 
     if (errors) {

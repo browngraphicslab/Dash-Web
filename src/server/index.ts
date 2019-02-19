@@ -24,8 +24,10 @@ const port = 1050; // default port to listen
 const serverPort = 1234;
 import * as expressValidator from 'express-validator';
 import expressFlash = require('express-flash');
+import flash = require('express-flash');
 import * as bodyParser from 'body-parser';
 import * as session from 'express-session';
+import * as cookieParser from 'cookie-parser';
 import c = require("crypto");
 const MongoStore = require('connect-mongo')(session);
 const mongoose = require('mongoose');
@@ -44,18 +46,21 @@ mongoose.connection.on('connected', function () {
     console.log("connected");
 })
 
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(expressValidator());
-app.use(expressFlash());
-app.use(require('express-session')({
+app.use(cookieParser("secret"));
+app.use(session({
     secret: `${c.randomBytes(64)}`,
     resave: true,
+    cookie: { maxAge: 60000 },
     saveUninitialized: true,
     store: new MongoStore({
         url: 'mongodb://localhost:27017/Dash'
     })
 }));
+app.use(flash());
+app.use(expressFlash());
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(expressValidator());
 app.use(passport.initialize());
 app.use(passport.session());
 app.use((req, res, next) => {

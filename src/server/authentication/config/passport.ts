@@ -18,7 +18,7 @@ passport.deserializeUser<any, any>((id, done) => {
 });
 
 // AUTHENTICATE JUST WITH EMAIL AND PASSWORD
-passport.use(new LocalStrategy({ usernameField: 'email' }, (email, password, done) => {
+passport.use(new LocalStrategy({ usernameField: 'email', passReqToCallback: true }, (req, email, password, done) => {
     User.findOne({ email: email.toLowerCase() }, (error: any, user: any) => {
         if (error) return done(error);
         if (!user) return done(undefined, false, { message: "Invalid email or password" }) // invalid email
