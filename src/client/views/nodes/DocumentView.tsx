@@ -21,7 +21,6 @@ import { TextField } from "../../../fields/TextField";
 const JsxParser = require('react-jsx-parser').default;//TODO Why does this need to be imported like this?
 
 export interface DocumentViewProps {
-    DocumentView: Opt<DocumentView>  // needed only to set ContainingDocumentView on CollectionViewProps when invoked from JsxParser -- is there a better way?
     ContainingCollectionView: Opt<CollectionViewBase>;
 
     Document: Document;
@@ -29,6 +28,7 @@ export interface DocumentViewProps {
     RemoveDocument?: (doc: Document) => boolean;
     ScreenToLocalTransform: () => Transform;
     isTopMost: boolean;
+    //tfs: This shouldn't be necessary I don't think
     Scaling: number;
 }
 
@@ -198,12 +198,13 @@ export class DocumentView extends React.Component<DocumentViewProps> {
 
     // 
     // returns the cumulative scaling between the document and the screen
+    // tfs: I don't think this should be necessary
     //
     @computed
     public get ScalingToScreenSpace(): number {
         if (this.props.ContainingCollectionView != undefined &&
             this.props.ContainingCollectionView.props.ContainingDocumentView != undefined) {
-            let ss = this.props.ContainingCollectionView.props.DocumentForCollection.GetNumber(KeyStore.Scale, 1);
+            let ss = this.props.ContainingCollectionView.props.Document.GetNumber(KeyStore.Scale, 1);
             return this.props.ContainingCollectionView.props.ContainingDocumentView.ScalingToScreenSpace * ss;
         }
         return 1;
@@ -229,6 +230,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             bindings[key.Name] = field && field != FieldWaiting ? field.GetValue() : field;
         }
         /*
+        tfs:
         Should this be moved to CollectionFreeformView or another component that renders
         Document backgrounds (or contents based on a layout key, which could be used here as well)
          that CollectionFreeformView uses? It seems like a lot for it to be here considering only one view currently uses it...
@@ -244,6 +246,8 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             />);
             bindings.BackgroundView = backgroundView;
         }
+
+        bindings.DocumentView = this;
 
         var width = this.props.Document.GetNumber(KeyStore.NativeWidth, 0);
         var strwidth = width > 0 ? width.toString() + "px" : "100%";

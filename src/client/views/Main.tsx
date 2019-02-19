@@ -86,7 +86,7 @@ ReactDOM.render((
             AddDocument={undefined} RemoveDocument={undefined} ScreenToLocalTransform={() => Transform.Identity}
             Scaling={1}
             isTopMost={true}
-            ContainingCollectionView={undefined} DocumentView={undefined} />
+            ContainingCollectionView={undefined} />
         <DocumentDecorations />
         <ContextMenu />
     </div>),

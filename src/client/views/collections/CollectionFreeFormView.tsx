@@ -31,18 +31,18 @@ export class CollectionFreeFormView extends CollectionViewBase {
     }
 
     @computed
-    get isAnnotationOverlay() { return this.props.CollectionFieldKey == KeyStore.Annotations; }
+    get isAnnotationOverlay() { return this.props.fieldKey == KeyStore.Annotations; }
 
     @computed
-    get nativeWidth() { return this.props.DocumentForCollection.GetNumber(KeyStore.NativeWidth, 0); }
+    get nativeWidth() { return this.props.Document.GetNumber(KeyStore.NativeWidth, 0); }
     @computed
-    get nativeHeight() { return this.props.DocumentForCollection.GetNumber(KeyStore.NativeHeight, 0); }
+    get nativeHeight() { return this.props.Document.GetNumber(KeyStore.NativeHeight, 0); }
 
     @computed
-    get zoomScaling() { return this.props.DocumentForCollection.GetNumber(KeyStore.Scale, 1); }
+    get zoomScaling() { return this.props.Document.GetNumber(KeyStore.Scale, 1); }
 
     @computed
-    get resizeScaling() { return this.isAnnotationOverlay ? this.props.DocumentForCollection.GetNumber(KeyStore.Width, 0) / this.nativeWidth : 1; }
+    get resizeScaling() { return this.isAnnotationOverlay ? this.props.Document.GetNumber(KeyStore.Width, 0) / this.nativeWidth : 1; }
 
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
@@ -105,8 +105,8 @@ export class CollectionFreeFormView extends CollectionViewBase {
         if (!e.cancelBubble && this.active) {
             e.preventDefault();
             e.stopPropagation();
-            let x = this.props.DocumentForCollection.GetNumber(KeyStore.PanX, 0);
-            let y = this.props.DocumentForCollection.GetNumber(KeyStore.PanY, 0);
+            let x = this.props.Document.GetNumber(KeyStore.PanX, 0);
+            let y = this.props.Document.GetNumber(KeyStore.PanY, 0);
             let [dx, dy] = this.props.ScreenToLocalTransform().transformDirection(e.clientX - this._lastX, e.clientY - this._lastY);
 
             this.SetPan(x + dx, y + dy);
@@ -131,7 +131,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
         let localTransform = this.getLocalTransform();
         localTransform = localTransform.inverse().scaleAbout(deltaScale, x, y)
 
-        this.props.DocumentForCollection.SetNumber(KeyStore.Scale, localTransform.Scale);
+        this.props.Document.SetNumber(KeyStore.Scale, localTransform.Scale);
         this.SetPan(localTransform.TranslateX, localTransform.TranslateY);
     }
 
@@ -139,8 +139,8 @@ export class CollectionFreeFormView extends CollectionViewBase {
     private SetPan(panX: number, panY: number) {
         const newPanX = Math.max((1 - this.zoomScaling) * this.nativeWidth, Math.min(0, panX));
         const newPanY = Math.max((1 - this.zoomScaling) * this.nativeHeight, Math.min(0, panY));
-        this.props.DocumentForCollection.SetNumber(KeyStore.PanX, this.isAnnotationOverlay ? newPanX : panX);
-        this.props.DocumentForCollection.SetNumber(KeyStore.PanY, this.isAnnotationOverlay ? newPanY : panY);
+        this.props.Document.SetNumber(KeyStore.PanX, this.isAnnotationOverlay ? newPanX : panX);
+        this.props.Document.SetNumber(KeyStore.PanY, this.isAnnotationOverlay ? newPanY : panY);
     }
 
     @action
@@ -150,8 +150,8 @@ export class CollectionFreeFormView extends CollectionViewBase {
         let fReader = new FileReader()
         let file = e.dataTransfer.items[0].getAsFile();
         let that = this;
-        const panx: number = this.props.DocumentForCollection.GetNumber(KeyStore.PanX, 0);
-        const pany: number = this.props.DocumentForCollection.GetNumber(KeyStore.PanY, 0);
+        const panx: number = this.props.Document.GetNumber(KeyStore.PanX, 0);
+        const pany: number = this.props.Document.GetNumber(KeyStore.PanY, 0);
         let x = e.pageX - panx
         let y = e.pageY - pany
 
@@ -161,11 +161,11 @@ export class CollectionFreeFormView extends CollectionViewBase {
                 let doc = Documents.ImageDocument(url, {
                     x: x, y: y
                 })
-                let docs = that.props.DocumentForCollection.GetT(KeyStore.Data, ListField);
+                let docs = that.props.Document.GetT(KeyStore.Data, ListField);
                 if (docs != FieldWaiting) {
                     if (!docs) {
                         docs = new ListField<Document>();
-                        that.props.DocumentForCollection.Set(KeyStore.Data, docs)
+                        that.props.Document.Set(KeyStore.Data, docs)
                     }
                     docs.Data.push(doc);
                 }
@@ -182,7 +182,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
     @action
     bringToFront(doc: DocumentView) {
-        const { CollectionFieldKey: fieldKey, DocumentForCollection: Document } = this.props;
+        const { fieldKey: fieldKey, Document: Document } = this.props;
 
         const value: Document[] = Document.GetList<Document>(fieldKey, []);
         var topmost = value.reduce((topmost, d) => Math.max(d.GetNumber(KeyStore.ZIndex, 0), topmost), -1000);
@@ -200,14 +200,14 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
     @computed
     get translate(): [number, number] {
-        const x = this.props.DocumentForCollection.GetNumber(KeyStore.PanX, 0);
-        const y = this.props.DocumentForCollection.GetNumber(KeyStore.PanY, 0);
+        const x = this.props.Document.GetNumber(KeyStore.PanX, 0);
+        const y = this.props.Document.GetNumber(KeyStore.PanY, 0);
         return [x, y];
     }
 
     @computed
     get scale(): number {
-        return this.props.DocumentForCollection.GetNumber(KeyStore.Scale, 1);
+        return this.props.Document.GetNumber(KeyStore.Scale, 1);
     }
 
     getTransform = (): Transform => {
@@ -220,8 +220,8 @@ export class CollectionFreeFormView extends CollectionViewBase {
     }
 
     render() {
-        const Document: Document = this.props.DocumentForCollection;
-        const value: Document[] = Document.GetList<Document>(this.props.CollectionFieldKey, []);
+        const Document: Document = this.props.Document;
+        const value: Document[] = Document.GetList<Document>(this.props.fieldKey, []);
         const panx: number = Document.GetNumber(KeyStore.PanX, 0);
         const pany: number = Document.GetNumber(KeyStore.PanY, 0);
         var me = this;
@@ -249,7 +249,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
                             ScreenToLocalTransform={this.getTransform}
                             isTopMost={false}
                             Scaling={1}
-                            ContainingCollectionView={this} DocumentView={this.props.ContainingDocumentView} />);
+                            ContainingCollectionView={this} />);
                     })}
                 </div>
             </div>
