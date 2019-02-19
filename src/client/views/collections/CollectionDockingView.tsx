@@ -16,6 +16,8 @@ import React = require("react");
 import * as ReactDOM from 'react-dom';
 import Measure from "react-measure";
 import { Utils } from "../../../Utils";
+import { FieldId } from "../../../fields/Field";
+import { Server } from "../../Server";
 
 @observer
 export class CollectionDockingView extends CollectionViewBase {
@@ -24,27 +26,15 @@ export class CollectionDockingView extends CollectionViewBase {
     public static LayoutString() { return CollectionViewBase.LayoutString("CollectionDockingView"); }
     private _containerRef = React.createRef<HTMLDivElement>();
     @computed
-    private get modelForFlexLayout() {
-        const { fieldKey: fieldKey, Document: Document } = this.props;
-        const value: Document[] = Document.GetData(fieldKey, ListField, []);
-        var docs = value.map(doc => {
-            return { type: 'tabset', weight: 50, selected: 0, children: [{ type: "tab", name: doc.Title, component: doc.Id }] };
-        });
-        return FlexLayout.Model.fromJson({
-            global: {}, borders: [],
-            layout: {
-                "type": "row",
-                "weight": 100,
-                "children": docs
-            }
-        });
-    }
-    @computed
     private get modelForGoldenLayout(): GoldenLayout {
+        var json = this.props.Document.GetText(KeyStore.Data, "");
+        if (json != "") {
+            return new GoldenLayout(JSON.parse(json))
+        }
         const { fieldKey: fieldKey, Document: Document } = this.props;
         const value: Document[] = Document.GetData(fieldKey, ListField, []);
         var docs = value.map(doc => {
-            return { type: 'component', componentName: 'documentViewComponent', componentState: { doc: doc, scaling: 1 } };
+            return { type: 'component', componentName: 'documentViewComponent', componentState: { doc: doc.Id, title: doc.Title, scaling: 1 } };
         });
         return new GoldenLayout({
             settings: {
@@ -87,28 +77,6 @@ export class CollectionDockingView extends CollectionViewBase {
         }
     }
 
-    flexLayoutFactory = (node: any): any => {
-        var component = node.getComponent();
-        if (component === "button") {
-            return <button>{node.getName()}</button>;
-        }
-        const { fieldKey: fieldKey, Document: Document } = this.props;
-        const value: Document[] = Document.GetData(fieldKey, ListField, []);
-        for (var i: number = 0; i < value.length; i++) {
-            if (value[i].Id === component) {
-                return (<DocumentView key={value[i].Id} Document={value[i]}
-                    AddDocument={this.addDocument} RemoveDocument={this.removeDocument}
-                    ScreenToLocalTransform={() => Transform.Identity}
-                    isTopMost={true}
-                    Scaling={1}
-                    ContainingCollectionView={this} />);
-            }
-        }
-        if (component === "text") {
-            return (<div className="panel">Panel {node.getName()}</div>);
-        }
-    }
-
     public static myLayout: any = null;
 
     private static _dragDiv: any = null;
@@ -119,7 +87,7 @@ export class CollectionDockingView extends CollectionViewBase {
         var newItemConfig = {
             type: 'component',
             componentName: 'documentViewComponent',
-            componentState: { doc: dragDoc, scaling: 1 }
+            componentState: { doc: dragDoc.Id, title: dragDoc.Title, scaling: 1 }
         };
         this._dragElement = dragElement;
         this._dragParent = dragElement.parentElement;
@@ -149,7 +117,7 @@ export class CollectionDockingView extends CollectionViewBase {
         var newItemConfig = {
             type: 'component',
             componentName: 'documentViewComponent',
-            componentState: { doc: document }
+            componentState: { doc: document.Id, title: document.Title }
         };
         CollectionDockingView.myLayout._makeFullScreen = true;
         CollectionDockingView.myLayout.root.contentItems[0].addChild(newItemConfig);
@@ -167,7 +135,7 @@ export class CollectionDockingView extends CollectionViewBase {
         var newItemConfig = {
             type: 'component',
             componentName: 'documentViewComponent',
-            componentState: { doc: document }
+            componentState: { doc: document.Id, title: document.Title }
         }
         let newItemStackConfig = {
             type: 'stack',
@@ -196,6 +164,8 @@ export class CollectionDockingView extends CollectionViewBase {
             newContentItem.config["width"] = 50;
             collayout.parent.callDownwards('setSize');
         }
+        var state = JSON.stringify(CollectionDockingView.myLayout.toConfig());
+        console.log(state);
     }
     goldenLayoutFactory() {
         CollectionDockingView.myLayout = this.modelForGoldenLayout;
@@ -209,7 +179,7 @@ export class CollectionDockingView extends CollectionViewBase {
                 DragManager.Root().removeChild(CollectionDockingView._dragDiv);
                 CollectionDockingView._dragDiv = null;
             }
-            tab.setTitle(tab.contentItem.config.componentState.doc.Title);
+            tab.setTitle(tab.contentItem.config.componentState.title);
             tab.closeElement.off('click') //unbind the current click handler
                 .click(function () {
                     tab.contentItem.remove();
@@ -244,7 +214,7 @@ export class CollectionDockingView extends CollectionViewBase {
                 if (divContainer) {
                     let props: DockingProps = {
                         ContainingDiv: containingDiv,
-                        Document: state.doc,
+                        DocumentId: state.doc,
                         Container: container,
                         CollectionDockingView: me,
                         HtmlElement: divContainer,
@@ -269,12 +239,6 @@ export class CollectionDockingView extends CollectionViewBase {
         var s = this.props.ContainingDocumentView != undefined ? this.props.ContainingDocumentView!.ScalingToScreenSpace : 1;
         var w = Document.GetNumber(KeyStore.Width, 0) / s;
         var h = Document.GetNumber(KeyStore.Height, 0) / s;
-
-        var chooseLayout = () => {
-            if (!CollectionDockingView.UseGoldenLayout)
-                return <FlexLayout.Layout model={this.modelForFlexLayout} factory={this.flexLayoutFactory} />;
-        }
-
         return (
             <div className="collectiondockingview-container" id="menuContainer"
                 onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()} ref={this._containerRef}
@@ -283,16 +247,14 @@ export class CollectionDockingView extends CollectionViewBase {
                     height: CollectionDockingView.UseGoldenLayout || s > 1 ? "100%" : h - 2 * COLLECTION_BORDER_WIDTH,
                     borderStyle: "solid",
                     borderWidth: `${COLLECTION_BORDER_WIDTH}px`,
-                }} >
-                {chooseLayout()}
-            </div>
+                }} />
         );
     }
 }
 
 interface DockingProps {
     ContainingDiv: string,
-    Document: Document,
+    DocumentId: FieldId,
     Container: any,
     HtmlElement: HTMLElement,
     CollectionDockingView: CollectionDockingView,
@@ -302,11 +264,14 @@ export class RenderClass extends React.Component<DockingProps> {
     @observable
     private _parentScaling = 1; // used to transfer the dimensions of the content pane in the DOM to the ParentScaling prop of the DocumentView
 
+    @computed
+    private get Document() { return Server.GetField(this.props.DocumentId) as Document }
+
     render() {
-        let nativeWidth = this.props.Document.GetNumber(KeyStore.NativeWidth, 0);
-        var layout = this.props.Document.GetText(KeyStore.Layout, "");
+        let nativeWidth = this.Document.GetNumber(KeyStore.NativeWidth, 0);
+        var layout = this.Document.GetText(KeyStore.Layout, "");
         var content =
-            <DocumentView key={this.props.Document.Id} Document={this.props.Document}
+            <DocumentView key={this.Document.Id} Document={this.Document}
                 AddDocument={this.props.CollectionDockingView.addDocument}
                 RemoveDocument={this.props.CollectionDockingView.removeDocument}
                 Scaling={this._parentScaling}
