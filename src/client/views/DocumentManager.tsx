@@ -102,9 +102,9 @@ export class DocumentManager {
                 // XView = (-node.X * scale) + (window.innerWidth / 2) - (node.Width * scale / 2);
                 // YView = (-node.Y * scale) + (window.innerHeight / 2) - (node.Height * scale / 2);
                 // RootStore.Instance.MainNodeCollection.SetViewportXY(XView, YView);
-                scale = docView.props.GetTransform().Scale
-                XView = (-docView.props.GetTransform().TranslateX * scale) + (window.innerWidth / 2) - (width * scale / 2)
-                YView = (-docView.props.GetTransform().TranslateY * scale) + (window.innerHeight / 2) - (height * scale / 2)
+                scale = docView.props.ScreenToLocalTransform().Scale
+                XView = (-docView.props.ScreenToLocalTransform().TranslateX * scale) + (window.innerWidth / 2) - (width * scale / 2)
+                YView = (-docView.props.ScreenToLocalTransform().TranslateY * scale) + (window.innerHeight / 2) - (height * scale / 2)
                 //set x and y view of parent
             }
             //parent is not main, parent is centered and calls itself
@@ -118,19 +118,31 @@ export class DocumentManager {
 
                     let tempView = this.getDocumentView(docView.props.ContainingCollectionView.props.DocumentForCollection)
 
-                    console.log(docView.props.ContainingCollectionView.props.DocumentForCollection.GetNumber(KeyStore.Width, 0))
+                    //console.log(docView.props.ContainingCollectionView.props.DocumentForCollection.GetNumber(KeyStore.NativeWidth, 0))
+
+                    // let parentWidth = docView.props.ContainingCollectionView.props.DocumentForCollection.GetNumber(KeyStore.Width, 0)
+                    // let parentHeight = docView.props.ContainingCollectionView.props.DocumentForCollection.GetNumber(KeyStore.Height, 0)
 
                     let parentWidth = docView.props.ContainingCollectionView.props.DocumentForCollection.GetNumber(KeyStore.Width, 0)
                     let parentHeight = docView.props.ContainingCollectionView.props.DocumentForCollection.GetNumber(KeyStore.Height, 0)
+                    //_htmlElement!.clientWidth
 
-                    console.log("parent width: " + parentWidth + ", parent height: " + parentHeight)
+                    // console.log("window width: " + window.innerWidth + ", window height: " + window.innerHeight)
+                    // console.log("parent width: " + parentWidth + ", parent height: " + parentHeight)
 
 
                     if (tempView != null) {
                         console.log("View is NOT null")
-                        scale = tempView.props.GetTransform().Scale
-                        XView = (-docView.props.GetTransform().TranslateX * scale) + (parentWidth / 2) - (width * scale / 2);
-                        YView = (-docView.props.GetTransform().TranslateY * scale) + (parentHeight / 2) - (height * scale / 2);
+                        scale = tempView.props.ScreenToLocalTransform().Scale
+
+                        parentWidth *= scale
+                        parentHeight *= scale
+
+                        console.log("window width: " + window.innerWidth + ", window height: " + window.innerHeight)
+                        console.log("parent width: " + parentWidth + ", parent height: " + parentHeight)
+
+                        XView = (-docView.props.ScreenToLocalTransform().TranslateX * scale) + (parentWidth / 2) - (width * scale / 2);
+                        YView = (-docView.props.ScreenToLocalTransform().TranslateY * scale) + (parentHeight / 2) - (height * scale / 2);
                         //node.Parent.setViewportXY(XView, YView);
                         this.setViewportXY(docView.props.ContainingCollectionView, XView, YView)
 
@@ -143,7 +155,7 @@ export class DocumentManager {
 
     private setViewportXY(collection: CollectionViewBase, x: number, y: number) {
         if (collection.props.BackgroundView != null) {
-            collection.props.BackgroundView.props.GetTransform().center(x, y)
+            collection.props.ScreenToLocalTransform().center(x, y)
         }
     }
 
