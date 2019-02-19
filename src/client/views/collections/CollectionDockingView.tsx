@@ -94,7 +94,7 @@ export class CollectionDockingView extends CollectionViewBase {
             type: 'stack',
             content: [CollectionDockingView.makeDocumentConfig(document)]
         };
-        var newContentItem = new this._goldenLayout._typeToItem[newItemStackConfig.type](this._goldenLayout, newItemStackConfig, parent);
+        var newContentItem = new this._goldenLayout._typeToItem[newItemStackConfig.type](this._goldenLayout, newItemStackConfig, null);
 
         if (this._goldenLayout.root.contentItems[0].isRow) {
             this._goldenLayout.root.contentItems[0].addChild(newContentItem);
@@ -110,21 +110,21 @@ export class CollectionDockingView extends CollectionViewBase {
             collayout.config["width"] = 50;
             newContentItem.config["width"] = 50;
         }
-        this._forceRecreate = true;
+        this.stateChanged();              // shouldn't need to do either of these ... but our react component doesn't render when we add it manually like this.
+        this.setupGoldenLayout(true);     // this forces it to render by the brute force method of recreating the whole golden layout
     }
 
-    setupGoldenLayout() {
+    setupGoldenLayout(force: boolean = false) {
         var config = this.props.Document.GetText(KeyStore.Data, "");
         if (config) {
             if (!this._goldenLayout)
                 this._goldenLayout = new GoldenLayout(JSON.parse(config));
             else {
-                if (!this._forceRecreate && JSON.stringify(this._goldenLayout.toConfig()) == JSON.stringify(JSON.parse(config)))
+                if (!force && JSON.stringify(this._goldenLayout.toConfig()) == JSON.stringify(JSON.parse(config)))
                     return;
                 this._goldenLayout.destroy();
                 this._goldenLayout = new GoldenLayout(JSON.parse(config));
             }
-            this._forceRecreate = false;
             this._goldenLayout.on('tabCreated', this.tabCreated);
             this._goldenLayout.on('stackCreated', this.stackCreated);
             this._goldenLayout.registerComponent('DocumentFrameRenderer', DockedFrameRenderer);
