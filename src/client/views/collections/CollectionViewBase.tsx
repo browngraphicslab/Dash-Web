@@ -1,22 +1,17 @@
 import { action, computed } from "mobx";
 import { observer } from "mobx-react";
 import { Document } from "../../../fields/Document";
-import { Opt } from "../../../fields/Field";
 import { Key } from "../../../fields/Key";
 import { ListField } from "../../../fields/ListField";
 import { SelectionManager } from "../../util/SelectionManager";
 import { ContextMenu } from "../ContextMenu";
 import React = require("react");
-import { DocumentView } from "../nodes/DocumentView";
-import { CollectionDockingView } from "./CollectionDockingView";
-import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
 import { Transform } from "../../util/Transform";
 
 
 export interface CollectionViewProps {
     fieldKey: Key;
     Document: Document;
-    ContainingDocumentView: Opt<DocumentView>;
     ScreenToLocalTransform: () => Transform;
     isSelected: () => boolean;
     isTopMost: boolean;
@@ -32,12 +27,11 @@ export class CollectionViewBase extends React.Component<CollectionViewProps> {
     public static LayoutString(collectionType: string, fieldKey: string = "DataKey") {
         return `<${collectionType} Document={Document}
                     ScreenToLocalTransform={ScreenToLocalTransform} fieldKey={${fieldKey}} isSelected={isSelected} select={select}
-                    isTopMost={isTopMost}
-                    ContainingDocumentView={DocumentView} BackgroundView={BackgroundView} />`;
+                    isTopMost={isTopMost} BackgroundView={BackgroundView} />`;
     }
     @computed
     public get active(): boolean {
-        var isSelected = (this.props.ContainingDocumentView && SelectionManager.IsSelected(this.props.ContainingDocumentView));
+        var isSelected = this.props.isSelected();
         var childSelected = SelectionManager.SelectedDocuments().some(view => view.props.ContainingCollectionView == this);
         var topMost = this.props.isTopMost;
         return isSelected || childSelected || topMost;

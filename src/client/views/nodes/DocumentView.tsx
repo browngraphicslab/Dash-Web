@@ -278,13 +278,11 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             bindings.BackgroundView = backgroundView;
         }
 
-        bindings.DocumentView = this;
-
         var width = this.props.Document.GetNumber(KeyStore.NativeWidth, 0);
         var strwidth = width > 0 ? width.toString() + "px" : "100%";
         var height = this.props.Document.GetNumber(KeyStore.NativeHeight, 0);
         var strheight = height > 0 ? height.toString() + "px" : "100%";
-        var scaling = this.props.Scaling;// this.props.ScreenToLocalTransform().Scale;
+        var scaling = this.props.Scaling;
         return (
             <div className="documentView-node" ref={this._mainCont} style={{ width: strwidth, height: strheight, transformOrigin: "left top", transform: `scale(${scaling},${scaling})` }}
                 onContextMenu={this.onContextMenu}
