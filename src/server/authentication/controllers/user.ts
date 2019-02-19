@@ -35,6 +35,7 @@ export let postSignup = (req: Request, res: Response, next: NextFunction) => {
 
     if (errors) {
         req.flash("errors", "Unable to facilitate sign up. Please try again.");
+        console.log(errors.toString());
         return res.redirect("/signup");
     }
 
@@ -46,6 +47,7 @@ export let postSignup = (req: Request, res: Response, next: NextFunction) => {
     User.findOne({ email: req.body.email }, (err, existingUser) => {
         if (err) { return next(err); }
         if (existingUser) {
+            console.log("GAAAAHHHHHHH!");
             req.flash("errors", "Account with that email address already exists.");
             return res.redirect("/signup");
         }
@@ -55,6 +57,7 @@ export let postSignup = (req: Request, res: Response, next: NextFunction) => {
                 if (err) {
                     return next(err);
                 }
+                console.log("WE IN!");
                 res.redirect("/");
             });
         });
