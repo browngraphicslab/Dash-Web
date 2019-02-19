@@ -28,8 +28,7 @@ export class CollectionDockingView extends CollectionViewBase {
             component: 'DocumentFrameRenderer',
             title: document.Title,
             props: {
-                documentId: document.Id,
-                CollectionDockingView: CollectionDockingView.Instance,
+                documentId: document.Id
             }
         }
     }
@@ -210,7 +209,6 @@ export class CollectionDockingView extends CollectionViewBase {
 
 interface DockedFrameProps {
     documentId: FieldId,
-    CollectionDockingView: CollectionDockingView,
 }
 @observer
 export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
@@ -224,7 +222,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     private _parentScaling = 1; // used to transfer the dimensions of the content pane in the DOM to the ParentScaling prop of the DocumentView
 
     @computed
-    private get Document() { return Server.GetField(this.props.documentId) as Document }
+    private get Document() { return Server.GetField(this.props.documentId, () => { }) as Document }
 
     render() {
         let nativeWidth = this.Document.GetNumber(KeyStore.NativeWidth, 0);
@@ -237,11 +235,11 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
                     Scaling={this._parentScaling}
                     ScreenToLocalTransform={() => {
                         let { scale, translateX, translateY } = Utils.GetScreenTransform(this._mainCont.current!);
-                        var props = this.props.CollectionDockingView ? this.props.CollectionDockingView.props : CollectionDockingView.Instance.props;
+                        var props = CollectionDockingView.Instance.props;
                         return props.ScreenToLocalTransform().translate(-translateX, -translateY).scale(scale / this._parentScaling)
                     }}
                     isTopMost={true}
-                    ContainingCollectionView={this.props.CollectionDockingView} />
+                    ContainingCollectionView={undefined} />
             </div>
 
         if (nativeWidth > 0 &&
