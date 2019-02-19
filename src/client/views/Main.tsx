@@ -1,4 +1,4 @@
-import { action, configure } from 'mobx';
+import { action, configure, reaction, computed } from 'mobx';
 import "normalize.css";
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
@@ -14,17 +14,13 @@ import { Utils } from '../../Utils';
 import { ServerUtils } from '../../server/ServerUtil';
 import { MessageStore, DocumentTransfer } from '../../server/Message';
 import { Transform } from '../util/Transform';
+import { CollectionDockingView } from './collections/CollectionDockingView';
+import { FieldWaiting } from '../../fields/Field';
 
 
 configure({
     enforceActions: "observed"
 });
-
-// const mainNodeCollection = new Array<Document>();
-// let mainContainer = Documents.DockDocument(mainNodeCollection, {
-//     x: 0, y: 0, title: "main container"
-// })
-
 window.addEventListener("drop", function (e) {
     e.preventDefault();
 }, false)
@@ -61,29 +57,40 @@ Documents.initProtos(() => {
         console.log("HELLO WORLD")
         console.log("RESPONSE: " + res)
         let mainContainer: Document;
+        let mainfreeform: Document;
         if (res) {
-            let obj = ServerUtils.FromJson(res) as Document
-            mainContainer = obj
+            mainContainer = ServerUtils.FromJson(res) as Document;
+            var mainfreeformid = mainContainer._proxies.get(KeyStore.ActiveFrame.Id)!;
+            Server.GetField(mainfreeformid, (field) => {
+                if (field) {
+                    mainfreeform = field as Document;
+                }
+            })
+            mainfreeform = mainContainer.Get(KeyStore.ActiveFrame) as Document;
         }
         else {
-            const docset: Document[] = [];
-            mainContainer = Documents.CollectionDocument(docset, { x: 0, y: 400, title: "mini collection" }, mainDocId);
-            let args = new DocumentTransfer(mainContainer.ToJson())
-            Utils.Emit(Server.Socket, MessageStore.AddDocument, args)
+            mainfreeform = Documents.CollectionDocument([], { x: 0, y: 400, title: "mini collection" });
+            Utils.Emit(Server.Socket, MessageStore.AddDocument, new DocumentTransfer(mainfreeform.ToJson()));
+
+            var docs = [mainfreeform].map(doc => CollectionDockingView.makeDocumentConfig(doc));
+            var config = { settings: { selectionEnabled: false }, content: [{ type: 'row', content: docs }] };
+            mainContainer = Documents.DockDocument(JSON.stringify(config), { title: "main container" }, mainDocId);
+            Utils.Emit(Server.Socket, MessageStore.AddDocument, new DocumentTransfer(mainContainer.ToJson()))
+            mainContainer.Set(KeyStore.ActiveFrame, mainfreeform);
         }
 
         let addImageNode = action(() => {
-            mainContainer.GetList<Document>(KeyStore.Data, []).push(Documents.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", {
+            mainfreeform.GetList<Document>(KeyStore.Data, []).push(Documents.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", {
                 x: 0, y: 300, width: 200, height: 200, title: "added note"
             }));
         })
         let addTextNode = action(() => {
-            mainContainer.GetList<Document>(KeyStore.Data, []).push(Documents.TextDocument({
+            mainfreeform.GetList<Document>(KeyStore.Data, []).push(Documents.TextDocument({
                 x: 0, y: 300, width: 200, height: 200, title: "added note"
             }));
         })
         let addColNode = action(() => {
-            mainContainer.GetList<Document>(KeyStore.Data, []).push(Documents.CollectionDocument([], {
+            mainfreeform.GetList<Document>(KeyStore.Data, []).push(Documents.CollectionDocument([], {
                 x: 0, y: 300, width: 200, height: 200, title: "added note"
             }));
         })

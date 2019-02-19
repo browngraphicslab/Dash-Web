@@ -121,10 +121,10 @@ export namespace Documents {
         return dockProto;
     }
 
-    export function DockDocument(documents: Array<Document>, options: DocumentOptions = {}): Document {
-        let doc = GetDockPrototype().MakeDelegate();
+    export function DockDocument(config: string, options: DocumentOptions = {}, id?: string): Document {
+        let doc = GetDockPrototype().MakeDelegate(id);
         setupOptions(doc, options);
-        doc.Set(KeyStore.Data, new ListField(documents));
+        doc.SetText(KeyStore.Data, config);
         return doc;
     }
 
