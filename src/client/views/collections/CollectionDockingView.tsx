@@ -43,8 +43,7 @@ export class CollectionDockingView extends CollectionViewBase {
     private _containerRef = React.createRef<HTMLDivElement>();
     private _makeFullScreen: boolean = false;
     private _maximizedStack: any = null;
-    private _pointerIsDown = false; // used to defer updating the document's layout state Data
-    private _deferredLayoutChange = ""; // the last deferred state change made that needs to be flushed on pointer up
+    private _forceRecreate: boolean = false;
 
     constructor(props: CollectionViewProps) {
         super(props);
@@ -99,6 +98,7 @@ export class CollectionDockingView extends CollectionViewBase {
 
         if (this._goldenLayout.root.contentItems[0].isRow) {
             this._goldenLayout.root.contentItems[0].addChild(newContentItem);
+            collayout.callDownwards('setSize');
         }
         else {
             var collayout = this._goldenLayout.root.contentItems[0];
@@ -112,6 +112,7 @@ export class CollectionDockingView extends CollectionViewBase {
             newContentItem.config["width"] = 50;
             collayout.parent.callDownwards('setSize');
         }
+        this._forceRecreate = true;
     }
 
     setupGoldenLayout() {
@@ -120,9 +121,12 @@ export class CollectionDockingView extends CollectionViewBase {
             if (!this._goldenLayout)
                 this._goldenLayout = new GoldenLayout(JSON.parse(config));
             else {
+                if (!this._forceRecreate && JSON.stringify(this._goldenLayout.toConfig()) == JSON.stringify(JSON.parse(config)))
+                    return;
                 this._goldenLayout.destroy();
                 this._goldenLayout = new GoldenLayout(JSON.parse(config));
             }
+            this._forceRecreate = false;
             this._goldenLayout.on('tabCreated', this.tabCreated);
             this._goldenLayout.on('stackCreated', this.stackCreated);
             this._goldenLayout.registerComponent('DocumentFrameRenderer', DockedFrameRenderer);
@@ -152,14 +156,7 @@ export class CollectionDockingView extends CollectionViewBase {
     }
 
     @action
-    onPointerUp = (e: PointerEvent): void => {
-        window.removeEventListener("pointerup", this.onPointerUp)
-        this._pointerIsDown = false;
-    }
-    @action
     onPointerDown = (e: React.PointerEvent): void => {
-        window.addEventListener("pointerup", this.onPointerUp)
-        this._pointerIsDown = true;
         if (e.button === 2 && this.active) {
             e.stopPropagation();
             e.preventDefault();
@@ -171,10 +168,10 @@ export class CollectionDockingView extends CollectionViewBase {
     }
 
     stateChanged = () => {
-        if (!this._pointerIsDown) {
-            var json = JSON.stringify(this._goldenLayout.toConfig());
-            this.props.Document.SetText(KeyStore.Data, json)
-        }
+        // if (!this._pointerIsDown) {
+        var json = JSON.stringify(this._goldenLayout.toConfig());
+        this.props.Document.SetText(KeyStore.Data, json)
+        //}
     }
 
     tabCreated = (tab: any) => {
