@@ -238,7 +238,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
                     ScreenToLocalTransform={() => {
                         let { scale, translateX, translateY } = Utils.GetScreenTransform(this._mainCont.current!);
                         var props = this.props.CollectionDockingView ? this.props.CollectionDockingView.props : CollectionDockingView.Instance.props;
-                        return props.ScreenToLocalTransform().translate(-translateX, -translateY).scale(scale)
+                        return props.ScreenToLocalTransform().translate(-translateX, -translateY).scale(scale / this._parentScaling)
                     }}
                     isTopMost={true}
                     ContainingCollectionView={this.props.CollectionDockingView} />
