@@ -1,9 +1,9 @@
 import { BasicField } from "./BasicField"
-import { FIELD_ID } from "./Field";
+import { FieldId } from "./Field";
 import { Types } from "../server/Message";
 
 export class TextField extends BasicField<string> {
-    constructor(data: string = "", id: FIELD_ID = undefined, save: boolean = true) {
+    constructor(data: string = "", id?: FieldId, save: boolean = true) {
         super(data, save, id);
     }
 

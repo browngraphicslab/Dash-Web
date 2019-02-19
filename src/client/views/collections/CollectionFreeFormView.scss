@@ -1,4 +1,6 @@
 .collectionfreeformview-container {
+    border-style: solid;
+    box-sizing: border-box;
     position: relative;
     top: 0;
     left: 0;
@@ -10,11 +12,4 @@
         top: 0;
         left: 0;
     }
-}
-
-.border {
-    border-style: solid;
-    box-sizing: border-box;
-    width: 100%;
-    height: 100%;
 }

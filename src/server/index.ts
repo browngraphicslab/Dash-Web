@@ -10,7 +10,7 @@ import { Client } from './Client';
 import { Socket } from 'socket.io';
 import { Utils } from '../Utils';
 import { ObservableMap } from 'mobx';
-import { FIELD_ID, Field } from '../fields/Field';
+import { FieldId, Field } from '../fields/Field';
 import { Database } from './database';
 import { ServerUtils } from './ServerUtil';
 import { ObjectID } from 'mongodb';
@@ -68,7 +68,7 @@ app.post("/signup", postSignup);
 app.get("/login", getLogin);
 app.post("/login", postLogin);
 
-let FieldStore: ObservableMap<FIELD_ID, Field> = new ObservableMap();
+let FieldStore: ObservableMap<FieldId, Field> = new ObservableMap();
 
 // define a route handler for the default home page
 app.get("/", (req, res) => {
