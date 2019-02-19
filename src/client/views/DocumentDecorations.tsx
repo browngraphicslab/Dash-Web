@@ -127,16 +127,14 @@ export class DocumentDecorations extends React.Component {
                 let width = doc.GetOrCreate(KeyStore.Width, NumberField);
                 let height = doc.GetOrCreate(KeyStore.Height, NumberField);
                 let x = doc.GetOrCreate(KeyStore.X, NumberField);
-                let y = doc.GetOrCreate(KeyStore.X, NumberField);
+                let y = doc.GetOrCreate(KeyStore.Y, NumberField);
                 let scale = width.Data / rect.width;
                 let actualdW = Math.max(width.Data + (dW * scale), 20);
                 let actualdH = Math.max(height.Data + (dH * scale), 20);
                 x.Data += dX * (actualdW - width.Data);
                 y.Data += dY * (actualdH - height.Data);
-                if (Math.abs(dW) > Math.abs(dH))
-                    width.Data = actualdW;
-                else
-                    height.Data = actualdH;
+                width.Data = actualdW;
+                height.Data = actualdH;
             }
         })
     }
