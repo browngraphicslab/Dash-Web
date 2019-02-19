@@ -1,7 +1,7 @@
 import * as GoldenLayout from "golden-layout";
 import 'golden-layout/src/css/goldenlayout-base.css';
 import 'golden-layout/src/css/goldenlayout-dark-theme.css';
-import { action, computed, observable, reaction } from "mobx";
+import { action, computed, observable, reaction, trace } from "mobx";
 import { DragManager } from "../../util/DragManager";
 import { DocumentView } from "../nodes/DocumentView";
 import { Document } from "../../../fields/Document";
@@ -43,6 +43,8 @@ export class CollectionDockingView extends CollectionViewBase {
     private _containerRef = React.createRef<HTMLDivElement>();
     private _makeFullScreen: boolean = false;
     private _maximizedStack: any = null;
+    private _pointerIsDown = false; // used to defer updating the document's layout state Data
+    private _deferredLayoutChange = ""; // the last deferred state change made that needs to be flushed on pointer up
 
     constructor(props: CollectionViewProps) {
         super(props);
@@ -131,13 +133,9 @@ export class CollectionDockingView extends CollectionViewBase {
     }
     componentDidMount: () => void = () => {
         if (this._containerRef.current) {
-            reaction(() => {
-                if (this.props.Document.Get(KeyStore.Data) as TextField) {
-                    return [(this.props.Document.Get(KeyStore.Data) as TextField).Data];
-                }
-                return [this.props.Document.Get(KeyStore.Data)];
-            }, () => this.setupGoldenLayout()); // should only react once when the Data field is retrieved from the sever .. after that, changes to the Data field will not trigger this reaction.
-            this.setupGoldenLayout();
+            reaction(
+                () => this.props.Document.GetText(KeyStore.Data, ""),
+                () => this.setupGoldenLayout(), { fireImmediately: true });
 
             window.addEventListener('resize', this.onResize); // bcz: would rather add this event to the parent node, but resize events only come from Window
         }
@@ -147,14 +145,21 @@ export class CollectionDockingView extends CollectionViewBase {
     }
     @action
     onResize = (event: any) => {
-        var cur = this.props.ContainingDocumentView!.MainContent.current;
+        var cur = this._containerRef.current;
 
         // bcz: since GoldenLayout isn't a React component itself, we need to notify it to resize when its document container's size has changed
         this._goldenLayout.updateSize(cur!.getBoundingClientRect().width, cur!.getBoundingClientRect().height);
     }
 
     @action
+    onPointerUp = (e: PointerEvent): void => {
+        window.removeEventListener("pointerup", this.onPointerUp)
+        this._pointerIsDown = false;
+    }
+    @action
     onPointerDown = (e: React.PointerEvent): void => {
+        window.addEventListener("pointerup", this.onPointerUp)
+        this._pointerIsDown = true;
         if (e.button === 2 && this.active) {
             e.stopPropagation();
             e.preventDefault();
@@ -166,8 +171,10 @@ export class CollectionDockingView extends CollectionViewBase {
     }
 
     stateChanged = () => {
-        var json = JSON.stringify(this._goldenLayout.toConfig());
-        this.props.Document.SetText(KeyStore.Data, json)
+        if (!this._pointerIsDown) {
+            var json = JSON.stringify(this._goldenLayout.toConfig());
+            this.props.Document.SetText(KeyStore.Data, json)
+        }
     }
 
     tabCreated = (tab: any) => {
@@ -202,13 +209,8 @@ export class CollectionDockingView extends CollectionViewBase {
 
 
     render() {
-        const { fieldKey: fieldKey, Document: Document } = this.props;
-        const value: Document[] = Document.GetData(fieldKey, ListField, []);
-        // bcz: not sure why, but I need these to force the flexlayout to update when the collection size changes.
-        // tfs: we should be able to use this.props.ScreenToLocalTransform to get s right?
-        var s = this.props.ContainingDocumentView != undefined ? this.props.ContainingDocumentView!.ScalingToScreenSpace : 1;
-        var w = Document.GetNumber(KeyStore.Width, 0) / s;
-        var h = Document.GetNumber(KeyStore.Height, 0) / s;
+        this.props.Document.GetNumber(KeyStore.Width, 0); // bcz: needed to force render when window size changes
+        this.props.Document.GetNumber(KeyStore.Height, 0);
         return (
             <div className="collectiondockingview-container" id="menuContainer"
                 onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()} ref={this._containerRef}
