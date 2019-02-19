@@ -37,7 +37,7 @@ export class CollectionViewBase extends React.Component<CollectionViewProps> {
     }
     @computed
     public get active(): boolean {
-        var isSelected = (this.props.ContainingDocumentView instanceof CollectionFreeFormDocumentView && SelectionManager.IsSelected(this.props.ContainingDocumentView));
+        var isSelected = (this.props.ContainingDocumentView && SelectionManager.IsSelected(this.props.ContainingDocumentView));
         var childSelected = SelectionManager.SelectedDocuments().some(view => view.props.ContainingCollectionView == this);
         var topMost = this.props.isTopMost;
         return isSelected || childSelected || topMost;
