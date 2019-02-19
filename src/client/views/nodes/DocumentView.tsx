@@ -22,7 +22,6 @@ const JsxParser = require('react-jsx-parser').default;//TODO Why does this need 
 
 export interface DocumentViewProps {
     ContainingCollectionView: Opt<CollectionViewBase>;
-
     Document: Document;
     AddDocument?: (doc: Document) => void;
     RemoveDocument?: (doc: Document) => boolean;
@@ -151,6 +150,11 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             this.props.RemoveDocument(this.props.Document);
         }
     }
+
+    fieldsClicked = (e: React.MouseEvent): void => {
+        //TODO: open kvp
+    }
+
     @action
     fullScreenClicked = (e: React.MouseEvent): void => {
         CollectionDockingView.Instance.OpenFullScreen(this.props.Document);
@@ -190,6 +194,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             ContextMenu.Instance.addItem({ description: "Full Screen", event: this.fullScreenClicked })
             ContextMenu.Instance.addItem({ description: "Open Right", event: this.openRight })
             ContextMenu.Instance.addItem({ description: "Delete", event: this.deleteClicked })
+            ContextMenu.Instance.addItem({ description: "Fields", event: this.fieldsClicked })
             ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15)
             SelectionManager.SelectDoc(this, e.ctrlKey);
         }
