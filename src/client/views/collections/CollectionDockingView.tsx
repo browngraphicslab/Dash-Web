@@ -15,6 +15,7 @@ import { CollectionViewBase, CollectionViewProps, COLLECTION_BORDER_WIDTH } from
 import React = require("react");
 import * as ReactDOM from 'react-dom';
 import Measure from "react-measure";
+import { Utils } from "../../../Utils";
 
 @observer
 export class CollectionDockingView extends CollectionViewBase {
@@ -97,8 +98,9 @@ export class CollectionDockingView extends CollectionViewBase {
             if (value[i].Id === component) {
                 return (<DocumentView key={value[i].Id} Document={value[i]}
                     AddDocument={this.addDocument} RemoveDocument={this.removeDocument}
-                    GetTransform={() => Transform.Identity}
-                    ParentScaling={1}
+                    ScreenToLocalTransform={() => Transform.Identity}
+                    isTopMost={true}
+                    Scaling={1}
                     ContainingCollectionView={this} DocumentView={undefined} />);
             }
         }
@@ -238,14 +240,14 @@ export class CollectionDockingView extends CollectionViewBase {
             var containingDiv = "component_" + me.nextId();
             container.getElement().html("<div id='" + containingDiv + "'></div>");
             setTimeout(function () {
-                let divContainer = document.getElementById(containingDiv);
+                let divContainer = document.getElementById(containingDiv) as HTMLDivElement;
                 if (divContainer) {
                     let props: DockingProps = {
                         ContainingDiv: containingDiv,
                         Document: state.doc,
                         Container: container,
                         CollectionDockingView: me,
-                        HtmlElement: divContainer
+                        HtmlElement: divContainer,
                     }
                     ReactDOM.render((<RenderClass {...props} />), divContainer);
                     if (CollectionDockingView.myLayout._maxstack) {
@@ -292,7 +294,7 @@ interface DockingProps {
     Document: Document,
     Container: any,
     HtmlElement: HTMLElement,
-    CollectionDockingView: CollectionDockingView
+    CollectionDockingView: CollectionDockingView,
 }
 @observer
 export class RenderClass extends React.Component<DockingProps> {
@@ -306,8 +308,12 @@ export class RenderClass extends React.Component<DockingProps> {
             <DocumentView key={this.props.Document.Id} Document={this.props.Document}
                 AddDocument={this.props.CollectionDockingView.addDocument}
                 RemoveDocument={this.props.CollectionDockingView.removeDocument}
-                GetTransform={() => Transform.Identity}
-                ParentScaling={this._parentScaling}
+                Scaling={this._parentScaling}
+                ScreenToLocalTransform={() => {
+                    let { scale, translateX, translateY } = Utils.GetScreenTransform(this.props.HtmlElement);
+                    return this.props.CollectionDockingView.props.ScreenToLocalTransform().translate(-translateX, -translateY).scale(scale)
+                }}
+                isTopMost={true}
                 ContainingCollectionView={this.props.CollectionDockingView} DocumentView={undefined} />
 
         if (nativeWidth > 0 && (layout.indexOf("CollectionFreeForm") == -1 || layout.indexOf("AnnotationsKey") != -1)) {

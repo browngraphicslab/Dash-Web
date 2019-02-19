@@ -5,6 +5,7 @@ import { observer } from "mobx-react";
 import './DocumentDecorations.scss'
 import { CollectionFreeFormView } from "./collections/CollectionFreeFormView";
 import { KeyStore } from '../../fields/Key'
+import { NumberField } from "../../fields/NumberField";
 
 @observer
 export class DocumentDecorations extends React.Component {
@@ -26,11 +27,15 @@ export class DocumentDecorations extends React.Component {
                 !(element.props.ContainingCollectionView instanceof CollectionFreeFormView)) {
                 return bounds;
             }
-            var spt = element.TransformToScreenPoint(0, 0);
-            var bpt = element.TransformToScreenPoint(element.width, element.height);
+            let transform = element.props.ScreenToLocalTransform().inverse();
+            var [sptX, sptY] = transform.transformPoint(0, 0);
+            // var [bptX, bptY] = transform.transformDirection(element.width, element.height);
+            let doc = element.props.Document;
+            let [bptX, bptY] = [doc.GetNumber(KeyStore.Width, 0), doc.GetNumber(KeyStore.Height, 0)];
+            [bptX, bptY] = transform.transformPoint(bptX, bptY);
             return {
-                x: Math.min(spt.ScreenX, bounds.x), y: Math.min(spt.ScreenY, bounds.y),
-                r: Math.max(bpt.ScreenX, bounds.r), b: Math.max(bpt.ScreenY, bounds.b)
+                x: Math.min(sptX, bounds.x), y: Math.min(sptY, bounds.y),
+                r: Math.max(bptX, bounds.r), b: Math.max(bptY, bounds.b)
             }
         }, { x: Number.MAX_VALUE, y: Number.MAX_VALUE, r: Number.MIN_VALUE, b: Number.MIN_VALUE });
     }
@@ -106,16 +111,32 @@ export class DocumentDecorations extends React.Component {
 
         SelectionManager.SelectedDocuments().forEach(element => {
             const rect = element.screenRect;
+            // if (rect.width !== 0) {
+            //     let scale = element.width / rect.width;
+            //     let actualdW = Math.max(element.width + (dW * scale), 20);
+            //     let actualdH = Math.max(element.height + (dH * scale), 20);
+            //     element.x += dX * (actualdW - element.width);
+            //     element.y += dY * (actualdH - element.height);
+            //     if (Math.abs(dW) > Math.abs(dH))
+            //         element.width = actualdW;
+            //     else
+            //         element.height = actualdH;
+            // }
             if (rect.width !== 0) {
-                let scale = element.width / rect.width;
-                let actualdW = Math.max(element.width + (dW * scale), 20);
-                let actualdH = Math.max(element.height + (dH * scale), 20);
-                element.props.Document.SetNumber(KeyStore.X, element.props.Document.GetNumber(KeyStore.X, 0) + dX * (actualdW - element.width));
-                element.props.Document.SetNumber(KeyStore.Y, element.props.Document.GetNumber(KeyStore.Y, 0) + dY * (actualdH - element.height));
+                let doc = element.props.Document;
+                let width = doc.GetOrCreate(KeyStore.Width, NumberField);
+                let height = doc.GetOrCreate(KeyStore.Height, NumberField);
+                let x = doc.GetOrCreate(KeyStore.X, NumberField);
+                let y = doc.GetOrCreate(KeyStore.X, NumberField);
+                let scale = width.Data / rect.width;
+                let actualdW = Math.max(width.Data + (dW * scale), 20);
+                let actualdH = Math.max(height.Data + (dH * scale), 20);
+                x.Data += dX * (actualdW - width.Data);
+                y.Data += dY * (actualdH - height.Data);
                 if (Math.abs(dW) > Math.abs(dH))
-                    element.width = actualdW;
+                    width.Data = actualdW;
                 else
-                    element.height = actualdH;
+                    height.Data = actualdH;
             }
         })
     }
