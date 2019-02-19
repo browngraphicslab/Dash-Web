@@ -16,7 +16,7 @@ export class Server {
     // Retrieves the cached value of the field and sends a request to the server for the real value (if it's not cached).
     // Call this is from within a reaction and test whether the return value is FieldWaiting.
     // 'hackTimeout' is here temporarily for simplicity when debugging things.
-    public static GetField(fieldid: FieldId, callback: (field: Opt<Field>) => void): void {
+    public static GetField(fieldid: FieldId, callback: (field: Opt<Field>) => void): Opt<Field> | FIELD_WAITING {
         let cached = this.ClientFieldsCached.get(fieldid);
         if (!cached) {
             this.ClientFieldsCached.set(fieldid, FieldWaiting);
@@ -45,6 +45,7 @@ export class Server {
                 }
             })
         }
+        return cached;
     }
 
     public static GetFields(fieldIds: FieldId[], callback: (fields: { [id: string]: Field }) => any) {
