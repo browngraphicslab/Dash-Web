@@ -4,18 +4,17 @@ import 'golden-layout/src/css/goldenlayout-base.css';
 import 'golden-layout/src/css/goldenlayout-dark-theme.css';
 import { action, computed, reaction, observable } from "mobx";
 import { observer } from "mobx-react";
-import * as ReactDOM from 'react-dom';
 import { Document } from "../../../fields/Document";
 import { KeyStore } from "../../../fields/Key";
 import { ListField } from "../../../fields/ListField";
-import { NumberField } from "../../../fields/NumberField";
 import { DragManager } from "../../util/DragManager";
 import { Transform } from "../../util/Transform";
 import { DocumentView } from "../nodes/DocumentView";
 import "./CollectionDockingView.scss";
 import { CollectionViewBase, CollectionViewProps, COLLECTION_BORDER_WIDTH } from "./CollectionViewBase";
 import React = require("react");
-import { changeDependenciesStateTo0 } from "mobx/lib/internal";
+import * as ReactDOM from 'react-dom';
+import Measure from "react-measure";
 import { Utils } from "../../../Utils";
 
 @observer
@@ -68,7 +67,6 @@ export class CollectionDockingView extends CollectionViewBase {
     }
     private nextId = (function () { var _next_id = 0; return function () { return _next_id++; } })();
 
-
     @action
     onResize = (event: any) => {
         var cur = this.props.ContainingDocumentView!.MainContent.current;
@@ -100,7 +98,7 @@ export class CollectionDockingView extends CollectionViewBase {
             if (value[i].Id === component) {
                 return (<DocumentView key={value[i].Id} Document={value[i]}
                     AddDocument={this.addDocument} RemoveDocument={this.removeDocument}
-                    GetTransform={() => Transform.Identity}
+                    ScreenToLocalTransform={() => Transform.Identity}
                     isTopMost={true}
                     Scaling={1}
                     ContainingCollectionView={this} DocumentView={undefined} />);
@@ -113,7 +111,6 @@ export class CollectionDockingView extends CollectionViewBase {
 
     public static myLayout: any = null;
 
-    public rcs: Array<RenderClass> = new Array();
     private static _dragDiv: any = null;
     private static _dragParent: HTMLElement | null = null;
     private static _dragElement: HTMLDivElement;
@@ -244,10 +241,19 @@ export class CollectionDockingView extends CollectionViewBase {
             var containingDiv = "component_" + me.nextId();
             container.getElement().html("<div id='" + containingDiv + "'></div>");
             setTimeout(function () {
-                state.rc = new RenderClass(containingDiv, state.doc, me, container);
-                me.rcs.push(state.rc);
-                if (CollectionDockingView.myLayout._maxstack != null) {
-                    CollectionDockingView.myLayout._maxstack.click();
+                let divContainer = document.getElementById(containingDiv) as HTMLDivElement;
+                if (divContainer) {
+                    let props: DockingProps = {
+                        ContainingDiv: containingDiv,
+                        Document: state.doc,
+                        Container: container,
+                        CollectionDockingView: me,
+                        HtmlElement: divContainer,
+                    }
+                    ReactDOM.render((<RenderClass {...props} />), divContainer);
+                    if (CollectionDockingView.myLayout._maxstack) {
+                        CollectionDockingView.myLayout._maxstack.click();
+                    }
                 }
             }, 0);
         });
@@ -261,8 +267,8 @@ export class CollectionDockingView extends CollectionViewBase {
         const value: Document[] = Document.GetData(fieldKey, ListField, []);
         // bcz: not sure why, but I need these to force the flexlayout to update when the collection size changes.
         var s = this.props.ContainingDocumentView != undefined ? this.props.ContainingDocumentView!.ScalingToScreenSpace : 1;
-        var w = Document.GetData(KeyStore.Width, NumberField, Number(0)) / s;
-        var h = Document.GetData(KeyStore.Height, NumberField, Number(0)) / s;
+        var w = Document.GetNumber(KeyStore.Width, 0) / s;
+        var h = Document.GetNumber(KeyStore.Height, 0) / s;
 
         var chooseLayout = () => {
             if (!CollectionDockingView.UseGoldenLayout)
@@ -270,60 +276,54 @@ export class CollectionDockingView extends CollectionViewBase {
         }
 
         return (
-            <div className="border" style={{
-                borderStyle: "solid",
-                borderWidth: `${COLLECTION_BORDER_WIDTH}px`,
-            }}>
-                <div className="collectiondockingview-container" id="menuContainer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()} ref={this._containerRef}
-                    style={{
-                        width: CollectionDockingView.UseGoldenLayout || s > 1 ? "100%" : w - 2 * COLLECTION_BORDER_WIDTH,
-                        height: CollectionDockingView.UseGoldenLayout || s > 1 ? "100%" : h - 2 * COLLECTION_BORDER_WIDTH
-                    }} >
-                    {chooseLayout()}
-                </div>
+            <div className="collectiondockingview-container" id="menuContainer"
+                onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()} ref={this._containerRef}
+                style={{
+                    width: CollectionDockingView.UseGoldenLayout || s > 1 ? "100%" : w - 2 * COLLECTION_BORDER_WIDTH,
+                    height: CollectionDockingView.UseGoldenLayout || s > 1 ? "100%" : h - 2 * COLLECTION_BORDER_WIDTH,
+                    borderStyle: "solid",
+                    borderWidth: `${COLLECTION_BORDER_WIDTH}px`,
+                }} >
+                {chooseLayout()}
             </div>
         );
     }
 }
 
-class RenderClass {
+interface DockingProps {
+    ContainingDiv: string,
+    Document: Document,
+    Container: any,
+    HtmlElement: HTMLElement,
+    CollectionDockingView: CollectionDockingView,
+}
+@observer
+export class RenderClass extends React.Component<DockingProps> {
+    @observable
+    private _parentScaling = 1; // used to transfer the dimensions of the content pane in the DOM to the ParentScaling prop of the DocumentView
 
-    @observable _resizeCount: number = 0;
-
-    _collectionDockingView: CollectionDockingView;
-    _htmlElement: any;
-    _document: Document;
-    constructor(containingDiv: string, doc: Document, me: CollectionDockingView, container: any) {
-        this._collectionDockingView = me;
-        this._htmlElement = document.getElementById(containingDiv);
-        this._document = doc;
-        container.on('resize', action((e: any) => {
-            var nativeWidth = doc.GetNumber(KeyStore.NativeWidth, 0);
-            if (this._htmlElement != null && this._htmlElement.childElementCount > 0 && nativeWidth > 0) {
-                let scaling = nativeWidth > 0 ? this._htmlElement!.clientWidth / nativeWidth : 1;
-                (this._htmlElement!.children[0] as any).style.transformOrigin = "0px 0px";
-                (this._htmlElement!.children[0] as any).style.transform = `translate(0px,0px)  scale(${scaling}, ${scaling}) `;
-                (this._htmlElement!.children[0] as any).style.width = nativeWidth.toString() + "px";
-            }
-        }));
-
-        this.render();
-    }
     render() {
-        let nativeWidth = this._document.GetNumber(KeyStore.NativeWidth, 0);
-        let scaling = nativeWidth > 0 ? this._htmlElement!.clientWidth / nativeWidth : 1;
-        ReactDOM.render((
-            <DocumentView key={this._document.Id} Document={this._document}
-                AddDocument={this._collectionDockingView.addDocument} RemoveDocument={this._collectionDockingView.removeDocument}
-                GetTransform={() => {
-                    let { scale, translateX, translateY } = Utils.GetScreenTransform(this._htmlElement);
-                    return this._collectionDockingView.props.GetTransform().scale(scale).translate(-translateX, -translateY)
+        let nativeWidth = this.props.Document.GetNumber(KeyStore.NativeWidth, 0);
+        var layout = this.props.Document.GetText(KeyStore.Layout, "");
+        var content =
+            <DocumentView key={this.props.Document.Id} Document={this.props.Document}
+                AddDocument={this.props.CollectionDockingView.addDocument}
+                RemoveDocument={this.props.CollectionDockingView.removeDocument}
+                Scaling={this._parentScaling}
+                ScreenToLocalTransform={() => {
+                    let { scale, translateX, translateY } = Utils.GetScreenTransform(this.props.HtmlElement);
+                    return this.props.CollectionDockingView.props.ScreenToLocalTransform().translate(-translateX, -translateY).scale(scale)
                 }}
                 isTopMost={true}
-                Scaling={scaling}
-                ContainingCollectionView={this._collectionDockingView} DocumentView={undefined} />
-        ),
-            this._htmlElement
-        );
+                ContainingCollectionView={this.props.CollectionDockingView} DocumentView={undefined} />
+
+        if (nativeWidth > 0 && (layout.indexOf("CollectionFreeForm") == -1 || layout.indexOf("AnnotationsKey") != -1)) {
+            return <Measure onResize={
+                action((r: any) => this._parentScaling = nativeWidth > 0 ? r.entry.width / nativeWidth : 1)}
+            >
+                {({ measureRef }) => <div ref={measureRef}> {content} </div>}
+            </Measure>
+        }
+        return <div> {content} </div>
     }
 }

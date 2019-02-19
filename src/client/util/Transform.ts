@@ -38,8 +38,8 @@ export class Transform {
     }
 
     transform = (transform: Transform): Transform => {
-        this._translateX += transform._translateX * this._scale;
-        this._translateY += transform._translateY * this._scale;
+        this._translateX = transform._translateX + transform._scale * this._translateX;
+        this._translateY = transform._translateY + transform._scale * this._translateY;
         this._scale *= transform._scale;
         return this;
     }
@@ -63,8 +63,8 @@ export class Transform {
     }
 
     preTransform = (transform: Transform): Transform => {
-        this._translateX = transform._translateX + this._translateX * transform._scale;
-        this._translateY = transform._translateY + this._translateY * transform._scale;
+        this._translateX += transform._translateX * this._scale;
+        this._translateY += transform._translateY * this._scale;
         this._scale *= transform._scale;
         return this;
     }

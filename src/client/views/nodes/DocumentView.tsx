@@ -5,8 +5,6 @@ import { Document } from "../../../fields/Document";
 import { Opt, FieldWaiting } from "../../../fields/Field";
 import { Key, KeyStore } from "../../../fields/Key";
 import { ListField } from "../../../fields/ListField";
-import { NumberField } from "../../../fields/NumberField";
-import { TextField } from "../../../fields/TextField";
 import { Utils } from "../../../Utils";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { CollectionFreeFormView } from "../collections/CollectionFreeFormView";
@@ -14,13 +12,14 @@ import { CollectionSchemaView } from "../collections/CollectionSchemaView";
 import { CollectionViewBase, COLLECTION_BORDER_WIDTH } from "../collections/CollectionViewBase";
 import { FormattedTextBox } from "../nodes/FormattedTextBox";
 import { ImageBox } from "../nodes/ImageBox";
-import "./NodeView.scss";
+import "./DocumentView.scss";
 import React = require("react");
 import { Transform } from "../../util/Transform";
 import { DocumentManager } from "../DocumentManager";
 import { SelectionManager } from "../../util/SelectionManager";
 import { DragManager } from "../../util/DragManager";
 import { ContextMenu } from "../ContextMenu";
+import { TextField } from "../../../fields/TextField";
 const JsxParser = require('react-jsx-parser').default;//TODO Why does this need to be imported like this?
 
 export interface DocumentViewProps {
@@ -30,7 +29,7 @@ export interface DocumentViewProps {
     Document: Document;
     AddDocument?: (doc: Document) => void;
     RemoveDocument?: (doc: Document) => boolean;
-    GetTransform: () => Transform;
+    ScreenToLocalTransform: () => Transform;
     isTopMost: boolean;
     Scaling: number;
 }
@@ -60,7 +59,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     }
     @computed
     get layout(): string {
-        return this.props.Document.GetData(KeyStore.Layout, TextField, String("<p>Error loading layout data</p>"));
+        return this.props.Document.GetText(KeyStore.Layout, "<p>Error loading layout data</p>");
     }
 
     @computed
@@ -130,7 +129,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             this._contextMenuCanOpen = false;
             if (this._mainCont.current != null && !this.topMost) {
                 this._contextMenuCanOpen = false;
-                const [left, top] = this.props.GetTransform().inverse().transformPoint(0, 0);
+                const [left, top] = this.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
                 let dragData: { [id: string]: any } = {};
                 dragData["document"] = this;
                 dragData["xOffset"] = e.x - left;
@@ -251,7 +250,6 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         SelectionManager.SelectDoc(this, ctrlPressed)
     }
 
-
     render() {
         let bindings = { ...this.props } as any;
         bindings.isSelected = this.isSelected;
@@ -259,32 +257,33 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         for (const key of this.layoutKeys) {
             bindings[key.Name + "Key"] = key;  // this maps string values of the form <keyname>Key to an actual key Kestore.keyname  e.g,   "DataKey" => KeyStore.Data
         }
-        if (!bindings.GetTransform) {
-            console.log("test");
-        }
         for (const key of this.layoutFields) {
             let field = this.props.Document.Get(key);
             bindings[key.Name] = field && field != FieldWaiting ? field.GetValue() : field;
         }
-        let annotated = null;
+        /*
+        Should this be moved to CollectionFreeformView or another component that renders
+        Document backgrounds (or contents based on a layout key, which could be used here as well)
+         that CollectionFreeformView uses? It seems like a lot for it to be here considering only one view currently uses it...
+         */
         let backgroundLayout = this.backgroundLayout;
         if (backgroundLayout) {
-            annotated = <JsxParser
+            let backgroundView = () => (<JsxParser
                 components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView }}
                 bindings={bindings}
                 jsx={this.backgroundLayout}
                 showWarnings={true}
                 onError={(test: any) => { console.log(test) }}
-            />;
+            />);
+            bindings.BackgroundView = backgroundView;
         }
-        bindings.BackgroundView = annotated;
 
         var width = this.props.Document.GetNumber(KeyStore.NativeWidth, 0);
         var strwidth = width > 0 ? width.toString() + "px" : "100%";
         var height = this.props.Document.GetNumber(KeyStore.NativeHeight, 0);
         var strheight = height > 0 ? height.toString() + "px" : "100%";
         return (
-            <div className="node" ref={this._mainCont} style={{ borderColor: this.Border, width: strwidth, height: strheight, transformOrigin: "left top", transform: `scale(${this.props.Scaling},${this.props.Scaling})` }}
+            <div className="documentView-node" ref={this._mainCont} style={{ borderColor: this.Border, width: strwidth, height: strheight, transformOrigin: "left top", transform: `scale(${this.props.Scaling},${this.props.Scaling})` }}
                 onContextMenu={this.onContextMenu}
                 onPointerDown={this.onPointerDown} >
                 <JsxParser

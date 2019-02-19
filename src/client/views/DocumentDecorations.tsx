@@ -4,7 +4,7 @@ import { SelectionManager } from "../util/SelectionManager";
 import { observer } from "mobx-react";
 import './DocumentDecorations.scss'
 import { CollectionFreeFormView } from "./collections/CollectionFreeFormView";
-import { KeyStore } from "../../fields/Key";
+import { KeyStore } from '../../fields/Key'
 import { NumberField } from "../../fields/NumberField";
 
 @observer
@@ -27,7 +27,7 @@ export class DocumentDecorations extends React.Component {
                 !(element.props.ContainingCollectionView instanceof CollectionFreeFormView)) {
                 return bounds;
             }
-            let transform = element.props.GetTransform().inverse();
+            let transform = element.props.ScreenToLocalTransform().inverse();
             var [sptX, sptY] = transform.transformPoint(0, 0);
             // var [bptX, bptY] = transform.transformDirection(element.width, element.height);
             let doc = element.props.Document;
