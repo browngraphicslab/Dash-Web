@@ -13,6 +13,7 @@ import { RichTextField } from "../../../fields/RichTextField";
 import { FieldViewProps, FieldView } from "./FieldView";
 import { CollectionFreeFormDocumentView } from "./CollectionFreeFormDocumentView";
 import { observer } from "mobx-react";
+import { ContextMenu } from "../../views/ContextMenu";
 
 
 // FormattedTextBox: Displays an editable plain text node that maps to a specified Key of a Document
@@ -114,6 +115,15 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
             e.stopPropagation();
         }
     }
+
+    //REPLACE THIS WITH CAPABILITIES SPECIFC TO THIS TYPE OF NODE
+    textCapability = (e: React.MouseEvent): void => {
+    }
+
+    specificContextMenu = (e: React.MouseEvent): void => {
+        ContextMenu.Instance.addItem({ description: "Text Capability", event: this.textCapability });
+    }
+
     render() {
         return (<div className="formattedTextBox-cont"
             style={{
@@ -121,6 +131,6 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
                 whiteSpace: "initial"
             }}
             onPointerDown={this.onPointerDown}
-            ref={this._ref} />)
+            ref={this._ref} onContextMenu={this.specificContextMenu} />)
     }
 }

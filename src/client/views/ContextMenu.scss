@@ -13,7 +13,6 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    flex-direction: column;
     -webkit-touch-callout: none;
     -webkit-user-select: none;
     -khtml-user-select: none;
@@ -34,6 +33,6 @@
     width: 8vw;
 }
 
-// #mySearch {
-//     font-size: 1.5vw;
-// }
+#mySearch {
+    font-size: 1.4vw;
+}

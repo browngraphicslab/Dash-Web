@@ -1,6 +1,6 @@
 import React = require("react");
 import { ContextMenuItem, ContextMenuProps } from "./ContextMenuItem";
-import { observable } from "mobx";
+import { observable, action } from "mobx";
 import { observer } from "mobx-react";
 import "./ContextMenu.scss"
 
@@ -23,11 +23,13 @@ export class ContextMenu extends React.Component {
         ContextMenu.Instance = this;
     }
 
+    @action
     clearItems() {
         this._items = []
         this._display = "none"
     }
 
+    @action
     addItem(item: ContextMenuProps) {
         if (this._items.indexOf(item) === -1) {
             this._items.push(item);
@@ -58,7 +60,7 @@ export class ContextMenu extends React.Component {
 
     render() {
         return (
-            <div className="contextMenu-cont" style={{ left: this._pageX, top: this._pageY, display: this._display }} ref={this.ref}>
+            <div className="contextMenu-cont" id="options" style={{ left: this._pageX, top: this._pageY, display: this._display }} ref={this.ref}>
                 <input className="contextMenu-item" type="text" id="mySearch" placeholder="Search . . ." onKeyUp={this.search}></input>
                 {this._items.map(prop => {
                     return <ContextMenuItem {...prop} key={prop.description} />

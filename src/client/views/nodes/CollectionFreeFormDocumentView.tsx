@@ -203,7 +203,6 @@ export class CollectionFreeFormDocumentView extends DocumentView {
         }
 
         if (this.topMost) {
-            ContextMenu.Instance.clearItems()
             ContextMenu.Instance.addItem({ description: "Full Screen", event: this.fullScreenClicked })
             ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15)
         }
@@ -211,7 +210,6 @@ export class CollectionFreeFormDocumentView extends DocumentView {
             // DocumentViews should stop propogation of this event
             e.stopPropagation();
 
-            ContextMenu.Instance.clearItems();
             ContextMenu.Instance.addItem({ description: "Full Screen", event: this.fullScreenClicked })
             ContextMenu.Instance.addItem({ description: "Open Right", event: this.openRight })
             ContextMenu.Instance.addItem({ description: "Delete", event: this.deleteClicked })
