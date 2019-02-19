@@ -82,7 +82,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         this._downY = e.clientY;
         var me = this;
         if (e.shiftKey && e.buttons === 1) {
-            CollectionDockingView.StartOtherDrag(this._mainCont.current!, this.props.Document);
+            CollectionDockingView.Instance.StartOtherDrag(this._mainCont.current!, this.props.Document);
             e.stopPropagation();
             return;
         }
@@ -144,7 +144,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     }
 
     openRight = (e: React.MouseEvent): void => {
-        CollectionDockingView.AddRightSplit(this.props.Document);
+        CollectionDockingView.Instance.AddRightSplit(this.props.Document);
     }
 
     deleteClicked = (e: React.MouseEvent): void => {
@@ -154,14 +154,14 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     }
     @action
     fullScreenClicked = (e: React.MouseEvent): void => {
-        CollectionDockingView.OpenFullScreen(this.props.Document);
+        CollectionDockingView.Instance.OpenFullScreen(this.props.Document);
         ContextMenu.Instance.clearItems();
         ContextMenu.Instance.addItem({ description: "Close Full Screen", event: this.closeFullScreenClicked });
         ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15)
     }
     @action
     closeFullScreenClicked = (e: React.MouseEvent): void => {
-        CollectionDockingView.CloseFullScreen();
+        CollectionDockingView.Instance.CloseFullScreen();
         ContextMenu.Instance.clearItems();
         ContextMenu.Instance.addItem({ description: "Full Screen", event: this.fullScreenClicked })
         ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15)

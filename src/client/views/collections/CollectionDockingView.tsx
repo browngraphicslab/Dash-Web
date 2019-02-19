@@ -1,4 +1,3 @@
-import FlexLayout from "flexlayout-react";
 import * as GoldenLayout from "golden-layout";
 import 'golden-layout/src/css/goldenlayout-base.css';
 import 'golden-layout/src/css/goldenlayout-dark-theme.css';
@@ -8,7 +7,6 @@ import { Document } from "../../../fields/Document";
 import { KeyStore } from "../../../fields/Key";
 import { ListField } from "../../../fields/ListField";
 import { DragManager } from "../../util/DragManager";
-import { Transform } from "../../util/Transform";
 import { DocumentView } from "../nodes/DocumentView";
 import "./CollectionDockingView.scss";
 import { CollectionViewBase, CollectionViewProps, COLLECTION_BORDER_WIDTH } from "./CollectionViewBase";
@@ -22,47 +20,125 @@ import { Server } from "../../Server";
 @observer
 export class CollectionDockingView extends CollectionViewBase {
 
-    private static UseGoldenLayout = true;
+    public static Instance: CollectionDockingView;
     public static LayoutString() { return CollectionViewBase.LayoutString("CollectionDockingView"); }
-    private _containerRef = React.createRef<HTMLDivElement>();
-    @computed
-    private get modelForGoldenLayout(): GoldenLayout {
-        var json = this.props.Document.GetText(KeyStore.Data, "");
-        if (json != "") {
-            return new GoldenLayout(JSON.parse(json))
+    public static makeDocumentConfig(document: Document) {
+        return {
+            type: 'react-component',
+            component: 'DocumentFrameRenderer',
+            title: document.Title,
+            props: {
+                documentId: document.Id,
+                CollectionDockingView: CollectionDockingView.Instance,
+            }
         }
-        const { fieldKey: fieldKey, Document: Document } = this.props;
-        const value: Document[] = Document.GetData(fieldKey, ListField, []);
-        var docs = value.map(doc => {
-            return { type: 'component', componentName: 'documentViewComponent', componentState: { doc: doc.Id, title: doc.Title, scaling: 1 } };
-        });
-        return new GoldenLayout({
-            settings: {
-                selectionEnabled: true
-            }, content: [{ type: 'row', content: docs }]
-        });
     }
+
+    private _goldenLayout: any = null;
+    private _dragDiv: any = null;
+    private _dragParent: HTMLElement | null = null;
+    private _dragElement: HTMLDivElement | undefined;
+    private _dragFakeElement: HTMLDivElement | undefined;
+    private _containerRef = React.createRef<HTMLDivElement>();
+    private _makeFullScreen: boolean = false;
+    private _maximizedStack: any = null;
+
     constructor(props: CollectionViewProps) {
         super(props);
+        CollectionDockingView.Instance = this;
+        (window as any).React = React;
+        (window as any).ReactDOM = ReactDOM;
+    }
+
+    public StartOtherDrag(dragElement: HTMLDivElement, dragDoc: Document) {
+        this._dragElement = dragElement;
+        this._dragParent = dragElement.parentElement;
+        // bcz: we want to copy this document into the header, not move it there.
+        //   However, GoldenLayout is setup to move things, so we have to do some kludgy stuff:
+
+        //   - create a temporary invisible div and register that as a DragSource with GoldenLayout
+        this._dragDiv = document.createElement("div");
+        this._dragDiv.style.opacity = 0;
+        DragManager.Root().appendChild(this._dragDiv);
+        this._goldenLayout.createDragSource(this._dragDiv, CollectionDockingView.makeDocumentConfig(dragDoc));
+
+        //   - add our document to that div so that GoldenLayout will get the move events its listening for
+        this._dragDiv.appendChild(this._dragElement);
+
+        //   - add a duplicate of our document to the original document's container 
+        //     (GoldenLayout will be removing our original one)
+        this._dragFakeElement = dragElement.cloneNode(true) as HTMLDivElement;
+        this._dragParent!.appendChild(this._dragFakeElement);
+
+        // all of this must be undone when the document has been dropped (see tabCreated)
+    }
+
+    public OpenFullScreen(document: Document) {
+        this._makeFullScreen = true;
+        this._goldenLayout.root.contentItems[0].addChild(CollectionDockingView.makeDocumentConfig(document));
+    }
+    public CloseFullScreen() {
+        if (this._maximizedStack) {
+            this._maximizedStack.header.controlsContainer.find('.lm_close').click();
+            this._maximizedStack = null;
+        }
+    }
+
+    //
+    //  Creates a vertical split on the right side of the docking view, and then adds the Document to that split
+    //
+    public AddRightSplit(document: Document) {
+        let newItemStackConfig = {
+            type: 'stack',
+            content: [CollectionDockingView.makeDocumentConfig(document)]
+        };
+        var newContentItem = new this._goldenLayout._typeToItem[newItemStackConfig.type](this._goldenLayout, newItemStackConfig, parent);
+
+        if (this._goldenLayout.root.contentItems[0].isRow) {
+            var rowlayout = this._goldenLayout.root.contentItems[0];
+            var lastRowItem = rowlayout.contentItems[rowlayout.contentItems.length - 1];
+
+            lastRowItem.config["width"] *= 0.5;
+            newContentItem.config["width"] = lastRowItem.config["width"];
+            rowlayout.addChild(newContentItem, rowlayout.contentItems.length, true);
+            rowlayout.callDownwards('setSize');
+        }
+        else {
+            var collayout = this._goldenLayout.root.contentItems[0];
+            var newRow = collayout.layoutManager.createContentItem({ type: "row" }, this._goldenLayout);
+            collayout.parent.replaceChild(collayout, newRow);
+
+            newRow.addChild(newContentItem, undefined, true);
+            newRow.addChild(collayout, 0, true);
+
+            collayout.config["width"] = 50;
+            newContentItem.config["width"] = 50;
+            collayout.parent.callDownwards('setSize');
+        }
     }
 
     componentDidMount: () => void = () => {
-        if (this._containerRef.current && CollectionDockingView.UseGoldenLayout) {
-            this.goldenLayoutFactory();
+        if (this._containerRef.current) {
+
+            this._goldenLayout = new GoldenLayout(JSON.parse(this.props.Document.GetText(KeyStore.Data, "")));
+            this._goldenLayout.on('tabCreated', this.tabCreated);
+            this._goldenLayout.on('stackCreated', this.stackCreated);
+            this._goldenLayout.registerComponent('DocumentFrameRenderer', DockedFrameRenderer);
+            this._goldenLayout.container = this._containerRef.current;
+            this._goldenLayout.init();
+
             window.addEventListener('resize', this.onResize); // bcz: would rather add this event to the parent node, but resize events only come from Window
         }
     }
     componentWillUnmount: () => void = () => {
         window.removeEventListener('resize', this.onResize);
     }
-    private nextId = (function () { var _next_id = 0; return function () { return _next_id++; } })();
-
     @action
     onResize = (event: any) => {
         var cur = this.props.ContainingDocumentView!.MainContent.current;
 
         // bcz: since GoldenLayout isn't a React component itself, we need to notify it to resize when its document container's size has changed
-        CollectionDockingView.myLayout.updateSize(cur!.getBoundingClientRect().width, cur!.getBoundingClientRect().height);
+        this._goldenLayout.updateSize(cur!.getBoundingClientRect().width, cur!.getBoundingClientRect().height);
     }
 
     @action
@@ -77,157 +153,37 @@ export class CollectionDockingView extends CollectionViewBase {
         }
     }
 
-    public static myLayout: any = null;
-
-    private static _dragDiv: any = null;
-    private static _dragParent: HTMLElement | null = null;
-    private static _dragElement: HTMLDivElement;
-    private static _dragFakeElement: HTMLDivElement;
-    public static StartOtherDrag(dragElement: HTMLDivElement, dragDoc: Document) {
-        var newItemConfig = {
-            type: 'component',
-            componentName: 'documentViewComponent',
-            componentState: { doc: dragDoc.Id, title: dragDoc.Title, scaling: 1 }
-        };
-        this._dragElement = dragElement;
-        this._dragParent = dragElement.parentElement;
-        // bcz: we want to copy this document into the header, not move it there.
-        //   However, GoldenLayout is setup to move things, so we have to do some kludgy stuff:
-
-        //   - create a temporary invisible div and register that as a DragSource with GoldenLayout
-        this._dragDiv = document.createElement("div");
-        this._dragDiv.style.opacity = 0;
-        DragManager.Root().appendChild(this._dragDiv);
-        CollectionDockingView.myLayout.createDragSource(this._dragDiv, newItemConfig);
-
-        //   - add our document to that div so that GoldenLayout will get the move events its listening for
-        this._dragDiv.appendChild(this._dragElement);
-
-        //   - add a duplicate of our document to the original document's container 
-        //     (GoldenLayout will be removing our original one)
-        this._dragFakeElement = dragElement.cloneNode(true) as HTMLDivElement;
-        this._dragParent!.appendChild(this._dragFakeElement);
-
-        // all of this must be undone when the document has been dropped (see tabCreated)
-    }
-
-    _makeFullScreen: boolean = false;
-    _maximizedStack: any = null;
-    public static OpenFullScreen(document: Document) {
-        var newItemConfig = {
-            type: 'component',
-            componentName: 'documentViewComponent',
-            componentState: { doc: document.Id, title: document.Title }
-        };
-        CollectionDockingView.myLayout._makeFullScreen = true;
-        CollectionDockingView.myLayout.root.contentItems[0].addChild(newItemConfig);
-    }
-    public static CloseFullScreen() {
-        if (CollectionDockingView.myLayout._maximizedStack != null) {
-            CollectionDockingView.myLayout._maximizedStack.header.controlsContainer.find('.lm_close').click();
-            CollectionDockingView.myLayout._maximizedStack = null;
-        }
-    }
-    //
-    //  Creates a vertical split on the right side of the docking view, and then adds the Document to that split
-    //
-    public static AddRightSplit(document: Document) {
-        var newItemConfig = {
-            type: 'component',
-            componentName: 'documentViewComponent',
-            componentState: { doc: document.Id, title: document.Title }
-        }
-        let newItemStackConfig = {
-            type: 'stack',
-            content: [newItemConfig]
-        };
-        var newContentItem = new CollectionDockingView.myLayout._typeToItem[newItemStackConfig.type](CollectionDockingView.myLayout, newItemStackConfig, parent);
-
-        if (CollectionDockingView.myLayout.root.contentItems[0].isRow) {
-            var rowlayout = CollectionDockingView.myLayout.root.contentItems[0];
-            var lastRowItem = rowlayout.contentItems[rowlayout.contentItems.length - 1];
-
-            lastRowItem.config["width"] *= 0.5;
-            newContentItem.config["width"] = lastRowItem.config["width"];
-            rowlayout.addChild(newContentItem, rowlayout.contentItems.length, true);
-            rowlayout.callDownwards('setSize');
-        }
-        else {
-            var collayout = CollectionDockingView.myLayout.root.contentItems[0];
-            var newRow = collayout.layoutManager.createContentItem({ type: "row" }, CollectionDockingView.myLayout);
-            collayout.parent.replaceChild(collayout, newRow);
-
-            newRow.addChild(newContentItem, undefined, true);
-            newRow.addChild(collayout, 0, true);
-
-            collayout.config["width"] = 50;
-            newContentItem.config["width"] = 50;
-            collayout.parent.callDownwards('setSize');
-        }
-        var state = JSON.stringify(CollectionDockingView.myLayout.toConfig());
-        console.log(state);
-    }
-    goldenLayoutFactory() {
-        CollectionDockingView.myLayout = this.modelForGoldenLayout;
-
-        var layout = CollectionDockingView.myLayout;
-        CollectionDockingView.myLayout.on('tabCreated', function (tab: any) {
-            if (CollectionDockingView._dragDiv) {
-                CollectionDockingView._dragDiv.removeChild(CollectionDockingView._dragElement);
-                CollectionDockingView._dragParent!.removeChild(CollectionDockingView._dragFakeElement);
-                CollectionDockingView._dragParent!.appendChild(CollectionDockingView._dragElement);
-                DragManager.Root().removeChild(CollectionDockingView._dragDiv);
-                CollectionDockingView._dragDiv = null;
+    tabCreated = (tab: any) => {
+        {
+            if (this._dragDiv) {
+                this._dragDiv.removeChild(this._dragElement);
+                this._dragParent!.removeChild(this._dragFakeElement!);
+                this._dragParent!.appendChild(this._dragElement!);
+                DragManager.Root().removeChild(this._dragDiv);
+                this._dragDiv = null;
             }
-            tab.setTitle(tab.contentItem.config.componentState.title);
+            //tab.setTitle(tab.contentItem.config.componentState.title);
             tab.closeElement.off('click') //unbind the current click handler
                 .click(function () {
                     tab.contentItem.remove();
                 });
-        });
+        }
+    }
 
-        CollectionDockingView.myLayout.on('stackCreated', function (stack: any) {
-            if (CollectionDockingView.myLayout._makeFullScreen) {
-                CollectionDockingView.myLayout._maximizedStack = stack;
-                CollectionDockingView.myLayout._maxstack = stack.header.controlsContainer.find('.lm_maximise');
-            }
-            //stack.header.controlsContainer.find('.lm_popout').hide();
-            stack.header.controlsContainer.find('.lm_close') //get the close icon
-                .off('click') //unbind the current click handler
-                .click(function () {
-                    //if (confirm('really close this?')) {
-                    stack.remove();
-                    //}
-                });
-        });
-
-        var me = this;
-        CollectionDockingView.myLayout.registerComponent('documentViewComponent', function (container: any, state: any) {
-            // bcz: this is crufty
-            // calling html() causes a div tag to be added in the DOM with id 'containingDiv'. 
-            // Apparently, we need to wait to allow a live html div element to actually be instantiated.
-            // After a timeout, we lookup the live html div element and add our React DocumentView to it.
-            var containingDiv = "component_" + me.nextId();
-            container.getElement().html("<div id='" + containingDiv + "'></div>");
-            setTimeout(function () {
-                let divContainer = document.getElementById(containingDiv) as HTMLDivElement;
-                if (divContainer) {
-                    let props: DockingProps = {
-                        ContainingDiv: containingDiv,
-                        DocumentId: state.doc,
-                        Container: container,
-                        CollectionDockingView: me,
-                        HtmlElement: divContainer,
-                    }
-                    ReactDOM.render((<RenderClass {...props} />), divContainer);
-                    if (CollectionDockingView.myLayout._maxstack) {
-                        CollectionDockingView.myLayout._maxstack.click();
-                    }
-                }
-            }, 0);
-        });
-        CollectionDockingView.myLayout.container = this._containerRef.current;
-        CollectionDockingView.myLayout.init();
+    stackCreated = (stack: any) => {
+        if (this._makeFullScreen) {
+            this._maximizedStack = stack;
+            setTimeout(function () { stack.header.controlsContainer.find('.lm_maximise').click() }, 10);
+            this._makeFullScreen = false;
+        }
+        //stack.header.controlsContainer.find('.lm_popout').hide();
+        stack.header.controlsContainer.find('.lm_close') //get the close icon
+            .off('click') //unbind the current click handler
+            .click(function () {
+                //if (confirm('really close this?')) {
+                stack.remove();
+                //}
+            });
     }
 
 
@@ -243,8 +199,8 @@ export class CollectionDockingView extends CollectionViewBase {
             <div className="collectiondockingview-container" id="menuContainer"
                 onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()} ref={this._containerRef}
                 style={{
-                    width: CollectionDockingView.UseGoldenLayout || s > 1 ? "100%" : w - 2 * COLLECTION_BORDER_WIDTH,
-                    height: CollectionDockingView.UseGoldenLayout || s > 1 ? "100%" : h - 2 * COLLECTION_BORDER_WIDTH,
+                    width: "100%",
+                    height: "100%",
                     borderStyle: "solid",
                     borderWidth: `${COLLECTION_BORDER_WIDTH}px`,
                 }} />
@@ -252,43 +208,48 @@ export class CollectionDockingView extends CollectionViewBase {
     }
 }
 
-interface DockingProps {
-    ContainingDiv: string,
-    DocumentId: FieldId,
-    Container: any,
-    HtmlElement: HTMLElement,
+interface DockedFrameProps {
+    documentId: FieldId,
     CollectionDockingView: CollectionDockingView,
 }
 @observer
-export class RenderClass extends React.Component<DockingProps> {
+export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
+
+    private _mainCont = React.createRef<HTMLDivElement>();
+    constructor(props: any) {
+        super(props);
+    }
+
     @observable
     private _parentScaling = 1; // used to transfer the dimensions of the content pane in the DOM to the ParentScaling prop of the DocumentView
 
     @computed
-    private get Document() { return Server.GetField(this.props.DocumentId) as Document }
+    private get Document() { return Server.GetField(this.props.documentId) as Document }
 
     render() {
         let nativeWidth = this.Document.GetNumber(KeyStore.NativeWidth, 0);
         var layout = this.Document.GetText(KeyStore.Layout, "");
         var content =
-            <DocumentView key={this.Document.Id} Document={this.Document}
-                AddDocument={this.props.CollectionDockingView.addDocument}
-                RemoveDocument={this.props.CollectionDockingView.removeDocument}
-                Scaling={this._parentScaling}
-                ScreenToLocalTransform={() => {
-                    let { scale, translateX, translateY } = Utils.GetScreenTransform(this.props.HtmlElement);
-                    return this.props.CollectionDockingView.props.ScreenToLocalTransform().translate(-translateX, -translateY).scale(scale)
-                }}
-                isTopMost={true}
-                ContainingCollectionView={this.props.CollectionDockingView} />
+            <div ref={this._mainCont}>
+                <DocumentView key={this.Document.Id} Document={this.Document}
+                    AddDocument={undefined}
+                    RemoveDocument={undefined}
+                    Scaling={this._parentScaling}
+                    ScreenToLocalTransform={() => {
+                        let { scale, translateX, translateY } = Utils.GetScreenTransform(this._mainCont.current!);
+                        var props = this.props.CollectionDockingView ? this.props.CollectionDockingView.props : CollectionDockingView.Instance.props;
+                        return props.ScreenToLocalTransform().translate(-translateX, -translateY).scale(scale)
+                    }}
+                    isTopMost={true}
+                    ContainingCollectionView={this.props.CollectionDockingView} />
+            </div>
 
-        if (nativeWidth > 0 && (layout.indexOf("CollectionFreeForm") == -1 || layout.indexOf("AnnotationsKey") != -1)) {
-            return <Measure onResize={
-                action((r: any) => this._parentScaling = nativeWidth > 0 ? r.entry.width / nativeWidth : 1)}
-            >
-                {({ measureRef }) => <div ref={measureRef}> {content} </div>}
+        if (nativeWidth > 0 &&
+            (layout.indexOf("CollectionFreeForm") == -1 || layout.indexOf("AnnotationsKey") != -1)) { // contents of documents should be scaled if document is not a freeform view, or if the freeformview is an annotation layer (presumably on a document that is not a freeformview)
+            return <Measure onResize={action((r: any) => this._parentScaling = nativeWidth > 0 ? r.entry.width / nativeWidth : 1)}>
+                {({ measureRef }) => <div ref={measureRef}>  {content} </div>}
             </Measure>
         }
-        return <div> {content} </div>
+        return content
     }
 }
