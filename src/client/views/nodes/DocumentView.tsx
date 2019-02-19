@@ -237,20 +237,6 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         }
     }
 
-    // 
-    // returns the cumulative scaling between the document and the screen
-    // tfs: I don't think this should be necessary
-    //
-    @computed
-    public get ScalingToScreenSpace(): number {
-        if (this.props.ContainingCollectionView != undefined &&
-            this.props.ContainingCollectionView.props.ContainingDocumentView != undefined) {
-            let ss = this.props.ContainingCollectionView.props.Document.GetNumber(KeyStore.Scale, 1);
-            return this.props.ContainingCollectionView.props.ContainingDocumentView.ScalingToScreenSpace * ss;
-        }
-        return 1;
-    }
-
     isSelected = () => {
         return SelectionManager.IsSelected(this);
     }
@@ -298,8 +284,9 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         var strwidth = width > 0 ? width.toString() + "px" : "100%";
         var height = this.props.Document.GetNumber(KeyStore.NativeHeight, 0);
         var strheight = height > 0 ? height.toString() + "px" : "100%";
+        var scaling = this.props.Scaling;// this.props.ScreenToLocalTransform().Scale;
         return (
-            <div className="documentView-node" ref={this._mainCont} style={{ width: strwidth, height: strheight, transformOrigin: "left top", transform: `scale(${this.props.Scaling},${this.props.Scaling})` }}
+            <div className="documentView-node" ref={this._mainCont} style={{ width: strwidth, height: strheight, transformOrigin: "left top", transform: `scale(${scaling},${scaling})` }}
                 onContextMenu={this.onContextMenu}
                 onPointerDown={this.onPointerDown} >
                 <JsxParser

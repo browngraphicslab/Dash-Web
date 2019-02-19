@@ -60,21 +60,7 @@ export class Server {
         });
     }
 
-    static times = 0; // hack for testing
     public static GetDocumentField(doc: Document, key: Key) {
-        // let keyId: string = element[0]
-        // let valueId: string = element[1]
-        // Server.GetField(keyId, (key: Field) => {
-        //     if (key instanceof Key) {
-        //         Server.GetField(valueId, (field: Field) => {
-        //             console.log(field)
-        //             doc.Set(key as Key, field)
-        //         })
-        //     }
-        //     else {
-        //         console.log("how did you get a key that isnt a key wtf")
-        //     }
-        // })
         let field = doc._proxies.get(key.Id);
         if (field) {
             this.GetField(field,

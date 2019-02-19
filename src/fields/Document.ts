@@ -49,7 +49,7 @@ export class Document extends Field {
                 if (this.fields.has(key.Id)) {
                     field = this.fields.get(key.Id)!.field;
                 } else {
-                    field = "<Waiting>";
+                    field = FieldWaiting;
                 }
             }
         } else {
@@ -68,7 +68,7 @@ export class Document extends Field {
                         if (this.fields.has(key.Id)) {
                             field = this.fields.get(key.Id)!.field;
                         } else {
-                            field = "<Waiting>";
+                            field = FieldWaiting;
                         }
                         break;
                     }
