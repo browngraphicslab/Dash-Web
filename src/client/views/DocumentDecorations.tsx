@@ -111,17 +111,6 @@ export class DocumentDecorations extends React.Component {
 
         SelectionManager.SelectedDocuments().forEach(element => {
             const rect = element.screenRect;
-            // if (rect.width !== 0) {
-            //     let scale = element.width / rect.width;
-            //     let actualdW = Math.max(element.width + (dW * scale), 20);
-            //     let actualdH = Math.max(element.height + (dH * scale), 20);
-            //     element.x += dX * (actualdW - element.width);
-            //     element.y += dY * (actualdH - element.height);
-            //     if (Math.abs(dW) > Math.abs(dH))
-            //         element.width = actualdW;
-            //     else
-            //         element.height = actualdH;
-            // }
             if (rect.width !== 0) {
                 let doc = element.props.Document;
                 let width = doc.GetOrCreate(KeyStore.Width, NumberField);
@@ -133,6 +122,14 @@ export class DocumentDecorations extends React.Component {
                 let actualdH = Math.max(height.Data + (dH * scale), 20);
                 x.Data += dX * (actualdW - width.Data);
                 y.Data += dY * (actualdH - height.Data);
+                var nativeWidth = doc.GetNumber(KeyStore.NativeWidth, 0);
+                var nativeHeight = doc.GetNumber(KeyStore.NativeHeight, 0);
+                if (nativeWidth > 0 && nativeHeight > 0) {
+                    if (Math.abs(dW) > Math.abs(dH))
+                        actualdH = nativeHeight / nativeWidth * actualdW;
+                    else
+                        actualdW = nativeWidth / nativeHeight * actualdH;
+                }
                 width.Data = actualdW;
                 height.Data = actualdH;
             }

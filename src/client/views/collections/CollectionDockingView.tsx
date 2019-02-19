@@ -98,7 +98,6 @@ export class CollectionDockingView extends CollectionViewBase {
 
         if (this._goldenLayout.root.contentItems[0].isRow) {
             this._goldenLayout.root.contentItems[0].addChild(newContentItem);
-            collayout.callDownwards('setSize');
         }
         else {
             var collayout = this._goldenLayout.root.contentItems[0];
@@ -110,7 +109,6 @@ export class CollectionDockingView extends CollectionViewBase {
 
             collayout.config["width"] = 50;
             newContentItem.config["width"] = 50;
-            collayout.parent.callDownwards('setSize');
         }
         this._forceRecreate = true;
     }
@@ -227,10 +225,14 @@ interface DockedFrameProps {
 @observer
 export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
 
-    private _mainCont = React.createRef<HTMLDivElement>();
+    _mainCont: any = null;
     constructor(props: any) {
         super(props);
         Server.GetField(this.props.documentId, (f) => { this.Document = f as Document; })
+    }
+
+    setMainCont: any = (element: any) => {
+        this._mainCont = element;
     }
 
     @observable
@@ -245,13 +247,13 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         let nativeWidth = this.Document.GetNumber(KeyStore.NativeWidth, 0);
         var layout = this.Document.GetText(KeyStore.Layout, "");
         var content =
-            <div ref={this._mainCont}>
+            <div ref={this.setMainCont}>
                 <DocumentView key={this.Document.Id} Document={this.Document}
                     AddDocument={undefined}
                     RemoveDocument={undefined}
                     Scaling={this._parentScaling}
                     ScreenToLocalTransform={() => {
-                        let { scale, translateX, translateY } = Utils.GetScreenTransform(this._mainCont.current!);
+                        let { scale, translateX, translateY } = Utils.GetScreenTransform(this._mainCont);
                         var props = CollectionDockingView.Instance.props;
                         return props.ScreenToLocalTransform().translate(-translateX, -translateY).scale(scale / this._parentScaling)
                     }}
