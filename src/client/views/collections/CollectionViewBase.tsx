@@ -17,8 +17,11 @@ export interface CollectionViewProps {
     CollectionFieldKey: Key;
     DocumentForCollection: Document;
     ContainingDocumentView: Opt<DocumentView>;
-    GetTransform: () => Transform;
-    BackgroundView: Opt<DocumentView>;
+    ScreenToLocalTransform: () => Transform;
+    isSelected: () => boolean;
+    isTopMost: boolean;
+    select: (ctrlPressed: boolean) => void;
+    BackgroundView?: () => JSX.Element;
     ParentScaling: number;
 }
 
@@ -28,15 +31,16 @@ export const COLLECTION_BORDER_WIDTH = 2;
 export class CollectionViewBase extends React.Component<CollectionViewProps> {
 
     public static LayoutString(collectionType: string, fieldKey: string = "DataKey") {
-        return `<${collectionType} ParentScaling={ParentScaling} DocumentForCollection={Document} CollectionFieldKey={${fieldKey}} ContainingDocumentView={DocumentView} BackgroundView={BackgroundView} />`;
+        return `<${collectionType} Scaling={Scaling} DocumentForCollection={Document}
+                    ScreenToLocalTransform={ScreenToLocalTransform} CollectionFieldKey={${fieldKey}} isSelected={isSelected} select={select}
+                    isTopMost={isTopMost}
+                    ContainingDocumentView={DocumentView} BackgroundView={BackgroundView} />`;
     }
     @computed
     public get active(): boolean {
         var isSelected = (this.props.ContainingDocumentView instanceof CollectionFreeFormDocumentView && SelectionManager.IsSelected(this.props.ContainingDocumentView));
         var childSelected = SelectionManager.SelectedDocuments().some(view => view.props.ContainingCollectionView == this);
-        var topMost = this.props.ContainingDocumentView != undefined && (
-            this.props.ContainingDocumentView.props.ContainingCollectionView == undefined ||
-            this.props.ContainingDocumentView.props.ContainingCollectionView instanceof CollectionDockingView);
+        var topMost = this.props.isTopMost;
         return isSelected || childSelected || topMost;
     }
     @action

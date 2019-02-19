@@ -14,6 +14,7 @@ import { NumberField } from "../../../fields/NumberField";
 import { Documents } from "../../documents/Documents";
 import { FieldWaiting } from "../../../fields/Field";
 import { Transform } from "../../util/Transform";
+import { DocumentView } from "../nodes/DocumentView";
 
 @observer
 export class CollectionFreeFormView extends CollectionViewBase {
@@ -45,23 +46,22 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
-        const doc = de.data["document"];
+        const doc: DocumentView = de.data["document"];
         var me = this;
-        if (doc instanceof CollectionFreeFormDocumentView) {
-            if (doc.props.ContainingCollectionView && doc.props.ContainingCollectionView !== this) {
-                doc.props.ContainingCollectionView.removeDocument(doc.props.Document);
-                this.addDocument(doc.props.Document);
-            }
-            const xOffset = de.data["xOffset"] as number || 0;
-            const yOffset = de.data["yOffset"] as number || 0;
-            const { translateX, translateY } = Utils.GetScreenTransform(this._canvasRef.current!);
-            const currScale = this.resizeScaling * this.zoomScaling * this.props.ContainingDocumentView!.ScalingToScreenSpace;
-            const screenX = de.x - xOffset;
-            const screenY = de.y - yOffset;
-            doc.props.Document.SetNumber(KeyStore.X, (screenX - translateX) / currScale);
-            doc.props.Document.SetNumber(KeyStore.Y, (screenY - translateY) / currScale);
-            this.bringToFront(doc);
+        if (doc.props.ContainingCollectionView && doc.props.ContainingCollectionView !== this) {
+            doc.props.ContainingCollectionView.removeDocument(doc.props.Document);
+            this.addDocument(doc.props.Document);
         }
+        const xOffset = de.data["xOffset"] as number || 0;
+        const yOffset = de.data["yOffset"] as number || 0;
+        //this should be able to use translate and scale methods on an Identity transform, no?
+        const transform = me.getTransform();
+        const screenX = de.x - xOffset;
+        const screenY = de.y - yOffset;
+        const [x, y] = transform.transformPoint(screenX, screenY);
+        doc.props.Document.SetNumber(KeyStore.X, x);
+        doc.props.Document.SetNumber(KeyStore.Y, y);
+        this.bringToFront(doc);
         e.stopPropagation();
     }
 
@@ -94,8 +94,8 @@ export class CollectionFreeFormView extends CollectionViewBase {
         document.removeEventListener("pointerup", this.onPointerUp);
         e.stopPropagation();
         if (Math.abs(this._downX - e.clientX) < 3 && Math.abs(this._downY - e.clientY) < 3) {
-            if (!SelectionManager.IsSelected(this.props.ContainingDocumentView as CollectionFreeFormDocumentView)) {
-                SelectionManager.SelectDoc(this.props.ContainingDocumentView as CollectionFreeFormDocumentView, false);
+            if (!this.props.isSelected()) {
+                this.props.select(false);
             }
         }
     }
@@ -105,11 +105,11 @@ export class CollectionFreeFormView extends CollectionViewBase {
         if (!e.cancelBubble && this.active) {
             e.preventDefault();
             e.stopPropagation();
-            let currScale: number = this.props.ContainingDocumentView!.ScalingToScreenSpace;
             let x = this.props.DocumentForCollection.GetNumber(KeyStore.PanX, 0);
             let y = this.props.DocumentForCollection.GetNumber(KeyStore.PanY, 0);
+            let [dx, dy] = this.props.ScreenToLocalTransform().transformDirection(e.clientX - this._lastX, e.clientY - this._lastY);
 
-            this.SetPan(x + (e.pageX - this._lastX) / currScale, y + (e.pageY - this._lastY) / currScale);
+            this.SetPan(x + dx, y + dy);
         }
         this._lastX = e.pageX;
         this._lastY = e.pageY;
@@ -123,15 +123,16 @@ export class CollectionFreeFormView extends CollectionViewBase {
         let coefficient = 1000;
         // if (modes[e.deltaMode] == 'pixels') coefficient = 50;
         // else if (modes[e.deltaMode] == 'lines') coefficient = 1000; // This should correspond to line-height??
+        let transform = this.getTransform();
 
-        let { LocalX, LocalY, ContainerX, ContainerY } = this.props.ContainingDocumentView!.TransformToLocalPoint(e.pageX, e.pageY);
-        var Xx = this.props.ContainingDocumentView!.LeftCorner();
-        var Yy = this.props.ContainingDocumentView!.TopCorner();
-        var deltaScale = (1 - (e.deltaY / coefficient)) * this.props.ContainingDocumentView!.props.Document.GetNumber(KeyStore.Scale, 1);
-        var newDeltaScale = this.isAnnotationOverlay ? Math.max(1, deltaScale) : deltaScale;
+        let deltaScale = (1 - (e.deltaY / coefficient));
+        let [x, y] = transform.transformPoint(e.clientX, e.clientY);
 
-        this.props.DocumentForCollection.SetNumber(KeyStore.Scale, newDeltaScale);
-        this.SetPan(ContainerX - (LocalX * newDeltaScale + Xx), ContainerY - (LocalY * newDeltaScale + Yy));
+        let localTransform = this.getLocalTransform();
+        localTransform = localTransform.inverse().scaleAbout(deltaScale, x, y)
+
+        this.props.DocumentForCollection.SetNumber(KeyStore.Scale, localTransform.Scale);
+        this.SetPan(localTransform.TranslateX, localTransform.TranslateY);
     }
 
     @action
@@ -180,7 +181,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
     }
 
     @action
-    bringToFront(doc: CollectionFreeFormDocumentView) {
+    bringToFront(doc: DocumentView) {
         const { CollectionFieldKey: fieldKey, DocumentForCollection: Document } = this.props;
 
         const value: Document[] = Document.GetList<Document>(fieldKey, []);
@@ -210,8 +211,12 @@ export class CollectionFreeFormView extends CollectionViewBase {
     }
 
     getTransform = (): Transform => {
+        return this.props.ScreenToLocalTransform().translate(-COLLECTION_BORDER_WIDTH, -COLLECTION_BORDER_WIDTH).transform(this.getLocalTransform())
+    }
+
+    getLocalTransform = (): Transform => {
         const [x, y] = this.translate;
-        return this.props.GetTransform().scaled(this.scale).translate(x, y);
+        return Transform.Identity.translate(-x, -y).scale(1 / this.scale);
     }
 
     render() {
@@ -236,14 +241,15 @@ export class CollectionFreeFormView extends CollectionViewBase {
                     style={{ width: "100%", transformOrigin: "left top", transform: ` translate(${panx}px, ${pany}px) scale(${this.zoomScaling}, ${this.zoomScaling})` }}
                     ref={this._canvasRef}>
 
-                    {this.props.BackgroundView}
+                    {this.props.BackgroundView ? this.props.BackgroundView() : null}
                     {value.map(doc => {
                         return (<CollectionFreeFormDocumentView key={doc.Id} Document={doc}
                             AddDocument={this.addDocument}
                             RemoveDocument={this.removeDocument}
-                            GetTransform={this.getTransform}
-                            ParentScaling={1}
-                            ContainingCollectionView={this} DocumentView={undefined} />);
+                            ScreenToLocalTransform={this.getTransform}
+                            isTopMost={false}
+                            Scaling={1}
+                            ContainingCollectionView={this} DocumentView={this.props.ContainingDocumentView} />);
                     })}
                 </div>
             </div>
