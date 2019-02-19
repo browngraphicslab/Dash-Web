@@ -1,4 +1,4 @@
-import { Field, FIELD_ID, FieldValue, Opt } from "./Field";
+import { Field, FieldId, FieldValue, Opt } from "./Field";
 import { BasicField } from "./BasicField";
 import { Types } from "../server/Message";
 import { observe, action } from "mobx";
@@ -7,7 +7,7 @@ import { ServerUtils } from "../server/ServerUtil";
 
 export class ListField<T extends Field> extends BasicField<T[]> {
     private _proxies: string[] = []
-    constructor(data: T[] = [], id: FIELD_ID = undefined, save: boolean = true) {
+    constructor(data: T[] = [], id?: FieldId, save: boolean = true) {
         super(data, save, id);
         this.updateProxies();
         if (save) {

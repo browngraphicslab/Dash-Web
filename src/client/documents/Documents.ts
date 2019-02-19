@@ -10,13 +10,15 @@ import { CollectionSchemaView } from "../views/collections/CollectionSchemaView"
 import { ImageField } from "../../fields/ImageField";
 import { ImageBox } from "../views/nodes/ImageBox";
 import { CollectionFreeFormView } from "../views/collections/CollectionFreeFormView";
-import { FIELD_ID } from "../../fields/Field";
+import { FieldId } from "../../fields/Field";
 
 interface DocumentOptions {
     x?: number;
     y?: number;
     width?: number;
     height?: number;
+    nativeWidth?: number;
+    nativeHeight?: number;
     title?: string;
 }
 
@@ -33,19 +35,25 @@ export namespace Documents {
     }
 
     function setupOptions(doc: Document, options: DocumentOptions): void {
-        if (options.x != undefined) {
+        if (options.x !== undefined) {
             doc.SetData(KeyStore.X, options.x, NumberField);
         }
-        if (options.y != undefined) {
+        if (options.y !== undefined) {
             doc.SetData(KeyStore.Y, options.y, NumberField);
         }
-        if (options.width != undefined) {
+        if (options.width !== undefined) {
             doc.SetData(KeyStore.Width, options.width, NumberField);
         }
-        if (options.height != undefined) {
+        if (options.height !== undefined) {
             doc.SetData(KeyStore.Height, options.height, NumberField);
         }
-        if (options.title != undefined) {
+        if (options.nativeWidth !== undefined) {
+            doc.SetData(KeyStore.NativeWidth, options.nativeWidth, NumberField);
+        }
+        if (options.nativeHeight !== undefined) {
+            doc.SetData(KeyStore.NativeHeight, options.nativeHeight, NumberField);
+        }
+        if (options.title !== undefined) {
             doc.SetData(KeyStore.Title, options.title, TextField);
         }
         doc.SetData(KeyStore.Scale, 1, NumberField);
@@ -129,11 +137,14 @@ export namespace Documents {
             imageProto.Set(KeyStore.Title, new TextField("IMAGE PROTO"));
             imageProto.Set(KeyStore.X, new NumberField(0));
             imageProto.Set(KeyStore.Y, new NumberField(0));
+            imageProto.Set(KeyStore.NativeWidth, new NumberField(300));
+            imageProto.Set(KeyStore.NativeHeight, new NumberField(300));
             imageProto.Set(KeyStore.Width, new NumberField(300));
             imageProto.Set(KeyStore.Height, new NumberField(300));
-            imageProto.Set(KeyStore.Layout, new TextField(ImageBox.LayoutString()));
+            imageProto.Set(KeyStore.Layout, new TextField(CollectionFreeFormView.LayoutString("AnnotationsKey")));
+            imageProto.Set(KeyStore.BackgroundLayout, new TextField(ImageBox.LayoutString()));
             // imageProto.SetField(KeyStore.Layout, new TextField('<div style={"background-image: " + {Data}} />'));
-            imageProto.Set(KeyStore.LayoutKeys, new ListField([KeyStore.Data]));
+            imageProto.Set(KeyStore.LayoutKeys, new ListField([KeyStore.Data, KeyStore.Annotations]));
             return imageProto;
         }
         return imageProto;
@@ -143,6 +154,9 @@ export namespace Documents {
         let doc = GetImagePrototype().MakeDelegate();
         setupOptions(doc, options);
         doc.Set(KeyStore.Data, new ImageField(new URL(url)));
+
+        let annotation = Documents.TextDocument({ title: "hello" });
+        doc.Set(KeyStore.Annotations, new ListField([annotation]));
         return doc;
     }
 
@@ -158,7 +172,7 @@ export namespace Documents {
             collectionProto.Set(KeyStore.PanY, new NumberField(0));
             collectionProto.Set(KeyStore.Width, new NumberField(300));
             collectionProto.Set(KeyStore.Height, new NumberField(300));
-            collectionProto.Set(KeyStore.Layout, new TextField(CollectionFreeFormView.LayoutString()));
+            collectionProto.Set(KeyStore.Layout, new TextField(CollectionFreeFormView.LayoutString("DataKey")));
             collectionProto.Set(KeyStore.LayoutKeys, new ListField([KeyStore.Data]));
         }
         return collectionProto;

@@ -1,4 +1,4 @@
-import { Field, FIELD_ID } from "./Field"
+import { Field, FieldId } from "./Field"
 import { Utils } from "../Utils";
 import { observable } from "mobx";
 import { Types } from "../server/Message";

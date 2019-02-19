@@ -10,7 +10,6 @@ import { ImageField } from "../../../fields/ImageField";
 import { Key } from "../../../fields/Key";
 import { FormattedTextBox } from "./FormattedTextBox";
 import { ImageBox } from "./ImageBox";
-import { DocumentView } from "./DocumentView";
 
 //
 // these properties get assigned through the render() method of the DocumentView when it creates this node.
@@ -20,12 +19,13 @@ import { DocumentView } from "./DocumentView";
 export interface FieldViewProps {
     fieldKey: Key;
     doc: Document;
-    DocumentViewForField: Opt<DocumentView>
+    isSelected: () => boolean;
+    isTopMost: boolean;
 }
 
 @observer
 export class FieldView extends React.Component<FieldViewProps> {
-    public static LayoutString(fieldType: { name: string }) { return `<${fieldType.name} doc={Document} DocumentViewForField={DocumentView} fieldKey={DataKey} />`; }
+    public static LayoutString(fieldType: { name: string }) { return `<${fieldType.name} doc={Document} DocumentViewForField={DocumentView} fieldKey={DataKey} isSelected={isSelected} isTopMost={isTopMost} />`; }
     @computed
     get field(): FieldValue<Field> {
         const { doc, fieldKey } = this.props;

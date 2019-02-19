@@ -6,19 +6,14 @@ import { DocumentDecorations } from './DocumentDecorations';
 import { Documents } from '../documents/Documents';
 import { Document } from '../../fields/Document';
 import { KeyStore } from '../../fields/KeyStore';
-import { ListField } from '../../fields/ListField';
-import { NumberField } from '../../fields/NumberField';
-import { TextField } from '../../fields/TextField';
 import "./Main.scss";
 import { ContextMenu } from './ContextMenu';
 import { DocumentView } from './nodes/DocumentView';
-import { ImageField } from '../../fields/ImageField';
-import { CompileScript } from './../util/Scripting';
 import { Server } from '../Server';
 import { Utils } from '../../Utils';
 import { ServerUtils } from '../../server/ServerUtil';
 import { MessageStore, DocumentTransfer } from '../../server/Message';
-import { Database } from '../../server/database';
+import { Transform } from '../util/Transform';
 
 
 configure({
@@ -67,7 +62,6 @@ Documents.initProtos(() => {
         console.log("RESPONSE: " + res)
         let mainContainer: Document;
         if (res) {
-            var lid = KeyStore.Layout.Id;
             let obj = ServerUtils.FromJson(res) as Document
             mainContainer = obj
         }
@@ -100,7 +94,11 @@ Documents.initProtos(() => {
 
         ReactDOM.render((
             <div style={{ position: "absolute", width: "100%", height: "100%" }}>
-                <DocumentView Document={mainContainer} ContainingCollectionView={undefined} DocumentView={undefined} />
+                <DocumentView Document={mainContainer}
+                    AddDocument={undefined} RemoveDocument={undefined} ScreenToLocalTransform={() => Transform.Identity}
+                    Scaling={1}
+                    isTopMost={true}
+                    ContainingCollectionView={undefined} />
                 <DocumentDecorations />
                 <ContextMenu />
                 <button style={{

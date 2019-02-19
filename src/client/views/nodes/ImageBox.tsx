@@ -1,15 +1,14 @@
 
 import Lightbox from 'react-image-lightbox';
 import 'react-image-lightbox/style.css'; // This only needs to be imported once in your app
-import { SelectionManager } from "../../util/SelectionManager";
 import "./ImageBox.scss";
 import React = require("react")
 import { ImageField } from '../../../fields/ImageField';
 import { FieldViewProps, FieldView } from './FieldView';
-import { CollectionFreeFormDocumentView } from './CollectionFreeFormDocumentView';
 import { FieldWaiting } from '../../../fields/Field';
 import { observer } from "mobx-react"
 import { observable, action } from 'mobx';
+import { KeyStore } from '../../../fields/KeyStore';
 
 @observer
 export class ImageBox extends React.Component<FieldViewProps> {
@@ -40,7 +39,7 @@ export class ImageBox extends React.Component<FieldViewProps> {
 
     onPointerDown = (e: React.PointerEvent): void => {
         if (Date.now() - this._lastTap < 300) {
-            if (e.buttons === 1 && this.props.DocumentViewForField instanceof CollectionFreeFormDocumentView && SelectionManager.IsSelected(this.props.DocumentViewForField)) {
+            if (e.buttons === 1 && this.props.isSelected()) {
                 e.stopPropagation();
                 this._downX = e.clientX;
                 this._downY = e.clientY;
@@ -62,12 +61,14 @@ export class ImageBox extends React.Component<FieldViewProps> {
 
     lightbox = (path: string) => {
         const images = [path, "http://www.cs.brown.edu/~bcz/face.gif"];
-        if (this._isOpen && this.props.DocumentViewForField instanceof CollectionFreeFormDocumentView && SelectionManager.IsSelected(this.props.DocumentViewForField)) {
+        if (this._isOpen && this.props.isSelected()) {
             return (<Lightbox
                 mainSrc={images[this._photoIndex]}
                 nextSrc={images[(this._photoIndex + 1) % images.length]}
                 prevSrc={images[(this._photoIndex + images.length - 1) % images.length]}
-                onCloseRequest={() => this.setState({ isOpen: false })}
+                onCloseRequest={action(() =>
+                    this._isOpen = false
+                )}
                 onMovePrevRequest={action(() =>
                     this._photoIndex = (this._photoIndex + images.length - 1) % images.length
                 )}
@@ -82,10 +83,11 @@ export class ImageBox extends React.Component<FieldViewProps> {
         let field = this.props.doc.Get(this.props.fieldKey);
         let path = field == FieldWaiting ? "https://image.flaticon.com/icons/svg/66/66163.svg" :
             field instanceof ImageField ? field.Data.href : "http://www.cs.brown.edu/~bcz/face.gif";
+        let nativeWidth = this.props.doc.GetNumber(KeyStore.NativeWidth, 1);
 
         return (
             <div className="imageBox-cont" onPointerDown={this.onPointerDown} ref={this._ref} >
-                <img src={path} width="100%" alt="Image not found" />
+                <img src={path} width={nativeWidth} alt="Image not found" />
                 {this.lightbox(path)}
             </div>)
     }

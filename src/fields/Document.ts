@@ -1,8 +1,8 @@
-import { Field, Cast, Opt, FieldWaiting, FIELD_ID, FieldValue } from "./Field"
 import { Key } from "./Key"
 import { KeyStore } from "./KeyStore";
+import { Field, Cast, FieldWaiting, FieldValue, FieldId } from "./Field"
 import { NumberField } from "./NumberField";
-import { ObservableMap, computed, action, observable } from "mobx";
+import { ObservableMap, computed, action } from "mobx";
 import { TextField } from "./TextField";
 import { ListField } from "./ListField";
 import { Server } from "../client/Server";
@@ -10,7 +10,7 @@ import { Types } from "../server/Message";
 
 export class Document extends Field {
     public fields: ObservableMap<string, { key: Key, field: Field }> = new ObservableMap();
-    public _proxies: ObservableMap<string, FIELD_ID> = new ObservableMap();
+    public _proxies: ObservableMap<string, FieldId> = new ObservableMap();
 
     constructor(id?: string, save: boolean = true) {
         super(id)
@@ -40,7 +40,17 @@ export class Document extends Field {
             if (this.fields.has(key.Id)) {
                 field = this.fields.get(key.Id)!.field;
             } else if (this._proxies.has(key.Id)) {
-                field = Server.GetDocumentField(this, key);
+                Server.GetDocumentField(this, key);
+                /*
+                The field might have been instantly filled from the cache
+                Maybe we want to just switch back to returning the value
+                from Server.GetDocumentField if it's in the cache
+                */
+                if (this.fields.has(key.Id)) {
+                    field = this.fields.get(key.Id)!.field;
+                } else {
+                    field = "<Waiting>";
+                }
             }
         } else {
             let doc: FieldValue<Document> = this;
@@ -49,7 +59,17 @@ export class Document extends Field {
                 let curProxy = doc._proxies.get(key.Id);
                 if (!curField || (curProxy && curField.field.Id !== curProxy)) {
                     if (curProxy) {
-                        field = Server.GetDocumentField(doc, key);
+                        Server.GetDocumentField(doc, key);
+                        /*
+                        The field might have been instantly filled from the cache
+                        Maybe we want to just switch back to returning the value
+                        from Server.GetDocumentField if it's in the cache
+                        */
+                        if (this.fields.has(key.Id)) {
+                            field = this.fields.get(key.Id)!.field;
+                        } else {
+                            field = "<Waiting>";
+                        }
                         break;
                     }
                     if ((doc.fields.has(KeyStore.Prototype.Id) || doc._proxies.has(KeyStore.Prototype.Id))) {

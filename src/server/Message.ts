@@ -1,5 +1,4 @@
 import { Utils } from "../Utils";
-import { FIELD_ID, Field } from "../fields/Field";
 
 export class Message<T> {
     private name: string;

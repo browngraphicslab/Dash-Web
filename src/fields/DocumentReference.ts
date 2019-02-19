@@ -1,4 +1,4 @@
-import { Field, Opt, FieldValue, FIELD_ID } from "./Field";
+import { Field, Opt, FieldValue, FieldId } from "./Field";
 import { Document } from "./Document";
 import { Key } from "./Key";
 import { Types } from "../server/Message";
@@ -47,7 +47,7 @@ export class DocumentReference extends Field {
         return "";
     }
 
-    ToJson(): { type: Types, data: FIELD_ID, _id: string } {
+    ToJson(): { type: Types, data: FieldId, _id: string } {
         return {
             type: Types.DocumentReference,
             data: this.document.Id,

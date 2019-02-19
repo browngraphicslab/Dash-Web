@@ -1,5 +1,4 @@
 import { action, IReactionDisposer, reaction } from "mobx";
-import { observer } from "mobx-react"
 import { baseKeymap } from "prosemirror-commands";
 import { history, redo, undo } from "prosemirror-history";
 import { keymap } from "prosemirror-keymap";
@@ -13,6 +12,7 @@ import React = require("react")
 import { RichTextField } from "../../../fields/RichTextField";
 import { FieldViewProps, FieldView } from "./FieldView";
 import { CollectionFreeFormDocumentView } from "./CollectionFreeFormDocumentView";
+import { observer } from "mobx-react";
 
 
 // FormattedTextBox: Displays an editable plain text node that maps to a specified Key of a Document
@@ -31,7 +31,6 @@ import { CollectionFreeFormDocumentView } from "./CollectionFreeFormDocumentView
 //  specified Key and assigns it to an HTML input node.  When changes are made tot his node, 
 //  this will edit the document and assign the new value to that field.
 //]
-@observer
 export class FormattedTextBox extends React.Component<FieldViewProps> {
 
     public static LayoutString() { return FieldView.LayoutString(FormattedTextBox) }
@@ -111,7 +110,7 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
     }
     onPointerDown = (e: React.PointerEvent): void => {
         let me = this;
-        if (e.buttons === 1 && me.props.DocumentViewForField instanceof CollectionFreeFormDocumentView && SelectionManager.IsSelected(me.props.DocumentViewForField)) {
+        if (e.buttons === 1 && this.props.isSelected()) {
             e.stopPropagation();
         }
     }
@@ -119,7 +118,7 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
         return (<div className="formattedTextBox-cont"
             style={{
                 color: "initial",
-                whiteSpace: "initial"
+                whiteSpace: "initial",
             }}
             onPointerDown={this.onPointerDown}
             ref={this._ref} />)
