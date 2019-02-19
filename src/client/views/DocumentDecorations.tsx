@@ -13,17 +13,33 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     private _resizer = ""
     private _isPointerDown = false;
     @observable private _opacity = 1;
+    private keyinput: React.RefObject<HTMLInputElement>;
 
     constructor(props: Readonly<{}>) {
         super(props)
         DocumentDecorations.Instance = this
         this.state = { value: document.title };
         this.handleChange = this.handleChange.bind(this);
+        this.keyinput = React.createRef();
     }
 
     handleChange(event: any) {
         this.setState({ value: event.target.value });
+        console.log("Input box has changed")
     };
+
+    enterPressed(e: any) {
+        var key = e.keyCode || e.which;
+        // enter pressed
+        if (key == 13) {
+            var text = e.target.value;
+            if (text[0] == '#') {
+                console.log("hashtag");
+                // TODO: Change field with switch statement
+            }
+            e.target.blur();
+        }
+    }
 
     @computed
     get Bounds(): { x: number, y: number, b: number, r: number } {
@@ -147,7 +163,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 top: bounds.y - 20 - 20,
                 opacity: this.opacity
             }}>
-                <input className="title" type="text" name="dynbox" value={this.state.value} onChange={this.handleChange} onPointerDown={this.onPointerDown} />
+                <input ref={this.keyinput} className="title" type="text" name="dynbox" value={this.state.value} onChange={this.handleChange} onPointerDown={this.onPointerDown} onKeyPress={this.enterPressed} />
                 {/* <div className="title" onPointerDown={this.onPointerDown}>{document.title}</div> */}
                 <div id="documentDecorations-topLeftResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-topResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
