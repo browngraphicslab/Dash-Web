@@ -25,7 +25,7 @@ export class CollectionDockingView extends CollectionViewBase {
     private _containerRef = React.createRef<HTMLDivElement>();
     @computed
     private get modelForFlexLayout() {
-        const { CollectionFieldKey: fieldKey, DocumentForCollection: Document } = this.props;
+        const { fieldKey: fieldKey, Document: Document } = this.props;
         const value: Document[] = Document.GetData(fieldKey, ListField, []);
         var docs = value.map(doc => {
             return { type: 'tabset', weight: 50, selected: 0, children: [{ type: "tab", name: doc.Title, component: doc.Id }] };
@@ -40,8 +40,8 @@ export class CollectionDockingView extends CollectionViewBase {
         });
     }
     @computed
-    private get modelForGoldenLayout(): any {
-        const { CollectionFieldKey: fieldKey, DocumentForCollection: Document } = this.props;
+    private get modelForGoldenLayout(): GoldenLayout {
+        const { fieldKey: fieldKey, Document: Document } = this.props;
         const value: Document[] = Document.GetData(fieldKey, ListField, []);
         var docs = value.map(doc => {
             return { type: 'component', componentName: 'documentViewComponent', componentState: { doc: doc, scaling: 1 } };
@@ -92,7 +92,7 @@ export class CollectionDockingView extends CollectionViewBase {
         if (component === "button") {
             return <button>{node.getName()}</button>;
         }
-        const { CollectionFieldKey: fieldKey, DocumentForCollection: Document } = this.props;
+        const { fieldKey: fieldKey, Document: Document } = this.props;
         const value: Document[] = Document.GetData(fieldKey, ListField, []);
         for (var i: number = 0; i < value.length; i++) {
             if (value[i].Id === component) {
@@ -101,7 +101,7 @@ export class CollectionDockingView extends CollectionViewBase {
                     ScreenToLocalTransform={() => Transform.Identity}
                     isTopMost={true}
                     Scaling={1}
-                    ContainingCollectionView={this} DocumentView={undefined} />);
+                    ContainingCollectionView={this} />);
             }
         }
         if (component === "text") {
@@ -262,9 +262,10 @@ export class CollectionDockingView extends CollectionViewBase {
 
 
     render() {
-        const { CollectionFieldKey: fieldKey, DocumentForCollection: Document } = this.props;
+        const { fieldKey: fieldKey, Document: Document } = this.props;
         const value: Document[] = Document.GetData(fieldKey, ListField, []);
         // bcz: not sure why, but I need these to force the flexlayout to update when the collection size changes.
+        // tfs: we should be able to use this.props.ScreenToLocalTransform to get s right?
         var s = this.props.ContainingDocumentView != undefined ? this.props.ContainingDocumentView!.ScalingToScreenSpace : 1;
         var w = Document.GetNumber(KeyStore.Width, 0) / s;
         var h = Document.GetNumber(KeyStore.Height, 0) / s;
@@ -314,7 +315,7 @@ export class RenderClass extends React.Component<DockingProps> {
                     return this.props.CollectionDockingView.props.ScreenToLocalTransform().translate(-translateX, -translateY).scale(scale)
                 }}
                 isTopMost={true}
-                ContainingCollectionView={this.props.CollectionDockingView} DocumentView={undefined} />
+                ContainingCollectionView={this.props.CollectionDockingView} />
 
         if (nativeWidth > 0 && (layout.indexOf("CollectionFreeForm") == -1 || layout.indexOf("AnnotationsKey") != -1)) {
             return <Measure onResize={

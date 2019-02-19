@@ -14,15 +14,14 @@ import { Transform } from "../../util/Transform";
 
 
 export interface CollectionViewProps {
-    CollectionFieldKey: Key;
-    DocumentForCollection: Document;
+    fieldKey: Key;
+    Document: Document;
     ContainingDocumentView: Opt<DocumentView>;
     ScreenToLocalTransform: () => Transform;
     isSelected: () => boolean;
     isTopMost: boolean;
     select: (ctrlPressed: boolean) => void;
     BackgroundView?: () => JSX.Element;
-    ParentScaling: number;
 }
 
 export const COLLECTION_BORDER_WIDTH = 2;
@@ -31,8 +30,8 @@ export const COLLECTION_BORDER_WIDTH = 2;
 export class CollectionViewBase extends React.Component<CollectionViewProps> {
 
     public static LayoutString(collectionType: string, fieldKey: string = "DataKey") {
-        return `<${collectionType} Scaling={Scaling} DocumentForCollection={Document}
-                    ScreenToLocalTransform={ScreenToLocalTransform} CollectionFieldKey={${fieldKey}} isSelected={isSelected} select={select}
+        return `<${collectionType} Document={Document}
+                    ScreenToLocalTransform={ScreenToLocalTransform} fieldKey={${fieldKey}} isSelected={isSelected} select={select}
                     isTopMost={isTopMost}
                     ContainingDocumentView={DocumentView} BackgroundView={BackgroundView} />`;
     }
@@ -46,14 +45,14 @@ export class CollectionViewBase extends React.Component<CollectionViewProps> {
     @action
     addDocument = (doc: Document): void => {
         //TODO This won't create the field if it doesn't already exist
-        const value = this.props.DocumentForCollection.GetData(this.props.CollectionFieldKey, ListField, new Array<Document>())
+        const value = this.props.Document.GetData(this.props.fieldKey, ListField, new Array<Document>())
         value.push(doc);
     }
 
     @action
     removeDocument = (doc: Document): boolean => {
         //TODO This won't create the field if it doesn't already exist
-        const value = this.props.DocumentForCollection.GetData(this.props.CollectionFieldKey, ListField, new Array<Document>())
+        const value = this.props.Document.GetData(this.props.fieldKey, ListField, new Array<Document>())
         let index = value.indexOf(doc);
         if (index !== -1) {
             value.splice(index, 1)

@@ -104,7 +104,7 @@ export class CollectionSchemaView extends CollectionViewBase {
     @observable
     private _parentScaling = 1; // used to transfer the dimensions of the content pane in the DOM to the ParentScaling prop of the DocumentView
     render() {
-        const { DocumentForCollection: Document, CollectionFieldKey: fieldKey } = this.props;
+        const { Document: Document, fieldKey: fieldKey } = this.props;
         const children = Document.GetList<Document>(fieldKey, []);
         const columns = Document.GetList(KS.ColumnsKey,
             [KS.Title, KS.Data, KS.Author])
@@ -126,7 +126,7 @@ export class CollectionSchemaView extends CollectionViewBase {
                                 ScreenToLocalTransform={() => Transform.Identity}//TODO This should probably be an actual transform
                                 Scaling={this._parentScaling}
                                 isTopMost={false}
-                                DocumentView={undefined} ContainingCollectionView={me} />
+                                ContainingCollectionView={me} />
                         </div>
                     }
                 </Measure>
