@@ -1,15 +1,25 @@
-import { Field } from "./Field"
+import { Field, FieldId } from "./Field"
 import { observable, computed, action } from "mobx";
+import { Server } from "../client/Server";
 
 export abstract class BasicField<T> extends Field {
-    constructor(data: T) {
-        super();
+    constructor(data: T, save: boolean, id?: FieldId) {
+        super(id);
 
         this.data = data;
+        if (save) {
+            Server.UpdateField(this)
+        }
+    }
+
+    UpdateFromServer(data: any) {
+        if (this.data !== data) {
+            this.data = data;
+        }
     }
 
     @observable
-    private data: T;
+    protected data: T;
 
     @computed
     get Data(): T {
@@ -17,10 +27,10 @@ export abstract class BasicField<T> extends Field {
     }
 
     set Data(value: T) {
-        if (this.data === value) {
-            return;
+        if (this.data != value) {
+            this.data = value;
         }
-        this.data = value;
+        Server.UpdateField(this);
     }
 
     @action

@@ -1,5 +1,6 @@
 
 import { Utils } from "../Utils";
+import { Types } from "../server/Message";
 
 export function Cast<T extends Field>(field: FieldValue<Field>, ctor: { new(): T }): Opt<T> {
     if (field) {
@@ -18,6 +19,10 @@ export type FieldValue<T> = Opt<T> | FIELD_WAITING;
 
 export abstract class Field {
     //FieldUpdated: TypedEvent<Opt<FieldUpdatedArgs>> = new TypedEvent<Opt<FieldUpdatedArgs>>();
+
+    init(callback: (res: Field) => any) {
+        callback(this);
+    }
 
     private id: FieldId;
     get Id(): FieldId {
@@ -47,6 +52,8 @@ export abstract class Field {
         return this.id === other.id;
     }
 
+    abstract UpdateFromServer(serverData: any): void;
+
     abstract ToScriptString(): string;
 
     abstract TrySetValue(value: any): boolean;
@@ -55,4 +62,5 @@ export abstract class Field {
 
     abstract Copy(): Field;
 
+    abstract ToJson(): { _id: string, type: Types, data: any }
 }

@@ -11,7 +11,7 @@ import { CollectionViewBase, COLLECTION_BORDER_WIDTH } from "./CollectionViewBas
 import { DocumentView } from "../nodes/DocumentView";
 import { EditableView } from "../EditableView";
 import { CompileScript, ToField } from "../../util/Scripting";
-import { KeyStore as KS, Key, KeyStore } from "../../../fields/Key";
+import { KeyStore } from "../../../fields/KeyStore";
 import { Document } from "../../../fields/Document";
 import { Field } from "../../../fields/Field";
 import { Transform } from "../../util/Transform";
@@ -19,7 +19,7 @@ import Measure from "react-measure";
 
 @observer
 export class CollectionSchemaView extends CollectionViewBase {
-    public static LayoutString() { return CollectionViewBase.LayoutString("CollectionSchemaView"); }
+    public static LayoutString() { return FieldView.LayoutString(CollectionSchemaView); }
 
     @observable
     selectedIndex = 0;
@@ -106,8 +106,8 @@ export class CollectionSchemaView extends CollectionViewBase {
     render() {
         const { Document: Document, fieldKey: fieldKey } = this.props;
         const children = Document.GetList<Document>(fieldKey, []);
-        const columns = Document.GetList(KS.ColumnsKey,
-            [KS.Title, KS.Data, KS.Author])
+        const columns = Document.GetList(KeyStore.ColumnsKey,
+            [KeyStore.Title, KeyStore.Data, KeyStore.Author])
         let content;
         var me = this;
         if (this.selectedIndex != -1) {
