@@ -254,9 +254,12 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         if (!lkeys || lkeys === "<Waiting>") {
             return <p>Error loading layout keys</p>;
         }
-        let bindings = { ...this.props } as any;
-        bindings.isSelected = this.isSelected;
-        bindings.select = this.select;
+        let bindings = {
+            ...this.props,
+            ScreenToLocalTransform: this.screenToLocalTransform, // adds 'Scaling' to the screen to local Xf
+            isSelected: this.isSelected,
+            select: this.select
+        } as any;
         for (const key of this.layoutKeys) {
             bindings[key.Name + "Key"] = key;  // this maps string values of the form <keyname>Key to an actual key Kestore.keyname  e.g,   "DataKey" => KeyStore.Data
         }
@@ -282,7 +285,6 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             bindings.BackgroundView = backgroundView;
         }
 
-        bindings.ScreenToLocalTransform = this.screenToLocalTransform; // adds 'Scaling' to the screen to local Xf
         var width = this.props.Document.GetNumber(KeyStore.NativeWidth, 0);
         var strwidth = width > 0 ? width.toString() + "px" : "100%";
         var height = this.props.Document.GetNumber(KeyStore.NativeHeight, 0);
