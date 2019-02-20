@@ -12,7 +12,7 @@ export class DocumentManager {
 
     //global holds all of the nodes (regardless of which collection they're in)
     @observable
-    public DocumentViews: DocumentView[];
+    public DocumentViews: DocumentView[] = [];
 
     // singleton instance
     private static _instance: DocumentManager;
@@ -24,7 +24,7 @@ export class DocumentManager {
 
     //private constructor so no other class can create a nodemanager
     private constructor() {
-        this.DocumentViews = new Array<DocumentView>();
+        // this.DocumentViews = new Array<DocumentView>();
     }
 
     public getDocumentView(toFind: Document): DocumentView | null {
@@ -91,17 +91,12 @@ export class DocumentManager {
         let height: number;
 
         //if the view exists in a freeform collection
-        if (docView != null) {
-            //view.props.GetTransform().TranslateX
-            width = docView.props.Document.GetNumber(KeyStore.Width, 0)
-            height = docView.props.Document.GetNumber(KeyStore.Height, 0)
+        if (docView && docView.MainContent.current) {
+            width = docView.MainContent.current.clientWidth
+            height = docView.MainContent.current.clientHeight
 
             //base case: parent of parent does not exist
             if (docView.props.ContainingCollectionView == null) {
-                // scale = RootStore.Instance.MainNodeCollection.Scale;
-                // XView = (-node.X * scale) + (window.innerWidth / 2) - (node.Width * scale / 2);
-                // YView = (-node.Y * scale) + (window.innerHeight / 2) - (node.Height * scale / 2);
-                // RootStore.Instance.MainNodeCollection.SetViewportXY(XView, YView);
                 scale = docView.props.ScreenToLocalTransform().Scale
                 XView = (-docView.props.ScreenToLocalTransform().TranslateX * scale) + (window.innerWidth / 2) - (width * scale / 2)
                 YView = (-docView.props.ScreenToLocalTransform().TranslateY * scale) + (window.innerHeight / 2) - (height * scale / 2)
@@ -109,37 +104,17 @@ export class DocumentManager {
             }
             //parent is not main, parent is centered and calls itself
             else {
-                console.log("------------------------------------------")
-                console.log(docView.props.ContainingCollectionView.props.DocumentForCollection.Title)
-                console.log("------------------------------------------")
-                console.log("parent does exist")
-                if (docView.props.ContainingCollectionView.props.DocumentForCollection != null) {
-                    console.log("view of parent exists")
+                if (docView.props.ContainingCollectionView.props.ContainingDocumentView && docView.props.ContainingCollectionView.props.ContainingDocumentView.MainContent.current) {
+                    //view of parent
+                    let tempCollectionView = docView.props.ContainingCollectionView.props.ContainingDocumentView
 
-                    let tempView = this.getDocumentView(docView.props.ContainingCollectionView.props.DocumentForCollection)
+                    let parentWidth = docView.props.ContainingCollectionView.props.ContainingDocumentView.MainContent.current.clientWidth
+                    let parentHeight = docView.props.ContainingCollectionView.props.ContainingDocumentView.MainContent.current.clientHeight
 
-                    //console.log(docView.props.ContainingCollectionView.props.DocumentForCollection.GetNumber(KeyStore.NativeWidth, 0))
-
-                    // let parentWidth = docView.props.ContainingCollectionView.props.DocumentForCollection.GetNumber(KeyStore.Width, 0)
-                    // let parentHeight = docView.props.ContainingCollectionView.props.DocumentForCollection.GetNumber(KeyStore.Height, 0)
-
-                    let parentWidth = docView.props.ContainingCollectionView.props.DocumentForCollection.GetNumber(KeyStore.Width, 0)
-                    let parentHeight = docView.props.ContainingCollectionView.props.DocumentForCollection.GetNumber(KeyStore.Height, 0)
-                    //_htmlElement!.clientWidth
-
-                    // console.log("window width: " + window.innerWidth + ", window height: " + window.innerHeight)
-                    // console.log("parent width: " + parentWidth + ", parent height: " + parentHeight)
-
-
-                    if (tempView != null) {
-                        console.log("View is NOT null")
-                        scale = tempView.props.ScreenToLocalTransform().Scale
-
-                        parentWidth *= scale
-                        parentHeight *= scale
-
-                        console.log("window width: " + window.innerWidth + ", window height: " + window.innerHeight)
-                        console.log("parent width: " + parentWidth + ", parent height: " + parentHeight)
+                    //make sure to test if the parent view is a freeform view
+                    if (tempCollectionView) {
+                        //scale of parent
+                        scale = tempCollectionView.props.ScreenToLocalTransform().Scale
 
                         XView = (-docView.props.ScreenToLocalTransform().TranslateX * scale) + (parentWidth / 2) - (width * scale / 2);
                         YView = (-docView.props.ScreenToLocalTransform().TranslateY * scale) + (parentHeight / 2) - (height * scale / 2);
@@ -151,6 +126,10 @@ export class DocumentManager {
                 }
             }
         }
+    }
+
+    parentIsFreeform(node: any): boolean {
+        return node.props.ContainingCollectionView instanceof CollectionFreeFormView
     }
 
     private setViewportXY(collection: CollectionViewBase, x: number, y: number) {

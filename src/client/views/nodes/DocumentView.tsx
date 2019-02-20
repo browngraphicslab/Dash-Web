@@ -1,4 +1,4 @@
-import { action, computed } from "mobx";
+import { action, computed, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { observable } from "mobx";
 import { Document } from "../../../fields/Document";
@@ -179,11 +179,11 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15)
     }
 
+    //TODO Monika
     @action
     Center = (e: React.MouseEvent): void => {
         DocumentManager.Instance.centerNode(this.props.Document)
         DocumentManager.Instance.centerNode(this)
-        //console.log(this.props.ContainingCollectionView.props.)
     }
 
     @action
@@ -230,17 +230,23 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     }
 
     //adds doc to global list
+    @action
     componentDidMount: () => void = () => {
-        DocumentManager.Instance.DocumentViews.push(this);
+        runInAction(() => {
+            DocumentManager.Instance.DocumentViews.push(this);
+        })
     }
 
     //removes doc from global list
+    @action
     componentWillUnmount: () => void = () => {
-        for (let node of DocumentManager.Instance.DocumentViews) {
-            if (Object.is(node, this)) {
-                DocumentManager.Instance.DocumentViews.splice(DocumentManager.Instance.DocumentViews.indexOf(this), 1);
+        runInAction(() => {
+            for (let node of DocumentManager.Instance.DocumentViews) {
+                if (Object.is(node, this)) {
+                    DocumentManager.Instance.DocumentViews.splice(DocumentManager.Instance.DocumentViews.indexOf(this), 1);
+                }
             }
-        }
+        })
     }
     isSelected = () => {
         return SelectionManager.IsSelected(this);
@@ -277,6 +283,8 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             />);
             bindings.BackgroundView = backgroundView;
         }
+
+        bindings.DocumentView = this;
 
         var width = this.props.Document.GetNumber(KeyStore.NativeWidth, 0);
         var strwidth = width > 0 ? width.toString() + "px" : "100%";

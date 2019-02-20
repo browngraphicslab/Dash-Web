@@ -72,11 +72,11 @@ let mainNodes = mainContainer.GetOrCreate<ListField<Document>>(KeyStore.Data, Li
 // mainNodes.Data.push(doc6);
 // mainNodes.Data.push(doc2);
 mainNodes.Data.push(doc4);
-mainNodes.Data.push(doc3);
+// mainNodes.Data.push(doc3);
 // mainNodes.Data.push(doc5);
 // mainNodes.Data.push(doc1);
 // mainNodes.Data.push(doc2);
-mainNodes.Data.push(doc6);
+// mainNodes.Data.push(doc6);
 //}
 //);
 

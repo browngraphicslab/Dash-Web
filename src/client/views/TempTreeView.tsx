@@ -1,4 +1,4 @@
-import { observable, computed } from "mobx";
+import { action, observable, computed } from "mobx";
 import React = require("react");
 import { observer } from "mobx-react";
 import { Document } from "../../fields/Document";
@@ -13,23 +13,16 @@ export interface IProps {
 @observer
 export class TempTreeView extends React.Component<IProps>{
 
+    @action
     onClick(doc: Document) {
+
         let view = DocumentManager.Instance.getDocumentView(doc);
         if (view != null) {
-            //console.log(view.Id)
-            //console.log(view.props.GetTransform().TranslateX)
+
+            if (DocumentManager.Instance.parentIsFreeform(view)) {
+                view.switchColor()
+            }
             DocumentManager.Instance.centerNode(view);
-
-            console.log(view.props.Document.Title)
-            if (view.props.ContainingCollectionView != undefined) {
-                //console.log(view.props.ContainingCollectionView.Id)
-                // view.props.ContainingCollectionView
-            }
-            else {
-                console.log("containing collection is undefined")
-            }
-
-            view.switchColor();
         }
     }
 
@@ -37,10 +30,10 @@ export class TempTreeView extends React.Component<IProps>{
         return (
             <div className="tempTree">
                 <div className="list">
-                    {this.props.mainCollection.map(doc => {
+                    {DocumentManager.Instance.DocumentViews.map(doc => {
                         return (
-                            <div key={doc.Id} onClick={() => { this.onClick(doc) }}>
-                                {doc.Title}
+                            <div key={doc.Id} onClick={() => { this.onClick(doc.props.Document) }}>
+                                {doc.props.Document.Title}
                             </div>
                         )
                     }
@@ -49,5 +42,4 @@ export class TempTreeView extends React.Component<IProps>{
             </div>
         );
     }
-
 }

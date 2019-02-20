@@ -12,7 +12,6 @@ import { CollectionDockingView } from "./CollectionDockingView";
 import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
 import { Transform } from "../../util/Transform";
 
-
 export interface CollectionViewProps {
     CollectionFieldKey: Key;
     DocumentForCollection: Document;
