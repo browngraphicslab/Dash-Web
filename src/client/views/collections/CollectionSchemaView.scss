@@ -34,7 +34,8 @@
         box-sizing: border-box;
     }
     .ReactTable .rt-table {
-        overflow: unset
+        overflow-y: auto;
+        height: 100%;
     }
     .ReactTable .rt-thead.-header {
             background:grey;
