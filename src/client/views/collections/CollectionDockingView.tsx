@@ -253,6 +253,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
                     AddDocument={undefined}
                     RemoveDocument={undefined}
                     Scaling={this._parentScaling}
+                    PanelSize={[0, 0]}
                     ScreenToLocalTransform={() => {
                         let { scale, translateX, translateY } = Utils.GetScreenTransform(this._mainCont);
                         var props = CollectionDockingView.Instance.props;
