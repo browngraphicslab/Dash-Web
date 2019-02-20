@@ -246,8 +246,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     }
 
     screenToLocalTransform = () => {
-        var parentScrToLocalXf = this.props && this.props.ScreenToLocalTransform ? this.props.ScreenToLocalTransform() : new Transform(0, 0, 1);
-        return parentScrToLocalXf.transform(new Transform(0, 0, this.props ? 1 / this.props.Scaling : 1));
+        return this.props.ScreenToLocalTransform().transform(Transform.Identity.scale(1 / this.props.Scaling));
     }
     render() {
         let lkeys = this.props.Document.GetT(KeyStore.LayoutKeys, ListField);
