@@ -1,25 +1,24 @@
 import React = require("react")
-import ReactTable, { ReactTableDefaults, CellInfo, ComponentPropsGetterRC, ComponentPropsGetterR } from "react-table";
+import { action, observable } from "mobx";
 import { observer } from "mobx-react";
-import { FieldView, FieldViewProps } from "../nodes/FieldView";
-import "react-table/react-table.css"
-import { observable, action, computed } from "mobx";
-import SplitPane from "react-split-pane"
-import "./CollectionSchemaView.scss"
-import { ScrollBox } from "../../util/ScrollBox";
-import { CollectionViewBase, COLLECTION_BORDER_WIDTH } from "./CollectionViewBase";
-import { DocumentView } from "../nodes/DocumentView";
-import { EditableView } from "../EditableView";
-import { CompileScript, ToField } from "../../util/Scripting";
-import { KeyStore } from "../../../fields/KeyStore";
+import Measure from "react-measure";
+import SplitPane from "react-split-pane";
+import ReactTable, { CellInfo, ComponentPropsGetterR, ReactTableDefaults } from "react-table";
+import "react-table/react-table.css";
 import { Document } from "../../../fields/Document";
 import { Field } from "../../../fields/Field";
+import { KeyStore } from "../../../fields/KeyStore";
+import { CompileScript, ToField } from "../../util/Scripting";
 import { Transform } from "../../util/Transform";
-import Measure from "react-measure";
+import { EditableView } from "../EditableView";
+import { DocumentView } from "../nodes/DocumentView";
+import { FieldView, FieldViewProps } from "../nodes/FieldView";
+import "./CollectionSchemaView.scss";
+import { CollectionViewBase, COLLECTION_BORDER_WIDTH } from "./CollectionViewBase";
 
 @observer
 export class CollectionSchemaView extends CollectionViewBase {
-    public static LayoutString() { return FieldView.LayoutString(CollectionSchemaView); }
+    public static LayoutString(fieldKey: string = "DataKey") { return CollectionViewBase.LayoutString("CollectionSchemaView", fieldKey); }
 
     @observable
     selectedIndex = 0;

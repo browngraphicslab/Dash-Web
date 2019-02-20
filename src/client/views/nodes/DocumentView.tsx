@@ -249,6 +249,8 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         return this.props.ScreenToLocalTransform().transform(Transform.Identity.scale(1 / this.props.Scaling));
     }
     render() {
+        if (!this.props.Document)
+            return <div></div>
         let lkeys = this.props.Document.GetT(KeyStore.LayoutKeys, ListField);
         if (!lkeys || lkeys === "<Waiting>") {
             return <p>Error loading layout keys</p>;
