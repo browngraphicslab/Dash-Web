@@ -23,8 +23,7 @@ export class DocumentDecorations extends React.Component {
     @computed
     get Bounds(): { x: number, y: number, b: number, r: number } {
         return SelectionManager.SelectedDocuments().reduce((bounds, element) => {
-            if (element.props.ContainingCollectionView != undefined &&
-                !(element.props.ContainingCollectionView instanceof CollectionFreeFormView)) {
+            if (element.props.isTopMost) {
                 return bounds;
             }
             let transform = element.props.ScreenToLocalTransform().inverse();
