@@ -15,13 +15,19 @@ import { DocumentView } from "../nodes/DocumentView";
 import { FieldView, FieldViewProps } from "../nodes/FieldView";
 import "./CollectionSchemaView.scss";
 import { CollectionViewBase, COLLECTION_BORDER_WIDTH } from "./CollectionViewBase";
+import { relative } from "path";
 
 @observer
 export class CollectionSchemaView extends CollectionViewBase {
     public static LayoutString(fieldKey: string = "DataKey") { return CollectionViewBase.LayoutString("CollectionSchemaView", fieldKey); }
 
+    private _mainCont = React.createRef<HTMLDivElement>();
+
     @observable
     selectedIndex = 0;
+
+    @observable
+    _splitPercentage: number = 50;
 
     renderCell = (rowProps: CellInfo) => {
         let props: FieldViewProps = {
@@ -83,11 +89,24 @@ export class CollectionSchemaView extends CollectionViewBase {
         };
     }
 
+    @action
+    onDividerMove = (e: PointerEvent): void => {
+        let nativeWidth = this._mainCont.current!.getBoundingClientRect();
+        this._splitPercentage = Math.round((e.clientX - nativeWidth.left) / nativeWidth.width * 100);
+    }
+
+    onDividerUp = (e: PointerEvent): void => {
+        document.removeEventListener("pointermove", this.onDividerMove);
+        document.removeEventListener('pointerup', this.onDividerUp);
+    }
+    onDividerDown = (e: React.PointerEvent) => {
+        e.stopPropagation();
+        e.preventDefault();
+        document.addEventListener("pointermove", this.onDividerMove);
+        document.addEventListener('pointerup', this.onDividerUp);
+    }
+
     onPointerDown = (e: React.PointerEvent) => {
-        let target = e.target as HTMLElement;
-        if (target.tagName == "SPAN" && target.className.includes("Resizer")) {
-            e.stopPropagation();
-        }
         // if (e.button === 2 && this.active) {
         //     e.stopPropagation();
         //     e.preventDefault();
@@ -107,8 +126,8 @@ export class CollectionSchemaView extends CollectionViewBase {
         const children = Document.GetList<Document>(fieldKey, []);
         const columns = Document.GetList(KeyStore.ColumnsKey,
             [KeyStore.Title, KeyStore.Data, KeyStore.Author])
-        let content;
-        var me = this;
+        let content = <div></div>
+        let me = this;
         if (this.selectedIndex != -1) {
             content = (
                 <Measure onResize={action((r: any) => {
@@ -130,13 +149,12 @@ export class CollectionSchemaView extends CollectionViewBase {
                     }
                 </Measure>
             )
-        } else {
-            content = <div />
         }
+        let nativeWidth = Document.GetNumber(KeyStore.NativeWidth, 0);
         return (
-            <div onPointerDown={this.onPointerDown} className="collectionSchemaView-container"
-                style={{ borderWidth: `${COLLECTION_BORDER_WIDTH}px`, }} >
-                <SplitPane split={"vertical"} defaultSize="60%" style={{ height: "100%", position: "relative", overflow: "none" }}>
+            <div onPointerDown={this.onPointerDown} ref={this._mainCont} className="collectionSchemaView-container"
+                style={{ borderWidth: `${COLLECTION_BORDER_WIDTH}px` }} >
+                <div className="collectionSchemaView-tableContainer" style={{ position: "relative", float: "left", width: `${this._splitPercentage}%`, height: "100%" }}>
                     <ReactTable
                         data={children}
                         pageSize={children.length}
@@ -156,9 +174,16 @@ export class CollectionSchemaView extends CollectionViewBase {
                         }}
                         getTrProps={this.getTrProps}
                     />
-                    {content}
-                </SplitPane>
-            </div>
+                </div>
+                <div onPointerDown={this.onDividerDown} style={{ position: "relative", background: "black", float: "left", width: "5px", height: "100%" }}>
+
+                </div>
+                <div style={{ position: "relative", float: "left", width: `calc(${100 - this._splitPercentage}% - 5px)`, height: "100%" }}>
+                    <Measure onResize={action((r: any) => this._parentScaling = nativeWidth > 0 ? r.entry.width / nativeWidth : 1)}>
+                        {({ measureRef }) => <div ref={measureRef}>  {content} </div>}
+                    </Measure>
+                </div>
+            </div >
         )
     }
 }
