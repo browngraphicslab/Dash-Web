@@ -179,18 +179,18 @@ export class CollectionFreeFormView extends CollectionViewBase {
     bringToFront(doc: DocumentView) {
         const { fieldKey: fieldKey, Document: Document } = this.props;
 
-        const value: Document[] = Document.GetList<Document>(fieldKey, []);
-        var topmost = value.reduce((topmost, d) => Math.max(d.GetNumber(KeyStore.ZIndex, 0), topmost), -1000);
-        value.map(d => {
-            var zind = d.GetNumber(KeyStore.ZIndex, 0);
-            if (zind != topmost - 1 - (topmost - zind) && d != doc.props.Document) {
-                d.SetData(KeyStore.ZIndex, topmost - 1 - (topmost - zind), NumberField);
+        const value: Document[] = Document.GetList<Document>(fieldKey, []).slice();
+        value.sort((doc1, doc2) => {
+            if (doc1 === doc.props.Document) {
+                return 1;
             }
-        })
-
-        if (doc.props.Document.GetNumber(KeyStore.ZIndex, 0) != 0) {
-            doc.props.Document.SetData(KeyStore.ZIndex, 0, NumberField);
-        }
+            if (doc2 === doc.props.Document) {
+                return -1;
+            }
+            return doc1.GetNumber(KeyStore.ZIndex, 0) - doc2.GetNumber(KeyStore.ZIndex, 0);
+        }).map((doc, index) => {
+            doc.SetNumber(KeyStore.ZIndex, index + 1)
+        });
     }
 
     @computed
