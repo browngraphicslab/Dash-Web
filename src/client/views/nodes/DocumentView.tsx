@@ -245,6 +245,10 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         SelectionManager.SelectDoc(this, ctrlPressed)
     }
 
+    screenToLocalTransform = () => {
+        var parentScrToLocalXf = this.props && this.props.ScreenToLocalTransform ? this.props.ScreenToLocalTransform() : new Transform(0, 0, 1);
+        return parentScrToLocalXf.transform(new Transform(0, 0, this.props ? 1 / this.props.Scaling : 1));
+    }
     render() {
         let lkeys = this.props.Document.GetT(KeyStore.LayoutKeys, ListField);
         if (!lkeys || lkeys === "<Waiting>") {
@@ -278,6 +282,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             bindings.BackgroundView = backgroundView;
         }
 
+        bindings.ScreenToLocalTransform = this.screenToLocalTransform; // adds 'Scaling' to the screen to local Xf
         var width = this.props.Document.GetNumber(KeyStore.NativeWidth, 0);
         var strwidth = width > 0 ? width.toString() + "px" : "100%";
         var height = this.props.Document.GetNumber(KeyStore.NativeHeight, 0);

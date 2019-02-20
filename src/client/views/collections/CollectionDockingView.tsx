@@ -179,6 +179,7 @@ export class CollectionDockingView extends CollectionViewBase {
             this._dragParent!.appendChild(this._dragElement!);
             DragManager.Root().removeChild(this._dragDiv);
             this._dragDiv = null;
+            this.stateChanged();
         }
         tab.closeElement.off('click') //unbind the current click handler
             .click(function () {
