@@ -4,7 +4,7 @@ import { SelectionManager } from "../util/SelectionManager";
 import { observer } from "mobx-react";
 import './DocumentDecorations.scss'
 import { CollectionFreeFormView } from "./collections/CollectionFreeFormView";
-import { KeyStore } from '../../fields/Key'
+import { KeyStore } from '../../fields/KeyStore'
 import { NumberField } from "../../fields/NumberField";
 
 @observer
@@ -23,8 +23,7 @@ export class DocumentDecorations extends React.Component {
     @computed
     get Bounds(): { x: number, y: number, b: number, r: number } {
         return SelectionManager.SelectedDocuments().reduce((bounds, element) => {
-            if (element.props.ContainingCollectionView != undefined &&
-                !(element.props.ContainingCollectionView instanceof CollectionFreeFormView)) {
+            if (element.props.isTopMost) {
                 return bounds;
             }
             let transform = element.props.ScreenToLocalTransform().inverse();
@@ -111,32 +110,27 @@ export class DocumentDecorations extends React.Component {
 
         SelectionManager.SelectedDocuments().forEach(element => {
             const rect = element.screenRect;
-            // if (rect.width !== 0) {
-            //     let scale = element.width / rect.width;
-            //     let actualdW = Math.max(element.width + (dW * scale), 20);
-            //     let actualdH = Math.max(element.height + (dH * scale), 20);
-            //     element.x += dX * (actualdW - element.width);
-            //     element.y += dY * (actualdH - element.height);
-            //     if (Math.abs(dW) > Math.abs(dH))
-            //         element.width = actualdW;
-            //     else
-            //         element.height = actualdH;
-            // }
             if (rect.width !== 0) {
                 let doc = element.props.Document;
                 let width = doc.GetOrCreate(KeyStore.Width, NumberField);
                 let height = doc.GetOrCreate(KeyStore.Height, NumberField);
                 let x = doc.GetOrCreate(KeyStore.X, NumberField);
-                let y = doc.GetOrCreate(KeyStore.X, NumberField);
+                let y = doc.GetOrCreate(KeyStore.Y, NumberField);
                 let scale = width.Data / rect.width;
                 let actualdW = Math.max(width.Data + (dW * scale), 20);
                 let actualdH = Math.max(height.Data + (dH * scale), 20);
                 x.Data += dX * (actualdW - width.Data);
                 y.Data += dY * (actualdH - height.Data);
-                if (Math.abs(dW) > Math.abs(dH))
-                    width.Data = actualdW;
-                else
-                    height.Data = actualdH;
+                var nativeWidth = doc.GetNumber(KeyStore.NativeWidth, 0);
+                var nativeHeight = doc.GetNumber(KeyStore.NativeHeight, 0);
+                if (nativeWidth > 0 && nativeHeight > 0) {
+                    if (Math.abs(dW) > Math.abs(dH))
+                        actualdH = nativeHeight / nativeWidth * actualdW;
+                    else
+                        actualdW = nativeWidth / nativeHeight * actualdH;
+                }
+                width.Data = actualdW;
+                height.Data = actualdH;
             }
         })
     }
@@ -170,7 +164,6 @@ export class DocumentDecorations extends React.Component {
                 <div id="documentDecorations-bottomLeftResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-bottomResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-bottomRightResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
-
             </div>
         )
     }

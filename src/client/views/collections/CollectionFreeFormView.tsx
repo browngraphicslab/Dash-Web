@@ -1,13 +1,11 @@
 import { observer } from "mobx-react";
 import React = require("react");
-import { action, observable, computed } from "mobx";
+import { action, computed } from "mobx";
 import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
 import { DragManager } from "../../util/DragManager";
 import "./CollectionFreeFormView.scss";
-import { Utils } from "../../../Utils";
-import { CollectionViewBase, CollectionViewProps, COLLECTION_BORDER_WIDTH } from "./CollectionViewBase";
-import { SelectionManager } from "../../util/SelectionManager";
-import { Key, KeyStore } from "../../../fields/Key";
+import { CollectionViewBase, COLLECTION_BORDER_WIDTH } from "./CollectionViewBase";
+import { KeyStore } from "../../../fields/KeyStore";
 import { Document } from "../../../fields/Document";
 import { ListField } from "../../../fields/ListField";
 import { NumberField } from "../../../fields/NumberField";
@@ -19,16 +17,11 @@ import { DocumentView } from "../nodes/DocumentView";
 @observer
 export class CollectionFreeFormView extends CollectionViewBase {
     public static LayoutString(fieldKey: string = "DataKey") { return CollectionViewBase.LayoutString("CollectionFreeFormView", fieldKey); }
-    private _containerRef = React.createRef<HTMLDivElement>();
     private _canvasRef = React.createRef<HTMLDivElement>();
     private _lastX: number = 0;
     private _lastY: number = 0;
     private _downX: number = 0;
     private _downY: number = 0;
-
-    constructor(props: CollectionViewProps) {
-        super(props);
-    }
 
     @computed
     get isAnnotationOverlay() { return this.props.fieldKey == KeyStore.Annotations; }
@@ -47,7 +40,6 @@ export class CollectionFreeFormView extends CollectionViewBase {
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
         const doc: DocumentView = de.data["document"];
-        var me = this;
         if (doc.props.ContainingCollectionView && doc.props.ContainingCollectionView !== this) {
             doc.props.ContainingCollectionView.removeDocument(doc.props.Document);
             this.addDocument(doc.props.Document);
@@ -55,7 +47,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
         const xOffset = de.data["xOffset"] as number || 0;
         const yOffset = de.data["yOffset"] as number || 0;
         //this should be able to use translate and scale methods on an Identity transform, no?
-        const transform = me.getTransform();
+        const transform = this.getTransform();
         const screenX = de.x - xOffset;
         const screenY = de.y - yOffset;
         const [x, y] = transform.transformPoint(screenX, screenY);
@@ -65,9 +57,13 @@ export class CollectionFreeFormView extends CollectionViewBase {
         e.stopPropagation();
     }
 
-    componentDidMount() {
-        if (this._containerRef.current) {
-            DragManager.MakeDropTarget(this._containerRef.current, {
+    private dropDisposer?: DragManager.DragDropDisposer;
+    createDropTarget = (ele: HTMLDivElement) => {
+        if (this.dropDisposer) {
+            this.dropDisposer();
+        }
+        if (ele) {
+            this.dropDisposer = DragManager.MakeDropTarget(ele, {
                 handlers: {
                     drop: this.drop
                 }
@@ -119,7 +115,6 @@ export class CollectionFreeFormView extends CollectionViewBase {
     onPointerWheel = (e: React.WheelEvent): void => {
         e.stopPropagation();
         e.preventDefault();
-        let modes = ['pixels', 'lines', 'page'];
         let coefficient = 1000;
         // if (modes[e.deltaMode] == 'pixels') coefficient = 50;
         // else if (modes[e.deltaMode] == 'lines') coefficient = 1000; // This should correspond to line-height??
@@ -155,7 +150,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
         let x = e.pageX - panx
         let y = e.pageY - pany
 
-        fReader.addEventListener("load", action("drop", (event) => {
+        fReader.addEventListener("load", action("drop", () => {
             if (fReader.result) {
                 let url = "" + fReader.result;
                 let doc = Documents.ImageDocument(url, {
@@ -177,25 +172,25 @@ export class CollectionFreeFormView extends CollectionViewBase {
         }
     }
 
-    onDragOver = (e: React.DragEvent): void => {
+    onDragOver = (): void => {
     }
 
     @action
     bringToFront(doc: DocumentView) {
         const { fieldKey: fieldKey, Document: Document } = this.props;
 
-        const value: Document[] = Document.GetList<Document>(fieldKey, []);
-        var topmost = value.reduce((topmost, d) => Math.max(d.GetNumber(KeyStore.ZIndex, 0), topmost), -1000);
-        value.map(d => {
-            var zind = d.GetNumber(KeyStore.ZIndex, 0);
-            if (zind != topmost - 1 - (topmost - zind) && d != doc.props.Document) {
-                d.SetData(KeyStore.ZIndex, topmost - 1 - (topmost - zind), NumberField);
+        const value: Document[] = Document.GetList<Document>(fieldKey, []).slice();
+        value.sort((doc1, doc2) => {
+            if (doc1 === doc.props.Document) {
+                return 1;
             }
-        })
-
-        if (doc.props.Document.GetNumber(KeyStore.ZIndex, 0) != 0) {
-            doc.props.Document.SetData(KeyStore.ZIndex, 0, NumberField);
-        }
+            if (doc2 === doc.props.Document) {
+                return -1;
+            }
+            return doc1.GetNumber(KeyStore.ZIndex, 0) - doc2.GetNumber(KeyStore.ZIndex, 0);
+        }).map((doc, index) => {
+            doc.SetNumber(KeyStore.ZIndex, index + 1)
+        });
     }
 
     @computed
@@ -220,11 +215,14 @@ export class CollectionFreeFormView extends CollectionViewBase {
     }
 
     render() {
-        const Document: Document = this.props.Document;
-        const value: Document[] = Document.GetList<Document>(this.props.fieldKey, []);
+        const { fieldKey, Document } = this.props;
+        // const value: Document[] = Document.GetList<Document>(fieldKey, []);
+        const lvalue = Document.GetT<ListField<Document>>(fieldKey, ListField);
+        if (!lvalue || lvalue === "<Waiting>") {
+            return <p>Error loading collection data</p>
+        }
         const panx: number = Document.GetNumber(KeyStore.PanX, 0);
         const pany: number = Document.GetNumber(KeyStore.PanY, 0);
-        var me = this;
 
         return (
             <div className="collectionfreeformview-container"
@@ -236,13 +234,13 @@ export class CollectionFreeFormView extends CollectionViewBase {
                 style={{
                     borderWidth: `${COLLECTION_BORDER_WIDTH}px`,
                 }}
-                ref={this._containerRef}>
+                ref={this.createDropTarget}>
                 <div className="collectionfreeformview"
                     style={{ width: "100%", transformOrigin: "left top", transform: ` translate(${panx}px, ${pany}px) scale(${this.zoomScaling}, ${this.zoomScaling})` }}
                     ref={this._canvasRef}>
 
                     {this.props.BackgroundView ? this.props.BackgroundView() : null}
-                    {value.map(doc => {
+                    {lvalue.Data.map(doc => {
                         return (<CollectionFreeFormDocumentView key={doc.Id} Document={doc}
                             AddDocument={this.addDocument}
                             RemoveDocument={this.removeDocument}

@@ -1,8 +1,9 @@
 import { action, computed } from "mobx";
 import { observer } from "mobx-react";
 import { Document } from "../../../fields/Document";
-import { Opt, FieldWaiting } from "../../../fields/Field";
-import { Key, KeyStore } from "../../../fields/Key";
+import { Opt, FieldWaiting, Field } from "../../../fields/Field";
+import { Key } from "../../../fields/Key";
+import { KeyStore } from "../../../fields/KeyStore";
 import { ListField } from "../../../fields/ListField";
 import { Utils } from "../../../Utils";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
@@ -30,6 +31,47 @@ export interface DocumentViewProps {
     isTopMost: boolean;
     //tfs: This shouldn't be necessary I don't think
     Scaling: number;
+}
+export interface JsxArgs extends DocumentViewProps {
+    Keys: { [name: string]: Key }
+    Fields: { [name: string]: Field }
+}
+
+/*
+This function is pretty much a hack that lets us fill out the fields in JsxArgs with something that
+jsx-to-string can recover the jsx from
+Example usage of this function:
+    public static LayoutString() {
+        let args = FakeJsxArgs(["Data"]);
+        return jsxToString(
+            <CollectionFreeFormView
+                doc={args.Document}
+                fieldKey={args.Keys.Data}
+                DocumentViewForField={args.DocumentView} />,
+            { useFunctionCode: true, functionNameOnly: true }
+        )
+    }
+*/
+export function FakeJsxArgs(keys: string[], fields: string[] = []): JsxArgs {
+    let Keys: { [name: string]: any } = {}
+    let Fields: { [name: string]: any } = {}
+    for (const key of keys) {
+        let fn = () => { }
+        Object.defineProperty(fn, "name", { value: key + "Key" })
+        Keys[key] = fn;
+    }
+    for (const field of fields) {
+        let fn = () => { }
+        Object.defineProperty(fn, "name", { value: field })
+        Fields[field] = fn;
+    }
+    let args: JsxArgs = {
+        Document: function Document() { },
+        DocumentView: function DocumentView() { },
+        Keys,
+        Fields
+    } as any;
+    return args;
 }
 
 @observer
@@ -70,7 +112,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
 
     @computed
     get active(): boolean {
-        return SelectionManager.IsSelected(this) || this.props.ContainingCollectionView === undefined ||
+        return SelectionManager.IsSelected(this) || !this.props.ContainingCollectionView ||
             this.props.ContainingCollectionView.active;
     }
 
@@ -104,7 +146,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
 
     @computed
     get topMost(): boolean {
-        return this.props.ContainingCollectionView == undefined || this.props.ContainingCollectionView instanceof CollectionDockingView;
+        return !this.props.ContainingCollectionView || this.props.ContainingCollectionView instanceof CollectionDockingView;
     }
 
     onPointerMove = (e: PointerEvent): void => {
@@ -195,20 +237,6 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         }
     }
 
-    // 
-    // returns the cumulative scaling between the document and the screen
-    // tfs: I don't think this should be necessary
-    //
-    @computed
-    public get ScalingToScreenSpace(): number {
-        if (this.props.ContainingCollectionView != undefined &&
-            this.props.ContainingCollectionView.props.ContainingDocumentView != undefined) {
-            let ss = this.props.ContainingCollectionView.props.Document.GetNumber(KeyStore.Scale, 1);
-            return this.props.ContainingCollectionView.props.ContainingDocumentView.ScalingToScreenSpace * ss;
-        }
-        return 1;
-    }
-
     isSelected = () => {
         return SelectionManager.IsSelected(this);
     }
@@ -217,10 +245,20 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         SelectionManager.SelectDoc(this, ctrlPressed)
     }
 
+    screenToLocalTransform = () => {
+        return this.props.ScreenToLocalTransform().transform(Transform.Identity.scale(1 / this.props.Scaling));
+    }
     render() {
-        let bindings = { ...this.props } as any;
-        bindings.isSelected = this.isSelected;
-        bindings.select = this.select;
+        let lkeys = this.props.Document.GetT(KeyStore.LayoutKeys, ListField);
+        if (!lkeys || lkeys === "<Waiting>") {
+            return <p>Error loading layout keys</p>;
+        }
+        let bindings = {
+            ...this.props,
+            ScreenToLocalTransform: this.screenToLocalTransform, // adds 'Scaling' to the screen to local Xf
+            isSelected: this.isSelected,
+            select: this.select
+        } as any;
         for (const key of this.layoutKeys) {
             bindings[key.Name + "Key"] = key;  // this maps string values of the form <keyname>Key to an actual key Kestore.keyname  e.g,   "DataKey" => KeyStore.Data
         }
@@ -246,14 +284,13 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             bindings.BackgroundView = backgroundView;
         }
 
-        bindings.DocumentView = this;
-
         var width = this.props.Document.GetNumber(KeyStore.NativeWidth, 0);
         var strwidth = width > 0 ? width.toString() + "px" : "100%";
         var height = this.props.Document.GetNumber(KeyStore.NativeHeight, 0);
         var strheight = height > 0 ? height.toString() + "px" : "100%";
+        var scaling = this.props.Scaling;
         return (
-            <div className="documentView-node" ref={this._mainCont} style={{ width: strwidth, height: strheight, transformOrigin: "left top", transform: `scale(${this.props.Scaling},${this.props.Scaling})` }}
+            <div className="documentView-node" ref={this._mainCont} style={{ width: strwidth, height: strheight, transformOrigin: "left top", transform: `scale(${scaling},${scaling})` }}
                 onContextMenu={this.onContextMenu}
                 onPointerDown={this.onPointerDown} >
                 <JsxParser

@@ -1,21 +1,23 @@
 import * as GoldenLayout from "golden-layout";
 import 'golden-layout/src/css/goldenlayout-base.css';
 import 'golden-layout/src/css/goldenlayout-dark-theme.css';
-import { action, computed, reaction, observable } from "mobx";
-import { observer } from "mobx-react";
-import { Document } from "../../../fields/Document";
-import { KeyStore } from "../../../fields/Key";
-import { ListField } from "../../../fields/ListField";
+import { action, computed, observable, reaction, trace } from "mobx";
 import { DragManager } from "../../util/DragManager";
 import { DocumentView } from "../nodes/DocumentView";
+import { Document } from "../../../fields/Document";
 import "./CollectionDockingView.scss";
-import { CollectionViewBase, CollectionViewProps, COLLECTION_BORDER_WIDTH } from "./CollectionViewBase";
+import { CollectionViewBase, COLLECTION_BORDER_WIDTH, CollectionViewProps } from "./CollectionViewBase";
 import React = require("react");
 import * as ReactDOM from 'react-dom';
 import Measure from "react-measure";
 import { Utils } from "../../../Utils";
-import { FieldId } from "../../../fields/Field";
+import { FieldId, FieldWaiting, Field } from "../../../fields/Field";
 import { Server } from "../../Server";
+import { observer } from "mobx-react";
+import { ListField } from "../../../fields/ListField";
+import { KeyStore } from "../../../fields/KeyStore";
+import { Opt } from "../../../fields/Field";
+import { TextField } from "../../../fields/TextField";
 
 @observer
 export class CollectionDockingView extends CollectionViewBase {
@@ -41,6 +43,7 @@ export class CollectionDockingView extends CollectionViewBase {
     private _containerRef = React.createRef<HTMLDivElement>();
     private _makeFullScreen: boolean = false;
     private _maximizedStack: any = null;
+    private _forceRecreate: boolean = false;
 
     constructor(props: CollectionViewProps) {
         super(props);
@@ -91,16 +94,10 @@ export class CollectionDockingView extends CollectionViewBase {
             type: 'stack',
             content: [CollectionDockingView.makeDocumentConfig(document)]
         };
-        var newContentItem = new this._goldenLayout._typeToItem[newItemStackConfig.type](this._goldenLayout, newItemStackConfig, parent);
+        var newContentItem = new this._goldenLayout._typeToItem[newItemStackConfig.type](this._goldenLayout, newItemStackConfig, null);
 
         if (this._goldenLayout.root.contentItems[0].isRow) {
-            var rowlayout = this._goldenLayout.root.contentItems[0];
-            var lastRowItem = rowlayout.contentItems[rowlayout.contentItems.length - 1];
-
-            lastRowItem.config["width"] *= 0.5;
-            newContentItem.config["width"] = lastRowItem.config["width"];
-            rowlayout.addChild(newContentItem, rowlayout.contentItems.length, true);
-            rowlayout.callDownwards('setSize');
+            this._goldenLayout.root.contentItems[0].addChild(newContentItem);
         }
         else {
             var collayout = this._goldenLayout.root.contentItems[0];
@@ -112,19 +109,35 @@ export class CollectionDockingView extends CollectionViewBase {
 
             collayout.config["width"] = 50;
             newContentItem.config["width"] = 50;
-            collayout.parent.callDownwards('setSize');
         }
+        this.stateChanged();              // shouldn't need to do either of these ... but our react component doesn't render when we add it manually like this.
+        this.setupGoldenLayout(true);     // this forces it to render by the brute force method of recreating the whole golden layout
     }
 
-    componentDidMount: () => void = () => {
-        if (this._containerRef.current) {
-
-            this._goldenLayout = new GoldenLayout(JSON.parse(this.props.Document.GetText(KeyStore.Data, "")));
+    setupGoldenLayout(force: boolean = false) {
+        var config = this.props.Document.GetText(KeyStore.Data, "");
+        if (config) {
+            if (!this._goldenLayout)
+                this._goldenLayout = new GoldenLayout(JSON.parse(config));
+            else {
+                if (!force && JSON.stringify(this._goldenLayout.toConfig()) == JSON.stringify(JSON.parse(config)))
+                    return;
+                this._goldenLayout.destroy();
+                this._goldenLayout = new GoldenLayout(JSON.parse(config));
+            }
             this._goldenLayout.on('tabCreated', this.tabCreated);
             this._goldenLayout.on('stackCreated', this.stackCreated);
             this._goldenLayout.registerComponent('DocumentFrameRenderer', DockedFrameRenderer);
             this._goldenLayout.container = this._containerRef.current;
             this._goldenLayout.init();
+            this._goldenLayout.on('stateChanged', this.stateChanged);
+        }
+    }
+    componentDidMount: () => void = () => {
+        if (this._containerRef.current) {
+            reaction(
+                () => this.props.Document.GetText(KeyStore.Data, ""),
+                () => this.setupGoldenLayout(), { fireImmediately: true });
 
             window.addEventListener('resize', this.onResize); // bcz: would rather add this event to the parent node, but resize events only come from Window
         }
@@ -134,7 +147,7 @@ export class CollectionDockingView extends CollectionViewBase {
     }
     @action
     onResize = (event: any) => {
-        var cur = this.props.ContainingDocumentView!.MainContent.current;
+        var cur = this._containerRef.current;
 
         // bcz: since GoldenLayout isn't a React component itself, we need to notify it to resize when its document container's size has changed
         this._goldenLayout.updateSize(cur!.getBoundingClientRect().width, cur!.getBoundingClientRect().height);
@@ -152,21 +165,26 @@ export class CollectionDockingView extends CollectionViewBase {
         }
     }
 
+    stateChanged = () => {
+        // if (!this._pointerIsDown) {
+        var json = JSON.stringify(this._goldenLayout.toConfig());
+        this.props.Document.SetText(KeyStore.Data, json)
+        //}
+    }
+
     tabCreated = (tab: any) => {
-        {
-            if (this._dragDiv) {
-                this._dragDiv.removeChild(this._dragElement);
-                this._dragParent!.removeChild(this._dragFakeElement!);
-                this._dragParent!.appendChild(this._dragElement!);
-                DragManager.Root().removeChild(this._dragDiv);
-                this._dragDiv = null;
-            }
-            //tab.setTitle(tab.contentItem.config.componentState.title);
-            tab.closeElement.off('click') //unbind the current click handler
-                .click(function () {
-                    tab.contentItem.remove();
-                });
+        if (this._dragDiv) {
+            this._dragDiv.removeChild(this._dragElement);
+            this._dragParent!.removeChild(this._dragFakeElement!);
+            this._dragParent!.appendChild(this._dragElement!);
+            DragManager.Root().removeChild(this._dragDiv);
+            this._dragDiv = null;
+            this.stateChanged();
         }
+        tab.closeElement.off('click') //unbind the current click handler
+            .click(function () {
+                tab.contentItem.remove();
+            });
     }
 
     stackCreated = (stack: any) => {
@@ -187,13 +205,8 @@ export class CollectionDockingView extends CollectionViewBase {
 
 
     render() {
-        const { fieldKey: fieldKey, Document: Document } = this.props;
-        const value: Document[] = Document.GetData(fieldKey, ListField, []);
-        // bcz: not sure why, but I need these to force the flexlayout to update when the collection size changes.
-        // tfs: we should be able to use this.props.ScreenToLocalTransform to get s right?
-        var s = this.props.ContainingDocumentView != undefined ? this.props.ContainingDocumentView!.ScalingToScreenSpace : 1;
-        var w = Document.GetNumber(KeyStore.Width, 0) / s;
-        var h = Document.GetNumber(KeyStore.Height, 0) / s;
+        this.props.Document.GetNumber(KeyStore.Width, 0); // bcz: needed to force render when window size changes
+        this.props.Document.GetNumber(KeyStore.Height, 0);
         return (
             <div className="collectiondockingview-container" id="menuContainer"
                 onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()} ref={this._containerRef}
@@ -213,28 +226,35 @@ interface DockedFrameProps {
 @observer
 export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
 
-    private _mainCont = React.createRef<HTMLDivElement>();
+    _mainCont: any = null;
     constructor(props: any) {
         super(props);
+        Server.GetField(this.props.documentId, (f) => { this.Document = f as Document; })
+    }
+
+    setMainCont: any = (element: any) => {
+        this._mainCont = element;
     }
 
     @observable
     private _parentScaling = 1; // used to transfer the dimensions of the content pane in the DOM to the ParentScaling prop of the DocumentView
 
-    @computed
-    private get Document() { return Server.GetField(this.props.documentId, () => { }) as Document }
+    @observable
+    private Document: Opt<Document>;
 
     render() {
+        if (!this.Document)
+            return <div></div>
         let nativeWidth = this.Document.GetNumber(KeyStore.NativeWidth, 0);
         var layout = this.Document.GetText(KeyStore.Layout, "");
         var content =
-            <div ref={this._mainCont}>
+            <div ref={this.setMainCont}>
                 <DocumentView key={this.Document.Id} Document={this.Document}
                     AddDocument={undefined}
                     RemoveDocument={undefined}
                     Scaling={this._parentScaling}
                     ScreenToLocalTransform={() => {
-                        let { scale, translateX, translateY } = Utils.GetScreenTransform(this._mainCont.current!);
+                        let { scale, translateX, translateY } = Utils.GetScreenTransform(this._mainCont);
                         var props = CollectionDockingView.Instance.props;
                         return props.ScreenToLocalTransform().translate(-translateX, -translateY).scale(scale / this._parentScaling)
                     }}

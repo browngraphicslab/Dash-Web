@@ -1,21 +1,19 @@
 
 import Lightbox from 'react-image-lightbox';
 import 'react-image-lightbox/style.css'; // This only needs to be imported once in your app
-import { SelectionManager } from "../../util/SelectionManager";
 import "./ImageBox.scss";
 import React = require("react")
 import { ImageField } from '../../../fields/ImageField';
 import { FieldViewProps, FieldView } from './FieldView';
-import { CollectionFreeFormDocumentView } from './CollectionFreeFormDocumentView';
 import { FieldWaiting } from '../../../fields/Field';
 import { observer } from "mobx-react"
-import { observable, action, spy } from 'mobx';
-import { KeyStore } from '../../../fields/Key';
+import { observable, action } from 'mobx';
+import { KeyStore } from '../../../fields/KeyStore';
 
 @observer
 export class ImageBox extends React.Component<FieldViewProps> {
 
-    public static LayoutString() { return FieldView.LayoutString("ImageBox"); }
+    public static LayoutString() { return FieldView.LayoutString(ImageBox) }
     private _ref: React.RefObject<HTMLDivElement>;
     private _downX: number = 0;
     private _downY: number = 0;
