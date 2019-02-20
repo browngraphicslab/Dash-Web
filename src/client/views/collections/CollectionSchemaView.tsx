@@ -14,13 +14,14 @@ import { DocumentView } from "../nodes/DocumentView";
 import { FieldView, FieldViewProps } from "../nodes/FieldView";
 import "./CollectionSchemaView.scss";
 import { CollectionViewBase, COLLECTION_BORDER_WIDTH } from "./CollectionViewBase";
-import { Z_DEFAULT_COMPRESSION } from "zlib";
 
 @observer
 export class CollectionSchemaView extends CollectionViewBase {
     public static LayoutString(fieldKey: string = "DataKey") { return CollectionViewBase.LayoutString("CollectionSchemaView", fieldKey); }
 
     private _mainCont = React.createRef<HTMLDivElement>();
+
+    private DIVIDER_WIDTH = 5;
 
     @observable
     selectedIndex = 0;
@@ -117,14 +118,6 @@ export class CollectionSchemaView extends CollectionViewBase {
         }
     }
 
-    innerScreenToLocal(tx: number, ty: number) {
-        var zoom = this.props.Document.GetNumber(KeyStore.Scale, 1);
-        var xf = this.props.ScreenToLocalTransform().transform(new Transform(- 5 - COLLECTION_BORDER_WIDTH, - COLLECTION_BORDER_WIDTH, 1)).translate(-tx, -ty);
-        var center = [0, 0];
-        var sabout = new Transform(center[0] / zoom, center[1] / zoom, 1).scaled(1 / this._parentScaling).translated(-center[0] / zoom, -center[1] / zoom);
-        var total = xf.transformed(sabout);
-        return () => total
-    }
     @computed
     get scale(): number {
         return this.props.Document.GetNumber(KeyStore.Scale, 1);
@@ -137,7 +130,7 @@ export class CollectionSchemaView extends CollectionViewBase {
     }
 
     getTransform = (): Transform => {
-        return this.props.ScreenToLocalTransform().translate(- COLLECTION_BORDER_WIDTH - this._dividerX - 5, - COLLECTION_BORDER_WIDTH).transform(this.getLocalTransform())
+        return this.props.ScreenToLocalTransform().translate(- COLLECTION_BORDER_WIDTH - this._dividerX - this.DIVIDER_WIDTH, - COLLECTION_BORDER_WIDTH).transform(this.getLocalTransform())
     }
 
     getLocalTransform = (): Transform => {
@@ -147,13 +140,11 @@ export class CollectionSchemaView extends CollectionViewBase {
 
     @action
     setScaling = (r: any) => {
-        var me = this;
         const children = this.props.Document.GetList<Document>(this.props.fieldKey, []);
         const selected = children.length > this.selectedIndex ? children[this.selectedIndex] : undefined;
         this._panelWidth = r.entry.width;
-        if (r.entry.height)
-            this._panelHeight = r.entry.height;
-        me._parentScaling = r.entry.width / selected!.GetNumber(KeyStore.NativeWidth, r.entry.width);
+        this._panelHeight = r.entry.height ? r.entry.height : this._panelHeight;
+        this._parentScaling = r.entry.width / selected!.GetNumber(KeyStore.NativeWidth, r.entry.width);
     }
 
     @observable _parentScaling = 1; // used to transfer the dimensions of the content pane in the DOM to the ParentScaling prop of the DocumentView
@@ -171,7 +162,7 @@ export class CollectionSchemaView extends CollectionViewBase {
                     <div ref={measureRef}>
                         <DocumentView Document={selected}
                             AddDocument={this.addDocument} RemoveDocument={this.removeDocument}
-                            ScreenToLocalTransform={this.getTransform}//TODO This should probably be an actual transform
+                            ScreenToLocalTransform={this.getTransform}
                             Scaling={this._parentScaling}
                             isTopMost={false}
                             PanelSize={[this._panelWidth, this._panelHeight]}
@@ -193,14 +184,11 @@ export class CollectionSchemaView extends CollectionViewBase {
                                 pageSize={children.length}
                                 page={0}
                                 showPagination={false}
-                                columns={columns.map(col => {
-                                    return (
-                                        {
-                                            Header: col.Name,
-                                            accessor: (doc: Document) => [doc, col],
-                                            id: col.Id
-                                        })
-                                })}
+                                columns={columns.map(col => ({
+                                    Header: col.Name,
+                                    accessor: (doc: Document) => [doc, col],
+                                    id: col.Id
+                                }))}
                                 column={{
                                     ...ReactTableDefaults.column,
                                     Cell: this.renderCell
@@ -210,8 +198,8 @@ export class CollectionSchemaView extends CollectionViewBase {
                         </div>
                     }
                 </Measure>
-                <div className="collectionSchemaView-dividerDragger" style={{ position: "relative", background: "black", float: "left", width: "5px", height: "100%" }} onPointerDown={this.onDividerDown} />
-                <div className="collectionSchemaView-previewRegion" style={{ position: "relative", float: "left", width: `calc(${100 - this._splitPercentage}% - 5px)`, height: "100%" }}>
+                <div className="collectionSchemaView-dividerDragger" style={{ position: "relative", background: "black", float: "left", width: `${this.DIVIDER_WIDTH}px`, height: "100%" }} onPointerDown={this.onDividerDown} />
+                <div className="collectionSchemaView-previewRegion" style={{ position: "relative", float: "left", width: `calc(${100 - this._splitPercentage}% - ${this.DIVIDER_WIDTH}px)`, height: "100%" }}>
                     {content}
                 </div>
             </div >
