@@ -247,6 +247,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
                             ScreenToLocalTransform={this.getTransform}
                             isTopMost={false}
                             Scaling={1}
+                            PanelSize={[0, 0]}
                             ContainingCollectionView={this} />);
                     })}
                 </div>

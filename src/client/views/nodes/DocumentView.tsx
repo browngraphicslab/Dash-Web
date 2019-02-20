@@ -31,6 +31,7 @@ export interface DocumentViewProps {
     isTopMost: boolean;
     //tfs: This shouldn't be necessary I don't think
     Scaling: number;
+    PanelSize: number[];
 }
 export interface JsxArgs extends DocumentViewProps {
     Keys: { [name: string]: Key }
@@ -245,8 +246,19 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         SelectionManager.SelectDoc(this, ctrlPressed)
     }
 
-    screenToLocalTransform = () => {
-        return this.props.ScreenToLocalTransform().transform(Transform.Identity.scale(1 / this.props.Scaling));
+    ScreenToLocalTransform = () => {
+        return this.props.PanelSize[0] ? this.backgroundScreenToLocalTransform() : this.props.ScreenToLocalTransform();
+    }
+
+    backgroundScreenToLocalTransform = () => {
+        if (this.props.PanelSize[0])
+            return this.props.ScreenToLocalTransform().scale(this.props.Scaling);
+        else return this.props.ScreenToLocalTransform().scale(1 / this.props.Scaling);
+    }
+    documentScreenToLocalTransform = () => {
+        if (this.props.PanelSize[0])
+            return this.props.ScreenToLocalTransform();
+        else return this.backgroundScreenToLocalTransform();
     }
     render() {
         if (!this.props.Document)
@@ -255,18 +267,23 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         if (!lkeys || lkeys === "<Waiting>") {
             return <p>Error loading layout keys</p>;
         }
-        let bindings = {
+        let backgroundBindings = {
             ...this.props,
-            ScreenToLocalTransform: this.screenToLocalTransform, // adds 'Scaling' to the screen to local Xf
+            ScreenToLocalTransform: this.backgroundScreenToLocalTransform, // adds 'Scaling' to the screen to local Xf
             isSelected: this.isSelected,
             select: this.select
         } as any;
         for (const key of this.layoutKeys) {
-            bindings[key.Name + "Key"] = key;  // this maps string values of the form <keyname>Key to an actual key Kestore.keyname  e.g,   "DataKey" => KeyStore.Data
+            backgroundBindings[key.Name + "Key"] = key;  // this maps string values of the form <keyname>Key to an actual key Kestore.keyname  e.g,   "DataKey" => KeyStore.Data
         }
         for (const key of this.layoutFields) {
             let field = this.props.Document.Get(key);
-            bindings[key.Name] = field && field != FieldWaiting ? field.GetValue() : field;
+            backgroundBindings[key.Name] = field && field != FieldWaiting ? field.GetValue() : field;
+        }
+
+        let documentBindings = {
+            ...backgroundBindings,
+            ScreenToLocalTransform: this.documentScreenToLocalTransform, // adds 'Scaling' to the screen to local Xf
         }
         /*
         tfs:
@@ -278,12 +295,12 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         if (backgroundLayout) {
             let backgroundView = () => (<JsxParser
                 components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView }}
-                bindings={bindings}
+                bindings={backgroundBindings}
                 jsx={this.backgroundLayout}
                 showWarnings={true}
                 onError={(test: any) => { console.log(test) }}
             />);
-            bindings.BackgroundView = backgroundView;
+            documentBindings.BackgroundView = backgroundView;
         }
 
         var width = this.props.Document.GetNumber(KeyStore.NativeWidth, 0);
@@ -297,7 +314,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
                 onPointerDown={this.onPointerDown} >
                 <JsxParser
                     components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView }}
-                    bindings={bindings}
+                    bindings={documentBindings}
                     jsx={this.layout}
                     showWarnings={true}
                     onError={(test: any) => { console.log(test) }}
