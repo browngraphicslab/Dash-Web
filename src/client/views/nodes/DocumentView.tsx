@@ -112,7 +112,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
 
     @computed
     get active(): boolean {
-        return SelectionManager.IsSelected(this) || this.props.ContainingCollectionView === undefined ||
+        return SelectionManager.IsSelected(this) || !this.props.ContainingCollectionView ||
             this.props.ContainingCollectionView.active;
     }
 
@@ -146,7 +146,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
 
     @computed
     get topMost(): boolean {
-        return this.props.ContainingCollectionView == undefined || this.props.ContainingCollectionView instanceof CollectionDockingView;
+        return !this.props.ContainingCollectionView || this.props.ContainingCollectionView instanceof CollectionDockingView;
     }
 
     onPointerMove = (e: PointerEvent): void => {
