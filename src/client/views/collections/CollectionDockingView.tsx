@@ -242,6 +242,20 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     @observable
     private Document: Opt<Document>;
 
+    @action
+    setScaling = (r: any) => {
+        let nativeWidth = this.Document!.GetNumber(KeyStore.NativeWidth, 0);
+        let nativeHeight = this.Document!.GetNumber(KeyStore.NativeWidth, 0);
+        this._parentScaling = nativeWidth > 0 ? r.entry.width / nativeWidth : 1;
+        this._nativeWidth = r.entry.width ? r.entry.width : nativeWidth;
+        this._nativeHeight = nativeWidth ? r.entry.width / nativeWidth * nativeHeight : nativeHeight;
+    }
+
+    @observable
+    private _nativeWidth = 0;
+    @observable
+    private _nativeHeight = 0;
+
     render() {
         if (!this.Document)
             return <div></div>
@@ -253,7 +267,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
                     AddDocument={undefined}
                     RemoveDocument={undefined}
                     Scaling={this._parentScaling}
-                    PanelSize={[0, 0]}
+                    PanelSize={[this._nativeWidth, this._nativeHeight]}
                     ScreenToLocalTransform={() => {
                         let { scale, translateX, translateY } = Utils.GetScreenTransform(this._mainCont);
                         var props = CollectionDockingView.Instance.props;
@@ -265,7 +279,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
 
         if (nativeWidth > 0 &&
             (layout.indexOf("CollectionFreeForm") == -1 || layout.indexOf("AnnotationsKey") != -1)) { // contents of documents should be scaled if document is not a freeform view, or if the freeformview is an annotation layer (presumably on a document that is not a freeformview)
-            return <Measure onResize={action((r: any) => this._parentScaling = nativeWidth > 0 ? r.entry.width / nativeWidth : 1)}>
+            return <Measure onResize={this.setScaling}>
                 {({ measureRef }) => <div ref={measureRef}>  {content} </div>}
             </Measure>
         }
