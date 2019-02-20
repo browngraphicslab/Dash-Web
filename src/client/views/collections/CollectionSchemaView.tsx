@@ -2,7 +2,6 @@ import React = require("react")
 import { action, observable } from "mobx";
 import { observer } from "mobx-react";
 import Measure from "react-measure";
-import SplitPane from "react-split-pane";
 import ReactTable, { CellInfo, ComponentPropsGetterR, ReactTableDefaults } from "react-table";
 import "react-table/react-table.css";
 import { Document } from "../../../fields/Document";
@@ -15,7 +14,6 @@ import { DocumentView } from "../nodes/DocumentView";
 import { FieldView, FieldViewProps } from "../nodes/FieldView";
 import "./CollectionSchemaView.scss";
 import { CollectionViewBase, COLLECTION_BORDER_WIDTH } from "./CollectionViewBase";
-import { relative } from "path";
 
 @observer
 export class CollectionSchemaView extends CollectionViewBase {
@@ -67,6 +65,7 @@ export class CollectionSchemaView extends CollectionViewBase {
         )
     }
 
+
     private getTrProps: ComponentPropsGetterR = (state, rowInfo) => {
         const that = this;
         if (!rowInfo) {
@@ -75,8 +74,7 @@ export class CollectionSchemaView extends CollectionViewBase {
         return {
             onClick: action((e: React.MouseEvent, handleOriginal: Function) => {
                 that.selectedIndex = rowInfo.index;
-                const doc: Document = rowInfo.original;
-                console.log("Row clicked: ", doc.Title)
+                this._splitPercentage += 0.05; // bcz - ugh - needed to force Measure to do its thing and call onResize
 
                 if (handleOriginal) {
                     handleOriginal()
@@ -118,70 +116,64 @@ export class CollectionSchemaView extends CollectionViewBase {
         }
     }
 
+    innerScreenToLocal(tx: number, ty: number) {
+        return () => this.props.ScreenToLocalTransform().transform(new Transform(-tx - 5 - COLLECTION_BORDER_WIDTH, -ty - COLLECTION_BORDER_WIDTH, 1))
+    }
 
-    @observable
-    private _parentScaling = 1; // used to transfer the dimensions of the content pane in the DOM to the ParentScaling prop of the DocumentView
+    @observable _parentScaling = 1; // used to transfer the dimensions of the content pane in the DOM to the ParentScaling prop of the DocumentView
+    @observable _dividerX = 0;
+    @observable _dividerY = 0;
     render() {
-        const { Document: Document, fieldKey: fieldKey } = this.props;
-        const children = Document.GetList<Document>(fieldKey, []);
-        const columns = Document.GetList(KeyStore.ColumnsKey,
-            [KeyStore.Title, KeyStore.Data, KeyStore.Author])
-        let content = <div></div>
+        const columns = this.props.Document.GetList(KeyStore.ColumnsKey, [KeyStore.Title, KeyStore.Data, KeyStore.Author])
+        const children = this.props.Document.GetList<Document>(this.props.fieldKey, []);
+        const selected = children.length > this.selectedIndex ? children[this.selectedIndex] : undefined;
         let me = this;
-        if (this.selectedIndex != -1) {
-            content = (
+        let content = this.selectedIndex == -1 || !selected ? (null) : (
+            <Measure onResize={action((r: any) => this._parentScaling = r.entry.width / selected.GetNumber(KeyStore.NativeWidth, r.entry.width))}>
+                {({ measureRef }) =>
+                    <div ref={measureRef}>
+                        <DocumentView Document={selected}
+                            AddDocument={this.addDocument} RemoveDocument={this.removeDocument}
+                            ScreenToLocalTransform={this.innerScreenToLocal(me._dividerX, me._dividerY)}//TODO This should probably be an actual transform
+                            Scaling={this._parentScaling}
+                            isTopMost={false}
+                            ContainingCollectionView={me} />
+                    </div>
+                }
+            </Measure>
+        )
+        return (
+            <div onPointerDown={this.onPointerDown} ref={this._mainCont} className="collectionSchemaView-container" style={{ borderWidth: `${COLLECTION_BORDER_WIDTH}px` }} >
                 <Measure onResize={action((r: any) => {
-                    var doc = children[this.selectedIndex];
-                    var n = doc.GetNumber(KeyStore.NativeWidth, 0);
-                    if (n > 0 && r.entry.width > 0) {
-                        this._parentScaling = r.entry.width / n;
-                    }
+                    this._dividerX = r.entry.width;
                 })}>
                     {({ measureRef }) =>
-                        <div ref={measureRef}>
-                            <DocumentView Document={children[this.selectedIndex]}
-                                AddDocument={this.addDocument} RemoveDocument={this.removeDocument}
-                                ScreenToLocalTransform={() => Transform.Identity}//TODO This should probably be an actual transform
-                                Scaling={this._parentScaling}
-                                isTopMost={false}
-                                ContainingCollectionView={me} />
+                        <div ref={measureRef} className="collectionSchemaView-tableContainer" style={{ position: "relative", float: "left", width: `${this._splitPercentage}%`, height: "100%" }}>
+                            <ReactTable
+                                data={children}
+                                pageSize={children.length}
+                                page={0}
+                                showPagination={false}
+                                columns={columns.map(col => {
+                                    return (
+                                        {
+                                            Header: col.Name,
+                                            accessor: (doc: Document) => [doc, col],
+                                            id: col.Id
+                                        })
+                                })}
+                                column={{
+                                    ...ReactTableDefaults.column,
+                                    Cell: this.renderCell
+                                }}
+                                getTrProps={this.getTrProps}
+                            />
                         </div>
                     }
                 </Measure>
-            )
-        }
-        let nativeWidth = Document.GetNumber(KeyStore.NativeWidth, 0);
-        return (
-            <div onPointerDown={this.onPointerDown} ref={this._mainCont} className="collectionSchemaView-container"
-                style={{ borderWidth: `${COLLECTION_BORDER_WIDTH}px` }} >
-                <div className="collectionSchemaView-tableContainer" style={{ position: "relative", float: "left", width: `${this._splitPercentage}%`, height: "100%" }}>
-                    <ReactTable
-                        data={children}
-                        pageSize={children.length}
-                        page={0}
-                        showPagination={false}
-                        columns={columns.map(col => {
-                            return (
-                                {
-                                    Header: col.Name,
-                                    accessor: (doc: Document) => [doc, col],
-                                    id: col.Id
-                                })
-                        })}
-                        column={{
-                            ...ReactTableDefaults.column,
-                            Cell: this.renderCell
-                        }}
-                        getTrProps={this.getTrProps}
-                    />
-                </div>
-                <div onPointerDown={this.onDividerDown} style={{ position: "relative", background: "black", float: "left", width: "5px", height: "100%" }}>
-
-                </div>
-                <div style={{ position: "relative", float: "left", width: `calc(${100 - this._splitPercentage}% - 5px)`, height: "100%" }}>
-                    <Measure onResize={action((r: any) => this._parentScaling = nativeWidth > 0 ? r.entry.width / nativeWidth : 1)}>
-                        {({ measureRef }) => <div ref={measureRef}>  {content} </div>}
-                    </Measure>
+                <div className="collectionSchemaView-dividerDragger" style={{ position: "relative", background: "black", float: "left", width: "5px", height: "100%" }} onPointerDown={this.onDividerDown} />
+                <div className="collectionSchemaView-previewRegion" style={{ position: "relative", float: "left", width: `calc(${100 - this._splitPercentage}% - 5px)`, height: "100%" }}>
+                    {content}
                 </div>
             </div >
         )
