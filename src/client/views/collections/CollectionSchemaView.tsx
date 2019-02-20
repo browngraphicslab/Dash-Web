@@ -118,24 +118,8 @@ export class CollectionSchemaView extends CollectionViewBase {
         }
     }
 
-    @computed
-    get scale(): number {
-        return this.props.Document.GetNumber(KeyStore.Scale, 1);
-    }
-    @computed
-    get translate(): [number, number] {
-        const x = this.props.Document.GetNumber(KeyStore.PanX, 0);
-        const y = this.props.Document.GetNumber(KeyStore.PanY, 0);
-        return [x, y];
-    }
-
     getTransform = (): Transform => {
-        return this.props.ScreenToLocalTransform().translate(- COLLECTION_BORDER_WIDTH - this._dividerX - this.DIVIDER_WIDTH, - COLLECTION_BORDER_WIDTH).transform(this.getLocalTransform())
-    }
-
-    getLocalTransform = (): Transform => {
-        const [x, y] = this.translate;
-        return Transform.Identity.translate(-x, -y).scale(1 / this.scale / this._parentScaling);
+        return this.props.ScreenToLocalTransform().translate(- COLLECTION_BORDER_WIDTH - this.DIVIDER_WIDTH - this._dividerX, - COLLECTION_BORDER_WIDTH).scale(1 / this._parentScaling);
     }
 
     @action
