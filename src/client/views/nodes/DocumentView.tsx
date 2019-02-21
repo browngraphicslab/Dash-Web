@@ -31,6 +31,7 @@ export interface DocumentViewProps {
     isTopMost: boolean;
     //tfs: This shouldn't be necessary I don't think
     Scaling: number;
+    PanelSize: number[];
 }
 export interface JsxArgs extends DocumentViewProps {
     Keys: { [name: string]: Key }
@@ -127,7 +128,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             e.stopPropagation();
             return;
         }
-        this._contextMenuCanOpen = e.button == 2;
+        this._contextMenuCanOpen = true;
         if (this.active && !e.isDefaultPrevented()) {
             e.stopPropagation();
             if (e.buttons === 2) {
@@ -245,9 +246,6 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         SelectionManager.SelectDoc(this, ctrlPressed)
     }
 
-    screenToLocalTransform = () => {
-        return this.props.ScreenToLocalTransform().transform(Transform.Identity.scale(1 / this.props.Scaling));
-    }
     render() {
         if (!this.props.Document)
             return <div></div>
@@ -255,19 +253,19 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         if (!lkeys || lkeys === "<Waiting>") {
             return <p>Error loading layout keys</p>;
         }
-        let bindings = {
+        let documentBindings = {
             ...this.props,
-            ScreenToLocalTransform: this.screenToLocalTransform, // adds 'Scaling' to the screen to local Xf
             isSelected: this.isSelected,
             select: this.select
         } as any;
         for (const key of this.layoutKeys) {
-            bindings[key.Name + "Key"] = key;  // this maps string values of the form <keyname>Key to an actual key Kestore.keyname  e.g,   "DataKey" => KeyStore.Data
+            documentBindings[key.Name + "Key"] = key;  // this maps string values of the form <keyname>Key to an actual key Kestore.keyname  e.g,   "DataKey" => KeyStore.Data
         }
         for (const key of this.layoutFields) {
             let field = this.props.Document.Get(key);
-            bindings[key.Name] = field && field != FieldWaiting ? field.GetValue() : field;
+            documentBindings[key.Name] = field && field != FieldWaiting ? field.GetValue() : field;
         }
+
         /*
         tfs:
         Should this be moved to CollectionFreeformView or another component that renders
@@ -278,26 +276,26 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         if (backgroundLayout) {
             let backgroundView = () => (<JsxParser
                 components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView }}
-                bindings={bindings}
+                bindings={documentBindings}
                 jsx={this.backgroundLayout}
                 showWarnings={true}
                 onError={(test: any) => { console.log(test) }}
             />);
-            bindings.BackgroundView = backgroundView;
+            documentBindings.BackgroundView = backgroundView;
         }
 
-        var width = this.props.Document.GetNumber(KeyStore.NativeWidth, 0);
-        var strwidth = width > 0 ? width.toString() + "px" : "100%";
-        var height = this.props.Document.GetNumber(KeyStore.NativeHeight, 0);
-        var strheight = height > 0 ? height.toString() + "px" : "100%";
+        var nativeWidth = this.props.Document.GetNumber(KeyStore.NativeWidth, 0);
+        var nativeHeight = this.props.Document.GetNumber(KeyStore.NativeHeight, 0);
+        var nodeWidth = nativeWidth > 0 ? nativeWidth.toString() + "px" : "100%";
+        var nodeHeight = nativeHeight > 0 ? nativeHeight.toString() + "px" : "100%";
         var scaling = this.props.Scaling;
         return (
-            <div className="documentView-node" ref={this._mainCont} style={{ width: strwidth, height: strheight, transformOrigin: "left top", transform: `scale(${scaling},${scaling})` }}
+            <div className="documentView-node" ref={this._mainCont} style={{ width: nodeWidth, height: nodeHeight, transformOrigin: "left top", transform: `scale(${scaling},${scaling})` }}
                 onContextMenu={this.onContextMenu}
                 onPointerDown={this.onPointerDown} >
                 <JsxParser
                     components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView }}
-                    bindings={bindings}
+                    bindings={documentBindings}
                     jsx={this.layout}
                     showWarnings={true}
                     onError={(test: any) => { console.log(test) }}
