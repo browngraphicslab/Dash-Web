@@ -1,5 +1,4 @@
 import { observable, action } from "mobx";
-import { Opt } from "../../fields/Field";
 
 function propertyDecorator(target: any, key: string | symbol) {
     Object.defineProperty(target, key, {

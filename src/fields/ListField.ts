@@ -1,10 +1,9 @@
-import { Field, FieldId, FieldValue, Opt } from "./Field";
-import { BasicField } from "./BasicField";
-import { Types } from "../server/Message";
-import { observe, action, IArrayChange, IArraySplice, IObservableArray } from "mobx";
+import { action, IArrayChange, IArraySplice, IObservableArray, observe } from "mobx";
 import { Server } from "../client/Server";
-import { ServerUtils } from "../server/ServerUtil";
 import { UndoManager } from "../client/util/UndoManager";
+import { Types } from "../server/Message";
+import { BasicField } from "./BasicField";
+import { Field, FieldId } from "./Field";
 
 export class ListField<T extends Field> extends BasicField<T[]> {
     private _proxies: string[] = []

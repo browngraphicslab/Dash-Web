@@ -1,5 +1,5 @@
 import React = require("react")
-import { action, computed, observable } from "mobx";
+import { action, observable } from "mobx";
 import { observer } from "mobx-react";
 import Measure from "react-measure";
 import ReactTable, { CellInfo, ComponentPropsGetterR, ReactTableDefaults } from "react-table";

@@ -152,16 +152,13 @@ export class Document extends Field {
     SetData<T, U extends Field & { Data: T }>(key: Key, value: T, ctor: { new(): U }, replaceWrongType = true) {
 
         let field = this.Get(key, true);
-        //if (field != WAITING) {  // do we want to wait for the field to come back from the server to set it, or do we overwrite?
         if (field instanceof ctor) {
             field.Data = value;
-            // Server.SetFieldValue(field, value);
         } else if (!field || replaceWrongType) {
             let newField = new ctor();
             newField.Data = value;
             this.Set(key, newField);
         }
-        //}
     }
 
     @action
@@ -213,14 +210,12 @@ export class Document extends Field {
     }
 
     ToJson(): { type: Types, data: [string, string][], _id: string } {
-        // console.log(this.fields)
         let fields: [string, string][] = []
         this._proxies.forEach((field, key) => {
             if (field) {
                 fields.push([key, field as string])
             }
         });
-        // console.log(fields)
 
         return {
             type: Types.Document,

@@ -1,17 +1,11 @@
-import { action, computed } from "mobx";
+import { computed } from "mobx";
 import { observer } from "mobx-react";
 import { KeyStore } from "../../../fields/KeyStore";
 import { NumberField } from "../../../fields/NumberField";
-import { DragManager } from "../../util/DragManager";
-import { SelectionManager } from "../../util/SelectionManager";
-import { CollectionDockingView } from "../collections/CollectionDockingView";
-import { CollectionFreeFormView } from "../collections/CollectionFreeFormView";
-import { ContextMenu } from "../ContextMenu";
+import { Transform } from "../../util/Transform";
+import { DocumentView, DocumentViewProps } from "./DocumentView";
 import "./DocumentView.scss";
 import React = require("react");
-import { DocumentView, DocumentViewProps } from "./DocumentView";
-import { Utils } from "../../../Utils";
-import { Transform } from "../../util/Transform";
 
 
 @observer
