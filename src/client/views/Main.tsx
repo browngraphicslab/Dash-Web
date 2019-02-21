@@ -61,23 +61,22 @@ Documents.initProtos(() => {
         let mainfreeform: Document;
         if (res) {
             mainContainer = ServerUtils.FromJson(res) as Document;
-            var mainfreeformid = mainContainer._proxies.get(KeyStore.ActiveFrame.Id)!;
-            Server.GetField(mainfreeformid, (field) => {
-                if (field) {
-                    mainfreeform = field as Document;
-                }
-            })
             mainfreeform = mainContainer.Get(KeyStore.ActiveFrame) as Document;
+            if (!mainfreeform)
+                Server.GetField(mainContainer._proxies.get(KeyStore.ActiveFrame.Id)!, (field) => mainfreeform = field as Document);
         }
         else {
-            mainfreeform = Documents.CollectionDocument([], { x: 0, y: 400, title: "mini collection" });
-            Utils.Emit(Server.Socket, MessageStore.AddDocument, new DocumentTransfer(mainfreeform.ToJson()));
-
-            var docs = [mainfreeform].map(doc => CollectionDockingView.makeDocumentConfig(doc));
-            var config = { settings: { selectionEnabled: false }, content: [{ type: 'row', content: docs }] };
-            mainContainer = Documents.DockDocument(JSON.stringify(config), { title: "main container" }, mainDocId);
+            mainContainer = Documents.DockDocument(JSON.stringify({ content: [{ type: 'row', content: [] }] }), { title: "main container" }, mainDocId);
             Utils.Emit(Server.Socket, MessageStore.AddDocument, new DocumentTransfer(mainContainer.ToJson()))
-            mainContainer.Set(KeyStore.ActiveFrame, mainfreeform);
+
+            setTimeout(() => {
+                mainfreeform = Documents.CollectionDocument([], { x: 0, y: 400, title: "mini collection" });
+                Utils.Emit(Server.Socket, MessageStore.AddDocument, new DocumentTransfer(mainfreeform.ToJson()));
+
+                var docs = [mainfreeform].map(doc => CollectionDockingView.makeDocumentConfig(doc));
+                mainContainer.SetText(KeyStore.Data, JSON.stringify({ content: [{ type: 'row', content: docs }] }));
+                mainContainer.Set(KeyStore.ActiveFrame, mainfreeform);
+            }, 25);
         }
 
         let addImageNode = action(() => {
