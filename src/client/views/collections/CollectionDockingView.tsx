@@ -1,22 +1,21 @@
 import * as GoldenLayout from "golden-layout";
 import 'golden-layout/src/css/goldenlayout-base.css';
 import 'golden-layout/src/css/goldenlayout-dark-theme.css';
-import { action, computed, observable, reaction, trace, untracked } from "mobx";
-import { DragManager } from "../../util/DragManager";
-import { DocumentView } from "../nodes/DocumentView";
-import { Document } from "../../../fields/Document";
-import "./CollectionDockingView.scss";
-import { CollectionViewBase, COLLECTION_BORDER_WIDTH, CollectionViewProps } from "./CollectionViewBase";
-import React = require("react");
+import { action, computed, observable, reaction } from "mobx";
+import { observer } from "mobx-react";
 import * as ReactDOM from 'react-dom';
 import Measure from "react-measure";
-import { Utils } from "../../../Utils";
-import { FieldId } from "../../../fields/Field";
-import { Server } from "../../Server";
-import { observer } from "mobx-react";
+import { Document } from "../../../fields/Document";
+import { FieldId, Opt } from "../../../fields/Field";
 import { KeyStore } from "../../../fields/KeyStore";
-import { Opt } from "../../../fields/Field";
+import { Utils } from "../../../Utils";
+import { Server } from "../../Server";
+import { DragManager } from "../../util/DragManager";
 import { undoBatch } from "../../util/UndoManager";
+import { DocumentView } from "../nodes/DocumentView";
+import "./CollectionDockingView.scss";
+import { CollectionViewBase, CollectionViewProps, COLLECTION_BORDER_WIDTH } from "./CollectionViewBase";
+import React = require("react");
 
 @observer
 export class CollectionDockingView extends CollectionViewBase {
