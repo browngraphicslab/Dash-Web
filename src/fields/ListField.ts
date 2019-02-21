@@ -1,9 +1,10 @@
 import { Field, FieldId, FieldValue, Opt } from "./Field";
 import { BasicField } from "./BasicField";
 import { Types } from "../server/Message";
-import { observe, action } from "mobx";
+import { observe, action, IArrayChange, IArraySplice, IObservableArray } from "mobx";
 import { Server } from "../client/Server";
 import { ServerUtils } from "../server/ServerUtil";
+import { UndoManager } from "../client/util/UndoManager";
 
 export class ListField<T extends Field> extends BasicField<T[]> {
     private _proxies: string[] = []
@@ -13,8 +14,19 @@ export class ListField<T extends Field> extends BasicField<T[]> {
         if (save) {
             Server.UpdateField(this);
         }
-        observe(this.Data, () => {
+        observe(this.Data as IObservableArray<T>, (change: IArrayChange<T> | IArraySplice<T>) => {
             this.updateProxies()
+            if (change.type == "splice") {
+                UndoManager.AddEvent({
+                    undo: () => this.Data.splice(change.index, change.addedCount, ...change.removed),
+                    redo: () => this.Data.splice(change.index, change.removedCount, ...change.added)
+                })
+            } else {
+                UndoManager.AddEvent({
+                    undo: () => this.Data[change.index] = change.oldValue,
+                    redo: () => this.Data[change.index] = change.newValue
+                })
+            }
             Server.UpdateField(this);
         })
     }
