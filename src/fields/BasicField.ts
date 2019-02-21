@@ -1,6 +1,7 @@
 import { Field, FieldId } from "./Field"
 import { observable, computed, action } from "mobx";
 import { Server } from "../client/Server";
+import { UndoManager } from "../client/util/UndoManager";
 
 export abstract class BasicField<T> extends Field {
     constructor(data: T, save: boolean, id?: FieldId) {
@@ -27,9 +28,15 @@ export abstract class BasicField<T> extends Field {
     }
 
     set Data(value: T) {
-        if (this.data != value) {
-            this.data = value;
+        if (this.data === value) {
+            return;
         }
+        let oldValue = this.data;
+        this.data = value;
+        UndoManager.AddEvent({
+            undo: () => this.Data = oldValue,
+            redo: () => this.Data = value
+        })
         Server.UpdateField(this);
     }
 
