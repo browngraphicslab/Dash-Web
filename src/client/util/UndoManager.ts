@@ -1,36 +1,49 @@
 import { observable, action } from "mobx";
 import { Opt } from "../../fields/Field";
 
-export function undoBatch(target: any, key: string | symbol, descriptor?: TypedPropertyDescriptor<any>): any {
-    let fn: (...args: any[]) => any;
-    let patchedFn: Opt<(...args: any[]) => any>;
-
-    if (descriptor) {
-        fn = descriptor.value;
-    }
-
-    return {
+function propertyDecorator(target: any, key: string | symbol) {
+    Object.defineProperty(target, key, {
         configurable: true,
         enumerable: false,
-        get() {
-            if (!patchedFn) {
-                patchedFn = (...args: any[]) => {
-                    try {
-                        UndoManager.StartBatch()
-                        return fn.call(this, ...args)
-                    } finally {
-                        UndoManager.EndBatch()
-                    }
-                };
-            }
-            return patchedFn;
+        get: function () {
+            return 5;
         },
-        set(newFn: any) {
-            patchedFn = undefined;
-            fn = newFn;
+        set: function (value: any) {
+            Object.defineProperty(this, key, {
+                enumerable: false,
+                writable: true,
+                configurable: true,
+                value: function (...args: any[]) {
+                    try {
+                        UndoManager.StartBatch();
+                        return value.apply(this, args);
+                    } finally {
+                        UndoManager.EndBatch();
+                    }
+                }
+            })
+        }
+    })
+}
+export function undoBatch(target: any, key: string | symbol, descriptor: TypedPropertyDescriptor<any>): any {
+    if (!descriptor) {
+        propertyDecorator(target, key);
+        return;
+    }
+    const oldFunction = descriptor.value;
+
+    descriptor.value = function (...args: any[]) {
+        try {
+            UndoManager.StartBatch()
+            return oldFunction.apply(this, args)
+        } finally {
+            UndoManager.EndBatch()
         }
     }
+
+    return descriptor;
 }
+
 export namespace UndoManager {
     export interface UndoEvent {
         undo: () => void;
