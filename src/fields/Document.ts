@@ -7,6 +7,7 @@ import { TextField } from "./TextField";
 import { ListField } from "./ListField";
 import { Server } from "../client/Server";
 import { Types } from "../server/Message";
+import { UndoManager } from "../client/util/UndoManager";
 
 export class Document extends Field {
     public fields: ObservableMap<string, { key: Key, field: Field }> = new ObservableMap();
@@ -127,7 +128,8 @@ export class Document extends Field {
 
     @action
     Set(key: Key, field: Field | undefined): void {
-        console.log("Assign: " + key.Name + " = " + (field ? field.GetValue() : "<undefined>") + " (" + (field ? field.Id : "<undefined>") + ")");
+        let old = this.fields.get(key.Id);
+        let oldField = old ? old.field : undefined;
         if (field) {
             this.fields.set(key.Id, { key, field });
             this._proxies.set(key.Id, field.Id)
@@ -136,6 +138,12 @@ export class Document extends Field {
             this.fields.delete(key.Id);
             this._proxies.delete(key.Id)
             // Server.DeleteDocumentField(this, key);
+        }
+        if (oldField || field) {
+            UndoManager.AddEvent({
+                undo: () => this.Set(key, oldField),
+                redo: () => this.Set(key, field)
+            })
         }
         Server.UpdateField(this);
     }

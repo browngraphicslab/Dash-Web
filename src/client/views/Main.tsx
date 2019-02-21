@@ -16,6 +16,7 @@ import { MessageStore, DocumentTransfer } from '../../server/Message';
 import { Transform } from '../util/Transform';
 import { CollectionDockingView } from './collections/CollectionDockingView';
 import { FieldWaiting } from '../../fields/Field';
+import { UndoManager } from '../util/UndoManager';
 
 
 configure({
@@ -94,6 +95,11 @@ Documents.initProtos(() => {
                 x: 0, y: 300, width: 200, height: 200, title: "added note"
             }));
         })
+        let addSchemaNode = action(() => {
+            mainfreeform.GetList<Document>(KeyStore.Data, []).push(Documents.SchemaDocument([Documents.TextDocument()], {
+                x: 0, y: 300, width: 200, height: 200, title: "added note"
+            }));
+        })
 
         let clearDatabase = action(() => {
             Utils.Emit(Server.Socket, MessageStore.DeleteAll, {});
@@ -128,10 +134,28 @@ Documents.initProtos(() => {
                 }} onClick={addColNode}>Add Collection</button>
                 <button style={{
                     position: 'absolute',
+                    bottom: '100',
+                    left: '0px',
+                    width: '150px'
+                }} onClick={addSchemaNode}>Add Schema</button>
+                <button style={{
+                    position: 'absolute',
                     bottom: '75px',
                     left: '0px',
                     width: '150px'
                 }} onClick={clearDatabase}>Clear Database</button>
+                <button style={{
+                    position: 'absolute',
+                    bottom: '25',
+                    right: '0px',
+                    width: '150px'
+                }} onClick={() => UndoManager.Undo()}>Undo</button>
+                <button style={{
+                    position: 'absolute',
+                    bottom: '0',
+                    right: '0px',
+                    width: '150px'
+                }} onClick={() => UndoManager.Redo()}>Redo</button>
             </div>),
             document.getElementById('root'));
     })
