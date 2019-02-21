@@ -25,12 +25,9 @@ export class DocumentDecorations extends React.Component {
             if (element.props.isTopMost) {
                 return bounds;
             }
-            let transform = element.props.ScreenToLocalTransform().inverse();
+            let transform = (element.props.ScreenToLocalTransform().scale(element.props.Scaling)).inverse();
             var [sptX, sptY] = transform.transformPoint(0, 0);
-            // var [bptX, bptY] = transform.transformDirection(element.width, element.height);
-            let doc = element.props.Document;
-            let [bptX, bptY] = [doc.GetNumber(KeyStore.Width, 0), doc.GetNumber(KeyStore.Height, 0)];
-            [bptX, bptY] = transform.transformPoint(bptX, bptY);
+            let [bptX, bptY] = transform.transformPoint(element.props.PanelSize[0], element.props.PanelSize[1]);
             return {
                 x: Math.min(sptX, bounds.x), y: Math.min(sptY, bounds.y),
                 r: Math.max(bptX, bounds.r), b: Math.max(bptY, bounds.b)

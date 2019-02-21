@@ -110,6 +110,7 @@ Documents.initProtos(() => {
                 <DocumentView Document={mainContainer}
                     AddDocument={undefined} RemoveDocument={undefined} ScreenToLocalTransform={() => Transform.Identity}
                     Scaling={1}
+                    PanelSize={[0, 0]}
                     isTopMost={true}
                     ContainingCollectionView={undefined} />
                 <DocumentDecorations />

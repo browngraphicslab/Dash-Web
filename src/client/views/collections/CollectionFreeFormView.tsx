@@ -249,6 +249,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
                             ScreenToLocalTransform={this.getTransform}
                             isTopMost={false}
                             Scaling={1}
+                            PanelSize={[doc.GetNumber(KeyStore.Width, 0), doc.GetNumber(KeyStore.Height, 0)]}
                             ContainingCollectionView={this} />);
                     })}
                 </div>
