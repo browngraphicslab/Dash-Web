@@ -128,7 +128,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             e.stopPropagation();
             return;
         }
-        this._contextMenuCanOpen = e.button == 2;
+        this._contextMenuCanOpen = true;
         if (this.active && !e.isDefaultPrevented()) {
             e.stopPropagation();
             if (e.buttons === 2) {
