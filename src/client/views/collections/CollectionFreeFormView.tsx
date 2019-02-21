@@ -40,13 +40,11 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
     constructor(props: CollectionViewProps) {
         super(props);
-
-        this.drop = this.drop.bind(this);
     }
 
-    @action
     @undoBatch
-    drop(e: Event, de: DragManager.DropEvent) {
+    @action
+    drop = (e: Event, de: DragManager.DropEvent) => {
         const doc: DocumentView = de.data["document"];
         if (doc.props.ContainingCollectionView && doc.props.ContainingCollectionView !== this) {
             doc.props.ContainingCollectionView.removeDocument(doc.props.Document);

@@ -25,7 +25,7 @@ function propertyDecorator(target: any, key: string | symbol) {
         }
     })
 }
-export function undoBatch(target: any, key: string | symbol, descriptor: TypedPropertyDescriptor<any>): any {
+export function undoBatch(target: any, key: string | symbol, descriptor?: TypedPropertyDescriptor<any>): any {
     if (!descriptor) {
         propertyDecorator(target, key);
         return;

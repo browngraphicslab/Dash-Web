@@ -16,6 +16,7 @@ import { Server } from "../../Server";
 import { observer } from "mobx-react";
 import { KeyStore } from "../../../fields/KeyStore";
 import { Opt } from "../../../fields/Field";
+import { undoBatch } from "../../util/UndoManager";
 
 @observer
 export class CollectionDockingView extends CollectionViewBase {
@@ -201,6 +202,7 @@ export class CollectionDockingView extends CollectionViewBase {
         }
     }
 
+    @undoBatch
     stateChanged = () => {
         var json = JSON.stringify(this._goldenLayout.toConfig());
         this.props.Document.SetText(KeyStore.Data, json)
