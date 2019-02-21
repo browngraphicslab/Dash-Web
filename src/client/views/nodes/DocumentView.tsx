@@ -246,20 +246,6 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         SelectionManager.SelectDoc(this, ctrlPressed)
     }
 
-    ScreenToLocalTransform = () => {
-        return this.props.PanelSize[0] ? this.backgroundScreenToLocalTransform() : this.props.ScreenToLocalTransform();
-    }
-
-    backgroundScreenToLocalTransform = () => {
-        if (this.props.PanelSize[0])
-            return this.props.ScreenToLocalTransform().scale(this.props.Scaling);
-        else return this.props.ScreenToLocalTransform().scale(1 / this.props.Scaling);
-    }
-    documentScreenToLocalTransform = () => {
-        if (this.props.PanelSize[0])
-            return this.props.ScreenToLocalTransform();
-        else return this.backgroundScreenToLocalTransform();
-    }
     render() {
         if (!this.props.Document)
             return <div></div>
@@ -269,7 +255,6 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         }
         let documentBindings = {
             ...this.props,
-            ScreenToLocalTransform: this.documentScreenToLocalTransform, // adds 'Scaling' to the screen to local Xf
             isSelected: this.isSelected,
             select: this.select
         } as any;
@@ -289,13 +274,9 @@ export class DocumentView extends React.Component<DocumentViewProps> {
          */
         let backgroundLayout = this.backgroundLayout;
         if (backgroundLayout) {
-            let backgroundBindings = {
-                ...documentBindings,
-                ScreenToLocalTransform: this.backgroundScreenToLocalTransform, // adds 'Scaling' to the screen to local Xf
-            }
             let backgroundView = () => (<JsxParser
                 components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView }}
-                bindings={backgroundBindings}
+                bindings={documentBindings}
                 jsx={this.backgroundLayout}
                 showWarnings={true}
                 onError={(test: any) => { console.log(test) }}

@@ -77,7 +77,9 @@ export class CollectionFreeFormDocumentView extends React.Component<DocumentView
 
 
     getTransform = (): Transform => {
-        return this.props.ScreenToLocalTransform().translate(-this.props.Document.GetNumber(KeyStore.X, 0), -this.props.Document.GetNumber(KeyStore.Y, 0));
+        var parentScaling = this.nativeWidth > 0 ? this.width / this.nativeWidth : 1;
+        return this.props.ScreenToLocalTransform().
+            translate(-this.props.Document.GetNumber(KeyStore.X, 0), -this.props.Document.GetNumber(KeyStore.Y, 0)).scale(1 / parentScaling);
     }
 
     render() {
@@ -93,7 +95,10 @@ export class CollectionFreeFormDocumentView extends React.Component<DocumentView
                 backgroundColor: "transparent"
             }} >
 
-                <DocumentView {...this.props} Scaling={parentScaling} ScreenToLocalTransform={this.getTransform} />
+                <DocumentView {...this.props}
+                    Scaling={parentScaling}
+                    ScreenToLocalTransform={this.getTransform}
+                />
             </div>
         );
     }
