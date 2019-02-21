@@ -1,7 +1,7 @@
 import * as GoldenLayout from "golden-layout";
 import 'golden-layout/src/css/goldenlayout-base.css';
 import 'golden-layout/src/css/goldenlayout-dark-theme.css';
-import { action, computed, observable, reaction, trace } from "mobx";
+import { action, computed, observable, reaction, trace, untracked } from "mobx";
 import { DragManager } from "../../util/DragManager";
 import { DocumentView } from "../nodes/DocumentView";
 import { Document } from "../../../fields/Document";
@@ -20,7 +20,7 @@ import { Opt } from "../../../fields/Field";
 
 @observer
 export class CollectionDockingView extends CollectionViewBase {
-
+    public static ID = Utils.GenerateGuid();
     public static Instance: CollectionDockingView;
     public static LayoutString() { return CollectionViewBase.LayoutString("CollectionDockingView"); }
     public static makeDocumentConfig(document: Document) {
@@ -40,9 +40,7 @@ export class CollectionDockingView extends CollectionViewBase {
     private _dragElement: HTMLDivElement | undefined;
     private _dragFakeElement: HTMLDivElement | undefined;
     private _containerRef = React.createRef<HTMLDivElement>();
-    private _makeFullScreen: boolean = false;
-    private _maximizedStack: any = null;
-    private _forceRecreate: boolean = false;
+    private _fullScreen: any = null;
 
     constructor(props: CollectionViewProps) {
         super(props);
@@ -74,28 +72,41 @@ export class CollectionDockingView extends CollectionViewBase {
         // all of this must be undone when the document has been dropped (see tabCreated)
     }
 
+    @action
     public OpenFullScreen(document: Document) {
         console.log("OPEN FULL");
-        this._makeFullScreen = true;
-        this._goldenLayout.root.contentItems[0].addChild(CollectionDockingView.makeDocumentConfig(document));
+        let newItemStackConfig = {
+            type: 'stack',
+            content: [CollectionDockingView.makeDocumentConfig(document)]
+        }
+        var docconfig = this._goldenLayout.root.layoutManager.createContentItem(newItemStackConfig, this._goldenLayout);
+        this._goldenLayout.root.contentItems[0].addChild(docconfig);
+        docconfig.callDownwards('_$init');
+        this._goldenLayout._$maximiseItem(docconfig);
+        this._fullScreen = docconfig;
     }
+    @action
     public CloseFullScreen() {
-        if (this._maximizedStack) {
-            this._maximizedStack.header.controlsContainer.find('.lm_close').click();
-            this._maximizedStack = null;
+        if (this._fullScreen) {
+            this._goldenLayout._$minimiseItem(this._fullScreen);
+            this._goldenLayout.root.contentItems[0].removeChild(this._fullScreen);
+            this._fullScreen = null;
         }
     }
 
     //
     //  Creates a vertical split on the right side of the docking view, and then adds the Document to that split
     //
+    @action
     public AddRightSplit(document: Document) {
         console.log("ADD RIGHT");
+        this._goldenLayout.emit('stateChanged');
         let newItemStackConfig = {
             type: 'stack',
             content: [CollectionDockingView.makeDocumentConfig(document)]
-        };
-        var newContentItem = new this._goldenLayout._typeToItem[newItemStackConfig.type](this._goldenLayout, newItemStackConfig, null);
+        }
+
+        var newContentItem = this._goldenLayout.root.layoutManager.createContentItem(newItemStackConfig, this._goldenLayout);
 
         if (this._goldenLayout.root.contentItems[0].isRow) {
             this._goldenLayout.root.contentItems[0].addChild(newContentItem);
@@ -111,28 +122,39 @@ export class CollectionDockingView extends CollectionViewBase {
             collayout.config["width"] = 50;
             newContentItem.config["width"] = 50;
         }
-        this.stateChanged();              // shouldn't need to do either of these ... but our react component doesn't render when we add it manually like this.
-        this.setupGoldenLayout(true);     // this forces it to render by the brute force method of recreating the whole golden layout
+        newContentItem.callDownwards('_$init');
+        this._goldenLayout.root.callDownwards('setSize', [this._goldenLayout.width, this._goldenLayout.height]);
+        this._goldenLayout.emit('stateChanged');
     }
 
-    setupGoldenLayout(force: boolean = false) {
+    setupGoldenLayout() {
         var config = this.props.Document.GetText(KeyStore.Data, "");
         if (config) {
             if (!this._goldenLayout)
                 this._goldenLayout = new GoldenLayout(JSON.parse(config));
             else {
-                if (!force && JSON.stringify(this._goldenLayout.toConfig()) == JSON.stringify(JSON.parse(config)))
-                    return;
+                return;
+                try {
+                    this._goldenLayout.unbind('tabCreated', this.tabCreated);
+                    this._goldenLayout.unbind('stackCreated', this.stackCreated);
+                    this._goldenLayout.unbind('stateChanged', this.stateChanged);
+                    this._goldenLayout.unbind('initialised', this.stateChanged);
+                } catch (e) {
+
+                }
                 this._goldenLayout.destroy();
                 this._goldenLayout = new GoldenLayout(JSON.parse(config));
             }
             this._goldenLayout.on('tabCreated', this.tabCreated);
             this._goldenLayout.on('stackCreated', this.stackCreated);
+            this._goldenLayout.on('initialised', this.onOpened);
             this._goldenLayout.registerComponent('DocumentFrameRenderer', DockedFrameRenderer);
             this._goldenLayout.container = this._containerRef.current;
             this._goldenLayout.init();
-            this._goldenLayout.on('stateChanged', this.stateChanged);
         }
+    }
+    onOpened = () => {
+        this._goldenLayout.on('stateChanged', this.stateChanged);
     }
     componentDidMount: () => void = () => {
         if (this._containerRef.current) {
@@ -144,6 +166,12 @@ export class CollectionDockingView extends CollectionViewBase {
         }
     }
     componentWillUnmount: () => void = () => {
+        this._goldenLayout.unbind('tabCreated', this.tabCreated);
+        this._goldenLayout.unbind('stackCreated', this.stackCreated);
+        this._goldenLayout.unbind('stateChanged', this.stateChanged);
+        this._goldenLayout.unbind('initialised', this.stateChanged);
+        this._goldenLayout.destroy();
+        this._goldenLayout = null;
         window.removeEventListener('resize', this.onResize);
     }
     @action
@@ -188,11 +216,6 @@ export class CollectionDockingView extends CollectionViewBase {
     }
 
     stackCreated = (stack: any) => {
-        if (this._makeFullScreen) {
-            this._maximizedStack = stack;
-            setTimeout(function () { stack.header.controlsContainer.find('.lm_maximise').click() }, 10);
-            this._makeFullScreen = false;
-        }
         //stack.header.controlsContainer.find('.lm_popout').hide();
         stack.header.controlsContainer.find('.lm_close') //get the close icon
             .off('click') //unbind the current click handler
