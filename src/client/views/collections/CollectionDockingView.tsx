@@ -17,7 +17,6 @@ import { observer } from "mobx-react";
 import { ListField } from "../../../fields/ListField";
 import { KeyStore } from "../../../fields/KeyStore";
 import { Opt } from "../../../fields/Field";
-import { TextField } from "../../../fields/TextField";
 
 @observer
 export class CollectionDockingView extends CollectionViewBase {
@@ -76,6 +75,7 @@ export class CollectionDockingView extends CollectionViewBase {
     }
 
     public OpenFullScreen(document: Document) {
+        console.log("OPEN FULL");
         this._makeFullScreen = true;
         this._goldenLayout.root.contentItems[0].addChild(CollectionDockingView.makeDocumentConfig(document));
     }
@@ -90,6 +90,7 @@ export class CollectionDockingView extends CollectionViewBase {
     //  Creates a vertical split on the right side of the docking view, and then adds the Document to that split
     //
     public AddRightSplit(document: Document) {
+        console.log("ADD RIGHT");
         let newItemStackConfig = {
             type: 'stack',
             content: [CollectionDockingView.makeDocumentConfig(document)]
@@ -166,10 +167,9 @@ export class CollectionDockingView extends CollectionViewBase {
     }
 
     stateChanged = () => {
-        // if (!this._pointerIsDown) {
+        console.log("STATE CHANGED");
         var json = JSON.stringify(this._goldenLayout.toConfig());
         this.props.Document.SetText(KeyStore.Data, json)
-        //}
     }
 
     tabCreated = (tab: any) => {
@@ -203,7 +203,6 @@ export class CollectionDockingView extends CollectionViewBase {
             });
     }
 
-
     render() {
         this.props.Document.GetNumber(KeyStore.Width, 0); // bcz: needed to force render when window size changes
         this.props.Document.GetNumber(KeyStore.Height, 0);
@@ -226,21 +225,16 @@ interface DockedFrameProps {
 @observer
 export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
 
-    _mainCont: any = null;
+    private _mainCont = React.createRef<HTMLDivElement>();
+    @observable private _nativeWidth = 0;
+    @observable private _nativeHeight = 0;
+    @observable private _parentScaling = 1; // used to transfer the dimensions of the content pane in the DOM to the ParentScaling prop of the DocumentView
+    @observable private Document: Opt<Document>;
+
     constructor(props: any) {
         super(props);
-        Server.GetField(this.props.documentId, (f) => { this.Document = f as Document; })
+        Server.GetField(this.props.documentId, f => this.Document = f as Document)
     }
-
-    setMainCont: any = (element: any) => {
-        this._mainCont = element;
-    }
-
-    @observable
-    private _parentScaling = 1; // used to transfer the dimensions of the content pane in the DOM to the ParentScaling prop of the DocumentView
-
-    @observable
-    private Document: Opt<Document>;
 
     @action
     setScaling = (r: any) => {
@@ -251,38 +245,29 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         this._nativeHeight = nativeWidth ? r.entry.width / nativeWidth * nativeHeight : nativeHeight;
     }
 
-    @observable
-    private _nativeWidth = 0;
-    @observable
-    private _nativeHeight = 0;
+    ScreenToLocalTransform = () => {
+        let { scale, translateX, translateY } = Utils.GetScreenTransform(this._mainCont.current!);
+        var props = CollectionDockingView.Instance.props;
+        return props.ScreenToLocalTransform().translate(-translateX, -translateY).scale(scale / this._parentScaling)
+    }
 
     render() {
         if (!this.Document)
-            return <div></div>
-        let nativeWidth = this.Document.GetNumber(KeyStore.NativeWidth, 0);
-        var layout = this.Document.GetText(KeyStore.Layout, "");
+            return (null)
         var content =
-            <div ref={this.setMainCont}>
+            <div ref={this._mainCont}>
                 <DocumentView key={this.Document.Id} Document={this.Document}
                     AddDocument={undefined}
                     RemoveDocument={undefined}
                     Scaling={this._parentScaling}
                     PanelSize={[this._nativeWidth, this._nativeHeight]}
-                    ScreenToLocalTransform={() => {
-                        let { scale, translateX, translateY } = Utils.GetScreenTransform(this._mainCont);
-                        var props = CollectionDockingView.Instance.props;
-                        return props.ScreenToLocalTransform().translate(-translateX, -translateY).scale(scale / this._parentScaling)
-                    }}
+                    ScreenToLocalTransform={this.ScreenToLocalTransform}
                     isTopMost={true}
                     ContainingCollectionView={undefined} />
             </div>
 
-        if (nativeWidth > 0 &&
-            (layout.indexOf("CollectionFreeForm") == -1 || layout.indexOf("AnnotationsKey") != -1)) { // contents of documents should be scaled if document is not a freeform view, or if the freeformview is an annotation layer (presumably on a document that is not a freeformview)
-            return <Measure onResize={this.setScaling}>
-                {({ measureRef }) => <div ref={measureRef}>  {content} </div>}
-            </Measure>
-        }
-        return content
+        return <Measure onResize={this.setScaling}>
+            {({ measureRef }) => <div ref={measureRef}>  {content} </div>}
+        </Measure>
     }
 }

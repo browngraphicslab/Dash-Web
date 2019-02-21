@@ -2,15 +2,6 @@ import v4 = require('uuid/v4');
 import v5 = require("uuid/v5");
 import { Socket } from 'socket.io';
 import { Message, Types } from './server/Message';
-import { Field } from './fields/Field';
-import { TextField } from './fields/TextField';
-import { NumberField } from './fields/NumberField';
-import { RichTextField } from './fields/RichTextField';
-import { Key } from './fields/Key';
-import { ImageField } from './fields/ImageField';
-import { ListField } from './fields/ListField';
-import { Document } from './fields/Document';
-import { Server } from './client/Server';
 
 export class Utils {
 
@@ -23,6 +14,9 @@ export class Utils {
     }
 
     public static GetScreenTransform(ele: HTMLElement): { scale: number, translateX: number, translateY: number } {
+        if (!ele) {
+            return { scale: 1, translateX: 1, translateY: 1 }
+        }
         const rect = ele.getBoundingClientRect();
         const scale = ele.offsetWidth == 0 && rect.width == 0 ? 1 : rect.width / ele.offsetWidth;
         const translateX = rect.left;
