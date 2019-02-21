@@ -76,7 +76,7 @@ Documents.initProtos(() => {
                 var docs = [mainfreeform].map(doc => CollectionDockingView.makeDocumentConfig(doc));
                 mainContainer.SetText(KeyStore.Data, JSON.stringify({ content: [{ type: 'row', content: docs }] }));
                 mainContainer.Set(KeyStore.ActiveFrame, mainfreeform);
-            }, 25);
+            }, 0);
         }
 
         let addImageNode = action(() => {
