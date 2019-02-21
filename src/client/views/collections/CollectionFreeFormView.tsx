@@ -13,6 +13,7 @@ import { Documents } from "../../documents/Documents";
 import { FieldWaiting } from "../../../fields/Field";
 import { Transform } from "../../util/Transform";
 import { DocumentView } from "../nodes/DocumentView";
+import { undoBatch } from "../../util/UndoManager";
 
 @observer
 export class CollectionFreeFormView extends CollectionViewBase {
@@ -37,6 +38,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
     @computed
     get resizeScaling() { return this.isAnnotationOverlay ? this.props.Document.GetNumber(KeyStore.Width, 0) / this.nativeWidth : 1; }
 
+    @undoBatch
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
         const doc: DocumentView = de.data["document"];
