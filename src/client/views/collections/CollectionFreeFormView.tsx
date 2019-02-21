@@ -4,7 +4,7 @@ import { action, computed } from "mobx";
 import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
 import { DragManager } from "../../util/DragManager";
 import "./CollectionFreeFormView.scss";
-import { CollectionViewBase, COLLECTION_BORDER_WIDTH } from "./CollectionViewBase";
+import { CollectionViewBase, COLLECTION_BORDER_WIDTH, CollectionViewProps } from "./CollectionViewBase";
 import { KeyStore } from "../../../fields/KeyStore";
 import { Document } from "../../../fields/Document";
 import { ListField } from "../../../fields/ListField";
@@ -38,9 +38,15 @@ export class CollectionFreeFormView extends CollectionViewBase {
     @computed
     get resizeScaling() { return this.isAnnotationOverlay ? this.props.Document.GetNumber(KeyStore.Width, 0) / this.nativeWidth : 1; }
 
-    @undoBatch
+    constructor(props: CollectionViewProps) {
+        super(props);
+
+        this.drop = this.drop.bind(this);
+    }
+
     @action
-    drop = (e: Event, de: DragManager.DropEvent) => {
+    @undoBatch
+    drop(e: Event, de: DragManager.DropEvent) {
         const doc: DocumentView = de.data["document"];
         if (doc.props.ContainingCollectionView && doc.props.ContainingCollectionView !== this) {
             doc.props.ContainingCollectionView.removeDocument(doc.props.Document);
