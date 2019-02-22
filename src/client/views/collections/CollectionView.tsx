@@ -1,36 +1,18 @@
 import { action, computed } from "mobx";
 import { observer } from "mobx-react";
 import { Document } from "../../../fields/Document";
-import { Key } from "../../../fields/Key";
 import { ListField } from "../../../fields/ListField";
 import { SelectionManager } from "../../util/SelectionManager";
 import { ContextMenu } from "../ContextMenu";
 import React = require("react");
-import { Transform } from "../../util/Transform";
 import { KeyStore } from "../../../fields/KeyStore";
 import { NumberField } from "../../../fields/NumberField";
 import { CollectionFreeFormView } from "./CollectionFreeFormView";
 import { CollectionDockingView } from "./CollectionDockingView";
 import { CollectionSchemaView } from "./CollectionSchemaView";
-import { Opt } from "../../../fields/Field";
+import { CollectionViewProps } from "./CollectionViewBase";
 
 
-export interface CollectionViewProps {
-    fieldKey: Key;
-    Document: Document;
-    ScreenToLocalTransform: () => Transform;
-    isSelected: () => boolean;
-    isTopMost: boolean;
-    select: (ctrlPressed: boolean) => void;
-    BackgroundView?: () => JSX.Element;
-}
-
-export interface SubCollectionViewProps extends CollectionViewProps {
-    active: () => boolean;
-    addDocument: (doc: Document) => void;
-    removeDocument: (doc: Document) => boolean;
-    CollectionView: Opt<CollectionView>;
-}
 
 export enum CollectionViewType {
     Invalid,

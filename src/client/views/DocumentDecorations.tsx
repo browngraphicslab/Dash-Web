@@ -28,7 +28,7 @@ export class DocumentDecorations extends React.Component {
             }
             let transform = (element.props.ScreenToLocalTransform().scale(element.props.Scaling)).inverse();
             var [sptX, sptY] = transform.transformPoint(0, 0);
-            let [bptX, bptY] = transform.transformPoint(element.props.PanelSize[0], element.props.PanelSize[1]);
+            let [bptX, bptY] = transform.transformPoint(element.props.PanelWidth, element.props.PanelHeight);
             return {
                 x: Math.min(sptX, bounds.x), y: Math.min(sptY, bounds.y),
                 r: Math.max(bptX, bounds.r), b: Math.max(bptY, bounds.b)

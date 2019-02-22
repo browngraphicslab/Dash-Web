@@ -5,7 +5,7 @@ import Measure from "react-measure";
 import ReactTable, { CellInfo, ComponentPropsGetterR, ReactTableDefaults } from "react-table";
 import "react-table/react-table.css";
 import { Document } from "../../../fields/Document";
-import { Field } from "../../../fields/Field";
+import { Field, FieldWaiting } from "../../../fields/Field";
 import { KeyStore } from "../../../fields/KeyStore";
 import { CompileScript, ToField } from "../../util/Scripting";
 import { Transform } from "../../util/Transform";
@@ -13,10 +13,11 @@ import { EditableView } from "../EditableView";
 import { DocumentView } from "../nodes/DocumentView";
 import { FieldView, FieldViewProps } from "../nodes/FieldView";
 import "./CollectionSchemaView.scss";
-import { COLLECTION_BORDER_WIDTH, CollectionViewProps, SubCollectionViewProps } from "./CollectionView";
+import { COLLECTION_BORDER_WIDTH } from "./CollectionView";
+import { CollectionViewBase } from "./CollectionViewBase";
 
 @observer
-export class CollectionSchemaView extends React.Component<SubCollectionViewProps> {
+export class CollectionSchemaView extends CollectionViewBase {
     private _mainCont = React.createRef<HTMLDivElement>();
 
     private DIVIDER_WIDTH = 5;
@@ -117,6 +118,7 @@ export class CollectionSchemaView extends React.Component<SubCollectionViewProps
         }
     }
 
+
     getTransform = (): Transform => {
         return this.props.ScreenToLocalTransform().translate(- COLLECTION_BORDER_WIDTH - this.DIVIDER_WIDTH - this._dividerX, - COLLECTION_BORDER_WIDTH).scale(1 / this._parentScaling);
     }
@@ -147,7 +149,8 @@ export class CollectionSchemaView extends React.Component<SubCollectionViewProps
                             ScreenToLocalTransform={this.getTransform}
                             Scaling={this._parentScaling}
                             isTopMost={false}
-                            PanelSize={[this._panelWidth, this._panelHeight]}
+                            PanelWidth={this._panelWidth}
+                            PanelHeight={this._panelHeight}
                             ContainingCollectionView={this.props.CollectionView} />
                     </div>
                 }
@@ -181,7 +184,10 @@ export class CollectionSchemaView extends React.Component<SubCollectionViewProps
                     }
                 </Measure>
                 <div className="collectionSchemaView-dividerDragger" style={{ position: "relative", background: "black", float: "left", width: `${this.DIVIDER_WIDTH}px`, height: "100%" }} onPointerDown={this.onDividerDown} />
-                <div className="collectionSchemaView-previewRegion" style={{ position: "relative", float: "left", width: `calc(${100 - this._splitPercentage}% - ${this.DIVIDER_WIDTH}px)`, height: "100%" }}>
+                <div className="collectionSchemaView-previewRegion"
+                    onDrop={(e: React.DragEvent) => this.onDrop(e, {})}
+                    ref={this.createDropTarget}
+                    style={{ position: "relative", float: "left", width: `calc(${100 - this._splitPercentage}% - ${this.DIVIDER_WIDTH}px)`, height: "100%" }}>
                     {content}
                 </div>
             </div >
