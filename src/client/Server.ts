@@ -34,7 +34,7 @@ export class Server {
                 }
             }));
         } else if (cached != FieldWaiting) {
-            callback(cached);
+            setTimeout(() => callback(cached as Field), 0);
         } else {
             reaction(() => {
                 return this.ClientFieldsCached.get(fieldid);
