@@ -13,7 +13,7 @@ import { CollectionFreeFormView } from "../views/collections/CollectionFreeFormV
 import { FieldId } from "../../fields/Field";
 import { CollectionView, CollectionViewType } from "../views/collections/CollectionView";
 
-interface DocumentOptions {
+export interface DocumentOptions {
     x?: number;
     y?: number;
     width?: number;

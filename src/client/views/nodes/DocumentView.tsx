@@ -31,7 +31,8 @@ export interface DocumentViewProps {
     isTopMost: boolean;
     //tfs: This shouldn't be necessary I don't think
     Scaling: number;
-    PanelSize: number[];
+    PanelWidth: number;
+    PanelHeight: number;
 }
 export interface JsxArgs extends DocumentViewProps {
     Keys: { [name: string]: Key }
