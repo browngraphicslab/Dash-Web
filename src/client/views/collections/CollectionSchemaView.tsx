@@ -149,7 +149,8 @@ export class CollectionSchemaView extends CollectionViewBase {
                             ScreenToLocalTransform={this.getTransform}
                             Scaling={this._parentScaling}
                             isTopMost={false}
-                            PanelSize={[this._panelWidth, this._panelHeight]}
+                            PanelWidth={this._panelWidth}
+                            PanelHeight={this._panelHeight}
                             ContainingCollectionView={this.props.CollectionView} />
                     </div>
                 }
