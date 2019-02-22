@@ -6,7 +6,7 @@ import { observer } from "mobx-react";
 import * as ReactDOM from 'react-dom';
 import Measure from "react-measure";
 import { Document } from "../../../fields/Document";
-import { FieldId, Opt } from "../../../fields/Field";
+import { FieldId, Opt, Field } from "../../../fields/Field";
 import { KeyStore } from "../../../fields/KeyStore";
 import { Utils } from "../../../Utils";
 import { Server } from "../../Server";
@@ -148,6 +148,13 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             this._goldenLayout.on('stackCreated', this.stackCreated);
             this._goldenLayout.registerComponent('DocumentFrameRenderer', DockedFrameRenderer);
             this._goldenLayout.container = this._containerRef.current;
+            if (this._goldenLayout.config.maximisedItemId === '__glMaximised') {
+                try {
+                    this._goldenLayout.config.root.getItemsById(this._goldenLayout.config.maximisedItemId)[0].toggleMaximise();
+                } catch (e) {
+                    this._goldenLayout.config.maximisedItemId = null;
+                }
+            }
             this._goldenLayout.init();
         }
     }
@@ -261,7 +268,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
 
     constructor(props: any) {
         super(props);
-        Server.GetField(this.props.documentId, f => this._document = f as Document)
+        Server.GetField(this.props.documentId, action((f: Opt<Field>) => this._document = f as Document));
     }
 
     @computed private get _nativeWidth() { return this._document!.GetNumber(KeyStore.NativeWidth, 0); }

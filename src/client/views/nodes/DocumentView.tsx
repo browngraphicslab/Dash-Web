@@ -211,10 +211,11 @@ export class DocumentView extends React.Component<DocumentViewProps> {
 
     @action
     onContextMenu = (e: React.MouseEvent): void => {
+        e.preventDefault()
+        e.stopPropagation();
         if (!SelectionManager.IsSelected(this)) {
             return;
         }
-        e.preventDefault()
 
         if (!this._contextMenuCanOpen) {
             return;

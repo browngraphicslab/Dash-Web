@@ -1,5 +1,5 @@
 import React = require("react")
-import { action, observable } from "mobx";
+import { action, observable, trace } from "mobx";
 import { observer } from "mobx-react";
 import Measure from "react-measure";
 import ReactTable, { CellInfo, ComponentPropsGetterR, ReactTableDefaults } from "react-table";
@@ -138,7 +138,6 @@ export class CollectionSchemaView extends React.Component<SubCollectionViewProps
         const columns = this.props.Document.GetList(KeyStore.ColumnsKey, [KeyStore.Title, KeyStore.Data, KeyStore.Author])
         const children = this.props.Document.GetList<Document>(this.props.fieldKey, []);
         const selected = children.length > this.selectedIndex ? children[this.selectedIndex] : undefined;
-        let me = this;
         let content = this.selectedIndex == -1 || !selected ? (null) : (
             <Measure onResize={this.setScaling}>
                 {({ measureRef }) =>

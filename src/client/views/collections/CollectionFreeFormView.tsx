@@ -1,6 +1,6 @@
 import { observer } from "mobx-react";
 import React = require("react");
-import { action, computed } from "mobx";
+import { action, computed, trace } from "mobx";
 import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
 import { DragManager } from "../../util/DragManager";
 import "./CollectionFreeFormView.scss";
@@ -14,6 +14,7 @@ import { FieldWaiting } from "../../../fields/Field";
 import { Transform } from "../../util/Transform";
 import { DocumentView } from "../nodes/DocumentView";
 import { undoBatch } from "../../util/UndoManager";
+import { jSXElement } from "babel-types";
 
 @observer
 export class CollectionFreeFormView extends React.Component<SubCollectionViewProps> {
@@ -221,16 +222,29 @@ export class CollectionFreeFormView extends React.Component<SubCollectionViewPro
         return Transform.Identity.translate(-x, -y).scale(1 / this.scale);
     }
 
-    render() {
+    @computed
+    get views() {
         const { fieldKey, Document } = this.props;
-        // const value: Document[] = Document.GetList<Document>(fieldKey, []);
         const lvalue = Document.GetT<ListField<Document>>(fieldKey, ListField);
-        if (!lvalue || lvalue === "<Waiting>") {
-            return <p>Error loading collection data</p>
+        if (lvalue && lvalue != FieldWaiting) {
+            return lvalue.Data.map(doc => {
+                return (<CollectionFreeFormDocumentView key={doc.Id} Document={doc}
+                    AddDocument={this.props.addDocument}
+                    RemoveDocument={this.props.removeDocument}
+                    ScreenToLocalTransform={this.getTransform}
+                    isTopMost={false}
+                    Scaling={1}
+                    PanelSize={[doc.GetNumber(KeyStore.Width, 0), doc.GetNumber(KeyStore.Height, 0)]}
+                    ContainingCollectionView={this.props.CollectionView} />);
+            })
         }
-        const panx: number = Document.GetNumber(KeyStore.PanX, 0);
-        const pany: number = Document.GetNumber(KeyStore.PanY, 0);
+        return null;
+    }
 
+    render() {
+        const panx: number = this.props.Document.GetNumber(KeyStore.PanX, 0);
+        const pany: number = this.props.Document.GetNumber(KeyStore.PanY, 0);
+        trace()
         return (
             <div className="collectionfreeformview-container"
                 onPointerDown={this.onPointerDown}
@@ -238,25 +252,14 @@ export class CollectionFreeFormView extends React.Component<SubCollectionViewPro
                 onContextMenu={(e) => e.preventDefault()}
                 onDrop={this.onDrop}
                 onDragOver={this.onDragOver}
-                style={{
-                    borderWidth: `${COLLECTION_BORDER_WIDTH}px`,
-                }}
+                style={{ borderWidth: `${COLLECTION_BORDER_WIDTH}px`, }}
                 ref={this.createDropTarget}>
                 <div className="collectionfreeformview"
                     style={{ width: "100%", transformOrigin: "left top", transform: ` translate(${panx}px, ${pany}px) scale(${this.zoomScaling}, ${this.zoomScaling})` }}
                     ref={this._canvasRef}>
 
                     {this.props.BackgroundView ? this.props.BackgroundView() : null}
-                    {lvalue.Data.map(doc => {
-                        return (<CollectionFreeFormDocumentView key={doc.Id} Document={doc}
-                            AddDocument={this.props.addDocument}
-                            RemoveDocument={this.props.removeDocument}
-                            ScreenToLocalTransform={this.getTransform}
-                            isTopMost={false}
-                            Scaling={1}
-                            PanelSize={[doc.GetNumber(KeyStore.Width, 0), doc.GetNumber(KeyStore.Height, 0)]}
-                            ContainingCollectionView={this.props.CollectionView} />);
-                    })}
+                    {this.views}
                 </div>
             </div>
         );
