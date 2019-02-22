@@ -19,14 +19,14 @@ import { CollectionViewBase } from "./CollectionViewBase";
 @observer
 export class CollectionSchemaView extends CollectionViewBase {
     private _mainCont = React.createRef<HTMLDivElement>();
-
     private DIVIDER_WIDTH = 5;
 
-    @observable
-    selectedIndex = 0;
-
-    @observable
-    _splitPercentage: number = 50;
+    @observable _contentScaling = 1; // used to transfer the dimensions of the content pane in the DOM to the ContentScaling prop of the DocumentView
+    @observable _dividerX = 0;
+    @observable _panelWidth = 0;
+    @observable _panelHeight = 0;
+    @observable _selectedIndex = 0;
+    @observable _splitPercentage: number = 50;
 
     renderCell = (rowProps: CellInfo) => {
         let props: FieldViewProps = {
@@ -67,7 +67,6 @@ export class CollectionSchemaView extends CollectionViewBase {
         )
     }
 
-
     private getTrProps: ComponentPropsGetterR = (state, rowInfo) => {
         const that = this;
         if (!rowInfo) {
@@ -75,7 +74,7 @@ export class CollectionSchemaView extends CollectionViewBase {
         }
         return {
             onClick: action((e: React.MouseEvent, handleOriginal: Function) => {
-                that.selectedIndex = rowInfo.index;
+                that._selectedIndex = rowInfo.index;
                 this._splitPercentage += 0.05; // bcz - ugh - needed to force Measure to do its thing and call onResize
 
                 if (handleOriginal) {
@@ -83,8 +82,8 @@ export class CollectionSchemaView extends CollectionViewBase {
                 }
             }),
             style: {
-                background: rowInfo.index == this.selectedIndex ? "#00afec" : "white",
-                color: rowInfo.index == this.selectedIndex ? "white" : "black"
+                background: rowInfo.index == this._selectedIndex ? "#00afec" : "white",
+                color: rowInfo.index == this._selectedIndex ? "white" : "black"
             }
         };
     }
@@ -94,7 +93,6 @@ export class CollectionSchemaView extends CollectionViewBase {
         let nativeWidth = this._mainCont.current!.getBoundingClientRect();
         this._splitPercentage = Math.round((e.clientX - nativeWidth.left) / nativeWidth.width * 100);
     }
-
     onDividerUp = (e: PointerEvent): void => {
         document.removeEventListener("pointermove", this.onDividerMove);
         document.removeEventListener('pointerup', this.onDividerUp);
@@ -118,39 +116,37 @@ export class CollectionSchemaView extends CollectionViewBase {
         }
     }
 
-
-    getTransform = (): Transform => {
-        return this.props.ScreenToLocalTransform().translate(- COLLECTION_BORDER_WIDTH - this.DIVIDER_WIDTH - this._dividerX, - COLLECTION_BORDER_WIDTH).scale(1 / this._parentScaling);
-    }
-
     @action
     setScaling = (r: any) => {
         const children = this.props.Document.GetList<Document>(this.props.fieldKey, []);
-        const selected = children.length > this.selectedIndex ? children[this.selectedIndex] : undefined;
+        const selected = children.length > this._selectedIndex ? children[this._selectedIndex] : undefined;
         this._panelWidth = r.entry.width;
         this._panelHeight = r.entry.height ? r.entry.height : this._panelHeight;
-        this._parentScaling = r.entry.width / selected!.GetNumber(KeyStore.NativeWidth, r.entry.width);
+        this._contentScaling = r.entry.width / selected!.GetNumber(KeyStore.NativeWidth, r.entry.width);
     }
 
-    @observable _parentScaling = 1; // used to transfer the dimensions of the content pane in the DOM to the ParentScaling prop of the DocumentView
-    @observable _dividerX = 0;
-    @observable _panelWidth = 0;
-    @observable _panelHeight = 0;
+    getContentScaling = (): number => this._contentScaling;
+    getPanelWidth = (): number => this._panelWidth;
+    getPanelHeight = (): number => this._panelHeight;
+    getTransform = (): Transform => {
+        return this.props.ScreenToLocalTransform().translate(- COLLECTION_BORDER_WIDTH - this.DIVIDER_WIDTH - this._dividerX, - COLLECTION_BORDER_WIDTH).scale(1 / this._contentScaling);
+    }
+
     render() {
         const columns = this.props.Document.GetList(KeyStore.ColumnsKey, [KeyStore.Title, KeyStore.Data, KeyStore.Author])
         const children = this.props.Document.GetList<Document>(this.props.fieldKey, []);
-        const selected = children.length > this.selectedIndex ? children[this.selectedIndex] : undefined;
-        let content = this.selectedIndex == -1 || !selected ? (null) : (
+        const selected = children.length > this._selectedIndex ? children[this._selectedIndex] : undefined;
+        let content = this._selectedIndex == -1 || !selected ? (null) : (
             <Measure onResize={this.setScaling}>
                 {({ measureRef }) =>
                     <div ref={measureRef}>
                         <DocumentView Document={selected}
                             AddDocument={this.props.addDocument} RemoveDocument={this.props.removeDocument}
-                            ScreenToLocalTransform={this.getTransform}
-                            Scaling={this._parentScaling}
                             isTopMost={false}
-                            PanelWidth={this._panelWidth}
-                            PanelHeight={this._panelHeight}
+                            ScreenToLocalTransform={this.getTransform}
+                            ContentScaling={this.getContentScaling}
+                            PanelWidth={this.getPanelWidth}
+                            PanelHeight={this.getPanelHeight}
                             ContainingCollectionView={this.props.CollectionView} />
                     </div>
                 }

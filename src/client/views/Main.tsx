@@ -106,9 +106,9 @@ Documents.initProtos(() => {
             <div style={{ position: "absolute", width: "100%", height: "100%" }}>
                 <DocumentView Document={mainContainer}
                     AddDocument={undefined} RemoveDocument={undefined} ScreenToLocalTransform={() => Transform.Identity}
-                    Scaling={1}
-                    PanelWidth={0}
-                    PanelHeight={0}
+                    ContentScaling={() => 1}
+                    PanelWidth={() => 0}
+                    PanelHeight={() => 0}
                     isTopMost={true}
                     ContainingCollectionView={undefined} />
                 <DocumentDecorations />

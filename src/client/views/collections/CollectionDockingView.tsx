@@ -272,13 +272,13 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         Server.GetField(this.props.documentId, action((f: Opt<Field>) => this._document = f as Document));
     }
 
-    @computed private get _nativeWidth() { return this._document!.GetNumber(KeyStore.NativeWidth, 0); }
-    @computed private get _nativeHeight() { return this._document!.GetNumber(KeyStore.NativeHeight, 0); }
-    @computed private get _parentScaling() { return this._panelWidth / (this._nativeWidth ? this._nativeWidth : this._panelWidth); }; // used to transfer the dimensions of the content pane in the DOM to the ParentScaling prop of the DocumentView
+    private _nativeWidth = () => { return this._document!.GetNumber(KeyStore.NativeWidth, 0); }
+    private _nativeHeight = () => { return this._document!.GetNumber(KeyStore.NativeHeight, 0); }
+    private _contentScaling = () => { return this._panelWidth / (this._nativeWidth() ? this._nativeWidth() : this._panelWidth); }
 
     ScreenToLocalTransform = () => {
         let { scale, translateX, translateY } = Utils.GetScreenTransform(this._mainCont.current!);
-        return CollectionDockingView.Instance.props.ScreenToLocalTransform().translate(-translateX, -translateY).scale(scale / this._parentScaling)
+        return CollectionDockingView.Instance.props.ScreenToLocalTransform().translate(-translateX, -translateY).scale(scale / this._contentScaling())
     }
 
     render() {
@@ -289,7 +289,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
                 <DocumentView key={this._document.Id} Document={this._document}
                     AddDocument={undefined}
                     RemoveDocument={undefined}
-                    Scaling={this._parentScaling}
+                    ContentScaling={this._contentScaling}
                     PanelWidth={this._nativeWidth}
                     PanelHeight={this._nativeHeight}
                     ScreenToLocalTransform={this.ScreenToLocalTransform}
