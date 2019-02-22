@@ -11,6 +11,7 @@ import { ImageField } from "../../fields/ImageField";
 import { ImageBox } from "../views/nodes/ImageBox";
 import { CollectionFreeFormView } from "../views/collections/CollectionFreeFormView";
 import { FieldId } from "../../fields/Field";
+import { CollectionView, CollectionViewType } from "../views/collections/CollectionView";
 
 interface DocumentOptions {
     x?: number;
@@ -24,12 +25,10 @@ interface DocumentOptions {
 
 export namespace Documents {
     export function initProtos(callback: () => void) {
-        Server.GetFields([collectionProtoId, textProtoId, imageProtoId, schemaProtoId, dockProtoId], (fields) => {
+        Server.GetFields([collectionProtoId, textProtoId, imageProtoId], (fields) => {
             collectionProto = fields[collectionProtoId] as Document;
             imageProto = fields[imageProtoId] as Document;
             textProto = fields[textProtoId] as Document;
-            dockProto = fields[dockProtoId] as Document;
-            schemaProto = fields[schemaProtoId] as Document;
             callback()
         });
     }
@@ -83,52 +82,6 @@ export namespace Documents {
         return doc;
     }
 
-    let schemaProto: Document;
-    const schemaProtoId = "schemaProto";
-    function GetSchemaPrototype(): Document {
-        if (!schemaProto) {
-            schemaProto = new Document(schemaProtoId);
-            schemaProto.Set(KeyStore.X, new NumberField(0));
-            schemaProto.Set(KeyStore.Y, new NumberField(0));
-            schemaProto.Set(KeyStore.Width, new NumberField(300));
-            schemaProto.Set(KeyStore.Height, new NumberField(150));
-            schemaProto.Set(KeyStore.Layout, new TextField(CollectionSchemaView.LayoutString()));
-            schemaProto.Set(KeyStore.LayoutKeys, new ListField([KeyStore.Data]));
-        }
-        return schemaProto;
-    }
-
-    export function SchemaDocument(documents: Array<Document>, options: DocumentOptions = {}): Document {
-        let doc = GetSchemaPrototype().MakeDelegate();
-        setupOptions(doc, options);
-        doc.Set(KeyStore.Data, new ListField(documents));
-        return doc;
-    }
-
-
-    let dockProto: Document;
-    const dockProtoId = "dockProto";
-    function GetDockPrototype(): Document {
-        if (!dockProto) {
-            dockProto = new Document();
-            dockProto.Set(KeyStore.X, new NumberField(0));
-            dockProto.Set(KeyStore.Y, new NumberField(0));
-            dockProto.Set(KeyStore.Width, new NumberField(300));
-            dockProto.Set(KeyStore.Height, new NumberField(150));
-            dockProto.Set(KeyStore.Layout, new TextField(CollectionDockingView.LayoutString()));
-            dockProto.Set(KeyStore.LayoutKeys, new ListField([KeyStore.Data]));
-        }
-        return dockProto;
-    }
-
-    export function DockDocument(config: string, options: DocumentOptions = {}, id?: string): Document {
-        let doc = GetDockPrototype().MakeDelegate(id);
-        setupOptions(doc, options);
-        doc.SetText(KeyStore.Data, config);
-        return doc;
-    }
-
-
     let imageProto: Document;
     const imageProtoId = "imageProto";
     function GetImagePrototype(): Document {
@@ -141,7 +94,8 @@ export namespace Documents {
             imageProto.Set(KeyStore.NativeHeight, new NumberField(300));
             imageProto.Set(KeyStore.Width, new NumberField(300));
             imageProto.Set(KeyStore.Height, new NumberField(300));
-            imageProto.Set(KeyStore.Layout, new TextField(CollectionFreeFormView.LayoutString("AnnotationsKey")));
+            imageProto.Set(KeyStore.Layout, new TextField(CollectionView.LayoutString("AnnotationsKey")));
+            imageProto.SetNumber(KeyStore.ViewType, CollectionViewType.Freeform)
             imageProto.Set(KeyStore.BackgroundLayout, new TextField(ImageBox.LayoutString()));
             // imageProto.SetField(KeyStore.Layout, new TextField('<div style={"background-image: " + {Data}} />'));
             imageProto.Set(KeyStore.LayoutKeys, new ListField([KeyStore.Data, KeyStore.Annotations]));
@@ -165,23 +119,36 @@ export namespace Documents {
     function GetCollectionPrototype(): Document {
         if (!collectionProto) {
             collectionProto = new Document(collectionProtoId);
-            collectionProto.Set(KeyStore.X, new NumberField(0));
-            collectionProto.Set(KeyStore.Y, new NumberField(0));
             collectionProto.Set(KeyStore.Scale, new NumberField(1));
             collectionProto.Set(KeyStore.PanX, new NumberField(0));
             collectionProto.Set(KeyStore.PanY, new NumberField(0));
-            collectionProto.Set(KeyStore.Width, new NumberField(300));
-            collectionProto.Set(KeyStore.Height, new NumberField(300));
-            collectionProto.Set(KeyStore.Layout, new TextField(CollectionFreeFormView.LayoutString("DataKey")));
+            collectionProto.Set(KeyStore.Layout, new TextField(CollectionView.LayoutString("DataKey")));
             collectionProto.Set(KeyStore.LayoutKeys, new ListField([KeyStore.Data]));
         }
         return collectionProto;
     }
 
-    export function CollectionDocument(documents: Array<Document>, options: DocumentOptions = {}, id?: string): Document {
+    export function CollectionDocument(data: Array<Document> | string, viewType: CollectionViewType, options: DocumentOptions = {}, id?: string): Document {
         let doc = GetCollectionPrototype().MakeDelegate(id);
         setupOptions(doc, options);
-        doc.Set(KeyStore.Data, new ListField(documents));
+        if (typeof data === "string") {
+            doc.SetText(KeyStore.Data, data);
+        } else {
+            doc.SetData(KeyStore.Data, data, ListField);
+        }
+        doc.SetNumber(KeyStore.ViewType, viewType);
         return doc;
+    }
+
+    export function FreeformDocument(documents: Array<Document>, options: DocumentOptions, id?: string) {
+        return CollectionDocument(documents, CollectionViewType.Freeform, options, id)
+    }
+
+    export function SchemaDocument(documents: Array<Document>, options: DocumentOptions, id?: string) {
+        return CollectionDocument(documents, CollectionViewType.Schema, options, id)
+    }
+
+    export function DockDocument(config: string, options: DocumentOptions, id?: string) {
+        return CollectionDocument(config, CollectionViewType.Docking, options, id)
     }
 }

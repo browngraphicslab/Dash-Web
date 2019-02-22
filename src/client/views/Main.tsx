@@ -61,16 +61,14 @@ Documents.initProtos(() => {
         let mainfreeform: Document;
         if (res) {
             mainContainer = ServerUtils.FromJson(res) as Document;
-            mainfreeform = mainContainer.Get(KeyStore.ActiveFrame) as Document;
-            if (!mainfreeform)
-                Server.GetField(mainContainer._proxies.get(KeyStore.ActiveFrame.Id)!, (field) => mainfreeform = field as Document);
+            mainContainer.GetAsync(KeyStore.ActiveFrame, field => mainfreeform = field as Document);
         }
         else {
             mainContainer = Documents.DockDocument(JSON.stringify({ content: [{ type: 'row', content: [] }] }), { title: "main container" }, mainDocId);
             Utils.Emit(Server.Socket, MessageStore.AddDocument, new DocumentTransfer(mainContainer.ToJson()))
 
             setTimeout(() => {
-                mainfreeform = Documents.CollectionDocument([], { x: 0, y: 400, title: "mini collection" });
+                mainfreeform = Documents.FreeformDocument([], { x: 0, y: 400, title: "mini collection" });
                 Utils.Emit(Server.Socket, MessageStore.AddDocument, new DocumentTransfer(mainfreeform.ToJson()));
 
                 var docs = [mainfreeform].map(doc => CollectionDockingView.makeDocumentConfig(doc));
@@ -90,7 +88,7 @@ Documents.initProtos(() => {
             }));
         })
         let addColNode = action(() => {
-            mainfreeform.GetList<Document>(KeyStore.Data, []).push(Documents.CollectionDocument([], {
+            mainfreeform.GetList<Document>(KeyStore.Data, []).push(Documents.FreeformDocument([], {
                 x: 0, y: 300, width: 200, height: 200, title: "added note"
             }));
         })

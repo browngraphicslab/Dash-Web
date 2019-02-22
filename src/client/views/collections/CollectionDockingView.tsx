@@ -14,13 +14,12 @@ import { DragManager } from "../../util/DragManager";
 import { undoBatch } from "../../util/UndoManager";
 import { DocumentView } from "../nodes/DocumentView";
 import "./CollectionDockingView.scss";
-import { CollectionViewBase, CollectionViewProps, COLLECTION_BORDER_WIDTH } from "./CollectionViewBase";
+import { CollectionViewProps, COLLECTION_BORDER_WIDTH, SubCollectionViewProps } from "./CollectionView";
 import React = require("react");
 
 @observer
-export class CollectionDockingView extends CollectionViewBase {
+export class CollectionDockingView extends React.Component<SubCollectionViewProps> {
     public static Instance: CollectionDockingView;
-    public static LayoutString() { return CollectionViewBase.LayoutString("CollectionDockingView"); }
     public static makeDocumentConfig(document: Document) {
         return {
             type: 'react-component',
@@ -41,7 +40,7 @@ export class CollectionDockingView extends CollectionViewBase {
     private _containerRef = React.createRef<HTMLDivElement>();
     private _fullScreen: any = null;
 
-    constructor(props: CollectionViewProps) {
+    constructor(props: SubCollectionViewProps) {
         super(props);
         CollectionDockingView.Instance = this;
         (window as any).React = React;
@@ -187,7 +186,7 @@ export class CollectionDockingView extends CollectionViewBase {
     }
     @action
     onPointerDown = (e: React.PointerEvent): void => {
-        if (e.button === 2 && this.active) {
+        if (e.button === 2 && this.props.active()) {
             e.stopPropagation();
             e.preventDefault();
         } else {
@@ -195,7 +194,7 @@ export class CollectionDockingView extends CollectionViewBase {
             if (className == "lm_drag_handle" || className == "lm_close" || className == "lm_maximise" || className == "lm_minimise" || className == "lm_close_tab") {
                 this._flush = true;
             }
-            if (e.buttons === 1 && this.active) {
+            if (e.buttons === 1 && this.props.active()) {
                 e.stopPropagation();
             }
         }
