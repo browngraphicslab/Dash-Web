@@ -5,6 +5,7 @@ import { observer } from "mobx-react";
 import './DocumentDecorations.scss'
 import { KeyStore } from '../../fields/KeyStore'
 import { NumberField } from "../../fields/NumberField";
+import { number } from "prop-types";
 
 @observer
 export class DocumentDecorations extends React.Component {
@@ -140,6 +141,10 @@ export class DocumentDecorations extends React.Component {
     render() {
         var bounds = this.Bounds;
         if (this.Hidden) {
+            return (null);
+        }
+        if (isNaN(bounds.r) || isNaN(bounds.b) || isNaN(bounds.x) || isNaN(bounds.y)) {
+            console.log("DocumentDecorations: Bounds Error")
             return (null);
         }
         return (
