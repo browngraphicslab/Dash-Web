@@ -14,8 +14,9 @@ import { DragManager } from "../../util/DragManager";
 import { undoBatch } from "../../util/UndoManager";
 import { DocumentView } from "../nodes/DocumentView";
 import "./CollectionDockingView.scss";
-import { CollectionViewProps, COLLECTION_BORDER_WIDTH, SubCollectionViewProps } from "./CollectionView";
+import { COLLECTION_BORDER_WIDTH } from "./CollectionView";
 import React = require("react");
+import { SubCollectionViewProps } from "./CollectionViewBase";
 
 @observer
 export class CollectionDockingView extends React.Component<SubCollectionViewProps> {

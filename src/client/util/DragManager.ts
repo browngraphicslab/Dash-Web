@@ -44,6 +44,7 @@ export namespace DragManager {
         drop: (e: Event, de: DropEvent) => void;
     }
 
+
     export function MakeDropTarget(element: HTMLElement, options: DropOptions): DragDropDisposer {
         if ("canDrop" in element.dataset) {
             throw new Error("Element is already droppable, can't make it droppable again");

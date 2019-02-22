@@ -4,20 +4,18 @@ import { action, computed, trace } from "mobx";
 import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
 import { DragManager } from "../../util/DragManager";
 import "./CollectionFreeFormView.scss";
-import { COLLECTION_BORDER_WIDTH, CollectionViewProps, SubCollectionViewProps } from "./CollectionView";
+import { COLLECTION_BORDER_WIDTH } from "./CollectionView";
 import { KeyStore } from "../../../fields/KeyStore";
 import { Document } from "../../../fields/Document";
 import { ListField } from "../../../fields/ListField";
-import { NumberField } from "../../../fields/NumberField";
-import { Documents } from "../../documents/Documents";
 import { FieldWaiting } from "../../../fields/Field";
 import { Transform } from "../../util/Transform";
 import { DocumentView } from "../nodes/DocumentView";
 import { undoBatch } from "../../util/UndoManager";
-import { jSXElement } from "babel-types";
+import { CollectionViewBase, SubCollectionViewProps } from "./CollectionViewBase";
 
 @observer
-export class CollectionFreeFormView extends React.Component<SubCollectionViewProps> {
+export class CollectionFreeFormView extends CollectionViewBase {
     private _canvasRef = React.createRef<HTMLDivElement>();
     private _lastX: number = 0;
     private _lastY: number = 0;
@@ -45,13 +43,8 @@ export class CollectionFreeFormView extends React.Component<SubCollectionViewPro
     @undoBatch
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
+        super.drop(e, de);
         const doc: DocumentView = de.data["document"];
-        if (doc.props.ContainingCollectionView && doc.props.ContainingCollectionView !== this.props.CollectionView) {
-            if (doc.props.RemoveDocument) {
-                doc.props.RemoveDocument(doc.props.Document);
-            }
-            this.props.addDocument(doc.props.Document);
-        }
         const xOffset = de.data["xOffset"] as number || 0;
         const yOffset = de.data["yOffset"] as number || 0;
         //this should be able to use translate and scale methods on an Identity transform, no?
@@ -62,21 +55,6 @@ export class CollectionFreeFormView extends React.Component<SubCollectionViewPro
         doc.props.Document.SetNumber(KeyStore.X, x);
         doc.props.Document.SetNumber(KeyStore.Y, y);
         this.bringToFront(doc);
-        e.stopPropagation();
-    }
-
-    private dropDisposer?: DragManager.DragDropDisposer;
-    createDropTarget = (ele: HTMLDivElement) => {
-        if (this.dropDisposer) {
-            this.dropDisposer();
-        }
-        if (ele) {
-            this.dropDisposer = DragManager.MakeDropTarget(ele, {
-                handlers: {
-                    drop: this.drop
-                }
-            });
-        }
     }
 
     @action
@@ -148,36 +126,11 @@ export class CollectionFreeFormView extends React.Component<SubCollectionViewPro
 
     @action
     onDrop = (e: React.DragEvent): void => {
-        e.stopPropagation()
-        e.preventDefault()
-        let fReader = new FileReader()
-        let file = e.dataTransfer.items[0].getAsFile();
-        let that = this;
         const panx: number = this.props.Document.GetNumber(KeyStore.PanX, 0);
         const pany: number = this.props.Document.GetNumber(KeyStore.PanY, 0);
         let x = e.pageX - panx
         let y = e.pageY - pany
-
-        fReader.addEventListener("load", action("drop", () => {
-            if (fReader.result) {
-                let url = "" + fReader.result;
-                let doc = Documents.ImageDocument(url, {
-                    x: x, y: y
-                })
-                let docs = that.props.Document.GetT(KeyStore.Data, ListField);
-                if (docs != FieldWaiting) {
-                    if (!docs) {
-                        docs = new ListField<Document>();
-                        that.props.Document.Set(KeyStore.Data, docs)
-                    }
-                    docs.Data.push(doc);
-                }
-            }
-        }), false)
-
-        if (file) {
-            fReader.readAsDataURL(file)
-        }
+        super.onDrop(e, { x: x, y: y });
     }
 
     onDragOver = (): void => {
@@ -249,7 +202,7 @@ export class CollectionFreeFormView extends React.Component<SubCollectionViewPro
                 onPointerDown={this.onPointerDown}
                 onWheel={this.onPointerWheel}
                 onContextMenu={(e) => e.preventDefault()}
-                onDrop={this.onDrop}
+                onDrop={this.onDrop.bind(this)}
                 onDragOver={this.onDragOver}
                 style={{ borderWidth: `${COLLECTION_BORDER_WIDTH}px`, }}
                 ref={this.createDropTarget}>
