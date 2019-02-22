@@ -244,7 +244,6 @@ export class CollectionFreeFormView extends React.Component<SubCollectionViewPro
     render() {
         const panx: number = this.props.Document.GetNumber(KeyStore.PanX, 0);
         const pany: number = this.props.Document.GetNumber(KeyStore.PanY, 0);
-        trace()
         return (
             <div className="collectionfreeformview-container"
                 onPointerDown={this.onPointerDown}
