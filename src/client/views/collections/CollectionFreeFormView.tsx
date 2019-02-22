@@ -4,7 +4,7 @@ import { action, computed } from "mobx";
 import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
 import { DragManager } from "../../util/DragManager";
 import "./CollectionFreeFormView.scss";
-import { CollectionViewBase, COLLECTION_BORDER_WIDTH, CollectionViewProps } from "./CollectionViewBase";
+import { COLLECTION_BORDER_WIDTH, CollectionViewProps, SubCollectionViewProps } from "./CollectionView";
 import { KeyStore } from "../../../fields/KeyStore";
 import { Document } from "../../../fields/Document";
 import { ListField } from "../../../fields/ListField";
@@ -16,8 +16,7 @@ import { DocumentView } from "../nodes/DocumentView";
 import { undoBatch } from "../../util/UndoManager";
 
 @observer
-export class CollectionFreeFormView extends CollectionViewBase {
-    public static LayoutString(fieldKey: string = "DataKey") { return CollectionViewBase.LayoutString("CollectionFreeFormView", fieldKey); }
+export class CollectionFreeFormView extends React.Component<SubCollectionViewProps> {
     private _canvasRef = React.createRef<HTMLDivElement>();
     private _lastX: number = 0;
     private _lastY: number = 0;
@@ -38,7 +37,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
     @computed
     get resizeScaling() { return this.isAnnotationOverlay ? this.props.Document.GetNumber(KeyStore.Width, 0) / this.nativeWidth : 1; }
 
-    constructor(props: CollectionViewProps) {
+    constructor(props: SubCollectionViewProps) {
         super(props);
     }
 
@@ -46,9 +45,11 @@ export class CollectionFreeFormView extends CollectionViewBase {
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
         const doc: DocumentView = de.data["document"];
-        if (doc.props.ContainingCollectionView && doc.props.ContainingCollectionView !== this) {
-            doc.props.ContainingCollectionView.removeDocument(doc.props.Document);
-            this.addDocument(doc.props.Document);
+        if (doc.props.ContainingCollectionView && doc.props.ContainingCollectionView !== this.props.CollectionView) {
+            if (doc.props.RemoveDocument) {
+                doc.props.RemoveDocument(doc.props.Document);
+            }
+            this.props.addDocument(doc.props.Document);
         }
         const xOffset = de.data["xOffset"] as number || 0;
         const yOffset = de.data["yOffset"] as number || 0;
@@ -79,7 +80,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
     @action
     onPointerDown = (e: React.PointerEvent): void => {
-        if ((e.button === 2 && this.active) ||
+        if ((e.button === 2 && this.props.active()) ||
             !e.defaultPrevented) {
             document.removeEventListener("pointermove", this.onPointerMove);
             document.addEventListener("pointermove", this.onPointerMove);
@@ -104,7 +105,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
     @action
     onPointerMove = (e: PointerEvent): void => {
-        if (!e.cancelBubble && this.active) {
+        if (!e.cancelBubble && this.props.active()) {
             e.preventDefault();
             e.stopPropagation();
             let x = this.props.Document.GetNumber(KeyStore.PanX, 0);
@@ -248,13 +249,13 @@ export class CollectionFreeFormView extends CollectionViewBase {
                     {this.props.BackgroundView ? this.props.BackgroundView() : null}
                     {lvalue.Data.map(doc => {
                         return (<CollectionFreeFormDocumentView key={doc.Id} Document={doc}
-                            AddDocument={this.addDocument}
-                            RemoveDocument={this.removeDocument}
+                            AddDocument={this.props.addDocument}
+                            RemoveDocument={this.props.removeDocument}
                             ScreenToLocalTransform={this.getTransform}
                             isTopMost={false}
                             Scaling={1}
                             PanelSize={[doc.GetNumber(KeyStore.Width, 0), doc.GetNumber(KeyStore.Height, 0)]}
-                            ContainingCollectionView={this} />);
+                            ContainingCollectionView={this.props.CollectionView} />);
                     })}
                 </div>
             </div>

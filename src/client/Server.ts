@@ -60,13 +60,16 @@ export class Server {
         });
     }
 
-    public static GetDocumentField(doc: Document, key: Key) {
+    public static GetDocumentField(doc: Document, key: Key, callback?: (field: Field) => void) {
         let field = doc._proxies.get(key.Id);
         if (field) {
             this.GetField(field,
                 action((fieldfromserver: Opt<Field>) => {
                     if (fieldfromserver) {
                         doc.fields.set(key.Id, { key, field: fieldfromserver });
+                        if (callback) {
+                            callback(fieldfromserver);
+                        }
                     }
                 }));
         }

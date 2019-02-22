@@ -16,6 +16,7 @@ export namespace KeyStore {
     export const ZIndex = new Key("ZIndex");
     export const Data = new Key("Data");
     export const Annotations = new Key("Annotations");
+    export const ViewType = new Key("ViewType");
     export const Layout = new Key("Layout");
     export const BackgroundLayout = new Key("BackgroundLayout");
     export const LayoutKeys = new Key("LayoutKeys");

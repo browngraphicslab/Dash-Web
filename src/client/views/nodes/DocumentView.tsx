@@ -9,7 +9,7 @@ import { Utils } from "../../../Utils";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { CollectionFreeFormView } from "../collections/CollectionFreeFormView";
 import { CollectionSchemaView } from "../collections/CollectionSchemaView";
-import { CollectionViewBase, COLLECTION_BORDER_WIDTH } from "../collections/CollectionViewBase";
+import { COLLECTION_BORDER_WIDTH, CollectionView, CollectionViewType } from "../collections/CollectionView";
 import { FormattedTextBox } from "../nodes/FormattedTextBox";
 import { ImageBox } from "../nodes/ImageBox";
 import "./DocumentView.scss";
@@ -22,7 +22,7 @@ import { TextField } from "../../../fields/TextField";
 const JsxParser = require('react-jsx-parser').default;//TODO Why does this need to be imported like this?
 
 export interface DocumentViewProps {
-    ContainingCollectionView: Opt<CollectionViewBase>;
+    ContainingCollectionView: Opt<CollectionView>;
 
     Document: Document;
     AddDocument?: (doc: Document) => void;
@@ -114,7 +114,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     @computed
     get active(): boolean {
         return SelectionManager.IsSelected(this) || !this.props.ContainingCollectionView ||
-            this.props.ContainingCollectionView.active;
+            this.props.ContainingCollectionView.active();
     }
 
     private _contextMenuCanOpen = false;
@@ -233,6 +233,9 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             ContextMenu.Instance.addItem({ description: "Full Screen", event: this.fullScreenClicked })
             ContextMenu.Instance.addItem({ description: "Open Right", event: this.openRight })
             ContextMenu.Instance.addItem({ description: "Delete", event: this.deleteClicked })
+            ContextMenu.Instance.addItem({ description: "Freeform", event: () => { this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Freeform) } })
+            ContextMenu.Instance.addItem({ description: "Schema", event: () => { this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Schema) } })
+            ContextMenu.Instance.addItem({ description: "Docking", event: () => { this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Docking) } })
             ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15)
             SelectionManager.SelectDoc(this, e.ctrlKey);
         }
@@ -275,7 +278,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         let backgroundLayout = this.backgroundLayout;
         if (backgroundLayout) {
             let backgroundView = () => (<JsxParser
-                components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView }}
+                components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView }}
                 bindings={documentBindings}
                 jsx={this.backgroundLayout}
                 showWarnings={true}
@@ -294,7 +297,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
                 onContextMenu={this.onContextMenu}
                 onPointerDown={this.onPointerDown} >
                 <JsxParser
-                    components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView }}
+                    components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView }}
                     bindings={documentBindings}
                     jsx={this.layout}
                     showWarnings={true}
