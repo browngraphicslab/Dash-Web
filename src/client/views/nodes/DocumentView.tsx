@@ -30,9 +30,9 @@ export interface DocumentViewProps {
     ScreenToLocalTransform: () => Transform;
     isTopMost: boolean;
     //tfs: This shouldn't be necessary I don't think
-    Scaling: number;
-    PanelWidth: number;
-    PanelHeight: number;
+    ContentScaling: () => number;
+    PanelWidth: () => number;
+    PanelHeight: () => number;
 }
 export interface JsxArgs extends DocumentViewProps {
     Keys: { [name: string]: Key }
@@ -293,7 +293,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         var nativeHeight = this.props.Document.GetNumber(KeyStore.NativeHeight, 0);
         var nodeWidth = nativeWidth > 0 ? nativeWidth.toString() + "px" : "100%";
         var nodeHeight = nativeHeight > 0 ? nativeHeight.toString() + "px" : "100%";
-        var scaling = this.props.Scaling;
+        var scaling = this.props.ContentScaling();
         return (
             <div className="documentView-node" ref={this._mainCont} style={{ width: nodeWidth, height: nodeHeight, transformOrigin: "left top", transform: `scale(${scaling},${scaling})` }}
                 onContextMenu={this.onContextMenu}

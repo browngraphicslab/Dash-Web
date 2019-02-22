@@ -22,23 +22,14 @@ export class CollectionFreeFormView extends CollectionViewBase {
     private _downX: number = 0;
     private _downY: number = 0;
 
-    @computed
-    get isAnnotationOverlay() { return this.props.fieldKey == KeyStore.Annotations; }
 
-    @computed
-    get nativeWidth() { return this.props.Document.GetNumber(KeyStore.NativeWidth, 0); }
-    @computed
-    get nativeHeight() { return this.props.Document.GetNumber(KeyStore.NativeHeight, 0); }
-
-    @computed
-    get zoomScaling() { return this.props.Document.GetNumber(KeyStore.Scale, 1); }
-
-    @computed
-    get resizeScaling() { return this.isAnnotationOverlay ? this.props.Document.GetNumber(KeyStore.Width, 0) / this.nativeWidth : 1; }
-
-    constructor(props: SubCollectionViewProps) {
-        super(props);
-    }
+    @computed get panX(): number { return this.props.Document.GetNumber(KeyStore.PanX, 0) }
+    @computed get panY(): number { return this.props.Document.GetNumber(KeyStore.PanY, 0) }
+    @computed get scale(): number { return this.props.Document.GetNumber(KeyStore.Scale, 1); }
+    @computed get isAnnotationOverlay() { return this.props.fieldKey == KeyStore.Annotations; }
+    @computed get nativeWidth() { return this.props.Document.GetNumber(KeyStore.NativeWidth, 0); }
+    @computed get nativeHeight() { return this.props.Document.GetNumber(KeyStore.NativeHeight, 0); }
+    @computed get zoomScaling() { return this.props.Document.GetNumber(KeyStore.Scale, 1); }
 
     @undoBatch
     @action
@@ -154,26 +145,15 @@ export class CollectionFreeFormView extends CollectionViewBase {
         });
     }
 
-    @computed
-    get translate(): [number, number] {
-        const x = this.props.Document.GetNumber(KeyStore.PanX, 0);
-        const y = this.props.Document.GetNumber(KeyStore.PanY, 0);
-        return [x, y];
-    }
-
-    @computed
-    get scale(): number {
-        return this.props.Document.GetNumber(KeyStore.Scale, 1);
-    }
-
     getTransform = (): Transform => {
         return this.props.ScreenToLocalTransform().translate(-COLLECTION_BORDER_WIDTH, -COLLECTION_BORDER_WIDTH).transform(this.getLocalTransform())
     }
 
     getLocalTransform = (): Transform => {
-        const [x, y] = this.translate;
-        return Transform.Identity.translate(-x, -y).scale(1 / this.scale);
+        return Transform.Identity.translate(-this.panX, -this.panY).scale(1 / this.scale);
     }
+
+    noScaling = () => 1;
 
     @computed
     get views() {
@@ -186,9 +166,9 @@ export class CollectionFreeFormView extends CollectionViewBase {
                     RemoveDocument={this.props.removeDocument}
                     ScreenToLocalTransform={this.getTransform}
                     isTopMost={false}
-                    Scaling={1}
-                    PanelWidth={doc.GetNumber(KeyStore.Width, 0)}
-                    PanelHeight={doc.GetNumber(KeyStore.Height, 0)}
+                    ContentScaling={this.noScaling}
+                    PanelWidth={doc.Width}
+                    PanelHeight={doc.Height}
                     ContainingCollectionView={this.props.CollectionView} />);
             })
         }

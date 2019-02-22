@@ -30,6 +30,10 @@ export class Document extends Field {
         }
     }
 
+    public Width = () => { return this.GetNumber(KeyStore.Width, 0) }
+    public Height = () => { return this.GetNumber(KeyStore.Height, 0) }
+    public Scale = () => { return this.GetNumber(KeyStore.Scale, 1) }
+
     @computed
     public get Title() {
         return this.GetText(KeyStore.Title, "<untitled>");

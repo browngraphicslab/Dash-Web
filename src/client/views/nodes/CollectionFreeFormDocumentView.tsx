@@ -24,7 +24,7 @@ export class CollectionFreeFormDocumentView extends React.Component<DocumentView
 
     @computed
     get transform(): string {
-        return `scale(${this.props.Scaling}, ${this.props.Scaling}) translate(${this.props.Document.GetNumber(KeyStore.X, 0)}px, ${this.props.Document.GetNumber(KeyStore.Y, 0)}px)`;
+        return `scale(${this.props.ContentScaling()}, ${this.props.ContentScaling()}) translate(${this.props.Document.GetNumber(KeyStore.X, 0)}px, ${this.props.Document.GetNumber(KeyStore.Y, 0)}px)`;
     }
 
     @computed
@@ -69,20 +69,19 @@ export class CollectionFreeFormDocumentView extends React.Component<DocumentView
         this.props.Document.SetData(KeyStore.ZIndex, h, NumberField)
     }
 
-    @computed
-    get parentScaling() {
+    contentScaling = () => {
         return this.nativeWidth > 0 ? this.width / this.nativeWidth : 1;
     }
 
     getTransform = (): Transform => {
         return this.props.ScreenToLocalTransform().
-            translate(-this.props.Document.GetNumber(KeyStore.X, 0), -this.props.Document.GetNumber(KeyStore.Y, 0)).scale(1 / this.parentScaling);
+            translate(-this.props.Document.GetNumber(KeyStore.X, 0), -this.props.Document.GetNumber(KeyStore.Y, 0)).scale(1 / this.contentScaling());
     }
 
     @computed
     get docView() {
         return <DocumentView {...this.props}
-            Scaling={this.parentScaling}
+            ContentScaling={this.contentScaling}
             ScreenToLocalTransform={this.getTransform}
         />
     }
