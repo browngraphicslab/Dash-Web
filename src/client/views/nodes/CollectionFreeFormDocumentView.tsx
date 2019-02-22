@@ -1,4 +1,4 @@
-import { computed } from "mobx";
+import { computed, trace } from "mobx";
 import { observer } from "mobx-react";
 import { KeyStore } from "../../../fields/KeyStore";
 import { NumberField } from "../../../fields/NumberField";
@@ -69,15 +69,25 @@ export class CollectionFreeFormDocumentView extends React.Component<DocumentView
         this.props.Document.SetData(KeyStore.ZIndex, h, NumberField)
     }
 
+    @computed
+    get parentScaling() {
+        return this.nativeWidth > 0 ? this.width / this.nativeWidth : 1;
+    }
 
     getTransform = (): Transform => {
-        var parentScaling = this.nativeWidth > 0 ? this.width / this.nativeWidth : 1;
         return this.props.ScreenToLocalTransform().
-            translate(-this.props.Document.GetNumber(KeyStore.X, 0), -this.props.Document.GetNumber(KeyStore.Y, 0)).scale(1 / parentScaling);
+            translate(-this.props.Document.GetNumber(KeyStore.X, 0), -this.props.Document.GetNumber(KeyStore.Y, 0)).scale(1 / this.parentScaling);
+    }
+
+    @computed
+    get docView() {
+        return <DocumentView {...this.props}
+            Scaling={this.parentScaling}
+            ScreenToLocalTransform={this.getTransform}
+        />
     }
 
     render() {
-        var parentScaling = this.nativeWidth > 0 ? this.width / this.nativeWidth : 1;
         return (
             <div ref={this._mainCont} style={{
                 transformOrigin: "left top",
@@ -88,11 +98,7 @@ export class CollectionFreeFormDocumentView extends React.Component<DocumentView
                 zIndex: this.zIndex,
                 backgroundColor: "transparent"
             }} >
-
-                <DocumentView {...this.props}
-                    Scaling={parentScaling}
-                    ScreenToLocalTransform={this.getTransform}
-                />
+                {this.docView}
             </div>
         );
     }

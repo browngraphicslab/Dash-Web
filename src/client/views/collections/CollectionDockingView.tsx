@@ -290,7 +290,8 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
                     AddDocument={undefined}
                     RemoveDocument={undefined}
                     Scaling={this._parentScaling}
-                    PanelSize={[this._nativeWidth, this._nativeHeight]}
+                    PanelWidth={this._nativeWidth}
+                    PanelHeight={this._nativeHeight}
                     ScreenToLocalTransform={this.ScreenToLocalTransform}
                     isTopMost={true}
                     ContainingCollectionView={undefined} />
