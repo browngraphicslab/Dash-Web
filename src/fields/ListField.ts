@@ -1,4 +1,4 @@
-import { action, IArrayChange, IArraySplice, IObservableArray, observe } from "mobx";
+import { action, IArrayChange, IArraySplice, IObservableArray, observe, observable, Lambda } from "mobx";
 import { Server } from "../client/Server";
 import { UndoManager } from "../client/util/UndoManager";
 import { Types } from "../server/Message";
@@ -13,7 +13,12 @@ export class ListField<T extends Field> extends BasicField<T[]> {
         if (save) {
             Server.UpdateField(this);
         }
-        observe(this.Data as IObservableArray<T>, (change: IArrayChange<T> | IArraySplice<T>) => {
+        this.observeList();
+    }
+
+    private observeDisposer: Lambda | undefined;
+    private observeList(): void {
+        this.observeDisposer = observe(this.Data as IObservableArray<T>, (change: IArrayChange<T> | IArraySplice<T>) => {
             this.updateProxies()
             if (change.type == "splice") {
                 UndoManager.AddEvent({
@@ -27,7 +32,15 @@ export class ListField<T extends Field> extends BasicField<T[]> {
                 })
             }
             Server.UpdateField(this);
-        })
+        });
+    }
+
+    protected setData(value: T[]) {
+        if (this.observeDisposer) {
+            this.observeDisposer()
+        }
+        this.data = observable(value);
+        this.observeList();
     }
 
     private updateProxies() {

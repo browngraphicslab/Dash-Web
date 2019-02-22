@@ -1,5 +1,5 @@
 import React = require("react")
-import { action, observable } from "mobx";
+import { action, observable, trace } from "mobx";
 import { observer } from "mobx-react";
 import Measure from "react-measure";
 import ReactTable, { CellInfo, ComponentPropsGetterR, ReactTableDefaults } from "react-table";
@@ -13,12 +13,10 @@ import { EditableView } from "../EditableView";
 import { DocumentView } from "../nodes/DocumentView";
 import { FieldView, FieldViewProps } from "../nodes/FieldView";
 import "./CollectionSchemaView.scss";
-import { CollectionViewBase, COLLECTION_BORDER_WIDTH } from "./CollectionViewBase";
+import { COLLECTION_BORDER_WIDTH, CollectionViewProps, SubCollectionViewProps } from "./CollectionView";
 
 @observer
-export class CollectionSchemaView extends CollectionViewBase {
-    public static LayoutString(fieldKey: string = "DataKey") { return CollectionViewBase.LayoutString("CollectionSchemaView", fieldKey); }
-
+export class CollectionSchemaView extends React.Component<SubCollectionViewProps> {
     private _mainCont = React.createRef<HTMLDivElement>();
 
     private DIVIDER_WIDTH = 5;
@@ -34,6 +32,7 @@ export class CollectionSchemaView extends CollectionViewBase {
             doc: rowProps.value[0],
             fieldKey: rowProps.value[1],
             isSelected: () => false,
+            select: () => { },
             isTopMost: false
         }
         let contents = (
@@ -112,7 +111,7 @@ export class CollectionSchemaView extends CollectionViewBase {
         //     e.preventDefault();
         // } else 
         {
-            if (e.buttons === 1 && this.active) {
+            if (e.buttons === 1 && this.props.active()) {
                 e.stopPropagation();
             }
         }
@@ -139,18 +138,17 @@ export class CollectionSchemaView extends CollectionViewBase {
         const columns = this.props.Document.GetList(KeyStore.ColumnsKey, [KeyStore.Title, KeyStore.Data, KeyStore.Author])
         const children = this.props.Document.GetList<Document>(this.props.fieldKey, []);
         const selected = children.length > this.selectedIndex ? children[this.selectedIndex] : undefined;
-        let me = this;
         let content = this.selectedIndex == -1 || !selected ? (null) : (
             <Measure onResize={this.setScaling}>
                 {({ measureRef }) =>
                     <div ref={measureRef}>
                         <DocumentView Document={selected}
-                            AddDocument={this.addDocument} RemoveDocument={this.removeDocument}
+                            AddDocument={this.props.addDocument} RemoveDocument={this.props.removeDocument}
                             ScreenToLocalTransform={this.getTransform}
                             Scaling={this._parentScaling}
                             isTopMost={false}
                             PanelSize={[this._panelWidth, this._panelHeight]}
-                            ContainingCollectionView={me} />
+                            ContainingCollectionView={this.props.CollectionView} />
                     </div>
                 }
             </Measure>

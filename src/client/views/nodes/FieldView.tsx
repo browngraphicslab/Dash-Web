@@ -20,12 +20,13 @@ export interface FieldViewProps {
     fieldKey: Key;
     doc: Document;
     isSelected: () => boolean;
+    select: () => void;
     isTopMost: boolean;
 }
 
 @observer
 export class FieldView extends React.Component<FieldViewProps> {
-    public static LayoutString(fieldType: { name: string }) { return `<${fieldType.name} doc={Document} DocumentViewForField={DocumentView} fieldKey={DataKey} isSelected={isSelected} isTopMost={isTopMost} />`; }
+    public static LayoutString(fieldType: { name: string }) { return `<${fieldType.name} doc={Document} DocumentViewForField={DocumentView} fieldKey={DataKey} isSelected={isSelected} select={select} isTopMost={isTopMost} />`; }
     @computed
     get field(): FieldValue<Field> {
         const { doc, fieldKey } = this.props;

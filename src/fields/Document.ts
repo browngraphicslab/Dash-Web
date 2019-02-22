@@ -90,6 +90,15 @@ export class Document extends Field {
         return field;
     }
 
+    GetAsync(key: Key, callback: (field: Field) => void): boolean {
+        //This currently doesn't deal with prototypes
+        if (this._proxies.has(key.Id)) {
+            Server.GetDocumentField(this, key, callback);
+            return true;
+        }
+        return false;
+    }
+
     GetT<T extends Field = Field>(key: Key, ctor: { new(...args: any[]): T }, ignoreProto: boolean = false): FieldValue<T> {
         var getfield = this.Get(key, ignoreProto);
         if (getfield != FieldWaiting) {
