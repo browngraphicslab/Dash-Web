@@ -6,7 +6,7 @@ import { observer } from "mobx-react";
 import * as ReactDOM from 'react-dom';
 import Measure from "react-measure";
 import { Document } from "../../../fields/Document";
-import { FieldId, Opt } from "../../../fields/Field";
+import { FieldId, Opt, Field } from "../../../fields/Field";
 import { KeyStore } from "../../../fields/KeyStore";
 import { Utils } from "../../../Utils";
 import { Server } from "../../Server";
@@ -14,13 +14,12 @@ import { DragManager } from "../../util/DragManager";
 import { undoBatch } from "../../util/UndoManager";
 import { DocumentView } from "../nodes/DocumentView";
 import "./CollectionDockingView.scss";
-import { CollectionViewBase, CollectionViewProps, COLLECTION_BORDER_WIDTH } from "./CollectionViewBase";
+import { CollectionViewProps, COLLECTION_BORDER_WIDTH, SubCollectionViewProps } from "./CollectionView";
 import React = require("react");
 
 @observer
-export class CollectionDockingView extends CollectionViewBase {
+export class CollectionDockingView extends React.Component<SubCollectionViewProps> {
     public static Instance: CollectionDockingView;
-    public static LayoutString() { return CollectionViewBase.LayoutString("CollectionDockingView"); }
     public static makeDocumentConfig(document: Document) {
         return {
             type: 'react-component',
@@ -41,7 +40,7 @@ export class CollectionDockingView extends CollectionViewBase {
     private _containerRef = React.createRef<HTMLDivElement>();
     private _fullScreen: any = null;
 
-    constructor(props: CollectionViewProps) {
+    constructor(props: SubCollectionViewProps) {
         super(props);
         CollectionDockingView.Instance = this;
         (window as any).React = React;
@@ -149,6 +148,13 @@ export class CollectionDockingView extends CollectionViewBase {
             this._goldenLayout.on('stackCreated', this.stackCreated);
             this._goldenLayout.registerComponent('DocumentFrameRenderer', DockedFrameRenderer);
             this._goldenLayout.container = this._containerRef.current;
+            if (this._goldenLayout.config.maximisedItemId === '__glMaximised') {
+                try {
+                    this._goldenLayout.config.root.getItemsById(this._goldenLayout.config.maximisedItemId)[0].toggleMaximise();
+                } catch (e) {
+                    this._goldenLayout.config.maximisedItemId = null;
+                }
+            }
             this._goldenLayout.init();
         }
     }
@@ -187,7 +193,7 @@ export class CollectionDockingView extends CollectionViewBase {
     }
     @action
     onPointerDown = (e: React.PointerEvent): void => {
-        if (e.button === 2 && this.active) {
+        if (e.button === 2 && this.props.active()) {
             e.stopPropagation();
             e.preventDefault();
         } else {
@@ -195,7 +201,7 @@ export class CollectionDockingView extends CollectionViewBase {
             if (className == "lm_drag_handle" || className == "lm_close" || className == "lm_maximise" || className == "lm_minimise" || className == "lm_close_tab") {
                 this._flush = true;
             }
-            if (e.buttons === 1 && this.active) {
+            if (e.buttons === 1 && this.props.active()) {
                 e.stopPropagation();
             }
         }
@@ -262,7 +268,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
 
     constructor(props: any) {
         super(props);
-        Server.GetField(this.props.documentId, f => this._document = f as Document)
+        Server.GetField(this.props.documentId, action((f: Opt<Field>) => this._document = f as Document));
     }
 
     @computed private get _nativeWidth() { return this._document!.GetNumber(KeyStore.NativeWidth, 0); }

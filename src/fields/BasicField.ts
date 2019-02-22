@@ -32,12 +32,16 @@ export abstract class BasicField<T> extends Field {
             return;
         }
         let oldValue = this.data;
-        this.data = value;
+        this.setData(value);
         UndoManager.AddEvent({
             undo: () => this.Data = oldValue,
             redo: () => this.Data = value
         })
         Server.UpdateField(this);
+    }
+
+    protected setData(value: T) {
+        this.data = value;
     }
 
     @action
