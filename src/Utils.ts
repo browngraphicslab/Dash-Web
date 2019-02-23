@@ -19,4 +19,6 @@ export class Utils {
 
         return { scale, translateX, translateY };
     }
+
+    public static pdf_example = require('../deploy/test.pdf');
 }

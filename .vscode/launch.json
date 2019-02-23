@@ -10,7 +10,7 @@
             "name": "Launch Chrome against localhost",
             "sourceMaps": true,
             "breakOnLoad": true,
-            "url": "http://localhost:1050",
+            "url": "http://localhost:1234",
             "webRoot": "${workspaceFolder}"
         },
         {

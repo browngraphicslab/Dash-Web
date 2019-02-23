@@ -39,6 +39,14 @@ module.exports = {
       ]
     },
     {
+      test: /\.(jpg|png|pdf)$/,
+      use: [
+        {
+          loader: 'file-loader'
+        }
+      ]
+    },
+    {
       test: /\.(png|jpg|gif)$/i,
       use: [
         {
@@ -57,7 +65,7 @@ module.exports = {
     compress: false,
     host: "localhost",
     contentBase: path.join(__dirname, 'deploy'),
-    port: 1050,
+    port: 1234,
     hot: true,
     https: false,
     overlay: {

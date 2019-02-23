@@ -1,5 +1,6 @@
 import { BasicField } from "./BasicField";
 import { Field } from "./Field";
+import {observable} from "mobx"
 
 export class ImageField extends BasicField<URL> {
     constructor(data: URL | undefined = undefined) {
@@ -13,5 +14,8 @@ export class ImageField extends BasicField<URL> {
     Copy(): Field {
         return new ImageField(this.Data);
     }
+    
+    @observable
+    Page:Number = 1; 
 
 }

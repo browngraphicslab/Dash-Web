@@ -12,5 +12,9 @@
   "exclude": [
     "node_modules",
     "static"
+  ],
+  "typeRoots": [
+    "./node_modules/@types",
+    "./src/typings"
   ]
 }
