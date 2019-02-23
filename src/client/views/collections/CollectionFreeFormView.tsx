@@ -91,7 +91,6 @@ export class CollectionFreeFormView extends CollectionViewBase {
             let [dx, dy] = this.props.ScreenToLocalTransform().transformDirection(e.clientX - this._lastX, e.clientY - this._lastY);
 
             this.SetPan(x + dx, y + dy);
-            console.log("px = " + x + " " + y)
         }
         this._lastX = e.pageX;
         this._lastY = e.pageY;
