@@ -161,6 +161,12 @@ export class CollectionFreeFormView extends CollectionViewBase {
             return field.Data;
         }
     }
+    @computed get overlayLayout(): string | undefined {
+        let field = this.props.Document.GetT(KeyStore.OverlayLayout, TextField);
+        if (field && field !== "<Waiting>") {
+            return field.Data;
+        }
+    }
     @computed
     get views() {
         const { fieldKey, Document } = this.props;
@@ -192,6 +198,17 @@ export class CollectionFreeFormView extends CollectionViewBase {
                 onError={(test: any) => console.log(test)}
             />);
     }
+    @computed
+    get overlayView() {
+        return !this.overlayLayout ? (null) :
+            (<JsxParser
+                components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView }}
+                bindings={this.props.bindings}
+                jsx={this.overlayLayout}
+                showWarnings={true}
+                onError={(test: any) => console.log(test)}
+            />);
+    }
     getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-COLLECTION_BORDER_WIDTH, -COLLECTION_BORDER_WIDTH).transform(this.getLocalTransform())
     getLocalTransform = (): Transform => Transform.Identity.translate(-this.panX, -this.panY).scale(1 / this.scale);
     noScaling = () => 1;
@@ -199,6 +216,12 @@ export class CollectionFreeFormView extends CollectionViewBase {
     render() {
         const panx: number = this.props.Document.GetNumber(KeyStore.PanX, 0);
         const pany: number = this.props.Document.GetNumber(KeyStore.PanY, 0);
+        var overlay = this.overlayView ?
+            <div style={{ position: "absolute", width: "100%", height: "100%" }}>
+                {this.overlayView}
+            </div>
+            :
+            (null);
         return (
             <div className="collectionfreeformview-container"
                 onPointerDown={this.onPointerDown}
@@ -214,6 +237,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
                     {this.backgroundView}
                     {this.views}
                 </div>
+                {overlay}
             </div>
         );
     }

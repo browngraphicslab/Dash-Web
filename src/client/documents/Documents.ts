@@ -112,6 +112,12 @@ export namespace Documents {
             + FormattedTextBox.LayoutString("CaptionKey") +
             `</div> 
         </div>` };
+    function OverlayLayoutString() {
+        return `<div style="position:absolute; height:100%; width:100%">
+            <div style="position:absolute; max-height:10%;  width:100%; min-height:10%; overflow:scroll;text-align:center;bottom:0;">`
+            + FormattedTextBox.LayoutString("CaptionKey") +
+            `</div> 
+        </div>` };
 
     export function ImageDocument(url: string, options: DocumentOptions = {}): Document {
         let doc = GetImagePrototype().MakeDelegate();
@@ -119,6 +125,7 @@ export namespace Documents {
         doc.Set(KeyStore.Data, new ImageField(new URL(url)));
         doc.Set(KeyStore.Caption, new TextField("my caption..."));
         doc.Set(KeyStore.BackgroundLayout, new TextField(CaptionLayoutString()));
+        //doc.Set(KeyStore.OverlayLayout, new TextField(OverlayLayoutString()));
         doc.Set(KeyStore.LayoutKeys, new ListField([KeyStore.Data, KeyStore.Annotations, KeyStore.Caption]));
 
         let annotation = Documents.TextDocument({ title: "hello" });
