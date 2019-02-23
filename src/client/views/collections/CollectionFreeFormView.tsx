@@ -19,6 +19,7 @@ import "./CollectionFreeFormView.scss";
 import { COLLECTION_BORDER_WIDTH } from "./CollectionView";
 import { CollectionViewBase } from "./CollectionViewBase";
 import React = require("react");
+import { Documents } from "../../documents/Documents";
 const JsxParser = require('react-jsx-parser').default;//TODO Why does this need to be imported like this?
 
 @observer
@@ -126,9 +127,10 @@ export class CollectionFreeFormView extends CollectionViewBase {
     onDrop = (e: React.DragEvent): void => {
         const panx: number = this.props.Document.GetNumber(KeyStore.PanX, 0);
         const pany: number = this.props.Document.GetNumber(KeyStore.PanY, 0);
-        let x = e.pageX - panx
-        let y = e.pageY - pany
-        super.onDrop(e, { x: x, y: y });
+        let transform = this.getTransform();
+
+        var pt = transform.transformPoint(e.pageX, e.pageY);
+        super.onDrop(e, { x: pt[0], y: pt[1] });
     }
 
     onDragOver = (): void => {

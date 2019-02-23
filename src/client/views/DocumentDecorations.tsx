@@ -21,13 +21,13 @@ export class DocumentDecorations extends React.Component {
 
     @computed
     get Bounds(): { x: number, y: number, b: number, r: number } {
-        return SelectionManager.SelectedDocuments().reduce((bounds, element) => {
-            if (element.props.isTopMost) {
+        return SelectionManager.SelectedDocuments().reduce((bounds, documentView) => {
+            if (documentView.props.isTopMost) {
                 return bounds;
             }
-            let transform = (element.props.ScreenToLocalTransform().scale(element.props.ContentScaling())).inverse();
+            let transform = (documentView.props.ScreenToLocalTransform().scale(documentView.props.ContentScaling())).inverse();
             var [sptX, sptY] = transform.transformPoint(0, 0);
-            let [bptX, bptY] = transform.transformPoint(element.props.PanelWidth(), element.props.PanelHeight());
+            let [bptX, bptY] = transform.transformPoint(documentView.props.PanelWidth(), documentView.props.PanelHeight());
             return {
                 x: Math.min(sptX, bounds.x), y: Math.min(sptY, bounds.y),
                 r: Math.max(bptX, bounds.r), b: Math.max(bptY, bounds.b)

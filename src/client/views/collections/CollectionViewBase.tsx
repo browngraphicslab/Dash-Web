@@ -56,27 +56,50 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
     protected onDrop(e: React.DragEvent, options: DocumentOptions): void {
         e.stopPropagation()
         e.preventDefault()
-        let fReader = new FileReader()
-        let file = e.dataTransfer.items[0].getAsFile();
         let that = this;
 
-        fReader.addEventListener("load", action("drop", () => {
-            if (fReader.result) {
-                let url = "" + fReader.result;
-                let doc = Documents.ImageDocument(url, options)
-                let docs = that.props.Document.GetT(KeyStore.Data, ListField);
-                if (docs != FieldWaiting) {
-                    if (!docs) {
-                        docs = new ListField<Document>();
-                        that.props.Document.Set(KeyStore.Data, docs)
+        for (let i = 0; i < e.dataTransfer.items.length; i++) {
+            let item = e.dataTransfer.items[i];
+            if (item.kind === "string" && item.type.indexOf("uri") != -1) {
+                e.dataTransfer.items[i].getAsString(function (s) {
+                    action(() => {
+                        var img = Documents.ImageDocument(s, { ...options, nativeWidth: 300, nativeHeight: 300, width: 300, height: 300 })
+
+                        let docs = that.props.Document.GetT(KeyStore.Data, ListField);
+                        if (docs != FieldWaiting) {
+                            if (!docs) {
+                                docs = new ListField<Document>();
+                                that.props.Document.Set(KeyStore.Data, docs)
+                            }
+                            docs.Data.push(img);
+                        }
+                    })()
+
+                })
+            }
+            if (item.kind == "file" && item.type.indexOf("image")) {
+                let fReader = new FileReader()
+                let file = item.getAsFile();
+
+                fReader.addEventListener("load", action("drop", () => {
+                    if (fReader.result) {
+                        let url = "" + fReader.result;
+                        let doc = Documents.ImageDocument(url, options)
+                        let docs = that.props.Document.GetT(KeyStore.Data, ListField);
+                        if (docs != FieldWaiting) {
+                            if (!docs) {
+                                docs = new ListField<Document>();
+                                that.props.Document.Set(KeyStore.Data, docs)
+                            }
+                            docs.Data.push(doc);
+                        }
                     }
-                    docs.Data.push(doc);
+                }), false)
+
+                if (file) {
+                    fReader.readAsDataURL(file)
                 }
             }
-        }), false)
-
-        if (file) {
-            fReader.readAsDataURL(file)
         }
     }
 }
