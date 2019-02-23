@@ -5,13 +5,10 @@ import { TextField } from "../../fields/TextField";
 import { NumberField } from "../../fields/NumberField";
 import { ListField } from "../../fields/ListField";
 import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
-import { CollectionDockingView } from "../views/collections/CollectionDockingView";
-import { CollectionSchemaView } from "../views/collections/CollectionSchemaView";
 import { ImageField } from "../../fields/ImageField";
 import { ImageBox } from "../views/nodes/ImageBox";
-import { CollectionFreeFormView } from "../views/collections/CollectionFreeFormView";
-import { FieldId } from "../../fields/Field";
 import { CollectionView, CollectionViewType } from "../views/collections/CollectionView";
+import { FieldView } from "../views/nodes/FieldView";
 
 export interface DocumentOptions {
     x?: number;
@@ -102,12 +99,27 @@ export namespace Documents {
             return imageProto;
         }
         return imageProto;
+
     }
+
+    // example of custom display string for an image that shows a caption.
+    function CaptionLayoutString() {
+        return `<div style="position:absolute; height:100%">
+            <div style="position:relative; margin:auto; width:85%; margin:auto" >`
+            + ImageBox.LayoutString() +
+            `</div>
+            <div style="position:relative; min-height:15%; overflow:scroll; max-height:15%; text-align:center; ">`
+            + FormattedTextBox.LayoutString("CaptionKey") +
+            `</div> 
+        </div>` };
 
     export function ImageDocument(url: string, options: DocumentOptions = {}): Document {
         let doc = GetImagePrototype().MakeDelegate();
         setupOptions(doc, options);
         doc.Set(KeyStore.Data, new ImageField(new URL(url)));
+        doc.Set(KeyStore.Caption, new TextField("my caption..."));
+        doc.Set(KeyStore.BackgroundLayout, new TextField(CaptionLayoutString()));
+        doc.Set(KeyStore.LayoutKeys, new ListField([KeyStore.Data, KeyStore.Annotations, KeyStore.Caption]));
 
         let annotation = Documents.TextDocument({ title: "hello" });
         doc.Set(KeyStore.Annotations, new ListField([annotation]));

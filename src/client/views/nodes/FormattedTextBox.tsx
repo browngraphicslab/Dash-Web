@@ -10,8 +10,6 @@ import "./FormattedTextBox.scss";
 import React = require("react")
 import { RichTextField } from "../../../fields/RichTextField";
 import { FieldViewProps, FieldView } from "./FieldView";
-import { CollectionFreeFormDocumentView } from "./CollectionFreeFormDocumentView";
-import { observer } from "mobx-react";
 
 
 // FormattedTextBox: Displays an editable plain text node that maps to a specified Key of a Document
@@ -32,7 +30,7 @@ import { observer } from "mobx-react";
 //]
 export class FormattedTextBox extends React.Component<FieldViewProps> {
 
-    public static LayoutString() { return FieldView.LayoutString(FormattedTextBox) }
+    public static LayoutString(fieldStr: string = "DataKey") { return FieldView.LayoutString(FormattedTextBox, fieldStr) }
     private _ref: React.RefObject<HTMLDivElement>;
     private _editorView: Opt<EditorView>;
     private _reactionDisposer: Opt<IReactionDisposer>;
@@ -118,6 +116,7 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
             style={{
                 color: "initial",
                 whiteSpace: "initial",
+                height: "auto"
             }}
             onPointerDown={this.onPointerDown}
             ref={this._ref} />)

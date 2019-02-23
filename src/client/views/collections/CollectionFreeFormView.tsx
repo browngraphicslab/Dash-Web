@@ -34,7 +34,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
     @computed get panX(): number { return this.props.Document.GetNumber(KeyStore.PanX, 0) }
     @computed get panY(): number { return this.props.Document.GetNumber(KeyStore.PanY, 0) }
     @computed get scale(): number { return this.props.Document.GetNumber(KeyStore.Scale, 1); }
-    @computed get isAnnotationOverlay() { return this.props.fieldKey == KeyStore.Annotations; }
+    @computed get isAnnotationOverlay() { return this.props.fieldKey.Id === KeyStore.Annotations.Id; } // bcz: ? Why do we need to compare Id's?
     @computed get nativeWidth() { return this.props.Document.GetNumber(KeyStore.NativeWidth, 0); }
     @computed get nativeHeight() { return this.props.Document.GetNumber(KeyStore.NativeHeight, 0); }
     @computed get zoomScaling() { return this.props.Document.GetNumber(KeyStore.Scale, 1); }
@@ -91,6 +91,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
             let [dx, dy] = this.props.ScreenToLocalTransform().transformDirection(e.clientX - this._lastX, e.clientY - this._lastY);
 
             this.SetPan(x + dx, y + dy);
+            console.log("px = " + x + " " + y)
         }
         this._lastX = e.pageX;
         this._lastY = e.pageY;
@@ -209,7 +210,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
                 style={{ borderWidth: `${COLLECTION_BORDER_WIDTH}px`, }}
                 ref={this.createDropTarget}>
                 <div className="collectionfreeformview"
-                    style={{ width: "100%", transformOrigin: "left top", transform: ` translate(${panx}px, ${pany}px) scale(${this.zoomScaling}, ${this.zoomScaling})` }}
+                    style={{ transformOrigin: "left top", transform: ` translate(${panx}px, ${pany}px) scale(${this.zoomScaling}, ${this.zoomScaling})` }}
                     ref={this._canvasRef}>
                     {this.backgroundView}
                     {this.views}
