@@ -6,7 +6,6 @@ import { schema } from "prosemirror-schema-basic";
 import { EditorState, Transaction } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { Opt, FieldWaiting, FieldValue } from "../../../fields/Field";
-import { SelectionManager } from "../../util/SelectionManager";
 import "./FormattedTextBox.scss";
 import React = require("react")
 import { RichTextField } from "../../../fields/RichTextField";

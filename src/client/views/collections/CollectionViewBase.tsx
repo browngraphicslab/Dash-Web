@@ -19,7 +19,7 @@ export interface CollectionViewProps {
     isSelected: () => boolean;
     isTopMost: boolean;
     select: (ctrlPressed: boolean) => void;
-    BackgroundView?: () => JSX.Element;
+    bindings: any;
 }
 export interface SubCollectionViewProps extends CollectionViewProps {
     active: () => boolean;
