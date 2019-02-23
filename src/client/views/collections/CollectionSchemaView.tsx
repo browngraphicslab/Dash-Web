@@ -34,7 +34,8 @@ export class CollectionSchemaView extends CollectionViewBase {
             fieldKey: rowProps.value[1],
             isSelected: () => false,
             select: () => { },
-            isTopMost: false
+            isTopMost: false,
+            bindings: {}
         }
         let contents = (
             <FieldView {...props} />

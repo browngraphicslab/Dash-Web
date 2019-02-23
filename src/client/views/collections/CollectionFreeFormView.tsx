@@ -1,18 +1,25 @@
+import { action, computed } from "mobx";
 import { observer } from "mobx-react";
-import React = require("react");
-import { action, computed, trace } from "mobx";
-import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
+import { Document } from "../../../fields/Document";
+import { FieldWaiting } from "../../../fields/Field";
+import { KeyStore } from "../../../fields/KeyStore";
+import { ListField } from "../../../fields/ListField";
+import { TextField } from "../../../fields/TextField";
 import { DragManager } from "../../util/DragManager";
+import { Transform } from "../../util/Transform";
+import { undoBatch } from "../../util/UndoManager";
+import { CollectionDockingView } from "../collections/CollectionDockingView";
+import { CollectionSchemaView } from "../collections/CollectionSchemaView";
+import { CollectionView } from "../collections/CollectionView";
+import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
+import { DocumentView } from "../nodes/DocumentView";
+import { FormattedTextBox } from "../nodes/FormattedTextBox";
+import { ImageBox } from "../nodes/ImageBox";
 import "./CollectionFreeFormView.scss";
 import { COLLECTION_BORDER_WIDTH } from "./CollectionView";
-import { KeyStore } from "../../../fields/KeyStore";
-import { Document } from "../../../fields/Document";
-import { ListField } from "../../../fields/ListField";
-import { FieldWaiting } from "../../../fields/Field";
-import { Transform } from "../../util/Transform";
-import { DocumentView } from "../nodes/DocumentView";
-import { undoBatch } from "../../util/UndoManager";
-import { CollectionViewBase, SubCollectionViewProps } from "./CollectionViewBase";
+import { CollectionViewBase } from "./CollectionViewBase";
+import React = require("react");
+const JsxParser = require('react-jsx-parser').default;//TODO Why does this need to be imported like this?
 
 @observer
 export class CollectionFreeFormView extends CollectionViewBase {
@@ -145,16 +152,13 @@ export class CollectionFreeFormView extends CollectionViewBase {
         });
     }
 
-    getTransform = (): Transform => {
-        return this.props.ScreenToLocalTransform().translate(-COLLECTION_BORDER_WIDTH, -COLLECTION_BORDER_WIDTH).transform(this.getLocalTransform())
+
+    @computed get backgroundLayout(): string | undefined {
+        let field = this.props.Document.GetT(KeyStore.BackgroundLayout, TextField);
+        if (field && field !== "<Waiting>") {
+            return field.Data;
+        }
     }
-
-    getLocalTransform = (): Transform => {
-        return Transform.Identity.translate(-this.panX, -this.panY).scale(1 / this.scale);
-    }
-
-    noScaling = () => 1;
-
     @computed
     get views() {
         const { fieldKey, Document } = this.props;
@@ -175,6 +179,21 @@ export class CollectionFreeFormView extends CollectionViewBase {
         return null;
     }
 
+    @computed
+    get backgroundView() {
+        return !this.backgroundLayout ? (null) :
+            (<JsxParser
+                components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView }}
+                bindings={this.props.bindings}
+                jsx={this.backgroundLayout}
+                showWarnings={true}
+                onError={(test: any) => console.log(test)}
+            />);
+    }
+    getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-COLLECTION_BORDER_WIDTH, -COLLECTION_BORDER_WIDTH).transform(this.getLocalTransform())
+    getLocalTransform = (): Transform => Transform.Identity.translate(-this.panX, -this.panY).scale(1 / this.scale);
+    noScaling = () => 1;
+
     render() {
         const panx: number = this.props.Document.GetNumber(KeyStore.PanX, 0);
         const pany: number = this.props.Document.GetNumber(KeyStore.PanY, 0);
@@ -190,8 +209,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
                 <div className="collectionfreeformview"
                     style={{ width: "100%", transformOrigin: "left top", transform: ` translate(${panx}px, ${pany}px) scale(${this.zoomScaling}, ${this.zoomScaling})` }}
                     ref={this._canvasRef}>
-
-                    {this.props.BackgroundView ? this.props.BackgroundView() : null}
+                    {this.backgroundView}
                     {this.views}
                 </div>
             </div>

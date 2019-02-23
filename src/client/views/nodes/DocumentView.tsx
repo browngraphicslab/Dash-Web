@@ -5,7 +5,6 @@ import { Field, FieldWaiting, Opt } from "../../../fields/Field";
 import { Key } from "../../../fields/Key";
 import { KeyStore } from "../../../fields/KeyStore";
 import { ListField } from "../../../fields/ListField";
-import { TextField } from "../../../fields/TextField";
 import { DragManager } from "../../util/DragManager";
 import { SelectionManager } from "../../util/SelectionManager";
 import { Transform } from "../../util/Transform";
@@ -84,21 +83,13 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     private _downX: number = 0;
     private _downY: number = 0;
 
-    get screenRect(): ClientRect | DOMRect {
-        return (this._mainCont.current) ? this._mainCont.current.getBoundingClientRect() : new DOMRect();
-    }
     @computed get active(): boolean { return SelectionManager.IsSelected(this) || !this.props.ContainingCollectionView || this.props.ContainingCollectionView.active(); }
     @computed get topMost(): boolean { return !this.props.ContainingCollectionView || this.props.ContainingCollectionView.collectionViewType == CollectionViewType.Docking; }
     @computed get layout(): string { return this.props.Document.GetText(KeyStore.Layout, "<p>Error loading layout data</p>"); }
     @computed get layoutKeys(): Key[] { return this.props.Document.GetData(KeyStore.LayoutKeys, ListField, new Array<Key>()); }
     @computed get layoutFields(): Key[] { return this.props.Document.GetData(KeyStore.LayoutFields, ListField, new Array<Key>()); }
-    @computed get backgroundLayout(): string | undefined {
-        let field = this.props.Document.GetT(KeyStore.BackgroundLayout, TextField);
-        if (field && field !== "<Waiting>") {
-            return field.Data;
-        }
-    }
 
+    screenRect = (): ClientRect | DOMRect => this._mainCont.current ? this._mainCont.current.getBoundingClientRect() : new DOMRect();
 
     onPointerDown = (e: React.PointerEvent): void => {
         this._downX = e.clientX;
@@ -174,6 +165,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15)
     }
 
+    @action
     onContextMenu = (e: React.MouseEvent): void => {
         e.preventDefault()
         e.stopPropagation();
@@ -230,32 +222,19 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             let field = this.props.Document.Get(key);
             this._documentBindings[key.Name] = field && field != FieldWaiting ? field.GetValue() : field;
         }
-
-        /*
-        tfs:
-        Should this be moved to CollectionFreeformView or another component that renders
-        Document backgrounds (or contents based on a layout key, which could be used here as well)
-         that CollectionFreeformView uses? It seems like a lot for it to be here considering only one view currently uses it...
-         */
-        let backgroundLayout = this.backgroundLayout;
-        if (backgroundLayout) {
-            let backgroundView = () => (<JsxParser
-                components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView }}
-                bindings={this._documentBindings}
-                jsx={this.backgroundLayout}
-                showWarnings={true}
-                onError={(test: any) => { console.log(test) }}
-            />);
-            this._documentBindings.BackgroundView = backgroundView;
-        }
+        this._documentBindings.bindings = this._documentBindings;
 
         var scaling = this.props.ContentScaling();
         var nativeWidth = this.props.Document.GetNumber(KeyStore.NativeWidth, 0);
         var nativeHeight = this.props.Document.GetNumber(KeyStore.NativeHeight, 0);
-        var nodeWidth = nativeWidth > 0 ? nativeWidth.toString() + "px" : "100%";
-        var nodeHeight = nativeHeight > 0 ? nativeHeight.toString() + "px" : "100%";
         return (
-            <div className="documentView-node" ref={this._mainCont} style={{ width: nodeWidth, height: nodeHeight, transformOrigin: "left top", transform: `scale(${scaling},${scaling})` }}
+            <div className="documentView-node" ref={this._mainCont}
+                style={{
+                    width: nativeWidth > 0 ? nativeWidth.toString() + "px" : "100%",
+                    height: nativeHeight > 0 ? nativeHeight.toString() + "px" : "100%",
+                    transformOrigin: "left top",
+                    transform: `scale(${scaling},${scaling})`
+                }}
                 onContextMenu={this.onContextMenu}
                 onPointerDown={this.onPointerDown} >
                 {this.mainContent}

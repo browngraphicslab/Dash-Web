@@ -101,7 +101,7 @@ export class DocumentDecorations extends React.Component {
         }
 
         SelectionManager.SelectedDocuments().forEach(element => {
-            const rect = element.screenRect;
+            const rect = element.screenRect();
             if (rect.width !== 0) {
                 let doc = element.props.Document;
                 let width = doc.GetOrCreate(KeyStore.Width, NumberField);
