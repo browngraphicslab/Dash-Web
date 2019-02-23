@@ -58,6 +58,15 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
         e.preventDefault()
         let that = this;
 
+        let html = e.dataTransfer.getData("text/html");
+        let text = e.dataTransfer.getData("text/plain");
+        if (html) {
+            let htmlDoc = Documents.HtmlDocument(html, { ...options });
+            htmlDoc.SetText(KeyStore.DocumentText, text);
+            this.props.addDocument(htmlDoc);
+            return;
+        }
+
         for (let i = 0; i < e.dataTransfer.items.length; i++) {
             let item = e.dataTransfer.items[i];
             if (item.kind === "string" && item.type.indexOf("uri") != -1) {

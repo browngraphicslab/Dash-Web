@@ -9,6 +9,8 @@ import { ImageField } from "../../fields/ImageField";
 import { ImageBox } from "../views/nodes/ImageBox";
 import { CollectionView, CollectionViewType } from "../views/collections/CollectionView";
 import { FieldView } from "../views/nodes/FieldView";
+import { HtmlField } from "../../fields/HtmlField";
+import { WebView } from "../views/nodes/WebView";
 
 export interface DocumentOptions {
     x?: number;
@@ -76,6 +78,28 @@ export namespace Documents {
         let doc = GetTextPrototype().MakeDelegate();
         setupOptions(doc, options);
         // doc.SetField(KeyStore.Data, new RichTextField());
+        return doc;
+    }
+
+    let htmlProto: Document;
+    const htmlProtoId = "htmlProto";
+    function GetHtmlPrototype(): Document {
+        if (!htmlProto) {
+            htmlProto = new Document(htmlProtoId);
+            htmlProto.Set(KeyStore.X, new NumberField(0));
+            htmlProto.Set(KeyStore.Y, new NumberField(0));
+            htmlProto.Set(KeyStore.Width, new NumberField(300));
+            htmlProto.Set(KeyStore.Height, new NumberField(150));
+            htmlProto.Set(KeyStore.Layout, new TextField(WebView.LayoutString()));
+            htmlProto.Set(KeyStore.LayoutKeys, new ListField([KeyStore.Data]));
+        }
+        return htmlProto;
+    }
+
+    export function HtmlDocument(html: string, options: DocumentOptions = {}): Document {
+        let doc = GetHtmlPrototype().MakeDelegate();
+        setupOptions(doc, options);
+        doc.Set(KeyStore.Data, new HtmlField(html));
         return doc;
     }
 
