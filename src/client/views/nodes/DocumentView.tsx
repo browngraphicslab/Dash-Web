@@ -1,24 +1,23 @@
 import { action, computed } from "mobx";
 import { observer } from "mobx-react";
 import { Document } from "../../../fields/Document";
-import { Opt, FieldWaiting, Field } from "../../../fields/Field";
+import { Field, FieldWaiting, Opt } from "../../../fields/Field";
 import { Key } from "../../../fields/Key";
 import { KeyStore } from "../../../fields/KeyStore";
 import { ListField } from "../../../fields/ListField";
-import { Utils } from "../../../Utils";
+import { TextField } from "../../../fields/TextField";
+import { DragManager } from "../../util/DragManager";
+import { SelectionManager } from "../../util/SelectionManager";
+import { Transform } from "../../util/Transform";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { CollectionFreeFormView } from "../collections/CollectionFreeFormView";
 import { CollectionSchemaView } from "../collections/CollectionSchemaView";
-import { COLLECTION_BORDER_WIDTH, CollectionView, CollectionViewType } from "../collections/CollectionView";
+import { CollectionView, CollectionViewType } from "../collections/CollectionView";
+import { ContextMenu } from "../ContextMenu";
 import { FormattedTextBox } from "../nodes/FormattedTextBox";
 import { ImageBox } from "../nodes/ImageBox";
 import "./DocumentView.scss";
 import React = require("react");
-import { Transform } from "../../util/Transform";
-import { SelectionManager } from "../../util/SelectionManager";
-import { DragManager } from "../../util/DragManager";
-import { ContextMenu } from "../ContextMenu";
-import { TextField } from "../../../fields/TextField";
 const JsxParser = require('react-jsx-parser').default;//TODO Why does this need to be imported like this?
 
 export interface DocumentViewProps {
@@ -80,75 +79,46 @@ export function FakeJsxArgs(keys: string[], fields: string[] = []): JsxArgs {
 export class DocumentView extends React.Component<DocumentViewProps> {
 
     private _mainCont = React.createRef<HTMLDivElement>();
-    get MainContent() {
-        return this._mainCont;
-    }
-    get screenRect(): ClientRect | DOMRect {
-        if (this._mainCont.current) {
-            return this._mainCont.current.getBoundingClientRect();
-        }
-        return new DOMRect();
-    }
-    @computed
-    get layout(): string {
-        return this.props.Document.GetText(KeyStore.Layout, "<p>Error loading layout data</p>");
-    }
+    private _documentBindings: any = null;
+    private _contextMenuCanOpen = false;
+    private _downX: number = 0;
+    private _downY: number = 0;
 
-    @computed
-    get backgroundLayout(): string | undefined {
+    get screenRect(): ClientRect | DOMRect {
+        return (this._mainCont.current) ? this._mainCont.current.getBoundingClientRect() : new DOMRect();
+    }
+    @computed get active(): boolean { return SelectionManager.IsSelected(this) || !this.props.ContainingCollectionView || this.props.ContainingCollectionView.active(); }
+    @computed get topMost(): boolean { return !this.props.ContainingCollectionView || this.props.ContainingCollectionView.collectionViewType == CollectionViewType.Docking; }
+    @computed get layout(): string { return this.props.Document.GetText(KeyStore.Layout, "<p>Error loading layout data</p>"); }
+    @computed get layoutKeys(): Key[] { return this.props.Document.GetData(KeyStore.LayoutKeys, ListField, new Array<Key>()); }
+    @computed get layoutFields(): Key[] { return this.props.Document.GetData(KeyStore.LayoutFields, ListField, new Array<Key>()); }
+    @computed get backgroundLayout(): string | undefined {
         let field = this.props.Document.GetT(KeyStore.BackgroundLayout, TextField);
         if (field && field !== "<Waiting>") {
             return field.Data;
         }
     }
 
-    @computed
-    get layoutKeys(): Key[] {
-        return this.props.Document.GetData(KeyStore.LayoutKeys, ListField, new Array<Key>());
-    }
 
-    @computed
-    get layoutFields(): Key[] {
-        return this.props.Document.GetData(KeyStore.LayoutFields, ListField, new Array<Key>());
-    }
-
-    @computed
-    get active(): boolean {
-        return SelectionManager.IsSelected(this) || !this.props.ContainingCollectionView ||
-            this.props.ContainingCollectionView.active();
-    }
-
-    private _contextMenuCanOpen = false;
-    private _downX: number = 0;
-    private _downY: number = 0;
     onPointerDown = (e: React.PointerEvent): void => {
         this._downX = e.clientX;
         this._downY = e.clientY;
         if (e.shiftKey && e.buttons === 1) {
             CollectionDockingView.Instance.StartOtherDrag(this._mainCont.current!, this.props.Document);
             e.stopPropagation();
-            return;
-        }
-        this._contextMenuCanOpen = true;
-        if (this.active && !e.isDefaultPrevented()) {
-            e.stopPropagation();
-            if (e.buttons === 2) {
-                e.preventDefault();
+        } else {
+            this._contextMenuCanOpen = true;
+            if (this.active && !e.isDefaultPrevented()) {
+                e.stopPropagation();
+                if (e.buttons === 2) {
+                    e.preventDefault();
+                }
+                document.removeEventListener("pointermove", this.onPointerMove)
+                document.addEventListener("pointermove", this.onPointerMove);
+                document.removeEventListener("pointerup", this.onPointerUp)
+                document.addEventListener("pointerup", this.onPointerUp);
             }
-            document.removeEventListener("pointermove", this.onPointerMove)
-            document.addEventListener("pointermove", this.onPointerMove);
-            document.removeEventListener("pointerup", this.onPointerUp)
-            document.addEventListener("pointerup", this.onPointerUp);
         }
-    }
-
-    @action
-    dragComplete = (e: DragManager.DragCompleteEvent) => {
-    }
-
-    @computed
-    get topMost(): boolean {
-        return !this.props.ContainingCollectionView || this.props.ContainingCollectionView instanceof CollectionDockingView;
     }
 
     onPointerMove = (e: PointerEvent): void => {
@@ -167,7 +137,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
                 dragData["yOffset"] = e.y - top;
                 DragManager.StartDrag(this._mainCont.current, dragData, {
                     handlers: {
-                        dragComplete: this.dragComplete,
+                        dragComplete: action((e: DragManager.DragCompleteEvent) => { }),
                     },
                     hideSource: true
                 })
@@ -186,23 +156,17 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         }
     }
 
-    openRight = (e: React.MouseEvent): void => {
-        CollectionDockingView.Instance.AddRightSplit(this.props.Document);
-    }
-
     deleteClicked = (e: React.MouseEvent): void => {
         if (this.props.RemoveDocument) {
             this.props.RemoveDocument(this.props.Document);
         }
     }
-    @action
     fullScreenClicked = (e: React.MouseEvent): void => {
         CollectionDockingView.Instance.OpenFullScreen(this.props.Document);
         ContextMenu.Instance.clearItems();
         ContextMenu.Instance.addItem({ description: "Close Full Screen", event: this.closeFullScreenClicked });
         ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15)
     }
-    @action
     closeFullScreenClicked = (e: React.MouseEvent): void => {
         CollectionDockingView.Instance.CloseFullScreen();
         ContextMenu.Instance.clearItems();
@@ -210,15 +174,10 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15)
     }
 
-    @action
     onContextMenu = (e: React.MouseEvent): void => {
         e.preventDefault()
         e.stopPropagation();
-        if (!SelectionManager.IsSelected(this)) {
-            return;
-        }
-
-        if (!this._contextMenuCanOpen) {
+        if (!SelectionManager.IsSelected(this) || !this._contextMenuCanOpen) {
             return;
         }
 
@@ -228,29 +187,30 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15)
         }
         else {
-            // DocumentViews should stop propogation of this event
+            // DocumentViews should stop propagation of this event
             e.stopPropagation();
 
             ContextMenu.Instance.clearItems();
             ContextMenu.Instance.addItem({ description: "Full Screen", event: this.fullScreenClicked })
-            ContextMenu.Instance.addItem({ description: "Open Right", event: this.openRight })
+            ContextMenu.Instance.addItem({ description: "Open Right", event: () => CollectionDockingView.Instance.AddRightSplit(this.props.Document) })
             ContextMenu.Instance.addItem({ description: "Delete", event: this.deleteClicked })
-            ContextMenu.Instance.addItem({ description: "Freeform", event: () => { this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Freeform) } })
-            ContextMenu.Instance.addItem({ description: "Schema", event: () => { this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Schema) } })
-            ContextMenu.Instance.addItem({ description: "Docking", event: () => { this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Docking) } })
+            ContextMenu.Instance.addItem({ description: "Freeform", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Freeform) })
+            ContextMenu.Instance.addItem({ description: "Schema", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Schema) })
+            ContextMenu.Instance.addItem({ description: "Docking", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Docking) })
             ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15)
             SelectionManager.SelectDoc(this, e.ctrlKey);
         }
     }
 
-    isSelected = () => {
-        return SelectionManager.IsSelected(this);
+    @computed get mainContent() {
+        return <JsxParser
+            components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView }}
+            bindings={this._documentBindings}
+            jsx={this.layout}
+            showWarnings={true}
+            onError={(test: any) => { console.log(test) }}
+        />
     }
-
-    select = (ctrlPressed: boolean) => {
-        SelectionManager.SelectDoc(this, ctrlPressed)
-    }
-
     render() {
         if (!this.props.Document)
             return <div></div>
@@ -258,17 +218,17 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         if (!lkeys || lkeys === "<Waiting>") {
             return <p>Error loading layout keys</p>;
         }
-        let documentBindings = {
+        this._documentBindings = {
             ...this.props,
-            isSelected: this.isSelected,
-            select: this.select
-        } as any;
+            isSelected: () => SelectionManager.IsSelected(this),
+            select: (ctrlPressed: boolean) => SelectionManager.SelectDoc(this, ctrlPressed)
+        };
         for (const key of this.layoutKeys) {
-            documentBindings[key.Name + "Key"] = key;  // this maps string values of the form <keyname>Key to an actual key Kestore.keyname  e.g,   "DataKey" => KeyStore.Data
+            this._documentBindings[key.Name + "Key"] = key;  // this maps string values of the form <keyname>Key to an actual key Kestore.keyname  e.g,   "DataKey" => KeyStore.Data
         }
         for (const key of this.layoutFields) {
             let field = this.props.Document.Get(key);
-            documentBindings[key.Name] = field && field != FieldWaiting ? field.GetValue() : field;
+            this._documentBindings[key.Name] = field && field != FieldWaiting ? field.GetValue() : field;
         }
 
         /*
@@ -281,30 +241,24 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         if (backgroundLayout) {
             let backgroundView = () => (<JsxParser
                 components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView }}
-                bindings={documentBindings}
+                bindings={this._documentBindings}
                 jsx={this.backgroundLayout}
                 showWarnings={true}
                 onError={(test: any) => { console.log(test) }}
             />);
-            documentBindings.BackgroundView = backgroundView;
+            this._documentBindings.BackgroundView = backgroundView;
         }
 
+        var scaling = this.props.ContentScaling();
         var nativeWidth = this.props.Document.GetNumber(KeyStore.NativeWidth, 0);
         var nativeHeight = this.props.Document.GetNumber(KeyStore.NativeHeight, 0);
         var nodeWidth = nativeWidth > 0 ? nativeWidth.toString() + "px" : "100%";
         var nodeHeight = nativeHeight > 0 ? nativeHeight.toString() + "px" : "100%";
-        var scaling = this.props.ContentScaling();
         return (
             <div className="documentView-node" ref={this._mainCont} style={{ width: nodeWidth, height: nodeHeight, transformOrigin: "left top", transform: `scale(${scaling},${scaling})` }}
                 onContextMenu={this.onContextMenu}
                 onPointerDown={this.onPointerDown} >
-                <JsxParser
-                    components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView }}
-                    bindings={documentBindings}
-                    jsx={this.layout}
-                    showWarnings={true}
-                    onError={(test: any) => { console.log(test) }}
-                />
+                {this.mainContent}
             </div>
         )
     }
