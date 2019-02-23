@@ -10,6 +10,8 @@ import { ImageField } from "../../../fields/ImageField";
 import { Key } from "../../../fields/Key";
 import { FormattedTextBox } from "./FormattedTextBox";
 import { ImageBox } from "./ImageBox";
+import { HtmlField } from "../../../fields/HtmlField";
+import { WebView } from "./WebView";
 
 //
 // these properties get assigned through the render() method of the DocumentView when it creates this node.
@@ -50,6 +52,8 @@ export class FieldView extends React.Component<FieldViewProps> {
         }
         else if (field instanceof NumberField) {
             return <p>{field.Data}</p>
+        } else if (field instanceof HtmlField) {
+            return <WebView {...this.props} />
         } else if (field != FieldWaiting) {
             return <p>{field.GetValue}</p>
         } else
