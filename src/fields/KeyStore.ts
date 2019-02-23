@@ -22,5 +22,6 @@ export namespace KeyStore {
     export const LayoutKeys = new Key("LayoutKeys");
     export const LayoutFields = new Key("LayoutFields");
     export const ColumnsKey = new Key("SchemaColumns");
+    export const Caption = new Key("Caption");
     export const ActiveFrame = new Key("ActiveFrame");
 }
