@@ -127,18 +127,18 @@ export namespace Documents {
     }
 
     // example of custom display string for an image that shows a caption.
-    function CaptionLayoutString() {
+    function EmbeddedCaption() {
         return `<div style="position:absolute; height:100%">
             <div style="position:relative; margin:auto; width:85%; margin:auto" >`
             + ImageBox.LayoutString() +
             `</div>
-            <div style="position:relative; min-height:15%; overflow:scroll; max-height:15%; text-align:center; ">`
+            <div style="position:relative; overflow:auto; height:15%; text-align:center; ">`
             + FormattedTextBox.LayoutString("CaptionKey") +
             `</div> 
         </div>` };
-    function OverlayLayoutString() {
-        return `<div style="position:absolute; height:100%; width:100%">
-            <div style="position:absolute; max-height:10%;  width:100%; min-height:10%; overflow:scroll;text-align:center;bottom:0;">`
+    function FixedCaption() {
+        return `<div style="position:absolute; height:30px; bottom:0; width:100%">
+            <div style="position:absolute; width:100%; height:100%; overflow:auto;text-align:center;bottom:0;">`
             + FormattedTextBox.LayoutString("CaptionKey") +
             `</div> 
         </div>` };
@@ -148,8 +148,8 @@ export namespace Documents {
         setupOptions(doc, options);
         doc.Set(KeyStore.Data, new ImageField(new URL(url)));
         doc.Set(KeyStore.Caption, new TextField("my caption..."));
-        doc.Set(KeyStore.BackgroundLayout, new TextField(CaptionLayoutString()));
-        //doc.Set(KeyStore.OverlayLayout, new TextField(OverlayLayoutString()));
+        doc.Set(KeyStore.BackgroundLayout, new TextField(EmbeddedCaption()));
+        doc.Set(KeyStore.OverlayLayout, new TextField(FixedCaption()));
         doc.Set(KeyStore.LayoutKeys, new ListField([KeyStore.Data, KeyStore.Annotations, KeyStore.Caption]));
 
         let annotation = Documents.TextDocument({ title: "hello" });
