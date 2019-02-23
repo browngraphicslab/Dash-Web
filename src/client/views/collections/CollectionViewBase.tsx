@@ -19,12 +19,7 @@ export interface CollectionViewProps {
     ContainingDocumentView: Opt<DocumentView>;
     GetTransform: () => Transform;
     BackgroundView: Opt<DocumentView>;
-<<<<<<< HEAD
-    DownX: number;
-    DownY: number;
-=======
     ParentScaling: number;
->>>>>>> 3f98d6ec6050e7faa15179871f0d9669c1188a78
 }
 
 export const COLLECTION_BORDER_WIDTH = 2;

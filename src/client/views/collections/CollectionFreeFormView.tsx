@@ -15,6 +15,9 @@ import { Documents } from "../../documents/Documents";
 import { FieldWaiting } from "../../../fields/Field";
 import { Server } from "tls";
 import { Transform } from "../../util/Transform";
+import { FormattedTextBox } from "../../views/nodes/FormattedTextBox";
+import { TextField } from "../../../fields/TextField";
+import { RichTextField } from "../../../fields/RichTextField";
 
 @observer
 export class CollectionFreeFormView extends CollectionViewBase {
@@ -23,8 +26,12 @@ export class CollectionFreeFormView extends CollectionViewBase {
     private _canvasRef = React.createRef<HTMLDivElement>();
     private _lastX: number = 0;
     private _lastY: number = 0;
+
+    @observable
     private _downX: number = 0;
+    @observable
     private _downY: number = 0;
+
     //determines whether the blinking cursor for indicating whether a text will be made on key down is visible
     private _previewCursorVisible: boolean = false;
 
@@ -93,10 +100,10 @@ export class CollectionFreeFormView extends CollectionViewBase {
             this._downX = e.pageX;
             this._downY = e.pageY;
             //update downX/downY to update UI (used for preview text cursor)
-            this.setState({
-                DownX: e.pageX,
-                DownY: e.pageY,
-            })
+            //this.setState({
+            //    DownX: e.pageX,
+            //    DownY: e.pageY,
+            //})
         }
     }
 
@@ -200,10 +207,18 @@ export class CollectionFreeFormView extends CollectionViewBase {
         //if not these keys, make a textbox if preview cursor is active!
         if (!e.ctrlKey && !e.altKey && !e.shiftKey) {
             if (this._previewCursorVisible) {
-                //make textbox
+                //make textbox and add it to this collection
                 let { LocalX, LocalY } = this.props.ContainingDocumentView!.TransformToLocalPoint(this._downX, this._downY);
                 let newBox = Documents.TextDocument({ width: 200, height: 100, x: LocalX, y: LocalY, title: "new" });
+                //set text to be the typed key and get focus on text box
+                //newBox.SetText(KeyStore.Layout, new TextField(FormattedTextBox.LayoutString()));
+                newBox.SetText(KeyStore.Data, e.key, true);
+                //newBox.SetData(KeyStore.Data, e.key, RichTextField);
+                //SelectionManager.SelectDoc(newBox, false);
                 this.addDocument(newBox);
+
+                //remove cursor from screen
+                this._previewCursorVisible = false;
             }
         }
     }
@@ -263,10 +278,12 @@ export class CollectionFreeFormView extends CollectionViewBase {
         return (
             <div className="collectionfreeformview-container"
                 onPointerDown={this.onPointerDown}
+                onKeyPress={this.onKeyDown}
                 onWheel={this.onPointerWheel}
                 onContextMenu={(e) => e.preventDefault()}
                 onDrop={this.onDrop}
                 onDragOver={this.onDragOver}
+                tabIndex={0}
                 style={{
                     borderWidth: `${COLLECTION_BORDER_WIDTH}px`,
                 }}

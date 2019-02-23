@@ -3,8 +3,10 @@ import { baseKeymap } from "prosemirror-commands";
 import { history, redo, undo } from "prosemirror-history";
 import { keymap } from "prosemirror-keymap";
 import { schema } from "prosemirror-schema-basic";
+import { Transform } from "prosemirror-transform";
 import { EditorState, Transaction } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
+import { Node } from "prosemirror-model";
 import { Opt, FieldWaiting, FieldValue } from "../../../fields/Field";
 import { SelectionManager } from "../../util/SelectionManager";
 import "./FormattedTextBox.scss";
@@ -13,6 +15,7 @@ import { RichTextField } from "../../../fields/RichTextField";
 import { FieldViewProps, FieldView } from "./FieldView";
 import { CollectionFreeFormDocumentView } from "./CollectionFreeFormDocumentView";
 import { observer } from "mobx-react";
+import { Schema, DOMParser } from "prosemirror-model"
 
 
 // FormattedTextBox: Displays an editable plain text node that maps to a specified Key of a Document
@@ -55,10 +58,20 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
         }
     }
 
+    setText(txt: string) {
+        let tr = new Transaction(new Node());
+        let node = new Node();
+        node.text = txt;
+        tr.insert(0, node);
+
+        this.dispatchTransaction(tr);
+    }
+
     componentDidMount() {
         let state: EditorState;
         const { doc, fieldKey } = this.props;
         const config = {
+            doc: new Node(),
             schema,
             plugins: [
                 history(),
