@@ -25,4 +25,5 @@ export namespace KeyStore {
     export const ColumnsKey = new Key("SchemaColumns");
     export const Caption = new Key("Caption");
     export const ActiveFrame = new Key("ActiveFrame");
+    export const DocumentText = new Key("DocumentText");
 }
