@@ -3,7 +3,6 @@ const app = express()
 import * as webpack from 'webpack'
 import * as wdm from 'webpack-dev-middleware';
 import * as whm from 'webpack-hot-middleware';
-import * as path from 'path'
 import * as passport from 'passport';
 import { MessageStore, Message, SetFieldArgs, GetFieldArgs, Transferable } from "./Message";
 import { Client } from './Client';
@@ -17,7 +16,7 @@ import { ObjectID } from 'mongodb';
 import { Document } from '../fields/Document';
 import * as io from 'socket.io'
 import * as passportConfig from './authentication/config/passport';
-import { getLogin, postLogin, getSignup, postSignup } from './authentication/controllers/user';
+import { getLogin, postLogin, getSignup, postSignup, getLogout, getEntry, getHome } from './authentication/controllers/user';
 const config = require('../../webpack.config');
 const compiler = webpack(config);
 const port = 1050; // default port to listen
@@ -46,6 +45,9 @@ mongoose.connection.on('connected', function () {
     console.log("connected");
 })
 
+// SESSION MANAGEMENT AND AUTHENTICATION MIDDLEWARE
+// ORDER OF IMPORTS MATTERS
+
 app.use(cookieParser("secret"));
 app.use(session({
     secret: `${c.randomBytes(64)}`,
@@ -68,32 +70,33 @@ app.use((req, res, next) => {
     next();
 });
 
+// AUTHENTICATION ROUTING
+
+// ***
+// Look for the definitions of these get and post
+// functions in the exports of user.ts
+
+// /home defines destination after a successful log in
+app.get("/home", getHome);
+
+// anyone attempting to navigate to localhost at this port will
+// first have to login
+app.get("/", getEntry);
+
+// Sign Up
 app.get("/signup", getSignup);
-// app.post('/signup', passport.authenticate('local-signup', {
-//     successRedirect : '/profile', // redirect to the secure profile section
-//     failureRedirect : '/signup', // redirect back to the signup page if there is an error
-//     failureFlash : true // allow flash messages
-// }));
 app.post("/signup", postSignup);
+
+// Log In
 app.get("/login", getLogin);
 app.post("/login", postLogin);
 
+// Log Out
+app.get('/logout', getLogout);
 
+// *** 
 
 let FieldStore: ObservableMap<FIELD_ID, Field> = new ObservableMap();
-
-// define a route handler for the default home page
-app.get("/home", (req, res) => {
-    if (!req.user) {
-        res.redirect("/login");
-        return;
-    }
-    res.sendFile(path.join(__dirname, '../../deploy/index.html'));
-});
-
-app.get("/", (req, res) => {
-    res.redirect("/login");
-});
 
 app.get("/hello", (req, res) => {
     res.send("<p>Hello</p>");
@@ -102,24 +105,6 @@ app.get("/hello", (req, res) => {
 app.get("/delete", (req, res) => {
     deleteAll();
     res.redirect("/");
-});
-
-app.get('/logout', function(req, res){
-    req.logout();
-    const sess = req.session;
-    if (sess) {
-        sess.destroy((err) => {
-            if (err) {
-                console.log("ERRRRRRROOOOOOOOORRRRRRRR IN LOG OUT");
-                console.log(err);
-                return;
-            }
-            // return res.send({ authenticated: req.isAuthenticated() });
-        });
-        res.redirect('/login');
-    } else {
-        res.redirect('/');
-    }
 });
 
 app.use(wdm(compiler, {

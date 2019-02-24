@@ -5,12 +5,34 @@ import { IVerifyOptions } from "passport-local";
 import "../config/passport";
 import * as request from "express-validator";
 const flash = require("express-flash");
+import * as path from 'path'
 import * as session from "express-session";
 import * as pug from 'pug';
 
 /**
+ * GET /
+ * Whenever a user navigates to the root of Dash
+ * (doesn't specify a sub-route), redirect to login.
+ */
+export let getEntry = (req: Request, res: Response) => {
+    res.redirect("/login");
+}
+
+export let getHome = (req: Request, res: Response) => {
+    // if user is not logged in, redirect to log in page
+    if (!req.user) {
+        res.redirect("/login");
+        return;
+    }
+    // otherwise, connect them to Dash
+    // TODO: store and manage users' workspaces
+    res.sendFile(path.join(__dirname, '../../deploy/index.html'));
+}
+
+/**
  * GET /signup
- * Signup page.
+ * Directs user to the signup page
+ * modeled by signup.pug in views
  */
 export let getSignup = (req: Request, res: Response) => {
     if (req.user) {
@@ -57,7 +79,7 @@ export let postSignup = (req: Request, res: Response, next: NextFunction) => {
         if (err) { return next(err); }
         if (existingUser) {
             if (existingUser) {
-                existingUser.update({ $set: { email : please_work } }, (err, res) => {});
+                existingUser.update({ $set: { email: please_work } }, (err, res) => { });
             }
             req.flash("errors", "Account with that email address already exists.");
             return res.redirect("/signup");
@@ -72,7 +94,7 @@ export let postSignup = (req: Request, res: Response, next: NextFunction) => {
             });
         });
     });
-    
+
 };
 
 
@@ -92,6 +114,7 @@ export let getLogin = (req: Request, res: Response) => {
 /**
  * POST /login
  * Sign in using email and password.
+ * On failure, redirect to login page
  */
 export let postLogin = (req: Request, res: Response, next: NextFunction) => {
     req.assert("email", "Email is not valid").isEmail();
@@ -118,3 +141,17 @@ export let postLogin = (req: Request, res: Response, next: NextFunction) => {
         });
     })(req, res, next);
 };
+
+/**
+ * GET /logout
+ * Invokes the logout function on the request
+ * and destroys the user's current session.
+ */
+export let getLogout = (req: Request, res: Response) => {
+    req.logout();
+    const sess = req.session;
+    if (sess) {
+        sess.destroy((err) => { if (err) { console.log(err); } });
+    }
+    res.redirect('/login');
+}
