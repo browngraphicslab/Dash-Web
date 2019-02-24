@@ -5,6 +5,15 @@
     position: absolute;
     width: 100%;
     height: 100%;
+    ::-webkit-scrollbar {
+        -webkit-appearance: none;
+        width: 10px;
+    }
+    ::-webkit-scrollbar-thumb {
+        border-radius: 5px;
+        background-color: rgba(0,0,0,.5);
+    }
+
     .collectionfreeformview-container {
         border-width: 0px;
         .collectionfreeformview > .jsx-parser{
@@ -17,12 +26,29 @@
     }
     .ReactTable {
         position: absolute;
-        display: inline-block;
+       // display: inline-block;
+       // overflow: auto;
         width: 100%;
-        overflow: auto;
         height: 100%;
         background: white;
         box-sizing: border-box;
+    }
+    .ReactTable .rt-table {
+        overflow-y: auto;
+        overflow-x: auto;
+        height: 100%;
+
+        display: -webkit-inline-box;
+        direction: ltr;
+        // direction:rtl;
+        // display:block;
+    }
+    .ReactTable .rt-tbody {
+        //direction: ltr;
+        direction: rtl;
+    }
+    .ReactTable .rt-tr-group {
+        direction: ltr;
     }
     .ReactTable .rt-thead.-header {
             background:grey;

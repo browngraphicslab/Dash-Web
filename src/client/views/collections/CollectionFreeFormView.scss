@@ -1,4 +1,13 @@
 .collectionfreeformview-container {
+
+    ::-webkit-scrollbar {
+        -webkit-appearance: none;
+        width: 10px;
+    }
+    ::-webkit-scrollbar-thumb {
+        border-radius: 5px;
+        background-color: rgba(0,0,0,.5);
+    }
     border-style: solid;
     box-sizing: border-box;
     position: relative;
@@ -11,6 +20,8 @@
         position: absolute;
         top: 0;
         left: 0;
+        width:100%;
+        height: 100%
     }
 }
 

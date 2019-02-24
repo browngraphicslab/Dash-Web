@@ -1,19 +1,20 @@
-import { CollectionFreeFormDocumentView } from "../views/nodes/CollectionFreeFormDocumentView";
 import { observable, action } from "mobx";
 import { CollectionFreeFormView } from "../views/collections/CollectionFreeFormView";
+import { DocumentView } from "../views/nodes/DocumentView";
 
 export namespace SelectionManager {
     class Manager {
         @observable
-        SelectedDocuments: Array<CollectionFreeFormDocumentView> = [];
+        SelectedDocuments: Array<DocumentView> = [];
 
         @action
-        SelectDoc(doc: CollectionFreeFormDocumentView, ctrlPressed: boolean): void {
+        SelectDoc(doc: DocumentView, ctrlPressed: boolean): void {
 
             //remove preview cursor from collection
             if (doc.props.ContainingCollectionView != undefined && doc.props.ContainingCollectionView instanceof CollectionFreeFormView) {
                 doc.props.ContainingCollectionView.hidePreviewCursor();
             }
+
             // if doc is not in SelectedDocuments, add it
             if (!ctrlPressed) {
                 manager.SelectedDocuments = [];
@@ -27,11 +28,11 @@ export namespace SelectionManager {
 
     const manager = new Manager;
 
-    export function SelectDoc(doc: CollectionFreeFormDocumentView, ctrlPressed: boolean): void {
+    export function SelectDoc(doc: DocumentView, ctrlPressed: boolean): void {
         manager.SelectDoc(doc, ctrlPressed)
     }
 
-    export function IsSelected(doc: CollectionFreeFormDocumentView): boolean {
+    export function IsSelected(doc: DocumentView): boolean {
         return manager.SelectedDocuments.indexOf(doc) !== -1;
     }
 
@@ -39,7 +40,7 @@ export namespace SelectionManager {
         manager.SelectedDocuments = []
     }
 
-    export function SelectedDocuments(): Array<CollectionFreeFormDocumentView> {
+    export function SelectedDocuments(): Array<DocumentView> {
         return manager.SelectedDocuments;
     }
 }
