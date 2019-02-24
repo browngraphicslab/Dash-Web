@@ -1,3 +1,4 @@
+import { DocumentDecorations } from "../views/DocumentDecorations";
 
 export namespace DragManager {
     export function Root() {
@@ -43,6 +44,7 @@ export namespace DragManager {
         drop: (e: Event, de: DropEvent) => void;
     }
 
+
     export function MakeDropTarget(element: HTMLElement, options: DropOptions): DragDropDisposer {
         if ("canDrop" in element.dataset) {
             throw new Error("Element is already droppable, can't make it droppable again");
@@ -59,10 +61,8 @@ export namespace DragManager {
         };
     }
 
-
-    let _lastPointerX: number = 0;
-    let _lastPointerY: number = 0;
     export function StartDrag(ele: HTMLElement, dragData: { [id: string]: any }, options: DragOptions) {
+        DocumentDecorations.Instance.Hidden = true;
         if (!dragDiv) {
             dragDiv = document.createElement("div");
             DragManager.Root().appendChild(dragDiv);
@@ -131,5 +131,6 @@ export namespace DragManager {
             }
         }));
         options.handlers.dragComplete({});
+        DocumentDecorations.Instance.Hidden = false;
     }
 }

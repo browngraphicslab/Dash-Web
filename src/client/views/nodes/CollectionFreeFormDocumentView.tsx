@@ -1,16 +1,11 @@
-import { action, computed } from "mobx";
+import { computed, trace } from "mobx";
 import { observer } from "mobx-react";
-import { Key, KeyStore } from "../../../fields/Key";
+import { KeyStore } from "../../../fields/KeyStore";
 import { NumberField } from "../../../fields/NumberField";
-import { DragManager } from "../../util/DragManager";
-import { SelectionManager } from "../../util/SelectionManager";
-import { CollectionDockingView } from "../collections/CollectionDockingView";
-import { CollectionFreeFormView } from "../collections/CollectionFreeFormView";
-import { ContextMenu } from "../ContextMenu";
+import { Transform } from "../../util/Transform";
+import { DocumentView, DocumentViewProps } from "./DocumentView";
 import "./DocumentView.scss";
 import React = require("react");
-import { DocumentView, DocumentViewProps } from "./DocumentView";
-import { Transform } from "../../util/Transform";
 
 
 @observer
@@ -29,7 +24,7 @@ export class CollectionFreeFormDocumentView extends React.Component<DocumentView
 
     @computed
     get transform(): string {
-        return `scale(${this.props.Scaling}, ${this.props.Scaling}) translate(${this.props.Document.GetNumber(KeyStore.X, 0)}px, ${this.props.Document.GetNumber(KeyStore.Y, 0)}px)`;
+        return `scale(${this.props.ContentScaling()}, ${this.props.ContentScaling()}) translate(${this.props.Document.GetNumber(KeyStore.X, 0)}px, ${this.props.Document.GetNumber(KeyStore.Y, 0)}px)`;
     }
 
     @computed
@@ -74,13 +69,24 @@ export class CollectionFreeFormDocumentView extends React.Component<DocumentView
         this.props.Document.SetData(KeyStore.ZIndex, h, NumberField)
     }
 
+    contentScaling = () => {
+        return this.nativeWidth > 0 ? this.width / this.nativeWidth : 1;
+    }
 
     getTransform = (): Transform => {
-        return this.props.ScreenToLocalTransform().translate(-this.props.Document.GetNumber(KeyStore.X, 0), -this.props.Document.GetNumber(KeyStore.Y, 0));
+        return this.props.ScreenToLocalTransform().
+            translate(-this.props.Document.GetNumber(KeyStore.X, 0), -this.props.Document.GetNumber(KeyStore.Y, 0)).scale(1 / this.contentScaling());
+    }
+
+    @computed
+    get docView() {
+        return <DocumentView {...this.props}
+            ContentScaling={this.contentScaling}
+            ScreenToLocalTransform={this.getTransform}
+        />
     }
 
     render() {
-        var parentScaling = this.nativeWidth > 0 ? this.width / this.nativeWidth : 1;
         return (
             <div ref={this._mainCont} style={{
                 transformOrigin: "left top",
@@ -91,8 +97,7 @@ export class CollectionFreeFormDocumentView extends React.Component<DocumentView
                 zIndex: this.zIndex,
                 backgroundColor: "transparent"
             }} >
-
-                <DocumentView {...this.props} Scaling={this.width / this.nativeWidth} ScreenToLocalTransform={this.getTransform} />
+                {this.docView}
             </div>
         );
     }
