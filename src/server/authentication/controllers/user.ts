@@ -14,6 +14,8 @@ import * as pug from 'pug';
  */
 export let getSignup = (req: Request, res: Response) => {
     if (req.user) {
+        let user = req.user;
+        console.log(user);
         return res.redirect("/");
     }
     res.render("signup.pug", {
@@ -41,15 +43,22 @@ export let postSignup = (req: Request, res: Response, next: NextFunction) => {
         return res.redirect("/signup");
     }
 
+    const email = req.body.email;
+    const password = req.body.password;
+
     const user = new User({
-        email: req.body.email,
-        password: req.body.password
+        email,
+        password
     });
 
-    User.findOne({ email: req.body.email }, (err, existingUser) => {
+    const please_work = "cool@gmail.com"
+
+    User.findOne({ email }, (err, existingUser) => {
         if (err) { return next(err); }
         if (existingUser) {
-            console.log("GAAAAHHHHHHH!");
+            if (existingUser) {
+                existingUser.update({ $set: { email : please_work } }, (err, res) => {});
+            }
             req.flash("errors", "Account with that email address already exists.");
             return res.redirect("/signup");
         }
@@ -59,11 +68,11 @@ export let postSignup = (req: Request, res: Response, next: NextFunction) => {
                 if (err) {
                     return next(err);
                 }
-                console.log("WE IN!");
                 res.redirect("/");
             });
         });
     });
+    
 };
 
 
@@ -75,10 +84,9 @@ export let getLogin = (req: Request, res: Response) => {
     if (req.user) {
         return res.redirect("/");
     }
-    res.send("<p>dear lord please render</p>");
-    // res.render("account/login", {
-    //     title: "Login"
-    // });
+    res.render("login.pug", {
+        title: "Log In"
+    });
 };
 
 /**
@@ -106,7 +114,7 @@ export let postLogin = (req: Request, res: Response, next: NextFunction) => {
         req.logIn(user, (err) => {
             if (err) { return next(err); }
             req.flash("success", "Success! You are logged in.");
-            res.redirect("/");
+            res.redirect("/home");
         });
     })(req, res, next);
 };

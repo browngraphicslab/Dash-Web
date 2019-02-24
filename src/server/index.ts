@@ -69,15 +69,30 @@ app.use((req, res, next) => {
 });
 
 app.get("/signup", getSignup);
+// app.post('/signup', passport.authenticate('local-signup', {
+//     successRedirect : '/profile', // redirect to the secure profile section
+//     failureRedirect : '/signup', // redirect back to the signup page if there is an error
+//     failureFlash : true // allow flash messages
+// }));
 app.post("/signup", postSignup);
 app.get("/login", getLogin);
 app.post("/login", postLogin);
 
+
+
 let FieldStore: ObservableMap<FIELD_ID, Field> = new ObservableMap();
 
 // define a route handler for the default home page
-app.get("/", (req, res) => {
+app.get("/home", (req, res) => {
+    if (!req.user) {
+        res.redirect("/login");
+        return;
+    }
     res.sendFile(path.join(__dirname, '../../deploy/index.html'));
+});
+
+app.get("/", (req, res) => {
+    res.redirect("/login");
 });
 
 app.get("/hello", (req, res) => {
@@ -87,6 +102,24 @@ app.get("/hello", (req, res) => {
 app.get("/delete", (req, res) => {
     deleteAll();
     res.redirect("/");
+});
+
+app.get('/logout', function(req, res){
+    req.logout();
+    const sess = req.session;
+    if (sess) {
+        sess.destroy((err) => {
+            if (err) {
+                console.log("ERRRRRRROOOOOOOOORRRRRRRR IN LOG OUT");
+                console.log(err);
+                return;
+            }
+            // return res.send({ authenticated: req.isAuthenticated() });
+        });
+        res.redirect('/login');
+    } else {
+        res.redirect('/');
+    }
 });
 
 app.use(wdm(compiler, {
