@@ -10,6 +10,7 @@ import { ContextMenu } from "../ContextMenu";
 import "./NodeView.scss";
 import React = require("react");
 import { DocumentView, DocumentViewProps } from "./DocumentView";
+import { CollectionTreeView } from "../collections/CollectionTreeView";
 
 
 @observer
@@ -161,7 +162,7 @@ export class CollectionFreeFormDocumentView extends DocumentView {
     }
 
     viewAsTreeview = (e: React.MouseEvent): void => {
-        // do something
+        CollectionTreeView.makeTreeView(this.props.Document);
     }
 
     @action
