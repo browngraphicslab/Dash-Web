@@ -10,12 +10,15 @@ import { Node } from "prosemirror-model";
 import { Opt, FieldWaiting, FieldValue } from "../../../fields/Field";
 import { SelectionManager } from "../../util/SelectionManager";
 import "./FormattedTextBox.scss";
+import { KeyStore } from "../../../fields/Key";
 import React = require("react")
 import { RichTextField } from "../../../fields/RichTextField";
 import { FieldViewProps, FieldView } from "./FieldView";
 import { CollectionFreeFormDocumentView } from "./CollectionFreeFormDocumentView";
 import { observer } from "mobx-react";
 import { Schema, DOMParser } from "prosemirror-model"
+import { Plugin } from 'prosemirror-state'
+import { Decoration, DecorationSet } from 'prosemirror-view'
 
 
 // FormattedTextBox: Displays an editable plain text node that maps to a specified Key of a Document
@@ -40,6 +43,7 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
     private _ref: React.RefObject<HTMLDivElement>;
     private _editorView: Opt<EditorView>;
     private _reactionDisposer: Opt<IReactionDisposer>;
+    private _lastTextState = "";
 
     constructor(props: FieldViewProps) {
         super(props);
@@ -55,16 +59,22 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
             this._editorView.updateState(state);
             const { doc, fieldKey } = this.props;
             doc.SetData(fieldKey, JSON.stringify(state.toJSON()), RichTextField);
+            this._lastTextState = JSON.stringify(state.toJSON);
         }
     }
 
-    setText(txt: string) {
-        let tr = new Transaction(new Node());
-        let node = new Node();
-        node.text = txt;
-        tr.insert(0, node);
-
-        this.dispatchTransaction(tr);
+    //enables textboxes to be created with preexisting text or placeholder text 
+    //this method is passed in as part of the config the editor state in componentDidMount()
+    placeholderPlugin(text: string) {
+        return new Plugin({
+            props: {
+                decorations(state) {
+                    let doc = state.doc
+                    if (doc.childCount == 1 && doc.firstChild && doc.firstChild.isTextblock && doc.firstChild.content.size == 0)
+                        return DecorationSet.create(doc, [Decoration.widget(1, document.createTextNode(text))])
+                }
+            }
+        })
     }
 
     componentDidMount() {
@@ -75,7 +85,11 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
             plugins: [
                 history(),
                 keymap({ "Mod-z": undo, "Mod-y": redo }),
-                keymap(baseKeymap)
+                keymap(baseKeymap),
+                //sets the placeholder text!
+                this.placeholderPlugin(
+                    this.props.doc.GetText(KeyStore.Text, "")
+                )
             ]
         };
 
@@ -118,6 +132,7 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
     @action
     onChange(e: React.ChangeEvent<HTMLInputElement>) {
         const { fieldKey, doc } = this.props;
+        this._lastTextState = e.target.value;
         doc.SetData(fieldKey, e.target.value, RichTextField);
     }
     onPointerDown = (e: React.PointerEvent): void => {
@@ -127,6 +142,9 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
         }
     }
     render() {
+        //if (this.props.doc.GetText(KeyStore.Text, "") !== ;
+
+
         return (<div className="formattedTextBox-cont"
             style={{
                 color: "initial",

@@ -63,6 +63,7 @@ export namespace DragManager {
     let _lastPointerX: number = 0;
     let _lastPointerY: number = 0;
     export function StartDrag(ele: HTMLElement, dragData: { [id: string]: any }, options: DragOptions) {
+
         if (!dragDiv) {
             dragDiv = document.createElement("div");
             DragManager.Root().appendChild(dragDiv);

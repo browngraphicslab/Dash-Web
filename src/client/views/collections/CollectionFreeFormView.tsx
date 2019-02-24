@@ -214,6 +214,8 @@ export class CollectionFreeFormView extends CollectionViewBase {
                 //newBox.SetData(KeyStore.Data, e.key, RichTextField);
                 //SelectionManager.SelectDoc(newBox, false);
                 this.addDocument(newBox);
+                newBox.SetText(KeyStore.Text, e.key);
+                newBox.SetNumber(KeyStore.SelectOnLoaded, 1);
 
                 //remove cursor from screen
                 this._previewCursorVisible = false;

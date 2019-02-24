@@ -54,4 +54,12 @@ export namespace KeyStore {
     export const LayoutKeys = new Key("LayoutKeys");
     export const LayoutFields = new Key("LayoutFields");
     export const ColumnsKey = new Key("SchemaColumns");
+
+    //used for setting the text of a text document
+    export const Text = new Key("Text");
+    //determines whether doc views will be selected when they are first loaded
+    //should be NumberField where 0 = false and 1 = true
+    //currently only implemented for FormattedTextView
+    export const SelectOnLoaded = new Key("SelectOnLoaded");
+
 }
