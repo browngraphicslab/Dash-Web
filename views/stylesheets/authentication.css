@@ -9,7 +9,8 @@ label {
 }
 
 body {
-    background-color: #ccbbcc;
+    /* background-color: #ccbbcc; */
+    background-color: #bf0000;
 }
 
 #logo {
@@ -46,7 +47,8 @@ body {
     height: 300px;
 }
 
-#new_user {
+#new_user,
+#to_login {
     width: 20px;
     height: 20px;
     position: absolute;

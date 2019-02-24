@@ -29,7 +29,8 @@ export let getSignup = (req: Request, res: Response) => {
         return res.redirect("/home");
     }
     res.render("signup.pug", {
-        title: "Sign Up"
+        title: "Sign Up",
+        errors: req.flash("Unable to facilitate sign up. Please try again.")
     });
 };
 
@@ -48,8 +49,10 @@ export let postSignup = (req: Request, res: Response, next: NextFunction) => {
     const errors = req.validationErrors();
 
     if (errors) {
-        req.flash("errors", "Unable to facilitate sign up. Please try again.");
-        console.log(errors.toString());
+        res.render("signup.pug", {
+            title: "Sign Up",
+            errors: req.flash("Unable to facilitate sign up. Please try again.")
+        });
         return res.redirect("/signup");
     }
 

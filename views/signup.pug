@@ -8,6 +8,8 @@ block content
     form.form-horizontal(id='signup-form', method='POST')
         input(type='hidden', name='_csrf', value=_csrf)
         .overlay(id='overlay_signup')
+            a(href="/login")
+                img(id='to_login', src="https://bit.ly/2U6ouZk", alt="")
             .inner.signup
                 h3.auth_header Create An Account
                 .form-group
