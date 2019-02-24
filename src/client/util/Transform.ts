@@ -55,10 +55,12 @@ export class Transform {
         return this;
     }
 
-    //MONIKA
+    //TODO
     center = (x: number, y: number): Transform => {
-        this._translateX = x
-        this._translateY = y
+        console.log("old x: " + this._translateX + " old y: " + this._translateY)
+        console.log("x: " + x + " y: " + y)
+        this._translateX += x
+        this._translateY += y
         return this;
     }
 

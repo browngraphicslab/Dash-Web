@@ -71,6 +71,7 @@ export class DocumentManager {
         return (toReturn);
     }
 
+    @action
     public centerNode(doc: Document | DocumentView): any {
         //console.log(doc.Title)
         //gets document view that is in freeform collection
@@ -111,18 +112,21 @@ export class DocumentManager {
                     let parentWidth = docView.props.ContainingCollectionView.props.ContainingDocumentView.MainContent.current.clientWidth
                     let parentHeight = docView.props.ContainingCollectionView.props.ContainingDocumentView.MainContent.current.clientHeight
 
-                    //make sure to test if the parent view is a freeform view
-                    if (tempCollectionView) {
+                    //TODO: make sure to test if the parent view is a freeform view. if not, just skip to the next level
+                    if (docView.props.ContainingCollectionView instanceof CollectionFreeFormView) {
                         //scale of parent
                         scale = tempCollectionView.props.ScreenToLocalTransform().Scale
 
                         XView = (-docView.props.ScreenToLocalTransform().TranslateX * scale) + (parentWidth / 2) - (width * scale / 2);
                         YView = (-docView.props.ScreenToLocalTransform().TranslateY * scale) + (parentHeight / 2) - (height * scale / 2);
                         //node.Parent.setViewportXY(XView, YView);
-                        this.setViewportXY(docView.props.ContainingCollectionView, XView, YView)
+                        DocumentManager.Instance.setViewportXY(docView.props.ContainingCollectionView, XView, YView)
 
-                        return this.centerNode(docView.props.ContainingCollectionView.props.DocumentForCollection);
+                        return DocumentManager.Instance.centerNode(docView.props.ContainingCollectionView.props.DocumentForCollection);
                     }
+                }
+                else {
+                    return DocumentManager.Instance.centerNode(docView.props.ContainingCollectionView.props.DocumentForCollection)
                 }
             }
         }
@@ -132,14 +136,9 @@ export class DocumentManager {
         return node.props.ContainingCollectionView instanceof CollectionFreeFormView
     }
 
-    private setViewportXY(collection: CollectionViewBase, x: number, y: number) {
-        if (collection.props.BackgroundView != null) {
-            collection.props.ScreenToLocalTransform().center(x, y)
-        }
+    @action
+    private setViewportXY(collection: CollectionFreeFormView, x: number, y: number) {
+        console.log("viewport is setting")
+        collection.props.ScreenToLocalTransform().center(x, y)
     }
-
-    public setPosition(doc: DocumentView) {
-
-    }
-
 }
