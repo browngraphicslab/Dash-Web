@@ -71,7 +71,6 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
         let state: EditorState;
         const { doc, fieldKey } = this.props;
         const config = {
-            doc: new Node(),
             schema,
             plugins: [
                 history(),

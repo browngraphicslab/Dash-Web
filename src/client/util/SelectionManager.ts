@@ -1,5 +1,6 @@
 import { CollectionFreeFormDocumentView } from "../views/nodes/CollectionFreeFormDocumentView";
 import { observable, action } from "mobx";
+import { CollectionFreeFormView } from "../views/collections/CollectionFreeFormView";
 
 export namespace SelectionManager {
     class Manager {
@@ -8,6 +9,11 @@ export namespace SelectionManager {
 
         @action
         SelectDoc(doc: CollectionFreeFormDocumentView, ctrlPressed: boolean): void {
+
+            //remove preview cursor from collection
+            if (doc.props.ContainingCollectionView != undefined && doc.props.ContainingCollectionView instanceof CollectionFreeFormView) {
+                doc.props.ContainingCollectionView.hidePreviewCursor();
+            }
             // if doc is not in SelectedDocuments, add it
             if (!ctrlPressed) {
                 manager.SelectedDocuments = [];

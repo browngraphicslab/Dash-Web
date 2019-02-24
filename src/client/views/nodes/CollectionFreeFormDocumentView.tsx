@@ -120,6 +120,7 @@ export class CollectionFreeFormDocumentView extends DocumentView {
             document.removeEventListener("pointerup", this.onPointerUp)
             document.addEventListener("pointerup", this.onPointerUp);
         }
+
     }
 
     onPointerMove = (e: PointerEvent): void => {
@@ -137,11 +138,17 @@ export class CollectionFreeFormDocumentView extends DocumentView {
                 dragData["xOffset"] = e.x - rect.left;
                 dragData["yOffset"] = e.y - rect.top;
                 DragManager.StartDrag(this._mainCont.current, dragData, {
+
                     handlers: {
                         dragComplete: this.dragComplete,
                     },
                     hideSource: true
+
                 })
+                //remove preview cursor from collection
+                if (this.props.ContainingCollectionView != undefined && this.props.ContainingCollectionView instanceof CollectionFreeFormView) {
+                    this.props.ContainingCollectionView.hidePreviewCursor();
+                }
             }
         }
         e.stopPropagation();

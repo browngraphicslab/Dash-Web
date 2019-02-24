@@ -27,12 +27,11 @@ export class CollectionFreeFormView extends CollectionViewBase {
     private _lastX: number = 0;
     private _lastY: number = 0;
 
-    @observable
     private _downX: number = 0;
-    @observable
     private _downY: number = 0;
 
     //determines whether the blinking cursor for indicating whether a text will be made on key down is visible
+    @observable
     private _previewCursorVisible: boolean = false;
 
     constructor(props: CollectionViewProps) {
@@ -100,10 +99,10 @@ export class CollectionFreeFormView extends CollectionViewBase {
             this._downX = e.pageX;
             this._downY = e.pageY;
             //update downX/downY to update UI (used for preview text cursor)
-            //this.setState({
-            //    DownX: e.pageX,
-            //    DownY: e.pageY,
-            //})
+            this.setState({
+                DownX: e.pageX,
+                DownY: e.pageY,
+            })
         }
     }
 
@@ -129,9 +128,8 @@ export class CollectionFreeFormView extends CollectionViewBase {
             let currScale: number = this.props.ContainingDocumentView!.ScalingToScreenSpace;
             let x = this.props.DocumentForCollection.GetNumber(KeyStore.PanX, 0);
             let y = this.props.DocumentForCollection.GetNumber(KeyStore.PanY, 0);
-
+            this._previewCursorVisible = false;
             this.SetPan(x + (e.pageX - this._lastX) / currScale, y + (e.pageY - this._lastY) / currScale);
-            console.log("SET PAN");
         }
         this._lastX = e.pageX;
         this._lastY = e.pageY;
@@ -212,7 +210,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
                 let newBox = Documents.TextDocument({ width: 200, height: 100, x: LocalX, y: LocalY, title: "new" });
                 //set text to be the typed key and get focus on text box
                 //newBox.SetText(KeyStore.Layout, new TextField(FormattedTextBox.LayoutString()));
-                newBox.SetText(KeyStore.Data, e.key, true);
+                //newBox.setText(KeyStore.Data, e.key, true);
                 //newBox.SetData(KeyStore.Data, e.key, RichTextField);
                 //SelectionManager.SelectDoc(newBox, false);
                 this.addDocument(newBox);
@@ -256,6 +254,12 @@ export class CollectionFreeFormView extends CollectionViewBase {
     getTransform = (): Transform => {
         const [x, y] = this.translate;
         return this.props.GetTransform().scaled(this.scale).translate(x, y);
+    }
+
+    //hides the preview cursor for generating new text boxes - called when other docs are selected/dragged
+    @action
+    hidePreviewCursor() {
+        this._previewCursorVisible = false;
     }
 
     render() {
