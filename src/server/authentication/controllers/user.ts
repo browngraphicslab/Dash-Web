@@ -70,7 +70,7 @@ export let postSignup = (req: Request, res: Response, next: NextFunction) => {
         if (err) { return next(err); }
         if (existingUser) {
             if (existingUser) {
-                existingUser.update({ $set: { email: please_work } }, (err, res) => { });
+                // existingUser.update({ $set: { email: please_work } }, (err, res) => { });
             }
             req.flash("errors", "Account with that email address already exists.");
             return res.redirect("/signup");
