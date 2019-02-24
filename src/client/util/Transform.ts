@@ -55,15 +55,6 @@ export class Transform {
         return this;
     }
 
-    //TODO
-    center = (x: number, y: number): Transform => {
-        console.log("old x: " + this._translateX + " old y: " + this._translateY)
-        console.log("x: " + x + " y: " + y)
-        this._translateX += x
-        this._translateY += y
-        return this;
-    }
-
     preTransform = (transform: Transform): Transform => {
         this._translateX += transform._translateX * this._scale;
         this._translateY += transform._translateY * this._scale;
