@@ -28,7 +28,7 @@ export class CollectionView extends React.Component<CollectionViewProps> {
 
     public static LayoutString(fieldKey: string = "DataKey") {
         return `<CollectionView Document={Document}
-                    ScreenToLocalTransform={ScreenToLocalTransform} fieldKey={${fieldKey}} isSelected={isSelected} select={select} bindings={bindings}
+                    ScreenToLocalTransform={ScreenToLocalTransform} fieldKey={${fieldKey}} isSelected={isSelected} select={select} bindings={bindings} documentSize={documentSize}
                     isTopMost={isTopMost} BackgroundView={BackgroundView} />`;
     }
     public active = () => {

@@ -6,10 +6,11 @@ import { KeyStore } from "../../../fields/KeyStore";
 import { Opt, FieldWaiting } from "../../../fields/Field";
 import { undoBatch } from "../../util/UndoManager";
 import { DragManager } from "../../util/DragManager";
-import { DocumentView } from "../nodes/DocumentView";
+import { DocumentView, JsxArgs } from "../nodes/DocumentView";
 import { Documents, DocumentOptions } from "../../documents/Documents";
 import { Key } from "../../../fields/Key";
 import { Transform } from "../../util/Transform";
+import { CollectionView } from "./CollectionView";
 
 export interface CollectionViewProps {
     fieldKey: Key;
@@ -18,13 +19,14 @@ export interface CollectionViewProps {
     isSelected: () => boolean;
     isTopMost: boolean;
     select: (ctrlPressed: boolean) => void;
+    documentSize: () => { width: number, height: number };
     bindings: any;
 }
 export interface SubCollectionViewProps extends CollectionViewProps {
     active: () => boolean;
     addDocument: (doc: Document) => void;
     removeDocument: (doc: Document) => boolean;
-    CollectionView: any;
+    CollectionView: CollectionView;
 }
 
 export class CollectionViewBase extends React.Component<SubCollectionViewProps> {

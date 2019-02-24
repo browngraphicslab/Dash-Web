@@ -21,6 +21,7 @@ import "./DocumentView.scss";
 import React = require("react");
 import { DocumentManager } from "../DocumentManager";
 import { TextField } from "../../../fields/TextField";
+import { Utils } from "../../../Utils";
 const JsxParser = require('react-jsx-parser').default;//TODO Why does this need to be imported like this?
 
 export interface DocumentViewProps {
@@ -104,6 +105,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     @computed get layoutFields(): Key[] { return this.props.Document.GetData(KeyStore.LayoutFields, ListField, new Array<Key>()); }
 
     screenRect = (): ClientRect | DOMRect => this._mainCont.current ? this._mainCont.current.getBoundingClientRect() : new DOMRect();
+    size = (): { width: number, height: number } => this._mainCont.current ? { width: this._mainCont.current.clientWidth, height: this._mainCont.current.clientHeight } : { width: 0, height: 0 };
 
     onPointerDown = (e: React.PointerEvent): void => {
         this._downX = e.clientX;
@@ -182,7 +184,6 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     //TODO Monika
     @action
     Center = (e: React.MouseEvent): void => {
-        DocumentManager.Instance.centerNode(this.props.Document)
         DocumentManager.Instance.centerNode(this)
     }
 
@@ -261,7 +262,8 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         this._documentBindings = {
             ...this.props,
             isSelected: this.isSelected,
-            select: this.select
+            select: this.select,
+            documentSize: this.size
         };
         for (const key of this.layoutKeys) {
             this._documentBindings[key.Name + "Key"] = key;  // this maps string values of the form <keyname>Key to an actual key Kestore.keyname  e.g,   "DataKey" => KeyStore.Data
