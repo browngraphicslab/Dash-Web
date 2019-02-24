@@ -100,6 +100,19 @@ Documents.initProtos(() => {
 
         ReactDOM.render((
             <div style={{ position: "absolute", width: "100%", height: "100%" }}>
+                <a href="/logout">
+                    <img
+                        src="http://aux.iconspalace.com/uploads/logout-icon-256-510450847.png"
+                        style={{
+                            position: "absolute",
+                            width: "20px",
+                            height: "20px",
+                            top: "20px",
+                            zIndex: 15,
+                            right: "20px",
+                        }}
+                    />
+                </a>
                 <DocumentView Document={mainContainer} ContainingCollectionView={undefined} DocumentView={undefined} />
                 <DocumentDecorations />
                 <ContextMenu />

@@ -16,7 +16,7 @@ import { ObjectID } from 'mongodb';
 import { Document } from '../fields/Document';
 import * as io from 'socket.io'
 import * as passportConfig from './authentication/config/passport';
-import { getLogin, postLogin, getSignup, postSignup, getLogout, getEntry, getHome } from './authentication/controllers/user';
+import { getLogin, postLogin, getSignup, postSignup, getLogout, getEntry } from './authentication/controllers/user';
 const config = require('../../webpack.config');
 const compiler = webpack(config);
 const port = 1050; // default port to listen
@@ -32,6 +32,7 @@ const MongoStore = require('connect-mongo')(session);
 const mongoose = require('mongoose');
 const bluebird = require('bluebird');
 import { performance } from 'perf_hooks'
+import * as path from 'path'
 
 const mongoUrl = 'mongodb://localhost:27017/Dash';
 // mongoose.Promise = bluebird;
@@ -77,7 +78,16 @@ app.use((req, res, next) => {
 // functions in the exports of user.ts
 
 // /home defines destination after a successful log in
-app.get("/home", getHome);
+app.get("/home", (req, res) => {
+    // if user is not logged in, redirect to log in page
+    if (!req.user) {
+        res.redirect("/login");
+        return;
+    }
+    // otherwise, connect them to Dash
+    // TODO: store and manage users' workspaces
+    res.sendFile(path.join(__dirname, '../../deploy/index.html'));
+});
 
 // anyone attempting to navigate to localhost at this port will
 // first have to login

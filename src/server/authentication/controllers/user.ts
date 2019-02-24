@@ -5,7 +5,6 @@ import { IVerifyOptions } from "passport-local";
 import "../config/passport";
 import * as request from "express-validator";
 const flash = require("express-flash");
-import * as path from 'path'
 import * as session from "express-session";
 import * as pug from 'pug';
 
@@ -18,17 +17,6 @@ export let getEntry = (req: Request, res: Response) => {
     res.redirect("/login");
 }
 
-export let getHome = (req: Request, res: Response) => {
-    // if user is not logged in, redirect to log in page
-    if (!req.user) {
-        res.redirect("/login");
-        return;
-    }
-    // otherwise, connect them to Dash
-    // TODO: store and manage users' workspaces
-    res.sendFile(path.join(__dirname, '../../deploy/index.html'));
-}
-
 /**
  * GET /signup
  * Directs user to the signup page
@@ -38,7 +26,7 @@ export let getSignup = (req: Request, res: Response) => {
     if (req.user) {
         let user = req.user;
         console.log(user);
-        return res.redirect("/");
+        return res.redirect("/home");
     }
     res.render("signup.pug", {
         title: "Sign Up"
@@ -104,7 +92,7 @@ export let postSignup = (req: Request, res: Response, next: NextFunction) => {
  */
 export let getLogin = (req: Request, res: Response) => {
     if (req.user) {
-        return res.redirect("/");
+        return res.redirect("/home");
     }
     res.render("login.pug", {
         title: "Log In"

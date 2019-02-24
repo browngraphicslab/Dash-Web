@@ -6,9 +6,11 @@ block content
         include ./stylesheets/authentication.css
     form.form-horizontal(id='login-form', method='POST')
         input(type='hidden', name='_csrf', value=_csrf)
-        .overlay
-            .inner
-                h3(id='login_label') Log In
+        .overlay(id='overlay_login')
+            a(href="/signup")
+                img(id='new_user', src="https://bit.ly/2EuqPb4", alt="")
+            .inner.login
+                h3.auth_header Log In
                 .form-group
                     //- label.col-sm-3.control-label(for='email', id='email_label') Email
                     .col-sm-7
