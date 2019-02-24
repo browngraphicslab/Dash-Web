@@ -165,7 +165,6 @@ export class CollectionFreeFormView extends CollectionViewBase {
         if (!e.ctrlKey && !e.altKey && !e.shiftKey) {
             if (this._previewCursorVisible) {
                 //make textbox and add it to this collection
-                //let { LocalX, LocalY } = this.props.TransformToLocalPoint(this._downX, this._downY);
                 let tr = this.props.ScreenToLocalTransform().translate(this._downX, this._downY);
                 let LocalX = tr.TranslateX;
                 let LocalY = tr.TranslateY;

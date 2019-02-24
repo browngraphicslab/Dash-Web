@@ -1,6 +1,6 @@
 import { action, configure } from 'mobx';
-import * as mongodb from 'mongodb';
-import { ObjectID } from 'mongodb';
+import * as mongodb from "mongodb"
+import { ObjectID } from "mongodb"
 import { Transferable } from './Message';
 import { Utils } from '../Utils';
 
@@ -8,10 +8,15 @@ export class Database {
     public static Instance = new Database()
     private MongoClient = mongodb.MongoClient;
     private url = 'mongodb://localhost:27017/Dash';
+
     private db?: mongodb.Db;
 
     constructor() {
         this.MongoClient.connect(this.url, (err, client) => {
+            if (err) {
+                console.log(err.message);
+                throw err;
+            }
             this.db = client.db()
         })
     }

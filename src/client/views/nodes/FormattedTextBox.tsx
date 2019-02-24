@@ -9,18 +9,15 @@ import { EditorView } from "prosemirror-view";
 import { Node } from "prosemirror-model";
 import { Opt, FieldWaiting, FieldValue } from "../../../fields/Field";
 import "./FormattedTextBox.scss";
-import { KeyStore } from "../../../fields/Key";
+import { KeyStore } from "../../../fields/KeyStore";
 import React = require("react")
 import { RichTextField } from "../../../fields/RichTextField";
 import { FieldViewProps, FieldView } from "./FieldView";
-<<<<<<< HEAD
 import { CollectionFreeFormDocumentView } from "./CollectionFreeFormDocumentView";
 import { observer } from "mobx-react";
 import { Schema, DOMParser } from "prosemirror-model"
 import { Plugin } from 'prosemirror-state'
 import { Decoration, DecorationSet } from 'prosemirror-view'
-=======
->>>>>>> d9d55e422826da1fe87aa7973c92e54bc0c99f02
 
 
 // FormattedTextBox: Displays an editable plain text node that maps to a specified Key of a Document
