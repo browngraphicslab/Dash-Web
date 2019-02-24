@@ -140,25 +140,37 @@ export class Document extends Field {
     }
 
     @action
-    Set(key: Key, field: Field | undefined): void {
+    SetOnPrototype(key: Key, field: Field | undefined): void {
+        this.GetAsync(KeyStore.Prototype, (f: Field) => {
+            (f as Document).Set(key, field)
+        })
+    }
+
+    @action
+    Set(key: Key, field: Field | undefined, setOnPrototype = false): void {
         let old = this.fields.get(key.Id);
         let oldField = old ? old.field : undefined;
-        if (field) {
-            this.fields.set(key.Id, { key, field });
-            this._proxies.set(key.Id, field.Id)
-            // Server.AddDocumentField(this, key, field);
-        } else {
-            this.fields.delete(key.Id);
-            this._proxies.delete(key.Id)
-            // Server.DeleteDocumentField(this, key);
+        if (setOnPrototype) {
+            this.SetOnPrototype(key, field)
+        }
+        else {
+            if (field) {
+                this.fields.set(key.Id, { key, field });
+                this._proxies.set(key.Id, field.Id)
+                // Server.AddDocumentField(this, key, field);
+            } else {
+                this.fields.delete(key.Id);
+                this._proxies.delete(key.Id)
+                // Server.DeleteDocumentField(this, key);
+            }
+            Server.UpdateField(this);
         }
         if (oldField || field) {
             UndoManager.AddEvent({
-                undo: () => this.Set(key, oldField),
-                redo: () => this.Set(key, field)
+                undo: () => this.Set(key, oldField, setOnPrototype),
+                redo: () => this.Set(key, field, setOnPrototype)
             })
         }
-        Server.UpdateField(this);
     }
 
     @action
