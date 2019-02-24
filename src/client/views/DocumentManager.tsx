@@ -79,7 +79,7 @@ export class DocumentManager {
         let docView: DocumentView | null;
 
         if (doc instanceof Document) {
-            docView = this.getDocumentViewFreeform(doc)
+            docView = DocumentManager.Instance.getDocumentViewFreeform(doc)
         }
         else {
             docView = doc
@@ -99,16 +99,22 @@ export class DocumentManager {
             //base case: parent of parent does not exist
             if (docView.props.ContainingCollectionView == null) {
                 scale = docView.props.ScreenToLocalTransform().Scale
-                XView = (-docView.props.ScreenToLocalTransform().TranslateX * scale) + (window.innerWidth / 2) - (width * scale / 2)
-                YView = (-docView.props.ScreenToLocalTransform().TranslateY * scale) + (window.innerHeight / 2) - (height * scale / 2)
+
+                let doc = docView.props.Document;
+
+                XView = (-doc.GetNumber(KeyStore.X, 0) * scale) + (window.innerWidth / 2) - (width * scale / 2)
+                YView = (-doc.GetNumber(KeyStore.Y, 0) * scale) + (window.innerHeight / 2) - (height * scale / 2)
                 //set x and y view of parent
+                if (docView instanceof CollectionFreeFormView) {
+                    DocumentManager.Instance.setViewportXY(docView, XView, YView)
+                }
             }
             //parent is not main, parent is centered and calls itself
             else {
                 if (docView.props.ContainingCollectionView.props.ContainingDocumentView && docView.props.ContainingCollectionView.props.ContainingDocumentView.MainContent.current) {
                     //view of parent
                     let tempCollectionView = docView.props.ContainingCollectionView.props.ContainingDocumentView
-
+                    let doc = docView.props.Document
                     let parentWidth = docView.props.ContainingCollectionView.props.ContainingDocumentView.MainContent.current.clientWidth
                     let parentHeight = docView.props.ContainingCollectionView.props.ContainingDocumentView.MainContent.current.clientHeight
 
@@ -117,9 +123,9 @@ export class DocumentManager {
                         //scale of parent
                         scale = tempCollectionView.props.ScreenToLocalTransform().Scale
 
-                        XView = (-docView.props.ScreenToLocalTransform().TranslateX * scale) + (parentWidth / 2) - (width * scale / 2);
-                        YView = (-docView.props.ScreenToLocalTransform().TranslateY * scale) + (parentHeight / 2) - (height * scale / 2);
-                        //node.Parent.setViewportXY(XView, YView);
+                        XView = (-doc.GetNumber(KeyStore.X, 0) * scale) + (parentWidth / 2) - (width * scale / 2);
+                        YView = (-doc.GetNumber(KeyStore.Y, 0) * scale) + (parentHeight / 2) - (height * scale / 2);
+                        // //node.Parent.setViewportXY(XView, YView);
                         DocumentManager.Instance.setViewportXY(docView.props.ContainingCollectionView, XView, YView)
 
                         return DocumentManager.Instance.centerNode(docView.props.ContainingCollectionView.props.DocumentForCollection);
@@ -139,6 +145,8 @@ export class DocumentManager {
     @action
     private setViewportXY(collection: CollectionFreeFormView, x: number, y: number) {
         console.log("viewport is setting")
-        collection.props.ScreenToLocalTransform().center(x, y)
+        let doc = collection.props.DocumentForCollection;
+        doc.SetNumber(KeyStore.PanX, x);
+        doc.SetNumber(KeyStore.PanY, y);
     }
 }
