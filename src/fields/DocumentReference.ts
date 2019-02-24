@@ -1,6 +1,8 @@
-import { Field, Opt, FieldValue } from "./Field";
+import { Field, Opt, FieldValue, FieldId } from "./Field";
 import { Document } from "./Document";
 import { Key } from "./Key";
+import { Types } from "../server/Message";
+import { ObjectID } from "bson";
 
 export class DocumentReference extends Field {
     get Key(): Key {
@@ -13,6 +15,10 @@ export class DocumentReference extends Field {
 
     constructor(private document: Document, private key: Key) {
         super();
+    }
+
+    UpdateFromServer() {
+
     }
 
     Dereference(): FieldValue<Field> {
@@ -41,4 +47,11 @@ export class DocumentReference extends Field {
         return "";
     }
 
+    ToJson(): { type: Types, data: FieldId, _id: string } {
+        return {
+            type: Types.DocumentReference,
+            data: this.document.Id,
+            _id: this.Id
+        }
+    }
 }

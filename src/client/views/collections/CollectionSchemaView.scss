@@ -1,3 +1,88 @@
+
+.collectionSchemaView-container {
+    border-style: solid;
+    box-sizing: border-box;
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    ::-webkit-scrollbar {
+        -webkit-appearance: none;
+        width: 10px;
+    }
+    ::-webkit-scrollbar-thumb {
+        border-radius: 5px;
+        background-color: rgba(0,0,0,.5);
+    }
+
+    .collectionfreeformview-container {
+        border-width: 0px;
+        .collectionfreeformview > .jsx-parser{
+            position:absolute
+        }
+    }
+    .imageBox-cont {
+        position:relative;
+        max-height:100%;
+    }
+    .ReactTable {
+        position: absolute;
+       // display: inline-block;
+       // overflow: auto;
+        width: 100%;
+        height: 100%;
+        background: white;
+        box-sizing: border-box;
+    }
+    .ReactTable .rt-table {
+        overflow-y: auto;
+        overflow-x: auto;
+        height: 100%;
+
+        display: -webkit-inline-box;
+        direction: ltr;
+        // direction:rtl;
+        // display:block;
+    }
+    .ReactTable .rt-tbody {
+        //direction: ltr;
+        direction: rtl;
+    }
+    .ReactTable .rt-tr-group {
+        direction: ltr;
+    }
+    .ReactTable .rt-thead.-header {
+            background:grey;
+        }
+    .ReactTable .rt-th, .ReactTable .rt-td {
+        max-height: 75px;
+    }
+    .ReactTable .rt-tbody .rt-tr-group:last-child {
+        border-bottom: grey;
+        border-bottom-style: solid;
+        border-bottom-width: 1;
+    }
+    .ReactTable .rt-td {
+        border-width: 1;
+        border-right-color: #aaa
+    }
+    .ReactTable .rt-tr-group {
+        border-width: 1;
+        border-bottom-color: #aaa
+    }
+    .imageBox-cont img {
+        object-fit: contain;
+        height: 100%
+    }
+    .documentView-node:first-child {
+        background: grey;
+        .imageBox-cont img {
+            object-fit: contain;
+            max-width: 100%;
+            height: 100%
+        }
+    }
+}
+
 .Resizer {
     box-sizing: border-box;
     background: #000;
