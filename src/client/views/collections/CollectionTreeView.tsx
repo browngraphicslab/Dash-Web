@@ -7,14 +7,15 @@ import { ListField } from "../../../fields/ListField";
 @observer
 export class CollectionTreeView extends CollectionViewBase {
 
-    public static makeTreeView(document: Document) {
-        var children = document.GetT<ListField<Document>>(KeyStore.Data, ListField);
+    test = () => {
+        var children = this.props.Document.GetT<ListField<Document>>(KeyStore.Data, ListField);
         if (children != null) {
             console.log("\nNumber of Children: " + children);
         }
+        return "HELLO WORLD";
     }
 
     render() {
-        return "HELLO WORLD";
+        return { test };
     }
 }

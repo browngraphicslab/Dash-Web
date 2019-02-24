@@ -11,6 +11,7 @@ import { CollectionFreeFormView } from "./CollectionFreeFormView";
 import { CollectionDockingView } from "./CollectionDockingView";
 import { CollectionSchemaView } from "./CollectionSchemaView";
 import { CollectionViewProps } from "./CollectionViewBase";
+import { CollectionTreeView } from "./CollectionTreeView";
 
 
 
@@ -19,6 +20,7 @@ export enum CollectionViewType {
     Freeform,
     Schema,
     Docking,
+    Tree
 }
 
 export const COLLECTION_BORDER_WIDTH = 2;
@@ -89,6 +91,10 @@ export class CollectionView extends React.Component<CollectionViewProps> {
                     CollectionView={this} />)
             case CollectionViewType.Docking:
                 return (<CollectionDockingView {...this.props}
+                    addDocument={this.addDocument} removeDocument={this.removeDocument} active={this.active}
+                    CollectionView={this} />)
+            case CollectionViewType.Tree:
+                return (<CollectionTreeView {...this.props}
                     addDocument={this.addDocument} removeDocument={this.removeDocument} active={this.active}
                     CollectionView={this} />)
             default:
