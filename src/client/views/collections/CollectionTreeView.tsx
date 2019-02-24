@@ -1,7 +1,7 @@
 import { observer } from "mobx-react";
 import { CollectionViewBase } from "./CollectionViewBase";
 import { Document } from "../../../fields/Document";
-import { KeyStore } from "../../../fields/Key";
+import { KeyStore } from "../../../fields/KeyStore";
 import { ListField } from "../../../fields/ListField";
 
 @observer
