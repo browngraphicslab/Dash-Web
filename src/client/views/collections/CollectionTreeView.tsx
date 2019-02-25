@@ -5,9 +5,8 @@ import { KeyStore } from "../../../fields/KeyStore";
 import { ListField } from "../../../fields/ListField";
 import React = require("react")
 import { TextField } from "../../../fields/TextField";
-import { BasicField } from "../../../fields/BasicField";
-import { assertParenthesizedExpression } from "babel-types";
 import { observable, action } from "mobx";
+import "./CollectionTreeView.scss";
 
 export interface TreeViewProps {
     document: Document;
@@ -40,7 +39,7 @@ class TreeView extends React.Component<TreeViewProps> {
             // if it's not collapsed, then render the full TreeView.
             if (!this.collapsed) {
                 return (
-                    <li key={document.Id} onClick={action(() => this.collapsed = true)} >
+                    <li className="uncollapsed" key={document.Id} onClick={action(() => this.collapsed = true)} >
                         {title.Data}
                         <ul key={document.Id}>
                             <TreeView
@@ -50,7 +49,7 @@ class TreeView extends React.Component<TreeViewProps> {
                     </li>
                 );
             } else {
-                return <li key={document.Id} onClick={action(() => this.collapsed = false)}>{title.Data}</li>
+                return <li className="collapsed" key={document.Id} onClick={action(() => this.collapsed = false)}>{title.Data}</li>
             }
         }
 
@@ -94,7 +93,7 @@ export class CollectionTreeView extends CollectionViewBase {
         return (
             <div>
                 <h3>{titleStr}</h3>
-                <ul>
+                <ul className="no-indent">
                     <TreeView
                         document={this.props.Document}
                     />
