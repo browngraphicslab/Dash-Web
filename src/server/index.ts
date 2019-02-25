@@ -89,6 +89,21 @@ app.get("/home", (req, res) => {
     res.sendFile(path.join(__dirname, '../../deploy/index.html'));
 });
 
+app.get("/getUserDocId", (req, res) => {
+    console.log(req.user)
+    if (!req.user) {
+        return;
+    }
+    res.send(req.user.userDocumentId || "");
+})
+
+app.post("/setUserDocId", (req, res) => {
+    if (!req.user) {
+        return;
+    }
+    req.user.update({ $set: { userDocumentId: req.body.userDocumentId } }, () => { });
+})
+
 // anyone attempting to navigate to localhost at this port will
 // first have to login
 app.get("/", getEntry);
