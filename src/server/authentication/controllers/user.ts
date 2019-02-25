@@ -3,7 +3,10 @@ import { Request, Response, NextFunction } from "express";
 import * as passport from "passport";
 import { IVerifyOptions } from "passport-local";
 import "../config/passport";
+import * as request from "express-validator";
 const flash = require("express-flash");
+import * as session from "express-session";
+import * as pug from 'pug';
 
 /**
  * GET /
