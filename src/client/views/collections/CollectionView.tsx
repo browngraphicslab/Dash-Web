@@ -29,11 +29,7 @@ export class CollectionView extends React.Component<CollectionViewProps> {
 
     public static LayoutString(fieldKey: string = "DataKey") {
         return `<CollectionView Document={Document}
-<<<<<<< HEAD
-                    ScreenToLocalTransform={ScreenToLocalTransform} fieldKey={${fieldKey}} isSelected={isSelected} select={select} bindings={bindings} documentSize={documentSize}
-=======
                     ScreenToLocalTransform={ScreenToLocalTransform} fieldKey={${fieldKey}} panelWidth={PanelWidth} panelHeight={PanelHeight} isSelected={isSelected} select={select} bindings={bindings}
->>>>>>> 292ff1a8d75f8b15f9388d2c577e09a13836d5dc
                     isTopMost={isTopMost} BackgroundView={BackgroundView} />`;
     }
     public active = () => {
