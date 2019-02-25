@@ -152,13 +152,13 @@ app.post('/forgot', function (req, res, next) {
             const smptTransport = nodemailer.createTransport({
                 service: 'Gmail',
                 auth: {
-                    user: 'samwilkins333@gmail.com',
+                    user: 'brownptcdash@gmail.com',
                     pass: 'browngfx1'
                 }
             });
             const mailOptions = {
                 to: user.email,
-                from: 'passwordreset@dash.com',
+                from: 'brownptcdash@gmail.com',
                 subject: 'Dash Password Reset',
                 text: 'You are receiving this because you (or someone else) have requested the reset of the password for your account.\n\n' +
                     'Please click on the following link, or paste this into your browser to complete the process:\n\n' +
