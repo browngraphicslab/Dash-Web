@@ -10,6 +10,7 @@ import { Transform } from "../../util/Transform";
 import { undoBatch } from "../../util/UndoManager";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { CollectionSchemaView } from "../collections/CollectionSchemaView";
+import { CollectionTreeView } from "../collections/CollectionTreeView";
 import { CollectionView } from "../collections/CollectionView";
 import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
 import { DocumentView } from "../nodes/DocumentView";
