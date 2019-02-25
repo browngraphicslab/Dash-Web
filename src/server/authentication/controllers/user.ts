@@ -36,7 +36,6 @@ export let getSignup = (req: Request, res: Response) => {
     res.render("signup.pug", {
         title: "Sign Up",
         user: req.user,
-        errors: req.flash("Unable to facilitate sign up. Please try again.")
     });
 };
 
@@ -55,7 +54,7 @@ export let postSignup = (req: Request, res: Response, next: NextFunction) => {
     if (errors) {
         res.render("signup.pug", {
             title: "Sign Up",
-            errors: req.flash("Unable to facilitate sign up. Please try again.")
+            user: req.user,
         });
         return res.redirect("/signup");
     }
@@ -243,18 +242,19 @@ export let postReset = function (req: Request, res: Response) {
                 user.passwordResetExpires = undefined;
 
                 user.save(function (err) {
+                    if (err) {
+                        return res.redirect("/login");
+                    }
                     req.logIn(user, function (err) {
                         if (err) {
-                            console.log(err);
                             return;
                         }
                     });
-                    done(user, err);
+                    done(null, user);
                 });
             });
         },
         function (user: UserModel, done: any) {
-            console.log(`SENDING EMAIL TO ${user.email}`);
             const smtpTransport = nodemailer.createTransport({
                 service: 'Gmail',
                 auth: {
