@@ -30,6 +30,10 @@ body {
     height: 220px;
 }
 
+.forgot {
+    height: 175px;
+}
+
 .signup {
     height: 273px;
 }
@@ -50,13 +54,26 @@ body {
     height: 300px;
 }
 
+#overlay_forgot {
+    height: 250px;
+}
+
 #new_user,
 #to_login {
+    right: 15px;
+}
+
+#new_user,
+#to_login,
+#forgot {
+    top: 15px;
     width: 20px;
     height: 20px;
     position: absolute;
-    top: 15px;
-    right: 15px;
+}
+
+#forgot {
+    left: 15px;
 }
 
 .overlay {

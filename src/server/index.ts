@@ -36,16 +36,10 @@ import * as async from 'async';
 const bluebird = require('bluebird');
 import { performance } from 'perf_hooks'
 import * as path from 'path'
-import User from './authentication/models/User';
+import User, { UserModel } from './authentication/models/User';
 
 const mongoUrl = 'mongodb://localhost:27017/Dash';
-// mongoose.Promise = bluebird;
-mongoose.connect(mongoUrl)//.then(
-// () => { /** ready to use. The `mongoose.connect()` promise resolves to undefined. */ },
-// ).catch((err: any) => {
-// console.log("MongoDB connection error. Please make sure MongoDB is running. " + err);
-// process.exit();
-// });
+mongoose.connect(mongoUrl)
 mongoose.connection.on('connected', function () {
     console.log("connected");
 })
@@ -110,38 +104,61 @@ app.get('/logout', getLogout);
 
 // *** 
 
+app.get('/forgot', function (req, res) {
+    res.render("forgot.pug", {
+        title: "Recover Password",
+        user: req.user,
+    });
+})
+
 // FORGOT PASSWORD EMAIL HANDLING
 app.post('/forgot', function (req, res, next) {
     const email = req.body.email;
     async.waterfall([
         function (done: any) {
-            const seed = new Uint16Array();
-            seed.set([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
-            let token = crypto.getRandomValues(seed);
-            done(token);
+            const seed = new Uint32Array(20);
+            let token = seed;
+            done(null, token);
         },
-        function (token: Uint16Array, done: any) {
-            User.findOne({ email }, function (err, user: User) {
+        function (token: Uint32Array, done: any) {
+            User.findOne({ email }, function (err, user: UserModel) {
                 if (!user) {
                     // NO ACCOUNT WITH SUBMITTED EMAIL
                     return res.redirect('/forgot');
                 }
-                user.resetPasswordToken = token;
-                user.resetPasswordExpires = Date.now() + 3600000; // 1 HOUR
+                user.passwordResetToken = token.toString();
+                user.passwordResetExpires = new Date(Date.now() + 3600000); // 1 HOUR
                 user.save(function (err: any) {
-                    done(err, token, user);
+                    done(null, token, user);
                 });
             });
         },
-        function (token: Uint16Array, user: User, done: any) {
-            const transport = nodemailer.createTransport('SMTP', {
+        function (token: Uint16Array, user: UserModel, done: any) {
+            const smptTransport = nodemailer.createTransport({
+                service: 'Gmail',
                 auth: {
-                    user: 'test.nodemailer@gmail.com',
-                    pass: 'placeholder'
+                    user: 'samwilkins333@gmail.com',
+                    pass: 'browngfx1'
                 }
             });
+            const mailOptions = {
+                to: user.email,
+                from: 'passwordreset@dash.com',
+                subject: 'Dash Password Reset',
+                text: 'You are receiving this because you (or someone else) have requested the reset of the password for your account.\n\n' +
+                    'Please click on the following link, or paste this into your browser to complete the process:\n\n' +
+                    'http://' + req.headers.host + '/reset/' + token + '\n\n' +
+                    'If you did not request this, please ignore this email and your password will remain unchanged.\n'
+            };
+            smptTransport.sendMail(mailOptions, function (err) {
+                // req.flash('info', 'An e-mail has been sent to ' + user.email + ' with further instructions.');
+                done(null, err, 'done');
+            });
         }
-    ])
+    ], function (err) {
+        if (err) return next(err);
+        res.redirect('/forgot');
+    })
 })
 
 let FieldStore: ObservableMap<FIELD_ID, Field> = new ObservableMap();

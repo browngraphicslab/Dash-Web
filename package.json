@@ -74,6 +74,7 @@
     "connect-flash": "^0.1.1",
     "connect-mongo": "^2.0.3",
     "cookie-parser": "^1.4.4",
+    "crypto-browserify": "^3.11.0",
     "express": "^4.16.4",
     "express-flash": "0.0.2",
     "express-session": "^1.15.6",
@@ -116,6 +117,7 @@
     "socket.io": "^2.2.0",
     "socket.io-client": "^2.2.0",
     "url-loader": "^1.1.2",
-    "uuid": "^3.3.2"
+    "uuid": "^3.3.2",
+    "xoauth2": "^1.2.0"
   }
 }
