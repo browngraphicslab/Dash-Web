@@ -13,6 +13,7 @@ import { FIELD_ID, Field } from '../fields/Field';
 import { Database } from './database';
 import { ServerUtils } from './ServerUtil';
 import { ObjectID } from 'mongodb';
+import * as bcrypt from "bcrypt-nodejs";
 import { Document } from '../fields/Document';
 import * as io from 'socket.io'
 import * as passportConfig from './authentication/config/passport';
@@ -27,12 +28,15 @@ import flash = require('express-flash');
 import * as bodyParser from 'body-parser';
 import * as session from 'express-session';
 import * as cookieParser from 'cookie-parser';
+import * as nodemailer from 'nodemailer';
 import c = require("crypto");
 const MongoStore = require('connect-mongo')(session);
 const mongoose = require('mongoose');
+import * as async from 'async';
 const bluebird = require('bluebird');
 import { performance } from 'perf_hooks'
 import * as path from 'path'
+import User from './authentication/models/User';
 
 const mongoUrl = 'mongodb://localhost:27017/Dash';
 // mongoose.Promise = bluebird;
@@ -105,6 +109,40 @@ app.post("/login", postLogin);
 app.get('/logout', getLogout);
 
 // *** 
+
+// FORGOT PASSWORD EMAIL HANDLING
+app.post('/forgot', function (req, res, next) {
+    const email = req.body.email;
+    async.waterfall([
+        function (done: any) {
+            const seed = new Uint16Array();
+            seed.set([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+            let token = crypto.getRandomValues(seed);
+            done(token);
+        },
+        function (token: Uint16Array, done: any) {
+            User.findOne({ email }, function (err, user: User) {
+                if (!user) {
+                    // NO ACCOUNT WITH SUBMITTED EMAIL
+                    return res.redirect('/forgot');
+                }
+                user.resetPasswordToken = token;
+                user.resetPasswordExpires = Date.now() + 3600000; // 1 HOUR
+                user.save(function (err: any) {
+                    done(err, token, user);
+                });
+            });
+        },
+        function (token: Uint16Array, user: User, done: any) {
+            const transport = nodemailer.createTransport('SMTP', {
+                auth: {
+                    user: 'test.nodemailer@gmail.com',
+                    pass: 'placeholder'
+                }
+            });
+        }
+    ])
+})
 
 let FieldStore: ObservableMap<FIELD_ID, Field> = new ObservableMap();
 
