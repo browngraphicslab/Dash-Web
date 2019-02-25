@@ -20,6 +20,8 @@ export interface CollectionViewProps {
     isTopMost: boolean;
     select: (ctrlPressed: boolean) => void;
     bindings: any;
+    panelWidth: () => number;
+    panelHeight: () => number;
 }
 export interface SubCollectionViewProps extends CollectionViewProps {
     active: () => boolean;

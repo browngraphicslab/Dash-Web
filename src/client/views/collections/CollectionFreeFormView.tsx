@@ -20,7 +20,6 @@ import "./CollectionFreeFormView.scss";
 import { COLLECTION_BORDER_WIDTH } from "./CollectionView";
 import { CollectionViewBase } from "./CollectionViewBase";
 import React = require("react");
-import { Documents } from "../../documents/Documents";
 const JsxParser = require('react-jsx-parser').default;//TODO Why does this need to be imported like this?
 
 @observer
@@ -31,7 +30,6 @@ export class CollectionFreeFormView extends CollectionViewBase {
     private _downX: number = 0;
     private _downY: number = 0;
 
-
     @computed get panX(): number { return this.props.Document.GetNumber(KeyStore.PanX, 0) }
     @computed get panY(): number { return this.props.Document.GetNumber(KeyStore.PanY, 0) }
     @computed get scale(): number { return this.props.Document.GetNumber(KeyStore.Scale, 1); }
@@ -39,6 +37,8 @@ export class CollectionFreeFormView extends CollectionViewBase {
     @computed get nativeWidth() { return this.props.Document.GetNumber(KeyStore.NativeWidth, 0); }
     @computed get nativeHeight() { return this.props.Document.GetNumber(KeyStore.NativeHeight, 0); }
     @computed get zoomScaling() { return this.props.Document.GetNumber(KeyStore.Scale, 1); }
+    @computed get centeringShiftX() { return !this.props.Document.GetNumber(KeyStore.NativeWidth, 0) ? this.props.panelWidth() / 2 : 0; }  // shift so pan position is at center of window for non-overlay collections
+    @computed get centeringShiftY() { return !this.props.Document.GetNumber(KeyStore.NativeHeight, 0) ? this.props.panelHeight() / 2 : 0; }// shift so pan position is at center of window for non-overlay collections
 
     @undoBatch
     @action
@@ -118,6 +118,8 @@ export class CollectionFreeFormView extends CollectionViewBase {
             let transform = this.getTransform();
 
             let deltaScale = (1 - (e.deltaY / coefficient));
+            if (deltaScale * this.zoomScaling < 1 && this.isAnnotationOverlay)
+                deltaScale = 1 / this.zoomScaling;
             let [x, y] = transform.transformPoint(e.clientX, e.clientY);
 
             let localTransform = this.getLocalTransform();
@@ -132,17 +134,13 @@ export class CollectionFreeFormView extends CollectionViewBase {
     private SetPan(panX: number, panY: number) {
         const newPanX = Math.max((1 - this.zoomScaling) * this.nativeWidth, Math.min(0, panX));
         const newPanY = Math.max((1 - this.zoomScaling) * this.nativeHeight, Math.min(0, panY));
-        this.props.Document.SetNumber(KeyStore.PanX, false && this.isAnnotationOverlay ? newPanX : panX);
-        this.props.Document.SetNumber(KeyStore.PanY, false && this.isAnnotationOverlay ? newPanY : panY);
+        this.props.Document.SetNumber(KeyStore.PanX, this.isAnnotationOverlay ? newPanX : panX);
+        this.props.Document.SetNumber(KeyStore.PanY, this.isAnnotationOverlay ? newPanY : panY);
     }
 
     @action
     onDrop = (e: React.DragEvent): void => {
-        const panx: number = this.props.Document.GetNumber(KeyStore.PanX, 0);
-        const pany: number = this.props.Document.GetNumber(KeyStore.PanY, 0);
-        let transform = this.getTransform();
-
-        var pt = transform.transformPoint(e.pageX, e.pageY);
+        var pt = this.getTransform().transformPoint(e.pageX, e.pageY);
         super.onDrop(e, { x: pt[0], y: pt[1] });
     }
 
@@ -222,13 +220,14 @@ export class CollectionFreeFormView extends CollectionViewBase {
                 onError={(test: any) => console.log(test)}
             />);
     }
-    getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-COLLECTION_BORDER_WIDTH, -COLLECTION_BORDER_WIDTH).transform(this.getLocalTransform())
+
+    getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-COLLECTION_BORDER_WIDTH - this.centeringShiftX, -COLLECTION_BORDER_WIDTH - this.centeringShiftY).transform(this.getLocalTransform())
     getLocalTransform = (): Transform => Transform.Identity.translate(-this.panX, -this.panY).scale(1 / this.scale);
     noScaling = () => 1;
 
     render() {
-        const panx: number = this.props.Document.GetNumber(KeyStore.PanX, 0);
-        const pany: number = this.props.Document.GetNumber(KeyStore.PanY, 0);
+        const panx: number = this.props.Document.GetNumber(KeyStore.PanX, 0) + this.centeringShiftX;
+        const pany: number = this.props.Document.GetNumber(KeyStore.PanY, 0) + this.centeringShiftY;
         return (
             <div className="collectionfreeformview-container"
                 onPointerDown={this.onPointerDown}

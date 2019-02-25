@@ -265,6 +265,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
 
     @observable private _mainCont = React.createRef<HTMLDivElement>();
     @observable private _panelWidth = 0;
+    @observable private _panelHeight = 0;
     @observable private _document: Opt<Document>;
 
     constructor(props: any) {
@@ -272,8 +273,8 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         Server.GetField(this.props.documentId, action((f: Opt<Field>) => this._document = f as Document));
     }
 
-    private _nativeWidth = () => { return this._document!.GetNumber(KeyStore.NativeWidth, 0); }
-    private _nativeHeight = () => { return this._document!.GetNumber(KeyStore.NativeHeight, 0); }
+    private _nativeWidth = () => { return this._document!.GetNumber(KeyStore.NativeWidth, this._panelWidth); }
+    private _nativeHeight = () => { return this._document!.GetNumber(KeyStore.NativeHeight, this._panelHeight); }
     private _contentScaling = () => { return this._panelWidth / (this._nativeWidth() ? this._nativeWidth() : this._panelWidth); }
 
     ScreenToLocalTransform = () => {
@@ -297,7 +298,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
                     ContainingCollectionView={undefined} />
             </div>
 
-        return <Measure onResize={action((r: any) => this._panelWidth = r.entry.width)}>
+        return <Measure onResize={action((r: any) => { this._panelWidth = r.entry.width; this._panelHeight = r.entry.height; })}>
             {({ measureRef }) => <div ref={measureRef}>  {content} </div>}
         </Measure>
     }
