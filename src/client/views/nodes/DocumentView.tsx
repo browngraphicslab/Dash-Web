@@ -1,172 +1,247 @@
 import { action, computed } from "mobx";
 import { observer } from "mobx-react";
 import { Document } from "../../../fields/Document";
-import { Opt, FieldWaiting } from "../../../fields/Field";
-import { Key, KeyStore } from "../../../fields/Key";
+import { Field, FieldWaiting, Opt } from "../../../fields/Field";
+import { Key } from "../../../fields/Key";
+import { KeyStore } from "../../../fields/KeyStore";
 import { ListField } from "../../../fields/ListField";
-import { NumberField } from "../../../fields/NumberField";
-import { TextField } from "../../../fields/TextField";
-import { Utils } from "../../../Utils";
+import { DragManager } from "../../util/DragManager";
+import { SelectionManager } from "../../util/SelectionManager";
+import { Transform } from "../../util/Transform";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { CollectionFreeFormView } from "../collections/CollectionFreeFormView";
 import { CollectionSchemaView } from "../collections/CollectionSchemaView";
-import { CollectionViewBase, COLLECTION_BORDER_WIDTH } from "../collections/CollectionViewBase";
+import { CollectionView, CollectionViewType } from "../collections/CollectionView";
+import { WebView } from "./WebView";
+import { ContextMenu } from "../ContextMenu";
 import { FormattedTextBox } from "../nodes/FormattedTextBox";
 import { ImageBox } from "../nodes/ImageBox";
-import "./NodeView.scss";
+import "./DocumentView.scss";
 import React = require("react");
-import { Transform } from "../../util/Transform";
 const JsxParser = require('react-jsx-parser').default;//TODO Why does this need to be imported like this?
 
 export interface DocumentViewProps {
-    DocumentView: Opt<DocumentView>  // needed only to set ContainingDocumentView on CollectionViewProps when invoked from JsxParser -- is there a better way?
-    ContainingCollectionView: Opt<CollectionViewBase>;
+    ContainingCollectionView: Opt<CollectionView>;
 
     Document: Document;
     AddDocument?: (doc: Document) => void;
     RemoveDocument?: (doc: Document) => boolean;
-    GetTransform: () => Transform;
-    Scaling: number;
+    ScreenToLocalTransform: () => Transform;
+    isTopMost: boolean;
+    //tfs: This shouldn't be necessary I don't think
+    ContentScaling: () => number;
+    PanelWidth: () => number;
+    PanelHeight: () => number;
+}
+export interface JsxArgs extends DocumentViewProps {
+    Keys: { [name: string]: Key }
+    Fields: { [name: string]: Field }
+}
+
+/*
+This function is pretty much a hack that lets us fill out the fields in JsxArgs with something that
+jsx-to-string can recover the jsx from
+Example usage of this function:
+    public static LayoutString() {
+        let args = FakeJsxArgs(["Data"]);
+        return jsxToString(
+            <CollectionFreeFormView
+                doc={args.Document}
+                fieldKey={args.Keys.Data}
+                DocumentViewForField={args.DocumentView} />,
+            { useFunctionCode: true, functionNameOnly: true }
+        )
+    }
+*/
+export function FakeJsxArgs(keys: string[], fields: string[] = []): JsxArgs {
+    let Keys: { [name: string]: any } = {}
+    let Fields: { [name: string]: any } = {}
+    for (const key of keys) {
+        let fn = () => { }
+        Object.defineProperty(fn, "name", { value: key + "Key" })
+        Keys[key] = fn;
+    }
+    for (const field of fields) {
+        let fn = () => { }
+        Object.defineProperty(fn, "name", { value: field })
+        Fields[field] = fn;
+    }
+    let args: JsxArgs = {
+        Document: function Document() { },
+        DocumentView: function DocumentView() { },
+        Keys,
+        Fields
+    } as any;
+    return args;
 }
 
 @observer
 export class DocumentView extends React.Component<DocumentViewProps> {
 
-    protected _mainCont = React.createRef<any>();
-    get MainContent() {
-        return this._mainCont;
-    }
-    @computed
-    get layout(): string {
-        return this.props.Document.GetData(KeyStore.Layout, TextField, String("<p>Error loading layout data</p>"));
-    }
+    private _mainCont = React.createRef<HTMLDivElement>();
+    private _documentBindings: any = null;
+    private _contextMenuCanOpen = false;
+    private _downX: number = 0;
+    private _downY: number = 0;
 
-    @computed
-    get backgroundLayout(): string {
-        return this.props.Document.GetData(KeyStore.BackgroundLayout, TextField, String("<p>Error loading layout data</p>"));
-    }
+    @computed get active(): boolean { return SelectionManager.IsSelected(this) || !this.props.ContainingCollectionView || this.props.ContainingCollectionView.active(); }
+    @computed get topMost(): boolean { return !this.props.ContainingCollectionView || this.props.ContainingCollectionView.collectionViewType == CollectionViewType.Docking; }
+    @computed get layout(): string { return this.props.Document.GetText(KeyStore.Layout, "<p>Error loading layout data</p>"); }
+    @computed get layoutKeys(): Key[] { return this.props.Document.GetData(KeyStore.LayoutKeys, ListField, new Array<Key>()); }
+    @computed get layoutFields(): Key[] { return this.props.Document.GetData(KeyStore.LayoutFields, ListField, new Array<Key>()); }
 
-    @computed
-    get layoutKeys(): Key[] {
-        return this.props.Document.GetData(KeyStore.LayoutKeys, ListField, new Array<Key>());
-    }
+    screenRect = (): ClientRect | DOMRect => this._mainCont.current ? this._mainCont.current.getBoundingClientRect() : new DOMRect();
 
-    @computed
-    get layoutFields(): Key[] {
-        return this.props.Document.GetData(KeyStore.LayoutFields, ListField, new Array<Key>());
-    }
-
-    // 
-    // returns the cumulative scaling between the document and the screen
-    //
-    @computed
-    public get ScalingToScreenSpace(): number {
-        if (this.props.ContainingCollectionView != undefined &&
-            this.props.ContainingCollectionView.props.ContainingDocumentView != undefined) {
-            let ss = this.props.ContainingCollectionView.props.DocumentForCollection.GetNumber(KeyStore.Scale, 1);
-            return this.props.ContainingCollectionView.props.ContainingDocumentView.ScalingToScreenSpace * ss;
+    onPointerDown = (e: React.PointerEvent): void => {
+        this._downX = e.clientX;
+        this._downY = e.clientY;
+        if (e.shiftKey && e.buttons === 1) {
+            CollectionDockingView.Instance.StartOtherDrag(this._mainCont.current!, this.props.Document);
+            e.stopPropagation();
+        } else {
+            this._contextMenuCanOpen = true;
+            if (this.active && !e.isDefaultPrevented()) {
+                e.stopPropagation();
+                if (e.buttons === 2) {
+                    e.preventDefault();
+                }
+                document.removeEventListener("pointermove", this.onPointerMove)
+                document.addEventListener("pointermove", this.onPointerMove);
+                document.removeEventListener("pointerup", this.onPointerUp)
+                document.addEventListener("pointerup", this.onPointerUp);
+            }
         }
-        return 1;
     }
 
-    //
-    // Converts a coordinate in the screen space of the app into a local document coordinate.
-    //
-    public TransformToLocalPoint(screenX: number, screenY: number) {
-        // if this collection view is nested within another collection view, then 
-        // first transform the screen point into the parent collection's coordinate space.
-        let { LocalX: parentX, LocalY: parentY } = this.props.ContainingCollectionView != undefined &&
-            this.props.ContainingCollectionView.props.ContainingDocumentView != undefined ?
-            this.props.ContainingCollectionView.props.ContainingDocumentView.TransformToLocalPoint(screenX, screenY) :
-            { LocalX: screenX, LocalY: screenY };
-        let ContainerX: number = parentX - COLLECTION_BORDER_WIDTH;
-        let ContainerY: number = parentY - COLLECTION_BORDER_WIDTH;
-
-        var Xx = this.props.Document.GetData(KeyStore.X, NumberField, Number(0));
-        var Yy = this.props.Document.GetData(KeyStore.Y, NumberField, Number(0));
-        // CollectionDockingViews change the location of their children frames without using a Dash transformation.
-        // They also ignore any transformation that may have been applied to their content document.
-        // NOTE: this currently assumes CollectionDockingViews aren't nested.
-        if (this.props.ContainingCollectionView instanceof CollectionDockingView) {
-            var { translateX: rx, translateY: ry } = Utils.GetScreenTransform(this.MainContent.current!);
-            Xx = rx - COLLECTION_BORDER_WIDTH;
-            Yy = ry - COLLECTION_BORDER_WIDTH;
+    onPointerMove = (e: PointerEvent): void => {
+        if (e.cancelBubble) {
+            this._contextMenuCanOpen = false;
+            return;
         }
-
-        let Ss = this.props.Document.GetNumber(KeyStore.Scale, 1);
-        let Panxx = this.props.Document.GetData(KeyStore.PanX, NumberField, Number(0));
-        let Panyy = this.props.Document.GetData(KeyStore.PanY, NumberField, Number(0));
-        let LocalX = (ContainerX - (Xx + Panxx)) / Ss;
-        let LocalY = (ContainerY - (Yy + Panyy)) / Ss;
-
-        return { LocalX, Ss, Panxx, Xx, LocalY, Panyy, Yy, ContainerX, ContainerY };
+        if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3) {
+            this._contextMenuCanOpen = false;
+            if (this._mainCont.current != null && !this.topMost) {
+                this._contextMenuCanOpen = false;
+                const [left, top] = this.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
+                let dragData: { [id: string]: any } = {};
+                dragData["documentView"] = this;
+                dragData["xOffset"] = e.x - left;
+                dragData["yOffset"] = e.y - top;
+                DragManager.StartDrag(this._mainCont.current, dragData, {
+                    handlers: {
+                        dragComplete: action((e: DragManager.DragCompleteEvent) => { }),
+                    },
+                    hideSource: true
+                })
+            }
+        }
+        e.stopPropagation();
+        e.preventDefault();
     }
 
-    //
-    // Converts a point in the coordinate space of a document to a screen space coordinate.
-    //
-    public TransformToScreenPoint(localX: number, localY: number, Ss: number = 1, Panxx: number = 0, Panyy: number = 0): { ScreenX: number, ScreenY: number } {
-
-        var Xx = this.props.Document.GetData(KeyStore.X, NumberField, Number(0));
-        var Yy = this.props.Document.GetData(KeyStore.Y, NumberField, Number(0));
-        // CollectionDockingViews change the location of their children frames without using a Dash transformation.
-        // They also ignore any transformation that may have been applied to their content document.
-        // NOTE: this currently assumes CollectionDockingViews aren't nested.
-        if (this.props.ContainingCollectionView instanceof CollectionDockingView) {
-            var { translateX: rx, translateY: ry } = Utils.GetScreenTransform(this.MainContent.current!);
-            Xx = rx - COLLECTION_BORDER_WIDTH;
-            Yy = ry - COLLECTION_BORDER_WIDTH;
+    onPointerUp = (e: PointerEvent): void => {
+        document.removeEventListener("pointermove", this.onPointerMove)
+        document.removeEventListener("pointerup", this.onPointerUp)
+        e.stopPropagation();
+        if (Math.abs(e.clientX - this._downX) < 4 && Math.abs(e.clientY - this._downY) < 4) {
+            SelectionManager.SelectDoc(this, e.ctrlKey);
         }
-
-        let W = COLLECTION_BORDER_WIDTH;
-        let H = COLLECTION_BORDER_WIDTH;
-        let parentX = (localX - W) * Ss + (Xx + Panxx) + W;
-        let parentY = (localY - H) * Ss + (Yy + Panyy) + H;
-
-        // if this collection view is nested within another collection view, then 
-        // first transform the local point into the parent collection's coordinate space.
-        let containingDocView = this.props.ContainingCollectionView != undefined ? this.props.ContainingCollectionView.props.ContainingDocumentView : undefined;
-        if (containingDocView != undefined) {
-            let ss = containingDocView.props.Document.GetNumber(KeyStore.Scale, 1) * this.props.Scaling;
-            let panxx = containingDocView.props.Document.GetData(KeyStore.PanX, NumberField, Number(0)) + COLLECTION_BORDER_WIDTH * ss;
-            let panyy = containingDocView.props.Document.GetData(KeyStore.PanY, NumberField, Number(0)) + COLLECTION_BORDER_WIDTH * ss;
-            let { ScreenX, ScreenY } = containingDocView.TransformToScreenPoint(parentX, parentY, ss, panxx, panyy);
-            parentX = ScreenX;
-            parentY = ScreenY;
-        }
-        return { ScreenX: parentX, ScreenY: parentY };
     }
 
+    deleteClicked = (e: React.MouseEvent): void => {
+        if (this.props.RemoveDocument) {
+            this.props.RemoveDocument(this.props.Document);
+        }
+    }
+    fullScreenClicked = (e: React.MouseEvent): void => {
+        CollectionDockingView.Instance.OpenFullScreen(this.props.Document);
+        ContextMenu.Instance.clearItems();
+        ContextMenu.Instance.addItem({ description: "Close Full Screen", event: this.closeFullScreenClicked });
+        ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15)
+    }
+    closeFullScreenClicked = (e: React.MouseEvent): void => {
+        CollectionDockingView.Instance.CloseFullScreen();
+        ContextMenu.Instance.clearItems();
+        ContextMenu.Instance.addItem({ description: "Full Screen", event: this.fullScreenClicked })
+        ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15)
+    }
 
+    @action
+    onContextMenu = (e: React.MouseEvent): void => {
+        e.preventDefault()
+        e.stopPropagation();
+        if (!SelectionManager.IsSelected(this) || !this._contextMenuCanOpen) {
+            return;
+        }
+
+        if (this.topMost) {
+            ContextMenu.Instance.clearItems()
+            ContextMenu.Instance.addItem({ description: "Full Screen", event: this.fullScreenClicked })
+            ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15)
+        }
+        else {
+            // DocumentViews should stop propagation of this event
+            e.stopPropagation();
+
+            ContextMenu.Instance.clearItems();
+            ContextMenu.Instance.addItem({ description: "Full Screen", event: this.fullScreenClicked })
+            ContextMenu.Instance.addItem({ description: "Open Right", event: () => CollectionDockingView.Instance.AddRightSplit(this.props.Document) })
+            ContextMenu.Instance.addItem({ description: "Delete", event: this.deleteClicked })
+            ContextMenu.Instance.addItem({ description: "Freeform", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Freeform) })
+            ContextMenu.Instance.addItem({ description: "Schema", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Schema) })
+            ContextMenu.Instance.addItem({ description: "Treeview", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Tree) })
+            ContextMenu.Instance.addItem({ description: "Docking", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Docking) })
+            ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15)
+            SelectionManager.SelectDoc(this, e.ctrlKey);
+        }
+    }
+
+    @computed get mainContent() {
+        var val = this.props.Document.Id;
+        return <JsxParser
+            components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebView }}
+            bindings={this._documentBindings}
+            jsx={this.layout}
+            showWarnings={true}
+            onError={(test: any) => { console.log(test) }}
+        />
+    }
     render() {
-        let bindings = { ...this.props } as any;
+        if (!this.props.Document)
+            return <div></div>
+        let lkeys = this.props.Document.GetT(KeyStore.LayoutKeys, ListField);
+        if (!lkeys || lkeys === "<Waiting>") {
+            return <p>Error loading layout keys</p>;
+        }
+        this._documentBindings = {
+            ...this.props,
+            isSelected: () => SelectionManager.IsSelected(this),
+            select: (ctrlPressed: boolean) => SelectionManager.SelectDoc(this, ctrlPressed)
+        };
         for (const key of this.layoutKeys) {
-            bindings[key.Name + "Key"] = key;  // this maps string values of the form <keyname>Key to an actual key Kestore.keyname  e.g,   "DataKey" => KeyStore.Data
+            this._documentBindings[key.Name + "Key"] = key;  // this maps string values of the form <keyname>Key to an actual key Kestore.keyname  e.g,   "DataKey" => KeyStore.Data
         }
         for (const key of this.layoutFields) {
             let field = this.props.Document.Get(key);
-            bindings[key.Name] = field && field != FieldWaiting ? field.GetValue() : field;
+            this._documentBindings[key.Name] = field && field != FieldWaiting ? field.GetValue() : field;
         }
-        if (bindings.DocumentView === undefined) {
-            bindings.DocumentView = this; // set the DocumentView to this if it hasn't already been set by a sub-class during its render method.
-        }
-        var annotated = <JsxParser
-            components={{ FormattedTextBox: FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView }}
-            bindings={bindings}
-            jsx={this.backgroundLayout}
-            showWarnings={true}
-            onError={(test: any) => { console.log(test) }}
-        />;
-        bindings["BackgroundView"] = this.backgroundLayout ? annotated : null;
+        this._documentBindings.bindings = this._documentBindings;
+
+        var scaling = this.props.ContentScaling();
+        var nativeWidth = this.props.Document.GetNumber(KeyStore.NativeWidth, 0);
+        var nativeHeight = this.props.Document.GetNumber(KeyStore.NativeHeight, 0);
         return (
-            <div className="node" ref={this._mainCont} style={{ width: "100%", height: "100%", }}>
-                <JsxParser
-                    components={{ FormattedTextBox: FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView }}
-                    bindings={bindings}
-                    jsx={this.layout}
-                    showWarnings={true}
-                    onError={(test: any) => { console.log(test) }}
-                />
+            <div className="documentView-node" ref={this._mainCont}
+                style={{
+                    width: nativeWidth > 0 ? nativeWidth.toString() + "px" : "100%",
+                    height: nativeHeight > 0 ? nativeHeight.toString() + "px" : "100%",
+                    transformOrigin: "left top",
+                    transform: `scale(${scaling},${scaling})`
+                }}
+                onContextMenu={this.onContextMenu}
+                onPointerDown={this.onPointerDown}
+            >
+                {this.mainContent}
             </div>
         )
     }

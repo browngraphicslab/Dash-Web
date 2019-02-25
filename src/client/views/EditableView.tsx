@@ -6,6 +6,7 @@ export interface EditableProps {
     GetValue(): string;
     SetValue(value: string): boolean;
     contents: any;
+    height: number
 }
 
 @observer
@@ -29,9 +30,10 @@ export class EditableView extends React.Component<EditableProps> {
                 style={{ width: "100%" }}></input>
         } else {
             return (
-                <div>
+                <div className="editableView-container-editing" style={{ display: "flex", height: "100%", maxHeight: `${this.props.height}` }}
+                    onClick={action(() => this.editing = true)}
+                >
                     {this.props.contents}
-                    <button onClick={action(() => this.editing = true)}>Edit</button>
                 </div>
             )
         }

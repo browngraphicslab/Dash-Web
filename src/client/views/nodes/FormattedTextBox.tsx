@@ -6,13 +6,10 @@ import { schema } from "prosemirror-schema-basic";
 import { EditorState, Transaction } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { Opt, FieldWaiting, FieldValue } from "../../../fields/Field";
-import { SelectionManager } from "../../util/SelectionManager";
 import "./FormattedTextBox.scss";
 import React = require("react")
 import { RichTextField } from "../../../fields/RichTextField";
 import { FieldViewProps, FieldView } from "./FieldView";
-import { CollectionFreeFormDocumentView } from "./CollectionFreeFormDocumentView";
-import { observer } from "mobx-react";
 import { ContextMenu } from "../../views/ContextMenu";
 
 
@@ -34,7 +31,7 @@ import { ContextMenu } from "../../views/ContextMenu";
 //]
 export class FormattedTextBox extends React.Component<FieldViewProps> {
 
-    public static LayoutString() { return FieldView.LayoutString("FormattedTextBox"); }
+    public static LayoutString(fieldStr: string = "DataKey") { return FieldView.LayoutString(FormattedTextBox, fieldStr) }
     private _ref: React.RefObject<HTMLDivElement>;
     private _editorView: Opt<EditorView>;
     private _reactionDisposer: Opt<IReactionDisposer>;
@@ -111,7 +108,7 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
     }
     onPointerDown = (e: React.PointerEvent): void => {
         let me = this;
-        if (e.buttons === 1 && me.props.DocumentViewForField instanceof CollectionFreeFormDocumentView && SelectionManager.IsSelected(me.props.DocumentViewForField)) {
+        if (e.buttons === 1 && this.props.isSelected()) {
             e.stopPropagation();
         }
     }
@@ -124,8 +121,15 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
         ContextMenu.Instance.addItem({ description: "Text Capability", event: this.textCapability });
     }
 
+    onPointerWheel = (e: React.WheelEvent): void => {
+        e.stopPropagation();
+    }
+
     render() {
-        return (<div className="formattedTextBox-cont" style={{ color: "initial", whiteSpace: "initial" }}
-            onPointerDown={this.onPointerDown} ref={this._ref} onContextMenu={this.specificContextMenu} />)
+        return (<div className="formattedTextBox-cont"
+            onPointerDown={this.onPointerDown}
+            onContextMenu={this.specificContextMenu}
+            onWheel={this.onPointerWheel}
+            ref={this._ref} />)
     }
 }
