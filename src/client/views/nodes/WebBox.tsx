@@ -9,12 +9,12 @@ import { CollectionFreeFormDocumentView } from './CollectionFreeFormDocumentView
 import { FieldWaiting } from '../../../fields/Field';
 import { observer } from "mobx-react"
 import { observable, action, spy } from 'mobx';
-import { KeyStore } from '../../../fields/Key';
+import { KeyStore } from '../../../fields/KeyStore';
 
 @observer
 export class WebBox extends React.Component<FieldViewProps> {
 
-    public static LayoutString() { return FieldView.LayoutString("WebBox"); }
+    public static LayoutString() { return FieldView.LayoutString(WebBox); }
     private _ref: React.RefObject<HTMLDivElement>;
     private _downX: number = 0;
     private _downY: number = 0;
@@ -38,8 +38,7 @@ export class WebBox extends React.Component<FieldViewProps> {
 
     onPointerDown = (e: React.PointerEvent): void => {
         if (Date.now() - this._lastTap < 300) {
-            if (e.buttons === 1 && this.props.DocumentViewForField instanceof CollectionFreeFormDocumentView &&
-                SelectionManager.IsSelected(this.props.DocumentViewForField)) {
+            if (e.buttons === 1 && this.props.isSelected()) {
                 e.stopPropagation();
                 this._downX = e.clientX;
                 this._downY = e.clientY;
@@ -50,6 +49,7 @@ export class WebBox extends React.Component<FieldViewProps> {
             this._lastTap = Date.now();
         }
     }
+
     @action
     onPointerUp = (e: PointerEvent): void => {
         document.removeEventListener("pointerup", this.onPointerUp);

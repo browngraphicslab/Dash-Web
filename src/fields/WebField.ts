@@ -1,9 +1,10 @@
 import { BasicField } from "./BasicField";
-import { Field } from "./Field";
+import { Field, FieldId } from "./Field";
+import { Types } from "../server/Message";
 
 export class WebField extends BasicField<URL> {
-    constructor(data: URL | undefined = undefined) {
-        super(data == undefined ? new URL("https://crossorigin.me/" + "https://cs.brown.edu/") : data);
+    constructor(data: URL | undefined = undefined, id?: FieldId, save: boolean = true) {
+        super(data == undefined ? new URL("https://crossorigin.me/" + "https://cs.brown.edu/") : data, save, id);
     }
 
     toString(): string {
@@ -16,6 +17,14 @@ export class WebField extends BasicField<URL> {
 
     Copy(): Field {
         return new WebField(this.Data);
+    }
+
+    ToJson(): { type: Types, data: URL, _id: string } {
+        return {
+            type: Types.Web,
+            data: this.Data,
+            _id: this.Id
+        }
     }
 
 }

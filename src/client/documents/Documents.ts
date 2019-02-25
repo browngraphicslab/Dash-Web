@@ -7,17 +7,12 @@ import { ListField } from "../../fields/ListField";
 import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
 import { ImageField } from "../../fields/ImageField";
 import { ImageBox } from "../views/nodes/ImageBox";
-<<<<<<< HEAD
 import { WebField } from "../../fields/WebField";
 import { WebBox } from "../views/nodes/WebBox";
 import { CollectionFreeFormView } from "../views/collections/CollectionFreeFormView";
 import { FieldId } from "../../fields/Field";
-=======
 import { CollectionView, CollectionViewType } from "../views/collections/CollectionView";
 import { FieldView } from "../views/nodes/FieldView";
-import { HtmlField } from "../../fields/HtmlField";
-import { WebView } from "../views/nodes/WebView";
->>>>>>> bb418216efa9cc2e191b970e4cbe5080f4fd2b87
 
 export interface DocumentOptions {
     x?: number;
@@ -85,28 +80,6 @@ export namespace Documents {
         let doc = GetTextPrototype().MakeDelegate();
         setupOptions(doc, options);
         // doc.Set(KeyStore.Data, new RichTextField());
-        return doc;
-    }
-
-    let htmlProto: Document;
-    const htmlProtoId = "htmlProto";
-    function GetHtmlPrototype(): Document {
-        if (!htmlProto) {
-            htmlProto = new Document(htmlProtoId);
-            htmlProto.Set(KeyStore.X, new NumberField(0));
-            htmlProto.Set(KeyStore.Y, new NumberField(0));
-            htmlProto.Set(KeyStore.Width, new NumberField(300));
-            htmlProto.Set(KeyStore.Height, new NumberField(150));
-            htmlProto.Set(KeyStore.Layout, new TextField(WebView.LayoutString()));
-            htmlProto.Set(KeyStore.LayoutKeys, new ListField([KeyStore.Data]));
-        }
-        return htmlProto;
-    }
-
-    export function HtmlDocument(html: string, options: DocumentOptions = {}): Document {
-        let doc = GetHtmlPrototype().MakeDelegate();
-        setupOptions(doc, options);
-        doc.Set(KeyStore.Data, new HtmlField(html));
         return doc;
     }
 
