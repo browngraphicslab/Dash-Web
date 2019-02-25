@@ -24,14 +24,14 @@ const port = 1050; // default port to listen
 const serverPort = 1234;
 import * as expressValidator from 'express-validator';
 import expressFlash = require('express-flash');
-import flash = require('express-flash');
+import flash = require('connect-flash');
 import * as bodyParser from 'body-parser';
 import * as session from 'express-session';
+import cookieSession = require('cookie-session');
 import * as cookieParser from 'cookie-parser';
 import c = require("crypto");
 const MongoStore = require('connect-mongo')(session);
 const mongoose = require('mongoose');
-const bluebird = require('bluebird');
 import { performance } from 'perf_hooks'
 import * as path from 'path'
 import User, { UserModel } from './authentication/models/User';
@@ -45,15 +45,20 @@ mongoose.connection.on('connected', function () {
 // SESSION MANAGEMENT AND AUTHENTICATION MIDDLEWARE
 // ORDER OF IMPORTS MATTERS
 
-app.use(cookieParser("secret"));
-app.use(session({
-    secret: `${c.randomBytes(64)}`,
-    resave: true,
-    cookie: { maxAge: 60000 },
-    saveUninitialized: true,
-    store: new MongoStore({
-        url: 'mongodb://localhost:27017/Dash'
-    })
+app.use(cookieParser(`${c.randomBytes(64)}`));
+// app.use(session({
+//     secret: `${c.randomBytes(64)}`,
+//     resave: true,
+//     cookie: { maxAge: 60000 },
+//     saveUninitialized: true,
+//     store: new MongoStore({
+//         url: 'mongodb://localhost:27017/Dash'
+//     })
+// }));
+app.use(cookieSession({
+    name: 'authentication',
+    keys: [`${c.randomBytes(8)}`, `${c.randomBytes(8)}`, `${c.randomBytes(8)}`],
+    maxAge: 7 * 24 * 60 * 60 * 1000
 }));
 app.use(flash());
 app.use(expressFlash());
@@ -75,6 +80,11 @@ app.use((req, res, next) => {
 
 // /home defines destination after a successful log in
 app.get("/home", (req, res) => {
+    console.log("REQ.USER = " + req.user);
+    console.log("REQ.SESSION = " + req.session);
+    if (req.session) {
+        console.log("AAANNNNDDD USER = " + req.session.user);
+    }
     // if user is not logged in, redirect to log in page
     if (!req.user) {
         res.redirect("/login");
