@@ -13,8 +13,6 @@ import { CollectionSchemaView } from "./CollectionSchemaView";
 import { CollectionViewProps } from "./CollectionViewBase";
 import { CollectionTreeView } from "./CollectionTreeView";
 
-
-
 export enum CollectionViewType {
     Invalid,
     Freeform,

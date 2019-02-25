@@ -189,6 +189,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             ContextMenu.Instance.addItem({ description: "Delete", event: this.deleteClicked })
             ContextMenu.Instance.addItem({ description: "Freeform", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Freeform) })
             ContextMenu.Instance.addItem({ description: "Schema", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Schema) })
+            ContextMenu.Instance.addItem({ description: "Treeview", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Tree) })
             ContextMenu.Instance.addItem({ description: "Docking", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Docking) })
             ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15)
             SelectionManager.SelectDoc(this, e.ctrlKey);
