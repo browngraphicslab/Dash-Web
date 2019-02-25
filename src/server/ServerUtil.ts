@@ -9,6 +9,7 @@ import { Document } from './../fields/Document';
 import { Server } from './../client/Server';
 import { Types } from './Message';
 import { Utils } from '../Utils';
+import { HtmlField } from '../fields/HtmlField';
 
 export class ServerUtils {
     public static FromJson(json: any): Field {
@@ -27,6 +28,8 @@ export class ServerUtils {
                 return new NumberField(data, id, false)
             case Types.Text:
                 return new TextField(data, id, false)
+            case Types.Html:
+                return new HtmlField(data, id, false)
             case Types.RichText:
                 return new RichTextField(data, id, false)
             case Types.Key:
@@ -42,7 +45,8 @@ export class ServerUtils {
                     doc._proxies.set(element[0], element[1]);
                 });
                 return doc
+            default:
+                throw Error("Error, unrecognized field type received from server. If you just created a new field type, be sure to add it here");
         }
-        return new TextField(data, id)
     }
 }

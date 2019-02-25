@@ -9,7 +9,7 @@ import { Client } from './Client';
 import { Socket } from 'socket.io';
 import { Utils } from '../Utils';
 import { ObservableMap } from 'mobx';
-import { FIELD_ID, Field } from '../fields/Field';
+import { FieldId, Field } from '../fields/Field';
 import { Database } from './database';
 import { ServerUtils } from './ServerUtil';
 import { ObjectID } from 'mongodb';
@@ -36,7 +36,7 @@ import * as async from 'async';
 const bluebird = require('bluebird');
 import { performance } from 'perf_hooks'
 import * as path from 'path'
-import User from './authentication/models/User';
+import User, { UserModel } from './authentication/models/User';
 
 const mongoUrl = 'mongodb://localhost:27017/Dash';
 // mongoose.Promise = bluebird;
@@ -136,19 +136,19 @@ app.post('/forgot', function (req, res, next) {
             done(token);
         },
         function (token: Uint16Array, done: any) {
-            User.findOne({ email }, function (err, user: User) {
+            User.findOne({ email }, function (err, user: UserModel) {
                 if (!user) {
                     // NO ACCOUNT WITH SUBMITTED EMAIL
                     return res.redirect('/forgot');
                 }
-                user.resetPasswordToken = token;
-                user.resetPasswordExpires = Date.now() + 3600000; // 1 HOUR
+                user.passwordResetToken = token.toString();
+                user.passwordResetExpires = new Date(Date.now() + 3600000); // 1 HOUR
                 user.save(function (err: any) {
                     done(err, token, user);
                 });
             });
         },
-        function (token: Uint16Array, user: User, done: any) {
+        function (token: Uint16Array, user: UserModel, done: any) {
             const transport = nodemailer.createTransport('SMTP', {
                 auth: {
                     user: 'test.nodemailer@gmail.com',
@@ -158,8 +158,7 @@ app.post('/forgot', function (req, res, next) {
         }
     ])
 })
-
-let FieldStore: ObservableMap<FIELD_ID, Field> = new ObservableMap();
+let FieldStore: ObservableMap<FieldId, Field> = new ObservableMap();
 
 app.get("/hello", (req, res) => {
     res.send("<p>Hello</p>");

@@ -11,9 +11,9 @@ export function Cast<T extends Field>(field: FieldValue<Field>, ctor: { new(): T
     return undefined;
 }
 
-export let FieldWaiting: FIELD_WAITING = "<Waiting>";
+export const FieldWaiting: FIELD_WAITING = "<Waiting>";
 export type FIELD_WAITING = "<Waiting>";
-export type FIELD_ID = string | undefined;
+export type FieldId = string;
 export type Opt<T> = T | undefined;
 export type FieldValue<T> = Opt<T> | FIELD_WAITING;
 
@@ -24,12 +24,12 @@ export abstract class Field {
         callback(this);
     }
 
-    private id: string;
-    get Id(): string {
+    private id: FieldId;
+    get Id(): FieldId {
         return this.id;
     }
 
-    constructor(id: FIELD_ID = undefined) {
+    constructor(id: Opt<FieldId> = undefined) {
         this.id = id || Utils.GenerateGuid();
     }
 

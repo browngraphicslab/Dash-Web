@@ -1,7 +1,6 @@
-import { Field, FieldWaiting, FIELD_ID, FIELD_WAITING, FieldValue, Opt } from "../fields/Field"
 import { Key } from "../fields/Key"
-import { KeyStore } from "../fields/KeyStore"
-import { ObservableMap, action, reaction, when } from "mobx";
+import { ObservableMap, action, reaction } from "mobx";
+import { Field, FieldWaiting, FIELD_WAITING, Opt, FieldId } from "../fields/Field"
 import { Document } from "../fields/Document"
 import { SocketStub } from "./SocketStub";
 import * as OpenSocket from 'socket.io-client';
@@ -9,7 +8,7 @@ import { Utils } from "./../Utils";
 import { MessageStore, Types } from "./../server/Message";
 
 export class Server {
-    public static ClientFieldsCached: ObservableMap<FIELD_ID, Field | FIELD_WAITING> = new ObservableMap();
+    public static ClientFieldsCached: ObservableMap<FieldId, Field | FIELD_WAITING> = new ObservableMap();
     static Socket: SocketIOClient.Socket = OpenSocket("http://localhost:1234");
     static GUID: string = Utils.GenerateGuid()
 
@@ -17,7 +16,7 @@ export class Server {
     // Retrieves the cached value of the field and sends a request to the server for the real value (if it's not cached).
     // Call this is from within a reaction and test whether the return value is FieldWaiting.
     // 'hackTimeout' is here temporarily for simplicity when debugging things.
-    public static GetField(fieldid: FIELD_ID, callback: (field: Opt<Field>) => void = (f) => { }, doc?: Document, key?: Key, hackTimeout: number = -1) {
+    public static GetField(fieldid: FieldId, callback: (field: Opt<Field>) => void): Opt<Field> | FIELD_WAITING {
         let cached = this.ClientFieldsCached.get(fieldid);
         if (!cached) {
             this.ClientFieldsCached.set(fieldid, FieldWaiting);
@@ -35,7 +34,7 @@ export class Server {
                 }
             }));
         } else if (cached != FieldWaiting) {
-            callback(cached);
+            setTimeout(() => callback(cached as Field), 0);
         } else {
             reaction(() => {
                 return this.ClientFieldsCached.get(fieldid);
@@ -49,7 +48,7 @@ export class Server {
         return cached;
     }
 
-    public static GetFields(fieldIds: FIELD_ID[], callback: (fields: { [id: string]: Field }) => any) {
+    public static GetFields(fieldIds: FieldId[], callback: (fields: { [id: string]: Field }) => any) {
         SocketStub.SEND_FIELDS_REQUEST(fieldIds, (fields) => {
             for (let key in fields) {
                 let field = fields[key];
@@ -61,27 +60,19 @@ export class Server {
         });
     }
 
-    static times = 0; // hack for testing
-    public static GetDocumentField(doc: Document, key: Key) {
-        // let keyId: string = element[0]
-        // let valueId: string = element[1]
-        // Server.GetField(keyId, (key: Field) => {
-        //     if (key instanceof Key) {
-        //         Server.GetField(valueId, (field: Field) => {
-        //             console.log(field)
-        //             doc.Set(key as Key, field)
-        //         })
-        //     }
-        //     else {
-        //         console.log("how did you get a key that isnt a key wtf")
-        //     }
-        // })
-        return this.GetField(doc._proxies.get(key.Id),
-            action((fieldfromserver: Opt<Field>) => {
-                if (fieldfromserver) {
-                    doc.fields.set(key.Id, { key, field: fieldfromserver });
-                }
-            }), doc, key);
+    public static GetDocumentField(doc: Document, key: Key, callback?: (field: Field) => void) {
+        let field = doc._proxies.get(key.Id);
+        if (field) {
+            this.GetField(field,
+                action((fieldfromserver: Opt<Field>) => {
+                    if (fieldfromserver) {
+                        doc.fields.set(key.Id, { key, field: fieldfromserver });
+                        if (callback) {
+                            callback(fieldfromserver);
+                        }
+                    }
+                }));
+        }
     }
 
     public static AddDocument(document: Document) {

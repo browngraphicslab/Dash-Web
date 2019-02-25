@@ -1,16 +1,15 @@
-import { Field, FIELD_ID, Opt } from "../fields/Field"
 import { Key } from "../fields/Key"
-import { KeyStore } from "../fields/KeyStore"
-import { ObservableMap, action } from "mobx";
+import { Field, FieldId, Opt } from "../fields/Field"
+import { ObservableMap } from "mobx";
 import { Document } from "../fields/Document"
-import { MessageStore, SetFieldArgs, GetFieldArgs, DocumentTransfer, Types } from "../server/Message";
+import { MessageStore, DocumentTransfer } from "../server/Message";
 import { Utils } from "../Utils";
 import { Server } from "./Server";
 import { ServerUtils } from "../server/ServerUtil";
 
 export class SocketStub {
 
-    static FieldStore: ObservableMap<FIELD_ID, Field> = new ObservableMap();
+    static FieldStore: ObservableMap<FieldId, Field> = new ObservableMap();
     public static SEND_ADD_DOCUMENT(document: Document) {
 
         // Send a serialized version of the document to the server
@@ -35,7 +34,7 @@ export class SocketStub {
         Utils.Emit(Server.Socket, MessageStore.AddDocument, new DocumentTransfer(document.ToJson()))
     }
 
-    public static SEND_FIELD_REQUEST(fieldid: FIELD_ID, callback: (field: Opt<Field>) => void) {
+    public static SEND_FIELD_REQUEST(fieldid: FieldId, callback: (field: Opt<Field>) => void) {
         if (fieldid) {
             Utils.EmitCallback(Server.Socket, MessageStore.GetField, fieldid, (field: any) => {
                 if (field) {
@@ -47,7 +46,7 @@ export class SocketStub {
         }
     }
 
-    public static SEND_FIELDS_REQUEST(fieldIds: FIELD_ID[], callback: (fields: { [key: string]: Field }) => any) {
+    public static SEND_FIELDS_REQUEST(fieldIds: FieldId[], callback: (fields: { [key: string]: Field }) => any) {
         Utils.EmitCallback(Server.Socket, MessageStore.GetFields, fieldIds, (fields: any[]) => {
             let fieldMap: any = {};
             for (let field of fields) {
