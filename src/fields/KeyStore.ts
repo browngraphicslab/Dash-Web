@@ -19,6 +19,7 @@ export namespace KeyStore {
     export const ViewType = new Key("ViewType");
     export const Layout = new Key("Layout");
     export const BackgroundLayout = new Key("BackgroundLayout");
+    export const OverlayLayout = new Key("OverlayLayout");
     export const LayoutKeys = new Key("LayoutKeys");
     export const LayoutFields = new Key("LayoutFields");
     export const ColumnsKey = new Key("SchemaColumns");

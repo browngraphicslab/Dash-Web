@@ -120,8 +120,8 @@ export class CollectionFreeFormView extends CollectionViewBase {
     private SetPan(panX: number, panY: number) {
         const newPanX = Math.max((1 - this.zoomScaling) * this.nativeWidth, Math.min(0, panX));
         const newPanY = Math.max((1 - this.zoomScaling) * this.nativeHeight, Math.min(0, panY));
-        this.props.Document.SetNumber(KeyStore.PanX, this.isAnnotationOverlay ? newPanX : panX);
-        this.props.Document.SetNumber(KeyStore.PanY, this.isAnnotationOverlay ? newPanY : panY);
+        this.props.Document.SetNumber(KeyStore.PanX, false && this.isAnnotationOverlay ? newPanX : panX);
+        this.props.Document.SetNumber(KeyStore.PanY, false && this.isAnnotationOverlay ? newPanY : panY);
     }
 
     @action
@@ -162,6 +162,12 @@ export class CollectionFreeFormView extends CollectionViewBase {
             return field.Data;
         }
     }
+    @computed get overlayLayout(): string | undefined {
+        let field = this.props.Document.GetT(KeyStore.OverlayLayout, TextField);
+        if (field && field !== "<Waiting>") {
+            return field.Data;
+        }
+    }
     @computed
     get views() {
         const { fieldKey, Document } = this.props;
@@ -193,6 +199,17 @@ export class CollectionFreeFormView extends CollectionViewBase {
                 onError={(test: any) => console.log(test)}
             />);
     }
+    @computed
+    get overlayView() {
+        return !this.overlayLayout ? (null) :
+            (<JsxParser
+                components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView }}
+                bindings={this.props.bindings}
+                jsx={this.overlayLayout}
+                showWarnings={true}
+                onError={(test: any) => console.log(test)}
+            />);
+    }
     getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-COLLECTION_BORDER_WIDTH, -COLLECTION_BORDER_WIDTH).transform(this.getLocalTransform())
     getLocalTransform = (): Transform => Transform.Identity.translate(-this.panX, -this.panY).scale(1 / this.scale);
     noScaling = () => 1;
@@ -215,6 +232,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
                     {this.backgroundView}
                     {this.views}
                 </div>
+                {this.overlayView}
             </div>
         );
     }

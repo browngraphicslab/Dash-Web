@@ -16,6 +16,8 @@ import "./CollectionSchemaView.scss";
 import { COLLECTION_BORDER_WIDTH } from "./CollectionView";
 import { CollectionViewBase } from "./CollectionViewBase";
 
+// bcz: need to add drag and drop of rows and columns.  This seems like it might work for rows: https://codesandbox.io/s/l94mn1q657
+
 @observer
 export class CollectionSchemaView extends CollectionViewBase {
     private _mainCont = React.createRef<HTMLDivElement>();
@@ -140,7 +142,7 @@ export class CollectionSchemaView extends CollectionViewBase {
         let content = this._selectedIndex == -1 || !selected ? (null) : (
             <Measure onResize={this.setScaling}>
                 {({ measureRef }) =>
-                    <div ref={measureRef}>
+                    <div className="collectionSchemaView-content" ref={measureRef}>
                         <DocumentView Document={selected}
                             AddDocument={this.props.addDocument} RemoveDocument={this.props.removeDocument}
                             isTopMost={false}
@@ -173,7 +175,8 @@ export class CollectionSchemaView extends CollectionViewBase {
                                 }))}
                                 column={{
                                     ...ReactTableDefaults.column,
-                                    Cell: this.renderCell
+                                    Cell: this.renderCell,
+
                                 }}
                                 getTrProps={this.getTrProps}
                             />
