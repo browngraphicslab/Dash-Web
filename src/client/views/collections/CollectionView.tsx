@@ -53,7 +53,13 @@ export class CollectionView extends React.Component<CollectionViewProps> {
     removeDocument = (doc: Document): boolean => {
         //TODO This won't create the field if it doesn't already exist
         const value = this.props.Document.GetData(this.props.fieldKey, ListField, new Array<Document>())
-        let index = value.indexOf(doc);
+        let index = -1;
+        for (let i = 0; i < value.length; i++) {
+            if (value[i].Id == doc.Id) {
+                index = i;
+                break;
+            }
+        }
         if (index !== -1) {
             value.splice(index, 1)
 

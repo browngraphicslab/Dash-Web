@@ -44,12 +44,16 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
     @undoBatch
     @action
     protected drop(e: Event, de: DragManager.DropEvent) {
-        const doc: DocumentView = de.data["document"];
-        if (doc.props.ContainingCollectionView && doc.props.ContainingCollectionView !== this.props.CollectionView) {
-            if (doc.props.RemoveDocument) {
-                doc.props.RemoveDocument(doc.props.Document);
+        const docView: DocumentView = de.data["documentView"];
+        const doc: Document = de.data["document"];
+        if (docView && docView.props.ContainingCollectionView && docView.props.ContainingCollectionView !== this.props.CollectionView) {
+            if (docView.props.RemoveDocument) {
+                docView.props.RemoveDocument(docView.props.Document);
             }
-            this.props.addDocument(doc.props.Document);
+            this.props.addDocument(docView.props.Document);
+        } else if (doc) {
+            this.props.removeDocument(doc);
+            this.props.addDocument(doc);
         }
         e.stopPropagation();
     }

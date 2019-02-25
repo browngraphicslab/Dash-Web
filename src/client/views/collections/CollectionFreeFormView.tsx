@@ -44,16 +44,13 @@ export class CollectionFreeFormView extends CollectionViewBase {
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
         super.drop(e, de);
-        const doc: DocumentView = de.data["document"];
-        const xOffset = de.data["xOffset"] as number || 0;
-        const yOffset = de.data["yOffset"] as number || 0;
-        //this should be able to use translate and scale methods on an Identity transform, no?
-        const transform = this.getTransform();
-        const screenX = de.x - xOffset;
-        const screenY = de.y - yOffset;
-        const [x, y] = transform.transformPoint(screenX, screenY);
-        doc.props.Document.SetNumber(KeyStore.X, x);
-        doc.props.Document.SetNumber(KeyStore.Y, y);
+        const docView: DocumentView = de.data["documentView"];
+        let doc: Document = docView ? docView.props.Document : de.data["document"];
+        let screenX = de.x - (de.data["xOffset"] as number || 0);
+        let screenY = de.y - (de.data["yOffset"] as number || 0);
+        const [x, y] = this.getTransform().transformPoint(screenX, screenY);
+        doc.SetNumber(KeyStore.X, x);
+        doc.SetNumber(KeyStore.Y, y);
         this.bringToFront(doc);
     }
 
@@ -148,15 +145,15 @@ export class CollectionFreeFormView extends CollectionViewBase {
     }
 
     @action
-    bringToFront(doc: DocumentView) {
+    bringToFront(doc: Document) {
         const { fieldKey: fieldKey, Document: Document } = this.props;
 
         const value: Document[] = Document.GetList<Document>(fieldKey, []).slice();
         value.sort((doc1, doc2) => {
-            if (doc1 === doc.props.Document) {
+            if (doc1 === doc) {
                 return 1;
             }
-            if (doc2 === doc.props.Document) {
+            if (doc2 === doc) {
                 return -1;
             }
             return doc1.GetNumber(KeyStore.ZIndex, 0) - doc2.GetNumber(KeyStore.ZIndex, 0);
