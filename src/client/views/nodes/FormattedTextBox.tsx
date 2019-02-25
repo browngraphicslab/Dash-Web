@@ -112,12 +112,8 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
         }
     }
     render() {
+        var val = this.props.doc.Get(this.props.fieldKey);
         return (<div className="formattedTextBox-cont"
-            style={{
-                color: "initial",
-                whiteSpace: "initial",
-                height: "auto"
-            }}
             onPointerDown={this.onPointerDown}
             ref={this._ref} />)
     }

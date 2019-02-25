@@ -128,8 +128,8 @@ export namespace Documents {
 
     // example of custom display string for an image that shows a caption.
     function EmbeddedCaption() {
-        return `<div style="position:absolute; height:100%">
-            <div style="position:relative; margin:auto; width:85%; margin:auto" >`
+        return `<div style="height:100%">
+            <div style="position:relative; margin:auto; height:85%;" >`
             + ImageBox.LayoutString() +
             `</div>
             <div style="position:relative; overflow:auto; height:15%; text-align:center; ">`

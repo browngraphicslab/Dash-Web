@@ -1,4 +1,3 @@
-
 .collectionSchemaView-container {
     border-style: solid;
     box-sizing: border-box;
@@ -11,36 +10,54 @@
     }
     ::-webkit-scrollbar-thumb {
         border-radius: 5px;
-        background-color: rgba(0,0,0,.5);
-    }
-
-    .collectionfreeformview-container {
-        border-width: 0px;
-        .collectionfreeformview > .jsx-parser{
-            position:absolute
-        }
-    }
-    .imageBox-cont {
-        position:relative;
-        max-height:100%;
+        background-color: rgba(0, 0, 0, .5);
     }
     .ReactTable {
-        position: absolute;
-       // display: inline-block;
-       // overflow: auto;
+        position: absolute; // display: inline-block;
+        // overflow: auto;
         width: 100%;
         height: 100%;
         background: white;
         box-sizing: border-box;
+        .rt-table {
+            overflow-y: auto;
+            overflow-x: auto;
+            height: 100%;
+            display: -webkit-inline-box;
+            direction: ltr; // direction:rtl;
+            // display:block;
+        }
+        .rt-tbody {
+            //direction: ltr;
+            direction: rtl;
+        }
+        .rt-tr-group {
+            direction: ltr;
+        }
+        .rt-td {
+            border-width: 1;
+            border-right-color: #aaa;
+            .imageBox-cont {
+                position: relative;
+                max-height: 100%;
+            }
+            .imageBox-cont img {
+                object-fit: contain;
+                max-width: 100%;
+                height: 100%
+            }
+        }
+        .rt-tr-group {
+            border-width: 1;
+            border-bottom-color: #aaa
+        }
     }
     .ReactTable .rt-table {
         overflow-y: auto;
         overflow-x: auto;
         height: 100%;
-
         display: -webkit-inline-box;
-        direction: ltr;
-        // direction:rtl;
+        direction: ltr; // direction:rtl;
         // display:block;
     }
     .ReactTable .rt-tbody {
@@ -51,9 +68,10 @@
         direction: ltr;
     }
     .ReactTable .rt-thead.-header {
-            background:grey;
-        }
-    .ReactTable .rt-th, .ReactTable .rt-td {
+        background: grey;
+    }
+    .ReactTable .rt-th,
+    .ReactTable .rt-td {
         max-height: 75px;
     }
     .ReactTable .rt-tbody .rt-tr-group:last-child {
@@ -61,24 +79,10 @@
         border-bottom-style: solid;
         border-bottom-width: 1;
     }
-    .ReactTable .rt-td {
-        border-width: 1;
-        border-right-color: #aaa
-    }
-    .ReactTable .rt-tr-group {
-        border-width: 1;
-        border-bottom-color: #aaa
-    }
-    .imageBox-cont img {
-        object-fit: contain;
-        height: 100%
-    }
     .documentView-node:first-child {
         background: grey;
         .imageBox-cont img {
             object-fit: contain;
-            max-width: 100%;
-            height: 100%
         }
     }
 }

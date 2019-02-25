@@ -88,7 +88,7 @@ export class CollectionFreeFormDocumentView extends React.Component<DocumentView
 
     render() {
         return (
-            <div ref={this._mainCont} style={{
+            <div className="collectionFreeFormDocumentView-container" ref={this._mainCont} style={{
                 transformOrigin: "left top",
                 transform: this.transform,
                 width: this.width,
