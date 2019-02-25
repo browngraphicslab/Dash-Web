@@ -45,7 +45,8 @@ const userSchema = new mongoose.Schema({
     password: String,
     passwordResetToken: String,
     passwordResetExpires: Date,
-    userDoc: String,
+
+    userDocumentId: String,
 
     facebook: String,
     twitter: String,

@@ -19,6 +19,7 @@ import { Utils } from '../../Utils';
 import { ServerUtils } from '../../server/ServerUtil';
 import { MessageStore, DocumentTransfer } from '../../server/Message';
 import { Database } from '../../server/database';
+import * as request from 'request'
 
 
 configure({
@@ -42,6 +43,21 @@ document.addEventListener("pointerdown", action(function (e: PointerEvent) {
     }
 }), true)
 
+let mainDocId: string;
+request.get(window.location.origin + "/getUserDocId", (error, response, body) => {
+    if (body) {
+        mainDocId = body;
+    } else {
+        mainDocId = Utils.GenerateGuid();
+        request.post(window.location.origin + "/setUserDocId", {
+            body: {
+                userDocumentId: mainDocId
+            },
+            json: true
+        })
+    }
+    init();
+})
 
 //runInAction(() => 
 // let doc1 = Documents.TextDocument({ title: "hello" });
@@ -59,91 +75,91 @@ document.addEventListener("pointerdown", action(function (e: PointerEvent) {
 // schemaDocs[4].SetData(KS.Author, "Bob", TextField);
 // schemaDocs.push(doc2);
 // const doc7 = Documents.SchemaDocument(schemaDocs)
+function init() {
+    Documents.initProtos(() => {
+        Utils.EmitCallback(Server.Socket, MessageStore.GetField, mainDocId, (res: any) => {
+            console.log("HELLO WORLD")
+            console.log("RESPONSE: " + res)
+            let mainContainer: Document;
+            if (res) {
+                var lid = KeyStore.Layout.Id;
+                let obj = ServerUtils.FromJson(res) as Document
+                mainContainer = obj
+            }
+            else {
+                const docset: Document[] = [];
+                mainContainer = Documents.CollectionDocument(docset, { x: 0, y: 400, title: "mini collection" }, mainDocId);
+                let args = new DocumentTransfer(mainContainer.ToJson())
+                Utils.Emit(Server.Socket, MessageStore.AddDocument, args)
+            }
 
-const mainDocId = "mainDoc";
-Documents.initProtos(() => {
-    Utils.EmitCallback(Server.Socket, MessageStore.GetField, mainDocId, (res: any) => {
-        console.log("HELLO WORLD")
-        console.log("RESPONSE: " + res)
-        let mainContainer: Document;
-        if (res) {
-            var lid = KeyStore.Layout.Id;
-            let obj = ServerUtils.FromJson(res) as Document
-            mainContainer = obj
-        }
-        else {
-            const docset: Document[] = [];
-            mainContainer = Documents.CollectionDocument(docset, { x: 0, y: 400, title: "mini collection" }, mainDocId);
-            let args = new DocumentTransfer(mainContainer.ToJson())
-            Utils.Emit(Server.Socket, MessageStore.AddDocument, args)
-        }
+            let addImageNode = action(() => {
+                mainContainer.GetList<Document>(KeyStore.Data, []).push(Documents.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", {
+                    x: 0, y: 300, width: 200, height: 200, title: "added note"
+                }));
+            })
+            let addTextNode = action(() => {
+                mainContainer.GetList<Document>(KeyStore.Data, []).push(Documents.TextDocument({
+                    x: 0, y: 300, width: 200, height: 200, title: "added note"
+                }));
+            })
+            let addColNode = action(() => {
+                mainContainer.GetList<Document>(KeyStore.Data, []).push(Documents.CollectionDocument([], {
+                    x: 0, y: 300, width: 200, height: 200, title: "added note"
+                }));
+            })
 
-        let addImageNode = action(() => {
-            mainContainer.GetList<Document>(KeyStore.Data, []).push(Documents.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", {
-                x: 0, y: 300, width: 200, height: 200, title: "added note"
-            }));
-        })
-        let addTextNode = action(() => {
-            mainContainer.GetList<Document>(KeyStore.Data, []).push(Documents.TextDocument({
-                x: 0, y: 300, width: 200, height: 200, title: "added note"
-            }));
-        })
-        let addColNode = action(() => {
-            mainContainer.GetList<Document>(KeyStore.Data, []).push(Documents.CollectionDocument([], {
-                x: 0, y: 300, width: 200, height: 200, title: "added note"
-            }));
-        })
+            let clearDatabase = action(() => {
+                Utils.Emit(Server.Socket, MessageStore.DeleteAll, {});
+            })
 
-        let clearDatabase = action(() => {
-            Utils.Emit(Server.Socket, MessageStore.DeleteAll, {});
+            ReactDOM.render((
+                <div style={{ position: "absolute", width: "100%", height: "100%" }}>
+                    <a href="/logout">
+                        <img
+                            src="http://aux.iconspalace.com/uploads/logout-icon-256-510450847.png"
+                            style={{
+                                position: "absolute",
+                                width: "20px",
+                                height: "20px",
+                                top: "20px",
+                                zIndex: 15,
+                                right: "20px",
+                            }}
+                        />
+                    </a>
+                    <DocumentView Document={mainContainer} ContainingCollectionView={undefined} DocumentView={undefined} />
+                    <DocumentDecorations />
+                    <ContextMenu />
+                    <button style={{
+                        position: 'absolute',
+                        bottom: '0px',
+                        left: '0px',
+                        width: '150px'
+                    }} onClick={addImageNode}>Add Image</button>
+                    <button style={{
+                        position: 'absolute',
+                        bottom: '25px',
+                        left: '0px',
+                        width: '150px'
+                    }} onClick={addTextNode}>Add Text</button>
+                    <button style={{
+                        position: 'absolute',
+                        bottom: '50px',
+                        left: '0px',
+                        width: '150px'
+                    }} onClick={addColNode}>Add Collection</button>
+                    <button style={{
+                        position: 'absolute',
+                        bottom: '75px',
+                        left: '0px',
+                        width: '150px'
+                    }} onClick={clearDatabase}>Clear Database</button>
+                </div>),
+                document.getElementById('root'));
         })
-
-        ReactDOM.render((
-            <div style={{ position: "absolute", width: "100%", height: "100%" }}>
-                <a href="/logout">
-                    <img
-                        src="http://aux.iconspalace.com/uploads/logout-icon-256-510450847.png"
-                        style={{
-                            position: "absolute",
-                            width: "20px",
-                            height: "20px",
-                            top: "20px",
-                            zIndex: 15,
-                            right: "20px",
-                        }}
-                    />
-                </a>
-                <DocumentView Document={mainContainer} ContainingCollectionView={undefined} DocumentView={undefined} />
-                <DocumentDecorations />
-                <ContextMenu />
-                <button style={{
-                    position: 'absolute',
-                    bottom: '0px',
-                    left: '0px',
-                    width: '150px'
-                }} onClick={addImageNode}>Add Image</button>
-                <button style={{
-                    position: 'absolute',
-                    bottom: '25px',
-                    left: '0px',
-                    width: '150px'
-                }} onClick={addTextNode}>Add Text</button>
-                <button style={{
-                    position: 'absolute',
-                    bottom: '50px',
-                    left: '0px',
-                    width: '150px'
-                }} onClick={addColNode}>Add Collection</button>
-                <button style={{
-                    position: 'absolute',
-                    bottom: '75px',
-                    left: '0px',
-                    width: '150px'
-                }} onClick={clearDatabase}>Clear Database</button>
-            </div>),
-            document.getElementById('root'));
-    })
-});
+    });
+}
 // let doc5 = Documents.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", {
 //     x: 650, y: 500, width: 600, height: 600, title: "cat 2"
 // });
