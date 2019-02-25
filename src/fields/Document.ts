@@ -17,8 +17,6 @@ export class Document extends Field {
         super(id)
 
         if (save) {
-            var title = (this._proxies.has(KeyStore.Title.Id) ? "???" : this.Title) + "(" + this.Id + ")";
-            console.log("Save " + title);
             Server.UpdateField(this)
         }
     }

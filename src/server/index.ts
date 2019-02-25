@@ -31,6 +31,12 @@ const MongoStore = require('connect-mongo')(session);
 const mongoose = require('mongoose');
 const bluebird = require('bluebird');
 import { performance } from 'perf_hooks'
+import * as fs from 'fs';
+import * as request from 'request'
+
+const download = (url: string, dest: fs.PathLike) => {
+    request.get(url).pipe(fs.createWriteStream(dest));
+}
 
 const mongoUrl = 'mongodb://localhost:27017/Dash';
 // mongoose.Promise = bluebird;
