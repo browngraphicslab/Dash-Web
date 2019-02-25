@@ -170,14 +170,13 @@ export let postForgot = function (req: Request, res: Response, next: NextFunctio
                 done(null, buffer.toString('hex'));
             })
         },
-        function (token: Buffer, done: any) {
+        function (token: string, done: any) {
             User.findOne({ email }, function (err, user: UserModel) {
                 if (!user) {
                     // NO ACCOUNT WITH SUBMITTED EMAIL
                     return res.redirect('/forgot');
                 }
-                user.passwordResetToken = token.toString('utf8');
-                console.log(user.passwordResetToken);
+                user.passwordResetToken = token;
                 user.passwordResetExpires = new Date(Date.now() + 3600000); // 1 HOUR
                 user.save(function (err: any) {
                     done(null, token, user);
