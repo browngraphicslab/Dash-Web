@@ -11,6 +11,7 @@ import { CollectionFreeFormView } from "./CollectionFreeFormView";
 import { CollectionDockingView } from "./CollectionDockingView";
 import { CollectionSchemaView } from "./CollectionSchemaView";
 import { CollectionViewProps } from "./CollectionViewBase";
+import { Field } from "../../../fields/Field";
 
 
 
@@ -39,9 +40,13 @@ export class CollectionView extends React.Component<CollectionViewProps> {
     }
     @action
     addDocument = (doc: Document): void => {
-        //TODO This won't create the field if it doesn't already exist
-        const value = this.props.Document.GetData(this.props.fieldKey, ListField, new Array<Document>())
-        value.push(doc);
+        if (this.props.Document.Get(this.props.fieldKey) instanceof Field) {
+            //TODO This won't create the field if it doesn't already exist
+            const value = this.props.Document.GetData(this.props.fieldKey, ListField, new Array<Document>())
+            value.push(doc);
+        } else {
+            this.props.Document.SetData(this.props.fieldKey, [doc], ListField);
+        }
     }
 
     @action

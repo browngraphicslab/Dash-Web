@@ -196,6 +196,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     }
 
     @computed get mainContent() {
+        var val = this.props.Document.Id;
         return <JsxParser
             components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebView }}
             bindings={this._documentBindings}
@@ -237,7 +238,8 @@ export class DocumentView extends React.Component<DocumentViewProps> {
                     transform: `scale(${scaling},${scaling})`
                 }}
                 onContextMenu={this.onContextMenu}
-                onPointerDown={this.onPointerDown} >
+                onPointerDown={this.onPointerDown}
+            >
                 {this.mainContent}
             </div>
         )

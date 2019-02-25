@@ -31,7 +31,7 @@ export class Document extends Field {
     }
 
     public Width = () => { return this.GetNumber(KeyStore.Width, 0) }
-    public Height = () => { return this.GetNumber(KeyStore.Height, 0) }
+    public Height = () => { return this.GetNumber(KeyStore.Height, this.GetNumber(KeyStore.NativeWidth, 0) ? this.GetNumber(KeyStore.NativeHeight, 0) / this.GetNumber(KeyStore.NativeWidth, 0) * this.GetNumber(KeyStore.Width, 0) : 0) }
     public Scale = () => { return this.GetNumber(KeyStore.Scale, 1) }
 
     @computed

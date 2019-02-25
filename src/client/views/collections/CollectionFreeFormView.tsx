@@ -102,18 +102,30 @@ export class CollectionFreeFormView extends CollectionViewBase {
         e.stopPropagation();
         e.preventDefault();
         let coefficient = 1000;
-        // if (modes[e.deltaMode] == 'pixels') coefficient = 50;
-        // else if (modes[e.deltaMode] == 'lines') coefficient = 1000; // This should correspond to line-height??
-        let transform = this.getTransform();
 
-        let deltaScale = (1 - (e.deltaY / coefficient));
-        let [x, y] = transform.transformPoint(e.clientX, e.clientY);
+        if (e.ctrlKey) {
+            var nativeWidth = this.props.Document.GetNumber(KeyStore.NativeWidth, 0);
+            var nativeHeight = this.props.Document.GetNumber(KeyStore.NativeHeight, 0);
+            const coefficient = 1000;
+            let deltaScale = (1 - (e.deltaY / coefficient));
+            this.props.Document.SetNumber(KeyStore.NativeWidth, nativeWidth * deltaScale);
+            this.props.Document.SetNumber(KeyStore.NativeHeight, nativeHeight * deltaScale);
+            e.stopPropagation();
+            e.preventDefault();
+        } else {
+            // if (modes[e.deltaMode] == 'pixels') coefficient = 50;
+            // else if (modes[e.deltaMode] == 'lines') coefficient = 1000; // This should correspond to line-height??
+            let transform = this.getTransform();
 
-        let localTransform = this.getLocalTransform();
-        localTransform = localTransform.inverse().scaleAbout(deltaScale, x, y)
+            let deltaScale = (1 - (e.deltaY / coefficient));
+            let [x, y] = transform.transformPoint(e.clientX, e.clientY);
 
-        this.props.Document.SetNumber(KeyStore.Scale, localTransform.Scale);
-        this.SetPan(localTransform.TranslateX, localTransform.TranslateY);
+            let localTransform = this.getLocalTransform();
+            localTransform = localTransform.inverse().scaleAbout(deltaScale, x, y)
+
+            this.props.Document.SetNumber(KeyStore.Scale, localTransform.Scale);
+            this.SetPan(localTransform.TranslateX, localTransform.TranslateY);
+        }
     }
 
     @action

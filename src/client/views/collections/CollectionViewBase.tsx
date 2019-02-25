@@ -60,7 +60,7 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
 
         let html = e.dataTransfer.getData("text/html");
         let text = e.dataTransfer.getData("text/plain");
-        if (html) {
+        if (html && html.indexOf("<img") != 0) {
             let htmlDoc = Documents.HtmlDocument(html, { ...options });
             htmlDoc.SetText(KeyStore.DocumentText, text);
             this.props.addDocument(htmlDoc);
@@ -72,7 +72,7 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
             if (item.kind === "string" && item.type.indexOf("uri") != -1) {
                 e.dataTransfer.items[i].getAsString(function (s) {
                     action(() => {
-                        var img = Documents.ImageDocument(s, { ...options, nativeWidth: 300, nativeHeight: 300, width: 300, height: 300 })
+                        var img = Documents.ImageDocument(s, { ...options, nativeWidth: 300, width: 300, })
 
                         let docs = that.props.Document.GetT(KeyStore.Data, ListField);
                         if (docs != FieldWaiting) {
