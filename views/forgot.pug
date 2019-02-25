@@ -4,23 +4,17 @@ extends ./layout
 block content
     style
         include ./stylesheets/authentication.css
-    form.form-horizontal(id='login-form', method='POST')
+    form.form-horizontal(id='forgot-form', method='POST')
         input(type='hidden', name='_csrf', value=_csrf)
-        .overlay(id='overlay_login')
-            a(href="/signup")
-                img(id='new_user', src="https://bit.ly/2EuqPb4", alt="")
-            a(href="/forgot")
-                img(id='forgot', src="https://bit.ly/2XjHpSo", alt="")
-            .inner.login
-                h3.auth_header Log In
+        .overlay(id='overlay_forgot')
+            a(href="/login")
+                img(id='to_login', src="https://bit.ly/2U6ouZk", alt="")
+            .inner.forgot
+                h3.auth_header Recover Password
                 .form-group
                     //- label.col-sm-3.control-label(for='email', id='email_label') Email
                     .col-sm-7
                     input.form-control(type='email', name='email', id='email', placeholder='Email', autofocus, required)
-                .form-group
-                    //- label.col-sm-3.control-label(for='password') Password
-                    .col-sm-7
-                    input.form-control(type='password', name='password', id='password', placeholder='Password', required)
                 .form-group
                     .col-sm-offset-3.col-sm-7
                     button.btn.btn-success(id='submit', type='submit')
