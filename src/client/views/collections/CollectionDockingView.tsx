@@ -285,7 +285,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         if (!this._document)
             return (null);
         var content =
-            <div ref={this._mainCont}>
+            <div className="collectionDockingView-content" ref={this._mainCont}>
                 <DocumentView key={this._document.Id} Document={this._document}
                     AddDocument={undefined}
                     RemoveDocument={undefined}

@@ -217,12 +217,6 @@ export class CollectionFreeFormView extends CollectionViewBase {
     render() {
         const panx: number = this.props.Document.GetNumber(KeyStore.PanX, 0);
         const pany: number = this.props.Document.GetNumber(KeyStore.PanY, 0);
-        var overlay = this.overlayView ?
-            <div style={{ position: "absolute", width: "100%", height: "100%" }}>
-                {this.overlayView}
-            </div>
-            :
-            (null);
         return (
             <div className="collectionfreeformview-container"
                 onPointerDown={this.onPointerDown}
