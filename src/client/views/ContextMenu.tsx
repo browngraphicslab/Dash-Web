@@ -12,6 +12,8 @@ export class ContextMenu extends React.Component {
     @observable private _pageX: number = 0;
     @observable private _pageY: number = 0;
     @observable private _display: string = "none";
+    @observable private _searchString: string = "";
+
 
     private ref: React.RefObject<HTMLDivElement>;
 
@@ -40,9 +42,12 @@ export class ContextMenu extends React.Component {
         return this._items;
     }
 
+    @action
     displayMenu(x: number, y: number) {
         this._pageX = x
         this._pageY = y
+
+        this._searchString = "";
 
         this._display = "flex"
     }
@@ -60,28 +65,19 @@ export class ContextMenu extends React.Component {
 
     render() {
         return (
-            <div className="contextMenu-cont" id="options" style={{ left: this._pageX, top: this._pageY, display: this._display }} ref={this.ref}>
-                <input className="contextMenu-item" type="text" id="mySearch" placeholder="Search . . ." onKeyUp={this.search}></input>
-                {this._items.map(prop => {
+            <div className="contextMenu-cont" style={{ left: this._pageX, top: this._pageY, display: this._display }} ref={this.ref}>
+                <input className="contextMenu-item" type="text" placeholder="Search . . ." value={this._searchString} onChange={this.onChange}></input>
+                {this._items.filter(prop => {
+                    return prop.description.toLowerCase().indexOf(this._searchString.toLowerCase()) !== -1;
+                }).map(prop => {
                     return <ContextMenuItem {...prop} key={prop.description} />
                 })}
             </div>
         )
     }
 
-    search() {
-        let input = document.getElementById("mySearch");
-        let filter = (input as HTMLSelectElement).value.toUpperCase();
-        let li = document.getElementById("options");
-        let a = (li as HTMLSelectElement).getElementsByTagName("div");
-        for (let i = 0; i < a.length; i++) {
-            let txtValue = a[i].textContent || a[i].innerText;
-            if (txtValue.toUpperCase().indexOf(filter) > -1) {
-                a[i].style.display = "";
-            }
-            else {
-                a[i].style.display = "none";
-            }
-        }
+    @action
+    onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        this._searchString = e.target.value;
     }
 }
