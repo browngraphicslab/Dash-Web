@@ -17,6 +17,7 @@ import { Transform } from '../util/Transform';
 import { CollectionDockingView } from './collections/CollectionDockingView';
 import { FieldWaiting } from '../../fields/Field';
 import { UndoManager } from '../util/UndoManager';
+import { DragManager } from '../util/DragManager';
 
 
 configure({
@@ -77,31 +78,47 @@ Documents.initProtos(() => {
             }, 0);
         }
 
-        let addImageNode = action(() => {
-            mainfreeform.GetList<Document>(KeyStore.Data, []).push(Documents.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", {
-                x: 0, y: 300, width: 200, height: 200, title: "added note"
-            }));
-        })
-        let addTextNode = action(() => {
-            mainfreeform.GetList<Document>(KeyStore.Data, []).push(Documents.TextDocument({
-                x: 0, y: 300, width: 200, height: 200, title: "added note"
-            }));
-        })
-        let addColNode = action(() => {
-            mainfreeform.GetList<Document>(KeyStore.Data, []).push(Documents.FreeformDocument([], {
-                x: 0, y: 300, width: 200, height: 200, title: "added note"
-            }));
-        })
-        let addSchemaNode = action(() => {
-            mainfreeform.GetList<Document>(KeyStore.Data, []).push(Documents.SchemaDocument([Documents.TextDocument()], {
-                x: 0, y: 300, width: 200, height: 200, title: "added note"
-            }));
-        })
+        let clearDatabase = action(() => Utils.Emit(Server.Socket, MessageStore.DeleteAll, {}))
+        let addTextNode = action(() => Documents.TextDocument({ width: 200, height: 200, title: "a text note" }))
+        let addColNode = action(() => Documents.FreeformDocument([], { width: 200, height: 200, title: "a feeform collection" }));
+        let addSchemaNode = action(() => Documents.SchemaDocument([Documents.TextDocument()], { width: 200, height: 200, title: "a schema collection" }));
+        let addImageNode = action(() => Documents.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", {
+            width: 200, height: 200, title: "an image of a cat"
+        }));
 
-        let clearDatabase = action(() => {
-            Utils.Emit(Server.Socket, MessageStore.DeleteAll, {});
-        })
+        let addClick = (creator: any) => action(() => {
+            var img = creator();
+            img.SetNumber(KeyStore.X, 0);
+            img.SetNumber(KeyStore.Y, 0);
+            mainfreeform.GetList<Document>(KeyStore.Data, []).push(img);
+        });
 
+        let imgRef = React.createRef<HTMLDivElement>();
+        let textRef = React.createRef<HTMLDivElement>();
+        let schemaRef = React.createRef<HTMLDivElement>();
+        let colRef = React.createRef<HTMLDivElement>();
+        let curMoveListener: any = null
+        let onRowMove = (creator: any, dragRef: any) => action((e: PointerEvent): void => {
+            e.stopPropagation();
+            e.preventDefault();
+
+            document.removeEventListener("pointermove", curMoveListener);
+            document.removeEventListener('pointerup', onRowUp);
+            DragManager.StartDrag(dragRef.current!, { document: creator() });
+        });
+        let onRowUp = action((e: PointerEvent): void => {
+            document.removeEventListener("pointermove", curMoveListener);
+            document.removeEventListener('pointerup', onRowUp);
+        });
+        let onRowDown = (creator: any, dragRef: any) => (e: React.PointerEvent) => {
+            if (e.shiftKey) {
+                CollectionDockingView.Instance.StartOtherDrag(dragRef.current!, creator());
+                e.stopPropagation();
+            } else {
+                document.addEventListener("pointermove", curMoveListener = onRowMove(creator, dragRef));
+                document.addEventListener('pointerup', onRowUp);
+            }
+        }
         ReactDOM.render((
             <div style={{ position: "absolute", width: "100%", height: "100%" }}>
                 <DocumentView Document={mainContainer}
@@ -113,48 +130,17 @@ Documents.initProtos(() => {
                     ContainingCollectionView={undefined} />
                 <DocumentDecorations />
                 <ContextMenu />
-                <button style={{
-                    position: 'absolute',
-                    bottom: '0px',
-                    left: '0px',
-                    width: '150px'
-                }} onClick={addImageNode}>Add Image</button>
-                <button style={{
-                    position: 'absolute',
-                    bottom: '25px',
-                    left: '0px',
-                    width: '150px'
-                }} onClick={addTextNode}>Add Text</button>
-                <button style={{
-                    position: 'absolute',
-                    bottom: '50px',
-                    left: '0px',
-                    width: '150px'
-                }} onClick={addColNode}>Add Collection</button>
-                <button style={{
-                    position: 'absolute',
-                    bottom: '100',
-                    left: '0px',
-                    width: '150px'
-                }} onClick={addSchemaNode}>Add Schema</button>
-                <button style={{
-                    position: 'absolute',
-                    bottom: '75px',
-                    left: '0px',
-                    width: '150px'
-                }} onClick={clearDatabase}>Clear Database</button>
-                <button style={{
-                    position: 'absolute',
-                    bottom: '25',
-                    right: '0px',
-                    width: '150px'
-                }} onClick={() => UndoManager.Undo()}>Undo</button>
-                <button style={{
-                    position: 'absolute',
-                    bottom: '0',
-                    right: '0px',
-                    width: '150px'
-                }} onClick={() => UndoManager.Redo()}>Redo</button>
+                <div style={{ position: 'absolute', bottom: '0px', left: '0px', width: '150px' }} ref={imgRef} >
+                    <button onPointerDown={onRowDown(addImageNode, imgRef)} onClick={addClick(addImageNode)}>Add Image</button></div>
+                <div style={{ position: 'absolute', bottom: '25px', left: '0px', width: '150px' }} ref={textRef}>
+                    <button onPointerDown={onRowDown(addTextNode, textRef)} onClick={addClick(addTextNode)}>Add Text</button></div>
+                <div style={{ position: 'absolute', bottom: '50px', left: '0px', width: '150px' }} ref={colRef}>
+                    <button onPointerDown={onRowDown(addColNode, colRef)} onClick={addClick(addColNode)}>Add Collection</button></div>
+                <div style={{ position: 'absolute', bottom: '75px', left: '0px', width: '150px' }} ref={schemaRef}>
+                    <button onPointerDown={onRowDown(addSchemaNode, schemaRef)} onClick={addClick(addSchemaNode)}>Add Schema</button></div>
+                <button style={{ position: 'absolute', bottom: '100px', left: '0px', width: '150px' }} onClick={clearDatabase}>Clear Database</button>
+                <button style={{ position: 'absolute', bottom: '25', right: '0px', width: '150px' }} onClick={() => UndoManager.Undo()}>Undo</button>
+                <button style={{ position: 'absolute', bottom: '0', right: '0px', width: '150px' }} onClick={() => UndoManager.Redo()}>Redo</button>
             </div>),
             document.getElementById('root'));
     })

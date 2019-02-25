@@ -75,6 +75,8 @@ export namespace DragManager {
         let dragElement = ele.cloneNode(true) as HTMLElement;
         dragElement.style.opacity = "0.7";
         dragElement.style.position = "absolute";
+        dragElement.style.bottom = "";
+        dragElement.style.left = "";
         dragElement.style.transformOrigin = "0 0";
         dragElement.style.zIndex = "1000";
         dragElement.style.transform = `translate(${x}px, ${y}px) scale(${scaleX}, ${scaleY})`;

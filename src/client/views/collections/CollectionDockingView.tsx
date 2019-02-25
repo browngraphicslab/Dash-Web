@@ -36,8 +36,8 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     private _goldenLayout: any = null;
     private _dragDiv: any = null;
     private _dragParent: HTMLElement | null = null;
-    private _dragElement: HTMLDivElement | undefined;
-    private _dragFakeElement: HTMLDivElement | undefined;
+    private _dragElement: HTMLElement | undefined;
+    private _dragFakeElement: HTMLElement | undefined;
     private _containerRef = React.createRef<HTMLDivElement>();
     private _fullScreen: any = null;
 
@@ -48,7 +48,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         (window as any).ReactDOM = ReactDOM;
     }
 
-    public StartOtherDrag(dragElement: HTMLDivElement, dragDoc: Document) {
+    public StartOtherDrag(dragElement: HTMLElement, dragDoc: Document) {
         this._dragElement = dragElement;
         this._dragParent = dragElement.parentElement;
         // bcz: we want to copy this document into the header, not move it there.
@@ -65,7 +65,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
 
         //   - add a duplicate of our document to the original document's container 
         //     (GoldenLayout will be removing our original one)
-        this._dragFakeElement = dragElement.cloneNode(true) as HTMLDivElement;
+        this._dragFakeElement = dragElement.cloneNode(true) as HTMLElement;
         this._dragParent!.appendChild(this._dragFakeElement);
 
         // all of this must be undone when the document has been dropped (see tabCreated)
