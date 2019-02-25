@@ -61,7 +61,7 @@ export namespace DragManager {
         };
     }
 
-    export function StartDrag(ele: HTMLElement, dragData: { [id: string]: any }, options: DragOptions) {
+    export function StartDrag(ele: HTMLElement, dragData: { [id: string]: any }, options?: DragOptions) {
         DocumentDecorations.Instance.Hidden = true;
         if (!dragDiv) {
             dragDiv = document.createElement("div");
@@ -87,10 +87,12 @@ export namespace DragManager {
         dragDiv.appendChild(dragElement);
 
         let hideSource = false;
-        if (typeof options.hideSource === "boolean") {
-            hideSource = options.hideSource;
-        } else {
-            hideSource = options.hideSource();
+        if (options) {
+            if (typeof options.hideSource === "boolean") {
+                hideSource = options.hideSource;
+            } else {
+                hideSource = options.hideSource();
+            }
         }
         const wasHidden = ele.hidden;
         if (hideSource) {
@@ -107,7 +109,7 @@ export namespace DragManager {
         const upHandler = (e: PointerEvent) => {
             document.removeEventListener("pointermove", moveHandler, true);
             document.removeEventListener("pointerup", upHandler);
-            FinishDrag(dragElement, e, options, dragData);
+            FinishDrag(dragElement, e, dragData, options);
             if (hideSource && !wasHidden) {
                 ele.hidden = false;
             }
@@ -116,7 +118,7 @@ export namespace DragManager {
         document.addEventListener("pointerup", upHandler);
     }
 
-    function FinishDrag(dragEle: HTMLElement, e: PointerEvent, options: DragOptions, dragData: { [index: string]: any }) {
+    function FinishDrag(dragEle: HTMLElement, e: PointerEvent, dragData: { [index: string]: any }, options?: DragOptions) {
         dragDiv.removeChild(dragEle);
         const target = document.elementFromPoint(e.x, e.y);
         if (!target) {
@@ -130,7 +132,9 @@ export namespace DragManager {
                 data: dragData
             }
         }));
-        options.handlers.dragComplete({});
+        if (options) {
+            options.handlers.dragComplete({});
+        }
         DocumentDecorations.Instance.Hidden = false;
     }
 }

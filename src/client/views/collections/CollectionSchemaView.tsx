@@ -15,6 +15,8 @@ import { FieldView, FieldViewProps } from "../nodes/FieldView";
 import "./CollectionSchemaView.scss";
 import { COLLECTION_BORDER_WIDTH } from "./CollectionView";
 import { CollectionViewBase } from "./CollectionViewBase";
+import { DragManager } from "../../util/DragManager";
+import { CollectionDockingView } from "./CollectionDockingView";
 
 // bcz: need to add drag and drop of rows and columns.  This seems like it might work for rows: https://codesandbox.io/s/l94mn1q657
 
@@ -30,6 +32,9 @@ export class CollectionSchemaView extends CollectionViewBase {
     @observable _selectedIndex = 0;
     @observable _splitPercentage: number = 50;
 
+
+
+
     renderCell = (rowProps: CellInfo) => {
         let props: FieldViewProps = {
             doc: rowProps.value[0],
@@ -42,31 +47,55 @@ export class CollectionSchemaView extends CollectionViewBase {
         let contents = (
             <FieldView {...props} />
         )
+        let reference = React.createRef<HTMLDivElement>();
+        let onRowMove = action((e: PointerEvent): void => {
+            e.stopPropagation();
+            e.preventDefault();
+
+            document.removeEventListener("pointermove", onRowMove);
+            document.removeEventListener('pointerup', onRowUp);
+            DragManager.StartDrag(reference.current!, { document: props.doc });
+        });
+        let onRowUp = action((e: PointerEvent): void => {
+            document.removeEventListener("pointermove", onRowMove);
+            document.removeEventListener('pointerup', onRowUp);
+        });
+        let onRowDown = (e: React.PointerEvent) => {
+            if (e.shiftKey) {
+                CollectionDockingView.Instance.StartOtherDrag(reference.current!, props.doc);
+                e.stopPropagation();
+            } else {
+                document.addEventListener("pointermove", onRowMove);
+                document.addEventListener('pointerup', onRowUp);
+            }
+        }
         return (
-            <EditableView contents={contents} height={36} GetValue={() => {
-                let field = props.doc.Get(props.fieldKey);
-                if (field && field instanceof Field) {
-                    return field.ToScriptString();
-                }
-                return field || "";
-            }} SetValue={(value: string) => {
-                let script = CompileScript(value);
-                if (!script.compiled) {
-                    return false;
-                }
-                let field = script();
-                if (field instanceof Field) {
-                    props.doc.Set(props.fieldKey, field);
-                    return true;
-                } else {
-                    let dataField = ToField(field);
-                    if (dataField) {
-                        props.doc.Set(props.fieldKey, dataField);
-                        return true;
-                    }
-                }
-                return false;
-            }}></EditableView>
+            <div onPointerDown={onRowDown} ref={reference}>
+                <EditableView contents={contents}
+                    height={36} GetValue={() => {
+                        let field = props.doc.Get(props.fieldKey);
+                        if (field && field instanceof Field) {
+                            return field.ToScriptString();
+                        }
+                        return field || "";
+                    }} SetValue={(value: string) => {
+                        let script = CompileScript(value);
+                        if (!script.compiled) {
+                            return false;
+                        }
+                        let field = script();
+                        if (field instanceof Field) {
+                            props.doc.Set(props.fieldKey, field);
+                            return true;
+                        } else {
+                            let dataField = ToField(field);
+                            if (dataField) {
+                                props.doc.Set(props.fieldKey, dataField);
+                                return true;
+                            }
+                        }
+                        return false;
+                    }}></EditableView></div>
         )
     }
 
@@ -91,20 +120,48 @@ export class CollectionSchemaView extends CollectionViewBase {
         };
     }
 
+    _startSplitPercent = 0;
     @action
     onDividerMove = (e: PointerEvent): void => {
         let nativeWidth = this._mainCont.current!.getBoundingClientRect();
         this._splitPercentage = Math.round((e.clientX - nativeWidth.left) / nativeWidth.width * 100);
     }
+    @action
     onDividerUp = (e: PointerEvent): void => {
         document.removeEventListener("pointermove", this.onDividerMove);
         document.removeEventListener('pointerup', this.onDividerUp);
+        if (this._startSplitPercent == this._splitPercentage) {
+            this._splitPercentage = this._splitPercentage == 1 ? 66 : 100;
+        }
     }
     onDividerDown = (e: React.PointerEvent) => {
+        this._startSplitPercent = this._splitPercentage;
         e.stopPropagation();
         e.preventDefault();
         document.addEventListener("pointermove", this.onDividerMove);
         document.addEventListener('pointerup', this.onDividerUp);
+    }
+    @action
+    onExpanderMove = (e: PointerEvent): void => {
+        e.stopPropagation();
+        e.preventDefault();
+    }
+    @action
+    onExpanderUp = (e: PointerEvent): void => {
+        e.stopPropagation();
+        e.preventDefault();
+        document.removeEventListener("pointermove", this.onExpanderMove);
+        document.removeEventListener('pointerup', this.onExpanderUp);
+        if (this._startSplitPercent == this._splitPercentage) {
+            this._splitPercentage = this._splitPercentage == 100 ? 66 : 100;
+        }
+    }
+    onExpanderDown = (e: React.PointerEvent) => {
+        this._startSplitPercent = this._splitPercentage;
+        e.stopPropagation();
+        e.preventDefault();
+        document.addEventListener("pointermove", this.onExpanderMove);
+        document.addEventListener('pointerup', this.onExpanderUp);
     }
 
     onPointerDown = (e: React.PointerEvent) => {
@@ -113,8 +170,10 @@ export class CollectionSchemaView extends CollectionViewBase {
         //     e.preventDefault();
         // } else 
         {
-            if (e.buttons === 1 && this.props.active()) {
-                e.stopPropagation();
+            if (e.buttons === 1) {
+                if (this.props.isSelected()) {
+                    e.stopPropagation();
+                }
             }
         }
     }
@@ -155,6 +214,8 @@ export class CollectionSchemaView extends CollectionViewBase {
                 }
             </Measure>
         )
+        let handle = !this.props.active() ? (null) : (
+            <div style={{ position: "absolute", height: "37px", width: "20px", zIndex: 20, right: 0, top: 0, background: "Black" }} onPointerDown={this.onExpanderDown} />);
         return (
             <div onPointerDown={this.onPointerDown} ref={this._mainCont} className="collectionSchemaView-container" style={{ borderWidth: `${COLLECTION_BORDER_WIDTH}px` }} >
                 <Measure onResize={action((r: any) => {
@@ -190,6 +251,7 @@ export class CollectionSchemaView extends CollectionViewBase {
                     style={{ position: "relative", float: "left", width: `calc(${100 - this._splitPercentage}% - ${this.DIVIDER_WIDTH}px)`, height: "100%" }}>
                     {content}
                 </div>
+                {handle}
             </div >
         )
     }

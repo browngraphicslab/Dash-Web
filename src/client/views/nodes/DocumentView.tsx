@@ -124,7 +124,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
                 this._contextMenuCanOpen = false;
                 const [left, top] = this.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
                 let dragData: { [id: string]: any } = {};
-                dragData["document"] = this;
+                dragData["documentView"] = this;
                 dragData["xOffset"] = e.x - left;
                 dragData["yOffset"] = e.y - top;
                 DragManager.StartDrag(this._mainCont.current, dragData, {
