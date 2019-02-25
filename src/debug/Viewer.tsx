@@ -17,7 +17,7 @@ configure({
 @observer
 class FieldViewer extends React.Component<{ field: BasicField<any> }> {
     render() {
-        return <span>{this.props.field.Data} ({this.props.field.Id})</span>;
+        return <span>{JSON.stringify(this.props.field.Data)} ({this.props.field.Id})</span>;
     }
 }
 

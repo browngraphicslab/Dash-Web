@@ -27,42 +27,24 @@ export class CollectionFreeFormDocumentView extends React.Component<DocumentView
         return `scale(${this.props.ContentScaling()}, ${this.props.ContentScaling()}) translate(${this.props.Document.GetNumber(KeyStore.X, 0)}px, ${this.props.Document.GetNumber(KeyStore.Y, 0)}px)`;
     }
 
-    @computed
-    get width(): number {
-        return this.props.Document.GetNumber(KeyStore.Width, 0);
-    }
-
-    @computed
-    get nativeWidth(): number {
-        return this.props.Document.GetNumber(KeyStore.NativeWidth, 0);
-    }
+    @computed get zIndex(): number { return this.props.Document.GetNumber(KeyStore.ZIndex, 0); }
+    @computed get width(): number { return this.props.Document.Width(); }
+    @computed get height(): number { return this.props.Document.Height(); }
+    @computed get nativeWidth(): number { return this.props.Document.GetNumber(KeyStore.NativeWidth, 0); }
+    @computed get nativeHeight(): number { return this.props.Document.GetNumber(KeyStore.NativeHeight, 0); }
 
     set width(w: number) {
         this.props.Document.SetData(KeyStore.Width, w, NumberField)
-        if (this.nativeWidth > 0 && this.nativeHeight > 0) {
+        if (this.nativeWidth && this.nativeHeight) {
             this.props.Document.SetNumber(KeyStore.Height, this.nativeHeight / this.nativeWidth * w)
         }
     }
 
-    @computed
-    get height(): number {
-        return this.props.Document.GetNumber(KeyStore.Height, 0);
-    }
-    @computed
-    get nativeHeight(): number {
-        return this.props.Document.GetNumber(KeyStore.NativeHeight, 0);
-    }
-
     set height(h: number) {
         this.props.Document.SetData(KeyStore.Height, h, NumberField);
-        if (this.nativeWidth > 0 && this.nativeHeight > 0) {
+        if (this.nativeWidth && this.nativeHeight) {
             this.props.Document.SetNumber(KeyStore.Width, this.nativeWidth / this.nativeHeight * h)
         }
-    }
-
-    @computed
-    get zIndex(): number {
-        return this.props.Document.GetNumber(KeyStore.ZIndex, 0);
     }
 
     set zIndex(h: number) {
@@ -88,7 +70,7 @@ export class CollectionFreeFormDocumentView extends React.Component<DocumentView
 
     render() {
         return (
-            <div ref={this._mainCont} style={{
+            <div className="collectionFreeFormDocumentView-container" ref={this._mainCont} style={{
                 transformOrigin: "left top",
                 transform: this.transform,
                 width: this.width,

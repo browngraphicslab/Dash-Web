@@ -104,25 +104,26 @@ export class DocumentDecorations extends React.Component {
             const rect = element.screenRect();
             if (rect.width !== 0) {
                 let doc = element.props.Document;
-                let width = doc.GetOrCreate(KeyStore.Width, NumberField);
-                let height = doc.GetOrCreate(KeyStore.Height, NumberField);
+                let width = doc.GetNumber(KeyStore.Width, 0);
+                let nwidth = doc.GetNumber(KeyStore.NativeWidth, 0);
+                let nheight = doc.GetNumber(KeyStore.NativeHeight, 0);
+                let height = doc.GetNumber(KeyStore.Height, nwidth ? nheight / nwidth * width : 0);
                 let x = doc.GetOrCreate(KeyStore.X, NumberField);
                 let y = doc.GetOrCreate(KeyStore.Y, NumberField);
-                let scale = width.Data / rect.width;
-                let actualdW = Math.max(width.Data + (dW * scale), 20);
-                let actualdH = Math.max(height.Data + (dH * scale), 20);
-                x.Data += dX * (actualdW - width.Data);
-                y.Data += dY * (actualdH - height.Data);
+                let scale = width / rect.width;
+                let actualdW = Math.max(width + (dW * scale), 20);
+                let actualdH = Math.max(height + (dH * scale), 20);
+                x.Data += dX * (actualdW - width);
+                y.Data += dY * (actualdH - height);
                 var nativeWidth = doc.GetNumber(KeyStore.NativeWidth, 0);
                 var nativeHeight = doc.GetNumber(KeyStore.NativeHeight, 0);
                 if (nativeWidth > 0 && nativeHeight > 0) {
                     if (Math.abs(dW) > Math.abs(dH))
                         actualdH = nativeHeight / nativeWidth * actualdW;
-                    else
-                        actualdW = nativeWidth / nativeHeight * actualdH;
+                    else actualdW = nativeWidth / nativeHeight * actualdH;
                 }
-                width.Data = actualdW;
-                height.Data = actualdH;
+                doc.SetNumber(KeyStore.Width, actualdW);
+                doc.SetNumber(KeyStore.Height, actualdH);
             }
         })
     }

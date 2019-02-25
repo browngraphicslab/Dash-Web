@@ -1,6 +1,7 @@
 
 import { Utils } from "../Utils";
 import { Types } from "../server/Message";
+import { computed } from "mobx";
 
 export function Cast<T extends Field>(field: FieldValue<Field>, ctor: { new(): T }): Opt<T> {
     if (field) {
@@ -25,6 +26,8 @@ export abstract class Field {
     }
 
     private id: FieldId;
+
+    @computed
     get Id(): FieldId {
         return this.id;
     }

@@ -39,8 +39,8 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     private _goldenLayout: any = null;
     private _dragDiv: any = null;
     private _dragParent: HTMLElement | null = null;
-    private _dragElement: HTMLDivElement | undefined;
-    private _dragFakeElement: HTMLDivElement | undefined;
+    private _dragElement: HTMLElement | undefined;
+    private _dragFakeElement: HTMLElement | undefined;
     private _containerRef = React.createRef<HTMLDivElement>();
     private _fullScreen: any = null;
 
@@ -51,7 +51,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         (window as any).ReactDOM = ReactDOM;
     }
 
-    public StartOtherDrag(dragElement: HTMLDivElement, dragDoc: Document) {
+    public StartOtherDrag(dragElement: HTMLElement, dragDoc: Document) {
         this._dragElement = dragElement;
         this._dragParent = dragElement.parentElement;
         // bcz: we want to copy this document into the header, not move it there.
@@ -68,7 +68,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
 
         //   - add a duplicate of our document to the original document's container 
         //     (GoldenLayout will be removing our original one)
-        this._dragFakeElement = dragElement.cloneNode(true) as HTMLDivElement;
+        this._dragFakeElement = dragElement.cloneNode(true) as HTMLElement;
         this._dragParent!.appendChild(this._dragFakeElement);
 
         // all of this must be undone when the document has been dropped (see tabCreated)
@@ -238,11 +238,11 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         //stack.header.controlsContainer.find('.lm_popout').hide();
         stack.header.controlsContainer.find('.lm_close') //get the close icon
             .off('click') //unbind the current click handler
-            .click(function () {
+            .click(action(function () {
                 //if (confirm('really close this?')) {
                 stack.remove();
                 //}
-            });
+            }));
     }
 
     render() {
@@ -268,6 +268,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
 
     @observable private _mainCont = React.createRef<HTMLDivElement>();
     @observable private _panelWidth = 0;
+    @observable private _panelHeight = 0;
     @observable private _document: Opt<Document>;
 
     constructor(props: any) {
@@ -275,8 +276,8 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         Server.GetField(this.props.documentId, action((f: Opt<Field>) => this._document = f as Document));
     }
 
-    private _nativeWidth = () => { return this._document!.GetNumber(KeyStore.NativeWidth, 0); }
-    private _nativeHeight = () => { return this._document!.GetNumber(KeyStore.NativeHeight, 0); }
+    private _nativeWidth = () => { return this._document!.GetNumber(KeyStore.NativeWidth, this._panelWidth); }
+    private _nativeHeight = () => { return this._document!.GetNumber(KeyStore.NativeHeight, this._panelHeight); }
     private _contentScaling = () => { return this._panelWidth / (this._nativeWidth() ? this._nativeWidth() : this._panelWidth); }
 
     ScreenToLocalTransform = () => {
@@ -288,7 +289,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         if (!this._document)
             return (null);
         var content =
-            <div ref={this._mainCont}>
+            <div className="collectionDockingView-content" ref={this._mainCont}>
                 <DocumentView key={this._document.Id} Document={this._document}
                     AddDocument={undefined}
                     RemoveDocument={undefined}
@@ -300,7 +301,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
                     ContainingCollectionView={undefined} />
             </div>
 
-        return <Measure onResize={action((r: any) => this._panelWidth = r.entry.width)}>
+        return <Measure onResize={action((r: any) => { this._panelWidth = r.entry.width; this._panelHeight = r.entry.height; })}>
             {({ measureRef }) => <div ref={measureRef}>  {content} </div>}
         </Measure>
     }
