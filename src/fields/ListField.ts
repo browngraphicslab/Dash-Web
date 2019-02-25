@@ -1,22 +1,46 @@
-import { Field, FIELD_ID, FieldValue, Opt } from "./Field";
-import { BasicField } from "./BasicField";
-import { Types } from "../server/Message";
-import { observe, action } from "mobx";
+import { action, IArrayChange, IArraySplice, IObservableArray, observe, observable, Lambda } from "mobx";
 import { Server } from "../client/Server";
-import { ServerUtils } from "../server/ServerUtil";
+import { UndoManager } from "../client/util/UndoManager";
+import { Types } from "../server/Message";
+import { BasicField } from "./BasicField";
+import { Field, FieldId } from "./Field";
 
 export class ListField<T extends Field> extends BasicField<T[]> {
     private _proxies: string[] = []
-    constructor(data: T[] = [], id: FIELD_ID = undefined, save: boolean = true) {
+    constructor(data: T[] = [], id?: FieldId, save: boolean = true) {
         super(data, save, id);
         this.updateProxies();
         if (save) {
             Server.UpdateField(this);
         }
-        observe(this.Data, () => {
+        this.observeList();
+    }
+
+    private observeDisposer: Lambda | undefined;
+    private observeList(): void {
+        this.observeDisposer = observe(this.Data as IObservableArray<T>, (change: IArrayChange<T> | IArraySplice<T>) => {
             this.updateProxies()
+            if (change.type == "splice") {
+                UndoManager.AddEvent({
+                    undo: () => this.Data.splice(change.index, change.addedCount, ...change.removed),
+                    redo: () => this.Data.splice(change.index, change.removedCount, ...change.added)
+                })
+            } else {
+                UndoManager.AddEvent({
+                    undo: () => this.Data[change.index] = change.oldValue,
+                    redo: () => this.Data[change.index] = change.newValue
+                })
+            }
             Server.UpdateField(this);
-        })
+        });
+    }
+
+    protected setData(value: T[]) {
+        if (this.observeDisposer) {
+            this.observeDisposer()
+        }
+        this.data = observable(value);
+        this.observeList();
     }
 
     private updateProxies() {

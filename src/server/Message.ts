@@ -1,5 +1,4 @@
 import { Utils } from "../Utils";
-import { FIELD_ID, Field } from "../fields/Field";
 
 export class Message<T> {
     private name: string;
@@ -46,7 +45,7 @@ export class GetFieldArgs {
 }
 
 export enum Types {
-    Number, List, Key, Image, Document, Text, RichText, DocumentReference
+    Number, List, Key, Image, Document, Text, RichText, DocumentReference, Html
 }
 
 export class DocumentTransfer implements Transferable {

@@ -1,4 +1,4 @@
-import { action, configure } from 'mobx';
+import { action, configure, reaction, computed } from 'mobx';
 import "normalize.css";
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
@@ -6,31 +6,24 @@ import { DocumentDecorations } from './DocumentDecorations';
 import { Documents } from '../documents/Documents';
 import { Document } from '../../fields/Document';
 import { KeyStore } from '../../fields/KeyStore';
-import { ListField } from '../../fields/ListField';
-import { NumberField } from '../../fields/NumberField';
-import { TextField } from '../../fields/TextField';
 import "./Main.scss";
 import { ContextMenu } from './ContextMenu';
 import { DocumentView } from './nodes/DocumentView';
-import { ImageField } from '../../fields/ImageField';
-import { CompileScript } from './../util/Scripting';
 import { Server } from '../Server';
 import { Utils } from '../../Utils';
 import { ServerUtils } from '../../server/ServerUtil';
 import { MessageStore, DocumentTransfer } from '../../server/Message';
 import { Database } from '../../server/database';
 import * as request from 'request'
+import { Transform } from '../util/Transform';
+import { CollectionDockingView } from './collections/CollectionDockingView';
+import { FieldWaiting } from '../../fields/Field';
+import { UndoManager } from '../util/UndoManager';
 
 
 configure({
     enforceActions: "observed"
 });
-
-// const mainNodeCollection = new Array<Document>();
-// let mainContainer = Documents.DockDocument(mainNodeCollection, {
-//     x: 0, y: 0, title: "main container"
-// })
-
 window.addEventListener("drop", function (e) {
     e.preventDefault();
 }, false)
@@ -81,30 +74,42 @@ function init() {
             console.log("HELLO WORLD")
             console.log("RESPONSE: " + res)
             let mainContainer: Document;
+            let mainfreeform: Document;
             if (res) {
-                var lid = KeyStore.Layout.Id;
-                let obj = ServerUtils.FromJson(res) as Document
-                mainContainer = obj
+                mainContainer = ServerUtils.FromJson(res) as Document;
+                mainContainer.GetAsync(KeyStore.ActiveFrame, field => mainfreeform = field as Document);
             }
             else {
-                const docset: Document[] = [];
-                mainContainer = Documents.CollectionDocument(docset, { x: 0, y: 400, title: "mini collection" }, mainDocId);
-                let args = new DocumentTransfer(mainContainer.ToJson())
-                Utils.Emit(Server.Socket, MessageStore.AddDocument, args)
+                mainContainer = Documents.DockDocument(JSON.stringify({ content: [{ type: 'row', content: [] }] }), { title: "main container" }, mainDocId);
+                Utils.Emit(Server.Socket, MessageStore.AddDocument, new DocumentTransfer(mainContainer.ToJson()))
+
+                setTimeout(() => {
+                    mainfreeform = Documents.FreeformDocument([], { x: 0, y: 400, title: "mini collection" });
+                    Utils.Emit(Server.Socket, MessageStore.AddDocument, new DocumentTransfer(mainfreeform.ToJson()));
+
+                    var docs = [mainfreeform].map(doc => CollectionDockingView.makeDocumentConfig(doc));
+                    mainContainer.SetText(KeyStore.Data, JSON.stringify({ content: [{ type: 'row', content: docs }] }));
+                    mainContainer.Set(KeyStore.ActiveFrame, mainfreeform);
+                }, 0);
             }
 
             let addImageNode = action(() => {
-                mainContainer.GetList<Document>(KeyStore.Data, []).push(Documents.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", {
+                mainfreeform.GetList<Document>(KeyStore.Data, []).push(Documents.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", {
                     x: 0, y: 300, width: 200, height: 200, title: "added note"
                 }));
             })
             let addTextNode = action(() => {
-                mainContainer.GetList<Document>(KeyStore.Data, []).push(Documents.TextDocument({
+                mainfreeform.GetList<Document>(KeyStore.Data, []).push(Documents.TextDocument({
                     x: 0, y: 300, width: 200, height: 200, title: "added note"
                 }));
             })
             let addColNode = action(() => {
-                mainContainer.GetList<Document>(KeyStore.Data, []).push(Documents.CollectionDocument([], {
+                mainfreeform.GetList<Document>(KeyStore.Data, []).push(Documents.FreeformDocument([], {
+                    x: 0, y: 300, width: 200, height: 200, title: "added note"
+                }));
+            })
+            let addSchemaNode = action(() => {
+                mainfreeform.GetList<Document>(KeyStore.Data, []).push(Documents.SchemaDocument([Documents.TextDocument()], {
                     x: 0, y: 300, width: 200, height: 200, title: "added note"
                 }));
             })
@@ -115,20 +120,13 @@ function init() {
 
             ReactDOM.render((
                 <div style={{ position: "absolute", width: "100%", height: "100%" }}>
-                    <a href="/logout">
-                        <img
-                            src="http://aux.iconspalace.com/uploads/logout-icon-256-510450847.png"
-                            style={{
-                                position: "absolute",
-                                width: "20px",
-                                height: "20px",
-                                top: "20px",
-                                zIndex: 15,
-                                right: "20px",
-                            }}
-                        />
-                    </a>
-                    <DocumentView Document={mainContainer} ContainingCollectionView={undefined} DocumentView={undefined} />
+                    <DocumentView Document={mainContainer}
+                        AddDocument={undefined} RemoveDocument={undefined} ScreenToLocalTransform={() => Transform.Identity}
+                        ContentScaling={() => 1}
+                        PanelWidth={() => 0}
+                        PanelHeight={() => 0}
+                        isTopMost={true}
+                        ContainingCollectionView={undefined} />
                     <DocumentDecorations />
                     <ContextMenu />
                     <button style={{
@@ -151,10 +149,28 @@ function init() {
                     }} onClick={addColNode}>Add Collection</button>
                     <button style={{
                         position: 'absolute',
+                        bottom: '100',
+                        left: '0px',
+                        width: '150px'
+                    }} onClick={addSchemaNode}>Add Schema</button>
+                    <button style={{
+                        position: 'absolute',
                         bottom: '75px',
                         left: '0px',
                         width: '150px'
                     }} onClick={clearDatabase}>Clear Database</button>
+                    <button style={{
+                        position: 'absolute',
+                        bottom: '25',
+                        right: '0px',
+                        width: '150px'
+                    }} onClick={() => UndoManager.Undo()}>Undo</button>
+                    <button style={{
+                        position: 'absolute',
+                        bottom: '0',
+                        right: '0px',
+                        width: '150px'
+                    }} onClick={() => UndoManager.Redo()}>Redo</button>
                 </div>),
                 document.getElementById('root'));
         })

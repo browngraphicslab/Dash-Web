@@ -1,16 +1,17 @@
-import { Field, Cast, Opt, FieldWaiting, FIELD_ID, FieldValue } from "./Field"
 import { Key } from "./Key"
 import { KeyStore } from "./KeyStore";
+import { Field, Cast, FieldWaiting, FieldValue, FieldId } from "./Field"
 import { NumberField } from "./NumberField";
-import { ObservableMap, computed, action, observable } from "mobx";
+import { ObservableMap, computed, action } from "mobx";
 import { TextField } from "./TextField";
 import { ListField } from "./ListField";
 import { Server } from "../client/Server";
 import { Types } from "../server/Message";
+import { UndoManager } from "../client/util/UndoManager";
 
 export class Document extends Field {
     public fields: ObservableMap<string, { key: Key, field: Field }> = new ObservableMap();
-    public _proxies: ObservableMap<string, FIELD_ID> = new ObservableMap();
+    public _proxies: ObservableMap<string, FieldId> = new ObservableMap();
 
     constructor(id?: string, save: boolean = true) {
         super(id)
@@ -29,6 +30,10 @@ export class Document extends Field {
         }
     }
 
+    public Width = () => { return this.GetNumber(KeyStore.Width, 0) }
+    public Height = () => { return this.GetNumber(KeyStore.Height, 0) }
+    public Scale = () => { return this.GetNumber(KeyStore.Scale, 1) }
+
     @computed
     public get Title() {
         return this.GetText(KeyStore.Title, "<untitled>");
@@ -40,7 +45,17 @@ export class Document extends Field {
             if (this.fields.has(key.Id)) {
                 field = this.fields.get(key.Id)!.field;
             } else if (this._proxies.has(key.Id)) {
-                field = Server.GetDocumentField(this, key);
+                Server.GetDocumentField(this, key);
+                /*
+                The field might have been instantly filled from the cache
+                Maybe we want to just switch back to returning the value
+                from Server.GetDocumentField if it's in the cache
+                */
+                if (this.fields.has(key.Id)) {
+                    field = this.fields.get(key.Id)!.field;
+                } else {
+                    field = FieldWaiting;
+                }
             }
         } else {
             let doc: FieldValue<Document> = this;
@@ -49,7 +64,17 @@ export class Document extends Field {
                 let curProxy = doc._proxies.get(key.Id);
                 if (!curField || (curProxy && curField.field.Id !== curProxy)) {
                     if (curProxy) {
-                        field = Server.GetDocumentField(doc, key);
+                        Server.GetDocumentField(doc, key);
+                        /*
+                        The field might have been instantly filled from the cache
+                        Maybe we want to just switch back to returning the value
+                        from Server.GetDocumentField if it's in the cache
+                        */
+                        if (this.fields.has(key.Id)) {
+                            field = this.fields.get(key.Id)!.field;
+                        } else {
+                            field = FieldWaiting;
+                        }
                         break;
                     }
                     if ((doc.fields.has(KeyStore.Prototype.Id) || doc._proxies.has(KeyStore.Prototype.Id))) {
@@ -67,6 +92,15 @@ export class Document extends Field {
         }
 
         return field;
+    }
+
+    GetAsync(key: Key, callback: (field: Field) => void): boolean {
+        //This currently doesn't deal with prototypes
+        if (this._proxies.has(key.Id)) {
+            Server.GetDocumentField(this, key, callback);
+            return true;
+        }
+        return false;
     }
 
     GetT<T extends Field = Field>(key: Key, ctor: { new(...args: any[]): T }, ignoreProto: boolean = false): FieldValue<T> {
@@ -107,7 +141,8 @@ export class Document extends Field {
 
     @action
     Set(key: Key, field: Field | undefined): void {
-        console.log("Assign: " + key.Name + " = " + (field ? field.GetValue() : "<undefined>") + " (" + (field ? field.Id : "<undefined>") + ")");
+        let old = this.fields.get(key.Id);
+        let oldField = old ? old.field : undefined;
         if (field) {
             this.fields.set(key.Id, { key, field });
             this._proxies.set(key.Id, field.Id)
@@ -117,6 +152,12 @@ export class Document extends Field {
             this._proxies.delete(key.Id)
             // Server.DeleteDocumentField(this, key);
         }
+        if (oldField || field) {
+            UndoManager.AddEvent({
+                undo: () => this.Set(key, oldField),
+                redo: () => this.Set(key, field)
+            })
+        }
         Server.UpdateField(this);
     }
 
@@ -124,16 +165,13 @@ export class Document extends Field {
     SetData<T, U extends Field & { Data: T }>(key: Key, value: T, ctor: { new(): U }, replaceWrongType = true) {
 
         let field = this.Get(key, true);
-        //if (field != WAITING) {  // do we want to wait for the field to come back from the server to set it, or do we overwrite?
         if (field instanceof ctor) {
             field.Data = value;
-            // Server.SetFieldValue(field, value);
         } else if (!field || replaceWrongType) {
             let newField = new ctor();
             newField.Data = value;
             this.Set(key, newField);
         }
-        //}
     }
 
     @action
@@ -185,14 +223,12 @@ export class Document extends Field {
     }
 
     ToJson(): { type: Types, data: [string, string][], _id: string } {
-        // console.log(this.fields)
         let fields: [string, string][] = []
         this._proxies.forEach((field, key) => {
             if (field) {
                 fields.push([key, field as string])
             }
         });
-        // console.log(fields)
 
         return {
             type: Types.Document,

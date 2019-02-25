@@ -1,9 +1,10 @@
-import { Field, FIELD_ID } from "./Field"
+import { Field, FieldId } from "./Field"
 import { observable, computed, action } from "mobx";
 import { Server } from "../client/Server";
+import { UndoManager } from "../client/util/UndoManager";
 
 export abstract class BasicField<T> extends Field {
-    constructor(data: T, save: boolean, id: FIELD_ID = undefined) {
+    constructor(data: T, save: boolean, id?: FieldId) {
         super(id);
 
         this.data = data;
@@ -27,10 +28,20 @@ export abstract class BasicField<T> extends Field {
     }
 
     set Data(value: T) {
-        if (this.data != value) {
-            this.data = value;
+        if (this.data === value) {
+            return;
         }
+        let oldValue = this.data;
+        this.setData(value);
+        UndoManager.AddEvent({
+            undo: () => this.Data = oldValue,
+            redo: () => this.Data = value
+        })
         Server.UpdateField(this);
+    }
+
+    protected setData(value: T) {
+        this.data = value;
     }
 
     @action

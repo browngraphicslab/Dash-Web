@@ -9,7 +9,7 @@ import { Client } from './Client';
 import { Socket } from 'socket.io';
 import { Utils } from '../Utils';
 import { ObservableMap } from 'mobx';
-import { FIELD_ID, Field } from '../fields/Field';
+import { FieldId, Field } from '../fields/Field';
 import { Database } from './database';
 import { ServerUtils } from './ServerUtil';
 import { ObjectID } from 'mongodb';
@@ -175,8 +175,7 @@ app.post('/forgot', function (req, res, next) {
         res.redirect('/forgot');
     })
 })
-
-let FieldStore: ObservableMap<FIELD_ID, Field> = new ObservableMap();
+let FieldStore: ObservableMap<FieldId, Field> = new ObservableMap();
 
 app.get("/hello", (req, res) => {
     res.send("<p>Hello</p>");

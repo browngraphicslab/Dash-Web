@@ -7,7 +7,7 @@ import { Document } from '../fields/Document';
 import { BasicField } from '../fields/BasicField';
 import { ListField } from '../fields/ListField';
 import { Key } from '../fields/Key';
-import { Field } from '../fields/Field';
+import { Opt, Field } from '../fields/Field';
 import { Server } from '../client/Server';
 
 configure({
@@ -116,7 +116,7 @@ class DebugViewer extends React.Component<{ fieldId: string }> {
     }
 
     update() {
-        Server.GetField(this.props.fieldId, (field => {
+        Server.GetField(this.props.fieldId, action((field: Opt<Field>) => {
             this.field = field;
             if (!field) {
                 this.error = `Field with id ${this.props.fieldId} not found`
