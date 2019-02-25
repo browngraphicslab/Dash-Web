@@ -38,6 +38,7 @@
         }
         .rt-tr-group {
             direction: ltr;
+            max-height: 44px;
         }
         .rt-td {
             border-width: 1;
@@ -61,13 +62,13 @@
             background:grey;
         }
     .ReactTable .rt-th, .ReactTable .rt-td {
-        max-height: 75px;
+        max-height: 44;
+        padding: 3px 7px;
     }
     .ReactTable .rt-tbody .rt-tr-group:last-child {
         border-bottom: grey;
         border-bottom-style: solid;
         border-bottom-width: 1;
-        height: auto;
     }
     .documentView-node:first-child {
         background: grey;

@@ -61,12 +61,14 @@ export class CollectionSchemaView extends CollectionViewBase {
             document.removeEventListener('pointerup', onRowUp);
         });
         let onRowDown = (e: React.PointerEvent) => {
-            if (e.shiftKey) {
-                CollectionDockingView.Instance.StartOtherDrag(reference.current!, props.doc);
-                e.stopPropagation();
-            } else {
-                document.addEventListener("pointermove", onRowMove);
-                document.addEventListener('pointerup', onRowUp);
+            if (this.props.isSelected() || this.props.isTopMost) {
+                if (e.shiftKey) {
+                    CollectionDockingView.Instance.StartOtherDrag(reference.current!, props.doc);
+                    e.stopPropagation();
+                } else {
+                    document.addEventListener("pointermove", onRowMove);
+                    document.addEventListener('pointerup', onRowUp);
+                }
             }
         }
         return (
