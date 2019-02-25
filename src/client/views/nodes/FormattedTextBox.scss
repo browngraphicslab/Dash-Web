@@ -1,7 +1,7 @@
 .ProseMirror {
-    margin-top: -1em;
     width: 100%;
-    height: 100%;
+    height: auto;
+    min-height: 100%
 }
 
 .ProseMirror:focus {
@@ -10,5 +10,9 @@
 
 .formattedTextBox-cont {
     background: beige;
-    padding: 1vw;
+    padding: 0;
+    overflow-y: scroll;
+    overflow-x: hidden;
+    color: initial;
+    height: 100%;
 }

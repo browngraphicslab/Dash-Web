@@ -1,7 +1,11 @@
-import { Field, FieldId } from "../fields/Field"
-import { Key, KeyStore } from "../fields/Key"
-import { ObservableMap, action } from "mobx";
+import { Key } from "../fields/Key"
+import { Field, FieldId, Opt } from "../fields/Field"
+import { ObservableMap } from "mobx";
 import { Document } from "../fields/Document"
+import { MessageStore, DocumentTransfer } from "../server/Message";
+import { Utils } from "../Utils";
+import { Server } from "./Server";
+import { ServerUtils } from "../server/ServerUtil";
 
 export class SocketStub {
 
@@ -12,31 +16,44 @@ export class SocketStub {
         // ...SOCKET(ADD_DOCUMENT, serialied document)
 
         // server stores each document field in its repository of stored fields
-        document.fields.forEach((f, key) => this.FieldStore.set((f as Field).Id, f as Field));
+        // document.fields.forEach((f, key) => this.FieldStore.set((f as Field).Id, f as Field));
+        // let strippedDoc = new Document(document.Id);
+        // document.fields.forEach((f, key) => {
+        //     if (f) {
+        //         // let args: SetFieldArgs = new SetFieldArgs(f.Id, f.GetValue())
+        //         let args: Transferable = f.ToJson()
+        //         Utils.Emit(Server.Socket, MessageStore.SetField, args)
+        //     }
+        // })
 
-        // server stores stripped down document (w/ only field id proxies) in the field store
-        this.FieldStore.set(document.Id, new Document(document.Id));
-        document.fields.forEach((f, key) => (this.FieldStore.get(document.Id) as Document)._proxies.set(key, (f as Field).Id));
+        // // server stores stripped down document (w/ only field id proxies) in the field store
+        // this.FieldStore.set(document.Id, new Document(document.Id));
+        // document.fields.forEach((f, key) => (this.FieldStore.get(document.Id) as Document)._proxies.set(key.Id, (f as Field).Id));
+
+        console.log("sending " + document.Title);
+        Utils.Emit(Server.Socket, MessageStore.AddDocument, new DocumentTransfer(document.ToJson()))
     }
 
-    public static SEND_FIELD_REQUEST(fieldid: FieldId, callback: (field: Field) => void, timeout: number) {
-
-        if (timeout < 0)// this is a hack to make things easier to setup until we have a server... won't be neededa fter that.
-            callback(this.FieldStore.get(fieldid) as Field);
-        else { // actual logic here... 
-
-            // Send a request for fieldid to the server
-            // ...SOCKET(RETRIEVE_FIELD, fieldid)
-
-            // server responds (simulated with a timeout) and the callback is invoked
-            setTimeout(() =>
-
-                // when the field data comes back, call the callback() function 
-                callback(this.FieldStore.get(fieldid) as Field),
-
-
-                timeout);
+    public static SEND_FIELD_REQUEST(fieldid: FieldId, callback: (field: Opt<Field>) => void) {
+        if (fieldid) {
+            Utils.EmitCallback(Server.Socket, MessageStore.GetField, fieldid, (field: any) => {
+                if (field) {
+                    ServerUtils.FromJson(field).init(callback);
+                } else {
+                    callback(undefined);
+                }
+            })
         }
+    }
+
+    public static SEND_FIELDS_REQUEST(fieldIds: FieldId[], callback: (fields: { [key: string]: Field }) => any) {
+        Utils.EmitCallback(Server.Socket, MessageStore.GetFields, fieldIds, (fields: any[]) => {
+            let fieldMap: any = {};
+            for (let field of fields) {
+                fieldMap[field._id] = ServerUtils.FromJson(field);
+            }
+            callback(fieldMap)
+        });
     }
 
     public static SEND_ADD_DOCUMENT_FIELD(doc: Document, key: Key, value: Field) {
@@ -49,10 +66,11 @@ export class SocketStub {
         // server updates its document to hold a proxy mapping from key => fieldId
         var document = this.FieldStore.get(doc.Id) as Document;
         if (document)
-            document._proxies.set(key, value.Id);
+            document._proxies.set(key.Id, value.Id);
 
         // server adds the field to its repository of fields
         this.FieldStore.set(value.Id, value);
+        // Utils.Emit(Server.Socket, MessageStore.AddDocument, new DocumentTransfer(doc.ToJson()))
     }
 
     public static SEND_DELETE_DOCUMENT_FIELD(doc: Document, key: Key) {
@@ -63,16 +81,15 @@ export class SocketStub {
         // Server removes the field id from the document's list of field proxies
         var document = this.FieldStore.get(doc.Id) as Document;
         if (document)
-            document._proxies.delete(key);
+            document._proxies.delete(key.Id);
     }
 
-    public static SEND_SET_FIELD(field: Field, value: any) {
+    public static SEND_SET_FIELD(field: Field) {
         // Send a request to set the value of a field
 
         // ...SOCKET(SET_FIELD, field id, serialized field value)
 
         // Server updates the value of the field in its fieldstore
-        if (this.FieldStore.get(field.Id))
-            this.FieldStore.get(field.Id)!.TrySetValue(value);
+        Utils.Emit(Server.Socket, MessageStore.SetField, field.ToJson())
     }
 }

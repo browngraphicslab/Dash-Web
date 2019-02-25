@@ -11,8 +11,13 @@ import { WebField } from "../../../fields/WebField";
 import { Key } from "../../../fields/Key";
 import { FormattedTextBox } from "./FormattedTextBox";
 import { ImageBox } from "./ImageBox";
+<<<<<<< HEAD
 import { WebBox } from "./WebBox";
 import { DocumentView } from "./DocumentView";
+=======
+import { HtmlField } from "../../../fields/HtmlField";
+import { WebView } from "./WebView";
+>>>>>>> bb418216efa9cc2e191b970e4cbe5080f4fd2b87
 
 //
 // these properties get assigned through the render() method of the DocumentView when it creates this node.
@@ -22,12 +27,16 @@ import { DocumentView } from "./DocumentView";
 export interface FieldViewProps {
     fieldKey: Key;
     doc: Document;
-    DocumentViewForField: Opt<DocumentView>
+    isSelected: () => boolean;
+    select: () => void;
+    isTopMost: boolean;
+    bindings: any;
 }
 
 @observer
 export class FieldView extends React.Component<FieldViewProps> {
-    public static LayoutString(fieldType: string) { return `<${fieldType} doc={Document} DocumentViewForField={DocumentView} fieldKey={DataKey} />`; }
+    public static LayoutString(fieldType: { name: string }, fieldStr: string = "DataKey") { return `<${fieldType.name} doc={Document} DocumentViewForField={DocumentView} bindings={bindings} fieldKey={${fieldStr}} isSelected={isSelected} select={select} isTopMost={isTopMost} />`; }
+
     @computed
     get field(): FieldValue<Field> {
         const { doc, fieldKey } = this.props;
@@ -52,6 +61,8 @@ export class FieldView extends React.Component<FieldViewProps> {
         }
         else if (field instanceof NumberField) {
             return <p>{field.Data}</p>
+        } else if (field instanceof HtmlField) {
+            return <WebView {...this.props} />
         } else if (field != FieldWaiting) {
             return <p>{field.GetValue}</p>
         } else

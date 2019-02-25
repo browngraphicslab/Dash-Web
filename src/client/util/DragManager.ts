@@ -1,3 +1,4 @@
+import { DocumentDecorations } from "../views/DocumentDecorations";
 
 export namespace DragManager {
     export function Root() {
@@ -43,6 +44,7 @@ export namespace DragManager {
         drop: (e: Event, de: DropEvent) => void;
     }
 
+
     export function MakeDropTarget(element: HTMLElement, options: DropOptions): DragDropDisposer {
         if ("canDrop" in element.dataset) {
             throw new Error("Element is already droppable, can't make it droppable again");
@@ -59,10 +61,8 @@ export namespace DragManager {
         };
     }
 
-
-    let _lastPointerX: number = 0;
-    let _lastPointerY: number = 0;
-    export function StartDrag(ele: HTMLElement, dragData: { [id: string]: any }, options: DragOptions) {
+    export function StartDrag(ele: HTMLElement, dragData: { [id: string]: any }, options?: DragOptions) {
+        DocumentDecorations.Instance.Hidden = true;
         if (!dragDiv) {
             dragDiv = document.createElement("div");
             DragManager.Root().appendChild(dragDiv);
@@ -75,18 +75,26 @@ export namespace DragManager {
         let dragElement = ele.cloneNode(true) as HTMLElement;
         dragElement.style.opacity = "0.7";
         dragElement.style.position = "absolute";
+        dragElement.style.bottom = "";
+        dragElement.style.left = "";
         dragElement.style.transformOrigin = "0 0";
         dragElement.style.zIndex = "1000";
         dragElement.style.transform = `translate(${x}px, ${y}px) scale(${scaleX}, ${scaleY})`;
+        dragElement.style.width = `${rect.width / scaleX}px`;
+        dragElement.style.height = `${rect.height / scaleY}px`;
+        // It seems like the above code should be able to just be this:
+        // dragElement.style.transform = `translate(${x}px, ${y}px)`;
+        // dragElement.style.width = `${rect.width}px`;
+        // dragElement.style.height = `${rect.height}px`;
         dragDiv.appendChild(dragElement);
-        _lastPointerX = dragData["xOffset"] + rect.left;
-        _lastPointerY = dragData["yOffset"] + rect.top;
 
         let hideSource = false;
-        if (typeof options.hideSource === "boolean") {
-            hideSource = options.hideSource;
-        } else {
-            hideSource = options.hideSource();
+        if (options) {
+            if (typeof options.hideSource === "boolean") {
+                hideSource = options.hideSource;
+            } else {
+                hideSource = options.hideSource();
+            }
         }
         const wasHidden = ele.hidden;
         if (hideSource) {
@@ -96,14 +104,14 @@ export namespace DragManager {
         const moveHandler = (e: PointerEvent) => {
             e.stopPropagation();
             e.preventDefault();
-            x += e.clientX - _lastPointerX; _lastPointerX = e.clientX;
-            y += e.clientY - _lastPointerY; _lastPointerY = e.clientY;
+            x += e.movementX;
+            y += e.movementY;
             dragElement.style.transform = `translate(${x}px, ${y}px) scale(${scaleX}, ${scaleY})`;
         };
         const upHandler = (e: PointerEvent) => {
             document.removeEventListener("pointermove", moveHandler, true);
             document.removeEventListener("pointerup", upHandler);
-            FinishDrag(dragElement, e, options, dragData);
+            FinishDrag(dragElement, e, dragData, options);
             if (hideSource && !wasHidden) {
                 ele.hidden = false;
             }
@@ -112,7 +120,7 @@ export namespace DragManager {
         document.addEventListener("pointerup", upHandler);
     }
 
-    function FinishDrag(dragEle: HTMLElement, e: PointerEvent, options: DragOptions, dragData: { [index: string]: any }) {
+    function FinishDrag(dragEle: HTMLElement, e: PointerEvent, dragData: { [index: string]: any }, options?: DragOptions) {
         dragDiv.removeChild(dragEle);
         const target = document.elementFromPoint(e.x, e.y);
         if (!target) {
@@ -126,6 +134,9 @@ export namespace DragManager {
                 data: dragData
             }
         }));
-        options.handlers.dragComplete({});
+        if (options) {
+            options.handlers.dragComplete({});
+        }
+        DocumentDecorations.Instance.Hidden = false;
     }
 }

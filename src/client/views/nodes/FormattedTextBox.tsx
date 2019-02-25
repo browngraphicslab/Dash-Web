@@ -6,13 +6,10 @@ import { schema } from "prosemirror-schema-basic";
 import { EditorState, Transaction } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { Opt, FieldWaiting, FieldValue } from "../../../fields/Field";
-import { SelectionManager } from "../../util/SelectionManager";
 import "./FormattedTextBox.scss";
 import React = require("react")
 import { RichTextField } from "../../../fields/RichTextField";
 import { FieldViewProps, FieldView } from "./FieldView";
-import { CollectionFreeFormDocumentView } from "./CollectionFreeFormDocumentView";
-import { observer } from "mobx-react";
 
 
 // FormattedTextBox: Displays an editable plain text node that maps to a specified Key of a Document
@@ -33,7 +30,7 @@ import { observer } from "mobx-react";
 //]
 export class FormattedTextBox extends React.Component<FieldViewProps> {
 
-    public static LayoutString() { return FieldView.LayoutString("FormattedTextBox"); }
+    public static LayoutString(fieldStr: string = "DataKey") { return FieldView.LayoutString(FormattedTextBox, fieldStr) }
     private _ref: React.RefObject<HTMLDivElement>;
     private _editorView: Opt<EditorView>;
     private _reactionDisposer: Opt<IReactionDisposer>;
@@ -110,17 +107,17 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
     }
     onPointerDown = (e: React.PointerEvent): void => {
         let me = this;
-        if (e.buttons === 1 && me.props.DocumentViewForField instanceof CollectionFreeFormDocumentView && SelectionManager.IsSelected(me.props.DocumentViewForField)) {
+        if (e.buttons === 1 && this.props.isSelected()) {
             e.stopPropagation();
         }
     }
+    onPointerWheel = (e: React.WheelEvent): void => {
+        e.stopPropagation();
+    }
     render() {
         return (<div className="formattedTextBox-cont"
-            style={{
-                color: "initial",
-                whiteSpace: "initial",
-            }}
             onPointerDown={this.onPointerDown}
+            onWheel={this.onPointerWheel}
             ref={this._ref} />)
     }
 }
