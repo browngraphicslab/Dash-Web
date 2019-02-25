@@ -235,11 +235,11 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         //stack.header.controlsContainer.find('.lm_popout').hide();
         stack.header.controlsContainer.find('.lm_close') //get the close icon
             .off('click') //unbind the current click handler
-            .click(function () {
+            .click(action(function () {
                 //if (confirm('really close this?')) {
                 stack.remove();
                 //}
-            });
+            }));
     }
 
     render() {
