@@ -5,7 +5,6 @@ import { ListField } from "../../fields/ListField";
 import React = require("react")
 import { TextField } from "../../fields/TextField";
 import { observable, action } from "mobx";
-import "./CollectionTreeView.scss";
 
 export interface PresViewProps {
     Document: Document;
@@ -20,6 +19,7 @@ class PresentationViewItem extends React.Component<PresViewProps> {
     //observable means render is re-called every time variable is changed
     @observable
     collapsed: boolean = false;
+    //TODO: this var isn't needed
 
     /**
      * Renders a single child document. It will just append a list element.
@@ -54,6 +54,15 @@ class PresentationViewItem extends React.Component<PresViewProps> {
 
 @observer
 export class PresentationView extends React.Component<PresViewProps>  {
+    public static Instance: PresentationView;
+
+    /**
+     * Adds a document to the presentation view
+     **/
+    @action
+    public PinDoc(document: Document) {
+
+    }
 
     render() {
         let titleStr = "";

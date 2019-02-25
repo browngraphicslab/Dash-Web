@@ -18,6 +18,7 @@ import { FormattedTextBox } from "../nodes/FormattedTextBox";
 import { ImageBox } from "../nodes/ImageBox";
 import "./DocumentView.scss";
 import React = require("react");
+import { PresentationView } from "../PresentationView";
 const JsxParser = require('react-jsx-parser').default;//TODO Why does this need to be imported like this?
 
 export interface DocumentViewProps {
@@ -187,6 +188,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             ContextMenu.Instance.addItem({ description: "Full Screen", event: this.fullScreenClicked })
             ContextMenu.Instance.addItem({ description: "Open Right", event: () => CollectionDockingView.Instance.AddRightSplit(this.props.Document) })
             ContextMenu.Instance.addItem({ description: "Delete", event: this.deleteClicked })
+            ContextMenu.Instance.addItem({ description: "Pin to Presentation", event: () => PresentationView.Instance.PinDoc(this.props.Document) })
             ContextMenu.Instance.addItem({ description: "Freeform", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Freeform) })
             ContextMenu.Instance.addItem({ description: "Schema", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Schema) })
             ContextMenu.Instance.addItem({ description: "Treeview", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Tree) })
