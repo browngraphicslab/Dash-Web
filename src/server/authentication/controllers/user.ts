@@ -3,10 +3,7 @@ import { Request, Response, NextFunction } from "express";
 import * as passport from "passport";
 import { IVerifyOptions } from "passport-local";
 import "../config/passport";
-import * as request from "express-validator";
 const flash = require("express-flash");
-import * as session from "express-session";
-import * as pug from 'pug';
 
 /**
  * GET /
@@ -25,7 +22,6 @@ export let getEntry = (req: Request, res: Response) => {
 export let getSignup = (req: Request, res: Response) => {
     if (req.user) {
         let user = req.user;
-        console.log(user);
         return res.redirect("/home");
     }
     res.render("signup.pug", {
@@ -61,11 +57,8 @@ export let postSignup = (req: Request, res: Response, next: NextFunction) => {
 
     const user = new User({
         email,
-        password
+        password,
     });
-
-    const please_work = "cool@gmail.com"
-
     User.findOne({ email }, (err, existingUser) => {
         if (err) { return next(err); }
         if (existingUser) {
@@ -116,14 +109,13 @@ export let postLogin = (req: Request, res: Response, next: NextFunction) => {
 
     if (errors) {
         req.flash("errors", "Unable to login at this time. Please try again.");
-        return res.redirect("/login");
+        return res.redirect("/signup");
     }
 
     passport.authenticate("local", (err: Error, user: UserModel, info: IVerifyOptions) => {
         if (err) { return next(err); }
         if (!user) {
-            req.flash("errors", info.message);
-            return res.redirect("/login");
+            return res.redirect("/signup");
         }
         req.logIn(user, (err) => {
             if (err) { return next(err); }
