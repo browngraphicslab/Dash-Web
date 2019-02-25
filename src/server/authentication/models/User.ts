@@ -1,6 +1,5 @@
 //@ts-ignore
 import * as bcrypt from "bcrypt-nodejs";
-import * as crypto from "crypto";
 //@ts-ignore
 import * as mongoose from "mongoose";
 var url = 'mongodb://localhost:27017/Dash'

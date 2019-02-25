@@ -12,6 +12,8 @@ import * as pug from 'pug';
  * GET /
  * Whenever a user navigates to the root of Dash
  * (doesn't specify a sub-route), redirect to login.
+ * If the user is already signed in, it will effectively
+ * automatically redirect them to /home instead
  */
 export let getEntry = (req: Request, res: Response) => {
     res.redirect("/login");
@@ -29,6 +31,7 @@ export let getSignup = (req: Request, res: Response) => {
     }
     res.render("signup.pug", {
         title: "Sign Up",
+        user: req.user,
         errors: req.flash("Unable to facilitate sign up. Please try again.")
     });
 };
@@ -61,7 +64,9 @@ export let postSignup = (req: Request, res: Response, next: NextFunction) => {
     const user = new User({
         email,
         password,
+        userDoc: "document here"
     });
+
     User.findOne({ email }, (err, existingUser) => {
         if (err) { return next(err); }
         if (existingUser) {
@@ -94,7 +99,8 @@ export let getLogin = (req: Request, res: Response) => {
         return res.redirect("/home");
     }
     res.render("login.pug", {
-        title: "Log In"
+        title: "Log In",
+        user: req.user
     });
 };
 

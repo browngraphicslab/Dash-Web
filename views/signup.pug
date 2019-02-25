@@ -4,7 +4,6 @@ extends ./layout
 block content
     style
         include ./stylesheets/authentication.css
-    .page-header
     form.form-horizontal(id='signup-form', method='POST')
         input(type='hidden', name='_csrf', value=_csrf)
         .overlay(id='overlay_signup')
