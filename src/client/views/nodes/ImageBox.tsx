@@ -82,7 +82,7 @@ export class ImageBox extends React.Component<FieldViewProps> {
         }
     }
 
-    //REPLACE THIS WITH CAPABILITIES SPECIFC TO THIS TYPE OF NODE
+    //REPLACE THIS WITH CAPABILITIES SPECIFIC TO THIS TYPE OF NODE
     imageCapability = (e: React.MouseEvent): void => {
     }
 

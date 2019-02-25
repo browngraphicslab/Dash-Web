@@ -116,7 +116,7 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
         }
     }
 
-    //REPLACE THIS WITH CAPABILITIES SPECIFC TO THIS TYPE OF NODE
+    //REPLACE THIS WITH CAPABILITIES SPECIFIC TO THIS TYPE OF NODE
     textCapability = (e: React.MouseEvent): void => {
     }
 
@@ -125,12 +125,7 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
     }
 
     render() {
-        return (<div className="formattedTextBox-cont"
-            style={{
-                color: "initial",
-                whiteSpace: "initial"
-            }}
-            onPointerDown={this.onPointerDown}
-            ref={this._ref} onContextMenu={this.specificContextMenu} />)
+        return (<div className="formattedTextBox-cont" style={{ color: "initial", whiteSpace: "initial" }}
+            onPointerDown={this.onPointerDown} ref={this._ref} onContextMenu={this.specificContextMenu} />)
     }
 }

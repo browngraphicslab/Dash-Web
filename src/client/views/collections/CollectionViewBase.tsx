@@ -27,8 +27,17 @@ export const COLLECTION_BORDER_WIDTH = 2;
 export class CollectionViewBase extends React.Component<CollectionViewProps> {
 
     public static LayoutString(collectionType: string) {
-        return `<${collectionType} DocumentForCollection={Document} CollectionFieldKey={DataKey} ContainingDocumentView={DocumentView}/>`;
+        return `<${collectionType} onContextMenu={this.specificContextMenu} DocumentForCollection={Document} CollectionFieldKey={DataKey} ContainingDocumentView={DocumentView}/>`;
     }
+
+    //REPLACE THIS WITH CAPABILITIES SPECIFIC TO THIS TYPE OF NODE
+    collectionCapability = (e: React.MouseEvent): void => {
+    }
+
+    specificContextMenu = (e: React.MouseEvent): void => {
+        ContextMenu.Instance.addItem({ description: "Collection Capability", event: this.collectionCapability });
+    }
+
     @computed
     public get active(): boolean {
         var isSelected = (this.props.ContainingDocumentView instanceof CollectionFreeFormDocumentView && SelectionManager.IsSelected(this.props.ContainingDocumentView));

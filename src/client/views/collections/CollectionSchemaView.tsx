@@ -15,6 +15,7 @@ import { KeyStore as KS, Key } from "../../../fields/Key";
 import { Document } from "../../../fields/Document";
 import { Field } from "../../../fields/Field";
 import { Transform } from "../../util/Transform";
+import { ContextMenu } from "../ContextMenu";
 
 @observer
 export class CollectionSchemaView extends CollectionViewBase {
@@ -98,6 +99,14 @@ export class CollectionSchemaView extends CollectionViewBase {
         }
     }
 
+    //REPLACE THIS WITH CAPABILITIES SPECIFIC TO THIS TYPE OF NODE
+    collectionCapability = (e: React.MouseEvent): void => {
+    }
+
+    specificContextMenu = (e: React.MouseEvent): void => {
+        ContextMenu.Instance.addItem({ description: "Collection Capability", event: this.collectionCapability });
+    }
+
     render() {
         const { DocumentForCollection: Document, CollectionFieldKey: fieldKey } = this.props;
         const children = Document.GetList<Document>(fieldKey, []);
@@ -116,7 +125,7 @@ export class CollectionSchemaView extends CollectionViewBase {
             content = <div />
         }
         return (
-            <div onPointerDown={this.onPointerDown} >
+            <div onPointerDown={this.onPointerDown} onContextMenu={this.specificContextMenu}>
                 <SplitPane split={"vertical"} defaultSize="60%">
                     <ScrollBox>
                         <ReactTable
