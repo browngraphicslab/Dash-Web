@@ -7,6 +7,10 @@ import * as request from "express-validator";
 const flash = require("express-flash");
 import * as session from "express-session";
 import * as pug from 'pug';
+import * as async from 'async';
+import * as nodemailer from 'nodemailer';
+import c = require("crypto");
+
 
 /**
  * GET /
@@ -45,8 +49,6 @@ export let postSignup = (req: Request, res: Response, next: NextFunction) => {
     req.assert("password", "Password must be at least 4 characters long").len({ min: 4 });
     req.assert("confirmPassword", "Passwords do not match").equals(req.body.password);
     req.sanitize("email").normalizeEmail({ gmail_remove_dots: false });
-
-    req.flash("Working on something!!!");
 
     const errors = req.validationErrors();
 
@@ -146,4 +148,133 @@ export let getLogout = (req: Request, res: Response) => {
         sess.destroy((err) => { if (err) { console.log(err); } });
     }
     res.redirect('/login');
+}
+
+export let getForgot = function (req: Request, res: Response) {
+    res.render("forgot.pug", {
+        title: "Recover Password",
+        user: req.user,
+    });
+}
+
+export let postForgot = function (req: Request, res: Response, next: NextFunction) {
+    const email = req.body.email;
+    async.waterfall([
+        function (done: any) {
+            let token: string;
+            c.randomBytes(20, function (err: any, buffer: Buffer) {
+                if (err) {
+                    done(null);
+                    return;
+                }
+                done(null, buffer.toString('hex'));
+            })
+        },
+        function (token: Buffer, done: any) {
+            User.findOne({ email }, function (err, user: UserModel) {
+                if (!user) {
+                    // NO ACCOUNT WITH SUBMITTED EMAIL
+                    return res.redirect('/forgot');
+                }
+                user.passwordResetToken = token.toString('utf8');
+                console.log(user.passwordResetToken);
+                user.passwordResetExpires = new Date(Date.now() + 3600000); // 1 HOUR
+                user.save(function (err: any) {
+                    done(null, token, user);
+                });
+            });
+        },
+        function (token: Uint16Array, user: UserModel, done: any) {
+            const smtpTransport = nodemailer.createTransport({
+                service: 'Gmail',
+                auth: {
+                    user: 'brownptcdash@gmail.com',
+                    pass: 'browngfx1'
+                }
+            });
+            const mailOptions = {
+                to: user.email,
+                from: 'brownptcdash@gmail.com',
+                subject: 'Dash Password Reset',
+                text: 'You are receiving this because you (or someone else) have requested the reset of the password for your account.\n\n' +
+                    'Please click on the following link, or paste this into your browser to complete the process:\n\n' +
+                    'http://' + req.headers.host + '/reset/' + token + '\n\n' +
+                    'If you did not request this, please ignore this email and your password will remain unchanged.\n'
+            };
+            smtpTransport.sendMail(mailOptions, function (err) {
+                // req.flash('info', 'An e-mail has been sent to ' + user.email + ' with further instructions.');
+                done(null, err, 'done');
+            });
+        }
+    ], function (err) {
+        if (err) return next(err);
+        res.redirect('/forgot');
+    })
+}
+
+export let getReset = function (req: Request, res: Response) {
+    User.findOne({ passwordResetToken: req.params.token, passwordResetExpires: { $gt: Date.now() } }, function (err, user: UserModel) {
+        if (!user || err) {
+            return res.redirect('/forgot');
+        }
+        res.render("reset.pug", {
+            title: "Reset Password",
+            user: req.user,
+        });
+    });
+}
+
+export let postReset = function (req: Request, res: Response) {
+    async.waterfall([
+        function (done: any) {
+            User.findOne({ passwordResetToken: req.params.token, passwordResetExpires: { $gt: Date.now() } }, function (err, user: UserModel) {
+                if (!user || err) {
+                    return res.redirect('back');
+                }
+
+                req.assert("password", "Password must be at least 4 characters long").len({ min: 4 });
+                req.assert("confirmPassword", "Passwords do not match").equals(req.body.password);
+
+                if (req.validationErrors()) {
+                    return res.redirect('back');
+                }
+
+                user.password = req.body.password;
+                user.passwordResetToken = undefined;
+                user.passwordResetExpires = undefined;
+
+                user.save(function (err) {
+                    req.logIn(user, function (err) {
+                        if (err) {
+                            console.log(err);
+                            return;
+                        }
+                    });
+                    done(user, err);
+                });
+            });
+        },
+        function (user: UserModel, done: any) {
+            console.log(`SENDING EMAIL TO ${user.email}`);
+            const smtpTransport = nodemailer.createTransport({
+                service: 'Gmail',
+                auth: {
+                    user: 'brownptcdash@gmail.com',
+                    pass: 'browngfx1'
+                }
+            });
+            const mailOptions = {
+                to: user.email,
+                from: 'brownptcdash@gmail.com',
+                subject: 'Your password has been changed',
+                text: 'Hello,\n\n' +
+                    'This is a confirmation that the password for your account ' + user.email + ' has just been changed.\n'
+            };
+            smtpTransport.sendMail(mailOptions, function (err) {
+                done(null, err);
+            });
+        }
+    ], function (err) {
+        res.redirect('/login');
+    });
 }

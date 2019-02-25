@@ -171,6 +171,12 @@ function init() {
                         right: '0px',
                         width: '150px'
                     }} onClick={() => UndoManager.Redo()}>Redo</button>
+                    <button style={{
+                        position: 'absolute',
+                        top: '24px',
+                        right: '0px',
+                        width: '150px'
+                    }} onClick={() => window.location.pathname = "/logout"}>Logout</button>
                 </div>),
                 document.getElementById('root'));
         })

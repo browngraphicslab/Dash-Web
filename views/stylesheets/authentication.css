@@ -26,7 +26,8 @@ body {
     text-align: left;
 }
 
-.login {
+.login,
+.reset {
     height: 220px;
 }
 
@@ -46,7 +47,8 @@ body {
     font-style: oblique;
 }
 
-#overlay_signup {
+#overlay_signup,
+#overlay_reset {
     height: 345px;
 }
 

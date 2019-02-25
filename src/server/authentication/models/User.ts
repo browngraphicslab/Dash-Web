@@ -18,8 +18,8 @@ mongoose.connection.on('disconnected', function () {
 export type UserModel = mongoose.Document & {
     email: string,
     password: string,
-    passwordResetToken: string,
-    passwordResetExpires: Date,
+    passwordResetToken: string | undefined,
+    passwordResetExpires: Date | undefined,
     tokens: AuthToken[],
 
     profile: {

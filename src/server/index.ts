@@ -17,7 +17,7 @@ import * as bcrypt from "bcrypt-nodejs";
 import { Document } from '../fields/Document';
 import * as io from 'socket.io'
 import * as passportConfig from './authentication/config/passport';
-import { getLogin, postLogin, getSignup, postSignup, getLogout, getEntry } from './authentication/controllers/user';
+import { getLogin, postLogin, getSignup, postSignup, getLogout, getEntry, postReset, getForgot, postForgot, getReset } from './authentication/controllers/user';
 const config = require('../../webpack.config');
 const compiler = webpack(config);
 const port = 1050; // default port to listen
@@ -28,11 +28,9 @@ import flash = require('express-flash');
 import * as bodyParser from 'body-parser';
 import * as session from 'express-session';
 import * as cookieParser from 'cookie-parser';
-import * as nodemailer from 'nodemailer';
 import c = require("crypto");
 const MongoStore = require('connect-mongo')(session);
 const mongoose = require('mongoose');
-import * as async from 'async';
 const bluebird = require('bluebird');
 import { performance } from 'perf_hooks'
 import * as path from 'path'
@@ -88,7 +86,6 @@ app.get("/home", (req, res) => {
 });
 
 app.get("/getUserDocId", (req, res) => {
-    console.log(req.user)
     if (!req.user) {
         return;
     }
@@ -119,64 +116,15 @@ app.get('/logout', getLogout);
 
 // *** 
 
-app.get('/forgot', function (req, res) {
-    res.render("forgot.pug", {
-        title: "Recover Password",
-        user: req.user,
-    });
-})
-
 // FORGOT PASSWORD EMAIL HANDLING
-app.post('/forgot', function (req, res, next) {
-    const email = req.body.email;
-    async.waterfall([
-        function (done: any) {
-            const seed = new Uint32Array(20);
-            let token = seed;
-            done(null, token);
-        },
-        function (token: Uint32Array, done: any) {
-            User.findOne({ email }, function (err, user: UserModel) {
-                if (!user) {
-                    // NO ACCOUNT WITH SUBMITTED EMAIL
-                    return res.redirect('/forgot');
-                }
-                user.passwordResetToken = token.toString();
-                user.passwordResetExpires = new Date(Date.now() + 3600000); // 1 HOUR
-                user.save(function (err: any) {
-                    done(null, token, user);
-                });
-            });
-        },
-        function (token: Uint16Array, user: UserModel, done: any) {
-            const smptTransport = nodemailer.createTransport({
-                service: 'Gmail',
-                auth: {
-                    user: 'brownptcdash@gmail.com',
-                    pass: 'browngfx1'
-                }
-            });
-            const mailOptions = {
-                to: user.email,
-                from: 'brownptcdash@gmail.com',
-                subject: 'Dash Password Reset',
-                text: 'You are receiving this because you (or someone else) have requested the reset of the password for your account.\n\n' +
-                    'Please click on the following link, or paste this into your browser to complete the process:\n\n' +
-                    'http://' + req.headers.host + '/reset/' + token + '\n\n' +
-                    'If you did not request this, please ignore this email and your password will remain unchanged.\n'
-            };
-            smptTransport.sendMail(mailOptions, function (err) {
-                // req.flash('info', 'An e-mail has been sent to ' + user.email + ' with further instructions.');
-                done(null, err, 'done');
-            });
-        }
-    ], function (err) {
-        if (err) return next(err);
-        res.redirect('/forgot');
-    })
-})
-let FieldStore: ObservableMap<FieldId, Field> = new ObservableMap();
+app.get('/forgot', getForgot)
+app.post('/forgot', postForgot)
 
+// RESET PASSWORD EMAIL HANDLING
+app.get('/reset/:token', getReset);
+app.post('/reset/:token', postReset);
+
+let FieldStore: ObservableMap<FieldId, Field> = new ObservableMap();
 app.get("/hello", (req, res) => {
     res.send("<p>Hello</p>");
 })
