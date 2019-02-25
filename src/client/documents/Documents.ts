@@ -112,9 +112,7 @@ export namespace Documents {
             imageProto.Set(KeyStore.X, new NumberField(0));
             imageProto.Set(KeyStore.Y, new NumberField(0));
             imageProto.Set(KeyStore.NativeWidth, new NumberField(300));
-            imageProto.Set(KeyStore.NativeHeight, new NumberField(300));
             imageProto.Set(KeyStore.Width, new NumberField(300));
-            imageProto.Set(KeyStore.Height, new NumberField(300));
             imageProto.Set(KeyStore.Layout, new TextField(CollectionView.LayoutString("AnnotationsKey")));
             imageProto.SetNumber(KeyStore.ViewType, CollectionViewType.Freeform)
             imageProto.Set(KeyStore.BackgroundLayout, new TextField(ImageBox.LayoutString()));
@@ -128,8 +126,8 @@ export namespace Documents {
 
     // example of custom display string for an image that shows a caption.
     function EmbeddedCaption() {
-        return `<div style="position:absolute; height:100%">
-            <div style="position:relative; margin:auto; width:85%; margin:auto" >`
+        return `<div style="height:100%">
+            <div style="position:relative; margin:auto; height:85%;" >`
             + ImageBox.LayoutString() +
             `</div>
             <div style="position:relative; overflow:auto; height:15%; text-align:center; ">`
@@ -151,9 +149,7 @@ export namespace Documents {
         doc.Set(KeyStore.BackgroundLayout, new TextField(EmbeddedCaption()));
         doc.Set(KeyStore.OverlayLayout, new TextField(FixedCaption()));
         doc.Set(KeyStore.LayoutKeys, new ListField([KeyStore.Data, KeyStore.Annotations, KeyStore.Caption]));
-
-        let annotation = Documents.TextDocument({ title: "hello" });
-        doc.Set(KeyStore.Annotations, new ListField([annotation]));
+        console.log("" + doc.GetNumber(KeyStore.Height, 311));
         return doc;
     }
 

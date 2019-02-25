@@ -21,7 +21,6 @@ import "./CollectionFreeFormView.scss";
 import { COLLECTION_BORDER_WIDTH } from "./CollectionView";
 import { CollectionViewBase } from "./CollectionViewBase";
 import React = require("react");
-import { Documents } from "../../documents/Documents";
 const JsxParser = require('react-jsx-parser').default;//TODO Why does this need to be imported like this?
 
 @observer
@@ -32,7 +31,6 @@ export class CollectionFreeFormView extends CollectionViewBase {
     private _downX: number = 0;
     private _downY: number = 0;
 
-
     @computed get panX(): number { return this.props.Document.GetNumber(KeyStore.PanX, 0) }
     @computed get panY(): number { return this.props.Document.GetNumber(KeyStore.PanY, 0) }
     @computed get scale(): number { return this.props.Document.GetNumber(KeyStore.Scale, 1); }
@@ -40,21 +38,20 @@ export class CollectionFreeFormView extends CollectionViewBase {
     @computed get nativeWidth() { return this.props.Document.GetNumber(KeyStore.NativeWidth, 0); }
     @computed get nativeHeight() { return this.props.Document.GetNumber(KeyStore.NativeHeight, 0); }
     @computed get zoomScaling() { return this.props.Document.GetNumber(KeyStore.Scale, 1); }
+    @computed get centeringShiftX() { return !this.props.Document.GetNumber(KeyStore.NativeWidth, 0) ? this.props.panelWidth() / 2 : 0; }  // shift so pan position is at center of window for non-overlay collections
+    @computed get centeringShiftY() { return !this.props.Document.GetNumber(KeyStore.NativeHeight, 0) ? this.props.panelHeight() / 2 : 0; }// shift so pan position is at center of window for non-overlay collections
 
     @undoBatch
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
         super.drop(e, de);
-        const doc: DocumentView = de.data["document"];
-        const xOffset = de.data["xOffset"] as number || 0;
-        const yOffset = de.data["yOffset"] as number || 0;
-        //this should be able to use translate and scale methods on an Identity transform, no?
-        const transform = this.getTransform();
-        const screenX = de.x - xOffset;
-        const screenY = de.y - yOffset;
-        const [x, y] = transform.transformPoint(screenX, screenY);
-        doc.props.Document.SetNumber(KeyStore.X, x);
-        doc.props.Document.SetNumber(KeyStore.Y, y);
+        const docView: DocumentView = de.data["documentView"];
+        let doc: Document = docView ? docView.props.Document : de.data["document"];
+        let screenX = de.x - (de.data["xOffset"] as number || 0);
+        let screenY = de.y - (de.data["yOffset"] as number || 0);
+        const [x, y] = this.getTransform().transformPoint(screenX, screenY);
+        doc.SetNumber(KeyStore.X, x);
+        doc.SetNumber(KeyStore.Y, y);
         this.bringToFront(doc);
     }
 
@@ -103,35 +100,45 @@ export class CollectionFreeFormView extends CollectionViewBase {
         e.stopPropagation();
         e.preventDefault();
         let coefficient = 1000;
-        // if (modes[e.deltaMode] == 'pixels') coefficient = 50;
-        // else if (modes[e.deltaMode] == 'lines') coefficient = 1000; // This should correspond to line-height??
-        let transform = this.getTransform();
 
-        let deltaScale = (1 - (e.deltaY / coefficient));
-        let [x, y] = transform.transformPoint(e.clientX, e.clientY);
+        if (e.ctrlKey) {
+            var nativeWidth = this.props.Document.GetNumber(KeyStore.NativeWidth, 0);
+            var nativeHeight = this.props.Document.GetNumber(KeyStore.NativeHeight, 0);
+            const coefficient = 1000;
+            let deltaScale = (1 - (e.deltaY / coefficient));
+            this.props.Document.SetNumber(KeyStore.NativeWidth, nativeWidth * deltaScale);
+            this.props.Document.SetNumber(KeyStore.NativeHeight, nativeHeight * deltaScale);
+            e.stopPropagation();
+            e.preventDefault();
+        } else {
+            // if (modes[e.deltaMode] == 'pixels') coefficient = 50;
+            // else if (modes[e.deltaMode] == 'lines') coefficient = 1000; // This should correspond to line-height??
+            let transform = this.getTransform();
 
-        let localTransform = this.getLocalTransform();
-        localTransform = localTransform.inverse().scaleAbout(deltaScale, x, y)
+            let deltaScale = (1 - (e.deltaY / coefficient));
+            if (deltaScale * this.zoomScaling < 1 && this.isAnnotationOverlay)
+                deltaScale = 1 / this.zoomScaling;
+            let [x, y] = transform.transformPoint(e.clientX, e.clientY);
 
-        this.props.Document.SetNumber(KeyStore.Scale, localTransform.Scale);
-        this.SetPan(localTransform.TranslateX, localTransform.TranslateY);
+            let localTransform = this.getLocalTransform();
+            localTransform = localTransform.inverse().scaleAbout(deltaScale, x, y)
+
+            this.props.Document.SetNumber(KeyStore.Scale, localTransform.Scale);
+            this.SetPan(localTransform.TranslateX, localTransform.TranslateY);
+        }
     }
 
     @action
     private SetPan(panX: number, panY: number) {
         const newPanX = Math.max((1 - this.zoomScaling) * this.nativeWidth, Math.min(0, panX));
         const newPanY = Math.max((1 - this.zoomScaling) * this.nativeHeight, Math.min(0, panY));
-        this.props.Document.SetNumber(KeyStore.PanX, false && this.isAnnotationOverlay ? newPanX : panX);
-        this.props.Document.SetNumber(KeyStore.PanY, false && this.isAnnotationOverlay ? newPanY : panY);
+        this.props.Document.SetNumber(KeyStore.PanX, this.isAnnotationOverlay ? newPanX : panX);
+        this.props.Document.SetNumber(KeyStore.PanY, this.isAnnotationOverlay ? newPanY : panY);
     }
 
     @action
     onDrop = (e: React.DragEvent): void => {
-        const panx: number = this.props.Document.GetNumber(KeyStore.PanX, 0);
-        const pany: number = this.props.Document.GetNumber(KeyStore.PanY, 0);
-        let transform = this.getTransform();
-
-        var pt = transform.transformPoint(e.pageX, e.pageY);
+        var pt = this.getTransform().transformPoint(e.pageX, e.pageY);
         super.onDrop(e, { x: pt[0], y: pt[1] });
     }
 
@@ -139,15 +146,15 @@ export class CollectionFreeFormView extends CollectionViewBase {
     }
 
     @action
-    bringToFront(doc: DocumentView) {
+    bringToFront(doc: Document) {
         const { fieldKey: fieldKey, Document: Document } = this.props;
 
         const value: Document[] = Document.GetList<Document>(fieldKey, []).slice();
         value.sort((doc1, doc2) => {
-            if (doc1 === doc.props.Document) {
+            if (doc1 === doc) {
                 return 1;
             }
-            if (doc2 === doc.props.Document) {
+            if (doc2 === doc) {
                 return -1;
             }
             return doc1.GetNumber(KeyStore.ZIndex, 0) - doc2.GetNumber(KeyStore.ZIndex, 0);
@@ -211,19 +218,14 @@ export class CollectionFreeFormView extends CollectionViewBase {
                 onError={(test: any) => console.log(test)}
             />);
     }
-    getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-COLLECTION_BORDER_WIDTH, -COLLECTION_BORDER_WIDTH).transform(this.getLocalTransform())
+
+    getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-COLLECTION_BORDER_WIDTH - this.centeringShiftX, -COLLECTION_BORDER_WIDTH - this.centeringShiftY).transform(this.getLocalTransform())
     getLocalTransform = (): Transform => Transform.Identity.translate(-this.panX, -this.panY).scale(1 / this.scale);
     noScaling = () => 1;
 
     render() {
-        const panx: number = this.props.Document.GetNumber(KeyStore.PanX, 0);
-        const pany: number = this.props.Document.GetNumber(KeyStore.PanY, 0);
-        var overlay = this.overlayView ?
-            <div style={{ position: "absolute", width: "100%", height: "100%" }}>
-                {this.overlayView}
-            </div>
-            :
-            (null);
+        const panx: number = this.props.Document.GetNumber(KeyStore.PanX, 0) + this.centeringShiftX;
+        const pany: number = this.props.Document.GetNumber(KeyStore.PanY, 0) + this.centeringShiftY;
         return (
             <div className="collectionfreeformview-container"
                 onPointerDown={this.onPointerDown}

@@ -12,6 +12,7 @@ import { CollectionDockingView } from "./CollectionDockingView";
 import { CollectionSchemaView } from "./CollectionSchemaView";
 import { CollectionViewProps } from "./CollectionViewBase";
 import { CollectionTreeView } from "./CollectionTreeView";
+import { Field } from "../../../fields/Field";
 
 export enum CollectionViewType {
     Invalid,
@@ -28,7 +29,7 @@ export class CollectionView extends React.Component<CollectionViewProps> {
 
     public static LayoutString(fieldKey: string = "DataKey") {
         return `<CollectionView Document={Document}
-                    ScreenToLocalTransform={ScreenToLocalTransform} fieldKey={${fieldKey}} isSelected={isSelected} select={select} bindings={bindings}
+                    ScreenToLocalTransform={ScreenToLocalTransform} fieldKey={${fieldKey}} panelWidth={PanelWidth} panelHeight={PanelHeight} isSelected={isSelected} select={select} bindings={bindings}
                     isTopMost={isTopMost} BackgroundView={BackgroundView} />`;
     }
     public active = () => {
@@ -39,16 +40,26 @@ export class CollectionView extends React.Component<CollectionViewProps> {
     }
     @action
     addDocument = (doc: Document): void => {
-        //TODO This won't create the field if it doesn't already exist
-        const value = this.props.Document.GetData(this.props.fieldKey, ListField, new Array<Document>())
-        value.push(doc);
+        if (this.props.Document.Get(this.props.fieldKey) instanceof Field) {
+            //TODO This won't create the field if it doesn't already exist
+            const value = this.props.Document.GetData(this.props.fieldKey, ListField, new Array<Document>())
+            value.push(doc);
+        } else {
+            this.props.Document.SetData(this.props.fieldKey, [doc], ListField);
+        }
     }
 
     @action
     removeDocument = (doc: Document): boolean => {
         //TODO This won't create the field if it doesn't already exist
         const value = this.props.Document.GetData(this.props.fieldKey, ListField, new Array<Document>())
-        let index = value.indexOf(doc);
+        let index = -1;
+        for (let i = 0; i < value.length; i++) {
+            if (value[i].Id == doc.Id) {
+                index = i;
+                break;
+            }
+        }
         if (index !== -1) {
             value.splice(index, 1)
 
