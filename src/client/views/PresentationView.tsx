@@ -1,53 +1,75 @@
-import React = require("react");
-import { observable } from "mobx";
 import { observer } from "mobx-react";
-import "./ContextMenu.scss"
-import { CollectionFreeFormDocumentView } from "./nodes/CollectionFreeFormDocumentView";
+import { Document } from "../../fields/Document";
+import { KeyStore } from "../../fields/KeyStore";
+import { ListField } from "../../fields/ListField";
+import React = require("react")
+import { TextField } from "../../fields/TextField";
+import { observable, action } from "mobx";
+import "./CollectionTreeView.scss";
+
+export interface PresViewProps {
+    Document: Document;
+}
 
 @observer
-export class PresentationView extends React.Component {
-    static Instance: PresentationView
+/**
+ * Component that takes in a document prop and a boolean whether it's collapsed or not.
+ */
+class PresentationViewItem extends React.Component<PresViewProps> {
 
-    @observable private _pageX: number = 0;
-    @observable private _pageY: number = 0;
-    @observable private _display: string = "none";
+    //observable means render is re-called every time variable is changed
+    @observable
+    collapsed: boolean = false;
 
-    private ref: React.RefObject<HTMLDivElement>;
+    /**
+     * Renders a single child document. It will just append a list element.
+     * @param document The document to render.
+     */
+    renderChild(document: Document) {
+        let title = document.GetT<TextField>(KeyStore.Title, TextField);
 
-    constructor(props: Readonly<{}>) {
-        super(props);
-
-        this.ref = React.createRef()
-
-        PresentationView.Instance = this;
-    }
-
-
-    displayMenu(x: number, y: number) {
-        this._pageX = x
-        this._pageY = y
-
-        this._display = "flex"
-    }
-
-    intersects = (x: number, y: number): boolean => {
-        if (this.ref.current && this._display !== "none") {
-            if (x >= this._pageX && x <= this._pageX + this.ref.current.getBoundingClientRect().width) {
-                if (y >= this._pageY && y <= this._pageY + this.ref.current.getBoundingClientRect().height) {
-                    return true;
-                }
-            }
+        // if the title hasn't loaded, immediately return the div
+        if (!title || title === "<Waiting>") {
+            return <div key={document.Id}></div>;
         }
-        return false;
+        // finally, if it's a normal document, then render it as such.
+        else {
+            return <li key={document.Id}>{title.Data}</li>;
+        }
     }
 
     render() {
+        var children = this.props.Document.GetT<ListField<Document>>(KeyStore.Data, ListField);
+
+        if (children && children !== "<Waiting>") {
+            return (<div>
+                {children.Data.map(value => this.renderChild(value))}
+            </div>)
+        } else {
+            return <div></div>;
+        }
+    }
+}
+
+
+@observer
+export class PresentationView extends React.Component<PresViewProps>  {
+
+    render() {
+        let titleStr = "";
+        let title = this.props.Document.GetT<TextField>(KeyStore.Title, TextField);
+        if (title && title !== "<Waiting>") {
+            titleStr = title.Data;
+        }
         return (
-            <div className="presView" style={{ left: this._pageX, top: this._pageY, display: this._display }} ref={this.ref}>
-                {this._items.map(prop => {
-                    return <CollectionFreeFormDocumentView {...prop} key={prop.description} />
-                })}
+            <div>
+                <h3>{titleStr}</h3>
+                <ul className="no-indent">
+                    <PresentationViewItem
+                        Document={this.props.Document}
+                    />
+                </ul>
             </div>
-        )
+        );
     }
 }

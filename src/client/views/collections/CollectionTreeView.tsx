@@ -18,6 +18,7 @@ export interface TreeViewProps {
  */
 class TreeView extends React.Component<TreeViewProps> {
 
+    //observable means render is re-called every time variable is changed
     @observable
     collapsed: boolean = false;
 
