@@ -11,4 +11,8 @@
 .formattedTextBox-cont {
     background: white;
     padding: 1vw;
+    overflow-y: scroll;
+    overflow-x: hidden;
+    color: initial;
+    height: 100%;
 }

@@ -9,12 +9,14 @@ import { FieldWaiting } from '../../../fields/Field';
 import { observer } from "mobx-react"
 import { observable, action } from 'mobx';
 import { KeyStore } from '../../../fields/KeyStore';
+import { element } from 'prop-types';
 
 @observer
 export class ImageBox extends React.Component<FieldViewProps> {
 
     public static LayoutString() { return FieldView.LayoutString(ImageBox) }
     private _ref: React.RefObject<HTMLDivElement>;
+    private _imgRef: React.RefObject<HTMLImageElement>;
     private _downX: number = 0;
     private _downY: number = 0;
     private _lastTap: number = 0;
@@ -25,10 +27,18 @@ export class ImageBox extends React.Component<FieldViewProps> {
         super(props);
 
         this._ref = React.createRef();
+        this._imgRef = React.createRef();
         this.state = {
             photoIndex: 0,
             isOpen: false,
         };
+    }
+
+    @action
+    onLoad = (target: any) => {
+        var h = this._imgRef.current!.naturalHeight;
+        var w = this._imgRef.current!.naturalWidth;
+        this.props.doc.SetNumber(KeyStore.NativeHeight, this.props.doc.GetNumber(KeyStore.NativeWidth, 0) * h / w)
     }
 
     componentDidMount() {
@@ -84,10 +94,9 @@ export class ImageBox extends React.Component<FieldViewProps> {
         let path = field == FieldWaiting ? "https://image.flaticon.com/icons/svg/66/66163.svg" :
             field instanceof ImageField ? field.Data.href : "http://www.cs.brown.edu/~bcz/face.gif";
         let nativeWidth = this.props.doc.GetNumber(KeyStore.NativeWidth, 1);
-
         return (
             <div className="imageBox-cont" onPointerDown={this.onPointerDown} ref={this._ref} >
-                <img src={path} width={nativeWidth} alt="Image not found" />
+                <img src={path} width={nativeWidth} alt="Image not found" ref={this._imgRef} onLoad={this.onLoad} />
                 {this.lightbox(path)}
             </div>)
     }

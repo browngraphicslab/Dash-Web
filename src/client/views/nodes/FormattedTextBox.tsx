@@ -143,14 +143,13 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
             e.stopPropagation();
         }
     }
+    onPointerWheel = (e: React.WheelEvent): void => {
+        e.stopPropagation();
+    }
     render() {
         return (<div className="formattedTextBox-cont"
-            style={{
-                color: "initial",
-                whiteSpace: "initial",
-                height: "auto"
-            }}
             onPointerDown={this.onPointerDown}
+            onWheel={this.onPointerWheel}
             ref={this._ref} />)
     }
 }
