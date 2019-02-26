@@ -28,6 +28,7 @@ class TreeView extends React.Component<TreeViewProps> {
     @observable
     collapsed: boolean = false;
 
+    // TODO this will eventually come with functions for what to attach to them
     renderBullet(type: BulletType) {
         switch (type) {
             case BulletType.Collapsed:
