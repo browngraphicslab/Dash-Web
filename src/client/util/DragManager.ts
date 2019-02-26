@@ -1,4 +1,37 @@
 import { DocumentDecorations } from "../views/DocumentDecorations";
+import { CollectionDockingView } from "../views/collections/CollectionDockingView";
+import { Document } from "../../fields/Document"
+import { action } from "mobx";
+
+export function setupDrag(_reference: React.RefObject<HTMLDivElement>, _dragDocument: Document) {
+    let onRowMove = action((e: PointerEvent): void => {
+        e.stopPropagation();
+        e.preventDefault();
+
+        document.removeEventListener("pointermove", onRowMove);
+        document.removeEventListener('pointerup', onRowUp);
+        DragManager.StartDrag(_reference.current!, { document: _dragDocument });
+    });
+    let onRowUp = action((e: PointerEvent): void => {
+        document.removeEventListener("pointermove", onRowMove);
+        document.removeEventListener('pointerup', onRowUp);
+    });
+    let onItemDown = (e: React.PointerEvent) => {
+        // if (this.props.isSelected() || this.props.isTopMost) {
+        if (e.button == 0) {
+            e.stopPropagation();
+            e.preventDefault();
+            if (e.shiftKey) {
+                CollectionDockingView.Instance.StartOtherDrag(_reference.current!, _dragDocument);
+            } else {
+                document.addEventListener("pointermove", onRowMove);
+                document.addEventListener('pointerup', onRowUp);
+            }
+        }
+        //}
+    }
+    return onItemDown;
+}
 
 export namespace DragManager {
     export function Root() {

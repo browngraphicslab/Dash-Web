@@ -175,27 +175,23 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             return;
         }
 
-        if (this.topMost) {
-            ContextMenu.Instance.clearItems()
-            ContextMenu.Instance.addItem({ description: "Full Screen", event: this.fullScreenClicked })
-            ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15)
-        }
-        else {
+        ContextMenu.Instance.clearItems()
+        ContextMenu.Instance.addItem({ description: "Full Screen", event: this.fullScreenClicked })
+        ContextMenu.Instance.addItem({ description: "Open Right", event: () => CollectionDockingView.Instance.AddRightSplit(this.props.Document) })
+        ContextMenu.Instance.addItem({ description: "Freeform", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Freeform) })
+        ContextMenu.Instance.addItem({ description: "Schema", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Schema) })
+        ContextMenu.Instance.addItem({ description: "Treeview", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Tree) })
+        //ContextMenu.Instance.addItem({ description: "Docking", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Docking) })
+        ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15)
+        if (!this.topMost) {
             // DocumentViews should stop propagation of this event
             e.stopPropagation();
-
-            ContextMenu.Instance.clearItems();
-            ContextMenu.Instance.addItem({ description: "Full Screen", event: this.fullScreenClicked })
-            ContextMenu.Instance.addItem({ description: "Open Right", event: () => CollectionDockingView.Instance.AddRightSplit(this.props.Document) })
-            ContextMenu.Instance.addItem({ description: "Delete", event: this.deleteClicked })
-            ContextMenu.Instance.addItem({ description: "Pin to Presentation", event: () => PresentationView.Instance.PinDoc(this.props.Document) })
-            ContextMenu.Instance.addItem({ description: "Freeform", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Freeform) })
-            ContextMenu.Instance.addItem({ description: "Schema", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Schema) })
-            ContextMenu.Instance.addItem({ description: "Treeview", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Tree) })
-            ContextMenu.Instance.addItem({ description: "Docking", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Docking) })
-            ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15)
-            SelectionManager.SelectDoc(this, e.ctrlKey);
         }
+
+        ContextMenu.Instance.addItem({ description: "Pin to Presentation", event: () => PresentationView.Instance.PinDoc(this.props.Document) })
+        ContextMenu.Instance.addItem({ description: "Delete", event: this.deleteClicked })
+        ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15)
+        SelectionManager.SelectDoc(this, e.ctrlKey);
     }
 
     @computed get mainContent() {
