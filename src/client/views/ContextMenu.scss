@@ -22,11 +22,12 @@
     user-select: none;
     transition: all .1s;
     border-width: .11px;
+    border-style: none;
     border-color: rgb(187, 186, 186);
     border-bottom-style: solid;
-    border-top-style: none;
     padding: 10px;
     white-space: nowrap;
+    font-size: 1.5vw;
 }
 
 .contextMenu-item:hover {
@@ -38,10 +39,4 @@
     font-size: 1.5vw;
     text-align: left;
     width: 8vw;
-}
-
-#mySearch {
-    font-size: 1.5vw;
-    border-left-style: none;
-    border-right-style: none;
 }
