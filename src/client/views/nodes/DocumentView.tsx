@@ -96,7 +96,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         this._downX = e.clientX;
         this._downY = e.clientY;
         if (e.shiftKey && e.buttons === 1) {
-            CollectionDockingView.Instance.StartOtherDrag(this._mainCont.current!, this.props.Document);
+            CollectionDockingView.Instance.StartOtherDrag(this.props.Document, e);
             e.stopPropagation();
         } else {
             this._contextMenuCanOpen = true;
