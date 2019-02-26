@@ -7,6 +7,7 @@ import React = require("react")
 import { TextField } from "../../../fields/TextField";
 import { observable, action } from "mobx";
 import "./CollectionTreeView.scss";
+import { EditableView } from "../EditableView";
 
 export interface TreeViewProps {
     document: Document;
@@ -37,6 +38,7 @@ class TreeView extends React.Component<TreeViewProps> {
         // otherwise, check if it's a collection.
         else if (children && children !== "<Waiting>") {
             // if it's not collapsed, then render the full TreeView.
+            // TODO once clicking the title no longer expands the thing also make collection titles editable 
             if (!this.collapsed) {
                 return (
                     <li className="uncollapsed" key={document.Id} onClick={action(() => this.collapsed = true)} >
@@ -55,7 +57,18 @@ class TreeView extends React.Component<TreeViewProps> {
 
         // finally, if it's a normal document, then render it as such.
         else {
-            return <li key={document.Id}>{title.Data}</li>;
+            return <li key={document.Id}>
+                <EditableView contents={title.Data}
+                    height={36} GetValue={() => {
+                        let title = document.GetT<TextField>(KeyStore.Title, TextField);
+                        if (title && title !== "<Waiting>")
+                            return title.Data;
+                        return "";
+                    }} SetValue={(value: string) => {
+                        document.SetData(KeyStore.Title, value, TextField);
+                        return true;
+                    }}></EditableView>
+            </li>;
         }
     }
 
@@ -66,14 +79,6 @@ class TreeView extends React.Component<TreeViewProps> {
             return (<div>
                 {children.Data.map(value => this.renderChild(value))}
             </div>)
-            // let results: JSX.Element[] = [];
-
-            // // append a list item for each child in the collection
-            // children.Data.forEach((value) => {
-            //     results.push(this.renderChild(value));
-            // })
-
-            // return results;
         } else {
             return <div></div>;
         }
@@ -91,7 +96,7 @@ export class CollectionTreeView extends CollectionViewBase {
             titleStr = title.Data;
         }
         return (
-            <div>
+            <div id="body">
                 <h3>{titleStr}</h3>
                 <ul className="no-indent">
                     <TreeView

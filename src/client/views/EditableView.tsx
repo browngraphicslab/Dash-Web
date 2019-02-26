@@ -27,12 +27,11 @@ export class EditableView extends React.Component<EditableProps> {
     render() {
         if (this.editing) {
             return <input defaultValue={this.props.GetValue()} onKeyDown={this.onKeyDown} autoFocus onBlur={action(() => this.editing = false)}
-                style={{ width: "100%" }}></input>
+                style={{ display: "inline" }}></input>
         } else {
             return (
-                <div className="editableView-container-editing" style={{ display: "flex", height: "100%", maxHeight: `${this.props.height}` }}
-                    onClick={action(() => this.editing = true)}
-                >
+                <div className="editableView-container-editing" style={{ display: "inline", height: "100%", maxHeight: `${this.props.height}` }}
+                    onClick={action(() => this.editing = true)}>
                     {this.props.contents}
                 </div>
             )
