@@ -31,13 +31,16 @@ class TreeView extends React.Component<TreeViewProps> {
     @observable
     collapsed: boolean = false;
 
+
     // TODO this will eventually come with functions for what to attach to them
     renderBullet(type: BulletType) {
+        let onClicked = action(() => this.collapsed = !this.collapsed);
+
         switch (type) {
             case BulletType.Collapsed:
-                return <div className="bullet">&#9654;</div>
+                return <div className="bullet" onClick={onClicked}>&#9654;</div>
             case BulletType.Collapsible:
-                return <div className="bullet">&#9660;</div>
+                return <div className="bullet" onClick={onClicked}>&#9660;</div>
             case BulletType.List:
                 return <div className="bullet">&mdash;</div>
         }
@@ -53,13 +56,19 @@ class TreeView extends React.Component<TreeViewProps> {
         let title = childDocument.GetT<TextField>(KeyStore.Title, TextField);
         let onItemDown = setupDrag(reference, childDocument);
 
-        if (title && title != FieldWaiting) {
+        // if the title hasn't loaded, immediately return the div
+        if (!title || title === "<Waiting>") {
+            return <div key={childDocument.Id}></div>;
+        }
+
+        // otherwise, check if it's a collection.
+        else if (children && children !== "<Waiting>") {
             // if it's not collapsed, then render the full TreeView.
             var subView = null;
 
             if (!this.collapsed) {
                 subView =
-                    <li key={childDocument.Id} onClick={action(() => this.collapsed = true)} >
+                    <li key={childDocument.Id} >
                         {this.renderBullet(BulletType.Collapsible)}
                         {title.Data}
                         <ul key={childDocument.Id}>
@@ -67,7 +76,7 @@ class TreeView extends React.Component<TreeViewProps> {
                         </ul>
                     </li>
             } else {
-                subView = <li key={childDocument.Id} onClick={action(() => this.collapsed = false)}>
+                subView = <li key={childDocument.Id}>
                     {this.renderBullet(BulletType.Collapsed)}
                     {title.Data}
                 </li>
@@ -76,48 +85,23 @@ class TreeView extends React.Component<TreeViewProps> {
             return <div className="treeViewItem-container" onPointerDown={onItemDown} ref={reference}>
                 {subView}
             </div>
-
-
-            // let subView = !children || this.collapsed || children === FieldWaiting ? (null) :
-            //     <ul key={childDocument.Id}>
-            //         <TreeView document={childDocument} />
-            //     </ul>;
-            // return <div className="treeViewItem-container" onPointerDown={onItemDown} ref={reference}>
-            //     <li className={!children ? "leaf" : this.collapsed ? "collapsed" : "uncollapsed"}
-            //         onClick={action(() => this.collapsed = !this.collapsed)} >
-            //         {title.Data}
-            //         {subView}
-            //     </li>
-            // </div>
-        }
-
-        // if the title hasn't loaded, immediately return the div
-        if (!title || title === "<Waiting>") {
-            return <div key={childDocument.Id}></div>;
-        }
-
-        // otherwise, check if it's a collection.
-        else if (children && children !== "<Waiting>") {
-
         }
 
         // finally, if it's a normal document, then render it as such.
         else {
-            return <li key={document.Id}>
+            return <li key={childDocument.Id}>
                 {this.renderBullet(BulletType.List)}
                 <EditableView contents={title.Data}
                     height={36} GetValue={() => {
-                        let title = document.GetT<TextField>(KeyStore.Title, TextField);
+                        let title = childDocument.GetT<TextField>(KeyStore.Title, TextField);
                         if (title && title !== "<Waiting>")
                             return title.Data;
                         return "";
                     }} SetValue={(value: string) => {
-                        document.SetData(KeyStore.Title, value, TextField);
+                        childDocument.SetData(KeyStore.Title, value, TextField);
                         return true;
                     }}></EditableView>
             </li>;
-
-            return (null);
         }
     }
 
