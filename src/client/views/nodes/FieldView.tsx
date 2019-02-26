@@ -52,11 +52,14 @@ export class FieldView extends React.Component<FieldViewProps> {
         }
         else if (field instanceof NumberField) {
             return <p>{field.Data}</p>
-        } else if (field instanceof HtmlField) {
+        }
+        else if (field instanceof HtmlField) {
             return <WebView {...this.props} />
-        } else if (field != FieldWaiting) {
-            return <p>{field.GetValue}</p>
-        } else
+        }
+        else if (field != FieldWaiting) {
+            return <p>{JSON.stringify(field.GetValue())}</p>
+        }
+        else
             return <p> {"Waiting for server..."} </p>
     }
 
