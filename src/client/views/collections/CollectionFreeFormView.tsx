@@ -40,6 +40,8 @@ export class CollectionFreeFormView extends CollectionViewBase {
     @observable
     private _previewCursorVisible: boolean = false;
 
+    @computed get colFocus(): boolean { return this.props.CollectionView.isFocusOn() }
+
     @computed get panX(): number { return this.props.Document.GetNumber(KeyStore.PanX, 0) }
     @computed get panY(): number { return this.props.Document.GetNumber(KeyStore.PanY, 0) }
     @computed get scale(): number { return this.props.Document.GetNumber(KeyStore.Scale, 1); }
@@ -71,19 +73,12 @@ export class CollectionFreeFormView extends CollectionViewBase {
             !e.defaultPrevented) {
             document.removeEventListener("pointermove", this.onPointerMove);
             document.addEventListener("pointermove", this.onPointerMove);
-            //document.removeEventListener("keypress", this.onKeyDown);
-            //document.addEventListener("keydown", this.onKeyDown);
             document.removeEventListener("pointerup", this.onPointerUp);
             document.addEventListener("pointerup", this.onPointerUp);
             this._lastX = e.pageX;
             this._lastY = e.pageY;
             this._downX = e.pageX;
             this._downY = e.pageY;
-            //update downX/downY to update UI (used for preview text cursor)
-            this.setState({
-                DownX: e.pageX,
-                DownY: e.pageY,
-            })
         }
     }
 
@@ -95,6 +90,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
         if (Math.abs(this._downX - e.clientX) < 3 && Math.abs(this._downY - e.clientY) < 3) {
             //show preview text cursor on tap
             this._previewCursorVisible = true;
+            this.props.CollectionView.showPreviewCursor();
             //select is not already selected
             if (!this.props.isSelected()) {
                 this.props.select(false);
@@ -165,13 +161,11 @@ export class CollectionFreeFormView extends CollectionViewBase {
         if (!e.ctrlKey && !e.altKey && !e.shiftKey) {
             if (this._previewCursorVisible) {
                 //make textbox and add it to this collection
-                let tr = this.props.ScreenToLocalTransform().translate(this._downX, this._downY);
-                let LocalX = tr.TranslateX;
-                let LocalY = tr.TranslateY;
-                let newBox = Documents.TextDocument({ width: 200, height: 100, x: LocalX, y: LocalY, title: "new" });
+                let [x, y] = this.getTransform().transformPoint(this._downX, this._downY); (this._downX, this._downY);
+                let newBox = Documents.TextDocument({ width: 200, height: 100, x: x, y: y, title: "new" });
                 //set text to be the typed key and get focus on text box
                 this.props.CollectionView.addDocument(newBox);
-                newBox.SetText(KeyStore.Text, e.key);
+                newBox.SetText(KeyStore.Data, e.key);
                 newBox.SetNumber(KeyStore.SelectOnLoaded, 1);
 
                 //remove cursor from screen
@@ -267,14 +261,10 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
         let cursor = null;
         //toggle for preview cursor -> will be on when user taps freeform
-        if (this._previewCursorVisible) {
+        if (this._previewCursorVisible && this.props.CollectionView.isFocusOn) {
             //get local position and place cursor there!
-            //let { LocalX, LocalY } = this.props.ContainingDocumentView!.TransformToLocalPoint(this._downX, this._downY);
-            let tr = this.props.ScreenToLocalTransform().translate(this._downX, this._downY);
-            let LocalX = tr.TranslateX;
-            let LocalY = tr.TranslateY;
-            //let [dx, dy] = this.props.ScreenToLocalTransform().transformDirection(e.clientX - this._lastX, e.clientY - this._lastY);
-            cursor = <div id="prevCursor" onKeyPress={this.onKeyDown} style={{ color: "black", transform: `translate(${LocalX}px, ${LocalY}px)` }}>I</div>
+            let [x, y] = this.getTransform().transformPoint(this._downX, this._downY);
+            cursor = <div id="prevCursor" onKeyPress={this.onKeyDown} style={{ color: "black", position: "absolute", transformOrigin: "left top", transform: `translate(${x}px, ${y}px)` }}>I</div>
         }
 
         const panx: number = this.props.Document.GetNumber(KeyStore.PanX, 0);

@@ -85,10 +85,7 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
                 history(),
                 keymap({ "Mod-z": undo, "Mod-y": redo }),
                 keymap(baseKeymap),
-                //sets the placeholder text!
-                this.placeholderPlugin(
-                    this.props.doc.GetText(KeyStore.Text, "")
-                )
+                //sets the placeholder text to what's in KeyStore.Text!
             ]
         };
 
@@ -113,6 +110,12 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
                 this._editorView.updateState(EditorState.fromJSON(config, JSON.parse(field)));
             }
         })
+
+        //if tagged to be selected when created, then select & focus
+        if (this.props.doc.GetNumber(KeyStore.SelectOnLoaded, 0)) {
+            this.props.select();
+            this._editorView!.focus();
+        }
     }
 
     componentWillUnmount() {
@@ -141,9 +144,6 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
         }
     }
     render() {
-        //if (this.props.doc.GetText(KeyStore.Text, "") !== ;
-
-
         return (<div className="formattedTextBox-cont"
             style={{
                 color: "initial",

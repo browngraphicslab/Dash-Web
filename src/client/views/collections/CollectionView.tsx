@@ -1,4 +1,4 @@
-import { action, computed } from "mobx";
+import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import { Document } from "../../../fields/Document";
 import { ListField } from "../../../fields/ListField";
@@ -11,6 +11,7 @@ import { CollectionFreeFormView } from "./CollectionFreeFormView";
 import { CollectionDockingView } from "./CollectionDockingView";
 import { CollectionSchemaView } from "./CollectionSchemaView";
 import { CollectionViewProps } from "./CollectionViewBase";
+var ReactDOM = require('react-dom');
 
 
 
@@ -25,6 +26,8 @@ export const COLLECTION_BORDER_WIDTH = 2;
 
 @observer
 export class CollectionView extends React.Component<CollectionViewProps> {
+
+    private _focusOn: boolean = false;
 
     public static LayoutString(fieldKey: string = "DataKey") {
         return `<CollectionView Document={Document}
@@ -59,6 +62,21 @@ export class CollectionView extends React.Component<CollectionViewProps> {
         return false
     }
 
+
+
+    @computed
+    get isFocusOn() { return this._focusOn; }
+
+    @action
+    showPreviewCursor() {
+        this._focusOn = true;
+    }
+
+    @action
+    hidePreviewCursor() {
+        this._focusOn = false;
+    }
+
     get collectionViewType(): CollectionViewType {
         let Document = this.props.Document;
         let viewField = Document.GetT(KeyStore.ViewType, NumberField);
@@ -75,6 +93,7 @@ export class CollectionView extends React.Component<CollectionViewProps> {
         let Document = this.props.Document;
         Document.SetData(KeyStore.ViewType, type, NumberField);
     }
+
 
     render() {
         let viewType = this.collectionViewType;

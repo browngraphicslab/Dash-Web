@@ -1,5 +1,4 @@
 import { observable, action } from "mobx";
-import { CollectionFreeFormView } from "../views/collections/CollectionFreeFormView";
 import { DocumentView } from "../views/nodes/DocumentView";
 
 export namespace SelectionManager {
@@ -11,7 +10,7 @@ export namespace SelectionManager {
         SelectDoc(doc: DocumentView, ctrlPressed: boolean): void {
 
             //remove preview cursor from collection
-            if (doc.props.ContainingCollectionView != undefined && doc.props.ContainingCollectionView instanceof CollectionFreeFormView) {
+            if (doc.props.ContainingCollectionView != undefined) {
                 doc.props.ContainingCollectionView.hidePreviewCursor();
             }
 

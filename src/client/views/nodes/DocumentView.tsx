@@ -120,7 +120,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         }
         if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3) {
             //remove preview cursor from collection
-            if (this.props.ContainingCollectionView != undefined && this.props.ContainingCollectionView instanceof CollectionFreeFormView) {
+            if (this.props.ContainingCollectionView != undefined) {
                 this.props.ContainingCollectionView.hidePreviewCursor();
             }
             this._contextMenuCanOpen = false;
@@ -208,6 +208,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             onError={(test: any) => { console.log(test) }}
         />
     }
+
     render() {
         if (!this.props.Document)
             return <div></div>
