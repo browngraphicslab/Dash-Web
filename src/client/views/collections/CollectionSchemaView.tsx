@@ -116,8 +116,8 @@ export class CollectionSchemaView extends CollectionViewBase {
                 }
             }),
             style: {
-                background: rowInfo.index == this._selectedIndex ? "#00afec" : "white",
-                color: rowInfo.index == this._selectedIndex ? "white" : "black"
+                background: rowInfo.index == this._selectedIndex ? "lightGray" : "white",
+                //color: rowInfo.index == this._selectedIndex ? "white" : "black"
             }
         };
     }
