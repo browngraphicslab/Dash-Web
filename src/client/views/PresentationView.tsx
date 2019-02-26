@@ -58,6 +58,15 @@ export class PresentationView extends React.Component<PresViewProps>  {
     @observable
     collapsed: boolean = false;
 
+    private ref: React.RefObject<HTMLDivElement>;
+
+    //initilize class variables
+    constructor(props: PresViewProps) {
+        super(props);
+        this.ref = React.createRef()
+        PresentationView.Instance = this;
+    }
+
     /**
      * Adds a document to the presentation view
      **/
@@ -105,7 +114,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
         if (title && title !== "<Waiting>") {
             titleStr = title.Data;
         }
-        let width = this.collapsed ? 0 : 100;
+        let width = this.collapsed ? 100 : 300;
         return (
             <div background-color="lightblue" max-width={width}>
                 <h3>{titleStr}</h3>

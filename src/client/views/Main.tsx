@@ -18,6 +18,7 @@ import { CollectionDockingView } from './collections/CollectionDockingView';
 import { UndoManager } from '../util/UndoManager';
 import { setupDrag } from '../util/DragManager';
 import { PresentationView } from './PresentationView';
+import { Field } from '../../fields/Field';
 
 
 configure({
@@ -68,6 +69,8 @@ Documents.initProtos(() => {
             mainContainer = Documents.DockDocument(JSON.stringify({ content: [{ type: 'row', content: [] }] }), { title: "main container" }, mainDocId);
             Utils.Emit(Server.Socket, MessageStore.AddDocument, new DocumentTransfer(mainContainer.ToJson()))
 
+            mainContainer.Set(KeyStore.PresentationView, Documents.FreeformDocument([], { title: "Presentation" }));
+
             setTimeout(() => {
                 mainfreeform = Documents.FreeformDocument([], { x: 0, y: 400, title: "mini collection" });
                 Utils.Emit(Server.Socket, MessageStore.AddDocument, new DocumentTransfer(mainfreeform.ToJson()));
@@ -77,6 +80,8 @@ Documents.initProtos(() => {
                 mainContainer.Set(KeyStore.ActiveFrame, mainfreeform);
             }, 0);
         }
+
+
 
         let clearDatabase = action(() => Utils.Emit(Server.Socket, MessageStore.DeleteAll, {}))
         let addTextNode = action(() => Documents.TextDocument({ width: 200, height: 200, title: "a text note" }))
@@ -98,31 +103,34 @@ Documents.initProtos(() => {
         let schemaRef = React.createRef<HTMLDivElement>();
         let colRef = React.createRef<HTMLDivElement>();
 
-        ReactDOM.render((
-            <div style={{ position: "absolute", width: "100%", height: "100%" }}>
-                <DocumentView Document={mainContainer}
-                    AddDocument={undefined} RemoveDocument={undefined} ScreenToLocalTransform={() => Transform.Identity}
-                    ContentScaling={() => 1}
-                    PanelWidth={() => 0}
-                    PanelHeight={() => 0}
-                    isTopMost={true}
-                    ContainingCollectionView={undefined} />
-                <DocumentDecorations />
-                <ContextMenu />
-                <PresentationView Document={} />
-                <div style={{ position: 'absolute', bottom: '0px', left: '0px', width: '150px' }} ref={imgRef} >
-                    <button onPointerDown={setupDrag(imgRef, addImageNode)} onClick={addClick(addImageNode)}>Add Image</button></div>
-                <div style={{ position: 'absolute', bottom: '25px', left: '0px', width: '150px' }} ref={textRef}>
-                    <button onPointerDown={setupDrag(textRef, addTextNode)} onClick={addClick(addTextNode)}>Add Text</button></div>
-                <div style={{ position: 'absolute', bottom: '50px', left: '0px', width: '150px' }} ref={colRef}>
-                    <button onPointerDown={setupDrag(colRef, addColNode)} onClick={addClick(addColNode)}>Add Collection</button></div>
-                <div style={{ position: 'absolute', bottom: '75px', left: '0px', width: '150px' }} ref={schemaRef}>
-                    <button onPointerDown={setupDrag(schemaRef, addSchemaNode)} onClick={addClick(addSchemaNode)}>Add Schema</button></div>
-                <button style={{ position: 'absolute', bottom: '100px', left: '0px', width: '150px' }} onClick={clearDatabase}>Clear Database</button>
-                <button style={{ position: 'absolute', bottom: '25', right: '0px', width: '150px' }} onClick={() => UndoManager.Undo()}>Undo</button>
-                <button style={{ position: 'absolute', bottom: '0', right: '0px', width: '150px' }} onClick={() => UndoManager.Redo()}>Redo</button>
-            </div>),
-            document.getElementById('root'));
+        let render = function (field: Field | undefined) {
+            ReactDOM.render((
+                <div style={{ position: "absolute", width: "100%", height: "100%" }}>
+                    <DocumentView Document={mainContainer}
+                        AddDocument={undefined} RemoveDocument={undefined} ScreenToLocalTransform={() => Transform.Identity}
+                        ContentScaling={() => 1}
+                        PanelWidth={() => 0}
+                        PanelHeight={() => 0}
+                        isTopMost={true}
+                        ContainingCollectionView={undefined} />
+                    <DocumentDecorations />
+                    <ContextMenu />
+                    <PresentationView Document={field as Document} />
+                    <div style={{ position: 'absolute', bottom: '0px', left: '0px', width: '150px' }} ref={imgRef} >
+                        <button onPointerDown={setupDrag(imgRef, addImageNode)} onClick={addClick(addImageNode)}>Add Image</button></div>
+                    <div style={{ position: 'absolute', bottom: '25px', left: '0px', width: '150px' }} ref={textRef}>
+                        <button onPointerDown={setupDrag(textRef, addTextNode)} onClick={addClick(addTextNode)}>Add Text</button></div>
+                    <div style={{ position: 'absolute', bottom: '50px', left: '0px', width: '150px' }} ref={colRef}>
+                        <button onPointerDown={setupDrag(colRef, addColNode)} onClick={addClick(addColNode)}>Add Collection</button></div>
+                    <div style={{ position: 'absolute', bottom: '75px', left: '0px', width: '150px' }} ref={schemaRef}>
+                        <button onPointerDown={setupDrag(schemaRef, addSchemaNode)} onClick={addClick(addSchemaNode)}>Add Schema</button></div>
+                    <button style={{ position: 'absolute', bottom: '100px', left: '0px', width: '150px' }} onClick={clearDatabase}>Clear Database</button>
+                    <button style={{ position: 'absolute', bottom: '25', right: '0px', width: '150px' }} onClick={() => UndoManager.Undo()}>Undo</button>
+                    <button style={{ position: 'absolute', bottom: '0', right: '0px', width: '150px' }} onClick={() => UndoManager.Redo()}>Redo</button>
+                </div>),
+                document.getElementById('root'));
+        }
+        mainContainer.GetAsync(KeyStore.PresentationView, render);
     })
 });
 // let doc5 = Documents.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", {
