@@ -2,8 +2,6 @@ import { observable, action, computed } from "mobx";
 import { observer } from "mobx-react";
 import { Document } from "../../../fields/Document";
 import { FieldWaiting } from "../../../fields/Field";
-import { Server } from "tls";
-import { RichTextField } from "../../../fields/RichTextField";
 import { KeyStore } from "../../../fields/KeyStore";
 import { ListField } from "../../../fields/ListField";
 import { TextField } from "../../../fields/TextField";
@@ -12,7 +10,6 @@ import { Transform } from "../../util/Transform";
 import { undoBatch } from "../../util/UndoManager";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { CollectionSchemaView } from "../collections/CollectionSchemaView";
-import { CollectionTreeView } from "../collections/CollectionTreeView";
 import { CollectionView } from "../collections/CollectionView";
 import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
 import { DocumentView } from "../nodes/DocumentView";
@@ -40,8 +37,6 @@ export class CollectionFreeFormView extends CollectionViewBase {
     //determines whether the blinking cursor for indicating whether a text will be made on key down is visible
     @observable
     private _previewCursorVisible: boolean = false;
-
-    @computed get colFocus(): boolean { return this.props.CollectionView.isFocusOn() }
 
     @computed get panX(): number { return this.props.Document.GetNumber(KeyStore.PanX, 0) }
     @computed get panY(): number { return this.props.Document.GetNumber(KeyStore.PanY, 0) }
@@ -165,7 +160,6 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
     @action
     onKeyDown = (e: React.KeyboardEvent<Element>) => {
-        console.log("KEY PRESSED");
         //if not these keys, make a textbox if preview cursor is active!
         if (!e.ctrlKey && !e.altKey && !e.shiftKey) {
             if (this._previewCursorVisible) {
@@ -174,9 +168,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
                 let newBox = Documents.TextDocument({ width: 200, height: 100, x: x, y: y, title: "new" });
                 //set text to be the typed key and get focus on text box
                 this.props.CollectionView.addDocument(newBox);
-                newBox.SetText(KeyStore.Data, e.key);
                 newBox.SetNumber(KeyStore.SelectOnLoaded, 1);
-
                 //remove cursor from screen
                 this._previewCursorVisible = false;
             }

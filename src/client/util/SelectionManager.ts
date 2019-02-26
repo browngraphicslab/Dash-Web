@@ -8,7 +8,6 @@ export namespace SelectionManager {
 
         @action
         SelectDoc(doc: DocumentView, ctrlPressed: boolean): void {
-
             // if doc is not in SelectedDocuments, add it
             if (!ctrlPressed) {
                 manager.SelectedDocuments = [];

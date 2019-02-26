@@ -26,10 +26,7 @@ export namespace KeyStore {
     export const Caption = new Key("Caption");
     export const ActiveFrame = new Key("ActiveFrame");
     export const DocumentText = new Key("DocumentText");
-    //used for setting the text of a text document
-    export const Text = new Key("Text");
     //determines whether doc views will be selected when they are first loaded
-    //should be NumberField where 0 = false and 1 = true
     //currently only implemented for FormattedTextView
     export const SelectOnLoaded = new Key("SelectOnLoaded");
 }

@@ -113,14 +113,12 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         }
     }
 
-
     onPointerMove = (e: PointerEvent): void => {
         if (e.cancelBubble) {
             this._contextMenuCanOpen = false;
             return;
         }
         if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3) {
-
             this._contextMenuCanOpen = false;
             if (this._mainCont.current != null && !this.topMost) {
                 this._contextMenuCanOpen = false;

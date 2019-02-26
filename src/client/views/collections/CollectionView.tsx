@@ -11,7 +11,6 @@ import { CollectionFreeFormView } from "./CollectionFreeFormView";
 import { CollectionDockingView } from "./CollectionDockingView";
 import { CollectionSchemaView } from "./CollectionSchemaView";
 import { CollectionViewProps } from "./CollectionViewBase";
-var ReactDOM = require('react-dom');
 import { CollectionTreeView } from "./CollectionTreeView";
 import { Field } from "../../../fields/Field";
 
