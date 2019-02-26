@@ -1,4 +1,5 @@
 
+
 .collectionSchemaView-container {
     border-style: solid;
     box-sizing: border-box;
@@ -7,11 +8,38 @@
     height: 100%;
     ::-webkit-scrollbar {
         -webkit-appearance: none;
-        width: 10px;
+        height:5px;
+        width:5px;
     }
     ::-webkit-scrollbar-thumb {
-        border-radius: 5px;
+        border-radius: 2px;
         background-color: rgba(0,0,0,.5);
+    }
+    .collectionSchemaView-previewRegion {
+        position: relative; 
+        background: black; 
+        float: left; 
+        height: 100%;
+    }
+    .collectionSchemaView-previewHandle {
+        position: absolute;
+        height: 37px;
+        width: 20px; 
+        z-index: 20; 
+        right: 0; 
+        top: 0; 
+        background: Black ;
+    }
+    .collectionSchemaView-dividerDragger{
+        position: relative; 
+        background: black; 
+        float: left; 
+        height: 100%;
+    }
+    .collectionSchemaView-tableContainer {
+        position: relative;
+        float: left;
+        height: 100%; 
     }
 
     .ReactTable {
