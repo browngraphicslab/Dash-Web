@@ -18,10 +18,6 @@ export interface PresViewProps {
  */
 class PresentationViewItem extends React.Component<PresViewProps> {
 
-    //observable means render is re-called every time variable is changed
-    @observable
-    collapsed: boolean = false;
-    //TODO: this var isn't needed
 
     /**
      * Renders a single child document. It will just append a list element.
@@ -58,6 +54,10 @@ class PresentationViewItem extends React.Component<PresViewProps> {
 export class PresentationView extends React.Component<PresViewProps>  {
     public static Instance: PresentationView;
 
+    //observable means render is re-called every time variable is changed
+    @observable
+    collapsed: boolean = false;
+
     /**
      * Adds a document to the presentation view
      **/
@@ -72,7 +72,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
         }
 
         //TODO: open presentation view if not already open
-        Documents.PresentationView([], { width: 200, height: 200, title: "a feeform collection" })
+        this.collapsed = false;
     }
 
     /**
@@ -100,13 +100,14 @@ export class PresentationView extends React.Component<PresViewProps>  {
     }
 
     render() {
-        let titleStr = "";
+        let titleStr = "Title";
         let title = this.props.Document.GetT<TextField>(KeyStore.Title, TextField);
         if (title && title !== "<Waiting>") {
             titleStr = title.Data;
         }
+        let width = this.collapsed ? 0 : 100;
         return (
-            <div>
+            <div background-color="lightblue" max-width={width}>
                 <h3>{titleStr}</h3>
                 <ul className="no-indent">
                     <PresentationViewItem

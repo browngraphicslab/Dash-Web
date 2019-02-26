@@ -192,11 +192,12 @@ export namespace Documents {
         return CollectionDocument(config, CollectionViewType.Docking, options, id)
     }
 
+    /*
     export function PresentationDocument(documents: Array<Document>, options: DocumentOptions, id?: string) {
         let doc = GetCollectionPrototype().MakeDelegate(id);
         setupOptions(doc, options);
         doc.SetData(KeyStore.Data, documents, ListField);
         doc.SetNumber(KeyStore.ViewType, CollectionViewType);
         return doc;
-    }
+    }*/
 }

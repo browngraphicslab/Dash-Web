@@ -132,7 +132,7 @@ Documents.initProtos(() => {
                     ContainingCollectionView={undefined} />
                 <DocumentDecorations />
                 <ContextMenu />
-                <PresentationView Document={PresentationView.Instance} />
+                <PresentationView Document={} />
                 <div style={{ position: 'absolute', bottom: '0px', left: '0px', width: '150px' }} ref={imgRef} >
                     <button onPointerDown={onRowDown(addImageNode, imgRef)} onClick={addClick(addImageNode)}>Add Image</button></div>
                 <div style={{ position: 'absolute', bottom: '25px', left: '0px', width: '150px' }} ref={textRef}>
