@@ -38,8 +38,9 @@ document.addEventListener("pointerdown", action(function (e: PointerEvent) {
 }), true)
 
 
-//runInAction(() => 
+//runInAction(() =>
 {
+    let PDFDoc = Documents.PDFDocument(""); 
     let doc1 = Documents.TextDocument({ title: "hello" });
     let doc2 = doc1.MakeDelegate();
     doc2.Set(KS.X, new NumberField(150));
