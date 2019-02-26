@@ -15,19 +15,7 @@ li {
     padding-left: 0;
 }
 
-/* ALL THESE SPACINGS ARE SUPER HACKY RIGHT NOW HANNAH PLS HELP */
-
-li:before {
-    content: '\2014';
-    margin-right: 0.7em;
-}
-
-.collapsed:before {
-    content: '\25b6';
-    margin-right: 0.65em;
-}
-
-.uncollapsed:before {
-    content: '\25bc';
-    margin-right: 0.5em;
+.bullet {
+    width: 1.5em;
+    display: inline-block;
 }
