@@ -15,10 +15,6 @@ export class TempTreeView extends React.Component {
 
         let view = DocumentManager.Instance.getDocumentView(doc);
         if (view != null) {
-
-            if (DocumentManager.Instance.parentIsFreeform(view)) {
-                view.switchColor()
-            }
             DocumentManager.Instance.centerNode(view);
         }
     }
