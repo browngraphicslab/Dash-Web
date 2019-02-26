@@ -2,7 +2,7 @@ import { Key } from "./Key"
 import { KeyStore } from "./KeyStore";
 import { Field, Cast, FieldWaiting, FieldValue, FieldId } from "./Field"
 import { NumberField } from "./NumberField";
-import { ObservableMap, computed, action } from "mobx";
+import { ObservableMap, computed, action, runInAction } from "mobx";
 import { TextField } from "./TextField";
 import { ListField } from "./ListField";
 import { Server } from "../client/Server";
@@ -208,6 +208,13 @@ export class Document extends Field {
             doc = doc.GetPrototype();
         }
         return protos;
+    }
+
+    CreateAlias(id?: string): Document {
+        let alias = new Document(id)
+        alias.Set(KeyStore.Prototype, this)
+
+        return alias
     }
 
     MakeDelegate(id?: string): Document {

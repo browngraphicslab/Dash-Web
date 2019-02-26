@@ -96,9 +96,12 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         this._downX = e.clientX;
         this._downY = e.clientY;
         if (e.shiftKey && e.buttons === 1) {
+            console.log("Hello")
+            let document = e.ctrlKey ? this.props.Document.CreateAlias() : this.props.Document
             CollectionDockingView.Instance.StartOtherDrag(this._mainCont.current!, this.props.Document);
             e.stopPropagation();
-        } else {
+        }
+        else {
             this._contextMenuCanOpen = true;
             if (this.active && !e.isDefaultPrevented()) {
                 e.stopPropagation();
@@ -127,11 +130,12 @@ export class DocumentView extends React.Component<DocumentViewProps> {
                 dragData["document"] = this;
                 dragData["xOffset"] = e.x - left;
                 dragData["yOffset"] = e.y - top;
+                dragData["alias"] = e.shiftKey
                 DragManager.StartDrag(this._mainCont.current, dragData, {
                     handlers: {
                         dragComplete: action((e: DragManager.DragCompleteEvent) => { }),
                     },
-                    hideSource: true
+                    hideSource: !e.shiftKey
                 })
             }
         }

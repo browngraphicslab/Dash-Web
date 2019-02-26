@@ -43,11 +43,21 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
     @action
     protected drop(e: Event, de: DragManager.DropEvent) {
         const doc: DocumentView = de.data["document"];
+        if (de.data["alias"]) {
+            let newDoc = doc.props.Document.CreateAlias()
+            const xOffset = de.data["xOffset"] as number || 0
+            const yOffset = de.data["yOffset"] as number || 0
+            newDoc.SetNumber(KeyStore.X, de.x - xOffset)
+            newDoc.SetNumber(KeyStore.Y, de.y - yOffset)
+            newDoc.SetNumber(KeyStore.Width, doc.props.Document.GetNumber(KeyStore.Width, 100))
+            newDoc.SetNumber(KeyStore.Height, doc.props.Document.GetNumber(KeyStore.Height, 100))
+            this.props.addDocument(newDoc)
+        }
         if (doc.props.ContainingCollectionView && doc.props.ContainingCollectionView !== this.props.CollectionView) {
-            if (doc.props.RemoveDocument) {
+            if (!de.data["alias"] && doc.props.RemoveDocument) {
                 doc.props.RemoveDocument(doc.props.Document);
             }
-            this.props.addDocument(doc.props.Document);
+            this.props.addDocument(de.data["alias"] ? doc.props.Document.CreateAlias() : doc.props.Document);
         }
         e.stopPropagation();
     }
