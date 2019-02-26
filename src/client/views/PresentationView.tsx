@@ -8,6 +8,7 @@ import { observable, action } from "mobx";
 import { Field } from "../../fields/Field";
 import { Documents } from '../documents/Documents';
 import "./PresentationView.scss"
+import { mobxPendingDecorators } from "mobx/lib/internal";
 
 export interface PresViewProps {
     Document: Document;
@@ -33,7 +34,8 @@ class PresentationViewItem extends React.Component<PresViewProps> {
         }
         // finally, if it's a normal document, then render it as such.
         else {
-            return <li className="presentationView-item" key={document.Id}>{title.Data}</li>;
+            return <li className="presentationView-item" key={document.Id}> //onClick={PresentationView.Instance.RemoveDoc(document)}>
+                {title.Data}</li>;
         }
     }
 
@@ -104,9 +106,11 @@ export class PresentationView extends React.Component<PresViewProps>  {
             //TODO: do i need below lines??
             // SelectionManager.DeselectAll()
             // ContextMenu.Instance.clearItems()
-            return true;
+            //   return true;
         }
-        return false
+        // return false
+
+        this.collapsed = true;
     }
 
     render() {
@@ -115,10 +119,10 @@ export class PresentationView extends React.Component<PresViewProps>  {
         if (title && title !== "<Waiting>") {
             titleStr = title.Data;
         }
-        let width = this.collapsed ? 100 : 300;
+        let width = this.collapsed ? 10 : 500;
         return (
             <div className="presentationView-cont" max-width={width}>
-                <h2>{titleStr}</h2>
+                <div className="presentationView-title"><h2>{titleStr}</h2></div>
                 <ul>
                     <PresentationViewItem
                         Document={this.props.Document}
