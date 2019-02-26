@@ -14,6 +14,7 @@ import { COLLECTION_BORDER_WIDTH } from "./CollectionView";
 
 export interface TreeViewProps {
     document: Document;
+    deleteDoc: (doc: Document) => void;
 }
 
 export enum BulletType {
@@ -30,6 +31,10 @@ class TreeView extends React.Component<TreeViewProps> {
 
     @observable
     collapsed: boolean = false;
+
+    delete() {
+        this.props.deleteDoc;
+    }
 
     renderBullet(type: BulletType) {
         let onClicked = action(() => this.collapsed = !this.collapsed);
@@ -55,7 +60,7 @@ class TreeView extends React.Component<TreeViewProps> {
             return <div key={this.props.document.Id}></div>;
         }
 
-        return <EditableView contents={title.Data}
+        return <div className="docContainer"> <EditableView contents={title.Data}
             height={36} GetValue={() => {
                 let title = this.props.document.GetT<TextField>(KeyStore.Title, TextField);
                 if (title && title !== "<Waiting>")
@@ -65,6 +70,8 @@ class TreeView extends React.Component<TreeViewProps> {
                 this.props.document.SetData(KeyStore.Title, value, TextField);
                 return true;
             }} />
+            <div className="delete-button" onClick={this.delete}>x</div>
+        </div >
     }
 
     render() {
@@ -80,7 +87,7 @@ class TreeView extends React.Component<TreeViewProps> {
 
             // render all children elements
             let childrenElement = (children.Data.map(value =>
-                <TreeView document={value} />)
+                <TreeView document={value} deleteDoc={() => console.log("test")} />)
             )
 
             // if uncollapsed, then add the children elements
@@ -129,7 +136,7 @@ export class CollectionTreeView extends CollectionViewBase {
         var children = this.props.Document.GetT<ListField<Document>>(KeyStore.Data, ListField);
         let childrenElement = !children || children === FieldWaiting ? (null) :
             (children.Data.map(value =>
-                <TreeView document={value} />)
+                <TreeView document={value} deleteDoc={() => console.log("test")} />)
             )
 
         return (

@@ -25,3 +25,13 @@ li {
     box-sizing: border-box;
     height: 100%;
 }
+
+.docContainer {
+    display: inline-table;
+}
+
+.delete-button {
+    color: #999999;
+    float: right;
+    margin-left: 1em;
+}
