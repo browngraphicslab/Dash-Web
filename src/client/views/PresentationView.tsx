@@ -7,6 +7,7 @@ import { TextField } from "../../fields/TextField";
 import { observable, action } from "mobx";
 import { Field } from "../../fields/Field";
 import { Documents } from '../documents/Documents';
+import "./PresentationView.scss"
 
 export interface PresViewProps {
     Document: Document;
@@ -28,11 +29,11 @@ class PresentationViewItem extends React.Component<PresViewProps> {
 
         // if the title hasn't loaded, immediately return the div
         if (!title || title === "<Waiting>") {
-            return <div key={document.Id}></div>;
+            return <div className="presentationView-item" key={document.Id}></div>;
         }
         // finally, if it's a normal document, then render it as such.
         else {
-            return <li key={document.Id}>{title.Data}</li>;
+            return <li className="presentationView-item" key={document.Id}>{title.Data}</li>;
         }
     }
 
@@ -116,9 +117,9 @@ export class PresentationView extends React.Component<PresViewProps>  {
         }
         let width = this.collapsed ? 100 : 300;
         return (
-            <div background-color="lightblue" max-width={width}>
-                <h3>{titleStr}</h3>
-                <ul className="no-indent">
+            <div className="presentationView-cont" max-width={width}>
+                <h2>{titleStr}</h2>
+                <ul>
                     <PresentationViewItem
                         Document={this.props.Document}
                     />

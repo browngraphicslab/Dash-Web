@@ -69,7 +69,8 @@ Documents.initProtos(() => {
             mainContainer = Documents.DockDocument(JSON.stringify({ content: [{ type: 'row', content: [] }] }), { title: "main container" }, mainDocId);
             Utils.Emit(Server.Socket, MessageStore.AddDocument, new DocumentTransfer(mainContainer.ToJson()))
 
-            mainContainer.Set(KeyStore.PresentationView, Documents.FreeformDocument([], { title: "Presentation" }));
+            //save a document for the presentation view in Key Store - this is where title is set
+            mainContainer.Set(KeyStore.PresentationView, Documents.FreeformDocument([], { title: "Presentation Mode" }));
 
             setTimeout(() => {
                 mainfreeform = Documents.FreeformDocument([], { x: 0, y: 400, title: "mini collection" });
@@ -130,6 +131,7 @@ Documents.initProtos(() => {
                 </div>),
                 document.getElementById('root'));
         }
+        //call render async passing in the doc saved in PresentationView key
         mainContainer.GetAsync(KeyStore.PresentationView, render);
     })
 });
