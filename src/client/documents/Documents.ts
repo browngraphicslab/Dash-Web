@@ -130,13 +130,13 @@ export namespace Documents {
             <div style="position:relative; margin:auto; height:85%;" >`
             + ImageBox.LayoutString() +
             `</div>
-            <div style="position:relative; overflow:auto; height:15%; text-align:center; ">`
+            <div style="position:relative; height:15%; text-align:center; ">`
             + FormattedTextBox.LayoutString("CaptionKey") +
             `</div> 
         </div>` };
     function FixedCaption() {
         return `<div style="position:absolute; height:30px; bottom:0; width:100%">
-            <div style="position:absolute; width:100%; height:100%; overflow:auto;text-align:center;bottom:0;">`
+            <div style="position:absolute; width:100%; height:100%; text-align:center;bottom:0;">`
             + FormattedTextBox.LayoutString("CaptionKey") +
             `</div> 
         </div>` };

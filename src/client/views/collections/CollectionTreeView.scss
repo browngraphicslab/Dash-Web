@@ -19,3 +19,9 @@ li {
     width: 1.5em;
     display: inline-block;
 }
+
+.collectionTreeView-dropTarget {
+    border-style: solid;
+    box-sizing: border-box;
+    height: 100%;
+}
