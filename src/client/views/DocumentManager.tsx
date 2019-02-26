@@ -77,6 +77,8 @@ export class DocumentManager {
         //console.log(doc.Title)
         //gets document view that is in freeform collection
 
+        console.log("centering...")
+
         let docView: DocumentView | null;
 
         if (doc instanceof Document) {
@@ -99,9 +101,13 @@ export class DocumentManager {
                 scale = docView.props.ScreenToLocalTransform().Scale
 
                 let doc = docView.props.Document;
-
-                XView = (-doc.GetNumber(KeyStore.X, 0) * scale) + (window.innerWidth / 2) - (width * scale / 2)
-                YView = (-doc.GetNumber(KeyStore.Y, 0) * scale) + (window.innerHeight / 2) - (height * scale / 2)
+                console.log("hello")
+                XView = (-doc.GetNumber(KeyStore.X, 0) * scale) - (width * scale / 2)
+                YView = (-doc.GetNumber(KeyStore.Y, 0) * scale) - (height * scale / 2)
+                console.log("width: " + width)
+                console.log("height: " + height)
+                // XView = (-doc.GetNumber(KeyStore.X, 0) * scale) + (window.innerWidth / 2) - (width * scale / 2)
+                // YView = (-doc.GetNumber(KeyStore.Y, 0) * scale) + (window.innerHeight / 2) - (height * scale / 2)
                 //set x and y view of parent
                 if (docView instanceof CollectionView) {
                     DocumentManager.Instance.setViewportXY(docView, XView, YView)
@@ -111,16 +117,20 @@ export class DocumentManager {
             else {
                 if (true) {
                     //view of parent
-                    let { width: parentWidth, height: parentHeight } = docView.props.ContainingCollectionView.props.documentSize();
+                    //let { width: parentWidth, height: parentHeight } = docView.props.ContainingCollectionView.props.documentSize();
                     let scale = docView.props.ContainingCollectionView.props.ScreenToLocalTransform().Scale;
                     let doc = docView.props.Document
 
                     //TODO: make sure to test if the parent view is a freeform view. if not, just skip to the next level
                     if (docView.props.ContainingCollectionView.collectionViewType == CollectionViewType.Freeform) {
                         //scale of parent
-
-                        XView = (-doc.GetNumber(KeyStore.X, 0) * scale) + (parentWidth / 2) - (width * scale / 2);
-                        YView = (-doc.GetNumber(KeyStore.Y, 0) * scale) + (parentHeight / 2) - (height * scale / 2);
+                        console.log("scale: " + scale)
+                        XView = (-doc.GetNumber(KeyStore.X, 0) * scale) - (width * scale / 2);
+                        YView = (-doc.GetNumber(KeyStore.Y, 0) * scale) - (height * scale / 2);
+                        console.log("width: " + width)
+                        console.log("height: " + height)
+                        // XView = (-doc.GetNumber(KeyStore.X, 0) * scale) + (parentWidth / 2) - (width * scale / 2);
+                        // YView = (-doc.GetNumber(KeyStore.Y, 0) * scale) + (parentHeight / 2) - (height * scale / 2);
                         // //node.Parent.setViewportXY(XView, YView);
                         DocumentManager.Instance.setViewportXY(docView.props.ContainingCollectionView, XView, YView)
 

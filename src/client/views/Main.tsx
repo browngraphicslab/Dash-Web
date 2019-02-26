@@ -133,6 +133,7 @@ Documents.initProtos(() => {
                     isTopMost={true}
                     ContainingCollectionView={undefined} />
                 <DocumentDecorations />
+                <TempTreeView />
                 <ContextMenu />
                 <div style={{ position: 'absolute', bottom: '0px', left: '0px', width: '150px' }} ref={imgRef} >
                     <button onPointerDown={onRowDown(addImageNode, imgRef)} onClick={addClick(addImageNode)}>Add Image</button></div>

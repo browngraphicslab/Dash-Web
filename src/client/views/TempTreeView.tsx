@@ -6,12 +6,9 @@ import { ListField } from "../../fields/ListField";
 import "./TempTreeView.scss"
 import { DocumentManager } from "./DocumentManager";
 
-export interface IProps {
-    mainCollection: Array<Document>;
-}
 
 @observer
-export class TempTreeView extends React.Component<IProps>{
+export class TempTreeView extends React.Component {
 
     @action
     onClick(doc: Document) {
