@@ -11,8 +11,6 @@ import { ImageField } from "../fields/ImageField";
 import { ImageBox } from "../views/nodes/ImageBox";
 import { CollectionFreeFormView } from "../views/collections/CollectionFreeFormView";
 import { FIELD_ID } from "../fields/Field";
-import { PDFBox } from "../views/nodes/PDFBox";
-import { PDFField } from "../fields/PDFField";
 
 interface DocumentOptions {
     x?: number;
@@ -128,31 +126,32 @@ export namespace Documents {
         return Server.GetDocument(imageProtoId, true)!;
     }
 
-    let PDFProtoId: FIELD_ID;
-    function GetPDFPrototype(): Document {
-        if (PDFProtoId === undefined) {
-            let PDFProto = new Document();
-            PDFProtoId = PDFProto.Id;
-            PDFProto.Set(KeyStore.Title, new TextField("PDF PROTO"));
-            PDFProto.Set(KeyStore.X, new NumberField(0));
-            PDFProto.Set(KeyStore.Y, new NumberField(0));
-            PDFProto.Set(KeyStore.Width, new NumberField(300));
-            PDFProto.Set(KeyStore.Height, new NumberField(300));
-            PDFProto.Set(KeyStore.Layout, new TextField(PDFBox.LayoutString()));
-            PDFProto.Set(KeyStore.LayoutKeys, new ListField([KeyStore.Data]));
-            Server.AddDocument(PDFProto);
-            return PDFProto;
-        }
-        return Server.GetDocument(PDFProtoId, true)!;
-    }
+    //for PDF
+    //let PDFProtoId: FIELD_ID;
+    //function GetPDFPrototype(): Document {
+        //if (PDFProtoId === undefined) {
+            //let PDFProto = new Document();
+            //PDFProtoId = PDFProto.Id;
+            //PDFProto.Set(KeyStore.Title, new TextField("PDF PROTO"));
+           // PDFProto.Set(KeyStore.X, new NumberField(0));
+            //PDFProto.Set(KeyStore.Y, new NumberField(0));
+            //PDFProto.Set(KeyStore.Width, new NumberField(300));
+           // PDFProto.Set(KeyStore.Height, new NumberField(300));
+           // PDFProto.Set(KeyStore.Layout, new TextField(PDFBox.LayoutString()));
+            //PDFProto.Set(KeyStore.LayoutKeys, new ListField([KeyStore.Data]));
+            //Server.AddDocument(PDFProto);
+           // return PDFProto;
+        //}
+        //return Server.GetDocument(PDFProtoId, true)!;
+    //}
 
-    export function PDFDocument(url: string, options: DocumentOptions = {}): Document{
-        let doc = GetPDFPrototype().MakeDelegate(); 
-        setupOptions(doc, options); 
-        doc.Set(KeyStore.Data, new PDFField(new URL(url))); 
-        Server.AddDocument(doc); 
-        return Server.GetDocument(doc.Id, true); 
-    }
+    //export function PDFDocument(url: string, options: DocumentOptions = {}): Document{
+        //let doc = GetPDFPrototype().MakeDelegate(); 
+        //setupOptions(doc, options); 
+        //doc.Set(KeyStore.Data, new PDFField(new URL(url))); 
+        //Server.AddDocument(doc); 
+        //return Server.GetDocument(doc.Id, true); 
+    //}
 
     export function ImageDocument(url: string, options: DocumentOptions = {}): Document {
         let doc = GetImagePrototype().MakeDelegate();
