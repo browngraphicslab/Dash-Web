@@ -11,6 +11,7 @@ import { CollectionView, CollectionViewType } from "../views/collections/Collect
 import { FieldView } from "../views/nodes/FieldView";
 import { HtmlField } from "../../fields/HtmlField";
 import { WebView } from "../views/nodes/WebView";
+import { PresentationView } from "../views/PresentationView";
 
 export interface DocumentOptions {
     x?: number;
@@ -189,5 +190,13 @@ export namespace Documents {
 
     export function DockDocument(config: string, options: DocumentOptions, id?: string) {
         return CollectionDocument(config, CollectionViewType.Docking, options, id)
+    }
+
+    export function PresentationDocument(documents: Array<Document>, options: DocumentOptions, id?: string) {
+        let doc = GetCollectionPrototype().MakeDelegate(id);
+        setupOptions(doc, options);
+        doc.SetData(KeyStore.Data, documents, ListField);
+        doc.SetNumber(KeyStore.ViewType, CollectionViewType);
+        return doc;
     }
 }

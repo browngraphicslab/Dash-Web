@@ -5,6 +5,8 @@ import { ListField } from "../../fields/ListField";
 import React = require("react")
 import { TextField } from "../../fields/TextField";
 import { observable, action } from "mobx";
+import { Field } from "../../fields/Field";
+import { Documents } from '../documents/Documents';
 
 export interface PresViewProps {
     Document: Document;
@@ -60,8 +62,41 @@ export class PresentationView extends React.Component<PresViewProps>  {
      * Adds a document to the presentation view
      **/
     @action
-    public PinDoc(document: Document) {
+    public PinDoc(doc: Document) {
+        //add this new doc to props.Document
+        if (this.props.Document.Get(KeyStore.Data) instanceof Field) {
+            const value = this.props.Document.GetData(KeyStore.Data, ListField, new Array<Document>())
+            value.push(doc);
+        } else {
+            this.props.Document.SetData(KeyStore.Data, [doc], ListField);
+        }
 
+        //TODO: open presentation view if not already open
+        Documents.PresentationView([], { width: 200, height: 200, title: "a feeform collection" })
+    }
+
+    /**
+     * Removes a document from the presentation view
+     **/
+    @action
+    public RemoveDoc(doc: Document) {
+        const value = this.props.Document.GetData(KeyStore.Data, ListField, new Array<Document>())
+        let index = -1;
+        for (let i = 0; i < value.length; i++) {
+            if (value[i].Id == doc.Id) {
+                index = i;
+                break;
+            }
+        }
+        if (index !== -1) {
+            value.splice(index, 1)
+
+            //TODO: do i need below lines??
+            // SelectionManager.DeselectAll()
+            // ContextMenu.Instance.clearItems()
+            return true;
+        }
+        return false
     }
 
     render() {

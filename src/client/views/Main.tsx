@@ -18,6 +18,7 @@ import { CollectionDockingView } from './collections/CollectionDockingView';
 import { FieldWaiting } from '../../fields/Field';
 import { UndoManager } from '../util/UndoManager';
 import { DragManager } from '../util/DragManager';
+import { PresentationView } from './PresentationView';
 
 
 configure({
@@ -131,6 +132,7 @@ Documents.initProtos(() => {
                     ContainingCollectionView={undefined} />
                 <DocumentDecorations />
                 <ContextMenu />
+                <PresentationView Document={PresentationView.Instance} />
                 <div style={{ position: 'absolute', bottom: '0px', left: '0px', width: '150px' }} ref={imgRef} >
                     <button onPointerDown={onRowDown(addImageNode, imgRef)} onClick={addClick(addImageNode)}>Add Image</button></div>
                 <div style={{ position: 'absolute', bottom: '25px', left: '0px', width: '150px' }} ref={textRef}>
