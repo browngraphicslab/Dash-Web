@@ -45,9 +45,9 @@ export class CollectionSchemaView extends CollectionViewBase {
             <FieldView {...props} />
         )
         let reference = React.createRef<HTMLDivElement>();
-        let onItemDown = setupDrag(reference, props.doc);
+        let onItemDown = setupDrag(reference, () => props.doc);
         return (
-            <div onPointerDown={onItemDown} ref={reference}>
+            <div onPointerDown={onItemDown} key={props.doc.Id} ref={reference}>
                 <EditableView contents={contents}
                     height={36} GetValue={() => {
                         let field = props.doc.Get(props.fieldKey);
