@@ -34,7 +34,7 @@ class TreeView extends React.Component<TreeViewProps> {
 
         var children = childDocument.GetT<ListField<Document>>(KeyStore.Data, ListField);
         let title = childDocument.GetT<TextField>(KeyStore.Title, TextField);
-        let onItemDown = setupDrag(reference, childDocument);
+        let onItemDown = setupDrag(reference, () => childDocument);
 
         if (title && title != FieldWaiting) {
             let subView = !children || this.collapsed || children === FieldWaiting ? (null) :
