@@ -17,7 +17,7 @@ import * as bcrypt from "bcrypt-nodejs";
 import { Document } from '../fields/Document';
 import * as io from 'socket.io'
 import * as passportConfig from './authentication/config/passport';
-import { getLogin, postLogin, getSignup, postSignup, getLogout, getEntry, postReset, getForgot, postForgot, getReset } from './authentication/controllers/user';
+import { getLogin, postLogin, getSignup, postSignup, getLogout, getEntry, postReset, getForgot, postForgot, getReset, getWorkspaces } from './authentication/controllers/user_controller';
 const config = require('../../webpack.config');
 const compiler = webpack(config);
 const port = 1050; // default port to listen
@@ -34,7 +34,7 @@ const MongoStore = require('connect-mongo')(session);
 const mongoose = require('mongoose');
 import { performance } from 'perf_hooks'
 import * as path from 'path'
-import User, { UserModel } from './authentication/models/User';
+import User, { DashUserModel } from './authentication/models/user_model';
 
 const mongoUrl = 'mongodb://localhost:27017/Dash';
 mongoose.connect(mongoUrl)
@@ -81,27 +81,48 @@ app.use((req, res, next) => {
 // /home defines destination after a successful log in
 app.get("/home", (req, res) => {
     // if user is not logged in, redirect to log in page
-    if (!req.user) {
-        res.redirect("/login");
-        return;
+    const dashUser: DashUserModel = req.user;
+    if (!dashUser) {
+        return res.redirect("/login");
     }
     // otherwise, connect them to Dash
     // TODO: store and manage users' workspaces
+    if (dashUser.allWorkspaceIds.length > 0) {
+        if (!dashUser.didSelectSessionWorkspace) {
+            return res.redirect("/workspaces");
+        }
+    } else {
+        console.log("OK, UPDATED TO TRUE");
+        dashUser.update({ $set: { didSelectSessionWorkspace: true } }, () => { })
+    }
     res.sendFile(path.join(__dirname, '../../deploy/index.html'));
 });
 
-app.get("/getUserDocId", (req, res) => {
-    if (!req.user) {
+app.get("/workspaces", getWorkspaces);
+
+app.get("/getActiveWorkspaceId", (req, res) => {
+    const dashUser: DashUserModel = req.user;
+    if (!dashUser) {
         return;
     }
-    res.send(req.user.userDocumentId || "");
+    res.send(dashUser.activeWorkspaceId || "");
+});
+
+app.post("/setActiveWorkspaceId", (req, res) => {
+    const dashUser: DashUserModel = req.user;
+    if (!dashUser) {
+        return;
+    }
+    console.log(`Updating active workspace ID to ${req.body.target}`);
+    dashUser.update({ $set: { activeWorkspaceId: req.body.target } }, () => { });
 })
 
-app.post("/setUserDocId", (req, res) => {
-    if (!req.user) {
+app.post("/addWorkspaceId", (req, res) => {
+    const dashUser: DashUserModel = req.user;
+    if (!dashUser) {
         return;
     }
-    req.user.update({ $set: { userDocumentId: req.body.userDocumentId } }, () => { });
+    dashUser.update({ $push: { allWorkspaceIds: req.body.target } }, () => { });
 })
 
 // anyone attempting to navigate to localhost at this port will

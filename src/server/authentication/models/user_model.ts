@@ -15,12 +15,15 @@ mongoose.connection.on('error', function (error) {
 mongoose.connection.on('disconnected', function () {
     console.log('connection closed');
 });
-export type UserModel = mongoose.Document & {
+export type DashUserModel = mongoose.Document & {
     email: string,
     password: string,
     passwordResetToken: string | undefined,
     passwordResetExpires: Date | undefined,
-    tokens: AuthToken[],
+
+    allWorkspaceIds: Array<String>,
+    activeWorkspaceId: String,
+    didSelectSessionWorkspace: Boolean,
 
     profile: {
         name: string,
@@ -46,12 +49,19 @@ const userSchema = new mongoose.Schema({
     passwordResetToken: String,
     passwordResetExpires: Date,
 
-    userDocumentId: String,
+    allWorkspaceIds: {
+        type: Array,
+        default: []
+    },
+    activeWorkspaceId: String,
+    didSelectSessionWorkspace: {
+        type: Boolean,
+        default: false
+    },
 
     facebook: String,
     twitter: String,
     google: String,
-    tokens: Array,
 
     profile: {
         name: String,
@@ -66,7 +76,7 @@ const userSchema = new mongoose.Schema({
  * Password hash middleware.
  */
 userSchema.pre("save", function save(next) {
-    const user = this as UserModel;
+    const user = this as DashUserModel;
     if (!user.isModified("password")) { return next(); }
     bcrypt.genSalt(10, (err, salt) => {
         if (err) { return next(err); }
@@ -78,7 +88,7 @@ userSchema.pre("save", function save(next) {
     });
 });
 
-const comparePassword: comparePasswordFunction = function (this: UserModel, candidatePassword, cb) {
+const comparePassword: comparePasswordFunction = function (this: DashUserModel, candidatePassword, cb) {
     bcrypt.compare(candidatePassword, this.password, (err: mongoose.Error, isMatch: boolean) => {
         cb(err, isMatch);
     });

@@ -48,8 +48,35 @@ body {
 }
 
 #overlay_signup,
-#overlay_reset {
+#overlay_reset,
+#overlay_workspaces {
     height: 345px;
+}
+
+.workspace-header {
+    margin-left: 20px;
+}
+
+.select-workspace {
+    margin-top: 15px;
+    margin-left: 20px;
+}
+
+#overlay_workspaces {
+    overflow-y: scroll;
+    text-align: left;
+}
+
+.workspaceId {
+    list-style-type: none;
+    font-family: Arial, Helvetica, sans-serif; 
+    margin-left: -20px;
+    cursor: grab;
+    padding-bottom: 15px;    
+}
+
+.workspaceId:hover {
+    color: red;
 }
 
 #overlay_login {

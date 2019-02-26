@@ -37,18 +37,25 @@ document.addEventListener("pointerdown", action(function (e: PointerEvent) {
 }), true)
 
 let mainDocId: string;
-request.get(window.location.origin + "/getUserDocId", (error, response, body) => {
+request.get(window.location.origin + "/getActiveWorkspaceId", (error, response, body) => {
+    const here = window.location.origin;
     if (body) {
         mainDocId = body;
     } else {
         mainDocId = Utils.GenerateGuid();
-        request.post(window.location.origin + "/setUserDocId", {
+        request.post(here + "/addWorkspaceId", {
             body: {
-                userDocumentId: mainDocId
+                target: mainDocId
             },
             json: true
         })
     }
+    request.post(here + "/setActiveWorkspaceId", {
+        body: {
+            target: mainDocId
+        },
+        json: true
+    })
     init();
 })
 

@@ -1,4 +1,4 @@
-import { default as User, UserModel, AuthToken } from "../models/User";
+import { default as User, DashUserModel, AuthToken } from "../models/user_model";
 import { Request, Response, NextFunction } from "express";
 import * as passport from "passport";
 import { IVerifyOptions } from "passport-local";
@@ -71,11 +71,7 @@ export let postSignup = (req: Request, res: Response, next: NextFunction) => {
     User.findOne({ email }, (err, existingUser) => {
         if (err) { return next(err); }
         if (existingUser) {
-            if (existingUser) {
-                // existingUser.update({ $set: { email: please_work } }, (err, res) => { });
-            }
-            req.flash("errors", "Account with that email address already exists.");
-            return res.redirect("/signup");
+            return res.redirect("/login");
         }
         user.save((err) => {
             if (err) { return next(err); }
@@ -83,7 +79,7 @@ export let postSignup = (req: Request, res: Response, next: NextFunction) => {
                 if (err) {
                     return next(err);
                 }
-                res.redirect("/");
+                res.redirect("/home");
             });
         });
     });
@@ -122,18 +118,27 @@ export let postLogin = (req: Request, res: Response, next: NextFunction) => {
         return res.redirect("/signup");
     }
 
-    passport.authenticate("local", (err: Error, user: UserModel, info: IVerifyOptions) => {
+    passport.authenticate("local", (err: Error, user: DashUserModel, info: IVerifyOptions) => {
         if (err) { return next(err); }
         if (!user) {
             return res.redirect("/signup");
         }
         req.logIn(user, (err) => {
             if (err) { return next(err); }
-            req.flash("success", "Success! You are logged in.");
             res.redirect("/home");
         });
     })(req, res, next);
 };
+
+export let getWorkspaces = (req: Request, res: Response) => {
+    const user: DashUserModel = req.user;
+    if (!user) {
+        return res.redirect("/login");
+    }
+    res.render("workspace.pug", {
+        ids: user.allWorkspaceIds
+    });
+}
 
 /**
  * GET /logout
@@ -141,6 +146,13 @@ export let postLogin = (req: Request, res: Response, next: NextFunction) => {
  * and destroys the user's current session.
  */
 export let getLogout = (req: Request, res: Response) => {
+    const dashUser: DashUserModel | undefined = req.user;
+    if (dashUser) {
+        dashUser.update({ $set: { didSelectSessionWorkspace: false } }, () => { })
+        console.log("UPDATED :)");
+    } else {
+        console.log("NO USER BY LOGOUT");
+    }
     req.logout();
     const sess = req.session;
     if (sess) {
@@ -170,7 +182,7 @@ export let postForgot = function (req: Request, res: Response, next: NextFunctio
             })
         },
         function (token: string, done: any) {
-            User.findOne({ email }, function (err, user: UserModel) {
+            User.findOne({ email }, function (err, user: DashUserModel) {
                 if (!user) {
                     // NO ACCOUNT WITH SUBMITTED EMAIL
                     return res.redirect('/forgot');
@@ -182,7 +194,7 @@ export let postForgot = function (req: Request, res: Response, next: NextFunctio
                 });
             });
         },
-        function (token: Uint16Array, user: UserModel, done: any) {
+        function (token: Uint16Array, user: DashUserModel, done: any) {
             const smtpTransport = nodemailer.createTransport({
                 service: 'Gmail',
                 auth: {
@@ -211,7 +223,7 @@ export let postForgot = function (req: Request, res: Response, next: NextFunctio
 }
 
 export let getReset = function (req: Request, res: Response) {
-    User.findOne({ passwordResetToken: req.params.token, passwordResetExpires: { $gt: Date.now() } }, function (err, user: UserModel) {
+    User.findOne({ passwordResetToken: req.params.token, passwordResetExpires: { $gt: Date.now() } }, function (err, user: DashUserModel) {
         if (!user || err) {
             return res.redirect('/forgot');
         }
@@ -225,7 +237,7 @@ export let getReset = function (req: Request, res: Response) {
 export let postReset = function (req: Request, res: Response) {
     async.waterfall([
         function (done: any) {
-            User.findOne({ passwordResetToken: req.params.token, passwordResetExpires: { $gt: Date.now() } }, function (err, user: UserModel) {
+            User.findOne({ passwordResetToken: req.params.token, passwordResetExpires: { $gt: Date.now() } }, function (err, user: DashUserModel) {
                 if (!user || err) {
                     return res.redirect('back');
                 }
@@ -254,7 +266,7 @@ export let postReset = function (req: Request, res: Response) {
                 });
             });
         },
-        function (user: UserModel, done: any) {
+        function (user: DashUserModel, done: any) {
             const smtpTransport = nodemailer.createTransport({
                 service: 'Gmail',
                 auth: {
