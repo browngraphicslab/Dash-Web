@@ -12,7 +12,7 @@ import { ImageBox } from "../views/nodes/ImageBox";
 import { CollectionFreeFormView } from "../views/collections/CollectionFreeFormView";
 import { FIELD_ID } from "../fields/Field";
 import {PDFField} from "../fields/PDFField"; 
-import {PDFNode} from "../views/nodes/PDFNode"
+import {PDFNode}from "../views/nodes/PDFNode"; 
 
 interface DocumentOptions {
     x?: number;
@@ -135,14 +135,14 @@ export namespace Documents {
             let PDFProto = new Document();
             PDFProtoId = PDFProto.Id;
             PDFProto.Set(KeyStore.Title, new TextField("PDF PROTO"));
-            PDFProto.Set(KeyStore.X, new NumberField(0));
+           PDFProto.Set(KeyStore.X, new NumberField(0));
             PDFProto.Set(KeyStore.Y, new NumberField(0));
             PDFProto.Set(KeyStore.Width, new NumberField(300));
-            PDFProto.Set(KeyStore.Height, new NumberField(300));
-            PDFProto.Set(KeyStore.Layout, new TextField(PDFNode.LayoutString()));
+           PDFProto.Set(KeyStore.Height, new NumberField(300));
+           PDFProto.Set(KeyStore.Layout, new TextField(PDFNode.LayoutString()));
             PDFProto.Set(KeyStore.LayoutKeys, new ListField([KeyStore.Data]));
             Server.AddDocument(PDFProto);
-            return PDFProto;
+           return PDFProto;
         }
         return Server.GetDocument(PDFProtoId, true)!;
     }

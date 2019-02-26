@@ -54,9 +54,8 @@ import { Annotation } from './Annotation';
  */
 @observer
 export class ImageBox extends React.Component<FieldViewProps> {
-
     public static LayoutString() { return FieldView.LayoutString("ImageBox"); }
-    
+
     private _mainDiv = React.createRef<HTMLDivElement>()
     private _pdf = React.createRef<HTMLCanvasElement>();
     

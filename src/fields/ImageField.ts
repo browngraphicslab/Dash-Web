@@ -14,8 +14,4 @@ export class ImageField extends BasicField<URL> {
     Copy(): Field {
         return new ImageField(this.Data);
     }
-    
-    @observable
-    Page:Number = 1; 
-
 }
