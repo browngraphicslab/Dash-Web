@@ -61,8 +61,20 @@ class TreeView extends React.Component<TreeViewProps> {
             return <div key={childDocument.Id}></div>;
         }
 
+        // set up the title element, which will be rendered the same way for everyone
+        let titleElement = <EditableView contents={title.Data}
+            height={36} GetValue={() => {
+                let title = childDocument.GetT<TextField>(KeyStore.Title, TextField);
+                if (title && title !== "<Waiting>")
+                    return title.Data;
+                return "";
+            }} SetValue={(value: string) => {
+                childDocument.SetData(KeyStore.Title, value, TextField);
+                return true;
+            }} />
+
         // otherwise, check if it's a collection.
-        else if (children && children !== "<Waiting>") {
+        if (children && children !== "<Waiting>") {
             // if it's not collapsed, then render the full TreeView.
             var subView = null;
 
@@ -70,7 +82,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 subView =
                     <li key={childDocument.Id} >
                         {this.renderBullet(BulletType.Collapsible)}
-                        {title.Data}
+                        {titleElement}
                         <ul key={childDocument.Id}>
                             <TreeView document={childDocument} />
                         </ul>
@@ -78,7 +90,7 @@ class TreeView extends React.Component<TreeViewProps> {
             } else {
                 subView = <li key={childDocument.Id}>
                     {this.renderBullet(BulletType.Collapsed)}
-                    {title.Data}
+                    {titleElement}
                 </li>
             }
 
@@ -91,16 +103,7 @@ class TreeView extends React.Component<TreeViewProps> {
         else {
             return <li key={childDocument.Id}>
                 {this.renderBullet(BulletType.List)}
-                <EditableView contents={title.Data}
-                    height={36} GetValue={() => {
-                        let title = childDocument.GetT<TextField>(KeyStore.Title, TextField);
-                        if (title && title !== "<Waiting>")
-                            return title.Data;
-                        return "";
-                    }} SetValue={(value: string) => {
-                        childDocument.SetData(KeyStore.Title, value, TextField);
-                        return true;
-                    }}></EditableView>
+                {titleElement}
             </li>;
         }
     }
@@ -138,15 +141,14 @@ export class CollectionTreeView extends CollectionViewBase {
                         }} SetValue={(value: string) => {
                             this.props.Document.SetData(KeyStore.Title, value, TextField);
                             return true;
-                        }}>
-                    </EditableView>
+                        }} />
                 </h3>
                 <ul className="no-indent">
                     <TreeView
                         document={this.props.Document}
                     />
                 </ul>
-            </div>
+            </div >
         );
     }
 }
