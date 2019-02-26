@@ -28,8 +28,6 @@ export const COLLECTION_BORDER_WIDTH = 2;
 @observer
 export class CollectionView extends React.Component<CollectionViewProps> {
 
-    private _focusOn: boolean = false;
-
     public static LayoutString(fieldKey: string = "DataKey") {
         return `<CollectionView Document={Document}
                     ScreenToLocalTransform={ScreenToLocalTransform} fieldKey={${fieldKey}} panelWidth={PanelWidth} panelHeight={PanelHeight} isSelected={isSelected} select={select} bindings={bindings}
@@ -71,21 +69,6 @@ export class CollectionView extends React.Component<CollectionViewProps> {
             return true;
         }
         return false
-    }
-
-
-
-    @computed
-    get isFocusOn() { return this._focusOn; }
-
-    @action
-    showPreviewCursor() {
-        this._focusOn = true;
-    }
-
-    @action
-    hidePreviewCursor() {
-        this._focusOn = false;
     }
 
     get collectionViewType(): CollectionViewType {

@@ -9,11 +9,6 @@ export namespace SelectionManager {
         @action
         SelectDoc(doc: DocumentView, ctrlPressed: boolean): void {
 
-            //remove preview cursor from collection
-            if (doc.props.ContainingCollectionView != undefined) {
-                doc.props.ContainingCollectionView.hidePreviewCursor();
-            }
-
             // if doc is not in SelectedDocuments, add it
             if (!ctrlPressed) {
                 manager.SelectedDocuments = [];

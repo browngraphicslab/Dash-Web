@@ -90,7 +90,6 @@ export class CollectionFreeFormView extends CollectionViewBase {
         if (Math.abs(this._downX - e.clientX) < 3 && Math.abs(this._downY - e.clientY) < 3) {
             //show preview text cursor on tap
             this._previewCursorVisible = true;
-            this.props.CollectionView.showPreviewCursor();
             //select is not already selected
             if (!this.props.isSelected()) {
                 this.props.select(false);
@@ -262,17 +261,17 @@ export class CollectionFreeFormView extends CollectionViewBase {
     getLocalTransform = (): Transform => Transform.Identity.translate(-this.panX, -this.panY).scale(1 / this.scale);
     noScaling = () => 1;
 
-    //hides the preview cursor for generating new text boxes - called when other docs are selected/dragged
+    //when focus is lost, this will remove the preview cursor
     @action
-    hidePreviewCursor() {
+    onBlur = (e: React.FocusEvent<HTMLInputElement>): void => {
         this._previewCursorVisible = false;
     }
 
     render() {
 
+        //determines whether preview text cursor should be visible (ie when user taps this collection it should)
         let cursor = null;
-        //toggle for preview cursor -> will be on when user taps freeform
-        if (this._previewCursorVisible && this.props.CollectionView.isFocusOn) {
+        if (this._previewCursorVisible) {
             //get local position and place cursor there!
             let [x, y] = this.getTransform().transformPoint(this._downX, this._downY);
             cursor = <div id="prevCursor" onKeyPress={this.onKeyDown} style={{ color: "black", position: "absolute", transformOrigin: "left top", transform: `translate(${x}px, ${y}px)` }}>I</div>
@@ -289,6 +288,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
                 onContextMenu={(e) => e.preventDefault()}
                 onDrop={this.onDrop.bind(this)}
                 onDragOver={this.onDragOver}
+                onBlur={this.onBlur}
                 style={{ borderWidth: `${COLLECTION_BORDER_WIDTH}px`, }}
                 tabIndex={0}
                 ref={this.createDropTarget}>
