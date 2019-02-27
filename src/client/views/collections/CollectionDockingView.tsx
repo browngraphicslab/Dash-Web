@@ -245,7 +245,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     render() {
         return (
             <div className="collectiondockingview-container" id="menuContainer"
-                onPointerDown={this.onPointerDown} onPointerUp={this.onPointerUp} onContextMenu={(e) => e.preventDefault()} ref={this._containerRef}
+                onPointerDown={this.onPointerDown} onPointerUp={this.onPointerUp} ref={this._containerRef}
                 style={{
                     width: "100%",
                     height: "100%",

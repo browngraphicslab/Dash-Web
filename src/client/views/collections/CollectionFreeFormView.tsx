@@ -83,7 +83,6 @@ export class CollectionFreeFormView extends CollectionViewBase {
     @action
     onPointerMove = (e: PointerEvent): void => {
         if (!e.cancelBubble && this.props.active()) {
-            e.preventDefault();
             e.stopPropagation();
             let x = this.props.Document.GetNumber(KeyStore.PanX, 0);
             let y = this.props.Document.GetNumber(KeyStore.PanY, 0);
@@ -230,7 +229,6 @@ export class CollectionFreeFormView extends CollectionViewBase {
             <div className="collectionfreeformview-container"
                 onPointerDown={this.onPointerDown}
                 onWheel={this.onPointerWheel}
-                onContextMenu={(e) => e.preventDefault()}
                 onDrop={this.onDrop.bind(this)}
                 onDragOver={this.onDragOver}
                 style={{ borderWidth: `${COLLECTION_BORDER_WIDTH}px`, }}

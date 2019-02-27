@@ -30,7 +30,6 @@ window.addEventListener("dragover", function (e) {
     e.preventDefault();
 }, false)
 document.addEventListener("pointerdown", action(function (e: PointerEvent) {
-    console.log(ContextMenu);
     if (!ContextMenu.Instance.intersects(e.pageX, e.pageY)) {
         ContextMenu.Instance.clearItems()
     }

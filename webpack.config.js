@@ -7,6 +7,7 @@ module.exports = {
   entry: {
     bundle: ["./src/client/views/Main.tsx", 'webpack-hot-middleware/client?reload=true'],
     viewer: ["./src/debug/Viewer.tsx", 'webpack-hot-middleware/client?reload=true'],
+    test: ["./src/debug/Test.tsx", 'webpack-hot-middleware/client?reload=true'],
   },
   devtool: "source-map",
   node: {
