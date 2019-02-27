@@ -110,7 +110,7 @@ app.get("/getAllWorkspaceIds", (req, res) => {
     if (!dashUser) {
         return;
     }
-    res.send(dashUser.allWorkspaceIds);
+    res.send(JSON.stringify(dashUser.allWorkspaceIds as Array<String>));
 })
 
 app.post("/setActiveWorkspaceId", (req, res) => {

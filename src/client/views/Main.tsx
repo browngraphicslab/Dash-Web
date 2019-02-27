@@ -187,8 +187,8 @@ function init() {
                     }} onClick={() => window.location.pathname = "/logout"}>Logout</button>
                     <button style={{
                         position: 'absolute',
-                        top: '50px',
-                        right: '0px',
+                        top: '24px',
+                        left: '4px',
                         width: '150px'
                     }} onClick={() => WorkspacesMenu.Instance.toggle()}>Workspaces</button>
                     <WorkspacesMenu />

@@ -3,6 +3,7 @@ import * as ReactDOM from 'react-dom';
 import { observable, action, configure, reaction, computed } from 'mobx';
 import { observer } from "mobx-react";
 import * as request from 'request'
+import './WorkspacesMenu.css'
 
 @observer
 export class WorkspacesMenu extends React.Component {
@@ -15,33 +16,61 @@ export class WorkspacesMenu extends React.Component {
         WorkspacesMenu.Instance = this;
     }
 
+    @action
     toggle() {
-        action(() => {
-            if (!this.workspacesExposed) {
-                request.get(window.location.origin + "/getAllWorkspaceIds", (error, response, body) => {
-                    this.workspaceIds = body;
-                    console.log(this.workspaceIds);
-                })
-            }
+        if (this.workspacesExposed) {
             this.workspacesExposed = !this.workspacesExposed;
-        });
+        } else {
+            request.get(window.location.origin + "/getAllWorkspaceIds", this.idCallback)
+        }
+    }
+
+    @action.bound
+    idCallback: request.RequestCallback = (error, response, body) => {
+        this.workspaceIds = [];
+        let ids: Array<string> = JSON.parse(body) as Array<string>;
+        if (ids) {
+            for (let i = 0; i < ids.length; i++) {
+                this.workspaceIds.push(ids[i]);
+            }
+            console.log(this.workspaceIds);
+            this.workspacesExposed = !this.workspacesExposed;
+        }
+    }
+
+    setWorkspaceId = (e: React.MouseEvent) => {
+
     }
 
     render() {
         return (
             <div
                 style={{
-                    width: "150px",
-                    height: "150px",
+                    width: "auto",
+                    height: "auto",
+                    borderRadius: 5,
                     position: "absolute",
-                    top: 75,
-                    right: 0,
-                    background: "grey",
+                    top: 50,
+                    left: 8,
+                    background: "white",
+                    border: "black solid 2px",
+                    transition: "all 0.3s ease",
                     zIndex: 15,
+                    padding: 10,
                     visibility: this.workspacesExposed ? "visible" : "hidden"
                 }}
             >
-                {this.workspaceIds.map(s => <li key={s} >${s}</li>)}
+                {this.workspaceIds.map(s =>
+                    <li className={"ids"}
+                        key={s}
+                        style={{
+                            listStyleType: "none",
+                            paddingTop: 3,
+                            paddingBottom: 3
+                        }}
+                        onClick={this.setWorkspaceId}
+                    >{s}</li>
+                )}
             </div>
         );
     }
