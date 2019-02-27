@@ -17,7 +17,7 @@ import * as bcrypt from "bcrypt-nodejs";
 import { Document } from '../fields/Document';
 import * as io from 'socket.io'
 import * as passportConfig from './authentication/config/passport';
-import { getLogin, postLogin, getSignup, postSignup, getLogout, getEntry, postReset, getForgot, postForgot, getReset, getWorkspaces } from './authentication/controllers/user_controller';
+import { getLogin, postLogin, getSignup, postSignup, getLogout, getEntry, postReset, getForgot, postForgot, getReset } from './authentication/controllers/user_controller';
 const config = require('../../webpack.config');
 const compiler = webpack(config);
 const port = 1050; // default port to listen

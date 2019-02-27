@@ -130,16 +130,6 @@ export let postLogin = (req: Request, res: Response, next: NextFunction) => {
     })(req, res, next);
 };
 
-export let getWorkspaces = (req: Request, res: Response) => {
-    const user: DashUserModel = req.user;
-    if (!user) {
-        return res.redirect("/login");
-    }
-    res.render("workspace.pug", {
-        ids: user.allWorkspaceIds
-    });
-}
-
 /**
  * GET /logout
  * Invokes the logout function on the request

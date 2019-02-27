@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
-import { observable, action, configure, reaction, computed, ObservableMap } from 'mobx';
+import { observable, action, configure, reaction, computed, ObservableMap, runInAction } from 'mobx';
 import { observer } from "mobx-react";
 import * as request from 'request'
 import './WorkspacesMenu.css'
@@ -32,6 +32,9 @@ export class WorkspacesMenu extends React.Component<WorkspaceMenuProps> {
         this.selectedWorkspaceId = newId;
         this.props.load(newId);
         this.toggle();
+        //     setTimeout(action(() => {
+
+        //     }), 100);
     }
 
     @action
