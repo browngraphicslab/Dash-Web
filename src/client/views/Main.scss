@@ -38,3 +38,14 @@ p {
     border-radius: 2px;
     background-color: rgba(0,0,0,.5);
 }
+
+.main-buttonDiv {
+    position: absolute;
+    width: 150px;
+    left: 0px;
+}
+.main-undoButtons {
+    position: absolute;
+    width: 150px;
+    right: 0px;
+}

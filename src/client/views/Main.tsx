@@ -1,33 +1,26 @@
-import { action, configure, reaction, computed } from 'mobx';
+import { action, configure } from 'mobx';
 import "normalize.css";
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
-import { DocumentDecorations } from './DocumentDecorations';
-import { Documents } from '../documents/Documents';
 import { Document } from '../../fields/Document';
 import { KeyStore } from '../../fields/KeyStore';
-import "./Main.scss";
-import { ContextMenu } from './ContextMenu';
-import { DocumentView } from './nodes/DocumentView';
-import { Server } from '../Server';
+import { DocumentTransfer, MessageStore } from '../../server/Message';
 import { Utils } from '../../Utils';
-import { ServerUtils } from '../../server/ServerUtil';
-import { MessageStore, DocumentTransfer } from '../../server/Message';
-import { Transform } from '../util/Transform';
-import { CollectionDockingView } from './collections/CollectionDockingView';
-import { UndoManager } from '../util/UndoManager';
+import { Documents } from '../documents/Documents';
+import { Server } from '../Server';
 import { setupDrag } from '../util/DragManager';
+import { Transform } from '../util/Transform';
+import { UndoManager } from '../util/UndoManager';
+import { CollectionDockingView } from './collections/CollectionDockingView';
+import { ContextMenu } from './ContextMenu';
+import { DocumentDecorations } from './DocumentDecorations';
+import { DocumentView } from './nodes/DocumentView';
+import "./Main.scss";
 
 
-configure({
-    enforceActions: "observed"
-});
-window.addEventListener("drop", function (e) {
-    e.preventDefault();
-}, false)
-window.addEventListener("dragover", function (e) {
-    e.preventDefault();
-}, false)
+configure({ enforceActions: "observed" });  // causes errors to be generated when modifying an observable outside of an action
+window.addEventListener("drop", (e) => e.preventDefault(), false)
+window.addEventListener("dragover", (e) => e.preventDefault(), false)
 document.addEventListener("pointerdown", action(function (e: PointerEvent) {
     if (!ContextMenu.Instance.intersects(e.pageX, e.pageY)) {
         ContextMenu.Instance.clearItems()
@@ -35,31 +28,14 @@ document.addEventListener("pointerdown", action(function (e: PointerEvent) {
 }), true)
 
 
-//runInAction(() => 
-// let doc1 = Documents.TextDocument({ title: "hello" });
-// let doc2 = doc1.MakeDelegate();
-// doc2.Set(KS.X, new NumberField(150));
-// doc2.Set(KS.Y, new NumberField(20));
-// let doc3 = Documents.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", {
-//     x: 450, y: 100, title: "cat 1"
-// });
-// doc3.Set(KeyStore.Data, new ImageField);
-// const schemaDocs = Array.from(Array(5).keys()).map(v => Documents.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", {
-//     x: 50 + 100 * v, y: 50, width: 100, height: 100, title: "cat" + v
-// }));
-// schemaDocs[0].SetData(KS.Author, "Tyler", TextField);
-// schemaDocs[4].SetData(KS.Author, "Bob", TextField);
-// schemaDocs.push(doc2);
-// const doc7 = Documents.SchemaDocument(schemaDocs)
-
 const mainDocId = "mainDoc";
+let mainContainer: Document;
+let mainfreeform: Document;
+console.log("HELLO WORLD")
 Documents.initProtos(mainDocId, (res?: Document) => {
-    console.log("HELLO WORLD")
-    console.log("RESPONSE: " + res)
-    let mainContainer: Document;
-    let mainfreeform: Document;
-    if (res) {
-        mainContainer = res as Document;
+    console.log("Response => " + JSON.stringify(res as Document))
+    if (res instanceof Document) {
+        mainContainer = res;
         mainContainer.GetAsync(KeyStore.ActiveFrame, field => mainfreeform = field as Document);
     }
     else {
@@ -71,8 +47,8 @@ Documents.initProtos(mainDocId, (res?: Document) => {
             mainfreeform = Documents.FreeformDocument([], { x: 0, y: 400, title: "mini collection" });
             Utils.Emit(Server.Socket, MessageStore.AddDocument, new DocumentTransfer(mainfreeform.ToJson()));
 
-            var docs = [mainfreeform].map(doc => CollectionDockingView.makeDocumentConfig(doc));
-            mainContainer.SetText(KeyStore.Data, JSON.stringify({ content: [{ type: 'row', content: docs }] }));
+            var dockingLayout = { content: [{ type: 'row', content: [CollectionDockingView.makeDocumentConfig(mainfreeform)] }] };
+            mainContainer.SetText(KeyStore.Data, JSON.stringify(dockingLayout));
             mainContainer.Set(KeyStore.ActiveFrame, mainfreeform);
         }, 0);
     }
@@ -86,12 +62,7 @@ Documents.initProtos(mainDocId, (res?: Document) => {
     let addImageNode = action(() => Documents.ImageDocument(imgurl, { width: 200, height: 200, title: "an image of a cat" }));
     let addWebNode = action(() => Documents.WebDocument(weburl, { width: 200, height: 200, title: "a sample web page" }));
 
-    let addClick = (creator: any) => action(() => {
-        var img = creator();
-        img.SetNumber(KeyStore.X, 0);
-        img.SetNumber(KeyStore.Y, 0);
-        mainfreeform.GetList<Document>(KeyStore.Data, []).push(img);
-    });
+    let addClick = (creator: () => Document) => action(() => mainfreeform.GetList<Document>(KeyStore.Data, []).push(creator()));
 
     let imgRef = React.createRef<HTMLDivElement>();
     let webRef = React.createRef<HTMLDivElement>();
@@ -110,19 +81,20 @@ Documents.initProtos(mainDocId, (res?: Document) => {
                 ContainingCollectionView={undefined} />
             <DocumentDecorations />
             <ContextMenu />
-            <div style={{ position: 'absolute', bottom: '0px', left: '0px', width: '150px' }} ref={imgRef} >
+            <div className="main-buttonDiv" style={{ bottom: '0px' }} ref={imgRef} >
                 <button onPointerDown={setupDrag(imgRef, addImageNode)} onClick={addClick(addImageNode)}>Add Image</button></div>
-            <div style={{ position: 'absolute', bottom: '25px', left: '0px', width: '150px' }} ref={webRef} >
+            <div className="main-buttonDiv" style={{ bottom: '25px' }} ref={webRef} >
                 <button onPointerDown={setupDrag(webRef, addWebNode)} onClick={addClick(addWebNode)}>Add Web</button></div>
-            <div style={{ position: 'absolute', bottom: '50px', left: '0px', width: '150px' }} ref={textRef}>
+            <div className="main-buttonDiv" style={{ bottom: '50px' }} ref={textRef}>
                 <button onPointerDown={setupDrag(textRef, addTextNode)} onClick={addClick(addTextNode)}>Add Text</button></div>
-            <div style={{ position: 'absolute', bottom: '75px', left: '0px', width: '150px' }} ref={colRef}>
+            <div className="main-buttonDiv" style={{ bottom: '75px' }} ref={colRef}>
                 <button onPointerDown={setupDrag(colRef, addColNode)} onClick={addClick(addColNode)}>Add Collection</button></div>
-            <div style={{ position: 'absolute', bottom: '100px', left: '0px', width: '150px' }} ref={schemaRef}>
+            <div className="main-buttonDiv" style={{ bottom: '100px' }} ref={schemaRef}>
                 <button onPointerDown={setupDrag(schemaRef, addSchemaNode)} onClick={addClick(addSchemaNode)}>Add Schema</button></div>
-            <button style={{ position: 'absolute', bottom: '125px', left: '0px', width: '150px' }} onClick={clearDatabase}>Clear Database</button>
-            <button style={{ position: 'absolute', bottom: '25px', right: '0px', width: '150px' }} onClick={() => UndoManager.Undo()}>Undo</button>
-            <button style={{ position: 'absolute', bottom: '0px', right: '0px', width: '150px' }} onClick={() => UndoManager.Redo()}>Redo</button>
+            <div className="main-buttonDiv" style={{ bottom: '125px' }} >
+                <button onClick={clearDatabase}>Clear Database</button></div>
+            <button className="main-undoButtons" style={{ bottom: '25px' }} onClick={() => UndoManager.Undo()}>Undo</button>
+            <button className="main-undoButtons" style={{ bottom: '0px' }} onClick={() => UndoManager.Redo()}>Redo</button>
         </div>),
         document.getElementById('root'));
 })
