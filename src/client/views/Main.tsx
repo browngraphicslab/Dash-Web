@@ -37,33 +37,27 @@ document.addEventListener("pointerdown", action(function (e: PointerEvent) {
     }
 }), true)
 
-let mainDocId: string;
+// Load the user's active workspace, or create a new one if initial session after signup
 request.get(window.location.origin + "/getActiveWorkspaceId", (error, response, body) => {
-    const here = window.location.origin;
-    let workspaceId: string;
-    if (body) {
-        workspaceId = body;
-    } else {
-        workspaceId = Utils.GenerateGuid();
-        request.post(here + "/addWorkspaceId", {
-            body: {
-                target: mainDocId
-            },
-            json: true
-        })
-        request.post(here + "/setActiveWorkspaceId", {
-            body: {
-                target: mainDocId
-            },
-            json: true
-        })
-    }
-    load(workspaceId);
-})
+    init(body ? body : getNewWorkspace());
+});
 
-function load(workspaceId: string) {
-    mainDocId = workspaceId;
-    init();
+function getNewWorkspace(): string {
+    let newId = Utils.GenerateGuid();
+    const here = window.location.origin;
+    request.post(here + "/addWorkspaceId", {
+        body: {
+            target: newId
+        },
+        json: true
+    })
+    request.post(here + "/setActiveWorkspaceId", {
+        body: {
+            target: newId
+        },
+        json: true
+    })
+    return newId;
 }
 
 //runInAction(() => 
@@ -82,7 +76,7 @@ function load(workspaceId: string) {
 // schemaDocs[4].SetData(KS.Author, "Bob", TextField);
 // schemaDocs.push(doc2);
 // const doc7 = Documents.SchemaDocument(schemaDocs)
-function init() {
+function init(mainDocId: string) {
     Documents.initProtos(() => {
         Utils.EmitCallback(Server.Socket, MessageStore.GetField, mainDocId, (res: any) => {
             console.log("HELLO WORLD")
@@ -197,7 +191,7 @@ function init() {
                         left: '4px',
                         width: '150px'
                     }} onClick={() => WorkspacesMenu.Instance.toggle()}>Workspaces</button>
-                    <WorkspacesMenu load={load} />
+                    <WorkspacesMenu load={init} new={getNewWorkspace} />
                 </div>),
                 document.getElementById('root'));
         })

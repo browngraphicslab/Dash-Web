@@ -118,7 +118,6 @@ app.post("/setActiveWorkspaceId", (req, res) => {
     if (!dashUser) {
         return;
     }
-    console.log(`Updating active workspace ID to ${req.body.target}`);
     dashUser.update({ $set: { activeWorkspaceId: req.body.target } }, () => { });
 })
 

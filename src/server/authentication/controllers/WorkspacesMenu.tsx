@@ -1,12 +1,13 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
-import { observable, action, configure, reaction, computed } from 'mobx';
+import { observable, action, configure, reaction, computed, ObservableMap } from 'mobx';
 import { observer } from "mobx-react";
 import * as request from 'request'
 import './WorkspacesMenu.css'
 
 export interface WorkspaceMenuProps {
     load: (workspaceId: string) => void;
+    new: () => string;
 }
 
 @observer
@@ -14,10 +15,28 @@ export class WorkspacesMenu extends React.Component<WorkspaceMenuProps> {
     static Instance: WorkspacesMenu;
     @observable private workspacesExposed: boolean = false;
     @observable private workspaceIds: Array<string> = [];
+    @observable private selectedWorkspaceId: string = "";
 
     constructor(props: WorkspaceMenuProps) {
         super(props);
         WorkspacesMenu.Instance = this;
+        this.loadExistingWorkspace = this.loadExistingWorkspace.bind(this);
+        this.addNewWorkspace = this.addNewWorkspace.bind(this);
+    }
+
+    @action
+    addNewWorkspace() {
+        let newId = this.props.new();
+        this.selectedWorkspaceId = newId;
+        this.props.load(newId);
+        this.toggle();
+    }
+
+    @action
+    loadExistingWorkspace = (e: React.MouseEvent<HTMLLIElement, MouseEvent>) => {
+        let id = e.currentTarget.innerHTML;
+        this.props.load(id);
+        this.selectedWorkspaceId = id;
     }
 
     @action
@@ -42,11 +61,8 @@ export class WorkspacesMenu extends React.Component<WorkspaceMenuProps> {
         }
     }
 
-    setWorkspaceId = (e: React.MouseEvent) => {
-        this.props.load(e.currentTarget.innerHTML);
-    }
-
     render() {
+        let p = this.props;
         return (
             <div
                 style={{
@@ -63,15 +79,25 @@ export class WorkspacesMenu extends React.Component<WorkspaceMenuProps> {
                     padding: 10,
                 }}
             >
+                <img
+                    src="https://bit.ly/2IBBkxk"
+                    style={{
+                        width: 20,
+                        height: 20,
+                        marginBottom: 10,
+                        cursor: "grab"
+                    }}
+                    onClick={this.addNewWorkspace}
+                />
                 {this.workspaceIds.map(s =>
                     <li className={"ids"}
                         key={s}
                         style={{
                             listStyleType: "none",
-                            paddingTop: 3,
-                            paddingBottom: 3
+                            color: s === this.selectedWorkspaceId ? "darkblue" : "black",
+                            cursor: "grab"
                         }}
-                        onClick={this.setWorkspaceId}
+                        onClick={this.loadExistingWorkspace}
                     >{s}</li>
                 )}
             </div>

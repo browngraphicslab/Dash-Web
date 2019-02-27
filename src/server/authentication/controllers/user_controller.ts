@@ -149,9 +149,6 @@ export let getLogout = (req: Request, res: Response) => {
     const dashUser: DashUserModel | undefined = req.user;
     if (dashUser) {
         dashUser.update({ $set: { didSelectSessionWorkspace: false } }, () => { })
-        console.log("UPDATED :)");
-    } else {
-        console.log("NO USER BY LOGOUT");
     }
     req.logout();
     const sess = req.session;
