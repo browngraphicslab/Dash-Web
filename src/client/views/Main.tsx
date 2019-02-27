@@ -85,7 +85,7 @@ Documents.initProtos(() => {
             width: 200, height: 200, title: "an image of a cat"
         }));
         let addWebNode = action(() => Documents.WebDocument("https://cs.brown.edu/courses/cs166/", {
-            width: 200, height: 200, title: "an image of a cat"
+            width: 200, height: 200, title: "a sample web page"
         }));
 
         let addClick = (creator: any) => action(() => {
