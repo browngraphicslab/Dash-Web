@@ -1,4 +1,4 @@
-import { action, configure, reaction, computed } from 'mobx';
+import { action, configure, reaction, computed, observable } from 'mobx';
 import "normalize.css";
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
@@ -19,6 +19,7 @@ import { Transform } from '../util/Transform';
 import { CollectionDockingView } from './collections/CollectionDockingView';
 import { FieldWaiting } from '../../fields/Field';
 import { UndoManager } from '../util/UndoManager';
+import { WorkspacesMenu } from '../../server/authentication/controllers/WorkspacesMenu';
 
 
 configure({
@@ -49,13 +50,13 @@ request.get(window.location.origin + "/getActiveWorkspaceId", (error, response, 
             },
             json: true
         })
+        request.post(here + "/setActiveWorkspaceId", {
+            body: {
+                target: mainDocId
+            },
+            json: true
+        })
     }
-    request.post(here + "/setActiveWorkspaceId", {
-        body: {
-            target: mainDocId
-        },
-        json: true
-    })
     init();
 })
 
@@ -184,6 +185,13 @@ function init() {
                         right: '0px',
                         width: '150px'
                     }} onClick={() => window.location.pathname = "/logout"}>Logout</button>
+                    <button style={{
+                        position: 'absolute',
+                        top: '50px',
+                        right: '0px',
+                        width: '150px'
+                    }} onClick={() => WorkspacesMenu.Instance.toggle()}>Workspaces</button>
+                    <WorkspacesMenu />
                 </div>),
                 document.getElementById('root'));
         })

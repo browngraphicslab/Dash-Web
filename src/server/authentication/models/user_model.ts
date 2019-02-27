@@ -23,7 +23,6 @@ export type DashUserModel = mongoose.Document & {
 
     allWorkspaceIds: Array<String>,
     activeWorkspaceId: String,
-    didSelectSessionWorkspace: Boolean,
 
     profile: {
         name: string,
@@ -54,10 +53,6 @@ const userSchema = new mongoose.Schema({
         default: []
     },
     activeWorkspaceId: String,
-    didSelectSessionWorkspace: {
-        type: Boolean,
-        default: false
-    },
 
     facebook: String,
     twitter: String,

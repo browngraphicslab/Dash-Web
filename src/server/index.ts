@@ -87,18 +87,15 @@ app.get("/home", (req, res) => {
     }
     // otherwise, connect them to Dash
     // TODO: store and manage users' workspaces
-    if (dashUser.allWorkspaceIds.length > 0) {
-        if (!dashUser.didSelectSessionWorkspace) {
-            return res.redirect("/workspaces");
-        }
-    } else {
-        console.log("OK, UPDATED TO TRUE");
-        dashUser.update({ $set: { didSelectSessionWorkspace: true } }, () => { })
-    }
+    // if (dashUser.allWorkspaceIds.length > 0) {
+    //     if (!dashUser.didSelectSessionWorkspace) {
+    //         return res.redirect("/workspaces");
+    //     }
+    // }
     res.sendFile(path.join(__dirname, '../../deploy/index.html'));
 });
 
-app.get("/workspaces", getWorkspaces);
+// app.get("/workspaces", getWorkspaces);
 
 app.get("/getActiveWorkspaceId", (req, res) => {
     const dashUser: DashUserModel = req.user;
@@ -107,6 +104,14 @@ app.get("/getActiveWorkspaceId", (req, res) => {
     }
     res.send(dashUser.activeWorkspaceId || "");
 });
+
+app.get("/getAllWorkspaceIds", (req, res) => {
+    const dashUser: DashUserModel = req.user;
+    if (!dashUser) {
+        return;
+    }
+    res.send(dashUser.allWorkspaceIds);
+})
 
 app.post("/setActiveWorkspaceId", (req, res) => {
     const dashUser: DashUserModel = req.user;
