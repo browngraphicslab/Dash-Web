@@ -8,6 +8,7 @@ interface IProps{
     Span: HTMLSpanElement;
     X: number; 
     Y: number; 
+    Highlights: any[]; 
 
 }
 
@@ -47,8 +48,15 @@ export class Annotation extends React.Component<IProps> {
             let nodesArray = this.props.Span.parentElement.childNodes; 
             nodesArray.forEach((e) => {
                 if (e == this.props.Span){
-                    if (this.props.Span.parentElement){
-                        e.remove();  
+                    if (this.props.Span.parentElement){   
+                        this.props.Highlights.forEach((item) => {
+                            if (item == e){
+                                item.remove(); 
+                            }
+                        })
+                        e.remove();                   
+                       
+                        
                         
                     }
                 }

@@ -12,9 +12,6 @@ import { Sticky } from './Sticky'; //you should look at sticky and annotation, b
 import { Annotation } from './Annotation';
 
 /** ALSO LOOK AT: Annotation.tsx, Sticky.tsx
- * 
- * Ok, so I know I built PDFNode on a ImageBox, but this method works... maybe make a duplicate
- * and call it PDFNode. 
  * This method renders PDF and puts all kinds of functionalities such as annotation, highlighting, 
  * area selection (I call it stickies), embedded ink node for directly annotating using a pen or 
  * mouse, and pagination. 
@@ -22,10 +19,7 @@ import { Annotation } from './Annotation';
  * Clearly, everything works perfectly. No bugs. Might as well publish it.
  * 
  * ps watch out for some bugs. When highlighting, just highlight a section of one line... do not multiline highlight... plz
- * 
- * 
- * 
- * 
+ * Annotations and Stickies save per page. Highlights do not. 
  * 
  * HOW TO USE: 
  * AREA selection: 
@@ -54,7 +48,7 @@ import { Annotation } from './Annotation';
  */
 @observer
 export class PDFNode extends React.Component<FieldViewProps> {
-    public static LayoutString() { return FieldView.LayoutString("ImageBox"); }
+    public static LayoutString() { return FieldView.LayoutString("PDFNode"); }
 
     private _mainDiv = React.createRef<HTMLDivElement>()
     private _pdf = React.createRef<HTMLCanvasElement>();
@@ -78,12 +72,17 @@ export class PDFNode extends React.Component<FieldViewProps> {
      
     private _highlightTool = React.createRef<HTMLButtonElement>(); //highlighter button reference
     private _highlightToolOn:boolean = false; 
-
-    @observable private stickies:any[] = [] //for storing CURRENT stickies
+    
+    
     @observable private page:number = 1; //default is the first page. 
     @observable private numPage:number = 1; //default number of pages
-    @observable private stickiesPerPage: any = null; //for indexing stickies for EVERY PAGE
+    @observable private stickies:any[] = [] //for storing CURRENT stickies   
+    @observable private stickiesPerPage: any = null; //for indexing stickies for EVERY PAGE  
     @observable private annotations:any[] = []; //keeps track of annotations
+    @observable private annotationsPerPage: any = null; // for indexing annotations for EVERY PAGE
+    @observable private highlights:any[] = []; //keeps track of highlights. 
+    @observable private highlightsPerPage:any = null; // for indexing highlights for EVERY PAGE
+
 
     /**
      * for pagination backwards
@@ -94,9 +93,20 @@ export class PDFNode extends React.Component<FieldViewProps> {
             this.page -= 1; 
             this.stickiesPerPage[this.page] = this.stickies; //stores previous sticky and indexes to stickiesPerPage
             this.stickies = []; //sets stickies to null array
+            this.annotationsPerPage[this.page] = this.annotations; 
+            this.annotations = []; 
+            this.highlightsPerPage[this.page] = this.highlights;
+            this.highlights = [];  
             if (this.stickies){//checks stickies is null or not
                 this.stickies = this.stickiesPerPage[this.page - 1]; //pulls up stickies for this page
             }
+            if (this.annotations){//checks if annotation is null or not
+                this.annotations = this.annotationsPerPage[this.page - 1]; 
+            }
+            if (this.highlights){//checks if annotation is null or not
+                this.highlights = this.highlightsPerPage[this.page - 1]; 
+            }
+            
             
         }
     }
@@ -104,15 +114,28 @@ export class PDFNode extends React.Component<FieldViewProps> {
     /**
      * for pagination forwards
      */
+    
     @action
     onPageForward = () => {
+       
         if (this.page < this.numPage){
             this.page += 1; 
             this.stickiesPerPage[this.page - 2] = this.stickies; //stores previous sticky and indexes to stickiesPerPage
             this.stickies = []; //sets stickies to null array
+            this.annotationsPerPage[this.page - 2] = this.annotations; 
+            this.annotations = []; 
+            this.highlightsPerPage[this.page - 2] = this.highlights; 
+            this.highlights = []; 
             if (this.stickiesPerPage[this.page - 1]){ 
                    this.stickies = this.stickiesPerPage[this.page - 1];  //pulls up sticky for this page
             }
+            if (this.annotationsPerPage[this.page - 1]){
+                this.annotations = this.annotationsPerPage[this.page - 1]; //similar to sticky, it binds to previous annotation. 
+            }
+            if (this.annotationsPerPage[this.page - 1]){
+                this.highlights = this.highlightsPerPage[this.page - 1]; //similar to sticky, it binds to previous highlight. 
+            }
+            
         }
     }
    
@@ -176,7 +199,8 @@ export class PDFNode extends React.Component<FieldViewProps> {
                 childNodes.forEach((e) => {
                     if (e.nodeName == "SPAN"){ 
                         let span = e; 
-                        span.addEventListener("mouseover", this.onEnter); 
+                        this.highlights.push(span); //pushes span into highglights. 
+                        span.addEventListener("mouseover", this.onEnter); //adds mouseover annotation handler
                     }
                 })
             }
@@ -204,7 +228,7 @@ export class PDFNode extends React.Component<FieldViewProps> {
                    //slicing "px" from the end
                    divX = divX.slice(0, divX.length - 2); //gets X of the DIV element (parent of Span)
                    divY = divY.slice(0, divY.length - 2); //gets Y of the DIV element (parent of Span)
-                   let annotation = <Annotation key ={Utils.GenerateGuid()} Span = {this.currSpan} X = {divX} Y = {divY - 300} />
+                   let annotation = <Annotation key ={Utils.GenerateGuid()} Span = {this.currSpan} X = {divX} Y = {divY - 300} Highlights = {this.highlights}/>
                    this.annotations.push(annotation); 
                } 
             }
@@ -389,6 +413,8 @@ export class PDFNode extends React.Component<FieldViewProps> {
                                 this.numPage = page.transport.numPages
                                 if (this.stickiesPerPage == null){ //only runs once, when stickiesPerPage is null
                                     this.stickiesPerPage = [...Array(this.numPage)].map(() => Array(1)); 
+                                    this.annotationsPerPage = [...Array(this.numPage).map(()=> Array(1))]; 
+                                    this.highlightsPerPage = [...Array(this.numPage).map(() => Array(1))]; 
                                 }
                             }
                         }

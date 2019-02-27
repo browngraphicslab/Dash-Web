@@ -13,6 +13,7 @@ import { CollectionSchemaView } from "../collections/CollectionSchemaView";
 import { CollectionViewBase, COLLECTION_BORDER_WIDTH } from "../collections/CollectionViewBase";
 import { FormattedTextBox } from "../nodes/FormattedTextBox";
 import { ImageBox } from "../nodes/ImageBox";
+import {PDFNode} from "../nodes/PDFNode"; 
 import "./NodeView.scss";
 import React = require("react");
 const JsxParser = require('react-jsx-parser').default;//TODO Why does this need to be imported like this?
@@ -141,7 +142,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         return (
             <div className="node" ref={this._mainCont} style={{ width: "100%", height: "100%", }}>
                 <JsxParser
-                    components={{ FormattedTextBox: FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView }}
+                    components={{ FormattedTextBox: FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, PDFNode}}
                     bindings={bindings}
                     jsx={this.layout}
                     showWarnings={true}
