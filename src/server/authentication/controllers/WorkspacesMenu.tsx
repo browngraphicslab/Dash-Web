@@ -58,7 +58,6 @@ export class WorkspacesMenu extends React.Component<WorkspaceMenuProps> {
             for (let i = 0; i < ids.length; i++) {
                 this.workspaceIds.push(ids[i]);
             }
-            console.log(this.workspaceIds);
             this.workspacesExposed = !this.workspacesExposed;
         }
     }
