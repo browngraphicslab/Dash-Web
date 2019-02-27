@@ -10,6 +10,7 @@ import { Server } from './../client/Server';
 import { Types } from './Message';
 import { Utils } from '../Utils';
 import { HtmlField } from '../fields/HtmlField';
+import { WebField } from '../fields/WebField';
 
 export class ServerUtils {
     public static FromJson(json: any): Field {
@@ -30,6 +31,8 @@ export class ServerUtils {
                 return new TextField(data, id, false)
             case Types.Html:
                 return new HtmlField(data, id, false)
+            case Types.Web:
+                return new WebField(new URL(data), id, false)
             case Types.RichText:
                 return new RichTextField(data, id, false)
             case Types.Key:
