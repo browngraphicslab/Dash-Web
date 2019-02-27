@@ -12,10 +12,10 @@ import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { CollectionFreeFormView } from "../collections/CollectionFreeFormView";
 import { CollectionSchemaView } from "../collections/CollectionSchemaView";
 import { CollectionView, CollectionViewType } from "../collections/CollectionView";
-import { WebView } from "./WebView";
 import { ContextMenu } from "../ContextMenu";
 import { FormattedTextBox } from "../nodes/FormattedTextBox";
 import { ImageBox } from "../nodes/ImageBox";
+import { WebBox } from "../nodes/WebBox";
 import "./DocumentView.scss";
 import React = require("react");
 const JsxParser = require('react-jsx-parser').default;//TODO Why does this need to be imported like this?
@@ -32,6 +32,7 @@ export interface DocumentViewProps {
     ContentScaling: () => number;
     PanelWidth: () => number;
     PanelHeight: () => number;
+    SelectOnLoad: boolean;
 }
 export interface JsxArgs extends DocumentViewProps {
     Keys: { [name: string]: Key }
@@ -96,7 +97,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         this._downX = e.clientX;
         this._downY = e.clientY;
         if (e.shiftKey && e.buttons === 1) {
-            CollectionDockingView.Instance.StartOtherDrag(this._mainCont.current!, this.props.Document);
+            CollectionDockingView.Instance.StartOtherDrag(this.props.Document, e);
             e.stopPropagation();
         } else {
             this._contextMenuCanOpen = true;
@@ -119,6 +120,8 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             return;
         }
         if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3) {
+            document.removeEventListener("pointermove", this.onPointerMove)
+            document.removeEventListener("pointerup", this.onPointerUp)
             this._contextMenuCanOpen = false;
             if (this._mainCont.current != null && !this.topMost) {
                 this._contextMenuCanOpen = false;
@@ -195,7 +198,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     @computed get mainContent() {
         var val = this.props.Document.Id;
         return <JsxParser
-            components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebView }}
+            components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebBox }}
             bindings={this._documentBindings}
             jsx={this.layout}
             showWarnings={true}

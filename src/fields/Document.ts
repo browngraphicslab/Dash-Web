@@ -8,6 +8,7 @@ import { ListField } from "./ListField";
 import { Server } from "../client/Server";
 import { Types } from "../server/Message";
 import { UndoManager } from "../client/util/UndoManager";
+import { HtmlField } from "./HtmlField";
 
 export class Document extends Field {
     public fields: ObservableMap<string, { key: Key, field: Field }> = new ObservableMap();
@@ -123,6 +124,10 @@ export class Document extends Field {
         let val = this.Get(key);
         let vval = (val && val instanceof ctor) ? val.Data : defaultVal;
         return vval;
+    }
+
+    GetHtml(key: Key, defaultVal: string): string {
+        return this.GetData(key, HtmlField, defaultVal);
     }
 
     GetNumber(key: Key, defaultVal: number): number {

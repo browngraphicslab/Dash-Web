@@ -13,9 +13,9 @@ import { CollectionSchemaView } from "../collections/CollectionSchemaView";
 import { CollectionView } from "../collections/CollectionView";
 import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
 import { DocumentView } from "../nodes/DocumentView";
-import { WebView } from "../nodes/WebView";
 import { FormattedTextBox } from "../nodes/FormattedTextBox";
 import { ImageBox } from "../nodes/ImageBox";
+import { WebBox } from "../nodes/WebBox";
 import "./CollectionFreeFormView.scss";
 import { COLLECTION_BORDER_WIDTH } from "./CollectionView";
 import { CollectionViewBase } from "./CollectionViewBase";
@@ -28,6 +28,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
     private _canvasRef = React.createRef<HTMLDivElement>();
     private _lastX: number = 0;
     private _lastY: number = 0;
+    private _selectOnLoaded: string = ""; // id of document that should be selected once it's loaded (used for click-to-type)
 
     @observable
     private _downX: number = 0;
@@ -166,9 +167,10 @@ export class CollectionFreeFormView extends CollectionViewBase {
                 //make textbox and add it to this collection
                 let [x, y] = this.getTransform().transformPoint(this._downX, this._downY); (this._downX, this._downY);
                 let newBox = Documents.TextDocument({ width: 200, height: 100, x: x, y: y, title: "new" });
+                // mark this collection so that when the text box is created we can send it the SelectOnLoad prop to focus itself
+                this._selectOnLoaded = newBox.Id;
                 //set text to be the typed key and get focus on text box
                 this.props.CollectionView.addDocument(newBox);
-                newBox.SetNumber(KeyStore.SelectOnLoaded, 1);
                 //remove cursor from screen
                 this._previewCursorVisible = false;
             }
@@ -208,15 +210,15 @@ export class CollectionFreeFormView extends CollectionViewBase {
     }
     @computed
     get views() {
-        const { fieldKey, Document } = this.props;
-        const lvalue = Document.GetT<ListField<Document>>(fieldKey, ListField);
+        const lvalue = this.props.Document.GetT<ListField<Document>>(this.props.fieldKey, ListField);
         if (lvalue && lvalue != FieldWaiting) {
             return lvalue.Data.map(doc => {
-                return (<CollectionFreeFormDocumentView key={doc.Id} Document={doc}
+                return (<CollectionFreeFormDocumentView key={doc.Id} Document={doc} ref={focus}
                     AddDocument={this.props.addDocument}
                     RemoveDocument={this.props.removeDocument}
                     ScreenToLocalTransform={this.getTransform}
                     isTopMost={false}
+                    SelectOnLoad={doc.Id === this._selectOnLoaded}
                     ContentScaling={this.noScaling}
                     PanelWidth={doc.Width}
                     PanelHeight={doc.Height}
@@ -230,7 +232,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
     get backgroundView() {
         return !this.backgroundLayout ? (null) :
             (<JsxParser
-                components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebView }}
+                components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebBox }}
                 bindings={this.props.bindings}
                 jsx={this.backgroundLayout}
                 showWarnings={true}
@@ -241,7 +243,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
     get overlayView() {
         return !this.overlayLayout ? (null) :
             (<JsxParser
-                components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView }}
+                components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebBox }}
                 bindings={this.props.bindings}
                 jsx={this.overlayLayout}
                 showWarnings={true}

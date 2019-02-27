@@ -39,15 +39,16 @@ export class CollectionSchemaView extends CollectionViewBase {
             isSelected: () => false,
             select: () => { },
             isTopMost: false,
-            bindings: {}
+            bindings: {},
+            selectOnLoad: false,
         }
         let contents = (
             <FieldView {...props} />
         )
         let reference = React.createRef<HTMLDivElement>();
-        let onItemDown = setupDrag(reference, props.doc);
+        let onItemDown = setupDrag(reference, () => props.doc);
         return (
-            <div onPointerDown={onItemDown} ref={reference}>
+            <div onPointerDown={onItemDown} key={props.doc.Id} ref={reference}>
                 <EditableView contents={contents}
                     height={36} GetValue={() => {
                         let field = props.doc.Get(props.fieldKey);
@@ -185,6 +186,7 @@ export class CollectionSchemaView extends CollectionViewBase {
                         <DocumentView Document={selected}
                             AddDocument={this.props.addDocument} RemoveDocument={this.props.removeDocument}
                             isTopMost={false}
+                            SelectOnLoad={false}
                             ScreenToLocalTransform={this.getTransform}
                             ContentScaling={this.getContentScaling}
                             PanelWidth={this.getPanelWidth}

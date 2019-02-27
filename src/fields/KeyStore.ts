@@ -26,7 +26,4 @@ export namespace KeyStore {
     export const Caption = new Key("Caption");
     export const ActiveFrame = new Key("ActiveFrame");
     export const DocumentText = new Key("DocumentText");
-    //determines whether doc views will be selected when they are first loaded
-    //currently only implemented for FormattedTextView
-    export const SelectOnLoaded = new Key("SelectOnLoaded");
 }
