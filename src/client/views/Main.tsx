@@ -91,14 +91,12 @@ function init(mainDocId: string) {
                 mainContainer = Documents.DockDocument(JSON.stringify({ content: [{ type: 'row', content: [] }] }), { title: "main container" }, mainDocId);
                 Utils.Emit(Server.Socket, MessageStore.AddDocument, new DocumentTransfer(mainContainer.ToJson()))
 
-                setTimeout(() => {
-                    mainfreeform = Documents.FreeformDocument([], { x: 0, y: 400, title: "mini collection" });
-                    Utils.Emit(Server.Socket, MessageStore.AddDocument, new DocumentTransfer(mainfreeform.ToJson()));
+                mainfreeform = Documents.FreeformDocument([], { x: 0, y: 400, title: "mini collection" });
+                Utils.Emit(Server.Socket, MessageStore.AddDocument, new DocumentTransfer(mainfreeform.ToJson()));
 
-                    var docs = [mainfreeform].map(doc => CollectionDockingView.makeDocumentConfig(doc));
-                    mainContainer.SetText(KeyStore.Data, JSON.stringify({ content: [{ type: 'row', content: docs }] }));
-                    mainContainer.Set(KeyStore.ActiveFrame, mainfreeform);
-                }, 0);
+                var docs = [mainfreeform].map(doc => CollectionDockingView.makeDocumentConfig(doc));
+                mainContainer.SetText(KeyStore.Data, JSON.stringify({ content: [{ type: 'row', content: docs }] }));
+                mainContainer.Set(KeyStore.ActiveFrame, mainfreeform);
             }
 
             let addImageNode = action(() => {
@@ -191,7 +189,7 @@ function init(mainDocId: string) {
                         left: '4px',
                         width: '150px'
                     }} onClick={() => WorkspacesMenu.Instance.toggle()}>Workspaces</button>
-                    <WorkspacesMenu load={init} new={getNewWorkspace} active={mainDocId}/>
+                    <WorkspacesMenu load={init} new={getNewWorkspace} active={mainDocId} />
                 </div>),
                 document.getElementById('root'));
         })
