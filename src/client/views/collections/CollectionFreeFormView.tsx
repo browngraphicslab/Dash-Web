@@ -166,7 +166,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
     @action
     addKVP(doc: Document) {
         let fields = doc.fields;
-        //TODO: return kvp
+        //TODO: return kvpg
     }
 
     @computed get backgroundLayout(): string | undefined {
