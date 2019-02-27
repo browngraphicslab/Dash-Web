@@ -119,6 +119,8 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             return;
         }
         if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3) {
+            document.removeEventListener("pointermove", this.onPointerMove)
+            document.removeEventListener("pointerup", this.onPointerUp)
             this._contextMenuCanOpen = false;
             if (this._mainCont.current != null && !this.topMost) {
                 this._contextMenuCanOpen = false;
