@@ -40,10 +40,11 @@ document.addEventListener("pointerdown", action(function (e: PointerEvent) {
 let mainDocId: string;
 request.get(window.location.origin + "/getActiveWorkspaceId", (error, response, body) => {
     const here = window.location.origin;
+    let workspaceId: string;
     if (body) {
-        mainDocId = body;
+        workspaceId = body;
     } else {
-        mainDocId = Utils.GenerateGuid();
+        workspaceId = Utils.GenerateGuid();
         request.post(here + "/addWorkspaceId", {
             body: {
                 target: mainDocId
@@ -57,8 +58,13 @@ request.get(window.location.origin + "/getActiveWorkspaceId", (error, response, 
             json: true
         })
     }
-    init();
+    load(workspaceId);
 })
+
+function load(workspaceId: string) {
+    mainDocId = workspaceId;
+    init();
+}
 
 //runInAction(() => 
 // let doc1 = Documents.TextDocument({ title: "hello" });

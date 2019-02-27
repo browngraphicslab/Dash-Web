@@ -39,6 +39,7 @@ export class WorkspacesMenu extends React.Component {
     }
 
     setWorkspaceId = (e: React.MouseEvent) => {
+        //Main.load(e.currentTarget.innherHTML)
         console.log(e.currentTarget.innerHTML);
     }
 
