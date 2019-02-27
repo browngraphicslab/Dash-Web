@@ -10,13 +10,12 @@ import { Transform } from "../../util/Transform";
 import { undoBatch } from "../../util/UndoManager";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { CollectionSchemaView } from "../collections/CollectionSchemaView";
-import { CollectionTreeView } from "../collections/CollectionTreeView";
 import { CollectionView } from "../collections/CollectionView";
 import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
 import { DocumentView } from "../nodes/DocumentView";
-import { WebView } from "../nodes/WebView";
 import { FormattedTextBox } from "../nodes/FormattedTextBox";
 import { ImageBox } from "../nodes/ImageBox";
+import { WebBox } from "../nodes/WebBox";
 import "./CollectionFreeFormView.scss";
 import { COLLECTION_BORDER_WIDTH } from "./CollectionView";
 import { CollectionViewBase } from "./CollectionViewBase";
@@ -200,7 +199,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
     get backgroundView() {
         return !this.backgroundLayout ? (null) :
             (<JsxParser
-                components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebView }}
+                components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebBox }}
                 bindings={this.props.bindings}
                 jsx={this.backgroundLayout}
                 showWarnings={true}
@@ -211,7 +210,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
     get overlayView() {
         return !this.overlayLayout ? (null) :
             (<JsxParser
-                components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView }}
+                components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebBox }}
                 bindings={this.props.bindings}
                 jsx={this.overlayLayout}
                 showWarnings={true}

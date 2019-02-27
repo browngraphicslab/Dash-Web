@@ -9,7 +9,6 @@ import { FieldWaiting } from '../../../fields/Field';
 import { observer } from "mobx-react"
 import { observable, action } from 'mobx';
 import { KeyStore } from '../../../fields/KeyStore';
-import { element } from 'prop-types';
 
 @observer
 export class ImageBox extends React.Component<FieldViewProps> {

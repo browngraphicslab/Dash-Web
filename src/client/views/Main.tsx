@@ -84,6 +84,9 @@ Documents.initProtos(() => {
         let addImageNode = action(() => Documents.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", {
             width: 200, height: 200, title: "an image of a cat"
         }));
+        let addWebNode = action(() => Documents.WebDocument("https://cs.brown.edu/courses/cs166/", {
+            width: 200, height: 200, title: "a sample web page"
+        }));
 
         let addClick = (creator: any) => action(() => {
             var img = creator();
@@ -93,6 +96,7 @@ Documents.initProtos(() => {
         });
 
         let imgRef = React.createRef<HTMLDivElement>();
+        let webRef = React.createRef<HTMLDivElement>();
         let textRef = React.createRef<HTMLDivElement>();
         let schemaRef = React.createRef<HTMLDivElement>();
         let colRef = React.createRef<HTMLDivElement>();
@@ -110,15 +114,17 @@ Documents.initProtos(() => {
                 <ContextMenu />
                 <div style={{ position: 'absolute', bottom: '0px', left: '0px', width: '150px' }} ref={imgRef} >
                     <button onPointerDown={setupDrag(imgRef, addImageNode)} onClick={addClick(addImageNode)}>Add Image</button></div>
-                <div style={{ position: 'absolute', bottom: '25px', left: '0px', width: '150px' }} ref={textRef}>
+                <div style={{ position: 'absolute', bottom: '25px', left: '0px', width: '150px' }} ref={webRef} >
+                    <button onPointerDown={setupDrag(webRef, addWebNode)} onClick={addClick(addWebNode)}>Add Web</button></div>
+                <div style={{ position: 'absolute', bottom: '50px', left: '0px', width: '150px' }} ref={textRef}>
                     <button onPointerDown={setupDrag(textRef, addTextNode)} onClick={addClick(addTextNode)}>Add Text</button></div>
-                <div style={{ position: 'absolute', bottom: '50px', left: '0px', width: '150px' }} ref={colRef}>
+                <div style={{ position: 'absolute', bottom: '75px', left: '0px', width: '150px' }} ref={colRef}>
                     <button onPointerDown={setupDrag(colRef, addColNode)} onClick={addClick(addColNode)}>Add Collection</button></div>
-                <div style={{ position: 'absolute', bottom: '75px', left: '0px', width: '150px' }} ref={schemaRef}>
+                <div style={{ position: 'absolute', bottom: '100px', left: '0px', width: '150px' }} ref={schemaRef}>
                     <button onPointerDown={setupDrag(schemaRef, addSchemaNode)} onClick={addClick(addSchemaNode)}>Add Schema</button></div>
-                <button style={{ position: 'absolute', bottom: '100px', left: '0px', width: '150px' }} onClick={clearDatabase}>Clear Database</button>
-                <button style={{ position: 'absolute', bottom: '25', right: '0px', width: '150px' }} onClick={() => UndoManager.Undo()}>Undo</button>
-                <button style={{ position: 'absolute', bottom: '0', right: '0px', width: '150px' }} onClick={() => UndoManager.Redo()}>Redo</button>
+                <button style={{ position: 'absolute', bottom: '125px', left: '0px', width: '150px' }} onClick={clearDatabase}>Clear Database</button>
+                <button style={{ position: 'absolute', bottom: '25px', right: '0px', width: '150px' }} onClick={() => UndoManager.Undo()}>Undo</button>
+                <button style={{ position: 'absolute', bottom: '0px', right: '0px', width: '150px' }} onClick={() => UndoManager.Redo()}>Redo</button>
             </div>),
             document.getElementById('root'));
     })

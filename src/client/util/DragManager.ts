@@ -133,7 +133,6 @@ export namespace DragManager {
         if (hideSource) {
             ele.hidden = true;
         }
-
         const moveHandler = (e: PointerEvent) => {
             e.stopPropagation();
             e.preventDefault();
@@ -158,14 +157,19 @@ export namespace DragManager {
         }
         const upHandler = (e: PointerEvent) => {
             abortDrag();
-            FinishDrag(dragElement, e, dragData, options);
+            FinishDrag(ele, e, dragData, options);
         };
         document.addEventListener("pointermove", moveHandler, true);
         document.addEventListener("pointerup", upHandler);
     }
 
     function FinishDrag(dragEle: HTMLElement, e: PointerEvent, dragData: { [index: string]: any }, options?: DragOptions) {
+        let parent = dragEle.parentElement;
+        if (parent)
+            parent.removeChild(dragEle);
         const target = document.elementFromPoint(e.x, e.y);
+        if (parent)
+            parent.appendChild(dragEle);
         if (!target) {
             return;
         }
