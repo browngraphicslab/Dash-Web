@@ -5,13 +5,17 @@ import { observer } from "mobx-react";
 import * as request from 'request'
 import './WorkspacesMenu.css'
 
+export interface WorkspaceMenuProps {
+    load: (workspaceId: string) => void;
+}
+
 @observer
-export class WorkspacesMenu extends React.Component {
+export class WorkspacesMenu extends React.Component<WorkspaceMenuProps> {
     static Instance: WorkspacesMenu;
     @observable private workspacesExposed: boolean = false;
     @observable private workspaceIds: Array<string> = [];
 
-    constructor(props: Readonly<{}>) {
+    constructor(props: WorkspaceMenuProps) {
         super(props);
         WorkspacesMenu.Instance = this;
     }
@@ -39,8 +43,7 @@ export class WorkspacesMenu extends React.Component {
     }
 
     setWorkspaceId = (e: React.MouseEvent) => {
-        //Main.load(e.currentTarget.innherHTML)
-        console.log(e.currentTarget.innerHTML);
+        this.props.load(e.currentTarget.innerHTML);
     }
 
     render() {
