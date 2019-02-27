@@ -131,7 +131,9 @@ Documents.initProtos(() => {
                     PanelWidth={() => 0}
                     PanelHeight={() => 0}
                     isTopMost={true}
-                    ContainingCollectionView={undefined} />
+                    ContainingCollectionView={undefined}
+                    focus={(doc, x, y) => { }}
+                />
                 <DocumentDecorations />
                 <TempTreeView />
                 <ContextMenu />

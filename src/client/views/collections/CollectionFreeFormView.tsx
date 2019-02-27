@@ -21,6 +21,7 @@ import "./CollectionFreeFormView.scss";
 import { COLLECTION_BORDER_WIDTH } from "./CollectionView";
 import { CollectionViewBase } from "./CollectionViewBase";
 import React = require("react");
+import { DocumentManager } from "../DocumentManager";
 const JsxParser = require('react-jsx-parser').default;//TODO Why does this need to be imported like this?
 
 @observer
@@ -191,7 +192,14 @@ export class CollectionFreeFormView extends CollectionViewBase {
                     ContentScaling={this.noScaling}
                     PanelWidth={doc.Width}
                     PanelHeight={doc.Height}
-                    ContainingCollectionView={this.props.CollectionView} />);
+                    ContainingCollectionView={this.props.CollectionView}
+                    focus={(doc: Document, x: number, y: number) => {
+                        //set pan of colleciton freeform and then call parent
+                        console.log("calling...")
+                        DocumentManager.Instance.centerNode(doc, doc.GetNumber(KeyStore.X, 0), doc.GetNumber(KeyStore.Y, 0))
+                        this.props.focus(this.props.Document, doc.GetNumber(KeyStore.X, 0), doc.GetNumber(KeyStore.Y, 0))
+                    }}
+                />);
             })
         }
         return null;

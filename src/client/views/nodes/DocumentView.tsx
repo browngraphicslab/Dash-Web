@@ -36,6 +36,7 @@ export interface DocumentViewProps {
     ContentScaling: () => number;
     PanelWidth: () => number;
     PanelHeight: () => number;
+    focus: (doc: Document, x: number, y: number) => void;
 }
 export interface JsxArgs extends DocumentViewProps {
     Keys: { [name: string]: Key }
@@ -184,7 +185,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     //TODO Monika
     @action
     Center = (e: React.MouseEvent): void => {
-        DocumentManager.Instance.centerNode(this)
+        this.props.focus(this.props.Document, this.props.Document.GetNumber(KeyStore.X, 0), this.props.Document.GetNumber(KeyStore.Y, 0))
     }
 
     @action
@@ -265,7 +266,8 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             ...this.props,
             isSelected: this.isSelected,
             select: this.select,
-            documentSize: this.size
+            documentSize: this.size,
+            focus: this.props.focus
         };
         for (const key of this.layoutKeys) {
             this._documentBindings[key.Name + "Key"] = key;  // this maps string values of the form <keyname>Key to an actual key Kestore.keyname  e.g,   "DataKey" => KeyStore.Data

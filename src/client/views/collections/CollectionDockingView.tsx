@@ -298,7 +298,9 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
                     PanelHeight={this._nativeHeight}
                     ScreenToLocalTransform={this.ScreenToLocalTransform}
                     isTopMost={true}
-                    ContainingCollectionView={undefined} />
+                    ContainingCollectionView={undefined}
+                    focus={(doc: Document, x: number, y: number) => { }}
+                />
             </div>
 
         return <Measure onResize={action((r: any) => { this._panelWidth = r.entry.width; this._panelHeight = r.entry.height; })}>

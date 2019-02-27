@@ -5,6 +5,7 @@ import { Document } from "../../fields/Document";
 import { ListField } from "../../fields/ListField";
 import "./TempTreeView.scss"
 import { DocumentManager } from "./DocumentManager";
+import { KeyStore } from "../../fields/KeyStore";
 
 
 @observer
@@ -15,7 +16,9 @@ export class TempTreeView extends React.Component {
 
         let view = DocumentManager.Instance.getDocumentView(doc);
         if (view != null) {
-            DocumentManager.Instance.centerNode(view);
+            // DocumentManager.Instance.centerNode(view);
+            doc = view.props.Document
+            view.props.focus(doc, doc.GetNumber(KeyStore.X, 0), doc.GetNumber(KeyStore.Y, 0))
         }
     }
 
