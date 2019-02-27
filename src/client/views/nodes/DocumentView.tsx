@@ -40,6 +40,7 @@ export interface DocumentViewProps {
     ContentScaling: () => number;
     PanelWidth: () => number;
     PanelHeight: () => number;
+    SelectOnLoad: boolean;
 }
 export interface JsxArgs extends DocumentViewProps {
     Keys: { [name: string]: Key }
@@ -88,7 +89,6 @@ export class DocumentView extends React.Component<DocumentViewProps> {
 
     private _mainCont = React.createRef<HTMLDivElement>();
     private _documentBindings: any = null;
-    private _contextMenuCanOpen = false;
     private _downX: number = 0;
     private _downY: number = 0;
 
@@ -107,7 +107,6 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             CollectionDockingView.Instance.StartOtherDrag(this.props.Document, e);
             e.stopPropagation();
         } else {
-            this._contextMenuCanOpen = true;
             if (this.active && !e.isDefaultPrevented()) {
                 e.stopPropagation();
                 if (e.buttons === 2) {
@@ -123,15 +122,12 @@ export class DocumentView extends React.Component<DocumentViewProps> {
 
     onPointerMove = (e: PointerEvent): void => {
         if (e.cancelBubble) {
-            this._contextMenuCanOpen = false;
             return;
         }
         if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3) {
             document.removeEventListener("pointermove", this.onPointerMove)
             document.removeEventListener("pointerup", this.onPointerUp)
-            this._contextMenuCanOpen = false;
             if (this._mainCont.current != null && !this.topMost) {
-                this._contextMenuCanOpen = false;
                 const [left, top] = this.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
                 let dragData: { [id: string]: any } = {};
                 dragData["documentView"] = this;
@@ -139,7 +135,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
                 dragData["yOffset"] = e.y - top;
                 DragManager.StartDrag(this._mainCont.current, dragData, {
                     handlers: {
-                        dragComplete: action((e: DragManager.DragCompleteEvent) => { }),
+                        dragComplete: action(() => { }),
                     },
                     hideSource: true
                 })
@@ -158,7 +154,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         }
     }
 
-    deleteClicked = (e: React.MouseEvent): void => {
+    deleteClicked = (): void => {
         if (this.props.RemoveDocument) {
             this.props.RemoveDocument(this.props.Document);
         }
@@ -185,13 +181,14 @@ export class DocumentView extends React.Component<DocumentViewProps> {
 
     @action
     onContextMenu = (e: React.MouseEvent): void => {
-        e.preventDefault()
         e.stopPropagation();
-        if (!SelectionManager.IsSelected(this) || !this._contextMenuCanOpen) {
+        let moved = Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3;
+        if (moved || e.isDefaultPrevented()) {
+            e.preventDefault()
             return;
         }
+        e.preventDefault()
 
-        ContextMenu.Instance.clearItems()
         ContextMenu.Instance.addItem({ description: "Full Screen", event: this.fullScreenClicked })
         ContextMenu.Instance.addItem({ description: "Fields", event: () => this.fieldsClicked })
         ContextMenu.Instance.addItem({ description: "Open Right", event: () => CollectionDockingView.Instance.AddRightSplit(this.props.Document) })
@@ -211,7 +208,6 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     }
 
     @computed get mainContent() {
-        var val = this.props.Document.Id;
         return <JsxParser
             components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebBox }}
             bindings={this._documentBindings}
@@ -220,6 +216,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             onError={(test: any) => { console.log(test) }}
         />
     }
+
     render() {
         if (!this.props.Document)
             return <div></div>

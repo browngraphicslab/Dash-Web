@@ -12,7 +12,6 @@ import { Key } from "../../../fields/Key";
 import { FormattedTextBox } from "./FormattedTextBox";
 import { ImageBox } from "./ImageBox";
 import { WebBox } from "./WebBox";
-import { HtmlField } from "../../../fields/HtmlField";
 
 //
 // these properties get assigned through the render() method of the DocumentView when it creates this node.
@@ -25,12 +24,15 @@ export interface FieldViewProps {
     isSelected: () => boolean;
     select: () => void;
     isTopMost: boolean;
+    selectOnLoad: boolean;
     bindings: any;
 }
 
 @observer
 export class FieldView extends React.Component<FieldViewProps> {
-    public static LayoutString(fieldType: { name: string }, fieldStr: string = "DataKey") { return `<${fieldType.name} doc={Document} DocumentViewForField={DocumentView} bindings={bindings} fieldKey={${fieldStr}} isSelected={isSelected} select={select} isTopMost={isTopMost} />`; }
+    public static LayoutString(fieldType: { name: string }, fieldStr: string = "DataKey") {
+        return `<${fieldType.name} doc={Document} DocumentViewForField={DocumentView} bindings={bindings} fieldKey={${fieldStr}} isSelected={isSelected} select={select} selectOnLoad={SelectOnLoad} isTopMost={isTopMost} />`;
+    }
 
     @computed
     get field(): FieldValue<Field> {
