@@ -191,7 +191,7 @@ function init(mainDocId: string) {
                         left: '4px',
                         width: '150px'
                     }} onClick={() => WorkspacesMenu.Instance.toggle()}>Workspaces</button>
-                    <WorkspacesMenu load={init} new={getNewWorkspace} />
+                    <WorkspacesMenu load={init} new={getNewWorkspace} active={mainDocId}/>
                 </div>),
                 document.getElementById('root'));
         })

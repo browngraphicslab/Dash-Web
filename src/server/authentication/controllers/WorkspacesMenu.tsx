@@ -6,6 +6,7 @@ import * as request from 'request'
 import './WorkspacesMenu.css'
 
 export interface WorkspaceMenuProps {
+    active: string;
     load: (workspaceId: string) => void;
     new: () => string;
 }
@@ -22,6 +23,7 @@ export class WorkspacesMenu extends React.Component<WorkspaceMenuProps> {
         WorkspacesMenu.Instance = this;
         this.loadExistingWorkspace = this.loadExistingWorkspace.bind(this);
         this.addNewWorkspace = this.addNewWorkspace.bind(this);
+        this.selectedWorkspaceId = this.props.active;
     }
 
     @action
