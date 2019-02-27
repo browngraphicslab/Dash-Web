@@ -4,63 +4,19 @@ import { WebField } from '../../../fields/WebField';
 import { FieldViewProps, FieldView } from './FieldView';
 import { FieldWaiting } from '../../../fields/Field';
 import { observer } from "mobx-react"
-import { observable, action, spy, computed } from 'mobx';
+import { computed } from 'mobx';
 import { KeyStore } from '../../../fields/KeyStore';
-import { HtmlField } from "../../../fields/HtmlField";
 
 @observer
 export class WebBox extends React.Component<FieldViewProps> {
 
     public static LayoutString() { return FieldView.LayoutString(WebBox); }
-    private _ref: React.RefObject<HTMLDivElement>;
-    private _downX: number = 0;
-    private _downY: number = 0;
-    private _lastTap: number = 0;
-    @observable private _isOpen: boolean = false;
 
     constructor(props: FieldViewProps) {
         super(props);
-
-        this._ref = React.createRef();
-        this.state = {
-            isOpen: false,
-        };
     }
 
-    componentDidMount() {
-    }
-
-    componentWillUnmount() {
-    }
-
-    onPointerDown = (e: React.PointerEvent): void => {
-        if (Date.now() - this._lastTap < 300) {
-            if (e.buttons === 1 && this.props.isSelected()) {
-                e.stopPropagation();
-                this._downX = e.clientX;
-                this._downY = e.clientY;
-                document.removeEventListener("pointerup", this.onPointerUp);
-                document.addEventListener("pointerup", this.onPointerUp);
-            }
-        } else {
-            this._lastTap = Date.now();
-        }
-    }
-
-    @action
-    onPointerUp = (e: PointerEvent): void => {
-        document.removeEventListener("pointerup", this.onPointerUp);
-        if (Math.abs(e.clientX - this._downX) < 2 && Math.abs(e.clientY - this._downY) < 2) {
-            this._isOpen = true;
-        }
-        e.stopPropagation();
-    }
-
-    @computed
-    get html(): string {
-        return this.props.doc.GetData(KeyStore.Data, HtmlField, "" as string);
-    }
-
+    @computed get html(): string { return this.props.doc.GetHtml(KeyStore.Data, ""); }
 
     render() {
         let field = this.props.doc.Get(this.props.fieldKey);
@@ -75,7 +31,7 @@ export class WebBox extends React.Component<FieldViewProps> {
             </div>;
 
         return (
-            <div className="webBox-cont" onPointerDown={this.onPointerDown} ref={this._ref}   >
+            <div className="webBox-cont"  >
                 {content}
             </div>)
     }
