@@ -12,7 +12,6 @@ import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { CollectionFreeFormView } from "../collections/CollectionFreeFormView";
 import { CollectionSchemaView } from "../collections/CollectionSchemaView";
 import { CollectionView, CollectionViewType } from "../collections/CollectionView";
-import { WebView } from "./WebView";
 import { ContextMenu } from "../ContextMenu";
 import { FormattedTextBox } from "../nodes/FormattedTextBox";
 import { ImageBox } from "../nodes/ImageBox";
@@ -196,7 +195,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     @computed get mainContent() {
         var val = this.props.Document.Id;
         return <JsxParser
-            components={{ FormattedTextBox, ImageBox, WebBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebView }}
+            components={{ FormattedTextBox, ImageBox, WebBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView }}
             bindings={this._documentBindings}
             jsx={this.layout}
             showWarnings={true}
