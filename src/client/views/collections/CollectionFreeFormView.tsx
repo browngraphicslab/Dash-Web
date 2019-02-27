@@ -166,7 +166,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
     @action
     addKVP(doc: Document) {
         let fields = doc.fields;
-        // aefawefwaef
+        //TODO: return kvp
     }
 
     @computed get backgroundLayout(): string | undefined {
@@ -229,6 +229,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
     noScaling = () => 1;
 
     render() {
+        //TODO: put KVP stuff in this function
         const panx: number = this.props.Document.GetNumber(KeyStore.PanX, 0) + this.centeringShiftX;
         const pany: number = this.props.Document.GetNumber(KeyStore.PanY, 0) + this.centeringShiftY;
         return (
@@ -246,7 +247,6 @@ export class CollectionFreeFormView extends CollectionViewBase {
                     {this.backgroundView}
                     {this.views}
                 </div>
-                <!-- put fale stuff here>
                 {this.overlayView}
             </div>
         );
