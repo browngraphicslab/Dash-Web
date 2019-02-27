@@ -195,7 +195,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     @computed get mainContent() {
         var val = this.props.Document.Id;
         return <JsxParser
-            components={{ FormattedTextBox, ImageBox, WebBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView }}
+            components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebBox }}
             bindings={this._documentBindings}
             jsx={this.layout}
             showWarnings={true}
