@@ -16,9 +16,17 @@ import { WebView } from "./WebView";
 import { ContextMenu } from "../ContextMenu";
 import { FormattedTextBox } from "../nodes/FormattedTextBox";
 import { ImageBox } from "../nodes/ImageBox";
+import { Documents } from "../../documents/Documents"
+import { KeyValuePane } from "../nodes/KeyValuePane"
 import "./DocumentView.scss";
 import React = require("react");
 const JsxParser = require('react-jsx-parser').default;//TODO Why does this need to be imported like this?
+
+/*
+    if containingcollectionview is CollectionFreeformView:
+        (ContainingCollectionView as CollectionFreeformView)?.addKVP
+*/
+
 
 export interface DocumentViewProps {
     ContainingCollectionView: Opt<CollectionView>;
@@ -153,12 +161,19 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             this.props.RemoveDocument(this.props.Document);
         }
     }
+
+    fieldsClicked = (e: React.MouseEvent): void => {
+        if (this.props.ContainingCollectionView) {
+            (this.props.ContainingCollectionView as unknown as CollectionFreeFormView).addKVP(this.props.Document);
+        }
+    }
     fullScreenClicked = (e: React.MouseEvent): void => {
         CollectionDockingView.Instance.OpenFullScreen(this.props.Document);
         ContextMenu.Instance.clearItems();
         ContextMenu.Instance.addItem({ description: "Close Full Screen", event: this.closeFullScreenClicked });
         ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15)
     }
+
     closeFullScreenClicked = (e: React.MouseEvent): void => {
         CollectionDockingView.Instance.CloseFullScreen();
         ContextMenu.Instance.clearItems();
@@ -176,6 +191,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
 
         ContextMenu.Instance.clearItems()
         ContextMenu.Instance.addItem({ description: "Full Screen", event: this.fullScreenClicked })
+        ContextMenu.Instance.addItem({ description: "Fields", event: () => this.fieldsClicked })
         ContextMenu.Instance.addItem({ description: "Open Right", event: () => CollectionDockingView.Instance.AddRightSplit(this.props.Document) })
         ContextMenu.Instance.addItem({ description: "Freeform", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Freeform) })
         ContextMenu.Instance.addItem({ description: "Schema", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Schema) })

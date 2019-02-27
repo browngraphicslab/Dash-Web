@@ -163,6 +163,11 @@ export class CollectionFreeFormView extends CollectionViewBase {
         });
     }
 
+    @action
+    addKVP(doc: Document) {
+        let fields = doc.fields;
+        // aefawefwaef
+    }
 
     @computed get backgroundLayout(): string | undefined {
         let field = this.props.Document.GetT(KeyStore.BackgroundLayout, TextField);
@@ -241,6 +246,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
                     {this.backgroundView}
                     {this.views}
                 </div>
+                <!-- put fale stuff here>
                 {this.overlayView}
             </div>
         );
