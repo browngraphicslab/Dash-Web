@@ -15,9 +15,8 @@ import { ServerUtils } from '../../server/ServerUtil';
 import { MessageStore, DocumentTransfer } from '../../server/Message';
 import { Transform } from '../util/Transform';
 import { CollectionDockingView } from './collections/CollectionDockingView';
-import { FieldWaiting } from '../../fields/Field';
 import { UndoManager } from '../util/UndoManager';
-import { DragManager } from '../util/DragManager';
+import { setupDrag } from '../util/DragManager';
 
 
 configure({
@@ -101,28 +100,7 @@ Documents.initProtos(() => {
         let textRef = React.createRef<HTMLDivElement>();
         let schemaRef = React.createRef<HTMLDivElement>();
         let colRef = React.createRef<HTMLDivElement>();
-        let curMoveListener: any = null
-        let onRowMove = (creator: any, dragRef: any) => action((e: PointerEvent): void => {
-            e.stopPropagation();
-            e.preventDefault();
 
-            document.removeEventListener("pointermove", curMoveListener);
-            document.removeEventListener('pointerup', onRowUp);
-            DragManager.StartDrag(dragRef.current!, { document: creator() });
-        });
-        let onRowUp = action((e: PointerEvent): void => {
-            document.removeEventListener("pointermove", curMoveListener);
-            document.removeEventListener('pointerup', onRowUp);
-        });
-        let onRowDown = (creator: any, dragRef: any) => (e: React.PointerEvent) => {
-            if (e.shiftKey) {
-                CollectionDockingView.Instance.StartOtherDrag(dragRef.current!, creator());
-                e.stopPropagation();
-            } else {
-                document.addEventListener("pointermove", curMoveListener = onRowMove(creator, dragRef));
-                document.addEventListener('pointerup', onRowUp);
-            }
-        }
         ReactDOM.render((
             <div style={{ position: "absolute", width: "100%", height: "100%" }}>
                 <DocumentView Document={mainContainer}
@@ -135,18 +113,18 @@ Documents.initProtos(() => {
                 <DocumentDecorations />
                 <ContextMenu />
                 <div style={{ position: 'absolute', bottom: '0px', left: '0px', width: '150px' }} ref={imgRef} >
-                    <button onPointerDown={onRowDown(addImageNode, imgRef)} onClick={addClick(addImageNode)}>Add Image</button></div>
-                <div style={{ position: 'absolute', bottom: '0px', left: '0px', width: '150px' }} ref={webRef} >
-                    <button onPointerDown={onRowDown(addWebNode, webRef)} onClick={addClick(addWebNode)}>Add Web</button></div>
-                <div style={{ position: 'absolute', bottom: '25px', left: '0px', width: '150px' }} ref={textRef}>
-                    <button onPointerDown={onRowDown(addTextNode, textRef)} onClick={addClick(addTextNode)}>Add Text</button></div>
-                <div style={{ position: 'absolute', bottom: '50px', left: '0px', width: '150px' }} ref={colRef}>
-                    <button onPointerDown={onRowDown(addColNode, colRef)} onClick={addClick(addColNode)}>Add Collection</button></div>
-                <div style={{ position: 'absolute', bottom: '75px', left: '0px', width: '150px' }} ref={schemaRef}>
-                    <button onPointerDown={onRowDown(addSchemaNode, schemaRef)} onClick={addClick(addSchemaNode)}>Add Schema</button></div>
-                <button style={{ position: 'absolute', bottom: '100px', left: '0px', width: '150px' }} onClick={clearDatabase}>Clear Database</button>
-                <button style={{ position: 'absolute', bottom: '25', right: '0px', width: '150px' }} onClick={() => UndoManager.Undo()}>Undo</button>
-                <button style={{ position: 'absolute', bottom: '0', right: '0px', width: '150px' }} onClick={() => UndoManager.Redo()}>Redo</button>
+                    <button onPointerDown={setupDrag(imgRef, addImageNode)} onClick={addClick(addImageNode)}>Add Image</button></div>
+                <div style={{ position: 'absolute', bottom: '25px', left: '0px', width: '150px' }} ref={webRef} >
+                    <button onPointerDown={setupDrag(webRef, addWebNode)} onClick={addClick(addWebNode)}>Add Web</button></div>
+                <div style={{ position: 'absolute', bottom: '50px', left: '0px', width: '150px' }} ref={textRef}>
+                    <button onPointerDown={setupDrag(textRef, addTextNode)} onClick={addClick(addTextNode)}>Add Text</button></div>
+                <div style={{ position: 'absolute', bottom: '75px', left: '0px', width: '150px' }} ref={colRef}>
+                    <button onPointerDown={setupDrag(colRef, addColNode)} onClick={addClick(addColNode)}>Add Collection</button></div>
+                <div style={{ position: 'absolute', bottom: '100px', left: '0px', width: '150px' }} ref={schemaRef}>
+                    <button onPointerDown={setupDrag(schemaRef, addSchemaNode)} onClick={addClick(addSchemaNode)}>Add Schema</button></div>
+                <button style={{ position: 'absolute', bottom: '125px', left: '0px', width: '150px' }} onClick={clearDatabase}>Clear Database</button>
+                <button style={{ position: 'absolute', bottom: '25px', right: '0px', width: '150px' }} onClick={() => UndoManager.Undo()}>Undo</button>
+                <button style={{ position: 'absolute', bottom: '0px', right: '0px', width: '150px' }} onClick={() => UndoManager.Redo()}>Redo</button>
             </div>),
             document.getElementById('root'));
     })

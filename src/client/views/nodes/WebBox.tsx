@@ -1,15 +1,12 @@
-
-import Lightbox from 'react-image-lightbox';
-import { SelectionManager } from "../../util/SelectionManager";
 import "./WebBox.scss";
 import React = require("react")
 import { WebField } from '../../../fields/WebField';
 import { FieldViewProps, FieldView } from './FieldView';
-import { CollectionFreeFormDocumentView } from './CollectionFreeFormDocumentView';
 import { FieldWaiting } from '../../../fields/Field';
 import { observer } from "mobx-react"
-import { observable, action, spy } from 'mobx';
+import { observable, action, spy, computed } from 'mobx';
 import { KeyStore } from '../../../fields/KeyStore';
+import { HtmlField } from "../../../fields/HtmlField";
 
 @observer
 export class WebBox extends React.Component<FieldViewProps> {
@@ -59,15 +56,27 @@ export class WebBox extends React.Component<FieldViewProps> {
         e.stopPropagation();
     }
 
+    @computed
+    get html(): string {
+        return this.props.doc.GetData(KeyStore.Data, HtmlField, "" as string);
+    }
+
+
     render() {
         let field = this.props.doc.Get(this.props.fieldKey);
         let path = field == FieldWaiting ? "https://image.flaticon.com/icons/svg/66/66163.svg" :
             field instanceof WebField ? field.Data.href : "https://crossorigin.me/" + "https://cs.brown.edu";
-        let nativeWidth = this.props.doc.GetNumber(KeyStore.NativeWidth, 1);
+
+        let content = this.html ?
+            <span dangerouslySetInnerHTML={{ __html: this.html }}></span> :
+            <div style={{ width: "100%", height: "100%", position: "absolute" }}>
+                <iframe src={path} style={{ position: "absolute", width: "100%", height: "100%" }}></iframe>
+                {this.props.isSelected() ? (null) : <div style={{ width: "100%", height: "100%", position: "absolute" }} />}
+            </div>;
 
         return (
             <div className="webBox-cont" onPointerDown={this.onPointerDown} ref={this._ref}   >
-                <iframe src={path} width={nativeWidth}></iframe>
+                {content}
             </div>)
     }
 }

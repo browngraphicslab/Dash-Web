@@ -12,7 +12,6 @@ import { Key } from "../../../fields/Key";
 import { FormattedTextBox } from "./FormattedTextBox";
 import { ImageBox } from "./ImageBox";
 import { WebBox } from "./WebBox";
-import { DocumentView } from "./DocumentView";
 import { HtmlField } from "../../../fields/HtmlField";
 import { WebView } from "./WebView";
 
@@ -58,9 +57,14 @@ export class FieldView extends React.Component<FieldViewProps> {
         }
         else if (field instanceof NumberField) {
             return <p>{field.Data}</p>
-        } else if (field != FieldWaiting) {
-            return <p>{field.GetValue}</p>
-        } else
+        }
+        else if (field instanceof WebField) {
+            return <WebView {...this.props} />
+        }
+        else if (field != FieldWaiting) {
+            return <p>{JSON.stringify(field.GetValue())}</p>
+        }
+        else
             return <p> {"Waiting for server..."} </p>
     }
 

@@ -3,9 +3,7 @@ import { computed } from "mobx";
 import { observer } from "mobx-react";
 import { KeyStore } from "../../../fields/KeyStore";
 import React = require('react')
-import { TextField } from "../../../fields/TextField";
 import { HtmlField } from "../../../fields/HtmlField";
-import { RichTextField } from "../../../fields/RichTextField";
 
 @observer
 export class WebView extends React.Component<FieldViewProps> {

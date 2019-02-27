@@ -9,10 +9,8 @@ import { ImageField } from "../../fields/ImageField";
 import { ImageBox } from "../views/nodes/ImageBox";
 import { WebField } from "../../fields/WebField";
 import { WebBox } from "../views/nodes/WebBox";
-import { CollectionFreeFormView } from "../views/collections/CollectionFreeFormView";
-import { FieldId } from "../../fields/Field";
 import { CollectionView, CollectionViewType } from "../views/collections/CollectionView";
-import { FieldView } from "../views/nodes/FieldView";
+import { HtmlField } from "../../fields/HtmlField";
 
 export interface DocumentOptions {
     x?: number;
@@ -110,13 +108,13 @@ export namespace Documents {
             <div style="position:relative; margin:auto; height:85%;" >`
             + ImageBox.LayoutString() +
             `</div>
-            <div style="position:relative; overflow:auto; height:15%; text-align:center; ">`
+            <div style="position:relative; height:15%; text-align:center; ">`
             + FormattedTextBox.LayoutString("CaptionKey") +
             `</div> 
         </div>` };
     function FixedCaption() {
         return `<div style="position:absolute; height:30px; bottom:0; width:100%">
-            <div style="position:absolute; width:100%; height:100%; overflow:auto;text-align:center;bottom:0;">`
+            <div style="position:absolute; width:100%; height:100%; text-align:center;bottom:0;">`
             + FormattedTextBox.LayoutString("CaptionKey") +
             `</div> 
         </div>` };
@@ -133,35 +131,34 @@ export namespace Documents {
         return doc;
     }
 
-    let webProtoId: FieldId;
+    let webProto: Document;
+    const webProtoId = "webProto";
     function GetWebPrototype(): Document {
-        if (webProtoId === undefined) {
-            let webProto = new Document();
-            webProtoId = webProto.Id;
+        if (!webProto) {
+            webProto = new Document(webProtoId);
             webProto.Set(KeyStore.Title, new TextField("WEB PROTO"));
             webProto.Set(KeyStore.X, new NumberField(0));
             webProto.Set(KeyStore.Y, new NumberField(0));
-            webProto.Set(KeyStore.NativeWidth, new NumberField(300));
-            webProto.Set(KeyStore.NativeHeight, new NumberField(300));
             webProto.Set(KeyStore.Width, new NumberField(300));
             webProto.Set(KeyStore.Height, new NumberField(300));
-            webProto.Set(KeyStore.Layout, new TextField(CollectionFreeFormView.LayoutString("AnnotationsKey")));
-            webProto.Set(KeyStore.BackgroundLayout, new TextField(WebBox.LayoutString()));
+            //webProto.Set(KeyStore.Layout, new TextField(CollectionView.LayoutString("AnnotationsKey")));
+            webProto.Set(KeyStore.Layout, new TextField(WebBox.LayoutString()));
             webProto.Set(KeyStore.LayoutKeys, new ListField([KeyStore.Data, KeyStore.Annotations]));
-            Server.AddDocument(webProto);
-            return webProto;
         }
-        return Server.GetField(webProtoId) as Document;
+        return webProto;
     }
 
     export function WebDocument(url: string, options: DocumentOptions = {}): Document {
         let doc = GetWebPrototype().MakeDelegate();
         setupOptions(doc, options);
         doc.Set(KeyStore.Data, new WebField(new URL(url)));
-        Server.AddDocument(doc);
-        var sdoc = Server.GetField(doc.Id) as Document;
-        console.log(sdoc);
-        return sdoc;
+        return doc;
+    }
+    export function HtmlDocument(html: string, options: DocumentOptions = {}): Document {
+        let doc = GetWebPrototype().MakeDelegate();
+        setupOptions(doc, options);
+        doc.Set(KeyStore.Data, new HtmlField(html));
+        return doc;
     }
 
     let collectionProto: Document;

@@ -15,10 +15,10 @@ import { FieldView, FieldViewProps } from "../nodes/FieldView";
 import "./CollectionSchemaView.scss";
 import { COLLECTION_BORDER_WIDTH } from "./CollectionView";
 import { CollectionViewBase } from "./CollectionViewBase";
-import { DragManager } from "../../util/DragManager";
-import { CollectionDockingView } from "./CollectionDockingView";
+import { setupDrag } from "../../util/DragManager";
 
 // bcz: need to add drag and drop of rows and columns.  This seems like it might work for rows: https://codesandbox.io/s/l94mn1q657
+
 
 @observer
 export class CollectionSchemaView extends CollectionViewBase {
@@ -31,9 +31,6 @@ export class CollectionSchemaView extends CollectionViewBase {
     @observable _panelHeight = 0;
     @observable _selectedIndex = 0;
     @observable _splitPercentage: number = 50;
-
-
-
 
     renderCell = (rowProps: CellInfo) => {
         let props: FieldViewProps = {
@@ -48,29 +45,9 @@ export class CollectionSchemaView extends CollectionViewBase {
             <FieldView {...props} />
         )
         let reference = React.createRef<HTMLDivElement>();
-        let onRowMove = action((e: PointerEvent): void => {
-            e.stopPropagation();
-            e.preventDefault();
-
-            document.removeEventListener("pointermove", onRowMove);
-            document.removeEventListener('pointerup', onRowUp);
-            DragManager.StartDrag(reference.current!, { document: props.doc });
-        });
-        let onRowUp = action((e: PointerEvent): void => {
-            document.removeEventListener("pointermove", onRowMove);
-            document.removeEventListener('pointerup', onRowUp);
-        });
-        let onRowDown = (e: React.PointerEvent) => {
-            if (e.shiftKey) {
-                CollectionDockingView.Instance.StartOtherDrag(reference.current!, props.doc);
-                e.stopPropagation();
-            } else {
-                document.addEventListener("pointermove", onRowMove);
-                document.addEventListener('pointerup', onRowUp);
-            }
-        }
+        let onItemDown = setupDrag(reference, () => props.doc);
         return (
-            <div onPointerDown={onRowDown} ref={reference}>
+            <div onPointerDown={onItemDown} key={props.doc.Id} ref={reference}>
                 <EditableView contents={contents}
                     height={36} GetValue={() => {
                         let field = props.doc.Get(props.fieldKey);
@@ -78,7 +55,8 @@ export class CollectionSchemaView extends CollectionViewBase {
                             return field.ToScriptString();
                         }
                         return field || "";
-                    }} SetValue={(value: string) => {
+                    }}
+                    SetValue={(value: string) => {
                         let script = CompileScript(value);
                         if (!script.compiled) {
                             return false;
@@ -95,7 +73,9 @@ export class CollectionSchemaView extends CollectionViewBase {
                             }
                         }
                         return false;
-                    }}></EditableView></div>
+                    }}>
+                </EditableView>
+            </div>
         )
     }
 
@@ -114,8 +94,8 @@ export class CollectionSchemaView extends CollectionViewBase {
                 }
             }),
             style: {
-                background: rowInfo.index == this._selectedIndex ? "#00afec" : "white",
-                color: rowInfo.index == this._selectedIndex ? "white" : "black"
+                background: rowInfo.index == this._selectedIndex ? "lightGray" : "white",
+                //color: rowInfo.index == this._selectedIndex ? "white" : "black"
             }
         };
     }
@@ -214,44 +194,43 @@ export class CollectionSchemaView extends CollectionViewBase {
                 }
             </Measure>
         )
-        let handle = !this.props.active() ? (null) : (
-            <div style={{ position: "absolute", height: "37px", width: "20px", zIndex: 20, right: 0, top: 0, background: "Black" }} onPointerDown={this.onExpanderDown} />);
+        let previewHandle = !this.props.active() ? (null) : (
+            <div className="collectionSchemaView-previewHandle" onPointerDown={this.onExpanderDown} />);
         return (
-            <div onPointerDown={this.onPointerDown} ref={this._mainCont} className="collectionSchemaView-container" style={{ borderWidth: `${COLLECTION_BORDER_WIDTH}px` }} >
-                <Measure onResize={action((r: any) => {
-                    this._dividerX = r.entry.width;
-                    this._panelHeight = r.entry.height;
-                })}>
-                    {({ measureRef }) =>
-                        <div ref={measureRef} className="collectionSchemaView-tableContainer" style={{ position: "relative", float: "left", width: `${this._splitPercentage}%`, height: "100%" }}>
-                            <ReactTable
-                                data={children}
-                                pageSize={children.length}
-                                page={0}
-                                showPagination={false}
-                                columns={columns.map(col => ({
-                                    Header: col.Name,
-                                    accessor: (doc: Document) => [doc, col],
-                                    id: col.Id
-                                }))}
-                                column={{
-                                    ...ReactTableDefaults.column,
-                                    Cell: this.renderCell,
+            <div className="collectionSchemaView-container" onPointerDown={this.onPointerDown} ref={this._mainCont} style={{ borderWidth: `${COLLECTION_BORDER_WIDTH}px` }} >
+                <div className="collectionSchemaView-dropTarget" onDrop={(e: React.DragEvent) => this.onDrop(e, {})} ref={this.createDropTarget}>
+                    <Measure onResize={action((r: any) => {
+                        this._dividerX = r.entry.width;
+                        this._panelHeight = r.entry.height;
+                    })}>
+                        {({ measureRef }) =>
+                            <div ref={measureRef} className="collectionSchemaView-tableContainer" style={{ width: `${this._splitPercentage}%` }}>
+                                <ReactTable
+                                    data={children}
+                                    pageSize={children.length}
+                                    page={0}
+                                    showPagination={false}
+                                    columns={columns.map(col => ({
+                                        Header: col.Name,
+                                        accessor: (doc: Document) => [doc, col],
+                                        id: col.Id
+                                    }))}
+                                    column={{
+                                        ...ReactTableDefaults.column,
+                                        Cell: this.renderCell,
 
-                                }}
-                                getTrProps={this.getTrProps}
-                            />
-                        </div>
-                    }
-                </Measure>
-                <div className="collectionSchemaView-dividerDragger" style={{ position: "relative", background: "black", float: "left", width: `${this.DIVIDER_WIDTH}px`, height: "100%" }} onPointerDown={this.onDividerDown} />
-                <div className="collectionSchemaView-previewRegion"
-                    onDrop={(e: React.DragEvent) => this.onDrop(e, {})}
-                    ref={this.createDropTarget}
-                    style={{ position: "relative", float: "left", width: `calc(${100 - this._splitPercentage}% - ${this.DIVIDER_WIDTH}px)`, height: "100%" }}>
-                    {content}
+                                    }}
+                                    getTrProps={this.getTrProps}
+                                />
+                            </div>
+                        }
+                    </Measure>
+                    <div className="collectionSchemaView-dividerDragger" onPointerDown={this.onDividerDown} style={{ width: `${this.DIVIDER_WIDTH}px` }} />
+                    <div className="collectionSchemaView-previewRegion" style={{ width: `calc(${100 - this._splitPercentage}% - ${this.DIVIDER_WIDTH}px)` }}>
+                        {content}
+                    </div>
+                    {previewHandle}
                 </div>
-                {handle}
             </div >
         )
     }
