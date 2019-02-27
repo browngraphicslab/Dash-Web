@@ -39,7 +39,7 @@ export class WorkspacesMenu extends React.Component {
     }
 
     setWorkspaceId = (e: React.MouseEvent) => {
-
+        console.log(e.currentTarget.innerHTML);
     }
 
     render() {
@@ -51,13 +51,12 @@ export class WorkspacesMenu extends React.Component {
                     borderRadius: 5,
                     position: "absolute",
                     top: 50,
-                    left: 8,
+                    left: this.workspacesExposed ? 8 : -500,
                     background: "white",
                     border: "black solid 2px",
-                    transition: "all 0.3s ease",
+                    transition: "all 1s ease",
                     zIndex: 15,
                     padding: 10,
-                    visibility: this.workspacesExposed ? "visible" : "hidden"
                 }}
             >
                 {this.workspaceIds.map(s =>
