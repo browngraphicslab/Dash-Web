@@ -99,8 +99,8 @@ export class CollectionFreeFormView extends CollectionViewBase {
     onPointerMove = (e: PointerEvent): void => {
         if (!e.cancelBubble && this.props.active()) {
             e.stopPropagation();
-            let x = this.props.Document.GetNumber(KeyStore.PanX, 0);
-            let y = this.props.Document.GetNumber(KeyStore.PanY, 0);
+            let x = -this.panX;
+            let y = -this.panY;
             let [dx, dy] = this.props.ScreenToLocalTransform().transformDirection(e.clientX - this._lastX, e.clientY - this._lastY);
             this._previewCursorVisible = false;
             this.SetPan(x + dx, y + dy);
@@ -144,10 +144,10 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
     @action
     private SetPan(panX: number, panY: number) {
-        const newPanX = Math.max((1 - this.zoomScaling) * this.nativeWidth, Math.min(0, panX));
-        const newPanY = Math.max((1 - this.zoomScaling) * this.nativeHeight, Math.min(0, panY));
-        this.props.Document.SetNumber(KeyStore.PanX, this.isAnnotationOverlay ? newPanX : panX);
-        this.props.Document.SetNumber(KeyStore.PanY, this.isAnnotationOverlay ? newPanY : panY);
+        const newPanX = -Math.max((1 - this.zoomScaling) * this.nativeWidth, Math.min(0, panX));
+        const newPanY = -Math.max((1 - this.zoomScaling) * this.nativeHeight, Math.min(0, panY));
+        this.props.Document.SetNumber(KeyStore.PanX, this.isAnnotationOverlay ? newPanX : -panX);
+        this.props.Document.SetNumber(KeyStore.PanY, this.isAnnotationOverlay ? newPanY : -panY);
     }
 
     @action
@@ -251,7 +251,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
     }
 
     getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-COLLECTION_BORDER_WIDTH - this.centeringShiftX, -COLLECTION_BORDER_WIDTH - this.centeringShiftY).transform(this.getLocalTransform())
-    getLocalTransform = (): Transform => Transform.Identity.translate(-this.panX, -this.panY).scale(1 / this.scale);
+    getLocalTransform = (): Transform => Transform.Identity.translate(this.panX, this.panY).scale(1 / this.scale);
     noScaling = () => 1;
 
     //when focus is lost, this will remove the preview cursor
@@ -270,8 +270,8 @@ export class CollectionFreeFormView extends CollectionViewBase {
             cursor = <div id="prevCursor" onKeyPress={this.onKeyDown} style={{ color: "black", position: "absolute", transformOrigin: "left top", transform: `translate(${x}px, ${y}px)` }}>I</div>
         }
 
-        const panx: number = this.props.Document.GetNumber(KeyStore.PanX, 0) + this.centeringShiftX;
-        const pany: number = this.props.Document.GetNumber(KeyStore.PanY, 0) + this.centeringShiftY;
+        const panx: number = -this.panX + this.centeringShiftX;
+        const pany: number = -this.panY + this.centeringShiftY;
 
         return (
             <div className="collectionfreeformview-container"
