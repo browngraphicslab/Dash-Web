@@ -65,8 +65,8 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
         let i = 0;
         for (let key in ids) {
             if (i++ % 2 == 0)
-                rows.push(<KeyValuePair doc={realDoc} rowStyle="keyValueBox-evenRow" fieldId={key} />)
-            else rows.push(<KeyValuePair doc={realDoc} rowStyle="keyValueBox-oddRow" fieldId={key} />)
+                rows.push(<KeyValuePair doc={realDoc} rowStyle="keyValueBox-evenRow" fieldId={key} key={key} />)
+            else rows.push(<KeyValuePair doc={realDoc} rowStyle="keyValueBox-oddRow" fieldId={key} key={key} />)
         }
         return rows;
     }
