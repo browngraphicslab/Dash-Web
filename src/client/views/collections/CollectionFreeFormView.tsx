@@ -99,11 +99,11 @@ export class CollectionFreeFormView extends CollectionViewBase {
     onPointerMove = (e: PointerEvent): void => {
         if (!e.cancelBubble && this.props.active()) {
             e.stopPropagation();
-            let x = -this.panX;
-            let y = -this.panY;
-            let [dx, dy] = this.props.ScreenToLocalTransform().transformDirection(e.clientX - this._lastX, e.clientY - this._lastY);
+            let x = this.props.Document.GetNumber(KeyStore.PanX, 0);
+            let y = this.props.Document.GetNumber(KeyStore.PanY, 0);
+            let [dx, dy] = this.getTransform().transformDirection(e.clientX - this._lastX, e.clientY - this._lastY);
             this._previewCursorVisible = false;
-            this.SetPan(x + dx, y + dy);
+            this.SetPan(x - dx, y - dy);
         }
         this._lastX = e.pageX;
         this._lastY = e.pageY;
@@ -134,20 +134,21 @@ export class CollectionFreeFormView extends CollectionViewBase {
                 deltaScale = 1 / this.zoomScaling;
             let [x, y] = transform.transformPoint(e.clientX, e.clientY);
 
-            let localTransform = this.getLocalTransform();
+            let localTransform = this.getLocalTransform()
             localTransform = localTransform.inverse().scaleAbout(deltaScale, x, y)
+            console.log(localTransform)
 
             this.props.Document.SetNumber(KeyStore.Scale, localTransform.Scale);
-            this.SetPan(localTransform.TranslateX, localTransform.TranslateY);
+            this.SetPan(-localTransform.TranslateX / localTransform.Scale, -localTransform.TranslateY / localTransform.Scale);
         }
     }
 
     @action
     private SetPan(panX: number, panY: number) {
-        const newPanX = -Math.max((1 - this.zoomScaling) * this.nativeWidth, Math.min(0, panX));
-        const newPanY = -Math.max((1 - this.zoomScaling) * this.nativeHeight, Math.min(0, panY));
-        this.props.Document.SetNumber(KeyStore.PanX, this.isAnnotationOverlay ? newPanX : -panX);
-        this.props.Document.SetNumber(KeyStore.PanY, this.isAnnotationOverlay ? newPanY : -panY);
+        const newPanX = Math.max((1 - this.zoomScaling) * this.nativeWidth, Math.min(0, panX));
+        const newPanY = Math.max((1 - this.zoomScaling) * this.nativeHeight, Math.min(0, panY));
+        this.props.Document.SetNumber(KeyStore.PanX, this.isAnnotationOverlay ? newPanX : panX);
+        this.props.Document.SetNumber(KeyStore.PanY, this.isAnnotationOverlay ? newPanY : panY);
     }
 
     @action
@@ -250,8 +251,8 @@ export class CollectionFreeFormView extends CollectionViewBase {
             />);
     }
 
-    getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-COLLECTION_BORDER_WIDTH - this.centeringShiftX, -COLLECTION_BORDER_WIDTH - this.centeringShiftY).transform(this.getLocalTransform())
-    getLocalTransform = (): Transform => Transform.Identity.translate(this.panX, this.panY).scale(1 / this.scale);
+    getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-COLLECTION_BORDER_WIDTH, -COLLECTION_BORDER_WIDTH).translate(-this.centeringShiftX, -this.centeringShiftY).transform(this.getLocalTransform())
+    getLocalTransform = (): Transform => Transform.Identity.scale(1 / this.scale).translate(this.panX, this.panY);
     noScaling = () => 1;
 
     //when focus is lost, this will remove the preview cursor
@@ -270,8 +271,13 @@ export class CollectionFreeFormView extends CollectionViewBase {
             cursor = <div id="prevCursor" onKeyPress={this.onKeyDown} style={{ color: "black", position: "absolute", transformOrigin: "left top", transform: `translate(${x}px, ${y}px)` }}>I</div>
         }
 
-        const panx: number = -this.panX + this.centeringShiftX;
-        const pany: number = -this.panY + this.centeringShiftY;
+        let [dx, dy] = [this.centeringShiftX, this.centeringShiftY];
+
+        const panx: number = -this.props.Document.GetNumber(KeyStore.PanX, 0);
+        const pany: number = -this.props.Document.GetNumber(KeyStore.PanY, 0);
+        // const panx: number = this.props.Document.GetNumber(KeyStore.PanX, 0) + this.centeringShiftX;
+        // const pany: number = this.props.Document.GetNumber(KeyStore.PanY, 0) + this.centeringShiftY;
+        console.log("center:", this.getLocalTransform().transformPoint(this.centeringShiftX, this.centeringShiftY));
 
         return (
             <div className="collectionfreeformview-container"
@@ -285,7 +291,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
                 tabIndex={0}
                 ref={this.createDropTarget}>
                 <div className="collectionfreeformview"
-                    style={{ transformOrigin: "left top", transform: ` translate(${panx}px, ${pany}px) scale(${this.zoomScaling}, ${this.zoomScaling})` }}
+                    style={{ transformOrigin: "left top", transform: `translate(${dx}px, ${dy}px) scale(${this.zoomScaling}, ${this.zoomScaling}) translate(${panx}px, ${pany}px)` }}
                     ref={this._canvasRef}>
                     {this.backgroundView}
                     {cursor}

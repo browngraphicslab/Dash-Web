@@ -191,6 +191,15 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         ContextMenu.Instance.addItem({ description: "Freeform", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Freeform) })
         ContextMenu.Instance.addItem({ description: "Schema", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Schema) })
         ContextMenu.Instance.addItem({ description: "Treeview", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Tree) })
+        ContextMenu.Instance.addItem({
+            description: "center", event: () => {
+                if (this.props.ContainingCollectionView) {
+                    let doc = this.props.ContainingCollectionView.props.Document;
+                    doc.SetNumber(KeyStore.PanX, this.props.Document.GetNumber(KeyStore.X, 0) + (this.props.Document.GetNumber(KeyStore.Width, 0) / 2))
+                    doc.SetNumber(KeyStore.PanY, this.props.Document.GetNumber(KeyStore.Y, 0) + (this.props.Document.GetNumber(KeyStore.Height, 0) / 2))
+                }
+            }
+        })
         //ContextMenu.Instance.addItem({ description: "Docking", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Docking) })
         ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15)
         if (!this.topMost) {

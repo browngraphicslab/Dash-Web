@@ -236,7 +236,7 @@ interface DockedFrameProps {
 @observer
 export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
 
-    @observable private _mainCont = React.createRef<HTMLDivElement>();
+    private _mainCont = React.createRef<HTMLDivElement>();
     @observable private _panelWidth = 0;
     @observable private _panelHeight = 0;
     @observable private _document: Opt<Document>;
