@@ -12,8 +12,6 @@ import { Key } from "../../../fields/Key";
 import { FormattedTextBox } from "./FormattedTextBox";
 import { ImageBox } from "./ImageBox";
 import { WebBox } from "./WebBox";
-import { KVPField } from "../../../fields/KVPField";
-import { KeyValuePane } from "./KeyValuePane";
 
 //
 // these properties get assigned through the render() method of the DocumentView when it creates this node.

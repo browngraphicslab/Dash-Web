@@ -1,0 +1,24 @@
+.keyValueBox-cont {
+    overflow-y:scroll;
+    height: 100%;
+    border: black;
+    border-width: 1px;
+    border-style: solid;
+    box-sizing: border-box;
+    display: inline-block;
+}
+.keyValueBox-header {
+    background:gray;
+}
+.keyValueBox-evenRow {
+    background: white;
+    .formattedTextBox-cont {
+        background: white;
+    }
+}
+.keyValueBox-oddRow {
+    background: lightGray;
+    .formattedTextBox-cont {
+        background: lightgray;
+    }
+}

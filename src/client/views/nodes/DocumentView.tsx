@@ -16,7 +16,7 @@ import { ContextMenu } from "../ContextMenu";
 import { FormattedTextBox } from "../nodes/FormattedTextBox";
 import { ImageBox } from "../nodes/ImageBox";
 import { Documents } from "../../documents/Documents"
-import { KeyValuePane } from "../nodes/KeyValuePane"
+import { KeyValueBox } from "./KeyValueBox"
 import { WebBox } from "../nodes/WebBox";
 import "./DocumentView.scss";
 import React = require("react");
@@ -205,7 +205,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
 
     @computed get mainContent() {
         return <JsxParser
-            components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebBox, KeyValuePane }}
+            components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebBox, KeyValueBox }}
             bindings={this._documentBindings}
             jsx={this.layout}
             showWarnings={true}

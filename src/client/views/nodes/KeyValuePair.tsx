@@ -1,5 +1,5 @@
 import 'react-image-lightbox/style.css'; // This only needs to be imported once in your app
-import "./KeyValuePane.scss";
+import "./KeyValueBox.scss";
 import React = require("react")
 import { FieldViewProps, FieldView } from './FieldView';
 import { Opt, Field } from '../../../fields/Field';
@@ -12,6 +12,7 @@ import { Server } from "../../Server"
 // Represents one row in a key value plane
 
 export interface KeyValuePairProps {
+    rowStyle: string;
     fieldId: string;
     doc: Document;
 }
@@ -33,7 +34,6 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
     }
 
 
-
     render() {
         if (!this.key) {
             return <tr><td>error</td><td></td></tr>
@@ -49,7 +49,7 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
             selectOnLoad: false,
         }
         return (
-            <tr><td>{this.key.Name}</td><td><FieldView {...props} /></td></tr>
+            <tr className={this.props.rowStyle}><td>{this.key.Name}</td><td><FieldView {...props} /></td></tr>
         )
     }
 }

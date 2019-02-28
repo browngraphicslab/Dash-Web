@@ -13,7 +13,7 @@ import { CollectionView, CollectionViewType } from "../views/collections/Collect
 import { HtmlField } from "../../fields/HtmlField";
 import { Key } from "../../fields/Key"
 import { Field } from "../../fields/Field";
-import { KeyValuePane } from "../views/nodes/KeyValuePane"
+import { KeyValueBox } from "../views/nodes/KeyValueBox"
 import { KVPField } from "../../fields/KVPField";
 
 export interface DocumentOptions {
@@ -105,7 +105,7 @@ export namespace Documents {
 
     function GetKVPPrototype(): Document {
         return kvpProto ? kvpProto :
-            kvpProto = setupPrototypeOptions(kvpProtoId, "KVP_PROTO", KeyValuePane.LayoutString(),
+            kvpProto = setupPrototypeOptions(kvpProtoId, "KVP_PROTO", KeyValueBox.LayoutString(),
                 { x: 0, y: 0, width: 300, height: 150, layoutKeys: [KeyStore.Data] })
     }
 
