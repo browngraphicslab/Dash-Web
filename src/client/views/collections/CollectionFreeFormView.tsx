@@ -100,9 +100,9 @@ export class CollectionFreeFormView extends CollectionViewBase {
             e.stopPropagation();
             let x = this.props.Document.GetNumber(KeyStore.PanX, 0);
             let y = this.props.Document.GetNumber(KeyStore.PanY, 0);
-            let [dx, dy] = this.props.ScreenToLocalTransform().transformDirection(e.clientX - this._lastX, e.clientY - this._lastY);
+            let [dx, dy] = this.getTransform().transformDirection(e.clientX - this._lastX, e.clientY - this._lastY);
             this._previewCursorVisible = false;
-            this.SetPan(x + dx, y + dy);
+            this.SetPan(x - dx, y - dy);
         }
         this._lastX = e.pageX;
         this._lastY = e.pageY;
@@ -134,10 +134,14 @@ export class CollectionFreeFormView extends CollectionViewBase {
             let [x, y] = transform.transformPoint(e.clientX, e.clientY);
 
             let localTransform = this.getLocalTransform();
-            localTransform = localTransform.inverse().scaleAbout(deltaScale, x, y)
+            console.log("test")
+            console.log(localTransform.inverse())
+            console.log([x, y])
+            localTransform = localTransform.inverse().preTranslate(-this.centeringShiftX, -this.centeringShiftY).scaleAbout(deltaScale, x, y)
+            console.log(localTransform)
 
             this.props.Document.SetNumber(KeyStore.Scale, localTransform.Scale);
-            this.SetPan(localTransform.TranslateX, localTransform.TranslateY);
+            this.SetPan(-localTransform.TranslateX, -localTransform.TranslateY);
         }
     }
 
@@ -250,8 +254,8 @@ export class CollectionFreeFormView extends CollectionViewBase {
             />);
     }
 
-    getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-COLLECTION_BORDER_WIDTH - this.centeringShiftX, -COLLECTION_BORDER_WIDTH - this.centeringShiftY).transform(this.getLocalTransform())
-    getLocalTransform = (): Transform => Transform.Identity.translate(-this.panX, -this.panY).scale(1 / this.scale);
+    getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-COLLECTION_BORDER_WIDTH, -COLLECTION_BORDER_WIDTH).transform(this.getLocalTransform())
+    getLocalTransform = (): Transform => Transform.Identity.translate(-this.centeringShiftX, -this.centeringShiftY).scale(1 / this.scale).translate(this.panX, this.panY);
     noScaling = () => 1;
 
     //when focus is lost, this will remove the preview cursor
@@ -270,8 +274,12 @@ export class CollectionFreeFormView extends CollectionViewBase {
             cursor = <div id="prevCursor" onKeyPress={this.onKeyDown} style={{ color: "black", position: "absolute", transformOrigin: "left top", transform: `translate(${x}px, ${y}px)` }}>I</div>
         }
 
-        const panx: number = this.props.Document.GetNumber(KeyStore.PanX, 0) + this.centeringShiftX;
-        const pany: number = this.props.Document.GetNumber(KeyStore.PanY, 0) + this.centeringShiftY;
+        let [dx, dy] = [this.centeringShiftX, this.centeringShiftY];
+
+        const panx: number = -this.props.Document.GetNumber(KeyStore.PanX, 0);
+        const pany: number = -this.props.Document.GetNumber(KeyStore.PanY, 0);
+        // const panx: number = this.props.Document.GetNumber(KeyStore.PanX, 0) + this.centeringShiftX;
+        // const pany: number = this.props.Document.GetNumber(KeyStore.PanY, 0) + this.centeringShiftY;
 
         return (
             <div className="collectionfreeformview-container"
@@ -285,7 +293,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
                 tabIndex={0}
                 ref={this.createDropTarget}>
                 <div className="collectionfreeformview"
-                    style={{ transformOrigin: "left top", transform: ` translate(${panx}px, ${pany}px) scale(${this.zoomScaling}, ${this.zoomScaling})` }}
+                    style={{ transformOrigin: "left top", transform: `translate(${dx}px, ${dy}px) scale(${this.zoomScaling}, ${this.zoomScaling}) translate(${panx}px, ${pany}px)` }}
                     ref={this._canvasRef}>
                     {this.backgroundView}
                     {cursor}
