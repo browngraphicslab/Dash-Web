@@ -133,15 +133,12 @@ export class CollectionFreeFormView extends CollectionViewBase {
                 deltaScale = 1 / this.zoomScaling;
             let [x, y] = transform.transformPoint(e.clientX, e.clientY);
 
-            let localTransform = this.getLocalTransform();
-            console.log("test")
-            console.log(localTransform.inverse())
-            console.log([x, y])
-            localTransform = localTransform.inverse().preTranslate(-this.centeringShiftX, -this.centeringShiftY).scaleAbout(deltaScale, x, y)
+            let localTransform = this.getLocalTransform()
+            localTransform = localTransform.inverse().scaleAbout(deltaScale, x, y)
             console.log(localTransform)
 
             this.props.Document.SetNumber(KeyStore.Scale, localTransform.Scale);
-            this.SetPan(-localTransform.TranslateX, -localTransform.TranslateY);
+            this.SetPan(-localTransform.TranslateX / localTransform.Scale, -localTransform.TranslateY / localTransform.Scale);
         }
     }
 
@@ -254,8 +251,8 @@ export class CollectionFreeFormView extends CollectionViewBase {
             />);
     }
 
-    getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-COLLECTION_BORDER_WIDTH, -COLLECTION_BORDER_WIDTH).transform(this.getLocalTransform())
-    getLocalTransform = (): Transform => Transform.Identity.translate(-this.centeringShiftX, -this.centeringShiftY).scale(1 / this.scale).translate(this.panX, this.panY);
+    getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-COLLECTION_BORDER_WIDTH, -COLLECTION_BORDER_WIDTH).translate(-this.centeringShiftX, -this.centeringShiftY).transform(this.getLocalTransform())
+    getLocalTransform = (): Transform => Transform.Identity.scale(1 / this.scale).translate(this.panX, this.panY);
     noScaling = () => 1;
 
     //when focus is lost, this will remove the preview cursor
@@ -280,6 +277,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
         const pany: number = -this.props.Document.GetNumber(KeyStore.PanY, 0);
         // const panx: number = this.props.Document.GetNumber(KeyStore.PanX, 0) + this.centeringShiftX;
         // const pany: number = this.props.Document.GetNumber(KeyStore.PanY, 0) + this.centeringShiftY;
+        console.log("center:", this.getLocalTransform().transformPoint(this.centeringShiftX, this.centeringShiftY));
 
         return (
             <div className="collectionfreeformview-container"
