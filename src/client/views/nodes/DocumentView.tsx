@@ -165,6 +165,19 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     }
 
     @action
+    drop = (e: Event, de: DragManager.DropEvent) => {
+        console.log("drop");
+        const sourceDocView: DocumentView = de.data["linkSourceDoc"];
+        let sourceDoc: Document = sourceDocView.props.Document;
+        let destDoc: Document = this.props.Document;
+
+        sourceDoc.GetAsync(KeyStore.LinkedToDocs, field => { (field as ListField<Document>).Data.push(destDoc) });
+        destDoc.GetAsync(KeyStore.LinkedFromDocs, field => { (field as ListField<Document>).Data.push(sourceDoc) });
+
+        e.stopPropagation();
+    }
+
+    @action
     onContextMenu = (e: React.MouseEvent): void => {
         e.stopPropagation();
         let moved = Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3;

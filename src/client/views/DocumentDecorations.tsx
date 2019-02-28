@@ -5,12 +5,16 @@ import { observer } from "mobx-react";
 import './DocumentDecorations.scss'
 import { KeyStore } from '../../fields/KeyStore'
 import { NumberField } from "../../fields/NumberField";
+import { props } from "bluebird";
+import { DragManager } from "../util/DragManager";
+
 
 @observer
 export class DocumentDecorations extends React.Component {
     static Instance: DocumentDecorations
     private _resizer = ""
     private _isPointerDown = false;
+    private _linkButton = React.createRef<HTMLDivElement>();
     @observable private _hidden = false;
 
     constructor(props: Readonly<{}>) {
@@ -51,6 +55,42 @@ export class DocumentDecorations extends React.Component {
             document.addEventListener("pointerup", this.onPointerUp);
         }
     }
+
+    onLinkButtonDown = (e: React.PointerEvent): void => {
+        console.log("down");
+        e.stopPropagation();
+        document.removeEventListener("pointermove", this.onLinkButtonMoved)
+        document.addEventListener("pointermove", this.onLinkButtonMoved);
+        document.removeEventListener("pointerup", this.onLinkButtonUp)
+        document.addEventListener("pointerup", this.onLinkButtonUp);
+
+    }
+
+    onLinkButtonUp = (e: PointerEvent): void => {
+        console.log("up");
+        document.removeEventListener("pointermove", this.onLinkButtonMoved)
+        document.removeEventListener("pointerup", this.onLinkButtonUp)
+        e.stopPropagation();
+    }
+
+
+    onLinkButtonMoved = (e: PointerEvent): void => {
+        console.log("moved");
+        let dragData: { [id: string]: any } = {};
+        dragData["linkSourceDoc"] = SelectionManager.SelectedDocuments()[0];
+        if (this._linkButton.current != null) {
+            DragManager.StartDrag(this._linkButton.current, dragData, {
+                handlers: {
+                    dragComplete: action(() => { }),
+                },
+                hideSource: true
+            })
+        }
+        document.removeEventListener("pointermove", this.onLinkButtonMoved)
+        document.removeEventListener("pointerup", this.onLinkButtonUp)
+        e.stopPropagation();
+    }
+
 
     onPointerMove = (e: PointerEvent): void => {
         e.stopPropagation();
@@ -163,7 +203,9 @@ export class DocumentDecorations extends React.Component {
                 <div id="documentDecorations-bottomLeftResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-bottomResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-bottomRightResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
-            </div>
+                <div id="linkButton" onPointerDown={this.onLinkButtonDown} ref={this._linkButton}></div>
+
+            </div >
         )
     }
 }
