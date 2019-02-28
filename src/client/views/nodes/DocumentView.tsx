@@ -20,12 +20,8 @@ import { KeyValuePane } from "../nodes/KeyValuePane"
 import { WebBox } from "../nodes/WebBox";
 import "./DocumentView.scss";
 import React = require("react");
+import { CollectionViewProps } from "../collections/CollectionViewBase";
 const JsxParser = require('react-jsx-parser').default;//TODO Why does this need to be imported like this?
-
-/*
-    if containingcollectionview is CollectionFreeformView:
-        (ContainingCollectionView as CollectionFreeformView)?.addKVP
-*/
 
 
 export interface DocumentViewProps {
@@ -161,8 +157,8 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     }
 
     fieldsClicked = (e: React.MouseEvent): void => {
-        if (this.props.ContainingCollectionView) {
-            (this.props.ContainingCollectionView as unknown as CollectionFreeFormView).addKVP(this.props.Document);
+        if (this.props.AddDocument) {
+            this.props.AddDocument(Documents.KVPDocument(this.props.Document));
         }
     }
     fullScreenClicked = (e: React.MouseEvent): void => {
@@ -190,7 +186,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         e.preventDefault()
 
         ContextMenu.Instance.addItem({ description: "Full Screen", event: this.fullScreenClicked })
-        ContextMenu.Instance.addItem({ description: "Fields", event: () => this.fieldsClicked })
+        ContextMenu.Instance.addItem({ description: "Fields", event: this.fieldsClicked })
         ContextMenu.Instance.addItem({ description: "Open Right", event: () => CollectionDockingView.Instance.AddRightSplit(this.props.Document) })
         ContextMenu.Instance.addItem({ description: "Freeform", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Freeform) })
         ContextMenu.Instance.addItem({ description: "Schema", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Schema) })
@@ -209,7 +205,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
 
     @computed get mainContent() {
         return <JsxParser
-            components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebBox }}
+            components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebBox, KeyValuePane }}
             bindings={this._documentBindings}
             jsx={this.layout}
             showWarnings={true}

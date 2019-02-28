@@ -194,12 +194,6 @@ export class CollectionFreeFormView extends CollectionViewBase {
         });
     }
 
-    @action
-    addKVP(doc: Document) {
-        let fields = doc.fields;
-        //TODO: return kvpg
-    }
-
     @computed get backgroundLayout(): string | undefined {
         let field = this.props.Document.GetT(KeyStore.BackgroundLayout, TextField);
         if (field && field !== "<Waiting>") {
@@ -266,7 +260,6 @@ export class CollectionFreeFormView extends CollectionViewBase {
     }
 
     render() {
-        //TODO: put KVP stuff in this function
 
         //determines whether preview text cursor should be visible (ie when user taps this collection it should)
         let cursor = null;

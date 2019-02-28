@@ -13,6 +13,8 @@ import { CollectionView, CollectionViewType } from "../views/collections/Collect
 import { HtmlField } from "../../fields/HtmlField";
 import { Key } from "../../fields/Key"
 import { Field } from "../../fields/Field";
+import { KeyValuePane } from "../views/nodes/KeyValuePane"
+import { KVPField } from "../../fields/KVPField";
 
 export interface DocumentOptions {
     x?: number;
@@ -35,10 +37,12 @@ export namespace Documents {
     let imageProto: Document;
     let webProto: Document;
     let collProto: Document;
+    let kvpProto: Document;
     const textProtoId = "textProto";
     const imageProtoId = "imageProto";
     const webProtoId = "webProto";
     const collProtoId = "collectionProto";
+    const kvpProtoId = "kvpProto";
 
     export function initProtos(mainDocId: string, callback: (mainDoc?: Document) => void) {
         Server.GetFields([collProtoId, textProtoId, imageProtoId, mainDocId], (fields) => {
@@ -46,6 +50,7 @@ export namespace Documents {
             imageProto = fields[imageProtoId] as Document;
             textProto = fields[textProtoId] as Document;
             webProto = fields[webProtoId] as Document;
+            kvpProto = fields[kvpProtoId] as Document;
             callback(fields[mainDocId] as Document)
         });
     }
@@ -98,6 +103,12 @@ export namespace Documents {
                 { panx: 0, pany: 0, scale: 1, layoutKeys: [KeyStore.Data] });
     }
 
+    function GetKVPPrototype(): Document {
+        return kvpProto ? kvpProto :
+            kvpProto = setupPrototypeOptions(kvpProtoId, "KVP_PROTO", KeyValuePane.LayoutString(),
+                { x: 0, y: 0, width: 300, height: 150, layoutKeys: [KeyStore.Data] })
+    }
+
     export function ImageDocument(url: string, options: DocumentOptions = {}) {
         let doc = SetInstanceOptions(GetImagePrototype(), { ...options, layoutKeys: [KeyStore.Data, KeyStore.Annotations, KeyStore.Caption] },
             new URL(url), ImageField);
@@ -123,6 +134,11 @@ export namespace Documents {
     }
     export function DockDocument(config: string, options: DocumentOptions, id?: string) {
         return SetInstanceOptions(GetCollectionPrototype(), { ...options, viewType: CollectionViewType.Docking }, config, TextField, id)
+    }
+    export function KVPDocument(document: Document, options: DocumentOptions = {}, id?: string) {
+        var deleg = GetKVPPrototype().MakeDelegate(id);
+        deleg.Set(KeyStore.Data, document);
+        return assignOptions(deleg, options);
     }
 
 
