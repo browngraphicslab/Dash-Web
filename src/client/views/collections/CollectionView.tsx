@@ -49,6 +49,7 @@ export class CollectionView extends React.Component<CollectionViewProps> {
         }
     }
 
+
     @action
     removeDocument = (doc: Document): boolean => {
         //TODO This won't create the field if it doesn't already exist
@@ -60,6 +61,7 @@ export class CollectionView extends React.Component<CollectionViewProps> {
                 break;
             }
         }
+
         if (index !== -1) {
             value.splice(index, 1)
 

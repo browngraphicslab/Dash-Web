@@ -33,19 +33,16 @@ let mainContainer: Document;
 let mainfreeform: Document;
 console.log("HELLO WORLD")
 Documents.initProtos(mainDocId, (res?: Document) => {
-    console.log("Response => " + JSON.stringify(res as Document))
     if (res instanceof Document) {
         mainContainer = res;
         mainContainer.GetAsync(KeyStore.ActiveFrame, field => mainfreeform = field as Document);
     }
     else {
         mainContainer = Documents.DockDocument(JSON.stringify({ content: [{ type: 'row', content: [] }] }), { title: "main container" }, mainDocId);
-        Utils.Emit(Server.Socket, MessageStore.AddDocument, new DocumentTransfer(mainContainer.ToJson()))
 
         // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
         setTimeout(() => {
             mainfreeform = Documents.FreeformDocument([], { x: 0, y: 400, title: "mini collection" });
-            Utils.Emit(Server.Socket, MessageStore.AddDocument, new DocumentTransfer(mainfreeform.ToJson()));
 
             var dockingLayout = { content: [{ type: 'row', content: [CollectionDockingView.makeDocumentConfig(mainfreeform)] }] };
             mainContainer.SetText(KeyStore.Data, JSON.stringify(dockingLayout));
