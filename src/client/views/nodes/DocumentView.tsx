@@ -112,6 +112,32 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         }
     }
 
+    private dropDisposer?: DragManager.DragDropDisposer;
+    protected createDropTarget = (ele: HTMLDivElement) => {
+
+    }
+
+    componentDidMount() {
+        if (this._mainCont.current) {
+            this.dropDisposer = DragManager.MakeDropTarget(this._mainCont.current, { handlers: { drop: this.drop.bind(this) } });
+        }
+    }
+
+    componentDidUpdate() {
+        if (this.dropDisposer) {
+            this.dropDisposer();
+        }
+        if (this._mainCont.current) {
+            this.dropDisposer = DragManager.MakeDropTarget(this._mainCont.current, { handlers: { drop: this.drop.bind(this) } });
+        }
+    }
+
+    componentWillUnmount() {
+        if (this.dropDisposer) {
+            this.dropDisposer();
+        }
+    }
+
     onPointerMove = (e: PointerEvent): void => {
         if (e.cancelBubble) {
             return;
@@ -168,11 +194,14 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     drop = (e: Event, de: DragManager.DropEvent) => {
         console.log("drop");
         const sourceDocView: DocumentView = de.data["linkSourceDoc"];
+        if (!sourceDocView) {
+            return;
+        }
         let sourceDoc: Document = sourceDocView.props.Document;
         let destDoc: Document = this.props.Document;
 
-        sourceDoc.GetAsync(KeyStore.LinkedToDocs, field => { (field as ListField<Document>).Data.push(destDoc) });
-        destDoc.GetAsync(KeyStore.LinkedFromDocs, field => { (field as ListField<Document>).Data.push(sourceDoc) });
+        sourceDoc.GetOrCreateAsync(KeyStore.LinkedToDocs, ListField, field => { (field as ListField<Document>).Data.push(destDoc) });
+        destDoc.GetOrCreateAsync(KeyStore.LinkedFromDocs, ListField, field => { (field as ListField<Document>).Data.push(sourceDoc) });
 
         e.stopPropagation();
     }

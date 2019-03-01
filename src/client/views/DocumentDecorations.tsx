@@ -83,7 +83,7 @@ export class DocumentDecorations extends React.Component {
                 handlers: {
                     dragComplete: action(() => { }),
                 },
-                hideSource: true
+                hideSource: false
             })
         }
         document.removeEventListener("pointermove", this.onLinkButtonMoved)

@@ -95,7 +95,6 @@ export namespace DragManager {
     }
 
     export function StartDrag(ele: HTMLElement, dragData: { [id: string]: any }, options?: DragOptions) {
-        DocumentDecorations.Instance.Hidden = true;
         if (!dragDiv) {
             dragDiv = document.createElement("div");
             DragManager.Root().appendChild(dragDiv);

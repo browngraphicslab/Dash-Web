@@ -52,6 +52,9 @@ export class CollectionFreeFormView extends CollectionViewBase {
     @undoBatch
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
+        if (!("documentView" in de.data)) {
+            return;
+        }
         super.drop(e, de);
         const docView: DocumentView = de.data["documentView"];
         let doc: Document = docView ? docView.props.Document : de.data["document"];
