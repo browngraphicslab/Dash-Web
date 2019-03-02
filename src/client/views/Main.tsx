@@ -1,216 +1,143 @@
-import { action, configure, reaction, computed, observable } from 'mobx';
+import { action, configure, observable } from 'mobx';
 import "normalize.css";
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
-import { DocumentDecorations } from './DocumentDecorations';
-import { Documents } from '../documents/Documents';
 import { Document } from '../../fields/Document';
 import { KeyStore } from '../../fields/KeyStore';
-import "./Main.scss";
-import { ContextMenu } from './ContextMenu';
-import { DocumentView } from './nodes/DocumentView';
-import { Server } from '../Server';
 import { Utils } from '../../Utils';
 import { ServerUtils } from '../../server/ServerUtil';
 import { MessageStore, DocumentTransfer } from '../../server/Message';
 import { Database } from '../../server/database';
 import * as request from 'request'
+import { Documents } from '../documents/Documents';
+import { Server } from '../Server';
+import { setupDrag } from '../util/DragManager';
 import { Transform } from '../util/Transform';
-import { CollectionDockingView } from './collections/CollectionDockingView';
-import { FieldWaiting } from '../../fields/Field';
 import { UndoManager } from '../util/UndoManager';
 import { WorkspacesMenu } from '../../server/authentication/controllers/WorkspacesMenu';
+import { CollectionDockingView } from './collections/CollectionDockingView';
+import { ContextMenu } from './ContextMenu';
+import { DocumentDecorations } from './DocumentDecorations';
+import { DocumentView } from './nodes/DocumentView';
+import "./Main.scss";
+import { observer } from 'mobx-react';
 
+@observer
+export class Main extends React.Component {
+    @observable private mainDocId = "mainDoc";
+    // dummy document initializations keep the compiler happy
+    @observable private mainContainer: Document = new Document;
+    @observable private mainfreeform: Document = new Document;
 
-configure({
-    enforceActions: "observed"
-});
-window.addEventListener("drop", function (e) {
-    e.preventDefault();
-}, false)
-window.addEventListener("dragover", function (e) {
-    e.preventDefault();
-}, false)
-document.addEventListener("pointerdown", action(function (e: PointerEvent) {
-    if (!ContextMenu.Instance.intersects(e.pageX, e.pageY)) {
-        ContextMenu.Instance.clearItems()
+    constructor(props: Readonly<{}>) {
+        super(props);
+        // causes errors to be generated when modifying an observable outside of an action
+        configure({ enforceActions: "observed" });
+        this.initEventListeners();
+        this.initAuthenticationRouters();
     }
-}), true)
 
-// Load the user's active workspace, or create a new one if initial session after signup
-request.get(window.location.origin + "/getActiveWorkspaceId", (error, response, body) => {
-    init(body ? body : getNewWorkspace());
-});
+    initEventListeners = () => {
+        window.addEventListener("drop", (e) => e.preventDefault(), false) // drop event handler
+        window.addEventListener("dragover", (e) => e.preventDefault(), false) // drag event handler
+        // click interactions for the context menu
+        document.addEventListener("pointerdown", action(function (e: PointerEvent) {
+            if (!ContextMenu.Instance.intersects(e.pageX, e.pageY)) {
+                ContextMenu.Instance.clearItems();
+            }
+        }), true);
+    }
 
-function getNewWorkspace(): string {
-    let newId = Utils.GenerateGuid();
-    const here = window.location.origin;
-    request.post(here + "/addWorkspaceId", {
-        body: {
-            target: newId
-        },
-        json: true
-    })
-    request.post(here + "/setActiveWorkspaceId", {
-        body: {
-            target: newId
-        },
-        json: true
-    })
-    return newId;
-}
+    initAuthenticationRouters = () => {
+        // Load the user's active workspace, or create a new one if initial session after signup
+        request.get(window.location.origin + "/getActiveWorkspaceId", (error, response, body) => {
+            this.initRender(body ? body : this.getNewWorkspace());
+        });
+    }
 
-//runInAction(() => 
-// let doc1 = Documents.TextDocument({ title: "hello" });
-// let doc2 = doc1.MakeDelegate();
-// doc2.Set(KS.X, new NumberField(150));
-// doc2.Set(KS.Y, new NumberField(20));
-// let doc3 = Documents.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", {
-//     x: 450, y: 100, title: "cat 1"
-// });
-// doc3.Set(KeyStore.Data, new ImageField);
-// const schemaDocs = Array.from(Array(5).keys()).map(v => Documents.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", {
-//     x: 50 + 100 * v, y: 50, width: 100, height: 100, title: "cat" + v
-// }));
-// schemaDocs[0].SetData(KS.Author, "Tyler", TextField);
-// schemaDocs[4].SetData(KS.Author, "Bob", TextField);
-// schemaDocs.push(doc2);
-// const doc7 = Documents.SchemaDocument(schemaDocs)
-function init(mainDocId: string) {
-    Documents.initProtos(() => {
-        Utils.EmitCallback(Server.Socket, MessageStore.GetField, mainDocId, (res: any) => {
-            console.log("HELLO WORLD")
-            console.log("RESPONSE: " + res)
-            let mainContainer: Document;
-            let mainfreeform: Document;
-            if (res) {
-                mainContainer = ServerUtils.FromJson(res) as Document;
-                mainContainer.GetAsync(KeyStore.ActiveFrame, field => mainfreeform = field as Document);
+    getNewWorkspace = (): string => {
+        let newId = Utils.GenerateGuid();
+        const here = window.location.origin;
+        request.post(here + "/addWorkspaceId", {
+            body: { target: newId },
+            json: true
+        })
+        request.post(here + "/setActiveWorkspaceId", {
+            body: { target: newId },
+            json: true
+        })
+        return newId;
+    }
+
+    initRender = (activeWorkspaceId: string) => {
+        Documents.initProtos(activeWorkspaceId, (res?: Document) => {
+            if (res instanceof Document) {
+                this.mainContainer = res;
+                this.mainContainer.GetAsync(KeyStore.ActiveFrame, field => this.mainfreeform = field as Document);
             }
             else {
-                mainContainer = Documents.DockDocument(JSON.stringify({ content: [{ type: 'row', content: [] }] }), { title: "main container" }, mainDocId);
-                Utils.Emit(Server.Socket, MessageStore.AddDocument, new DocumentTransfer(mainContainer.ToJson()))
+                this.mainContainer = Documents.DockDocument(JSON.stringify({ content: [{ type: 'row', content: [] }] }), { title: "main container" }, this.mainDocId);
 
-                mainfreeform = Documents.FreeformDocument([], { x: 0, y: 400, title: "mini collection" });
-                Utils.Emit(Server.Socket, MessageStore.AddDocument, new DocumentTransfer(mainfreeform.ToJson()));
+                // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
+                setTimeout(() => {
+                    this.mainfreeform = Documents.FreeformDocument([], { x: 0, y: 400, title: "mini collection" });
 
-                var docs = [mainfreeform].map(doc => CollectionDockingView.makeDocumentConfig(doc));
-                mainContainer.SetText(KeyStore.Data, JSON.stringify({ content: [{ type: 'row', content: docs }] }));
-                mainContainer.Set(KeyStore.ActiveFrame, mainfreeform);
+                    var dockingLayout = { content: [{ type: 'row', content: [CollectionDockingView.makeDocumentConfig(this.mainfreeform)] }] };
+                    this.mainContainer.SetText(KeyStore.Data, JSON.stringify(dockingLayout));
+                    this.mainContainer.Set(KeyStore.ActiveFrame, this.mainfreeform);
+                }, 0);
             }
+        });
+    }
 
-            let addImageNode = action(() => {
-                mainfreeform.GetList<Document>(KeyStore.Data, []).push(Documents.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", {
-                    x: 0, y: 300, width: 200, height: 200, title: "added note"
-                }));
-            })
-            let addTextNode = action(() => {
-                mainfreeform.GetList<Document>(KeyStore.Data, []).push(Documents.TextDocument({
-                    x: 0, y: 300, width: 200, height: 200, title: "added note"
-                }));
-            })
-            let addColNode = action(() => {
-                mainfreeform.GetList<Document>(KeyStore.Data, []).push(Documents.FreeformDocument([], {
-                    x: 0, y: 300, width: 200, height: 200, title: "added note"
-                }));
-            })
-            let addSchemaNode = action(() => {
-                mainfreeform.GetList<Document>(KeyStore.Data, []).push(Documents.SchemaDocument([Documents.TextDocument()], {
-                    x: 0, y: 300, width: 200, height: 200, title: "added note"
-                }));
-            })
+    render() {
+        let imgRef = React.createRef<HTMLDivElement>();
+        let webRef = React.createRef<HTMLDivElement>();
+        let textRef = React.createRef<HTMLDivElement>();
+        let schemaRef = React.createRef<HTMLDivElement>();
+        let colRef = React.createRef<HTMLDivElement>();
 
-            let clearDatabase = action(() => {
-                Utils.Emit(Server.Socket, MessageStore.DeleteAll, {});
-            })
+        let imgurl = "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg";
+        let weburl = "https://cs.brown.edu/courses/cs166/";
+        let clearDatabase = action(() => Utils.Emit(Server.Socket, MessageStore.DeleteAll, {}))
+        let addTextNode = action(() => Documents.TextDocument({ width: 200, height: 200, title: "a text note" }))
+        let addColNode = action(() => Documents.FreeformDocument([], { width: 200, height: 200, title: "a feeform collection" }));
+        let addSchemaNode = action(() => Documents.SchemaDocument([Documents.TextDocument()], { width: 200, height: 200, title: "a schema collection" }));
+        let addImageNode = action(() => Documents.ImageDocument(imgurl, { width: 200, height: 200, title: "an image of a cat" }));
+        let addWebNode = action(() => Documents.WebDocument(weburl, { width: 200, height: 200, title: "a sample web page" }));
 
-            ReactDOM.render((
-                <div style={{ position: "absolute", width: "100%", height: "100%" }}>
-                    <DocumentView Document={mainContainer}
-                        AddDocument={undefined} RemoveDocument={undefined} ScreenToLocalTransform={() => Transform.Identity}
-                        ContentScaling={() => 1}
-                        PanelWidth={() => 0}
-                        PanelHeight={() => 0}
-                        isTopMost={true}
-                        ContainingCollectionView={undefined} />
-                    <DocumentDecorations />
-                    <ContextMenu />
-                    <button style={{
-                        position: 'absolute',
-                        bottom: '0px',
-                        left: '0px',
-                        width: '150px'
-                    }} onClick={addImageNode}>Add Image</button>
-                    <button style={{
-                        position: 'absolute',
-                        bottom: '25px',
-                        left: '0px',
-                        width: '150px'
-                    }} onClick={addTextNode}>Add Text</button>
-                    <button style={{
-                        position: 'absolute',
-                        bottom: '50px',
-                        left: '0px',
-                        width: '150px'
-                    }} onClick={addColNode}>Add Collection</button>
-                    <button style={{
-                        position: 'absolute',
-                        bottom: '100',
-                        left: '0px',
-                        width: '150px'
-                    }} onClick={addSchemaNode}>Add Schema</button>
-                    <button style={{
-                        position: 'absolute',
-                        bottom: '75px',
-                        left: '0px',
-                        width: '150px'
-                    }} onClick={clearDatabase}>Clear Database</button>
-                    <button style={{
-                        position: 'absolute',
-                        bottom: '25',
-                        right: '0px',
-                        width: '150px'
-                    }} onClick={() => UndoManager.Undo()}>Undo</button>
-                    <button style={{
-                        position: 'absolute',
-                        bottom: '0',
-                        right: '0px',
-                        width: '150px'
-                    }} onClick={() => UndoManager.Redo()}>Redo</button>
-                    <button style={{
-                        position: 'absolute',
-                        top: '24px',
-                        right: '0px',
-                        width: '150px'
-                    }} onClick={() => window.location.pathname = "/logout"}>Logout</button>
-                    <button style={{
-                        position: 'absolute',
-                        top: '24px',
-                        left: '4px',
-                        width: '150px'
-                    }} onClick={() => WorkspacesMenu.Instance.toggle()}>Workspaces</button>
-                    <WorkspacesMenu load={init} new={getNewWorkspace} active={mainDocId} />
-                </div>),
-                document.getElementById('root'));
-        })
-    });
+        let addClick = (creator: () => Document) => action(() => this.mainfreeform.GetList<Document>(KeyStore.Data, []).push(creator()));
+
+        return (
+            <div style={{ position: "absolute", width: "100%", height: "100%" }}>
+                <DocumentView Document={this.mainContainer}
+                    AddDocument={undefined} RemoveDocument={undefined} ScreenToLocalTransform={() => Transform.Identity}
+                    ContentScaling={() => 1}
+                    PanelWidth={() => 0}
+                    PanelHeight={() => 0}
+                    isTopMost={true}
+                    SelectOnLoad={false}
+                    ContainingCollectionView={undefined} />
+                <DocumentDecorations />
+                <ContextMenu />
+                <div className="main-buttonDiv" style={{ bottom: '0px' }} ref={imgRef} >
+                    <button onPointerDown={setupDrag(imgRef, addImageNode)} onClick={addClick(addImageNode)}>Add Image</button></div>
+                <div className="main-buttonDiv" style={{ bottom: '25px' }} ref={webRef} >
+                    <button onPointerDown={setupDrag(webRef, addWebNode)} onClick={addClick(addWebNode)}>Add Web</button></div>
+                <div className="main-buttonDiv" style={{ bottom: '50px' }} ref={textRef}>
+                    <button onPointerDown={setupDrag(textRef, addTextNode)} onClick={addClick(addTextNode)}>Add Text</button></div>
+                <div className="main-buttonDiv" style={{ bottom: '75px' }} ref={colRef}>
+                    <button onPointerDown={setupDrag(colRef, addColNode)} onClick={addClick(addColNode)}>Add Collection</button></div>
+                <div className="main-buttonDiv" style={{ bottom: '100px' }} ref={schemaRef}>
+                    <button onPointerDown={setupDrag(schemaRef, addSchemaNode)} onClick={addClick(addSchemaNode)}>Add Schema</button></div>
+                <div className="main-buttonDiv" style={{ bottom: '125px' }} >
+                    <button onClick={clearDatabase}>Clear Database</button></div>
+                <button className="main-undoButtons" style={{ bottom: '25px' }} onClick={() => UndoManager.Undo()}>Undo</button>
+                <button className="main-undoButtons" style={{ bottom: '0px' }} onClick={() => UndoManager.Redo()}>Redo</button>
+                <WorkspacesMenu active={this.mainDocId} load={this.initRender} new={this.getNewWorkspace} />
+            </div>
+        );
+    }
 }
-// let doc5 = Documents.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", {
-//     x: 650, y: 500, width: 600, height: 600, title: "cat 2"
-// });
-// let docset2 = new Array<Document>(doc4);//, doc1, doc3);
-// let doc6 = Documents.CollectionDocument(docset2, {
-//     x: 350, y: 100, width: 600, height: 600, title: "docking collection"
-// });
-// let mainNodes = mainContainer.GetOrCreate(KeyStore.Data, ListField);
-// mainNodes.Data.push(doc6);
-// mainNodes.Data.push(doc2);
-// mainNodes.Data.push(doc4);
-// mainNodes.Data.push(doc3);
-// mainNodes.Data.push(doc5);
-// mainNodes.Data.push(doc1);
-//mainNodes.Data.push(doc2);
-//mainNodes.Data.push(doc6);
-// mainContainer.Set(KeyStore.Data, mainNodes);
-//}
-//);
+
+ReactDOM.render(<Main />, document.getElementById('root'));

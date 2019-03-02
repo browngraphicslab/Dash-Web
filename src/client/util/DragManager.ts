@@ -1,4 +1,37 @@
 import { DocumentDecorations } from "../views/DocumentDecorations";
+import { CollectionDockingView } from "../views/collections/CollectionDockingView";
+import { Document } from "../../fields/Document"
+import { action } from "mobx";
+import { DocumentView } from "../views/nodes/DocumentView";
+
+export function setupDrag(_reference: React.RefObject<HTMLDivElement>, docFunc: () => Document) {
+    let onRowMove = action((e: PointerEvent): void => {
+        e.stopPropagation();
+        e.preventDefault();
+
+        document.removeEventListener("pointermove", onRowMove);
+        document.removeEventListener('pointerup', onRowUp);
+        DragManager.StartDrag(_reference.current!, { document: docFunc() });
+    });
+    let onRowUp = action((e: PointerEvent): void => {
+        document.removeEventListener("pointermove", onRowMove);
+        document.removeEventListener('pointerup', onRowUp);
+    });
+    let onItemDown = (e: React.PointerEvent) => {
+        // if (this.props.isSelected() || this.props.isTopMost) {
+        if (e.button == 0) {
+            e.stopPropagation();
+            if (e.shiftKey) {
+                CollectionDockingView.Instance.StartOtherDrag(docFunc(), e);
+            } else {
+                document.addEventListener("pointermove", onRowMove);
+                document.addEventListener('pointerup', onRowUp);
+            }
+        }
+        //}
+    }
+    return onItemDown;
+}
 
 export namespace DragManager {
     export function Root() {
@@ -61,7 +94,7 @@ export namespace DragManager {
         };
     }
 
-    export function StartDrag(ele: HTMLElement, dragData: { [id: string]: any }, options: DragOptions) {
+    export function StartDrag(ele: HTMLElement, dragData: { [id: string]: any }, options?: DragOptions) {
         DocumentDecorations.Instance.Hidden = true;
         if (!dragDiv) {
             dragDiv = document.createElement("div");
@@ -75,6 +108,8 @@ export namespace DragManager {
         let dragElement = ele.cloneNode(true) as HTMLElement;
         dragElement.style.opacity = "0.7";
         dragElement.style.position = "absolute";
+        dragElement.style.bottom = "";
+        dragElement.style.left = "";
         dragElement.style.transformOrigin = "0 0";
         dragElement.style.zIndex = "1000";
         dragElement.style.transform = `translate(${x}px, ${y}px) scale(${scaleX}, ${scaleY})`;
@@ -87,38 +122,54 @@ export namespace DragManager {
         dragDiv.appendChild(dragElement);
 
         let hideSource = false;
-        if (typeof options.hideSource === "boolean") {
-            hideSource = options.hideSource;
-        } else {
-            hideSource = options.hideSource();
+        if (options) {
+            if (typeof options.hideSource === "boolean") {
+                hideSource = options.hideSource;
+            } else {
+                hideSource = options.hideSource();
+            }
         }
         const wasHidden = ele.hidden;
         if (hideSource) {
             ele.hidden = true;
         }
-
         const moveHandler = (e: PointerEvent) => {
             e.stopPropagation();
             e.preventDefault();
             x += e.movementX;
             y += e.movementY;
+            if (e.shiftKey) {
+                abortDrag();
+                const docView: DocumentView = dragData["documentView"];
+                const doc: Document = docView ? docView.props.Document : dragData["document"];
+                CollectionDockingView.Instance.StartOtherDrag(doc, { pageX: e.pageX, pageY: e.pageY, preventDefault: () => { }, button: 0 });
+            }
             dragElement.style.transform = `translate(${x}px, ${y}px) scale(${scaleX}, ${scaleY})`;
         };
-        const upHandler = (e: PointerEvent) => {
+
+        const abortDrag = () => {
             document.removeEventListener("pointermove", moveHandler, true);
             document.removeEventListener("pointerup", upHandler);
-            FinishDrag(dragElement, e, options, dragData);
+            dragDiv.removeChild(dragElement);
             if (hideSource && !wasHidden) {
                 ele.hidden = false;
             }
+        }
+        const upHandler = (e: PointerEvent) => {
+            abortDrag();
+            FinishDrag(ele, e, dragData, options);
         };
         document.addEventListener("pointermove", moveHandler, true);
         document.addEventListener("pointerup", upHandler);
     }
 
-    function FinishDrag(dragEle: HTMLElement, e: PointerEvent, options: DragOptions, dragData: { [index: string]: any }) {
-        dragDiv.removeChild(dragEle);
+    function FinishDrag(dragEle: HTMLElement, e: PointerEvent, dragData: { [index: string]: any }, options?: DragOptions) {
+        let parent = dragEle.parentElement;
+        if (parent)
+            parent.removeChild(dragEle);
         const target = document.elementFromPoint(e.x, e.y);
+        if (parent)
+            parent.appendChild(dragEle);
         if (!target) {
             return;
         }
@@ -130,7 +181,9 @@ export namespace DragManager {
                 data: dragData
             }
         }));
-        options.handlers.dragComplete({});
+        if (options) {
+            options.handlers.dragComplete({});
+        }
         DocumentDecorations.Instance.Hidden = false;
     }
 }

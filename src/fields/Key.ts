@@ -2,7 +2,6 @@ import { Field, FieldId } from "./Field"
 import { Utils } from "../Utils";
 import { observable } from "mobx";
 import { Types } from "../server/Message";
-import { ObjectID } from "bson";
 import { Server } from "../client/Server";
 
 export class Key extends Field {

@@ -35,6 +35,12 @@ const mongoose = require('mongoose');
 import { performance } from 'perf_hooks'
 import * as path from 'path'
 import User, { DashUserModel } from './authentication/models/user_model';
+import * as fs from 'fs';
+import * as request from 'request'
+
+const download = (url: string, dest: fs.PathLike) => {
+    request.get(url).pipe(fs.createWriteStream(dest));
+}
 
 const mongoUrl = 'mongodb://localhost:27017/Dash';
 mongoose.connect(mongoUrl)

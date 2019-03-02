@@ -10,7 +10,6 @@ import { FieldId, Opt, Field } from "../../../fields/Field";
 import { KeyStore } from "../../../fields/KeyStore";
 import { Utils } from "../../../Utils";
 import { Server } from "../../Server";
-import { DragManager } from "../../util/DragManager";
 import { undoBatch } from "../../util/UndoManager";
 import { DocumentView } from "../nodes/DocumentView";
 import "./CollectionDockingView.scss";
@@ -34,10 +33,6 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     }
 
     private _goldenLayout: any = null;
-    private _dragDiv: any = null;
-    private _dragParent: HTMLElement | null = null;
-    private _dragElement: HTMLDivElement | undefined;
-    private _dragFakeElement: HTMLDivElement | undefined;
     private _containerRef = React.createRef<HTMLDivElement>();
     private _fullScreen: any = null;
 
@@ -47,28 +42,8 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         (window as any).React = React;
         (window as any).ReactDOM = ReactDOM;
     }
-
-    public StartOtherDrag(dragElement: HTMLDivElement, dragDoc: Document) {
-        this._dragElement = dragElement;
-        this._dragParent = dragElement.parentElement;
-        // bcz: we want to copy this document into the header, not move it there.
-        //   However, GoldenLayout is setup to move things, so we have to do some kludgy stuff:
-
-        //   - create a temporary invisible div and register that as a DragSource with GoldenLayout
-        this._dragDiv = document.createElement("div");
-        this._dragDiv.style.opacity = 0;
-        DragManager.Root().appendChild(this._dragDiv);
-        this._goldenLayout.createDragSource(this._dragDiv, CollectionDockingView.makeDocumentConfig(dragDoc));
-
-        //   - add our document to that div so that GoldenLayout will get the move events its listening for
-        this._dragDiv.appendChild(this._dragElement);
-
-        //   - add a duplicate of our document to the original document's container 
-        //     (GoldenLayout will be removing our original one)
-        this._dragFakeElement = dragElement.cloneNode(true) as HTMLDivElement;
-        this._dragParent!.appendChild(this._dragFakeElement);
-
-        // all of this must be undone when the document has been dropped (see tabCreated)
+    public StartOtherDrag(dragDoc: Document, e: any) {
+        this.AddRightSplit(dragDoc, true).contentItems[0].tab._dragListener.onMouseDown({ pageX: e.pageX, pageY: e.pageY, preventDefault: () => { }, button: e.button })
     }
 
     @action
@@ -98,7 +73,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     //  Creates a vertical split on the right side of the docking view, and then adds the Document to that split
     //
     @action
-    public AddRightSplit(document: Document) {
+    public AddRightSplit(document: Document, minimize: boolean = false) {
         this._goldenLayout.emit('stateChanged');
         let newItemStackConfig = {
             type: 'stack',
@@ -121,10 +96,15 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             collayout.config["width"] = 50;
             newContentItem.config["width"] = 50;
         }
+        if (minimize) {
+            newContentItem.config["width"] = 10;
+            newContentItem.config["height"] = 10;
+        }
         newContentItem.callDownwards('_$init');
         this._goldenLayout.root.callDownwards('setSize', [this._goldenLayout.width, this._goldenLayout.height]);
         this._goldenLayout.emit('stateChanged');
         this.stateChanged();
+        return newContentItem;
     }
 
     setupGoldenLayout() {
@@ -218,13 +198,6 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         this.stateChanged();
     }
     tabCreated = (tab: any) => {
-        if (this._dragDiv) {
-            this._dragDiv.removeChild(this._dragElement);
-            this._dragParent!.removeChild(this._dragFakeElement!);
-            this._dragParent!.appendChild(this._dragElement!);
-            DragManager.Root().removeChild(this._dragDiv);
-            this._dragDiv = null;
-        }
         tab.closeElement.off('click') //unbind the current click handler
             .click(function () {
                 tab.contentItem.remove();
@@ -235,17 +208,17 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         //stack.header.controlsContainer.find('.lm_popout').hide();
         stack.header.controlsContainer.find('.lm_close') //get the close icon
             .off('click') //unbind the current click handler
-            .click(function () {
+            .click(action(function () {
                 //if (confirm('really close this?')) {
                 stack.remove();
                 //}
-            });
+            }));
     }
 
     render() {
         return (
             <div className="collectiondockingview-container" id="menuContainer"
-                onPointerDown={this.onPointerDown} onPointerUp={this.onPointerUp} onContextMenu={(e) => e.preventDefault()} ref={this._containerRef}
+                onPointerDown={this.onPointerDown} onPointerUp={this.onPointerUp} ref={this._containerRef}
                 style={{
                     width: "100%",
                     height: "100%",
@@ -263,8 +236,9 @@ interface DockedFrameProps {
 @observer
 export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
 
-    @observable private _mainCont = React.createRef<HTMLDivElement>();
+    private _mainCont = React.createRef<HTMLDivElement>();
     @observable private _panelWidth = 0;
+    @observable private _panelHeight = 0;
     @observable private _document: Opt<Document>;
 
     constructor(props: any) {
@@ -272,8 +246,8 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         Server.GetField(this.props.documentId, action((f: Opt<Field>) => this._document = f as Document));
     }
 
-    private _nativeWidth = () => { return this._document!.GetNumber(KeyStore.NativeWidth, 0); }
-    private _nativeHeight = () => { return this._document!.GetNumber(KeyStore.NativeHeight, 0); }
+    private _nativeWidth = () => { return this._document!.GetNumber(KeyStore.NativeWidth, this._panelWidth); }
+    private _nativeHeight = () => { return this._document!.GetNumber(KeyStore.NativeHeight, this._panelHeight); }
     private _contentScaling = () => { return this._panelWidth / (this._nativeWidth() ? this._nativeWidth() : this._panelWidth); }
 
     ScreenToLocalTransform = () => {
@@ -294,10 +268,11 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
                     PanelHeight={this._nativeHeight}
                     ScreenToLocalTransform={this.ScreenToLocalTransform}
                     isTopMost={true}
+                    SelectOnLoad={false}
                     ContainingCollectionView={undefined} />
             </div>
 
-        return <Measure onResize={action((r: any) => this._panelWidth = r.entry.width)}>
+        return <Measure onResize={action((r: any) => { this._panelWidth = r.entry.width; this._panelHeight = r.entry.height; })}>
             {({ measureRef }) => <div ref={measureRef}>  {content} </div>}
         </Measure>
     }

@@ -20,6 +20,8 @@ export interface CollectionViewProps {
     isTopMost: boolean;
     select: (ctrlPressed: boolean) => void;
     bindings: any;
+    panelWidth: () => number;
+    panelHeight: () => number;
 }
 export interface SubCollectionViewProps extends CollectionViewProps {
     active: () => boolean;
@@ -42,12 +44,16 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
     @undoBatch
     @action
     protected drop(e: Event, de: DragManager.DropEvent) {
-        const doc: DocumentView = de.data["document"];
-        if (doc.props.ContainingCollectionView && doc.props.ContainingCollectionView !== this.props.CollectionView) {
-            if (doc.props.RemoveDocument) {
-                doc.props.RemoveDocument(doc.props.Document);
+        const docView: DocumentView = de.data["documentView"];
+        const doc: Document = de.data["document"];
+        if (docView && docView.props.ContainingCollectionView && docView.props.ContainingCollectionView !== this.props.CollectionView) {
+            if (docView.props.RemoveDocument) {
+                docView.props.RemoveDocument(docView.props.Document);
             }
-            this.props.addDocument(doc.props.Document);
+            this.props.addDocument(docView.props.Document);
+        } else if (doc) {
+            this.props.removeDocument(doc);
+            this.props.addDocument(doc);
         }
         e.stopPropagation();
     }
@@ -60,8 +66,8 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
 
         let html = e.dataTransfer.getData("text/html");
         let text = e.dataTransfer.getData("text/plain");
-        if (html) {
-            let htmlDoc = Documents.HtmlDocument(html, { ...options });
+        if (html && html.indexOf("<img") != 0) {
+            let htmlDoc = Documents.HtmlDocument(html, { ...options, width: 300, height: 300 });
             htmlDoc.SetText(KeyStore.DocumentText, text);
             this.props.addDocument(htmlDoc);
             return;
@@ -72,7 +78,7 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
             if (item.kind === "string" && item.type.indexOf("uri") != -1) {
                 e.dataTransfer.items[i].getAsString(function (s) {
                     action(() => {
-                        var img = Documents.ImageDocument(s, { ...options, nativeWidth: 300, nativeHeight: 300, width: 300, height: 300 })
+                        var img = Documents.ImageDocument(s, { ...options, nativeWidth: 300, width: 300, })
 
                         let docs = that.props.Document.GetT(KeyStore.Data, ListField);
                         if (docs != FieldWaiting) {

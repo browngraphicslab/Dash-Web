@@ -102,6 +102,12 @@ export class Transform {
         return [x * this._scale, y * this._scale];
     }
 
+    transformBounds(x: number, y: number, width: number, height: number): { x: number, y: number, width: number, height: number } {
+        [x, y] = this.transformPoint(x, y);
+        [width, height] = this.transformDirection(width, height);
+        return { x, y, width, height };
+    }
+
     inverse = () => {
         return new Transform(-this._translateX / this._scale, -this._translateY / this._scale, 1 / this._scale)
     }

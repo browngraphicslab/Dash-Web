@@ -12,10 +12,6 @@
             "breakOnLoad": true,
             "url": "http://localhost:1050/signup",
             "webRoot": "${workspaceFolder}",
-            "skipFiles": [
-                "${workspaceRoot}/node_modules/**/*.js",
-                "${workspaceRoot}/node_modules/**/*.ts",
-            ]
         },
         {
             "type": "node",
