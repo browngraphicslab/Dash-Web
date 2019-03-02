@@ -87,16 +87,6 @@ export function FakeJsxArgs(keys: string[], fields: string[] = []): JsxArgs {
 @observer
 export class DocumentView extends React.Component<DocumentViewProps> {
 
-    public Id: string = Utils.GenerateGuid();
-
-    @observable
-    public Border: string = "white"
-
-    @action
-    public switchColor() {
-        this.Border = "red"
-    }
-
     private _mainCont = React.createRef<HTMLDivElement>();
     private _documentBindings: any = null;
     private _downX: number = 0;
@@ -109,7 +99,6 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     @computed get layoutFields(): Key[] { return this.props.Document.GetData(KeyStore.LayoutFields, ListField, new Array<Key>()); }
 
     screenRect = (): ClientRect | DOMRect => this._mainCont.current ? this._mainCont.current.getBoundingClientRect() : new DOMRect();
-    size = (): { width: number, height: number } => this._mainCont.current ? { width: this._mainCont.current.clientWidth, height: this._mainCont.current.clientHeight } : { width: 0, height: 0 };
 
     onPointerDown = (e: React.PointerEvent): void => {
         this._downX = e.clientX;
@@ -248,7 +237,6 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             ...this.props,
             isSelected: this.isSelected,
             select: this.select,
-            documentSize: this.size,
             focus: this.props.focus
         };
         for (const key of this.layoutKeys) {

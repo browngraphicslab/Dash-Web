@@ -35,7 +35,6 @@ export class CollectionFreeFormView extends CollectionViewBase {
     private _downX: number = 0;
     @observable
     private _downY: number = 0;
-    private _borderColor: string = "red"
 
     //determines whether the blinking cursor for indicating whether a text will be made on key down is visible
     @observable
