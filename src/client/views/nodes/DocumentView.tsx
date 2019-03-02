@@ -12,13 +12,17 @@ import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { CollectionFreeFormView } from "../collections/CollectionFreeFormView";
 import { CollectionSchemaView } from "../collections/CollectionSchemaView";
 import { CollectionView, CollectionViewType } from "../collections/CollectionView";
-import { WebView } from "./WebView";
 import { ContextMenu } from "../ContextMenu";
 import { FormattedTextBox } from "../nodes/FormattedTextBox";
 import { ImageBox } from "../nodes/ImageBox";
+import { Documents } from "../../documents/Documents"
+import { KeyValueBox } from "./KeyValueBox"
+import { WebBox } from "../nodes/WebBox";
 import "./DocumentView.scss";
 import React = require("react");
+import { CollectionViewProps } from "../collections/CollectionViewBase";
 const JsxParser = require('react-jsx-parser').default;//TODO Why does this need to be imported like this?
+
 
 export interface DocumentViewProps {
     ContainingCollectionView: Opt<CollectionView>;
@@ -32,6 +36,7 @@ export interface DocumentViewProps {
     ContentScaling: () => number;
     PanelWidth: () => number;
     PanelHeight: () => number;
+    SelectOnLoad: boolean;
 }
 export interface JsxArgs extends DocumentViewProps {
     Keys: { [name: string]: Key }
@@ -80,7 +85,6 @@ export class DocumentView extends React.Component<DocumentViewProps> {
 
     private _mainCont = React.createRef<HTMLDivElement>();
     private _documentBindings: any = null;
-    private _contextMenuCanOpen = false;
     private _downX: number = 0;
     private _downY: number = 0;
 
@@ -99,7 +103,6 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             CollectionDockingView.Instance.StartOtherDrag(this.props.Document, e);
             e.stopPropagation();
         } else {
-            this._contextMenuCanOpen = true;
             if (this.active && !e.isDefaultPrevented()) {
                 e.stopPropagation();
                 if (e.buttons === 2) {
@@ -115,13 +118,12 @@ export class DocumentView extends React.Component<DocumentViewProps> {
 
     onPointerMove = (e: PointerEvent): void => {
         if (e.cancelBubble) {
-            this._contextMenuCanOpen = false;
             return;
         }
         if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3) {
-            this._contextMenuCanOpen = false;
+            document.removeEventListener("pointermove", this.onPointerMove)
+            document.removeEventListener("pointerup", this.onPointerUp)
             if (this._mainCont.current != null && !this.topMost) {
-                this._contextMenuCanOpen = false;
                 const [left, top] = this.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
                 let dragData: { [id: string]: any } = {};
                 dragData["documentView"] = this;
@@ -129,7 +131,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
                 dragData["yOffset"] = e.y - top;
                 DragManager.StartDrag(this._mainCont.current, dragData, {
                     handlers: {
-                        dragComplete: action((e: DragManager.DragCompleteEvent) => { }),
+                        dragComplete: action(() => { }),
                     },
                     hideSource: true
                 })
@@ -148,9 +150,15 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         }
     }
 
-    deleteClicked = (e: React.MouseEvent): void => {
+    deleteClicked = (): void => {
         if (this.props.RemoveDocument) {
             this.props.RemoveDocument(this.props.Document);
+        }
+    }
+
+    fieldsClicked = (e: React.MouseEvent): void => {
+        if (this.props.AddDocument) {
+            this.props.AddDocument(Documents.KVPDocument(this.props.Document));
         }
     }
     fullScreenClicked = (e: React.MouseEvent): void => {
@@ -159,6 +167,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         ContextMenu.Instance.addItem({ description: "Close Full Screen", event: this.closeFullScreenClicked });
         ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15)
     }
+
     closeFullScreenClicked = (e: React.MouseEvent): void => {
         CollectionDockingView.Instance.CloseFullScreen();
         ContextMenu.Instance.clearItems();
@@ -168,18 +177,29 @@ export class DocumentView extends React.Component<DocumentViewProps> {
 
     @action
     onContextMenu = (e: React.MouseEvent): void => {
-        e.preventDefault()
         e.stopPropagation();
-        if (!SelectionManager.IsSelected(this) || !this._contextMenuCanOpen) {
+        let moved = Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3;
+        if (moved || e.isDefaultPrevented()) {
+            e.preventDefault()
             return;
         }
+        e.preventDefault()
 
-        ContextMenu.Instance.clearItems()
         ContextMenu.Instance.addItem({ description: "Full Screen", event: this.fullScreenClicked })
+        ContextMenu.Instance.addItem({ description: "Fields", event: this.fieldsClicked })
         ContextMenu.Instance.addItem({ description: "Open Right", event: () => CollectionDockingView.Instance.AddRightSplit(this.props.Document) })
         ContextMenu.Instance.addItem({ description: "Freeform", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Freeform) })
         ContextMenu.Instance.addItem({ description: "Schema", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Schema) })
         ContextMenu.Instance.addItem({ description: "Treeview", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Tree) })
+        ContextMenu.Instance.addItem({
+            description: "center", event: () => {
+                if (this.props.ContainingCollectionView) {
+                    let doc = this.props.ContainingCollectionView.props.Document;
+                    doc.SetNumber(KeyStore.PanX, this.props.Document.GetNumber(KeyStore.X, 0) + (this.props.Document.GetNumber(KeyStore.Width, 0) / 2))
+                    doc.SetNumber(KeyStore.PanY, this.props.Document.GetNumber(KeyStore.Y, 0) + (this.props.Document.GetNumber(KeyStore.Height, 0) / 2))
+                }
+            }
+        })
         //ContextMenu.Instance.addItem({ description: "Docking", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Docking) })
         ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15)
         if (!this.topMost) {
@@ -193,15 +213,15 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     }
 
     @computed get mainContent() {
-        var val = this.props.Document.Id;
         return <JsxParser
-            components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebView }}
+            components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebBox, KeyValueBox }}
             bindings={this._documentBindings}
             jsx={this.layout}
             showWarnings={true}
             onError={(test: any) => { console.log(test) }}
         />
     }
+
     render() {
         if (!this.props.Document)
             return <div></div>
