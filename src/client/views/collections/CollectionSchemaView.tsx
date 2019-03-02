@@ -39,7 +39,8 @@ export class CollectionSchemaView extends CollectionViewBase {
             isSelected: () => false,
             select: () => { },
             isTopMost: false,
-            bindings: {}
+            bindings: {},
+            selectOnLoad: false,
         }
         let contents = (
             <FieldView {...props} />
@@ -185,6 +186,7 @@ export class CollectionSchemaView extends CollectionViewBase {
                         <DocumentView Document={selected}
                             AddDocument={this.props.addDocument} RemoveDocument={this.props.removeDocument}
                             isTopMost={false}
+                            SelectOnLoad={false}
                             ScreenToLocalTransform={this.getTransform}
                             ContentScaling={this.getContentScaling}
                             PanelWidth={this.getPanelWidth}

@@ -218,7 +218,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     render() {
         return (
             <div className="collectiondockingview-container" id="menuContainer"
-                onPointerDown={this.onPointerDown} onPointerUp={this.onPointerUp} onContextMenu={(e) => e.preventDefault()} ref={this._containerRef}
+                onPointerDown={this.onPointerDown} onPointerUp={this.onPointerUp} ref={this._containerRef}
                 style={{
                     width: "100%",
                     height: "100%",
@@ -236,7 +236,7 @@ interface DockedFrameProps {
 @observer
 export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
 
-    @observable private _mainCont = React.createRef<HTMLDivElement>();
+    private _mainCont = React.createRef<HTMLDivElement>();
     @observable private _panelWidth = 0;
     @observable private _panelHeight = 0;
     @observable private _document: Opt<Document>;
@@ -268,6 +268,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
                     PanelHeight={this._nativeHeight}
                     ScreenToLocalTransform={this.ScreenToLocalTransform}
                     isTopMost={true}
+                    SelectOnLoad={false}
                     ContainingCollectionView={undefined} />
             </div>
 
