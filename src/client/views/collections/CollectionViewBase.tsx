@@ -69,7 +69,7 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
         let html = e.dataTransfer.getData("text/html");
         let text = e.dataTransfer.getData("text/plain");
         if (html && html.indexOf("<img") != 0) {
-            let htmlDoc = Documents.HtmlDocument(html, { ...options });
+            let htmlDoc = Documents.HtmlDocument(html, { ...options, width: 300, height: 300 });
             htmlDoc.SetText(KeyStore.DocumentText, text);
             this.props.addDocument(htmlDoc);
             return;

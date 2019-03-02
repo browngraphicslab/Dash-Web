@@ -26,3 +26,9 @@ li:before {
     content: '\25bc';
     margin-right: 0.5em;
 }
+
+.collectionTreeView-dropTarget {
+    border-style: solid;
+    box-sizing: border-box;
+    height:100%;
+}
