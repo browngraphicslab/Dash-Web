@@ -175,6 +175,8 @@ export class CollectionSchemaView extends CollectionViewBase {
         return this.props.ScreenToLocalTransform().translate(- COLLECTION_BORDER_WIDTH - this.DIVIDER_WIDTH - this._dividerX, - COLLECTION_BORDER_WIDTH).scale(1 / this._contentScaling);
     }
 
+    focusDocument = (doc: Document) => { }
+
     render() {
         const columns = this.props.Document.GetList(KeyStore.ColumnsKey, [KeyStore.Title, KeyStore.Data, KeyStore.Author])
         const children = this.props.Document.GetList<Document>(this.props.fieldKey, []);
@@ -192,7 +194,7 @@ export class CollectionSchemaView extends CollectionViewBase {
                             PanelWidth={this.getPanelWidth}
                             PanelHeight={this.getPanelHeight}
                             ContainingCollectionView={this.props.CollectionView}
-                            focus={(doc) => this.props.focus(this.props.Document)}
+                            focus={this.focusDocument}
                         />
                     </div>
                 }

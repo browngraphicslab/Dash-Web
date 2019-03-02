@@ -22,7 +22,6 @@ import { COLLECTION_BORDER_WIDTH } from "./CollectionView";
 import { CollectionViewBase } from "./CollectionViewBase";
 import { Documents } from "../../documents/Documents";
 import React = require("react");
-import { DocumentManager } from "../DocumentManager";
 const JsxParser = require('react-jsx-parser').default;//TODO Why does this need to be imported like this?
 
 @observer
@@ -224,7 +223,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
         const lvalue = this.props.Document.GetT<ListField<Document>>(this.props.fieldKey, ListField);
         if (lvalue && lvalue != FieldWaiting) {
             return lvalue.Data.map(doc => {
-                return (<CollectionFreeFormDocumentView key={doc.Id} Document={doc} ref={focus}//tfs: why are we setting ref={focus}?
+                return (<CollectionFreeFormDocumentView key={doc.Id} Document={doc}
                     AddDocument={this.props.addDocument}
                     RemoveDocument={this.props.removeDocument}
                     ScreenToLocalTransform={this.getTransform}
@@ -270,7 +269,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
     //when focus is lost, this will remove the preview cursor
     @action
-    onBlur = (e: React.FocusEvent<HTMLInputElement>): void => {
+    onBlur = (e: React.FocusEvent<HTMLDivElement>): void => {
         this._previewCursorVisible = false;
     }
 
@@ -288,9 +287,6 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
         const panx: number = -this.props.Document.GetNumber(KeyStore.PanX, 0);
         const pany: number = -this.props.Document.GetNumber(KeyStore.PanY, 0);
-        // const panx: number = this.props.Document.GetNumber(KeyStore.PanX, 0) + this.centeringShiftX;
-        // const pany: number = this.props.Document.GetNumber(KeyStore.PanY, 0) + this.centeringShiftY;
-        console.log("center:", this.getLocalTransform().transformPoint(this.centeringShiftX, this.centeringShiftY));
 
         return (
             <div className="collectionfreeformview-container"

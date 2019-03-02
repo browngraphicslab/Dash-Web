@@ -5,7 +5,6 @@ import * as ReactDOM from 'react-dom';
 import { Document } from '../../fields/Document';
 import { KeyStore } from '../../fields/KeyStore';
 import "./Main.scss";
-import { TempTreeView } from './../views/TempTreeView';
 import { MessageStore } from '../../server/Message';
 import { Utils } from '../../Utils';
 import { Documents } from '../documents/Documents';
@@ -81,7 +80,6 @@ Documents.initProtos(mainDocId, (res?: Document) => {
                 focus={() => { }}
                 ContainingCollectionView={undefined} />
             <DocumentDecorations />
-            <TempTreeView />
             <ContextMenu />
             <div className="main-buttonDiv" style={{ bottom: '0px' }} ref={imgRef} >
                 <button onPointerDown={setupDrag(imgRef, addImageNode)} onClick={addClick(addImageNode)}>Add Image</button></div>

@@ -272,7 +272,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
                     ScreenToLocalTransform={this.ScreenToLocalTransform}
                     isTopMost={true}
                     SelectOnLoad={false}
-                    focus={(doc: Document, x: number, y: number) => { }}
+                    focus={(doc: Document) => { }}
                     ContainingCollectionView={undefined} />
             </div>
 

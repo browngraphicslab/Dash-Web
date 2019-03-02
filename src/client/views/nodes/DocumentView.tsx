@@ -21,7 +21,6 @@ import { KeyValueBox } from "./KeyValueBox"
 import { WebBox } from "../nodes/WebBox";
 import "./DocumentView.scss";
 import React = require("react");
-import { DocumentManager } from "../DocumentManager";
 import { TextField } from "../../../fields/TextField";
 import { Utils } from "../../../Utils";
 import { CollectionViewProps } from "../collections/CollectionViewBase";
@@ -40,7 +39,7 @@ export interface DocumentViewProps {
     ContentScaling: () => number;
     PanelWidth: () => number;
     PanelHeight: () => number;
-    focus: (doc: Document, x: number, y: number) => void;
+    focus: (doc: Document) => void;
     SelectOnLoad: boolean;
 }
 export interface JsxArgs extends DocumentViewProps {
@@ -191,12 +190,6 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15)
     }
 
-    //TODO Monika
-    @action
-    Center = (e: React.MouseEvent): void => {
-        this.props.focus(this.props.Document, this.props.Document.GetNumber(KeyStore.X, 0), this.props.Document.GetNumber(KeyStore.Y, 0))
-    }
-
     @action
     onContextMenu = (e: React.MouseEvent): void => {
         e.stopPropagation();
@@ -209,20 +202,11 @@ export class DocumentView extends React.Component<DocumentViewProps> {
 
         ContextMenu.Instance.addItem({ description: "Full Screen", event: this.fullScreenClicked })
         ContextMenu.Instance.addItem({ description: "Fields", event: this.fieldsClicked })
-        ContextMenu.Instance.addItem({ description: "Center", event: this.Center })
+        ContextMenu.Instance.addItem({ description: "Center", event: () => this.props.focus(this.props.Document) })
         ContextMenu.Instance.addItem({ description: "Open Right", event: () => CollectionDockingView.Instance.AddRightSplit(this.props.Document) })
         ContextMenu.Instance.addItem({ description: "Freeform", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Freeform) })
         ContextMenu.Instance.addItem({ description: "Schema", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Schema) })
         ContextMenu.Instance.addItem({ description: "Treeview", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Tree) })
-        ContextMenu.Instance.addItem({
-            description: "center", event: () => {
-                if (this.props.ContainingCollectionView) {
-                    let doc = this.props.ContainingCollectionView.props.Document;
-                    doc.SetNumber(KeyStore.PanX, this.props.Document.GetNumber(KeyStore.X, 0) + (this.props.Document.GetNumber(KeyStore.Width, 0) / 2))
-                    doc.SetNumber(KeyStore.PanY, this.props.Document.GetNumber(KeyStore.Y, 0) + (this.props.Document.GetNumber(KeyStore.Height, 0) / 2))
-                }
-            }
-        })
         //ContextMenu.Instance.addItem({ description: "Docking", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Docking) })
         ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15)
         if (!this.topMost) {
@@ -245,23 +229,6 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         />
     }
 
-    //adds doc to global list
-    componentDidMount: () => void = () => {
-        runInAction(() => {
-            DocumentManager.Instance.DocumentViews.push(this);
-        })
-    }
-
-    //removes doc from global list
-    componentWillUnmount: () => void = () => {
-        runInAction(() => {
-            for (let node of DocumentManager.Instance.DocumentViews) {
-                if (Object.is(node, this)) {
-                    DocumentManager.Instance.DocumentViews.splice(DocumentManager.Instance.DocumentViews.indexOf(this), 1);
-                }
-            }
-        })
-    }
     isSelected = () => {
         return SelectionManager.IsSelected(this);
     }
