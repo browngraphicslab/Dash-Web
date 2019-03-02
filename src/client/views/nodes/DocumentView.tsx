@@ -1,6 +1,5 @@
-import { action, computed, runInAction } from "mobx";
+import { action, computed } from "mobx";
 import { observer } from "mobx-react";
-import { observable } from "mobx";
 import { Document } from "../../../fields/Document";
 import { Field, FieldWaiting, Opt } from "../../../fields/Field";
 import { Key } from "../../../fields/Key";
@@ -21,9 +20,6 @@ import { KeyValueBox } from "./KeyValueBox"
 import { WebBox } from "../nodes/WebBox";
 import "./DocumentView.scss";
 import React = require("react");
-import { TextField } from "../../../fields/TextField";
-import { Utils } from "../../../Utils";
-import { CollectionViewProps } from "../collections/CollectionViewBase";
 const JsxParser = require('react-jsx-parser').default;//TODO Why does this need to be imported like this?
 
 

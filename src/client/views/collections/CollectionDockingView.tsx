@@ -1,13 +1,11 @@
 import * as GoldenLayout from "golden-layout";
 import 'golden-layout/src/css/goldenlayout-base.css';
 import 'golden-layout/src/css/goldenlayout-dark-theme.css';
-import { action, computed, observable, reaction } from "mobx";
+import { action, observable, reaction } from "mobx";
 import { observer } from "mobx-react";
 import * as ReactDOM from 'react-dom';
 import { Document } from "../../../fields/Document";
 import { KeyStore } from "../../../fields/KeyStore";
-import { ListField } from "../../../fields/ListField";
-import { NumberField } from "../../../fields/NumberField";
 import Measure from "react-measure";
 import { FieldId, Opt, Field } from "../../../fields/Field";
 import { Utils } from "../../../Utils";
@@ -17,7 +15,6 @@ import { DocumentView } from "../nodes/DocumentView";
 import "./CollectionDockingView.scss";
 import { COLLECTION_BORDER_WIDTH } from "./CollectionView";
 import React = require("react");
-import { changeDependenciesStateTo0 } from "mobx/lib/internal";
 import { SubCollectionViewProps } from "./CollectionViewBase";
 
 @observer

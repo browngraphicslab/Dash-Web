@@ -1,4 +1,4 @@
-import { action, computed, observable } from "mobx";
+import { action } from "mobx";
 import { observer } from "mobx-react";
 import { Document } from "../../../fields/Document";
 import { ListField } from "../../../fields/ListField";

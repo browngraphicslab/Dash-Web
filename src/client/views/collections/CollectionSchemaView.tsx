@@ -1,11 +1,11 @@
 import React = require("react")
-import { action, observable, trace } from "mobx";
+import { action, observable } from "mobx";
 import { observer } from "mobx-react";
 import Measure from "react-measure";
 import ReactTable, { CellInfo, ComponentPropsGetterR, ReactTableDefaults } from "react-table";
 import "react-table/react-table.css";
 import { Document } from "../../../fields/Document";
-import { Field, FieldWaiting } from "../../../fields/Field";
+import { Field } from "../../../fields/Field";
 import { KeyStore } from "../../../fields/KeyStore";
 import { CompileScript, ToField } from "../../util/Scripting";
 import { Transform } from "../../util/Transform";

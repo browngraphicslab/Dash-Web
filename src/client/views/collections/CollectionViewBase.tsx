@@ -1,12 +1,12 @@
-import { action, computed } from "mobx";
+import { action } from "mobx";
 import { Document } from "../../../fields/Document";
 import { ListField } from "../../../fields/ListField";
 import React = require("react");
 import { KeyStore } from "../../../fields/KeyStore";
-import { Opt, FieldWaiting } from "../../../fields/Field";
+import { FieldWaiting } from "../../../fields/Field";
 import { undoBatch } from "../../util/UndoManager";
 import { DragManager } from "../../util/DragManager";
-import { DocumentView, JsxArgs } from "../nodes/DocumentView";
+import { DocumentView } from "../nodes/DocumentView";
 import { Documents, DocumentOptions } from "../../documents/Documents";
 import { Key } from "../../../fields/Key";
 import { Transform } from "../../util/Transform";
