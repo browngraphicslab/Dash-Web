@@ -193,11 +193,11 @@ export class CollectionFreeFormView extends CollectionViewBase {
                     PanelWidth={doc.Width}
                     PanelHeight={doc.Height}
                     ContainingCollectionView={this.props.CollectionView}
-                    focus={(doc: Document, x: number, y: number) => {
+                    focus={(doc: Document) => {
                         //set pan of colleciton freeform and then call parent
                         console.log("calling...")
-                        DocumentManager.Instance.centerNode(doc, doc.GetNumber(KeyStore.X, 0), doc.GetNumber(KeyStore.Y, 0))
-                        this.props.focus(this.props.Document, doc.GetNumber(KeyStore.X, 0), doc.GetNumber(KeyStore.Y, 0))
+                        DocumentManager.Instance.centerNode(doc, this.props.Document)
+                        this.props.focus(this.props.Document)
                     }}
                 />);
             })

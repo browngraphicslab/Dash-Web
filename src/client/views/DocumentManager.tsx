@@ -198,7 +198,7 @@ export class DocumentManager {
     // }
 
     @action
-    public centerNode(doc: Document | DocumentView, x: number, y: number): any {
+    public centerNode(doc: Document | DocumentView, collection: Document): void {
         //console.log(doc.Title)
         //gets document view that is in freeform collection 
         let docView: DocumentView | null;
@@ -218,13 +218,15 @@ export class DocumentManager {
 
         if (docView) {
             let { width, height } = docView.size();
-            let scale = docView.props.Document.GetNumber(KeyStore.Scale, 1)
-            let doc = docView.props.Document
+            let scale = docView.props.Document.GetNumber(KeyStore.Scale, 1);
+            let doc = docView.props.Document;
+            let x = doc.GetNumber(KeyStore.X, 0);
+            let y = doc.GetNumber(KeyStore.X, 0);
 
             if (x && y) {
                 XView = (-x * scale) - (width * scale / 2);
                 YView = (-y * scale) - (height * scale / 2);
-                DocumentManager.Instance.setViewportXY(docView, XView, YView)
+                DocumentManager.Instance.setViewportXY(collection, XView, YView)
             }
 
         }
@@ -274,10 +276,8 @@ export class DocumentManager {
 
 
     @action
-    private setViewportXY(collection: DocumentView, x: number, y: number) {
-        console.log("setting")
-        let doc = collection.props.Document;
-        doc.SetNumber(KeyStore.PanX, x);
-        doc.SetNumber(KeyStore.PanY, y);
+    private setViewportXY(collection: Document, x: number, y: number) {
+        collection.SetNumber(KeyStore.PanX, x);
+        collection.SetNumber(KeyStore.PanY, y);
     }
 }

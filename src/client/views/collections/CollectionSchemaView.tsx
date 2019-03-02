@@ -212,7 +212,7 @@ export class CollectionSchemaView extends CollectionViewBase {
                             PanelWidth={this.getPanelWidth}
                             PanelHeight={this.getPanelHeight}
                             ContainingCollectionView={this.props.CollectionView}
-                            focus={(doc, x, y) => this.props.focus(this.props.Document, x, y)}
+                            focus={(doc) => this.props.focus(this.props.Document)}
                         />
                     </div>
                 }

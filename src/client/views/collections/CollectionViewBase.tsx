@@ -23,7 +23,7 @@ export interface CollectionViewProps {
     bindings: any;
     panelWidth: () => number;
     panelHeight: () => number;
-    focus: (doc: Document, x: number, y: number) => void;
+    focus: (doc: Document) => void;
 }
 export interface SubCollectionViewProps extends CollectionViewProps {
     active: () => boolean;
