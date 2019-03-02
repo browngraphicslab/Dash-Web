@@ -49,7 +49,10 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
             selectOnLoad: false,
         }
         return (
-            <tr className={this.props.rowStyle}><td>{this.key.Name}</td><td><FieldView {...props} /></td></tr>
+            <tr className={this.props.rowStyle}>
+                <td>{this.key.Name}</td>
+                <td><FieldView {...props} /></td>
+            </tr>
         )
     }
 }

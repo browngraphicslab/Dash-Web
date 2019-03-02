@@ -4,7 +4,7 @@ import { observer } from "mobx-react";
 import { EditorView } from 'prosemirror-view';
 import 'react-image-lightbox/style.css'; // This only needs to be imported once in your app
 import { Document } from '../../../fields/Document';
-import { Opt } from '../../../fields/Field';
+import { Opt, FieldWaiting } from '../../../fields/Field';
 import { KeyStore } from '../../../fields/KeyStore';
 import { FieldView, FieldViewProps } from './FieldView';
 import { KeyValuePair } from "./KeyValuePair";
@@ -43,10 +43,8 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
     }
 
     createTable = () => {
-        let table: Array<JSX.Element> = []
-        let ret = "waiting"
         let doc = this.props.doc.GetT(KeyStore.Data, Document);
-        if (!doc || doc == "<Waiting>") {
+        if (!doc || doc == FieldWaiting) {
             return <tr><td>Loading...</td></tr>
         }
         let realDoc = doc;
@@ -64,9 +62,7 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
         let rows: JSX.Element[] = [];
         let i = 0;
         for (let key in ids) {
-            if (i++ % 2 == 0)
-                rows.push(<KeyValuePair doc={realDoc} rowStyle="keyValueBox-evenRow" fieldId={key} key={key} />)
-            else rows.push(<KeyValuePair doc={realDoc} rowStyle="keyValueBox-oddRow" fieldId={key} key={key} />)
+            rows.push(<KeyValuePair doc={realDoc} rowStyle={"keyValueBox-" + (i++ % 2 ? "oddRow" : "evenRow")} fieldId={key} key={key} />)
         }
         return rows;
     }
@@ -74,7 +70,7 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
 
     render() {
 
-        return (<div className="keyValueBox-cont">
+        return (<div className="keyValueBox-cont" onWheel={this.onPointerWheel}>
             <table className="keyValueBox-table">
                 <tbody>
                     <tr className="keyValueBox-header">
