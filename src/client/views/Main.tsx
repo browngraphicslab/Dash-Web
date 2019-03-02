@@ -32,7 +32,6 @@ document.addEventListener("pointerdown", action(function (e: PointerEvent) {
 const mainDocId = "mainDoc";
 let mainContainer: Document;
 let mainfreeform: Document;
-console.log("HELLO WORLD")
 Documents.initProtos(mainDocId, (res?: Document) => {
     if (res instanceof Document) {
         mainContainer = res;
@@ -60,7 +59,9 @@ Documents.initProtos(mainDocId, (res?: Document) => {
     let addImageNode = action(() => Documents.ImageDocument(imgurl, { width: 200, height: 200, title: "an image of a cat" }));
     let addWebNode = action(() => Documents.WebDocument(weburl, { width: 200, height: 200, title: "a sample web page" }));
 
-    let addClick = (creator: () => Document) => action(() => mainfreeform.GetList<Document>(KeyStore.Data, []).push(creator()));
+    let addClick = (creator: () => Document) => action(() =>
+        mainfreeform.GetList<Document>(KeyStore.Data, []).push(creator())
+    );
 
     let imgRef = React.createRef<HTMLDivElement>();
     let webRef = React.createRef<HTMLDivElement>();
