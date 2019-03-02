@@ -33,6 +33,7 @@
   },
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^1.2.14",
+    "@hig/flyout": "^1.0.3",
     "@types/bcrypt-nodejs": "0.0.30",
     "@types/bluebird": "^3.5.25",
     "@types/body-parser": "^1.17.0",

@@ -7,6 +7,7 @@ import { KeyStore } from '../../fields/KeyStore'
 import { NumberField } from "../../fields/NumberField";
 import { props } from "bluebird";
 import { DragManager } from "../util/DragManager";
+import { LinkMenu } from "./nodes/LinkMenu";
 
 
 @observer
@@ -57,6 +58,9 @@ export class DocumentDecorations extends React.Component {
     }
 
     onLinkButtonDown = (e: React.PointerEvent): void => {
+        // if ()
+        // let linkMenu = new LinkMenu(SelectionManager.SelectedDocuments()[0]);
+        // linkMenu.Hidden = false;
         console.log("down");
         e.stopPropagation();
         document.removeEventListener("pointermove", this.onLinkButtonMoved)
