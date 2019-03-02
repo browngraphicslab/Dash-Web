@@ -210,9 +210,14 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         }
         let sourceDoc: Document = sourceDocView.props.Document;
         let destDoc: Document = this.props.Document;
+        let linkDoc: Document = new Document();
 
-        sourceDoc.GetOrCreateAsync(KeyStore.LinkedToDocs, ListField, field => { (field as ListField<Document>).Data.push(destDoc) });
-        destDoc.GetOrCreateAsync(KeyStore.LinkedFromDocs, ListField, field => { (field as ListField<Document>).Data.push(sourceDoc) });
+        sourceDoc.GetOrCreateAsync(KeyStore.LinkedToDocs, ListField, field => { (field as ListField<Document>).Data.push(linkDoc) });
+        linkDoc.GetOrCreateAsync(KeyStore.LinkedToDocs, ListField, field => { (field as ListField<Document>).Data.push(destDoc) });
+        destDoc.GetOrCreateAsync(KeyStore.LinkedFromDocs, ListField, field => { (field as ListField<Document>).Data.push(linkDoc) });
+        linkDoc.GetOrCreateAsync(KeyStore.LinkedFromDocs, ListField, field => { (field as ListField<Document>).Data.push(sourceDoc) });
+
+
 
         e.stopPropagation();
     }
