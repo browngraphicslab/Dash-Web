@@ -1,5 +1,4 @@
 import React = require("react");
-import { ContextMenu } from "./ContextMenu";
 
 export interface ContextMenuProps {
     description: string;

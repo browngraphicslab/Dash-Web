@@ -8,6 +8,7 @@ import { ListField } from "./ListField";
 import { Server } from "../client/Server";
 import { Types } from "../server/Message";
 import { UndoManager } from "../client/util/UndoManager";
+import { HtmlField } from "./HtmlField";
 
 export class Document extends Field {
     public fields: ObservableMap<string, { key: Key, field: Field }> = new ObservableMap();
@@ -101,6 +102,25 @@ export class Document extends Field {
         return false;
     }
 
+    GetOrCreateAsync<T extends Field>(key: Key, ctor: { new(): T }, callback: (field: T) => void): void {
+        //This currently doesn't deal with prototypes
+        if (this._proxies.has(key.Id)) {
+            Server.GetDocumentField(this, key, (field) => {
+                if (field && field instanceof ctor) {
+                    callback(field);
+                } else {
+                    let newField = new ctor();
+                    this.Set(key, newField);
+                    callback(newField);
+                }
+            });
+        } else {
+            let newField = new ctor();
+            this.Set(key, newField);
+            callback(newField);
+        }
+    }
+
     GetT<T extends Field = Field>(key: Key, ctor: { new(...args: any[]): T }, ignoreProto: boolean = false): FieldValue<T> {
         var getfield = this.Get(key, ignoreProto);
         if (getfield != FieldWaiting) {
@@ -123,6 +143,10 @@ export class Document extends Field {
         let val = this.Get(key);
         let vval = (val && val instanceof ctor) ? val.Data : defaultVal;
         return vval;
+    }
+
+    GetHtml(key: Key, defaultVal: string): string {
+        return this.GetData(key, HtmlField, defaultVal);
     }
 
     GetNumber(key: Key, defaultVal: number): number {
