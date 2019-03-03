@@ -84,21 +84,11 @@ export function FakeJsxArgs(keys: string[], fields: string[] = []): JsxArgs {
     private _documentBindings: any = null;
     private _downX: number = 0;
     private _downY: number = 0;
-    @computed get active(): boolean {
-        return SelectionManager.IsSelected(this) || !this.props.ContainingCollectionView || this.props.ContainingCollectionView.active();
-    }
-    @computed get topMost(): boolean {
-        return !this.props.ContainingCollectionView || this.props.ContainingCollectionView.collectionViewType == CollectionViewType.Docking;
-    }
-    @computed get layout(): string {
-        return this.props.Document.GetText(KeyStore.Layout, "<p>Error loading layout data</p>");
-    }
-    @computed get layoutKeys(): Key[] {
-        return this.props.Document.GetData(KeyStore.LayoutKeys, ListField, new Array<Key>());
-    }
-    @computed get layoutFields(): Key[] {
-        return this.props.Document.GetData(KeyStore.LayoutFields, ListField, new Array<Key>());
-    }
+    @computed get active(): boolean { return SelectionManager.IsSelected(this) || !this.props.ContainingCollectionView || this.props.ContainingCollectionView.active(); }
+    @computed get topMost(): boolean { return !this.props.ContainingCollectionView || this.props.ContainingCollectionView.collectionViewType == CollectionViewType.Docking; }
+    @computed get layout(): string { return this.props.Document.GetText(KeyStore.Layout, "<p>Error loading layout data</p>"); }
+    @computed get layoutKeys(): Key[] { return this.props.Document.GetData(KeyStore.LayoutKeys, ListField, new Array<Key>()); }
+    @computed get layoutFields(): Key[] { return this.props.Document.GetData(KeyStore.LayoutFields, ListField, new Array<Key>()); }
     screenRect = (): ClientRect | DOMRect => this._mainCont.current ? this._mainCont.current.getBoundingClientRect() : new DOMRect();
     onPointerDown = (e: React.PointerEvent): void => {
         this._downX = e.clientX;
@@ -166,19 +156,14 @@ export function FakeJsxArgs(keys: string[], fields: string[] = []): JsxArgs {
     fullScreenClicked = (e: React.MouseEvent): void => {
         CollectionDockingView.Instance.OpenFullScreen(this.props.Document);
         ContextMenu.Instance.clearItems();
-        ContextMenu.Instance.addItem({
-            description: "Close Full Screen", event: this.closeFullScreenClicked
-        }
-        );
+        ContextMenu.Instance.addItem({ description: "Close Full Screen", event: this.closeFullScreenClicked });
         ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15)
     }
 
     closeFullScreenClicked = (e: React.MouseEvent): void => {
         CollectionDockingView.Instance.CloseFullScreen();
         ContextMenu.Instance.clearItems();
-        ContextMenu.Instance.addItem({
-            description: "Full Screen", event: this.fullScreenClicked
-        })
+        ContextMenu.Instance.addItem({ description: "Full Screen", event: this.fullScreenClicked })
         ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15)
     }
 
@@ -248,29 +233,17 @@ export function FakeJsxArgs(keys: string[], fields: string[] = []): JsxArgs {
         var scaling = this.props.ContentScaling();
         var nativeWidth = this.props.Document.GetNumber(KeyStore.NativeWidth, 0);
         var nativeHeight = this.props.Document.GetNumber(KeyStore.NativeHeight, 0);
-        return (<div className="documentView-node" ref={
-            this._mainCont
-        }
-            style={
-                {
-                    width: nativeWidth > 0 ? nativeWidth.toString() + "px" : "100%", height: nativeHeight > 0 ? nativeHeight.toString() + "px" : "100%", transformOrigin: "left top", transform: `scale($ {
-                    scaling
-                }
-                , $ {
-                    scaling
-                }
-                )`
-                }
-            }
-            onContextMenu={
-                this.onContextMenu
-            }
-            onPointerDown={
-                this.onPointerDown
-            }
-        > {
-                this.mainContent
-            }
-        </div>)
+        return (
+            <div className="documentView-node" ref={this._mainCont}
+                style={{
+                    width: nativeWidth > 0 ? nativeWidth.toString() + "px" : "100%",
+                    height: nativeHeight > 0 ? nativeHeight.toString() + "px" : "100%",
+                    transformOrigin: "left top", transform: `scale(${scaling} , ${scaling})`
+                }}
+                onContextMenu={this.onContextMenu}
+                onPointerDown={this.onPointerDown} >
+                {this.mainContent}
+            </div>
+        )
     }
 }

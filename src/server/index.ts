@@ -147,9 +147,7 @@ function getFields([ids, callback]: [string[], (result: any) => void]) {
 }
 
 function setField(socket: Socket, newValue: Transferable) {
-    let val = { ...newValue };
-    delete val._id;
-    Database.Instance.update(newValue._id, val)
+    Database.Instance.update(newValue._id, newValue)
     socket.broadcast.emit(MessageStore.SetField.Message, newValue)
 }
 
