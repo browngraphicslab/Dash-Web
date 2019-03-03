@@ -29,7 +29,7 @@ export interface DocumentViewProps {
     AddDocument?: (doc: Document) => void;
     RemoveDocument?: (doc: Document) => boolean;
     ScreenToLocalTransform: () => Transform;
-    isTopMost: boolean; //tfs: This shouldn't be necessary I don't think
+    isTopMost: boolean;
     ContentScaling: () => number;
     PanelWidth: () => number;
     PanelHeight: () => number;
@@ -56,7 +56,6 @@ Example usage of this function:
         )
     }
 */
-
 export function FakeJsxArgs(keys: string[], fields: string[] = []): JsxArgs {
     let Keys: { [name: string]: any } = {}
     let Fields: { [name: string]: any } = {}
@@ -79,7 +78,8 @@ export function FakeJsxArgs(keys: string[], fields: string[] = []): JsxArgs {
     return args;
 }
 
-@observer export class DocumentView extends React.Component<DocumentViewProps> {
+@observer
+export class DocumentView extends React.Component<DocumentViewProps> {
     private _mainCont = React.createRef<HTMLDivElement>();
     private _documentBindings: any = null;
     private _downX: number = 0;
@@ -238,7 +238,8 @@ export function FakeJsxArgs(keys: string[], fields: string[] = []): JsxArgs {
                 style={{
                     width: nativeWidth > 0 ? nativeWidth.toString() + "px" : "100%",
                     height: nativeHeight > 0 ? nativeHeight.toString() + "px" : "100%",
-                    transformOrigin: "left top", transform: `scale(${scaling} , ${scaling})`
+                    transformOrigin: "left top",
+                    transform: `scale(${scaling} , ${scaling})`
                 }}
                 onContextMenu={this.onContextMenu}
                 onPointerDown={this.onPointerDown} >
