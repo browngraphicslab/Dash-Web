@@ -61,7 +61,6 @@ Documents.initProtos(mainDocId, (res?: Document) => {
 
     let addClick = (creator: () => Document) => action(() =>
         mainfreeform.GetList<Document>(KeyStore.Data, []).push(creator())
-
     );
 
     let imgRef = React.createRef<HTMLDivElement>();

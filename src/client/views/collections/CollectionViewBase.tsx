@@ -19,7 +19,6 @@ export interface CollectionViewProps {
     isSelected: () => boolean;
     isTopMost: boolean;
     select: (ctrlPressed: boolean) => void;
-    documentSize: () => { width: number, height: number };
     bindings: any;
     panelWidth: () => number;
     panelHeight: () => number;
