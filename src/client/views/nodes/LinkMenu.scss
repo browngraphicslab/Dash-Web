@@ -1,14 +1,15 @@
 #menu-container {
-    width: 180px;
-    height: 250px;
+    width: 100%;
+    height: auto;
     display: flex;
     flex-direction: column;
-    background: red;
 }
 
 #search-bar {
     width: 100%;
-    margin: 2%;
+    padding: 5px;
+    margin-bottom: 10px;
+    font-size: 12px;
 }
 
 #link-list {

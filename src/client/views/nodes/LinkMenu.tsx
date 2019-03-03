@@ -8,28 +8,24 @@ import { NumberField } from "../../../fields/NumberField";
 import { props } from "bluebird";
 import { DragManager } from "../../util/DragManager";
 import { DocumentView } from "./DocumentView";
+import { Document } from "../../../fields/Document";
 
+interface Props {
+    docView: DocumentView | undefined;
+}
 
 @observer
-export class LinkMenu extends React.Component {
-    static Instance: LinkMenu
-    @observable private _docView: DocumentView;
-    @observable private _hidden = true;
+export class LinkMenu extends React.Component<Props> {
+    // @observable private _hidden = true;
 
-    constructor(docView: DocumentView) {
-        super(docView);
-        this._docView = docView;
-        LinkMenu.Instance = this;
-    }
-
-    @computed
-    public get Hidden() { return this._hidden; }
-    public set Hidden(value: boolean) { this._hidden = value; }
+    // @computed
+    // public get Hidden() { return this._hidden; }
+    // public set Hidden(value: boolean) { this._hidden = value; }
 
     render() {
-        if (this.Hidden) {
-            return (null);
-        }
+        // if (this.Hidden) {
+        //     return (null);
+        // }
 
         return (
             <div id="menu-container">

@@ -8,7 +8,9 @@ import { NumberField } from "../../fields/NumberField";
 import { props } from "bluebird";
 import { DragManager } from "../util/DragManager";
 import { LinkMenu } from "./nodes/LinkMenu";
-
+const higflyout = require("@hig/flyout");
+const { anchorPoints } = higflyout;
+const Flyout = higflyout.default;
 
 @observer
 export class DocumentDecorations extends React.Component {
@@ -62,6 +64,7 @@ export class DocumentDecorations extends React.Component {
         // let linkMenu = new LinkMenu(SelectionManager.SelectedDocuments()[0]);
         // linkMenu.Hidden = false;
         console.log("down");
+
         e.stopPropagation();
         document.removeEventListener("pointermove", this.onLinkButtonMoved)
         document.addEventListener("pointermove", this.onLinkButtonMoved);
@@ -181,6 +184,9 @@ export class DocumentDecorations extends React.Component {
             document.removeEventListener("pointerup", this.onPointerUp);
         }
     }
+    // buttonOnPointerUp = (e: React.PointerEvent): void => {
+    //     e.stopPropagation();
+    // }
 
     render() {
         var bounds = this.Bounds;
@@ -207,7 +213,17 @@ export class DocumentDecorations extends React.Component {
                 <div id="documentDecorations-bottomLeftResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-bottomResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-bottomRightResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
-                <div id="linkButton" onPointerDown={this.onLinkButtonDown} ref={this._linkButton}></div>
+
+                <Flyout
+                    anchorPoint={anchorPoints.RIGHT_TOP}
+                    content={
+                        <LinkMenu docView={SelectionManager.SelectedDocuments()[0]}>
+                        </LinkMenu>
+                    }
+
+                >
+                    <div id="linkButton" onPointerDown={this.onLinkButtonDown} ref={this._linkButton}></div>
+                </Flyout>
 
             </div >
         )
