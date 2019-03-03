@@ -3,16 +3,15 @@
     display: flex;
     z-index: 1000;
     box-shadow: #AAAAAA .2vw .2vw .4vw;
-    flex-direction: column; //E
-    // border-radius: 20px;
+    flex-direction: column;
 }
 
 .contextMenu-item {
-    width: auto; //10vw
-    height: auto; //4vh
-    background: #F0F8FF; // background: #DDDDDD;
+    width: auto;
+    height: auto;
+    background: #F0F8FF;
     display: flex;
-    justify-content: left; //center
+    justify-content: left;
     align-items: center;
     -webkit-touch-callout: none;
     -webkit-user-select: none;
@@ -32,7 +31,7 @@
 
 .contextMenu-item:hover {
     transition: all .1s;
-    background: #B0E0E6; // background: #AAAAAA
+    background: #B0E0E6;
 }
 
 .contextMenu-description {

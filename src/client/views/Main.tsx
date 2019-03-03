@@ -66,17 +66,19 @@ Documents.initProtos(() => {
             mainContainer.GetAsync(KeyStore.ActiveFrame, field => mainfreeform = field as Document);
         }
         else {
-            mainContainer = Documents.DockDocument(JSON.stringify({ content: [{ type: 'row', content: [] }] }), { title: "main container" }, mainDocId);
-            Utils.Emit(Server.Socket, MessageStore.AddDocument, new DocumentTransfer(mainContainer.ToJson()))
+            // mainContainer = Documents.DockDocument(JSON.stringify({ content: [{ type: 'row', content: [] }] }), { title: "main container" }, mainDocId);
+            // Utils.Emit(Server.Socket, MessageStore.AddDocument, new DocumentTransfer(mainContainer.ToJson()))
 
-            setTimeout(() => {
-                mainfreeform = Documents.FreeformDocument([], { x: 0, y: 400, title: "mini collection" });
-                Utils.Emit(Server.Socket, MessageStore.AddDocument, new DocumentTransfer(mainfreeform.ToJson()));
+            // setTimeout(() => {
+            //     mainfreeform = Documents.FreeformDocument([], { x: 0, y: 400, title: "mini collection" });
+            //     Utils.Emit(Server.Socket, MessageStore.AddDocument, new DocumentTransfer(mainfreeform.ToJson()));
 
-                var docs = [mainfreeform].map(doc => CollectionDockingView.makeDocumentConfig(doc));
-                mainContainer.SetText(KeyStore.Data, JSON.stringify({ content: [{ type: 'row', content: docs }] }));
-                mainContainer.Set(KeyStore.ActiveFrame, mainfreeform);
-            }, 0);
+            //     var docs = [mainfreeform].map(doc => CollectionDockingView.makeDocumentConfig(doc));
+            //     mainContainer.SetText(KeyStore.Data, JSON.stringify({ content: [{ type: 'row', content: docs }] }));
+            //     mainContainer.Set(KeyStore.ActiveFrame, mainfreeform);
+            // }, 0);
+            mainContainer = Documents.FreeformDocument([], {});
+            mainfreeform = mainContainer;
         }
 
         let clearDatabase = action(() => Utils.Emit(Server.Socket, MessageStore.DeleteAll, {}))

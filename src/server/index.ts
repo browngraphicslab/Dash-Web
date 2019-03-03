@@ -125,7 +125,6 @@ function deleteAll() {
 
 function barReceived(guid: String) {
     clients[guid.toString()] = new Client(guid.toString());
-    // Database.Instance.print()
 }
 
 function addDocument(document: Document) {
@@ -148,7 +147,9 @@ function getFields([ids, callback]: [string[], (result: any) => void]) {
 }
 
 function setField(socket: Socket, newValue: Transferable) {
-    Database.Instance.update(newValue._id, newValue)
+    let val = { ...newValue };
+    delete val._id;
+    Database.Instance.update(newValue._id, val)
     socket.broadcast.emit(MessageStore.SetField.Message, newValue)
 }
 

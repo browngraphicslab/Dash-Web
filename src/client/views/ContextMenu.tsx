@@ -3,9 +3,6 @@ import { ContextMenuItem, ContextMenuProps } from "./ContextMenuItem";
 import { observable, action } from "mobx";
 import { observer } from "mobx-react";
 import "./ContextMenu.scss"
-// import { library } from '@fortawesome/fontawesome-svg-core'
-// import { faIgloo } from '@fortawesome/free-solid-svg-icons'
-// import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 
 @observer
 export class ContextMenu extends React.Component {

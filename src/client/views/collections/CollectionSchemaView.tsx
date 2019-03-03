@@ -181,13 +181,6 @@ export class CollectionSchemaView extends CollectionViewBase {
         }
     }
 
-    //REPLACE THIS WITH CAPABILITIES SPECIFIC TO THIS TYPE OF NODE
-    collectionCapability = (e: React.MouseEvent): void => {
-    }
-
-    specificContextMenu = (e: React.MouseEvent): void => {
-        ContextMenu.Instance.addItem({ description: "Collection Capability", event: this.collectionCapability });
-    }
     @action
     setScaling = (r: any) => {
         const children = this.props.Document.GetList<Document>(this.props.fieldKey, []);
@@ -227,7 +220,7 @@ export class CollectionSchemaView extends CollectionViewBase {
         let handle = !this.props.active() ? (null) : (
             <div style={{ position: "absolute", height: "37px", width: "20px", zIndex: 20, right: 0, top: 0, background: "Black" }} onPointerDown={this.onExpanderDown} />);
         return (
-            <div onPointerDown={this.onPointerDown} onContextMenu={this.specificContextMenu} ref={this._mainCont} className="collectionSchemaView-container" style={{ borderWidth: `${COLLECTION_BORDER_WIDTH}px` }} >
+            <div onPointerDown={this.onPointerDown} ref={this._mainCont} className="collectionSchemaView-container" style={{ borderWidth: `${COLLECTION_BORDER_WIDTH}px` }} >
                 <Measure onResize={action((r: any) => {
                     this._dividerX = r.entry.width;
                     this._panelHeight = r.entry.height;

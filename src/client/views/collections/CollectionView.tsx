@@ -87,27 +87,43 @@ export class CollectionView extends React.Component<CollectionViewProps> {
         Document.SetData(KeyStore.ViewType, type, NumberField);
     }
 
+    specificContextMenu = (e: React.MouseEvent): void => {
+        ContextMenu.Instance.addItem({ description: "Freeform", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Freeform) })
+        ContextMenu.Instance.addItem({ description: "Schema", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Schema) })
+        ContextMenu.Instance.addItem({ description: "Treeview", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Tree) })
+        ContextMenu.Instance.addItem({ description: "Docking", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Docking) })
+    }
+
     render() {
         let viewType = this.collectionViewType;
+        let subView: JSX.Element;
         switch (viewType) {
             case CollectionViewType.Freeform:
-                return (<CollectionFreeFormView {...this.props}
+                subView = (<CollectionFreeFormView {...this.props}
                     addDocument={this.addDocument} removeDocument={this.removeDocument} active={this.active}
                     CollectionView={this} />)
+                break;
             case CollectionViewType.Schema:
-                return (<CollectionSchemaView {...this.props}
+                subView = (<CollectionSchemaView {...this.props}
                     addDocument={this.addDocument} removeDocument={this.removeDocument} active={this.active}
                     CollectionView={this} />)
+                break;
             case CollectionViewType.Docking:
-                return (<CollectionDockingView {...this.props}
+                subView = (<CollectionDockingView {...this.props}
                     addDocument={this.addDocument} removeDocument={this.removeDocument} active={this.active}
                     CollectionView={this} />)
+                break;
             case CollectionViewType.Tree:
-                return (<CollectionTreeView {...this.props}
+                subView = (<CollectionTreeView {...this.props}
                     addDocument={this.addDocument} removeDocument={this.removeDocument} active={this.active}
                     CollectionView={this} />)
+                break;
             default:
-                return <div></div>
+                subView = <div></div>
+                break;
         }
+        return (<div onContextMenu={this.specificContextMenu}>
+            {subView}
+        </div>)
     }
 }
