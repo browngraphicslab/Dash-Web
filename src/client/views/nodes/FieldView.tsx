@@ -1,7 +1,7 @@
 import React = require("react")
 import { observer } from "mobx-react";
 import { computed } from "mobx";
-import { Field, Opt, FieldWaiting, FieldValue } from "../../../fields/Field";
+import { Field, FieldWaiting, FieldValue } from "../../../fields/Field";
 import { Document } from "../../../fields/Document";
 import { TextField } from "../../../fields/TextField";
 import { NumberField } from "../../../fields/NumberField";

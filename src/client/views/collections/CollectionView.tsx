@@ -1,4 +1,4 @@
-import { action, computed, observable } from "mobx";
+import { action } from "mobx";
 import { observer } from "mobx-react";
 import { Document } from "../../../fields/Document";
 import { ListField } from "../../../fields/ListField";
@@ -30,7 +30,7 @@ export class CollectionView extends React.Component<CollectionViewProps> {
     public static LayoutString(fieldKey: string = "DataKey") {
         return `<CollectionView Document={Document}
                     ScreenToLocalTransform={ScreenToLocalTransform} fieldKey={${fieldKey}} panelWidth={PanelWidth} panelHeight={PanelHeight} isSelected={isSelected} select={select} bindings={bindings}
-                    isTopMost={isTopMost} SelectOnLoad={selectOnLoad} BackgroundView={BackgroundView} />`;
+                    isTopMost={isTopMost} SelectOnLoad={selectOnLoad} BackgroundView={BackgroundView} focus={focus}/>`;
     }
     public active = () => {
         var isSelected = this.props.isSelected();
