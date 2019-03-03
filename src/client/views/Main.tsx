@@ -5,9 +5,7 @@ import * as ReactDOM from 'react-dom';
 import { Document } from '../../fields/Document';
 import { KeyStore } from '../../fields/KeyStore';
 import { Utils } from '../../Utils';
-import { ServerUtils } from '../../server/ServerUtil';
 import { MessageStore, DocumentTransfer } from '../../server/Message';
-import { Database } from '../../server/database';
 import * as request from 'request'
 import { Documents } from '../documents/Documents';
 import { Server } from '../Server';
@@ -24,8 +22,8 @@ import { observer } from 'mobx-react';
 
 @observer
 export class Main extends React.Component {
-    @observable private mainDocId = "mainDoc";
-    // dummy document initializations keep the compiler happy
+    // dummy initializations keep the compiler happy
+    @observable private mainDocId = "";
     @observable private mainContainer: Document = new Document;
     @observable private mainfreeform: Document = new Document;
 
@@ -33,6 +31,7 @@ export class Main extends React.Component {
         super(props);
         // causes errors to be generated when modifying an observable outside of an action
         configure({ enforceActions: "observed" });
+
         this.initEventListeners();
         this.initAuthenticationRouters();
     }
@@ -51,7 +50,7 @@ export class Main extends React.Component {
     initAuthenticationRouters = () => {
         // Load the user's active workspace, or create a new one if initial session after signup
         request.get(window.location.origin + "/getActiveWorkspaceId", (error, response, body) => {
-            this.initRender(body ? body : this.getNewWorkspace());
+            this.requestWorkspace(body ? body : this.getNewWorkspace());
         });
     }
 
@@ -69,33 +68,41 @@ export class Main extends React.Component {
         return newId;
     }
 
-    initRender = (activeWorkspaceId: string) => {
-        Documents.initProtos(activeWorkspaceId, (res?: Document) => {
-            if (res instanceof Document) {
-                this.mainContainer = res;
-                this.mainContainer.GetAsync(KeyStore.ActiveFrame, field => this.mainfreeform = field as Document);
-            }
-            else {
-                this.mainContainer = Documents.DockDocument(JSON.stringify({ content: [{ type: 'row', content: [] }] }), { title: "main container" }, this.mainDocId);
+    @action
+    requestWorkspace = (activeWorkspaceId: string) => {
+        console.log("START LOAD!!!");
+        Documents.initProtos(activeWorkspaceId, this.prepareWorkspace);
+    }
 
-                // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
-                setTimeout(() => {
-                    this.mainfreeform = Documents.FreeformDocument([], { x: 0, y: 400, title: "mini collection" });
+    @action.bound
+    prepareWorkspace = (res?: Document) => {
+        if (res instanceof Document) {
+            this.mainContainer = res;
+            this.mainContainer.GetAsync(KeyStore.ActiveFrame, field => this.mainfreeform = field as Document);
+        }
+        else {
+            this.mainContainer = Documents.DockDocument(JSON.stringify({ content: [{ type: 'row', content: [] }] }), { title: "main container" }, this.mainDocId);
 
-                    var dockingLayout = { content: [{ type: 'row', content: [CollectionDockingView.makeDocumentConfig(this.mainfreeform)] }] };
-                    this.mainContainer.SetText(KeyStore.Data, JSON.stringify(dockingLayout));
-                    this.mainContainer.Set(KeyStore.ActiveFrame, this.mainfreeform);
-                }, 0);
-            }
-        });
+            // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
+            setTimeout(() => {
+                this.mainfreeform = Documents.FreeformDocument([], { x: 0, y: 400, title: "mini collection" });
+
+                var dockingLayout = { content: [{ type: 'row', content: [CollectionDockingView.makeDocumentConfig(this.mainfreeform)] }] };
+                this.mainContainer.SetText(KeyStore.Data, JSON.stringify(dockingLayout));
+                this.mainContainer.Set(KeyStore.ActiveFrame, this.mainfreeform);
+            }, 0);
+        }
+        console.log("END LOAD!!!");
     }
 
     render() {
+        console.log("We're rendering!!!");
         let imgRef = React.createRef<HTMLDivElement>();
         let webRef = React.createRef<HTMLDivElement>();
         let textRef = React.createRef<HTMLDivElement>();
         let schemaRef = React.createRef<HTMLDivElement>();
         let colRef = React.createRef<HTMLDivElement>();
+        let workspacesRef = React.createRef<HTMLDivElement>();
 
         let imgurl = "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg";
         let weburl = "https://cs.brown.edu/courses/cs166/";
@@ -120,6 +127,7 @@ export class Main extends React.Component {
                     ContainingCollectionView={undefined} />
                 <DocumentDecorations />
                 <ContextMenu />
+                <WorkspacesMenu active={this.mainDocId} load={this.requestWorkspace} new={this.getNewWorkspace} />
                 <div className="main-buttonDiv" style={{ bottom: '0px' }} ref={imgRef} >
                     <button onPointerDown={setupDrag(imgRef, addImageNode)} onClick={addClick(addImageNode)}>Add Image</button></div>
                 <div className="main-buttonDiv" style={{ bottom: '25px' }} ref={webRef} >
@@ -132,9 +140,10 @@ export class Main extends React.Component {
                     <button onPointerDown={setupDrag(schemaRef, addSchemaNode)} onClick={addClick(addSchemaNode)}>Add Schema</button></div>
                 <div className="main-buttonDiv" style={{ bottom: '125px' }} >
                     <button onClick={clearDatabase}>Clear Database</button></div>
+                <div className="main-buttonDiv" style={{ top: '25px' }} ref={workspacesRef}>
+                    <button>View Workspaces</button></div>
                 <button className="main-undoButtons" style={{ bottom: '25px' }} onClick={() => UndoManager.Undo()}>Undo</button>
                 <button className="main-undoButtons" style={{ bottom: '0px' }} onClick={() => UndoManager.Redo()}>Redo</button>
-                <WorkspacesMenu active={this.mainDocId} load={this.initRender} new={this.getNewWorkspace} />
             </div>
         );
     }
