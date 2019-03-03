@@ -32,8 +32,17 @@ class TreeView extends React.Component<TreeViewProps> {
     @observable
     collapsed: boolean = false;
 
-    delete() {
-        this.props.deleteDoc;
+    delete = () => {
+        this.props.deleteDoc(this.props.document);
+    }
+
+
+    @action
+    remove = (document: Document) => {
+        var children = this.props.document.GetT<ListField<Document>>(KeyStore.Data, ListField);
+        if (children && children !== FieldWaiting) {
+            children.Data.splice(children.Data.indexOf(document), 1);
+        }
     }
 
     renderBullet(type: BulletType) {
@@ -83,15 +92,14 @@ class TreeView extends React.Component<TreeViewProps> {
 
         // check if this document is a collection
         if (children && children !== FieldWaiting) {
-            var subView = null;
-
-            // render all children elements
-            let childrenElement = (children.Data.map(value =>
-                <TreeView document={value} deleteDoc={() => console.log("test")} />)
-            )
+            let subView;
 
             // if uncollapsed, then add the children elements
             if (!this.collapsed) {
+                // render all children elements
+                let childrenElement = (children.Data.map(value =>
+                    <TreeView document={value} deleteDoc={this.remove} />)
+                )
                 subView =
                     <li key={this.props.document.Id} >
                         {this.renderBullet(BulletType.Collapsible)}
@@ -126,6 +134,14 @@ class TreeView extends React.Component<TreeViewProps> {
 @observer
 export class CollectionTreeView extends CollectionViewBase {
 
+    @action
+    remove = (document: Document) => {
+        var children = this.props.Document.GetT<ListField<Document>>(KeyStore.Data, ListField);
+        if (children && children !== FieldWaiting) {
+            children.Data.splice(children.Data.indexOf(document), 1);
+        }
+    }
+
     render() {
         let titleStr = "";
         let title = this.props.Document.GetT<TextField>(KeyStore.Title, TextField);
@@ -136,7 +152,7 @@ export class CollectionTreeView extends CollectionViewBase {
         var children = this.props.Document.GetT<ListField<Document>>(KeyStore.Data, ListField);
         let childrenElement = !children || children === FieldWaiting ? (null) :
             (children.Data.map(value =>
-                <TreeView document={value} deleteDoc={() => console.log("test")} />)
+                <TreeView document={value} key={value.Id} deleteDoc={this.remove} />)
             )
 
         return (
@@ -144,10 +160,7 @@ export class CollectionTreeView extends CollectionViewBase {
                 <h3>
                     <EditableView contents={titleStr}
                         height={72} GetValue={() => {
-                            let title = this.props.Document.GetT<TextField>(KeyStore.Title, TextField);
-                            if (title && title !== "<Waiting>")
-                                return title.Data;
-                            return "";
+                            return this.props.Document.Title;
                         }} SetValue={(value: string) => {
                             this.props.Document.SetData(KeyStore.Title, value, TextField);
                             return true;

@@ -58,7 +58,7 @@ export class CollectionSchemaView extends CollectionViewBase {
                         return field || "";
                     }}
                     SetValue={(value: string) => {
-                        let script = CompileScript(value);
+                        let script = CompileScript(value, undefined, true);
                         if (!script.compiled) {
                             return false;
                         }

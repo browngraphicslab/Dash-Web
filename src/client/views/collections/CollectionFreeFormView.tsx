@@ -163,7 +163,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
     @action
     onKeyDown = (e: React.KeyboardEvent<Element>) => {
         //if not these keys, make a textbox if preview cursor is active!
-        if (!e.ctrlKey && !e.altKey && !e.shiftKey) {
+        if (!e.ctrlKey && !e.altKey) {
             if (this._previewCursorVisible) {
                 //make textbox and add it to this collection
                 let [x, y] = this.getTransform().transformPoint(this._downX, this._downY); (this._downX, this._downY);
