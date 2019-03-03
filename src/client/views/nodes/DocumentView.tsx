@@ -20,11 +20,8 @@ import { KeyValueBox } from "./KeyValueBox"
 import { WebBox } from "../nodes/WebBox";
 import "./DocumentView.scss";
 import React = require("react");
-<<<<<<< HEAD
 import { PresentationView } from "../PresentationView";
-=======
 import { CollectionViewProps } from "../collections/CollectionViewBase";
->>>>>>> bde8aabad7e5745b4797e73b564e4efb19faeca9
 const JsxParser = require('react-jsx-parser').default;//TODO Why does this need to be imported like this?
 
 

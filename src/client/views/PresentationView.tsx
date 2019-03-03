@@ -9,10 +9,12 @@ import { Field } from "../../fields/Field";
 import { Documents } from '../documents/Documents';
 import "./PresentationView.scss"
 import { mobxPendingDecorators } from "mobx/lib/internal";
+import { NumberField } from "../../fields/NumberField";
 
 export interface PresViewProps {
     Document: Document;
 }
+
 
 @observer
 /**
@@ -34,7 +36,8 @@ class PresentationViewItem extends React.Component<PresViewProps> {
         }
         // finally, if it's a normal document, then render it as such.
         else {
-            return <li className="presentationView-item" key={document.Id}> //onClick={PresentationView.Instance.RemoveDoc(document)}>
+            //TODO: there is a zoom event that will be merged for on click
+            return <li className="presentationView-item" key={document.Id}>
                 {title.Data}</li>;
         }
     }
@@ -84,7 +87,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
         }
 
         //TODO: open presentation view if not already open
-        this.collapsed = false;
+        this.props.Document.SetData(KeyStore.Width, 300, NumberField);
     }
 
     /**
@@ -119,9 +122,12 @@ export class PresentationView extends React.Component<PresViewProps>  {
         if (title && title !== "<Waiting>") {
             titleStr = title.Data;
         }
-        let width = this.collapsed ? 10 : 500;
+        //TODO: programmatically change width
+        let width = this.props.Document.GetNumber(KeyStore.Width, 0);
+        console.log(width);
+        console.log("width above!");
         return (
-            <div className="presentationView-cont" max-width={width}>
+            <div className="presentationView-cont" style={{ width: width }}>
                 <div className="presentationView-title"><h2>{titleStr}</h2></div>
                 <ul>
                     <PresentationViewItem
