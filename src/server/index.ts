@@ -125,7 +125,6 @@ function deleteAll() {
 
 function barReceived(guid: String) {
     clients[guid.toString()] = new Client(guid.toString());
-    // Database.Instance.print()
 }
 
 function addDocument(document: Document) {
