@@ -4,7 +4,8 @@ import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import { Document } from '../../fields/Document';
 import { KeyStore } from '../../fields/KeyStore';
-import { DocumentTransfer, MessageStore } from '../../server/Message';
+import "./Main.scss";
+import { MessageStore } from '../../server/Message';
 import { Utils } from '../../Utils';
 import { Documents } from '../documents/Documents';
 import { Server } from '../Server';
@@ -33,7 +34,6 @@ document.addEventListener("pointerdown", action(function (e: PointerEvent) {
 const mainDocId = "mainDoc";
 let mainContainer: Document;
 let mainfreeform: Document;
-console.log("HELLO WORLD")
 Documents.initProtos(mainDocId, (res?: Document) => {
     if (res instanceof Document) {
         mainContainer = res;
@@ -59,12 +59,14 @@ Documents.initProtos(mainDocId, (res?: Document) => {
     let weburl = "https://cs.brown.edu/courses/cs166/";
     let clearDatabase = action(() => Utils.Emit(Server.Socket, MessageStore.DeleteAll, {}))
     let addTextNode = action(() => Documents.TextDocument({ width: 200, height: 200, title: "a text note" }))
-    let addColNode = action(() => Documents.FreeformDocument([], { width: 200, height: 200, title: "a feeform collection" }));
+    let addColNode = action(() => Documents.FreeformDocument([], { width: 200, height: 200, title: "a freeform collection" }));
     let addSchemaNode = action(() => Documents.SchemaDocument([Documents.TextDocument()], { width: 200, height: 200, title: "a schema collection" }));
     let addImageNode = action(() => Documents.ImageDocument(imgurl, { width: 200, height: 200, title: "an image of a cat" }));
     let addWebNode = action(() => Documents.WebDocument(weburl, { width: 200, height: 200, title: "a sample web page" }));
 
-    let addClick = (creator: () => Document) => action(() => mainfreeform.GetList<Document>(KeyStore.Data, []).push(creator()));
+    let addClick = (creator: () => Document) => action(() =>
+        mainfreeform.GetList<Document>(KeyStore.Data, []).push(creator())
+    );
 
     let imgRef = React.createRef<HTMLDivElement>();
     let webRef = React.createRef<HTMLDivElement>();
@@ -82,6 +84,7 @@ Documents.initProtos(mainDocId, (res?: Document) => {
                     PanelHeight={() => 0}
                     isTopMost={true}
                     SelectOnLoad={false}
+                    focus={() => { }}
                     ContainingCollectionView={undefined} />
                 <DocumentDecorations />
                 <ContextMenu />

@@ -10,6 +10,7 @@ import "./FormattedTextBox.scss";
 import React = require("react")
 import { RichTextField } from "../../../fields/RichTextField";
 import { FieldViewProps, FieldView } from "./FieldView";
+import { ContextMenu } from "../../views/ContextMenu";
 
 
 
@@ -112,12 +113,36 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
             e.stopPropagation();
         }
     }
+
+    //REPLACE THIS WITH CAPABILITIES SPECIFIC TO THIS TYPE OF NODE
+    textCapability = (e: React.MouseEvent): void => {
+    }
+
+    specificContextMenu = (e: React.MouseEvent): void => {
+        ContextMenu.Instance.addItem({ description: "Text Capability", event: this.textCapability });
+        // ContextMenu.Instance.addItem({
+        //     description: "Submenu",
+        //     items: [
+        //         {
+        //             description: "item 1", event:
+        //     },
+        //         {
+        //             description: "item 2", event:
+        //     }
+        //     ]
+        // })
+        // e.stopPropagation()
+
+    }
+
     onPointerWheel = (e: React.WheelEvent): void => {
         e.stopPropagation();
     }
+
     render() {
         return (<div className="formattedTextBox-cont"
             onPointerDown={this.onPointerDown}
+            onContextMenu={this.specificContextMenu}
             onWheel={this.onPointerWheel}
             ref={this._ref} />)
     }
