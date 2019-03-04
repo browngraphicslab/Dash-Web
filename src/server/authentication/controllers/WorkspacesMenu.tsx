@@ -21,7 +21,6 @@ export class WorkspacesMenu extends React.Component<WorkspaceMenuProps> {
     constructor(props: WorkspaceMenuProps) {
         super(props);
         WorkspacesMenu.Instance = this;
-        console.log("ASSIGNED!");
         this.loadExistingWorkspace = this.loadExistingWorkspace.bind(this);
         this.addNewWorkspace = this.addNewWorkspace.bind(this);
         this.selectedWorkspaceId = this.props.active;
@@ -33,9 +32,6 @@ export class WorkspacesMenu extends React.Component<WorkspaceMenuProps> {
         this.selectedWorkspaceId = newId;
         this.props.load(newId);
         this.toggle();
-        //     setTimeout(action(() => {
-
-        //     }), 100);
     }
 
     @action

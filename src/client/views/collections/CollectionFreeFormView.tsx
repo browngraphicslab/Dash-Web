@@ -277,7 +277,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
         const pany: number = -this.props.Document.GetNumber(KeyStore.PanY, 0);
         // const panx: number = this.props.Document.GetNumber(KeyStore.PanX, 0) + this.centeringShiftX;
         // const pany: number = this.props.Document.GetNumber(KeyStore.PanY, 0) + this.centeringShiftY;
-        console.log("center:", this.getLocalTransform().transformPoint(this.centeringShiftX, this.centeringShiftY));
+        // console.log("center:", this.getLocalTransform().transformPoint(this.centeringShiftX, this.centeringShiftY));
 
         return (
             <div className="collectionfreeformview-container"

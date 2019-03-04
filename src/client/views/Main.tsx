@@ -49,19 +49,14 @@ export class Main extends React.Component {
 
     initAuthenticationRouters = () => {
         // Load the user's active workspace, or create a new one if initial session after signup
-        request.get(window.location.origin + "/getActiveWorkspaceId", (error, response, body) => {
+        request.get(this.contextualize("getActiveWorkspaceId"), (error, response, body) => {
             this.requestWorkspace(body ? body : this.getNewWorkspace());
         });
     }
 
     getNewWorkspace = (): string => {
         let newId = Utils.GenerateGuid();
-        const here = window.location.origin;
-        request.post(here + "/addWorkspaceId", {
-            body: { target: newId },
-            json: true
-        })
-        request.post(here + "/setActiveWorkspaceId", {
+        request.post(this.contextualize("addWorkspaceId"), {
             body: { target: newId },
             json: true
         })
@@ -70,6 +65,10 @@ export class Main extends React.Component {
 
     @action
     requestWorkspace = (activeWorkspaceId: string) => {
+        request.post(this.contextualize("setActiveWorkspaceId"), {
+            body: { target: activeWorkspaceId },
+            json: true
+        })
         Documents.initProtos(activeWorkspaceId, this.prepareWorkspace);
     }
 
@@ -98,6 +97,8 @@ export class Main extends React.Component {
             WorkspacesMenu.Instance.toggle()
         }
     }
+
+    contextualize = (extension: string) => window.location.origin + "/" + extension;
 
     render() {
         let imgRef = React.createRef<HTMLDivElement>();
