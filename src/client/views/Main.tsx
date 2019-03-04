@@ -70,7 +70,6 @@ export class Main extends React.Component {
 
     @action
     requestWorkspace = (activeWorkspaceId: string) => {
-        console.log("START LOAD!!!");
         Documents.initProtos(activeWorkspaceId, this.prepareWorkspace);
     }
 
@@ -92,11 +91,15 @@ export class Main extends React.Component {
                 this.mainContainer.Set(KeyStore.ActiveFrame, this.mainfreeform);
             }, 0);
         }
-        console.log("END LOAD!!!");
+    }
+
+    toggleWorkspaces = () => {
+        if (WorkspacesMenu.Instance) {
+            WorkspacesMenu.Instance.toggle()
+        }
     }
 
     render() {
-        console.log("We're rendering!!!");
         let imgRef = React.createRef<HTMLDivElement>();
         let webRef = React.createRef<HTMLDivElement>();
         let textRef = React.createRef<HTMLDivElement>();
@@ -141,7 +144,7 @@ export class Main extends React.Component {
                 <div className="main-buttonDiv" style={{ bottom: '125px' }} >
                     <button onClick={clearDatabase}>Clear Database</button></div>
                 <div className="main-buttonDiv" style={{ top: '25px' }} ref={workspacesRef}>
-                    <button>View Workspaces</button></div>
+                    <button onClick={this.toggleWorkspaces}>View Workspaces</button></div>
                 <button className="main-undoButtons" style={{ bottom: '25px' }} onClick={() => UndoManager.Undo()}>Undo</button>
                 <button className="main-undoButtons" style={{ bottom: '0px' }} onClick={() => UndoManager.Redo()}>Redo</button>
             </div>
