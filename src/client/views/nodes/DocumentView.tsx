@@ -20,6 +20,7 @@ import { KeyValueBox } from "./KeyValueBox"
 import { WebBox } from "../nodes/WebBox";
 import "./DocumentView.scss";
 import React = require("react");
+import { TextField } from "../../../fields/TextField";
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 
@@ -109,7 +110,6 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             }
         }
     }
-<<<<<<< HEAD
 
     private dropDisposer?: DragManager.DragDropDisposer;
     protected createDropTarget = (ele: HTMLDivElement) => {
@@ -137,8 +137,6 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         }
     }
 
-=======
->>>>>>> bb1d3120f11a47e9d493202c1003dae52bf6667f
     onPointerMove = (e: PointerEvent): void => {
         if (e.cancelBubble) {
             return;
@@ -207,6 +205,10 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         let sourceDoc: Document = sourceDocView.props.Document;
         let destDoc: Document = this.props.Document;
         let linkDoc: Document = new Document();
+
+        linkDoc.Set(KeyStore.Title, new TextField("New Link"));
+        linkDoc.Set(KeyStore.LinkDescription, new TextField(""));
+        linkDoc.Set(KeyStore.LinkTags, new TextField("Default"));
 
         sourceDoc.GetOrCreateAsync(KeyStore.LinkedToDocs, ListField, field => { (field as ListField<Document>).Data.push(linkDoc) });
         linkDoc.GetOrCreateAsync(KeyStore.LinkedToDocs, ListField, field => { (field as ListField<Document>).Data.push(destDoc) });
