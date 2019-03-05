@@ -4,6 +4,7 @@ import * as webpack from 'webpack'
 import * as wdm from 'webpack-dev-middleware';
 import * as whm from 'webpack-hot-middleware';
 import * as path from 'path'
+import * as formidable from 'formidable'
 import * as passport from 'passport';
 import { MessageStore, Message, SetFieldArgs, GetFieldArgs, Transferable } from "./Message";
 import { Client } from './Client';
@@ -73,6 +74,21 @@ app.get("/signup", getSignup);
 app.post("/signup", postSignup);
 app.get("/login", getLogin);
 app.post("/login", postLogin);
+
+// IMAGE UPLOADING HANDLER
+
+app.post("/upload", (req, res, err) => {
+    new formidable.IncomingForm().parse(req, (err, fields, files) => {
+        for (const name in files) {
+            let file = files[name];
+            file.path = __dirname + "/files/" + file.name;
+            console.log(file.path);
+        }
+    });
+    //request.get(url).pipe(fs.createWriteStream(__dirname + "/public/images"));
+})
+
+app.use(express.static(__dirname + '/public'));
 
 let FieldStore: ObservableMap<FieldId, Field> = new ObservableMap();
 

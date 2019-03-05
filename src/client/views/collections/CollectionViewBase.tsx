@@ -11,6 +11,7 @@ import { Documents, DocumentOptions } from "../../documents/Documents";
 import { Key } from "../../../fields/Key";
 import { Transform } from "../../util/Transform";
 import { CollectionView } from "./CollectionView";
+import * as request from "request";
 
 export interface CollectionViewProps {
     fieldKey: Key;
@@ -61,6 +62,7 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
 
     @action
     protected onDrop(e: React.DragEvent, options: DocumentOptions): void {
+        console.log("DRRRRROOOOPPPPPP");
         e.stopPropagation()
         e.preventDefault()
         let that = this;
@@ -68,13 +70,17 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
         let html = e.dataTransfer.getData("text/html");
         let text = e.dataTransfer.getData("text/plain");
         if (html && html.indexOf("<img") != 0) {
+            console.log("not good");
             let htmlDoc = Documents.HtmlDocument(html, { ...options, width: 300, height: 300 });
             htmlDoc.SetText(KeyStore.DocumentText, text);
             this.props.addDocument(htmlDoc);
             return;
         }
 
+        console.log(e.dataTransfer.items.length);
+
         for (let i = 0; i < e.dataTransfer.items.length; i++) {
+            const upload = window.location.origin + "/upload";
             let item = e.dataTransfer.items[i];
             if (item.kind === "string" && item.type.indexOf("uri") != -1) {
                 e.dataTransfer.items[i].getAsString(function (s) {
@@ -93,29 +99,46 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
 
                 })
             }
-            if (item.kind == "file" && item.type.indexOf("image")) {
+            if (item.kind == "file" && item.type.indexOf("image") !== -1) {
                 let fReader = new FileReader()
                 let file = item.getAsFile();
-
-                fReader.addEventListener("load", action("drop", () => {
-                    if (fReader.result) {
-                        let url = "" + fReader.result;
-                        let doc = Documents.ImageDocument(url, options)
-                        let docs = that.props.Document.GetT(KeyStore.Data, ListField);
-                        if (docs != FieldWaiting) {
-                            if (!docs) {
-                                docs = new ListField<Document>();
-                                that.props.Document.Set(KeyStore.Data, docs)
-                            }
-                            docs.Data.push(doc);
-                        }
-                    }
-                }), false)
+                let formData = new FormData()
 
                 if (file) {
-                    fReader.readAsDataURL(file)
+                    formData.append('file', file)
                 }
+
+                fetch(upload, {
+                    method: 'POST',
+                    body: formData
+                })
+                // fReader.addEventListener("load", action("drop", () => {
+                //     if (fReader.result) {
+                //         let form = request.post(upload).form();
+                //         form.append('file', fReader.result);
+                //         // let url = "" + fReader.result;
+                //         // let doc = Documents.ImageDocument(url, options)
+                //         // let docs = that.props.Document.GetT(KeyStore.Data, ListField);
+                //         // if (docs != FieldWaiting) {
+                //         //     if (!docs) {
+                //         //         docs = new ListField<Document>();
+                //         //         that.props.Document.Set(KeyStore.Data, docs)
+                //         //     }
+                //         //     docs.Data.push(doc);
+                //         // }
+                //     }
+                // }), false)
+                // if (file) {
+                //     fReader.readAsBinaryString(file)
+                // }
+
             }
+            // request.post(upload, {
+            //     body: {
+            //         test: "DEAR GOD PLEASE SEND! (NEITHER)",
+            //     },
+            //     json: true
+            // })
         }
     }
 }
