@@ -1,4 +1,4 @@
-import { action, computed } from "mobx";
+import { action, computed } from "mobx"
 import { observer } from "mobx-react";
 import { Document } from "../../../fields/Document";
 import { Field, FieldWaiting, Opt } from "../../../fields/Field";
