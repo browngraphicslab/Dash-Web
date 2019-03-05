@@ -9,6 +9,8 @@ interface IProps{
     X: number; 
     Y: number; 
     Highlights: any[]; 
+    Annotations: any[]; 
+    CurrAnno: any[]; 
 
 }
 
@@ -43,7 +45,22 @@ export class Annotation extends React.Component<IProps> {
      */
     @action
     onRemove = (e:any) => {
-    
+        let index:number = -1; 
+        //finding the highlight in the highlight array 
+        this.props.Highlights.forEach((e) => {
+            for (let i = 0; i < e.spans.length; i++){
+                if (e.spans[i] == this.props.Span){
+                    index = this.props.Highlights.indexOf(e); 
+                    this.props.Highlights.splice(index, 1); 
+                }
+            }
+        })
+
+        //removing from CurrAnno and Annotation array 
+        this.props.Annotations.splice(index, 1); 
+        this.props.CurrAnno.pop()
+        
+        //removing span from div
         if(this.props.Span.parentElement){
             let nodesArray = this.props.Span.parentElement.childNodes; 
             nodesArray.forEach((e) => {
@@ -55,13 +72,12 @@ export class Annotation extends React.Component<IProps> {
                             }
                         })
                         e.remove();                   
-                       
-                        
-                        
                     }
                 }
             }) 
         }
+    
+        
     }
 
     render() {
@@ -75,7 +91,7 @@ export class Annotation extends React.Component<IProps> {
             transform: `translate(${this.props.X}px, ${this.props.Y}px)`,
             
             }}>
-                <div style = {{width:"200px", height:"50px"}}>
+                <div style = {{width:"200px", height:"50px", backgroundColor: "orange"}}>
                     <button
                     style = {{borderRadius: "25px", width:"25%", height:"100%"}}
                     onClick = {this.onRemove}

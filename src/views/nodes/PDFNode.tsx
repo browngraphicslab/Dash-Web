@@ -10,16 +10,14 @@ import { Document, Page, PDFPageProxy, PageAnnotation} from "react-pdf";
 import { Utils } from '../../Utils';
 import { Sticky } from './Sticky'; //you should look at sticky and annotation, because they are used here
 import { Annotation } from './Annotation';
+import { ObjectPositionProperty } from 'csstype';
+import { keydownHandler } from 'prosemirror-keymap';
 
 /** ALSO LOOK AT: Annotation.tsx, Sticky.tsx
  * This method renders PDF and puts all kinds of functionalities such as annotation, highlighting, 
  * area selection (I call it stickies), embedded ink node for directly annotating using a pen or 
  * mouse, and pagination. 
- * 
- * Clearly, everything works perfectly. No bugs. Might as well publish it.
- * 
- * ps watch out for some bugs. When highlighting, just highlight a section of one line... do not multiline highlight... plz
- * Annotations and Stickies save per page. Highlights do not. 
+ *
  * 
  * HOW TO USE: 
  * AREA selection: 
@@ -72,17 +70,13 @@ export class PDFNode extends React.Component<FieldViewProps> {
      
     private _highlightTool = React.createRef<HTMLButtonElement>(); //highlighter button reference
     private _highlightToolOn:boolean = false; 
-    
+
+    @observable perPage:Object[] = []; //stores pageInfo
+    @observable pageInfo:any = {area:[], divs:[], anno: []}; //divs is array of objects linked to anno
     
     @observable private page:number = 1; //default is the first page. 
     @observable private numPage:number = 1; //default number of pages
-    @observable private stickies:any[] = [] //for storing CURRENT stickies   
-    @observable private stickiesPerPage: any = null; //for indexing stickies for EVERY PAGE  
-    @observable private annotations:any[] = []; //keeps track of annotations
-    @observable private annotationsPerPage: any = null; // for indexing annotations for EVERY PAGE
-    @observable private highlights:any[] = []; //keeps track of highlights. 
-    @observable private highlightsPerPage:any = null; // for indexing highlights for EVERY PAGE
-
+    private _pdfCanvas:any;
 
     /**
      * for pagination backwards
@@ -91,51 +85,26 @@ export class PDFNode extends React.Component<FieldViewProps> {
     onPageBack = () => {
         if (this.page > 1){
             this.page -= 1; 
-            this.stickiesPerPage[this.page] = this.stickies; //stores previous sticky and indexes to stickiesPerPage
-            this.stickies = []; //sets stickies to null array
-            this.annotationsPerPage[this.page] = this.annotations; 
-            this.annotations = []; 
-            this.highlightsPerPage[this.page] = this.highlights;
-            this.highlights = [];  
-            if (this.stickies){//checks stickies is null or not
-                this.stickies = this.stickiesPerPage[this.page - 1]; //pulls up stickies for this page
+            this.perPage[this.page] = this.pageInfo
+            this.pageInfo = {area:[], divs:[], anno: []}; //resets the object to default
+            if (this.perPage[this.page - 1]){
+                this.pageInfo = this.perPage[this.page - 1];
             }
-            if (this.annotations){//checks if annotation is null or not
-                this.annotations = this.annotationsPerPage[this.page - 1]; 
-            }
-            if (this.highlights){//checks if annotation is null or not
-                this.highlights = this.highlightsPerPage[this.page - 1]; 
-            }
-            
-            
         }
     }
 
     /**
      * for pagination forwards
-     */
-    
+     */  
     @action
     onPageForward = () => {
-       
         if (this.page < this.numPage){
             this.page += 1; 
-            this.stickiesPerPage[this.page - 2] = this.stickies; //stores previous sticky and indexes to stickiesPerPage
-            this.stickies = []; //sets stickies to null array
-            this.annotationsPerPage[this.page - 2] = this.annotations; 
-            this.annotations = []; 
-            this.highlightsPerPage[this.page - 2] = this.highlights; 
-            this.highlights = []; 
-            if (this.stickiesPerPage[this.page - 1]){ 
-                   this.stickies = this.stickiesPerPage[this.page - 1];  //pulls up sticky for this page
+            this.perPage[this.page - 2] = this.pageInfo; 
+            this.pageInfo = {area:[], divs:[], anno: []}; //resets the object to default
+            if (this.perPage[this.page - 1]){
+                this.pageInfo = this.perPage[this.page - 1]; 
             }
-            if (this.annotationsPerPage[this.page - 1]){
-                this.annotations = this.annotationsPerPage[this.page - 1]; //similar to sticky, it binds to previous annotation. 
-            }
-            if (this.annotationsPerPage[this.page - 1]){
-                this.highlights = this.highlightsPerPage[this.page - 1]; //similar to sticky, it binds to previous highlight. 
-            }
-            
         }
     }
    
@@ -154,11 +123,10 @@ export class PDFNode extends React.Component<FieldViewProps> {
             this._pdfContext.beginPath();
             this._pdfContext.lineTo(this.initX, this.initY); 
             this._pdfContext.strokeStyle = this._currColor; 
-            document.addEventListener("pointermove", this.drawMove); 
-            document.addEventListener("pointerup", this.drawUp); 
+            this._pdfCanvas.addEventListener("pointermove", this.drawMove); 
+            this._pdfCanvas.addEventListener("pointerup", this.drawUp); 
         
     }
-
     //when user drags 
     drawMove = (e: PointerEvent):void =>{
         //x and y mouse movement
@@ -171,9 +139,9 @@ export class PDFNode extends React.Component<FieldViewProps> {
 
     drawUp = (e:PointerEvent) => {
         this._pdfContext.closePath();  
-        document.removeEventListener("pointermove", this.drawMove);
-        document.removeEventListener("pointerdown", this.drawDown);
-        document.addEventListener("pointerdown", this.drawDown); 
+        this._pdfCanvas.removeEventListener("pointermove", this.drawMove);
+        this._pdfCanvas.removeEventListener("pointerdown", this.drawDown);
+        this._pdfCanvas.addEventListener("pointerdown", this.drawDown); 
     }
 
     
@@ -190,49 +158,97 @@ export class PDFNode extends React.Component<FieldViewProps> {
             document.execCommand("HiliteColor", false, colour);
         }
         
-        if (range) {
+        if (range) { 
             sel.removeAllRanges();
             sel.addRange(range);
-            let element = range.commonAncestorContainer.parentElement
-            if (element){
-                let childNodes = element.childNodes; 
-                childNodes.forEach((e) => {
-                    if (e.nodeName == "SPAN"){ 
-                        let span = e; 
-                        this.highlights.push(span); //pushes span into highglights. 
-                        span.addEventListener("mouseover", this.onEnter); //adds mouseover annotation handler
+
+            let obj:Object = {parentDivs:[], spans:[]}; 
+            //@ts-ignore
+            if (range.commonAncestorContainer.className == 'react-pdf__Page__textContent'){ //multiline highlighting case
+                obj = this.highlightNodes(range.commonAncestorContainer.childNodes)
+            } else{ //single line highlighting case
+               let parentDiv = range.commonAncestorContainer.parentElement
+               if (parentDiv){
+                   if (parentDiv.className == 'react-pdf__Page__textContent'){ //when highlight is overwritten
+                        obj = this.highlightNodes(parentDiv.childNodes)
+                    } else {
+                        parentDiv.childNodes.forEach((child)=>{
+                            if (child.nodeName == 'SPAN'){
+                                //@ts-ignore
+                                obj.parentDivs.push(parentDiv)
+                                //@ts-ignore
+                                child.id = "highlighted"
+                                //@ts-ignore
+                                obj.spans.push(child)
+                                child.addEventListener("mouseover", this.onEnter); //adds mouseover annotation handler
+                            }
+                        })
                     }
-                })
+               }
             }
+            this.pageInfo.divs.push(obj);   
+         
         }
         document.designMode = "off";
+    }
+
+    highlightNodes = (nodes:NodeListOf<ChildNode>) => {
+        let temp = {parentDivs: [], spans: []}
+        nodes.forEach((div) => {
+            div.childNodes.forEach((child)=>{
+                if (child.nodeName == 'SPAN'){
+                    //@ts-ignore
+                    temp.parentDivs.push(div)
+                    //@ts-ignore
+                    child.id = "highlighted"
+                    //@ts-ignore
+                    temp.spans.push(child)
+                    child.addEventListener("mouseover", this.onEnter); //adds mouseover annotation handler
+                }
+            })
+            
+        })
+        return temp; 
     }
     
     /**
      * when the cursor enters the highlight, it pops out annotation. ONLY WORKS FOR SINGLE DIV LINES
      */
+    @observable private currAnno:any = []
     @action
     onEnter = (e:any) => {
         let span:HTMLSpanElement = e.toElement;
-        this.currSpan = span;  
-        if (e.toElement instanceof HTMLSpanElement){   
-            this.bool = true; 
-            this.currSpan = span; 
-            if(span.children.length == 0){ //this is why it only works for one div text lines... needs fix
-               if(span.offsetParent){
-                   let div = span.offsetParent;  
-                   //@ts-ignore
-                   let divX = div.style.left  
-                   //@ts-ignore
-                   let divY = div.style.top
-                   //slicing "px" from the end
-                   divX = divX.slice(0, divX.length - 2); //gets X of the DIV element (parent of Span)
-                   divY = divY.slice(0, divY.length - 2); //gets Y of the DIV element (parent of Span)
-                   let annotation = <Annotation key ={Utils.GenerateGuid()} Span = {this.currSpan} X = {divX} Y = {divY - 300} Highlights = {this.highlights}/>
-                   this.annotations.push(annotation); 
-               } 
-            }
+        let index:any; 
+        this.pageInfo.divs.forEach((obj:any) =>{
+            obj.spans.forEach((element:any) =>{
+                if (element == span) {
+                    if (!index){
+                        index = this.pageInfo.divs.indexOf(obj); 
+                    }
+                } 
+            })
+        })
+      
+        if (this.pageInfo.anno.length >= index + 1){
+            if (this.currAnno.length == 0){
+                this.currAnno.push(this.pageInfo.anno[index]); 
+            } 
+        }else{
+           if (this.currAnno.length == 0){ //if there are no current annotation
+                let div = span.offsetParent;  
+                //@ts-ignore
+                let divX = div.style.left  
+                //@ts-ignore
+                let divY = div.style.top
+                //slicing "px" from the end
+                divX = divX.slice(0, divX.length - 2); //gets X of the DIV element (parent of Span)
+                divY = divY.slice(0, divY.length - 2); //gets Y of the DIV element (parent of Span)
+                let annotation = <Annotation key ={Utils.GenerateGuid()} Span = {span} X = {divX} Y = {divY - 300} Highlights = {this.pageInfo.divs} Annotations = {this.pageInfo.anno} CurrAnno = {this.currAnno}/>
+                this.pageInfo.anno.push(annotation); 
+                this.currAnno.push(annotation); 
+           }
         }
+        
     }
 
     /**
@@ -244,7 +260,6 @@ export class PDFNode extends React.Component<FieldViewProps> {
                 if (!document.execCommand("hiliteColor", false, color)) {
                     this.makeEditableAndHighlight(color);
                 }
-                //when the color is not the highlight color
             } catch (ex) {
                 this.makeEditableAndHighlight(color)
             }
@@ -268,6 +283,7 @@ export class PDFNode extends React.Component<FieldViewProps> {
      */
     @action
     onPointerUp = (e:React.PointerEvent) => {
+     
       if (this._highlightToolOn){
            this.highlight("rgba(76, 175, 80, 0.3)"); //highlights to this default color. 
            this._highlightToolOn = false; 
@@ -289,7 +305,7 @@ export class PDFNode extends React.Component<FieldViewProps> {
 
             if (this._mainDiv.current){
                 let sticky = <Sticky key ={Utils.GenerateGuid()} Height = {height} Width = {width} X = {this.initX} Y = {this.initY}/>
-                this.stickies.push(sticky);   
+                this.pageInfo.area.push(sticky);  
             } 
             this._toolOn = false; 
         }
@@ -303,18 +319,18 @@ export class PDFNode extends React.Component<FieldViewProps> {
         if (this._currTool != null){
             this._currTool.style.backgroundColor = "grey";
         }
-        this._highlightToolOn = false; 
+        
         if (this._drawTool.current){
             this._currTool = this._drawTool.current; 
             if (this._drawToolOn){
                 this._drawToolOn = false; 
-                document.removeEventListener("pointerdown", this.drawDown);
-                document.removeEventListener("pointerup", this.drawUp);
-                document.removeEventListener("pointermove", this.drawMove);
+                this._pdfCanvas.removeEventListener("pointerdown", this.drawDown);
+                this._pdfCanvas.removeEventListener("pointerup", this.drawUp);
+                this._pdfCanvas.removeEventListener("pointermove", this.drawMove);
                 this._drawTool.current.style.backgroundColor = "grey";
             } else {
                 this._drawToolOn = true; 
-                document.addEventListener("pointerdown", this.drawDown);
+                this._pdfCanvas.addEventListener("pointerdown", this.drawDown);
                 this._drawTool.current.style.backgroundColor = "cyan";
             }
         }
@@ -346,42 +362,47 @@ export class PDFNode extends React.Component<FieldViewProps> {
         if (this._currTool != null){
             this._currTool.style.backgroundColor = "grey";
         }
-            if (this._highlightTool.current){
-                this._currTool = this._drawTool.current;
-                if (this._highlightToolOn){
-                    this._highlightToolOn = false; 
-                    this._highlightTool.current.style.backgroundColor = "grey";
-                } else {
-                    this._highlightToolOn = true; 
-                    this.highlight("rgba(76, 175, 80, 0.3)"); 
-                    this._highlightTool.current.style.backgroundColor = "orange";
-                }
+        if (this._highlightTool.current){
+            this._currTool = this._drawTool.current;
+            if (this._highlightToolOn){
+                this._highlightToolOn = false; 
+                this._highlightTool.current.style.backgroundColor = "grey";
+            } else {
+                this._highlightToolOn = true; 
+                this._highlightTool.current.style.backgroundColor = "orange";
+            }
         }
     }
 
-
+  
     /**
      * renders whole lot of shets, including pdf, stickies, and annotations. 
      */
 
+    reHighlight = () =>{
+        let div = document.getElementsByClassName("react-pdf__Page__textContent"); 
+        if (div){
+           
+        }
+        
+    }
+   
+    
     render() {
         return (
             <div ref = {this._mainDiv}
             onPointerDown ={this.onPointerDown}
             onPointerUp = {this.onPointerUp}
             >
-                {this.stickies.filter( () => { //for loading stickies (area)
-                        return this.stickies[this.stickies.length - 1]
-                    }).map( (element: any) => {
+                
+                {this.pageInfo.area.filter( () => {
+                    return this.pageInfo.area}).map((element: any) => {
                         return element
-                    }) 
-                }     
-                {this.annotations.filter( () => { //for loading annotations
-                        return this.annotations[this.annotations.length - 1]
-                    }).map( (element: any) => {
-                        return element
-                    }) 
-                }                    
+                    })
+                }  
+                {this.currAnno.map((element:any) => {
+                    return element
+                })}             
                
                 <button onClick = {this.onPageBack}>{"<"}</button>
                 <button onClick = {this.onPageForward}>{">"}</button>
@@ -402,19 +423,21 @@ export class PDFNode extends React.Component<FieldViewProps> {
                                     this._mainDiv.current.childNodes.forEach((element) => {
                                         if (element.nodeName == "DIV"){
                                             element.childNodes[0].childNodes.forEach((e) => {
+                                              
                                                if (e.nodeName == "CANVAS"){
+                                                   this._pdfCanvas = e;  
                                                    //@ts-ignore
                                                    this._pdfContext = e.getContext("2d")
-                                               }
+                                                   
+                                               } 
+                                               
                                             })
                                         }
                                     })
                                 }
                                 this.numPage = page.transport.numPages
-                                if (this.stickiesPerPage == null){ //only runs once, when stickiesPerPage is null
-                                    this.stickiesPerPage = [...Array(this.numPage)].map(() => Array(1)); 
-                                    this.annotationsPerPage = [...Array(this.numPage).map(()=> Array(1))]; 
-                                    this.highlightsPerPage = [...Array(this.numPage).map(() => Array(1))]; 
+                                if (this.perPage.length == 0){ //Makes sure it only runs once
+                                    this.perPage = [...Array(this.numPage)]
                                 }
                             }
                         }
@@ -423,4 +446,5 @@ export class PDFNode extends React.Component<FieldViewProps> {
             </div>
         );
     }
+    
 }
