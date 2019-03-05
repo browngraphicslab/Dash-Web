@@ -85,6 +85,7 @@ export class PDFNode extends React.Component<FieldViewProps> {
     onPageBack = () => {
         if (this.page > 1){
             this.page -= 1; 
+            this.currAnno = []; 
             this.perPage[this.page] = this.pageInfo
             this.pageInfo = {area:[], divs:[], anno: []}; //resets the object to default
             if (this.perPage[this.page - 1]){
@@ -100,6 +101,7 @@ export class PDFNode extends React.Component<FieldViewProps> {
     onPageForward = () => {
         if (this.page < this.numPage){
             this.page += 1; 
+            this.currAnno = []; 
             this.perPage[this.page - 2] = this.pageInfo; 
             this.pageInfo = {area:[], divs:[], anno: []}; //resets the object to default
             if (this.perPage[this.page - 1]){
