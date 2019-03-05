@@ -32,14 +32,11 @@
     "webpack-hot-middleware": "^2.24.3"
   },
   "dependencies": {
-<<<<<<< HEAD
     "@fortawesome/fontawesome-svg-core": "^1.2.14",
     "@hig/flyout": "^1.0.3",
-=======
     "@fortawesome/fontawesome-svg-core": "^1.2.15",
     "@fortawesome/free-solid-svg-icons": "^5.7.2",
     "@fortawesome/react-fontawesome": "^0.1.4",
->>>>>>> bb1d3120f11a47e9d493202c1003dae52bf6667f
     "@types/bcrypt-nodejs": "0.0.30",
     "@types/bluebird": "^3.5.25",
     "@types/body-parser": "^1.17.0",
