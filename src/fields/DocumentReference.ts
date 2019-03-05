@@ -1,6 +1,8 @@
-import { Field, Opt } from "./Field";
+import { Field, Opt, FieldValue, FieldId } from "./Field";
 import { Document } from "./Document";
 import { Key } from "./Key";
+import { Types } from "../server/Message";
+import { ObjectID } from "bson";
 
 export class DocumentReference extends Field {
     get Key(): Key {
@@ -15,12 +17,16 @@ export class DocumentReference extends Field {
         super();
     }
 
-    Dereference(): Opt<Field> {
+    UpdateFromServer() {
+
+    }
+
+    Dereference(): FieldValue<Field> {
         return this.document.Get(this.key);
     }
 
-    DereferenceToRoot(): Opt<Field> {
-        let field: Opt<Field> = this;
+    DereferenceToRoot(): FieldValue<Field> {
+        let field: FieldValue<Field> = this;
         while (field instanceof DocumentReference) {
             field = field.Dereference();
         }
@@ -37,5 +43,15 @@ export class DocumentReference extends Field {
         throw new Error("Method not implemented.");
     }
 
+    ToScriptString(): string {
+        return "";
+    }
 
+    ToJson(): { type: Types, data: FieldId, _id: string } {
+        return {
+            type: Types.DocumentReference,
+            data: this.document.Id,
+            _id: this.Id
+        }
+    }
 }

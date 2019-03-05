@@ -3,17 +3,24 @@ var webpack = require('webpack');
 const CopyWebpackPlugin = require("copy-webpack-plugin");
 
 module.exports = {
-  devtool: 'eval',
   mode: 'development',
-  entry: "./src/Main.tsx",
+  entry: {
+    bundle: ["./src/client/views/Main.tsx", 'webpack-hot-middleware/client?reload=true'],
+    viewer: ["./src/debug/Viewer.tsx", 'webpack-hot-middleware/client?reload=true'],
+    test: ["./src/debug/Test.tsx", 'webpack-hot-middleware/client?reload=true'],
+  },
   devtool: "source-map",
   node: {
     fs: 'empty',
-    module: 'empty'
+    module: 'empty',
+    dns: 'mock',
+    tls: 'mock',
+    net: 'mock'
   },
   output: {
-    filename: "./bundle.js",
-    path: path.resolve(__dirname, "build")
+    filename: "[name].js",
+    path: path.resolve(__dirname, "build"),
+    publicPath: "/"
   },
   resolve: {
     extensions: ['.js', '.ts', '.tsx']
@@ -59,7 +66,10 @@ module.exports = {
     }]
   },
   plugins: [
-    new CopyWebpackPlugin([{ from: "deploy", to: path.join(__dirname, "build") }])
+    new CopyWebpackPlugin([{ from: "deploy", to: path.join(__dirname, "build") }]),
+    new webpack.optimize.OccurrenceOrderPlugin(),
+    new webpack.HotModuleReplacementPlugin(),
+    new webpack.NoEmitOnErrorsPlugin()
   ],
   devServer: {
     compress: false,

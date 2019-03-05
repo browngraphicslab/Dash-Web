@@ -1,7 +1,9 @@
 
 import { Utils } from "../Utils";
+import { Types } from "../server/Message";
+import { computed } from "mobx";
 
-export function Cast<T extends Field>(field: Opt<Field>, ctor: { new(): T }): Opt<T> {
+export function Cast<T extends Field>(field: FieldValue<Field>, ctor: { new(): T }): Opt<T> {
     if (field) {
         if (ctor && field instanceof ctor) {
             return field;
@@ -10,36 +12,42 @@ export function Cast<T extends Field>(field: Opt<Field>, ctor: { new(): T }): Op
     return undefined;
 }
 
-export let FieldWaiting: FIELD_WAITING = "<Waiting>";
+export const FieldWaiting: FIELD_WAITING = "<Waiting>";
 export type FIELD_WAITING = "<Waiting>";
-export type FIELD_ID = string | undefined;
-export type DOC_ID = FIELD_ID;
-export type Opt<T> = T | undefined | FIELD_WAITING;
+export type FieldId = string;
+export type Opt<T> = T | undefined;
+export type FieldValue<T> = Opt<T> | FIELD_WAITING;
 
 export abstract class Field {
     //FieldUpdated: TypedEvent<Opt<FieldUpdatedArgs>> = new TypedEvent<Opt<FieldUpdatedArgs>>();
 
-    private id: FIELD_ID;
-    get Id(): FIELD_ID {
+    init(callback: (res: Field) => any) {
+        callback(this);
+    }
+
+    private id: FieldId;
+
+    @computed
+    get Id(): FieldId {
         return this.id;
     }
 
-    constructor(id: FIELD_ID = undefined) {
+    constructor(id: Opt<FieldId> = undefined) {
         this.id = id || Utils.GenerateGuid();
     }
 
-    Dereference(): Opt<Field> {
+    Dereference(): FieldValue<Field> {
         return this;
     }
-    DereferenceToRoot(): Opt<Field> {
+    DereferenceToRoot(): FieldValue<Field> {
         return this;
     }
 
-    DereferenceT<T extends Field = Field>(ctor: { new(): T }): Opt<T> {
+    DereferenceT<T extends Field = Field>(ctor: { new(): T }): FieldValue<T> {
         return Cast(this.Dereference(), ctor);
     }
 
-    DereferenceToRootT<T extends Field = Field>(ctor: { new(): T }): Opt<T> {
+    DereferenceToRootT<T extends Field = Field>(ctor: { new(): T }): FieldValue<T> {
         return Cast(this.DereferenceToRoot(), ctor);
     }
 
@@ -47,10 +55,15 @@ export abstract class Field {
         return this.id === other.id;
     }
 
+    abstract UpdateFromServer(serverData: any): void;
+
+    abstract ToScriptString(): string;
+
     abstract TrySetValue(value: any): boolean;
 
     abstract GetValue(): any;
 
     abstract Copy(): Field;
 
+    abstract ToJson(): { _id: string, type: Types, data: any }
 }

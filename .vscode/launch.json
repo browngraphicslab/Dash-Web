@@ -10,8 +10,8 @@
             "name": "Launch Chrome against localhost",
             "sourceMaps": true,
             "breakOnLoad": true,
-            "url": "http://localhost:1234",
-            "webRoot": "${workspaceFolder}"
+            "url": "http://localhost:1050",
+            "webRoot": "${workspaceFolder}",
         },
         {
             "type": "node",
@@ -47,5 +47,15 @@
             "internalConsoleOptions": "openOnSessionStart",
             "protocol": "inspector"
         },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Launch via NPM",
+            "runtimeExecutable": "npm",
+            "runtimeArgs": [
+                "start"
+            ],
+            "port": 9229
+        }
     ]
 }
