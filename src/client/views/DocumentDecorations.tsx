@@ -1,4 +1,4 @@
-import { observable, computed, action } from "mobx";
+import { observable, computed } from "mobx";
 import React = require("react");
 import { SelectionManager } from "../util/SelectionManager";
 import { observer } from "mobx-react";

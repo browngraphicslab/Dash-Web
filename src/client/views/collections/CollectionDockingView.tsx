@@ -1,13 +1,13 @@
 import * as GoldenLayout from "golden-layout";
 import 'golden-layout/src/css/goldenlayout-base.css';
 import 'golden-layout/src/css/goldenlayout-dark-theme.css';
-import { action, computed, observable, reaction } from "mobx";
+import { action, observable, reaction } from "mobx";
 import { observer } from "mobx-react";
 import * as ReactDOM from 'react-dom';
-import Measure from "react-measure";
 import { Document } from "../../../fields/Document";
-import { FieldId, Opt, Field } from "../../../fields/Field";
 import { KeyStore } from "../../../fields/KeyStore";
+import Measure from "react-measure";
+import { FieldId, Opt, Field } from "../../../fields/Field";
 import { Utils } from "../../../Utils";
 import { Server } from "../../Server";
 import { undoBatch } from "../../util/UndoManager";
@@ -269,6 +269,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
                     ScreenToLocalTransform={this.ScreenToLocalTransform}
                     isTopMost={true}
                     SelectOnLoad={false}
+                    focus={(doc: Document) => { }}
                     ContainingCollectionView={undefined} />
             </div>
 

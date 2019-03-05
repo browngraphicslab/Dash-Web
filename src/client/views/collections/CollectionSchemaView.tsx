@@ -1,14 +1,15 @@
 import React = require("react")
-import { action, observable, trace } from "mobx";
+import { action, observable } from "mobx";
 import { observer } from "mobx-react";
 import Measure from "react-measure";
 import ReactTable, { CellInfo, ComponentPropsGetterR, ReactTableDefaults } from "react-table";
 import "react-table/react-table.css";
 import { Document } from "../../../fields/Document";
-import { Field, FieldWaiting } from "../../../fields/Field";
+import { Field } from "../../../fields/Field";
 import { KeyStore } from "../../../fields/KeyStore";
 import { CompileScript, ToField } from "../../util/Scripting";
 import { Transform } from "../../util/Transform";
+import { ContextMenu } from "../ContextMenu";
 import { EditableView } from "../EditableView";
 import { DocumentView } from "../nodes/DocumentView";
 import { FieldView, FieldViewProps } from "../nodes/FieldView";
@@ -58,7 +59,7 @@ export class CollectionSchemaView extends CollectionViewBase {
                         return field || "";
                     }}
                     SetValue={(value: string) => {
-                        let script = CompileScript(value);
+                        let script = CompileScript(value, undefined, true);
                         if (!script.compiled) {
                             return false;
                         }
@@ -175,6 +176,8 @@ export class CollectionSchemaView extends CollectionViewBase {
         return this.props.ScreenToLocalTransform().translate(- COLLECTION_BORDER_WIDTH - this.DIVIDER_WIDTH - this._dividerX, - COLLECTION_BORDER_WIDTH).scale(1 / this._contentScaling);
     }
 
+    focusDocument = (doc: Document) => { }
+
     render() {
         const columns = this.props.Document.GetList(KeyStore.ColumnsKey, [KeyStore.Title, KeyStore.Data, KeyStore.Author])
         const children = this.props.Document.GetList<Document>(this.props.fieldKey, []);
@@ -191,7 +194,9 @@ export class CollectionSchemaView extends CollectionViewBase {
                             ContentScaling={this.getContentScaling}
                             PanelWidth={this.getPanelWidth}
                             PanelHeight={this.getPanelHeight}
-                            ContainingCollectionView={this.props.CollectionView} />
+                            ContainingCollectionView={this.props.CollectionView}
+                            focus={this.focusDocument}
+                        />
                     </div>
                 }
             </Measure>

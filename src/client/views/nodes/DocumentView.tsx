@@ -20,22 +20,20 @@ import { KeyValueBox } from "./KeyValueBox"
 import { WebBox } from "../nodes/WebBox";
 import "./DocumentView.scss";
 import React = require("react");
-import { CollectionViewProps } from "../collections/CollectionViewBase";
-const JsxParser = require('react-jsx-parser').default;//TODO Why does this need to be imported like this?
+const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 
 export interface DocumentViewProps {
     ContainingCollectionView: Opt<CollectionView>;
-
     Document: Document;
     AddDocument?: (doc: Document) => void;
     RemoveDocument?: (doc: Document) => boolean;
     ScreenToLocalTransform: () => Transform;
     isTopMost: boolean;
-    //tfs: This shouldn't be necessary I don't think
     ContentScaling: () => number;
     PanelWidth: () => number;
     PanelHeight: () => number;
+    focus: (doc: Document) => void;
     SelectOnLoad: boolean;
 }
 export interface JsxArgs extends DocumentViewProps {
@@ -82,20 +80,16 @@ export function FakeJsxArgs(keys: string[], fields: string[] = []): JsxArgs {
 
 @observer
 export class DocumentView extends React.Component<DocumentViewProps> {
-
     private _mainCont = React.createRef<HTMLDivElement>();
     private _documentBindings: any = null;
     private _downX: number = 0;
     private _downY: number = 0;
-
     @computed get active(): boolean { return SelectionManager.IsSelected(this) || !this.props.ContainingCollectionView || this.props.ContainingCollectionView.active(); }
     @computed get topMost(): boolean { return !this.props.ContainingCollectionView || this.props.ContainingCollectionView.collectionViewType == CollectionViewType.Docking; }
     @computed get layout(): string { return this.props.Document.GetText(KeyStore.Layout, "<p>Error loading layout data</p>"); }
     @computed get layoutKeys(): Key[] { return this.props.Document.GetData(KeyStore.LayoutKeys, ListField, new Array<Key>()); }
     @computed get layoutFields(): Key[] { return this.props.Document.GetData(KeyStore.LayoutFields, ListField, new Array<Key>()); }
-
     screenRect = (): ClientRect | DOMRect => this._mainCont.current ? this._mainCont.current.getBoundingClientRect() : new DOMRect();
-
     onPointerDown = (e: React.PointerEvent): void => {
         this._downX = e.clientX;
         this._downY = e.clientY;
@@ -115,6 +109,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             }
         }
     }
+<<<<<<< HEAD
 
     private dropDisposer?: DragManager.DragDropDisposer;
     protected createDropTarget = (ele: HTMLDivElement) => {
@@ -142,6 +137,8 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         }
     }
 
+=======
+>>>>>>> bb1d3120f11a47e9d493202c1003dae52bf6667f
     onPointerMove = (e: PointerEvent): void => {
         if (e.cancelBubble) {
             return;
@@ -166,7 +163,6 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         e.stopPropagation();
         e.preventDefault();
     }
-
     onPointerUp = (e: PointerEvent): void => {
         document.removeEventListener("pointermove", this.onPointerMove)
         document.removeEventListener("pointerup", this.onPointerUp)
@@ -234,19 +230,8 @@ export class DocumentView extends React.Component<DocumentViewProps> {
 
         ContextMenu.Instance.addItem({ description: "Full Screen", event: this.fullScreenClicked })
         ContextMenu.Instance.addItem({ description: "Fields", event: this.fieldsClicked })
+        ContextMenu.Instance.addItem({ description: "Center", event: () => this.props.focus(this.props.Document) })
         ContextMenu.Instance.addItem({ description: "Open Right", event: () => CollectionDockingView.Instance.AddRightSplit(this.props.Document) })
-        ContextMenu.Instance.addItem({ description: "Freeform", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Freeform) })
-        ContextMenu.Instance.addItem({ description: "Schema", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Schema) })
-        ContextMenu.Instance.addItem({ description: "Treeview", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Tree) })
-        ContextMenu.Instance.addItem({
-            description: "center", event: () => {
-                if (this.props.ContainingCollectionView) {
-                    let doc = this.props.ContainingCollectionView.props.Document;
-                    doc.SetNumber(KeyStore.PanX, this.props.Document.GetNumber(KeyStore.X, 0) + (this.props.Document.GetNumber(KeyStore.Width, 0) / 2))
-                    doc.SetNumber(KeyStore.PanY, this.props.Document.GetNumber(KeyStore.Y, 0) + (this.props.Document.GetNumber(KeyStore.Height, 0) / 2))
-                }
-            }
-        })
         //ContextMenu.Instance.addItem({ description: "Docking", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Docking) })
         ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15)
         if (!this.topMost) {
@@ -258,7 +243,6 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15)
         SelectionManager.SelectDoc(this, e.ctrlKey);
     }
-
     @computed get mainContent() {
         return <JsxParser
             components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebBox, KeyValueBox }}
@@ -269,27 +253,34 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         />
     }
 
+    isSelected = () => {
+        return SelectionManager.IsSelected(this);
+    }
+
+    select = (ctrlPressed: boolean) => {
+        SelectionManager.SelectDoc(this, ctrlPressed)
+    }
+
     render() {
-        if (!this.props.Document)
-            return <div></div>
+        if (!this.props.Document) return <div></div>
         let lkeys = this.props.Document.GetT(KeyStore.LayoutKeys, ListField);
         if (!lkeys || lkeys === "<Waiting>") {
             return <p>Error loading layout keys</p>;
         }
         this._documentBindings = {
             ...this.props,
-            isSelected: () => SelectionManager.IsSelected(this),
-            select: (ctrlPressed: boolean) => SelectionManager.SelectDoc(this, ctrlPressed)
+            isSelected: this.isSelected,
+            select: this.select,
+            focus: this.props.focus
         };
         for (const key of this.layoutKeys) {
-            this._documentBindings[key.Name + "Key"] = key;  // this maps string values of the form <keyname>Key to an actual key Kestore.keyname  e.g,   "DataKey" => KeyStore.Data
+            this._documentBindings[key.Name + "Key"] = key; // this maps string values of the form <keyname>Key to an actual key Kestore.keyname  e.g,   "DataKey" => KeyStore.Data
         }
         for (const key of this.layoutFields) {
             let field = this.props.Document.Get(key);
             this._documentBindings[key.Name] = field && field != FieldWaiting ? field.GetValue() : field;
         }
         this._documentBindings.bindings = this._documentBindings;
-
         var scaling = this.props.ContentScaling();
         var nativeWidth = this.props.Document.GetNumber(KeyStore.NativeWidth, 0);
         var nativeHeight = this.props.Document.GetNumber(KeyStore.NativeHeight, 0);
@@ -299,11 +290,10 @@ export class DocumentView extends React.Component<DocumentViewProps> {
                     width: nativeWidth > 0 ? nativeWidth.toString() + "px" : "100%",
                     height: nativeHeight > 0 ? nativeHeight.toString() + "px" : "100%",
                     transformOrigin: "left top",
-                    transform: `scale(${scaling},${scaling})`
+                    transform: `scale(${scaling} , ${scaling})`
                 }}
                 onContextMenu={this.onContextMenu}
-                onPointerDown={this.onPointerDown}
-            >
+                onPointerDown={this.onPointerDown} >
                 {this.mainContent}
             </div>
         )

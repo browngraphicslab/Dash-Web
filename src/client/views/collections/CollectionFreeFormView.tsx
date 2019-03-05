@@ -166,7 +166,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
     @action
     onKeyDown = (e: React.KeyboardEvent<Element>) => {
         //if not these keys, make a textbox if preview cursor is active!
-        if (!e.ctrlKey && !e.altKey && !e.shiftKey) {
+        if (!e.ctrlKey && !e.altKey) {
             if (this._previewCursorVisible) {
                 //make textbox and add it to this collection
                 let [x, y] = this.getTransform().transformPoint(this._downX, this._downY); (this._downX, this._downY);
@@ -211,12 +211,21 @@ export class CollectionFreeFormView extends CollectionViewBase {
             return field.Data;
         }
     }
+
+    focusDocument = (doc: Document) => {
+        let x = doc.GetNumber(KeyStore.X, 0) + doc.GetNumber(KeyStore.Width, 0) / 2;
+        let y = doc.GetNumber(KeyStore.Y, 0) + doc.GetNumber(KeyStore.Height, 0) / 2;
+        this.SetPan(x, y);
+        this.props.focus(this.props.Document);
+    }
+
+
     @computed
     get views() {
         const lvalue = this.props.Document.GetT<ListField<Document>>(this.props.fieldKey, ListField);
         if (lvalue && lvalue != FieldWaiting) {
             return lvalue.Data.map(doc => {
-                return (<CollectionFreeFormDocumentView key={doc.Id} Document={doc} ref={focus}
+                return (<CollectionFreeFormDocumentView key={doc.Id} Document={doc}
                     AddDocument={this.props.addDocument}
                     RemoveDocument={this.props.removeDocument}
                     ScreenToLocalTransform={this.getTransform}
@@ -225,7 +234,9 @@ export class CollectionFreeFormView extends CollectionViewBase {
                     ContentScaling={this.noScaling}
                     PanelWidth={doc.Width}
                     PanelHeight={doc.Height}
-                    ContainingCollectionView={this.props.CollectionView} />);
+                    ContainingCollectionView={this.props.CollectionView}
+                    focus={this.focusDocument}
+                />);
             })
         }
         return null;
@@ -260,7 +271,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
     //when focus is lost, this will remove the preview cursor
     @action
-    onBlur = (e: React.FocusEvent<HTMLInputElement>): void => {
+    onBlur = (e: React.FocusEvent<HTMLDivElement>): void => {
         this._previewCursorVisible = false;
     }
 
@@ -278,9 +289,6 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
         const panx: number = -this.props.Document.GetNumber(KeyStore.PanX, 0);
         const pany: number = -this.props.Document.GetNumber(KeyStore.PanY, 0);
-        // const panx: number = this.props.Document.GetNumber(KeyStore.PanX, 0) + this.centeringShiftX;
-        // const pany: number = this.props.Document.GetNumber(KeyStore.PanY, 0) + this.centeringShiftY;
-        console.log("center:", this.getLocalTransform().transformPoint(this.centeringShiftX, this.centeringShiftY));
 
         return (
             <div className="collectionfreeformview-container"
