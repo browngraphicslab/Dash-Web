@@ -397,7 +397,7 @@ export class PDFNode extends React.Component<FieldViewProps> {
     }
     render() {
         return (
-            <div ref={this._mainDiv}
+            <div className="pdfNode-cont" ref={this._mainDiv}
                 onPointerDown={this.onPointerDown}
                 onPointerUp={this.onPointerUp}
             >
@@ -425,7 +425,7 @@ export class PDFNode extends React.Component<FieldViewProps> {
                 <Document file={window.origin + "/corsProxy/https://www.adobe.com/support/products/enterprise/knowledgecenter/media/c4611_sample_explain.pdf"}>
                     <Measure onResize={this.setScaling}>
                         {({ measureRef }) =>
-                            <div className="collectionSchemaView-content" ref={measureRef}>
+                            <div className="pdfNode-content" ref={measureRef}>
                                 <Page
                                     pageNumber={this.page}
                                     onLoadSuccess={
