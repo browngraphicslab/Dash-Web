@@ -1,0 +1,32 @@
+.inking-canvas {
+    position: absolute;
+    top: 0px;
+    left: 0px; // z-index: 99; //overlays ink on top of everything
+    svg {
+        width: 10000px;
+        height: 10000px;
+        .highlight {
+            mix-blend-mode: multiply;
+        }
+    }
+}
+
+.inking-control {
+    position: absolute;
+    right: 0;
+    bottom: 75px;
+    text-align: right;
+    .ink-panel {
+        margin-top: 12px;
+        &:first {
+            margin-top: 0;
+        }
+    }
+    .ink-size {
+        display: flex;
+        justify-content: space-between;
+        input {
+            width: 85%;
+        }
+    }
+}
