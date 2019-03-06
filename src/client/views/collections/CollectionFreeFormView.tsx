@@ -13,9 +13,10 @@ import { CollectionSchemaView } from "../collections/CollectionSchemaView";
 import { CollectionView } from "../collections/CollectionView";
 import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
 import { DocumentView } from "../nodes/DocumentView";
-import { WebView } from "../nodes/WebView";
 import { FormattedTextBox } from "../nodes/FormattedTextBox";
 import { ImageBox } from "../nodes/ImageBox";
+import { WebBox } from "../nodes/WebBox";
+import { KeyValueBox } from "../nodes/KeyValueBox"
 import "./CollectionFreeFormView.scss";
 import { COLLECTION_BORDER_WIDTH } from "./CollectionView";
 import { CollectionViewBase } from "./CollectionViewBase";
@@ -28,6 +29,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
     private _canvasRef = React.createRef<HTMLDivElement>();
     private _lastX: number = 0;
     private _lastY: number = 0;
+    private _selectOnLoaded: string = ""; // id of document that should be selected once it's loaded (used for click-to-type)
 
     @observable
     private _downX: number = 0;
@@ -96,13 +98,12 @@ export class CollectionFreeFormView extends CollectionViewBase {
     @action
     onPointerMove = (e: PointerEvent): void => {
         if (!e.cancelBubble && this.props.active()) {
-            e.preventDefault();
             e.stopPropagation();
             let x = this.props.Document.GetNumber(KeyStore.PanX, 0);
             let y = this.props.Document.GetNumber(KeyStore.PanY, 0);
-            let [dx, dy] = this.props.ScreenToLocalTransform().transformDirection(e.clientX - this._lastX, e.clientY - this._lastY);
+            let [dx, dy] = this.getTransform().transformDirection(e.clientX - this._lastX, e.clientY - this._lastY);
             this._previewCursorVisible = false;
-            this.SetPan(x + dx, y + dy);
+            this.SetPan(x - dx, y - dy);
         }
         this._lastX = e.pageX;
         this._lastY = e.pageY;
@@ -133,11 +134,12 @@ export class CollectionFreeFormView extends CollectionViewBase {
                 deltaScale = 1 / this.zoomScaling;
             let [x, y] = transform.transformPoint(e.clientX, e.clientY);
 
-            let localTransform = this.getLocalTransform();
+            let localTransform = this.getLocalTransform()
             localTransform = localTransform.inverse().scaleAbout(deltaScale, x, y)
+            console.log(localTransform)
 
             this.props.Document.SetNumber(KeyStore.Scale, localTransform.Scale);
-            this.SetPan(localTransform.TranslateX, localTransform.TranslateY);
+            this.SetPan(-localTransform.TranslateX / localTransform.Scale, -localTransform.TranslateY / localTransform.Scale);
         }
     }
 
@@ -161,14 +163,15 @@ export class CollectionFreeFormView extends CollectionViewBase {
     @action
     onKeyDown = (e: React.KeyboardEvent<Element>) => {
         //if not these keys, make a textbox if preview cursor is active!
-        if (!e.ctrlKey && !e.altKey && !e.shiftKey) {
+        if (!e.ctrlKey && !e.altKey) {
             if (this._previewCursorVisible) {
                 //make textbox and add it to this collection
                 let [x, y] = this.getTransform().transformPoint(this._downX, this._downY); (this._downX, this._downY);
                 let newBox = Documents.TextDocument({ width: 200, height: 100, x: x, y: y, title: "new" });
+                // mark this collection so that when the text box is created we can send it the SelectOnLoad prop to focus itself
+                this._selectOnLoaded = newBox.Id;
                 //set text to be the typed key and get focus on text box
                 this.props.CollectionView.addDocument(newBox);
-                newBox.SetNumber(KeyStore.SelectOnLoaded, 1);
                 //remove cursor from screen
                 this._previewCursorVisible = false;
             }
@@ -193,7 +196,6 @@ export class CollectionFreeFormView extends CollectionViewBase {
         });
     }
 
-
     @computed get backgroundLayout(): string | undefined {
         let field = this.props.Document.GetT(KeyStore.BackgroundLayout, TextField);
         if (field && field !== "<Waiting>") {
@@ -206,10 +208,18 @@ export class CollectionFreeFormView extends CollectionViewBase {
             return field.Data;
         }
     }
+
+    focusDocument = (doc: Document) => {
+        let x = doc.GetNumber(KeyStore.X, 0) + doc.GetNumber(KeyStore.Width, 0) / 2;
+        let y = doc.GetNumber(KeyStore.Y, 0) + doc.GetNumber(KeyStore.Height, 0) / 2;
+        this.SetPan(x, y);
+        this.props.focus(this.props.Document);
+    }
+
+
     @computed
     get views() {
-        const { fieldKey, Document } = this.props;
-        const lvalue = Document.GetT<ListField<Document>>(fieldKey, ListField);
+        const lvalue = this.props.Document.GetT<ListField<Document>>(this.props.fieldKey, ListField);
         if (lvalue && lvalue != FieldWaiting) {
             return lvalue.Data.map(doc => {
                 return (<CollectionFreeFormDocumentView key={doc.Id} Document={doc}
@@ -217,10 +227,13 @@ export class CollectionFreeFormView extends CollectionViewBase {
                     RemoveDocument={this.props.removeDocument}
                     ScreenToLocalTransform={this.getTransform}
                     isTopMost={false}
+                    SelectOnLoad={doc.Id === this._selectOnLoaded}
                     ContentScaling={this.noScaling}
                     PanelWidth={doc.Width}
                     PanelHeight={doc.Height}
-                    ContainingCollectionView={this.props.CollectionView} />);
+                    ContainingCollectionView={this.props.CollectionView}
+                    focus={this.focusDocument}
+                />);
             })
         }
         return null;
@@ -230,7 +243,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
     get backgroundView() {
         return !this.backgroundLayout ? (null) :
             (<JsxParser
-                components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebView }}
+                components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebBox, KeyValueBox }}
                 bindings={this.props.bindings}
                 jsx={this.backgroundLayout}
                 showWarnings={true}
@@ -241,7 +254,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
     get overlayView() {
         return !this.overlayLayout ? (null) :
             (<JsxParser
-                components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView }}
+                components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebBox, KeyValueBox }}
                 bindings={this.props.bindings}
                 jsx={this.overlayLayout}
                 showWarnings={true}
@@ -249,13 +262,13 @@ export class CollectionFreeFormView extends CollectionViewBase {
             />);
     }
 
-    getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-COLLECTION_BORDER_WIDTH - this.centeringShiftX, -COLLECTION_BORDER_WIDTH - this.centeringShiftY).transform(this.getLocalTransform())
-    getLocalTransform = (): Transform => Transform.Identity.translate(-this.panX, -this.panY).scale(1 / this.scale);
+    getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-COLLECTION_BORDER_WIDTH, -COLLECTION_BORDER_WIDTH).translate(-this.centeringShiftX, -this.centeringShiftY).transform(this.getLocalTransform())
+    getLocalTransform = (): Transform => Transform.Identity.scale(1 / this.scale).translate(this.panX, this.panY);
     noScaling = () => 1;
 
     //when focus is lost, this will remove the preview cursor
     @action
-    onBlur = (e: React.FocusEvent<HTMLInputElement>): void => {
+    onBlur = (e: React.FocusEvent<HTMLDivElement>): void => {
         this._previewCursorVisible = false;
     }
 
@@ -269,15 +282,16 @@ export class CollectionFreeFormView extends CollectionViewBase {
             cursor = <div id="prevCursor" onKeyPress={this.onKeyDown} style={{ color: "black", position: "absolute", transformOrigin: "left top", transform: `translate(${x}px, ${y}px)` }}>I</div>
         }
 
-        const panx: number = this.props.Document.GetNumber(KeyStore.PanX, 0) + this.centeringShiftX;
-        const pany: number = this.props.Document.GetNumber(KeyStore.PanY, 0) + this.centeringShiftY;
+        let [dx, dy] = [this.centeringShiftX, this.centeringShiftY];
+
+        const panx: number = -this.props.Document.GetNumber(KeyStore.PanX, 0);
+        const pany: number = -this.props.Document.GetNumber(KeyStore.PanY, 0);
 
         return (
             <div className="collectionfreeformview-container"
                 onPointerDown={this.onPointerDown}
                 onKeyPress={this.onKeyDown}
                 onWheel={this.onPointerWheel}
-                onContextMenu={(e) => e.preventDefault()}
                 onDrop={this.onDrop.bind(this)}
                 onDragOver={this.onDragOver}
                 onBlur={this.onBlur}
@@ -285,7 +299,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
                 tabIndex={0}
                 ref={this.createDropTarget}>
                 <div className="collectionfreeformview"
-                    style={{ transformOrigin: "left top", transform: ` translate(${panx}px, ${pany}px) scale(${this.zoomScaling}, ${this.zoomScaling})` }}
+                    style={{ transformOrigin: "left top", transform: `translate(${dx}px, ${dy}px) scale(${this.zoomScaling}, ${this.zoomScaling}) translate(${panx}px, ${pany}px)` }}
                     ref={this._canvasRef}>
                     {this.backgroundView}
                     {cursor}

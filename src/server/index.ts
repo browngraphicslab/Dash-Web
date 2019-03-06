@@ -85,6 +85,10 @@ app.get("/hello", (req, res) => {
     res.send("<p>Hello</p>");
 })
 
+app.use("/corsProxy", (req, res) => {
+    req.pipe(request(req.url.substring(1))).pipe(res);
+});
+
 app.get("/delete", (req, res) => {
     deleteAll();
     res.redirect("/");
@@ -125,7 +129,6 @@ function deleteAll() {
 
 function barReceived(guid: String) {
     clients[guid.toString()] = new Client(guid.toString());
-    // Database.Instance.print()
 }
 
 function addDocument(document: Document) {

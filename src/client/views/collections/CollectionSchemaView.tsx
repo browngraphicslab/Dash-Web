@@ -1,14 +1,15 @@
 import React = require("react")
-import { action, observable, trace } from "mobx";
+import { action, observable } from "mobx";
 import { observer } from "mobx-react";
 import Measure from "react-measure";
 import ReactTable, { CellInfo, ComponentPropsGetterR, ReactTableDefaults } from "react-table";
 import "react-table/react-table.css";
 import { Document } from "../../../fields/Document";
-import { Field, FieldWaiting } from "../../../fields/Field";
+import { Field } from "../../../fields/Field";
 import { KeyStore } from "../../../fields/KeyStore";
 import { CompileScript, ToField } from "../../util/Scripting";
 import { Transform } from "../../util/Transform";
+import { ContextMenu } from "../ContextMenu";
 import { EditableView } from "../EditableView";
 import { DocumentView } from "../nodes/DocumentView";
 import { FieldView, FieldViewProps } from "../nodes/FieldView";
@@ -39,15 +40,16 @@ export class CollectionSchemaView extends CollectionViewBase {
             isSelected: () => false,
             select: () => { },
             isTopMost: false,
-            bindings: {}
+            bindings: {},
+            selectOnLoad: false,
         }
         let contents = (
             <FieldView {...props} />
         )
         let reference = React.createRef<HTMLDivElement>();
-        let onItemDown = setupDrag(reference, props.doc);
+        let onItemDown = setupDrag(reference, () => props.doc);
         return (
-            <div onPointerDown={onItemDown} ref={reference}>
+            <div onPointerDown={onItemDown} key={props.doc.Id} ref={reference}>
                 <EditableView contents={contents}
                     height={36} GetValue={() => {
                         let field = props.doc.Get(props.fieldKey);
@@ -57,7 +59,7 @@ export class CollectionSchemaView extends CollectionViewBase {
                         return field || "";
                     }}
                     SetValue={(value: string) => {
-                        let script = CompileScript(value);
+                        let script = CompileScript(value, undefined, true);
                         if (!script.compiled) {
                             return false;
                         }
@@ -174,6 +176,8 @@ export class CollectionSchemaView extends CollectionViewBase {
         return this.props.ScreenToLocalTransform().translate(- COLLECTION_BORDER_WIDTH - this.DIVIDER_WIDTH - this._dividerX, - COLLECTION_BORDER_WIDTH).scale(1 / this._contentScaling);
     }
 
+    focusDocument = (doc: Document) => { }
+
     render() {
         const columns = this.props.Document.GetList(KeyStore.ColumnsKey, [KeyStore.Title, KeyStore.Data, KeyStore.Author])
         const children = this.props.Document.GetList<Document>(this.props.fieldKey, []);
@@ -185,11 +189,14 @@ export class CollectionSchemaView extends CollectionViewBase {
                         <DocumentView Document={selected}
                             AddDocument={this.props.addDocument} RemoveDocument={this.props.removeDocument}
                             isTopMost={false}
+                            SelectOnLoad={false}
                             ScreenToLocalTransform={this.getTransform}
                             ContentScaling={this.getContentScaling}
                             PanelWidth={this.getPanelWidth}
                             PanelHeight={this.getPanelHeight}
-                            ContainingCollectionView={this.props.CollectionView} />
+                            ContainingCollectionView={this.props.CollectionView}
+                            focus={this.focusDocument}
+                        />
                     </div>
                 }
             </Measure>
