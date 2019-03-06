@@ -2,8 +2,7 @@ import { action, IReactionDisposer, reaction } from "mobx";
 import { baseKeymap } from "prosemirror-commands";
 import { history, redo, undo } from "prosemirror-history";
 import { keymap } from "prosemirror-keymap";
-const { exampleSetup } = require("prosemirror-example-setup")
-import { schema } from "prosemirror-schema-basic";
+import { schema } from "../../util/RichTextSchema";
 import { EditorState, Transaction, } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { Opt, FieldWaiting, FieldValue } from "../../../fields/Field";
@@ -14,6 +13,7 @@ import { RichTextField } from "../../../fields/RichTextField";
 import { FieldViewProps, FieldView } from "./FieldView";
 import { Plugin } from 'prosemirror-state'
 import { Decoration, DecorationSet } from 'prosemirror-view'
+import { TooltipTextMenu } from "../../util/TooltipTextMenu"
 
 
 
@@ -61,12 +61,15 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
     componentDidMount() {
         let state: EditorState;
         const { doc, fieldKey } = this.props;
+
+        // let mySchema = new Schema({ nodes, marks })
         const config = {
             schema,
             plugins: [
                 history(),
                 keymap({ "Mod-z": undo, "Mod-y": redo }),
                 keymap(baseKeymap),
+                this.tooltipMenuPlugin()
             ]
 
         };
@@ -127,6 +130,15 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
     onPointerWheel = (e: React.WheelEvent): void => {
         e.stopPropagation();
     }
+
+    tooltipMenuPlugin() {
+        return new Plugin({
+            view(_editorView) {
+                return new TooltipTextMenu(_editorView)
+            }
+        })
+    }
+
     render() {
         return (<div className="formattedTextBox-cont"
             onPointerDown={this.onPointerDown}
