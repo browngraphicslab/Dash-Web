@@ -67,8 +67,8 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
     @action
     onPointerDown = (e: React.PointerEvent): void => {
-        if ((e.button === 2 && this.props.active()) ||
-            !e.defaultPrevented) {
+        if (((e.button === 2 && this.props.active()) ||
+            !e.defaultPrevented) && (!this.isAnnotationOverlay || this.zoomScaling != 1 || e.button == 0)) {
             document.removeEventListener("pointermove", this.onPointerMove);
             document.addEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
@@ -292,7 +292,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
         const pany: number = -this.props.Document.GetNumber(KeyStore.PanY, 0);
 
         return (
-            <div className="collectionfreeformview-container"
+            <div className={`collectionfreeformview${this.isAnnotationOverlay ? "-overlay" : "-container"}`}
                 onPointerDown={this.onPointerDown}
                 onKeyPress={this.onKeyDown}
                 onWheel={this.onPointerWheel}

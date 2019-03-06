@@ -99,7 +99,7 @@ export namespace Documents {
     function GetPdfPrototype(): Document {
         if (!pdfProto) {
             pdfProto = setupPrototypeOptions(pdfProtoId, "PDF_PROTO", CollectionView.LayoutString("AnnotationsKey"),
-                { x: 0, y: 0, nativeWidth: 300, nativeHeight: 300, width: 300, layoutKeys: [KeyStore.Data, KeyStore.Annotations] });
+                { x: 0, y: 0, nativeWidth: 600, width: 300, layoutKeys: [KeyStore.Data, KeyStore.Annotations] });
             pdfProto.SetText(KeyStore.BackgroundLayout, PDFNode.LayoutString());
         }
         return pdfProto;

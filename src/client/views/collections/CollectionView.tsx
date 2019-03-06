@@ -126,7 +126,7 @@ export class CollectionView extends React.Component<CollectionViewProps> {
                 subView = <div></div>
                 break;
         }
-        return (<div onContextMenu={this.specificContextMenu}>
+        return (<div className="collectionView-cont" onContextMenu={this.specificContextMenu}>
             {subView}
         </div>)
     }

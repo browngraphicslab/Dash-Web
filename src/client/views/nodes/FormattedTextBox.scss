@@ -11,8 +11,12 @@
 .formattedTextBox-cont {
     background: white;
     padding: 1;
-    border: black;
-    border-width: 10;
+    border-width: 1px;
+    border-radius: 2px;
+    border-color:black;
+    box-sizing: border-box;
+    background: white;
+    border-style:solid;
     overflow-y: scroll;
     overflow-x: hidden;
     color: initial;

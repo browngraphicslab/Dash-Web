@@ -1,0 +1,9 @@
+.react-pdf__Page {
+    transform-origin: left top;
+    //transform: scale(0.2, 0.2);
+    position: absolute;
+}
+.pdfButton-Tray {
+    position:absolute;
+    z-index: 25;
+}

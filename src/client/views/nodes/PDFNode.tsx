@@ -12,6 +12,9 @@ import "./ImageBox.scss";
 import { Sticky } from './Sticky'; //you should look at sticky and annotation, because they are used here
 import React = require("react")
 import { KeyStore } from '../../../fields/KeyStore';
+import "./PDFNode.scss";
+import { PDFField } from '../../../fields/PDFField';
+import { FieldWaiting } from '../../../fields/Field';
 
 /** ALSO LOOK AT: Annotation.tsx, Sticky.tsx
  * This method renders PDF and puts all kinds of functionalities such as annotation, highlighting, 
@@ -392,10 +395,21 @@ export class PDFNode extends React.Component<FieldViewProps> {
 
     @action
     setScaling = (r: any) => {
-        this.props.doc.SetNumber(KeyStore.NativeWidth, r.entry.width);
-        this.props.doc.SetNumber(KeyStore.NativeHeight, r.entry.height);
+        // bcz: the nativeHeight should really be set when the document is imported.
+        //      also, the native dimensions could be different for different pages of the PDF
+        //      so this design is flawed.
+        var nativeWidth = this.props.doc.GetNumber(KeyStore.NativeWidth, 0);
+        if (!this.props.doc.GetNumber(KeyStore.NativeHeight, 0)) {
+            this.props.doc.SetNumber(KeyStore.NativeHeight, nativeWidth * r.entry.height / r.entry.width);
+        }
     }
     render() {
+        const renderHeight = 2400;
+        let xf = this.props.doc.GetNumber(KeyStore.NativeHeight, 0) / renderHeight;
+        var pdfUrl = this.props.doc.GetT(this.props.fieldKey, PDFField);
+        if (!pdfUrl || pdfUrl == FieldWaiting) {
+            return (null);
+        }
         return (
             <div className="pdfNode-cont" ref={this._mainDiv}
                 onPointerDown={this.onPointerDown}
@@ -412,51 +426,56 @@ export class PDFNode extends React.Component<FieldViewProps> {
                     return element
                 })}
 
-                <button onClick={this.onPageBack}>{"<"}</button>
-                <button onClick={this.onPageForward}>{">"}</button>
-                <button onClick={this.selectionTool}>{"Area"}</button>
-                <button style={{ color: "white", backgroundColor: "grey" }} onClick={this.onHighlight} ref={this._highlightTool}>Highlight</button>
-                <button style={{ color: "white", backgroundColor: "grey" }} ref={this._drawTool} onClick={this.onDraw}>{"Draw"}</button>
-                <button ref={this._colorTool} onPointerDown={this.onColorChange}>{"Red"}</button>
-                <button ref={this._colorTool} onPointerDown={this.onColorChange}>{"Blue"}</button>
-                <button ref={this._colorTool} onPointerDown={this.onColorChange}>{"Green"}</button>
-                <button ref={this._colorTool} onPointerDown={this.onColorChange}>{"Black"}</button>
+                <div className="pdfButton-tray">
+                    <button className="pdfButton" onClick={this.onPageBack}>{"<"}</button>
+                    <button className="pdfButton" onClick={this.onPageForward}>{">"}</button>
+                    <button className="pdfButton" onClick={this.selectionTool}>{"Area"}</button>
+                    <button className="pdfButton" style={{ color: "white", backgroundColor: "grey" }} onClick={this.onHighlight} ref={this._highlightTool}>Highlight</button>
+                    <button className="pdfButton" style={{ color: "white", backgroundColor: "grey" }} ref={this._drawTool} onClick={this.onDraw}>{"Draw"}</button>
+                    <button className="pdfButton" ref={this._colorTool} onPointerDown={this.onColorChange}>{"Red"}</button>
+                    <button className="pdfButton" ref={this._colorTool} onPointerDown={this.onColorChange}>{"Blue"}</button>
+                    <button className="pdfButton" ref={this._colorTool} onPointerDown={this.onColorChange}>{"Green"}</button>
+                    <button className="pdfButton" ref={this._colorTool} onPointerDown={this.onColorChange}>{"Black"}</button>
+                </div>
 
-                <Document file={window.origin + "/corsProxy/https://www.adobe.com/support/products/enterprise/knowledgecenter/media/c4611_sample_explain.pdf"}>
-                    <Measure onResize={this.setScaling}>
-                        {({ measureRef }) =>
-                            <div className="pdfNode-content" ref={measureRef}>
-                                <Page
-                                    pageNumber={this.page}
-                                    onLoadSuccess={
-                                        (page: any) => {
-                                            if (this._mainDiv.current) {
-                                                this._mainDiv.current.childNodes.forEach((element) => {
-                                                    if (element.nodeName == "DIV") {
-                                                        element.childNodes[0].childNodes.forEach((e) => {
+                <div className="pdfContainer" style={{ transform: `scale(${xf}, ${xf})`, transformOrigin: "left top" }}>
+                    <Document file={window.origin + "/corsProxy/" + `${pdfUrl}`}>
+                        <Measure onResize={this.setScaling}>
+                            {({ measureRef }) =>
+                                <div className="pdfNode-content" ref={measureRef}>
+                                    <Page
+                                        height={renderHeight}
+                                        pageNumber={this.page}
+                                        onLoadSuccess={
+                                            (page: any) => {
+                                                if (this._mainDiv.current) {
+                                                    this._mainDiv.current.childNodes.forEach((element) => {
+                                                        if (element.nodeName == "DIV") {
+                                                            element.childNodes[0].childNodes.forEach((e) => {
 
-                                                            if (e instanceof HTMLCanvasElement) {
-                                                                this._pdfCanvas = e;
-                                                                this._pdfContext = e.getContext("2d")
+                                                                if (e instanceof HTMLCanvasElement) {
+                                                                    this._pdfCanvas = e;
+                                                                    this._pdfContext = e.getContext("2d")
 
-                                                            }
+                                                                }
 
-                                                        })
-                                                    }
-                                                })
-                                            }
-                                            this.numPage = page.transport.numPages
-                                            if (this.perPage.length == 0) { //Makes sure it only runs once
-                                                this.perPage = [...Array(this.numPage)]
+                                                            })
+                                                        }
+                                                    })
+                                                }
+                                                this.numPage = page.transport.numPages
+                                                if (this.perPage.length == 0) { //Makes sure it only runs once
+                                                    this.perPage = [...Array(this.numPage)]
+                                                }
                                             }
                                         }
-                                    }
-                                />
-                            </div>
-                        }
-                    </Measure>
-                </Document>
-            </div>
+                                    />
+                                </div>
+                            }
+                        </Measure>
+                    </Document>
+                </div >
+            </div >
         );
     }
 
