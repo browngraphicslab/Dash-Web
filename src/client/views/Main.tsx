@@ -51,11 +51,13 @@ Documents.initProtos(mainDocId, (res?: Document) => {
     }
 
     let imgurl = "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg";
+    let pdfurl = "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg"
     let weburl = "https://cs.brown.edu/courses/cs166/";
     let clearDatabase = action(() => Utils.Emit(Server.Socket, MessageStore.DeleteAll, {}))
     let addTextNode = action(() => Documents.TextDocument({ width: 200, height: 200, title: "a text note" }))
     let addColNode = action(() => Documents.FreeformDocument([], { width: 200, height: 200, title: "a freeform collection" }));
     let addSchemaNode = action(() => Documents.SchemaDocument([Documents.TextDocument()], { width: 200, height: 200, title: "a schema collection" }));
+    let addPDFNode = action(() => Documents.PdfDocument(pdfurl, { width: 200, height: 200, title: "a schema collection" }));
     let addImageNode = action(() => Documents.ImageDocument(imgurl, { width: 200, height: 200, title: "an image of a cat" }));
     let addWebNode = action(() => Documents.WebDocument(weburl, { width: 200, height: 200, title: "a sample web page" }));
 
@@ -64,6 +66,7 @@ Documents.initProtos(mainDocId, (res?: Document) => {
     );
 
     let imgRef = React.createRef<HTMLDivElement>();
+    let pdfRef = React.createRef<HTMLDivElement>(); 
     let webRef = React.createRef<HTMLDivElement>();
     let textRef = React.createRef<HTMLDivElement>();
     let schemaRef = React.createRef<HTMLDivElement>();
@@ -94,6 +97,8 @@ Documents.initProtos(mainDocId, (res?: Document) => {
                 <button onPointerDown={setupDrag(schemaRef, addSchemaNode)} onClick={addClick(addSchemaNode)}>Add Schema</button></div>
             <div className="main-buttonDiv" style={{ bottom: '125px' }} >
                 <button onClick={clearDatabase}>Clear Database</button></div>
+            <div className="main-buttonDiv" style={{ bottom: '150px' }} ref={pdfRef}>
+                <button onPointerDown={setupDrag(pdfRef, addPDFNode)} onClick={addClick(addPDFNode)}>Add PDF</button></div>
             <button className="main-undoButtons" style={{ bottom: '25px' }} onClick={() => UndoManager.Undo()}>Undo</button>
             <button className="main-undoButtons" style={{ bottom: '0px' }} onClick={() => UndoManager.Redo()}>Redo</button>
         </div>),

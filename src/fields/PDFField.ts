@@ -1,13 +1,13 @@
 import { BasicField } from "./BasicField";
-import { Field } from "./Field";
+import { Field, FieldId } from "./Field";
 import { observable } from "mobx"
 import { Types } from "../server/Message";
 
 
 
 export class PDFField extends BasicField<URL> {
-    constructor(data: URL | undefined = undefined, save: boolean = true) {
-        super(data || new URL("http://cs.brown.edu/~bcz/face.gif"), save);
+    constructor(data: URL | undefined = undefined, id?: FieldId, save: boolean = true) {
+        super(data == undefined ? new URL("http://cs.brown.edu/~bcz/bob_fettucine.jpg") : data, save, id);
     }
 
     toString(): string {

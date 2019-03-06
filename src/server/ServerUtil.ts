@@ -11,6 +11,7 @@ import { Types } from './Message';
 import { Utils } from '../Utils';
 import { HtmlField } from '../fields/HtmlField';
 import { WebField } from '../fields/WebField';
+import { PDFField } from '../fields/PDFField';
 
 export class ServerUtils {
     public static FromJson(json: any): Field {
@@ -39,6 +40,8 @@ export class ServerUtils {
                 return new Key(data, id, false)
             case Types.Image:
                 return new ImageField(new URL(data), id, false)
+            case Types.PDF:
+                return new PDFField(new URL(data), id, false)
             case Types.List:
                 return ListField.FromJson(id, data)
             case Types.Document:
