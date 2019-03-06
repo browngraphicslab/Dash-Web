@@ -417,7 +417,7 @@ export class PDFNode extends React.Component<FieldViewProps> {
                 <button ref={this._colorTool} onPointerDown={this.onColorChange}>{"Green"}</button>
                 <button ref={this._colorTool} onPointerDown={this.onColorChange}>{"Black"}</button>
 
-                <Document file={"https://www.adobe.com/support/products/enterprise/knowledgecenter/media/c4611_sample_explain.pdf"}>
+                <Document file={window.origin + "/corsProxy/https://www.adobe.com/support/products/enterprise/knowledgecenter/media/c4611_sample_explain.pdf"}>
                     <Page
                         pageNumber={this.page}
                         onLoadSuccess={
@@ -427,9 +427,8 @@ export class PDFNode extends React.Component<FieldViewProps> {
                                         if (element.nodeName == "DIV") {
                                             element.childNodes[0].childNodes.forEach((e) => {
 
-                                                if (e.nodeName == "CANVAS") {
+                                                if (e instanceof HTMLCanvasElement) {
                                                     this._pdfCanvas = e;
-                                                    //@ts-ignore
                                                     this._pdfContext = e.getContext("2d")
 
                                                 }
