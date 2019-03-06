@@ -204,6 +204,9 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         }
         let sourceDoc: Document = sourceDocView.props.Document;
         let destDoc: Document = this.props.Document;
+        if (this.props.isTopMost) {
+            return;
+        }
         let linkDoc: Document = new Document();
 
         linkDoc.Set(KeyStore.Title, new TextField("New Link"));

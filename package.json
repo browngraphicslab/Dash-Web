@@ -32,9 +32,8 @@
     "webpack-hot-middleware": "^2.24.3"
   },
   "dependencies": {
-    "@fortawesome/fontawesome-svg-core": "^1.2.14",
-    "@hig/flyout": "^1.0.3",
     "@fortawesome/fontawesome-svg-core": "^1.2.15",
+    "@hig/flyout": "^1.0.3",
     "@fortawesome/free-solid-svg-icons": "^5.7.2",
     "@fortawesome/react-fontawesome": "^0.1.4",
     "@types/bcrypt-nodejs": "0.0.30",

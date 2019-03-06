@@ -4,38 +4,41 @@ import { SelectionManager } from "../../util/SelectionManager";
 import { observer } from "mobx-react";
 import './LinkMenu.scss'
 import { KeyStore } from '../../../fields/KeyStore'
-import { NumberField } from "../../../fields/NumberField";
 import { props } from "bluebird";
-import { DragManager } from "../../util/DragManager";
 import { DocumentView } from "./DocumentView";
+import { LinkBox } from "./LinkBox"
 import { Document } from "../../../fields/Document";
+import { ListField } from "../../../fields/ListField";
+import { TextField } from "../../../fields/TextField";
 
 interface Props {
-    docView: DocumentView | undefined;
+    docView: DocumentView;
 }
 
 @observer
 export class LinkMenu extends React.Component<Props> {
-    // @observable private _hidden = true;
-
-    // @computed
-    // public get Hidden() { return this._hidden; }
-    // public set Hidden(value: boolean) { this._hidden = value; }
 
     render() {
-        // if (this.Hidden) {
-        //     return (null);
-        // }
+        //get list of links from document
+        let linkFrom: Document[] = this.props.docView.props.Document.GetData(KeyStore.LinkedFromDocs, ListField, []);
+        let linkTo: Document[] = this.props.docView.props.Document.GetData(KeyStore.LinkedToDocs, ListField, []);
 
         return (
             <div id="menu-container">
                 <input id="search-bar" type="text" placeholder="Search..."></input>
                 <div id="link-list">
 
+                    {linkTo.map(link => {
+                        let name = link.GetData(KeyStore.Title, TextField, new String);
+                        return <LinkBox linkDoc={link} linkName={name} />
+                    })}
+
+                    {linkFrom.map(link => {
+                        return <LinkBox linkDoc={link} linkName={name} />
+                    })}
                 </div>
 
             </div>
         )
     }
-
 }

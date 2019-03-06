@@ -1,4 +1,4 @@
-import { observable, computed } from "mobx";
+import { observable, computed, action } from "mobx";
 import React = require("react");
 import { SelectionManager } from "../util/SelectionManager";
 import { observer } from "mobx-react";
@@ -197,6 +197,18 @@ export class DocumentDecorations extends React.Component {
             console.log("DocumentDecorations: Bounds Error")
             return (null);
         }
+
+        let linkButton = null;
+        if (SelectionManager.SelectedDocuments().length > 0) {
+            linkButton = (<Flyout
+                anchorPoint={anchorPoints.RIGHT_TOP}
+                content={
+                    <LinkMenu docView={SelectionManager.SelectedDocuments()[0]}>
+                    </LinkMenu>
+                }>
+                <div id="linkButton" onPointerDown={this.onLinkButtonDown} ref={this._linkButton}></div>
+            </Flyout>);
+        }
         return (
             <div id="documentDecorations-container" style={{
                 width: (bounds.r - bounds.x + 40) + "px",
@@ -214,16 +226,7 @@ export class DocumentDecorations extends React.Component {
                 <div id="documentDecorations-bottomResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-bottomRightResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
 
-                <Flyout
-                    anchorPoint={anchorPoints.RIGHT_TOP}
-                    content={
-                        <LinkMenu docView={SelectionManager.SelectedDocuments()[0]}>
-                        </LinkMenu>
-                    }
-
-                >
-                    <div id="linkButton" onPointerDown={this.onLinkButtonDown} ref={this._linkButton}></div>
-                </Flyout>
+                {linkButton}
 
             </div >
         )
