@@ -40,8 +40,9 @@ export namespace Documents {
     let webProto: Document;
     let collProto: Document;
     let kvpProto: Document;
+    let pdfProto: Document;
     const textProtoId = "textProto";
-    const pdfProtoId = "textProto";
+    const pdfProtoId = "pdfProto";
     const imageProtoId = "imageProto";
     const webProtoId = "webProto";
     const collProtoId = "collectionProto";
@@ -96,9 +97,12 @@ export namespace Documents {
                 { x: 0, y: 0, width: 300, height: 150, layoutKeys: [KeyStore.Data] });
     }
     function GetPdfPrototype(): Document {
-        return textProto ? textProto :
-            textProto = setupPrototypeOptions(pdfProtoId, "PDF_PROTO", PDFNode.LayoutString(),
-                { x: 0, y: 0, width: 300, height: 150, layoutKeys: [KeyStore.Data] });
+        if (!pdfProto) {
+            pdfProto = setupPrototypeOptions(pdfProtoId, "PDF_PROTO", CollectionView.LayoutString("AnnotationsKey"),
+                { x: 0, y: 0, nativeWidth: 300, nativeHeight: 300, width: 300, layoutKeys: [KeyStore.Data, KeyStore.Annotations] });
+            pdfProto.SetText(KeyStore.BackgroundLayout, PDFNode.LayoutString());
+        }
+        return pdfProto;
     }
     function GetWebPrototype(): Document {
         return webProto ? webProto :

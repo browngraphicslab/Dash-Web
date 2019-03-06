@@ -1,17 +1,17 @@
+import { action, observable } from 'mobx';
+import { observer } from "mobx-react";
+import Measure from "react-measure";
 import 'react-image-lightbox/style.css';
-import "./ImageBox.scss";
-import React = require("react")
-import { observer } from "mobx-react"
-import { observable, action } from 'mobx';
-import 'react-pdf/dist/Page/AnnotationLayer.css'
 //@ts-ignore
-import { Document, Page, PDFPageProxy, PageAnnotation } from "react-pdf";
+import { Document, Page } from "react-pdf";
+import 'react-pdf/dist/Page/AnnotationLayer.css';
 import { Utils } from '../../../Utils';
-import { Sticky } from './Sticky'; //you should look at sticky and annotation, because they are used here
 import { Annotation } from './Annotation';
-import { ObjectPositionProperty } from 'csstype';
-import { keydownHandler } from 'prosemirror-keymap';
-import { FieldViewProps, FieldView } from './FieldView';
+import { FieldView, FieldViewProps } from './FieldView';
+import "./ImageBox.scss";
+import { Sticky } from './Sticky'; //you should look at sticky and annotation, because they are used here
+import React = require("react")
+import { KeyStore } from '../../../fields/KeyStore';
 
 /** ALSO LOOK AT: Annotation.tsx, Sticky.tsx
  * This method renders PDF and puts all kinds of functionalities such as annotation, highlighting, 
@@ -390,6 +390,11 @@ export class PDFNode extends React.Component<FieldViewProps> {
     }
 
 
+    @action
+    setScaling = (r: any) => {
+        this.props.doc.SetNumber(KeyStore.NativeWidth, r.entry.width);
+        this.props.doc.SetNumber(KeyStore.NativeHeight, r.entry.height);
+    }
     render() {
         return (
             <div ref={this._mainDiv}
@@ -418,32 +423,38 @@ export class PDFNode extends React.Component<FieldViewProps> {
                 <button ref={this._colorTool} onPointerDown={this.onColorChange}>{"Black"}</button>
 
                 <Document file={window.origin + "/corsProxy/https://www.adobe.com/support/products/enterprise/knowledgecenter/media/c4611_sample_explain.pdf"}>
-                    <Page
-                        pageNumber={this.page}
-                        onLoadSuccess={
-                            (page: any) => {
-                                if (this._mainDiv.current) {
-                                    this._mainDiv.current.childNodes.forEach((element) => {
-                                        if (element.nodeName == "DIV") {
-                                            element.childNodes[0].childNodes.forEach((e) => {
+                    <Measure onResize={this.setScaling}>
+                        {({ measureRef }) =>
+                            <div className="collectionSchemaView-content" ref={measureRef}>
+                                <Page
+                                    pageNumber={this.page}
+                                    onLoadSuccess={
+                                        (page: any) => {
+                                            if (this._mainDiv.current) {
+                                                this._mainDiv.current.childNodes.forEach((element) => {
+                                                    if (element.nodeName == "DIV") {
+                                                        element.childNodes[0].childNodes.forEach((e) => {
 
-                                                if (e instanceof HTMLCanvasElement) {
-                                                    this._pdfCanvas = e;
-                                                    this._pdfContext = e.getContext("2d")
+                                                            if (e instanceof HTMLCanvasElement) {
+                                                                this._pdfCanvas = e;
+                                                                this._pdfContext = e.getContext("2d")
 
-                                                }
+                                                            }
 
-                                            })
+                                                        })
+                                                    }
+                                                })
+                                            }
+                                            this.numPage = page.transport.numPages
+                                            if (this.perPage.length == 0) { //Makes sure it only runs once
+                                                this.perPage = [...Array(this.numPage)]
+                                            }
                                         }
-                                    })
-                                }
-                                this.numPage = page.transport.numPages
-                                if (this.perPage.length == 0) { //Makes sure it only runs once
-                                    this.perPage = [...Array(this.numPage)]
-                                }
-                            }
+                                    }
+                                />
+                            </div>
                         }
-                    />
+                    </Measure>
                 </Document>
             </div>
         );

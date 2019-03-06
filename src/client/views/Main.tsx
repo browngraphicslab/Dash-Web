@@ -51,7 +51,7 @@ Documents.initProtos(mainDocId, (res?: Document) => {
     }
 
     let imgurl = "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg";
-    let pdfurl = "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg"
+    let pdfurl = "http://www.adobe.com/support/products/enterprise/knowledgecenter/media/c4611_sample_explain.pdf"
     let weburl = "https://cs.brown.edu/courses/cs166/";
     let clearDatabase = action(() => Utils.Emit(Server.Socket, MessageStore.DeleteAll, {}))
     let addTextNode = action(() => Documents.TextDocument({ width: 200, height: 200, title: "a text note" }))
@@ -66,7 +66,7 @@ Documents.initProtos(mainDocId, (res?: Document) => {
     );
 
     let imgRef = React.createRef<HTMLDivElement>();
-    let pdfRef = React.createRef<HTMLDivElement>(); 
+    let pdfRef = React.createRef<HTMLDivElement>();
     let webRef = React.createRef<HTMLDivElement>();
     let textRef = React.createRef<HTMLDivElement>();
     let schemaRef = React.createRef<HTMLDivElement>();
