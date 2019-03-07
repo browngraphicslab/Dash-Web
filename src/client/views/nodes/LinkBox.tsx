@@ -8,6 +8,7 @@ import { props } from "bluebird";
 import { DocumentView } from "./DocumentView";
 import { Document } from "../../../fields/Document";
 import { ListField } from "../../../fields/ListField";
+import { DocumentManager } from "../../util/DocumentManager";
 
 interface Props {
     linkDoc: Document;
@@ -22,6 +23,10 @@ export class LinkBox extends React.Component<Props> {
     onViewButtonPressed = (e: React.PointerEvent): void => {
         console.log("view down");
         e.stopPropagation();
+        let docView = DocumentManager.Instance.getDocumentView(this.props.pairedDoc);
+        if (docView) {
+            docView.props.focus(this.props.pairedDoc);
+        }
     }
 
     onEditButtonPressed = (e: React.PointerEvent): void => {

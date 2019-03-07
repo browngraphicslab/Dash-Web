@@ -1,4 +1,4 @@
-import { action, computed } from "mobx";
+import { action, computed, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { Document } from "../../../fields/Document";
 import { Field, FieldWaiting, Opt } from "../../../fields/Field";
@@ -21,6 +21,7 @@ import { WebBox } from "../nodes/WebBox";
 import "./DocumentView.scss";
 import React = require("react");
 import { TextField } from "../../../fields/TextField";
+import { DocumentManager } from "../../util/DocumentManager";
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 
@@ -120,6 +121,9 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         if (this._mainCont.current) {
             this.dropDisposer = DragManager.MakeDropTarget(this._mainCont.current, { handlers: { drop: this.drop.bind(this) } });
         }
+        runInAction(() => {
+            DocumentManager.Instance.DocumentViews.push(this);
+        })
     }
 
     componentDidUpdate() {
@@ -135,6 +139,10 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         if (this.dropDisposer) {
             this.dropDisposer();
         }
+        runInAction(() => {
+            DocumentManager.Instance.DocumentViews.splice(DocumentManager.Instance.DocumentViews.indexOf(this), 1);
+
+        })
     }
 
     onPointerMove = (e: PointerEvent): void => {
