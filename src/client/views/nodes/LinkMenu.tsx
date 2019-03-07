@@ -10,6 +10,7 @@ import { LinkBox } from "./LinkBox"
 import { Document } from "../../../fields/Document";
 import { ListField } from "../../../fields/ListField";
 import { TextField } from "../../../fields/TextField";
+import { FieldWaiting } from "../../../fields/Field";
 
 interface Props {
     docView: DocumentView;
@@ -30,12 +31,23 @@ export class LinkMenu extends React.Component<Props> {
 
                     {linkTo.map(link => {
                         let name = link.GetData(KeyStore.Title, TextField, new String);
-                        return <LinkBox linkDoc={link} linkName={name} />
+                        let doc = link.GetT(KeyStore.LinkedToDocs, Document);
+                        if (doc && doc != FieldWaiting) {
+                            return <LinkBox linkDoc={link} linkName={name} pairedDoc={doc} type={"Destination: "} />
+                        } else {
+                            return <div></div>
+                        }
+
                     })}
 
                     {linkFrom.map(link => {
                         let name = link.GetData(KeyStore.Title, TextField, new String);
-                        return <LinkBox linkDoc={link} linkName={name} />
+                        let doc = link.GetT(KeyStore.LinkedFromDocs, Document);
+                        if (doc && doc != FieldWaiting) {
+                            return <LinkBox linkDoc={link} linkName={name} pairedDoc={doc} type={"Source: "} />
+                        } else {
+                            return <div></div>
+                        }
                     })}
                 </div>
 

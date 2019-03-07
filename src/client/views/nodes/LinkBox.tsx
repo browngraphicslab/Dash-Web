@@ -12,7 +12,8 @@ import { ListField } from "../../../fields/ListField";
 interface Props {
     linkDoc: Document;
     linkName: String;
-    // pairedDoc: Document;
+    pairedDoc: Document;
+    type: String;
 }
 
 @observer
@@ -59,9 +60,9 @@ export class LinkBox extends React.Component<Props> {
                     <div className="link-name">
                         <p>{this.props.linkName}</p>
                     </div>
-                    {/* <div className="doc-name">
-                        <p>{this.props.pairedDoc.Title}</p>
-                    </div> */}
+                    <div className="doc-name">
+                        <p>{this.props.type}{this.props.pairedDoc.Title}</p>
+                    </div>
                 </div>
 
                 <div className="button-container">
