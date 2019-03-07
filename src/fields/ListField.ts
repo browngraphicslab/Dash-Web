@@ -40,6 +40,7 @@ export class ListField<T extends Field> extends BasicField<T[]> {
             this.observeDisposer()
         }
         this.data = observable(value);
+        this.updateProxies();
         this.observeList();
     }
 

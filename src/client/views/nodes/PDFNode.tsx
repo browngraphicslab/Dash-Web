@@ -1,4 +1,4 @@
-import { action, observable, _interceptReads } from 'mobx';
+import { action, observable, _interceptReads, computed } from 'mobx';
 import { observer } from "mobx-react";
 import Measure from "react-measure";
 import 'react-image-lightbox/style.css';
@@ -76,26 +76,29 @@ export class PDFNode extends React.Component<FieldViewProps> {
 
     private _highlightTool = React.createRef<HTMLButtonElement>(); //highlighter button reference
     private _highlightToolOn: boolean = false;
-
-    @observable perPage: Object[] = []; //stores pageInfo
-    @observable pageInfo: any = { area: [], divs: [], anno: [] }; //divs is array of objects linked to anno
-
-    @observable private page: number = 1; //default is the first page. 
-    @observable private numPage: number = 1; //default number of pages
     private _pdfCanvas: any;
+
+    @observable private _perPageInfo: Object[] = []; //stores pageInfo
+    @observable private _pageInfo: any = { area: [], divs: [], anno: [] }; //divs is array of objects linked to anno
+
+    @observable private _currAnno: any = []
+    @observable private _page: number = 1; //default is the first page. 
+    @observable private _numPages: number = 1; //default number of pages
+    @observable private _interactive: boolean = false;
+    @observable private _loaded: boolean = false;
 
     /**
      * for pagination backwards
      */
     @action
     onPageBack = () => {
-        if (this.page > 1) {
-            this.page -= 1;
-            this.currAnno = [];
-            this.perPage[this.page] = this.pageInfo
-            this.pageInfo = { area: [], divs: [], anno: [] }; //resets the object to default
-            if (this.perPage[this.page - 1]) {
-                this.pageInfo = this.perPage[this.page - 1];
+        if (this._page > 1) {
+            this._page -= 1;
+            this._currAnno = [];
+            this._perPageInfo[this._page] = this._pageInfo
+            this._pageInfo = { area: [], divs: [], anno: [] }; //resets the object to default
+            if (this._perPageInfo[this._page - 1]) {
+                this._pageInfo = this._perPageInfo[this._page - 1];
             }
             this.saveThumbnail();
         }
@@ -106,13 +109,13 @@ export class PDFNode extends React.Component<FieldViewProps> {
      */
     @action
     onPageForward = () => {
-        if (this.page < this.numPage) {
-            this.page += 1;
-            this.currAnno = [];
-            this.perPage[this.page - 2] = this.pageInfo;
-            this.pageInfo = { area: [], divs: [], anno: [] }; //resets the object to default
-            if (this.perPage[this.page - 1]) {
-                this.pageInfo = this.perPage[this.page - 1];
+        if (this._page < this._numPages) {
+            this._page += 1;
+            this._currAnno = [];
+            this._perPageInfo[this._page - 2] = this._pageInfo;
+            this._pageInfo = { area: [], divs: [], anno: [] }; //resets the object to default
+            if (this._perPageInfo[this._page - 1]) {
+                this._pageInfo = this._perPageInfo[this._page - 1];
             }
             this.saveThumbnail();
         }
@@ -196,7 +199,7 @@ export class PDFNode extends React.Component<FieldViewProps> {
                     }
                 }
             }
-            this.pageInfo.divs.push(obj);
+            this._pageInfo.divs.push(obj);
 
         }
         document.designMode = "off";
@@ -224,27 +227,26 @@ export class PDFNode extends React.Component<FieldViewProps> {
     /**
      * when the cursor enters the highlight, it pops out annotation. ONLY WORKS FOR SINGLE DIV LINES
      */
-    @observable private currAnno: any = []
     @action
     onEnter = (e: any) => {
         let span: HTMLSpanElement = e.toElement;
         let index: any;
-        this.pageInfo.divs.forEach((obj: any) => {
+        this._pageInfo.divs.forEach((obj: any) => {
             obj.spans.forEach((element: any) => {
                 if (element == span) {
                     if (!index) {
-                        index = this.pageInfo.divs.indexOf(obj);
+                        index = this._pageInfo.divs.indexOf(obj);
                     }
                 }
             })
         })
 
-        if (this.pageInfo.anno.length >= index + 1) {
-            if (this.currAnno.length == 0) {
-                this.currAnno.push(this.pageInfo.anno[index]);
+        if (this._pageInfo.anno.length >= index + 1) {
+            if (this._currAnno.length == 0) {
+                this._currAnno.push(this._pageInfo.anno[index]);
             }
         } else {
-            if (this.currAnno.length == 0) { //if there are no current annotation
+            if (this._currAnno.length == 0) { //if there are no current annotation
                 let div = span.offsetParent;
                 //@ts-ignore
                 let divX = div.style.left
@@ -253,9 +255,9 @@ export class PDFNode extends React.Component<FieldViewProps> {
                 //slicing "px" from the end
                 divX = divX.slice(0, divX.length - 2); //gets X of the DIV element (parent of Span)
                 divY = divY.slice(0, divY.length - 2); //gets Y of the DIV element (parent of Span)
-                let annotation = <Annotation key={Utils.GenerateGuid()} Span={span} X={divX} Y={divY - 300} Highlights={this.pageInfo.divs} Annotations={this.pageInfo.anno} CurrAnno={this.currAnno} />
-                this.pageInfo.anno.push(annotation);
-                this.currAnno.push(annotation);
+                let annotation = <Annotation key={Utils.GenerateGuid()} Span={span} X={divX} Y={divY - 300} Highlights={this._pageInfo.divs} Annotations={this._pageInfo.anno} CurrAnno={this._currAnno} />
+                this._pageInfo.anno.push(annotation);
+                this._currAnno.push(annotation);
             }
         }
 
@@ -314,7 +316,7 @@ export class PDFNode extends React.Component<FieldViewProps> {
 
             if (this._mainDiv.current) {
                 let sticky = <Sticky key={Utils.GenerateGuid()} Height={height} Width={width} X={this.initX} Y={this.initY} />
-                this.pageInfo.area.push(sticky);
+                this._pageInfo.area.push(sticky);
             }
             this._toolOn = false;
         }
@@ -384,19 +386,7 @@ export class PDFNode extends React.Component<FieldViewProps> {
     }
 
 
-    /**
-     * renders whole lot of shets, including pdf, stickies, and annotations. 
-     */
 
-    reHighlight = () => {
-        let div = document.getElementsByClassName("react-pdf__Page__textContent");
-        if (div) {
-
-        }
-
-    }
-
-    @observable _interactive: boolean = false;
 
     @action
     saveThumbnail = () => {
@@ -413,6 +403,7 @@ export class PDFNode extends React.Component<FieldViewProps> {
         }, 1000);
     }
 
+    @action
     onLoaded = (page: any) => {
         if (this._mainDiv.current) {
             this._mainDiv.current.childNodes.forEach((element) => {
@@ -429,10 +420,11 @@ export class PDFNode extends React.Component<FieldViewProps> {
                 }
             })
         }
-        this.numPage = page.transport.numPages
-        if (this.perPage.length == 0) { //Makes sure it only runs once
-            this.perPage = [...Array(this.numPage)]
+        this._numPages = page.transport.numPages
+        if (this._perPageInfo.length == 0) { //Makes sure it only runs once
+            this._perPageInfo = [...Array(this._numPages)]
         }
+        this._loaded = true;
     }
 
     @action
@@ -448,9 +440,11 @@ export class PDFNode extends React.Component<FieldViewProps> {
             this.saveThumbnail();
         }
     }
-    makeUIButtons() {
+
+    @computed
+    get uIButtons() {
         return (
-            <div className="pdfButton-tray" key="tray">
+            <div className="pdfNode-buttonTray" key="tray">
                 <button className="pdfButton" onClick={this.onPageBack}>{"<"}</button>
                 <button className="pdfButton" onClick={this.onPageForward}>{">"}</button>
                 <button className="pdfButton" onClick={this.selectionTool}>{"Area"}</button>
@@ -462,32 +456,45 @@ export class PDFNode extends React.Component<FieldViewProps> {
                 <button className="pdfButton" ref={this._colorTool} onPointerDown={this.onColorChange}>{"Black"}</button>
             </div>);
     }
-    makePdfRenderer() {
-        let proxy = this.makeImageProxyRenderer();
+
+    @computed
+    get pdfContent() {
+        const renderHeight = 2400;
+        let pdfUrl = this.props.doc.GetT(this.props.fieldKey, PDFField);
+        let xf = this.props.doc.GetNumber(KeyStore.NativeHeight, 0) / renderHeight;
+        return <div className="pdfNode-contentContainer" key="container" style={{ transform: `scale(${xf}, ${xf})` }}>
+            <Document file={window.origin + "/corsProxy/" + `${pdfUrl}`}>
+                <Measure onResize={this.setScaling}>
+                    {({ measureRef }) =>
+                        <div className="pdfNode-page" ref={measureRef}>
+                            <Page height={renderHeight} pageNumber={this._page} onLoadSuccess={this.onLoaded} />
+                        </div>
+                    }
+                </Measure>
+            </Document>
+        </div >;
+    }
+
+    @computed
+    get pdfRenderer() {
+        let proxy = this._loaded ? (null) : this.imageProxyRenderer;
         let pdfUrl = this.props.doc.GetT(this.props.fieldKey, PDFField);
         if ((!this._interactive && proxy) || !pdfUrl || pdfUrl == FieldWaiting) {
             return proxy;
         }
-        const renderHeight = 2400;
-        let xf = this.props.doc.GetNumber(KeyStore.NativeHeight, 0) / renderHeight;
         return [
-            this.pageInfo.area.filter(() => this.pageInfo.area).map((element: any) => element),
-            this.currAnno.map((element: any) => element),
-            this.makeUIButtons(),
-            <div className="pdfContainer" key="container" style={{ transform: `scale(${xf}, ${xf})`, transformOrigin: "left top" }}>
-                <Document file={window.origin + "/corsProxy/" + `${pdfUrl}`}>
-                    <Measure onResize={this.setScaling}>
-                        {({ measureRef }) =>
-                            <div className="pdfNode-content" ref={measureRef}>
-                                <Page height={renderHeight} pageNumber={this.page} onLoadSuccess={this.onLoaded} />
-                            </div>
-                        }
-                    </Measure>
-                </Document>
-            </div >
+            this._pageInfo.area.filter(() => this._pageInfo.area).map((element: any) => element),
+            this._currAnno.map((element: any) => element),
+            this.uIButtons,
+            <div key="pdfNode-contentShell">
+                {this.pdfContent}
+                {proxy}
+            </div>
         ];
     }
-    makeImageProxyRenderer() {
+
+    @computed
+    get imageProxyRenderer() {
         let field = this.props.doc.Get(KeyStore.Thumbnail);
         if (field) {
             let path = field == FieldWaiting ? "https://image.flaticon.com/icons/svg/66/66163.svg" :
@@ -496,13 +503,11 @@ export class PDFNode extends React.Component<FieldViewProps> {
         }
         return (null);
     }
+
     render() {
         return (
-            <div className="pdfNode-cont" ref={this._mainDiv}
-                onPointerDown={this.onPointerDown}
-                onPointerUp={this.onPointerUp}
-            >
-                {this.makePdfRenderer()}
+            <div className="pdfNode-cont" ref={this._mainDiv} onPointerDown={this.onPointerDown} onPointerUp={this.onPointerUp} >
+                {this.pdfRenderer}
             </div >
         );
     }
