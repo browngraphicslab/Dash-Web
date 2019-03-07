@@ -412,6 +412,29 @@ export class PDFNode extends React.Component<FieldViewProps> {
                 });
         }, 1000);
     }
+
+    onLoaded = (page: any) => {
+        if (this._mainDiv.current) {
+            this._mainDiv.current.childNodes.forEach((element) => {
+                if (element.nodeName == "DIV") {
+                    element.childNodes[0].childNodes.forEach((e) => {
+
+                        if (e instanceof HTMLCanvasElement) {
+                            this._pdfCanvas = e;
+                            this._pdfContext = e.getContext("2d")
+
+                        }
+
+                    })
+                }
+            })
+        }
+        this.numPage = page.transport.numPages
+        if (this.perPage.length == 0) { //Makes sure it only runs once
+            this.perPage = [...Array(this.numPage)]
+        }
+    }
+
     @action
     setScaling = (r: any) => {
         // bcz: the nativeHeight should really be set when the document is imported.
@@ -425,90 +448,61 @@ export class PDFNode extends React.Component<FieldViewProps> {
             this.saveThumbnail();
         }
     }
-    render() {
-        let field = this.props.doc.Get(KeyStore.Thumbnail);
-        if (!this._interactive && field) {
-            let path = field == FieldWaiting ? "https://image.flaticon.com/icons/svg/66/66163.svg" :
-                field instanceof ImageField ? field.Data.href : "http://cs.brown.edu/people/bcz/prairie.jpg";
-            return (
-                <div className="pdfNode-cont" ref={this._mainDiv}
-                    onPointerDown={this.onPointerDown}
-                    onPointerUp={this.onPointerUp}
-                >
-                    <img src={path} width="100%" />
-                </div>);
+    makeUIButtons() {
+        return (
+            <div className="pdfButton-tray" key="tray">
+                <button className="pdfButton" onClick={this.onPageBack}>{"<"}</button>
+                <button className="pdfButton" onClick={this.onPageForward}>{">"}</button>
+                <button className="pdfButton" onClick={this.selectionTool}>{"Area"}</button>
+                <button className="pdfButton" style={{ color: "white", backgroundColor: "grey" }} onClick={this.onHighlight} ref={this._highlightTool}>Highlight</button>
+                <button className="pdfButton" style={{ color: "white", backgroundColor: "grey" }} ref={this._drawTool} onClick={this.onDraw}>{"Draw"}</button>
+                <button className="pdfButton" ref={this._colorTool} onPointerDown={this.onColorChange}>{"Red"}</button>
+                <button className="pdfButton" ref={this._colorTool} onPointerDown={this.onColorChange}>{"Blue"}</button>
+                <button className="pdfButton" ref={this._colorTool} onPointerDown={this.onColorChange}>{"Green"}</button>
+                <button className="pdfButton" ref={this._colorTool} onPointerDown={this.onColorChange}>{"Black"}</button>
+            </div>);
+    }
+    makePdfRenderer() {
+        let proxy = this.makeImageProxyRenderer();
+        let pdfUrl = this.props.doc.GetT(this.props.fieldKey, PDFField);
+        if ((!this._interactive && proxy) || !pdfUrl || pdfUrl == FieldWaiting) {
+            return proxy;
         }
         const renderHeight = 2400;
         let xf = this.props.doc.GetNumber(KeyStore.NativeHeight, 0) / renderHeight;
-        var pdfUrl = this.props.doc.GetT(this.props.fieldKey, PDFField);
-        if (!pdfUrl || pdfUrl == FieldWaiting) {
-            return (null);
+        return [
+            this.pageInfo.area.filter(() => this.pageInfo.area).map((element: any) => element),
+            this.currAnno.map((element: any) => element),
+            this.makeUIButtons(),
+            <div className="pdfContainer" key="container" style={{ transform: `scale(${xf}, ${xf})`, transformOrigin: "left top" }}>
+                <Document file={window.origin + "/corsProxy/" + `${pdfUrl}`}>
+                    <Measure onResize={this.setScaling}>
+                        {({ measureRef }) =>
+                            <div className="pdfNode-content" ref={measureRef}>
+                                <Page height={renderHeight} pageNumber={this.page} onLoadSuccess={this.onLoaded} />
+                            </div>
+                        }
+                    </Measure>
+                </Document>
+            </div >
+        ];
+    }
+    makeImageProxyRenderer() {
+        let field = this.props.doc.Get(KeyStore.Thumbnail);
+        if (field) {
+            let path = field == FieldWaiting ? "https://image.flaticon.com/icons/svg/66/66163.svg" :
+                field instanceof ImageField ? field.Data.href : "http://cs.brown.edu/people/bcz/prairie.jpg";
+            return <img src={path} width="100%" />;
         }
+        return (null);
+    }
+    render() {
         return (
             <div className="pdfNode-cont" ref={this._mainDiv}
                 onPointerDown={this.onPointerDown}
                 onPointerUp={this.onPointerUp}
             >
-
-                {this.pageInfo.area.filter(() => {
-                    return this.pageInfo.area
-                }).map((element: any) => {
-                    return element
-                })
-                }
-                {this.currAnno.map((element: any) => {
-                    return element
-                })}
-
-                <div className="pdfButton-tray">
-                    <button className="pdfButton" onClick={this.onPageBack}>{"<"}</button>
-                    <button className="pdfButton" onClick={this.onPageForward}>{">"}</button>
-                    <button className="pdfButton" onClick={this.selectionTool}>{"Area"}</button>
-                    <button className="pdfButton" style={{ color: "white", backgroundColor: "grey" }} onClick={this.onHighlight} ref={this._highlightTool}>Highlight</button>
-                    <button className="pdfButton" style={{ color: "white", backgroundColor: "grey" }} ref={this._drawTool} onClick={this.onDraw}>{"Draw"}</button>
-                    <button className="pdfButton" ref={this._colorTool} onPointerDown={this.onColorChange}>{"Red"}</button>
-                    <button className="pdfButton" ref={this._colorTool} onPointerDown={this.onColorChange}>{"Blue"}</button>
-                    <button className="pdfButton" ref={this._colorTool} onPointerDown={this.onColorChange}>{"Green"}</button>
-                    <button className="pdfButton" ref={this._colorTool} onPointerDown={this.onColorChange}>{"Black"}</button>
-                </div>
-
-                <div className="pdfContainer" style={{ transform: `scale(${xf}, ${xf})`, transformOrigin: "left top" }}>
-                    <Document file={window.origin + "/corsProxy/" + `${pdfUrl}`}>
-                        <Measure onResize={this.setScaling}>
-                            {({ measureRef }) =>
-                                <div className="pdfNode-content" ref={measureRef}>
-                                    <Page
-                                        height={renderHeight}
-                                        pageNumber={this.page}
-                                        onLoadSuccess={
-                                            (page: any) => {
-                                                if (this._mainDiv.current) {
-                                                    this._mainDiv.current.childNodes.forEach((element) => {
-                                                        if (element.nodeName == "DIV") {
-                                                            element.childNodes[0].childNodes.forEach((e) => {
-
-                                                                if (e instanceof HTMLCanvasElement) {
-                                                                    this._pdfCanvas = e;
-                                                                    this._pdfContext = e.getContext("2d")
-
-                                                                }
-
-                                                            })
-                                                        }
-                                                    })
-                                                }
-                                                this.numPage = page.transport.numPages
-                                                if (this.perPage.length == 0) { //Makes sure it only runs once
-                                                    this.perPage = [...Array(this.numPage)]
-                                                }
-                                            }
-                                        }
-                                    />
-                                </div>
-                            }
-                        </Measure>
-                    </Document>
-                </div >
+                {this.makePdfRenderer()}
             </div >
         );
     }

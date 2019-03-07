@@ -108,18 +108,7 @@ export namespace DragManager {
         let x = rect.left, y = rect.top;
         // const offsetX = e.x - rect.left, offsetY = e.y - rect.top;
 
-        // bcz: PDFs don't show up if you clone them -- presumably because they contain a canvas.
-        //      however, PDF's have a thumbnail field that contains an image of the current page.
-        //      so we use this image instead of the cloned element if it's present.
-        const docView: DocumentView = dragData["documentView"];
-        const doc: Document = docView ? docView.props.Document : dragData["document"];
-        let thumbnail = doc.GetT(KeyStore.Thumbnail, ImageField);
-        let img = thumbnail ? new Image() : null;
-        if (thumbnail) {
-            img!.src = thumbnail.toString();
-        }
-        let dragElement = img ? img : ele.cloneNode(true) as HTMLElement;
-
+        let dragElement = ele.cloneNode(true) as HTMLElement;
         dragElement.style.opacity = "0.7";
         dragElement.style.position = "absolute";
         dragElement.style.bottom = "";
@@ -129,10 +118,23 @@ export namespace DragManager {
         dragElement.style.transform = `translate(${x}px, ${y}px) scale(${scaleX}, ${scaleY})`;
         dragElement.style.width = `${rect.width / scaleX}px`;
         dragElement.style.height = `${rect.height / scaleY}px`;
-        // It seems like the above code should be able to just be this:
-        // dragElement.style.transform = `translate(${x}px, ${y}px)`;
-        // dragElement.style.width = `${rect.width}px`;
-        // dragElement.style.height = `${rect.height}px`;
+
+        // bcz: PDFs don't show up if you clone them because they contain a canvas.
+        //      however, PDF's have a thumbnail field that contains an image of their canvas.
+        //      So we replace the pdf's canvas with the image thumbnail
+        const docView: DocumentView = dragData["documentView"];
+        const doc: Document = docView ? docView.props.Document : dragData["document"];
+        var pdfNode = dragElement.getElementsByClassName("pdfNode-cont")[0] as HTMLElement;
+        let thumbnail = doc.GetT(KeyStore.Thumbnail, ImageField);
+        if (pdfNode && pdfNode.childElementCount && thumbnail) {
+            let img = new Image();
+            img!.src = thumbnail.toString();
+            img!.style.position = "absolute";
+            img!.style.width = `${rect.width / scaleX}px`;
+            img!.style.height = `${rect.height / scaleY}px`;
+            pdfNode.replaceChild(img!, pdfNode.children[0])
+        }
+
         dragDiv.appendChild(dragElement);
 
         let hideSource = false;
