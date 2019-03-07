@@ -3,6 +3,8 @@ import { CollectionDockingView } from "../views/collections/CollectionDockingVie
 import { Document } from "../../fields/Document"
 import { action } from "mobx";
 import { DocumentView } from "../views/nodes/DocumentView";
+import { ImageField } from "../../fields/ImageField";
+import { KeyStore } from "../../fields/KeyStore";
 
 export function setupDrag(_reference: React.RefObject<HTMLDivElement>, docFunc: () => Document) {
     let onRowMove = action((e: PointerEvent): void => {
@@ -105,7 +107,19 @@ export namespace DragManager {
         const scaleX = rect.width / w, scaleY = rect.height / h;
         let x = rect.left, y = rect.top;
         // const offsetX = e.x - rect.left, offsetY = e.y - rect.top;
-        let dragElement = ele.cloneNode(true) as HTMLElement;
+
+        // bcz: PDFs don't show up if you clone them -- presumably because they contain a canvas.
+        //      however, PDF's have a thumbnail field that contains an image of the current page.
+        //      so we use this image instead of the cloned element if it's present.
+        const docView: DocumentView = dragData["documentView"];
+        const doc: Document = docView ? docView.props.Document : dragData["document"];
+        let thumbnail = doc.GetT(KeyStore.Thumbnail, ImageField);
+        let img = thumbnail ? new Image() : null;
+        if (thumbnail) {
+            img!.src = thumbnail.toString();
+        }
+        let dragElement = img ? img : ele.cloneNode(true) as HTMLElement;
+
         dragElement.style.opacity = "0.7";
         dragElement.style.position = "absolute";
         dragElement.style.bottom = "";
@@ -140,8 +154,6 @@ export namespace DragManager {
             y += e.movementY;
             if (e.shiftKey) {
                 abortDrag();
-                const docView: DocumentView = dragData["documentView"];
-                const doc: Document = docView ? docView.props.Document : dragData["document"];
                 CollectionDockingView.Instance.StartOtherDrag(doc, { pageX: e.pageX, pageY: e.pageY, preventDefault: () => { }, button: 0 });
             }
             dragElement.style.transform = `translate(${x}px, ${y}px) scale(${scaleX}, ${scaleY})`;

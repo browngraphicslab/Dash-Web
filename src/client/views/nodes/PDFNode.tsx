@@ -1,4 +1,4 @@
-import { action, observable } from 'mobx';
+import { action, observable, _interceptReads } from 'mobx';
 import { observer } from "mobx-react";
 import Measure from "react-measure";
 import 'react-image-lightbox/style.css';
@@ -15,6 +15,9 @@ import { KeyStore } from '../../../fields/KeyStore';
 import "./PDFNode.scss";
 import { PDFField } from '../../../fields/PDFField';
 import { FieldWaiting } from '../../../fields/Field';
+import { ImageField } from '../../../fields/ImageField';
+import * as htmlToImage from "html-to-image";
+import { url } from 'inspector';
 
 /** ALSO LOOK AT: Annotation.tsx, Sticky.tsx
  * This method renders PDF and puts all kinds of functionalities such as annotation, highlighting, 
@@ -94,6 +97,7 @@ export class PDFNode extends React.Component<FieldViewProps> {
             if (this.perPage[this.page - 1]) {
                 this.pageInfo = this.perPage[this.page - 1];
             }
+            this.saveThumbnail();
         }
     }
 
@@ -110,6 +114,7 @@ export class PDFNode extends React.Component<FieldViewProps> {
             if (this.perPage[this.page - 1]) {
                 this.pageInfo = this.perPage[this.page - 1];
             }
+            this.saveThumbnail();
         }
     }
 
@@ -288,7 +293,6 @@ export class PDFNode extends React.Component<FieldViewProps> {
      */
     @action
     onPointerUp = (e: React.PointerEvent) => {
-
         if (this._highlightToolOn) {
             this.highlight("rgba(76, 175, 80, 0.3)"); //highlights to this default color. 
             this._highlightToolOn = false;
@@ -314,7 +318,7 @@ export class PDFNode extends React.Component<FieldViewProps> {
             }
             this._toolOn = false;
         }
-
+        this._interactive = true;
     }
 
     /**
@@ -392,7 +396,22 @@ export class PDFNode extends React.Component<FieldViewProps> {
 
     }
 
+    @observable _interactive: boolean = false;
 
+    @action
+    saveThumbnail = () => {
+        setTimeout(() => {
+            var me = this;
+            htmlToImage.toPng(this._mainDiv.current!,
+                { width: me.props.doc.GetNumber(KeyStore.NativeWidth, 0), height: me.props.doc.GetNumber(KeyStore.NativeHeight, 0), quality: 0.5 })
+                .then(function (dataUrl: string) {
+                    me.props.doc.SetData(KeyStore.Thumbnail, new URL(dataUrl), ImageField);
+                })
+                .catch(function (error: any) {
+                    console.error('oops, something went wrong!', error);
+                });
+        }, 1000);
+    }
     @action
     setScaling = (r: any) => {
         // bcz: the nativeHeight should really be set when the document is imported.
@@ -402,8 +421,23 @@ export class PDFNode extends React.Component<FieldViewProps> {
         if (!this.props.doc.GetNumber(KeyStore.NativeHeight, 0)) {
             this.props.doc.SetNumber(KeyStore.NativeHeight, nativeWidth * r.entry.height / r.entry.width);
         }
+        if (!this.props.doc.GetT(KeyStore.Thumbnail, ImageField)) {
+            this.saveThumbnail();
+        }
     }
     render() {
+        let field = this.props.doc.Get(KeyStore.Thumbnail);
+        if (!this._interactive && field) {
+            let path = field == FieldWaiting ? "https://image.flaticon.com/icons/svg/66/66163.svg" :
+                field instanceof ImageField ? field.Data.href : "http://cs.brown.edu/people/bcz/prairie.jpg";
+            return (
+                <div className="pdfNode-cont" ref={this._mainDiv}
+                    onPointerDown={this.onPointerDown}
+                    onPointerUp={this.onPointerUp}
+                >
+                    <img src={path} width="100%" />
+                </div>);
+        }
         const renderHeight = 2400;
         let xf = this.props.doc.GetNumber(KeyStore.NativeHeight, 0) / renderHeight;
         var pdfUrl = this.props.doc.GetT(this.props.fieldKey, PDFField);
