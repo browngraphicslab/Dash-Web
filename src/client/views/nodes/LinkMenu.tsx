@@ -34,6 +34,7 @@ export class LinkMenu extends React.Component<Props> {
                     })}
 
                     {linkFrom.map(link => {
+                        let name = link.GetData(KeyStore.Title, TextField, new String);
                         return <LinkBox linkDoc={link} linkName={name} />
                     })}
                 </div>

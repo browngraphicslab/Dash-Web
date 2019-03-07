@@ -31,11 +31,24 @@ export class LinkBox extends React.Component<Props> {
     onDeleteButtonPressed = (e: React.PointerEvent): void => {
         console.log("delete down");
         e.stopPropagation();
-        let linkToDoc: Document = this.props.linkDoc.GetData(KeyStore.LinkedToDocs, ListField, [])[0];
-        let linkFromDoc: Document = this.props.linkDoc.GetData(KeyStore.LinkedFromDocs, ListField, [])[0];
-
-        // let linkToDocFromDocs: Document[] = linkToDoc.GetData(KeyStore.LinkedFromDocs, ListField, []);
-        // linkToDocFromDocs.
+        this.props.linkDoc.GetTAsync(KeyStore.LinkedFromDocs, Document, field => {
+            if (field) {
+                field.GetTAsync<ListField<Document>>(KeyStore.LinkedToDocs, ListField, field => {
+                    if (field) {
+                        field.Data.splice(field.Data.indexOf(this.props.linkDoc));
+                    }
+                })
+            }
+        });
+        this.props.linkDoc.GetTAsync(KeyStore.LinkedToDocs, Document, field => {
+            if (field) {
+                field.GetTAsync<ListField<Document>>(KeyStore.LinkedFromDocs, ListField, field => {
+                    if (field) {
+                        field.Data.splice(field.Data.indexOf(this.props.linkDoc));
+                    }
+                })
+            }
+        });
     }
 
     render() {

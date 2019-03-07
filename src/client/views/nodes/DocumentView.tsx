@@ -214,9 +214,9 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         linkDoc.Set(KeyStore.LinkTags, new TextField("Default"));
 
         sourceDoc.GetOrCreateAsync(KeyStore.LinkedToDocs, ListField, field => { (field as ListField<Document>).Data.push(linkDoc) });
-        linkDoc.GetOrCreateAsync(KeyStore.LinkedToDocs, ListField, field => { (field as ListField<Document>).Data.push(destDoc) });
+        linkDoc.Set(KeyStore.LinkedToDocs, destDoc);
         destDoc.GetOrCreateAsync(KeyStore.LinkedFromDocs, ListField, field => { (field as ListField<Document>).Data.push(linkDoc) });
-        linkDoc.GetOrCreateAsync(KeyStore.LinkedFromDocs, ListField, field => { (field as ListField<Document>).Data.push(sourceDoc) });
+        linkDoc.Set(KeyStore.LinkedFromDocs, sourceDoc);
 
 
 
