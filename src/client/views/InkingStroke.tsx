@@ -60,7 +60,7 @@ export class InkingStroke extends React.Component<StrokeProps> {
         return (
             <path className={(this._strokeTool === InkTool.Highlighter) ? "highlight" : ""}
                 d={pathData} style={pathStyle} strokeLinejoin="round" strokeLinecap="round"
-                onMouseOver={this.deleteStroke} />
+                onMouseOver={this.deleteStroke} onMouseDown={this.deleteStroke} />
         )
     }
 }
