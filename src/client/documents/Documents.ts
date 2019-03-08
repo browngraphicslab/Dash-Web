@@ -14,9 +14,8 @@ import { HtmlField } from "../../fields/HtmlField";
 import { Key } from "../../fields/Key"
 import { Field } from "../../fields/Field";
 import { KeyValueBox } from "../views/nodes/KeyValueBox"
-import { KVPField } from "../../fields/KVPField";
 import { PDFField } from "../../fields/PDFField";
-import { PDFNode } from "../views/nodes/PDFNode";
+import { PDFBox } from "../views/nodes/PDFBox";
 
 export interface DocumentOptions {
     x?: number;
@@ -100,7 +99,7 @@ export namespace Documents {
         if (!pdfProto) {
             pdfProto = setupPrototypeOptions(pdfProtoId, "PDF_PROTO", CollectionView.LayoutString("AnnotationsKey"),
                 { x: 0, y: 0, nativeWidth: 600, width: 300, layoutKeys: [KeyStore.Data, KeyStore.Annotations] });
-            pdfProto.SetText(KeyStore.BackgroundLayout, PDFNode.LayoutString());
+            pdfProto.SetText(KeyStore.BackgroundLayout, PDFBox.LayoutString());
         }
         return pdfProto;
     }

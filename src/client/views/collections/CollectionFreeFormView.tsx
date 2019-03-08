@@ -1,30 +1,28 @@
-import { observable, action, computed } from "mobx";
+import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import { Document } from "../../../fields/Document";
 import { FieldWaiting } from "../../../fields/Field";
 import { KeyStore } from "../../../fields/KeyStore";
 import { ListField } from "../../../fields/ListField";
 import { TextField } from "../../../fields/TextField";
+import { Documents } from "../../documents/Documents";
 import { DragManager } from "../../util/DragManager";
 import { Transform } from "../../util/Transform";
 import { undoBatch } from "../../util/UndoManager";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { CollectionSchemaView } from "../collections/CollectionSchemaView";
 import { CollectionView } from "../collections/CollectionView";
+import { InkingCanvas } from "../InkingCanvas";
 import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
 import { DocumentView } from "../nodes/DocumentView";
 import { FormattedTextBox } from "../nodes/FormattedTextBox";
 import { ImageBox } from "../nodes/ImageBox";
-import { PDFNode } from "../nodes/PDFNode";
+import { KeyValueBox } from "../nodes/KeyValueBox";
+import { PDFBox } from "../nodes/PDFBox";
 import { WebBox } from "../nodes/WebBox";
-import { KeyValueBox } from "../nodes/KeyValueBox"
 import "./CollectionFreeFormView.scss";
 import { COLLECTION_BORDER_WIDTH } from "./CollectionView";
 import { CollectionViewBase } from "./CollectionViewBase";
-import { Documents } from "../../documents/Documents";
-import { InkingCanvas } from "../InkingCanvas";
-import { InkingControl } from "../InkingControl";
-import { InkTool } from "../../../fields/InkField";
 import React = require("react");
 const JsxParser = require('react-jsx-parser').default;//TODO Why does this need to be imported like this?
 
@@ -250,7 +248,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
     get backgroundView() {
         return !this.backgroundLayout ? (null) :
             (<JsxParser
-                components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebBox, KeyValueBox, PDFNode }}
+                components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebBox, KeyValueBox, PDFBox }}
                 bindings={this.props.bindings}
                 jsx={this.backgroundLayout}
                 showWarnings={true}
@@ -261,7 +259,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
     get overlayView() {
         return !this.overlayLayout ? (null) :
             (<JsxParser
-                components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebBox, KeyValueBox, PDFNode }}
+                components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebBox, KeyValueBox, PDFBox }}
                 bindings={this.props.bindings}
                 jsx={this.overlayLayout}
                 showWarnings={true}

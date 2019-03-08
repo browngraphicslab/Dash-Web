@@ -12,7 +12,7 @@ import "./ImageBox.scss";
 import { Sticky } from './Sticky'; //you should look at sticky and annotation, because they are used here
 import React = require("react")
 import { KeyStore } from '../../../fields/KeyStore';
-import "./PDFNode.scss";
+import "./PDFBox.scss";
 import { PDFField } from '../../../fields/PDFField';
 import { FieldWaiting } from '../../../fields/Field';
 import { ImageField } from '../../../fields/ImageField';
@@ -51,8 +51,8 @@ import { url } from 'inspector';
  * written by: Andrew Kim 
  */
 @observer
-export class PDFNode extends React.Component<FieldViewProps> {
-    public static LayoutString() { return FieldView.LayoutString(PDFNode); }
+export class PDFBox extends React.Component<FieldViewProps> {
+    public static LayoutString() { return FieldView.LayoutString(PDFBox); }
 
     private _mainDiv = React.createRef<HTMLDivElement>()
     private _pdf = React.createRef<HTMLCanvasElement>();
@@ -420,7 +420,7 @@ export class PDFNode extends React.Component<FieldViewProps> {
                 }
             })
         }
-        this._numPages = page.transport.numPages
+        this._numPages = page._transport.numPages;
         if (this._perPageInfo.length == 0) { //Makes sure it only runs once
             this._perPageInfo = [...Array(this._numPages)]
         }
@@ -444,7 +444,7 @@ export class PDFNode extends React.Component<FieldViewProps> {
     @computed
     get uIButtons() {
         return (
-            <div className="pdfNode-buttonTray" key="tray">
+            <div className="pdfBox-buttonTray" key="tray">
                 <button className="pdfButton" onClick={this.onPageBack}>{"<"}</button>
                 <button className="pdfButton" onClick={this.onPageForward}>{">"}</button>
                 <button className="pdfButton" onClick={this.selectionTool}>{"Area"}</button>
@@ -462,11 +462,11 @@ export class PDFNode extends React.Component<FieldViewProps> {
         const renderHeight = 2400;
         let pdfUrl = this.props.doc.GetT(this.props.fieldKey, PDFField);
         let xf = this.props.doc.GetNumber(KeyStore.NativeHeight, 0) / renderHeight;
-        return <div className="pdfNode-contentContainer" key="container" style={{ transform: `scale(${xf}, ${xf})` }}>
+        return <div className="pdfBox-contentContainer" key="container" style={{ transform: `scale(${xf}, ${xf})` }}>
             <Document file={window.origin + "/corsProxy/" + `${pdfUrl}`}>
                 <Measure onResize={this.setScaling}>
                     {({ measureRef }) =>
-                        <div className="pdfNode-page" ref={measureRef}>
+                        <div className="pdfBox-page" ref={measureRef}>
                             <Page height={renderHeight} pageNumber={this._page} onLoadSuccess={this.onLoaded} />
                         </div>
                     }
@@ -486,7 +486,7 @@ export class PDFNode extends React.Component<FieldViewProps> {
             this._pageInfo.area.filter(() => this._pageInfo.area).map((element: any) => element),
             this._currAnno.map((element: any) => element),
             this.uIButtons,
-            <div key="pdfNode-contentShell">
+            <div key="pdfBox-contentShell">
                 {this.pdfContent}
                 {proxy}
             </div>
@@ -506,7 +506,7 @@ export class PDFNode extends React.Component<FieldViewProps> {
 
     render() {
         return (
-            <div className="pdfNode-cont" ref={this._mainDiv} onPointerDown={this.onPointerDown} onPointerUp={this.onPointerUp} >
+            <div className="pdfBox-cont" ref={this._mainDiv} onPointerDown={this.onPointerDown} onPointerUp={this.onPointerUp} >
                 {this.pdfRenderer}
             </div >
         );
