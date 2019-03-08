@@ -1,4 +1,4 @@
-import { action, computed, observable } from "mobx";
+import { action, computed, observable, reaction, trace } from "mobx";
 import { observer } from "mobx-react";
 import { Document } from "../../../fields/Document";
 import { FieldWaiting } from "../../../fields/Field";
@@ -25,6 +25,7 @@ import "./CollectionFreeFormView.scss";
 import { COLLECTION_BORDER_WIDTH } from "./CollectionView";
 import { CollectionViewBase } from "./CollectionViewBase";
 import React = require("react");
+import { render } from "pug";
 const JsxParser = require('react-jsx-parser').default;//TODO Why does this need to be imported like this?
 
 @observer
@@ -296,6 +297,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
         const panx: number = -this.props.Document.GetNumber(KeyStore.PanX, 0);
         const pany: number = -this.props.Document.GetNumber(KeyStore.PanY, 0);
 
+        trace();
         return (
             <div className={`collectionfreeformview${this.isAnnotationOverlay ? "-overlay" : "-container"}`}
                 onPointerDown={this.onPointerDown}
@@ -313,10 +315,74 @@ export class CollectionFreeFormView extends CollectionViewBase {
                     {this.backgroundView}
                     <InkingCanvas getScreenTransform={this.getTransform} Document={this.props.Document} />
                     {cursor}
-                    {this.views}
+                    <ViewRender {...this.props}></ViewRender>
                 </div>
                 {this.overlayView}
             </div>
         );
+    }
+}
+
+@observer
+export class ViewRender extends CollectionViewBase {
+
+    @computed get panX(): number { return this.props.Document.GetNumber(KeyStore.PanX, 0) }
+    @computed get panY(): number { return this.props.Document.GetNumber(KeyStore.PanY, 0) }
+    @computed get scale(): number { return this.props.Document.GetNumber(KeyStore.Scale, 1); }
+    @computed get isAnnotationOverlay() { return this.props.fieldKey.Id === KeyStore.Annotations.Id; } // bcz: ? Why do we need to compare Id's?
+    @computed get nativeWidth() { return this.props.Document.GetNumber(KeyStore.NativeWidth, 0); }
+    @computed get nativeHeight() { return this.props.Document.GetNumber(KeyStore.NativeHeight, 0); }
+    @computed get zoomScaling() { return this.props.Document.GetNumber(KeyStore.Scale, 1); }
+    @computed get centeringShiftX() { return !this.props.Document.GetNumber(KeyStore.NativeWidth, 0) ? this.props.panelWidth() / 2 : 0; }  // shift so pan position is at center of window for non-overlay collections
+    @computed get centeringShiftY() { return !this.props.Document.GetNumber(KeyStore.NativeHeight, 0) ? this.props.panelHeight() / 2 : 0; }// shift so pan position is at center of window for non-overlay collections
+
+    @computed get views() { return this.props.Document.GetT<ListField<Document>>(this.props.fieldKey, ListField) }
+
+
+    focusDocument = (doc: Document) => {
+        let x = doc.GetNumber(KeyStore.X, 0) + doc.GetNumber(KeyStore.Width, 0) / 2;
+        let y = doc.GetNumber(KeyStore.Y, 0) + doc.GetNumber(KeyStore.Height, 0) / 2;
+        this.SetPan(x, y);
+        this.props.focus(this.props.Document);
+    }
+
+    @action
+    private SetPan(panX: number, panY: number) {
+        var x1 = this.getLocalTransform().inverse().Scale;
+        const newPanX = Math.min((1 - 1 / x1) * this.nativeWidth, Math.max(0, panX));
+        const newPanY = Math.min((1 - 1 / x1) * this.nativeHeight, Math.max(0, panY));
+        this.props.Document.SetNumber(KeyStore.PanX, this.isAnnotationOverlay ? newPanX : panX);
+        this.props.Document.SetNumber(KeyStore.PanY, this.isAnnotationOverlay ? newPanY : panY);
+    }
+
+
+    private _selectOnLoaded: string = ""; // id of document that should be selected once it's loaded (used for click-to-type)
+    getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-COLLECTION_BORDER_WIDTH, -COLLECTION_BORDER_WIDTH).translate(-this.centeringShiftX, -this.centeringShiftY).transform(this.getLocalTransform())
+    getLocalTransform = (): Transform => Transform.Identity.scale(1 / this.scale).translate(this.panX, this.panY);
+    noScaling = () => 1;
+
+    render() {
+        var curPage = this.props.Document.GetNumber(KeyStore.CurPage, 1);
+        if (this.views && this.views != FieldWaiting) {
+            trace();
+            console.log("RENDER =" + this.views.Data.length);
+            return <div key="HERE">
+                {this.views.Data.map(doc => (doc.GetNumber(KeyStore.Page, 0) != curPage && doc.GetNumber(KeyStore.Page, 0) != 0) ? (null) :
+                    (<CollectionFreeFormDocumentView key={doc.Id} Document={doc}
+                        AddDocument={this.props.addDocument}
+                        RemoveDocument={this.props.removeDocument}
+                        ScreenToLocalTransform={this.getTransform}
+                        isTopMost={false}
+                        SelectOnLoad={doc.Id === this._selectOnLoaded}
+                        ContentScaling={this.noScaling}
+                        PanelWidth={doc.Width}
+                        PanelHeight={doc.Height}
+                        ContainingCollectionView={this.props.CollectionView}
+                        focus={this.focusDocument}
+                    />)
+                )}
+            </div>
+        }
+        return (null);
     }
 }

@@ -49,6 +49,20 @@ export class ListField<T extends Field> extends BasicField<T[]> {
     }
 
     UpdateFromServer(fields: string[]) {
+        if (this._proxies.length < fields.length) {
+            var added = true;
+            for (let i = 0; i < this._proxies.length; i++) {
+                if (this._proxies[i] != fields[i]) {
+                    added = false;
+                    break;
+                }
+            }
+            if (added) {
+                for (let i = this._proxies.length; i < fields.length; i++)
+                    this._proxies.push(fields[i]);
+                return;
+            }
+        }
         this._proxies = fields;
     }
     private arraysEqual(a: any[], b: any[]) {
