@@ -17,6 +17,7 @@ import { ContextMenu } from './ContextMenu';
 import { DocumentDecorations } from './DocumentDecorations';
 import { DocumentView } from './nodes/DocumentView';
 import "./Main.scss";
+import { InkingControl } from './InkingControl';
 
 
 configure({ enforceActions: "observed" });  // causes errors to be generated when modifying an observable outside of an action
@@ -96,6 +97,7 @@ Documents.initProtos(mainDocId, (res?: Document) => {
                 <button onClick={clearDatabase}>Clear Database</button></div>
             <button className="main-undoButtons" style={{ bottom: '25px' }} onClick={() => UndoManager.Undo()}>Undo</button>
             <button className="main-undoButtons" style={{ bottom: '0px' }} onClick={() => UndoManager.Redo()}>Redo</button>
+            <InkingControl />
         </div>),
         document.getElementById('root'));
 })

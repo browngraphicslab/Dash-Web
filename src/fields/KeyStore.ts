@@ -26,4 +26,5 @@ export namespace KeyStore {
     export const Caption = new Key("Caption");
     export const ActiveFrame = new Key("ActiveFrame");
     export const DocumentText = new Key("DocumentText");
+    export const Ink = new Key("Ink");
 }
