@@ -48,8 +48,8 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
             const state = this._editorView.state.apply(tx);
             this._editorView.updateState(state);
             const { doc, fieldKey } = this.props;
-            // doc.SetOnPrototype(fieldKey, new RichTextField(JSON.stringify(state.toJSON())))
-            doc.SetData(fieldKey, JSON.stringify(state.toJSON()), RichTextField);
+            doc.SetOnPrototype(fieldKey, new RichTextField(JSON.stringify(state.toJSON())))
+            // doc.SetData(fieldKey, JSON.stringify(state.toJSON()), RichTextField);
         }
     }
 

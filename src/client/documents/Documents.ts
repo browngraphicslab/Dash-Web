@@ -11,6 +11,7 @@ import { CollectionView, CollectionViewType } from "../views/collections/Collect
 import { FieldView } from "../views/nodes/FieldView";
 import { HtmlField } from "../../fields/HtmlField";
 import { WebView } from "../views/nodes/WebView";
+import { Utils } from "../../Utils";
 
 export interface DocumentOptions {
     x?: number;
@@ -24,10 +25,10 @@ export interface DocumentOptions {
 
 export namespace Documents {
     export function initProtos(callback: () => void) {
-        Server.GetFields([collectionProtoId, textProtoId, imageProtoId], (fields) => {
-            collectionProto = fields[collectionProtoId] as Document;
-            imageProto = fields[imageProtoId] as Document;
-            textProto = fields[textProtoId] as Document;
+        Server.GetFields([], (fields) => {
+            // collectionProto = fields[collectionProtoId] as Document;
+            // imageProto = fields[imageProtoId] as Document;
+            // textProto = fields[textProtoId] as Document;
             callback()
         });
     }
@@ -59,18 +60,14 @@ export namespace Documents {
         doc.SetData(KeyStore.PanY, 0, NumberField);
     }
 
-    let textProto: Document;
-    const textProtoId = "textProto";
     function GetTextPrototype(): Document {
-        if (!textProto) {
-            textProto = new Document(textProtoId);
-            textProto.Set(KeyStore.X, new NumberField(0));
-            textProto.Set(KeyStore.Y, new NumberField(0));
-            textProto.Set(KeyStore.Width, new NumberField(300));
-            textProto.Set(KeyStore.Height, new NumberField(150));
-            textProto.Set(KeyStore.Layout, new TextField(FormattedTextBox.LayoutString()));
-            textProto.Set(KeyStore.LayoutKeys, new ListField([KeyStore.Data]));
-        }
+        let textProto = new Document();
+        textProto.Set(KeyStore.X, new NumberField(0));
+        textProto.Set(KeyStore.Y, new NumberField(0));
+        textProto.Set(KeyStore.Width, new NumberField(300));
+        textProto.Set(KeyStore.Height, new NumberField(150));
+        textProto.Set(KeyStore.Layout, new TextField(FormattedTextBox.LayoutString()));
+        textProto.Set(KeyStore.LayoutKeys, new ListField([KeyStore.Data]));
         return textProto;
     }
 
@@ -103,27 +100,23 @@ export namespace Documents {
         return doc;
     }
 
-    let imageProto: Document;
-    const imageProtoId = "imageProto";
+    // let imageProto: Document;
+    // const imageProtoId = "imageProto";
     function GetImagePrototype(): Document {
-        if (!imageProto) {
-            imageProto = new Document(imageProtoId);
-            imageProto.Set(KeyStore.Title, new TextField("IMAGE PROTO"));
-            imageProto.Set(KeyStore.X, new NumberField(0));
-            imageProto.Set(KeyStore.Y, new NumberField(0));
-            imageProto.Set(KeyStore.NativeWidth, new NumberField(300));
-            imageProto.Set(KeyStore.NativeHeight, new NumberField(300));
-            imageProto.Set(KeyStore.Width, new NumberField(300));
-            imageProto.Set(KeyStore.Height, new NumberField(300));
-            imageProto.Set(KeyStore.Layout, new TextField(CollectionView.LayoutString("AnnotationsKey")));
-            imageProto.SetNumber(KeyStore.ViewType, CollectionViewType.Freeform)
-            imageProto.Set(KeyStore.BackgroundLayout, new TextField(ImageBox.LayoutString()));
-            // imageProto.SetField(KeyStore.Layout, new TextField('<div style={"background-image: " + {Data}} />'));
-            imageProto.Set(KeyStore.LayoutKeys, new ListField([KeyStore.Data, KeyStore.Annotations]));
-            return imageProto;
-        }
+        let imageProto = new Document();
+        imageProto.Set(KeyStore.Title, new TextField("IMAGE PROTO"));
+        imageProto.Set(KeyStore.X, new NumberField(0));
+        imageProto.Set(KeyStore.Y, new NumberField(0));
+        imageProto.Set(KeyStore.NativeWidth, new NumberField(300));
+        imageProto.Set(KeyStore.NativeHeight, new NumberField(300));
+        imageProto.Set(KeyStore.Width, new NumberField(300));
+        imageProto.Set(KeyStore.Height, new NumberField(300));
+        imageProto.Set(KeyStore.Layout, new TextField(CollectionView.LayoutString("AnnotationsKey")));
+        imageProto.SetNumber(KeyStore.ViewType, CollectionViewType.Freeform)
+        imageProto.Set(KeyStore.BackgroundLayout, new TextField(ImageBox.LayoutString()));
+        // imageProto.SetField(KeyStore.Layout, new TextField('<div style={"background-image: " + {Data}} />'));
+        imageProto.Set(KeyStore.LayoutKeys, new ListField([KeyStore.Data, KeyStore.Annotations]));
         return imageProto;
-
     }
 
     // example of custom display string for an image that shows a caption.
@@ -146,28 +139,26 @@ export namespace Documents {
     export function ImageDocument(url: string, options: DocumentOptions = {}): Document {
         let doc = GetImagePrototype().MakeDelegate();
         setupOptions(doc, options);
-        doc.Set(KeyStore.Data, new ImageField(new URL(url)));
-        doc.Set(KeyStore.Caption, new TextField("my caption..."));
+        doc.SetOnPrototype(KeyStore.Data, new ImageField(new URL(url)));
+        doc.SetOnPrototype(KeyStore.Caption, new TextField("my caption..."));
         doc.Set(KeyStore.BackgroundLayout, new TextField(EmbeddedCaption()));
         doc.Set(KeyStore.OverlayLayout, new TextField(FixedCaption()));
         doc.Set(KeyStore.LayoutKeys, new ListField([KeyStore.Data, KeyStore.Annotations, KeyStore.Caption]));
 
         let annotation = Documents.TextDocument({ title: "hello" });
-        doc.Set(KeyStore.Annotations, new ListField([annotation]));
+        doc.SetOnPrototype(KeyStore.Annotations, new ListField([annotation]));
         return doc;
     }
 
-    let collectionProto: Document;
+    // let collectionProto: Document;
     const collectionProtoId = "collectionProto";
     function GetCollectionPrototype(): Document {
-        if (!collectionProto) {
-            collectionProto = new Document(collectionProtoId);
-            collectionProto.Set(KeyStore.Scale, new NumberField(1));
-            collectionProto.Set(KeyStore.PanX, new NumberField(0));
-            collectionProto.Set(KeyStore.PanY, new NumberField(0));
-            collectionProto.Set(KeyStore.Layout, new TextField(CollectionView.LayoutString("DataKey")));
-            collectionProto.Set(KeyStore.LayoutKeys, new ListField([KeyStore.Data]));
-        }
+        let collectionProto = new Document();
+        collectionProto.Set(KeyStore.Scale, new NumberField(1));
+        collectionProto.Set(KeyStore.PanX, new NumberField(0));
+        collectionProto.Set(KeyStore.PanY, new NumberField(0));
+        collectionProto.Set(KeyStore.Layout, new TextField(CollectionView.LayoutString("DataKey")));
+        collectionProto.Set(KeyStore.LayoutKeys, new ListField([KeyStore.Data]));
         return collectionProto;
     }
 
@@ -175,9 +166,9 @@ export namespace Documents {
         let doc = GetCollectionPrototype().MakeDelegate(id);
         setupOptions(doc, options);
         if (typeof data === "string") {
-            doc.SetText(KeyStore.Data, data);
+            doc.SetOnPrototype(KeyStore.Data, new TextField(data));
         } else {
-            doc.SetData(KeyStore.Data, data, ListField);
+            doc.SetOnPrototype(KeyStore.Data, new ListField(data));
         }
         doc.SetNumber(KeyStore.ViewType, viewType);
         return doc;

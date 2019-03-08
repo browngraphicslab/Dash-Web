@@ -212,7 +212,9 @@ export class Document extends Field {
 
     CreateAlias(id?: string): Document {
         let alias = new Document(id)
-        alias.Set(KeyStore.Prototype, this)
+        this.GetAsync(KeyStore.Prototype, (f: Field) => {
+            alias.Set(KeyStore.Prototype, f)
+        })
 
         return alias
     }
