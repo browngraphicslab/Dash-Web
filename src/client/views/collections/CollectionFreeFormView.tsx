@@ -22,6 +22,9 @@ import "./CollectionFreeFormView.scss";
 import { COLLECTION_BORDER_WIDTH } from "./CollectionView";
 import { CollectionViewBase } from "./CollectionViewBase";
 import { Documents } from "../../documents/Documents";
+import { InkingCanvas } from "../InkingCanvas";
+import { InkingControl } from "../InkingControl";
+import { InkTool } from "../../../fields/InkField";
 import React = require("react");
 const JsxParser = require('react-jsx-parser').default;//TODO Why does this need to be imported like this?
 
@@ -138,7 +141,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
             let localTransform = this.getLocalTransform()
             localTransform = localTransform.inverse().scaleAbout(deltaScale, x, y)
-            console.log(localTransform)
+            // console.log(localTransform)
 
             this.props.Document.SetNumber(KeyStore.Scale, localTransform.Scale);
             this.SetPan(-localTransform.TranslateX / localTransform.Scale, -localTransform.TranslateY / localTransform.Scale);
@@ -306,6 +309,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
                     style={{ transformOrigin: "left top", transform: `translate(${dx}px, ${dy}px) scale(${this.zoomScaling}, ${this.zoomScaling}) translate(${panx}px, ${pany}px)` }}
                     ref={this._canvasRef}>
                     {this.backgroundView}
+                    <InkingCanvas getScreenTransform={this.getTransform} Document={this.props.Document} />
                     {cursor}
                     {this.views}
                 </div>
