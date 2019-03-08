@@ -21,6 +21,9 @@ import "./CollectionFreeFormView.scss";
 import { COLLECTION_BORDER_WIDTH } from "./CollectionView";
 import { CollectionViewBase } from "./CollectionViewBase";
 import { Documents } from "../../documents/Documents";
+import { InkingCanvas } from "../InkingCanvas";
+import { InkingControl } from "../InkingControl";
+import { InkTool } from "../../../fields/InkField";
 import React = require("react");
 const JsxParser = require('react-jsx-parser').default;//TODO Why does this need to be imported like this?
 
@@ -99,6 +102,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
     onPointerMove = (e: PointerEvent): void => {
         if (!e.cancelBubble && this.props.active()) {
             e.stopPropagation();
+            e.preventDefault();
             let x = this.props.Document.GetNumber(KeyStore.PanX, 0);
             let y = this.props.Document.GetNumber(KeyStore.PanY, 0);
             let [dx, dy] = this.getTransform().transformDirection(e.clientX - this._lastX, e.clientY - this._lastY);
@@ -136,7 +140,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
             let localTransform = this.getLocalTransform()
             localTransform = localTransform.inverse().scaleAbout(deltaScale, x, y)
-            console.log(localTransform)
+            // console.log(localTransform)
 
             this.props.Document.SetNumber(KeyStore.Scale, localTransform.Scale);
             this.SetPan(-localTransform.TranslateX / localTransform.Scale, -localTransform.TranslateY / localTransform.Scale);
@@ -145,8 +149,10 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
     @action
     private SetPan(panX: number, panY: number) {
-        const newPanX = Math.max((1 - this.zoomScaling) * this.nativeWidth, Math.min(0, panX));
-        const newPanY = Math.max((1 - this.zoomScaling) * this.nativeHeight, Math.min(0, panY));
+        var x1 = this.getLocalTransform().inverse().Scale;
+        var x2 = this.getTransform().inverse().Scale;
+        const newPanX = Math.min((1 - 1 / x1) * this.nativeWidth, Math.max(0, panX));
+        const newPanY = Math.min((1 - 1 / x1) * this.nativeHeight, Math.max(0, panY));
         this.props.Document.SetNumber(KeyStore.PanX, this.isAnnotationOverlay ? newPanX : panX);
         this.props.Document.SetNumber(KeyStore.PanY, this.isAnnotationOverlay ? newPanY : panY);
     }
@@ -302,6 +308,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
                     style={{ transformOrigin: "left top", transform: `translate(${dx}px, ${dy}px) scale(${this.zoomScaling}, ${this.zoomScaling}) translate(${panx}px, ${pany}px)` }}
                     ref={this._canvasRef}>
                     {this.backgroundView}
+                    <InkingCanvas getScreenTransform={this.getTransform} Document={this.props.Document} />
                     {cursor}
                     {this.views}
                 </div>
