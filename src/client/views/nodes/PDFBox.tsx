@@ -432,7 +432,9 @@ export class PDFBox extends React.Component<FieldViewProps> {
 
     @computed
     get pdfContent() {
-        const page = this.curPage;
+        let page = this.curPage;
+        if (page == 0)
+            page = 1;
         const renderHeight = 2400;
         let pdfUrl = this.props.doc.GetT(this.props.fieldKey, PDFField);
         let xf = this.props.doc.GetNumber(KeyStore.NativeHeight, 0) / renderHeight;

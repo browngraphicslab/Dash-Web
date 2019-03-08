@@ -100,7 +100,7 @@ export namespace Documents {
         if (!pdfProto) {
             pdfProto = setupPrototypeOptions(pdfProtoId, "PDF_PROTO", CollectionPDFView.LayoutString("AnnotationsKey"),
                 { x: 0, y: 0, nativeWidth: 600, width: 300, layoutKeys: [KeyStore.Data, KeyStore.Annotations] });
-            pdfProto.SetNumber(KeyStore.Page, 1);
+            pdfProto.SetNumber(KeyStore.CurPage, 1);
             pdfProto.SetText(KeyStore.BackgroundLayout, PDFBox.LayoutString());
         }
         return pdfProto;

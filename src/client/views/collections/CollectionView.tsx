@@ -34,6 +34,9 @@ export class CollectionView extends React.Component<CollectionViewProps> {
     }
 
     public active: () => boolean = () => CollectionView.Active(this);
+    addDocument = (doc: Document): void => { CollectionView.AddDocument(this.props, doc); }
+    removeDocument = (doc: Document): boolean => { return CollectionView.RemoveDocument(this.props, doc); }
+    get subView() { return CollectionView.SubView(this); }
 
     public static Active(self: CollectionView): boolean {
         var isSelected = self.props.isSelected();
@@ -42,15 +45,9 @@ export class CollectionView extends React.Component<CollectionViewProps> {
         return isSelected || childSelected || topMost;
     }
 
-    addDocument = (doc: Document): void => {
-        CollectionView.AddDocument(this.props, doc);
-    }
-    removeDocument = (doc: Document): boolean => {
-        return CollectionView.RemoveDocument(this.props, doc);
-    }
-
     @action
     public static AddDocument(props: CollectionViewProps, doc: Document) {
+        doc.SetNumber(KeyStore.Page, props.Document.GetNumber(KeyStore.CurPage, 0));
         if (props.Document.Get(props.fieldKey) instanceof Field) {
             //TODO This won't create the field if it doesn't already exist
             const value = props.Document.GetData(props.fieldKey, ListField, new Array<Document>())
@@ -94,13 +91,8 @@ export class CollectionView extends React.Component<CollectionViewProps> {
         }
     }
 
-    set collectionViewType(type: CollectionViewType) {
-        let Document = this.props.Document;
-        Document.SetData(KeyStore.ViewType, type, NumberField);
-    }
-
     specificContextMenu = (e: React.MouseEvent): void => {
-        if (!e.isPropagationStopped) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
+        if (!e.isPropagationStopped() && this.props.Document.Id != "mainDoc") { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
             ContextMenu.Instance.addItem({ description: "Freeform", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Freeform) })
             ContextMenu.Instance.addItem({ description: "Schema", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Schema) })
             ContextMenu.Instance.addItem({ description: "Treeview", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Tree) })
@@ -108,35 +100,15 @@ export class CollectionView extends React.Component<CollectionViewProps> {
         }
     }
 
-    @computed
-    get subView() { return CollectionView.SubView(this); }
-
     public static SubView(self: CollectionView) {
-        let viewType = self.collectionViewType;
-        let subView = (null);
-        switch (viewType) {
-            case CollectionViewType.Freeform:
-                subView = (<CollectionFreeFormView {...self.props}
-                    addDocument={self.addDocument} removeDocument={self.removeDocument} active={self.active}
-                    CollectionView={self} />)
-                break;
-            case CollectionViewType.Schema:
-                subView = (<CollectionSchemaView {...self.props}
-                    addDocument={self.addDocument} removeDocument={self.removeDocument} active={self.active}
-                    CollectionView={self} />)
-                break;
-            case CollectionViewType.Docking:
-                subView = (<CollectionDockingView {...self.props}
-                    addDocument={self.addDocument} removeDocument={self.removeDocument} active={self.active}
-                    CollectionView={self} />)
-                break;
-            case CollectionViewType.Tree:
-                subView = (<CollectionTreeView {...self.props}
-                    addDocument={self.addDocument} removeDocument={self.removeDocument} active={self.active}
-                    CollectionView={self} />)
-                break;
+        let subProps = { ...self.props, addDocument: self.addDocument, removeDocument: self.removeDocument, active: self.active, CollectionView: self }
+        switch (self.collectionViewType) {
+            case CollectionViewType.Freeform: return (<CollectionFreeFormView {...subProps} />)
+            case CollectionViewType.Schema: return (<CollectionSchemaView {...subProps} />)
+            case CollectionViewType.Docking: return (<CollectionDockingView {...subProps} />)
+            case CollectionViewType.Tree: return (<CollectionTreeView {...subProps} />)
         }
-        return subView;
+        return (null);
     }
 
     render() {
