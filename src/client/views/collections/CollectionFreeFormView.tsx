@@ -69,10 +69,6 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
     @action
     onPointerDown = (e: React.PointerEvent): void => {
-        // if ink is selected, don't pan
-        let isInking = !(InkingControl.getInstance().selectedTool === InkTool.None);
-        if (isInking) return;
-
         if ((e.button === 2 && this.props.active()) ||
             !e.defaultPrevented) {
             document.removeEventListener("pointermove", this.onPointerMove);

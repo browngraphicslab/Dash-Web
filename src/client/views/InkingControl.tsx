@@ -3,24 +3,18 @@ import { CirclePicker, ColorResult } from 'react-color'
 import React = require("react");
 import "./InkingCanvas.scss"
 import { InkTool } from "../../fields/InkField";
+import { observer } from "mobx-react";
 
-
+@observer
 export class InkingControl extends React.Component {
-    private static Instance: InkingControl;
-
+    static Instance: InkingControl = new InkingControl({});
     @observable private _selectedTool: InkTool = InkTool.None;
     @observable private _selectedColor: string = "#f44336";
     @observable private _selectedWidth: string = "25";
 
-    private constructor(props: Readonly<{}>) {
+    constructor(props: Readonly<{}>) {
         super(props);
-    }
-
-    static getInstance = (): InkingControl => {
-        if (!InkingControl.Instance) {
-            InkingControl.Instance = new InkingControl({});
-        }
-        return InkingControl.Instance;
+        InkingControl.Instance = this
     }
 
     @action
@@ -53,23 +47,29 @@ export class InkingControl extends React.Component {
         return this._selectedWidth;
     }
 
+    selected = (tool: InkTool) => {
+        if (this._selectedTool === tool) {
+            return { backgroundColor: "black", color: "white" }
+        }
+        return {}
+    }
+
     render() {
-        console.log(this._selectedTool);
         return (
             <div className="inking-control">
                 <div className="ink-tools ink-panel">
-                    <button onClick={() => InkingControl.getInstance().switchTool(InkTool.Pen)}>Pen</button>
-                    <button onClick={() => InkingControl.getInstance().switchTool(InkTool.Highlighter)}>Highlighter</button>
-                    <button onClick={() => InkingControl.getInstance().switchTool(InkTool.Eraser)}>Eraser</button>
-                    <button onClick={() => InkingControl.getInstance().switchTool(InkTool.None)}> None</button>
+                    <button onClick={() => this.switchTool(InkTool.Pen)} style={this.selected(InkTool.Pen)}>Pen</button>
+                    <button onClick={() => this.switchTool(InkTool.Highlighter)} style={this.selected(InkTool.Highlighter)}>Highlighter</button>
+                    <button onClick={() => this.switchTool(InkTool.Eraser)} style={this.selected(InkTool.Eraser)}>Eraser</button>
+                    <button onClick={() => this.switchTool(InkTool.None)} style={this.selected(InkTool.None)}> None</button>
                 </div>
                 <div className="ink-size ink-panel">
                     <label htmlFor="stroke-width">Size</label>
                     <input type="range" min="1" max="100" defaultValue="25" name="stroke-width"
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => InkingControl.getInstance().switchWidth(e.target.value)} />
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => this.switchWidth(e.target.value)} />
                 </div>
                 <div className="ink-color ink-panel">
-                    <CirclePicker onChange={InkingControl.getInstance().switchColor} />
+                    <CirclePicker onChange={this.switchColor} />
                 </div>
             </div>
         )

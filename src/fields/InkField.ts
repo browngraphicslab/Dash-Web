@@ -14,7 +14,7 @@ export interface StrokeData {
     width: string;
     tool: InkTool;
 }
-export type StrokeMap = Map<number, StrokeData>;
+export type StrokeMap = Map<string, StrokeData>;
 
 export class InkField extends BasicField<StrokeMap> {
     constructor(data: StrokeMap = new Map, id?: FieldId, save: boolean = true) {
@@ -38,9 +38,9 @@ export class InkField extends BasicField<StrokeMap> {
     }
 
     static FromJson(id: string, data: any): InkField {
-        let map = new Map<number, StrokeData>();
+        let map = new Map<string, StrokeData>();
         Object.keys(data).forEach(key => {
-            map.set(parseInt(key), data[key]);
+            map.set(key, data[key]);
         });
         return new InkField(map, id, false);
     }

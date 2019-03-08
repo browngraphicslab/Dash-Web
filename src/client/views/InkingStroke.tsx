@@ -6,12 +6,12 @@ import React = require("react");
 
 
 interface StrokeProps {
-    id: number;
+    id: string;
     line: Array<{ x: number, y: number }>;
     color: string;
     width: string;
     tool: InkTool;
-    deleteCallback: (index: number) => void;
+    deleteCallback: (index: string) => void;
 }
 
 @observer
@@ -24,7 +24,7 @@ export class InkingStroke extends React.Component<StrokeProps> {
     private _canvasColor: string = "#cdcdcd";
 
     deleteStroke = (e: React.MouseEvent): void => {
-        if (InkingControl.getInstance().selectedTool === InkTool.Eraser && e.buttons === 1) {
+        if (InkingControl.Instance.selectedTool === InkTool.Eraser && e.buttons === 1) {
             this.props.deleteCallback(this.props.id);
         }
     }

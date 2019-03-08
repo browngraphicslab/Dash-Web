@@ -10,6 +10,7 @@ import { JsxArgs } from "./nodes/DocumentView";
 import { InkingStroke } from "./InkingStroke";
 import "./InkingCanvas.scss"
 import { CollectionDockingView } from "./collections/CollectionDockingView";
+import { Utils } from "../../Utils";
 
 
 interface InkCanvasProps {
@@ -21,16 +22,10 @@ interface InkCanvasProps {
 export class InkingCanvas extends React.Component<InkCanvasProps> {
 
     private _isDrawing: boolean = false;
-    private _idGenerator: number = -1;
+    private _idGenerator: string = "";
 
     constructor(props: Readonly<InkCanvasProps>) {
         super(props);
-
-        this.handleMouseDown = this.handleMouseDown.bind(this);
-        this.handleMouseMove = this.handleMouseMove.bind(this);
-        this.handleMouseUp = this.handleMouseUp.bind(this);
-        this.relativeCoordinatesForEvent = this.relativeCoordinatesForEvent.bind(this);
-
     }
 
     get inkData(): StrokeMap {
@@ -51,34 +46,41 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
 
 
     @action
-    handleMouseDown = (e: React.MouseEvent): void => {
+    handleMouseDown = (e: React.PointerEvent): void => {
         if (e.button != 0 ||
-            InkingControl.getInstance().selectedTool === InkTool.None ||
-            InkingControl.getInstance().selectedTool === InkTool.Eraser) {
+            InkingControl.Instance.selectedTool === InkTool.None) {
             return;
         }
+        e.stopPropagation()
+        if (InkingControl.Instance.selectedTool === InkTool.Eraser) {
+            return
+        }
+        e.stopPropagation()
         const point = this.relativeCoordinatesForEvent(e);
 
-        // start the new line
-        this._idGenerator = Date.now();
+        // start the new line, saves a uuid to represent the field of the stroke
+        this._idGenerator = Utils.GenerateGuid();
         let data = this.inkData;
         data.set(this._idGenerator,
             {
                 pathData: [point],
-                color: InkingControl.getInstance().selectedColor,
-                width: InkingControl.getInstance().selectedWidth,
-                tool: InkingControl.getInstance().selectedTool
+                color: InkingControl.Instance.selectedColor,
+                width: InkingControl.Instance.selectedWidth,
+                tool: InkingControl.Instance.selectedTool
             });
         this.inkData = data;
         this._isDrawing = true;
     }
 
     @action
-    handleMouseMove = (e: React.MouseEvent): void => {
+    handleMouseMove = (e: React.PointerEvent): void => {
         if (!this._isDrawing ||
-            InkingControl.getInstance().selectedTool === InkTool.None ||
-            InkingControl.getInstance().selectedTool === InkTool.Eraser) {
+            InkingControl.Instance.selectedTool === InkTool.None) {
             return;
+        }
+        e.stopPropagation()
+        if (InkingControl.Instance.selectedTool === InkTool.Eraser) {
+            return
         }
         const point = this.relativeCoordinatesForEvent(e);
 
@@ -100,11 +102,13 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
 
     relativeCoordinatesForEvent = (e: React.MouseEvent): { x: number, y: number } => {
         let [x, y] = this.props.getScreenTransform().transformPoint(e.clientX, e.clientY);
+        x += 50000
+        y += 50000
         return { x, y };
     }
 
     @action
-    removeLine = (id: number): void => {
+    removeLine = (id: string): void => {
         let data = this.inkData;
         data.delete(id);
         this.inkData = data;
@@ -113,7 +117,7 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
     render() {
         // styling for cursor
         let canvasStyle = {};
-        if (InkingControl.getInstance().selectedTool === InkTool.None) {
+        if (InkingControl.Instance.selectedTool === InkTool.None) {
             canvasStyle = { pointerEvents: "none" };
         } else {
             canvasStyle = { pointerEvents: "auto", cursor: "crosshair" };
@@ -147,7 +151,7 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
         return (
 
             <div className="inking-canvas" style={canvasStyle}
-                onMouseDown={this.handleMouseDown} onMouseMove={this.handleMouseMove} >
+                onPointerDown={this.handleMouseDown} onPointerMove={this.handleMouseMove} >
                 <svg>
                     {paths}
                 </svg>
