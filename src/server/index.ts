@@ -80,60 +80,58 @@ app.use((req, res, next) => {
 
 // AUTHENTICATION ROUTING
 
+enum Method {
+    Get,
+    Post
+}
+
+function addSecureRoute(method: Method,
+    route: string,
+    handler: (user: DashUserModel, req: express.Request, res: express.Response) => void,
+    nope: (res: express.Response) => any) {
+    route = "/" + route;
+    switch (method) {
+        case Method.Get:
+            app.get(route, (req, res) => {
+                const dashUser: DashUserModel = req.user;
+                if (!dashUser) return nope(res);
+                handler(dashUser, req, res);
+            });
+            break;
+        case Method.Post:
+            app.post(route, (req, res) => {
+                const dashUser: DashUserModel = req.user;
+                if (!dashUser) return nope(res);
+                handler(dashUser, req, res);
+            });
+            break;
+    }
+}
+
 // ***
 // Look for the definitions of these get and post
 // functions in the exports of user.ts
 
-// /home defines destination after a successful log in
-app.get("/home", (req, res) => {
-    // if user is not logged in, redirect to log in page
-    const dashUser: DashUserModel = req.user;
-    if (!dashUser) {
-        return res.redirect("/login");
-    }
-    // otherwise, connect them to Dash
-    // TODO: store and manage users' workspaces
-    // if (dashUser.allWorkspaceIds.length > 0) {
-    //     if (!dashUser.didSelectSessionWorkspace) {
-    //         return res.redirect("/workspaces");
-    //     }
-    // }
+addSecureRoute(Method.Get, "home", (user, req, res) => {
     res.sendFile(path.join(__dirname, '../../deploy/index.html'));
-});
+}, res => res.redirect("/login"))
 
-// app.get("/workspaces", getWorkspaces);
+addSecureRoute(Method.Get, "getActiveWorkspaceId", (user, req, res) => {
+    console.log(`/getActiveWorkspaceId in index.ts ${user.activeWorkspaceId}`);
+    res.send(user.activeWorkspaceId || "");
+}, () => { });
 
-app.get("/getActiveWorkspaceId", (req, res) => {
-    const dashUser: DashUserModel = req.user;
-    if (!dashUser) {
-        return;
-    }
-    res.send(dashUser.activeWorkspaceId || "");
-});
+addSecureRoute(Method.Get, "getAllWorkspaceIds", (user, req, res) => {
+    res.send(JSON.stringify(user.allWorkspaceIds as Array<String>));
+}, () => { });
 
-app.get("/getAllWorkspaceIds", (req, res) => {
-    const dashUser: DashUserModel = req.user;
-    if (!dashUser) {
-        return;
-    }
-    res.send(JSON.stringify(dashUser.allWorkspaceIds as Array<String>));
-})
+addSecureRoute(Method.Post, "setActiveWorkspaceId", (user, req) => {
+    user.update({ $set: { activeWorkspaceId: req.body.target } }, () => { });
+}, () => { });
 
-app.post("/setActiveWorkspaceId", (req, res) => {
-    const dashUser: DashUserModel = req.user;
-    if (!dashUser) {
-        return;
-    }
-    dashUser.update({ $set: { activeWorkspaceId: req.body.target } }, () => { });
-})
-
-app.post("/addWorkspaceId", (req, res) => {
-    const dashUser: DashUserModel = req.user;
-    if (!dashUser) {
-        return;
-    }
-    dashUser.update({ $push: { allWorkspaceIds: req.body.target } }, () => { });
-})
+addSecureRoute(Method.Post, "addWorkspaceId", (user, req) => {
+    user.update({ $push: { allWorkspaceIds: req.body.target } }, () => { });
+}, () => { });
 
 // anyone attempting to navigate to localhost at this port will
 // first have to login

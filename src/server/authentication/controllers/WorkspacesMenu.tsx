@@ -4,62 +4,37 @@ import { observable, action, configure, reaction, computed, ObservableMap, runIn
 import { observer } from "mobx-react";
 import * as request from 'request'
 import './WorkspacesMenu.css'
+import { Document } from '../../../fields/Document';
+import { Server } from '../../../client/Server';
+import { Field } from '../../../fields/Field';
 
 export interface WorkspaceMenuProps {
-    active: string;
-    load: (workspaceId: string) => void;
-    new: () => string;
+    active: Document;
+    open: (workspace: Document) => void;
+    new: () => void;
+    allWorkspaces: Document[];
 }
 
 @observer
 export class WorkspacesMenu extends React.Component<WorkspaceMenuProps> {
     static Instance: WorkspacesMenu;
     @observable private workspacesExposed: boolean = false;
-    @observable private workspaceIds: Array<string> = [];
-    @observable private selectedWorkspaceId: string = "";
 
     constructor(props: WorkspaceMenuProps) {
         super(props);
         WorkspacesMenu.Instance = this;
-        this.loadExistingWorkspace = this.loadExistingWorkspace.bind(this);
         this.addNewWorkspace = this.addNewWorkspace.bind(this);
-        this.selectedWorkspaceId = this.props.active;
     }
 
     @action
     addNewWorkspace() {
-        let newId = this.props.new();
-        this.selectedWorkspaceId = newId;
-        this.props.load(newId);
+        this.props.new();
         this.toggle();
     }
 
     @action
-    loadExistingWorkspace = (e: React.MouseEvent<HTMLLIElement, MouseEvent>) => {
-        let id = e.currentTarget.innerHTML;
-        this.props.load(id);
-        this.selectedWorkspaceId = id;
-    }
-
-    @action
     toggle() {
-        if (this.workspacesExposed) {
-            this.workspacesExposed = !this.workspacesExposed;
-        } else {
-            request.get(window.location.origin + "/getAllWorkspaceIds", this.idCallback)
-        }
-    }
-
-    @action.bound
-    idCallback: request.RequestCallback = (error, response, body) => {
-        this.workspaceIds = [];
-        let ids: Array<string> = JSON.parse(body) as Array<string>;
-        if (ids) {
-            for (let i = 0; i < ids.length; i++) {
-                this.workspaceIds.push(ids[i]);
-            }
-            this.workspacesExposed = !this.workspacesExposed;
-        }
+        this.workspacesExposed = !this.workspacesExposed;
     }
 
     render() {
@@ -78,8 +53,7 @@ export class WorkspacesMenu extends React.Component<WorkspaceMenuProps> {
                     transition: "all 1s ease",
                     zIndex: 15,
                     padding: 10,
-                }}
-            >
+                }}>
                 <img
                     src="https://bit.ly/2IBBkxk"
                     style={{
@@ -90,16 +64,16 @@ export class WorkspacesMenu extends React.Component<WorkspaceMenuProps> {
                     }}
                     onClick={this.addNewWorkspace}
                 />
-                {this.workspaceIds.map(s =>
+                {this.props.allWorkspaces.map(s =>
                     <li className={"ids"}
-                        key={s}
+                        key={s.Id}
                         style={{
                             listStyleType: "none",
-                            color: s === this.selectedWorkspaceId ? "darkblue" : "black",
+                            color: s.Id === this.props.active.Id ? "darkblue" : "black",
                             cursor: "grab"
                         }}
-                        onClick={this.loadExistingWorkspace}
-                    >{s}</li>
+                        onClick={() => this.props.open(s)}
+                    >{s.Title}</li>
                 )}
             </div>
         );

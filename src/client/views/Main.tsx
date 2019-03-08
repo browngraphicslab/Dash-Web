@@ -19,13 +19,14 @@ import { DocumentDecorations } from './DocumentDecorations';
 import { DocumentView } from './nodes/DocumentView';
 import "./Main.scss";
 import { observer } from 'mobx-react';
+import { Field, Opt } from '../../fields/Field';
 
 @observer
 export class Main extends React.Component {
     // dummy initializations keep the compiler happy
-    @observable private mainDocId = "";
-    @observable private mainContainer: Document = new Document;
-    @observable private mainfreeform: Document = new Document;
+    @observable private mainContainer?: Document;
+    @observable private mainfreeform?: Document;
+    @observable private userWorkspaces: Document[] = [];
 
     constructor(props: Readonly<{}>) {
         super(props);
@@ -33,7 +34,9 @@ export class Main extends React.Component {
         configure({ enforceActions: "observed" });
 
         this.initEventListeners();
-        this.initAuthenticationRouters();
+        Documents.initProtos(() => {
+            this.initAuthenticationRouters();
+        });
     }
 
     initEventListeners = () => {
@@ -50,46 +53,49 @@ export class Main extends React.Component {
     initAuthenticationRouters = () => {
         // Load the user's active workspace, or create a new one if initial session after signup
         request.get(this.contextualize("getActiveWorkspaceId"), (error, response, body) => {
-            this.requestWorkspace(body ? body : this.getNewWorkspace());
+            if (body) {
+                Server.GetField(body, field => {
+                    if (field instanceof Document) {
+                        this.openDocument(field);
+                    } else {
+                        this.createNewWorkspace();
+                    }
+                });
+            } else {
+                this.createNewWorkspace();
+            }
         });
     }
 
-    getNewWorkspace = (): string => {
-        let newId = Utils.GenerateGuid();
+    @action
+    createNewWorkspace = (): void => {
+        let mainDoc = Documents.DockDocument(JSON.stringify({ content: [{ type: 'row', content: [] }] }), { title: "main container" });
+        let newId = mainDoc.Id;
         request.post(this.contextualize("addWorkspaceId"), {
             body: { target: newId },
             json: true
-        })
-        return newId;
+        });
+
+        // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
+        setTimeout(() => {
+            let freeformDoc = Documents.FreeformDocument([], { x: 0, y: 400, title: "mini collection" });
+
+            var dockingLayout = { content: [{ type: 'row', content: [CollectionDockingView.makeDocumentConfig(freeformDoc)] }] };
+            mainDoc.SetText(KeyStore.Data, JSON.stringify(dockingLayout));
+            mainDoc.Set(KeyStore.ActiveFrame, freeformDoc);
+            this.openDocument(mainDoc);
+        }, 0);
+        this.userWorkspaces.push(mainDoc);
     }
 
     @action
-    requestWorkspace = (activeWorkspaceId: string) => {
+    openDocument = (doc: Document): void => {
         request.post(this.contextualize("setActiveWorkspaceId"), {
-            body: { target: activeWorkspaceId },
+            body: { target: doc.Id },
             json: true
-        })
-        Documents.initProtos(activeWorkspaceId, this.prepareWorkspace);
-    }
-
-    @action.bound
-    prepareWorkspace = (res?: Document) => {
-        if (res instanceof Document) {
-            this.mainContainer = res;
-            this.mainContainer.GetAsync(KeyStore.ActiveFrame, field => this.mainfreeform = field as Document);
-        }
-        else {
-            this.mainContainer = Documents.DockDocument(JSON.stringify({ content: [{ type: 'row', content: [] }] }), { title: "main container" }, this.mainDocId);
-
-            // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
-            setTimeout(() => {
-                this.mainfreeform = Documents.FreeformDocument([], { x: 0, y: 400, title: "mini collection" });
-
-                var dockingLayout = { content: [{ type: 'row', content: [CollectionDockingView.makeDocumentConfig(this.mainfreeform)] }] };
-                this.mainContainer.SetText(KeyStore.Data, JSON.stringify(dockingLayout));
-                this.mainContainer.Set(KeyStore.ActiveFrame, this.mainfreeform);
-            }, 0);
-        }
+        });
+        this.mainContainer = doc;
+        this.mainContainer.GetAsync(KeyStore.ActiveFrame, field => this.mainfreeform = field as Document);
     }
 
     toggleWorkspaces = () => {
@@ -117,8 +123,11 @@ export class Main extends React.Component {
         let addImageNode = action(() => Documents.ImageDocument(imgurl, { width: 200, height: 200, title: "an image of a cat" }));
         let addWebNode = action(() => Documents.WebDocument(weburl, { width: 200, height: 200, title: "a sample web page" }));
 
-        let addClick = (creator: () => Document) => action(() => this.mainfreeform.GetList<Document>(KeyStore.Data, []).push(creator()));
+        let addClick = (creator: () => Document) => action(() => this.mainfreeform!.GetList<Document>(KeyStore.Data, []).push(creator()));
 
+        if (!this.mainContainer) {
+            return <div></div>
+        }
         return (
             <div style={{ position: "absolute", width: "100%", height: "100%" }}>
                 <DocumentView Document={this.mainContainer}
@@ -131,7 +140,7 @@ export class Main extends React.Component {
                     ContainingCollectionView={undefined} />
                 <DocumentDecorations />
                 <ContextMenu />
-                <WorkspacesMenu active={this.mainDocId} load={this.requestWorkspace} new={this.getNewWorkspace} />
+                <WorkspacesMenu active={this.mainContainer} open={this.openDocument} new={this.createNewWorkspace} allWorkspaces={this.userWorkspaces} />
                 <div className="main-buttonDiv" style={{ bottom: '0px' }} ref={imgRef} >
                     <button onPointerDown={setupDrag(imgRef, addImageNode)} onClick={addClick(addImageNode)}>Add Image</button></div>
                 <div className="main-buttonDiv" style={{ bottom: '25px' }} ref={webRef} >

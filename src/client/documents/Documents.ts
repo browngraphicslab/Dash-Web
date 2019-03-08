@@ -44,14 +44,14 @@ export namespace Documents {
     const collProtoId = "collectionProto";
     const kvpProtoId = "kvpProto";
 
-    export function initProtos(mainDocId: string, callback: (mainDoc?: Document) => void) {
-        Server.GetFields([collProtoId, textProtoId, imageProtoId, mainDocId], (fields) => {
+    export function initProtos(callback: () => void) {
+        Server.GetFields([collProtoId, textProtoId, imageProtoId], (fields) => {
             collProto = fields[collProtoId] as Document;
             imageProto = fields[imageProtoId] as Document;
             textProto = fields[textProtoId] as Document;
             webProto = fields[webProtoId] as Document;
             kvpProto = fields[kvpProtoId] as Document;
-            callback(fields[mainDocId] as Document)
+            callback();
         });
     }
     function assignOptions(doc: Document, options: DocumentOptions): Document {

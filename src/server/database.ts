@@ -70,6 +70,16 @@ export class Database {
             let collection = this.db.collection('documents');
             let cursor = collection.find({ _id: { "$in": ids } })
             cursor.toArray((err, docs) => {
+                if (err) {
+                    console.log("Error");
+                    console.log(err.message);
+                    console.log(err.errmsg);
+                    console.log(ids);
+                    console.log(["afca93a8-c6bd-4b58-967e-07784c5b12c8"]);
+                    console.log("MAKES SENSE: " + (ids instanceof Array));
+                }
+                console.log(typeof ids);
+                console.log("DATABASE: " + docs);
                 fn(docs);
             })
         };
