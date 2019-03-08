@@ -1,23 +1,22 @@
-import { action, observable, _interceptReads, computed } from 'mobx';
+import * as htmlToImage from "html-to-image";
+import { action, computed, observable, reaction, IReactionDisposer } from 'mobx';
 import { observer } from "mobx-react";
-import Measure from "react-measure";
 import 'react-image-lightbox/style.css';
+import Measure from "react-measure";
 //@ts-ignore
 import { Document, Page } from "react-pdf";
 import 'react-pdf/dist/Page/AnnotationLayer.css';
+import { FieldWaiting, Opt } from '../../../fields/Field';
+import { ImageField } from '../../../fields/ImageField';
+import { KeyStore } from '../../../fields/KeyStore';
+import { PDFField } from '../../../fields/PDFField';
 import { Utils } from '../../../Utils';
 import { Annotation } from './Annotation';
 import { FieldView, FieldViewProps } from './FieldView';
 import "./ImageBox.scss";
+import "./PDFBox.scss";
 import { Sticky } from './Sticky'; //you should look at sticky and annotation, because they are used here
 import React = require("react")
-import { KeyStore } from '../../../fields/KeyStore';
-import "./PDFBox.scss";
-import { PDFField } from '../../../fields/PDFField';
-import { FieldWaiting } from '../../../fields/Field';
-import { ImageField } from '../../../fields/ImageField';
-import * as htmlToImage from "html-to-image";
-import { url } from 'inspector';
 
 /** ALSO LOOK AT: Annotation.tsx, Sticky.tsx
  * This method renders PDF and puts all kinds of functionalities such as annotation, highlighting, 
@@ -60,6 +59,7 @@ export class PDFBox extends React.Component<FieldViewProps> {
     //very useful for keeping track of X and y position throughout the PDF Canvas
     private initX: number = 0;
     private initY: number = 0;
+    private initPage: boolean = false;
 
     //checks if tool is on
     private _toolOn: boolean = false; //checks if tool is on
@@ -77,47 +77,36 @@ export class PDFBox extends React.Component<FieldViewProps> {
     private _highlightTool = React.createRef<HTMLButtonElement>(); //highlighter button reference
     private _highlightToolOn: boolean = false;
     private _pdfCanvas: any;
+    private _reactionDisposer: Opt<IReactionDisposer>;
 
     @observable private _perPageInfo: Object[] = []; //stores pageInfo
     @observable private _pageInfo: any = { area: [], divs: [], anno: [] }; //divs is array of objects linked to anno
 
     @observable private _currAnno: any = []
-    @observable private _page: number = 1; //default is the first page. 
-    @observable private _numPages: number = 1; //default number of pages
     @observable private _interactive: boolean = false;
     @observable private _loaded: boolean = false;
 
-    /**
-     * for pagination backwards
-     */
-    @action
-    onPageBack = () => {
-        if (this._page > 1) {
-            this._page -= 1;
-            this._currAnno = [];
-            this._perPageInfo[this._page] = this._pageInfo
-            this._pageInfo = { area: [], divs: [], anno: [] }; //resets the object to default
-            if (this._perPageInfo[this._page - 1]) {
-                this._pageInfo = this._perPageInfo[this._page - 1];
-            }
-            this.saveThumbnail();
-        }
+    @computed private get curPage() { return this.props.doc.GetNumber(KeyStore.CurPage, 0); }
+
+    componentDidMount() {
+        this._reactionDisposer = reaction(
+            () => this.curPage,
+            () => {
+                if (this.curPage && this.initPage) {
+                    this.saveThumbnail();
+                    this._interactive = true;
+                } else {
+                    if (this.curPage)
+                        this.initPage = true;
+                }
+            },
+            { fireImmediately: true });
+
     }
 
-    /**
-     * for pagination forwards
-     */
-    @action
-    onPageForward = () => {
-        if (this._page < this._numPages) {
-            this._page += 1;
-            this._currAnno = [];
-            this._perPageInfo[this._page - 2] = this._pageInfo;
-            this._pageInfo = { area: [], divs: [], anno: [] }; //resets the object to default
-            if (this._perPageInfo[this._page - 1]) {
-                this._pageInfo = this._perPageInfo[this._page - 1];
-            }
-            this.saveThumbnail();
+    componentWillUnmount() {
+        if (this._reactionDisposer) {
+            this._reactionDisposer();
         }
     }
 
@@ -386,8 +375,6 @@ export class PDFBox extends React.Component<FieldViewProps> {
     }
 
 
-
-
     @action
     saveThumbnail = () => {
         setTimeout(() => {
@@ -420,9 +407,11 @@ export class PDFBox extends React.Component<FieldViewProps> {
                 }
             })
         }
-        this._numPages = page._transport.numPages;
+
+        // bcz: the number of pages should really be set when the document is imported.
+        this.props.doc.SetNumber(KeyStore.NumPages, page._transport.numPages);
         if (this._perPageInfo.length == 0) { //Makes sure it only runs once
-            this._perPageInfo = [...Array(this._numPages)]
+            this._perPageInfo = [...Array(page._transport.numPages)]
         }
         this._loaded = true;
     }
@@ -442,23 +431,8 @@ export class PDFBox extends React.Component<FieldViewProps> {
     }
 
     @computed
-    get uIButtons() {
-        return (
-            <div className="pdfBox-buttonTray" key="tray">
-                <button className="pdfButton" onClick={this.onPageBack}>{"<"}</button>
-                <button className="pdfButton" onClick={this.onPageForward}>{">"}</button>
-                <button className="pdfButton" onClick={this.selectionTool}>{"Area"}</button>
-                <button className="pdfButton" style={{ color: "white", backgroundColor: "grey" }} onClick={this.onHighlight} ref={this._highlightTool}>Highlight</button>
-                <button className="pdfButton" style={{ color: "white", backgroundColor: "grey" }} ref={this._drawTool} onClick={this.onDraw}>{"Draw"}</button>
-                <button className="pdfButton" ref={this._colorTool} onPointerDown={this.onColorChange}>{"Red"}</button>
-                <button className="pdfButton" ref={this._colorTool} onPointerDown={this.onColorChange}>{"Blue"}</button>
-                <button className="pdfButton" ref={this._colorTool} onPointerDown={this.onColorChange}>{"Green"}</button>
-                <button className="pdfButton" ref={this._colorTool} onPointerDown={this.onColorChange}>{"Black"}</button>
-            </div>);
-    }
-
-    @computed
     get pdfContent() {
+        const page = this.curPage;
         const renderHeight = 2400;
         let pdfUrl = this.props.doc.GetT(this.props.fieldKey, PDFField);
         let xf = this.props.doc.GetNumber(KeyStore.NativeHeight, 0) / renderHeight;
@@ -467,7 +441,7 @@ export class PDFBox extends React.Component<FieldViewProps> {
                 <Measure onResize={this.setScaling}>
                     {({ measureRef }) =>
                         <div className="pdfBox-page" ref={measureRef}>
-                            <Page height={renderHeight} pageNumber={this._page} onLoadSuccess={this.onLoaded} />
+                            <Page height={renderHeight} pageNumber={page} onLoadSuccess={this.onLoaded} />
                         </div>
                     }
                 </Measure>
@@ -485,7 +459,6 @@ export class PDFBox extends React.Component<FieldViewProps> {
         return [
             this._pageInfo.area.filter(() => this._pageInfo.area).map((element: any) => element),
             this._currAnno.map((element: any) => element),
-            this.uIButtons,
             <div key="pdfBox-contentShell">
                 {this.pdfContent}
                 {proxy}

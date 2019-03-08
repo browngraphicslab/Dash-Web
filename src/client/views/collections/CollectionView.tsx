@@ -1,4 +1,4 @@
-import { action } from "mobx";
+import { action, computed } from "mobx";
 import { observer } from "mobx-react";
 import { Document } from "../../../fields/Document";
 import { ListField } from "../../../fields/ListField";
@@ -28,32 +28,42 @@ export const COLLECTION_BORDER_WIDTH = 2;
 export class CollectionView extends React.Component<CollectionViewProps> {
 
     public static LayoutString(fieldKey: string = "DataKey") {
-        return `<CollectionView Document={Document}
+        return `<${CollectionView.name} Document={Document}
                     ScreenToLocalTransform={ScreenToLocalTransform} fieldKey={${fieldKey}} panelWidth={PanelWidth} panelHeight={PanelHeight} isSelected={isSelected} select={select} bindings={bindings}
                     isTopMost={isTopMost} SelectOnLoad={selectOnLoad} BackgroundView={BackgroundView} focus={focus}/>`;
     }
-    public active = () => {
-        var isSelected = this.props.isSelected();
-        var childSelected = SelectionManager.SelectedDocuments().some(view => view.props.ContainingCollectionView == this);
-        var topMost = this.props.isTopMost;
+
+    public active: () => boolean = () => CollectionView.Active(this);
+
+    public static Active(self: CollectionView): boolean {
+        var isSelected = self.props.isSelected();
+        var childSelected = SelectionManager.SelectedDocuments().some(view => view.props.ContainingCollectionView == self);
+        var topMost = self.props.isTopMost;
         return isSelected || childSelected || topMost;
     }
-    @action
+
     addDocument = (doc: Document): void => {
-        if (this.props.Document.Get(this.props.fieldKey) instanceof Field) {
+        CollectionView.AddDocument(this.props, doc);
+    }
+    removeDocument = (doc: Document): boolean => {
+        return CollectionView.RemoveDocument(this.props, doc);
+    }
+
+    @action
+    public static AddDocument(props: CollectionViewProps, doc: Document) {
+        if (props.Document.Get(props.fieldKey) instanceof Field) {
             //TODO This won't create the field if it doesn't already exist
-            const value = this.props.Document.GetData(this.props.fieldKey, ListField, new Array<Document>())
+            const value = props.Document.GetData(props.fieldKey, ListField, new Array<Document>())
             value.push(doc);
         } else {
-            this.props.Document.SetData(this.props.fieldKey, [doc], ListField);
+            props.Document.SetData(props.fieldKey, [doc], ListField);
         }
     }
 
-
     @action
-    removeDocument = (doc: Document): boolean => {
+    public static RemoveDocument(props: CollectionViewProps, doc: Document): boolean {
         //TODO This won't create the field if it doesn't already exist
-        const value = this.props.Document.GetData(this.props.fieldKey, ListField, new Array<Document>())
+        const value = props.Document.GetData(props.fieldKey, ListField, new Array<Document>())
         let index = -1;
         for (let i = 0; i < value.length; i++) {
             if (value[i].Id == doc.Id) {
@@ -98,36 +108,40 @@ export class CollectionView extends React.Component<CollectionViewProps> {
         }
     }
 
-    render() {
-        let viewType = this.collectionViewType;
-        let subView: JSX.Element;
+    @computed
+    get subView() { return CollectionView.SubView(this); }
+
+    public static SubView(self: CollectionView) {
+        let viewType = self.collectionViewType;
+        let subView = (null);
         switch (viewType) {
             case CollectionViewType.Freeform:
-                subView = (<CollectionFreeFormView {...this.props}
-                    addDocument={this.addDocument} removeDocument={this.removeDocument} active={this.active}
-                    CollectionView={this} />)
+                subView = (<CollectionFreeFormView {...self.props}
+                    addDocument={self.addDocument} removeDocument={self.removeDocument} active={self.active}
+                    CollectionView={self} />)
                 break;
             case CollectionViewType.Schema:
-                subView = (<CollectionSchemaView {...this.props}
-                    addDocument={this.addDocument} removeDocument={this.removeDocument} active={this.active}
-                    CollectionView={this} />)
+                subView = (<CollectionSchemaView {...self.props}
+                    addDocument={self.addDocument} removeDocument={self.removeDocument} active={self.active}
+                    CollectionView={self} />)
                 break;
             case CollectionViewType.Docking:
-                subView = (<CollectionDockingView {...this.props}
-                    addDocument={this.addDocument} removeDocument={this.removeDocument} active={this.active}
-                    CollectionView={this} />)
+                subView = (<CollectionDockingView {...self.props}
+                    addDocument={self.addDocument} removeDocument={self.removeDocument} active={self.active}
+                    CollectionView={self} />)
                 break;
             case CollectionViewType.Tree:
-                subView = (<CollectionTreeView {...this.props}
-                    addDocument={this.addDocument} removeDocument={this.removeDocument} active={this.active}
-                    CollectionView={this} />)
-                break;
-            default:
-                subView = <div></div>
+                subView = (<CollectionTreeView {...self.props}
+                    addDocument={self.addDocument} removeDocument={self.removeDocument} active={self.active}
+                    CollectionView={self} />)
                 break;
         }
+        return subView;
+    }
+
+    render() {
         return (<div className="collectionView-cont" onContextMenu={this.specificContextMenu}>
-            {subView}
+            {this.subView}
         </div>)
     }
 }

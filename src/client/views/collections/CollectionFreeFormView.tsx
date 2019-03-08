@@ -12,6 +12,7 @@ import { undoBatch } from "../../util/UndoManager";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { CollectionSchemaView } from "../collections/CollectionSchemaView";
 import { CollectionView } from "../collections/CollectionView";
+import { CollectionPDFView } from "../collections/CollectionPDFView";
 import { InkingCanvas } from "../InkingCanvas";
 import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
 import { DocumentView } from "../nodes/DocumentView";
@@ -224,21 +225,24 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
     @computed
     get views() {
+        var curPage = this.props.Document.GetNumber(KeyStore.CurPage, 1);
         const lvalue = this.props.Document.GetT<ListField<Document>>(this.props.fieldKey, ListField);
         if (lvalue && lvalue != FieldWaiting) {
             return lvalue.Data.map(doc => {
-                return (<CollectionFreeFormDocumentView key={doc.Id} Document={doc}
-                    AddDocument={this.props.addDocument}
-                    RemoveDocument={this.props.removeDocument}
-                    ScreenToLocalTransform={this.getTransform}
-                    isTopMost={false}
-                    SelectOnLoad={doc.Id === this._selectOnLoaded}
-                    ContentScaling={this.noScaling}
-                    PanelWidth={doc.Width}
-                    PanelHeight={doc.Height}
-                    ContainingCollectionView={this.props.CollectionView}
-                    focus={this.focusDocument}
-                />);
+                var page = doc.GetNumber(KeyStore.Page, 0);
+                return (page != curPage && page != 0) ? (null) :
+                    (<CollectionFreeFormDocumentView key={doc.Id} Document={doc}
+                        AddDocument={this.props.addDocument}
+                        RemoveDocument={this.props.removeDocument}
+                        ScreenToLocalTransform={this.getTransform}
+                        isTopMost={false}
+                        SelectOnLoad={doc.Id === this._selectOnLoaded}
+                        ContentScaling={this.noScaling}
+                        PanelWidth={doc.Width}
+                        PanelHeight={doc.Height}
+                        ContainingCollectionView={this.props.CollectionView}
+                        focus={this.focusDocument}
+                    />);
             })
         }
         return null;
@@ -248,7 +252,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
     get backgroundView() {
         return !this.backgroundLayout ? (null) :
             (<JsxParser
-                components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebBox, KeyValueBox, PDFBox }}
+                components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, WebBox, KeyValueBox, PDFBox }}
                 bindings={this.props.bindings}
                 jsx={this.backgroundLayout}
                 showWarnings={true}
@@ -259,7 +263,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
     get overlayView() {
         return !this.overlayLayout ? (null) :
             (<JsxParser
-                components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebBox, KeyValueBox, PDFBox }}
+                components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, WebBox, KeyValueBox, PDFBox }}
                 bindings={this.props.bindings}
                 jsx={this.overlayLayout}
                 showWarnings={true}

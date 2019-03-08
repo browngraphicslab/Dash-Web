@@ -13,6 +13,7 @@ export interface StrokeData {
     color: string;
     width: string;
     tool: InkTool;
+    page: number;
 }
 export type StrokeMap = Map<string, StrokeData>;
 

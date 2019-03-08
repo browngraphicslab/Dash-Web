@@ -16,6 +16,7 @@ import { Field } from "../../fields/Field";
 import { KeyValueBox } from "../views/nodes/KeyValueBox"
 import { PDFField } from "../../fields/PDFField";
 import { PDFBox } from "../views/nodes/PDFBox";
+import { CollectionPDFView } from "../views/collections/CollectionPDFView";
 
 export interface DocumentOptions {
     x?: number;
@@ -97,8 +98,9 @@ export namespace Documents {
     }
     function GetPdfPrototype(): Document {
         if (!pdfProto) {
-            pdfProto = setupPrototypeOptions(pdfProtoId, "PDF_PROTO", CollectionView.LayoutString("AnnotationsKey"),
+            pdfProto = setupPrototypeOptions(pdfProtoId, "PDF_PROTO", CollectionPDFView.LayoutString("AnnotationsKey"),
                 { x: 0, y: 0, nativeWidth: 600, width: 300, layoutKeys: [KeyStore.Data, KeyStore.Annotations] });
+            pdfProto.SetNumber(KeyStore.Page, 1);
             pdfProto.SetText(KeyStore.BackgroundLayout, PDFBox.LayoutString());
         }
         return pdfProto;
