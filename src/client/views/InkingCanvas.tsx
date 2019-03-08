@@ -1,5 +1,5 @@
 import { observer } from "mobx-react";
-import { action } from "mobx";
+import { action, computed } from "mobx";
 import { InkingControl } from "./InkingControl";
 import React = require("react");
 import { Transform } from "../util/Transform";
@@ -11,6 +11,8 @@ import { InkingStroke } from "./InkingStroke";
 import "./InkingCanvas.scss"
 import { CollectionDockingView } from "./collections/CollectionDockingView";
 import { Utils } from "../../Utils";
+import { FieldWaiting } from "../../fields/Field";
+import { getMapLikeKeys } from "mobx/lib/internal";
 
 
 interface InkCanvasProps {
@@ -28,8 +30,13 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
         super(props);
     }
 
+    @computed
     get inkData(): StrokeMap {
-        return new Map(this.props.Document.GetData(KeyStore.Ink, InkField, new Map));
+        let map = this.props.Document.GetT(KeyStore.Ink, InkField);
+        if (!map || map === FieldWaiting) {
+            return new Map;
+        }
+        return new Map(map.Data);
     }
 
     set inkData(value: StrokeMap) {

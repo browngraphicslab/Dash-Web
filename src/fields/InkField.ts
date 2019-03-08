@@ -1,6 +1,7 @@
 import { BasicField } from "./BasicField";
 import { Types } from "../server/Message";
 import { FieldId } from "./Field";
+import { observable, ObservableMap } from "mobx";
 
 export enum InkTool {
     None,
@@ -38,8 +39,12 @@ export class InkField extends BasicField<StrokeMap> {
         }
     }
 
+    UpdateFromServer(data: any) {
+        this.data = new ObservableMap(data);
+    }
+
     static FromJson(id: string, data: any): InkField {
-        let map = new Map<string, StrokeData>();
+        let map: StrokeMap = new Map<string, StrokeData>();
         Object.keys(data).forEach(key => {
             map.set(key, data[key]);
         });
