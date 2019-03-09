@@ -4,6 +4,7 @@ export namespace KeyStore {
     export const Prototype = new Key("Prototype");
     export const X = new Key("X");
     export const Y = new Key("Y");
+    export const Page = new Key("Page");
     export const Title = new Key("Title");
     export const Author = new Key("Author");
     export const PanX = new Key("PanX");
@@ -26,4 +27,8 @@ export namespace KeyStore {
     export const Caption = new Key("Caption");
     export const ActiveFrame = new Key("ActiveFrame");
     export const DocumentText = new Key("DocumentText");
+    export const Thumbnail = new Key("Thumbnail");
+    export const CurPage = new Key("CurPage");
+    export const NumPages = new Key("NumPages");
+    export const Ink = new Key("Ink");
 }

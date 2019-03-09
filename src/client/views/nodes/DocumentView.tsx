@@ -12,6 +12,7 @@ import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { CollectionFreeFormView } from "../collections/CollectionFreeFormView";
 import { CollectionSchemaView } from "../collections/CollectionSchemaView";
 import { CollectionView, CollectionViewType } from "../collections/CollectionView";
+import { CollectionPDFView } from "../collections/CollectionPDFView";
 import { ContextMenu } from "../ContextMenu";
 import { FormattedTextBox } from "../nodes/FormattedTextBox";
 import { ImageBox } from "../nodes/ImageBox";
@@ -20,6 +21,7 @@ import { AudioBox } from "../nodes/AudioBox";
 import { Documents } from "../../documents/Documents"
 import { KeyValueBox } from "./KeyValueBox"
 import { WebBox } from "../nodes/WebBox";
+import { PDFBox } from "../nodes/PDFBox";
 import "./DocumentView.scss";
 import React = require("react");
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
@@ -196,7 +198,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     }
     @computed get mainContent() {
         return <JsxParser
-            components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebBox, KeyValueBox, VideoBox, AudioBox }}
+            components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, WebBox, KeyValueBox, VideoBox, AudioBox, PDFBox }}
             bindings={this._documentBindings}
             jsx={this.layout}
             showWarnings={true}

@@ -2,7 +2,7 @@ import { action, IReactionDisposer, reaction } from "mobx";
 import { baseKeymap } from "prosemirror-commands";
 import { history, redo, undo } from "prosemirror-history";
 import { keymap } from "prosemirror-keymap";
-import { schema } from "prosemirror-schema-basic";
+import { schema } from "../../util/RichTextSchema";
 import { EditorState, Transaction, } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { Opt, FieldWaiting } from "../../../fields/Field";
@@ -10,6 +10,9 @@ import "./FormattedTextBox.scss";
 import React = require("react")
 import { RichTextField } from "../../../fields/RichTextField";
 import { FieldViewProps, FieldView } from "./FieldView";
+import { Plugin } from 'prosemirror-state'
+import { Decoration, DecorationSet } from 'prosemirror-view'
+import { TooltipTextMenu } from "../../util/TooltipTextMenu"
 import { ContextMenu } from "../../views/ContextMenu";
 
 
@@ -61,6 +64,7 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
                 history(),
                 keymap({ "Mod-z": undo, "Mod-y": redo }),
                 keymap(baseKeymap),
+                this.tooltipMenuPlugin()
             ]
         };
 
@@ -137,6 +141,14 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
 
     onPointerWheel = (e: React.WheelEvent): void => {
         e.stopPropagation();
+    }
+
+    tooltipMenuPlugin() {
+        return new Plugin({
+            view(_editorView) {
+                return new TooltipTextMenu(_editorView)
+            }
+        })
     }
 
     render() {
