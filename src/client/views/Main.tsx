@@ -52,11 +52,6 @@ Documents.initProtos(mainDocId, (res?: Document) => {
         }, 0);
     }
 
-
-    let specificContextMenu = (e: React.MouseEvent): void => {
-        ContextMenu.Instance.addItem({ description: "Freeform", event: () => console.log("dsjflkaj") });
-    }
-
     let imgurl = "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg";
     let pdfurl = "http://www.adobe.com/support/products/enterprise/knowledgecenter/media/c4611_sample_explain.pdf"
     let weburl = "https://cs.brown.edu/courses/cs166/";
@@ -67,6 +62,16 @@ Documents.initProtos(mainDocId, (res?: Document) => {
     let addPDFNode = action(() => Documents.PdfDocument(pdfurl, { width: 200, height: 200, title: "a schema collection" }));
     let addImageNode = action(() => Documents.ImageDocument(imgurl, { width: 200, height: 200, title: "an image of a cat" }));
     let addWebNode = action(() => Documents.WebDocument(weburl, { width: 200, height: 200, title: "a sample web page" }));
+
+    let addNodesContextMenu = (e: React.MouseEvent): void => {
+        ContextMenu.Instance.displayMenu(e.pageX, e.pageY);
+        ContextMenu.Instance.addItem({ description: "Textbox", event: addClick(addTextNode) });
+        ContextMenu.Instance.addItem({ description: "Image", event: addClick(addImageNode) });
+        ContextMenu.Instance.addItem({ description: "PDF", event: addClick(addPDFNode) });
+        ContextMenu.Instance.addItem({ description: "Website", event: addClick(addWebNode) });
+        ContextMenu.Instance.addItem({ description: "Collection", event: addClick(addColNode) });
+        ContextMenu.Instance.addItem({ description: "Schema", event: addClick(addSchemaNode) });
+    }
 
     let addClick = (creator: () => Document) => action(() =>
         mainfreeform.GetList<Document>(KeyStore.Data, []).push(creator())
@@ -93,24 +98,10 @@ Documents.initProtos(mainDocId, (res?: Document) => {
             <DocumentDecorations />
             <ContextMenu />
             <button className="clear-db-button" onClick={clearDatabase}>Clear Database</button>
-            <button className="add-button" onClick={specificContextMenu}>+</button>
-            <ul>
-                <li><div className="main-buttonDiv" ref={imgRef} >
-                    <button onPointerDown={setupDrag(imgRef, addImageNode)} onClick={addClick(addImageNode)}>Add Image</button></div></li>
-                <li><div className="main-buttonDiv" ref={webRef} >
-                    <button onPointerDown={setupDrag(webRef, addWebNode)} onClick={addClick(addWebNode)}>Add Web</button></div></li>
-                <li><div className="main-buttonDiv" ref={textRef}>
-                    <button onPointerDown={setupDrag(textRef, addTextNode)} onClick={addClick(addTextNode)}>Add Text</button></div></li>
-                <li><div className="main-buttonDiv" ref={colRef}>
-                    <button onPointerDown={setupDrag(colRef, addColNode)} onClick={addClick(addColNode)}>Add Collection</button></div></li>
-                <li><div className="main-buttonDiv" ref={schemaRef}>
-                    <button onPointerDown={setupDrag(schemaRef, addSchemaNode)} onClick={addClick(addSchemaNode)}>Add Schema</button></div></li>
-                <li></li>
-                <li><div className="main-buttonDiv" ref={pdfRef}>
-                    <button onPointerDown={setupDrag(pdfRef, addPDFNode)} onClick={addClick(addPDFNode)}>Add PDF</button></div></li>
-                <button className="main-undoButtons" style={{ bottom: '25px' }} onClick={() => UndoManager.Undo()}>Undo</button>
-                <button className="main-undoButtons" style={{ bottom: '0px' }} onClick={() => UndoManager.Redo()}>Redo</button>
-            </ul>
+            <button className="add-button" onClick={addNodesContextMenu}>+</button>
+
+            <button className="main-undoButtons" style={{ bottom: '25px' }} onClick={() => UndoManager.Undo()}>Undo</button>
+            <button className="main-undoButtons" style={{ bottom: '0px' }} onClick={() => UndoManager.Redo()}>Redo</button>
 
             <InkingControl />
         </div>),
