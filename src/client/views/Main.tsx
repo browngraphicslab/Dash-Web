@@ -63,15 +63,6 @@ Documents.initProtos(mainDocId, (res?: Document) => {
     let addImageNode = action(() => Documents.ImageDocument(imgurl, { width: 200, height: 200, title: "an image of a cat" }));
     let addWebNode = action(() => Documents.WebDocument(weburl, { width: 200, height: 200, title: "a sample web page" }));
 
-    let addNodesContextMenu = (e: React.MouseEvent): void => {
-        ContextMenu.Instance.displayMenu(e.pageX, e.pageY);
-        ContextMenu.Instance.addItem({ description: "Textbox", event: addClick(addTextNode) });
-        ContextMenu.Instance.addItem({ description: "Image", event: addClick(addImageNode) });
-        ContextMenu.Instance.addItem({ description: "PDF", event: addClick(addPDFNode) });
-        ContextMenu.Instance.addItem({ description: "Website", event: addClick(addWebNode) });
-        ContextMenu.Instance.addItem({ description: "Collection", event: addClick(addColNode) });
-        ContextMenu.Instance.addItem({ description: "Schema", event: addClick(addSchemaNode) });
-    }
 
     let addClick = (creator: () => Document) => action(() =>
         mainfreeform.GetList<Document>(KeyStore.Data, []).push(creator())
@@ -98,7 +89,21 @@ Documents.initProtos(mainDocId, (res?: Document) => {
             <DocumentDecorations />
             <ContextMenu />
             <button className="clear-db-button" onClick={clearDatabase}>Clear Database</button>
-            <button className="add-button" onClick={addNodesContextMenu}>+</button>
+
+            {/* for the expandable add nodes menu */}
+            <div id="add-nodes-menu">
+                <input type="checkbox" id="add-menu-toggle" />
+                <label htmlFor="add-menu-toggle">+</label>
+
+                <div id="add-options-content">
+                    <ul id="add-options-list">
+                        <li><button className="add-button" onClick={() => console.log("yes")}>T</button></li>
+                        <li><button className="add-button">I</button></li>
+                        <li><button className="add-button">P</button></li>
+                    </ul>
+                </div>
+
+            </div>
 
             <button className="main-undoButtons" style={{ bottom: '25px' }} onClick={() => UndoManager.Undo()}>Undo</button>
             <button className="main-undoButtons" style={{ bottom: '0px' }} onClick={() => UndoManager.Redo()}>Redo</button>

@@ -1,10 +1,11 @@
 @import "global_variables";
+@import url('https://fonts.googleapis.com/css?family=Work+Sans:300,700');
 html,
 body {
     width: 100%;
     height: 100%;
     overflow: hidden;
-    font-family: 'Hind Siliguri', sans-serif;
+    font-family: 'Work Sans', sans-serif;
     margin: 0;
 }
 
@@ -17,7 +18,8 @@ h1 {
     color: $dark-color;
     text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff;
     z-index: 9999;
-    font-family: 'Fjalla One', sans-serif;
+    font-family: 'Work Sans', sans-serif;
+    font-weight: 700;
     -webkit-touch-callout: none;
     -webkit-user-select: none;
     -khtml-user-select: none;
@@ -52,10 +54,12 @@ button {
     letter-spacing: 2px;
     font-size: 75%;
     padding: 10px;
+    transition: transform 0.2s;
 }
 
 button:hover {
     background: $dark-accent;
+    transform: scale(1.05);
 }
 
 .clear-db-button {
@@ -66,19 +70,72 @@ button:hover {
 }
 
 .add-button {
-    position: absolute;
-    left: 1em;
-    bottom: 1em;
+    position: relative;
     width: 2em;
     height: 2em;
     border-radius: 1em;
     font-size: 24px;
+    margin-right: 0.4em;
 }
 
 .main-undoButtons {
     position: absolute;
     width: 150px;
     right: 0px;
+}
+
+// add nodes menu
+#add-nodes-menu {
+    position: absolute;
+    left: 1em;
+    bottom: 1em;
+    label {
+        background: $dark-color;
+        color: $light-color;
+        padding: 10px;
+        display: inline-block;
+        border-radius: 1em;
+        font-size: 24px;
+        width: 1.09em;
+        margin-right: 0.4em;
+        text-align: center;
+        cursor: pointer;
+        transition: transform 0.5s;
+    }
+    label:hover {
+        background: $dark-accent;
+    }
+    input {
+        display: none;
+    }
+    input:not(:checked)~#add-options-content {
+        display: none;
+    }
+    input:checked~label {
+        transform: rotate(45deg);
+        transition: transform 0.5s;
+        cursor: pointer;
+    }
+}
+
+#add-options-content {
+    display: table;
+    opacity: 1;
+    margin: 0;
+    padding: 0;
+    position: relative;
+    float: right;
+    bottom: 0.3em;
+    margin-bottom: -1.68em;
+}
+
+ul#add-options-list {
+    list-style: none;
+    padding: 0;
+    li {
+        display: inline-block;
+        padding: 0;
+    }
 }
 
 // goldenlayout stuff
