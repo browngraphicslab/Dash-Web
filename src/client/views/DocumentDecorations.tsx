@@ -3,17 +3,26 @@ import React = require("react");
 import { SelectionManager } from "../util/SelectionManager";
 import { observer } from "mobx-react";
 import './DocumentDecorations.scss'
+<<<<<<< HEAD
 import { CollectionFreeFormView } from "./collections/CollectionFreeFormView";
 import ContentEditable from 'react-contenteditable'
 import { KeyStore } from '../../fields/Key'
+=======
+import { KeyStore } from '../../fields/KeyStore'
+import { NumberField } from "../../fields/NumberField";
+>>>>>>> 96eede5f7d1706a3f7ac6ee02a85bb3da217f467
 
 @observer
 export class DocumentDecorations extends React.Component<{}, { value: string }> {
     static Instance: DocumentDecorations
     private _resizer = ""
     private _isPointerDown = false;
+<<<<<<< HEAD
     @observable private _opacity = 1;
     private keyinput: React.RefObject<HTMLInputElement>;
+=======
+    @observable private _hidden = false;
+>>>>>>> 96eede5f7d1706a3f7ac6ee02a85bb3da217f467
 
     constructor(props: Readonly<{}>) {
         super(props)
@@ -43,28 +52,24 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
 
     @computed
     get Bounds(): { x: number, y: number, b: number, r: number } {
-        return SelectionManager.SelectedDocuments().reduce((bounds, element) => {
-            if (element.props.ContainingCollectionView != undefined &&
-                !(element.props.ContainingCollectionView instanceof CollectionFreeFormView)) {
+        return SelectionManager.SelectedDocuments().reduce((bounds, documentView) => {
+            if (documentView.props.isTopMost) {
                 return bounds;
             }
-            var spt = element.TransformToScreenPoint(0, 0);
-            var bpt = element.TransformToScreenPoint(element.width, element.height);
+            let transform = (documentView.props.ScreenToLocalTransform().scale(documentView.props.ContentScaling())).inverse();
+            var [sptX, sptY] = transform.transformPoint(0, 0);
+            let [bptX, bptY] = transform.transformPoint(documentView.props.PanelWidth(), documentView.props.PanelHeight());
             return {
-                x: Math.min(spt.ScreenX, bounds.x), y: Math.min(spt.ScreenY, bounds.y),
-                r: Math.max(bpt.ScreenX, bounds.r), b: Math.max(bpt.ScreenY, bounds.b)
+                x: Math.min(sptX, bounds.x), y: Math.min(sptY, bounds.y),
+                r: Math.max(bptX, bounds.r), b: Math.max(bptY, bounds.b)
             }
         }, { x: Number.MAX_VALUE, y: Number.MAX_VALUE, r: Number.MIN_VALUE, b: Number.MIN_VALUE });
     }
 
-    @computed
-    get opacity(): number {
-        return this._opacity
-    }
 
-    set opacity(o: number) {
-        this._opacity = Math.min(Math.max(0, o), 1)
-    }
+    @computed
+    public get Hidden() { return this._hidden; }
+    public set Hidden(value: boolean) { this._hidden = value; }
 
     onPointerDown = (e: React.PointerEvent): void => {
         e.stopPropagation();
@@ -128,17 +133,29 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         }
 
         SelectionManager.SelectedDocuments().forEach(element => {
-            const rect = element.screenRect;
+            const rect = element.screenRect();
             if (rect.width !== 0) {
-                let scale = element.width / rect.width;
-                let actualdW = Math.max(element.width + (dW * scale), 20);
-                let actualdH = Math.max(element.height + (dH * scale), 20);
-                element.props.Document.SetNumber(KeyStore.X, element.props.Document.GetNumber(KeyStore.X, 0) + dX * (actualdW - element.width));
-                element.props.Document.SetNumber(KeyStore.Y, element.props.Document.GetNumber(KeyStore.Y, 0) + dY * (actualdH - element.height));
-                if (Math.abs(dW) > Math.abs(dH))
-                    element.width = actualdW;
-                else
-                    element.height = actualdH;
+                let doc = element.props.Document;
+                let width = doc.GetNumber(KeyStore.Width, 0);
+                let nwidth = doc.GetNumber(KeyStore.NativeWidth, 0);
+                let nheight = doc.GetNumber(KeyStore.NativeHeight, 0);
+                let height = doc.GetNumber(KeyStore.Height, nwidth ? nheight / nwidth * width : 0);
+                let x = doc.GetOrCreate(KeyStore.X, NumberField);
+                let y = doc.GetOrCreate(KeyStore.Y, NumberField);
+                let scale = width / rect.width;
+                let actualdW = Math.max(width + (dW * scale), 20);
+                let actualdH = Math.max(height + (dH * scale), 20);
+                x.Data += dX * (actualdW - width);
+                y.Data += dY * (actualdH - height);
+                var nativeWidth = doc.GetNumber(KeyStore.NativeWidth, 0);
+                var nativeHeight = doc.GetNumber(KeyStore.NativeHeight, 0);
+                if (nativeWidth > 0 && nativeHeight > 0) {
+                    if (Math.abs(dW) > Math.abs(dH))
+                        actualdH = nativeHeight / nativeWidth * actualdW;
+                    else actualdW = nativeWidth / nativeHeight * actualdH;
+                }
+                doc.SetNumber(KeyStore.Width, actualdW);
+                doc.SetNumber(KeyStore.Height, actualdH);
             }
         })
     }
@@ -155,13 +172,24 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
 
     render() {
         var bounds = this.Bounds;
+        if (this.Hidden) {
+            return (null);
+        }
+        if (isNaN(bounds.r) || isNaN(bounds.b) || isNaN(bounds.x) || isNaN(bounds.y)) {
+            console.log("DocumentDecorations: Bounds Error")
+            return (null);
+        }
         return (
             <div id="documentDecorations-container" style={{
                 width: (bounds.r - bounds.x + 20 + 20) + "px",
                 height: (bounds.b - bounds.y + 40 + 20) + "px",
                 left: bounds.x - 20,
+<<<<<<< HEAD
                 top: bounds.y - 20 - 20,
                 opacity: this.opacity
+=======
+                top: bounds.y - 20,
+>>>>>>> 96eede5f7d1706a3f7ac6ee02a85bb3da217f467
             }}>
                 <input ref={this.keyinput} className="title" type="text" name="dynbox" value={this.state.value} onChange={this.handleChange} onPointerDown={this.onPointerDown} onKeyPress={this.enterPressed} />
                 {/* <div className="title" onPointerDown={this.onPointerDown}>{document.title}</div> */}

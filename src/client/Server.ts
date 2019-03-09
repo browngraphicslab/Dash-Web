@@ -1,40 +1,77 @@
-import { Field, FieldWaiting, FieldId, FIELD_WAITING, FieldValue, Opt } from "../fields/Field"
-import { Key, KeyStore } from "../fields/Key"
-import { ObservableMap, action } from "mobx";
+import { Key } from "../fields/Key"
+import { ObservableMap, action, reaction } from "mobx";
+import { Field, FieldWaiting, FIELD_WAITING, Opt, FieldId } from "../fields/Field"
 import { Document } from "../fields/Document"
 import { SocketStub } from "./SocketStub";
+import * as OpenSocket from 'socket.io-client';
+import { Utils } from "./../Utils";
+import { MessageStore, Types } from "./../server/Message";
 
 export class Server {
-    private static ClientFieldsCached: ObservableMap<FieldId, Field | FIELD_WAITING> = new ObservableMap();
+    public static ClientFieldsCached: ObservableMap<FieldId, Field | FIELD_WAITING> = new ObservableMap();
+    static Socket: SocketIOClient.Socket = OpenSocket(`${window.location.protocol}//${window.location.hostname}:1234`);
+    static GUID: string = Utils.GenerateGuid()
+
 
     // Retrieves the cached value of the field and sends a request to the server for the real value (if it's not cached).
     // Call this is from within a reaction and test whether the return value is FieldWaiting.
     // 'hackTimeout' is here temporarily for simplicity when debugging things.
-    public static GetField(fieldid: FieldId, callback: (field: Field) => void = (f) => { }, hackTimeout: number = -1) {
-        if (!this.ClientFieldsCached.get(fieldid)) {
+    public static GetField(fieldid: FieldId, callback: (field: Opt<Field>) => void): Opt<Field> | FIELD_WAITING {
+        let cached = this.ClientFieldsCached.get(fieldid);
+        if (!cached) {
             this.ClientFieldsCached.set(fieldid, FieldWaiting);
-            //simulating a server call with a registered callback action
-            SocketStub.SEND_FIELD_REQUEST(fieldid,
-                action((field: Field) => callback(Server.cacheField(field))),
-                hackTimeout);
-        } else if (this.ClientFieldsCached.get(fieldid) != FieldWaiting) {
-            callback(this.ClientFieldsCached.get(fieldid) as Field);
+            SocketStub.SEND_FIELD_REQUEST(fieldid, action((field: Field | undefined) => {
+                let cached = this.ClientFieldsCached.get(fieldid);
+                if (cached != FieldWaiting)
+                    callback(cached);
+                else {
+                    if (field) {
+                        this.ClientFieldsCached.set(fieldid, field);
+                    } else {
+                        this.ClientFieldsCached.delete(fieldid)
+                    }
+                    callback(field)
+                }
+            }));
+        } else if (cached != FieldWaiting) {
+            setTimeout(() => callback(cached as Field), 0);
+        } else {
+            reaction(() => {
+                return this.ClientFieldsCached.get(fieldid);
+            }, (field, reaction) => {
+                if (field !== "<Waiting>") {
+                    callback(field)
+                    reaction.dispose()
+                }
+            })
         }
-        return this.ClientFieldsCached.get(fieldid);
+        return cached;
     }
 
-    static times = 0; // hack for testing
-    public static GetDocumentField(doc: Document, key: Key): FieldValue<Field> {
-        var hackTimeout: number = key == KeyStore.Data ? (this.times++ == 0 ? 5000 : 1000) : key == KeyStore.X ? 2500 : 500;
+    public static GetFields(fieldIds: FieldId[], callback: (fields: { [id: string]: Field }) => any) {
+        SocketStub.SEND_FIELDS_REQUEST(fieldIds, (fields) => {
+            for (let key in fields) {
+                let field = fields[key];
+                if (!this.ClientFieldsCached.has(field.Id)) {
+                    this.ClientFieldsCached.set(field.Id, field)
+                }
+            }
+            callback(fields)
+        });
+    }
 
-        let fieldId = doc._proxies.get(key);
-        if (fieldId) {
-            return this.GetField(fieldId,
-                action((fieldfromserver: Field) => {
-                    doc._proxies.delete(key);
-                    doc.fields.set(key, fieldfromserver);
-                })
-                , hackTimeout);
+    public static GetDocumentField(doc: Document, key: Key, callback?: (field: Field) => void) {
+        let field = doc._proxies.get(key.Id);
+        if (field) {
+            this.GetField(field,
+                action((fieldfromserver: Opt<Field>) => {
+                    if (fieldfromserver) {
+                        doc.fields.set(key.Id, { key, field: fieldfromserver });
+                        if (callback) {
+                            callback(fieldfromserver);
+                        }
+                    }
+                }));
         }
     }
 
@@ -42,13 +79,22 @@ export class Server {
         SocketStub.SEND_ADD_DOCUMENT(document);
     }
     public static AddDocumentField(doc: Document, key: Key, value: Field) {
+        console.log("Add doc field " + doc.Title + " " + key.Name + " fid " + value.Id + " " + value);
         SocketStub.SEND_ADD_DOCUMENT_FIELD(doc, key, value);
     }
     public static DeleteDocumentField(doc: Document, key: Key) {
         SocketStub.SEND_DELETE_DOCUMENT_FIELD(doc, key);
     }
-    public static SetFieldValue(field: Field, value: any) {
-        SocketStub.SEND_SET_FIELD(field, value);
+
+    public static UpdateField(field: Field) {
+        if (!this.ClientFieldsCached.has(field.Id)) {
+            this.ClientFieldsCached.set(field.Id, field)
+        }
+        SocketStub.SEND_SET_FIELD(field);
+    }
+
+    static connected(message: string) {
+        Server.Socket.emit(MessageStore.Bar.Message, Server.GUID);
     }
 
     @action
@@ -61,4 +107,18 @@ export class Server {
         }
         return this.ClientFieldsCached.get(clientField.Id) as Field;
     }
+
+    @action
+    static updateField(field: { _id: string, data: any, type: Types }) {
+        if (Server.ClientFieldsCached.has(field._id)) {
+            var f = Server.ClientFieldsCached.get(field._id);
+            if (f && f != FieldWaiting) {
+                f.UpdateFromServer(field.data);
+                f.init(() => { });
+            }
+        }
+    }
 }
+
+Server.Socket.on(MessageStore.Foo.Message, Server.connected);
+Server.Socket.on(MessageStore.SetField.Message, Server.updateField);

@@ -10,10 +10,18 @@
     "lib": [
       "dom",
       "es2015"
+<<<<<<< HEAD
     ],
+=======
+    ]
+>>>>>>> 96eede5f7d1706a3f7ac6ee02a85bb3da217f467
   },
-  "exclude": [
-    "node_modules",
-    "static"
+  // "exclude": [
+  //   "node_modules",
+  //   "static"
+  // ],
+  "typeRoots": [
+    "./node_modules/@types",
+    "./src/typings"
   ]
 }

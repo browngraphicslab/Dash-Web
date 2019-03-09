@@ -1,50 +1,165 @@
-import { Field, Cast, Opt, FieldWaiting, FieldId, FieldValue } from "./Field"
-import { Key, KeyStore } from "./Key"
+import { Key } from "./Key"
+import { KeyStore } from "./KeyStore";
+import { Field, Cast, FieldWaiting, FieldValue, FieldId } from "./Field"
 import { NumberField } from "./NumberField";
-import { ObservableMap, computed, action, observable } from "mobx";
+import { ObservableMap, computed, action } from "mobx";
 import { TextField } from "./TextField";
 import { ListField } from "./ListField";
 import { Server } from "../client/Server";
+import { Types } from "../server/Message";
+import { UndoManager } from "../client/util/UndoManager";
+import { HtmlField } from "./HtmlField";
 
 export class Document extends Field {
-    public fields: ObservableMap<Key, Field> = new ObservableMap();
-    public _proxies: ObservableMap<Key, FieldId> = new ObservableMap();
+    public fields: ObservableMap<string, { key: Key, field: Field }> = new ObservableMap();
+    public _proxies: ObservableMap<string, FieldId> = new ObservableMap();
+
+    constructor(id?: string, save: boolean = true) {
+        super(id)
+
+        if (save) {
+            Server.UpdateField(this)
+        }
+    }
+
+    UpdateFromServer(data: [string, string][]) {
+        for (const key in data) {
+            const element = data[key];
+            this._proxies.set(element[0], element[1]);
+        }
+    }
+
+    public Width = () => { return this.GetNumber(KeyStore.Width, 0) }
+    public Height = () => { return this.GetNumber(KeyStore.Height, this.GetNumber(KeyStore.NativeWidth, 0) ? this.GetNumber(KeyStore.NativeHeight, 0) / this.GetNumber(KeyStore.NativeWidth, 0) * this.GetNumber(KeyStore.Width, 0) : 0) }
+    public Scale = () => { return this.GetNumber(KeyStore.Scale, 1) }
 
     @computed
     public get Title() {
         return this.GetText(KeyStore.Title, "<untitled>");
     }
 
+    /**
+     * Get the field in the document associated with the given key. If the
+     * associated field has not yet been filled in from the server, a request
+     * to the server will automatically be sent, the value will be filled in 
+     * when the request is completed, and {@link Field.ts#FieldWaiting} will be returned.
+     * @param key - The key of the value to get
+     * @param ignoreProto - If true, ignore any prototype this document
+     * might have and only search for the value on this immediate document.
+     * If false (default), search up the prototype chain, starting at this document,
+     * for a document that has a field associated with the given key, and return the first
+     * one found.
+     * 
+     * @returns If the document does not have a field associated with the given key, returns `undefined`.
+     * If the document does have an associated field, but the field has not been fetched from the server, returns {@link Field.ts#FieldWaiting}.
+     * If the document does have an associated field, and the field has not been fetched from the server, returns the associated field.
+     */
     Get(key: Key, ignoreProto: boolean = false): FieldValue<Field> {
         let field: FieldValue<Field>;
         if (ignoreProto) {
-            if (this.fields.has(key)) {
-                field = this.fields.get(key);
-            } else if (this._proxies.has(key)) {
-                field = Server.GetDocumentField(this, key);
+            if (this.fields.has(key.Id)) {
+                field = this.fields.get(key.Id)!.field;
+            } else if (this._proxies.has(key.Id)) {
+                Server.GetDocumentField(this, key);
+                /*
+                The field might have been instantly filled from the cache
+                Maybe we want to just switch back to returning the value
+                from Server.GetDocumentField if it's in the cache
+                */
+                if (this.fields.has(key.Id)) {
+                    field = this.fields.get(key.Id)!.field;
+                } else {
+                    field = FieldWaiting;
+                }
             }
         } else {
             let doc: FieldValue<Document> = this;
             while (doc && doc != FieldWaiting && field != FieldWaiting) {
-                if (!doc.fields.has(key)) {
-                    if (doc._proxies.has(key)) {
-                        field = Server.GetDocumentField(doc, key);
+                let curField = doc.fields.get(key.Id);
+                let curProxy = doc._proxies.get(key.Id);
+                if (!curField || (curProxy && curField.field.Id !== curProxy)) {
+                    if (curProxy) {
+                        Server.GetDocumentField(doc, key);
+                        /*
+                        The field might have been instantly filled from the cache
+                        Maybe we want to just switch back to returning the value
+                        from Server.GetDocumentField if it's in the cache
+                        */
+                        if (this.fields.has(key.Id)) {
+                            field = this.fields.get(key.Id)!.field;
+                        } else {
+                            field = FieldWaiting;
+                        }
                         break;
                     }
-                    if ((doc.fields.has(KeyStore.Prototype) || doc._proxies.has(KeyStore.Prototype))) {
+                    if ((doc.fields.has(KeyStore.Prototype.Id) || doc._proxies.has(KeyStore.Prototype.Id))) {
                         doc = doc.GetPrototype();
-                    } else
+                    } else {
                         break;
+                    }
                 } else {
-                    field = doc.fields.get(key);
+                    field = curField.field;
                     break;
                 }
             }
+            if (doc == FieldWaiting)
+                field = FieldWaiting;
         }
 
         return field;
     }
 
+    /**
+     * Tries to get the field associated with the given key, and if there is an
+     * associated field, calls the given callback with that field.
+     * @param key - The key of the value to get
+     * @param callback - A function that will be called with the associated field, if it exists,
+     * once it is fetched from the server (this may be immediately if the field has already been fetched).
+     * Note: The callback will not be called if there is no associated field.
+     * @returns `true` if the field exists on the document and `callback` will be called, and `false` otherwise
+     */
+    GetAsync(key: Key, callback: (field: Field) => void): boolean {
+        //TODO: This should probably check if this.fields contains the key before calling Server.GetDocumentField
+        //This currently doesn't deal with prototypes
+        if (this._proxies.has(key.Id)) {
+            Server.GetDocumentField(this, key, callback);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Same as {@link Document#GetAsync}, except a field of the given type
+     * will be created if there is no field associated with the given key,
+     * or the field associated with the given key is not of the given type.
+     * @param ctor - Constructor of the field type to get. E.g., TextField, ImageField, etc.
+     */
+    GetOrCreateAsync<T extends Field>(key: Key, ctor: { new(): T }, callback: (field: T) => void): void {
+        //This currently doesn't deal with prototypes
+        if (this._proxies.has(key.Id)) {
+            Server.GetDocumentField(this, key, (field) => {
+                if (field && field instanceof ctor) {
+                    callback(field);
+                } else {
+                    let newField = new ctor();
+                    this.Set(key, newField);
+                    callback(newField);
+                }
+            });
+        } else {
+            let newField = new ctor();
+            this.Set(key, newField);
+            callback(newField);
+        }
+    }
+
+    /**
+     * Same as {@link Document#Get}, except that it will additionally
+     * check if the field is of the given type.
+     * @param ctor - Constructor of the field type to get. E.g., `TextField`, `ImageField`, etc.
+     * @returns Same as {@link Document#Get}, except will return `undefined`
+     * if there is an associated field but it is of the wrong type.
+     */
     GetT<T extends Field = Field>(key: Key, ctor: { new(...args: any[]): T }, ignoreProto: boolean = false): FieldValue<T> {
         var getfield = this.Get(key, ignoreProto);
         if (getfield != FieldWaiting) {
@@ -69,6 +184,10 @@ export class Document extends Field {
         return vval;
     }
 
+    GetHtml(key: Key, defaultVal: string): string {
+        return this.GetData(key, HtmlField, defaultVal);
+    }
+
     GetNumber(key: Key, defaultVal: number): number {
         return this.GetData(key, NumberField, defaultVal);
     }
@@ -83,29 +202,37 @@ export class Document extends Field {
 
     @action
     Set(key: Key, field: Field | undefined): void {
+        let old = this.fields.get(key.Id);
+        let oldField = old ? old.field : undefined;
         if (field) {
-            this.fields.set(key, field);
-            Server.AddDocumentField(this, key, field);
+            this.fields.set(key.Id, { key, field });
+            this._proxies.set(key.Id, field.Id)
+            // Server.AddDocumentField(this, key, field);
         } else {
-            this.fields.delete(key);
-            Server.DeleteDocumentField(this, key);
+            this.fields.delete(key.Id);
+            this._proxies.delete(key.Id)
+            // Server.DeleteDocumentField(this, key);
         }
+        if (oldField || field) {
+            UndoManager.AddEvent({
+                undo: () => this.Set(key, oldField),
+                redo: () => this.Set(key, field)
+            })
+        }
+        Server.UpdateField(this);
     }
 
     @action
     SetData<T, U extends Field & { Data: T }>(key: Key, value: T, ctor: { new(): U }, replaceWrongType = true) {
 
         let field = this.Get(key, true);
-        //if (field != WAITING) {  // do we want to wait for the field to come back from the server to set it, or do we overwrite?
         if (field instanceof ctor) {
             field.Data = value;
-            Server.SetFieldValue(field, value);
         } else if (!field || replaceWrongType) {
             let newField = new ctor();
             newField.Data = value;
             this.Set(key, newField);
         }
-        //}
     }
 
     @action
@@ -132,8 +259,8 @@ export class Document extends Field {
         return protos;
     }
 
-    MakeDelegate(): Document {
-        let delegate = new Document();
+    MakeDelegate(id?: string): Document {
+        let delegate = new Document(id);
 
         delegate.Set(KeyStore.Prototype, this);
 
@@ -148,11 +275,26 @@ export class Document extends Field {
         throw new Error("Method not implemented.");
     }
     GetValue() {
-        throw new Error("Method not implemented.");
+        var title = (this._proxies.has(KeyStore.Title.Id) ? "???" : this.Title) + "(" + this.Id + ")";
+        return title;
+        //throw new Error("Method not implemented.");
     }
     Copy(): Field {
         throw new Error("Method not implemented.");
     }
 
+    ToJson(): { type: Types, data: [string, string][], _id: string } {
+        let fields: [string, string][] = []
+        this._proxies.forEach((field, key) => {
+            if (field) {
+                fields.push([key, field as string])
+            }
+        });
 
+        return {
+            type: Types.Document,
+            data: fields,
+            _id: this.Id
+        }
+    }
 }
