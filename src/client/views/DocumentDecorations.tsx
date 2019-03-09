@@ -3,26 +3,17 @@ import React = require("react");
 import { SelectionManager } from "../util/SelectionManager";
 import { observer } from "mobx-react";
 import './DocumentDecorations.scss'
-<<<<<<< HEAD
 import { CollectionFreeFormView } from "./collections/CollectionFreeFormView";
 import ContentEditable from 'react-contenteditable'
 import { KeyStore } from '../../fields/Key'
-=======
-import { KeyStore } from '../../fields/KeyStore'
-import { NumberField } from "../../fields/NumberField";
->>>>>>> 96eede5f7d1706a3f7ac6ee02a85bb3da217f467
 
 @observer
 export class DocumentDecorations extends React.Component<{}, { value: string }> {
     static Instance: DocumentDecorations
     private _resizer = ""
     private _isPointerDown = false;
-<<<<<<< HEAD
     @observable private _opacity = 1;
     private keyinput: React.RefObject<HTMLInputElement>;
-=======
-    @observable private _hidden = false;
->>>>>>> 96eede5f7d1706a3f7ac6ee02a85bb3da217f467
 
     constructor(props: Readonly<{}>) {
         super(props)
