@@ -112,11 +112,7 @@
     "pug": "^2.0.3",
     "raw-loader": "^1.0.0",
     "react": "^16.5.2",
-<<<<<<< HEAD
-    "react-contenteditable": "^3.2.6",
-=======
     "react-color": "^2.17.0",
->>>>>>> 96eede5f7d1706a3f7ac6ee02a85bb3da217f467
     "react-dimensions": "^1.3.1",
     "react-dom": "^16.7.0",
     "react-golden-layout": "^1.0.6",
