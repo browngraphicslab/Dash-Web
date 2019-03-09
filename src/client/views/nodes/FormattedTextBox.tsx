@@ -2,14 +2,20 @@ import { action, IReactionDisposer, reaction } from "mobx";
 import { baseKeymap } from "prosemirror-commands";
 import { history, redo, undo } from "prosemirror-history";
 import { keymap } from "prosemirror-keymap";
-import { schema } from "prosemirror-schema-basic";
-import { EditorState, Transaction } from "prosemirror-state";
+import { schema } from "../../util/RichTextSchema";
+import { EditorState, Transaction, } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
-import { Opt, FieldWaiting, FieldValue } from "../../../fields/Field";
+import { Opt, FieldWaiting } from "../../../fields/Field";
 import "./FormattedTextBox.scss";
 import React = require("react")
 import { RichTextField } from "../../../fields/RichTextField";
 import { FieldViewProps, FieldView } from "./FieldView";
+import { Plugin } from 'prosemirror-state'
+import { Decoration, DecorationSet } from 'prosemirror-view'
+import { TooltipTextMenu } from "../../util/TooltipTextMenu"
+import { ContextMenu } from "../../views/ContextMenu";
+
+
 
 
 // FormattedTextBox: Displays an editable plain text node that maps to a specified Key of a Document
@@ -39,7 +45,6 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
         super(props);
 
         this._ref = React.createRef();
-
         this.onChange = this.onChange.bind(this);
     }
 
@@ -55,18 +60,18 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
 
     componentDidMount() {
         let state: EditorState;
-        const { doc, fieldKey } = this.props;
         const config = {
             schema,
             plugins: [
                 history(),
                 keymap({ "Mod-z": undo, "Mod-y": redo }),
-                keymap(baseKeymap)
+                keymap(baseKeymap),
+                this.tooltipMenuPlugin()
             ]
         };
 
-        let field = doc.GetT(fieldKey, RichTextField);
-        if (field && field != FieldWaiting) {  // bcz: don't think this works
+        let field = this.props.doc.GetT(this.props.fieldKey, RichTextField);
+        if (field && field != FieldWaiting) {
             state = EditorState.fromJSON(config, JSON.parse(field.Data));
         } else {
             state = EditorState.create(config);
@@ -86,6 +91,10 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
                 this._editorView.updateState(EditorState.fromJSON(config, JSON.parse(field)));
             }
         })
+        if (this.props.selectOnLoad) {
+            this.props.select();
+            this._editorView!.focus();
+        }
     }
 
     componentWillUnmount() {
@@ -108,19 +117,49 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
         // doc.SetData(fieldKey, e.target.value, RichTextField);
     }
     onPointerDown = (e: React.PointerEvent): void => {
-        let me = this;
         if (e.buttons === 1 && this.props.isSelected()) {
             e.stopPropagation();
         }
     }
+
+    //REPLACE THIS WITH CAPABILITIES SPECIFIC TO THIS TYPE OF NODE
+    textCapability = (e: React.MouseEvent): void => {
+    }
+
+    specificContextMenu = (e: React.MouseEvent): void => {
+        ContextMenu.Instance.addItem({ description: "Text Capability", event: this.textCapability });
+        // ContextMenu.Instance.addItem({
+        //     description: "Submenu",
+        //     items: [
+        //         {
+        //             description: "item 1", event:
+        //     },
+        //         {
+        //             description: "item 2", event:
+        //     }
+        //     ]
+        // })
+        // e.stopPropagation()
+
+    }
+
+    onPointerWheel = (e: React.WheelEvent): void => {
+        e.stopPropagation();
+    }
+
+    tooltipMenuPlugin() {
+        return new Plugin({
+            view(_editorView) {
+                return new TooltipTextMenu(_editorView)
+            }
+        })
+    }
+
     render() {
         return (<div className="formattedTextBox-cont"
-            style={{
-                color: "initial",
-                whiteSpace: "initial",
-                height: "auto"
-            }}
             onPointerDown={this.onPointerDown}
+            onContextMenu={this.specificContextMenu}
+            onWheel={this.onPointerWheel}
             ref={this._ref} />)
     }
 }

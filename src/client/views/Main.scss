@@ -29,3 +29,23 @@ p {
     margin: 0px;
     padding: 0px;
 }
+::-webkit-scrollbar {
+    -webkit-appearance: none;
+    height:5px;
+    width:5px;
+}
+::-webkit-scrollbar-thumb {
+    border-radius: 2px;
+    background-color: rgba(0,0,0,.5);
+}
+
+.main-buttonDiv {
+    position: absolute;
+    width: 150px;
+    left: 0px;
+}
+.main-undoButtons {
+    position: absolute;
+    width: 150px;
+    right: 0px;
+}

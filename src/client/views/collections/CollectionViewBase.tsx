@@ -1,16 +1,16 @@
-import { action, computed } from "mobx";
+import { action } from "mobx";
 import { Document } from "../../../fields/Document";
 import { ListField } from "../../../fields/ListField";
 import React = require("react");
 import { KeyStore } from "../../../fields/KeyStore";
-import { Opt, FieldWaiting } from "../../../fields/Field";
+import { FieldWaiting } from "../../../fields/Field";
 import { undoBatch } from "../../util/UndoManager";
 import { DragManager } from "../../util/DragManager";
 import { DocumentView } from "../nodes/DocumentView";
 import { Documents, DocumentOptions } from "../../documents/Documents";
 import { Key } from "../../../fields/Key";
 import { Transform } from "../../util/Transform";
-
+import { CollectionView } from "./CollectionView";
 
 export interface CollectionViewProps {
     fieldKey: Key;
@@ -20,12 +20,15 @@ export interface CollectionViewProps {
     isTopMost: boolean;
     select: (ctrlPressed: boolean) => void;
     bindings: any;
+    panelWidth: () => number;
+    panelHeight: () => number;
+    focus: (doc: Document) => void;
 }
 export interface SubCollectionViewProps extends CollectionViewProps {
     active: () => boolean;
     addDocument: (doc: Document) => void;
     removeDocument: (doc: Document) => boolean;
-    CollectionView: any;
+    CollectionView: CollectionView;
 }
 
 export class CollectionViewBase extends React.Component<SubCollectionViewProps> {
@@ -42,22 +45,18 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
     @undoBatch
     @action
     protected drop(e: Event, de: DragManager.DropEvent) {
-        const doc: DocumentView = de.data["document"];
-        if (de.data["alias"]) {
-            let newDoc = doc.props.Document.CreateAlias()
-            const xOffset = de.data["xOffset"] as number || 0
-            const yOffset = de.data["yOffset"] as number || 0
-            newDoc.SetNumber(KeyStore.X, de.x - xOffset)
-            newDoc.SetNumber(KeyStore.Y, de.y - yOffset)
-            newDoc.SetNumber(KeyStore.Width, doc.props.Document.GetNumber(KeyStore.Width, 100))
-            newDoc.SetNumber(KeyStore.Height, doc.props.Document.GetNumber(KeyStore.Height, 100))
-            this.props.addDocument(newDoc)
-        }
-        if (doc.props.ContainingCollectionView && doc.props.ContainingCollectionView !== this.props.CollectionView) {
-            if (!de.data["alias"] && doc.props.RemoveDocument) {
-                doc.props.RemoveDocument(doc.props.Document);
+        const docView: DocumentView = de.data["documentView"];
+        const doc: Document = de.data["document"]
+        if (docView && docView.props.ContainingCollectionView && docView.props.ContainingCollectionView !== this.props.CollectionView) {
+            if (docView.props.RemoveDocument && !de.data["alias"]) {
+                docView.props.RemoveDocument(docView.props.Document)
             }
-            this.props.addDocument(de.data["alias"] ? doc.props.Document.CreateAlias() : doc.props.Document);
+            this.props.addDocument(de.data["alias"] ? docView.props.Document.CreateAlias() : docView.props.Document)
+        } else if (doc) {
+            if (!de.data["alias"]) {
+                this.props.removeDocument(doc)
+            }
+            this.props.addDocument(doc)
         }
         e.stopPropagation();
     }
@@ -70,8 +69,8 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
 
         let html = e.dataTransfer.getData("text/html");
         let text = e.dataTransfer.getData("text/plain");
-        if (html) {
-            let htmlDoc = Documents.HtmlDocument(html, { ...options });
+        if (html && html.indexOf("<img") != 0) {
+            let htmlDoc = Documents.HtmlDocument(html, { ...options, width: 300, height: 300 });
             htmlDoc.SetText(KeyStore.DocumentText, text);
             this.props.addDocument(htmlDoc);
             return;
@@ -82,7 +81,7 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
             if (item.kind === "string" && item.type.indexOf("uri") != -1) {
                 e.dataTransfer.items[i].getAsString(function (s) {
                     action(() => {
-                        var img = Documents.ImageDocument(s, { ...options, nativeWidth: 300, nativeHeight: 300, width: 300, height: 300 })
+                        var img = Documents.ImageDocument(s, { ...options, nativeWidth: 300, width: 300, })
 
                         let docs = that.props.Document.GetT(KeyStore.Data, ListField);
                         if (docs != FieldWaiting) {

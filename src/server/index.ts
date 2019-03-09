@@ -31,6 +31,12 @@ const MongoStore = require('connect-mongo')(session);
 const mongoose = require('mongoose');
 const bluebird = require('bluebird');
 import { performance } from 'perf_hooks'
+import * as fs from 'fs';
+import * as request from 'request'
+
+const download = (url: string, dest: fs.PathLike) => {
+    request.get(url).pipe(fs.createWriteStream(dest));
+}
 
 const mongoUrl = 'mongodb://localhost:27017/Dash';
 // mongoose.Promise = bluebird;
@@ -79,6 +85,10 @@ app.get("/hello", (req, res) => {
     res.send("<p>Hello</p>");
 })
 
+app.use("/corsProxy", (req, res) => {
+    req.pipe(request(req.url.substring(1))).pipe(res);
+});
+
 app.get("/delete", (req, res) => {
     deleteAll();
     res.redirect("/");
@@ -119,7 +129,6 @@ function deleteAll() {
 
 function barReceived(guid: String) {
     clients[guid.toString()] = new Client(guid.toString());
-    // Database.Instance.print()
 }
 
 function addDocument(document: Document) {
