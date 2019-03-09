@@ -78,6 +78,10 @@ button:hover {
     margin-right: 0.4em;
 }
 
+.add-button:hover {
+    transform: scale(1.15);
+}
+
 .main-undoButtons {
     position: absolute;
     width: 150px;
@@ -150,6 +154,7 @@ div .lm_header {
     min-height: 1.4em;
     padding-bottom: 0px;
     border-radius: 5px;
+    font-family: 'Work Sans', sans-serif !important;
 }
 
 .lm_header .lm_controls {

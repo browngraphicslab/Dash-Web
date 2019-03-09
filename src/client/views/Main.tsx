@@ -18,6 +18,14 @@ import { DocumentDecorations } from './DocumentDecorations';
 import { DocumentView } from './nodes/DocumentView';
 import "./Main.scss";
 import { InkingControl } from './InkingControl';
+import { library } from '@fortawesome/fontawesome-svg-core';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faFont } from '@fortawesome/free-solid-svg-icons';
+import { faImage } from '@fortawesome/free-solid-svg-icons';
+import { faFilePdf } from '@fortawesome/free-solid-svg-icons';
+import { faObjectGroup } from '@fortawesome/free-solid-svg-icons';
+import { faTable } from '@fortawesome/free-solid-svg-icons';
+import { faGlobeAsia } from '@fortawesome/free-solid-svg-icons';
 
 
 configure({ enforceActions: "observed" });  // causes errors to be generated when modifying an observable outside of an action
@@ -29,10 +37,16 @@ document.addEventListener("pointerdown", action(function (e: PointerEvent) {
     }
 }), true)
 
-
 const mainDocId = "mainDoc";
 let mainContainer: Document;
 let mainfreeform: Document;
+
+library.add(faFont);
+library.add(faImage);
+library.add(faFilePdf);
+library.add(faObjectGroup);
+library.add(faTable);
+library.add(faGlobeAsia);
 
 Documents.initProtos(mainDocId, (res?: Document) => {
     if (res instanceof Document) {
@@ -75,6 +89,9 @@ Documents.initProtos(mainDocId, (res?: Document) => {
     let schemaRef = React.createRef<HTMLDivElement>();
     let colRef = React.createRef<HTMLDivElement>();
 
+    // fontawesome stuff
+    library.add()
+
     ReactDOM.render((
         <div style={{ position: "absolute", width: "100%", height: "100%" }}>
             <DocumentView Document={mainContainer}
@@ -97,9 +114,24 @@ Documents.initProtos(mainDocId, (res?: Document) => {
 
                 <div id="add-options-content">
                     <ul id="add-options-list">
-                        <li><button className="add-button" onClick={() => console.log("yes")}>T</button></li>
-                        <li><button className="add-button">I</button></li>
-                        <li><button className="add-button">P</button></li>
+                        <li><button className="add-button" onClick={() => console.log("yes")}>
+                            <FontAwesomeIcon icon="font" size="sm" />
+                        </button></li>
+                        <li><button className="add-button">
+                            <FontAwesomeIcon icon="image" size="sm" />
+                        </button></li>
+                        <li><button className="add-button">
+                            <FontAwesomeIcon icon="file-pdf" size="sm" />
+                        </button></li>
+                        <li><button className="add-button">
+                            <FontAwesomeIcon icon="globe-asia" size="sm" />
+                        </button></li>
+                        <li><button className="add-button">
+                            <FontAwesomeIcon icon="object-group" size="sm" />
+                        </button></li>
+                        <li><button className="add-button">
+                            <FontAwesomeIcon icon="table" size="sm" />
+                        </button></li>
                     </ul>
                 </div>
 
@@ -109,6 +141,6 @@ Documents.initProtos(mainDocId, (res?: Document) => {
             <button className="main-undoButtons" style={{ bottom: '0px' }} onClick={() => UndoManager.Redo()}>Redo</button>
 
             <InkingControl />
-        </div>),
+        </div >),
         document.getElementById('root'));
 })
