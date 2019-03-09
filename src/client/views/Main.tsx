@@ -114,24 +114,24 @@ Documents.initProtos(mainDocId, (res?: Document) => {
 
                 <div id="add-options-content">
                     <ul id="add-options-list">
-                        <li><button className="add-button" onClick={() => console.log("yes")}>
+                        <li><div ref={textRef}><button className="add-button" onPointerDown={setupDrag(textRef, addTextNode)} onClick={addClick(addTextNode)}>
                             <FontAwesomeIcon icon="font" size="sm" />
-                        </button></li>
-                        <li><button className="add-button">
+                        </button></div></li>
+                        <li><div ref={imgRef}><button className="add-button" onPointerDown={setupDrag(imgRef, addImageNode)} onClick={addClick(addImageNode)}>
                             <FontAwesomeIcon icon="image" size="sm" />
-                        </button></li>
-                        <li><button className="add-button">
+                        </button></div></li>
+                        <li><div ref={pdfRef}><button className="add-button" onPointerDown={setupDrag(pdfRef, addPDFNode)} onClick={addClick(addPDFNode)}>
                             <FontAwesomeIcon icon="file-pdf" size="sm" />
-                        </button></li>
-                        <li><button className="add-button">
+                        </button></div></li>
+                        <li><div ref={webRef}><button className="add-button" onPointerDown={setupDrag(webRef, addWebNode)} onClick={addClick(addWebNode)}>
                             <FontAwesomeIcon icon="globe-asia" size="sm" />
-                        </button></li>
-                        <li><button className="add-button">
+                        </button></div></li>
+                        <li><div ref={colRef}><button className="add-button" onPointerDown={setupDrag(colRef, addColNode)} onClick={addClick(addColNode)}>
                             <FontAwesomeIcon icon="object-group" size="sm" />
-                        </button></li>
-                        <li><button className="add-button">
+                        </button></div></li>
+                        <li><div ref={schemaRef}><button className="add-button" onPointerDown={setupDrag(schemaRef, addSchemaNode)} onClick={addClick(addSchemaNode)}>
                             <FontAwesomeIcon icon="table" size="sm" />
-                        </button></li>
+                        </button></div></li>
                     </ul>
                 </div>
 
