@@ -22,7 +22,7 @@ export enum CollectionViewType {
     Tree
 }
 
-export const COLLECTION_BORDER_WIDTH = 2;
+export const COLLECTION_BORDER_WIDTH = 1;
 
 @observer
 export class CollectionView extends React.Component<CollectionViewProps> {
