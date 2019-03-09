@@ -49,20 +49,6 @@ export class ListField<T extends Field> extends BasicField<T[]> {
     }
 
     UpdateFromServer(fields: string[]) {
-        if (this._proxies.length < fields.length) {
-            var added = true;
-            for (let i = 0; i < this._proxies.length; i++) {
-                if (this._proxies[i] != fields[i]) {
-                    added = false;
-                    break;
-                }
-            }
-            if (added) {
-                for (let i = this._proxies.length; i < fields.length; i++)
-                    this._proxies.push(fields[i]);
-                return;
-            }
-        }
         this._proxies = fields;
     }
     private arraysEqual(a: any[], b: any[]) {
@@ -84,7 +70,25 @@ export class ListField<T extends Field> extends BasicField<T[]> {
     init(callback: (field: Field) => any) {
         Server.GetFields(this._proxies, action((fields: { [index: string]: Field }) => {
             if (!this.arraysEqual(this._proxies, this.Data.map(field => field.Id))) {
-                this.data = this._proxies.map(id => fields[id] as T)
+                var dataids = this.data.map(d => d.Id);
+                var added = this.data.length == this._proxies.length - 1;
+                var deleted = this.data.length > this._proxies.length;
+                for (let i = 0; i < dataids.length && added; i++)
+                    added = this._proxies.indexOf(dataids[i]) != -1;
+                for (let i = 0; i < this._proxies.length && deleted; i++)
+                    deleted = dataids.indexOf(this._proxies[i]) != -1;
+                if (added) { // if only 1 items was added
+                    for (let i = 0; i < this._proxies.length; i++)
+                        if (dataids.indexOf(this._proxies[i]) === -1)
+                            this.Data.splice(i, 0, fields[this._proxies[i]] as T);
+                } else if (deleted) { // if only items were deleted
+                    for (let i = this.data.length - 1; i >= 0; i--) {
+                        if (this._proxies.indexOf(this.data[i].Id) === -1) {
+                            this.Data.splice(i, 1);
+                        }
+                    }
+                } else // otherwise, just rebuild the whole list
+                    this.data = this._proxies.map(id => fields[id] as T)
                 observe(this.Data, () => {
                     this.updateProxies()
                     Server.UpdateField(this);
