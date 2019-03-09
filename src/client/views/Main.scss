@@ -1,4 +1,6 @@
 @import "global_variables";
+@import "nodeModuleOverrides";
+
 html,
 body {
   width: 100%;
@@ -68,17 +70,20 @@ button:hover {
   font-size: 50%;
 }
 
-.add-button {
-  position: relative;
+.round-button {
   width: 2em;
   height: 2em;
   border-radius: 1em;
   font-size: 24px;
-  margin-right: 0.4em;
 }
 
-.add-button:hover {
+.round-button:hover {
   transform: scale(1.15);
+}
+
+.add-button {
+  position: relative;
+  margin-right: 0.4em;
 }
 
 .main-undoButtons {
@@ -87,11 +92,23 @@ button:hover {
   right: 0px;
 }
 
-// add nodes menu
+//toolbar stuff
+#toolbar {
+  position: absolute;
+  bottom: 3.95em;
+  left: 1em;
+
+  .toolbar-button {
+    display: block;
+    margin-bottom: 0.4em;
+  }
+}
+
+// add nodes menu. Note that the + button is actually an input label, not an actual button.
 #add-nodes-menu {
   position: absolute;
-  left: 1em;
   bottom: 1em;
+  left: 1em;
   label {
     background: $dark-color;
     color: $light-color;
@@ -139,23 +156,4 @@ ul#add-options-list {
     display: inline-block;
     padding: 0;
   }
-}
-
-// goldenlayout stuff
-div .lm_header {
-  background: $dark-color;
-  min-height: 2em;
-}
-
-.lm_tab {
-  margin-top: 0.7em !important;
-  padding-top: 0.5em !important;
-  min-height: 1.4em;
-  padding-bottom: 0px;
-  border-radius: 5px;
-  font-family: $sans-serif !important;
-}
-
-.lm_header .lm_controls {
-  right: 1em !important;
 }

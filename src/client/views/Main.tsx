@@ -26,6 +26,9 @@ import { faFilePdf } from '@fortawesome/free-solid-svg-icons';
 import { faObjectGroup } from '@fortawesome/free-solid-svg-icons';
 import { faTable } from '@fortawesome/free-solid-svg-icons';
 import { faGlobeAsia } from '@fortawesome/free-solid-svg-icons';
+import { faUndoAlt } from '@fortawesome/free-solid-svg-icons';
+import { faRedoAlt } from '@fortawesome/free-solid-svg-icons';
+import { faPenNib } from '@fortawesome/free-solid-svg-icons';
 
 
 configure({ enforceActions: "observed" });  // causes errors to be generated when modifying an observable outside of an action
@@ -47,6 +50,9 @@ library.add(faFilePdf);
 library.add(faObjectGroup);
 library.add(faTable);
 library.add(faGlobeAsia);
+library.add(faUndoAlt);
+library.add(faRedoAlt);
+library.add(faPenNib);
 
 Documents.initProtos(mainDocId, (res?: Document) => {
     if (res instanceof Document) {
@@ -107,38 +113,42 @@ Documents.initProtos(mainDocId, (res?: Document) => {
             <ContextMenu />
             <button className="clear-db-button" onClick={clearDatabase}>Clear Database</button>
 
-            {/* for the expandable add nodes menu */}
+            {/* @TODO this should really be moved into a moveable toolbar component, but for now let's put it here to meet the deadline */}
+            <div id="toolbar">
+                <button className="toolbar-button round-button" onClick={() => UndoManager.Undo()}><FontAwesomeIcon icon="undo-alt" size="sm" /></button>
+                <button className="toolbar-button round-button" onClick={() => UndoManager.Redo()}><FontAwesomeIcon icon="redo-alt" size="sm" /></button>
+                <button className="toolbar-button round-button"><FontAwesomeIcon icon="pen-nib" size="sm" /></button>
+            </div>
+
+            {/* for the expandable add nodes menu. Not included with the above because once it expands it expands the whole div with it, making canvas interactions limited. */}
             <div id="add-nodes-menu">
                 <input type="checkbox" id="add-menu-toggle" />
                 <label htmlFor="add-menu-toggle">+</label>
 
                 <div id="add-options-content">
                     <ul id="add-options-list">
-                        <li><div ref={textRef}><button className="add-button" onPointerDown={setupDrag(textRef, addTextNode)} onClick={addClick(addTextNode)}>
+                        <li><div ref={textRef}><button className="round-button add-button" onPointerDown={setupDrag(textRef, addTextNode)} onClick={addClick(addTextNode)}>
                             <FontAwesomeIcon icon="font" size="sm" />
                         </button></div></li>
-                        <li><div ref={imgRef}><button className="add-button" onPointerDown={setupDrag(imgRef, addImageNode)} onClick={addClick(addImageNode)}>
+                        <li><div ref={imgRef}><button className="round-button add-button" onPointerDown={setupDrag(imgRef, addImageNode)} onClick={addClick(addImageNode)}>
                             <FontAwesomeIcon icon="image" size="sm" />
                         </button></div></li>
-                        <li><div ref={pdfRef}><button className="add-button" onPointerDown={setupDrag(pdfRef, addPDFNode)} onClick={addClick(addPDFNode)}>
+                        <li><div ref={pdfRef}><button className="round-button add-button" onPointerDown={setupDrag(pdfRef, addPDFNode)} onClick={addClick(addPDFNode)}>
                             <FontAwesomeIcon icon="file-pdf" size="sm" />
                         </button></div></li>
-                        <li><div ref={webRef}><button className="add-button" onPointerDown={setupDrag(webRef, addWebNode)} onClick={addClick(addWebNode)}>
+                        <li><div ref={webRef}><button className="round-button add-button" onPointerDown={setupDrag(webRef, addWebNode)} onClick={addClick(addWebNode)}>
                             <FontAwesomeIcon icon="globe-asia" size="sm" />
                         </button></div></li>
-                        <li><div ref={colRef}><button className="add-button" onPointerDown={setupDrag(colRef, addColNode)} onClick={addClick(addColNode)}>
+                        <li><div ref={colRef}><button className="round-button add-button" onPointerDown={setupDrag(colRef, addColNode)} onClick={addClick(addColNode)}>
                             <FontAwesomeIcon icon="object-group" size="sm" />
                         </button></div></li>
-                        <li><div ref={schemaRef}><button className="add-button" onPointerDown={setupDrag(schemaRef, addSchemaNode)} onClick={addClick(addSchemaNode)}>
+                        <li><div ref={schemaRef}><button className="round-button add-button" onPointerDown={setupDrag(schemaRef, addSchemaNode)} onClick={addClick(addSchemaNode)}>
                             <FontAwesomeIcon icon="table" size="sm" />
                         </button></div></li>
                     </ul>
                 </div>
 
             </div>
-
-            <button className="main-undoButtons" style={{ bottom: '25px' }} onClick={() => UndoManager.Undo()}>Undo</button>
-            <button className="main-undoButtons" style={{ bottom: '0px' }} onClick={() => UndoManager.Redo()}>Redo</button>
 
             <InkingControl />
         </div >),
