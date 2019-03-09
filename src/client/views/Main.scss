@@ -10,6 +10,16 @@ body {
   margin: 0;
 }
 
+#dash-title {
+  position: absolute;
+  right: 46.5%;
+  letter-spacing: 3px;
+  top: 9px;
+  font-size: 12px;
+  color: $alt-accent;
+  z-index: 9999;
+}
+
 h1 {
   font-size: 50px;
   position: fixed;
@@ -65,7 +75,7 @@ button:hover {
 
 .clear-db-button {
   position: absolute;
-  left: 47%;
+  right: 45%;
   bottom: 1em;
   font-size: 50%;
 }
@@ -119,7 +129,7 @@ button:hover {
     height: 36px;
     margin-right: 10px;
     cursor: pointer;
-    transition: transform 0.5s;
+    transition: transform 0.2s;
   }
   label p {
     padding-left: 10.5px;
@@ -127,6 +137,7 @@ button:hover {
   }
   label:hover {
     background: $main-accent;
+    transform: scale(1.15);
   }
   input {
     display: none;

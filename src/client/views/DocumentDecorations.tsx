@@ -11,6 +11,7 @@ export class DocumentDecorations extends React.Component {
     static Instance: DocumentDecorations
     private _resizer = ""
     private _isPointerDown = false;
+    private _resizeBorderWidth = 16;
     @observable private _hidden = false;
 
     constructor(props: Readonly<{}>) {
@@ -149,10 +150,10 @@ export class DocumentDecorations extends React.Component {
         }
         return (
             <div id="documentDecorations-container" style={{
-                width: (bounds.r - bounds.x + 20) + "px",
-                height: (bounds.b - bounds.y + 20) + "px",
-                left: bounds.x - 10,
-                top: bounds.y - 10,
+                width: (bounds.r - bounds.x + this._resizeBorderWidth) + "px",
+                height: (bounds.b - bounds.y + this._resizeBorderWidth) + "px",
+                left: bounds.x - this._resizeBorderWidth / 2,
+                top: bounds.y - this._resizeBorderWidth / 2,
             }}>
                 <div id="documentDecorations-topLeftResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-topResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>

@@ -100,6 +100,8 @@ Documents.initProtos(mainDocId, (res?: Document) => {
 
     ReactDOM.render((
         <div style={{ position: "absolute", width: "100%", height: "100%" }}>
+            <div id="dash-title">— DASH —</div>
+
             <DocumentView Document={mainContainer}
                 AddDocument={undefined} RemoveDocument={undefined} ScreenToLocalTransform={() => Transform.Identity}
                 ContentScaling={() => 1}

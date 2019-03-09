@@ -49,7 +49,7 @@ export class InkingControl extends React.Component {
 
     selected = (tool: InkTool) => {
         if (this._selectedTool === tool) {
-            return { backgroundColor: "black", color: "white" }
+            return { backgroundColor: "#61aaa3", color: "white" }
         }
         return {}
     }
