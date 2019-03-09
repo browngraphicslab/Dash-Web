@@ -11,7 +11,7 @@ import { Field } from '../../../fields/Field';
 export interface WorkspaceMenuProps {
     active: Document;
     open: (workspace: Document) => void;
-    new: () => void;
+    new: (init: boolean) => void;
     allWorkspaces: Document[];
 }
 
@@ -28,7 +28,7 @@ export class WorkspacesMenu extends React.Component<WorkspaceMenuProps> {
 
     @action
     addNewWorkspace() {
-        this.props.new();
+        this.props.new(false);
         this.toggle();
     }
 

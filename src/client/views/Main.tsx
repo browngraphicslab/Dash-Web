@@ -35,11 +35,6 @@ export class Main extends React.Component {
 
         this.initEventListeners();
         Documents.initProtos(() => {
-            // retrieve all workspace documents from the server
-            request.get(this.contextualize("getAllWorkspaceIds"), (error, res, body) => {
-                let ids = JSON.parse(body) as string[];
-                Server.GetFields(ids, action((fields: { [id: string]: Field }) => this.userWorkspaces = ids.map(id => fields[id] as Document)));
-            })
             this.initAuthenticationRouters();
         });
     }
@@ -59,34 +54,39 @@ export class Main extends React.Component {
         // Load the user's active workspace, or create a new one if initial session after signup
         request.get(this.contextualize("getActiveWorkspaceId"), (error, response, body) => {
             if (body) {
-                console.log("FROM THE TOP, SOMEONE'S ALREADY BEEN HERE");
                 Server.GetField(body, field => {
                     if (field instanceof Document) {
                         this.openDocument(field);
                     } else {
-                        this.createNewWorkspace();
+                        this.createNewWorkspace(true);
                     }
                 });
             } else {
-                console.log("FROM THE TOP, WE THINK THERE'S NO CURRENT USER");
-                this.createNewWorkspace();
+                this.createNewWorkspace(true);
             }
         });
     }
 
     @action
-    createNewWorkspace = (): void => {
+    createNewWorkspace = (init: boolean): void => {
         let mainDoc = Documents.DockDocument(JSON.stringify({ content: [{ type: 'row', content: [] }] }), { title: `Main Container ${this.userWorkspaces.length}` });
         let newId = mainDoc.Id;
         request.post(this.contextualize("addWorkspaceId"), {
             body: { target: newId },
             json: true
+        }, () => {
+            if (init) {
+                // retrieve all workspace documents from the server
+                request.get(this.contextualize("getAllWorkspaceIds"), (error, res, body) => {
+                    let ids = JSON.parse(body) as string[];
+                    Server.GetFields(ids, action((fields: { [id: string]: Field }) => this.userWorkspaces = ids.map(id => fields[id] as Document)));
+                });
+            }
         });
 
         // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
         setTimeout(() => {
             let freeformDoc = Documents.FreeformDocument([], { x: 0, y: 400, title: "mini collection" });
-
             var dockingLayout = { content: [{ type: 'row', content: [CollectionDockingView.makeDocumentConfig(freeformDoc)] }] };
             mainDoc.SetText(KeyStore.Data, JSON.stringify(dockingLayout));
             mainDoc.Set(KeyStore.ActiveFrame, freeformDoc);
