@@ -117,6 +117,7 @@ Documents.initProtos(mainDocId, (res?: Document) => {
             <div id="toolbar">
                 <button className="toolbar-button round-button" onClick={() => UndoManager.Undo()}><FontAwesomeIcon icon="undo-alt" size="sm" /></button>
                 <button className="toolbar-button round-button" onClick={() => UndoManager.Redo()}><FontAwesomeIcon icon="redo-alt" size="sm" /></button>
+                {/* @TODO do the ink thing */}
                 <button className="toolbar-button round-button"><FontAwesomeIcon icon="pen-nib" size="sm" /></button>
             </div>
 
