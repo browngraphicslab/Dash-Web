@@ -10,7 +10,7 @@
 .contextMenu-item {
     width: auto;
     height: auto;
-    background: #F0F8FF;
+    background: $light-color-secondary;
     display: flex;
     justify-content: left;
     align-items: center;
@@ -23,7 +23,7 @@
     transition: all .1s;
     border-width: .11px;
     border-style: none;
-    border-color: rgb(187, 186, 186);
+    border-color: #AAAAAA;
     border-bottom-style: solid;
     padding: 10px;
     white-space: nowrap;
@@ -32,7 +32,7 @@
 
 .contextMenu-item:hover {
     transition: all .1s;
-    background: $light-emphasis;
+    background: $light-accent;
 }
 
 .contextMenu-description {
