@@ -184,12 +184,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 width: (bounds.r - bounds.x + 20 + 20) + "px",
                 height: (bounds.b - bounds.y + 40 + 20) + "px",
                 left: bounds.x - 20,
-<<<<<<< HEAD
                 top: bounds.y - 20 - 20,
-                opacity: this.opacity
-=======
-                top: bounds.y - 20,
->>>>>>> 96eede5f7d1706a3f7ac6ee02a85bb3da217f467
+                opacity: this._opacity
             }}>
                 <input ref={this.keyinput} className="title" type="text" name="dynbox" value={this.state.value} onChange={this.handleChange} onPointerDown={this.onPointerDown} onKeyPress={this.enterPressed} />
                 {/* <div className="title" onPointerDown={this.onPointerDown}>{document.title}</div> */}
