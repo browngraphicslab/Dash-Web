@@ -149,10 +149,10 @@ export class DocumentDecorations extends React.Component {
         }
         return (
             <div id="documentDecorations-container" style={{
-                width: (bounds.r - bounds.x + 40) + "px",
-                height: (bounds.b - bounds.y + 40) + "px",
-                left: bounds.x - 20,
-                top: bounds.y - 20,
+                width: (bounds.r - bounds.x + 20) + "px",
+                height: (bounds.b - bounds.y + 20) + "px",
+                left: bounds.x - 10,
+                top: bounds.y - 10,
             }}>
                 <div id="documentDecorations-topLeftResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-topResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>

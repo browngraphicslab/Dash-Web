@@ -1,38 +1,46 @@
+@import "../global_variables";
 .ProseMirror {
-    width: 100%;
-    height: auto;
-    min-height: 100%
+  width: 100%;
+  height: auto;
+  min-height: 100%;
+  font-family: $serif;
 }
 
 .ProseMirror:focus {
-    outline: none !important
+  outline: none !important;
 }
 
 .formattedTextBox-cont {
-    background: white;
-    padding: 1;
-    border-width: 1px;
-    border-radius: 2px;
-    border-color:black;
-    box-sizing: border-box;
-    background: white;
-    border-style:solid;
-    overflow-y: scroll;
-    overflow-x: hidden;
-    color: initial;
-    height: 100%;
+  background: $light-color-secondary;
+  padding: 0.7em;
+  border-width: 1px;
+  border-radius: 0.3em;
+  border-color: $intermediate-color;
+  box-sizing: border-box;
+  border-style: solid;
+  overflow-y: scroll;
+  overflow-x: hidden;
+  color: initial;
+  height: 100%;
 }
 
 .menuicon {
-    display: inline-block;
-    border-right: 1px solid rgba(0, 0, 0, 0.2);
-    color: #888;
-    line-height: 1;
-    padding: 0 7px;
-    margin: 1px;
-    cursor: pointer;
-    text-align: center;
-    min-width: 1.4em;
-  }
-  .strong, .heading { font-weight: bold; }
-  .em { font-style: italic; }
+  display: inline-block;
+  border-right: 1px solid rgba(0, 0, 0, 0.2);
+  color: #888;
+  line-height: 1;
+  padding: 0 7px;
+  margin: 1px;
+  cursor: pointer;
+  text-align: center;
+  min-width: 1.4em;
+}
+
+.strong,
+.heading {
+  font-weight: bold;
+}
+
+.em {
+  font-style: italic;
+}

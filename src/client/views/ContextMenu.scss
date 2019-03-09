@@ -1,41 +1,41 @@
 @import "global_variables";
 .contextMenu-cont {
-    position: absolute;
-    display: flex;
-    z-index: 1000;
-    box-shadow: #AAAAAA .2vw .2vw .4vw;
-    flex-direction: column;
+  position: absolute;
+  display: flex;
+  z-index: 1000;
+  box-shadow: #aaaaaa 0.2vw 0.2vw 0.4vw;
+  flex-direction: column;
 }
 
 .contextMenu-item {
-    width: auto;
-    height: auto;
-    background: $light-color-secondary;
-    display: flex;
-    justify-content: left;
-    align-items: center;
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    -khtml-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
-    transition: all .1s;
-    border-width: .11px;
-    border-style: none;
-    border-color: #AAAAAA;
-    border-bottom-style: solid;
-    padding: 10px;
-    white-space: nowrap;
-    font-size: 13px;
+  width: auto;
+  height: auto;
+  background: $light-color-secondary;
+  display: flex;
+  justify-content: left;
+  align-items: center;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  transition: all 0.1s;
+  border-width: 0.11px;
+  border-style: none;
+  border-color: #aaaaaa;
+  border-bottom-style: solid;
+  padding: 10px;
+  white-space: nowrap;
+  font-size: 13px;
 }
 
 .contextMenu-item:hover {
-    transition: all .1s;
-    background: $light-accent;
+  transition: all 0.1s;
+  background: $alt-accent;
 }
 
 .contextMenu-description {
-    text-align: left;
-    width: 8vw;
+  text-align: left;
+  width: 8vw;
 }

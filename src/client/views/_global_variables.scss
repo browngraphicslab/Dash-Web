@@ -1,5 +1,13 @@
-$light-color: #FCFBF7;
+@import url("https://fonts.googleapis.com/css?family=Roboto+Slab:300,700|Crimson+Text:400,400i,700");
+
+// colors
+$light-color: #fcfbf7;
 $light-color-secondary: rgb(241, 239, 235);
+$main-accent: #61aaa3;
+$alt-accent: #afcbff;
+$intermediate-color: #9c9396;
 $dark-color: #121721;
-$dark-accent: #61AAA3;
-$light-accent: #AFCBFF;
+
+// fonts
+$sans-serif: "Roboto Slab", sans-serif;
+$serif: "Crimson Text", serif;

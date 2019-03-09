@@ -1,33 +1,33 @@
-@import 'global_variables';
+@import "global_variables";
 #documentDecorations-container {
-    position: absolute;
-    display: grid;
-    z-index: 1000;
-    grid-template-rows: 20px 1fr 20px;
-    grid-template-columns: 20px 1fr 20px;
-    pointer-events: none;
-    #documentDecorations-centerCont {
-        background: none;
-    }
-    .documentDecorations-resizer {
-        pointer-events: auto;
-        background: $light-accent;
-        opacity: 0.4;
-    }
-    #documentDecorations-topLeftResizer,
-    #documentDecorations-bottomRightResizer {
-        cursor: nwse-resize;
-    }
-    #documentDecorations-topRightResizer,
-    #documentDecorations-bottomLeftResizer {
-        cursor: nesw-resize;
-    }
-    #documentDecorations-topResizer,
-    #documentDecorations-bottomResizer {
-        cursor: ns-resize;
-    }
-    #documentDecorations-leftResizer,
-    #documentDecorations-rightResizer {
-        cursor: ew-resize;
-    }
+  position: absolute;
+  display: grid;
+  z-index: 1000;
+  grid-template-rows: 10px 1fr 10px;
+  grid-template-columns: 10px 1fr 10px;
+  pointer-events: none;
+  #documentDecorations-centerCont {
+    background: none;
+  }
+  .documentDecorations-resizer {
+    pointer-events: auto;
+    background: $alt-accent;
+    opacity: 0.4;
+  }
+  #documentDecorations-topLeftResizer,
+  #documentDecorations-bottomRightResizer {
+    cursor: nwse-resize;
+  }
+  #documentDecorations-topRightResizer,
+  #documentDecorations-bottomLeftResizer {
+    cursor: nesw-resize;
+  }
+  #documentDecorations-topResizer,
+  #documentDecorations-bottomResizer {
+    cursor: ns-resize;
+  }
+  #documentDecorations-leftResizer,
+  #documentDecorations-rightResizer {
+    cursor: ew-resize;
+  }
 }
