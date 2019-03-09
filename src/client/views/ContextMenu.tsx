@@ -1,7 +1,7 @@
 import React = require("react");
 import { ContextMenuItem, ContextMenuProps } from "./ContextMenuItem";
 import { observable, action } from "mobx";
-import { observer } from "mobx-react";
+import { observer } from "mobx-react"
 import "./ContextMenu.scss"
 
 @observer
