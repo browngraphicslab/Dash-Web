@@ -1,7 +1,7 @@
+@import "../global_variables";
 .documentView-node {
     position: absolute;
-    background: #cdcdcd;
-    //overflow: hidden;
+    background: $light-color; //overflow: hidden;
     &.minimized {
         width: 30px;
         height: 30px;

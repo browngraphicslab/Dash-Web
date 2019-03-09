@@ -33,6 +33,7 @@ document.addEventListener("pointerdown", action(function (e: PointerEvent) {
 const mainDocId = "mainDoc";
 let mainContainer: Document;
 let mainfreeform: Document;
+
 Documents.initProtos(mainDocId, (res?: Document) => {
     if (res instanceof Document) {
         mainContainer = res;
@@ -49,6 +50,11 @@ Documents.initProtos(mainDocId, (res?: Document) => {
             mainContainer.SetText(KeyStore.Data, JSON.stringify(dockingLayout));
             mainContainer.Set(KeyStore.ActiveFrame, mainfreeform);
         }, 0);
+    }
+
+
+    let specificContextMenu = (e: React.MouseEvent): void => {
+        ContextMenu.Instance.addItem({ description: "Freeform", event: () => console.log("dsjflkaj") });
     }
 
     let imgurl = "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg";
@@ -86,22 +92,26 @@ Documents.initProtos(mainDocId, (res?: Document) => {
                 ContainingCollectionView={undefined} />
             <DocumentDecorations />
             <ContextMenu />
-            <div className="main-buttonDiv" style={{ bottom: '0px' }} ref={imgRef} >
-                <button onPointerDown={setupDrag(imgRef, addImageNode)} onClick={addClick(addImageNode)}>Add Image</button></div>
-            <div className="main-buttonDiv" style={{ bottom: '25px' }} ref={webRef} >
-                <button onPointerDown={setupDrag(webRef, addWebNode)} onClick={addClick(addWebNode)}>Add Web</button></div>
-            <div className="main-buttonDiv" style={{ bottom: '50px' }} ref={textRef}>
-                <button onPointerDown={setupDrag(textRef, addTextNode)} onClick={addClick(addTextNode)}>Add Text</button></div>
-            <div className="main-buttonDiv" style={{ bottom: '75px' }} ref={colRef}>
-                <button onPointerDown={setupDrag(colRef, addColNode)} onClick={addClick(addColNode)}>Add Collection</button></div>
-            <div className="main-buttonDiv" style={{ bottom: '100px' }} ref={schemaRef}>
-                <button onPointerDown={setupDrag(schemaRef, addSchemaNode)} onClick={addClick(addSchemaNode)}>Add Schema</button></div>
-            <div className="main-buttonDiv" style={{ bottom: '125px' }} >
-                <button onClick={clearDatabase}>Clear Database</button></div>
-            <div className="main-buttonDiv" style={{ bottom: '150px' }} ref={pdfRef}>
-                <button onPointerDown={setupDrag(pdfRef, addPDFNode)} onClick={addClick(addPDFNode)}>Add PDF</button></div>
-            <button className="main-undoButtons" style={{ bottom: '25px' }} onClick={() => UndoManager.Undo()}>Undo</button>
-            <button className="main-undoButtons" style={{ bottom: '0px' }} onClick={() => UndoManager.Redo()}>Redo</button>
+            <button className="clear-db-button" onClick={clearDatabase}>Clear Database</button>
+            <button className="add-button" onClick={specificContextMenu}>+</button>
+            <ul>
+                <li><div className="main-buttonDiv" ref={imgRef} >
+                    <button onPointerDown={setupDrag(imgRef, addImageNode)} onClick={addClick(addImageNode)}>Add Image</button></div></li>
+                <li><div className="main-buttonDiv" ref={webRef} >
+                    <button onPointerDown={setupDrag(webRef, addWebNode)} onClick={addClick(addWebNode)}>Add Web</button></div></li>
+                <li><div className="main-buttonDiv" ref={textRef}>
+                    <button onPointerDown={setupDrag(textRef, addTextNode)} onClick={addClick(addTextNode)}>Add Text</button></div></li>
+                <li><div className="main-buttonDiv" ref={colRef}>
+                    <button onPointerDown={setupDrag(colRef, addColNode)} onClick={addClick(addColNode)}>Add Collection</button></div></li>
+                <li><div className="main-buttonDiv" ref={schemaRef}>
+                    <button onPointerDown={setupDrag(schemaRef, addSchemaNode)} onClick={addClick(addSchemaNode)}>Add Schema</button></div></li>
+                <li></li>
+                <li><div className="main-buttonDiv" ref={pdfRef}>
+                    <button onPointerDown={setupDrag(pdfRef, addPDFNode)} onClick={addClick(addPDFNode)}>Add PDF</button></div></li>
+                <button className="main-undoButtons" style={{ bottom: '25px' }} onClick={() => UndoManager.Undo()}>Undo</button>
+                <button className="main-undoButtons" style={{ bottom: '0px' }} onClick={() => UndoManager.Redo()}>Redo</button>
+            </ul>
+
             <InkingControl />
         </div>),
         document.getElementById('root'));

@@ -1,3 +1,4 @@
+@import "global_variables";
 html,
 body {
     width: 100%;
@@ -13,7 +14,7 @@ h1 {
     top: 30px;
     left: 50%;
     transform: translateX(-50%);
-    color: black;
+    color: $dark-color;
     text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff;
     z-index: 9999;
     font-family: 'Fjalla One', sans-serif;
@@ -29,23 +30,71 @@ p {
     margin: 0px;
     padding: 0px;
 }
+
 ::-webkit-scrollbar {
     -webkit-appearance: none;
-    height:5px;
-    width:5px;
-}
-::-webkit-scrollbar-thumb {
-    border-radius: 2px;
-    background-color: rgba(0,0,0,.5);
+    height: 5px;
+    width: 5px;
 }
 
-.main-buttonDiv {
-    position: absolute;
-    width: 150px;
-    left: 0px;
+::-webkit-scrollbar-thumb {
+    border-radius: 2px;
+    background-color: rgba(0, 0, 0, .5);
 }
+
+// button stuff
+button {
+    background: $dark-color;
+    outline: none;
+    border: 0px;
+    color: $light-color;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-size: 75%;
+    padding: 10px;
+}
+
+button:hover {
+    background: $dark-emphasis;
+}
+
+.clear-db-button {
+    position: absolute;
+    left: 47%;
+    bottom: 1em;
+    font-size: 50%;
+}
+
+.add-button {
+    position: absolute;
+    left: 1em;
+    bottom: 1em;
+    width: 2em;
+    height: 2em;
+    border-radius: 1em;
+    font-size: 24px;
+}
+
 .main-undoButtons {
     position: absolute;
     width: 150px;
     right: 0px;
+}
+
+// goldenlayout stuff
+div .lm_header {
+    background: $dark-color;
+    min-height: 2em;
+}
+
+.lm_tab {
+    margin-top: 0.7em !important;
+    padding-top: 0.5em !important;
+    min-height: 1.4em;
+    padding-bottom: 0px;
+    border-radius: 5px;
+}
+
+.lm_header .lm_controls {
+    right: 1em !important;
 }

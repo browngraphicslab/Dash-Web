@@ -1,3 +1,4 @@
+@import 'global_variables';
 #documentDecorations-container {
     position: absolute;
     display: grid;
@@ -10,7 +11,7 @@
     }
     .documentDecorations-resizer {
         pointer-events: auto;
-        background: lightblue;
+        background: $light-emphasis;
         opacity: 0.4;
     }
     #documentDecorations-topLeftResizer,

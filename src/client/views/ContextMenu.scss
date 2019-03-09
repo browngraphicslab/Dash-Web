@@ -1,3 +1,4 @@
+@import "global_variables";
 .contextMenu-cont {
     position: absolute;
     display: flex;
@@ -31,7 +32,7 @@
 
 .contextMenu-item:hover {
     transition: all .1s;
-    background: #B0E0E6;
+    background: $light-emphasis;
 }
 
 .contextMenu-description {
