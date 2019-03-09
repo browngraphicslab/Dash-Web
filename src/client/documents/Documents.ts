@@ -73,7 +73,7 @@ export namespace Documents {
         textProto.Set(KeyStore.Height, new NumberField(150));
         textProto.Set(KeyStore.Layout, new TextField(FormattedTextBox.LayoutString()));
         textProto.Set(KeyStore.LayoutKeys, new ListField([KeyStore.Data]));
-        return textProto.MakeDelegate();
+        return textProto;
     }
 
     export function TextDocument(options: DocumentOptions = {}): Document {
@@ -121,7 +121,7 @@ export namespace Documents {
         imageProto.Set(KeyStore.BackgroundLayout, new TextField(ImageBox.LayoutString()));
         // imageProto.SetField(KeyStore.Layout, new TextField('<div style={"background-image: " + {Data}} />'));
         imageProto.Set(KeyStore.LayoutKeys, new ListField([KeyStore.Data, KeyStore.Annotations]));
-        return imageProto.MakeDelegate();
+        return imageProto;
     }
 
     // example of custom display string for an image that shows a caption.
@@ -164,7 +164,7 @@ export namespace Documents {
         collectionProto.Set(KeyStore.PanY, new NumberField(0));
         collectionProto.Set(KeyStore.Layout, new TextField(CollectionView.LayoutString("DataKey")));
         collectionProto.Set(KeyStore.LayoutKeys, new ListField([KeyStore.Data]));
-        return collectionProto.MakeDelegate();
+        return collectionProto;
     }
 
     export function CollectionDocument(data: Array<Document> | string, viewType: CollectionViewType, options: DocumentOptions = {}, id?: string): Document {
@@ -176,7 +176,7 @@ export namespace Documents {
             doc.SetOnPrototype(KeyStore.Data, new ListField(data));
         }
         doc.SetNumber(KeyStore.ViewType, viewType);
-        return doc;
+        return doc.MakeDelegate();
     }
 
     export function FreeformDocument(documents: Array<Document>, options: DocumentOptions, id?: string) {
