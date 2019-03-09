@@ -11,6 +11,8 @@ import { Types } from './Message';
 import { Utils } from '../Utils';
 import { HtmlField } from '../fields/HtmlField';
 import { WebField } from '../fields/WebField';
+import { AudioField } from '../fields/AudioField';
+import { VideoField } from '../fields/VideoField';
 
 export class ServerUtils {
     public static FromJson(json: any): Field {
@@ -41,6 +43,10 @@ export class ServerUtils {
                 return new ImageField(new URL(data), id, false)
             case Types.List:
                 return ListField.FromJson(id, data)
+            case Types.Audio:
+                return new AudioField(new URL(data), id, false)
+            case Types.Video:
+                return new VideoField(new URL(data), id, false)
             case Types.Document:
                 let doc: Document = new Document(id, false)
                 let fields: [string, string][] = data as [string, string][]

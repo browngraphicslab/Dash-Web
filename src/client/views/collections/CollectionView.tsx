@@ -19,6 +19,8 @@ export enum CollectionViewType {
     Freeform,
     Schema,
     Docking,
+    Video, 
+    Audio,
     Tree
 }
 
