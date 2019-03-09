@@ -71,10 +71,10 @@ button:hover {
 }
 
 .round-button {
-  width: 2em;
-  height: 2em;
-  border-radius: 1em;
-  font-size: 24px;
+  width: 36px;
+  height: 36px;
+  border-radius: 18px;
+  font-size: 15px;
 }
 
 .round-button:hover {
@@ -83,7 +83,7 @@ button:hover {
 
 .add-button {
   position: relative;
-  margin-right: 0.4em;
+  margin-right: 10px;
 }
 
 .main-undoButtons {
@@ -95,32 +95,35 @@ button:hover {
 //toolbar stuff
 #toolbar {
   position: absolute;
-  bottom: 3.95em;
-  left: 1em;
+  bottom: 62px;
+  left: 24px;
 
   .toolbar-button {
     display: block;
-    margin-bottom: 0.4em;
+    margin-bottom: 10px;
   }
 }
 
 // add nodes menu. Note that the + button is actually an input label, not an actual button.
 #add-nodes-menu {
   position: absolute;
-  bottom: 1em;
-  left: 1em;
+  bottom: 24px;
+  left: 24px;
   label {
     background: $dark-color;
     color: $light-color;
-    padding: 10px;
     display: inline-block;
-    border-radius: 1em;
-    font-size: 24px;
-    width: 1.09em;
-    margin-right: 0.4em;
-    text-align: center;
+    border-radius: 18px;
+    font-size: 25px;
+    width: 36px;
+    height: 36px;
+    margin-right: 10px;
     cursor: pointer;
     transition: transform 0.5s;
+  }
+  label p {
+    padding-left: 10.5px;
+    padding-top: 3px;
   }
   label:hover {
     background: $main-accent;
