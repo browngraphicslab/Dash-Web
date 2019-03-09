@@ -212,7 +212,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         SelectionManager.SelectDoc(this, e.ctrlKey);
     }
 
-    @computed get mainContent() {
+    get mainContent() {
         return <JsxParser
             components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebBox, KeyValueBox }}
             bindings={this._documentBindings}

@@ -35,6 +35,11 @@ export class Main extends React.Component {
 
         this.initEventListeners();
         Documents.initProtos(() => {
+            // retrieve all workspace documents from the server
+            request.get(this.contextualize("getAllWorkspaceIds"), (error, res, body) => {
+                let ids = JSON.parse(body) as string[];
+                Server.GetFields(ids, action((fields: { [id: string]: Field }) => this.userWorkspaces = ids.map(id => fields[id] as Document)));
+            })
             this.initAuthenticationRouters();
         });
     }
@@ -54,6 +59,7 @@ export class Main extends React.Component {
         // Load the user's active workspace, or create a new one if initial session after signup
         request.get(this.contextualize("getActiveWorkspaceId"), (error, response, body) => {
             if (body) {
+                console.log("FROM THE TOP, SOMEONE'S ALREADY BEEN HERE");
                 Server.GetField(body, field => {
                     if (field instanceof Document) {
                         this.openDocument(field);
@@ -62,6 +68,7 @@ export class Main extends React.Component {
                     }
                 });
             } else {
+                console.log("FROM THE TOP, WE THINK THERE'S NO CURRENT USER");
                 this.createNewWorkspace();
             }
         });
@@ -69,7 +76,7 @@ export class Main extends React.Component {
 
     @action
     createNewWorkspace = (): void => {
-        let mainDoc = Documents.DockDocument(JSON.stringify({ content: [{ type: 'row', content: [] }] }), { title: "main container" });
+        let mainDoc = Documents.DockDocument(JSON.stringify({ content: [{ type: 'row', content: [] }] }), { title: `Main Container ${this.userWorkspaces.length}` });
         let newId = mainDoc.Id;
         request.post(this.contextualize("addWorkspaceId"), {
             body: { target: newId },
@@ -86,6 +93,7 @@ export class Main extends React.Component {
             this.openDocument(mainDoc);
         }, 0);
         this.userWorkspaces.push(mainDoc);
+        console.log(this.userWorkspaces.length);
     }
 
     @action
@@ -94,6 +102,7 @@ export class Main extends React.Component {
             body: { target: doc.Id },
             json: true
         });
+        console.log(`OPENING ${doc.Id}`);
         this.mainContainer = doc;
         this.mainContainer.GetAsync(KeyStore.ActiveFrame, field => this.mainfreeform = field as Document);
     }

@@ -46,20 +46,23 @@ export class WorkspacesMenu extends React.Component<WorkspaceMenuProps> {
                     height: "auto",
                     borderRadius: 5,
                     position: "absolute",
-                    top: 50,
-                    left: this.workspacesExposed ? 8 : -500,
+                    top: 55,
+                    left: this.workspacesExposed ? 11 : -500,
                     background: "white",
                     border: "black solid 2px",
                     transition: "all 1s ease",
                     zIndex: 15,
                     padding: 10,
+                    paddingRight: 12,
                 }}>
                 <img
                     src="https://bit.ly/2IBBkxk"
                     style={{
                         width: 20,
                         height: 20,
-                        marginBottom: 10,
+                        marginTop: 3,
+                        marginLeft: 3,
+                        marginBottom: 3,
                         cursor: "grab"
                     }}
                     onClick={this.addNewWorkspace}
@@ -72,7 +75,10 @@ export class WorkspacesMenu extends React.Component<WorkspaceMenuProps> {
                             color: s.Id === this.props.active.Id ? "darkblue" : "black",
                             cursor: "grab"
                         }}
-                        onClick={() => this.props.open(s)}
+                        onClick={() => {
+                            this.props.open(s);
+                            console.log(this.props.allWorkspaces.length);
+                        }}
                     >{s.Title}</li>
                 )}
             </div>

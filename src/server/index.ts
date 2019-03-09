@@ -117,7 +117,6 @@ addSecureRoute(Method.Get, "home", (user, req, res) => {
 }, res => res.redirect("/login"))
 
 addSecureRoute(Method.Get, "getActiveWorkspaceId", (user, req, res) => {
-    console.log(`/getActiveWorkspaceId in index.ts ${user.activeWorkspaceId}`);
     res.send(user.activeWorkspaceId || "");
 }, () => { });
 
