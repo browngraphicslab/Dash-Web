@@ -1,18 +1,22 @@
 import { Document } from "../../fields/Document";
 import { Server } from "../Server";
-import { KeyStore } from "../../fields/Key";
+import { KeyStore } from "../../fields/KeyStore";
 import { TextField } from "../../fields/TextField";
 import { NumberField } from "../../fields/NumberField";
 import { ListField } from "../../fields/ListField";
 import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
-import { CollectionDockingView } from "../views/collections/CollectionDockingView";
-import { CollectionSchemaView } from "../views/collections/CollectionSchemaView";
 import { ImageField } from "../../fields/ImageField";
 import { ImageBox } from "../views/nodes/ImageBox";
-import { CollectionFreeFormView } from "../views/collections/CollectionFreeFormView";
-import { FieldId } from "../../fields/Field";
+import { WebField } from "../../fields/WebField";
+import { WebBox } from "../views/nodes/WebBox";
+import { CollectionView, CollectionViewType } from "../views/collections/CollectionView";
+import { HtmlField } from "../../fields/HtmlField";
+import { Key } from "../../fields/Key"
+import { Field } from "../../fields/Field";
+import { KeyValueBox } from "../views/nodes/KeyValueBox"
+import { KVPField } from "../../fields/KVPField";
 
-interface DocumentOptions {
+export interface DocumentOptions {
     x?: number;
     y?: number;
     width?: number;
@@ -20,157 +24,139 @@ interface DocumentOptions {
     nativeWidth?: number;
     nativeHeight?: number;
     title?: string;
+    panx?: number;
+    pany?: number;
+    scale?: number;
+    layout?: string;
+    layoutKeys?: Key[];
+    viewType?: number;
 }
 
 export namespace Documents {
-    function setupOptions(doc: Document, options: DocumentOptions): void {
-        if (options.x) {
-            doc.SetData(KeyStore.X, options.x, NumberField);
-        }
-        if (options.y) {
-            doc.SetData(KeyStore.Y, options.y, NumberField);
-        }
-        if (options.width) {
-            doc.SetData(KeyStore.Width, options.width, NumberField);
-        }
-        if (options.height) {
-            doc.SetData(KeyStore.Height, options.height, NumberField);
-        }
-        if (options.nativeWidth) {
-            doc.SetData(KeyStore.NativeWidth, options.nativeWidth, NumberField);
-        }
-        if (options.nativeHeight) {
-            doc.SetData(KeyStore.NativeHeight, options.nativeHeight, NumberField);
-        }
-        if (options.title) {
-            doc.SetData(KeyStore.Title, options.title, TextField);
-        }
-        doc.SetData(KeyStore.Scale, 1, NumberField);
-        doc.SetData(KeyStore.PanX, 0, NumberField);
-        doc.SetData(KeyStore.PanY, 0, NumberField);
-    }
-
     let textProto: Document;
-    function GetTextPrototype(): Document {
-        if (!textProto) {
-            textProto = new Document();
-            textProto.Set(KeyStore.X, new NumberField(0));
-            textProto.Set(KeyStore.Y, new NumberField(0));
-            textProto.Set(KeyStore.Width, new NumberField(300));
-            textProto.Set(KeyStore.Height, new NumberField(150));
-            textProto.Set(KeyStore.Layout, new TextField(FormattedTextBox.LayoutString()));
-            textProto.Set(KeyStore.LayoutKeys, new ListField([KeyStore.Data]));
-        }
-        return textProto;
-    }
+    let imageProto: Document;
+    let webProto: Document;
+    let collProto: Document;
+    let kvpProto: Document;
+    const textProtoId = "textProto";
+    const imageProtoId = "imageProto";
+    const webProtoId = "webProto";
+    const collProtoId = "collectionProto";
+    const kvpProtoId = "kvpProto";
 
-    export function TextDocument(options: DocumentOptions = {}): Document {
-        let doc = GetTextPrototype().MakeDelegate();
-        setupOptions(doc, options);
-        // doc.SetField(KeyStore.Data, new RichTextField());
+    export function initProtos(mainDocId: string, callback: (mainDoc?: Document) => void) {
+        Server.GetFields([collProtoId, textProtoId, imageProtoId, mainDocId], (fields) => {
+            collProto = fields[collProtoId] as Document;
+            imageProto = fields[imageProtoId] as Document;
+            textProto = fields[textProtoId] as Document;
+            webProto = fields[webProtoId] as Document;
+            kvpProto = fields[kvpProtoId] as Document;
+            callback(fields[mainDocId] as Document)
+        });
+    }
+    function assignOptions(doc: Document, options: DocumentOptions): Document {
+        if (options.x !== undefined) { doc.SetNumber(KeyStore.X, options.x); }
+        if (options.y !== undefined) { doc.SetNumber(KeyStore.Y, options.y); }
+        if (options.width !== undefined) { doc.SetNumber(KeyStore.Width, options.width); }
+        if (options.height !== undefined) { doc.SetNumber(KeyStore.Height, options.height); }
+        if (options.nativeWidth !== undefined) { doc.SetNumber(KeyStore.NativeWidth, options.nativeWidth); }
+        if (options.nativeHeight !== undefined) { doc.SetNumber(KeyStore.NativeHeight, options.nativeHeight); }
+        if (options.title !== undefined) { doc.SetText(KeyStore.Title, options.title); }
+        if (options.panx !== undefined) { doc.SetNumber(KeyStore.PanX, options.panx); }
+        if (options.pany !== undefined) { doc.SetNumber(KeyStore.PanY, options.pany); }
+        if (options.scale !== undefined) { doc.SetNumber(KeyStore.Scale, options.scale); }
+        if (options.viewType !== undefined) { doc.SetNumber(KeyStore.ViewType, options.viewType); }
+        if (options.layout !== undefined) { doc.SetText(KeyStore.Layout, options.layout); }
+        if (options.layoutKeys !== undefined) { doc.Set(KeyStore.LayoutKeys, new ListField(options.layoutKeys)); }
         return doc;
     }
-
-    let schemaProto: Document;
-    function GetSchemaPrototype(): Document {
-        if (!schemaProto) {
-            schemaProto = new Document();
-            schemaProto.Set(KeyStore.X, new NumberField(0));
-            schemaProto.Set(KeyStore.Y, new NumberField(0));
-            schemaProto.Set(KeyStore.Width, new NumberField(300));
-            schemaProto.Set(KeyStore.Height, new NumberField(150));
-            schemaProto.Set(KeyStore.Layout, new TextField(CollectionSchemaView.LayoutString()));
-            schemaProto.Set(KeyStore.LayoutKeys, new ListField([KeyStore.Data]));
-        }
-        return schemaProto;
+    function setupPrototypeOptions(protoId: string, title: string, layout: string, options: DocumentOptions): Document {
+        return assignOptions(new Document(protoId), { ...options, title: title, layout: layout });
+    }
+    function SetInstanceOptions<T, U extends Field & { Data: T }>(doc: Document, options: DocumentOptions, value: T, ctor: { new(): U }, id?: string) {
+        var deleg = doc.MakeDelegate(id);
+        deleg.SetData(KeyStore.Data, value, ctor);
+        return assignOptions(deleg, options);
     }
 
-    export function SchemaDocument(documents: Array<Document>, options: DocumentOptions = {}): Document {
-        let doc = GetSchemaPrototype().MakeDelegate();
-        setupOptions(doc, options);
-        doc.Set(KeyStore.Data, new ListField(documents));
-        return doc;
-    }
-
-
-    let dockProto: Document;
-    function GetDockPrototype(): Document {
-        if (!dockProto) {
-            dockProto = new Document();
-            dockProto.Set(KeyStore.X, new NumberField(0));
-            dockProto.Set(KeyStore.Y, new NumberField(0));
-            dockProto.Set(KeyStore.Width, new NumberField(300));
-            dockProto.Set(KeyStore.Height, new NumberField(150));
-            dockProto.Set(KeyStore.Layout, new TextField(CollectionDockingView.LayoutString()));
-            dockProto.Set(KeyStore.LayoutKeys, new ListField([KeyStore.Data]));
-        }
-        return dockProto;
-    }
-
-    export function DockDocument(documents: Array<Document>, options: DocumentOptions = {}): Document {
-        let doc = GetDockPrototype().MakeDelegate();
-        setupOptions(doc, options);
-        doc.Set(KeyStore.Data, new ListField(documents));
-        return doc;
-    }
-
-
-    let imageProtoId: FieldId;
     function GetImagePrototype(): Document {
-        if (imageProtoId === undefined) {
-            let imageProto = new Document();
-            imageProtoId = imageProto.Id;
-            imageProto.Set(KeyStore.Title, new TextField("IMAGE PROTO"));
-            imageProto.Set(KeyStore.X, new NumberField(0));
-            imageProto.Set(KeyStore.Y, new NumberField(0));
-            imageProto.Set(KeyStore.NativeWidth, new NumberField(300));
-            imageProto.Set(KeyStore.NativeHeight, new NumberField(300));
-            imageProto.Set(KeyStore.Width, new NumberField(300));
-            imageProto.Set(KeyStore.Height, new NumberField(300));
-            imageProto.Set(KeyStore.Layout, new TextField("<CollectionFreeFormView DocumentForCollection={Document} CollectionFieldKey={AnnotationsKey} BackgroundView={BackgroundView} ContainingDocumentView={DocumentView} />"));
-            imageProto.Set(KeyStore.BackgroundLayout, new TextField(ImageBox.LayoutString()));
-            // imageProto.SetField(KeyStore.Layout, new TextField('<div style={"background-image: " + {Data}} />'));
-            imageProto.Set(KeyStore.LayoutKeys, new ListField([KeyStore.Data, KeyStore.Annotations]));
-            Server.AddDocument(imageProto);
-            return imageProto;
+        if (!imageProto) {
+            imageProto = setupPrototypeOptions(imageProtoId, "IMAGE_PROTO", CollectionView.LayoutString("AnnotationsKey"),
+                { x: 0, y: 0, nativeWidth: 300, width: 300, layoutKeys: [KeyStore.Data, KeyStore.Annotations] });
+            imageProto.SetText(KeyStore.BackgroundLayout, ImageBox.LayoutString());
         }
-        return Server.GetField(imageProtoId) as Document;
+        return imageProto;
     }
-
-    export function ImageDocument(url: string, options: DocumentOptions = {}): Document {
-        let doc = GetImagePrototype().MakeDelegate();
-        setupOptions(doc, options);
-        doc.Set(KeyStore.Data, new ImageField(new URL(url)));
-
-        let annotation = Documents.TextDocument({ title: "hello" });
-        Server.AddDocument(annotation);
-        doc.Set(KeyStore.Annotations, new ListField([annotation]));
-        Server.AddDocument(doc);
-        var sdoc = Server.GetField(doc.Id) as Document;
-        return sdoc;
+    function GetTextPrototype(): Document {
+        return textProto ? textProto :
+            textProto = setupPrototypeOptions(textProtoId, "TEXT_PROTO", FormattedTextBox.LayoutString(),
+                { x: 0, y: 0, width: 300, height: 150, layoutKeys: [KeyStore.Data] });
     }
-
-    let collectionProto: Document;
+    function GetWebPrototype(): Document {
+        return webProto ? webProto :
+            webProto = setupPrototypeOptions(webProtoId, "WEB_PROTO", WebBox.LayoutString(),
+                { x: 0, y: 0, width: 300, height: 300, layoutKeys: [KeyStore.Data] });
+    }
     function GetCollectionPrototype(): Document {
-        if (!collectionProto) {
-            collectionProto = new Document();
-            collectionProto.Set(KeyStore.X, new NumberField(0));
-            collectionProto.Set(KeyStore.Y, new NumberField(0));
-            collectionProto.Set(KeyStore.Scale, new NumberField(1));
-            collectionProto.Set(KeyStore.PanX, new NumberField(0));
-            collectionProto.Set(KeyStore.PanY, new NumberField(0));
-            collectionProto.Set(KeyStore.Width, new NumberField(300));
-            collectionProto.Set(KeyStore.Height, new NumberField(300));
-            collectionProto.Set(KeyStore.Layout, new TextField(CollectionFreeFormView.LayoutString()));
-            collectionProto.Set(KeyStore.LayoutKeys, new ListField([KeyStore.Data]));
-        }
-        return collectionProto;
+        return collProto ? collProto :
+            collProto = setupPrototypeOptions(collProtoId, "COLLECTION_PROTO", CollectionView.LayoutString("DataKey"),
+                { panx: 0, pany: 0, scale: 1, layoutKeys: [KeyStore.Data] });
     }
 
-    export function CollectionDocument(documents: Array<Document>, options: DocumentOptions = {}): Document {
-        let doc = GetCollectionPrototype().MakeDelegate();
-        setupOptions(doc, options);
-        doc.Set(KeyStore.Data, new ListField(documents));
+    function GetKVPPrototype(): Document {
+        return kvpProto ? kvpProto :
+            kvpProto = setupPrototypeOptions(kvpProtoId, "KVP_PROTO", KeyValueBox.LayoutString(),
+                { x: 0, y: 0, width: 300, height: 150, layoutKeys: [KeyStore.Data] })
+    }
+
+    export function ImageDocument(url: string, options: DocumentOptions = {}) {
+        let doc = SetInstanceOptions(GetImagePrototype(), { ...options, layoutKeys: [KeyStore.Data, KeyStore.Annotations, KeyStore.Caption] },
+            new URL(url), ImageField);
+        doc.SetText(KeyStore.Caption, "my caption...");
+        doc.SetText(KeyStore.BackgroundLayout, EmbeddedCaption());
+        doc.SetText(KeyStore.OverlayLayout, FixedCaption());
         return doc;
     }
+    export function TextDocument(options: DocumentOptions = {}) {
+        return SetInstanceOptions(GetTextPrototype(), options, "", TextField);
+    }
+    export function WebDocument(url: string, options: DocumentOptions = {}) {
+        return SetInstanceOptions(GetWebPrototype(), options, new URL(url), WebField);
+    }
+    export function HtmlDocument(html: string, options: DocumentOptions = {}) {
+        return SetInstanceOptions(GetWebPrototype(), options, html, HtmlField);
+    }
+    export function FreeformDocument(documents: Array<Document>, options: DocumentOptions, id?: string) {
+        return SetInstanceOptions(GetCollectionPrototype(), { ...options, viewType: CollectionViewType.Freeform }, documents, ListField, id)
+    }
+    export function SchemaDocument(documents: Array<Document>, options: DocumentOptions, id?: string) {
+        return SetInstanceOptions(GetCollectionPrototype(), { ...options, viewType: CollectionViewType.Schema }, documents, ListField, id)
+    }
+    export function DockDocument(config: string, options: DocumentOptions, id?: string) {
+        return SetInstanceOptions(GetCollectionPrototype(), { ...options, viewType: CollectionViewType.Docking }, config, TextField, id)
+    }
+    export function KVPDocument(document: Document, options: DocumentOptions = {}, id?: string) {
+        var deleg = GetKVPPrototype().MakeDelegate(id);
+        deleg.Set(KeyStore.Data, document);
+        return assignOptions(deleg, options);
+    }
+
+
+
+    // example of custom display string for an image that shows a caption.
+    function EmbeddedCaption() {
+        return `<div style="height:100%">
+            <div style="position:relative; margin:auto; height:85%;" >`
+            + ImageBox.LayoutString() +
+            `</div>
+            <div style="position:relative; height:15%; text-align:center; ">`
+            + FormattedTextBox.LayoutString("CaptionKey") +
+            `</div> 
+        </div>` };
+    function FixedCaption() {
+        return `<div style="position:absolute; height:30px; bottom:0; width:100%">
+            <div style="position:absolute; width:100%; height:100%; text-align:center;bottom:0;">`
+            + FormattedTextBox.LayoutString("CaptionKey") +
+            `</div> 
+        </div>` };
 }

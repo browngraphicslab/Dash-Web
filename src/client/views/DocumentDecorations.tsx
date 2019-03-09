@@ -3,14 +3,15 @@ import React = require("react");
 import { SelectionManager } from "../util/SelectionManager";
 import { observer } from "mobx-react";
 import './DocumentDecorations.scss'
-import { CollectionFreeFormView } from "./collections/CollectionFreeFormView";
+import { KeyStore } from '../../fields/KeyStore'
+import { NumberField } from "../../fields/NumberField";
 
 @observer
 export class DocumentDecorations extends React.Component {
     static Instance: DocumentDecorations
     private _resizer = ""
     private _isPointerDown = false;
-    @observable private _opacity = 1;
+    @observable private _hidden = false;
 
     constructor(props: Readonly<{}>) {
         super(props)
@@ -20,28 +21,24 @@ export class DocumentDecorations extends React.Component {
 
     @computed
     get Bounds(): { x: number, y: number, b: number, r: number } {
-        return SelectionManager.SelectedDocuments().reduce((bounds, element) => {
-            if (element.props.ContainingCollectionView != undefined &&
-                !(element.props.ContainingCollectionView instanceof CollectionFreeFormView)) {
+        return SelectionManager.SelectedDocuments().reduce((bounds, documentView) => {
+            if (documentView.props.isTopMost) {
                 return bounds;
             }
-            var spt = element.TransformToScreenPoint(0, 0);
-            var bpt = element.TransformToScreenPoint(element.width, element.height);
+            let transform = (documentView.props.ScreenToLocalTransform().scale(documentView.props.ContentScaling())).inverse();
+            var [sptX, sptY] = transform.transformPoint(0, 0);
+            let [bptX, bptY] = transform.transformPoint(documentView.props.PanelWidth(), documentView.props.PanelHeight());
             return {
-                x: Math.min(spt.ScreenX, bounds.x), y: Math.min(spt.ScreenY, bounds.y),
-                r: Math.max(bpt.ScreenX, bounds.r), b: Math.max(bpt.ScreenY, bounds.b)
+                x: Math.min(sptX, bounds.x), y: Math.min(sptY, bounds.y),
+                r: Math.max(bptX, bounds.r), b: Math.max(bptY, bounds.b)
             }
         }, { x: Number.MAX_VALUE, y: Number.MAX_VALUE, r: Number.MIN_VALUE, b: Number.MIN_VALUE });
     }
 
-    @computed
-    get opacity(): number {
-        return this._opacity
-    }
 
-    set opacity(o: number) {
-        this._opacity = Math.min(Math.max(0, o), 1)
-    }
+    @computed
+    public get Hidden() { return this._hidden; }
+    public set Hidden(value: boolean) { this._hidden = value; }
 
     onPointerDown = (e: React.PointerEvent): void => {
         e.stopPropagation();
@@ -104,17 +101,29 @@ export class DocumentDecorations extends React.Component {
         }
 
         SelectionManager.SelectedDocuments().forEach(element => {
-            const rect = element.screenRect;
+            const rect = element.screenRect();
             if (rect.width !== 0) {
-                let scale = element.width / rect.width;
-                let actualdW = Math.max(element.width + (dW * scale), 20);
-                let actualdH = Math.max(element.height + (dH * scale), 20);
-                element.x += dX * (actualdW - element.width);
-                element.y += dY * (actualdH - element.height);
-                if (Math.abs(dW) > Math.abs(dH))
-                    element.width = actualdW;
-                else
-                    element.height = actualdH;
+                let doc = element.props.Document;
+                let width = doc.GetNumber(KeyStore.Width, 0);
+                let nwidth = doc.GetNumber(KeyStore.NativeWidth, 0);
+                let nheight = doc.GetNumber(KeyStore.NativeHeight, 0);
+                let height = doc.GetNumber(KeyStore.Height, nwidth ? nheight / nwidth * width : 0);
+                let x = doc.GetOrCreate(KeyStore.X, NumberField);
+                let y = doc.GetOrCreate(KeyStore.Y, NumberField);
+                let scale = width / rect.width;
+                let actualdW = Math.max(width + (dW * scale), 20);
+                let actualdH = Math.max(height + (dH * scale), 20);
+                x.Data += dX * (actualdW - width);
+                y.Data += dY * (actualdH - height);
+                var nativeWidth = doc.GetNumber(KeyStore.NativeWidth, 0);
+                var nativeHeight = doc.GetNumber(KeyStore.NativeHeight, 0);
+                if (nativeWidth > 0 && nativeHeight > 0) {
+                    if (Math.abs(dW) > Math.abs(dH))
+                        actualdH = nativeHeight / nativeWidth * actualdW;
+                    else actualdW = nativeWidth / nativeHeight * actualdH;
+                }
+                doc.SetNumber(KeyStore.Width, actualdW);
+                doc.SetNumber(KeyStore.Height, actualdH);
             }
         })
     }
@@ -131,13 +140,19 @@ export class DocumentDecorations extends React.Component {
 
     render() {
         var bounds = this.Bounds;
+        if (this.Hidden) {
+            return (null);
+        }
+        if (isNaN(bounds.r) || isNaN(bounds.b) || isNaN(bounds.x) || isNaN(bounds.y)) {
+            console.log("DocumentDecorations: Bounds Error")
+            return (null);
+        }
         return (
             <div id="documentDecorations-container" style={{
                 width: (bounds.r - bounds.x + 40) + "px",
                 height: (bounds.b - bounds.y + 40) + "px",
                 left: bounds.x - 20,
                 top: bounds.y - 20,
-                opacity: this.opacity
             }}>
                 <div id="documentDecorations-topLeftResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-topResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
@@ -148,7 +163,6 @@ export class DocumentDecorations extends React.Component {
                 <div id="documentDecorations-bottomLeftResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-bottomResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-bottomRightResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
-
             </div>
         )
     }

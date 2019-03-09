@@ -7,10 +7,9 @@
     "jsx": "react",
     "sourceMap": true,
     "outDir": "dist",
-    "lib": ["dom", "es2015"]
-  },
-  "exclude": [
-    "node_modules",
-    "static"
-  ]
+    "lib": [
+      "dom",
+      "es2015"
+    ]
+  }
 }

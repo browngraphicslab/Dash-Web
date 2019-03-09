@@ -3,17 +3,16 @@ import { baseKeymap } from "prosemirror-commands";
 import { history, redo, undo } from "prosemirror-history";
 import { keymap } from "prosemirror-keymap";
 import { schema } from "prosemirror-schema-basic";
-import { EditorState, Transaction } from "prosemirror-state";
+import { EditorState, Transaction, } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
-import { Opt, FieldWaiting, FieldValue } from "../../../fields/Field";
-import { SelectionManager } from "../../util/SelectionManager";
+import { Opt, FieldWaiting } from "../../../fields/Field";
 import "./FormattedTextBox.scss";
 import React = require("react")
 import { RichTextField } from "../../../fields/RichTextField";
 import { FieldViewProps, FieldView } from "./FieldView";
-import { CollectionFreeFormDocumentView } from "./CollectionFreeFormDocumentView";
-import { observer } from "mobx-react";
 import { ContextMenu } from "../../views/ContextMenu";
+
+
 
 
 // FormattedTextBox: Displays an editable plain text node that maps to a specified Key of a Document
@@ -34,7 +33,7 @@ import { ContextMenu } from "../../views/ContextMenu";
 //]
 export class FormattedTextBox extends React.Component<FieldViewProps> {
 
-    public static LayoutString() { return FieldView.LayoutString("FormattedTextBox"); }
+    public static LayoutString(fieldStr: string = "DataKey") { return FieldView.LayoutString(FormattedTextBox, fieldStr) }
     private _ref: React.RefObject<HTMLDivElement>;
     private _editorView: Opt<EditorView>;
     private _reactionDisposer: Opt<IReactionDisposer>;
@@ -43,7 +42,6 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
         super(props);
 
         this._ref = React.createRef();
-
         this.onChange = this.onChange.bind(this);
     }
 
@@ -51,25 +49,23 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
         if (this._editorView) {
             const state = this._editorView.state.apply(tx);
             this._editorView.updateState(state);
-            const { doc, fieldKey } = this.props;
-            doc.SetData(fieldKey, JSON.stringify(state.toJSON()), RichTextField);
+            this.props.doc.SetData(this.props.fieldKey, JSON.stringify(state.toJSON()), RichTextField);
         }
     }
 
     componentDidMount() {
         let state: EditorState;
-        const { doc, fieldKey } = this.props;
         const config = {
             schema,
             plugins: [
                 history(),
                 keymap({ "Mod-z": undo, "Mod-y": redo }),
-                keymap(baseKeymap)
+                keymap(baseKeymap),
             ]
         };
 
-        let field = doc.GetT(fieldKey, RichTextField);
-        if (field && field != FieldWaiting) {  // bcz: don't think this works
+        let field = this.props.doc.GetT(this.props.fieldKey, RichTextField);
+        if (field && field != FieldWaiting) {
             state = EditorState.fromJSON(config, JSON.parse(field.Data));
         } else {
             state = EditorState.create(config);
@@ -89,6 +85,10 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
                 this._editorView.updateState(EditorState.fromJSON(config, JSON.parse(field)));
             }
         })
+        if (this.props.selectOnLoad) {
+            this.props.select();
+            this._editorView!.focus();
+        }
     }
 
     componentWillUnmount() {
@@ -106,31 +106,44 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
 
     @action
     onChange(e: React.ChangeEvent<HTMLInputElement>) {
-        const { fieldKey, doc } = this.props;
-        doc.SetData(fieldKey, e.target.value, RichTextField);
+        this.props.doc.SetData(this.props.fieldKey, e.target.value, RichTextField);
     }
     onPointerDown = (e: React.PointerEvent): void => {
-        let me = this;
-        if (e.buttons === 1 && me.props.DocumentViewForField instanceof CollectionFreeFormDocumentView && SelectionManager.IsSelected(me.props.DocumentViewForField)) {
+        if (e.buttons === 1 && this.props.isSelected()) {
             e.stopPropagation();
         }
     }
 
-    //REPLACE THIS WITH CAPABILITIES SPECIFC TO THIS TYPE OF NODE
+    //REPLACE THIS WITH CAPABILITIES SPECIFIC TO THIS TYPE OF NODE
     textCapability = (e: React.MouseEvent): void => {
     }
 
     specificContextMenu = (e: React.MouseEvent): void => {
         ContextMenu.Instance.addItem({ description: "Text Capability", event: this.textCapability });
+        // ContextMenu.Instance.addItem({
+        //     description: "Submenu",
+        //     items: [
+        //         {
+        //             description: "item 1", event:
+        //     },
+        //         {
+        //             description: "item 2", event:
+        //     }
+        //     ]
+        // })
+        // e.stopPropagation()
+
+    }
+
+    onPointerWheel = (e: React.WheelEvent): void => {
+        e.stopPropagation();
     }
 
     render() {
         return (<div className="formattedTextBox-cont"
-            style={{
-                color: "initial",
-                whiteSpace: "initial"
-            }}
             onPointerDown={this.onPointerDown}
-            ref={this._ref} onContextMenu={this.specificContextMenu} />)
+            onContextMenu={this.specificContextMenu}
+            onWheel={this.onPointerWheel}
+            ref={this._ref} />)
     }
 }

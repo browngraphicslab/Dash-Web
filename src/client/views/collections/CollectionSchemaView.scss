@@ -1,3 +1,102 @@
+
+
+.collectionSchemaView-container {
+    border-style: solid;
+    box-sizing: border-box;
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    .collectionSchemaView-previewRegion {
+        position: relative; 
+        background: black; 
+        float: left; 
+        height: 100%;
+    }
+    .collectionSchemaView-previewHandle {
+        position: absolute;
+        height: 37px;
+        width: 20px; 
+        z-index: 20; 
+        right: 0; 
+        top: 0; 
+        background: Black ;
+    }
+    .collectionSchemaView-dividerDragger{
+        position: relative; 
+        background: black; 
+        float: left; 
+        height: 100%;
+    }
+    .collectionSchemaView-tableContainer {
+        position: relative;
+        float: left;
+        height: 100%; 
+    }
+
+    .ReactTable {
+        position: absolute;
+       // display: inline-block;
+       // overflow: auto;
+        width: 100%;
+        height: 100%;
+        background: white;
+        box-sizing: border-box;
+        .rt-table {
+            overflow-y: auto;
+            overflow-x: auto;
+            height: 100%;
+
+            display: -webkit-inline-box;
+            direction: ltr;
+            // direction:rtl;
+            // display:block;
+        }
+        .rt-tbody {
+            //direction: ltr;
+            direction: rtl;
+        }
+        .rt-tr-group {
+            direction: ltr;
+            max-height: 44px;
+        }
+        .rt-td {
+            border-width: 1;
+            border-right-color: #aaa;
+            .imageBox-cont {
+                position:relative;
+                max-height:100%;
+            }
+            .imageBox-cont img {
+                object-fit: contain;
+                max-width: 100%;
+                height: 100%
+            }
+        }
+        .rt-tr-group {
+            border-width: 1;
+            border-bottom-color: #aaa
+        }
+    }
+    .ReactTable .rt-thead.-header {
+            background:grey;
+        }
+    .ReactTable .rt-th, .ReactTable .rt-td {
+        max-height: 44;
+        padding: 3px 7px;
+    }
+    .ReactTable .rt-tbody .rt-tr-group:last-child {
+        border-bottom: grey;
+        border-bottom-style: solid;
+        border-bottom-width: 1;
+    }
+    .documentView-node:first-child {
+        background: grey;
+        .imageBox-cont img {
+            object-fit: contain;
+        }
+    }
+}
+
 .Resizer {
     box-sizing: border-box;
     background: #000;

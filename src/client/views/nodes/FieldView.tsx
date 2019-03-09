@@ -1,16 +1,17 @@
 import React = require("react")
 import { observer } from "mobx-react";
 import { computed } from "mobx";
-import { Field, Opt, FieldWaiting, FieldValue } from "../../../fields/Field";
+import { Field, FieldWaiting, FieldValue } from "../../../fields/Field";
 import { Document } from "../../../fields/Document";
 import { TextField } from "../../../fields/TextField";
 import { NumberField } from "../../../fields/NumberField";
 import { RichTextField } from "../../../fields/RichTextField";
 import { ImageField } from "../../../fields/ImageField";
+import { WebField } from "../../../fields/WebField";
 import { Key } from "../../../fields/Key";
 import { FormattedTextBox } from "./FormattedTextBox";
 import { ImageBox } from "./ImageBox";
-import { DocumentView } from "./DocumentView";
+import { WebBox } from "./WebBox";
 
 //
 // these properties get assigned through the render() method of the DocumentView when it creates this node.
@@ -20,12 +21,19 @@ import { DocumentView } from "./DocumentView";
 export interface FieldViewProps {
     fieldKey: Key;
     doc: Document;
-    DocumentViewForField: Opt<DocumentView>
+    isSelected: () => boolean;
+    select: () => void;
+    isTopMost: boolean;
+    selectOnLoad: boolean;
+    bindings: any;
 }
 
 @observer
 export class FieldView extends React.Component<FieldViewProps> {
-    public static LayoutString(fieldType: string) { return `<${fieldType} doc={Document} DocumentViewForField={DocumentView} fieldKey={DataKey} />`; }
+    public static LayoutString(fieldType: { name: string }, fieldStr: string = "DataKey") {
+        return `<${fieldType.name} doc={Document} DocumentViewForField={DocumentView} bindings={bindings} fieldKey={${fieldStr}} isSelected={isSelected} select={select} selectOnLoad={SelectOnLoad} isTopMost={isTopMost} />`;
+    }
+
     @computed
     get field(): FieldValue<Field> {
         const { doc, fieldKey } = this.props;
@@ -45,11 +53,20 @@ export class FieldView extends React.Component<FieldViewProps> {
         else if (field instanceof ImageField) {
             return <ImageBox {...this.props} />
         }
+        else if (field instanceof WebField) {
+            return <WebBox {...this.props} />
+        }
+        // bcz: this belongs here, but it doesn't render well so taking it out for now
+        // else if (field instanceof HtmlField) {
+        //     return <WebBox {...this.props} />
+        // }
         else if (field instanceof NumberField) {
             return <p>{field.Data}</p>
-        } else if (field != FieldWaiting) {
-            return <p>{field.GetValue}</p>
-        } else
+        }
+        else if (field != FieldWaiting) {
+            return <p>{JSON.stringify(field.GetValue())}</p>
+        }
+        else
             return <p> {"Waiting for server..."} </p>
     }
 

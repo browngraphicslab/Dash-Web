@@ -3,15 +3,21 @@
     display: flex;
     z-index: 1000;
     box-shadow: #AAAAAA .2vw .2vw .4vw;
-    flex-direction: column; //E
+    flex-direction: column;
 }
 
 .contextMenu-item {
+<<<<<<< HEAD
     width: 10vw; //10vw
     height: auto; //4vh
     background: #DDDDDD;
+=======
+    width: auto;
+    height: auto;
+    background: #F0F8FF;
+>>>>>>> 09928503be98d605052fba65dcd2f91f9b056f23
     display: flex;
-    justify-content: center;
+    justify-content: left;
     align-items: center;
     -webkit-touch-callout: none;
     -webkit-user-select: none;
@@ -20,19 +26,22 @@
     -ms-user-select: none;
     user-select: none;
     transition: all .1s;
+    border-width: .11px;
+    border-style: none;
+    border-color: rgb(187, 186, 186);
+    border-bottom-style: solid;
+    padding: 10px;
+    white-space: nowrap;
+    font-size: 1.5vw;
 }
 
 .contextMenu-item:hover {
     transition: all .1s;
-    background: #AAAAAA
+    background: #B0E0E6;
 }
 
 .contextMenu-description {
     font-size: 1.5vw;
     text-align: left;
     width: 8vw;
-}
-
-#mySearch {
-    font-size: 1.4vw;
 }

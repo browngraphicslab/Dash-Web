@@ -11,7 +11,7 @@
             "sourceMaps": true,
             "breakOnLoad": true,
             "url": "http://localhost:1050",
-            "webRoot": "${workspaceFolder}"
+            "webRoot": "${workspaceFolder}",
         },
         {
             "type": "node",
@@ -47,5 +47,15 @@
             "internalConsoleOptions": "openOnSessionStart",
             "protocol": "inspector"
         },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Launch via NPM",
+            "runtimeExecutable": "npm",
+            "runtimeArgs": [
+                "start"
+            ],
+            "port": 9229
+        }
     ]
 }
