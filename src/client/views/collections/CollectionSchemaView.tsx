@@ -50,7 +50,9 @@ export class CollectionSchemaView extends CollectionViewBase {
         let onItemDown = setupDrag(reference, () => props.doc);
         return (
             <div onPointerDown={onItemDown} key={props.doc.Id} ref={reference}>
-                <EditableView contents={contents}
+                <EditableView
+                    display={"inline"}
+                    contents={contents}
                     height={36} GetValue={() => {
                         let field = props.doc.Get(props.fieldKey);
                         if (field && field instanceof Field) {
@@ -59,7 +61,7 @@ export class CollectionSchemaView extends CollectionViewBase {
                         return field || "";
                     }}
                     SetValue={(value: string) => {
-                        let script = CompileScript(value, undefined, true);
+                        let script = CompileScript(value);
                         if (!script.compiled) {
                             return false;
                         }

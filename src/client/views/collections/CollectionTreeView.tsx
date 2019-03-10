@@ -69,7 +69,9 @@ class TreeView extends React.Component<TreeViewProps> {
             return <div key={this.props.document.Id}></div>;
         }
 
-        return <div className="docContainer"> <EditableView contents={title.Data}
+        return <div className="docContainer"> <EditableView
+            display={"inline"}
+            contents={title.Data}
             height={36} GetValue={() => {
                 let title = this.props.document.GetT<TextField>(KeyStore.Title, TextField);
                 if (title && title !== "<Waiting>")
@@ -159,6 +161,7 @@ export class CollectionTreeView extends CollectionViewBase {
             <div id="body" className="collectionTreeView-dropTarget" onDrop={(e: React.DragEvent) => this.onDrop(e, {})} ref={this.createDropTarget} style={{ borderWidth: `${COLLECTION_BORDER_WIDTH}px` }}>
                 <h3>
                     <EditableView contents={titleStr}
+                        display={"inline"}
                         height={72} GetValue={() => {
                             return this.props.Document.Title;
                         }} SetValue={(value: string) => {

@@ -7,6 +7,8 @@ import './WorkspacesMenu.css'
 import { Document } from '../../../fields/Document';
 import { Server } from '../../../client/Server';
 import { Field } from '../../../fields/Field';
+import { EditableView } from '../../../client/views/EditableView';
+import { KeyStore } from '../../../fields/KeyStore';
 
 export interface WorkspaceMenuProps {
     active: Document;
@@ -67,19 +69,29 @@ export class WorkspacesMenu extends React.Component<WorkspaceMenuProps> {
                     }}
                     onClick={this.addNewWorkspace}
                 />
-                {this.props.allWorkspaces.map(s =>
-                    <li className={"ids"}
+                {this.props.allWorkspaces.map((s, i) =>
+                    <div
                         key={s.Id}
-                        style={{
-                            listStyleType: "none",
-                            color: s.Id === this.props.active.Id ? "darkblue" : "black",
-                            cursor: "grab"
-                        }}
-                        onClick={() => {
+                        onContextMenu={(e) => {
+                            e.preventDefault();
                             this.props.open(s);
-                            console.log(this.props.allWorkspaces.length);
                         }}
-                    >{s.Title}</li>
+                        style={{
+                            marginTop: 10
+                        }}
+                    >
+                        <span>{i + 1} - </span>
+                        <EditableView
+                            display={"inline"}
+                            GetValue={() => { return s.Title }}
+                            SetValue={(title: string): boolean => {
+                                s.SetText(KeyStore.Title, title);
+                                return true;
+                            }}
+                            contents={s.Title}
+                            height={20}
+                        />
+                    </div>
                 )}
             </div>
         );
