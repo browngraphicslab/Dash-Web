@@ -16,6 +16,8 @@ import { CollectionPDFView } from "../collections/CollectionPDFView";
 import { ContextMenu } from "../ContextMenu";
 import { FormattedTextBox } from "../nodes/FormattedTextBox";
 import { ImageBox } from "../nodes/ImageBox";
+import { VideoBox } from "../nodes/VideoBox"; 
+import { AudioBox } from "../nodes/AudioBox"; 
 import { Documents } from "../../documents/Documents"
 import { KeyValueBox } from "./KeyValueBox"
 import { WebBox } from "../nodes/WebBox";
@@ -196,7 +198,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     }
     @computed get mainContent() {
         return <JsxParser
-            components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, WebBox, KeyValueBox, PDFBox }}
+            components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, WebBox, KeyValueBox, VideoBox, AudioBox, PDFBox }}
             bindings={this._documentBindings}
             jsx={this.layout}
             showWarnings={true}

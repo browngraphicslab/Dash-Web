@@ -1,4 +1,4 @@
-import { action, computed, observable } from "mobx";
+import { action, computed, observable, reaction, trace } from "mobx";
 import { observer } from "mobx-react";
 import { Document } from "../../../fields/Document";
 import { FieldWaiting } from "../../../fields/Field";
@@ -25,6 +25,7 @@ import "./CollectionFreeFormView.scss";
 import { COLLECTION_BORDER_WIDTH } from "./CollectionView";
 import { CollectionViewBase } from "./CollectionViewBase";
 import React = require("react");
+import { render } from "pug";
 const JsxParser = require('react-jsx-parser').default;//TODO Why does this need to be imported like this?
 
 @observer
@@ -282,7 +283,6 @@ export class CollectionFreeFormView extends CollectionViewBase {
     }
 
     render() {
-
         //determines whether preview text cursor should be visible (ie when user taps this collection it should)
         let cursor = null;
         if (this._previewCursorVisible) {

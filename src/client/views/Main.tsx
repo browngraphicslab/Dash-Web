@@ -29,6 +29,8 @@ import { faGlobeAsia } from '@fortawesome/free-solid-svg-icons';
 import { faUndoAlt } from '@fortawesome/free-solid-svg-icons';
 import { faRedoAlt } from '@fortawesome/free-solid-svg-icons';
 import { faPenNib } from '@fortawesome/free-solid-svg-icons';
+import { faFilm } from '@fortawesome/free-solid-svg-icons';
+import { faMusic } from '@fortawesome/free-solid-svg-icons';
 
 
 configure({ enforceActions: "observed" });  // causes errors to be generated when modifying an observable outside of an action
@@ -53,6 +55,8 @@ library.add(faGlobeAsia);
 library.add(faUndoAlt);
 library.add(faRedoAlt);
 library.add(faPenNib);
+library.add(faFilm);
+library.add(faMusic);
 
 Documents.initProtos(mainDocId, (res?: Document) => {
     if (res instanceof Document) {
@@ -75,6 +79,8 @@ Documents.initProtos(mainDocId, (res?: Document) => {
     let imgurl = "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg";
     let pdfurl = "http://www.adobe.com/support/products/enterprise/knowledgecenter/media/c4611_sample_explain.pdf"
     let weburl = "https://cs.brown.edu/courses/cs166/";
+    let audiourl = "http://techslides.com/demos/samples/sample.mp3";
+    let videourl = "http://techslides.com/demos/sample-videos/small.mp4";
     let clearDatabase = action(() => Utils.Emit(Server.Socket, MessageStore.DeleteAll, {}))
     let addTextNode = action(() => Documents.TextDocument({ width: 230, height: 130, title: "a text note" }))
     let addColNode = action(() => Documents.FreeformDocument([], { width: 300, height: 300, title: "a freeform collection" }));
@@ -82,8 +88,8 @@ Documents.initProtos(mainDocId, (res?: Document) => {
     let addPDFNode = action(() => Documents.PdfDocument(pdfurl, { width: 300, height: 400, title: "a pdf" }));
     let addImageNode = action(() => Documents.ImageDocument(imgurl, { width: 200, height: 200, title: "an image of a cat" }));
     let addWebNode = action(() => Documents.WebDocument(weburl, { width: 300, height: 400, title: "a sample web page" }));
-
-
+    let addVideoNode = action(() => Documents.VideoDocument(videourl, { width: 300, height: 250, title: "video node" }));
+    let addAudioNode = action(() => Documents.AudioDocument(audiourl, { width: 250, height: 100, title: "audio node" }));
     let addClick = (creator: () => Document) => action(() =>
         mainfreeform.GetList<Document>(KeyStore.Data, []).push(creator())
     );
@@ -93,10 +99,9 @@ Documents.initProtos(mainDocId, (res?: Document) => {
     let webRef = React.createRef<HTMLDivElement>();
     let textRef = React.createRef<HTMLDivElement>();
     let schemaRef = React.createRef<HTMLDivElement>();
+    let videoRef = React.createRef<HTMLDivElement>();
+    let audioRef = React.createRef<HTMLDivElement>();
     let colRef = React.createRef<HTMLDivElement>();
-
-    // fontawesome stuff
-    library.add()
 
     ReactDOM.render((
         <div style={{ position: "absolute", width: "100%", height: "100%" }}>
@@ -116,15 +121,15 @@ Documents.initProtos(mainDocId, (res?: Document) => {
             <button className="clear-db-button" onClick={clearDatabase}>Clear Database</button>
 
             {/* @TODO this should really be moved into a moveable toolbar component, but for now let's put it here to meet the deadline */}
-            <div id="toolbar">
+            < div id="toolbar" >
                 <button className="toolbar-button round-button" title="Undo" onClick={() => UndoManager.Undo()}><FontAwesomeIcon icon="undo-alt" size="sm" /></button>
                 <button className="toolbar-button round-button" title="Redo" onClick={() => UndoManager.Redo()}><FontAwesomeIcon icon="redo-alt" size="sm" /></button>
                 {/* @TODO do the ink thing */}
-                <button className="toolbar-button round-button" title="Ink"><FontAwesomeIcon icon="pen-nib" size="sm" /></button>
-            </div>
+                < button className="toolbar-button round-button" title="Ink" > <FontAwesomeIcon icon="pen-nib" size="sm" /></button >
+            </div >
 
             {/* for the expandable add nodes menu. Not included with the above because once it expands it expands the whole div with it, making canvas interactions limited. */}
-            <div id="add-nodes-menu">
+            < div id="add-nodes-menu" >
                 <input type="checkbox" id="add-menu-toggle" />
                 <label htmlFor="add-menu-toggle" title="Add Node"><p>+</p></label>
 
@@ -139,6 +144,12 @@ Documents.initProtos(mainDocId, (res?: Document) => {
                         <li><div ref={pdfRef}><button className="round-button add-button" title="Add PDF" onPointerDown={setupDrag(pdfRef, addPDFNode)} onClick={addClick(addPDFNode)}>
                             <FontAwesomeIcon icon="file-pdf" size="sm" />
                         </button></div></li>
+                        <li><div ref={videoRef}><button className="round-button add-button" title="Add Video" onPointerDown={setupDrag(videoRef, addVideoNode)} onClick={addClick(addVideoNode)}>
+                            <FontAwesomeIcon icon="film" size="sm" />
+                        </button></div></li>
+                        <li><div ref={audioRef}><button className="round-button add-button" title="Add Audio" onPointerDown={setupDrag(audioRef, addAudioNode)} onClick={addClick(addAudioNode)}>
+                            <FontAwesomeIcon icon="music" size="sm" />
+                        </button></div></li>
                         <li><div ref={webRef}><button className="round-button add-button" title="Add Web Clipping" onPointerDown={setupDrag(webRef, addWebNode)} onClick={addClick(addWebNode)}>
                             <FontAwesomeIcon icon="globe-asia" size="sm" />
                         </button></div></li>
@@ -151,7 +162,7 @@ Documents.initProtos(mainDocId, (res?: Document) => {
                     </ul>
                 </div>
 
-            </div>
+            </div >
 
             {/* <InkingControl /> */}
         </div >),

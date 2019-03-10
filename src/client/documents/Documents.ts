@@ -14,6 +14,11 @@ import { HtmlField } from "../../fields/HtmlField";
 import { Key } from "../../fields/Key"
 import { Field } from "../../fields/Field";
 import { KeyValueBox } from "../views/nodes/KeyValueBox"
+import { KVPField } from "../../fields/KVPField";
+import { VideoField } from "../../fields/VideoField"
+import { VideoBox } from "../views/nodes/VideoBox";
+import { AudioField } from "../../fields/AudioField";
+import { AudioBox } from "../views/nodes/AudioBox";
 import { PDFField } from "../../fields/PDFField";
 import { PDFBox } from "../views/nodes/PDFBox";
 import { CollectionPDFView } from "../views/collections/CollectionPDFView";
@@ -40,6 +45,8 @@ export namespace Documents {
     let webProto: Document;
     let collProto: Document;
     let kvpProto: Document;
+    let videoProto: Document; 
+    let audioProto: Document; 
     let pdfProto: Document;
     const textProtoId = "textProto";
     const pdfProtoId = "pdfProto";
@@ -47,6 +54,8 @@ export namespace Documents {
     const webProtoId = "webProto";
     const collProtoId = "collectionProto";
     const kvpProtoId = "kvpProto";
+    const videoProtoId = "videoProto"
+    const audioProtoId = "audioProto";
 
     export function initProtos(mainDocId: string, callback: (mainDoc?: Document) => void) {
         Server.GetFields([collProtoId, textProtoId, imageProtoId, mainDocId], (fields) => {
@@ -121,6 +130,17 @@ export namespace Documents {
             kvpProto = setupPrototypeOptions(kvpProtoId, "KVP_PROTO", KeyValueBox.LayoutString(),
                 { x: 0, y: 0, width: 300, height: 150, layoutKeys: [KeyStore.Data] })
     }
+    function GetVideoPrototype(): Document {
+        return videoProto ? videoProto :
+            videoProto = setupPrototypeOptions(videoProtoId, "VIDEO_PROTO", VideoBox.LayoutString(),
+                { x: 0, y: 0, width: 300, height: 150, layoutKeys: [KeyStore.Data] })
+    }
+    function GetAudioPrototype(): Document {
+        return audioProto ? audioProto :
+            audioProto = setupPrototypeOptions(audioProtoId, "AUDIO_PROTO", AudioBox.LayoutString(),
+                { x: 0, y: 0, width: 300, height: 150, layoutKeys: [KeyStore.Data] })
+    }
+
 
     export function ImageDocument(url: string, options: DocumentOptions = {}) {
         let doc = SetInstanceOptions(GetImagePrototype(), { ...options, layoutKeys: [KeyStore.Data, KeyStore.Annotations, KeyStore.Caption] },
@@ -128,6 +148,22 @@ export namespace Documents {
         // doc.SetText(KeyStore.Caption, "my caption...");
         // doc.SetText(KeyStore.BackgroundLayout, EmbeddedCaption());
         // doc.SetText(KeyStore.OverlayLayout, FixedCaption());
+        return doc;
+    }
+    export function VideoDocument(url: string, options: DocumentOptions = {}){
+        let doc = SetInstanceOptions(GetVideoPrototype(), { ...options, layoutKeys: [KeyStore.Data, KeyStore.Annotations, KeyStore.Caption] },
+            new URL(url), VideoField);
+        doc.SetText(KeyStore.Caption, "my caption...");
+        doc.SetText(KeyStore.BackgroundLayout, EmbeddedCaption());
+        doc.SetText(KeyStore.OverlayLayout, FixedCaption());
+        return doc;
+    }
+    export function AudioDocument(url: string, options: DocumentOptions = {}){
+        let doc = SetInstanceOptions(GetAudioPrototype(), { ...options, layoutKeys: [KeyStore.Data, KeyStore.Annotations, KeyStore.Caption] },
+            new URL(url), AudioField);
+        doc.SetText(KeyStore.Caption, "my caption...");
+        doc.SetText(KeyStore.BackgroundLayout, EmbeddedCaption());
+        doc.SetText(KeyStore.OverlayLayout, FixedCaption());
         return doc;
     }
     export function TextDocument(options: DocumentOptions = {}) {
