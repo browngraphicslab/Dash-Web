@@ -14,7 +14,9 @@ import { HtmlField } from "../../fields/HtmlField";
 import { Key } from "../../fields/Key"
 import { Field } from "../../fields/Field";
 import { KeyValueBox } from "../views/nodes/KeyValueBox"
-import { KVPField } from "../../fields/KVPField";
+import { PDFField } from "../../fields/PDFField";
+import { PDFBox } from "../views/nodes/PDFBox";
+import { CollectionPDFView } from "../views/collections/CollectionPDFView";
 
 export interface DocumentOptions {
     x?: number;
@@ -38,7 +40,9 @@ export namespace Documents {
     let webProto: Document;
     let collProto: Document;
     let kvpProto: Document;
+    let pdfProto: Document;
     const textProtoId = "textProto";
+    const pdfProtoId = "pdfProto";
     const imageProtoId = "imageProto";
     const webProtoId = "webProto";
     const collProtoId = "collectionProto";
@@ -92,6 +96,15 @@ export namespace Documents {
             textProto = setupPrototypeOptions(textProtoId, "TEXT_PROTO", FormattedTextBox.LayoutString(),
                 { x: 0, y: 0, width: 300, height: 150, layoutKeys: [KeyStore.Data] });
     }
+    function GetPdfPrototype(): Document {
+        if (!pdfProto) {
+            pdfProto = setupPrototypeOptions(pdfProtoId, "PDF_PROTO", CollectionPDFView.LayoutString("AnnotationsKey"),
+                { x: 0, y: 0, nativeWidth: 600, width: 300, layoutKeys: [KeyStore.Data, KeyStore.Annotations] });
+            pdfProto.SetNumber(KeyStore.CurPage, 1);
+            pdfProto.SetText(KeyStore.BackgroundLayout, PDFBox.LayoutString());
+        }
+        return pdfProto;
+    }
     function GetWebPrototype(): Document {
         return webProto ? webProto :
             webProto = setupPrototypeOptions(webProtoId, "WEB_PROTO", WebBox.LayoutString(),
@@ -120,6 +133,9 @@ export namespace Documents {
     export function TextDocument(options: DocumentOptions = {}) {
         return SetInstanceOptions(GetTextPrototype(), options, "", TextField);
     }
+    export function PdfDocument(url: string, options: DocumentOptions = {}) {
+        return SetInstanceOptions(GetPdfPrototype(), options, new URL(url), PDFField);
+    }
     export function WebDocument(url: string, options: DocumentOptions = {}) {
         return SetInstanceOptions(GetWebPrototype(), options, new URL(url), WebField);
     }
@@ -140,8 +156,6 @@ export namespace Documents {
         deleg.Set(KeyStore.Data, document);
         return assignOptions(deleg, options);
     }
-
-
 
     // example of custom display string for an image that shows a caption.
     function EmbeddedCaption() {

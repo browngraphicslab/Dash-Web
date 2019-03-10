@@ -1,27 +1,31 @@
-import { observable, action, computed } from "mobx";
+import { action, computed, observable, reaction, trace } from "mobx";
 import { observer } from "mobx-react";
 import { Document } from "../../../fields/Document";
 import { FieldWaiting } from "../../../fields/Field";
 import { KeyStore } from "../../../fields/KeyStore";
 import { ListField } from "../../../fields/ListField";
 import { TextField } from "../../../fields/TextField";
+import { Documents } from "../../documents/Documents";
 import { DragManager } from "../../util/DragManager";
 import { Transform } from "../../util/Transform";
 import { undoBatch } from "../../util/UndoManager";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { CollectionSchemaView } from "../collections/CollectionSchemaView";
 import { CollectionView } from "../collections/CollectionView";
+import { CollectionPDFView } from "../collections/CollectionPDFView";
+import { InkingCanvas } from "../InkingCanvas";
 import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
 import { DocumentView } from "../nodes/DocumentView";
 import { FormattedTextBox } from "../nodes/FormattedTextBox";
 import { ImageBox } from "../nodes/ImageBox";
+import { KeyValueBox } from "../nodes/KeyValueBox";
+import { PDFBox } from "../nodes/PDFBox";
 import { WebBox } from "../nodes/WebBox";
-import { KeyValueBox } from "../nodes/KeyValueBox"
 import "./CollectionFreeFormView.scss";
 import { COLLECTION_BORDER_WIDTH } from "./CollectionView";
 import { CollectionViewBase } from "./CollectionViewBase";
-import { Documents } from "../../documents/Documents";
 import React = require("react");
+import { render } from "pug";
 const JsxParser = require('react-jsx-parser').default;//TODO Why does this need to be imported like this?
 
 @observer
@@ -66,8 +70,8 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
     @action
     onPointerDown = (e: React.PointerEvent): void => {
-        if ((e.button === 2 && this.props.active()) ||
-            !e.defaultPrevented) {
+        if (((e.button === 2 && this.props.active()) ||
+            !e.defaultPrevented) && (!this.isAnnotationOverlay || this.zoomScaling != 1 || e.button == 0)) {
             document.removeEventListener("pointermove", this.onPointerMove);
             document.addEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
@@ -99,6 +103,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
     onPointerMove = (e: PointerEvent): void => {
         if (!e.cancelBubble && this.props.active()) {
             e.stopPropagation();
+            e.preventDefault();
             let x = this.props.Document.GetNumber(KeyStore.PanX, 0);
             let y = this.props.Document.GetNumber(KeyStore.PanY, 0);
             let [dx, dy] = this.getTransform().transformDirection(e.clientX - this._lastX, e.clientY - this._lastY);
@@ -136,7 +141,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
             let localTransform = this.getLocalTransform()
             localTransform = localTransform.inverse().scaleAbout(deltaScale, x, y)
-            console.log(localTransform)
+            // console.log(localTransform)
 
             this.props.Document.SetNumber(KeyStore.Scale, localTransform.Scale);
             this.SetPan(-localTransform.TranslateX / localTransform.Scale, -localTransform.TranslateY / localTransform.Scale);
@@ -145,8 +150,10 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
     @action
     private SetPan(panX: number, panY: number) {
-        const newPanX = Math.max((1 - this.zoomScaling) * this.nativeWidth, Math.min(0, panX));
-        const newPanY = Math.max((1 - this.zoomScaling) * this.nativeHeight, Math.min(0, panY));
+        var x1 = this.getLocalTransform().inverse().Scale;
+        var x2 = this.getTransform().inverse().Scale;
+        const newPanX = Math.min((1 - 1 / x1) * this.nativeWidth, Math.max(0, panX));
+        const newPanY = Math.min((1 - 1 / x1) * this.nativeHeight, Math.max(0, panY));
         this.props.Document.SetNumber(KeyStore.PanX, this.isAnnotationOverlay ? newPanX : panX);
         this.props.Document.SetNumber(KeyStore.PanY, this.isAnnotationOverlay ? newPanY : panY);
     }
@@ -163,7 +170,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
     @action
     onKeyDown = (e: React.KeyboardEvent<Element>) => {
         //if not these keys, make a textbox if preview cursor is active!
-        if (!e.ctrlKey && !e.altKey && !e.shiftKey) {
+        if (!e.ctrlKey && !e.altKey) {
             if (this._previewCursorVisible) {
                 //make textbox and add it to this collection
                 let [x, y] = this.getTransform().transformPoint(this._downX, this._downY); (this._downX, this._downY);
@@ -208,21 +215,35 @@ export class CollectionFreeFormView extends CollectionViewBase {
             return field.Data;
         }
     }
+
+    focusDocument = (doc: Document) => {
+        let x = doc.GetNumber(KeyStore.X, 0) + doc.GetNumber(KeyStore.Width, 0) / 2;
+        let y = doc.GetNumber(KeyStore.Y, 0) + doc.GetNumber(KeyStore.Height, 0) / 2;
+        this.SetPan(x, y);
+        this.props.focus(this.props.Document);
+    }
+
+
     @computed
     get views() {
+        var curPage = this.props.Document.GetNumber(KeyStore.CurPage, 1);
         const lvalue = this.props.Document.GetT<ListField<Document>>(this.props.fieldKey, ListField);
         if (lvalue && lvalue != FieldWaiting) {
             return lvalue.Data.map(doc => {
-                return (<CollectionFreeFormDocumentView key={doc.Id} Document={doc} ref={focus}
-                    AddDocument={this.props.addDocument}
-                    RemoveDocument={this.props.removeDocument}
-                    ScreenToLocalTransform={this.getTransform}
-                    isTopMost={false}
-                    SelectOnLoad={doc.Id === this._selectOnLoaded}
-                    ContentScaling={this.noScaling}
-                    PanelWidth={doc.Width}
-                    PanelHeight={doc.Height}
-                    ContainingCollectionView={this.props.CollectionView} />);
+                var page = doc.GetNumber(KeyStore.Page, 0);
+                return (page != curPage && page != 0) ? (null) :
+                    (<CollectionFreeFormDocumentView key={doc.Id} Document={doc}
+                        AddDocument={this.props.addDocument}
+                        RemoveDocument={this.props.removeDocument}
+                        ScreenToLocalTransform={this.getTransform}
+                        isTopMost={false}
+                        SelectOnLoad={doc.Id === this._selectOnLoaded}
+                        ContentScaling={this.noScaling}
+                        PanelWidth={doc.Width}
+                        PanelHeight={doc.Height}
+                        ContainingCollectionView={this.props.CollectionView}
+                        focus={this.focusDocument}
+                    />);
             })
         }
         return null;
@@ -232,7 +253,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
     get backgroundView() {
         return !this.backgroundLayout ? (null) :
             (<JsxParser
-                components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebBox, KeyValueBox }}
+                components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, WebBox, KeyValueBox, PDFBox }}
                 bindings={this.props.bindings}
                 jsx={this.backgroundLayout}
                 showWarnings={true}
@@ -243,7 +264,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
     get overlayView() {
         return !this.overlayLayout ? (null) :
             (<JsxParser
-                components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebBox, KeyValueBox }}
+                components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, WebBox, KeyValueBox, PDFBox }}
                 bindings={this.props.bindings}
                 jsx={this.overlayLayout}
                 showWarnings={true}
@@ -257,12 +278,11 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
     //when focus is lost, this will remove the preview cursor
     @action
-    onBlur = (e: React.FocusEvent<HTMLInputElement>): void => {
+    onBlur = (e: React.FocusEvent<HTMLDivElement>): void => {
         this._previewCursorVisible = false;
     }
 
     render() {
-
         //determines whether preview text cursor should be visible (ie when user taps this collection it should)
         let cursor = null;
         if (this._previewCursorVisible) {
@@ -280,7 +300,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
         // console.log("center:", this.getLocalTransform().transformPoint(this.centeringShiftX, this.centeringShiftY));
 
         return (
-            <div className="collectionfreeformview-container"
+            <div className={`collectionfreeformview${this.isAnnotationOverlay ? "-overlay" : "-container"}`}
                 onPointerDown={this.onPointerDown}
                 onKeyPress={this.onKeyDown}
                 onWheel={this.onPointerWheel}
@@ -294,6 +314,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
                     style={{ transformOrigin: "left top", transform: `translate(${dx}px, ${dy}px) scale(${this.zoomScaling}, ${this.zoomScaling}) translate(${panx}px, ${pany}px)` }}
                     ref={this._canvasRef}>
                     {this.backgroundView}
+                    <InkingCanvas getScreenTransform={this.getTransform} Document={this.props.Document} />
                     {cursor}
                     {this.views}
                 </div>

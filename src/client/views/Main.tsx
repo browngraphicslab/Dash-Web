@@ -4,8 +4,9 @@ import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import { Document } from '../../fields/Document';
 import { KeyStore } from '../../fields/KeyStore';
+import "./Main.scss";
+import { MessageStore } from '../../server/Message';
 import { Utils } from '../../Utils';
-import { MessageStore, DocumentTransfer } from '../../server/Message';
 import * as request from 'request'
 import { Documents } from '../documents/Documents';
 import { Server } from '../Server';
@@ -20,6 +21,7 @@ import { DocumentView } from './nodes/DocumentView';
 import "./Main.scss";
 import { observer } from 'mobx-react';
 import { Field, Opt } from '../../fields/Field';
+import { InkingControl } from './InkingControl';
 
 @observer
 export class Main extends React.Component {
@@ -57,6 +59,7 @@ export class Main extends React.Component {
                 Server.GetField(body, field => {
                     if (field instanceof Document) {
                         this.openDocument(field);
+                        this.populateWorkspaces();
                     } else {
                         this.createNewWorkspace(true);
                     }
@@ -74,15 +77,7 @@ export class Main extends React.Component {
         request.post(this.contextualize("addWorkspaceId"), {
             body: { target: newId },
             json: true
-        }, () => {
-            if (init) {
-                // retrieve all workspace documents from the server
-                request.get(this.contextualize("getAllWorkspaceIds"), (error, res, body) => {
-                    let ids = JSON.parse(body) as string[];
-                    Server.GetFields(ids, action((fields: { [id: string]: Field }) => this.userWorkspaces = ids.map(id => fields[id] as Document)));
-                });
-            }
-        });
+        }, () => { if (init) this.populateWorkspaces(); });
 
         // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
         setTimeout(() => {
@@ -93,7 +88,15 @@ export class Main extends React.Component {
             this.openDocument(mainDoc);
         }, 0);
         this.userWorkspaces.push(mainDoc);
-        console.log(this.userWorkspaces.length);
+    }
+
+    @action
+    populateWorkspaces = () => {
+        // retrieve all workspace documents from the server
+        request.get(this.contextualize("getAllWorkspaceIds"), (error, res, body) => {
+            let ids = JSON.parse(body) as string[];
+            Server.GetFields(ids, action((fields: { [id: string]: Field }) => this.userWorkspaces = ids.map(id => fields[id] as Document)));
+        });
     }
 
     @action
@@ -102,7 +105,6 @@ export class Main extends React.Component {
             body: { target: doc.Id },
             json: true
         });
-        console.log(`OPENING ${doc.Id}`);
         this.mainContainer = doc;
         this.mainContainer.GetAsync(KeyStore.ActiveFrame, field => this.mainfreeform = field as Document);
     }
@@ -122,12 +124,15 @@ export class Main extends React.Component {
         let schemaRef = React.createRef<HTMLDivElement>();
         let colRef = React.createRef<HTMLDivElement>();
         let workspacesRef = React.createRef<HTMLDivElement>();
+        let pdfRef = React.createRef<HTMLDivElement>();
 
         let imgurl = "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg";
+        let pdfurl = "http://www.adobe.com/support/products/enterprise/knowledgecenter/media/c4611_sample_explain.pdf"
         let weburl = "https://cs.brown.edu/courses/cs166/";
         let clearDatabase = action(() => Utils.Emit(Server.Socket, MessageStore.DeleteAll, {}))
         let addTextNode = action(() => Documents.TextDocument({ width: 200, height: 200, title: "a text note" }))
         let addColNode = action(() => Documents.FreeformDocument([], { width: 200, height: 200, title: "a feeform collection" }));
+        let addPDFNode = action(() => Documents.PdfDocument(pdfurl, { width: 200, height: 200, title: "a schema collection" }));
         let addSchemaNode = action(() => Documents.SchemaDocument([Documents.TextDocument()], { width: 200, height: 200, title: "a schema collection" }));
         let addImageNode = action(() => Documents.ImageDocument(imgurl, { width: 200, height: 200, title: "an image of a cat" }));
         let addWebNode = action(() => Documents.WebDocument(weburl, { width: 200, height: 200, title: "a sample web page" }));
@@ -146,6 +151,7 @@ export class Main extends React.Component {
                     PanelHeight={() => 0}
                     isTopMost={true}
                     SelectOnLoad={false}
+                    focus={() => { }}
                     ContainingCollectionView={undefined} />
                 <DocumentDecorations />
                 <ContextMenu />
@@ -164,6 +170,8 @@ export class Main extends React.Component {
                     <button onClick={clearDatabase}>Clear Database</button></div>
                 <div className="main-buttonDiv" style={{ top: '25px' }} ref={workspacesRef}>
                     <button onClick={this.toggleWorkspaces}>View Workspaces</button></div>
+                <div className="main-buttonDiv" style={{ bottom: '150px' }} ref={pdfRef}>
+                    <button onPointerDown={setupDrag(pdfRef, addPDFNode)} onClick={addClick(addPDFNode)}>Add PDF</button></div>
                 <button className="main-undoButtons" style={{ bottom: '25px' }} onClick={() => UndoManager.Undo()}>Undo</button>
                 <button className="main-undoButtons" style={{ bottom: '0px' }} onClick={() => UndoManager.Redo()}>Redo</button>
             </div>

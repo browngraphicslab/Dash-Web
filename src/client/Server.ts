@@ -9,7 +9,7 @@ import { MessageStore, Types } from "./../server/Message";
 
 export class Server {
     public static ClientFieldsCached: ObservableMap<FieldId, Field | FIELD_WAITING> = new ObservableMap();
-    static Socket: SocketIOClient.Socket = OpenSocket("http://localhost:1234");
+    static Socket: SocketIOClient.Socket = OpenSocket(`${window.location.protocol}//${window.location.hostname}:1234`);
     static GUID: string = Utils.GenerateGuid()
 
 

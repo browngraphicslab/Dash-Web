@@ -1,8 +1,11 @@
 import { BasicField } from "./BasicField";
 import { Field, FieldId } from "./Field";
+import { observable } from "mobx"
 import { Types } from "../server/Message";
 
-export class ImageField extends BasicField<URL> {
+
+
+export class PDFField extends BasicField<URL> {
     constructor(data: URL | undefined = undefined, id?: FieldId, save: boolean = true) {
         super(data == undefined ? new URL("http://cs.brown.edu/~bcz/bob_fettucine.jpg") : data, save, id);
     }
@@ -11,19 +14,23 @@ export class ImageField extends BasicField<URL> {
         return this.Data.href;
     }
 
-    ToScriptString(): string {
-        return `new ImageField("${this.Data}")`;
+    Copy(): Field {
+        return new PDFField(this.Data);
     }
 
-    Copy(): Field {
-        return new ImageField(this.Data);
+    ToScriptString(): string {
+        return `new PDFField("${this.Data}")`;
     }
 
     ToJson(): { type: Types, data: URL, _id: string } {
         return {
-            type: Types.Image,
+            type: Types.PDF,
             data: this.Data,
             _id: this.Id
         }
     }
+
+    @observable
+    Page: Number = 1;
+
 }

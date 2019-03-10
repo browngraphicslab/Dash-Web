@@ -1,14 +1,15 @@
 
+import { action, observable } from 'mobx';
+import { observer } from "mobx-react";
 import Lightbox from 'react-image-lightbox';
 import 'react-image-lightbox/style.css'; // This only needs to be imported once in your app
+import { FieldWaiting } from '../../../fields/Field';
+import { ImageField } from '../../../fields/ImageField';
+import { KeyStore } from '../../../fields/KeyStore';
+import { ContextMenu } from "../../views/ContextMenu";
+import { FieldView, FieldViewProps } from './FieldView';
 import "./ImageBox.scss";
 import React = require("react")
-import { ImageField } from '../../../fields/ImageField';
-import { FieldViewProps, FieldView } from './FieldView';
-import { FieldWaiting } from '../../../fields/Field';
-import { observer } from "mobx-react"
-import { observable, action } from 'mobx';
-import { KeyStore } from '../../../fields/KeyStore';
 
 @observer
 export class ImageBox extends React.Component<FieldViewProps> {
@@ -88,13 +89,21 @@ export class ImageBox extends React.Component<FieldViewProps> {
         }
     }
 
+    //REPLACE THIS WITH CAPABILITIES SPECIFIC TO THIS TYPE OF NODE
+    imageCapability = (e: React.MouseEvent): void => {
+    }
+
+    specificContextMenu = (e: React.MouseEvent): void => {
+        ContextMenu.Instance.addItem({ description: "Image Capability", event: this.imageCapability });
+    }
+
     render() {
         let field = this.props.doc.Get(this.props.fieldKey);
         let path = field == FieldWaiting ? "https://image.flaticon.com/icons/svg/66/66163.svg" :
             field instanceof ImageField ? field.Data.href : "http://www.cs.brown.edu/~bcz/face.gif";
         let nativeWidth = this.props.doc.GetNumber(KeyStore.NativeWidth, 1);
         return (
-            <div className="imageBox-cont" onPointerDown={this.onPointerDown} ref={this._ref} >
+            <div className="imageBox-cont" onPointerDown={this.onPointerDown} ref={this._ref} onContextMenu={this.specificContextMenu}>
                 <img src={path} width={nativeWidth} alt="Image not found" ref={this._imgRef} onLoad={this.onLoad} />
                 {this.lightbox(path)}
             </div>)

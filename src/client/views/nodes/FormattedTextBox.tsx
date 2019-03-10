@@ -2,7 +2,7 @@ import { action, IReactionDisposer, reaction } from "mobx";
 import { baseKeymap } from "prosemirror-commands";
 import { history, redo, undo } from "prosemirror-history";
 import { keymap } from "prosemirror-keymap";
-import { schema } from "prosemirror-schema-basic";
+import { schema } from "../../util/RichTextSchema";
 import { EditorState, Transaction, } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { Opt, FieldWaiting } from "../../../fields/Field";
@@ -10,6 +10,10 @@ import "./FormattedTextBox.scss";
 import React = require("react")
 import { RichTextField } from "../../../fields/RichTextField";
 import { FieldViewProps, FieldView } from "./FieldView";
+import { Plugin } from 'prosemirror-state'
+import { Decoration, DecorationSet } from 'prosemirror-view'
+import { TooltipTextMenu } from "../../util/TooltipTextMenu"
+import { ContextMenu } from "../../views/ContextMenu";
 
 
 
@@ -60,6 +64,7 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
                 history(),
                 keymap({ "Mod-z": undo, "Mod-y": redo }),
                 keymap(baseKeymap),
+                this.tooltipMenuPlugin()
             ]
         };
 
@@ -112,12 +117,44 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
             e.stopPropagation();
         }
     }
+
+    //REPLACE THIS WITH CAPABILITIES SPECIFIC TO THIS TYPE OF NODE
+    textCapability = (e: React.MouseEvent): void => {
+    }
+
+    specificContextMenu = (e: React.MouseEvent): void => {
+        ContextMenu.Instance.addItem({ description: "Text Capability", event: this.textCapability });
+        // ContextMenu.Instance.addItem({
+        //     description: "Submenu",
+        //     items: [
+        //         {
+        //             description: "item 1", event:
+        //     },
+        //         {
+        //             description: "item 2", event:
+        //     }
+        //     ]
+        // })
+        // e.stopPropagation()
+
+    }
+
     onPointerWheel = (e: React.WheelEvent): void => {
         e.stopPropagation();
     }
+
+    tooltipMenuPlugin() {
+        return new Plugin({
+            view(_editorView) {
+                return new TooltipTextMenu(_editorView)
+            }
+        })
+    }
+
     render() {
         return (<div className="formattedTextBox-cont"
             onPointerDown={this.onPointerDown}
+            onContextMenu={this.specificContextMenu}
             onWheel={this.onPointerWheel}
             ref={this._ref} />)
     }
