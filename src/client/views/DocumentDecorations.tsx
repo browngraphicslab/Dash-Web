@@ -1,11 +1,14 @@
-import { observable, computed } from "mobx";
+import { observable, computed, action } from "mobx";
 import React = require("react");
 import { SelectionManager } from "../util/SelectionManager";
 import { observer } from "mobx-react";
 import './DocumentDecorations.scss'
 import { CollectionFreeFormView } from "./collections/CollectionFreeFormView";
 import ContentEditable from 'react-contenteditable'
-import { KeyStore } from '../../fields/Key'
+import { KeyStore } from "../../fields/KeyStore";
+import { NumberField } from "../../fields/NumberField";
+import { Document } from "../../fields/Document";
+import { DocumentView } from "./nodes/DocumentView";
 
 @observer
 export class DocumentDecorations extends React.Component<{}, { value: string }> {
@@ -14,6 +17,9 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     private _isPointerDown = false;
     @observable private _opacity = 1;
     private keyinput: React.RefObject<HTMLInputElement>;
+    @observable private _documents: DocumentView[] = [];
+    //@observable private _title: string = this._documents[0].props.Document.Title;
+    @observable private _title: string = document.title;
 
     constructor(props: Readonly<{}>) {
         super(props)
@@ -23,19 +29,34 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         this.keyinput = React.createRef();
     }
 
-    handleChange(event: any) {
-        this.setState({ value: event.target.value });
-        console.log("Input box has changed")
+    @action
+    handleChange = (event: any) => {
+        //this.setState({ value: event.target.value });
+        this._title = event.target.value;
+        console.log("Input box has changed");
     };
 
-    enterPressed(e: any) {
+    @action
+    enterPressed = (e: any) => {
         var key = e.keyCode || e.which;
         // enter pressed
         if (key == 13) {
             var text = e.target.value;
             if (text[0] == '#') {
-                console.log("hashtag");
+                let command = text.slice(1, text.length);
+                if (command == "Title" || command == "title") {
+                    this._title = this._documents[0].props.Document.Title;
+                }
+                else if (command == "Width" || command == "width") {
+                    this._title = this._documents[0].props.Document.GetNumber(KeyStore.Width, 0).toString();
+                }
+                else {
+                    this._title = "undefined key";
+                }
                 // TODO: Change field with switch statement
+            }
+            else {
+                this._title = document.title;
             }
             e.target.blur();
         }
@@ -43,6 +64,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
 
     @computed
     get Bounds(): { x: number, y: number, b: number, r: number } {
+        this._documents = SelectionManager.SelectedDocuments();
         return SelectionManager.SelectedDocuments().reduce((bounds, documentView) => {
             if (documentView.props.isTopMost) {
                 return bounds;
@@ -61,6 +83,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     @computed
     public get Hidden() { return this._hidden; }
     public set Hidden(value: boolean) { this._hidden = value; }
+    private _hidden: boolean = false;
 
     onPointerDown = (e: React.PointerEvent): void => {
         e.stopPropagation();
@@ -178,8 +201,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 top: bounds.y - 20 - 20,
                 opacity: this._opacity
             }}>
-                <input ref={this.keyinput} className="title" type="text" name="dynbox" value={this.state.value} onChange={this.handleChange} onPointerDown={this.onPointerDown} onKeyPress={this.enterPressed} />
-                {/* <div className="title" onPointerDown={this.onPointerDown}>{document.title}</div> */}
+                <input ref={this.keyinput} className="title" type="text" name="dynbox" value={this._title} onChange={this.handleChange} onPointerDown={this.onPointerDown} onKeyPress={this.enterPressed} />
                 <div id="documentDecorations-topLeftResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-topResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-topRightResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
