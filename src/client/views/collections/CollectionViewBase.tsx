@@ -118,7 +118,15 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
                         json.map((file: any) => {
                             let path = window.location.origin + file
                             runInAction(() => {
+
+
+
                                 var img = Documents.ImageDocument(path, { ...options, nativeWidth: 300, width: 300, })
+
+
+
+
+
                                 let docs = that.props.Document.GetT(KeyStore.Data, ListField);
                                 if (docs != FieldWaiting) {
                                     if (!docs) {
@@ -150,7 +158,6 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
                 // if (file) {
                 //     fReader.readAsBinaryString(file)
                 // }
-
             }
             // request.post(upload, {
             //     body: {
