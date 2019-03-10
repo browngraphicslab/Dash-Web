@@ -98,7 +98,9 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
 
                 })
             }
-            if (item.kind == "file" && item.type.indexOf("image") !== -1) {
+            let type = item.type
+            console.log(type)
+            if (item.kind == "file") {
                 let fReader = new FileReader()
                 let file = item.getAsFile();
                 let formData = new FormData()
@@ -118,53 +120,34 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
                         json.map((file: any) => {
                             let path = window.location.origin + file
                             runInAction(() => {
+                                var doc: any;
 
-
-
-                                var img = Documents.ImageDocument(path, { ...options, nativeWidth: 300, width: 300, })
-
-
-
-
-
+                                if (type.indexOf("image") !== -1) {
+                                    doc = Documents.ImageDocument(path, { ...options, nativeWidth: 300, width: 300, })
+                                }
+                                if (type.indexOf("video") !== -1) {
+                                    doc = Documents.VideoDocument(path, { ...options, nativeWidth: 300, width: 300, })
+                                }
+                                if (type.indexOf("audio") !== -1) {
+                                    doc = Documents.AudioDocument(path, { ...options, nativeWidth: 300, width: 300, })
+                                }
                                 let docs = that.props.Document.GetT(KeyStore.Data, ListField);
                                 if (docs != FieldWaiting) {
                                     if (!docs) {
                                         docs = new ListField<Document>();
                                         that.props.Document.Set(KeyStore.Data, docs)
                                     }
-                                    docs.Data.push(img);
+                                    if (doc) {
+                                        docs.Data.push(doc);
+                                    }
 
                                 }
                             })
                         })
                     })
-                // fReader.addEventListener("load", action("drop", () => {
-                //     if (fReader.result) {
-                //         let form = request.post(upload).form();
-                //         form.append('file', fReader.result);
-                //         // let url = "" + fReader.result;
-                //         // let doc = Documents.ImageDocument(url, options)
-                //         // let docs = that.props.Document.GetT(KeyStore.Data, ListField);
-                //         // if (docs != FieldWaiting) {
-                //         //     if (!docs) {
-                //         //         docs = new ListField<Document>();
-                //         //         that.props.Document.Set(KeyStore.Data, docs)
-                //         //     }
-                //         //     docs.Data.push(doc);
-                //         // }
-                //     }
-                // }), false)
-                // if (file) {
-                //     fReader.readAsBinaryString(file)
-                // }
+
+
             }
-            // request.post(upload, {
-            //     body: {
-            //         test: "DEAR GOD PLEASE SEND! (NEITHER)",
-            //     },
-            //     json: true
-            // })
         }
     }
 }
