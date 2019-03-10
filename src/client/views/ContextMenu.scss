@@ -7,6 +7,20 @@
   flex-direction: column;
 }
 
+.contextMenu-item:first-child {
+  background: $intermediate-color;
+  color: $light-color;
+}
+
+.contextMenu-item:first-child::placeholder {
+  color: $light-color;
+}
+
+.contextMenu-item:first-child:hover {
+  background: $intermediate-color;
+  color: $light-color;
+}
+
 .contextMenu-item {
   width: auto;
   height: auto;
