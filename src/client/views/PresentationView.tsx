@@ -10,6 +10,7 @@ import { Documents } from '../documents/Documents';
 import "./PresentationView.scss"
 import { mobxPendingDecorators } from "mobx/lib/internal";
 import { NumberField } from "../../fields/NumberField";
+import "./Main.tsx";
 
 export interface PresViewProps {
     Document: Document;
@@ -63,6 +64,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
     //observable means render is re-called every time variable is changed
     @observable
     collapsed: boolean = false;
+    closePresentation = action(() => this.props.Document.SetNumber(KeyStore.Width, 0));
 
     private ref: React.RefObject<HTMLDivElement>;
 
@@ -116,6 +118,8 @@ export class PresentationView extends React.Component<PresViewProps>  {
         this.collapsed = true;
     }
 
+
+
     render() {
         let titleStr = "Title";
         let title = this.props.Document.GetT<TextField>(KeyStore.Title, TextField);
@@ -124,11 +128,10 @@ export class PresentationView extends React.Component<PresViewProps>  {
         }
         //TODO: programmatically change width
         let width = this.props.Document.GetNumber(KeyStore.Width, 0);
-        console.log(width);
-        console.log("width above!");
         return (
             <div className="presentationView-cont" style={{ width: width }}>
-                <div className="presentationView-title"><h2>{titleStr}</h2></div>
+                <div className="presentationView-title"><h2>{titleStr}</h2>
+                    <p className='icon' onClick={this.closePresentation}>X</p></div>
                 <ul>
                     <PresentationViewItem
                         Document={this.props.Document}
