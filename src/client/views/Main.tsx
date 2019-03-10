@@ -50,7 +50,7 @@ Documents.initProtos(mainDocId, (res?: Document) => {
         }, 0);
     }
 
-    let imgurl = "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg";
+    let imgurl = "http://localhost:1050/images/upload_9a3bfff22137b88012650570fb1fe344.png";
     let weburl = "https://cs.brown.edu/courses/cs166/";
     let clearDatabase = action(() => Utils.Emit(Server.Socket, MessageStore.DeleteAll, {}))
     let addTextNode = action(() => Documents.TextDocument({ width: 200, height: 200, title: "a text note" }))

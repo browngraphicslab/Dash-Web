@@ -76,19 +76,25 @@ app.get("/login", getLogin);
 app.post("/login", postLogin);
 
 // IMAGE UPLOADING HANDLER
-
 app.post("/upload", (req, res, err) => {
-    new formidable.IncomingForm().parse(req, (err, fields, files) => {
+    let form = new formidable.IncomingForm()
+    form.uploadDir = __dirname + "/public/files/"
+    form.keepExtensions = true
+    // let path = req.body.path;
+    console.log("upload")
+    form.parse(req, (err, fields, files) => {
+        console.log("parsing")
+        let names: any[] = [];
         for (const name in files) {
             let file = files[name];
-            file.path = __dirname + "/files/" + file.name;
-            console.log(file.path);
+            names.push(`/files/` + path.basename(file.path));
         }
+        res.send(names);
     });
-    //request.get(url).pipe(fs.createWriteStream(__dirname + "/public/images"));
 })
 
 app.use(express.static(__dirname + '/public'));
+app.use('/images', express.static(__dirname + '/public'))
 
 let FieldStore: ObservableMap<FieldId, Field> = new ObservableMap();
 
