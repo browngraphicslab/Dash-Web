@@ -11,5 +11,13 @@
       "dom",
       "es2015"
     ]
-  }
+  },
+  // "exclude": [
+  //   "node_modules",
+  //   "static"
+  // ],
+  "typeRoots": [
+    "./node_modules/@types",
+    "./src/typings"
+  ]
 }

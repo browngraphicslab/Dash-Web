@@ -1,15 +1,15 @@
 
+import { action, observable } from 'mobx';
+import { observer } from "mobx-react";
 import Lightbox from 'react-image-lightbox';
 import 'react-image-lightbox/style.css'; // This only needs to be imported once in your app
+import { FieldWaiting } from '../../../fields/Field';
+import { ImageField } from '../../../fields/ImageField';
+import { KeyStore } from '../../../fields/KeyStore';
+import { ContextMenu } from "../../views/ContextMenu";
+import { FieldView, FieldViewProps } from './FieldView';
 import "./ImageBox.scss";
 import React = require("react")
-import { ImageField } from '../../../fields/ImageField';
-import { FieldViewProps, FieldView } from './FieldView';
-import { FieldWaiting } from '../../../fields/Field';
-import { observer } from "mobx-react"
-import { ContextMenu } from "../../views/ContextMenu";
-import { observable, action } from 'mobx';
-import { KeyStore } from '../../../fields/KeyStore';
 
 @observer
 export class ImageBox extends React.Component<FieldViewProps> {
