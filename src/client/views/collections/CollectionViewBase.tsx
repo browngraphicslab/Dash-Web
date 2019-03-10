@@ -116,10 +116,7 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
                     }).then(json => {
 
                         json.map((file: any) => {
-                            console.log(file)
-                            console.log(typeof file)
                             let path = window.location.origin + file
-                            console.log(path)
                             runInAction(() => {
                                 var img = Documents.ImageDocument(path, { ...options, nativeWidth: 300, width: 300, })
                                 let docs = that.props.Document.GetT(KeyStore.Data, ListField);
@@ -132,8 +129,6 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
 
                                 }
                             })
-
-
                         })
                     })
                 // fReader.addEventListener("load", action("drop", () => {
