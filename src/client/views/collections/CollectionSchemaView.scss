@@ -1,12 +1,15 @@
+@import "../global_variables";
+
 .collectionSchemaView-container {
-  border-style: solid;
+  border: 1px solid $intermediate-color;
+  border-radius: $border-radius;
   box-sizing: border-box;
   position: absolute;
   width: 100%;
   height: 100%;
   .collectionSchemaView-previewRegion {
     position: relative;
-    background: black;
+    background: $light-color;
     float: left;
     height: 100%;
   }
@@ -17,11 +20,13 @@
     z-index: 20;
     right: 0;
     top: 0;
-    background: Black;
+    background: $main-accent;
   }
   .collectionSchemaView-dividerDragger {
     position: relative;
-    background: black;
+    box-sizing: border-box;
+    border-left: 1px solid $intermediate-color;
+    border-right: 1px solid $intermediate-color;
     float: left;
     height: 100%;
   }
@@ -37,8 +42,9 @@
     // overflow: auto;
     width: 100%;
     height: 100%;
-    background: white;
+    background: $light-color;
     box-sizing: border-box;
+    border: none !important;
     .rt-table {
       overflow-y: auto;
       overflow-x: auto;
@@ -58,8 +64,8 @@
       max-height: 44px;
     }
     .rt-td {
-      border-width: 1;
-      border-right-color: #aaa;
+      border-width: 1px;
+      border-right-color: $intermediate-color;
       .imageBox-cont {
         position: relative;
         max-height: 100%;
@@ -70,26 +76,30 @@
         height: 100%;
       }
     }
-    .rt-tr-group {
-      border-width: 1;
-      border-bottom-color: #aaa;
-    }
   }
   .ReactTable .rt-thead.-header {
-    background: grey;
+    background: $intermediate-color;
+    color: $light-color;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-size: 12px;
+    height: 30px;
+    padding-top: 4px;
   }
   .ReactTable .rt-th,
   .ReactTable .rt-td {
     max-height: 44;
     padding: 3px 7px;
+    font-size: 13px;
+    text-align: center;
   }
   .ReactTable .rt-tbody .rt-tr-group:last-child {
-    border-bottom: grey;
+    border-bottom: $intermediate-color;
     border-bottom-style: solid;
     border-bottom-width: 1;
   }
   .documentView-node:first-child {
-    background: grey;
+    background: $light-color;
     .imageBox-cont img {
       object-fit: contain;
     }
@@ -203,4 +213,12 @@
   -webkit-flex: 1;
   -ms-flex: 1;
   flex: 1;
+}
+
+.-even {
+  background: $light-color !important;
+}
+
+.-odd {
+  background: $light-color-secondary !important;
 }

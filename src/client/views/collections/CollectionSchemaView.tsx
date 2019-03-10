@@ -24,7 +24,7 @@ import { setupDrag } from "../../util/DragManager";
 @observer
 export class CollectionSchemaView extends CollectionViewBase {
     private _mainCont = React.createRef<HTMLDivElement>();
-    private DIVIDER_WIDTH = 5;
+    private DIVIDER_WIDTH = 4;
 
     @observable _contentScaling = 1; // used to transfer the dimensions of the content pane in the DOM to the ContentScaling prop of the DocumentView
     @observable _dividerX = 0;
