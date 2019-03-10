@@ -31,7 +31,7 @@ export class CollectionSchemaView extends CollectionViewBase {
     @observable _panelWidth = 0;
     @observable _panelHeight = 0;
     @observable _selectedIndex = 0;
-    @observable _splitPercentage: number = 50;
+    @observable _splitPercentage: number = 100;
 
     renderCell = (rowProps: CellInfo) => {
         let props: FieldViewProps = {

@@ -76,12 +76,12 @@ Documents.initProtos(mainDocId, (res?: Document) => {
     let pdfurl = "http://www.adobe.com/support/products/enterprise/knowledgecenter/media/c4611_sample_explain.pdf"
     let weburl = "https://cs.brown.edu/courses/cs166/";
     let clearDatabase = action(() => Utils.Emit(Server.Socket, MessageStore.DeleteAll, {}))
-    let addTextNode = action(() => Documents.TextDocument({ width: 200, height: 200, title: "a text note" }))
-    let addColNode = action(() => Documents.FreeformDocument([], { width: 200, height: 200, title: "a freeform collection" }));
-    let addSchemaNode = action(() => Documents.SchemaDocument([Documents.TextDocument()], { width: 200, height: 200, title: "a schema collection" }));
-    let addPDFNode = action(() => Documents.PdfDocument(pdfurl, { width: 200, height: 200, title: "a schema collection" }));
+    let addTextNode = action(() => Documents.TextDocument({ width: 230, height: 130, title: "a text note" }))
+    let addColNode = action(() => Documents.FreeformDocument([], { width: 300, height: 300, title: "a freeform collection" }));
+    let addSchemaNode = action(() => Documents.SchemaDocument([Documents.TextDocument()], { width: 450, height: 200, title: "a schema collection" }));
+    let addPDFNode = action(() => Documents.PdfDocument(pdfurl, { width: 300, height: 400, title: "a pdf" }));
     let addImageNode = action(() => Documents.ImageDocument(imgurl, { width: 200, height: 200, title: "an image of a cat" }));
-    let addWebNode = action(() => Documents.WebDocument(weburl, { width: 200, height: 200, title: "a sample web page" }));
+    let addWebNode = action(() => Documents.WebDocument(weburl, { width: 300, height: 400, title: "a sample web page" }));
 
 
     let addClick = (creator: () => Document) => action(() =>
@@ -100,7 +100,7 @@ Documents.initProtos(mainDocId, (res?: Document) => {
 
     ReactDOM.render((
         <div style={{ position: "absolute", width: "100%", height: "100%" }}>
-            <div id="dash-title">— DASH —</div>
+            {/* <div id="dash-title">— DASH —</div> */}
 
             <DocumentView Document={mainContainer}
                 AddDocument={undefined} RemoveDocument={undefined} ScreenToLocalTransform={() => Transform.Identity}
@@ -153,7 +153,7 @@ Documents.initProtos(mainDocId, (res?: Document) => {
 
             </div>
 
-            <InkingControl />
+            {/* <InkingControl /> */}
         </div >),
         document.getElementById('root'));
 })

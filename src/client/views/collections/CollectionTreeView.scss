@@ -1,37 +1,40 @@
+@import "../global_variables";
+
 #body {
-    padding: 20px;
-    background: #bbbbbb;
+  padding: 20px;
+  background: $light-color-secondary;
 }
 
 ul {
-    list-style: none;
+  list-style: none;
 }
 
 li {
-    margin: 5px 0;
+  margin: 5px 0;
 }
 
 .no-indent {
-    padding-left: 0;
+  padding-left: 0;
 }
 
 .bullet {
-    width: 1.5em;
-    display: inline-block;
+  width: 1.5em;
+  display: inline-block;
 }
 
 .collectionTreeView-dropTarget {
-    border-style: solid;
-    box-sizing: border-box;
-    height: 100%;
+  border: 0px solid $intermediate-color;
+  border-radius: $border-radius;
+  box-sizing: border-box;
+  height: 100%;
 }
 
 .docContainer {
-    display: inline-table;
+  display: inline-table;
 }
 
 .delete-button {
-    color: #999999;
-    float: right;
-    margin-left: 1em;
+  color: $intermediate-color;
+  float: right;
+  margin-left: 1em;
 }

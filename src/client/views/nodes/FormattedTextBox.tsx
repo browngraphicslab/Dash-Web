@@ -31,7 +31,7 @@ import { ContextMenu } from "../../views/ContextMenu";
 //    and 'doc' property to the document that is being rendered
 //
 //  When rendered() by React, this extracts the TextController from the Document stored at the 
-//  specified Key and assigns it to an HTML input node.  When changes are made tot his node, 
+//  specified Key and assigns it to an HTML input node.  When changes are made to this node, 
 //  this will edit the document and assign the new value to that field.
 //]
 export class FormattedTextBox extends React.Component<FieldViewProps> {

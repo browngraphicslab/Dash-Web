@@ -113,7 +113,7 @@ export namespace Documents {
     function GetCollectionPrototype(): Document {
         return collProto ? collProto :
             collProto = setupPrototypeOptions(collProtoId, "COLLECTION_PROTO", CollectionView.LayoutString("DataKey"),
-                { panx: 0, pany: 0, scale: 1, layoutKeys: [KeyStore.Data] });
+                { panx: 0, pany: 0, scale: 1, width: 500, height: 500, layoutKeys: [KeyStore.Data] });
     }
 
     function GetKVPPrototype(): Document {
@@ -125,9 +125,9 @@ export namespace Documents {
     export function ImageDocument(url: string, options: DocumentOptions = {}) {
         let doc = SetInstanceOptions(GetImagePrototype(), { ...options, layoutKeys: [KeyStore.Data, KeyStore.Annotations, KeyStore.Caption] },
             new URL(url), ImageField);
-        doc.SetText(KeyStore.Caption, "my caption...");
-        doc.SetText(KeyStore.BackgroundLayout, EmbeddedCaption());
-        doc.SetText(KeyStore.OverlayLayout, FixedCaption());
+        // doc.SetText(KeyStore.Caption, "my caption...");
+        // doc.SetText(KeyStore.BackgroundLayout, EmbeddedCaption());
+        // doc.SetText(KeyStore.OverlayLayout, FixedCaption());
         return doc;
     }
     export function TextDocument(options: DocumentOptions = {}) {
