@@ -28,6 +28,10 @@ export namespace KeyStore {
     export const ActiveFrame = new Key("ActiveFrame");
     export const DocumentText = new Key("DocumentText");
     export const PresentationView = new Key("PresentationView");
+    export const LinkedToDocs = new Key("LinkedToDocs");
+    export const LinkedFromDocs = new Key("LinkedFromDocs");
+    export const LinkDescription = new Key("LinkDescription");
+    export const LinkTags = new Key("LinkTag");
     export const Thumbnail = new Key("Thumbnail");
     export const CurPage = new Key("CurPage");
     export const NumPages = new Key("NumPages");

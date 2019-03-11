@@ -1,6 +1,6 @@
 import { Key } from "./Key"
 import { KeyStore } from "./KeyStore";
-import { Field, Cast, FieldWaiting, FieldValue, FieldId } from "./Field"
+import { Field, Cast, FieldWaiting, FieldValue, FieldId, Opt } from "./Field"
 import { NumberField } from "./NumberField";
 import { ObservableMap, computed, action } from "mobx";
 import { TextField } from "./TextField";
@@ -126,6 +126,12 @@ export class Document extends Field {
             return true;
         }
         return false;
+    }
+
+    GetTAsync<T extends Field>(key: Key, ctor: { new(): T }, callback: (field: Opt<T>) => void): boolean {
+        return this.GetAsync(key, (field) => {
+            callback(Cast(field, ctor));
+        })
     }
 
     /**

@@ -2,7 +2,7 @@
     position: absolute;
     display: grid;
     z-index: 1000;
-    grid-template-rows: 20px 1fr 20px;
+    grid-template-rows: 20px 1fr 20px 0px;
     grid-template-columns: 20px 1fr 20px;
     pointer-events: none;
     #documentDecorations-centerCont {
@@ -29,4 +29,23 @@
     #documentDecorations-rightResizer {
         cursor: ew-resize;
     }
+    
+}
+.linkButton-empty {
+    height: 20px;
+    width: 20px;
+    margin-top: 10px;
+    border-radius: 50%;
+    opacity: 0.6;
+    pointer-events: auto;
+    background-color: #2B6091;
+}
+.linkButton-nonempty {
+    height: 20px;
+    width: 20px;
+    margin-top: 10px;
+    border-radius: 50%;
+    opacity: 0.6;
+    pointer-events: auto;
+    background-color: rgb(35, 165, 42);
 }

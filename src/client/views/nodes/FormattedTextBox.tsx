@@ -69,7 +69,7 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
         };
 
         let field = this.props.doc.GetT(this.props.fieldKey, RichTextField);
-        if (field && field != FieldWaiting) {
+        if (field && field != FieldWaiting && field.Data) {
             state = EditorState.fromJSON(config, JSON.parse(field.Data));
         } else {
             state = EditorState.create(config);
@@ -151,8 +151,12 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
         })
     }
 
+    onKeyPress(e: React.KeyboardEvent) {
+        e.stopPropagation();
+    }
     render() {
         return (<div className="formattedTextBox-cont"
+            onKeyPress={this.onKeyPress}
             onPointerDown={this.onPointerDown}
             onContextMenu={this.specificContextMenu}
             onWheel={this.onPointerWheel}
