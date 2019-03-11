@@ -3,6 +3,8 @@ import { CollectionDockingView } from "../views/collections/CollectionDockingVie
 import { Document } from "../../fields/Document"
 import { action } from "mobx";
 import { DocumentView } from "../views/nodes/DocumentView";
+import { ImageField } from "../../fields/ImageField";
+import { KeyStore } from "../../fields/KeyStore";
 
 export function setupDrag(_reference: React.RefObject<HTMLDivElement>, docFunc: () => Document) {
     let onRowMove = action((e: PointerEvent): void => {
@@ -104,6 +106,7 @@ export namespace DragManager {
         const scaleX = rect.width / w, scaleY = rect.height / h;
         let x = rect.left, y = rect.top;
         // const offsetX = e.x - rect.left, offsetY = e.y - rect.top;
+
         let dragElement = ele.cloneNode(true) as HTMLElement;
         dragElement.style.opacity = "0.7";
         dragElement.style.position = "absolute";
@@ -114,10 +117,23 @@ export namespace DragManager {
         dragElement.style.transform = `translate(${x}px, ${y}px) scale(${scaleX}, ${scaleY})`;
         dragElement.style.width = `${rect.width / scaleX}px`;
         dragElement.style.height = `${rect.height / scaleY}px`;
-        // It seems like the above code should be able to just be this:
-        // dragElement.style.transform = `translate(${x}px, ${y}px)`;
-        // dragElement.style.width = `${rect.width}px`;
-        // dragElement.style.height = `${rect.height}px`;
+
+        // bcz: PDFs don't show up if you clone them because they contain a canvas.
+        //      however, PDF's have a thumbnail field that contains an image of their canvas.
+        //      So we replace the pdf's canvas with the image thumbnail
+        const docView: DocumentView = dragData["documentView"];
+        const doc: Document = docView ? docView.props.Document : dragData["document"];
+        var pdfBox = dragElement.getElementsByClassName("pdfBox-cont")[0] as HTMLElement;
+        let thumbnail = doc.GetT(KeyStore.Thumbnail, ImageField);
+        if (pdfBox && pdfBox.childElementCount && thumbnail) {
+            let img = new Image();
+            img!.src = thumbnail.toString();
+            img!.style.position = "absolute";
+            img!.style.width = `${rect.width / scaleX}px`;
+            img!.style.height = `${rect.height / scaleY}px`;
+            pdfBox.replaceChild(img!, pdfBox.children[0])
+        }
+
         dragDiv.appendChild(dragElement);
 
         let hideSource = false;
@@ -139,8 +155,6 @@ export namespace DragManager {
             y += e.movementY;
             if (e.shiftKey) {
                 abortDrag();
-                const docView: DocumentView = dragData["documentView"];
-                const doc: Document = docView ? docView.props.Document : dragData["document"];
                 CollectionDockingView.Instance.StartOtherDrag(doc, { pageX: e.pageX, pageY: e.pageY, preventDefault: () => { }, button: 0 });
             }
             dragElement.style.transform = `translate(${x}px, ${y}px) scale(${scaleX}, ${scaleY})`;

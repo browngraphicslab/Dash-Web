@@ -35,6 +35,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     private _goldenLayout: any = null;
     private _containerRef = React.createRef<HTMLDivElement>();
     private _fullScreen: any = null;
+    private _flush: boolean = false;
 
     constructor(props: SubCollectionViewProps) {
         super(props);
@@ -164,7 +165,6 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         this._goldenLayout.updateSize(cur!.getBoundingClientRect().width, cur!.getBoundingClientRect().height);
     }
 
-    _flush: boolean = false;
     @action
     onPointerUp = (e: React.PointerEvent): void => {
         if (this._flush) {
