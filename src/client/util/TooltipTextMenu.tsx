@@ -117,7 +117,7 @@ export class TooltipTextMenu {
     let width = Math.abs(start.left - end.left) / 2;
     let mid = Math.min(start.left, end.left) + width;
     //THIS WIDTH IS 15 * NUMBER OF ICONS + 15
-    this.tooltip.style.width = 120 + "px";
+    this.tooltip.style.width = 122 + "px";
     this.tooltip.style.bottom = (box.bottom - start.top) + "px";
   }
 

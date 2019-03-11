@@ -124,8 +124,7 @@ Documents.initProtos(mainDocId, (res?: Document) => {
             < div id="toolbar" >
                 <button className="toolbar-button round-button" title="Undo" onClick={() => UndoManager.Undo()}><FontAwesomeIcon icon="undo-alt" size="sm" /></button>
                 <button className="toolbar-button round-button" title="Redo" onClick={() => UndoManager.Redo()}><FontAwesomeIcon icon="redo-alt" size="sm" /></button>
-                {/* @TODO do the ink thing */}
-                < button className="toolbar-button round-button" title="Ink" > <FontAwesomeIcon icon="pen-nib" size="sm" /></button >
+                <button className="toolbar-button round-button" title="Ink" onClick={() => InkingControl.Instance.toggleDisplay()}><FontAwesomeIcon icon="pen-nib" size="sm" /></button>
             </div >
 
             {/* for the expandable add nodes menu. Not included with the above because once it expands it expands the whole div with it, making canvas interactions limited. */}
@@ -164,7 +163,7 @@ Documents.initProtos(mainDocId, (res?: Document) => {
 
             </div >
 
-            {/* <InkingControl /> */}
+            <InkingControl />
         </div >),
         document.getElementById('root'));
 })
