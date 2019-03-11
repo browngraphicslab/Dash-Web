@@ -106,9 +106,6 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         } else {
             if (this.active && !e.isDefaultPrevented()) {
                 e.stopPropagation();
-                if (e.buttons === 2) {
-                    e.preventDefault();
-                }
                 document.removeEventListener("pointermove", this.onPointerMove)
                 document.addEventListener("pointermove", this.onPointerMove);
                 document.removeEventListener("pointerup", this.onPointerUp)

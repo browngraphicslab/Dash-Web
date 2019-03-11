@@ -61,14 +61,12 @@ export class CollectionFreeFormView extends CollectionViewBase {
         super.drop(e, de);
         const docView: DocumentView = de.data["documentView"];
         let doc: Document = docView ? docView.props.Document : de.data["document"];
-        if (doc) {
-            let screenX = de.x - (de.data["xOffset"] as number || 0);
-            let screenY = de.y - (de.data["yOffset"] as number || 0);
-            const [x, y] = this.getTransform().transformPoint(screenX, screenY);
-            doc.SetNumber(KeyStore.X, x);
-            doc.SetNumber(KeyStore.Y, y);
-            this.bringToFront(doc);
-        }
+        let screenX = de.x - (de.data["xOffset"] as number || 0);
+        let screenY = de.y - (de.data["yOffset"] as number || 0);
+        const [x, y] = this.getTransform().transformPoint(screenX, screenY);
+        doc.SetNumber(KeyStore.X, x);
+        doc.SetNumber(KeyStore.Y, y);
+        this.bringToFront(doc);
     }
 
     @observable
@@ -86,7 +84,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
             this._lastY = e.pageY;
             this._downX = e.pageX;
             this._downY = e.pageY;
-            this._marquee = e.shiftKey;
+            this._marquee = e.button != 2 && e.shiftKey;
             if (this._marquee) {
                 e.stopPropagation();
                 e.preventDefault();
