@@ -13,6 +13,7 @@ import { LinkBox } from "./LinkBox";
 
 interface Props {
     linkBox: LinkBox;
+    linkDoc: Document;
 }
 
 @observer
@@ -30,6 +31,7 @@ export class LinkEditor extends React.Component<Props> {
             <div className="edit-container">
                 <input className="name-input" type="text" placeholder="Name..."></input>
                 <input className="description-input" type="text" placeholder="Description"></input>
+                <div className="save-button"></div>
             </div>
 
         )

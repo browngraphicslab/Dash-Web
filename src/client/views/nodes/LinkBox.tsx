@@ -61,7 +61,7 @@ export class LinkBox extends React.Component<Props> {
     render() {
 
         return (
-            <LinkEditor linkBox={this} />
+            <LinkEditor linkBox={this} linkDoc={this.props.linkDoc} />
             // <div className="link-container">
             //     <div className="info-container">
             //         <div className="link-name">
