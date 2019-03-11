@@ -100,17 +100,11 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     onPointerDown = (e: React.PointerEvent): void => {
         this._downX = e.clientX;
         this._downY = e.clientY;
-<<<<<<< HEAD
-
-        if (e.shiftKey && e.buttons === 1) {
-            CollectionDockingView.Instance.StartOtherDrag(this.props.Document, e);
-=======
         if (e.shiftKey && e.buttons === 2) {
             if (this.props.isTopMost) {
                 this.startDragging(e.pageX, e.pageY);
             }
             else CollectionDockingView.Instance.StartOtherDrag(this.props.Document, e);
->>>>>>> 618e66a5a070f1aac9224bd3f44b76a5ac314bfa
             e.stopPropagation();
         } else {
             if (this.active && !e.isDefaultPrevented()) {

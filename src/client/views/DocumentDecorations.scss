@@ -1,51 +1,18 @@
 @import "global_variables";
 #documentDecorations-container {
-<<<<<<< HEAD
-  position: absolute;
-  display: grid;
-  z-index: 1000;
-  grid-template-rows: 8px 1fr 8px;
-  grid-template-columns: 8px 1fr 8px;
-  pointer-events: none;
-  #documentDecorations-centerCont {
-    background: none;
-  }
-  .documentDecorations-resizer {
-    pointer-events: auto;
-    background: $alt-accent;
-    opacity: 0.8;
-  }
-  #documentDecorations-topLeftResizer,
-  #documentDecorations-bottomRightResizer {
-    cursor: nwse-resize;
-  }
-  #documentDecorations-topRightResizer,
-  #documentDecorations-bottomLeftResizer {
-    cursor: nesw-resize;
-  }
-  #documentDecorations-topResizer,
-  #documentDecorations-bottomResizer {
-    cursor: ns-resize;
-  }
-  #documentDecorations-leftResizer,
-  #documentDecorations-rightResizer {
-    cursor: ew-resize;
-  }
-}
-=======
     position: absolute;
     display: grid;
     z-index: 1000;
-    grid-template-rows: 20px 1fr 20px 0px;
-    grid-template-columns: 20px 1fr 20px;
+    grid-template-rows: 8px 1fr 8px 30px;
+    grid-template-columns: 8px 1fr 8px;
     pointer-events: none;
     #documentDecorations-centerCont {
         background: none;
     }
     .documentDecorations-resizer {
         pointer-events: auto;
-        background: lightblue;
-        opacity: 0.4;
+        background: $alt-accent;
+        opacity: 0.8;
     }
     #documentDecorations-topLeftResizer,
     #documentDecorations-bottomRightResizer {
@@ -63,8 +30,43 @@
     #documentDecorations-rightResizer {
         cursor: ew-resize;
     }
-    
 }
+
+//     position: absolute;
+//     display: grid;
+//     z-index: 1000;
+//     grid-template-rows: 20px 1fr 20px 0px;
+//     grid-template-columns: 20px 1fr 20px;
+//     pointer-events: none;
+//     #documentDecorations-centerCont {
+//         background: none;
+//     }
+//     .documentDecorations-resizer {
+//         pointer-events: auto;
+//         background: lightblue;
+//         opacity: 0.4;
+//     }
+//     #documentDecorations-topLeftResizer,
+//     #documentDecorations-bottomRightResizer {
+//         cursor: nwse-resize;
+//     }
+//     #documentDecorations-topRightResizer,
+//     #documentDecorations-bottomLeftResizer {
+//         cursor: nesw-resize;
+//     }
+//     #documentDecorations-topResizer,
+//     #documentDecorations-bottomResizer {
+//         cursor: ns-resize;
+//     }
+//     #documentDecorations-leftResizer,
+//     #documentDecorations-rightResizer {
+//         cursor: ew-resize;
+//     }
+// }
+.linkFlyout {
+    grid-column: 1/4
+}
+
 .linkButton-empty {
     height: 20px;
     width: 20px;
@@ -74,6 +76,7 @@
     pointer-events: auto;
     background-color: #2B6091;
 }
+
 .linkButton-nonempty {
     height: 20px;
     width: 20px;
@@ -83,4 +86,3 @@
     pointer-events: auto;
     background-color: rgb(35, 165, 42);
 }
->>>>>>> 618e66a5a070f1aac9224bd3f44b76a5ac314bfa

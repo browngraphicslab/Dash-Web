@@ -1,14 +1,10 @@
 import { observable, action, computed } from "mobx";
-<<<<<<< HEAD
+
 import { CirclePicker, ColorResult } from 'react-color'
-=======
-import { CirclePicker, ColorResult } from 'react-color';
 import React = require("react");
 import "./InkingCanvas.scss"
->>>>>>> 618e66a5a070f1aac9224bd3f44b76a5ac314bfa
 import { InkTool } from "../../fields/InkField";
 import { observer } from "mobx-react";
-import React = require("react");
 import "./InkingCanvas.scss"
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';

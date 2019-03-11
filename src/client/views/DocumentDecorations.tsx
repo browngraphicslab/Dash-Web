@@ -220,7 +220,7 @@ export class DocumentDecorations extends React.Component {
         return (
             <div id="documentDecorations-container" style={{
                 width: (bounds.r - bounds.x + this._resizeBorderWidth) + "px",
-                height: (bounds.b - bounds.y + this._resizeBorderWidth) + "px",
+                height: (bounds.b - bounds.y + this._resizeBorderWidth + 30) + "px",
                 left: bounds.x - this._resizeBorderWidth / 2,
                 top: bounds.y - this._resizeBorderWidth / 2,
             }}>
@@ -234,7 +234,7 @@ export class DocumentDecorations extends React.Component {
                 <div id="documentDecorations-bottomResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-bottomRightResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
 
-                {linkButton}
+                <div className="linkFlyout">{linkButton}</div>
 
             </div >
         )
