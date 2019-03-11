@@ -14,6 +14,8 @@ import { Plugin } from 'prosemirror-state'
 import { Decoration, DecorationSet } from 'prosemirror-view'
 import { TooltipTextMenu } from "../../util/TooltipTextMenu"
 import { ContextMenu } from "../../views/ContextMenu";
+const { buildMenuItems } = require("prosemirror-example-setup");
+const { menuBar } = require("prosemirror-menu");
 
 
 

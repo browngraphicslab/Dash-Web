@@ -2,7 +2,6 @@ import { action, IReactionDisposer, reaction } from "mobx";
 import { baseKeymap } from "prosemirror-commands";
 import { history, redo, undo } from "prosemirror-history";
 import { keymap } from "prosemirror-keymap";
-const { exampleSetup } = require("prosemirror-example-setup")
 import { EditorState, Transaction, } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { schema } from "./RichTextSchema";
@@ -39,7 +38,7 @@ export class TooltipTextMenu {
       { command: toggleMark(schema.marks.strikethrough), dom: this.icon("S", "strikethrough") },
       { command: toggleMark(schema.marks.superscript), dom: this.icon("s", "superscript") },
       { command: toggleMark(schema.marks.subscript), dom: this.icon("s", "subscript") },
-      { command: wrapInList(schema.nodes.bullet_list), dom: this.icon(":", "bullets") }
+      { command: wrapInList(schema.nodes.bullet_list), dom: this.icon(":", "bullets") },
     ]
     items.forEach(({ dom }) => this.tooltip.appendChild(dom));
 

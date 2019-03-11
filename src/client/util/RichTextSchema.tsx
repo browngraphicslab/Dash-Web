@@ -1,11 +1,30 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { Schema, NodeSpec, MarkSpec, DOMOutputSpecArray } from "prosemirror-model"
+import { Schema, NodeSpec, MarkSpec, DOMOutputSpecArray, NodeType } from "prosemirror-model"
 import { joinUp, lift, setBlockType, toggleMark, wrapIn } from 'prosemirror-commands'
 import { redo, undo } from 'prosemirror-history'
-import { orderedList, bulletList, listItem } from 'prosemirror-schema-list'
+import { orderedList, bulletList, listItem, } from 'prosemirror-schema-list'
+import { EditorState, Transaction, NodeSelection, } from "prosemirror-state";
+import { EditorView, } from "prosemirror-view";
 
 const pDOM: DOMOutputSpecArray = ["p", 0], blockquoteDOM: DOMOutputSpecArray = ["blockquote", 0], hrDOM: DOMOutputSpecArray = ["hr"],
   preDOM: DOMOutputSpecArray = ["pre", ["code", 0]], brDOM: DOMOutputSpecArray = ["br"], ulDOM: DOMOutputSpecArray = ["ul", 0]
+
+//adapted this method - use it to check if block has a tag (ie bulleting)
+const blockActive = (type: NodeType<Schema<string, string>>, attrs = {}) => (state: EditorState) => {
+
+  if (state.selection instanceof NodeSelection) {
+    const sel: NodeSelection = state.selection;
+    let $from = sel.$from;
+    let to = sel.to;
+    let node = sel.node;
+
+    if (node) {
+      return node.hasMarkup(type, attrs);
+    }
+
+    return to <= $from.end() && $from.parent.hasMarkup(type, attrs);
+  }
+};
 
 // :: Object
 // [Specs](#model.NodeSpec) for the nodes defined in this schema.
@@ -113,11 +132,24 @@ export const nodes: { [index: string]: NodeSpec } = {
     content: 'list_item+',
     group: 'block'
   },
+  //bullet_list: {
+  //  ...bulletList,
+  //  content: 'list_item+',
+  //  group: 'block',
+  //parseDOM: [{ tag: "ul" }, { style: 'list-style-type=disc' }],
+  //toDOM() { return ulDOM }
+  //},
   bullet_list: {
-    content: 'list_item+',
-    group: 'block',
-    parseDOM: [{ tag: "ul" }, { style: "list-style-type=disc;" }],
-    toDOM() { return ulDOM }
+    title: "Wrap in bullet list",
+    content: icons.bullet_list,
+    active: blockActive(state.config.schema.nodes.bullet_list),
+    enable: state => wrapInList(state.config.schema.nodes.bullet_list),
+    run: state => wrapInList(state.config.schema.nodes.bullet_list),
+    active: blockActive(schema.nodes.bullet_list),
+    enable: wrapInList(schema.nodes.bullet_list),
+    run: wrapInList(schema.nodes.bullet_list),
+    select: state => true,
+    menu: props => <Button key={uuid()} {...props} />
   },
   list_item: {
     ...listItem,
