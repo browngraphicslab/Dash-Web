@@ -9,6 +9,7 @@ export class ContextMenu extends React.Component {
     static Instance: ContextMenu
 
     @observable private _items: Array<ContextMenuProps> = [{ description: "test", event: (e: React.MouseEvent) => e.preventDefault() }];
+    //need to add a subitems component?
     @observable private _pageX: number = 0;
     @observable private _pageY: number = 0;
     @observable private _display: string = "none";
@@ -81,3 +82,5 @@ export class ContextMenu extends React.Component {
         this._searchString = e.target.value;
     }
 }
+
+//<input className="contextMenu-item" type="text" placeholder="Search . . ." value={this._searchString} onChange={this.onChange}></input>

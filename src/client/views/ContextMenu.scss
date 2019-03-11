@@ -6,9 +6,18 @@
     flex-direction: column;
 }
 
+.subMenu-cont {
+    position: relative;
+    display: flex;
+    z-index: 1000;
+    box-shadow: #AAAAAA .2vw .2vw .4vw;
+    flex-direction: column;
+    left: 100%; //should make this appear 100% to the right of the parent element (the original context menu)
+}
+
 .contextMenu-item {
-    width: auto;
-    height: auto;
+    width: 10vw; //auto
+    height: 2vh; //auto
     background: #F0F8FF;
     display: flex;
     justify-content: left;

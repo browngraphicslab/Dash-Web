@@ -119,17 +119,18 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
 
     specificContextMenu = (e: React.MouseEvent): void => {
         ContextMenu.Instance.addItem({ description: "Text Capability", event: this.textCapability });
-        // ContextMenu.Instance.addItem({
-        //     description: "Submenu",
-        //     items: [
-        //         {
-        //             description: "item 1", event:
-        //     },
-        //         {
-        //             description: "item 2", event:
-        //     }
-        //     ]
-        // })
+        ContextMenu.Instance.addItem({
+            description: "Submenu", subitems:
+                [{ description: "Sub 1", event: this.textCapability }]
+            // [{ description: "Sub 2", event: this.textCapability }]
+            //         {
+            //             description: "item 1", event:
+            //     },
+            //         {
+            //             description: "item 2", event:
+            //     }
+            //     ]
+        })
         // e.stopPropagation()
 
     }
