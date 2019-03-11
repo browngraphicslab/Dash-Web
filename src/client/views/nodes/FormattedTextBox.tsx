@@ -151,8 +151,12 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
         })
     }
 
+    onKeyPress(e: React.KeyboardEvent) {
+        e.stopPropagation();
+    }
     render() {
         return (<div className="formattedTextBox-cont"
+            onKeyPress={this.onKeyPress}
             onPointerDown={this.onPointerDown}
             onContextMenu={this.specificContextMenu}
             onWheel={this.onPointerWheel}
