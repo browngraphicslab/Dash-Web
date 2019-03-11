@@ -22,6 +22,7 @@ import { AudioBox } from "../views/nodes/AudioBox";
 import { PDFField } from "../../fields/PDFField";
 import { PDFBox } from "../views/nodes/PDFBox";
 import { CollectionPDFView } from "../views/collections/CollectionPDFView";
+import { RichTextField } from "../../fields/RichTextField";
 
 export interface DocumentOptions {
     x?: number;
@@ -45,8 +46,8 @@ export namespace Documents {
     let webProto: Document;
     let collProto: Document;
     let kvpProto: Document;
-    let videoProto: Document; 
-    let audioProto: Document; 
+    let videoProto: Document;
+    let audioProto: Document;
     let pdfProto: Document;
     const textProtoId = "textProto";
     const pdfProtoId = "pdfProto";
@@ -150,7 +151,7 @@ export namespace Documents {
         doc.SetText(KeyStore.OverlayLayout, FixedCaption());
         return doc;
     }
-    export function VideoDocument(url: string, options: DocumentOptions = {}){
+    export function VideoDocument(url: string, options: DocumentOptions = {}) {
         let doc = SetInstanceOptions(GetVideoPrototype(), { ...options, layoutKeys: [KeyStore.Data, KeyStore.Annotations, KeyStore.Caption] },
             new URL(url), VideoField);
         doc.SetText(KeyStore.Caption, "my caption...");
@@ -158,7 +159,7 @@ export namespace Documents {
         doc.SetText(KeyStore.OverlayLayout, FixedCaption());
         return doc;
     }
-    export function AudioDocument(url: string, options: DocumentOptions = {}){
+    export function AudioDocument(url: string, options: DocumentOptions = {}) {
         let doc = SetInstanceOptions(GetAudioPrototype(), { ...options, layoutKeys: [KeyStore.Data, KeyStore.Annotations, KeyStore.Caption] },
             new URL(url), AudioField);
         doc.SetText(KeyStore.Caption, "my caption...");
@@ -167,7 +168,7 @@ export namespace Documents {
         return doc;
     }
     export function TextDocument(options: DocumentOptions = {}) {
-        return SetInstanceOptions(GetTextPrototype(), options, "", TextField);
+        return SetInstanceOptions(GetTextPrototype(), options, "", RichTextField);
     }
     export function PdfDocument(url: string, options: DocumentOptions = {}) {
         return SetInstanceOptions(GetPdfPrototype(), options, new URL(url), PDFField);
