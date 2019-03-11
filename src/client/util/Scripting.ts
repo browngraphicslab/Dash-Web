@@ -1,5 +1,5 @@
-import * as ts from "typescript"
-// let ts = (window as any).ts;
+// import * as ts from "typescript"
+let ts = (window as any).ts;
 import { Opt, Field } from "../../fields/Field";
 import { Document } from "../../fields/Document";
 import { NumberField } from "../../fields/NumberField";

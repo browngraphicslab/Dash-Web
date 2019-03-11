@@ -1,8 +1,9 @@
 .collectionfreeformview-container {
 
-    .collectionfreeformview > .jsx-parser{
+    .collectionfreeformview  > .jsx-parser{
         position:absolute;
         height: 100%;
+        width: 100%;
     }
         
     border-style: solid;
@@ -18,7 +19,40 @@
         top: 0;
         left: 0;
         width:100%;
-        height: 100%
+        height: 100%;
+    }
+}
+.collectionfreeformview-marquee{
+    border-style: dashed;
+    box-sizing: border-box;
+    position: absolute;
+    border-width: 1px;
+    border-color: black;
+}
+.collectionfreeformview-overlay {
+
+    .collectionfreeformview > .jsx-parser{
+        position:absolute;
+        height: 100%;
+    }
+    .formattedTextBox-cont {
+        background:yellow;
+    }
+        
+    border-style: solid;
+    box-sizing: border-box;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    .collectionfreeformview {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width:100%;
+        height: 100%;
     }
 }
 

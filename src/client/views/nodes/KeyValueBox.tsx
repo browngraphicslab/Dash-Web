@@ -1,14 +1,12 @@
 
-import { IReactionDisposer } from 'mobx';
 import { observer } from "mobx-react";
-import { EditorView } from 'prosemirror-view';
 import 'react-image-lightbox/style.css'; // This only needs to be imported once in your app
 import { Document } from '../../../fields/Document';
 import { Opt, FieldWaiting, Field } from '../../../fields/Field';
 import { KeyStore } from '../../../fields/KeyStore';
 import { FieldView, FieldViewProps } from './FieldView';
-import { KeyValuePair } from "./KeyValuePair";
 import "./KeyValueBox.scss";
+import { KeyValuePair } from "./KeyValuePair";
 import React = require("react")
 import { Server } from "../../Server"
 import { EditableView } from "../EditableView";
@@ -16,6 +14,8 @@ import { CompileScript, ToField } from "../../util/Scripting";
 import { useState } from 'react'
 import { Key } from '../../../fields/Key';
 import { TextField } from '../../../fields/TextField';
+import { EditorView } from "prosemirror-view";
+import { IReactionDisposer } from "mobx";
 
 @observer
 export class KeyValueBox extends React.Component<FieldViewProps> {

@@ -1,0 +1,15 @@
+.react-pdf__Page {
+    transform-origin: left top;
+    position: absolute;
+}
+.react-pdf__Document {
+    position: absolute;
+}
+.pdfBox-buttonTray {
+    position:absolute;
+    z-index: 25;
+}
+.pdfBox-contentContainer {
+    position: absolute;
+    transform-origin: "left top";
+}

@@ -35,6 +35,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     private _goldenLayout: any = null;
     private _containerRef = React.createRef<HTMLDivElement>();
     private _fullScreen: any = null;
+    private _flush: boolean = false;
 
     constructor(props: SubCollectionViewProps) {
         super(props);
@@ -43,7 +44,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         (window as any).ReactDOM = ReactDOM;
     }
     public StartOtherDrag(dragDoc: Document, e: any) {
-        this.AddRightSplit(dragDoc, true).contentItems[0].tab._dragListener.onMouseDown({ pageX: e.pageX, pageY: e.pageY, preventDefault: () => { }, button: e.button })
+        this.AddRightSplit(dragDoc, true).contentItems[0].tab._dragListener.onMouseDown({ pageX: e.pageX, pageY: e.pageY, preventDefault: () => { }, button: 0 })
     }
 
     @action
@@ -164,7 +165,6 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         this._goldenLayout.updateSize(cur!.getBoundingClientRect().width, cur!.getBoundingClientRect().height);
     }
 
-    _flush: boolean = false;
     @action
     onPointerUp = (e: React.PointerEvent): void => {
         if (this._flush) {
@@ -174,17 +174,12 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     }
     @action
     onPointerDown = (e: React.PointerEvent): void => {
-        if (e.button === 2 && this.props.active()) {
+        var className = (e.target as any).className;
+        if (className == "lm_drag_handle" || className == "lm_close" || className == "lm_maximise" || className == "lm_minimise" || className == "lm_close_tab") {
+            this._flush = true;
+        }
+        if (this.props.active()) {
             e.stopPropagation();
-            e.preventDefault();
-        } else {
-            var className = (e.target as any).className;
-            if (className == "lm_drag_handle" || className == "lm_close" || className == "lm_maximise" || className == "lm_minimise" || className == "lm_close_tab") {
-                this._flush = true;
-            }
-            if (e.buttons === 1 && this.props.active()) {
-                e.stopPropagation();
-            }
         }
     }
 

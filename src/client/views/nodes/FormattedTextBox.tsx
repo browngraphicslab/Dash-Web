@@ -2,7 +2,7 @@ import { action, IReactionDisposer, reaction } from "mobx";
 import { baseKeymap } from "prosemirror-commands";
 import { history, redo, undo } from "prosemirror-history";
 import { keymap } from "prosemirror-keymap";
-import { schema } from "prosemirror-schema-basic";
+import { schema } from "../../util/RichTextSchema";
 import { EditorState, Transaction, } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { Opt, FieldWaiting } from "../../../fields/Field";
@@ -10,6 +10,9 @@ import "./FormattedTextBox.scss";
 import React = require("react")
 import { RichTextField } from "../../../fields/RichTextField";
 import { FieldViewProps, FieldView } from "./FieldView";
+import { Plugin } from 'prosemirror-state'
+import { Decoration, DecorationSet } from 'prosemirror-view'
+import { TooltipTextMenu } from "../../util/TooltipTextMenu"
 import { ContextMenu } from "../../views/ContextMenu";
 
 
@@ -61,11 +64,12 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
                 history(),
                 keymap({ "Mod-z": undo, "Mod-y": redo }),
                 keymap(baseKeymap),
+                this.tooltipMenuPlugin()
             ]
         };
 
         let field = this.props.doc.GetT(this.props.fieldKey, RichTextField);
-        if (field && field != FieldWaiting) {
+        if (field && field != FieldWaiting && field.Data) {
             state = EditorState.fromJSON(config, JSON.parse(field.Data));
         } else {
             state = EditorState.create(config);
@@ -139,8 +143,20 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
         e.stopPropagation();
     }
 
+    tooltipMenuPlugin() {
+        return new Plugin({
+            view(_editorView) {
+                return new TooltipTextMenu(_editorView)
+            }
+        })
+    }
+
+    onKeyPress(e: React.KeyboardEvent) {
+        e.stopPropagation();
+    }
     render() {
         return (<div className="formattedTextBox-cont"
+            onKeyPress={this.onKeyPress}
             onPointerDown={this.onPointerDown}
             onContextMenu={this.specificContextMenu}
             onWheel={this.onPointerWheel}
