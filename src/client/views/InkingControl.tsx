@@ -4,6 +4,11 @@ import { InkTool } from "../../fields/InkField";
 import { observer } from "mobx-react";
 import React = require("react");
 import "./InkingCanvas.scss"
+import { library } from '@fortawesome/fontawesome-svg-core';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faPen, faHighlighter, faEraser, faBan } from '@fortawesome/free-solid-svg-icons';
+
+library.add(faPen, faHighlighter, faEraser, faBan);
 
 @observer
 export class InkingControl extends React.Component {
@@ -51,7 +56,7 @@ export class InkingControl extends React.Component {
 
     selected = (tool: InkTool) => {
         if (this._selectedTool === tool) {
-            return { backgroundColor: "#61aaa3", color: "white" }
+            return { color: "#61aaa3" }
         }
         return {}
     }
@@ -71,28 +76,28 @@ export class InkingControl extends React.Component {
             <ul className="inking-control" style={this._open ? { display: "flex" } : { display: "none" }}>
                 <li className="ink-tools ink-panel">
                     <div className="ink-tool-buttons">
-                        <button onClick={() => this.switchTool(InkTool.Pen)} style={this.selected(InkTool.Pen)}>Pen</button>
-                        <button onClick={() => this.switchTool(InkTool.Highlighter)} style={this.selected(InkTool.Highlighter)}>Highlighter</button>
-                        <button onClick={() => this.switchTool(InkTool.Eraser)} style={this.selected(InkTool.Eraser)}>Eraser</button>
-                        <button onClick={() => this.switchTool(InkTool.None)} style={this.selected(InkTool.None)}> None</button>
+                        <button onClick={() => this.switchTool(InkTool.Pen)} style={this.selected(InkTool.Pen)}><FontAwesomeIcon icon="pen" size="2x" /></button>
+                        <button onClick={() => this.switchTool(InkTool.Highlighter)} style={this.selected(InkTool.Highlighter)}><FontAwesomeIcon icon="highlighter" size="2x" /></button>
+                        <button onClick={() => this.switchTool(InkTool.Eraser)} style={this.selected(InkTool.Eraser)}><FontAwesomeIcon icon="eraser" size="2x" /></button>
+                        <button onClick={() => this.switchTool(InkTool.None)} style={this.selected(InkTool.None)}><FontAwesomeIcon icon="ban" size="2x" /></button>
                     </div>
-                </li>
-                <li className="ink-size ink-panel">
-                    <label htmlFor="stroke-width">Size: </label>
-                    <input type="text" min="1" max="100" value={this._selectedWidth} name="stroke-width"
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => this.switchWidth(e.target.value)} />
-                    <input type="range" min="1" max="100" value={this._selectedWidth} name="stroke-width"
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => this.switchWidth(e.target.value)} />
                 </li>
                 <li className="ink-color ink-panel">
                     <label>Color: </label>
                     <div className="ink-color-display" style={{ backgroundColor: this._selectedColor }}
                         onClick={() => this.toggleColorPicker()}>
-                        {this._colorPickerDisplay ? <span>&#9660;</span> : <span>&#9650;</span>}
+                        {/* {this._colorPickerDisplay ? <span>&#9660;</span> : <span>&#9650;</span>} */}
                     </div>
                     <div className="ink-color-picker" style={this._colorPickerDisplay ? { display: "block" } : { display: "none" }}>
-                        <CirclePicker onChange={this.switchColor} />
+                        <CirclePicker onChange={this.switchColor} circleSize={22} width={"220"} />
                     </div>
+                </li>
+                <li className="ink-size ink-panel">
+                    <label htmlFor="stroke-width">Size: </label>
+                    {/* <input type="text" min="1" max="100" value={this._selectedWidth} name="stroke-width"
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => this.switchWidth(e.target.value)} /> */}
+                    <input type="range" min="1" max="100" value={this._selectedWidth} name="stroke-width"
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => this.switchWidth(e.target.value)} />
                 </li>
             </ul >
         )
