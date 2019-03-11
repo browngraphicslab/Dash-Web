@@ -1,31 +1,48 @@
+@import "./../global_variables";
 .keyValueBox-cont {
-  overflow-y: scroll;
-  height: 100%;
-  border: black;
-  border-width: 1px;
-  border-style: solid;
-  box-sizing: border-box;
-  display: inline-block;
-  .imageBox-cont img {
-    max-height: 45px;
-    height: auto;
-  }
+    overflow-y: scroll;
+    height: 100%;
+    border: 1px solid $intermediate-color;
+    border-radius: $border-radius;
+    box-sizing: border-box;
+    display: inline-block;
+    .imageBox-cont img {
+        max-height: 45px;
+        height: auto;
+    }
+    td {
+        padding: 6px 8px;
+        border-right: 1px solid $intermediate-color;
+        border-top: 1px solid $intermediate-color;
+    }
 }
+
 .keyValueBox-table {
-  position: relative;
+    position: relative;
+    border-collapse: collapse;
 }
+
 .keyValueBox-header {
-  background: gray;
+    background: $intermediate-color;
+    color: $light-color;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-size: 12px;
+    font-weight: normal;
+    height: 30px;
+    padding-top: 4px;
 }
+
 .keyValueBox-evenRow {
-  background: white;
-  .formattedTextBox-cont {
-    background: white;
-  }
+    background: $light-color;
+    .formattedTextBox-cont {
+        background: $light-color;
+    }
 }
+
 .keyValueBox-oddRow {
-  background: lightGray;
-  .formattedTextBox-cont {
-    background: lightgray;
-  }
+    background: $light-color-secondary;
+    .formattedTextBox-cont {
+        background: $light-color-secondary;
+    }
 }
