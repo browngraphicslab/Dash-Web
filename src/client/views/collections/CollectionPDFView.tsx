@@ -6,6 +6,7 @@ import { ContextMenu } from "../ContextMenu";
 import { CollectionView, CollectionViewType } from "./CollectionView";
 import { CollectionViewProps } from "./CollectionViewBase";
 import React = require("react");
+import { FieldId } from "../../../fields/Field";
 
 
 @observer
@@ -17,6 +18,7 @@ export class CollectionPDFView extends React.Component<CollectionViewProps> {
                     isTopMost={isTopMost} SelectOnLoad={selectOnLoad} BackgroundView={BackgroundView} focus={focus}/>`;
     }
 
+    public SelectedDocs: FieldId[] = []
     @action onPageBack = () => this.curPage > 1 ? this.props.Document.SetNumber(KeyStore.CurPage, this.curPage - 1) : 0;
     @action onPageForward = () => this.curPage < this.numPages ? this.props.Document.SetNumber(KeyStore.CurPage, this.curPage + 1) : 0;
 

@@ -1,4 +1,4 @@
-import { action, computed } from "mobx";
+import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import { Document } from "../../../fields/Document";
 import { ListField } from "../../../fields/ListField";
@@ -12,7 +12,7 @@ import { CollectionDockingView } from "./CollectionDockingView";
 import { CollectionSchemaView } from "./CollectionSchemaView";
 import { CollectionViewProps } from "./CollectionViewBase";
 import { CollectionTreeView } from "./CollectionTreeView";
-import { Field } from "../../../fields/Field";
+import { Field, FieldId } from "../../../fields/Field";
 
 export enum CollectionViewType {
     Invalid,
@@ -26,6 +26,9 @@ export const COLLECTION_BORDER_WIDTH = 1;
 
 @observer
 export class CollectionView extends React.Component<CollectionViewProps> {
+
+    @observable
+    public SelectedDocs: FieldId[] = [];
 
     public static LayoutString(fieldKey: string = "DataKey") {
         return `<${CollectionView.name} Document={Document}

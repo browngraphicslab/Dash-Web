@@ -97,9 +97,9 @@ export namespace DragManager {
     }
 
     export function StartDrag(ele: HTMLElement, dragData: { [id: string]: any }, options?: DragOptions) {
-        DocumentDecorations.Instance.Hidden = true;
         if (!dragDiv) {
             dragDiv = document.createElement("div");
+            dragDiv.className = "dragManager-dragDiv"
             DragManager.Root().appendChild(dragDiv);
         }
         const w = ele.offsetWidth, h = ele.offsetHeight;
@@ -124,16 +124,20 @@ export namespace DragManager {
         //      So we replace the pdf's canvas with the image thumbnail
         const docView: DocumentView = dragData["documentView"];
         const doc: Document = docView ? docView.props.Document : dragData["document"];
-        var pdfBox = dragElement.getElementsByClassName("pdfBox-cont")[0] as HTMLElement;
-        let thumbnail = doc.GetT(KeyStore.Thumbnail, ImageField);
-        if (pdfBox && pdfBox.childElementCount && thumbnail) {
-            let img = new Image();
-            img!.src = thumbnail.toString();
-            img!.style.position = "absolute";
-            img!.style.width = `${rect.width / scaleX}px`;
-            img!.style.height = `${rect.height / scaleY}px`;
-            pdfBox.replaceChild(img!, pdfBox.children[0])
+
+        if (doc) {
+            var pdfBox = dragElement.getElementsByClassName("pdfBox-cont")[0] as HTMLElement;
+            let thumbnail = doc.GetT(KeyStore.Thumbnail, ImageField);
+            if (pdfBox && pdfBox.childElementCount && thumbnail) {
+                let img = new Image();
+                img!.src = thumbnail.toString();
+                img!.style.position = "absolute";
+                img!.style.width = `${rect.width / scaleX}px`;
+                img!.style.height = `${rect.height / scaleY}px`;
+                pdfBox.replaceChild(img!, pdfBox.children[0])
+            }
         }
+
 
         dragDiv.appendChild(dragElement);
 

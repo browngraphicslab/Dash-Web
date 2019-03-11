@@ -203,6 +203,8 @@ export class CollectionSchemaView extends CollectionViewBase {
         )
         let previewHandle = !this.props.active() ? (null) : (
             <div className="collectionSchemaView-previewHandle" onPointerDown={this.onExpanderDown} />);
+        let dividerDragger = this._splitPercentage == 100 ? (null) :
+            <div className="collectionSchemaView-dividerDragger" onPointerDown={this.onDividerDown} style={{ width: `${this.DIVIDER_WIDTH}px` }} />
         return (
             <div className="collectionSchemaView-container" onPointerDown={this.onPointerDown} ref={this._mainCont} style={{ borderWidth: `${COLLECTION_BORDER_WIDTH}px` }} >
                 <div className="collectionSchemaView-dropTarget" onDrop={(e: React.DragEvent) => this.onDrop(e, {})} ref={this.createDropTarget}>
@@ -232,7 +234,7 @@ export class CollectionSchemaView extends CollectionViewBase {
                             </div>
                         }
                     </Measure>
-                    <div className="collectionSchemaView-dividerDragger" onPointerDown={this.onDividerDown} style={{ width: `${this.DIVIDER_WIDTH}px` }} />
+                    {dividerDragger}
                     <div className="collectionSchemaView-previewRegion" style={{ width: `calc(${100 - this._splitPercentage}% - ${this.DIVIDER_WIDTH}px)` }}>
                         {content}
                     </div>

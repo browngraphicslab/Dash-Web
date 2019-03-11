@@ -1,4 +1,4 @@
-import { action, computed } from "mobx";
+import { action, computed, IReactionDisposer, runInAction, reaction } from "mobx";
 import { observer } from "mobx-react";
 import { Document } from "../../../fields/Document";
 import { Field, FieldWaiting, Opt } from "../../../fields/Field";
@@ -24,6 +24,8 @@ import { WebBox } from "../nodes/WebBox";
 import { PDFBox } from "../nodes/PDFBox";
 import "./DocumentView.scss";
 import React = require("react");
+import { TextField } from "../../../fields/TextField";
+import { DocumentManager } from "../../util/DocumentManager";
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 
@@ -88,6 +90,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     private _documentBindings: any = null;
     private _downX: number = 0;
     private _downY: number = 0;
+    private _reactionDisposer: Opt<IReactionDisposer>;
     @computed get active(): boolean { return SelectionManager.IsSelected(this) || !this.props.ContainingCollectionView || this.props.ContainingCollectionView.active(); }
     @computed get topMost(): boolean { return !this.props.ContainingCollectionView || this.props.ContainingCollectionView.collectionViewType == CollectionViewType.Docking; }
     @computed get layout(): string { return this.props.Document.GetText(KeyStore.Layout, "<p>Error loading layout data</p>"); }
@@ -97,16 +100,21 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     onPointerDown = (e: React.PointerEvent): void => {
         this._downX = e.clientX;
         this._downY = e.clientY;
+<<<<<<< HEAD
 
         if (e.shiftKey && e.buttons === 1) {
             CollectionDockingView.Instance.StartOtherDrag(this.props.Document, e);
+=======
+        if (e.shiftKey && e.buttons === 2) {
+            if (this.props.isTopMost) {
+                this.startDragging(e.pageX, e.pageY);
+            }
+            else CollectionDockingView.Instance.StartOtherDrag(this.props.Document, e);
+>>>>>>> 618e66a5a070f1aac9224bd3f44b76a5ac314bfa
             e.stopPropagation();
         } else {
             if (this.active && !e.isDefaultPrevented()) {
                 e.stopPropagation();
-                if (e.buttons === 2) {
-                    e.preventDefault();
-                }
                 document.removeEventListener("pointermove", this.onPointerMove)
                 document.addEventListener("pointermove", this.onPointerMove);
                 document.removeEventListener("pointerup", this.onPointerUp)
@@ -114,25 +122,74 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             }
         }
     }
+
+    private dropDisposer?: DragManager.DragDropDisposer;
+    protected createDropTarget = (ele: HTMLDivElement) => {
+
+    }
+
+    componentDidMount() {
+        if (this._mainCont.current) {
+            this.dropDisposer = DragManager.MakeDropTarget(this._mainCont.current, { handlers: { drop: this.drop.bind(this) } });
+        }
+        runInAction(() => {
+            DocumentManager.Instance.DocumentViews.push(this);
+        })
+        this._reactionDisposer = reaction(
+            () => this.props.ContainingCollectionView && this.props.ContainingCollectionView.SelectedDocs.slice(),
+            () => {
+                if (this.props.ContainingCollectionView && this.props.ContainingCollectionView.SelectedDocs.indexOf(this.props.Document.Id) != -1)
+                    SelectionManager.SelectDoc(this, true);
+            });
+    }
+
+    componentDidUpdate() {
+        if (this.dropDisposer) {
+            this.dropDisposer();
+        }
+        if (this._mainCont.current) {
+            this.dropDisposer = DragManager.MakeDropTarget(this._mainCont.current, { handlers: { drop: this.drop.bind(this) } });
+        }
+    }
+
+    componentWillUnmount() {
+        if (this.dropDisposer) {
+            this.dropDisposer();
+        }
+        runInAction(() => {
+            DocumentManager.Instance.DocumentViews.splice(DocumentManager.Instance.DocumentViews.indexOf(this), 1);
+
+        })
+        if (this._reactionDisposer) {
+            this._reactionDisposer();
+        }
+    }
+
+    startDragging(x: number, y: number) {
+        if (this._mainCont.current) {
+            const [left, top] = this.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
+            let dragData: { [id: string]: any } = {};
+            dragData["documentView"] = this;
+            dragData["xOffset"] = x - left;
+            dragData["yOffset"] = y - top;
+            DragManager.StartDrag(this._mainCont.current, dragData, {
+                handlers: {
+                    dragComplete: action(() => { }),
+                },
+                hideSource: true
+            })
+        }
+    }
+
     onPointerMove = (e: PointerEvent): void => {
         if (e.cancelBubble) {
             return;
         }
         if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3) {
             document.removeEventListener("pointermove", this.onPointerMove)
-            document.removeEventListener("pointerup", this.onPointerUp)
-            if (this._mainCont.current != null && !this.topMost) {
-                const [left, top] = this.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
-                let dragData: { [id: string]: any } = {};
-                dragData["documentView"] = this;
-                dragData["xOffset"] = e.x - left;
-                dragData["yOffset"] = e.y - top;
-                DragManager.StartDrag(this._mainCont.current, dragData, {
-                    handlers: {
-                        dragComplete: action(() => { }),
-                    },
-                    hideSource: true
-                })
+            document.removeEventListener("pointerup", this.onPointerUp);
+            if (!this.topMost || e.buttons == 2) {
+                this.startDragging(e.x, e.y);
             }
         }
         e.stopPropagation();
@@ -173,6 +230,34 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     }
 
     @action
+    drop = (e: Event, de: DragManager.DropEvent) => {
+        console.log("drop");
+        const sourceDocView: DocumentView = de.data["linkSourceDoc"];
+        if (!sourceDocView) {
+            return;
+        }
+        let sourceDoc: Document = sourceDocView.props.Document;
+        let destDoc: Document = this.props.Document;
+        if (this.props.isTopMost) {
+            return;
+        }
+        let linkDoc: Document = new Document();
+
+        linkDoc.Set(KeyStore.Title, new TextField("New Link"));
+        linkDoc.Set(KeyStore.LinkDescription, new TextField(""));
+        linkDoc.Set(KeyStore.LinkTags, new TextField("Default"));
+
+        sourceDoc.GetOrCreateAsync(KeyStore.LinkedToDocs, ListField, field => { (field as ListField<Document>).Data.push(linkDoc) });
+        linkDoc.Set(KeyStore.LinkedToDocs, destDoc);
+        destDoc.GetOrCreateAsync(KeyStore.LinkedFromDocs, ListField, field => { (field as ListField<Document>).Data.push(linkDoc) });
+        linkDoc.Set(KeyStore.LinkedFromDocs, sourceDoc);
+
+
+
+        e.stopPropagation();
+    }
+
+    @action
     onContextMenu = (e: React.MouseEvent): void => {
         e.stopPropagation();
         let moved = Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3;
@@ -197,7 +282,8 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15)
         SelectionManager.SelectDoc(this, e.ctrlKey);
     }
-    @computed get mainContent() {
+
+    get mainContent() {
         return <JsxParser
             components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, WebBox, KeyValueBox, VideoBox, AudioBox, PDFBox }}
             bindings={this._documentBindings}

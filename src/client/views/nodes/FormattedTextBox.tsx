@@ -69,7 +69,7 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
         };
 
         let field = this.props.doc.GetT(this.props.fieldKey, RichTextField);
-        if (field && field != FieldWaiting) {
+        if (field && field != FieldWaiting && field.Data) {
             state = EditorState.fromJSON(config, JSON.parse(field.Data));
         } else {
             state = EditorState.create(config);
