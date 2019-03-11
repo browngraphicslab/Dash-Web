@@ -16,8 +16,8 @@ import { CollectionPDFView } from "../collections/CollectionPDFView";
 import { ContextMenu } from "../ContextMenu";
 import { FormattedTextBox } from "../nodes/FormattedTextBox";
 import { ImageBox } from "../nodes/ImageBox";
-import { VideoBox } from "../nodes/VideoBox"; 
-import { AudioBox } from "../nodes/AudioBox"; 
+import { VideoBox } from "../nodes/VideoBox";
+import { AudioBox } from "../nodes/AudioBox";
 import { Documents } from "../../documents/Documents"
 import { KeyValueBox } from "./KeyValueBox"
 import { WebBox } from "../nodes/WebBox";
@@ -97,6 +97,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     onPointerDown = (e: React.PointerEvent): void => {
         this._downX = e.clientX;
         this._downY = e.clientY;
+
         if (e.shiftKey && e.buttons === 1) {
             CollectionDockingView.Instance.StartOtherDrag(this.props.Document, e);
             e.stopPropagation();
