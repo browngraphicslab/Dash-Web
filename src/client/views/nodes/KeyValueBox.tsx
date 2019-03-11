@@ -16,6 +16,7 @@ import { Key } from '../../../fields/Key';
 import { TextField } from '../../../fields/TextField';
 import { EditorView } from "prosemirror-view";
 import { IReactionDisposer } from "mobx";
+import { observable, action } from "mobx";
 
 @observer
 export class KeyValueBox extends React.Component<FieldViewProps> {
@@ -26,16 +27,14 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
     private _reactionDisposer: Opt<IReactionDisposer>;
     private _newKey = '';
     private _newValue = '';
+    @observable private _keyInput: string = "";
+    @observable private _valueInput: string = "";
 
 
     constructor(props: FieldViewProps) {
         super(props);
 
         this._ref = React.createRef();
-        this.state = {
-            key: '',
-            value: ''
-        }
     }
 
 
@@ -52,13 +51,22 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
                     return
                 }
                 let realDoc = doc;
-                realDoc.Set(new Key(this._newKey), new TextField(this._newValue));
-                if (this.refs.newKVPKey instanceof HTMLInputElement) {
-                    this.refs.newKVPKey.value = ''
+
+                let script = CompileScript(this._newValue, undefined, true);
+                if (!script.compiled) {
+                    return;
                 }
-                if (this.refs.newKVPValue instanceof HTMLInputElement) {
-                    this.refs.newKVPValue.value = ''
+                let field = script();
+                if (field instanceof Field) {
+                    realDoc.Set(new Key(this._newKey), field);
+                } else {
+                    let dataField = ToField(field);
+                    if (dataField) {
+                        realDoc.Set(new Key(this._newKey), field);
+                    }
                 }
+                this._keyInput = ""
+                this._valueInput = ""
                 this._newKey = ''
                 this._newValue = ''
             }
@@ -99,19 +107,21 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
         return rows;
     }
 
+    @action
     keyChanged = (e: React.ChangeEvent<HTMLInputElement>) => {
-        this._newKey = e.currentTarget.value;
+        this._keyInput = e.currentTarget.value;
     }
 
+    @action
     valueChanged = (e: React.ChangeEvent<HTMLInputElement>) => {
-        this._newValue = e.currentTarget.value;
+        this._valueInput = e.currentTarget.value;
     }
 
     newKeyValue = () => {
         return (
             <tr>
-                <td><input type="text" ref="newKVPKey" id="key" placeholder="Key" onChange={this.keyChanged} /></td>
-                <td><input type="text" ref="newKVPValue" id="value" placeholder="Value" onChange={this.valueChanged} onKeyPress={this.onEnterKey} /></td>
+                <td><input type="text" value={this._keyInput} placeholder="Key" onChange={this.keyChanged} /></td>
+                <td><input type="text" value={this._valueInput} placeholder="Value" onChange={this.valueChanged} onKeyPress={this.onEnterKey} /></td>
             </tr>
         )
     }
