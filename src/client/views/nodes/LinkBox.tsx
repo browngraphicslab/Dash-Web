@@ -9,6 +9,7 @@ import { DocumentView } from "./DocumentView";
 import { Document } from "../../../fields/Document";
 import { ListField } from "../../../fields/ListField";
 import { DocumentManager } from "../../util/DocumentManager";
+import { LinkEditor } from "./LinkEditor";
 
 interface Props {
     linkDoc: Document;
@@ -60,22 +61,23 @@ export class LinkBox extends React.Component<Props> {
     render() {
 
         return (
-            <div className="link-container">
-                <div className="info-container">
-                    <div className="link-name">
-                        <p>{this.props.linkName}</p>
-                    </div>
-                    <div className="doc-name">
-                        <p>{this.props.type}{this.props.pairedDoc.Title}</p>
-                    </div>
-                </div>
+            <LinkEditor linkBox={this} />
+            // <div className="link-container">
+            //     <div className="info-container">
+            //         <div className="link-name">
+            //             <p>{this.props.linkName}</p>
+            //         </div>
+            //         <div className="doc-name">
+            //             <p>{this.props.type}{this.props.pairedDoc.Title}</p>
+            //         </div>
+            //     </div>
 
-                <div className="button-container">
-                    <div className="button" onPointerDown={this.onViewButtonPressed}></div>
-                    <div className="button" onPointerDown={this.onEditButtonPressed}></div>
-                    <div className="button" onPointerDown={this.onDeleteButtonPressed}></div>
-                </div>
-            </div>
+            //     <div className="button-container">
+            //         <div className="button" onPointerDown={this.onViewButtonPressed}></div>
+            //         <div className="button" onPointerDown={this.onEditButtonPressed}></div>
+            //         <div className="button" onPointerDown={this.onDeleteButtonPressed}></div>
+            //     </div>
+            // </div>
         )
     }
 }

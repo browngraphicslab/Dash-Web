@@ -14,6 +14,7 @@ import { FieldWaiting } from "../../../fields/Field";
 
 interface Props {
     docView: DocumentView;
+    changeFlyout: () => void
 }
 
 @observer

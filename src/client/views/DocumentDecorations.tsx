@@ -184,6 +184,10 @@ export class DocumentDecorations extends React.Component {
             document.removeEventListener("pointerup", this.onPointerUp);
         }
     }
+
+    changeFlyoutContent = (): void => {
+
+    }
     // buttonOnPointerUp = (e: React.PointerEvent): void => {
     //     e.stopPropagation();
     // }
@@ -203,7 +207,7 @@ export class DocumentDecorations extends React.Component {
             linkButton = (<Flyout
                 anchorPoint={anchorPoints.RIGHT_TOP}
                 content={
-                    <LinkMenu docView={SelectionManager.SelectedDocuments()[0]}>
+                    <LinkMenu docView={SelectionManager.SelectedDocuments()[0]} changeFlyout={this.changeFlyoutContent}>
                     </LinkMenu>
                 }>
                 <div id="linkButton" onPointerDown={this.onLinkButtonDown} ref={this._linkButton}></div>
