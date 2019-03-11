@@ -57,18 +57,17 @@ export class CollectionFreeFormView extends CollectionViewBase {
     @undoBatch
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
-        if (!("documentView" in de.data)) {
-            return;
-        }
         super.drop(e, de);
         const docView: DocumentView = de.data["documentView"];
         let doc: Document = docView ? docView.props.Document : de.data["document"];
-        let screenX = de.x - (de.data["xOffset"] as number || 0);
-        let screenY = de.y - (de.data["yOffset"] as number || 0);
-        const [x, y] = this.getTransform().transformPoint(screenX, screenY);
-        doc.SetNumber(KeyStore.X, x);
-        doc.SetNumber(KeyStore.Y, y);
-        this.bringToFront(doc);
+        if (doc) {
+            let screenX = de.x - (de.data["xOffset"] as number || 0);
+            let screenY = de.y - (de.data["yOffset"] as number || 0);
+            const [x, y] = this.getTransform().transformPoint(screenX, screenY);
+            doc.SetNumber(KeyStore.X, x);
+            doc.SetNumber(KeyStore.Y, y);
+            this.bringToFront(doc);
+        }
     }
 
     @action
