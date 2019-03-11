@@ -1,4 +1,4 @@
-import { action, computed, runInAction } from "mobx";
+import { action, computed, IReactionDisposer, runInAction, reaction } from "mobx";
 import { observer } from "mobx-react";
 import { Document } from "../../../fields/Document";
 import { Field, FieldWaiting, Opt } from "../../../fields/Field";
@@ -16,8 +16,8 @@ import { CollectionPDFView } from "../collections/CollectionPDFView";
 import { ContextMenu } from "../ContextMenu";
 import { FormattedTextBox } from "../nodes/FormattedTextBox";
 import { ImageBox } from "../nodes/ImageBox";
-import { VideoBox } from "../nodes/VideoBox"; 
-import { AudioBox } from "../nodes/AudioBox"; 
+import { VideoBox } from "../nodes/VideoBox";
+import { AudioBox } from "../nodes/AudioBox";
 import { Documents } from "../../documents/Documents"
 import { KeyValueBox } from "./KeyValueBox"
 import { WebBox } from "../nodes/WebBox";
@@ -90,6 +90,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     private _documentBindings: any = null;
     private _downX: number = 0;
     private _downY: number = 0;
+    private _reactionDisposer: Opt<IReactionDisposer>;
     @computed get active(): boolean { return SelectionManager.IsSelected(this) || !this.props.ContainingCollectionView || this.props.ContainingCollectionView.active(); }
     @computed get topMost(): boolean { return !this.props.ContainingCollectionView || this.props.ContainingCollectionView.collectionViewType == CollectionViewType.Docking; }
     @computed get layout(): string { return this.props.Document.GetText(KeyStore.Layout, "<p>Error loading layout data</p>"); }
@@ -128,6 +129,12 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         runInAction(() => {
             DocumentManager.Instance.DocumentViews.push(this);
         })
+        this._reactionDisposer = reaction(
+            () => this.props.ContainingCollectionView && this.props.ContainingCollectionView.SelectedDocs.slice(),
+            () => {
+                if (this.props.ContainingCollectionView && this.props.ContainingCollectionView.SelectedDocs.indexOf(this.props.Document.Id) != -1)
+                    SelectionManager.SelectDoc(this, true);
+            });
     }
 
     componentDidUpdate() {
@@ -147,7 +154,11 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             DocumentManager.Instance.DocumentViews.splice(DocumentManager.Instance.DocumentViews.indexOf(this), 1);
 
         })
+        if (this._reactionDisposer) {
+            this._reactionDisposer();
+        }
     }
+
 
     onPointerMove = (e: PointerEvent): void => {
         if (e.cancelBubble) {
@@ -260,7 +271,8 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15)
         SelectionManager.SelectDoc(this, e.ctrlKey);
     }
-    @computed get mainContent() {
+
+    get mainContent() {
         return <JsxParser
             components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, WebBox, KeyValueBox, VideoBox, AudioBox, PDFBox }}
             bindings={this._documentBindings}

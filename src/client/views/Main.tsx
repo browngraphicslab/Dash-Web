@@ -55,16 +55,16 @@ Documents.initProtos(mainDocId, (res?: Document) => {
     let pdfurl = "http://www.adobe.com/support/products/enterprise/knowledgecenter/media/c4611_sample_explain.pdf"
     let weburl = "https://cs.brown.edu/courses/cs166/";
     let audiourl = "http://techslides.com/demos/samples/sample.mp3";
-    let videourl = "http://techslides.com/demos/sample-videos/small.mp4"; 
+    let videourl = "http://techslides.com/demos/sample-videos/small.mp4";
     let clearDatabase = action(() => Utils.Emit(Server.Socket, MessageStore.DeleteAll, {}))
     let addTextNode = action(() => Documents.TextDocument({ width: 200, height: 200, title: "a text note" }))
     let addColNode = action(() => Documents.FreeformDocument([], { width: 200, height: 200, title: "a freeform collection" }));
     let addSchemaNode = action(() => Documents.SchemaDocument([Documents.TextDocument()], { width: 200, height: 200, title: "a schema collection" }));
-    let addVideoNode = action(() => Documents.VideoDocument(videourl, {width: 200, height:200, title: "video node"})); 
+    let addVideoNode = action(() => Documents.VideoDocument(videourl, { width: 200, height: 200, title: "video node" }));
     let addPDFNode = action(() => Documents.PdfDocument(pdfurl, { width: 200, height: 200, title: "a schema collection" }));
     let addImageNode = action(() => Documents.ImageDocument(imgurl, { width: 200, height: 200, title: "an image of a cat" }));
     let addWebNode = action(() => Documents.WebDocument(weburl, { width: 200, height: 200, title: "a sample web page" }));
-    let addAudioNode = action(() => Documents.AudioDocument(audiourl,{ width: 200, height: 200, title: "audio node" } ))
+    let addAudioNode = action(() => Documents.AudioDocument(audiourl, { width: 200, height: 200, title: "audio node" }))
     let addClick = (creator: () => Document) => action(() =>
         mainfreeform.GetList<Document>(KeyStore.Data, []).push(creator())
     );
@@ -74,8 +74,8 @@ Documents.initProtos(mainDocId, (res?: Document) => {
     let webRef = React.createRef<HTMLDivElement>();
     let textRef = React.createRef<HTMLDivElement>();
     let schemaRef = React.createRef<HTMLDivElement>();
-    let videoRef = React.createRef<HTMLDivElement>(); 
-    let audioRef = React.createRef<HTMLDivElement>(); 
+    let videoRef = React.createRef<HTMLDivElement>();
+    let audioRef = React.createRef<HTMLDivElement>();
     let colRef = React.createRef<HTMLDivElement>();
 
     ReactDOM.render((

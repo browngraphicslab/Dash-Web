@@ -1,5 +1,5 @@
 import { observable, action, computed } from "mobx";
-import { CirclePicker, ColorResult } from 'react-color'
+import { CirclePicker, ColorResult } from 'react-color';
 import React = require("react");
 import "./InkingCanvas.scss"
 import { InkTool } from "../../fields/InkField";
