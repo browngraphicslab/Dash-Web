@@ -80,11 +80,11 @@
 }
 
 .linkButton-empty {
-    height: 20px;
-    width: 20px;
+    height: 16px;
+    width: 16px;
     margin-top: 10px;
     border-radius: 50%;
-    opacity: 0.6;
+    opacity: 0.9;
     pointer-events: auto;
     background-color: $dark-color;
     color: $light-color;
@@ -95,11 +95,11 @@
 }
 
 .linkButton-nonempty {
-    height: 20px;
-    width: 20px;
+    height: 16px;
+    width: 16px;
     margin-top: 10px;
     border-radius: 50%;
-    opacity: 0.6;
+    opacity: 0.9;
     pointer-events: auto;
     background-color: $dark-color;
     color: $light-color;

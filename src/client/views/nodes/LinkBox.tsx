@@ -79,9 +79,9 @@ export class LinkBox extends React.Component<Props> {
                 </div>
 
                 <div className="button-container">
-                    <div className="button" onPointerDown={this.onViewButtonPressed}></div>
-                    <div className="button" onPointerDown={this.onEditButtonPressed}></div>
-                    <div className="button" onPointerDown={this.onDeleteButtonPressed}></div>
+                    <div title="Follow Link" className="button" onPointerDown={this.onViewButtonPressed}></div>
+                    <div title="Edit Link" className="button" onPointerDown={this.onEditButtonPressed}></div>
+                    <div title="Delete Link" className="button" onPointerDown={this.onDeleteButtonPressed}></div>
                 </div>
             </div>
         )
