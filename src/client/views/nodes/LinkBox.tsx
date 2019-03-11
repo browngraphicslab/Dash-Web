@@ -16,6 +16,7 @@ interface Props {
     linkName: String;
     pairedDoc: Document;
     type: String;
+    showEditor: () => void
 }
 
 @observer
@@ -33,6 +34,8 @@ export class LinkBox extends React.Component<Props> {
     onEditButtonPressed = (e: React.PointerEvent): void => {
         console.log("edit down");
         e.stopPropagation();
+
+        this.props.showEditor();
     }
 
     onDeleteButtonPressed = (e: React.PointerEvent): void => {
@@ -61,23 +64,23 @@ export class LinkBox extends React.Component<Props> {
     render() {
 
         return (
-            <LinkEditor linkBox={this} linkDoc={this.props.linkDoc} />
-            // <div className="link-container">
-            //     <div className="info-container">
-            //         <div className="link-name">
-            //             <p>{this.props.linkName}</p>
-            //         </div>
-            //         <div className="doc-name">
-            //             <p>{this.props.type}{this.props.pairedDoc.Title}</p>
-            //         </div>
-            //     </div>
+            //<LinkEditor linkBox={this} linkDoc={this.props.linkDoc} />
+            <div className="link-container">
+                <div className="info-container">
+                    <div className="link-name">
+                        <p>{this.props.linkName}</p>
+                    </div>
+                    <div className="doc-name">
+                        <p>{this.props.type}{this.props.pairedDoc.Title}</p>
+                    </div>
+                </div>
 
-            //     <div className="button-container">
-            //         <div className="button" onPointerDown={this.onViewButtonPressed}></div>
-            //         <div className="button" onPointerDown={this.onEditButtonPressed}></div>
-            //         <div className="button" onPointerDown={this.onDeleteButtonPressed}></div>
-            //     </div>
-            // </div>
+                <div className="button-container">
+                    <div className="button" onPointerDown={this.onViewButtonPressed}></div>
+                    <div className="button" onPointerDown={this.onEditButtonPressed}></div>
+                    <div className="button" onPointerDown={this.onDeleteButtonPressed}></div>
+                </div>
+            </div>
         )
     }
 }

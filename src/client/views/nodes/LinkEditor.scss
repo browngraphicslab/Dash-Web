@@ -7,16 +7,23 @@
 
 .name-input {
     margin-bottom: 10px;
+    padding: 5px;
     font-size: 12px;
 }
 
 .description-input {
-    height: 100px;
-    font-size: 10px;
+    font-size: 12px;
+    padding: 5px;
+    margin-bottom: 10px;
 }
 
 .save-button {
-    width: 100px;
-    height: 30px;
+    width: 50px;
+    height: 20px;
     background-color: #2B6091;
+    margin: 0 auto;
+    color: white;
+    text-align: center;
+    line-height: 20px;
+    font-size: 12px;
 }
