@@ -27,6 +27,7 @@ import { CollectionViewBase } from "./CollectionViewBase";
 import React = require("react");
 import { Utils } from "../../../Utils";
 import { SelectionManager } from "../../util/SelectionManager";
+import anymatch = require("anymatch");
 const JsxParser = require('react-jsx-parser').default;//TODO Why does this need to be imported like this?
 
 @observer
@@ -115,12 +116,22 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
     }
 
+    intersectRect(r1: { left: number, right: number, top: number, bottom: number },
+        r2: { left: number, right: number, top: number, bottom: number }) {
+        return !(r2.left > r1.right ||
+            r2.right < r1.left ||
+            r2.top > r1.bottom ||
+            r2.bottom < r1.top);
+    }
+
     @action
     marqueeSelect() {
         var curPage = this.props.Document.GetNumber(KeyStore.CurPage, 1);
         let p = this.getTransform().transformPoint(this._downX, this._downY);
         let v = this.getTransform().transformDirection(this._lastX - this._downX, this._lastY - this._downY);
+        let selRect = { left: p[0], top: p[1], right: p[0] + v[0], bottom: p[1] + v[1] }
 
+        this.props.CollectionView.SelectedDocs.length = 0;
         var curPage = this.props.Document.GetNumber(KeyStore.CurPage, 1);
         const lvalue = this.props.Document.GetT<ListField<Document>>(this.props.fieldKey, ListField);
         if (lvalue && lvalue != FieldWaiting) {
@@ -131,9 +142,8 @@ export class CollectionFreeFormView extends CollectionViewBase {
                     var y = doc.GetNumber(KeyStore.Y, 0);
                     var w = doc.GetNumber(KeyStore.Width, 0);
                     var h = doc.GetNumber(KeyStore.Height, 0);
-                    if (x > p[0] && x < p[0] + v[0] && y > p[1] && y < p[1] + v[1]) {
-                        // SelectionManager.SelectDoc(doc as any as DocumentView, true);
-                    }
+                    if (this.intersectRect({ left: x, top: y, right: x + w, bottom: y + h }, selRect))
+                        this.props.CollectionView.SelectedDocs.push(doc.Id)
                 }
             })
         }
