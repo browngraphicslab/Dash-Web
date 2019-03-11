@@ -10,6 +10,7 @@ import { Document } from "../../../fields/Document";
 import { ListField } from "../../../fields/ListField";
 import { DocumentManager } from "../../util/DocumentManager";
 import { LinkEditor } from "./LinkEditor";
+import { CollectionDockingView } from "../collections/CollectionDockingView";
 
 interface Props {
     linkDoc: Document;
@@ -28,6 +29,8 @@ export class LinkBox extends React.Component<Props> {
         let docView = DocumentManager.Instance.getDocumentView(this.props.pairedDoc);
         if (docView) {
             docView.props.focus(this.props.pairedDoc);
+        } else {
+            CollectionDockingView.Instance.AddRightSplit(this.props.pairedDoc)
         }
     }
 
@@ -66,7 +69,7 @@ export class LinkBox extends React.Component<Props> {
         return (
             //<LinkEditor linkBox={this} linkDoc={this.props.linkDoc} />
             <div className="link-container">
-                <div className="info-container">
+                <div className="info-container" onPointerDown={this.onViewButtonPressed}>
                     <div className="link-name">
                         <p>{this.props.linkName}</p>
                     </div>
