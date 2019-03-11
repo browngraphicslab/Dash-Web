@@ -4,11 +4,15 @@ import { SelectionManager } from "../util/SelectionManager";
 import { observer } from "mobx-react";
 import './DocumentDecorations.scss'
 import { CollectionFreeFormView } from "./collections/CollectionFreeFormView";
-import ContentEditable from 'react-contenteditable'
+//import ContentEditable from 'react-contenteditable'
 import { KeyStore } from "../../fields/KeyStore";
 import { NumberField } from "../../fields/NumberField";
 import { Document } from "../../fields/Document";
 import { DocumentView } from "./nodes/DocumentView";
+import { Key } from "../../fields/Key";
+import { TextField } from "../../fields/TextField";
+import { BasicField } from "../../fields/BasicField";
+import { Field, FieldValue } from "../../fields/Field";
 
 @observer
 export class DocumentDecorations extends React.Component<{}, { value: string }> {
@@ -17,23 +21,21 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     private _isPointerDown = false;
     @observable private _opacity = 1;
     private keyinput: React.RefObject<HTMLInputElement>;
-    @observable private _documents: DocumentView[] = [];
+    private _documents: DocumentView[] = SelectionManager.SelectedDocuments();
     //@observable private _title: string = this._documents[0].props.Document.Title;
-    @observable private _title: string = document.title;
+    @observable private _title: string = this._documents.length > 0 ? this._documents[0].props.Document.Title : "";
+    @observable private _fieldKey: Key = KeyStore.Title;
 
     constructor(props: Readonly<{}>) {
         super(props)
         DocumentDecorations.Instance = this
-        this.state = { value: document.title };
         this.handleChange = this.handleChange.bind(this);
         this.keyinput = React.createRef();
     }
 
     @action
     handleChange = (event: any) => {
-        //this.setState({ value: event.target.value });
         this._title = event.target.value;
-        console.log("Input box has changed");
     };
 
     @action
@@ -44,19 +46,18 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             var text = e.target.value;
             if (text[0] == '#') {
                 let command = text.slice(1, text.length);
-                if (command == "Title" || command == "title") {
-                    this._title = this._documents[0].props.Document.Title;
-                }
-                else if (command == "Width" || command == "width") {
-                    this._title = this._documents[0].props.Document.GetNumber(KeyStore.Width, 0).toString();
-                }
-                else {
-                    this._title = "undefined key";
-                }
+                this._fieldKey = new Key(command)
+                // if (command == "Title" || command == "title") {
+                //     this._fieldKey = KeyStore.Title;
+                // }
+                // else if (command == "Width" || command == "width") {
+                //     this._fieldKey = KeyStore.Width;
+                // }
+                this._title = "changed"
                 // TODO: Change field with switch statement
             }
             else {
-                this._title = document.title;
+                this._title = "changed";
             }
             e.target.blur();
         }
@@ -184,8 +185,24 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         }
     }
 
+    getValue = (): string => {
+        console.log("value watched");
+        if (this._title === "changed" && this._documents.length > 0) {
+            let field = this._documents[0].props.Document.Get(this._fieldKey);
+            if (field instanceof TextField) {
+                return (field as TextField).GetValue();
+            }
+            else if (field instanceof NumberField) {
+                return (field as NumberField).GetValue().toString();
+            }
+        }
+        return this._title;
+    }
+
     render() {
         var bounds = this.Bounds;
+        // console.log(this._documents.length)
+        // let test = this._documents[0].props.Document.Title;
         if (this.Hidden) {
             return (null);
         }
@@ -201,7 +218,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 top: bounds.y - 20 - 20,
                 opacity: this._opacity
             }}>
-                <input ref={this.keyinput} className="title" type="text" name="dynbox" value={this._title} onChange={this.handleChange} onPointerDown={this.onPointerDown} onKeyPress={this.enterPressed} />
+                <input ref={this.keyinput} className="title" type="text" name="dynbox" value={this.getValue()} onChange={this.handleChange} onPointerDown={this.onPointerDown} onKeyPress={this.enterPressed} />
                 <div id="documentDecorations-topLeftResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-topResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-topRightResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
