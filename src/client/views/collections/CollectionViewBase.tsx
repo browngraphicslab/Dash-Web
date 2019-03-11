@@ -47,7 +47,7 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
     protected drop(e: Event, de: DragManager.DropEvent) {
         const docView: DocumentView = de.data["documentView"];
         const doc: Document = de.data["document"];
-        if (docView && docView.props.ContainingCollectionView && docView.props.ContainingCollectionView !== this.props.CollectionView) {
+        if (docView && (!docView.props.ContainingCollectionView || docView.props.ContainingCollectionView !== this.props.CollectionView)) {
             if (docView.props.RemoveDocument) {
                 docView.props.RemoveDocument(docView.props.Document);
             }

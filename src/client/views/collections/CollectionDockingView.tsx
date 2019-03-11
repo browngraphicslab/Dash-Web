@@ -44,7 +44,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         (window as any).ReactDOM = ReactDOM;
     }
     public StartOtherDrag(dragDoc: Document, e: any) {
-        this.AddRightSplit(dragDoc, true).contentItems[0].tab._dragListener.onMouseDown({ pageX: e.pageX, pageY: e.pageY, preventDefault: () => { }, button: e.button })
+        this.AddRightSplit(dragDoc, true).contentItems[0].tab._dragListener.onMouseDown({ pageX: e.pageX, pageY: e.pageY, preventDefault: () => { }, button: 0 })
     }
 
     @action

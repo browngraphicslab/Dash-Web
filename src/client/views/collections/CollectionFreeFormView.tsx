@@ -25,6 +25,7 @@ import "./CollectionFreeFormView.scss";
 import { COLLECTION_BORDER_WIDTH } from "./CollectionView";
 import { CollectionViewBase } from "./CollectionViewBase";
 import React = require("react");
+import { SelectionManager } from "../../util/SelectionManager";
 const JsxParser = require('react-jsx-parser').default;//TODO Why does this need to be imported like this?
 
 @observer
@@ -74,7 +75,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
     @action
     onPointerDown = (e: React.PointerEvent): void => {
-        if (((e.button === 2 && this.props.active()) || !e.defaultPrevented) &&
+        if (((e.button === 2 && this.props.active()) || !e.defaultPrevented) && !e.shiftKey &&
             (!this.isAnnotationOverlay || this.zoomScaling != 1 || e.button == 0)) {
             document.removeEventListener("pointermove", this.onPointerMove);
             document.addEventListener("pointermove", this.onPointerMove);
@@ -84,11 +85,6 @@ export class CollectionFreeFormView extends CollectionViewBase {
             this._lastY = e.pageY;
             this._downX = e.pageX;
             this._downY = e.pageY;
-            this._marquee = e.button != 2 && e.shiftKey;
-            if (this._marquee) {
-                e.stopPropagation();
-                e.preventDefault();
-            }
         }
     }
 
@@ -99,6 +95,9 @@ export class CollectionFreeFormView extends CollectionViewBase {
         e.stopPropagation();
 
         if (this._marquee) {
+            if (!e.shiftKey) {
+                SelectionManager.DeselectAll();
+            }
             this.marqueeSelect();
             this._marquee = false;
         }
@@ -123,12 +122,12 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
     @action
     marqueeSelect() {
+        this.props.CollectionView.SelectedDocs.length = 0;
         var curPage = this.props.Document.GetNumber(KeyStore.CurPage, 1);
         let p = this.getTransform().transformPoint(this._downX, this._downY);
         let v = this.getTransform().transformDirection(this._lastX - this._downX, this._lastY - this._downY);
         let selRect = { left: p[0], top: p[1], right: p[0] + v[0], bottom: p[1] + v[1] }
 
-        this.props.CollectionView.SelectedDocs.length = 0;
         var curPage = this.props.Document.GetNumber(KeyStore.CurPage, 1);
         const lvalue = this.props.Document.GetT<ListField<Document>>(this.props.fieldKey, ListField);
         if (lvalue && lvalue != FieldWaiting) {
@@ -151,6 +150,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
         if (!e.cancelBubble && this.props.active()) {
             e.stopPropagation();
             e.preventDefault();
+            this._marquee = e.buttons != 2;
 
             if (!this._marquee) {
                 let x = this.props.Document.GetNumber(KeyStore.PanX, 0);
@@ -341,9 +341,9 @@ export class CollectionFreeFormView extends CollectionViewBase {
             cursor = <div id="prevCursor" onKeyPress={this.onKeyDown} style={{ color: "black", position: "absolute", transformOrigin: "left top", transform: `translate(${x}px, ${y}px)` }}>I</div>
         }
 
-        let p = this.getTransform().transformPoint(this._downX, this._downY);
+        let p = this.getTransform().transformPoint(this._downX < this._lastX ? this._downX : this._lastX, this._downY < this._lastY ? this._downY : this._lastY);
         let v = this.getTransform().transformDirection(this._lastX - this._downX, this._lastY - this._downY);
-        var marquee = this._marquee ? <div className="collectionfreeformview-marquee" style={{ transform: `translate(${p[0]}px, ${p[1]}px)`, width: `${v[0]}`, height: `${v[1]}` }}></div> : (null);
+        var marquee = this._marquee ? <div className="collectionfreeformview-marquee" style={{ transform: `translate(${p[0]}px, ${p[1]}px)`, width: `${Math.abs(v[0])}`, height: `${Math.abs(v[1])}` }}></div> : (null);
 
         let [dx, dy] = [this.centeringShiftX, this.centeringShiftY];
 

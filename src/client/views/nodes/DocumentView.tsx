@@ -100,8 +100,11 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     onPointerDown = (e: React.PointerEvent): void => {
         this._downX = e.clientX;
         this._downY = e.clientY;
-        if (e.shiftKey && e.buttons === 1) {
-            CollectionDockingView.Instance.StartOtherDrag(this.props.Document, e);
+        if (e.shiftKey && e.buttons === 2) {
+            if (this.props.isTopMost) {
+                this.startDragging(e.pageX, e.pageY);
+            }
+            else CollectionDockingView.Instance.StartOtherDrag(this.props.Document, e);
             e.stopPropagation();
         } else {
             if (this.active && !e.isDefaultPrevented()) {
@@ -156,6 +159,21 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         }
     }
 
+    startDragging(x: number, y: number) {
+        if (this._mainCont.current) {
+            const [left, top] = this.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
+            let dragData: { [id: string]: any } = {};
+            dragData["documentView"] = this;
+            dragData["xOffset"] = x - left;
+            dragData["yOffset"] = y - top;
+            DragManager.StartDrag(this._mainCont.current, dragData, {
+                handlers: {
+                    dragComplete: action(() => { }),
+                },
+                hideSource: true
+            })
+        }
+    }
 
     onPointerMove = (e: PointerEvent): void => {
         if (e.cancelBubble) {
@@ -163,19 +181,9 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         }
         if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3) {
             document.removeEventListener("pointermove", this.onPointerMove)
-            document.removeEventListener("pointerup", this.onPointerUp)
-            if (this._mainCont.current != null && !this.topMost) {
-                const [left, top] = this.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
-                let dragData: { [id: string]: any } = {};
-                dragData["documentView"] = this;
-                dragData["xOffset"] = e.x - left;
-                dragData["yOffset"] = e.y - top;
-                DragManager.StartDrag(this._mainCont.current, dragData, {
-                    handlers: {
-                        dragComplete: action(() => { }),
-                    },
-                    hideSource: true
-                })
+            document.removeEventListener("pointerup", this.onPointerUp);
+            if (!this.topMost || e.buttons == 2) {
+                this.startDragging(e.x, e.y);
             }
         }
         e.stopPropagation();
