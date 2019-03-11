@@ -1,4 +1,4 @@
-import { action, computed, observable, reaction, trace } from "mobx";
+import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import { Document } from "../../../fields/Document";
 import { FieldWaiting } from "../../../fields/Field";
@@ -10,9 +10,9 @@ import { DragManager } from "../../util/DragManager";
 import { Transform } from "../../util/Transform";
 import { undoBatch } from "../../util/UndoManager";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
+import { CollectionPDFView } from "../collections/CollectionPDFView";
 import { CollectionSchemaView } from "../collections/CollectionSchemaView";
 import { CollectionView } from "../collections/CollectionView";
-import { CollectionPDFView } from "../collections/CollectionPDFView";
 import { InkingCanvas } from "../InkingCanvas";
 import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
 import { DocumentView } from "../nodes/DocumentView";
@@ -25,9 +25,6 @@ import "./CollectionFreeFormView.scss";
 import { COLLECTION_BORDER_WIDTH } from "./CollectionView";
 import { CollectionViewBase } from "./CollectionViewBase";
 import React = require("react");
-import { Utils } from "../../../Utils";
-import { SelectionManager } from "../../util/SelectionManager";
-import anymatch = require("anymatch");
 const JsxParser = require('react-jsx-parser').default;//TODO Why does this need to be imported like this?
 
 @observer
@@ -370,7 +367,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
                     {this.backgroundView}
                     <InkingCanvas getScreenTransform={this.getTransform} Document={this.props.Document} />
                     {cursor}
-                    {React.Children.map(this.views, (child) => child)}
+                    {this.views}
                     {marquee}
                 </div>
                 {this.overlayView}

@@ -11,7 +11,6 @@ import { Documents, DocumentOptions } from "../../documents/Documents";
 import { Key } from "../../../fields/Key";
 import { Transform } from "../../util/Transform";
 import { CollectionView } from "./CollectionView";
-import * as request from "request";
 
 export interface CollectionViewProps {
     fieldKey: Key;
