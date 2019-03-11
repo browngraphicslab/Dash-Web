@@ -16,12 +16,12 @@ export class Database {
         })
     }
 
-    public update(id: string, value: any) {
+    public update(id: string, value: any, callback: () => void) {
         if (this.db) {
             let collection = this.db.collection('documents');
             collection.update({ _id: id }, { $set: value }, {
                 upsert: true
-            });
+            }, callback);
         }
     }
 

@@ -92,6 +92,9 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
     @action
     onPointerUp = (e: PointerEvent): void => {
+        if (this._marquee) {
+            document.removeEventListener("keydown", this.marqueeCommand);
+        }
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
         e.stopPropagation();
@@ -113,6 +116,13 @@ export class CollectionFreeFormView extends CollectionViewBase {
             }
         }
 
+    }
+
+    @action
+    clearMarquee = () => {
+        document.removeEventListener("pointermove", this.onPointerMove);
+        document.removeEventListener("pointerup", this.onPointerUp);
+        this._marquee = false;
     }
 
     intersectRect(r1: { left: number, right: number, top: number, bottom: number },
@@ -157,6 +167,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
             let wasMarquee = this._marquee;
             this._marquee = e.buttons != 2;
             if (this._marquee && !wasMarquee) {
+                this._previewCursorVisible = false;
                 document.addEventListener("keydown", this.marqueeCommand);
             }
 
@@ -176,8 +187,23 @@ export class CollectionFreeFormView extends CollectionViewBase {
     marqueeCommand = (e: KeyboardEvent) => {
         if (e.key == "Backspace") {
             this.marqueeSelect().map(d => this.props.removeDocument(d));
+            this.clearMarquee();
         }
         if (e.key == "c") {
+            let p = this.getTransform().transformPoint(this._downX, this._downY);
+            let v = this.getTransform().transformDirection(this._lastX - this._downX, this._lastY - this._downY);
+            let selected = this.marqueeSelect().map(m => m);
+            this.marqueeSelect().map(d => this.props.removeDocument(d));
+            //setTimeout(() => {
+            this.props.CollectionView.addDocument(Documents.FreeformDocument(selected.map(d => {
+                d.SetNumber(KeyStore.X, d.GetNumber(KeyStore.X, 0) - p[0] - 400);
+                d.SetNumber(KeyStore.Y, d.GetNumber(KeyStore.Y, 0) - p[1] - 400);
+                d.SetNumber(KeyStore.Page, this.props.Document.GetNumber(KeyStore.Page, 0));
+                d.SetText(KeyStore.Title, "" + d.GetNumber(KeyStore.Width, 0) + " " + d.GetNumber(KeyStore.Height, 0));
+                return d;
+            }), { x: p[0], y: p[1], panx: 0, pany: 0, width: 800, height: 800, title: "a nested collection" }));
+            // }, 100);
+            this.clearMarquee();
         }
     }
 
