@@ -72,7 +72,7 @@ export class Main extends React.Component {
 
     @action
     createNewWorkspace = (init: boolean): void => {
-        let mainDoc = Documents.DockDocument(JSON.stringify({ content: [{ type: 'row', content: [] }] }), { title: `Main Container ${this.userWorkspaces.length}` });
+        let mainDoc = Documents.DockDocument(JSON.stringify({ content: [{ type: 'row', content: [] }] }), { title: `Main Container ${this.userWorkspaces.length + 1}` });
         let newId = mainDoc.Id;
         request.post(this.contextualize("addWorkspaceId"), {
             body: { target: newId },

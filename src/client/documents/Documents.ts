@@ -17,6 +17,7 @@ import { KeyValueBox } from "../views/nodes/KeyValueBox"
 import { PDFField } from "../../fields/PDFField";
 import { PDFBox } from "../views/nodes/PDFBox";
 import { CollectionPDFView } from "../views/collections/CollectionPDFView";
+import { RichTextField } from "../../fields/RichTextField";
 
 export interface DocumentOptions {
     x?: number;
@@ -77,9 +78,11 @@ export namespace Documents {
     function setupPrototypeOptions(protoId: string, title: string, layout: string, options: DocumentOptions): Document {
         return assignOptions(new Document(protoId), { ...options, title: title, layout: layout });
     }
-    function SetInstanceOptions<T, U extends Field & { Data: T }>(doc: Document, options: DocumentOptions, value: T, ctor: { new(): U }, id?: string) {
+    function SetInstanceOptions<T, U extends Field & { Data: T }>(doc: Document, options: DocumentOptions, value: T | undefined, ctor: { new(): U } | undefined, id?: string) {
         var deleg = doc.MakeDelegate(id);
-        deleg.SetData(KeyStore.Data, value, ctor);
+        if (value !== undefined && ctor !== undefined) {
+            deleg.SetData(KeyStore.Data, value, ctor);
+        }
         return assignOptions(deleg, options);
     }
 
@@ -131,7 +134,7 @@ export namespace Documents {
         return doc;
     }
     export function TextDocument(options: DocumentOptions = {}) {
-        return SetInstanceOptions(GetTextPrototype(), options, "", TextField);
+        return SetInstanceOptions(GetTextPrototype(), options, undefined, undefined);
     }
     export function PdfDocument(url: string, options: DocumentOptions = {}) {
         return SetInstanceOptions(GetPdfPrototype(), options, new URL(url), PDFField);

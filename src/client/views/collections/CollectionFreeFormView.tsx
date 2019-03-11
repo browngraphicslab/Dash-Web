@@ -170,19 +170,19 @@ export class CollectionFreeFormView extends CollectionViewBase {
     @action
     onKeyDown = (e: React.KeyboardEvent<Element>) => {
         //if not these keys, make a textbox if preview cursor is active!
-        if (!e.ctrlKey && !e.altKey) {
-            if (this._previewCursorVisible) {
-                //make textbox and add it to this collection
-                let [x, y] = this.getTransform().transformPoint(this._downX, this._downY); (this._downX, this._downY);
-                let newBox = Documents.TextDocument({ width: 200, height: 100, x: x, y: y, title: "new" });
-                // mark this collection so that when the text box is created we can send it the SelectOnLoad prop to focus itself
-                this._selectOnLoaded = newBox.Id;
-                //set text to be the typed key and get focus on text box
-                this.props.CollectionView.addDocument(newBox);
-                //remove cursor from screen
-                this._previewCursorVisible = false;
-            }
-        }
+        // if (!e.ctrlKey && !e.altKey) {
+        //     if (this._previewCursorVisible) {
+        //         //make textbox and add it to this collection
+        //         let [x, y] = this.getTransform().transformPoint(this._downX, this._downY); (this._downX, this._downY);
+        //         let newBox = Documents.TextDocument({ width: 200, height: 100, x: x, y: y, title: "new" });
+        //         // mark this collection so that when the text box is created we can send it the SelectOnLoad prop to focus itself
+        //         this._selectOnLoaded = newBox.Id;
+        //         //set text to be the typed key and get focus on text box
+        //         this.props.CollectionView.addDocument(newBox);
+        //         //remove cursor from screen
+        //         this._previewCursorVisible = false;
+        //     }
+        // }
     }
 
     @action
