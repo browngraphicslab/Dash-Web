@@ -152,20 +152,10 @@ export namespace Documents {
         return doc;
     }
     export function VideoDocument(url: string, options: DocumentOptions = {}) {
-        let doc = SetInstanceOptions(GetVideoPrototype(), { ...options, layoutKeys: [KeyStore.Data, KeyStore.Annotations, KeyStore.Caption] },
-            new URL(url), VideoField);
-        doc.SetText(KeyStore.Caption, "my caption...");
-        doc.SetText(KeyStore.BackgroundLayout, EmbeddedCaption());
-        doc.SetText(KeyStore.OverlayLayout, FixedCaption());
-        return doc;
+        return SetInstanceOptions(GetVideoPrototype(), options, new URL(url), VideoField);
     }
     export function AudioDocument(url: string, options: DocumentOptions = {}) {
-        let doc = SetInstanceOptions(GetAudioPrototype(), { ...options, layoutKeys: [KeyStore.Data, KeyStore.Annotations, KeyStore.Caption] },
-            new URL(url), AudioField);
-        doc.SetText(KeyStore.Caption, "my caption...");
-        doc.SetText(KeyStore.BackgroundLayout, EmbeddedCaption());
-        doc.SetText(KeyStore.OverlayLayout, FixedCaption());
-        return doc;
+        return SetInstanceOptions(GetAudioPrototype(), options, new URL(url), AudioField);
     }
     export function TextDocument(options: DocumentOptions = {}) {
         return SetInstanceOptions(GetTextPrototype(), options, "", RichTextField);

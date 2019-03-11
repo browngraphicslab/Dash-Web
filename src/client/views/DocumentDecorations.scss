@@ -29,13 +29,23 @@
     #documentDecorations-rightResizer {
         cursor: ew-resize;
     }
-    #linkButton {
-        height: 20px;
-        width: 20px;
-        margin-top: 10px;
-        border-radius: 50%;
-        opacity: 0.6;
-        pointer-events: auto;
-        background-color: #2B6091;
-    }
+    
+}
+.linkButton-empty {
+    height: 20px;
+    width: 20px;
+    margin-top: 10px;
+    border-radius: 50%;
+    opacity: 0.6;
+    pointer-events: auto;
+    background-color: #2B6091;
+}
+.linkButton-nonempty {
+    height: 20px;
+    width: 20px;
+    margin-top: 10px;
+    border-radius: 50%;
+    opacity: 0.6;
+    pointer-events: auto;
+    background-color: rgb(35, 165, 42);
 }

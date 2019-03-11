@@ -8,6 +8,7 @@ import { NumberField } from "../../fields/NumberField";
 import { props } from "bluebird";
 import { DragManager } from "../util/DragManager";
 import { LinkMenu } from "./nodes/LinkMenu";
+import { ListField } from "../../fields/ListField";
 const higflyout = require("@hig/flyout");
 const { anchorPoints } = higflyout;
 const Flyout = higflyout.default;
@@ -204,13 +205,14 @@ export class DocumentDecorations extends React.Component {
 
         let linkButton = null;
         if (SelectionManager.SelectedDocuments().length > 0) {
+            let selFirst = SelectionManager.SelectedDocuments()[0];
             linkButton = (<Flyout
                 anchorPoint={anchorPoints.RIGHT_TOP}
                 content={
-                    <LinkMenu docView={SelectionManager.SelectedDocuments()[0]} changeFlyout={this.changeFlyoutContent}>
+                    <LinkMenu docView={selFirst} changeFlyout={this.changeFlyoutContent}>
                     </LinkMenu>
                 }>
-                <div id="linkButton" onPointerDown={this.onLinkButtonDown} ref={this._linkButton}></div>
+                <div className={"linkButton-" + (selFirst.props.Document.GetData(KeyStore.LinkedToDocs, ListField, []).length ? "nonempty" : "empty")} onPointerDown={this.onLinkButtonDown} ref={this._linkButton} />
             </Flyout>);
         }
         return (

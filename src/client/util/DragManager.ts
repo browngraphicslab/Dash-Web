@@ -99,6 +99,7 @@ export namespace DragManager {
     export function StartDrag(ele: HTMLElement, dragData: { [id: string]: any }, options?: DragOptions) {
         if (!dragDiv) {
             dragDiv = document.createElement("div");
+            dragDiv.className = "dragManager-dragDiv"
             DragManager.Root().appendChild(dragDiv);
         }
         const w = ele.offsetWidth, h = ele.offsetHeight;

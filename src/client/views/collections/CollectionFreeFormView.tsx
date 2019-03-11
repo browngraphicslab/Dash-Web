@@ -100,7 +100,8 @@ export class CollectionFreeFormView extends CollectionViewBase {
             if (!e.shiftKey) {
                 SelectionManager.DeselectAll();
             }
-            this.marqueeSelect();
+            var selectedDocs = this.marqueeSelect();
+            selectedDocs.map(s => this.props.CollectionView.SelectedDocs.push(s.Id));
             this._marquee = false;
         }
         else if (!this._marquee && Math.abs(this._downX - e.clientX) < 3 && Math.abs(this._downY - e.clientY) < 3) {
@@ -122,7 +123,6 @@ export class CollectionFreeFormView extends CollectionViewBase {
             r2.bottom < r1.top);
     }
 
-    @action
     marqueeSelect() {
         this.props.CollectionView.SelectedDocs.length = 0;
         var curPage = this.props.Document.GetNumber(KeyStore.CurPage, 1);
@@ -132,6 +132,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
         var curPage = this.props.Document.GetNumber(KeyStore.CurPage, 1);
         const lvalue = this.props.Document.GetT<ListField<Document>>(this.props.fieldKey, ListField);
+        let selection: Document[] = [];
         if (lvalue && lvalue != FieldWaiting) {
             lvalue.Data.map(doc => {
                 var page = doc.GetNumber(KeyStore.Page, 0);
@@ -141,10 +142,11 @@ export class CollectionFreeFormView extends CollectionViewBase {
                     var w = doc.GetNumber(KeyStore.Width, 0);
                     var h = doc.GetNumber(KeyStore.Height, 0);
                     if (this.intersectRect({ left: x, top: y, right: x + w, bottom: y + h }, selRect))
-                        this.props.CollectionView.SelectedDocs.push(doc.Id)
+                        selection.push(doc)
                 }
             })
         }
+        return selection;
     }
 
     @action
@@ -152,7 +154,11 @@ export class CollectionFreeFormView extends CollectionViewBase {
         if (!e.cancelBubble && this.props.active()) {
             e.stopPropagation();
             e.preventDefault();
+            let wasMarquee = this._marquee;
             this._marquee = e.buttons != 2;
+            if (this._marquee && !wasMarquee) {
+                document.addEventListener("keydown", this.marqueeCommand);
+            }
 
             if (!this._marquee) {
                 let x = this.props.Document.GetNumber(KeyStore.PanX, 0);
@@ -164,6 +170,15 @@ export class CollectionFreeFormView extends CollectionViewBase {
         }
         this._lastX = e.pageX;
         this._lastY = e.pageY;
+    }
+
+    @action
+    marqueeCommand = (e: KeyboardEvent) => {
+        if (e.key == "Backspace") {
+            this.marqueeSelect().map(d => this.props.removeDocument(d));
+        }
+        if (e.key == "c") {
+        }
     }
 
     @action
