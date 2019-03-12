@@ -423,7 +423,9 @@ export class PDFBox extends React.Component<FieldViewProps> {
         //      so this design is flawed.
         var nativeWidth = this.props.doc.GetNumber(KeyStore.NativeWidth, 0);
         if (!this.props.doc.GetNumber(KeyStore.NativeHeight, 0)) {
-            this.props.doc.SetNumber(KeyStore.NativeHeight, nativeWidth * r.entry.height / r.entry.width);
+            var nativeHeight = nativeWidth * r.entry.height / r.entry.width;
+            this.props.doc.SetNumber(KeyStore.Height, nativeHeight / nativeWidth * this.props.doc.GetNumber(KeyStore.Width, 0));
+            this.props.doc.SetNumber(KeyStore.NativeHeight, nativeHeight);
         }
         if (!this.props.doc.GetT(KeyStore.Thumbnail, ImageField)) {
             this.saveThumbnail();
