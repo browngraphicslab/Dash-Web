@@ -116,6 +116,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
     @action
     cleanupInteractions = () => {
+        document.removeEventListener("keydown", this.marqueeCommand);
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
         this._marquee = false;
