@@ -135,7 +135,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
         var curPage = this.props.Document.GetNumber(KeyStore.CurPage, 1);
         let p = this.getTransform().transformPoint(this._downX < this._lastX ? this._downX : this._lastX, this._downY < this._lastY ? this._downY : this._lastY);
         let v = this.getTransform().transformDirection(this._lastX - this._downX, this._lastY - this._downY);
-        let selRect = { left: p[0], top: p[1], right: p[0] + v[0], bottom: p[1] + v[1] }
+        let selRect = { left: p[0], top: p[1], right: p[0] + Math.abs(v[0]), bottom: p[1] + Math.abs(v[1]) }
 
         var curPage = this.props.Document.GetNumber(KeyStore.CurPage, 1);
         const lvalue = this.props.Document.GetT<ListField<Document>>(this.props.fieldKey, ListField);
