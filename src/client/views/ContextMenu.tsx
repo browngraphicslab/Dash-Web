@@ -44,8 +44,13 @@ export class ContextMenu extends React.Component {
 
     @action
     displayMenu(x: number, y: number) {
-        this._pageX = x
-        this._pageY = y
+        //maxX and maxY will change if the UI/font size changes, but will work for any amount
+        //of items added to the menu
+        let maxX = window.innerWidth - 150;
+        let maxY = window.innerHeight - (this._items.length * 34 + 30);
+
+        this._pageX = x > maxX ? maxX : x;
+        this._pageY = y > maxY ? maxY : y;
 
         this._searchString = "";
 
@@ -64,6 +69,7 @@ export class ContextMenu extends React.Component {
     }
 
     render() {
+
         return (
             <div className="contextMenu-cont" style={{ left: this._pageX, top: this._pageY, display: this._display }} ref={this.ref}>
                 <input className="contextMenu-item" type="text" placeholder="Search . . ." value={this._searchString} onChange={this.onChange}></input>
