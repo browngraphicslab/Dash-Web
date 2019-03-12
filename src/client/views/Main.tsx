@@ -23,7 +23,6 @@ import { observer } from 'mobx-react';
 import { Field, Opt } from '../../fields/Field';
 import { InkingControl } from './InkingControl';
 import { RouteStore } from '../../server/RouteStore';
-import { Database } from '../../server/database';
 
 @observer
 export class Main extends React.Component {
@@ -31,7 +30,6 @@ export class Main extends React.Component {
     @observable private mainContainer?: Document;
     @observable private mainfreeform?: Document;
     @observable private userWorkspaces: Document[] = [];
-    @observable private activeUsers: Document[] = [];
 
     constructor(props: Readonly<{}>) {
         super(props);
@@ -91,7 +89,6 @@ export class Main extends React.Component {
             this.openWorkspace(mainDoc);
         }, 0);
         this.userWorkspaces.push(mainDoc);
-        mainDoc.GetList<Document>(KeyStore.ActiveUsers, []);
     }
 
     @action
@@ -131,6 +128,7 @@ export class Main extends React.Component {
         let audioRef = React.createRef<HTMLDivElement>();
         let colRef = React.createRef<HTMLDivElement>();
         let workspacesRef = React.createRef<HTMLDivElement>();
+        let logoutRef = React.createRef<HTMLDivElement>();
 
         let imgurl = "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg";
         let pdfurl = "http://www.adobe.com/support/products/enterprise/knowledgecenter/media/c4611_sample_explain.pdf"
@@ -181,6 +179,8 @@ export class Main extends React.Component {
                     <button onClick={clearDatabase}>Clear Database</button></div>
                 <div className="main-buttonDiv" style={{ top: '25px' }} ref={workspacesRef}>
                     <button onClick={this.toggleWorkspaces}>View Workspaces</button></div>
+                <div className="main-buttonDiv" style={{ top: '25px', left: '300px' }} ref={logoutRef}>
+                    <button onClick={() => request.get(this.prepend(RouteStore.logout), () => { })}>Log Out</button></div>
                 <div className="main-buttonDiv" style={{ bottom: '175px' }} ref={videoRef}>
                     <button onPointerDown={setupDrag(videoRef, addVideoNode)} onClick={addClick(addVideoNode)}>Add Video</button></div>
                 <div className="main-buttonDiv" style={{ bottom: '200px' }} ref={audioRef}>

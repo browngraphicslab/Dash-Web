@@ -48,7 +48,6 @@ export class SocketStub {
 
     public static SEND_FIELDS_REQUEST(fieldIds: FieldId[], callback: (fields: { [key: string]: Field }) => any) {
         Utils.EmitCallback(Server.Socket, MessageStore.GetFields, fieldIds, (fields: any[]) => {
-            console.log(fieldIds);
             let fieldMap: any = {};
             for (let field of fields) {
                 fieldMap[field._id] = ServerUtils.FromJson(field);

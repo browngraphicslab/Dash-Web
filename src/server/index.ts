@@ -139,9 +139,7 @@ addSecureRoute(Method.POST, RouteStore.upload, (user, req, res) => {
 // anyone attempting to navigate to localhost at this port will
 // first have to login
 addSecureRoute(Method.GET, RouteStore.root, (user, req, res) => {
-
-}, res => {
-    res.send()
+    res.redirect(RouteStore.home);
 });
 
 // YAY! SHOW THEM THEIR WORKSPACES NOW
@@ -154,7 +152,7 @@ addSecureRoute(Method.GET, RouteStore.getActiveWorkspace, (user, req, res) => {
 });
 
 addSecureRoute(Method.GET, RouteStore.getAllWorkspaces, (user, req, res) => {
-    res.send(JSON.stringify(user.allWorkspaceIds as Array<String>));
+    res.send(JSON.stringify(user.allWorkspaceIds));
 });
 
 addSecureRoute(Method.POST, RouteStore.setActiveWorkspace, (user, req) => {

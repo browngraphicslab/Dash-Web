@@ -19,7 +19,7 @@ export class Database {
     public update(id: string, value: any, callback: () => void) {
         if (this.db) {
             let collection = this.db.collection('documents');
-            collection.update({ _id: id }, { $set: value }, {
+            collection.updateOne({ _id: id }, { $set: value }, {
                 upsert: true
             }, callback);
         }
@@ -71,15 +71,9 @@ export class Database {
             let cursor = collection.find({ _id: { "$in": ids } })
             cursor.toArray((err, docs) => {
                 if (err) {
-                    console.log("Error");
                     console.log(err.message);
                     console.log(err.errmsg);
-                    console.log(ids);
-                    console.log(["afca93a8-c6bd-4b58-967e-07784c5b12c8"]);
-                    console.log("MAKES SENSE: " + (ids instanceof Array));
                 }
-                console.log(typeof ids);
-                console.log("DATABASE: " + docs);
                 fn(docs);
             })
         };
