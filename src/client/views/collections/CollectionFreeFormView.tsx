@@ -165,7 +165,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
             e.stopPropagation();
             e.preventDefault();
             let wasMarquee = this._marquee;
-            this._marquee = e.buttons != 2;
+            this._marquee = e.buttons != 2 && !e.altKey && !e.metaKey;
             if (this._marquee && !wasMarquee) {
                 this._previewCursorVisible = false;
                 document.addEventListener("keydown", this.marqueeCommand);
