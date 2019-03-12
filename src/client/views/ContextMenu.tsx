@@ -46,11 +46,13 @@ export class ContextMenu extends React.Component {
 
     @action
     displayMenu(x: number, y: number) {
-        this._pageX = x
-        this._pageY = window.innerHeight - y >= 100 ? y : window.innerHeight - y;
+        //maxX and maxY will change if the UI/font size changes, but will work for any amount
+        //of items added to the menu
+        let maxX = window.innerWidth - 150;
+        let maxY = window.innerHeight - (this._items.length * 34 + 30);
 
-        // y pos absolute to top only when there's enough space
-        this._yRelativeToTop = window.innerHeight - y >= 100;
+        this._pageX = x > maxX ? maxX : x;
+        this._pageY = y > maxY ? maxY : y;
 
         this._searchString = "";
 
@@ -76,6 +78,7 @@ export class ContextMenu extends React.Component {
     render() {
         let style = this._yRelativeToTop ? { left: this._pageX, top: this._pageY, display: this._display } :
             { left: this._pageX, bottom: this._pageY, display: this._display };
+
 
         return (
             <div className="contextMenu-cont" style={style} ref={this.ref}>

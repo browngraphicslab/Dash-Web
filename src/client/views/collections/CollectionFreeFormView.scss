@@ -48,6 +48,7 @@
     background: $light-color-secondary;
   }
 
+<<<<<<< HEAD
   border: 0px solid transparent;
   border-radius: $border-radius;
   box-sizing: border-box;
@@ -58,6 +59,18 @@
   height: 100%;
   overflow: hidden;
   .collectionfreeformview {
+=======
+    .collectionfreeformview > .jsx-parser{
+        position:absolute;
+        height: 100%;
+    }
+    .formattedTextBox-cont {
+        background:yellow;
+    }
+        
+    border-style: solid;
+    box-sizing: content-box;
+>>>>>>> a680579f74380eb016f0ffd61b3818d0850984b5
     position: absolute;
     top: 0;
     left: 0;

@@ -130,6 +130,9 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
                                 if (type.indexOf("audio") !== -1) {
                                     doc = Documents.AudioDocument(path, { ...options, nativeWidth: 300, width: 300, })
                                 }
+                                if (type.indexOf("pdf") !== -1) {
+                                    doc = Documents.PdfDocument(path, { ...options, nativeWidth: 300, width: 300, })
+                                }
                                 let docs = that.props.Document.GetT(KeyStore.Data, ListField);
                                 if (docs != FieldWaiting) {
                                     if (!docs) {

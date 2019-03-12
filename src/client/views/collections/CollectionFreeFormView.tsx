@@ -77,7 +77,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
     @action
     onPointerDown = (e: React.PointerEvent): void => {
-        if (((e.button === 2 && this.props.active()) || !e.defaultPrevented) && !e.shiftKey &&
+        if (((e.button === 2 && this.props.active()) || !e.defaultPrevented) &&
             (!this.isAnnotationOverlay || this.zoomScaling != 1 || e.button == 0)) {
             document.removeEventListener("pointermove", this.onPointerMove);
             document.addEventListener("pointermove", this.onPointerMove);
@@ -92,8 +92,9 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
     @action
     onPointerUp = (e: PointerEvent): void => {
-        document.removeEventListener("pointermove", this.onPointerMove);
-        document.removeEventListener("pointerup", this.onPointerUp);
+        if (this._marquee) {
+            document.removeEventListener("keydown", this.marqueeCommand);
+        }
         e.stopPropagation();
 
         if (this._marquee) {
@@ -102,7 +103,6 @@ export class CollectionFreeFormView extends CollectionViewBase {
             }
             var selectedDocs = this.marqueeSelect();
             selectedDocs.map(s => this.props.CollectionView.SelectedDocs.push(s.Id));
-            this._marquee = false;
         }
         else if (!this._marquee && Math.abs(this._downX - e.clientX) < 3 && Math.abs(this._downY - e.clientY) < 3) {
             //show preview text cursor on tap
@@ -112,7 +112,14 @@ export class CollectionFreeFormView extends CollectionViewBase {
                 this.props.select(false);
             }
         }
+        this.cleanupInteractions();
+    }
 
+    @action
+    cleanupInteractions = () => {
+        document.removeEventListener("pointermove", this.onPointerMove);
+        document.removeEventListener("pointerup", this.onPointerUp);
+        this._marquee = false;
     }
 
     intersectRect(r1: { left: number, right: number, top: number, bottom: number },
@@ -126,7 +133,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
     marqueeSelect() {
         this.props.CollectionView.SelectedDocs.length = 0;
         var curPage = this.props.Document.GetNumber(KeyStore.CurPage, 1);
-        let p = this.getTransform().transformPoint(this._downX, this._downY);
+        let p = this.getTransform().transformPoint(this._downX < this._lastX ? this._downX : this._lastX, this._downY < this._lastY ? this._downY : this._lastY);
         let v = this.getTransform().transformDirection(this._lastX - this._downX, this._lastY - this._downY);
         let selRect = { left: p[0], top: p[1], right: p[0] + v[0], bottom: p[1] + v[1] }
 
@@ -155,8 +162,9 @@ export class CollectionFreeFormView extends CollectionViewBase {
             e.stopPropagation();
             e.preventDefault();
             let wasMarquee = this._marquee;
-            this._marquee = e.buttons != 2;
+            this._marquee = e.buttons != 2 && !e.altKey && !e.metaKey;
             if (this._marquee && !wasMarquee) {
+                this._previewCursorVisible = false;
                 document.addEventListener("keydown", this.marqueeCommand);
             }
 
@@ -176,8 +184,24 @@ export class CollectionFreeFormView extends CollectionViewBase {
     marqueeCommand = (e: KeyboardEvent) => {
         if (e.key == "Backspace") {
             this.marqueeSelect().map(d => this.props.removeDocument(d));
+            this.cleanupInteractions();
         }
         if (e.key == "c") {
+            let p = this.getTransform().transformPoint(this._downX < this._lastX ? this._downX : this._lastX, this._downY < this._lastY ? this._downY : this._lastY);
+            let v = this.getTransform().transformDirection(this._lastX - this._downX, this._lastY - this._downY);
+
+            let selected = this.marqueeSelect().map(m => m);
+            this.marqueeSelect().map(d => this.props.removeDocument(d));
+            //setTimeout(() => {
+            this.props.CollectionView.addDocument(Documents.FreeformDocument(selected.map(d => {
+                d.SetNumber(KeyStore.X, d.GetNumber(KeyStore.X, 0) - p[0] - v[0] / 2);
+                d.SetNumber(KeyStore.Y, d.GetNumber(KeyStore.Y, 0) - p[1] - v[1] / 2);
+                d.SetNumber(KeyStore.Page, this.props.Document.GetNumber(KeyStore.Page, 0));
+                d.SetText(KeyStore.Title, "" + d.GetNumber(KeyStore.Width, 0) + " " + d.GetNumber(KeyStore.Height, 0));
+                return d;
+            }), { x: p[0], y: p[1], panx: 0, pany: 0, width: v[0], height: v[1], title: "a nested collection" }));
+            // }, 100);
+            this.cleanupInteractions();
         }
     }
 

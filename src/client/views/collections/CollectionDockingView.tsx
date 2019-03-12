@@ -150,9 +150,13 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         }
     }
     componentWillUnmount: () => void = () => {
-        this._goldenLayout.unbind('itemDropped', this.itemDropped);
-        this._goldenLayout.unbind('tabCreated', this.tabCreated);
-        this._goldenLayout.unbind('stackCreated', this.stackCreated);
+        try {
+            this._goldenLayout.unbind('itemDropped', this.itemDropped);
+            this._goldenLayout.unbind('tabCreated', this.tabCreated);
+            this._goldenLayout.unbind('stackCreated', this.stackCreated);
+        } catch (e) {
+
+        }
         this._goldenLayout.destroy();
         this._goldenLayout = null;
         window.removeEventListener('resize', this.onResize);

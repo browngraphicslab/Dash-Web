@@ -173,8 +173,9 @@ function getFields([ids, callback]: [string[], (result: any) => void]) {
 }
 
 function setField(socket: Socket, newValue: Transferable) {
-    Database.Instance.update(newValue._id, newValue)
-    socket.broadcast.emit(MessageStore.SetField.Message, newValue)
+    Database.Instance.update(newValue._id, newValue, () => {
+        socket.broadcast.emit(MessageStore.SetField.Message, newValue);
+    })
 }
 
 server.listen(serverPort);

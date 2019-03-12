@@ -34,6 +34,7 @@ export interface DocumentOptions {
     title?: string;
     panx?: number;
     pany?: number;
+    page?: number;
     scale?: number;
     layout?: string;
     layoutKeys?: Key[];
@@ -78,6 +79,7 @@ export namespace Documents {
         if (options.title !== undefined) { doc.SetText(KeyStore.Title, options.title); }
         if (options.panx !== undefined) { doc.SetNumber(KeyStore.PanX, options.panx); }
         if (options.pany !== undefined) { doc.SetNumber(KeyStore.PanY, options.pany); }
+        if (options.page !== undefined) { doc.SetNumber(KeyStore.Page, options.page); }
         if (options.scale !== undefined) { doc.SetNumber(KeyStore.Scale, options.scale); }
         if (options.viewType !== undefined) { doc.SetNumber(KeyStore.ViewType, options.viewType); }
         if (options.layout !== undefined) { doc.SetText(KeyStore.Layout, options.layout); }
@@ -194,10 +196,10 @@ export namespace Documents {
             + FormattedTextBox.LayoutString("CaptionKey") +
             `</div> 
         </div>` };
-    function FixedCaption() {
+    function FixedCaption(fieldName: string = "Caption") {
         return `<div style="position:absolute; height:30px; bottom:0; width:100%">
             <div style="position:absolute; width:100%; height:100%; text-align:center;bottom:0;">`
-            + FormattedTextBox.LayoutString("CaptionKey") +
+            + FormattedTextBox.LayoutString(fieldName + "Key") +
             `</div> 
         </div>` };
 }
