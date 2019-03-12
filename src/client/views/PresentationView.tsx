@@ -35,6 +35,30 @@ class PresentationViewItem extends React.Component<PresViewProps> {
     }
 
     /**
+  * Removes a document from the presentation view
+  **/
+    @action
+    public RemoveDoc(doc: Document) {
+        const value = this.props.Document.GetData(KeyStore.Data, ListField, new Array<Document>())
+        let index = -1;
+        for (let i = 0; i < value.length; i++) {
+            if (value[i].Id == doc.Id) {
+                index = i;
+                break;
+            }
+        }
+        if (index !== -1) {
+            value.splice(index, 1)
+
+            //TODO: do i need below lines??
+            // SelectionManager.DeselectAll()
+            // ContextMenu.Instance.clearItems()
+            //   return true;
+        }
+        // return false
+    }
+
+    /**
      * Renders a single child document. It will just append a list element.
      * @param document The document to render.
      */
@@ -48,9 +72,9 @@ class PresentationViewItem extends React.Component<PresViewProps> {
         // finally, if it's a normal document, then render it as such.
         else {
             //TODO: there is a zoom event that will be merged for on click
-            return <li className="presentationView-item" key={document.Id} onClick={() => this.openDoc(document)} >
-                <div className="presentationView-header" >{title.Data}</div>
-                <div className="presentation-icon">X</div></li>;
+            return <li className="presentationView-item" key={document.Id} >
+                <div className="presentationView-header" onClick={() => this.openDoc(document)}>{title.Data}</div>
+                <div className="presentation-icon" onClick={() => this.RemoveDoc(document)}>X</div></li>;
         }
     }
 
@@ -102,34 +126,6 @@ export class PresentationView extends React.Component<PresViewProps>  {
         //TODO: open presentation view if not already open
         this.props.Document.SetData(KeyStore.Width, 300, NumberField);
     }
-
-    /**
-     * Removes a document from the presentation view
-     **/
-    @action
-    public RemoveDoc(doc: Document) {
-        const value = this.props.Document.GetData(KeyStore.Data, ListField, new Array<Document>())
-        let index = -1;
-        for (let i = 0; i < value.length; i++) {
-            if (value[i].Id == doc.Id) {
-                index = i;
-                break;
-            }
-        }
-        if (index !== -1) {
-            value.splice(index, 1)
-
-            //TODO: do i need below lines??
-            // SelectionManager.DeselectAll()
-            // ContextMenu.Instance.clearItems()
-            //   return true;
-        }
-        // return false
-
-        this.collapsed = true;
-    }
-
-
 
     render() {
         let titleStr = "Title";
