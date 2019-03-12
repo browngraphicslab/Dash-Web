@@ -1,5 +1,5 @@
 import React = require("react")
-import { action, observable } from "mobx";
+import { action, observable, ObservableMap, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import Measure from "react-measure";
 import ReactTable, { CellInfo, ComponentPropsGetterR, ReactTableDefaults } from "react-table";
@@ -17,6 +17,8 @@ import "./CollectionSchemaView.scss";
 import { COLLECTION_BORDER_WIDTH } from "./CollectionView";
 import { CollectionViewBase } from "./CollectionViewBase";
 import { setupDrag } from "../../util/DragManager";
+import { Key } from "./../../../fields/Key";
+
 
 // bcz: need to add drag and drop of rows and columns.  This seems like it might work for rows: https://codesandbox.io/s/l94mn1q657
 
@@ -26,6 +28,7 @@ export class CollectionSchemaView extends CollectionViewBase {
     private _mainCont = React.createRef<HTMLDivElement>();
     private DIVIDER_WIDTH = 5;
 
+    @observable _columns: Array<Key> = [KeyStore.Title, KeyStore.Data, KeyStore.Author];
     @observable _contentScaling = 1; // used to transfer the dimensions of the content pane in the DOM to the ContentScaling prop of the DocumentView
     @observable _dividerX = 0;
     @observable _panelWidth = 0;
@@ -100,6 +103,29 @@ export class CollectionSchemaView extends CollectionViewBase {
                 //color: rowInfo.index == this._selectedIndex ? "white" : "black"
             }
         };
+    }
+
+    @action
+    addColumn = (k: Key): void => {
+        this._columns.push(k);
+        console.log("adding", this._columns.length);
+    }
+
+    findAllDocumentKeys = (docs: Array<Document>): Set<Key> => {
+        let keys = new Set();
+        docs.forEach(doc => {
+            let fields: ObservableMap<string, { key: Key, field: Field }> = doc.Fields;
+            Array.from(fields).map(item => {
+                let v: { key: Key, field: Field } = item[1];
+                let k = v.key;
+                keys.add(k);
+            })
+        })
+        keys.delete(KeyStore.Title);
+        keys.delete(KeyStore.Data);
+        keys.delete(KeyStore.Author);
+        console.log("key set", keys);
+        return keys;
     }
 
     _startSplitPercent = 0;
@@ -179,7 +205,7 @@ export class CollectionSchemaView extends CollectionViewBase {
     focusDocument = (doc: Document) => { }
 
     render() {
-        const columns = this.props.Document.GetList(KeyStore.ColumnsKey, [KeyStore.Title, KeyStore.Data, KeyStore.Author])
+        const columns = this.props.Document.GetList(KeyStore.ColumnsKey, this._columns)
         const children = this.props.Document.GetList<Document>(this.props.fieldKey, []);
         const selected = children.length > this._selectedIndex ? children[this._selectedIndex] : undefined;
         let content = this._selectedIndex == -1 || !selected ? (null) : (
@@ -205,6 +231,7 @@ export class CollectionSchemaView extends CollectionViewBase {
             <div className="collectionSchemaView-previewHandle" onPointerDown={this.onExpanderDown} />);
         let dividerDragger = this._splitPercentage == 100 ? (null) :
             <div className="collectionSchemaView-dividerDragger" onPointerDown={this.onDividerDown} style={{ width: `${this.DIVIDER_WIDTH}px` }} />
+
         return (
             <div className="collectionSchemaView-container" onPointerDown={this.onPointerDown} ref={this._mainCont} style={{ borderWidth: `${COLLECTION_BORDER_WIDTH}px` }} >
                 <div className="collectionSchemaView-dropTarget" onDrop={(e: React.DragEvent) => this.onDrop(e, {})} ref={this.createDropTarget}>
@@ -231,6 +258,16 @@ export class CollectionSchemaView extends CollectionViewBase {
                                     }}
                                     getTrProps={this.getTrProps}
                                 />
+                                <div className="collectionSchemaView-addColumn" >
+                                    <input type="checkbox" id="addColumn-toggle" />
+                                    <label htmlFor="addColumn-toggle" title="Add Column"><p>+</p></label>
+
+                                    <div className="addColumn-options">
+                                        <ul>{Array.from(this.findAllDocumentKeys(children)).map(item => {
+                                            return <li onClick={() => this.addColumn(item)}>{item.Name}</li>
+                                        })}</ul>
+                                    </div>
+                                </div>
                             </div>
                         }
                     </Measure>
@@ -239,6 +276,7 @@ export class CollectionSchemaView extends CollectionViewBase {
                         {content}
                     </div>
                     {previewHandle}
+
                 </div>
             </div >
         )

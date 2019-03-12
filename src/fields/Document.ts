@@ -38,6 +38,11 @@ export class Document extends Field {
         return this.GetText(KeyStore.Title, "<untitled>");
     }
 
+    @computed
+    public get Fields() {
+        return this.fields;
+    }
+
     /**
      * Get the field in the document associated with the given key. If the
      * associated field has not yet been filled in from the server, a request
