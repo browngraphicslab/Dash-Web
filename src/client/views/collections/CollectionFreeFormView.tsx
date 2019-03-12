@@ -210,6 +210,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
     @action
     onPointerWheel = (e: React.WheelEvent): void => {
+        this.props.select(false);
         e.stopPropagation();
         e.preventDefault();
         let coefficient = 1000;

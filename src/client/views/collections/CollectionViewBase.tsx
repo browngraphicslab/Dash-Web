@@ -52,11 +52,12 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
                 docView.props.RemoveDocument(docView.props.Document);
             }
             this.props.addDocument(docView.props.Document);
+            e.stopPropagation();
         } else if (doc) {
             this.props.removeDocument(doc);
             this.props.addDocument(doc);
+            e.stopPropagation();
         }
-        e.stopPropagation();
     }
 
     @action
