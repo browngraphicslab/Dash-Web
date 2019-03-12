@@ -2,9 +2,10 @@ import { action, IReactionDisposer, reaction } from "mobx";
 import { baseKeymap } from "prosemirror-commands";
 import { history, redo, undo } from "prosemirror-history";
 import { keymap } from "prosemirror-keymap";
-import { EditorState, Transaction, } from "prosemirror-state";
+import { EditorState, Transaction, NodeSelection } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { schema } from "./RichTextSchema";
+import { Schema, NodeType } from "prosemirror-model"
 import React = require("react")
 import "./TooltipTextMenu.scss";
 const { toggleMark, setBlockType, wrapIn } = require("prosemirror-commands");
@@ -15,7 +16,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 
 
-
+//appears above a selection of text in a RichTextBox to give user options such as Bold, Italics, etc.
 export class TooltipTextMenu {
 
   private tooltip: HTMLElement;
@@ -38,6 +39,7 @@ export class TooltipTextMenu {
       { command: toggleMark(schema.marks.strikethrough), dom: this.icon("S", "strikethrough") },
       { command: toggleMark(schema.marks.superscript), dom: this.icon("s", "superscript") },
       { command: toggleMark(schema.marks.subscript), dom: this.icon("s", "subscript") },
+      //this doesn't work currently - look into notion of active block
       { command: wrapInList(schema.nodes.bullet_list), dom: this.icon(":", "bullets") },
     ]
     items.forEach(({ dom }) => this.tooltip.appendChild(dom));
@@ -65,10 +67,22 @@ export class TooltipTextMenu {
     return span;
   }
 
-  blockActive(view: EditorView) {
-    const { $from, to } = view.state.selection
+  //adapted this method - use it to check if block has a tag (ie bulleting)
+  blockActive(type: NodeType<Schema<string, string>>, state: EditorState) {
+    let attrs = {};
 
-    return to <= $from.end() && $from.parent.hasMarkup(schema.nodes.bulletList);
+    if (state.selection instanceof NodeSelection) {
+      const sel: NodeSelection = state.selection;
+      let $from = sel.$from;
+      let to = sel.to;
+      let node = sel.node;
+
+      if (node) {
+        return node.hasMarkup(type, attrs);
+      }
+
+      return to <= $from.end() && $from.parent.hasMarkup(type, attrs);
+    }
   }
 
   //this doesn't currently work but hopefully will soon

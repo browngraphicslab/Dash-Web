@@ -14,6 +14,7 @@ import { Plugin } from 'prosemirror-state'
 import { Decoration, DecorationSet } from 'prosemirror-view'
 import { TooltipTextMenu } from "../../util/TooltipTextMenu"
 import { ContextMenu } from "../../views/ContextMenu";
+import { inpRules } from "../../util/RichTextRules";
 const { buildMenuItems } = require("prosemirror-example-setup");
 const { menuBar } = require("prosemirror-menu");
 
@@ -62,6 +63,7 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
         let state: EditorState;
         const config = {
             schema,
+            inpRules, //these currently don't do anything, but could eventually be helpful
             plugins: [
                 history(),
                 keymap({ "Mod-z": undo, "Mod-y": redo }),
