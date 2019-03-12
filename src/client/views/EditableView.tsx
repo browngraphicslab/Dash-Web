@@ -1,6 +1,7 @@
 import React = require('react')
 import { observer } from 'mobx-react';
 import { observable, action } from 'mobx';
+import "./EditableView.scss"
 
 export interface EditableProps {
     /**
