@@ -12,7 +12,6 @@
     z-index: 1000;
     box-shadow: #AAAAAA .2vw .2vw .4vw;
     flex-direction: column;
-    left: 100%; //should make this appear 100% to the right of the parent element (the original context menu)
 }
 
 .contextMenu-item {
