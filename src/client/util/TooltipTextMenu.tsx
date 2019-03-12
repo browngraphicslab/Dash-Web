@@ -50,7 +50,9 @@ export class TooltipTextMenu {
       view.focus();
       items.forEach(({ command, dom }) => {
         if (dom.contains(e.srcElement)) {
-          command(view.state, view.dispatch, view)
+          let active = command(view.state, view.dispatch, view);
+          //uncomment this if we want the bullet button to disappear if current selection is bulleted
+          // dom.style.display = active ? "" : "none"
         }
       })
     })
@@ -85,7 +87,7 @@ export class TooltipTextMenu {
     }
   }
 
-  //this doesn't currently work but hopefully will soon
+  //this doesn't currently work but could be used to use icons for buttons
   unorderedListIcon(): HTMLSpanElement {
     let span = document.createElement("span");
     let icon = document.createElement("FontAwesomeIcon");
@@ -118,8 +120,6 @@ export class TooltipTextMenu {
     // Otherwise, reposition it and update its content
     this.tooltip.style.display = ""
     let { from, to } = state.selection
-    // These are in screen coordinates
-    //check this - tranform
     let start = view.coordsAtPos(from), end = view.coordsAtPos(to)
     // The box in which the tooltip is positioned, to use as base
     let box = this.tooltip.offsetParent!.getBoundingClientRect()
@@ -129,6 +129,7 @@ export class TooltipTextMenu {
     this.tooltip.style.left = (left - box.left) + "px"
     let width = Math.abs(start.left - end.left) / 2;
     let mid = Math.min(start.left, end.left) + width;
+
     //THIS WIDTH IS 15 * NUMBER OF ICONS + 15
     this.tooltip.style.width = 120 + "px";
     this.tooltip.style.bottom = (box.bottom - start.top) + "px";
