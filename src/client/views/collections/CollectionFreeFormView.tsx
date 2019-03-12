@@ -77,8 +77,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
     @action
     onPointerDown = (e: React.PointerEvent): void => {
-        if (((e.button === 2 && this.props.active()) || !e.defaultPrevented) &&
-            (!this.isAnnotationOverlay || this.zoomScaling != 1 || e.button == 0)) {
+        if ((e.button === 2 && this.props.active() && (!this.isAnnotationOverlay || this.zoomScaling != 1)) || e.button == 0) {
             document.removeEventListener("pointermove", this.onPointerMove);
             document.addEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
@@ -159,21 +158,25 @@ export class CollectionFreeFormView extends CollectionViewBase {
     @action
     onPointerMove = (e: PointerEvent): void => {
         if (!e.cancelBubble && this.props.active()) {
-            e.stopPropagation();
-            e.preventDefault();
             let wasMarquee = this._marquee;
             this._marquee = e.buttons != 2 && !e.altKey && !e.metaKey;
             if (this._marquee && !wasMarquee) {
                 this._previewCursorVisible = false;
                 document.addEventListener("keydown", this.marqueeCommand);
             }
+            if (this._marquee) {
+                e.stopPropagation();
+                e.preventDefault();
+            }
 
-            if (!this._marquee) {
+            if (!this._marquee && (!this.isAnnotationOverlay || this.zoomScaling != 1) && !e.shiftKey) {
                 let x = this.props.Document.GetNumber(KeyStore.PanX, 0);
                 let y = this.props.Document.GetNumber(KeyStore.PanY, 0);
                 let [dx, dy] = this.getTransform().transformDirection(e.clientX - this._lastX, e.clientY - this._lastY);
                 this._previewCursorVisible = false;
                 this.SetPan(x - dx, y - dy);
+                e.stopPropagation();
+                e.preventDefault();
             }
         }
         this._lastX = e.pageX;
