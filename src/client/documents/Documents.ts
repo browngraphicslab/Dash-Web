@@ -151,6 +151,8 @@ export namespace Documents {
     export function ImageDocument(url: string, options: DocumentOptions = {}) {
         return SetInstanceOptions(GetImagePrototype(), { ...options, layoutKeys: [KeyStore.Data, KeyStore.Annotations, KeyStore.Caption] },
             [new URL(url), ImageField]);
+        // let doc = SetInstanceOptions(GetImagePrototype(), { ...options, layoutKeys: [KeyStore.Data, KeyStore.Annotations, KeyStore.Caption] },
+        //     [new URL(url), ImageField]);
         // doc.SetText(KeyStore.Caption, "my caption...");
         // doc.SetText(KeyStore.BackgroundLayout, EmbeddedCaption());
         // doc.SetText(KeyStore.OverlayLayout, FixedCaption());
@@ -190,7 +192,7 @@ export namespace Documents {
     // example of custom display string for an image that shows a caption.
     function EmbeddedCaption() {
         return `<div style="height:100%">
-            <div style="position:relative; margin:auto; height:85%;" >`
+            <div style="position:relative; margin:auto; height:85%; width:85%;" >`
             + ImageBox.LayoutString() +
             `</div>
             <div style="position:relative; height:15%; text-align:center; ">`
