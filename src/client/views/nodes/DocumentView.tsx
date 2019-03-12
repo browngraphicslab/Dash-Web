@@ -279,6 +279,10 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         SelectionManager.SelectDoc(this, e.ctrlKey);
     }
 
+    focus = () => {
+        this.props.focus(this.props.Document);
+    }
+
     get mainContent() {
         return <JsxParser
             components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, WebBox, KeyValueBox, VideoBox, AudioBox, PDFBox }}

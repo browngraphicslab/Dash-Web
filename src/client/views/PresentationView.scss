@@ -9,7 +9,7 @@
 }
 
 .presentationView-item {
-    width: 10vw;
+    width: 220px;
     height: 40px;
     vertical-align: center;
     padding-top: 15px;
@@ -27,15 +27,27 @@
     background: #AAAAAA
 }
 
-.presentationView-title {
+.presentationView-heading {
      margin-top: 0px;
-    padding-top: 3px; 
-    padding-bottom: 3px; 
-    height: 50px;
-    text-align: center;
+    height: 40px;
     background: lightseagreen;
+    padding: 30px;
 }
-
-.icon{
-    margin-right: 0px;
+.presentationView-title {
+   padding-top: 3px; 
+   padding-bottom: 3px; 
+   font-size: 25px;
+   float:left;
 }
+.presentation-icon{
+    float: right;
+    display: inline;
+    width: 10px;
+    margin-top: 7px;
+}
+.presentationView-header {
+    padding-top: 1px; 
+    padding-bottom: 1px; 
+    font-size: 15px;
+    float:left;
+ }

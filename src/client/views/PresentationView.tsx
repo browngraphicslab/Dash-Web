@@ -11,6 +11,8 @@ import "./PresentationView.scss"
 import { mobxPendingDecorators } from "mobx/lib/internal";
 import { NumberField } from "../../fields/NumberField";
 import "./Main.tsx";
+import { CollectionFreeFormView } from "./collections/CollectionFreeFormView";
+import { DocumentManager } from "../util/DocumentManager";
 
 export interface PresViewProps {
     Document: Document;
@@ -23,6 +25,14 @@ export interface PresViewProps {
  */
 class PresentationViewItem extends React.Component<PresViewProps> {
 
+    //look at CollectionFreeformView.focusDocument(d)
+    @action
+    openDoc = (doc: Document) => {
+        let docView = DocumentManager.Instance.getDocumentView(doc);
+        if (docView) {
+            docView.focus();
+        }
+    }
 
     /**
      * Renders a single child document. It will just append a list element.
@@ -38,13 +48,14 @@ class PresentationViewItem extends React.Component<PresViewProps> {
         // finally, if it's a normal document, then render it as such.
         else {
             //TODO: there is a zoom event that will be merged for on click
-            return <li className="presentationView-item" key={document.Id}>
-                {title.Data}</li>;
+            return <li className="presentationView-item" key={document.Id} onClick={() => this.openDoc(document)} >
+                <div className="presentationView-header" >{title.Data}</div>
+                <div className="presentation-icon">X</div></li>;
         }
     }
 
     render() {
-        var children = this.props.Document.GetT<ListField<Document>>(KeyStore.Data, ListField);
+        const children = this.props.Document.GetT<ListField<Document>>(KeyStore.Data, ListField);
 
         if (children && children !== "<Waiting>") {
             return (<div>
@@ -130,8 +141,9 @@ export class PresentationView extends React.Component<PresViewProps>  {
         let width = this.props.Document.GetNumber(KeyStore.Width, 0);
         return (
             <div className="presentationView-cont" style={{ width: width }}>
-                <div className="presentationView-title"><h2>{titleStr}</h2>
-                    <p className='icon' onClick={this.closePresentation}>X</p></div>
+                <div className="presentationView-heading">
+                    <div className="presentationView-title">{titleStr}</div>
+                    <div className='presentation-icon' onClick={this.closePresentation}>X</div></div>
                 <ul>
                     <PresentationViewItem
                         Document={this.props.Document}
