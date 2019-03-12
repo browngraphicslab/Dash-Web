@@ -1,0 +1,29 @@
+.edit-container {
+    width: 100%;
+    height: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.name-input {
+    margin-bottom: 10px;
+    padding: 5px;
+    font-size: 12px;
+}
+
+.description-input {
+    font-size: 12px;
+    padding: 5px;
+    margin-bottom: 10px;
+}
+
+.save-button {
+    width: 50px;
+    height: 20px;
+    background-color: #2B6091;
+    margin: 0 auto;
+    color: white;
+    text-align: center;
+    line-height: 20px;
+    font-size: 12px;
+}

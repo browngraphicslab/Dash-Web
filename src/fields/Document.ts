@@ -1,6 +1,6 @@
 import { Key } from "./Key"
 import { KeyStore } from "./KeyStore";
-import { Field, Cast, FieldWaiting, FieldValue, FieldId } from "./Field"
+import { Field, Cast, FieldWaiting, FieldValue, FieldId, Opt } from "./Field"
 import { NumberField } from "./NumberField";
 import { ObservableMap, computed, action } from "mobx";
 import { TextField } from "./TextField";
@@ -8,6 +8,7 @@ import { ListField } from "./ListField";
 import { Server } from "../client/Server";
 import { Types } from "../server/Message";
 import { UndoManager } from "../client/util/UndoManager";
+import { HtmlField } from "./HtmlField";
 
 export class Document extends Field {
     public fields: ObservableMap<string, { key: Key, field: Field }> = new ObservableMap();
@@ -37,6 +38,22 @@ export class Document extends Field {
         return this.GetText(KeyStore.Title, "<untitled>");
     }
 
+    /**
+     * Get the field in the document associated with the given key. If the
+     * associated field has not yet been filled in from the server, a request
+     * to the server will automatically be sent, the value will be filled in 
+     * when the request is completed, and {@link Field.ts#FieldWaiting} will be returned.
+     * @param key - The key of the value to get
+     * @param ignoreProto - If true, ignore any prototype this document
+     * might have and only search for the value on this immediate document.
+     * If false (default), search up the prototype chain, starting at this document,
+     * for a document that has a field associated with the given key, and return the first
+     * one found.
+     * 
+     * @returns If the document does not have a field associated with the given key, returns `undefined`.
+     * If the document does have an associated field, but the field has not been fetched from the server, returns {@link Field.ts#FieldWaiting}.
+     * If the document does have an associated field, and the field has not been fetched from the server, returns the associated field.
+     */
     Get(key: Key, ignoreProto: boolean = false): FieldValue<Field> {
         let field: FieldValue<Field>;
         if (ignoreProto) {
@@ -92,7 +109,17 @@ export class Document extends Field {
         return field;
     }
 
+    /**
+     * Tries to get the field associated with the given key, and if there is an
+     * associated field, calls the given callback with that field.
+     * @param key - The key of the value to get
+     * @param callback - A function that will be called with the associated field, if it exists,
+     * once it is fetched from the server (this may be immediately if the field has already been fetched).
+     * Note: The callback will not be called if there is no associated field.
+     * @returns `true` if the field exists on the document and `callback` will be called, and `false` otherwise
+     */
     GetAsync(key: Key, callback: (field: Field) => void): boolean {
+        //TODO: This should probably check if this.fields contains the key before calling Server.GetDocumentField
         //This currently doesn't deal with prototypes
         if (this._proxies.has(key.Id)) {
             Server.GetDocumentField(this, key, callback);
@@ -101,6 +128,44 @@ export class Document extends Field {
         return false;
     }
 
+    GetTAsync<T extends Field>(key: Key, ctor: { new(): T }, callback: (field: Opt<T>) => void): boolean {
+        return this.GetAsync(key, (field) => {
+            callback(Cast(field, ctor));
+        })
+    }
+
+    /**
+     * Same as {@link Document#GetAsync}, except a field of the given type
+     * will be created if there is no field associated with the given key,
+     * or the field associated with the given key is not of the given type.
+     * @param ctor - Constructor of the field type to get. E.g., TextField, ImageField, etc.
+     */
+    GetOrCreateAsync<T extends Field>(key: Key, ctor: { new(): T }, callback: (field: T) => void): void {
+        //This currently doesn't deal with prototypes
+        if (this._proxies.has(key.Id)) {
+            Server.GetDocumentField(this, key, (field) => {
+                if (field && field instanceof ctor) {
+                    callback(field);
+                } else {
+                    let newField = new ctor();
+                    this.Set(key, newField);
+                    callback(newField);
+                }
+            });
+        } else {
+            let newField = new ctor();
+            this.Set(key, newField);
+            callback(newField);
+        }
+    }
+
+    /**
+     * Same as {@link Document#Get}, except that it will additionally
+     * check if the field is of the given type.
+     * @param ctor - Constructor of the field type to get. E.g., `TextField`, `ImageField`, etc.
+     * @returns Same as {@link Document#Get}, except will return `undefined`
+     * if there is an associated field but it is of the wrong type.
+     */
     GetT<T extends Field = Field>(key: Key, ctor: { new(...args: any[]): T }, ignoreProto: boolean = false): FieldValue<T> {
         var getfield = this.Get(key, ignoreProto);
         if (getfield != FieldWaiting) {
@@ -123,6 +188,10 @@ export class Document extends Field {
         let val = this.Get(key);
         let vval = (val && val instanceof ctor) ? val.Data : defaultVal;
         return vval;
+    }
+
+    GetHtml(key: Key, defaultVal: string): string {
+        return this.GetData(key, HtmlField, defaultVal);
     }
 
     GetNumber(key: Key, defaultVal: number): number {

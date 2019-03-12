@@ -7,9 +7,20 @@ import React = require("react")
 import { TextField } from "../../../fields/TextField";
 import { observable, action } from "mobx";
 import "./CollectionTreeView.scss";
+import { EditableView } from "../EditableView";
+import { setupDrag } from "../../util/DragManager";
+import { FieldWaiting } from "../../../fields/Field";
+import { COLLECTION_BORDER_WIDTH } from "./CollectionView";
 
 export interface TreeViewProps {
     document: Document;
+    deleteDoc: (doc: Document) => void;
+}
+
+export enum BulletType {
+    Collapsed,
+    Collapsible,
+    List
 }
 
 @observer
@@ -21,61 +32,100 @@ class TreeView extends React.Component<TreeViewProps> {
     @observable
     collapsed: boolean = false;
 
+    delete = () => {
+        this.props.deleteDoc(this.props.document);
+    }
+
+
+    @action
+    remove = (document: Document) => {
+        var children = this.props.document.GetT<ListField<Document>>(KeyStore.Data, ListField);
+        if (children && children !== FieldWaiting) {
+            children.Data.splice(children.Data.indexOf(document), 1);
+        }
+    }
+
+    renderBullet(type: BulletType) {
+        let onClicked = action(() => this.collapsed = !this.collapsed);
+
+        switch (type) {
+            case BulletType.Collapsed:
+                return <div className="bullet" onClick={onClicked}>&#9654;</div>
+            case BulletType.Collapsible:
+                return <div className="bullet" onClick={onClicked}>&#9660;</div>
+            case BulletType.List:
+                return <div className="bullet">&mdash;</div>
+        }
+    }
+
     /**
-     * Renders a single child document. If this child is a collection, it will call renderTreeView again. Otherwise, it will just append a list element.
-     * @param document The document to render.
+     * Renders the EditableView title element for placement into the tree.
      */
-    renderChild(document: Document) {
-        var children = document.GetT<ListField<Document>>(KeyStore.Data, ListField);
-        let title = document.GetT<TextField>(KeyStore.Title, TextField);
+    renderTitle() {
+        let title = this.props.document.GetT<TextField>(KeyStore.Title, TextField);
 
         // if the title hasn't loaded, immediately return the div
         if (!title || title === "<Waiting>") {
-            return <div key={document.Id}></div>;
+            return <div key={this.props.document.Id}></div>;
         }
 
-        // otherwise, check if it's a collection.
-        else if (children && children !== "<Waiting>") {
-            // if it's not collapsed, then render the full TreeView.
-            if (!this.collapsed) {
-                return (
-                    <li className="uncollapsed" key={document.Id} onClick={action(() => this.collapsed = true)} >
-                        {title.Data}
-                        <ul key={document.Id}>
-                            <TreeView
-                                document={document}
-                            />
-                        </ul>
-                    </li>
-                );
-            } else {
-                return <li className="collapsed" key={document.Id} onClick={action(() => this.collapsed = false)}>{title.Data}</li>
-            }
-        }
-
-        // finally, if it's a normal document, then render it as such.
-        else {
-            return <li key={document.Id}>{title.Data}</li>;
-        }
+        return <div className="docContainer"> <EditableView contents={title.Data}
+            height={36} GetValue={() => {
+                let title = this.props.document.GetT<TextField>(KeyStore.Title, TextField);
+                if (title && title !== "<Waiting>")
+                    return title.Data;
+                return "";
+            }} SetValue={(value: string) => {
+                this.props.document.SetData(KeyStore.Title, value, TextField);
+                return true;
+            }} />
+            <div className="delete-button" onClick={this.delete}>x</div>
+        </div >
     }
 
     render() {
         var children = this.props.document.GetT<ListField<Document>>(KeyStore.Data, ListField);
 
-        if (children && children !== "<Waiting>") {
-            return (<div>
-                {children.Data.map(value => this.renderChild(value))}
-            </div>)
-            // let results: JSX.Element[] = [];
+        let reference = React.createRef<HTMLDivElement>();
+        let onItemDown = setupDrag(reference, () => this.props.document);
+        let titleElement = this.renderTitle();
 
-            // // append a list item for each child in the collection
-            // children.Data.forEach((value) => {
-            //     results.push(this.renderChild(value));
-            // })
+        // check if this document is a collection
+        if (children && children !== FieldWaiting) {
+            let subView;
 
-            // return results;
-        } else {
-            return <div></div>;
+            // if uncollapsed, then add the children elements
+            if (!this.collapsed) {
+                // render all children elements
+                let childrenElement = (children.Data.map(value =>
+                    <TreeView document={value} deleteDoc={this.remove} />)
+                )
+                subView =
+                    <li key={this.props.document.Id} >
+                        {this.renderBullet(BulletType.Collapsible)}
+                        {titleElement}
+                        <ul key={this.props.document.Id}>
+                            {childrenElement}
+                        </ul>
+                    </li>
+            } else {
+                subView = <li key={this.props.document.Id}>
+                    {this.renderBullet(BulletType.Collapsed)}
+                    {titleElement}
+                </li>
+            }
+
+            return <div className="treeViewItem-container" onPointerDown={onItemDown} ref={reference}>
+                {subView}
+            </div>
+        }
+
+        // otherwise this is a normal leaf node
+        else {
+            return <li key={this.props.document.Id}>
+                {this.renderBullet(BulletType.List)}
+                {titleElement}
+            </li>;
         }
     }
 }
@@ -84,21 +134,42 @@ class TreeView extends React.Component<TreeViewProps> {
 @observer
 export class CollectionTreeView extends CollectionViewBase {
 
+    @action
+    remove = (document: Document) => {
+        var children = this.props.Document.GetT<ListField<Document>>(KeyStore.Data, ListField);
+        if (children && children !== FieldWaiting) {
+            children.Data.splice(children.Data.indexOf(document), 1);
+        }
+    }
+
     render() {
         let titleStr = "";
         let title = this.props.Document.GetT<TextField>(KeyStore.Title, TextField);
-        if (title && title !== "<Waiting>") {
+        if (title && title !== FieldWaiting) {
             titleStr = title.Data;
         }
+
+        var children = this.props.Document.GetT<ListField<Document>>(KeyStore.Data, ListField);
+        let childrenElement = !children || children === FieldWaiting ? (null) :
+            (children.Data.map(value =>
+                <TreeView document={value} key={value.Id} deleteDoc={this.remove} />)
+            )
+
         return (
-            <div>
-                <h3>{titleStr}</h3>
+            <div id="body" className="collectionTreeView-dropTarget" onDrop={(e: React.DragEvent) => this.onDrop(e, {})} ref={this.createDropTarget} style={{ borderWidth: `${COLLECTION_BORDER_WIDTH}px` }}>
+                <h3>
+                    <EditableView contents={titleStr}
+                        height={72} GetValue={() => {
+                            return this.props.Document.Title;
+                        }} SetValue={(value: string) => {
+                            this.props.Document.SetData(KeyStore.Title, value, TextField);
+                            return true;
+                        }} />
+                </h3>
                 <ul className="no-indent">
-                    <TreeView
-                        document={this.props.Document}
-                    />
+                    {childrenElement}
                 </ul>
-            </div>
+            </div >
         );
     }
 }
