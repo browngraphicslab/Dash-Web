@@ -10,18 +10,7 @@ import * as pug from 'pug';
 import * as async from 'async';
 import * as nodemailer from 'nodemailer';
 import c = require("crypto");
-
-
-/**
- * GET /
- * Whenever a user navigates to the root of Dash
- * (doesn't specify a sub-route), redirect to login.
- * If the user is already signed in, it will effectively
- * automatically redirect them to /home instead
- */
-export let getEntry = (req: Request, res: Response) => {
-    res.redirect("/login");
-}
+import { RouteStore } from "../../RouteStore";
 
 /**
  * GET /signup
@@ -31,7 +20,7 @@ export let getEntry = (req: Request, res: Response) => {
 export let getSignup = (req: Request, res: Response) => {
     if (req.user) {
         let user = req.user;
-        return res.redirect("/home");
+        return res.redirect(RouteStore.home);
     }
     res.render("signup.pug", {
         title: "Sign Up",
@@ -56,7 +45,7 @@ export let postSignup = (req: Request, res: Response, next: NextFunction) => {
             title: "Sign Up",
             user: req.user,
         });
-        return res.redirect("/signup");
+        return res.redirect(RouteStore.signup);
     }
 
     const email = req.body.email;
@@ -71,7 +60,7 @@ export let postSignup = (req: Request, res: Response, next: NextFunction) => {
     User.findOne({ email }, (err, existingUser) => {
         if (err) { return next(err); }
         if (existingUser) {
-            return res.redirect("/login");
+            return res.redirect(RouteStore.login);
         }
         user.save((err) => {
             if (err) { return next(err); }
@@ -79,7 +68,7 @@ export let postSignup = (req: Request, res: Response, next: NextFunction) => {
                 if (err) {
                     return next(err);
                 }
-                res.redirect("/home");
+                res.redirect(RouteStore.home);
             });
         });
     });
@@ -93,7 +82,7 @@ export let postSignup = (req: Request, res: Response, next: NextFunction) => {
  */
 export let getLogin = (req: Request, res: Response) => {
     if (req.user) {
-        return res.redirect("/home");
+        return res.redirect(RouteStore.home);
     }
     res.render("login.pug", {
         title: "Log In",
@@ -104,7 +93,7 @@ export let getLogin = (req: Request, res: Response) => {
 /**
  * POST /login
  * Sign in using email and password.
- * On failure, redirect to login page
+ * On failure, redirect to signup page
  */
 export let postLogin = (req: Request, res: Response, next: NextFunction) => {
     req.assert("email", "Email is not valid").isEmail();
@@ -115,17 +104,17 @@ export let postLogin = (req: Request, res: Response, next: NextFunction) => {
 
     if (errors) {
         req.flash("errors", "Unable to login at this time. Please try again.");
-        return res.redirect("/signup");
+        return res.redirect(RouteStore.signup);
     }
 
     passport.authenticate("local", (err: Error, user: DashUserModel, info: IVerifyOptions) => {
         if (err) { return next(err); }
         if (!user) {
-            return res.redirect("/signup");
+            return res.redirect(RouteStore.signup);
         }
         req.logIn(user, (err) => {
             if (err) { return next(err); }
-            res.redirect("/home");
+            res.redirect(RouteStore.home);
         });
     })(req, res, next);
 };
@@ -136,16 +125,12 @@ export let postLogin = (req: Request, res: Response, next: NextFunction) => {
  * and destroys the user's current session.
  */
 export let getLogout = (req: Request, res: Response) => {
-    const dashUser: DashUserModel | undefined = req.user;
-    if (dashUser) {
-        dashUser.update({ $set: { didSelectSessionWorkspace: false } }, () => { })
-    }
     req.logout();
     const sess = req.session;
     if (sess) {
         sess.destroy((err) => { if (err) { console.log(err); } });
     }
-    res.redirect('/login');
+    res.redirect(RouteStore.login);
 }
 
 export let getForgot = function (req: Request, res: Response) {
@@ -172,7 +157,7 @@ export let postForgot = function (req: Request, res: Response, next: NextFunctio
             User.findOne({ email }, function (err, user: DashUserModel) {
                 if (!user) {
                     // NO ACCOUNT WITH SUBMITTED EMAIL
-                    return res.redirect('/forgot');
+                    return res.redirect(RouteStore.forgot);
                 }
                 user.passwordResetToken = token;
                 user.passwordResetExpires = new Date(Date.now() + 3600000); // 1 HOUR
@@ -205,14 +190,14 @@ export let postForgot = function (req: Request, res: Response, next: NextFunctio
         }
     ], function (err) {
         if (err) return next(err);
-        res.redirect('/forgot');
+        res.redirect(RouteStore.forgot);
     })
 }
 
 export let getReset = function (req: Request, res: Response) {
     User.findOne({ passwordResetToken: req.params.token, passwordResetExpires: { $gt: Date.now() } }, function (err, user: DashUserModel) {
         if (!user || err) {
-            return res.redirect('/forgot');
+            return res.redirect(RouteStore.forgot);
         }
         res.render("reset.pug", {
             title: "Reset Password",
@@ -242,7 +227,7 @@ export let postReset = function (req: Request, res: Response) {
 
                 user.save(function (err) {
                     if (err) {
-                        return res.redirect("/login");
+                        return res.redirect(RouteStore.login);
                     }
                     req.logIn(user, function (err) {
                         if (err) {
@@ -273,6 +258,6 @@ export let postReset = function (req: Request, res: Response) {
             });
         }
     ], function (err) {
-        res.redirect('/login');
+        res.redirect(RouteStore.login);
     });
 }

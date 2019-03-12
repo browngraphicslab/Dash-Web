@@ -4,6 +4,7 @@ import * as mongodb from 'mongodb';
 import * as _ from "lodash";
 import { default as User } from '../models/user_model';
 import { Request, Response, NextFunction } from "express";
+import { RouteStore } from '../../RouteStore';
 
 const LocalStrategy = passportLocal.Strategy;
 
@@ -35,7 +36,7 @@ export let isAuthenticated = (req: Request, res: Response, next: NextFunction) =
     if (req.isAuthenticated()) {
         return next();
     }
-    return res.redirect("/login");
+    return res.redirect(RouteStore.login);
 }
 
 export let isAuthorized = (req: Request, res: Response, next: NextFunction) => {

@@ -14,6 +14,11 @@ import { HtmlField } from "../../fields/HtmlField";
 import { Key } from "../../fields/Key"
 import { Field } from "../../fields/Field";
 import { KeyValueBox } from "../views/nodes/KeyValueBox"
+import { KVPField } from "../../fields/KVPField";
+import { VideoField } from "../../fields/VideoField"
+import { VideoBox } from "../views/nodes/VideoBox";
+import { AudioField } from "../../fields/AudioField";
+import { AudioBox } from "../views/nodes/AudioBox";
 import { PDFField } from "../../fields/PDFField";
 import { PDFBox } from "../views/nodes/PDFBox";
 import { CollectionPDFView } from "../views/collections/CollectionPDFView";
@@ -29,6 +34,7 @@ export interface DocumentOptions {
     title?: string;
     panx?: number;
     pany?: number;
+    page?: number;
     scale?: number;
     layout?: string;
     layoutKeys?: Key[];
@@ -41,6 +47,8 @@ export namespace Documents {
     let webProto: Document;
     let collProto: Document;
     let kvpProto: Document;
+    let videoProto: Document;
+    let audioProto: Document;
     let pdfProto: Document;
     const textProtoId = "textProto";
     const pdfProtoId = "pdfProto";
@@ -48,6 +56,8 @@ export namespace Documents {
     const webProtoId = "webProto";
     const collProtoId = "collectionProto";
     const kvpProtoId = "kvpProto";
+    const videoProtoId = "videoProto"
+    const audioProtoId = "audioProto";
 
     export function initProtos(callback: () => void) {
         Server.GetFields([collProtoId, textProtoId, imageProtoId], (fields) => {
@@ -69,6 +79,7 @@ export namespace Documents {
         if (options.title !== undefined) { doc.SetText(KeyStore.Title, options.title); }
         if (options.panx !== undefined) { doc.SetNumber(KeyStore.PanX, options.panx); }
         if (options.pany !== undefined) { doc.SetNumber(KeyStore.PanY, options.pany); }
+        if (options.page !== undefined) { doc.SetNumber(KeyStore.Page, options.page); }
         if (options.scale !== undefined) { doc.SetNumber(KeyStore.Scale, options.scale); }
         if (options.viewType !== undefined) { doc.SetNumber(KeyStore.ViewType, options.viewType); }
         if (options.layout !== undefined) { doc.SetText(KeyStore.Layout, options.layout); }
@@ -124,14 +135,31 @@ export namespace Documents {
             kvpProto = setupPrototypeOptions(kvpProtoId, "KVP_PROTO", KeyValueBox.LayoutString(),
                 { x: 0, y: 0, width: 300, height: 150, layoutKeys: [KeyStore.Data] })
     }
+    function GetVideoPrototype(): Document {
+        return videoProto ? videoProto :
+            videoProto = setupPrototypeOptions(videoProtoId, "VIDEO_PROTO", VideoBox.LayoutString(),
+                { x: 0, y: 0, width: 300, height: 150, layoutKeys: [KeyStore.Data] })
+    }
+    function GetAudioPrototype(): Document {
+        return audioProto ? audioProto :
+            audioProto = setupPrototypeOptions(audioProtoId, "AUDIO_PROTO", AudioBox.LayoutString(),
+                { x: 0, y: 0, width: 300, height: 150, layoutKeys: [KeyStore.Data] })
+    }
+
 
     export function ImageDocument(url: string, options: DocumentOptions = {}) {
         let doc = SetInstanceOptions(GetImagePrototype(), { ...options, layoutKeys: [KeyStore.Data, KeyStore.Annotations, KeyStore.Caption] },
             new URL(url), ImageField);
-        doc.SetText(KeyStore.Caption, "my caption...");
-        doc.SetText(KeyStore.BackgroundLayout, EmbeddedCaption());
-        doc.SetText(KeyStore.OverlayLayout, FixedCaption());
+        // doc.SetText(KeyStore.Caption, "my caption...");
+        // doc.SetText(KeyStore.BackgroundLayout, EmbeddedCaption());
+        // doc.SetText(KeyStore.OverlayLayout, FixedCaption());
         return doc;
+    }
+    export function VideoDocument(url: string, options: DocumentOptions = {}) {
+        return SetInstanceOptions(GetVideoPrototype(), options, new URL(url), VideoField);
+    }
+    export function AudioDocument(url: string, options: DocumentOptions = {}) {
+        return SetInstanceOptions(GetAudioPrototype(), options, new URL(url), AudioField);
     }
     export function TextDocument(options: DocumentOptions = {}) {
         return SetInstanceOptions(GetTextPrototype(), options, undefined, undefined);
@@ -170,10 +198,10 @@ export namespace Documents {
             + FormattedTextBox.LayoutString("CaptionKey") +
             `</div> 
         </div>` };
-    function FixedCaption() {
+    function FixedCaption(fieldName: string = "Caption") {
         return `<div style="position:absolute; height:30px; bottom:0; width:100%">
             <div style="position:absolute; width:100%; height:100%; text-align:center;bottom:0;">`
-            + FormattedTextBox.LayoutString("CaptionKey") +
+            + FormattedTextBox.LayoutString(fieldName + "Key") +
             `</div> 
         </div>` };
 }

@@ -1,17 +1,24 @@
-import {HtmlField} from '../fields/HtmlField';
+
+import { Field } from './../fields/Field';
+import { TextField } from './../fields/TextField';
+import { NumberField } from './../fields/NumberField';
+import { RichTextField } from './../fields/RichTextField';
+import { Key } from './../fields/Key';
+import { ImageField } from './../fields/ImageField';
+import { ListField } from './../fields/ListField';
+import { Document } from './../fields/Document';
+import { Server } from './../client/Server';
+import { Types } from './Message';
+import { Utils } from '../Utils';
+import { HtmlField } from '../fields/HtmlField';
+import { WebField } from '../fields/WebField';
+import { AudioField } from '../fields/AudioField';
+import { VideoField } from '../fields/VideoField';
 import {InkField} from '../fields/InkField';
 import {PDFField} from '../fields/PDFField';
-import {WebField} from '../fields/WebField';
-import {Utils} from '../Utils';
-import {Document} from './../fields/Document';
-import {Field} from './../fields/Field';
-import {ImageField} from './../fields/ImageField';
-import {Key} from './../fields/Key';
-import {ListField} from './../fields/ListField';
-import {NumberField} from './../fields/NumberField';
-import {RichTextField} from './../fields/RichTextField';
-import {TextField} from './../fields/TextField';
-import {Types} from './Message';
+
+
+
 
 export class ServerUtils {
     public static FromJson(json: any): Field {
@@ -44,6 +51,10 @@ export class ServerUtils {
                 return new PDFField(new URL(data), id, false)
             case Types.List:
                 return ListField.FromJson(id, data)
+            case Types.Audio:
+                return new AudioField(new URL(data), id, false)
+            case Types.Video:
+                return new VideoField(new URL(data), id, false)
             case Types.Ink:
                 return InkField.FromJson(id, data);
             case Types.Document:

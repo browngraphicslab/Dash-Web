@@ -23,6 +23,7 @@ export type DashUserModel = mongoose.Document & {
 
     allWorkspaceIds: Array<String>,
     activeWorkspaceId: String,
+    activeUsersId: String,
 
     profile: {
         name: string,
@@ -53,6 +54,7 @@ const userSchema = new mongoose.Schema({
         default: []
     },
     activeWorkspaceId: String,
+    activeUsersId: String,
 
     facebook: String,
     twitter: String,

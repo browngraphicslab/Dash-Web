@@ -3,6 +3,8 @@ const app = express()
 import * as webpack from 'webpack'
 import * as wdm from 'webpack-dev-middleware';
 import * as whm from 'webpack-hot-middleware';
+import * as path from 'path'
+import * as formidable from 'formidable'
 import * as passport from 'passport';
 import { MessageStore, Message, SetFieldArgs, GetFieldArgs, Transferable } from "./Message";
 import { Client } from './Client';
@@ -17,7 +19,7 @@ import * as bcrypt from "bcrypt-nodejs";
 import { Document } from '../fields/Document';
 import * as io from 'socket.io'
 import * as passportConfig from './authentication/config/passport';
-import { getLogin, postLogin, getSignup, postSignup, getLogout, getEntry, postReset, getForgot, postForgot, getReset } from './authentication/controllers/user_controller';
+import { getLogin, postLogin, getSignup, postSignup, getLogout, postReset, getForgot, postForgot, getReset } from './authentication/controllers/user_controller';
 const config = require('../../webpack.config');
 const compiler = webpack(config);
 const port = 1050; // default port to listen
@@ -33,10 +35,10 @@ import c = require("crypto");
 const MongoStore = require('connect-mongo')(session);
 const mongoose = require('mongoose');
 import { performance } from 'perf_hooks'
-import * as path from 'path'
 import User, { DashUserModel } from './authentication/models/user_model';
 import * as fs from 'fs';
 import * as request from 'request'
+import { RouteStore } from './RouteStore';
 
 const download = (url: string, dest: fs.PathLike) => {
     request.get(url).pipe(fs.createWriteStream(dest));
@@ -61,11 +63,7 @@ app.use(session({
         url: 'mongodb://localhost:27017/Dash'
     })
 }));
-// app.use(cookieSession({
-//     name: 'authentication',
-//     keys: [`${c.randomBytes(8)}`, `${c.randomBytes(8)}`, `${c.randomBytes(8)}`],
-//     maxAge: 7 * 24 * 60 * 60 * 1000
-// }));
+
 app.use(flash());
 app.use(expressFlash());
 app.use(bodyParser.json());
@@ -78,97 +76,123 @@ app.use((req, res, next) => {
     next();
 });
 
-// AUTHENTICATION ROUTING
-
 enum Method {
-    Get,
-    Post
+    GET,
+    POST
 }
 
+/**
+ * Please invoke this function when adding a new route to Dash's server.
+ * It ensures that any requests leading to or containing user-sensitive information
+ * does not execute unless Passport authentication detects a user logged in.
+ * @param method whether or not the request is a GET or a POST
+ * @param route the forward slash prepended path name (reference and add to RouteStore.ts)
+ * @param handler the action to invoke, recieving a DashUserModel and the expected request and response
+ * @param onRejection an optional callback invoked on return if no user is found to be logged in
+ */
 function addSecureRoute(method: Method,
     route: string,
     handler: (user: DashUserModel, req: express.Request, res: express.Response) => void,
-    nope: (res: express.Response) => any) {
-    route = "/" + route;
+    onRejection: (res: express.Response) => any = (res) => res.redirect(RouteStore.logout)) {
     switch (method) {
-        case Method.Get:
+        case Method.GET:
             app.get(route, (req, res) => {
                 const dashUser: DashUserModel = req.user;
-                if (!dashUser) return nope(res);
+                if (!dashUser) return onRejection(res);
                 handler(dashUser, req, res);
             });
             break;
-        case Method.Post:
+        case Method.POST:
             app.post(route, (req, res) => {
                 const dashUser: DashUserModel = req.user;
-                if (!dashUser) return nope(res);
+                if (!dashUser) return onRejection(res);
                 handler(dashUser, req, res);
             });
             break;
     }
 }
 
-// ***
-// Look for the definitions of these get and post
-// functions in the exports of user.ts
+// STATIC FILE SERVING
 
-addSecureRoute(Method.Get, "home", (user, req, res) => {
-    res.sendFile(path.join(__dirname, '../../deploy/index.html'));
-}, res => res.redirect("/login"))
+let FieldStore: ObservableMap<FieldId, Field> = new ObservableMap();
 
-addSecureRoute(Method.Get, "getActiveWorkspaceId", (user, req, res) => {
-    res.send(user.activeWorkspaceId || "");
-}, () => { });
+app.use(express.static(__dirname + RouteStore.public));
+app.use(RouteStore.images, express.static(__dirname + RouteStore.public))
 
-addSecureRoute(Method.Get, "getAllWorkspaceIds", (user, req, res) => {
-    res.send(JSON.stringify(user.allWorkspaceIds as Array<String>));
-}, () => { });
-
-addSecureRoute(Method.Post, "setActiveWorkspaceId", (user, req) => {
-    user.update({ $set: { activeWorkspaceId: req.body.target } }, () => { });
-}, () => { });
-
-addSecureRoute(Method.Post, "addWorkspaceId", (user, req) => {
-    user.update({ $push: { allWorkspaceIds: req.body.target } }, () => { });
-}, () => { });
+addSecureRoute(Method.POST, RouteStore.upload, (user, req, res) => {
+    let form = new formidable.IncomingForm()
+    form.uploadDir = __dirname + "/public/files/"
+    form.keepExtensions = true
+    // let path = req.body.path;
+    console.log("upload")
+    form.parse(req, (err, fields, files) => {
+        console.log("parsing")
+        let names: any[] = [];
+        for (const name in files) {
+            let file = files[name];
+            names.push(`/files/` + path.basename(file.path));
+        }
+        res.send(names);
+    });
+});
 
 // anyone attempting to navigate to localhost at this port will
 // first have to login
-app.get("/", getEntry);
+addSecureRoute(Method.GET, RouteStore.root, (user, req, res) => {
+
+}, res => {
+    res.send()
+});
+
+// YAY! SHOW THEM THEIR WORKSPACES NOW
+addSecureRoute(Method.GET, RouteStore.home, (user, req, res) => {
+    res.sendFile(path.join(__dirname, '../../deploy/index.html'));
+});
+
+addSecureRoute(Method.GET, RouteStore.getActiveWorkspace, (user, req, res) => {
+    res.send(user.activeWorkspaceId || "");
+});
+
+addSecureRoute(Method.GET, RouteStore.getAllWorkspaces, (user, req, res) => {
+    res.send(JSON.stringify(user.allWorkspaceIds as Array<String>));
+});
+
+addSecureRoute(Method.POST, RouteStore.setActiveWorkspace, (user, req) => {
+    user.update({ $set: { activeWorkspaceId: req.body.target } }, () => { });
+});
+
+addSecureRoute(Method.POST, RouteStore.addWorkspace, (user, req) => {
+    user.update({ $push: { allWorkspaceIds: req.body.target } }, () => { });
+});
+
+// AUTHENTICATION
 
 // Sign Up
-app.get("/signup", getSignup);
-app.post("/signup", postSignup);
+app.get(RouteStore.signup, getSignup);
+app.post(RouteStore.signup, postSignup);
 
 // Log In
-app.get("/login", getLogin);
-app.post("/login", postLogin);
+app.get(RouteStore.login, getLogin);
+app.post(RouteStore.login, postLogin);
 
 // Log Out
-app.get('/logout', getLogout);
-
-// *** 
+app.get(RouteStore.logout, getLogout);
 
 // FORGOT PASSWORD EMAIL HANDLING
-app.get('/forgot', getForgot)
-app.post('/forgot', postForgot)
+app.get(RouteStore.forgot, getForgot)
+app.post(RouteStore.forgot, postForgot)
 
 // RESET PASSWORD EMAIL HANDLING
-app.get('/reset/:token', getReset);
-app.post('/reset/:token', postReset);
+app.get(RouteStore.reset, getReset);
+app.post(RouteStore.reset, postReset);
 
-let FieldStore: ObservableMap<FieldId, Field> = new ObservableMap();
-app.get("/hello", (req, res) => {
-    res.send("<p>Hello</p>");
-})
-
-app.use("/corsProxy", (req, res) => {
+app.use(RouteStore.corsProxy, (req, res) => {
     req.pipe(request(req.url.substring(1))).pipe(res);
 });
 
-app.get("/delete", (req, res) => {
+app.get(RouteStore.delete, (req, res) => {
     deleteAll();
-    res.redirect("/");
+    res.redirect(RouteStore.home);
 });
 
 app.use(wdm(compiler, {
@@ -208,10 +232,6 @@ function barReceived(guid: String) {
     clients[guid.toString()] = new Client(guid.toString());
 }
 
-function addDocument(document: Document) {
-
-}
-
 function getField([id, callback]: [string, (result: any) => void]) {
     Database.Instance.getDocument(id, (result: any) => {
         if (result) {
@@ -228,8 +248,9 @@ function getFields([ids, callback]: [string[], (result: any) => void]) {
 }
 
 function setField(socket: Socket, newValue: Transferable) {
-    Database.Instance.update(newValue._id, newValue)
-    socket.broadcast.emit(MessageStore.SetField.Message, newValue)
+    Database.Instance.update(newValue._id, newValue, () => {
+        socket.broadcast.emit(MessageStore.SetField.Message, newValue);
+    })
 }
 
 server.listen(serverPort);

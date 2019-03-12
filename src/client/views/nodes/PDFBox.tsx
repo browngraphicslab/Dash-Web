@@ -17,6 +17,7 @@ import "./ImageBox.scss";
 import "./PDFBox.scss";
 import { Sticky } from './Sticky'; //you should look at sticky and annotation, because they are used here
 import React = require("react")
+import { RouteStore } from "../../../server/RouteStore";
 
 /** ALSO LOOK AT: Annotation.tsx, Sticky.tsx
  * This method renders PDF and puts all kinds of functionalities such as annotation, highlighting, 
@@ -423,7 +424,9 @@ export class PDFBox extends React.Component<FieldViewProps> {
         //      so this design is flawed.
         var nativeWidth = this.props.doc.GetNumber(KeyStore.NativeWidth, 0);
         if (!this.props.doc.GetNumber(KeyStore.NativeHeight, 0)) {
-            this.props.doc.SetNumber(KeyStore.NativeHeight, nativeWidth * r.entry.height / r.entry.width);
+            var nativeHeight = nativeWidth * r.entry.height / r.entry.width;
+            this.props.doc.SetNumber(KeyStore.Height, nativeHeight / nativeWidth * this.props.doc.GetNumber(KeyStore.Width, 0));
+            this.props.doc.SetNumber(KeyStore.NativeHeight, nativeHeight);
         }
         if (!this.props.doc.GetT(KeyStore.Thumbnail, ImageField)) {
             this.saveThumbnail();
@@ -439,7 +442,7 @@ export class PDFBox extends React.Component<FieldViewProps> {
         let pdfUrl = this.props.doc.GetT(this.props.fieldKey, PDFField);
         let xf = this.props.doc.GetNumber(KeyStore.NativeHeight, 0) / renderHeight;
         return <div className="pdfBox-contentContainer" key="container" style={{ transform: `scale(${xf}, ${xf})` }}>
-            <Document file={window.origin + "/corsProxy/" + `${pdfUrl}`}>
+            <Document file={window.origin + RouteStore.corsProxy + `${pdfUrl}`}>
                 <Measure onResize={this.setScaling}>
                     {({ measureRef }) =>
                         <div className="pdfBox-page" ref={measureRef}>

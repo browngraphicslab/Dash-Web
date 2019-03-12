@@ -22,6 +22,8 @@ import "./Main.scss";
 import { observer } from 'mobx-react';
 import { Field, Opt } from '../../fields/Field';
 import { InkingControl } from './InkingControl';
+import { RouteStore } from '../../server/RouteStore';
+import { Database } from '../../server/database';
 
 @observer
 export class Main extends React.Component {
@@ -29,6 +31,7 @@ export class Main extends React.Component {
     @observable private mainContainer?: Document;
     @observable private mainfreeform?: Document;
     @observable private userWorkspaces: Document[] = [];
+    @observable private activeUsers: Document[] = [];
 
     constructor(props: Readonly<{}>) {
         super(props);
@@ -54,11 +57,11 @@ export class Main extends React.Component {
 
     initAuthenticationRouters = () => {
         // Load the user's active workspace, or create a new one if initial session after signup
-        request.get(this.contextualize("getActiveWorkspaceId"), (error, response, body) => {
+        request.get(this.prepend(RouteStore.getActiveWorkspace), (error, response, body) => {
             if (body) {
                 Server.GetField(body, field => {
                     if (field instanceof Document) {
-                        this.openDocument(field);
+                        this.openWorkspace(field);
                         this.populateWorkspaces();
                     } else {
                         this.createNewWorkspace(true);
@@ -74,7 +77,7 @@ export class Main extends React.Component {
     createNewWorkspace = (init: boolean): void => {
         let mainDoc = Documents.DockDocument(JSON.stringify({ content: [{ type: 'row', content: [] }] }), { title: `Main Container ${this.userWorkspaces.length + 1}` });
         let newId = mainDoc.Id;
-        request.post(this.contextualize("addWorkspaceId"), {
+        request.post(this.prepend(RouteStore.addWorkspace), {
             body: { target: newId },
             json: true
         }, () => { if (init) this.populateWorkspaces(); });
@@ -85,23 +88,24 @@ export class Main extends React.Component {
             var dockingLayout = { content: [{ type: 'row', content: [CollectionDockingView.makeDocumentConfig(freeformDoc)] }] };
             mainDoc.SetText(KeyStore.Data, JSON.stringify(dockingLayout));
             mainDoc.Set(KeyStore.ActiveFrame, freeformDoc);
-            this.openDocument(mainDoc);
+            this.openWorkspace(mainDoc);
         }, 0);
         this.userWorkspaces.push(mainDoc);
+        mainDoc.GetList<Document>(KeyStore.ActiveUsers, []);
     }
 
     @action
     populateWorkspaces = () => {
         // retrieve all workspace documents from the server
-        request.get(this.contextualize("getAllWorkspaceIds"), (error, res, body) => {
+        request.get(this.prepend(RouteStore.getAllWorkspaces), (error, res, body) => {
             let ids = JSON.parse(body) as string[];
             Server.GetFields(ids, action((fields: { [id: string]: Field }) => this.userWorkspaces = ids.map(id => fields[id] as Document)));
         });
     }
 
     @action
-    openDocument = (doc: Document): void => {
-        request.post(this.contextualize("setActiveWorkspaceId"), {
+    openWorkspace = (doc: Document): void => {
+        request.post(this.prepend(RouteStore.setActiveWorkspace), {
             body: { target: doc.Id },
             json: true
         });
@@ -115,27 +119,34 @@ export class Main extends React.Component {
         }
     }
 
-    contextualize = (extension: string) => window.location.origin + "/" + extension;
+    prepend = (extension: string) => window.location.origin + extension;
 
     render() {
         let imgRef = React.createRef<HTMLDivElement>();
+        let pdfRef = React.createRef<HTMLDivElement>();
         let webRef = React.createRef<HTMLDivElement>();
         let textRef = React.createRef<HTMLDivElement>();
         let schemaRef = React.createRef<HTMLDivElement>();
+        let videoRef = React.createRef<HTMLDivElement>();
+        let audioRef = React.createRef<HTMLDivElement>();
         let colRef = React.createRef<HTMLDivElement>();
         let workspacesRef = React.createRef<HTMLDivElement>();
-        let pdfRef = React.createRef<HTMLDivElement>();
 
         let imgurl = "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg";
         let pdfurl = "http://www.adobe.com/support/products/enterprise/knowledgecenter/media/c4611_sample_explain.pdf"
         let weburl = "https://cs.brown.edu/courses/cs166/";
+        let audiourl = "http://techslides.com/demos/samples/sample.mp3";
+        let videourl = "http://techslides.com/demos/sample-videos/small.mp4";
+
         let clearDatabase = action(() => Utils.Emit(Server.Socket, MessageStore.DeleteAll, {}))
         let addTextNode = action(() => Documents.TextDocument({ width: 200, height: 200, title: "a text note" }))
-        let addColNode = action(() => Documents.FreeformDocument([], { width: 200, height: 200, title: "a feeform collection" }));
-        let addPDFNode = action(() => Documents.PdfDocument(pdfurl, { width: 200, height: 200, title: "a schema collection" }));
+        let addColNode = action(() => Documents.FreeformDocument([], { width: 200, height: 200, title: "a freeform collection" }));
         let addSchemaNode = action(() => Documents.SchemaDocument([Documents.TextDocument()], { width: 200, height: 200, title: "a schema collection" }));
+        let addVideoNode = action(() => Documents.VideoDocument(videourl, { width: 200, height: 200, title: "video node" }));
+        let addPDFNode = action(() => Documents.PdfDocument(pdfurl, { width: 200, height: 200, title: "a schema collection" }));
         let addImageNode = action(() => Documents.ImageDocument(imgurl, { width: 200, height: 200, title: "an image of a cat" }));
         let addWebNode = action(() => Documents.WebDocument(weburl, { width: 200, height: 200, title: "a sample web page" }));
+        let addAudioNode = action(() => Documents.AudioDocument(audiourl, { width: 200, height: 200, title: "audio node" }))
 
         let addClick = (creator: () => Document) => action(() => this.mainfreeform!.GetList<Document>(KeyStore.Data, []).push(creator()));
 
@@ -155,7 +166,7 @@ export class Main extends React.Component {
                     ContainingCollectionView={undefined} />
                 <DocumentDecorations />
                 <ContextMenu />
-                <WorkspacesMenu active={this.mainContainer} open={this.openDocument} new={this.createNewWorkspace} allWorkspaces={this.userWorkspaces} />
+                <WorkspacesMenu active={this.mainContainer} open={this.openWorkspace} new={this.createNewWorkspace} allWorkspaces={this.userWorkspaces} />
                 <div className="main-buttonDiv" style={{ bottom: '0px' }} ref={imgRef} >
                     <button onPointerDown={setupDrag(imgRef, addImageNode)} onClick={addClick(addImageNode)}>Add Image</button></div>
                 <div className="main-buttonDiv" style={{ bottom: '25px' }} ref={webRef} >
@@ -170,6 +181,10 @@ export class Main extends React.Component {
                     <button onClick={clearDatabase}>Clear Database</button></div>
                 <div className="main-buttonDiv" style={{ top: '25px' }} ref={workspacesRef}>
                     <button onClick={this.toggleWorkspaces}>View Workspaces</button></div>
+                <div className="main-buttonDiv" style={{ bottom: '175px' }} ref={videoRef}>
+                    <button onPointerDown={setupDrag(videoRef, addVideoNode)} onClick={addClick(addVideoNode)}>Add Video</button></div>
+                <div className="main-buttonDiv" style={{ bottom: '200px' }} ref={audioRef}>
+                    <button onPointerDown={setupDrag(audioRef, addAudioNode)} onClick={addClick(addAudioNode)}>Add Audio</button></div>
                 <div className="main-buttonDiv" style={{ bottom: '150px' }} ref={pdfRef}>
                     <button onPointerDown={setupDrag(pdfRef, addPDFNode)} onClick={addClick(addPDFNode)}>Add PDF</button></div>
                 <button className="main-undoButtons" style={{ bottom: '25px' }} onClick={() => UndoManager.Undo()}>Undo</button>
