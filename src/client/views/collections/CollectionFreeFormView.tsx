@@ -77,7 +77,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
     @action
     onPointerDown = (e: React.PointerEvent): void => {
-        if (((e.button === 2 && this.props.active()) || !e.defaultPrevented) && !e.shiftKey &&
+        if (((e.button === 2 && this.props.active()) || !e.defaultPrevented) &&
             (!this.isAnnotationOverlay || this.zoomScaling != 1 || e.button == 0)) {
             document.removeEventListener("pointermove", this.onPointerMove);
             document.addEventListener("pointermove", this.onPointerMove);

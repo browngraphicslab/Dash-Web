@@ -158,7 +158,7 @@ export namespace DragManager {
             e.preventDefault();
             x += e.movementX;
             y += e.movementY;
-            if (e.shiftKey) {
+            if (e.shiftKey && (e.button == 2 || e.altKey)) {
                 abortDrag();
                 CollectionDockingView.Instance.StartOtherDrag(doc, { pageX: e.pageX, pageY: e.pageY, preventDefault: () => { }, button: 0 });
             }

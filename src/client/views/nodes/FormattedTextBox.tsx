@@ -113,7 +113,7 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
         this.props.doc.SetData(this.props.fieldKey, e.target.value, RichTextField);
     }
     onPointerDown = (e: React.PointerEvent): void => {
-        if (e.buttons === 1 && this.props.isSelected()) {
+        if (e.buttons === 1 && this.props.isSelected() && !e.altKey) {
             e.stopPropagation();
         }
     }
