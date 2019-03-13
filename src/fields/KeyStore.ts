@@ -33,6 +33,7 @@ export namespace KeyStore {
     export const LinkTags = new Key("LinkTag");
     export const Thumbnail = new Key("Thumbnail");
     export const CurPage = new Key("CurPage");
+    export const CurFrame = new Key("CurFrame");
     export const NumPages = new Key("NumPages");
     export const Ink = new Key("Ink");
 }

@@ -1,5 +1,5 @@
 
-import { action, observable } from 'mobx';
+import { action, observable, trace } from 'mobx';
 import { observer } from "mobx-react";
 import Lightbox from 'react-image-lightbox';
 import 'react-image-lightbox/style.css'; // This only needs to be imported once in your app
@@ -98,6 +98,7 @@ export class ImageBox extends React.Component<FieldViewProps> {
     }
 
     render() {
+        trace();
         let field = this.props.doc.Get(this.props.fieldKey);
         let path = field == FieldWaiting ? "https://image.flaticon.com/icons/svg/66/66163.svg" :
             field instanceof ImageField ? field.Data.href : "http://www.cs.brown.edu/~bcz/face.gif";

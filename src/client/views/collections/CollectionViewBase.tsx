@@ -52,12 +52,11 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
                 docView.props.RemoveDocument(docView.props.Document);
             }
             this.props.addDocument(docView.props.Document);
-            e.stopPropagation();
         } else if (doc) {
             this.props.removeDocument(doc);
             this.props.addDocument(doc);
-            e.stopPropagation();
         }
+        e.stopPropagation();
     }
 
     @action
@@ -109,7 +108,7 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
                                 var doc: any;
 
                                 if (type.indexOf("image") !== -1) {
-                                    doc = Documents.ImageDocument(path, { ...options, nativeWidth: 300, width: 300, })
+                                    doc = Documents.ImageDocument(path, { ...options, nativeWidth: 200, width: 200, })
                                 }
                                 if (type.indexOf("video") !== -1) {
                                     doc = Documents.VideoDocument(path, { ...options, nativeWidth: 300, width: 300, })

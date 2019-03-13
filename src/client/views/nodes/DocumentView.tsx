@@ -1,4 +1,4 @@
-import { action, computed, IReactionDisposer, runInAction, reaction } from "mobx";
+import { action, computed, IReactionDisposer, runInAction, reaction, trace } from "mobx";
 import { observer } from "mobx-react";
 import { Document } from "../../../fields/Document";
 import { Field, FieldWaiting, Opt } from "../../../fields/Field";
@@ -13,6 +13,7 @@ import { CollectionFreeFormView } from "../collections/CollectionFreeFormView";
 import { CollectionSchemaView } from "../collections/CollectionSchemaView";
 import { CollectionView, CollectionViewType } from "../collections/CollectionView";
 import { CollectionPDFView } from "../collections/CollectionPDFView";
+import { CollectionVideoView } from "../collections/CollectionVideoView";
 import { ContextMenu } from "../ContextMenu";
 import { FormattedTextBox } from "../nodes/FormattedTextBox";
 import { ImageBox } from "../nodes/ImageBox";
@@ -275,9 +276,10 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         SelectionManager.SelectDoc(this, e.ctrlKey);
     }
 
+    @computed
     get mainContent() {
         return <JsxParser
-            components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, WebBox, KeyValueBox, VideoBox, AudioBox, PDFBox }}
+            components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, CollectionVideoView, WebBox, KeyValueBox, PDFBox, VideoBox, AudioBox }}
             bindings={this._documentBindings}
             jsx={this.layout}
             showWarnings={true}
@@ -294,7 +296,9 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     }
 
     render() {
-        if (!this.props.Document) return <div></div>
+        if (!this.props.Document) {
+            return (null);
+        }
         let lkeys = this.props.Document.GetT(KeyStore.LayoutKeys, ListField);
         if (!lkeys || lkeys === "<Waiting>") {
             return <p>Error loading layout keys</p>;

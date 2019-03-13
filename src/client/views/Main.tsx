@@ -60,9 +60,9 @@ Documents.initProtos(mainDocId, (res?: Document) => {
     let addTextNode = action(() => Documents.TextDocument({ width: 200, height: 200, title: "a text note" }))
     let addColNode = action(() => Documents.FreeformDocument([], { width: 200, height: 200, title: "a freeform collection" }));
     let addSchemaNode = action(() => Documents.SchemaDocument([Documents.TextDocument()], { width: 200, height: 200, title: "a schema collection" }));
-    let addVideoNode = action(() => Documents.VideoDocument(videourl, { width: 200, height: 200, title: "video node" }));
-    let addPDFNode = action(() => Documents.PdfDocument(pdfurl, { width: 200, height: 200, title: "a schema collection" }));
-    let addImageNode = action(() => Documents.ImageDocument(imgurl, { width: 200, height: 200, title: "an image of a cat" }));
+    let addVideoNode = action(() => Documents.VideoDocument(videourl, { width: 200, title: "video node" }));
+    let addPDFNode = action(() => Documents.PdfDocument(pdfurl, { width: 200, title: "a schema collection" }));
+    let addImageNode = action(() => Documents.ImageDocument(imgurl, { width: 200, title: "an image of a cat" }));
     let addWebNode = action(() => Documents.WebDocument(weburl, { width: 200, height: 200, title: "a sample web page" }));
     let addAudioNode = action(() => Documents.AudioDocument(audiourl, { width: 200, height: 200, title: "audio node" }))
     let addClick = (creator: () => Document) => action(() =>

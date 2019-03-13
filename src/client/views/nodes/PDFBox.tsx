@@ -1,5 +1,5 @@
 import * as htmlToImage from "html-to-image";
-import { action, computed, observable, reaction, IReactionDisposer } from 'mobx';
+import { action, computed, observable, reaction, IReactionDisposer, trace } from 'mobx';
 import { observer } from "mobx-react";
 import 'react-image-lightbox/style.css';
 import Measure from "react-measure";

@@ -137,9 +137,13 @@ export namespace Documents {
                 { x: 0, y: 0, width: 300, height: 150, layoutKeys: [KeyStore.Data] })
     }
     function GetVideoPrototype(): Document {
-        return videoProto ? videoProto :
-            videoProto = setupPrototypeOptions(videoProtoId, "VIDEO_PROTO", VideoBox.LayoutString(),
-                { x: 0, y: 0, width: 300, height: 150, layoutKeys: [KeyStore.Data] })
+        if (!videoProto) {
+            videoProto = setupPrototypeOptions(videoProtoId, "VIDEO_PROTO", CollectionView.LayoutString("AnnotationsKey"),
+                { x: 0, y: 0, nativeWidth: 600, width: 300, layoutKeys: [KeyStore.Data, KeyStore.Annotations] });
+            videoProto.SetNumber(KeyStore.CurFrame, 1);
+            videoProto.SetText(KeyStore.BackgroundLayout, VideoBox.LayoutString());
+        }
+        return videoProto;
     }
     function GetAudioPrototype(): Document {
         return audioProto ? audioProto :
