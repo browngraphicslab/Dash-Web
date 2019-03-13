@@ -85,10 +85,27 @@ export function FakeJsxArgs(keys: string[], fields: string[] = []): JsxArgs {
     return args;
 }
 
+interface JsxBindings {
+    Document: Document;
+    layout: string;
+    [prop: string]: any;
+}
+
+export class DocumentContents extends React.PureComponent<JsxBindings> {
+    render() {
+        return <JsxParser
+            components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, CollectionVideoView, WebBox, KeyValueBox, PDFBox, VideoBox, AudioBox }}
+            bindings={this.props}
+            jsx={this.props.layout}
+            showWarnings={true}
+            onError={(test: any) => { console.log(test) }}
+        />
+    }
+}
+
 @observer
 export class DocumentView extends React.Component<DocumentViewProps> {
     private _mainCont = React.createRef<HTMLDivElement>();
-    private _documentBindings: any = null;
     private _downX: number = 0;
     private _downY: number = 0;
     private _reactionDisposer: Opt<IReactionDisposer>;
@@ -276,16 +293,6 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         SelectionManager.SelectDoc(this, e.ctrlKey);
     }
 
-    @computed
-    get mainContent() {
-        return <JsxParser
-            components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, CollectionVideoView, WebBox, KeyValueBox, PDFBox, VideoBox, AudioBox }}
-            bindings={this._documentBindings}
-            jsx={this.layout}
-            showWarnings={true}
-            onError={(test: any) => { console.log(test) }}
-        />
-    }
 
     isSelected = () => {
         return SelectionManager.IsSelected(this);
@@ -293,6 +300,26 @@ export class DocumentView extends React.Component<DocumentViewProps> {
 
     select = (ctrlPressed: boolean) => {
         SelectionManager.SelectDoc(this, ctrlPressed)
+    }
+
+    @computed
+    get getProps() {
+        let bindings: any = {
+            ...this.props,
+            isSelected: this.isSelected,
+            select: this.select,
+            layout: this.layout
+        };
+        for (const key of this.layoutKeys) {
+            bindings[key.Name + "Key"] = key; // this maps string values of the form <keyname>Key to an actual key Kestore.keyname  e.g,   "DataKey" => KeyStore.Data
+        }
+        for (const key of this.layoutFields) {
+            let field = this.props.Document.Get(key);
+            bindings[key.Name] = field && field != FieldWaiting ? field.GetValue() : field;
+        }
+        bindings.bindings = bindings;
+
+        return bindings
     }
 
     render() {
@@ -303,20 +330,6 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         if (!lkeys || lkeys === "<Waiting>") {
             return <p>Error loading layout keys</p>;
         }
-        this._documentBindings = {
-            ...this.props,
-            isSelected: this.isSelected,
-            select: this.select,
-            focus: this.props.focus
-        };
-        for (const key of this.layoutKeys) {
-            this._documentBindings[key.Name + "Key"] = key; // this maps string values of the form <keyname>Key to an actual key Kestore.keyname  e.g,   "DataKey" => KeyStore.Data
-        }
-        for (const key of this.layoutFields) {
-            let field = this.props.Document.Get(key);
-            this._documentBindings[key.Name] = field && field != FieldWaiting ? field.GetValue() : field;
-        }
-        this._documentBindings.bindings = this._documentBindings;
         var scaling = this.props.ContentScaling();
         var nativeWidth = this.props.Document.GetNumber(KeyStore.NativeWidth, 0);
         var nativeHeight = this.props.Document.GetNumber(KeyStore.NativeHeight, 0);
@@ -330,7 +343,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
                 }}
                 onContextMenu={this.onContextMenu}
                 onPointerDown={this.onPointerDown} >
-                {this.mainContent}
+                <DocumentContents {...this.getProps} />
             </div>
         )
     }
