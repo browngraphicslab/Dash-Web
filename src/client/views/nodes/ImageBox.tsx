@@ -98,7 +98,6 @@ export class ImageBox extends React.Component<FieldViewProps> {
     }
 
     render() {
-        trace();
         let field = this.props.doc.Get(this.props.fieldKey);
         let path = field == FieldWaiting ? "https://image.flaticon.com/icons/svg/66/66163.svg" :
             field instanceof ImageField ? field.Data.href : "http://www.cs.brown.edu/~bcz/face.gif";

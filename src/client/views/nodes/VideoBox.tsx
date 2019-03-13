@@ -42,7 +42,6 @@ export class VideoBox extends React.Component<FieldViewProps> {
 
 
     render() {
-        trace();
         let field = this.props.doc.Get(this.props.fieldKey)
         let path = field == FieldWaiting ? "http://techslides.com/demos/sample-videos/small.mp4" :
             field instanceof VideoField ? field.Data.href : "http://techslides.com/demos/sample-videos/small.mp4";
