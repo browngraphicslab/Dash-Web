@@ -27,15 +27,14 @@ export const COLLECTION_BORDER_WIDTH = 1;
 @observer
 export class CollectionView extends React.Component<CollectionViewProps> {
 
-    @observable
-    public SelectedDocs: FieldId[] = [];
-
     public static LayoutString(fieldKey: string = "DataKey") {
         return `<${CollectionView.name} Document={Document}
                     ScreenToLocalTransform={ScreenToLocalTransform} fieldKey={${fieldKey}} panelWidth={PanelWidth} panelHeight={PanelHeight} isSelected={isSelected} select={select} bindings={bindings}
                     isTopMost={isTopMost} SelectOnLoad={selectOnLoad} BackgroundView={BackgroundView} focus={focus}/>`;
     }
 
+    @observable
+    public SelectedDocs: FieldId[] = [];
     public active: () => boolean = () => CollectionView.Active(this);
     addDocument = (doc: Document): void => { CollectionView.AddDocument(this.props, doc); }
     removeDocument = (doc: Document): boolean => { return CollectionView.RemoveDocument(this.props, doc); }
