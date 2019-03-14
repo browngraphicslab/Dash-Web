@@ -87,16 +87,42 @@ export function FakeJsxArgs(keys: string[], fields: string[] = []): JsxArgs {
 
 interface JsxBindings {
     Document: Document;
-    layout: string;
+    isSelected: () => boolean;
+    select: (isCtrlPressed: boolean) => void;
+    isTopMost: boolean;
+    SelectOnLoad: boolean;
     [prop: string]: any;
 }
 
-export class DocumentContents extends React.PureComponent<JsxBindings> {
+@observer
+export class DocumentContents extends React.Component<DocumentViewProps & {
+    isSelected: () => boolean,
+    select: (ctrl: boolean) => void,
+    layoutKey: Key
+}> {
+    @computed get layout(): string { return this.props.Document.GetText(this.props.layoutKey, "<p>Error loading layout data</p>"); }
+    @computed get layoutKeys(): Key[] { return this.props.Document.GetData(KeyStore.LayoutKeys, ListField, new Array<Key>()); }
+    @computed get layoutFields(): Key[] { return this.props.Document.GetData(KeyStore.LayoutFields, ListField, new Array<Key>()); }
+
+    CreateBindings(): JsxBindings {
+        let bindings: JsxBindings = {
+            ...this.props,
+        };
+        for (const key of this.layoutKeys) {
+            bindings[key.Name + "Key"] = key; // this maps string values of the form <keyname>Key to an actual key Kestore.keyname  e.g,   "DataKey" => KeyStore.Data
+        }
+        for (const key of this.layoutFields) {
+            let field = this.props.Document.Get(key);
+            bindings[key.Name] = field && field != FieldWaiting ? field.GetValue() : field;
+        }
+        return bindings;
+    }
+
     render() {
         return <JsxParser
             components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, CollectionVideoView, WebBox, KeyValueBox, PDFBox, VideoBox, AudioBox }}
-            bindings={this.props}
-            jsx={this.props.layout}
+            bindings={this.CreateBindings()}
+            jsx={this.layout}
             showWarnings={true}
             onError={(test: any) => { console.log(test) }}
         />
@@ -302,26 +328,6 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         SelectionManager.SelectDoc(this, ctrlPressed)
     }
 
-    @computed
-    get getProps() {
-        let bindings: any = {
-            ...this.props,
-            isSelected: this.isSelected,
-            select: this.select,
-            layout: this.layout
-        };
-        for (const key of this.layoutKeys) {
-            bindings[key.Name + "Key"] = key; // this maps string values of the form <keyname>Key to an actual key Kestore.keyname  e.g,   "DataKey" => KeyStore.Data
-        }
-        for (const key of this.layoutFields) {
-            let field = this.props.Document.Get(key);
-            bindings[key.Name] = field && field != FieldWaiting ? field.GetValue() : field;
-        }
-        bindings.bindings = bindings;
-
-        return bindings
-    }
-
     render() {
         if (!this.props.Document) {
             return (null);
@@ -343,7 +349,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
                 }}
                 onContextMenu={this.onContextMenu}
                 onPointerDown={this.onPointerDown} >
-                <DocumentContents {...this.getProps} />
+                <DocumentContents {...this.props} isSelected={this.isSelected} select={this.select} layoutKey={KeyStore.Layout} />
             </div>
         )
     }
