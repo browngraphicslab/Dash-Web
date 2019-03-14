@@ -51,7 +51,7 @@ export class VideoBox extends React.Component<FieldViewProps> {
             <div style={{ width: "100%", height: "Auto" }} >
                 <Measure onResize={this.setScaling}>
                     {({ measureRef }) =>
-                        <video controls className="videobox-cont" ref={measureRef}>
+                        <video className="videobox-cont" ref={measureRef}>
                             <source src={path} type="video/mp4" />
                             Not supported.
                         </video>

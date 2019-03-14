@@ -23,6 +23,7 @@ import { PDFField } from "../../fields/PDFField";
 import { PDFBox } from "../views/nodes/PDFBox";
 import { CollectionPDFView } from "../views/collections/CollectionPDFView";
 import { RichTextField } from "../../fields/RichTextField";
+import { CollectionVideoView } from "../views/collections/CollectionVideoView";
 
 export interface DocumentOptions {
     x?: number;
@@ -138,9 +139,9 @@ export namespace Documents {
     }
     function GetVideoPrototype(): Document {
         if (!videoProto) {
-            videoProto = setupPrototypeOptions(videoProtoId, "VIDEO_PROTO", CollectionView.LayoutString("AnnotationsKey"),
+            videoProto = setupPrototypeOptions(videoProtoId, "VIDEO_PROTO", CollectionVideoView.LayoutString("AnnotationsKey"),
                 { x: 0, y: 0, nativeWidth: 600, width: 300, layoutKeys: [KeyStore.Data, KeyStore.Annotations] });
-            videoProto.SetNumber(KeyStore.CurFrame, 1);
+            videoProto.SetNumber(KeyStore.CurPage, 0);
             videoProto.SetText(KeyStore.BackgroundLayout, VideoBox.LayoutString());
         }
         return videoProto;

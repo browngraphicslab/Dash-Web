@@ -86,7 +86,7 @@ export class PDFBox extends React.Component<FieldViewProps> {
     @observable private _interactive: boolean = false;
     @observable private _loaded: boolean = false;
 
-    @computed private get curPage() { return this.props.doc.GetNumber(KeyStore.CurPage, 0); }
+    @computed private get curPage() { return this.props.doc.GetNumber(KeyStore.CurPage, -1); }
 
     componentDidMount() {
         this._reactionDisposer = reaction(

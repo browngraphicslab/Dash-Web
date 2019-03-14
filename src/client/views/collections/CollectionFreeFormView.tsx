@@ -52,13 +52,13 @@ export class CollectionFreeFormView extends CollectionViewBase {
     }
 
     public getActiveDocuments = () => {
-        var curPage = this.props.Document.GetNumber(KeyStore.CurPage, 1);
+        var curPage = this.props.Document.GetNumber(KeyStore.CurPage, -1);
         const lvalue = this.props.Document.GetT<ListField<Document>>(this.props.fieldKey, ListField);
         let active: Document[] = [];
         if (lvalue && lvalue != FieldWaiting) {
             lvalue.Data.map(doc => {
-                var page = doc.GetNumber(KeyStore.Page, 0);
-                if (page == curPage || page == 0) {
+                var page = doc.GetNumber(KeyStore.Page, -1);
+                if (page == curPage || page == -1) {
                     active.push(doc);
                 }
             })
@@ -257,7 +257,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
     @computed
     get views() {
-        var curPage = this.props.Document.GetNumber(KeyStore.CurPage, 1);
+        var curPage = this.props.Document.GetNumber(KeyStore.CurPage, -1);
         const lvalue = this.props.Document.GetT<ListField<Document>>(this.props.fieldKey, ListField);
         if (lvalue && lvalue != FieldWaiting) {
             return lvalue.Data.map(doc => {
