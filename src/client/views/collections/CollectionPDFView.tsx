@@ -1,4 +1,4 @@
-import { action, computed } from "mobx";
+import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import { Document } from "../../../fields/Document";
 import { KeyStore } from "../../../fields/KeyStore";
@@ -32,6 +32,7 @@ export class CollectionPDFView extends React.Component<CollectionViewProps> {
     }
 
     // "inherited" CollectionView API starts here...
+    @observable
     public SelectedDocs: FieldId[] = []
     public active: () => boolean = () => CollectionView.Active(this);
 

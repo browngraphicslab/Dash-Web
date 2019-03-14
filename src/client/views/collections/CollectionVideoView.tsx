@@ -23,6 +23,7 @@ export class CollectionVideoView extends React.Component<CollectionViewProps> {
     private _mainCont = React.createRef<HTMLDivElement>();
     // "inherited" CollectionView API starts here...
 
+    @observable
     public SelectedDocs: FieldId[] = []
     public active: () => boolean = () => CollectionView.Active(this);
 
