@@ -7,7 +7,6 @@ import { CollectionView, CollectionViewType } from "./CollectionView";
 import { CollectionViewProps } from "./CollectionViewBase";
 import React = require("react");
 import { FieldId } from "../../../fields/Field";
-import { ReplaceAroundStep } from "prosemirror-transform";
 import "./CollectionVideoView.scss"
 
 
@@ -21,6 +20,25 @@ export class CollectionVideoView extends React.Component<CollectionViewProps> {
     }
 
     private _mainCont = React.createRef<HTMLDivElement>();
+
+    private get uIButtons() {
+        let scaling = Math.min(1.8, this.props.ScreenToLocalTransform().transformDirection(1, 1)[0]);
+        return (
+            <div className="collectionVideoView-buttonTray" key="tray">
+                <div className="collectionVideoView-time" onPointerDown={this.onResetDown} style={{ transform: `scale(${scaling}, ${scaling})` }}>
+                    <span>{"" + Math.round(this.ctime)}</span>
+                    <span style={{ fontSize: 8 }}>{" " + Math.round((this.ctime - Math.trunc(this.ctime)) * 100)}</span>
+                </div>
+                <div className="collectionVideoView-play" onPointerDown={this.onPlayDown} style={{ transform: `scale(${scaling}, ${scaling})` }}>
+                    {this.playing ? "\"" : ">"}
+                </div>
+                <div className="collectionVideoView-full" onPointerDown={this.onFullDown} style={{ transform: `scale(${scaling}, ${scaling})` }}>
+                    F
+                </div>
+            </div>);
+    }
+
+
     // "inherited" CollectionView API starts here...
 
     @observable
@@ -40,20 +58,20 @@ export class CollectionVideoView extends React.Component<CollectionViewProps> {
     get subView(): any { return CollectionView.SubView(this); }
 
     componentDidMount() {
-        this.repete();
+        this.updateTimecode();
     }
 
-    player = (): HTMLVideoElement => {
-        return this._mainCont.current!.getElementsByTagName("video")[0];
+    get player(): HTMLVideoElement | undefined {
+        return this._mainCont.current ? this._mainCont.current.getElementsByTagName("video")[0] : undefined;
     }
 
     @action
-    repete = () => {
-        if (this.player()) {
-            this.ctime = this.player().currentTime;
+    updateTimecode = () => {
+        if (this.player) {
+            this.ctime = this.player.currentTime;
             this.props.Document.SetNumber(KeyStore.CurPage, Math.round(this.ctime));
         }
-        setTimeout(() => this.repete(), 100)
+        setTimeout(() => this.updateTimecode(), 100)
     }
 
 
@@ -64,20 +82,20 @@ export class CollectionVideoView extends React.Component<CollectionViewProps> {
 
     @action
     onPlayDown = () => {
-        if (this.player()) {
-            if (this.player().paused) {
-                this.player().play();
+        if (this.player) {
+            if (this.player.paused) {
+                this.player.play();
                 this.playing = true;
             } else {
-                this.player().pause();
+                this.player.pause();
                 this.playing = false;
             }
         }
     }
     @action
     onFullDown = (e: React.PointerEvent) => {
-        if (this.player()) {
-            this.player().requestFullscreen();
+        if (this.player) {
+            this.player.requestFullscreen();
             e.stopPropagation();
             e.preventDefault();
         }
@@ -85,28 +103,17 @@ export class CollectionVideoView extends React.Component<CollectionViewProps> {
 
     @action
     onResetDown = () => {
-        if (this.player()) {
-            this.player().pause();
-            this.player().currentTime = 0;
+        if (this.player) {
+            this.player.pause();
+            this.player.currentTime = 0;
         }
 
     }
 
     render() {
         return (<div className="collectionVideoView-cont" ref={this._mainCont} onContextMenu={this.specificContextMenu}>
-            <div className="collectionVideoView-controls" >
-                {this.subView}
-                <div className="collectionVideoView-time" onPointerDown={this.onResetDown}>
-                    <span>{"" + Math.round(this.ctime)}</span>
-                    <span style={{ fontSize: 8 }}>{" " + Math.round((this.ctime - Math.trunc(this.ctime)) * 100)}</span>
-                </div>
-                <div className="collectionVideoView-play" onPointerDown={this.onPlayDown}>
-                    {this.playing ? "\"" : ">"}
-                </div>
-                <div className="collectionVideoView-full" onPointerDown={this.onFullDown}>
-                    F
-                </div>
-            </div>
+            {this.subView}
+            {this.uIButtons}
         </div>)
     }
 }

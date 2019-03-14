@@ -1,4 +1,9 @@
-.collectionVideoView-controls{
+.collectionVideoView-buttonTray{
+    width: 100%;
+    height: 100%;
+    position: absolute; 
+}
+.collectionVideoView-cont{
     width: 100%;
     height: 100%;
     position: absolute;
@@ -9,6 +14,7 @@
     left : 25px;
     position: absolute;
     background-color: rgba(50, 50, 50, 0.2);
+    transform-origin: left top;
 }
 .collectionVideoView-play {
     width: 25px;
@@ -20,6 +26,7 @@
     background-color: rgba(50, 50, 50, 0.2);
     border-radius: 4px;
     text-align: center;
+    transform-origin: left bottom;
 }
 .collectionVideoView-full {
     width: 25px;
@@ -31,5 +38,6 @@
     background-color: rgba(50, 50, 50, 0.2);
     border-radius: 4px;
     text-align: center;
+    transform-origin: right bottom;
 
 }

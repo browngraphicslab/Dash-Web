@@ -5,6 +5,7 @@ import { KeyStore } from "../../../fields/KeyStore";
 import { ContextMenu } from "../ContextMenu";
 import { CollectionView, CollectionViewType } from "./CollectionView";
 import { CollectionViewProps } from "./CollectionViewBase";
+import "./CollectionPDFView.scss"
 import React = require("react");
 import { FieldId } from "../../../fields/Field";
 
@@ -24,10 +25,11 @@ export class CollectionPDFView extends React.Component<CollectionViewProps> {
     @action onPageForward = () => this.curPage < this.numPages ? this.props.Document.SetNumber(KeyStore.CurPage, this.curPage + 1) : -1;
 
     private get uIButtons() {
+        let scaling = Math.min(1.8, this.props.ScreenToLocalTransform().transformDirection(1, 1)[0]);
         return (
-            <div className="pdfBox-buttonTray" key="tray">
-                <button className="pdfButton" onClick={this.onPageBack}>{"<"}</button>
-                <button className="pdfButton" onClick={this.onPageForward}>{">"}</button>
+            <div className="collectionPdfView-buttonTray" key="tray" style={{ transform: `scale(${scaling}, ${scaling})` }}>
+                <button className="collectionPdfView-backward" onClick={this.onPageBack}>{"<"}</button>
+                <button className="collectionPdfView-forward" onClick={this.onPageForward}>{">"}</button>
             </div>);
     }
 
@@ -49,7 +51,7 @@ export class CollectionPDFView extends React.Component<CollectionViewProps> {
     get subView(): any { return CollectionView.SubView(this); }
 
     render() {
-        return (<div className="collectionView-cont" onContextMenu={this.specificContextMenu}>
+        return (<div className="collectionPdfView-cont" onContextMenu={this.specificContextMenu}>
             {this.subView}
             {this.props.isSelected() ? this.uIButtons : (null)}
         </div>)

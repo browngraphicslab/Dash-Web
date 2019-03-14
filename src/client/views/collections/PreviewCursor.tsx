@@ -16,7 +16,7 @@ import { CollectionFreeFormView } from "./CollectionFreeFormView";
 export interface PreviewCursorProps {
     getTransform: () => Transform;
     container: CollectionFreeFormView;
-    addLiveTextDocuemnt: (doc: Document) => void;
+    addLiveTextDocument: (doc: Document) => void;
 }
 
 @observer
@@ -57,11 +57,13 @@ export class PreviewCursor extends React.Component<PreviewCursorProps>  {
     @action
     onKeyPress = (e: KeyboardEvent) => {
         //if not these keys, make a textbox if preview cursor is active!
-        if (!e.ctrlKey && !e.altKey) {
+        if (!e.ctrlKey && !e.altKey && !e.defaultPrevented) {
             //make textbox and add it to this collection
             let [x, y] = this.props.getTransform().transformPoint(this._lastX, this._lastY);
             let newBox = Documents.TextDocument({ width: 200, height: 100, x: x, y: y, title: "new" });
-            this.props.addLiveTextDocuemnt(newBox);
+            this.props.addLiveTextDocument(newBox);
+            e.stopPropagation();
+            e.preventDefault();
         }
     }
 

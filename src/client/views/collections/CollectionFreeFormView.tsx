@@ -335,7 +335,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
                     ref={this._canvasRef}>
                     {this.backgroundView}
                     <InkingCanvas getScreenTransform={this.getTransform} Document={this.props.Document} />
-                    <PreviewCursor container={this} addLiveTextDocuemnt={this.addLiveTextBox} getTransform={this.getTransform} />
+                    <PreviewCursor container={this} addLiveTextDocument={this.addLiveTextBox} getTransform={this.getTransform} />
                     {this.views}
                 </div>
                 <MarqueeView container={this} activeDocuemnts={this.getActiveDocuments} selectDocuments={this.selectDocuments} addDocument={this.props.addDocument} removeDocument={this.props.removeDocument} getMarqueeTransform={this.getMarqueeTransform} getTransform={this.getTransform} />
