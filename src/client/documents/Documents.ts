@@ -23,6 +23,7 @@ import { PDFField } from "../../fields/PDFField";
 import { PDFBox } from "../views/nodes/PDFBox";
 import { CollectionPDFView } from "../views/collections/CollectionPDFView";
 import { RichTextField } from "../../fields/RichTextField";
+import { CollectionVideoView } from "../views/collections/CollectionVideoView";
 
 export interface DocumentOptions {
     x?: number;
@@ -137,9 +138,13 @@ export namespace Documents {
                 { x: 0, y: 0, width: 300, height: 150, layoutKeys: [KeyStore.Data] })
     }
     function GetVideoPrototype(): Document {
-        return videoProto ? videoProto :
-            videoProto = setupPrototypeOptions(videoProtoId, "VIDEO_PROTO", VideoBox.LayoutString(),
-                { x: 0, y: 0, width: 300, height: 150, layoutKeys: [KeyStore.Data] })
+        if (!videoProto) {
+            videoProto = setupPrototypeOptions(videoProtoId, "VIDEO_PROTO", CollectionVideoView.LayoutString("AnnotationsKey"),
+                { x: 0, y: 0, nativeWidth: 600, width: 300, layoutKeys: [KeyStore.Data, KeyStore.Annotations] });
+            videoProto.SetNumber(KeyStore.CurPage, 0);
+            videoProto.SetText(KeyStore.BackgroundLayout, VideoBox.LayoutString());
+        }
+        return videoProto;
     }
     function GetAudioPrototype(): Document {
         return audioProto ? audioProto :
@@ -151,6 +156,8 @@ export namespace Documents {
     export function ImageDocument(url: string, options: DocumentOptions = {}) {
         return SetInstanceOptions(GetImagePrototype(), { ...options, layoutKeys: [KeyStore.Data, KeyStore.Annotations, KeyStore.Caption] },
             [new URL(url), ImageField]);
+        // let doc = SetInstanceOptions(GetImagePrototype(), { ...options, layoutKeys: [KeyStore.Data, KeyStore.Annotations, KeyStore.Caption] },
+        //     [new URL(url), ImageField]);
         // doc.SetText(KeyStore.Caption, "my caption...");
         // doc.SetText(KeyStore.BackgroundLayout, EmbeddedCaption());
         // doc.SetText(KeyStore.OverlayLayout, FixedCaption());
@@ -190,7 +197,7 @@ export namespace Documents {
     // example of custom display string for an image that shows a caption.
     function EmbeddedCaption() {
         return `<div style="height:100%">
-            <div style="position:relative; margin:auto; height:85%;" >`
+            <div style="position:relative; margin:auto; height:85%; width:85%;" >`
             + ImageBox.LayoutString() +
             `</div>
             <div style="position:relative; height:15%; text-align:center; ">`

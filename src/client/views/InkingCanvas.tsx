@@ -74,7 +74,7 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
                 color: InkingControl.Instance.selectedColor,
                 width: InkingControl.Instance.selectedWidth,
                 tool: InkingControl.Instance.selectedTool,
-                page: this.props.Document.GetNumber(KeyStore.CurPage, 0)
+                page: this.props.Document.GetNumber(KeyStore.CurPage, -1)
             });
         this.inkData = data;
         this._isDrawing = true;
@@ -145,11 +145,11 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
 
         // parse data from server
         let paths: Array<JSX.Element> = []
-        let curPage = this.props.Document.GetNumber(KeyStore.CurPage, 0)
+        let curPage = this.props.Document.GetNumber(KeyStore.CurPage, -1)
         Array.from(lines).map(item => {
             let id = item[0];
             let strokeData = item[1];
-            if (strokeData.page == 0 || strokeData.page == curPage)
+            if (strokeData.page == -1 || strokeData.page == curPage)
                 paths.push(<InkingStroke key={id} id={id}
                     line={strokeData.pathData}
                     color={strokeData.color}

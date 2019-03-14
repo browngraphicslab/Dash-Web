@@ -82,15 +82,14 @@ Documents.initProtos(mainDocId, (res?: Document) => {
     let audiourl = "http://techslides.com/demos/samples/sample.mp3";
     let videourl = "http://techslides.com/demos/sample-videos/small.mp4";
     let clearDatabase = action(() => Utils.Emit(Server.Socket, MessageStore.DeleteAll, {}))
-    let addTextNode = action(() => Documents.TextDocument({ width: 230, height: 130, title: "a text note" }))
-    let addColNode = action(() => Documents.FreeformDocument([], { width: 300, height: 300, title: "a freeform collection" }));
-    let addSchemaNode = action(() => Documents.SchemaDocument([Documents.TextDocument()], { width: 450, height: 200, title: "a schema collection" }));
-    let addPDFNode = action(() => Documents.PdfDocument(pdfurl, { width: 300, height: 400, title: "a pdf" }));
-    let addImageNode = action(() => Documents.ImageDocument(imgurl, { width: 200, height: 200, title: "an image of a cat" }));
-    let addWebNode = action(() => Documents.WebDocument(weburl, { width: 300, height: 400, title: "a sample web page" }));
-    let addVideoNode = action(() => Documents.VideoDocument(videourl, { width: 300, height: 250, title: "video node" }));
-    let addAudioNode = action(() => Documents.AudioDocument(audiourl, { width: 250, height: 100, title: "audio node" }));
-
+    let addTextNode = action(() => Documents.TextDocument({ width: 200, height: 200, title: "a text note" }))
+    let addColNode = action(() => Documents.FreeformDocument([], { width: 200, height: 200, title: "a freeform collection" }));
+    let addSchemaNode = action(() => Documents.SchemaDocument([Documents.TextDocument()], { width: 200, height: 200, title: "a schema collection" }));
+    let addVideoNode = action(() => Documents.VideoDocument(videourl, { width: 200, title: "video node" }));
+    let addPDFNode = action(() => Documents.PdfDocument(pdfurl, { width: 200, title: "a schema collection" }));
+    let addImageNode = action(() => Documents.ImageDocument(imgurl, { width: 200, title: "an image of a cat" }));
+    let addWebNode = action(() => Documents.WebDocument(weburl, { width: 200, height: 200, title: "a sample web page" }));
+    let addAudioNode = action(() => Documents.AudioDocument(audiourl, { width: 200, height: 200, title: "audio node" }))
     let addClick = (creator: () => Document) => action(() =>
         mainfreeform.GetList<Document>(KeyStore.Data, []).push(creator())
     );

@@ -22,7 +22,6 @@
 }
 
 .contextMenu-item {
-<<<<<<< HEAD
   width: auto;
   height: auto;
   background: $light-color-secondary;
@@ -43,29 +42,6 @@
   padding: 10px;
   white-space: nowrap;
   font-size: 13px;
-=======
-    width: auto;
-    height: auto;
-    background: #F0F8FF;
-    display: flex;
-    justify-content: left;
-    align-items: center;
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    -khtml-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
-    transition: all .1s;
-    border-width: .11px;
-    border-style: none;
-    border-color: rgb(187, 186, 186);
-    border-bottom-style: solid;
-    padding: 10px;
-    white-space: nowrap;
-   // font-size: 1.5vw;
-   font-size: 12px;
->>>>>>> a680579f74380eb016f0ffd61b3818d0850984b5
 }
 
 .contextMenu-item:hover {
@@ -74,13 +50,6 @@
 }
 
 .contextMenu-description {
-<<<<<<< HEAD
   text-align: left;
   width: 8vw;
 }
-=======
-   // font-size: 1.5vw;
-    text-align: left;
-   // width: 8vw;
-}
->>>>>>> a680579f74380eb016f0ffd61b3818d0850984b5

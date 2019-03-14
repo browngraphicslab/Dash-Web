@@ -35,9 +35,9 @@
   "dependencies": {
     "@fortawesome/fontawesome-free-solid": "^5.0.13",
     "@fortawesome/fontawesome-svg-core": "^1.2.15",
-    "@hig/flyout": "^1.0.3",
     "@fortawesome/free-solid-svg-icons": "^5.7.2",
     "@fortawesome/react-fontawesome": "^0.1.4",
+    "@hig/flyout": "^1.0.3",
     "@types/bcrypt-nodejs": "0.0.30",
     "@types/bluebird": "^3.5.25",
     "@types/body-parser": "^1.17.0",

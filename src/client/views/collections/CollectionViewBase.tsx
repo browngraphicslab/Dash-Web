@@ -81,21 +81,7 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
             const upload = window.location.origin + "/upload";
             let item = e.dataTransfer.items[i];
             if (item.kind === "string" && item.type.indexOf("uri") != -1) {
-                e.dataTransfer.items[i].getAsString(function (s) {
-                    action(() => {
-                        var img = Documents.ImageDocument(s, { ...options, nativeWidth: 300, width: 300, })
-
-                        let docs = that.props.Document.GetT(KeyStore.Data, ListField);
-                        if (docs != FieldWaiting) {
-                            if (!docs) {
-                                docs = new ListField<Document>();
-                                that.props.Document.Set(KeyStore.Data, docs)
-                            }
-                            docs.Data.push(img);
-                        }
-                    })()
-
-                })
+                e.dataTransfer.items[i].getAsString(action((s: string) => this.props.addDocument(Documents.WebDocument(s, options))))
             }
             let type = item.type
             console.log(type)
@@ -122,7 +108,7 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
                                 var doc: any;
 
                                 if (type.indexOf("image") !== -1) {
-                                    doc = Documents.ImageDocument(path, { ...options, nativeWidth: 300, width: 300, })
+                                    doc = Documents.ImageDocument(path, { ...options, nativeWidth: 200, width: 200, })
                                 }
                                 if (type.indexOf("video") !== -1) {
                                     doc = Documents.VideoDocument(path, { ...options, nativeWidth: 300, width: 300, })

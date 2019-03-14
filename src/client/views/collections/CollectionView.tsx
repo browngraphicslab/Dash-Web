@@ -50,7 +50,7 @@ export class CollectionView extends React.Component<CollectionViewProps> {
 
     @action
     public static AddDocument(props: CollectionViewProps, doc: Document) {
-        doc.SetNumber(KeyStore.Page, props.Document.GetNumber(KeyStore.CurPage, 0));
+        doc.SetNumber(KeyStore.Page, props.Document.GetNumber(KeyStore.CurPage, -1));
         if (props.Document.Get(props.fieldKey) instanceof Field) {
             //TODO This won't create the field if it doesn't already exist
             const value = props.Document.GetData(props.fieldKey, ListField, new Array<Document>())

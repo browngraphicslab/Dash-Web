@@ -1,31 +1,22 @@
-import { action, computed, IReactionDisposer, runInAction, reaction } from "mobx";
+import { action, computed, IReactionDisposer, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { Document } from "../../../fields/Document";
 import { Field, FieldWaiting, Opt } from "../../../fields/Field";
 import { Key } from "../../../fields/Key";
 import { KeyStore } from "../../../fields/KeyStore";
 import { ListField } from "../../../fields/ListField";
+import { TextField } from "../../../fields/TextField";
+import { Documents } from "../../documents/Documents";
+import { DocumentManager } from "../../util/DocumentManager";
 import { DragManager } from "../../util/DragManager";
 import { SelectionManager } from "../../util/SelectionManager";
 import { Transform } from "../../util/Transform";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
-import { CollectionFreeFormView } from "../collections/CollectionFreeFormView";
-import { CollectionSchemaView } from "../collections/CollectionSchemaView";
 import { CollectionView, CollectionViewType } from "../collections/CollectionView";
-import { CollectionPDFView } from "../collections/CollectionPDFView";
 import { ContextMenu } from "../ContextMenu";
-import { FormattedTextBox } from "../nodes/FormattedTextBox";
-import { ImageBox } from "../nodes/ImageBox";
-import { VideoBox } from "../nodes/VideoBox";
-import { AudioBox } from "../nodes/AudioBox";
-import { Documents } from "../../documents/Documents"
-import { KeyValueBox } from "./KeyValueBox"
-import { WebBox } from "../nodes/WebBox";
-import { PDFBox } from "../nodes/PDFBox";
 import "./DocumentView.scss";
 import React = require("react");
-import { TextField } from "../../../fields/TextField";
-import { DocumentManager } from "../../util/DocumentManager";
+import { DocumentContentsView } from "./DocumentContentsView";
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 
@@ -87,7 +78,6 @@ export function FakeJsxArgs(keys: string[], fields: string[] = []): JsxArgs {
 @observer
 export class DocumentView extends React.Component<DocumentViewProps> {
     private _mainCont = React.createRef<HTMLDivElement>();
-    private _documentBindings: any = null;
     private _downX: number = 0;
     private _downY: number = 0;
     private _reactionDisposer: Opt<IReactionDisposer>;
@@ -246,8 +236,6 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         destDoc.GetOrCreateAsync(KeyStore.LinkedFromDocs, ListField, field => { (field as ListField<Document>).Data.push(linkDoc) });
         linkDoc.Set(KeyStore.LinkedFromDocs, sourceDoc);
 
-
-
         e.stopPropagation();
     }
 
@@ -277,15 +265,6 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         SelectionManager.SelectDoc(this, e.ctrlKey);
     }
 
-    get mainContent() {
-        return <JsxParser
-            components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, WebBox, KeyValueBox, VideoBox, AudioBox, PDFBox }}
-            bindings={this._documentBindings}
-            jsx={this.layout}
-            showWarnings={true}
-            onError={(test: any) => { console.log(test) }}
-        />
-    }
 
     isSelected = () => {
         return SelectionManager.IsSelected(this);
@@ -295,26 +274,34 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         SelectionManager.SelectDoc(this, ctrlPressed)
     }
 
+    @computed
+    get getProps() {
+        let bindings: any = {
+            ...this.props,
+            isSelected: this.isSelected,
+            select: this.select,
+            layout: this.layout
+        };
+        for (const key of this.layoutKeys) {
+            bindings[key.Name + "Key"] = key; // this maps string values of the form <keyname>Key to an actual key Kestore.keyname  e.g,   "DataKey" => KeyStore.Data
+        }
+        for (const key of this.layoutFields) {
+            let field = this.props.Document.Get(key);
+            bindings[key.Name] = field && field != FieldWaiting ? field.GetValue() : field;
+        }
+        bindings.bindings = bindings;
+
+        return bindings
+    }
+
     render() {
-        if (!this.props.Document) return <div></div>
+        if (!this.props.Document) {
+            return (null);
+        }
         let lkeys = this.props.Document.GetT(KeyStore.LayoutKeys, ListField);
         if (!lkeys || lkeys === "<Waiting>") {
             return <p>Error loading layout keys</p>;
         }
-        this._documentBindings = {
-            ...this.props,
-            isSelected: this.isSelected,
-            select: this.select,
-            focus: this.props.focus
-        };
-        for (const key of this.layoutKeys) {
-            this._documentBindings[key.Name + "Key"] = key; // this maps string values of the form <keyname>Key to an actual key Kestore.keyname  e.g,   "DataKey" => KeyStore.Data
-        }
-        for (const key of this.layoutFields) {
-            let field = this.props.Document.Get(key);
-            this._documentBindings[key.Name] = field && field != FieldWaiting ? field.GetValue() : field;
-        }
-        this._documentBindings.bindings = this._documentBindings;
         var scaling = this.props.ContentScaling();
         var nativeWidth = this.props.Document.GetNumber(KeyStore.NativeWidth, 0);
         var nativeHeight = this.props.Document.GetNumber(KeyStore.NativeHeight, 0);
@@ -328,7 +315,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
                 }}
                 onContextMenu={this.onContextMenu}
                 onPointerDown={this.onPointerDown} >
-                {this.mainContent}
+                <DocumentContentsView {...this.getProps} />
             </div>
         )
     }

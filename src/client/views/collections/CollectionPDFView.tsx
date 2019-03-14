@@ -18,13 +18,12 @@ export class CollectionPDFView extends React.Component<CollectionViewProps> {
                     isTopMost={isTopMost} SelectOnLoad={selectOnLoad} BackgroundView={BackgroundView} focus={focus}/>`;
     }
 
-    public SelectedDocs: FieldId[] = []
-    @action onPageBack = () => this.curPage > 1 ? this.props.Document.SetNumber(KeyStore.CurPage, this.curPage - 1) : 0;
-    @action onPageForward = () => this.curPage < this.numPages ? this.props.Document.SetNumber(KeyStore.CurPage, this.curPage + 1) : 0;
+    private get curPage() { return this.props.Document.GetNumber(KeyStore.CurPage, -1); }
+    private get numPages() { return this.props.Document.GetNumber(KeyStore.NumPages, 0); }
+    @action onPageBack = () => this.curPage > 1 ? this.props.Document.SetNumber(KeyStore.CurPage, this.curPage - 1) : -1;
+    @action onPageForward = () => this.curPage < this.numPages ? this.props.Document.SetNumber(KeyStore.CurPage, this.curPage + 1) : -1;
 
-    @computed private get curPage() { return this.props.Document.GetNumber(KeyStore.CurPage, 0); }
-    @computed private get numPages() { return this.props.Document.GetNumber(KeyStore.NumPages, 0); }
-    @computed private get uIButtons() {
+    private get uIButtons() {
         return (
             <div className="pdfBox-buttonTray" key="tray">
                 <button className="pdfButton" onClick={this.onPageBack}>{"<"}</button>
@@ -33,7 +32,7 @@ export class CollectionPDFView extends React.Component<CollectionViewProps> {
     }
 
     // "inherited" CollectionView API starts here...
-
+    public SelectedDocs: FieldId[] = []
     public active: () => boolean = () => CollectionView.Active(this);
 
     addDocument = (doc: Document): void => { CollectionView.AddDocument(this.props, doc); }
