@@ -23,19 +23,18 @@ export class CollectionVideoView extends React.Component<CollectionViewProps> {
 
     private get uIButtons() {
         let scaling = Math.min(1.8, this.props.ScreenToLocalTransform().transformDirection(1, 1)[0]);
-        return (
-            <div className="collectionVideoView-buttonTray" key="tray">
-                <div className="collectionVideoView-time" onPointerDown={this.onResetDown} style={{ transform: `scale(${scaling}, ${scaling})` }}>
-                    <span>{"" + Math.round(this.ctime)}</span>
-                    <span style={{ fontSize: 8 }}>{" " + Math.round((this.ctime - Math.trunc(this.ctime)) * 100)}</span>
+        return ([
+            <div className="collectionVideoView-time" onPointerDown={this.onResetDown} style={{ transform: `scale(${scaling}, ${scaling})` }}>
+                <span>{"" + Math.round(this.ctime)}</span>
+                <span style={{ fontSize: 8 }}>{" " + Math.round((this.ctime - Math.trunc(this.ctime)) * 100)}</span>
+            </div>,
+            <div className="collectionVideoView-play" onPointerDown={this.onPlayDown} style={{ transform: `scale(${scaling}, ${scaling})` }}>
+                {this.playing ? "\"" : ">"}
+            </div>,
+            <div className="collectionVideoView-full" onPointerDown={this.onFullDown} style={{ transform: `scale(${scaling}, ${scaling})` }}>
+                F
                 </div>
-                <div className="collectionVideoView-play" onPointerDown={this.onPlayDown} style={{ transform: `scale(${scaling}, ${scaling})` }}>
-                    {this.playing ? "\"" : ">"}
-                </div>
-                <div className="collectionVideoView-full" onPointerDown={this.onFullDown} style={{ transform: `scale(${scaling}, ${scaling})` }}>
-                    F
-                </div>
-            </div>);
+        ]);
     }
 
 
