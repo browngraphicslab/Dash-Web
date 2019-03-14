@@ -305,9 +305,11 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         var scaling = this.props.ContentScaling();
         var nativeWidth = this.props.Document.GetNumber(KeyStore.NativeWidth, 0);
         var nativeHeight = this.props.Document.GetNumber(KeyStore.NativeHeight, 0);
+        var backgroundcolor = this.props.Document.GetText(KeyStore.BackgroundColor, "");
         return (
             <div className="documentView-node" ref={this._mainCont}
                 style={{
+                    background: backgroundcolor,
                     width: nativeWidth > 0 ? nativeWidth.toString() + "px" : "100%",
                     height: nativeHeight > 0 ? nativeHeight.toString() + "px" : "100%",
                     transformOrigin: "left top",
