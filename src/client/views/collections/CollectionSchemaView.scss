@@ -9,6 +9,12 @@
   height: 100%;
   overflow: hidden;
 
+.collectionSchemaView-content {
+    position: absolute;  
+    height:100%;
+    width:100%;
+    overflow:auto;
+}
   .collectionSchemaView-previewRegion {
     position: relative;
     background: $light-color;
@@ -51,7 +57,6 @@
       overflow-y: auto;
       overflow-x: auto;
       height: 100%;
-
       display: -webkit-inline-box;
       direction: ltr;
       // direction:rtl;

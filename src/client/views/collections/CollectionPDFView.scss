@@ -1,0 +1,26 @@
+.collectionPdfView-buttonTray {
+    top : 25px;
+    left : 20px;
+    position: relative; 
+    transform-origin: left top;
+    position: absolute;
+}
+.collectionPdfView-cont{
+    width: 100%;
+    height: 100%;
+    position: absolute; 
+}
+.collectionPdfView-backward {
+    color : white;
+    top :0px;
+    left : 0px;
+    position: absolute;
+    background-color: rgba(50, 50, 50, 0.2);
+}
+.collectionPdfView-forward {
+    color : white;
+    top :0px;
+    left : 25px;
+    position: absolute;
+    background-color: rgba(50, 50, 50, 0.2);
+}
