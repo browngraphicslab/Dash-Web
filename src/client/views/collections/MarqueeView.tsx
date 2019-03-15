@@ -93,7 +93,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
 
     @action
     marqueeCommand = (e: KeyboardEvent) => {
-        if (e.key == "Backspace") {
+        if (e.key == "Backspace" || e.key == "Delete") {
             this.marqueeSelect().map(d => this.props.removeDocument(d));
             this.props.container.props.Document.SetData(KeyStore.Ink, this.marqueeInkSelect(false), InkField);
             this.cleanupInteractions();

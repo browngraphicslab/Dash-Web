@@ -48,16 +48,14 @@ export class VideoBox extends React.Component<FieldViewProps> {
 
         //setTimeout(action(() => this._loaded = true), 500);
         return (
-            <div style={{ width: "100%", height: "100%" }} >
-                <Measure onResize={this.setScaling}>
-                    {({ measureRef }) =>
-                        <video className="videobox-cont" ref={measureRef}>
-                            <source src={path} type="video/mp4" />
-                            Not supported.
+            <Measure onResize={this.setScaling}>
+                {({ measureRef }) =>
+                    <video className="videobox-cont" ref={measureRef}>
+                        <source src={path} type="video/mp4" />
+                        Not supported.
                         </video>
-                    }
-                </Measure>
-            </div>
+                }
+            </Measure>
         )
     }
 }

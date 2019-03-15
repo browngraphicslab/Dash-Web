@@ -126,7 +126,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
     onPointerUp = (e: PointerEvent): void => {
         e.stopPropagation();
 
-        if (!this.MarqueeVisible && Math.abs(this.DownX - e.clientX) < 3 && Math.abs(this.DownY - e.clientY) < 3) {
+        if (Math.abs(this.DownX - e.clientX) < 4 && Math.abs(this.DownY - e.clientY) < 4) {
             //show preview text cursor on tap
             this.PreviewCursorVisible = true;
             //select is not already selected
@@ -140,9 +140,8 @@ export class CollectionFreeFormView extends CollectionViewBase {
     @action
     onPointerMove = (e: PointerEvent): void => {
         if (!e.cancelBubble && this.props.active()) {
-            if (e.buttons != 2 && !e.altKey && !e.metaKey && !this.MarqueeVisible) {
+            if (e.buttons == 1 && !e.altKey && !e.metaKey) {
                 this.MarqueeVisible = true;
-                this.PreviewCursorVisible = false;
             }
             if (this.MarqueeVisible) {
                 e.stopPropagation();
@@ -152,7 +151,6 @@ export class CollectionFreeFormView extends CollectionViewBase {
                 let x = this.props.Document.GetNumber(KeyStore.PanX, 0);
                 let y = this.props.Document.GetNumber(KeyStore.PanY, 0);
                 let [dx, dy] = this.getTransform().transformDirection(e.clientX - this._lastX, e.clientY - this._lastY);
-                this.PreviewCursorVisible = false;
                 this.SetPan(x - dx, y - dy);
                 this._lastX = e.pageX;
                 this._lastY = e.pageY;

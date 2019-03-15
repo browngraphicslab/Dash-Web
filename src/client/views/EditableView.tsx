@@ -50,7 +50,7 @@ export class EditableView extends React.Component<EditableProps> {
                 style={{ display: "inline" }}></input>
         } else {
             return (
-                <div className="editableView-container-editing" style={{ display: "inline", height: "100%", maxHeight: `${this.props.height}` }}
+                <div className="editableView-container-editing" style={{ display: "inline", height: "auto", maxHeight: `${this.props.height}` }}
                     onClick={action(() => this.editing = true)}>
                     {this.props.contents}
                 </div>
