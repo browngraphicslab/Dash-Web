@@ -58,7 +58,7 @@ Documents.initProtos(mainDocId, (res?: Document) => {
     let videourl = "http://techslides.com/demos/sample-videos/small.mp4";
     let clearDatabase = action(() => Utils.Emit(Server.Socket, MessageStore.DeleteAll, {}))
     let addTextNode = action(() => Documents.TextDocument({ width: 200, height: 200, title: "a text note" }))
-    let addColNode = action(() => Documents.FreeformDocument([], { width: 200, height: 200, backgroundColor: "Transparent", title: "a freeform collection" }));
+    let addColNode = action(() => Documents.FreeformDocument([], { width: 200, height: 200, title: "a freeform collection" }));
     let addSchemaNode = action(() => Documents.SchemaDocument([Documents.TextDocument()], { width: 200, height: 200, title: "a schema collection" }));
     let addVideoNode = action(() => Documents.VideoDocument(videourl, { width: 200, title: "video node" }));
     let addPDFNode = action(() => Documents.PdfDocument(pdfurl, { width: 200, title: "a schema collection" }));

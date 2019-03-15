@@ -1,4 +1,5 @@
 import { observer } from "mobx-react";
+import { observable } from "mobx";
 import { action, computed } from "mobx";
 import { InkingControl } from "./InkingControl";
 import React = require("react");
@@ -6,14 +7,10 @@ import { Transform } from "../util/Transform";
 import { Document } from "../../fields/Document";
 import { KeyStore } from "../../fields/KeyStore";
 import { InkField, InkTool, StrokeData, StrokeMap } from "../../fields/InkField";
-import { JsxArgs } from "./nodes/DocumentView";
 import { InkingStroke } from "./InkingStroke";
 import "./InkingCanvas.scss"
-import { CollectionDockingView } from "./collections/CollectionDockingView";
 import { Utils } from "../../Utils";
 import { FieldWaiting } from "../../fields/Field";
-import { getMapLikeKeys } from "mobx/lib/internal";
-
 
 interface InkCanvasProps {
     getScreenTransform: () => Transform;
@@ -22,7 +19,16 @@ interface InkCanvasProps {
 
 @observer
 export class InkingCanvas extends React.Component<InkCanvasProps> {
-
+    static InkOffset: number = 50000;
+    public static IntersectStrokeRect(stroke: StrokeData, selRect: { left: number, top: number, width: number, height: number }): boolean {
+        let inside = false;
+        stroke.pathData.map(val => {
+            if (selRect.left < val.x - InkingCanvas.InkOffset && selRect.left + selRect.width > val.x - InkingCanvas.InkOffset &&
+                selRect.top < val.y - InkingCanvas.InkOffset && selRect.top + selRect.height > val.y - InkingCanvas.InkOffset)
+                inside = true;
+        });
+        return inside
+    }
     private _isDrawing: boolean = false;
     private _idGenerator: string = "";
 
@@ -51,7 +57,6 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
         document.removeEventListener("mouseup", this.handleMouseUp);
     }
 
-
     @action
     handleMouseDown = (e: React.PointerEvent): void => {
         if (e.button != 0 ||
@@ -62,7 +67,6 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
         if (InkingControl.Instance.selectedTool === InkTool.Eraser) {
             return
         }
-        e.stopPropagation()
         const point = this.relativeCoordinatesForEvent(e);
 
         // start the new line, saves a uuid to represent the field of the stroke
@@ -110,8 +114,8 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
 
     relativeCoordinatesForEvent = (e: React.MouseEvent): { x: number, y: number } => {
         let [x, y] = this.props.getScreenTransform().transformPoint(e.clientX, e.clientY);
-        x += 50000
-        y += 50000
+        x += InkingCanvas.InkOffset;
+        y += InkingCanvas.InkOffset;
         return { x, y };
     }
 

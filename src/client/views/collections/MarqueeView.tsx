@@ -3,21 +3,22 @@ import { observer } from "mobx-react";
 import { Document } from "../../../fields/Document";
 import { FieldWaiting, Opt } from "../../../fields/Field";
 import { KeyStore } from "../../../fields/KeyStore";
-import { ListField } from "../../../fields/ListField";
 import { Documents } from "../../documents/Documents";
 import { SelectionManager } from "../../util/SelectionManager";
 import { Transform } from "../../util/Transform";
 import { CollectionFreeFormView } from "./CollectionFreeFormView";
 import "./MarqueeView.scss";
 import React = require("react");
-
+import { InkField, StrokeData } from "../../../fields/InkField";
+import { Utils } from "../../../Utils";
+import { InkingCanvas } from "../InkingCanvas";
 
 interface MarqueeViewProps {
     getMarqueeTransform: () => Transform;
     getTransform: () => Transform;
     container: CollectionFreeFormView;
     addDocument: (doc: Document) => void;
-    activeDocuemnts: () => Document[];
+    activeDocuments: () => Document[];
     selectDocuments: (docs: Document[]) => void;
     removeDocument: (doc: Document) => boolean;
 }
@@ -94,29 +95,57 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     marqueeCommand = (e: KeyboardEvent) => {
         if (e.key == "Backspace") {
             this.marqueeSelect().map(d => this.props.removeDocument(d));
+            this.props.container.props.Document.SetData(KeyStore.Ink, this.marqueeInkSelect(false), InkField);
             this.cleanupInteractions();
         }
         if (e.key == "c") {
             let bounds = this.Bounds;
-            let selected = this.marqueeSelect().map(m => m);
-            this.marqueeSelect().map(d => this.props.removeDocument(d));
-            //setTimeout(() => {
-            this.props.addDocument(Documents.FreeformDocument(selected.map(d => {
+            let selected = this.marqueeSelect().map(d => {
+                this.props.removeDocument(d);
                 d.SetNumber(KeyStore.X, d.GetNumber(KeyStore.X, 0) - bounds.left - bounds.width / 2);
                 d.SetNumber(KeyStore.Y, d.GetNumber(KeyStore.Y, 0) - bounds.top - bounds.height / 2);
                 d.SetNumber(KeyStore.Page, 0);
                 d.SetText(KeyStore.Title, "" + d.GetNumber(KeyStore.Width, 0) + " " + d.GetNumber(KeyStore.Height, 0));
                 return d;
-            }), { x: bounds.left, y: bounds.top, panx: 0, pany: 0, width: bounds.width, height: bounds.height, title: "a nested collection" }));
+            });
+            let liftedInk = this.marqueeInkSelect(true);
+            this.props.container.props.Document.SetData(KeyStore.Ink, this.marqueeInkSelect(false), InkField);
+            //setTimeout(() => {
+            this.props.addDocument(Documents.FreeformDocument(selected, { x: bounds.left, y: bounds.top, panx: 0, pany: 0, width: bounds.width, backgroundColor: "Transparent", height: bounds.height, ink: liftedInk, title: "a nested collection" }));
             // }, 100);
             this.cleanupInteractions();
+        }
+    }
+    marqueeInkSelect(select: boolean) {
+        let selRect = this.Bounds;
+        let centerShiftX = 0 - (selRect.left + selRect.width / 2); // moves each point by the offset that shifts the selection's center to the origin.
+        let centerShiftY = 0 - (selRect.top + selRect.height / 2);
+        let ink = this.props.container.props.Document.GetT(KeyStore.Ink, InkField);
+        if (ink && ink != FieldWaiting) {
+            let idata = new Map();
+            ink.Data.forEach((value: StrokeData, key: string, map: any) => {
+                let inside = InkingCanvas.IntersectStrokeRect(value, selRect);
+                if (inside && select) {
+                    idata.set(key,
+                        {
+                            pathData: value.pathData.map(val => { return { x: val.x + centerShiftX, y: val.y + centerShiftY } }),
+                            color: value.color,
+                            width: value.width,
+                            tool: value.tool,
+                            page: -1
+                        });
+                } else if (!inside && !select) {
+                    idata.set(key, value);
+                }
+            })
+            return idata;
         }
     }
 
     marqueeSelect() {
         let selRect = this.Bounds;
         let selection: Document[] = [];
-        this.props.activeDocuemnts().map(doc => {
+        this.props.activeDocuments().map(doc => {
             var x = doc.GetNumber(KeyStore.X, 0);
             var y = doc.GetNumber(KeyStore.Y, 0);
             var w = doc.GetNumber(KeyStore.Width, 0);
