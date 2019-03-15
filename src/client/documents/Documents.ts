@@ -24,10 +24,12 @@ import { PDFBox } from "../views/nodes/PDFBox";
 import { CollectionPDFView } from "../views/collections/CollectionPDFView";
 import { RichTextField } from "../../fields/RichTextField";
 import { CollectionVideoView } from "../views/collections/CollectionVideoView";
+import { StrokeData, InkField } from "../../fields/InkField";
 
 export interface DocumentOptions {
     x?: number;
     y?: number;
+    ink?: Map<string, StrokeData>;
     width?: number;
     height?: number;
     nativeWidth?: number;
@@ -40,6 +42,7 @@ export interface DocumentOptions {
     layout?: string;
     layoutKeys?: Key[];
     viewType?: number;
+    backgroundColor?: string;
 }
 
 export namespace Documents {
@@ -83,8 +86,10 @@ export namespace Documents {
         if (options.page !== undefined) { doc.SetNumber(KeyStore.Page, options.page); }
         if (options.scale !== undefined) { doc.SetNumber(KeyStore.Scale, options.scale); }
         if (options.viewType !== undefined) { doc.SetNumber(KeyStore.ViewType, options.viewType); }
+        if (options.backgroundColor !== undefined) { doc.SetText(KeyStore.BackgroundColor, options.backgroundColor); }
         if (options.layout !== undefined) { doc.SetText(KeyStore.Layout, options.layout); }
         if (options.layoutKeys !== undefined) { doc.Set(KeyStore.LayoutKeys, new ListField(options.layoutKeys)); }
+        if (options.ink !== undefined) { doc.Set(KeyStore.Ink, new InkField(options.ink)); }
         return doc;
     }
     function setupPrototypeOptions(protoId: string, title: string, layout: string, options: DocumentOptions): Document {

@@ -1,9 +1,10 @@
 @import "global_variables";
 .inking-canvas {
-    position: fixed;
+    position: absolute;
     top: -50000px;
     left: -50000px; // z-index: 99; //overlays ink on top of everything
     svg {
+        position:absolute;
         width: 100000px;
         height: 100000px;
         .highlight {

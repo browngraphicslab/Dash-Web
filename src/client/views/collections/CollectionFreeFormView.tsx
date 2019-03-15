@@ -338,7 +338,9 @@ export class CollectionFreeFormView extends CollectionViewBase {
                     <PreviewCursor container={this} addLiveTextDocument={this.addLiveTextBox} getTransform={this.getTransform} />
                     {this.views}
                 </div>
-                <MarqueeView container={this} activeDocuemnts={this.getActiveDocuments} selectDocuments={this.selectDocuments} addDocument={this.props.addDocument} removeDocument={this.props.removeDocument} getMarqueeTransform={this.getMarqueeTransform} getTransform={this.getTransform} />
+                <MarqueeView container={this} activeDocuments={this.getActiveDocuments} selectDocuments={this.selectDocuments}
+                    addDocument={this.props.addDocument} removeDocument={this.props.removeDocument}
+                    getMarqueeTransform={this.getMarqueeTransform} getTransform={this.getTransform} />
                 {this.overlayView}
             </div>
         );
