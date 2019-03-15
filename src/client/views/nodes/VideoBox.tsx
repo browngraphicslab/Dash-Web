@@ -30,7 +30,7 @@ export class VideoBox extends React.Component<FieldViewProps> {
             var nativeWidth = this.props.doc.GetNumber(KeyStore.NativeWidth, 0);
             var nativeHeight = this.props.doc.GetNumber(KeyStore.NativeHeight, 0);
             var newNativeHeight = nativeWidth * r.entry.height / r.entry.width;
-            if (newNativeHeight != nativeHeight && !isNaN(newNativeHeight)) {
+            if (!nativeHeight && newNativeHeight != nativeHeight && !isNaN(newNativeHeight)) {
                 this.props.doc.SetNumber(KeyStore.Height, newNativeHeight / nativeWidth * this.props.doc.GetNumber(KeyStore.Width, 0));
                 this.props.doc.SetNumber(KeyStore.NativeHeight, newNativeHeight);
             }
@@ -48,7 +48,7 @@ export class VideoBox extends React.Component<FieldViewProps> {
 
         //setTimeout(action(() => this._loaded = true), 500);
         return (
-            <div style={{ width: "100%", height: "Auto" }} >
+            <div style={{ width: "100%", height: "100%" }} >
                 <Measure onResize={this.setScaling}>
                     {({ measureRef }) =>
                         <video className="videobox-cont" ref={measureRef}>
