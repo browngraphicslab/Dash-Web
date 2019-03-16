@@ -98,13 +98,13 @@ Documents.initProtos(mainDocId, (res?: Document) => {
             <div className="main-buttonDiv" style={{ bottom: '50px' }} ref={textRef}>
                 <button onPointerDown={setupDrag(textRef, addTextNode)} onClick={addClick(addTextNode)}>Add Text</button></div>
             <div className="main-buttonDiv" style={{ bottom: '75px' }} ref={colRef}>
-                <button onPointerDown={setupDrag(colRef, addColNode)} onClick={addClick(addColNode)}>Add one Collection</button></div>
+                <button onPointerDown={setupDrag(colRef, addColNode)} onClick={addClick(addColNode)}>Add Collection</button></div>
             <div className="main-buttonDiv" style={{ bottom: '100px' }} ref={schemaRef}>
                 <button onPointerDown={setupDrag(schemaRef, addSchemaNode)} onClick={addClick(addSchemaNode)}>Add Schema</button></div>
             <div className="main-buttonDiv" style={{ bottom: '125px' }} >
                 <button onClick={clearDatabase}>Clear Database</button></div>
             <div className="main-buttonDiv" style={{ bottom: '175px' }} ref={videoRef}>
-                <button onPointerDown={setupDrag(videoRef, addVideoNode)} onClick={addClick(addVideoNode)}>Add a Video</button></div>
+                <button onPointerDown={setupDrag(videoRef, addVideoNode)} onClick={addClick(addVideoNode)}>Add Video</button></div>
             <div className="main-buttonDiv" style={{ bottom: '200px' }} ref={audioRef}>
                 <button onPointerDown={setupDrag(audioRef, addAudioNode)} onClick={addClick(addAudioNode)}>Add Audio</button></div>
             <div className="main-buttonDiv" style={{ bottom: '150px' }} ref={pdfRef}>
