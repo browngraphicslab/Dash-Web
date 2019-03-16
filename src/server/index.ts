@@ -105,7 +105,7 @@ app.get("/", (req, res) => {
 });
 
 app.get("/pull", (req, res) => {
-    exec('git pull', (err, stdout, stderr) => {
+    exec('"C:\\Program Files\\Git\\git-bash.exe" -c "git pull"', (err, stdout, stderr) => {
         if (err) {
             res.send(err.message);
             return;
