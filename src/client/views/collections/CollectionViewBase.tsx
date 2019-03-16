@@ -47,12 +47,19 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
     protected drop(e: Event, de: DragManager.DropEvent) {
         const docView: DocumentView = de.data["documentView"];
         const doc: Document = de.data["document"];
+
         if (docView && (!docView.props.ContainingCollectionView || docView.props.ContainingCollectionView !== this.props.CollectionView)) {
             if (docView.props.RemoveDocument) {
+
                 docView.props.RemoveDocument(docView.props.Document);
             }
+            console.log("2");
+            //console.log(docView.props.Document.GetData(KeyStore.Data, ""))
+            //let text = doc.GetText(KeyStore.DocumentText, "");
+            console.log("text")
             this.props.addDocument(docView.props.Document);
         } else if (doc) {
+            // console.log("3");
             this.props.removeDocument(doc);
             this.props.addDocument(doc);
         }
@@ -67,6 +74,7 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
 
         let html = e.dataTransfer.getData("text/html");
         let text = e.dataTransfer.getData("text/plain");
+
         if (html && html.indexOf("<img") != 0) {
             console.log("not good");
             let htmlDoc = Documents.HtmlDocument(html, { ...options, width: 300, height: 300 });
