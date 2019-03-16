@@ -73,9 +73,9 @@ export class ContextMenu extends React.Component {
         return (
             <div className="contextMenu-cont" style={{ left: this._pageX, top: this._pageY, display: this._display }} ref={this.ref}>
                 <div>
-                    <i className="fa fa-search"> </i>
-                    {/* <FontAwesomeIcon icon="search" size="sm" /> */}
-                    <input className="contextMenu-item" type="text" placeholder="Search . . ." value={this._searchString} onChange={this.onChange}></input>
+                    {/* <i className="fa fa-search"> </i> */}
+                    <FontAwesomeIcon icon="search" size="lg" />
+                    <input className="contextMenu-item" type="text" placeholder="&#xf002; Search . . ." value={this._searchString} onChange={this.onChange} ></input>
                 </div>
                 {this._items.filter(prop => {
                     return prop.description.toLowerCase().indexOf(this._searchString.toLowerCase()) !== -1;
