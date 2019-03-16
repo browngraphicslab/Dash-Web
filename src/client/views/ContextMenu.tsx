@@ -3,6 +3,11 @@ import { ContextMenuItem, ContextMenuProps } from "./ContextMenuItem";
 import { observable, action } from "mobx";
 import { observer } from "mobx-react"
 import "./ContextMenu.scss"
+import { library } from '@fortawesome/fontawesome-svg-core';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faSearch } from '@fortawesome/free-solid-svg-icons';
+
+library.add(faSearch);
 
 @observer
 export class ContextMenu extends React.Component {
@@ -67,7 +72,11 @@ export class ContextMenu extends React.Component {
     render() {
         return (
             <div className="contextMenu-cont" style={{ left: this._pageX, top: this._pageY, display: this._display }} ref={this.ref}>
-                <input className="contextMenu-item" type="text" placeholder="Search . . ." value={this._searchString} onChange={this.onChange}></input>
+                <div>
+                    <i className="fa fa-search"> </i>
+                    {/* <FontAwesomeIcon icon="search" size="sm" /> */}
+                    <input className="contextMenu-item" type="text" placeholder="Search . . ." value={this._searchString} onChange={this.onChange}></input>
+                </div>
                 {this._items.filter(prop => {
                     return prop.description.toLowerCase().indexOf(this._searchString.toLowerCase()) !== -1;
                 }).map(prop => {

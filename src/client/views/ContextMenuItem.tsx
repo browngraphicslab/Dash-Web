@@ -38,7 +38,7 @@ export class ContextMenuItem extends React.Component<ContextMenuProps> {
         else {
             let submenu = null;
             if (this.overItem) {
-                submenu = (<div className="subMenu-cont" style={{ left: this._pageX, top: this._pageY, marginLeft: "47.5%" }}>
+                submenu = (<div className="subMenu-cont" style={{ top: this._pageY, marginLeft: "0" }}>
                     {this._items.map(prop => {
                         return <ContextMenuItem {...prop} key={prop.description} />
                     })}
