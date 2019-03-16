@@ -104,7 +104,7 @@ Documents.initProtos(mainDocId, (res?: Document) => {
             <div className="main-buttonDiv" style={{ bottom: '125px' }} >
                 <button onClick={clearDatabase}>Clear Database</button></div>
             <div className="main-buttonDiv" style={{ bottom: '175px' }} ref={videoRef}>
-                <button onPointerDown={setupDrag(videoRef, addVideoNode)} onClick={addClick(addVideoNode)}>Add Video</button></div>
+                <button onPointerDown={setupDrag(videoRef, addVideoNode)} onClick={addClick(addVideoNode)}>Add a Video</button></div>
             <div className="main-buttonDiv" style={{ bottom: '200px' }} ref={audioRef}>
                 <button onPointerDown={setupDrag(audioRef, addAudioNode)} onClick={addClick(addAudioNode)}>Add Audio</button></div>
             <div className="main-buttonDiv" style={{ bottom: '150px' }} ref={pdfRef}>
