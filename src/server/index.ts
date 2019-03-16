@@ -34,6 +34,7 @@ const bluebird = require('bluebird');
 import { performance } from 'perf_hooks'
 import * as fs from 'fs';
 import * as request from 'request'
+import { exec } from 'child_process'
 
 const download = (url: string, dest: fs.PathLike) => {
     request.get(url).pipe(fs.createWriteStream(dest));
@@ -101,6 +102,16 @@ let FieldStore: ObservableMap<FieldId, Field> = new ObservableMap();
 // define a route handler for the default home page
 app.get("/", (req, res) => {
     res.sendFile(path.join(__dirname, '../../deploy/index.html'));
+});
+
+app.get("/pull", (req, res) => {
+    exec('git pull', (err, stdout, stderr) => {
+        if (err) {
+            res.send(err.message);
+            return;
+        }
+        res.redirect("/");
+    })
 });
 
 app.get("/hello", (req, res) => {
