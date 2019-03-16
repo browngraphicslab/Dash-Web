@@ -102,12 +102,12 @@ let FieldStore: ObservableMap<FieldId, Field> = new ObservableMap();
 
 // define a route handler for the default home page
 app.get("/", (req: express.Request, res: express.Response) => {
-    //let detector = new mobileDetect(req.headers['user-agent'] || "");
-    //if (detector.mobile() != null) {
-       // res.sendFile(path.join(__dirname, '../../deploy/mobile/image_upload.html'));
-   // } else {
+    let detector = new mobileDetect(req.headers['user-agent'] || "");
+    if (detector.mobile() != null) {
+        res.sendFile(path.join(__dirname, '../../deploy/mobile/image.html'));
+    } else {
         res.sendFile(path.join(__dirname, '../../deploy/index.html'));
-   // }
+    }
 });
 
 app.get("/pull", (req, res) => {
