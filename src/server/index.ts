@@ -39,6 +39,7 @@ import User, { DashUserModel } from './authentication/models/user_model';
 import * as fs from 'fs';
 import * as request from 'request'
 import { RouteStore } from './RouteStore';
+import * as MobileDetect from 'mobile-detect';
 
 const download = (url: string, dest: fs.PathLike) => {
     request.get(url).pipe(fs.createWriteStream(dest));
@@ -144,6 +145,10 @@ addSecureRoute(Method.GET, RouteStore.root, (user, req, res) => {
 
 // YAY! SHOW THEM THEIR WORKSPACES NOW
 addSecureRoute(Method.GET, RouteStore.home, (user, req, res) => {
+    let detector = new MobileDetect(req.headers['user-agent'] || "");
+    console.log("GAAAAAAHHHHH");
+    console.log(detector.mobile());
+    console.log(detector.is("mobile"));
     res.sendFile(path.join(__dirname, '../../deploy/index.html'));
 });
 
@@ -156,6 +161,7 @@ addSecureRoute(Method.GET, RouteStore.getAllWorkspaces, (user, req, res) => {
 });
 
 addSecureRoute(Method.POST, RouteStore.setActiveWorkspace, (user, req) => {
+    req
     user.update({ $set: { activeWorkspaceId: req.body.target } }, () => { });
 });
 

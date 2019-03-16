@@ -17,6 +17,7 @@ export enum RouteStore {
     getAllWorkspaces = "/getAllWorkspaceIds",
     getActiveWorkspace = "/getActiveWorkspaceId",
     setActiveWorkspace = "/setActiveWorkspaceId",
+    updateCursor = "/updateCursor",
 
     // AUTHENTICATION
     signup = "/signup",

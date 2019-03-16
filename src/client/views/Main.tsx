@@ -23,6 +23,7 @@ import { observer } from 'mobx-react';
 import { Field, Opt } from '../../fields/Field';
 import { InkingControl } from './InkingControl';
 import { RouteStore } from '../../server/RouteStore';
+import { json } from 'body-parser';
 
 @observer
 export class Main extends React.Component {
@@ -43,6 +44,7 @@ export class Main extends React.Component {
     }
 
     initEventListeners = () => {
+        // window.addEventListener("pointermove", (e) => this.reportLocation(e))
         window.addEventListener("drop", (e) => e.preventDefault(), false) // drop event handler
         window.addEventListener("dragover", (e) => e.preventDefault(), false) // drag event handler
         // click interactions for the context menu
@@ -70,6 +72,24 @@ export class Main extends React.Component {
             }
         });
     }
+
+    // reportLocation = (e: PointerEvent) => {
+    //     request.post(this.prepend(RouteStore.updateCursor), {
+    //         body: {
+    //             cursorX: e.screenX,
+    //             cursorY: e.screenY,
+    //             docId: this.mainContainer ? this.mainContainer.Id : undefined
+    //         },
+    //         json: true
+    //     });
+    // }
+
+    // componentWillUnmount = () => {
+
+    // }
+
+    // pushCursor = () => {
+    // }
 
     @action
     createNewWorkspace = (init: boolean): void => {
@@ -108,6 +128,7 @@ export class Main extends React.Component {
         });
         this.mainContainer = doc;
         this.mainContainer.GetAsync(KeyStore.ActiveFrame, field => this.mainfreeform = field as Document);
+        // this.pushCursor();
     }
 
     toggleWorkspaces = () => {
