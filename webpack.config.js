@@ -8,6 +8,8 @@ module.exports = {
     bundle: ["./src/client/views/Main.tsx", 'webpack-hot-middleware/client?reload=true'],
     viewer: ["./src/debug/Viewer.tsx", 'webpack-hot-middleware/client?reload=true'],
     test: ["./src/debug/Test.tsx", 'webpack-hot-middleware/client?reload=true'],
+    image_upload: ["./src/debug/mobile/ImageUpload.tsx", 'webpack-hot-middleware/client?reload=true'],
+    ink_control: ["./src/debug/mobile/InkControl.tsx", 'webpack-hot-middleware/client?reload=true'],
   },
   devtool: "source-map",
   node: {

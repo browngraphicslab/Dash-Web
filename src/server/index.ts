@@ -27,6 +27,7 @@ import * as expressValidator from 'express-validator';
 import expressFlash = require('express-flash');
 import * as bodyParser from 'body-parser';
 import * as session from 'express-session';
+import * as mobileDetect from 'mobile-detect';
 import c = require("crypto");
 const MongoStore = require('connect-mongo')(session);
 const mongoose = require('mongoose');
@@ -100,8 +101,13 @@ app.use('/images', express.static(__dirname + '/public'))
 let FieldStore: ObservableMap<FieldId, Field> = new ObservableMap();
 
 // define a route handler for the default home page
-app.get("/", (req, res) => {
-    res.sendFile(path.join(__dirname, '../../deploy/index.html'));
+app.get("/", (req: express.Request, res: express.Response) => {
+    let detector = new mobileDetect(req.headers['user-agent'] || "");
+    if (detector.mobile() != null) {
+        res.sendFile(path.join(__dirname, '../../deploy/mobile/image_upload.html'));
+    } else {
+        res.sendFile(path.join(__dirname, '../../deploy/index.html'));
+    }
 });
 
 app.get("/pull", (req, res) => {
