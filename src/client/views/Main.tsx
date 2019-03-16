@@ -98,7 +98,7 @@ Documents.initProtos(mainDocId, (res?: Document) => {
             <div className="main-buttonDiv" style={{ bottom: '50px' }} ref={textRef}>
                 <button onPointerDown={setupDrag(textRef, addTextNode)} onClick={addClick(addTextNode)}>Add Text</button></div>
             <div className="main-buttonDiv" style={{ bottom: '75px' }} ref={colRef}>
-                <button onPointerDown={setupDrag(colRef, addColNode)} onClick={addClick(addColNode)}>Add Collection</button></div>
+                <button onPointerDown={setupDrag(colRef, addColNode)} onClick={addClick(addColNode)}>Add one Collection</button></div>
             <div className="main-buttonDiv" style={{ bottom: '100px' }} ref={schemaRef}>
                 <button onPointerDown={setupDrag(schemaRef, addSchemaNode)} onClick={addClick(addSchemaNode)}>Add Schema</button></div>
             <div className="main-buttonDiv" style={{ bottom: '125px' }} >
