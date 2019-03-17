@@ -1,17 +1,13 @@
 import * as React from 'react';
-import * as ReactDOM from 'react-dom';
 import { observable, action, configure, reaction, computed, ObservableMap, runInAction } from 'mobx';
 import { observer } from "mobx-react";
-import * as request from 'request'
 import './WorkspacesMenu.css'
 import { Document } from '../../../fields/Document';
-import { Server } from '../../../client/Server';
-import { Field } from '../../../fields/Field';
 import { EditableView } from '../../../client/views/EditableView';
 import { KeyStore } from '../../../fields/KeyStore';
 
 export interface WorkspaceMenuProps {
-    active: Document;
+    active: Document | undefined;
     open: (workspace: Document) => void;
     new: (init: boolean) => void;
     allWorkspaces: Document[];
@@ -40,15 +36,15 @@ export class WorkspacesMenu extends React.Component<WorkspaceMenuProps> {
     }
 
     render() {
-        let p = this.props;
         return (
             <div
                 style={{
                     width: "auto",
-                    height: "auto",
+                    maxHeight: '200px',
+                    overflow: 'scroll',
                     borderRadius: 5,
                     position: "absolute",
-                    top: 55,
+                    top: 78,
                     left: this.workspacesExposed ? 11 : -500,
                     background: "white",
                     border: "black solid 2px",
@@ -77,7 +73,8 @@ export class WorkspacesMenu extends React.Component<WorkspaceMenuProps> {
                             this.props.open(s);
                         }}
                         style={{
-                            marginTop: 10
+                            marginTop: 10,
+                            color: s === this.props.active ? "red" : "black"
                         }}
                     >
                         <span>{i + 1} - </span>

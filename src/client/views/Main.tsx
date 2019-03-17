@@ -1,4 +1,4 @@
-import { action, configure, observable } from 'mobx';
+import { action, configure, observable, runInAction } from 'mobx';
 import "normalize.css";
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
@@ -24,6 +24,20 @@ import { Field, Opt } from '../../fields/Field';
 import { InkingControl } from './InkingControl';
 import { RouteStore } from '../../server/RouteStore';
 import { json } from 'body-parser';
+import { library } from '@fortawesome/fontawesome-svg-core';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faFont } from '@fortawesome/free-solid-svg-icons';
+import { faImage } from '@fortawesome/free-solid-svg-icons';
+import { faFilePdf } from '@fortawesome/free-solid-svg-icons';
+import { faObjectGroup } from '@fortawesome/free-solid-svg-icons';
+import { faTable } from '@fortawesome/free-solid-svg-icons';
+import { faGlobeAsia } from '@fortawesome/free-solid-svg-icons';
+import { faUndoAlt } from '@fortawesome/free-solid-svg-icons';
+import { faRedoAlt } from '@fortawesome/free-solid-svg-icons';
+import { faPenNib } from '@fortawesome/free-solid-svg-icons';
+import { faFilm } from '@fortawesome/free-solid-svg-icons';
+import { faMusic } from '@fortawesome/free-solid-svg-icons';
+import Measure from 'react-measure';
 
 @observer
 export class Main extends React.Component {
@@ -31,11 +45,31 @@ export class Main extends React.Component {
     @observable private mainContainer?: Document;
     @observable private mainfreeform?: Document;
     @observable private userWorkspaces: Document[] = [];
+    @observable public pwidth: number = 0;
+    @observable public pheight: number = 0;
+
+    private mainDocId: string | undefined;
 
     constructor(props: Readonly<{}>) {
         super(props);
         // causes errors to be generated when modifying an observable outside of an action
         configure({ enforceActions: "observed" });
+        if (window.location.pathname !== "/home") {
+            let pathname = window.location.pathname.split("/");
+            this.mainDocId = pathname[pathname.length - 1];
+        }
+
+        library.add(faFont);
+        library.add(faImage);
+        library.add(faFilePdf);
+        library.add(faObjectGroup);
+        library.add(faTable);
+        library.add(faGlobeAsia);
+        library.add(faUndoAlt);
+        library.add(faRedoAlt);
+        library.add(faPenNib);
+        library.add(faFilm);
+        library.add(faMusic);
 
         this.initEventListeners();
         Documents.initProtos(() => {
@@ -58,8 +92,8 @@ export class Main extends React.Component {
     initAuthenticationRouters = () => {
         // Load the user's active workspace, or create a new one if initial session after signup
         request.get(this.prepend(RouteStore.getActiveWorkspace), (error, response, body) => {
-            if (body) {
-                Server.GetField(body, field => {
+            if (this.mainDocId || body) {
+                Server.GetField(this.mainDocId || body, field => {
                     if (field instanceof Document) {
                         this.openWorkspace(field);
                         this.populateWorkspaces();
@@ -71,25 +105,8 @@ export class Main extends React.Component {
                 this.createNewWorkspace(true);
             }
         });
+
     }
-
-    // reportLocation = (e: PointerEvent) => {
-    //     request.post(this.prepend(RouteStore.updateCursor), {
-    //         body: {
-    //             cursorX: e.screenX,
-    //             cursorY: e.screenY,
-    //             docId: this.mainContainer ? this.mainContainer.Id : undefined
-    //         },
-    //         json: true
-    //     });
-    // }
-
-    // componentWillUnmount = () => {
-
-    // }
-
-    // pushCursor = () => {
-    // }
 
     @action
     createNewWorkspace = (init: boolean): void => {
@@ -128,7 +145,6 @@ export class Main extends React.Component {
         });
         this.mainContainer = doc;
         this.mainContainer.GetAsync(KeyStore.ActiveFrame, field => this.mainfreeform = field as Document);
-        // this.pushCursor();
     }
 
     toggleWorkspaces = () => {
@@ -169,47 +185,82 @@ export class Main extends React.Component {
 
         let addClick = (creator: () => Document) => action(() => this.mainfreeform!.GetList<Document>(KeyStore.Data, []).push(creator()));
 
-        if (!this.mainContainer) {
-            return <div></div>
-        }
         return (
             <div style={{ position: "absolute", width: "100%", height: "100%" }}>
-                <DocumentView Document={this.mainContainer}
-                    AddDocument={undefined} RemoveDocument={undefined} ScreenToLocalTransform={() => Transform.Identity}
-                    ContentScaling={() => 1}
-                    PanelWidth={() => 0}
-                    PanelHeight={() => 0}
-                    isTopMost={true}
-                    SelectOnLoad={false}
-                    focus={() => { }}
-                    ContainingCollectionView={undefined} />
+                <Measure onResize={(r: any) => runInAction(() => {
+                    this.pwidth = r.entry.width;
+                    this.pheight = r.entry.height;
+                })}>
+                    {({ measureRef }) => {
+                        if (!this.mainContainer) {
+                            return <div></div>
+                        }
+                        return <div ref={measureRef} style={{ position: "absolute", width: "100%", height: "100%" }}>
+                            <DocumentView Document={this.mainContainer}
+                                AddDocument={undefined} RemoveDocument={undefined} ScreenToLocalTransform={() => Transform.Identity}
+                                ContentScaling={() => 1}
+                                PanelWidth={() => this.pwidth}
+                                PanelHeight={() => this.pheight}
+                                isTopMost={true}
+                                SelectOnLoad={false}
+                                focus={() => { }}
+                                ContainingCollectionView={undefined} />
+                        </div>
+                    }}
+                </Measure>
                 <DocumentDecorations />
                 <ContextMenu />
-                <WorkspacesMenu active={this.mainContainer} open={this.openWorkspace} new={this.createNewWorkspace} allWorkspaces={this.userWorkspaces} />
-                <div className="main-buttonDiv" style={{ bottom: '0px' }} ref={imgRef} >
-                    <button onPointerDown={setupDrag(imgRef, addImageNode)} onClick={addClick(addImageNode)}>Add Image</button></div>
-                <div className="main-buttonDiv" style={{ bottom: '25px' }} ref={webRef} >
-                    <button onPointerDown={setupDrag(webRef, addWebNode)} onClick={addClick(addWebNode)}>Add Web</button></div>
-                <div className="main-buttonDiv" style={{ bottom: '50px' }} ref={textRef}>
-                    <button onPointerDown={setupDrag(textRef, addTextNode)} onClick={addClick(addTextNode)}>Add Text</button></div>
-                <div className="main-buttonDiv" style={{ bottom: '75px' }} ref={colRef}>
-                    <button onPointerDown={setupDrag(colRef, addColNode)} onClick={addClick(addColNode)}>Add Collection</button></div>
-                <div className="main-buttonDiv" style={{ bottom: '100px' }} ref={schemaRef}>
-                    <button onPointerDown={setupDrag(schemaRef, addSchemaNode)} onClick={addClick(addSchemaNode)}>Add Schema</button></div>
-                <div className="main-buttonDiv" style={{ bottom: '125px' }} >
-                    <button onClick={clearDatabase}>Clear Database</button></div>
-                <div className="main-buttonDiv" style={{ top: '25px' }} ref={workspacesRef}>
-                    <button onClick={this.toggleWorkspaces}>View Workspaces</button></div>
-                <div className="main-buttonDiv" style={{ top: '25px', left: '300px' }} ref={logoutRef}>
+
+                <button className="clear-db-button" onClick={clearDatabase}>Clear Database</button>
+
+                {/* @TODO this should really be moved into a moveable toolbar component, but for now let's put it here to meet the deadline */}
+                < div id="toolbar" >
+                    <button className="toolbar-button round-button" title="Undo" onClick={() => UndoManager.Undo()}><FontAwesomeIcon icon="undo-alt" size="sm" /></button>
+                    <button className="toolbar-button round-button" title="Redo" onClick={() => UndoManager.Redo()}><FontAwesomeIcon icon="redo-alt" size="sm" /></button>
+                    <button className="toolbar-button round-button" title="Ink" onClick={() => InkingControl.Instance.toggleDisplay()}><FontAwesomeIcon icon="pen-nib" size="sm" /></button>
+                </div >
+
+                <div className="main-buttonDiv" style={{ top: '34px', left: '2px', position: 'absolute' }} ref={workspacesRef}>
+                    <button onClick={this.toggleWorkspaces}>Workspaces</button></div>
+                <div className="main-buttonDiv" style={{ top: '34px', right: '1px', position: 'absolute' }} ref={logoutRef}>
                     <button onClick={() => request.get(this.prepend(RouteStore.logout), () => { })}>Log Out</button></div>
-                <div className="main-buttonDiv" style={{ bottom: '175px' }} ref={videoRef}>
-                    <button onPointerDown={setupDrag(videoRef, addVideoNode)} onClick={addClick(addVideoNode)}>Add Video</button></div>
-                <div className="main-buttonDiv" style={{ bottom: '200px' }} ref={audioRef}>
-                    <button onPointerDown={setupDrag(audioRef, addAudioNode)} onClick={addClick(addAudioNode)}>Add Audio</button></div>
-                <div className="main-buttonDiv" style={{ bottom: '150px' }} ref={pdfRef}>
-                    <button onPointerDown={setupDrag(pdfRef, addPDFNode)} onClick={addClick(addPDFNode)}>Add PDF</button></div>
-                <button className="main-undoButtons" style={{ bottom: '25px' }} onClick={() => UndoManager.Undo()}>Undo</button>
-                <button className="main-undoButtons" style={{ bottom: '0px' }} onClick={() => UndoManager.Redo()}>Redo</button>
+
+                <WorkspacesMenu active={this.mainContainer} open={this.openWorkspace} new={this.createNewWorkspace} allWorkspaces={this.userWorkspaces} />
+                {/* for the expandable add nodes menu. Not included with the above because once it expands it expands the whole div with it, making canvas interactions limited. */}
+                < div id="add-nodes-menu" >
+                    <input type="checkbox" id="add-menu-toggle" />
+                    <label htmlFor="add-menu-toggle" title="Add Node"><p>+</p></label>
+
+                    <div id="add-options-content">
+                        <ul id="add-options-list">
+                            <li><div ref={textRef}><button className="round-button add-button" title="Add Textbox" onPointerDown={setupDrag(textRef, addTextNode)} onClick={addClick(addTextNode)}>
+                                <FontAwesomeIcon icon="font" size="sm" />
+                            </button></div></li>
+                            <li><div ref={imgRef}><button className="round-button add-button" title="Add Image" onPointerDown={setupDrag(imgRef, addImageNode)} onClick={addClick(addImageNode)}>
+                                <FontAwesomeIcon icon="image" size="sm" />
+                            </button></div></li>
+                            <li><div ref={pdfRef}><button className="round-button add-button" title="Add PDF" onPointerDown={setupDrag(pdfRef, addPDFNode)} onClick={addClick(addPDFNode)}>
+                                <FontAwesomeIcon icon="file-pdf" size="sm" />
+                            </button></div></li>
+                            <li><div ref={videoRef}><button className="round-button add-button" title="Add Video" onPointerDown={setupDrag(videoRef, addVideoNode)} onClick={addClick(addVideoNode)}>
+                                <FontAwesomeIcon icon="film" size="sm" />
+                            </button></div></li>
+                            <li><div ref={audioRef}><button className="round-button add-button" title="Add Audio" onPointerDown={setupDrag(audioRef, addAudioNode)} onClick={addClick(addAudioNode)}>
+                                <FontAwesomeIcon icon="music" size="sm" />
+                            </button></div></li>
+                            <li><div ref={webRef}><button className="round-button add-button" title="Add Web Clipping" onPointerDown={setupDrag(webRef, addWebNode)} onClick={addClick(addWebNode)}>
+                                <FontAwesomeIcon icon="globe-asia" size="sm" />
+                            </button></div></li>
+                            <li><div ref={colRef}><button className="round-button add-button" title="Add Collection" onPointerDown={setupDrag(colRef, addColNode)} onClick={addClick(addColNode)}>
+                                <FontAwesomeIcon icon="object-group" size="sm" />
+                            </button></div></li>
+                            <li><div ref={schemaRef}><button className="round-button add-button" title="Add Schema" onPointerDown={setupDrag(schemaRef, addSchemaNode)} onClick={addClick(addSchemaNode)}>
+                                <FontAwesomeIcon icon="table" size="sm" />
+                            </button></div></li>
+                        </ul>
+                    </div>
+                </div >
+
                 <InkingControl />
             </div>
         );

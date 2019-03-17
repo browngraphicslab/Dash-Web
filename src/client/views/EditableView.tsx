@@ -1,6 +1,7 @@
 import React = require('react')
 import { observer } from 'mobx-react';
 import { observable, action } from 'mobx';
+import "./EditableView.scss"
 
 export interface EditableProps {
     /**
@@ -20,7 +21,7 @@ export interface EditableProps {
      */
     contents: any;
     height: number
-    display: string;
+    display?: string;
 }
 
 /**
@@ -50,7 +51,7 @@ export class EditableView extends React.Component<EditableProps> {
                 style={{ display: this.props.display }}></input>
         } else {
             return (
-                <div className="editableView-container-editing" style={{ display: this.props.display, height: "100%", maxHeight: `${this.props.height}` }}
+                <div className="editableView-container-editing" style={{ display: this.props.display, height: "auto", maxHeight: `${this.props.height}` }}
                     onClick={action(() => this.editing = true)}>
                     {this.props.contents}
                 </div>

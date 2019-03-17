@@ -2,7 +2,7 @@
 
 export enum RouteStore {
     // GENERAL
-    root = "/root",
+    root = "/",
     home = "/home",
     corsProxy = "/corsProxy",
     delete = "/delete",

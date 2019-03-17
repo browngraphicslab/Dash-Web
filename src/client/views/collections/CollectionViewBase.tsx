@@ -48,6 +48,7 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
     protected drop(e: Event, de: DragManager.DropEvent) {
         const docView: DocumentView = de.data["documentView"];
         const doc: Document = de.data["document"];
+
         if (docView && (!docView.props.ContainingCollectionView || docView.props.ContainingCollectionView !== this.props.CollectionView)) {
             if (docView.props.RemoveDocument) {
                 docView.props.RemoveDocument(docView.props.Document);
@@ -62,12 +63,17 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
 
     @action
     protected onDrop(e: React.DragEvent, options: DocumentOptions): void {
-        e.stopPropagation()
-        e.preventDefault()
         let that = this;
 
         let html = e.dataTransfer.getData("text/html");
         let text = e.dataTransfer.getData("text/plain");
+
+        if (text && text.startsWith("<div")) {
+            return;
+        }
+        e.stopPropagation()
+        e.preventDefault()
+
         if (html && html.indexOf("<img") != 0) {
             console.log("not good");
             let htmlDoc = Documents.HtmlDocument(html, { ...options, width: 300, height: 300 });
@@ -82,21 +88,7 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
             const upload = window.location.origin + RouteStore.upload;
             let item = e.dataTransfer.items[i];
             if (item.kind === "string" && item.type.indexOf("uri") != -1) {
-                e.dataTransfer.items[i].getAsString(function (s) {
-                    action(() => {
-                        var img = Documents.ImageDocument(s, { ...options, nativeWidth: 300, width: 300, })
-
-                        let docs = that.props.Document.GetT(KeyStore.Data, ListField);
-                        if (docs != FieldWaiting) {
-                            if (!docs) {
-                                docs = new ListField<Document>();
-                                that.props.Document.Set(KeyStore.Data, docs)
-                            }
-                            docs.Data.push(img);
-                        }
-                    })()
-
-                })
+                e.dataTransfer.items[i].getAsString(action((s: string) => this.props.addDocument(Documents.WebDocument(s, options))))
             }
             let type = item.type
             console.log(type)
@@ -123,7 +115,7 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
                                 var doc: any;
 
                                 if (type.indexOf("image") !== -1) {
-                                    doc = Documents.ImageDocument(path, { ...options, nativeWidth: 300, width: 300, })
+                                    doc = Documents.ImageDocument(path, { ...options, nativeWidth: 200, width: 200, })
                                 }
                                 if (type.indexOf("video") !== -1) {
                                     doc = Documents.VideoDocument(path, { ...options, nativeWidth: 300, width: 300, })

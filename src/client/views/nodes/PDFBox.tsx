@@ -1,5 +1,5 @@
 import * as htmlToImage from "html-to-image";
-import { action, computed, observable, reaction, IReactionDisposer } from 'mobx';
+import { action, computed, observable, reaction, IReactionDisposer, trace } from 'mobx';
 import { observer } from "mobx-react";
 import 'react-image-lightbox/style.css';
 import Measure from "react-measure";
@@ -87,7 +87,7 @@ export class PDFBox extends React.Component<FieldViewProps> {
     @observable private _interactive: boolean = false;
     @observable private _loaded: boolean = false;
 
-    @computed private get curPage() { return this.props.doc.GetNumber(KeyStore.CurPage, 0); }
+    @computed private get curPage() { return this.props.doc.GetNumber(KeyStore.CurPage, -1); }
 
     componentDidMount() {
         this._reactionDisposer = reaction(

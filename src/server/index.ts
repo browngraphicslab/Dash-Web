@@ -145,10 +145,6 @@ addSecureRoute(Method.GET, RouteStore.root, (user, req, res) => {
 
 // YAY! SHOW THEM THEIR WORKSPACES NOW
 addSecureRoute(Method.GET, RouteStore.home, (user, req, res) => {
-    let detector = new MobileDetect(req.headers['user-agent'] || "");
-    console.log("GAAAAAAHHHHH");
-    console.log(detector.mobile());
-    console.log(detector.is("mobile"));
     res.sendFile(path.join(__dirname, '../../deploy/index.html'));
 });
 
@@ -160,14 +156,30 @@ addSecureRoute(Method.GET, RouteStore.getAllWorkspaces, (user, req, res) => {
     res.send(JSON.stringify(user.allWorkspaceIds));
 });
 
-addSecureRoute(Method.POST, RouteStore.setActiveWorkspace, (user, req) => {
-    req
-    user.update({ $set: { activeWorkspaceId: req.body.target } }, () => { });
+addSecureRoute(Method.POST, RouteStore.setActiveWorkspace, (user, req, res) => {
+    user.update({ $set: { activeWorkspaceId: req.body.target } }, (err, raw) => {
+        res.sendStatus(err ? 500 : 200);
+    });
 });
 
-addSecureRoute(Method.POST, RouteStore.addWorkspace, (user, req) => {
-    user.update({ $push: { allWorkspaceIds: req.body.target } }, () => { });
+addSecureRoute(Method.POST, RouteStore.addWorkspace, (user, req, res) => {
+    user.update({ $push: { allWorkspaceIds: req.body.target } }, (err, raw) => {
+        res.sendStatus(err ? 500 : 200);
+    });
 });
+// define a route handler for the default home page
+// app.get("/", (req, res) => {
+//     res.redirect("/doc/mainDoc");
+//     // res.sendFile(path.join(__dirname, '../../deploy/index.html'));
+// });
+
+app.get("/doc/:docId", (req, res) => {
+    res.sendFile(path.join(__dirname, '../../deploy/index.html'));
+})
+
+app.get("/hello", (req, res) => {
+    res.send("<p>Hello</p>");
+})
 
 // AUTHENTICATION
 
