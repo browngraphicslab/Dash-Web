@@ -1,0 +1,20 @@
+.imgupload_cont{
+    height: 100%;
+    width: 100%;
+    align-content: center;
+  
+   
+    .button_file{
+        text-align: center; 
+        height: 50%; 
+        width: 50%; 
+        background-color: paleturquoise; 
+        color: grey; 
+        font-size: 3em; 
+    }
+    .input_file{
+        background-color: transparent; 
+        display: none; 
+    }
+
+}
