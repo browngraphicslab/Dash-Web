@@ -120,6 +120,10 @@ app.get("/pull", (req, res) => {
     })
 });
 
+app.get("/doc/:docId", (req, res) => {
+    res.sendFile(path.join(__dirname, '../../deploy/index.html'));
+})
+
 app.get("/hello", (req, res) => {
     res.send("<p>Hello</p>");
 })

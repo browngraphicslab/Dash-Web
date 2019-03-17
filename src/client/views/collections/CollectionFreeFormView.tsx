@@ -1,11 +1,10 @@
-import { action, computed, observable, trace } from "mobx";
+import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import { Document } from "../../../fields/Document";
 import { FieldWaiting } from "../../../fields/Field";
 import { KeyStore } from "../../../fields/KeyStore";
 import { ListField } from "../../../fields/ListField";
 import { TextField } from "../../../fields/TextField";
-import { Documents } from "../../documents/Documents";
 import { DragManager } from "../../util/DragManager";
 import { Transform } from "../../util/Transform";
 import { undoBatch } from "../../util/UndoManager";
@@ -198,7 +197,6 @@ export class CollectionFreeFormView extends CollectionViewBase {
     @action
     private SetPan(panX: number, panY: number) {
         var x1 = this.getLocalTransform().inverse().Scale;
-        var x2 = this.getTransform().inverse().Scale;
         const newPanX = Math.min((1 - 1 / x1) * this.nativeWidth, Math.max(0, panX));
         const newPanY = Math.min((1 - 1 / x1) * this.nativeHeight, Math.max(0, panY));
         this.props.Document.SetNumber(KeyStore.PanX, this.isAnnotationOverlay ? newPanX : panX);
@@ -316,7 +314,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
     //when focus is lost, this will remove the preview cursor
     @action
-    onBlur = (e: React.FocusEvent<HTMLDivElement>): void => {
+    onBlur = (): void => {
         this.PreviewCursorVisible = false;
     }
 

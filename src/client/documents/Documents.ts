@@ -175,7 +175,7 @@ export namespace Documents {
         return SetInstanceOptions(GetAudioPrototype(), options, [new URL(url), AudioField]);
     }
     export function TextDocument(options: DocumentOptions = {}) {
-        return SetInstanceOptions(GetTextPrototype(), options, ["", RichTextField]);
+        return SetInstanceOptions(GetTextPrototype(), options, ["", TextField]);
     }
     export function PdfDocument(url: string, options: DocumentOptions = {}) {
         return SetInstanceOptions(GetPdfPrototype(), options, [new URL(url), PDFField]);
@@ -215,4 +215,17 @@ export namespace Documents {
             + FormattedTextBox.LayoutString(fieldName + "Key") +
             `</div> 
         </div>` };
+
+    function Caption() {
+        return (`
+<div>
+    <div style="margin:auto; height:85%; width:85%;">
+        {layout}
+    </div>
+    <div style="height:15%; width:100%; position:absolute">
+        <FormattedTextBox doc={Document} DocumentViewForField={DocumentView} bindings={bindings} fieldKey={"CaptionKey"} isSelected={isSelected} select={select} selectOnLoad={SelectOnLoad} isTopMost={isTopMost}/>
+    </div>
+</div>       
+        `)
+    }
 }

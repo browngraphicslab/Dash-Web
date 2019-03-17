@@ -40,8 +40,8 @@ export class Server {
                 return this.ClientFieldsCached.get(fieldid);
             }, (field, reaction) => {
                 if (field !== "<Waiting>") {
-                    callback(field)
                     reaction.dispose()
+                    callback(field)
                 }
             })
         }
@@ -49,14 +49,38 @@ export class Server {
     }
 
     public static GetFields(fieldIds: FieldId[], callback: (fields: { [id: string]: Field }) => any) {
-        SocketStub.SEND_FIELDS_REQUEST(fieldIds, (fields) => {
+        let neededFieldIds: FieldId[] = [];
+        let waitingFieldIds: FieldId[] = [];
+        let existingFields: { [id: string]: Field } = {};
+        for (let id of fieldIds) {
+            let field = this.ClientFieldsCached.get(id);
+            if (!field) {
+                neededFieldIds.push(id);
+            } else if (field === FieldWaiting) {
+                waitingFieldIds.push(id);
+            } else {
+                existingFields[id] = field;
+            }
+        }
+        SocketStub.SEND_FIELDS_REQUEST(neededFieldIds, (fields) => {
             for (let key in fields) {
                 let field = fields[key];
                 if (!this.ClientFieldsCached.has(field.Id)) {
                     this.ClientFieldsCached.set(field.Id, field)
                 }
             }
-            callback(fields)
+            reaction(() => {
+                return waitingFieldIds.map(this.ClientFieldsCached.get);
+            }, (cachedFields, reaction) => {
+                if (!cachedFields.some(field => !field || field === FieldWaiting)) {
+                    reaction.dispose();
+                    for (let field of cachedFields) {
+                        let realField = field as Field;
+                        existingFields[realField.Id] = realField;
+                    }
+                    callback({ ...fields, ...existingFields })
+                }
+            }, { fireImmediately: true })
         });
     }
 

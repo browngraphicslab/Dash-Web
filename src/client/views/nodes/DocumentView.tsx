@@ -14,20 +14,21 @@ import { Transform } from "../../util/Transform";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { CollectionView, CollectionViewType } from "../collections/CollectionView";
 import { ContextMenu } from "../ContextMenu";
-import {FormattedTextBox} from "../nodes/FormattedTextBox"
-import {ImageBox} from "../nodes/ImageBox"; 
-import {CollectionFreeFormView} from "../collections/CollectionFreeFormView"
-import {PDFBox} from "../nodes/PDFBox";
-import {WebBox} from "../nodes/WebBox"
-import {CollectionSchemaView} from "../collections/CollectionSchemaView"
-import {AudioBox} from "../nodes/AudioBox"; 
-import {VideoBox} from "../nodes/VideoBox"; 
-import {CollectionPDFView} from "../collections/CollectionPDFView"
-import {CollectionVideoView} from "../collections/CollectionVideoView"
-import {KeyValueBox} from "../nodes/KeyValueBox"
+import { FormattedTextBox } from "../nodes/FormattedTextBox"
+import { ImageBox } from "../nodes/ImageBox";
+import { CollectionFreeFormView } from "../collections/CollectionFreeFormView"
+import { PDFBox } from "../nodes/PDFBox";
+import { WebBox } from "../nodes/WebBox"
+import { CollectionSchemaView } from "../collections/CollectionSchemaView"
+import { AudioBox } from "../nodes/AudioBox";
+import { VideoBox } from "../nodes/VideoBox";
+import { CollectionPDFView } from "../collections/CollectionPDFView"
+import { CollectionVideoView } from "../collections/CollectionVideoView"
+import { KeyValueBox } from "../nodes/KeyValueBox"
 import "./DocumentView.scss";
 import React = require("react");
 import { DocumentContentsView } from "./DocumentContentsView";
+import { Utils } from "../../../Utils";
 import { faUserPlus } from "@fortawesome/free-solid-svg-icons";
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
@@ -243,6 +244,9 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             SelectionManager.SelectDoc(this, e.ctrlKey);
         }
     }
+    stopPropogation = (e: React.SyntheticEvent) => {
+        e.stopPropagation();
+    }
 
     deleteClicked = (): void => {
         if (this.props.RemoveDocument) {
@@ -295,6 +299,20 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         e.stopPropagation();
     }
 
+    onDrop = (e: React.DragEvent) => {
+        if (e.isDefaultPrevented()) {
+            return;
+        }
+        let text = e.dataTransfer.getData("text/plain");
+        if (text && text.startsWith("<div")) {
+            let oldLayout = this.props.Document.GetText(KeyStore.Layout, "");
+            let layout = text.replace("{layout}", oldLayout);
+            this.props.Document.SetText(KeyStore.Layout, layout);
+            e.stopPropagation();
+            e.preventDefault();
+        }
+    }
+
     @action
     onContextMenu = (e: React.MouseEvent): void => {
         e.stopPropagation();
@@ -309,6 +327,12 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         ContextMenu.Instance.addItem({ description: "Fields", event: this.fieldsClicked })
         ContextMenu.Instance.addItem({ description: "Center", event: () => this.props.focus(this.props.Document) })
         ContextMenu.Instance.addItem({ description: "Open Right", event: () => CollectionDockingView.Instance.AddRightSplit(this.props.Document) })
+        ContextMenu.Instance.addItem({
+            description: "Copy ID",
+            event: () => {
+                Utils.CopyText(this.props.Document.Id);
+            }
+        });
         //ContextMenu.Instance.addItem({ description: "Docking", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Docking) })
         ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15)
         if (!this.topMost) {
@@ -351,6 +375,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
                     transformOrigin: "left top",
                     transform: `scale(${scaling} , ${scaling})`
                 }}
+                onDrop={this.onDrop}
                 onContextMenu={this.onContextMenu}
                 onPointerDown={this.onPointerDown} >
                 <DocumentContents {...this.props} isSelected={this.isSelected} select={this.select} layoutKey={KeyStore.Layout} />

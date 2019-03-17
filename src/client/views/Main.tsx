@@ -1,4 +1,4 @@
-import { action, configure } from 'mobx';
+import { action, configure, observable, runInAction } from 'mobx';
 import "normalize.css";
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
@@ -31,6 +31,9 @@ import { faRedoAlt } from '@fortawesome/free-solid-svg-icons';
 import { faPenNib } from '@fortawesome/free-solid-svg-icons';
 import { faFilm } from '@fortawesome/free-solid-svg-icons';
 import { faMusic } from '@fortawesome/free-solid-svg-icons';
+import Measure from 'react-measure';
+import { Field, Opt } from '../../fields/Field';
+import { ListField } from '../../fields/ListField';
 
 
 configure({ enforceActions: "observed" });  // causes errors to be generated when modifying an observable outside of an action
@@ -41,10 +44,16 @@ document.addEventListener("pointerdown", action(function (e: PointerEvent) {
         ContextMenu.Instance.clearItems()
     }
 }), true)
-
-const mainDocId = "mainDoc";
-let mainContainer: Document;
+const pathname = window.location.pathname.split("/");
+const mainDocId = pathname[pathname.length - 1];
+const pendingDocId = "pending-doc"
+var mainContainer: Document;
 let mainfreeform: Document;
+
+class mainDocFrame {
+    @observable public static pwidth: number = 0;
+    @observable public static pheight: number = 0;
+}
 
 library.add(faFont);
 library.add(faImage);
@@ -73,8 +82,23 @@ Documents.initProtos(mainDocId, (res?: Document) => {
             var dockingLayout = { content: [{ type: 'row', content: [CollectionDockingView.makeDocumentConfig(mainfreeform)] }] };
             mainContainer.SetText(KeyStore.Data, JSON.stringify(dockingLayout));
             mainContainer.Set(KeyStore.ActiveFrame, mainfreeform);
+            let pendingDocument = Documents.SchemaDocument([], { title: "New Mobile Uploads" }, pendingDocId)
+            mainContainer.Set(KeyStore.OptionalRightCollection, pendingDocument)
         }, 0);
     }
+
+    // if there is a pending doc, and it has new data, show it (syip: we use a timeout to prevent collection docking view from being uninitialized)
+    setTimeout(() => {
+        Server.GetField(pendingDocId, (res?: Field) => {
+            if (res instanceof Document) {
+                res.GetTAsync<ListField<Document>>(KeyStore.Data, ListField, (f: Opt<ListField<Document>>) => {
+                    if (f && f.Data.length > 0) {
+                        CollectionDockingView.Instance.AddRightSplit(res)
+                    }
+                })
+            }
+        })
+    }, 50)
 
     let imgurl = "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg";
     let pdfurl = "http://www.adobe.com/support/products/enterprise/knowledgecenter/media/c4611_sample_explain.pdf"
@@ -106,16 +130,24 @@ Documents.initProtos(mainDocId, (res?: Document) => {
     ReactDOM.render((
         <div style={{ position: "absolute", width: "100%", height: "100%" }}>
             {/* <div id="dash-title">— DASH —</div> */}
-
-            <DocumentView Document={mainContainer}
-                AddDocument={undefined} RemoveDocument={undefined} ScreenToLocalTransform={() => Transform.Identity}
-                ContentScaling={() => 1}
-                PanelWidth={() => 0}
-                PanelHeight={() => 0}
-                isTopMost={true}
-                SelectOnLoad={false}
-                focus={() => { }}
-                ContainingCollectionView={undefined} />
+            <Measure onResize={(r: any) => runInAction(() => {
+                mainDocFrame.pwidth = r.entry.width;
+                mainDocFrame.pheight = r.entry.height;
+            })}>
+                {({ measureRef }) =>
+                    <div ref={measureRef} style={{ position: "absolute", width: "100%", height: "100%" }}>
+                        <DocumentView Document={mainContainer}
+                            AddDocument={undefined} RemoveDocument={undefined} ScreenToLocalTransform={() => Transform.Identity}
+                            ContentScaling={() => 1}
+                            PanelWidth={() => mainDocFrame.pwidth}
+                            PanelHeight={() => mainDocFrame.pheight}
+                            isTopMost={true}
+                            SelectOnLoad={false}
+                            focus={() => { }}
+                            ContainingCollectionView={undefined} />
+                    </div>
+                }
+            </Measure>
             <DocumentDecorations />
             <ContextMenu />
             <button className="clear-db-button" onClick={clearDatabase}>Clear Database</button>
