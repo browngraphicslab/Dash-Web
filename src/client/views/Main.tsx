@@ -41,8 +41,8 @@ document.addEventListener("pointerdown", action(function (e: PointerEvent) {
         ContextMenu.Instance.clearItems()
     }
 }), true)
-
-const mainDocId = "mainDoc";
+const pathname = window.location.pathname.split("/");
+const mainDocId = pathname[pathname.length - 1];
 let mainContainer: Document;
 let mainfreeform: Document;
 
