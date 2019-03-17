@@ -70,7 +70,7 @@ export class ImageBox extends React.Component<FieldViewProps> {
     }
 
     lightbox = (path: string) => {
-        const images = [path, "http://www.cs.brown.edu/~bcz/face.gif"];
+        const images = [path];
         if (this._isOpen && this.props.isSelected()) {
             return (<Lightbox
                 mainSrc={images[this._photoIndex]}
