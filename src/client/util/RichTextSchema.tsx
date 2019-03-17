@@ -1,11 +1,14 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { Schema, NodeSpec, MarkSpec, DOMOutputSpecArray } from "prosemirror-model"
+import { Schema, NodeSpec, MarkSpec, DOMOutputSpecArray, NodeType } from "prosemirror-model"
 import { joinUp, lift, setBlockType, toggleMark, wrapIn } from 'prosemirror-commands'
 import { redo, undo } from 'prosemirror-history'
-import { orderedList, bulletList, listItem } from 'prosemirror-schema-list'
+import { orderedList, bulletList, listItem, } from 'prosemirror-schema-list'
+import { EditorState, Transaction, NodeSelection, } from "prosemirror-state";
+import { EditorView, } from "prosemirror-view";
 
 const pDOM: DOMOutputSpecArray = ["p", 0], blockquoteDOM: DOMOutputSpecArray = ["blockquote", 0], hrDOM: DOMOutputSpecArray = ["hr"],
   preDOM: DOMOutputSpecArray = ["pre", ["code", 0]], brDOM: DOMOutputSpecArray = ["br"], ulDOM: DOMOutputSpecArray = ["ul", 0]
+
 
 // :: Object
 // [Specs](#model.NodeSpec) for the nodes defined in this schema.
@@ -113,12 +116,22 @@ export const nodes: { [index: string]: NodeSpec } = {
     content: 'list_item+',
     group: 'block'
   },
+  //this doesn't currently work for some reason
   bullet_list: {
+    ...bulletList,
     content: 'list_item+',
     group: 'block',
-    parseDOM: [{ tag: "ul" }, { style: "list-style-type=disc;" }],
-    toDOM() { return ulDOM }
+    // parseDOM: [{ tag: "ul" }, { style: 'list-style-type=disc' }],
+    // toDOM() { return ulDOM }
   },
+  //bullet_list: {
+  //  content: 'list_item+',
+  // group: 'block',
+  //active: blockActive(schema.nodes.bullet_list),
+  //enable: wrapInList(schema.nodes.bullet_list),
+  //run: wrapInList(schema.nodes.bullet_list),
+  //select: state => true,
+  // },
   list_item: {
     ...listItem,
     content: 'paragraph block*'

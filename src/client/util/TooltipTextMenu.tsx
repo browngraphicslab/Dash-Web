@@ -2,10 +2,10 @@ import { action, IReactionDisposer, reaction } from "mobx";
 import { baseKeymap } from "prosemirror-commands";
 import { history, redo, undo } from "prosemirror-history";
 import { keymap } from "prosemirror-keymap";
-const { exampleSetup } = require("prosemirror-example-setup")
-import { EditorState, Transaction, } from "prosemirror-state";
+import { EditorState, Transaction, NodeSelection } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { schema } from "./RichTextSchema";
+import { Schema, NodeType } from "prosemirror-model"
 import React = require("react")
 import "./TooltipTextMenu.scss";
 const { toggleMark, setBlockType, wrapIn } = require("prosemirror-commands");
@@ -16,7 +16,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 
 
-
+//appears above a selection of text in a RichTextBox to give user options such as Bold, Italics, etc.
 export class TooltipTextMenu {
 
   private tooltip: HTMLElement;
@@ -39,7 +39,8 @@ export class TooltipTextMenu {
       { command: toggleMark(schema.marks.strikethrough), dom: this.icon("S", "strikethrough") },
       { command: toggleMark(schema.marks.superscript), dom: this.icon("s", "superscript") },
       { command: toggleMark(schema.marks.subscript), dom: this.icon("s", "subscript") },
-      { command: wrapInList(schema.nodes.bullet_list), dom: this.icon(":", "bullets") }
+      //this doesn't work currently - look into notion of active block
+      { command: wrapInList(schema.nodes.bullet_list), dom: this.icon(":", "bullets") },
     ]
     items.forEach(({ dom }) => this.tooltip.appendChild(dom));
 
@@ -49,7 +50,9 @@ export class TooltipTextMenu {
       view.focus();
       items.forEach(({ command, dom }) => {
         if (dom.contains(e.srcElement)) {
-          command(view.state, view.dispatch, view)
+          let active = command(view.state, view.dispatch, view);
+          //uncomment this if we want the bullet button to disappear if current selection is bulleted
+          // dom.style.display = active ? "" : "none"
         }
       })
     })
@@ -66,13 +69,25 @@ export class TooltipTextMenu {
     return span;
   }
 
-  blockActive(view: EditorView) {
-    const { $from, to } = view.state.selection
+  //adapted this method - use it to check if block has a tag (ie bulleting)
+  blockActive(type: NodeType<Schema<string, string>>, state: EditorState) {
+    let attrs = {};
 
-    return to <= $from.end() && $from.parent.hasMarkup(schema.nodes.bulletList);
+    if (state.selection instanceof NodeSelection) {
+      const sel: NodeSelection = state.selection;
+      let $from = sel.$from;
+      let to = sel.to;
+      let node = sel.node;
+
+      if (node) {
+        return node.hasMarkup(type, attrs);
+      }
+
+      return to <= $from.end() && $from.parent.hasMarkup(type, attrs);
+    }
   }
 
-  //this doesn't currently work but hopefully will soon
+  //this doesn't currently work but could be used to use icons for buttons
   unorderedListIcon(): HTMLSpanElement {
     let span = document.createElement("span");
     let icon = document.createElement("FontAwesomeIcon");
@@ -105,8 +120,6 @@ export class TooltipTextMenu {
     // Otherwise, reposition it and update its content
     this.tooltip.style.display = ""
     let { from, to } = state.selection
-    // These are in screen coordinates
-    //check this - tranform
     let start = view.coordsAtPos(from), end = view.coordsAtPos(to)
     // The box in which the tooltip is positioned, to use as base
     let box = this.tooltip.offsetParent!.getBoundingClientRect()
@@ -116,6 +129,7 @@ export class TooltipTextMenu {
     this.tooltip.style.left = (left - box.left) + "px"
     let width = Math.abs(start.left - end.left) / 2;
     let mid = Math.min(start.left, end.left) + width;
+
     //THIS WIDTH IS 15 * NUMBER OF ICONS + 15
     this.tooltip.style.width = 122 + "px";
     this.tooltip.style.bottom = (box.bottom - start.top) + "px";
