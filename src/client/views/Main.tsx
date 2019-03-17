@@ -114,24 +114,15 @@ Documents.initProtos(mainDocId, (res?: Document) => {
     ReactDOM.render((
         <div style={{ position: "absolute", width: "100%", height: "100%" }}>
             {/* <div id="dash-title">— DASH —</div> */}
-            <Measure onResize={(r: any) => {
-                mainDocFrame.pwidth = r.entry.width;
-                mainDocFrame.pheight = r.entry.height;
-            }}>
-                {({ measureRef }) =>
-                    <div ref={measureRef} style={{ position: "absolute", width: "100%", height: "100%" }}>
-                        <DocumentView Document={mainContainer}
-                            AddDocument={undefined} RemoveDocument={undefined} ScreenToLocalTransform={() => Transform.Identity}
-                            ContentScaling={() => 1}
-                            PanelWidth={() => mainDocFrame.pwidth}
-                            PanelHeight={() => mainDocFrame.pheight}
-                            isTopMost={true}
-                            SelectOnLoad={false}
-                            focus={() => { }}
-                            ContainingCollectionView={undefined} />
-                    </div>
-                }
-            </Measure>
+            <DocumentView Document={mainContainer}
+                AddDocument={undefined} RemoveDocument={undefined} ScreenToLocalTransform={() => Transform.Identity}
+                ContentScaling={() => 1}
+                PanelWidth={() => 0}
+                PanelHeight={() => 0}
+                isTopMost={true}
+                SelectOnLoad={false}
+                focus={() => { }}
+                ContainingCollectionView={undefined} />
             <DocumentDecorations />
             <ContextMenu />
             <button className="clear-db-button" onClick={clearDatabase}>Clear Database</button>
