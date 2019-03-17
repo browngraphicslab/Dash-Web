@@ -175,7 +175,7 @@ export namespace Documents {
         return SetInstanceOptions(GetAudioPrototype(), options, [new URL(url), AudioField]);
     }
     export function TextDocument(options: DocumentOptions = {}) {
-        return SetInstanceOptions(GetTextPrototype(), options, ["", RichTextField]);
+        return SetInstanceOptions(GetTextPrototype(), options, ["", TextField]);
     }
     export function PdfDocument(url: string, options: DocumentOptions = {}) {
         return SetInstanceOptions(GetPdfPrototype(), options, [new URL(url), PDFField]);

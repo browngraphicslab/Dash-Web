@@ -188,6 +188,9 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             SelectionManager.SelectDoc(this, e.ctrlKey);
         }
     }
+    stopPropogation = (e: React.SyntheticEvent) => {
+        e.stopPropagation();
+    }
 
     deleteClicked = (): void => {
         if (this.props.RemoveDocument) {
@@ -338,7 +341,8 @@ export class DocumentView extends React.Component<DocumentViewProps> {
                 }}
                 onDrop={this.onDrop}
                 onContextMenu={this.onContextMenu}
-                onPointerDown={this.onPointerDown} >
+                onPointerDown={this.onPointerDown}
+                onPointerUp={this.stopPropogation} >
                 <DocumentContentsView {...this.getProps} />
             </div>
         )
