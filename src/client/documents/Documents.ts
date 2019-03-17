@@ -74,6 +74,8 @@ export namespace Documents {
         });
     }
     function assignOptions(doc: Document, options: DocumentOptions): Document {
+        if (options.nativeWidth !== undefined) { doc.SetNumber(KeyStore.NativeWidth, options.nativeWidth); }
+        if (options.nativeHeight !== undefined) { doc.SetNumber(KeyStore.NativeHeight, options.nativeHeight); }
         if (options.title !== undefined) { doc.SetText(KeyStore.Title, options.title); }
         if (options.page !== undefined) { doc.SetNumber(KeyStore.Page, options.page); }
         if (options.scale !== undefined) { doc.SetNumber(KeyStore.Scale, options.scale); }
@@ -82,8 +84,6 @@ export namespace Documents {
         if (options.ink !== undefined) { doc.Set(KeyStore.Ink, new InkField(options.ink)); }
         if (options.layout !== undefined) { doc.SetText(KeyStore.Layout, options.layout); }
         if (options.layoutKeys !== undefined) { doc.Set(KeyStore.LayoutKeys, new ListField(options.layoutKeys)); }
-        if (options.panx !== undefined) { doc.SetNumber(KeyStore.PanX, options.panx); }
-        if (options.pany !== undefined) { doc.SetNumber(KeyStore.PanY, options.pany); }
         return doc;
     }
 
@@ -92,6 +92,8 @@ export namespace Documents {
         if (options.y !== undefined) { doc.SetNumber(KeyStore.Y, options.y); }
         if (options.width !== undefined) { doc.SetNumber(KeyStore.Width, options.width); }
         if (options.height !== undefined) { doc.SetNumber(KeyStore.Height, options.height); }
+        if (options.panx !== undefined) { doc.SetNumber(KeyStore.PanX, options.panx); }
+        if (options.pany !== undefined) { doc.SetNumber(KeyStore.PanY, options.pany); }
         return doc
     }
 

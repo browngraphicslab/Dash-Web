@@ -285,8 +285,6 @@ export class Document extends Field {
         this.GetAsync(KeyStore.Prototype, (f: Field) => {
             alias.Set(KeyStore.Prototype, f)
         })
-        alias.SetNumber(KeyStore.Width, 300)
-        alias.SetNumber(KeyStore.Height, 300)
 
         return alias
     }
