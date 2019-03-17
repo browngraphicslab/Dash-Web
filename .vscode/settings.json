@@ -8,7 +8,5 @@
     },
     "editor.formatOnSave": true,
     "typescript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBrackets": false,
-    "typescript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": true,
-    "python.linting.pylintEnabled": true,
-    "python.linting.enabled": true,
+    "typescript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": true
 }
