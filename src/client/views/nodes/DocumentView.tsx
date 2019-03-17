@@ -14,9 +14,21 @@ import { Transform } from "../../util/Transform";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { CollectionView, CollectionViewType } from "../collections/CollectionView";
 import { ContextMenu } from "../ContextMenu";
+import {FormattedTextBox} from "../nodes/FormattedTextBox"
+import {ImageBox} from "../nodes/ImageBox"; 
+import {CollectionFreeFormView} from "../collections/CollectionFreeFormView"
+import {PDFBox} from "../nodes/PDFBox";
+import {WebBox} from "../nodes/WebBox"
+import {CollectionSchemaView} from "../collections/CollectionSchemaView"
+import {AudioBox} from "../nodes/AudioBox"; 
+import {VideoBox} from "../nodes/VideoBox"; 
+import {CollectionPDFView} from "../collections/CollectionPDFView"
+import {CollectionVideoView} from "../collections/CollectionVideoView"
+import {KeyValueBox} from "../nodes/KeyValueBox"
 import "./DocumentView.scss";
 import React = require("react");
 import { DocumentContentsView } from "./DocumentContentsView";
+import { faUserPlus } from "@fortawesome/free-solid-svg-icons";
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 
