@@ -7,6 +7,7 @@ import { Utils } from "../Utils";
 import { Server } from "./Server";
 import { ServerUtils } from "../server/ServerUtil";
 
+//TODO tfs: I think it might be cleaner to not have SocketStub deal with turning what the server gives it into Fields (in other words not call ServerUtils.FromJson), and leave that for the Server class.
 export class SocketStub {
 
     static FieldStore: ObservableMap<FieldId, Field> = new ObservableMap();
