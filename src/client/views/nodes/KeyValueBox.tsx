@@ -2,39 +2,26 @@
 import { observer } from "mobx-react";
 import 'react-image-lightbox/style.css'; // This only needs to be imported once in your app
 import { Document } from '../../../fields/Document';
-import { Opt, FieldWaiting, Field } from '../../../fields/Field';
+import { FieldWaiting, Field } from '../../../fields/Field';
 import { KeyStore } from '../../../fields/KeyStore';
 import { FieldView, FieldViewProps } from './FieldView';
 import "./KeyValueBox.scss";
 import { KeyValuePair } from "./KeyValuePair";
 import React = require("react")
-import { Server } from "../../Server"
-import { EditableView } from "../EditableView";
 import { CompileScript, ToField } from "../../util/Scripting";
-import { useState } from 'react'
 import { Key } from '../../../fields/Key';
-import { TextField } from '../../../fields/TextField';
-import { EditorView } from "prosemirror-view";
-import { IReactionDisposer } from "mobx";
 import { observable, action } from "mobx";
 
 @observer
 export class KeyValueBox extends React.Component<FieldViewProps> {
 
     public static LayoutString(fieldStr: string = "DataKey") { return FieldView.LayoutString(KeyValueBox, fieldStr) }
-    private _ref: React.RefObject<HTMLDivElement>;
-    private _editorView: Opt<EditorView>;
-    private _reactionDisposer: Opt<IReactionDisposer>;
-    private _newKey = '';
-    private _newValue = '';
     @observable private _keyInput: string = "";
     @observable private _valueInput: string = "";
 
 
     constructor(props: FieldViewProps) {
         super(props);
-
-        this._ref = React.createRef();
     }
 
 
@@ -43,32 +30,31 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
         return false;
     }
 
+    @action
     onEnterKey = (e: React.KeyboardEvent): void => {
         if (e.key == 'Enter') {
-            if (this._newKey != '' && this._newValue != '') {
+            if (this._keyInput && this._valueInput) {
                 let doc = this.props.doc.GetT(KeyStore.Data, Document);
                 if (!doc || doc == FieldWaiting) {
                     return
                 }
                 let realDoc = doc;
 
-                let script = CompileScript(this._newValue, undefined, true);
+                let script = CompileScript(this._valueInput, undefined, true);
                 if (!script.compiled) {
                     return;
                 }
                 let field = script();
                 if (field instanceof Field) {
-                    realDoc.Set(new Key(this._newKey), field);
+                    realDoc.Set(new Key(this._keyInput), field);
                 } else {
                     let dataField = ToField(field);
                     if (dataField) {
-                        realDoc.Set(new Key(this._newKey), field);
+                        realDoc.Set(new Key(this._keyInput), dataField);
                     }
                 }
                 this._keyInput = ""
                 this._valueInput = ""
-                this._newKey = ''
-                this._newValue = ''
             }
         }
     }
