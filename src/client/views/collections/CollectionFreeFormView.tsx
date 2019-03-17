@@ -59,16 +59,22 @@ export class CollectionFreeFormView extends CollectionViewBase {
     drop = (e: Event, de: DragManager.DropEvent) => {
         super.drop(e, de);
 
+        let screenX = de.x - (de.data["xOffset"] as number || 0);
+        let screenY = de.y - (de.data["yOffset"] as number || 0);
+        const [x, y] = this.getTransform().transformPoint(screenX, screenY);
         if (!de.data["alias"]) {
             const docView: DocumentView = de.data["documentView"];
             const doc = docView ? docView.props.Document : de.data["document"]
             //this should be able to use translate and scale methods on an Identity transform, no?
-            let screenX = de.x - (de.data["xOffset"] as number || 0);
-            let screenY = de.y - (de.data["yOffset"] as number || 0);
-            const [x, y] = this.getTransform().transformPoint(screenX, screenY);
             doc.SetNumber(KeyStore.X, x);
             doc.SetNumber(KeyStore.Y, y);
             this.bringToFront(doc);
+        }
+        else {
+            let newDoc: Document = de.data["newDoc"]
+            newDoc.SetNumber(KeyStore.X, x)
+            newDoc.SetNumber(KeyStore.Y, y)
+            this.bringToFront(newDoc)
         }
     }
 

@@ -59,12 +59,6 @@ export namespace Documents {
         });
     }
     function assignOptions(doc: Document, options: DocumentOptions): Document {
-        if (options.x !== undefined) { doc.SetNumber(KeyStore.X, options.x); }
-        if (options.y !== undefined) { doc.SetNumber(KeyStore.Y, options.y); }
-        if (options.width !== undefined) { doc.SetNumber(KeyStore.Width, options.width); }
-        if (options.height !== undefined) { doc.SetNumber(KeyStore.Height, options.height); }
-        if (options.nativeWidth !== undefined) { doc.SetNumber(KeyStore.NativeWidth, options.nativeWidth); }
-        if (options.nativeHeight !== undefined) { doc.SetNumber(KeyStore.NativeHeight, options.nativeHeight); }
         if (options.title !== undefined) { doc.SetText(KeyStore.Title, options.title); }
         if (options.panx !== undefined) { doc.SetNumber(KeyStore.PanX, options.panx); }
         if (options.pany !== undefined) { doc.SetNumber(KeyStore.PanY, options.pany); }
@@ -74,6 +68,15 @@ export namespace Documents {
         if (options.layoutKeys !== undefined) { doc.Set(KeyStore.LayoutKeys, new ListField(options.layoutKeys)); }
         return doc;
     }
+
+    function assignToDelegate(doc: Document, options: DocumentOptions): Document {
+        if (options.x !== undefined) { doc.SetNumber(KeyStore.X, options.x); }
+        if (options.y !== undefined) { doc.SetNumber(KeyStore.Y, options.y); }
+        if (options.width !== undefined) { doc.SetNumber(KeyStore.Width, options.width); }
+        if (options.height !== undefined) { doc.SetNumber(KeyStore.Height, options.height); }
+        return doc
+    }
+
     function setupPrototypeOptions(protoId: string, title: string, layout: string, options: DocumentOptions): Document {
         return assignOptions(new Document(protoId), { ...options, title: title, layout: layout });
     }
@@ -130,8 +133,9 @@ export namespace Documents {
         doc.SetText(KeyStore.OverlayLayout, FixedCaption());
         return doc.MakeDelegate();
     }
+
     export function TextDocument(options: DocumentOptions = {}) {
-        return SetInstanceOptions(GetTextPrototype(), options, "", TextField).MakeDelegate()
+        return assignToDelegate(SetInstanceOptions(GetTextPrototype(), options, "", TextField).MakeDelegate(), options);
     }
     export function PdfDocument(url: string, options: DocumentOptions = {}) {
         return SetInstanceOptions(GetPdfPrototype(), options, new URL(url), PDFField).MakeDelegate();
@@ -142,19 +146,22 @@ export namespace Documents {
     export function HtmlDocument(html: string, options: DocumentOptions = {}) {
         return SetInstanceOptions(GetWebPrototype(), options, html, HtmlField).MakeDelegate();
     }
-    export function FreeformDocument(documents: Array<Document>, options: DocumentOptions, id?: string) {
+    export function FreeformDocument(documents: Array<Document>, options: DocumentOptions, id?: string, makePrototype: boolean = true) {
+        if (!makePrototype) {
+            return SetInstanceOptions(GetCollectionPrototype(), { ...options, viewType: CollectionViewType.Freeform }, documents, ListField, id)
+        }
         return SetInstanceOptions(GetCollectionPrototype(), { ...options, viewType: CollectionViewType.Freeform }, documents, ListField, id).MakeDelegate()
     }
     export function SchemaDocument(documents: Array<Document>, options: DocumentOptions, id?: string) {
-        return SetInstanceOptions(GetCollectionPrototype(), { ...options, viewType: CollectionViewType.Schema }, documents, ListField, id).MakeDelegate()
+        return SetInstanceOptions(GetCollectionPrototype(), { ...options, viewType: CollectionViewType.Schema }, documents, ListField, id)
     }
     export function DockDocument(config: string, options: DocumentOptions, id?: string) {
-        return SetInstanceOptions(GetCollectionPrototype(), { ...options, viewType: CollectionViewType.Docking }, config, TextField, id).MakeDelegate()
+        return SetInstanceOptions(GetCollectionPrototype(), { ...options, viewType: CollectionViewType.Docking }, config, TextField, id)
     }
     export function KVPDocument(document: Document, options: DocumentOptions = {}, id?: string) {
         var deleg = GetKVPPrototype().MakeDelegate(id);
         deleg.Set(KeyStore.Data, document);
-        return assignOptions(deleg, options);
+        return assignToDelegate(assignOptions(deleg, options).MakeDelegate(), options);
     }
 
     // example of custom display string for an image that shows a caption.

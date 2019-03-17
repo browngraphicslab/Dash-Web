@@ -3,7 +3,7 @@ import { Document } from "../../../fields/Document";
 import { ListField } from "../../../fields/ListField";
 import React = require("react");
 import { KeyStore } from "../../../fields/KeyStore";
-import { FieldWaiting } from "../../../fields/Field";
+import { FieldWaiting, Field } from "../../../fields/Field";
 import { undoBatch } from "../../util/UndoManager";
 import { DragManager } from "../../util/DragManager";
 import { DocumentView } from "../nodes/DocumentView";
@@ -47,11 +47,23 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
     protected drop(e: Event, de: DragManager.DropEvent) {
         const docView: DocumentView = de.data["documentView"];
         const doc: Document = de.data["document"]
+        if (de.data["alias"]) {
+            let newDoc = docView ? docView.props.Document.CreateAlias() : doc.CreateAlias()
+            de.data["newDoc"] = newDoc
+            let oldDoc = docView ? docView.props.Document : doc
+            oldDoc.GetAsync(KeyStore.Width, (f: Field) => {
+                newDoc.Set(KeyStore.Width, f)
+            })
+            oldDoc.GetAsync(KeyStore.Height, (f: Field) => {
+                newDoc.Set(KeyStore.Height, f)
+            })
+        }
+
         if (docView && docView.props.ContainingCollectionView && docView.props.ContainingCollectionView !== this.props.CollectionView) {
             if (docView.props.RemoveDocument && !de.data["alias"]) {
                 docView.props.RemoveDocument(docView.props.Document)
             }
-            this.props.addDocument(de.data["alias"] ? docView.props.Document.CreateAlias() : docView.props.Document)
+            this.props.addDocument(de.data["alias"] ? de.data["newDoc"] : docView.props.Document)
         } else if (doc) {
             if (!de.data["alias"]) {
                 this.props.removeDocument(doc)
