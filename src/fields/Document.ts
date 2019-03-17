@@ -1,6 +1,6 @@
 import { Key } from "./Key"
 import { KeyStore } from "./KeyStore";
-import { Field, Cast, FieldWaiting, FieldValue, FieldId } from "./Field"
+import { Field, Cast, FieldWaiting, FieldValue, FieldId, Opt } from "./Field"
 import { NumberField } from "./NumberField";
 import { ObservableMap, computed, action, runInAction } from "mobx";
 import { TextField } from "./TextField";
@@ -11,6 +11,7 @@ import { UndoManager } from "../client/util/UndoManager";
 import { HtmlField } from "./HtmlField";
 
 export class Document extends Field {
+    //TODO tfs: We should probably store FieldWaiting in fields when we request it from the server so that we don't set up multiple server gets for the same document and field
     public fields: ObservableMap<string, { key: Key, field: Field }> = new ObservableMap();
     public _proxies: ObservableMap<string, FieldId> = new ObservableMap();
 
@@ -119,13 +120,21 @@ export class Document extends Field {
      * @returns `true` if the field exists on the document and `callback` will be called, and `false` otherwise
      */
     GetAsync(key: Key, callback: (field: Field) => void): boolean {
-        //TODO: This should probably check if this.fields contains the key before calling Server.GetDocumentField
-        //This currently doesn't deal with prototypes
-        if (this._proxies.has(key.Id)) {
+        //TODO: This currently doesn't deal with prototypes
+        let field = this.fields.get(key.Id);
+        if (field && field.field) {
+            callback(field.field);
+        } else if (this._proxies.has(key.Id)) {
             Server.GetDocumentField(this, key, callback);
             return true;
         }
         return false;
+    }
+
+    GetTAsync<T extends Field>(key: Key, ctor: { new(): T }, callback: (field: Opt<T>) => void): boolean {
+        return this.GetAsync(key, (field) => {
+            callback(Cast(field, ctor));
+        })
     }
 
     /**

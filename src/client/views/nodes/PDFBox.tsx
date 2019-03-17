@@ -1,5 +1,5 @@
 import * as htmlToImage from "html-to-image";
-import { action, computed, observable, reaction, IReactionDisposer } from 'mobx';
+import { action, computed, observable, reaction, IReactionDisposer, trace } from 'mobx';
 import { observer } from "mobx-react";
 import 'react-image-lightbox/style.css';
 import Measure from "react-measure";
@@ -86,7 +86,7 @@ export class PDFBox extends React.Component<FieldViewProps> {
     @observable private _interactive: boolean = false;
     @observable private _loaded: boolean = false;
 
-    @computed private get curPage() { return this.props.doc.GetNumber(KeyStore.CurPage, 0); }
+    @computed private get curPage() { return this.props.doc.GetNumber(KeyStore.CurPage, -1); }
 
     componentDidMount() {
         this._reactionDisposer = reaction(
@@ -423,7 +423,9 @@ export class PDFBox extends React.Component<FieldViewProps> {
         //      so this design is flawed.
         var nativeWidth = this.props.doc.GetNumber(KeyStore.NativeWidth, 0);
         if (!this.props.doc.GetNumber(KeyStore.NativeHeight, 0)) {
-            this.props.doc.SetNumber(KeyStore.NativeHeight, nativeWidth * r.entry.height / r.entry.width);
+            var nativeHeight = nativeWidth * r.entry.height / r.entry.width;
+            this.props.doc.SetNumber(KeyStore.Height, nativeHeight / nativeWidth * this.props.doc.GetNumber(KeyStore.Width, 0));
+            this.props.doc.SetNumber(KeyStore.NativeHeight, nativeHeight);
         }
         if (!this.props.doc.GetT(KeyStore.Thumbnail, ImageField)) {
             this.saveThumbnail();

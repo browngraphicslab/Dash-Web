@@ -14,13 +14,22 @@ import { HtmlField } from "../../fields/HtmlField";
 import { Key } from "../../fields/Key"
 import { Field } from "../../fields/Field";
 import { KeyValueBox } from "../views/nodes/KeyValueBox"
+import { KVPField } from "../../fields/KVPField";
+import { VideoField } from "../../fields/VideoField"
+import { VideoBox } from "../views/nodes/VideoBox";
+import { AudioField } from "../../fields/AudioField";
+import { AudioBox } from "../views/nodes/AudioBox";
 import { PDFField } from "../../fields/PDFField";
 import { PDFBox } from "../views/nodes/PDFBox";
 import { CollectionPDFView } from "../views/collections/CollectionPDFView";
+import { RichTextField } from "../../fields/RichTextField";
+import { CollectionVideoView } from "../views/collections/CollectionVideoView";
+import { StrokeData, InkField } from "../../fields/InkField";
 
 export interface DocumentOptions {
     x?: number;
     y?: number;
+    ink?: Map<string, StrokeData>;
     width?: number;
     height?: number;
     nativeWidth?: number;
@@ -28,10 +37,12 @@ export interface DocumentOptions {
     title?: string;
     panx?: number;
     pany?: number;
+    page?: number;
     scale?: number;
     layout?: string;
     layoutKeys?: Key[];
     viewType?: number;
+    backgroundColor?: string;
 }
 
 export namespace Documents {
@@ -40,6 +51,8 @@ export namespace Documents {
     let webProto: Document;
     let collProto: Document;
     let kvpProto: Document;
+    let videoProto: Document;
+    let audioProto: Document;
     let pdfProto: Document;
     const textProtoId = "textProto";
     const pdfProtoId = "pdfProto";
@@ -47,6 +60,8 @@ export namespace Documents {
     const webProtoId = "webProto";
     const collProtoId = "collectionProto";
     const kvpProtoId = "kvpProto";
+    const videoProtoId = "videoProto"
+    const audioProtoId = "audioProto";
 
     export function initProtos(mainDocId: string, callback: (mainDoc?: Document) => void) {
         Server.GetFields([collProtoId, textProtoId, imageProtoId, mainDocId], (fields) => {
@@ -62,10 +77,13 @@ export namespace Documents {
         if (options.title !== undefined) { doc.SetText(KeyStore.Title, options.title); }
         if (options.panx !== undefined) { doc.SetNumber(KeyStore.PanX, options.panx); }
         if (options.pany !== undefined) { doc.SetNumber(KeyStore.PanY, options.pany); }
+        if (options.page !== undefined) { doc.SetNumber(KeyStore.Page, options.page); }
         if (options.scale !== undefined) { doc.SetNumber(KeyStore.Scale, options.scale); }
         if (options.viewType !== undefined) { doc.SetNumber(KeyStore.ViewType, options.viewType); }
+        if (options.backgroundColor !== undefined) { doc.SetText(KeyStore.BackgroundColor, options.backgroundColor); }
         if (options.layout !== undefined) { doc.SetText(KeyStore.Layout, options.layout); }
         if (options.layoutKeys !== undefined) { doc.Set(KeyStore.LayoutKeys, new ListField(options.layoutKeys)); }
+        if (options.ink !== undefined) { doc.Set(KeyStore.Ink, new InkField(options.ink)); }
         return doc;
     }
 
@@ -80,9 +98,12 @@ export namespace Documents {
     function setupPrototypeOptions(protoId: string, title: string, layout: string, options: DocumentOptions): Document {
         return assignOptions(new Document(protoId), { ...options, title: title, layout: layout });
     }
-    function SetInstanceOptions<T, U extends Field & { Data: T }>(doc: Document, options: DocumentOptions, value: T, ctor: { new(): U }, id?: string) {
+    function SetInstanceOptions<T, U extends Field & { Data: T }>(doc: Document, options: DocumentOptions, value: [T, { new(): U }] | Document, id?: string) {
         var deleg = doc.MakeDelegate(id);
-        deleg.SetData(KeyStore.Data, value, ctor);
+        if (value instanceof Document)
+            deleg.Set(KeyStore.Data, value)
+        else
+            deleg.SetData(KeyStore.Data, value[0], value[1]);
         return assignOptions(deleg, options);
     }
 
@@ -116,7 +137,7 @@ export namespace Documents {
     function GetCollectionPrototype(): Document {
         return collProto ? collProto.MakeDelegate() :
             collProto = setupPrototypeOptions(collProtoId, "COLLECTION_PROTO", CollectionView.LayoutString("DataKey"),
-                { panx: 0, pany: 0, scale: 1, layoutKeys: [KeyStore.Data] });
+                { panx: 0, pany: 0, scale: 1, width: 500, height: 500, layoutKeys: [KeyStore.Data] });
     }
 
     function GetKVPPrototype(): Document {
@@ -124,60 +145,94 @@ export namespace Documents {
             kvpProto = setupPrototypeOptions(kvpProtoId, "KVP_PROTO", KeyValueBox.LayoutString(),
                 { x: 0, y: 0, width: 300, height: 150, layoutKeys: [KeyStore.Data] })
     }
+    function GetVideoPrototype(): Document {
+        if (!videoProto) {
+            videoProto = setupPrototypeOptions(videoProtoId, "VIDEO_PROTO", CollectionVideoView.LayoutString("AnnotationsKey"),
+                { x: 0, y: 0, nativeWidth: 600, width: 300, layoutKeys: [KeyStore.Data, KeyStore.Annotations] });
+            videoProto.SetNumber(KeyStore.CurPage, 0);
+            videoProto.SetText(KeyStore.BackgroundLayout, VideoBox.LayoutString());
+        }
+        return videoProto;
+    }
+    function GetAudioPrototype(): Document {
+        return audioProto ? audioProto :
+            audioProto = setupPrototypeOptions(audioProtoId, "AUDIO_PROTO", AudioBox.LayoutString(),
+                { x: 0, y: 0, width: 300, height: 150, layoutKeys: [KeyStore.Data] })
+    }
+
 
     export function ImageDocument(url: string, options: DocumentOptions = {}) {
-        let doc = SetInstanceOptions(GetImagePrototype(), { ...options, layoutKeys: [KeyStore.Data, KeyStore.Annotations, KeyStore.Caption] },
-            new URL(url), ImageField);
-        doc.SetText(KeyStore.Caption, "my caption...");
-        doc.SetText(KeyStore.BackgroundLayout, EmbeddedCaption());
-        doc.SetText(KeyStore.OverlayLayout, FixedCaption());
-        return doc.MakeDelegate();
+        return SetInstanceOptions(GetImagePrototype(), { ...options, layoutKeys: [KeyStore.Data, KeyStore.Annotations, KeyStore.Caption] },
+            [new URL(url), ImageField]).MakeDelegate();
+        // let doc = SetInstanceOptions(GetImagePrototype(), { ...options, layoutKeys: [KeyStore.Data, KeyStore.Annotations, KeyStore.Caption] },
+        //     [new URL(url), ImageField]);
+        // doc.SetText(KeyStore.Caption, "my caption...");
+        // doc.SetText(KeyStore.BackgroundLayout, EmbeddedCaption());
+        // doc.SetText(KeyStore.OverlayLayout, FixedCaption());
+        // return doc;
+    }
+    export function VideoDocument(url: string, options: DocumentOptions = {}) {
+        return SetInstanceOptions(GetVideoPrototype(), options, [new URL(url), VideoField]);
+    }
+    export function AudioDocument(url: string, options: DocumentOptions = {}) {
+        return SetInstanceOptions(GetAudioPrototype(), options, [new URL(url), AudioField]);
     }
 
     export function TextDocument(options: DocumentOptions = {}) {
-        return assignToDelegate(SetInstanceOptions(GetTextPrototype(), options, "", TextField).MakeDelegate(), options);
+        return assignToDelegate(SetInstanceOptions(GetTextPrototype(), options, ["", TextField]).MakeDelegate(), options);
     }
     export function PdfDocument(url: string, options: DocumentOptions = {}) {
-        return SetInstanceOptions(GetPdfPrototype(), options, new URL(url), PDFField).MakeDelegate();
+        return SetInstanceOptions(GetPdfPrototype(), options, [new URL(url), PDFField]).MakeDelegate();
     }
     export function WebDocument(url: string, options: DocumentOptions = {}) {
-        return SetInstanceOptions(GetWebPrototype(), options, new URL(url), WebField).MakeDelegate();
+        return SetInstanceOptions(GetWebPrototype(), options, [new URL(url), WebField]).MakeDelegate();
     }
     export function HtmlDocument(html: string, options: DocumentOptions = {}) {
-        return SetInstanceOptions(GetWebPrototype(), options, html, HtmlField).MakeDelegate();
+        return SetInstanceOptions(GetWebPrototype(), options, [html, HtmlField]).MakeDelegate();
+    }
+    export function KVPDocument(document: Document, options: DocumentOptions = {}, id?: string) {
+        return SetInstanceOptions(GetKVPPrototype(), options, document, id).MakeDelegate()
     }
     export function FreeformDocument(documents: Array<Document>, options: DocumentOptions, id?: string, makePrototype: boolean = true) {
         if (!makePrototype) {
-            return SetInstanceOptions(GetCollectionPrototype(), { ...options, viewType: CollectionViewType.Freeform }, documents, ListField, id)
+            return SetInstanceOptions(GetCollectionPrototype(), { ...options, viewType: CollectionViewType.Freeform }, [documents, ListField], id)
         }
-        return SetInstanceOptions(GetCollectionPrototype(), { ...options, viewType: CollectionViewType.Freeform }, documents, ListField, id).MakeDelegate()
+        return SetInstanceOptions(GetCollectionPrototype(), { ...options, viewType: CollectionViewType.Freeform }, [documents, ListField], id).MakeDelegate()
     }
     export function SchemaDocument(documents: Array<Document>, options: DocumentOptions, id?: string) {
-        return SetInstanceOptions(GetCollectionPrototype(), { ...options, viewType: CollectionViewType.Schema }, documents, ListField, id)
+        return SetInstanceOptions(GetCollectionPrototype(), { ...options, viewType: CollectionViewType.Schema }, [documents, ListField], id)
     }
     export function DockDocument(config: string, options: DocumentOptions, id?: string) {
-        return SetInstanceOptions(GetCollectionPrototype(), { ...options, viewType: CollectionViewType.Docking }, config, TextField, id)
-    }
-    export function KVPDocument(document: Document, options: DocumentOptions = {}, id?: string) {
-        var deleg = GetKVPPrototype().MakeDelegate(id);
-        deleg.Set(KeyStore.Data, document);
-        return assignToDelegate(assignOptions(deleg, options).MakeDelegate(), options);
+        return SetInstanceOptions(GetCollectionPrototype(), { ...options, viewType: CollectionViewType.Docking }, [config, TextField], id)
     }
 
     // example of custom display string for an image that shows a caption.
     function EmbeddedCaption() {
         return `<div style="height:100%">
-            <div style="position:relative; margin:auto; height:85%;" >`
+            <div style="position:relative; margin:auto; height:85%; width:85%;" >`
             + ImageBox.LayoutString() +
             `</div>
             <div style="position:relative; height:15%; text-align:center; ">`
             + FormattedTextBox.LayoutString("CaptionKey") +
             `</div> 
         </div>` };
-    function FixedCaption() {
+    function FixedCaption(fieldName: string = "Caption") {
         return `<div style="position:absolute; height:30px; bottom:0; width:100%">
             <div style="position:absolute; width:100%; height:100%; text-align:center;bottom:0;">`
-            + FormattedTextBox.LayoutString("CaptionKey") +
+            + FormattedTextBox.LayoutString(fieldName + "Key") +
             `</div> 
         </div>` };
+
+    function Caption() {
+        return (`
+<div>
+    <div style="margin:auto; height:85%; width:85%;">
+        {layout}
+    </div>
+    <div style="height:15%; width:100%; position:absolute">
+        <FormattedTextBox doc={Document} DocumentViewForField={DocumentView} bindings={bindings} fieldKey={"CaptionKey"} isSelected={isSelected} select={select} selectOnLoad={SelectOnLoad} isTopMost={isTopMost}/>
+    </div>
+</div>       
+        `)
+    }
 }

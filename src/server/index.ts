@@ -4,6 +4,7 @@ import * as webpack from 'webpack'
 import * as wdm from 'webpack-dev-middleware';
 import * as whm from 'webpack-hot-middleware';
 import * as path from 'path'
+import * as formidable from 'formidable'
 import * as passport from 'passport';
 import { MessageStore, Message, SetFieldArgs, GetFieldArgs, Transferable } from "./Message";
 import { Client } from './Client';
@@ -74,12 +75,38 @@ app.post("/signup", postSignup);
 app.get("/login", getLogin);
 app.post("/login", postLogin);
 
+// IMAGE UPLOADING HANDLER
+app.post("/upload", (req, res, err) => {
+    let form = new formidable.IncomingForm()
+    form.uploadDir = __dirname + "/public/files/"
+    form.keepExtensions = true
+    // let path = req.body.path;
+    console.log("upload")
+    form.parse(req, (err, fields, files) => {
+        console.log("parsing")
+        let names: any[] = [];
+        for (const name in files) {
+            let file = files[name];
+            names.push(`/files/` + path.basename(file.path));
+        }
+        res.send(names);
+    });
+})
+
+app.use(express.static(__dirname + '/public'));
+app.use('/images', express.static(__dirname + '/public'))
+
 let FieldStore: ObservableMap<FieldId, Field> = new ObservableMap();
 
 // define a route handler for the default home page
 app.get("/", (req, res) => {
-    res.sendFile(path.join(__dirname, '../../deploy/index.html'));
+    res.redirect("/doc/mainDoc");
+    // res.sendFile(path.join(__dirname, '../../deploy/index.html'));
 });
+
+app.get("/doc/:docId", (req, res) => {
+    res.sendFile(path.join(__dirname, '../../deploy/index.html'));
+})
 
 app.get("/hello", (req, res) => {
     res.send("<p>Hello</p>");
@@ -151,8 +178,9 @@ function getFields([ids, callback]: [string[], (result: any) => void]) {
 }
 
 function setField(socket: Socket, newValue: Transferable) {
-    Database.Instance.update(newValue._id, newValue)
-    socket.broadcast.emit(MessageStore.SetField.Message, newValue)
+    Database.Instance.update(newValue._id, newValue, () => {
+        socket.broadcast.emit(MessageStore.SetField.Message, newValue);
+    })
 }
 
 server.listen(serverPort);

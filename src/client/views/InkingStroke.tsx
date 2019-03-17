@@ -21,8 +21,6 @@ export class InkingStroke extends React.Component<StrokeProps> {
     @observable private _strokeColor: string = this.props.color;
     @observable private _strokeWidth: string = this.props.width;
 
-    private _canvasColor: string = "#cdcdcd";
-
     deleteStroke = (e: React.MouseEvent): void => {
         if (InkingControl.Instance.selectedTool === InkTool.Eraser && e.buttons === 1) {
             this.props.deleteCallback(this.props.id);

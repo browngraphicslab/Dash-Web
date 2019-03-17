@@ -1,4 +1,4 @@
-import { action, computed } from "mobx";
+import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import { Document } from "../../../fields/Document";
 import { ListField } from "../../../fields/ListField";
@@ -12,7 +12,7 @@ import { CollectionDockingView } from "./CollectionDockingView";
 import { CollectionSchemaView } from "./CollectionSchemaView";
 import { CollectionViewProps } from "./CollectionViewBase";
 import { CollectionTreeView } from "./CollectionTreeView";
-import { Field } from "../../../fields/Field";
+import { Field, FieldId } from "../../../fields/Field";
 
 export enum CollectionViewType {
     Invalid,
@@ -22,7 +22,7 @@ export enum CollectionViewType {
     Tree
 }
 
-export const COLLECTION_BORDER_WIDTH = 2;
+export const COLLECTION_BORDER_WIDTH = 1;
 
 @observer
 export class CollectionView extends React.Component<CollectionViewProps> {
@@ -33,6 +33,8 @@ export class CollectionView extends React.Component<CollectionViewProps> {
                     isTopMost={isTopMost} SelectOnLoad={selectOnLoad} BackgroundView={BackgroundView} focus={focus}/>`;
     }
 
+    @observable
+    public SelectedDocs: FieldId[] = [];
     public active: () => boolean = () => CollectionView.Active(this);
     addDocument = (doc: Document): void => { CollectionView.AddDocument(this.props, doc); }
     removeDocument = (doc: Document): boolean => { return CollectionView.RemoveDocument(this.props, doc); }
@@ -47,7 +49,7 @@ export class CollectionView extends React.Component<CollectionViewProps> {
 
     @action
     public static AddDocument(props: CollectionViewProps, doc: Document) {
-        doc.SetNumber(KeyStore.Page, props.Document.GetNumber(KeyStore.CurPage, 0));
+        doc.SetNumber(KeyStore.Page, props.Document.GetNumber(KeyStore.CurPage, -1));
         if (props.Document.Get(props.fieldKey) instanceof Field) {
             //TODO This won't create the field if it doesn't already exist
             const value = props.Document.GetData(props.fieldKey, ListField, new Array<Document>())
@@ -96,7 +98,6 @@ export class CollectionView extends React.Component<CollectionViewProps> {
             ContextMenu.Instance.addItem({ description: "Freeform", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Freeform) })
             ContextMenu.Instance.addItem({ description: "Schema", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Schema) })
             ContextMenu.Instance.addItem({ description: "Treeview", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Tree) })
-            ContextMenu.Instance.addItem({ description: "Docking", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Docking) })
         }
     }
 

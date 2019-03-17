@@ -1,48 +1,78 @@
-import { action, computed, observable, reaction, trace } from "mobx";
+import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import { Document } from "../../../fields/Document";
 import { FieldWaiting } from "../../../fields/Field";
 import { KeyStore } from "../../../fields/KeyStore";
 import { ListField } from "../../../fields/ListField";
 import { TextField } from "../../../fields/TextField";
-import { Documents } from "../../documents/Documents";
 import { DragManager } from "../../util/DragManager";
 import { Transform } from "../../util/Transform";
 import { undoBatch } from "../../util/UndoManager";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
-import { CollectionSchemaView } from "../collections/CollectionSchemaView";
-import { CollectionView } from "../collections/CollectionView";
 import { CollectionPDFView } from "../collections/CollectionPDFView";
+import { CollectionSchemaView } from "../collections/CollectionSchemaView";
+import { CollectionVideoView } from "../collections/CollectionVideoView";
+import { CollectionView } from "../collections/CollectionView";
 import { InkingCanvas } from "../InkingCanvas";
+import { AudioBox } from "../nodes/AudioBox";
 import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
 import { DocumentView } from "../nodes/DocumentView";
 import { FormattedTextBox } from "../nodes/FormattedTextBox";
 import { ImageBox } from "../nodes/ImageBox";
 import { KeyValueBox } from "../nodes/KeyValueBox";
 import { PDFBox } from "../nodes/PDFBox";
+import { VideoBox } from "../nodes/VideoBox";
 import { WebBox } from "../nodes/WebBox";
 import "./CollectionFreeFormView.scss";
 import { COLLECTION_BORDER_WIDTH } from "./CollectionView";
 import { CollectionViewBase } from "./CollectionViewBase";
+import { MarqueeView } from "./MarqueeView";
+import { PreviewCursor } from "./PreviewCursor";
 import React = require("react");
-import { render } from "pug";
 const JsxParser = require('react-jsx-parser').default;//TODO Why does this need to be imported like this?
 
 @observer
 export class CollectionFreeFormView extends CollectionViewBase {
-    private _canvasRef = React.createRef<HTMLDivElement>();
-    private _lastX: number = 0;
-    private _lastY: number = 0;
+    public _canvasRef = React.createRef<HTMLDivElement>();
     private _selectOnLoaded: string = ""; // id of document that should be selected once it's loaded (used for click-to-type)
 
-    @observable
-    private _downX: number = 0;
-    @observable
-    private _downY: number = 0;
+    public addLiveTextBox = (newBox: Document) => {
+        // mark this collection so that when the text box is created we can send it the SelectOnLoad prop to focus itself
+        this._selectOnLoaded = newBox.Id;
+        //set text to be the typed key and get focus on text box
+        this.props.addDocument(newBox);
+        //remove cursor from screen
+        this.PreviewCursorVisible = false;
+    }
+
+    public selectDocuments = (docs: Document[]) => {
+        this.props.CollectionView.SelectedDocs.length = 0;
+        docs.map(d => this.props.CollectionView.SelectedDocs.push(d.Id));
+    }
+
+    public getActiveDocuments = () => {
+        var curPage = this.props.Document.GetNumber(KeyStore.CurPage, -1);
+        const lvalue = this.props.Document.GetT<ListField<Document>>(this.props.fieldKey, ListField);
+        let active: Document[] = [];
+        if (lvalue && lvalue != FieldWaiting) {
+            lvalue.Data.map(doc => {
+                var page = doc.GetNumber(KeyStore.Page, -1);
+                if (page == curPage || page == -1) {
+                    active.push(doc);
+                }
+            })
+        }
+
+        return active;
+    }
 
     //determines whether the blinking cursor for indicating whether a text will be made on key down is visible
-    @observable
-    private _previewCursorVisible: boolean = false;
+    @observable public PreviewCursorVisible: boolean = false;
+    @observable public MarqueeVisible = false;
+    @observable public DownX: number = 0;
+    @observable public DownY: number = 0;
+    @observable private _lastX: number = 0;
+    @observable private _lastY: number = 0;
 
     @computed get panX(): number { return this.props.Document.GetNumber(KeyStore.PanX, 0) }
     @computed get panY(): number { return this.props.Document.GetNumber(KeyStore.PanY, 0) }
@@ -58,17 +88,17 @@ export class CollectionFreeFormView extends CollectionViewBase {
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
         super.drop(e, de);
-
         let screenX = de.x - (de.data["xOffset"] as number || 0);
         let screenY = de.y - (de.data["yOffset"] as number || 0);
         const [x, y] = this.getTransform().transformPoint(screenX, screenY);
         if (!de.data["alias"]) {
             const docView: DocumentView = de.data["documentView"];
-            const doc = docView ? docView.props.Document : de.data["document"]
-            //this should be able to use translate and scale methods on an Identity transform, no?
-            doc.SetNumber(KeyStore.X, x);
-            doc.SetNumber(KeyStore.Y, y);
-            this.bringToFront(doc);
+            let doc: Document = docView ? docView.props.Document : de.data["document"];
+            if (doc) {
+                doc.SetNumber(KeyStore.X, x);
+                doc.SetNumber(KeyStore.Y, y);
+                this.bringToFront(doc);
+            }
         }
         else {
             let newDoc: Document = de.data["newDoc"]
@@ -78,54 +108,68 @@ export class CollectionFreeFormView extends CollectionViewBase {
         }
     }
 
+
+    @action
+    cleanupInteractions = () => {
+        document.removeEventListener("pointermove", this.onPointerMove);
+        document.removeEventListener("pointerup", this.onPointerUp);
+        this.MarqueeVisible = false;
+    }
+
     @action
     onPointerDown = (e: React.PointerEvent): void => {
-        if (((e.button === 2 && this.props.active()) ||
-            !e.defaultPrevented) && (!this.isAnnotationOverlay || this.zoomScaling != 1 || e.button == 0)) {
+        this.PreviewCursorVisible = false;
+        if ((e.button === 2 && this.props.active() && (!this.isAnnotationOverlay || this.zoomScaling != 1)) || e.button == 0) {
             document.removeEventListener("pointermove", this.onPointerMove);
             document.addEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
             document.addEventListener("pointerup", this.onPointerUp);
-            this._lastX = e.pageX;
-            this._lastY = e.pageY;
-            this._downX = e.pageX;
-            this._downY = e.pageY;
+            this._lastX = this.DownX = e.pageX;
+            this._lastY = this.DownY = e.pageY;
         }
     }
 
     @action
     onPointerUp = (e: PointerEvent): void => {
-        document.removeEventListener("pointermove", this.onPointerMove);
-        document.removeEventListener("pointerup", this.onPointerUp);
         e.stopPropagation();
-        if (Math.abs(this._downX - e.clientX) < 3 && Math.abs(this._downY - e.clientY) < 3) {
+
+        if (Math.abs(this.DownX - e.clientX) < 4 && Math.abs(this.DownY - e.clientY) < 4) {
             //show preview text cursor on tap
-            this._previewCursorVisible = true;
+            this.PreviewCursorVisible = true;
             //select is not already selected
             if (!this.props.isSelected()) {
                 this.props.select(false);
             }
         }
-
+        this.cleanupInteractions();
     }
 
     @action
     onPointerMove = (e: PointerEvent): void => {
         if (!e.cancelBubble && this.props.active()) {
-            e.stopPropagation();
-            e.preventDefault();
-            let x = this.props.Document.GetNumber(KeyStore.PanX, 0);
-            let y = this.props.Document.GetNumber(KeyStore.PanY, 0);
-            let [dx, dy] = this.getTransform().transformDirection(e.clientX - this._lastX, e.clientY - this._lastY);
-            this._previewCursorVisible = false;
-            this.SetPan(x - dx, y - dy);
+            if (e.buttons == 1 && !e.altKey && !e.metaKey) {
+                this.MarqueeVisible = true;
+            }
+            if (this.MarqueeVisible) {
+                e.stopPropagation();
+                e.preventDefault();
+            }
+            else if ((!this.isAnnotationOverlay || this.zoomScaling != 1) && !e.shiftKey) {
+                let x = this.props.Document.GetNumber(KeyStore.PanX, 0);
+                let y = this.props.Document.GetNumber(KeyStore.PanY, 0);
+                let [dx, dy] = this.getTransform().transformDirection(e.clientX - this._lastX, e.clientY - this._lastY);
+                this.SetPan(x - dx, y - dy);
+                this._lastX = e.pageX;
+                this._lastY = e.pageY;
+                e.stopPropagation();
+                e.preventDefault();
+            }
         }
-        this._lastX = e.pageX;
-        this._lastY = e.pageY;
     }
 
     @action
     onPointerWheel = (e: React.WheelEvent): void => {
+        this.props.select(false);
         e.stopPropagation();
         e.preventDefault();
         let coefficient = 1000;
@@ -161,7 +205,6 @@ export class CollectionFreeFormView extends CollectionViewBase {
     @action
     private SetPan(panX: number, panY: number) {
         var x1 = this.getLocalTransform().inverse().Scale;
-        var x2 = this.getTransform().inverse().Scale;
         const newPanX = Math.min((1 - 1 / x1) * this.nativeWidth, Math.max(0, panX));
         const newPanY = Math.min((1 - 1 / x1) * this.nativeHeight, Math.max(0, panY));
         this.props.Document.SetNumber(KeyStore.PanX, this.isAnnotationOverlay ? newPanX : panX);
@@ -175,24 +218,6 @@ export class CollectionFreeFormView extends CollectionViewBase {
     }
 
     onDragOver = (): void => {
-    }
-
-    @action
-    onKeyDown = (e: React.KeyboardEvent<Element>) => {
-        //if not these keys, make a textbox if preview cursor is active!
-        if (!e.ctrlKey && !e.altKey) {
-            if (this._previewCursorVisible) {
-                //make textbox and add it to this collection
-                let [x, y] = this.getTransform().transformPoint(this._downX, this._downY); (this._downX, this._downY);
-                let newBox = Documents.TextDocument({ width: 200, height: 100, x: x, y: y, title: "new" });
-                // mark this collection so that when the text box is created we can send it the SelectOnLoad prop to focus itself
-                this._selectOnLoaded = newBox.Id;
-                //set text to be the typed key and get focus on text box
-                this.props.CollectionView.addDocument(newBox);
-                //remove cursor from screen
-                this._previewCursorVisible = false;
-            }
-        }
     }
 
     @action
@@ -236,7 +261,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
     @computed
     get views() {
-        var curPage = this.props.Document.GetNumber(KeyStore.CurPage, 1);
+        var curPage = this.props.Document.GetNumber(KeyStore.CurPage, -1);
         const lvalue = this.props.Document.GetT<ListField<Document>>(this.props.fieldKey, ListField);
         if (lvalue && lvalue != FieldWaiting) {
             return lvalue.Data.map(doc => {
@@ -263,7 +288,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
     get backgroundView() {
         return !this.backgroundLayout ? (null) :
             (<JsxParser
-                components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, WebBox, KeyValueBox, PDFBox }}
+                components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, CollectionVideoView, WebBox, KeyValueBox, PDFBox, VideoBox, AudioBox }}
                 bindings={this.props.bindings}
                 jsx={this.backgroundLayout}
                 showWarnings={true}
@@ -274,7 +299,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
     get overlayView() {
         return !this.overlayLayout ? (null) :
             (<JsxParser
-                components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, WebBox, KeyValueBox, PDFBox }}
+                components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, CollectionVideoView, WebBox, KeyValueBox, PDFBox, VideoBox, AudioBox }}
                 bindings={this.props.bindings}
                 jsx={this.overlayLayout}
                 showWarnings={true}
@@ -283,24 +308,17 @@ export class CollectionFreeFormView extends CollectionViewBase {
     }
 
     getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-COLLECTION_BORDER_WIDTH, -COLLECTION_BORDER_WIDTH).translate(-this.centeringShiftX, -this.centeringShiftY).transform(this.getLocalTransform())
+    getMarqueeTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-COLLECTION_BORDER_WIDTH, -COLLECTION_BORDER_WIDTH)
     getLocalTransform = (): Transform => Transform.Identity.scale(1 / this.scale).translate(this.panX, this.panY);
     noScaling = () => 1;
 
     //when focus is lost, this will remove the preview cursor
     @action
-    onBlur = (e: React.FocusEvent<HTMLDivElement>): void => {
-        this._previewCursorVisible = false;
+    onBlur = (): void => {
+        this.PreviewCursorVisible = false;
     }
 
     render() {
-        //determines whether preview text cursor should be visible (ie when user taps this collection it should)
-        let cursor = null;
-        if (this._previewCursorVisible) {
-            //get local position and place cursor there!
-            let [x, y] = this.getTransform().transformPoint(this._downX, this._downY);
-            cursor = <div id="prevCursor" onKeyPress={this.onKeyDown} style={{ color: "black", position: "absolute", transformOrigin: "left top", transform: `translate(${x}px, ${y}px)` }}>I</div>
-        }
-
         let [dx, dy] = [this.centeringShiftX, this.centeringShiftY];
 
         const panx: number = -this.props.Document.GetNumber(KeyStore.PanX, 0);
@@ -309,7 +327,6 @@ export class CollectionFreeFormView extends CollectionViewBase {
         return (
             <div className={`collectionfreeformview${this.isAnnotationOverlay ? "-overlay" : "-container"}`}
                 onPointerDown={this.onPointerDown}
-                onKeyPress={this.onKeyDown}
                 onWheel={this.onPointerWheel}
                 onDrop={this.onDrop.bind(this)}
                 onDragOver={this.onDragOver}
@@ -322,9 +339,12 @@ export class CollectionFreeFormView extends CollectionViewBase {
                     ref={this._canvasRef}>
                     {this.backgroundView}
                     <InkingCanvas getScreenTransform={this.getTransform} Document={this.props.Document} />
-                    {cursor}
+                    <PreviewCursor container={this} addLiveTextDocument={this.addLiveTextBox} getTransform={this.getTransform} />
                     {this.views}
                 </div>
+                <MarqueeView container={this} activeDocuments={this.getActiveDocuments} selectDocuments={this.selectDocuments}
+                    addDocument={this.props.addDocument} removeDocument={this.props.removeDocument}
+                    getMarqueeTransform={this.getMarqueeTransform} getTransform={this.getTransform} />
                 {this.overlayView}
             </div>
         );

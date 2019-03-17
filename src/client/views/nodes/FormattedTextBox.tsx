@@ -14,6 +14,9 @@ import { Plugin } from 'prosemirror-state'
 import { Decoration, DecorationSet } from 'prosemirror-view'
 import { TooltipTextMenu } from "../../util/TooltipTextMenu"
 import { ContextMenu } from "../../views/ContextMenu";
+import { inpRules } from "../../util/RichTextRules";
+const { buildMenuItems } = require("prosemirror-example-setup");
+const { menuBar } = require("prosemirror-menu");
 
 
 
@@ -31,7 +34,7 @@ import { ContextMenu } from "../../views/ContextMenu";
 //    and 'doc' property to the document that is being rendered
 //
 //  When rendered() by React, this extracts the TextController from the Document stored at the 
-//  specified Key and assigns it to an HTML input node.  When changes are made tot his node, 
+//  specified Key and assigns it to an HTML input node.  When changes are made to this node, 
 //  this will edit the document and assign the new value to that field.
 //]
 export class FormattedTextBox extends React.Component<FieldViewProps> {
@@ -62,6 +65,7 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
         let state: EditorState;
         const config = {
             schema,
+            inpRules, //these currently don't do anything, but could eventually be helpful
             plugins: [
                 history(),
                 keymap({ "Mod-z": undo, "Mod-y": redo }),
@@ -71,7 +75,7 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
         };
 
         let field = this.props.doc.GetT(this.props.fieldKey, RichTextField);
-        if (field && field != FieldWaiting) {
+        if (field && field != FieldWaiting && field.Data) {
             state = EditorState.fromJSON(config, JSON.parse(field.Data));
         } else {
             state = EditorState.create(config);
@@ -117,7 +121,7 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
         // doc.SetData(fieldKey, e.target.value, RichTextField);
     }
     onPointerDown = (e: React.PointerEvent): void => {
-        if (e.buttons === 1 && this.props.isSelected()) {
+        if (e.buttons === 1 && this.props.isSelected() && !e.altKey) {
             e.stopPropagation();
         }
     }
@@ -155,8 +159,12 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
         })
     }
 
+    onKeyPress(e: React.KeyboardEvent) {
+        e.stopPropagation();
+    }
     render() {
         return (<div className="formattedTextBox-cont"
+            onKeyPress={this.onKeyPress}
             onPointerDown={this.onPointerDown}
             onContextMenu={this.specificContextMenu}
             onWheel={this.onPointerWheel}
