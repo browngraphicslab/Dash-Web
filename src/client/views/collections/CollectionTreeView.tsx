@@ -12,6 +12,10 @@ import { setupDrag } from "../../util/DragManager";
 import { FieldWaiting } from "../../../fields/Field";
 import { COLLECTION_BORDER_WIDTH } from "./CollectionView";
 
+import { library } from '@fortawesome/fontawesome-svg-core';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faTrashAlt, faCaretRight, faCaretDown } from '@fortawesome/free-solid-svg-icons';
+
 export interface TreeViewProps {
     document: Document;
     deleteDoc: (doc: Document) => void;
@@ -22,6 +26,10 @@ export enum BulletType {
     Collapsible,
     List
 }
+
+library.add(faTrashAlt);
+library.add(faCaretDown);
+library.add(faCaretRight);
 
 @observer
 /**
@@ -50,11 +58,11 @@ class TreeView extends React.Component<TreeViewProps> {
 
         switch (type) {
             case BulletType.Collapsed:
-                return <div className="bullet" onClick={onClicked}>&#9654;</div>
+                return <div className="bullet" onClick={onClicked}><FontAwesomeIcon icon="caret-right" /></div>
             case BulletType.Collapsible:
-                return <div className="bullet" onClick={onClicked}>&#9660;</div>
+                return <div className="bullet" onClick={onClicked}><FontAwesomeIcon icon="caret-down" /></div>
             case BulletType.List:
-                return <div className="bullet">&mdash;</div>
+                return <div className="bullet"></div>
         }
     }
 
@@ -79,7 +87,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 this.props.document.SetData(KeyStore.Title, value, TextField);
                 return true;
             }} />
-            <div className="delete-button" onClick={this.delete}>x</div>
+            <div className="delete-button" onClick={this.delete}><FontAwesomeIcon icon="trash-alt" size="xs" /></div>
         </div >
     }
 
@@ -101,7 +109,7 @@ class TreeView extends React.Component<TreeViewProps> {
                     <TreeView document={value} deleteDoc={this.remove} />)
                 )
                 subView =
-                    <li key={this.props.document.Id} >
+                    <li className="collection-child" key={this.props.document.Id} >
                         {this.renderBullet(BulletType.Collapsible)}
                         {titleElement}
                         <ul key={this.props.document.Id}>
@@ -109,7 +117,7 @@ class TreeView extends React.Component<TreeViewProps> {
                         </ul>
                     </li>
             } else {
-                subView = <li key={this.props.document.Id}>
+                subView = <li className="collection-child" key={this.props.document.Id}>
                     {this.renderBullet(BulletType.Collapsed)}
                     {titleElement}
                 </li>
@@ -157,7 +165,7 @@ export class CollectionTreeView extends CollectionViewBase {
 
         return (
             <div id="body" className="collectionTreeView-dropTarget" onDrop={(e: React.DragEvent) => this.onDrop(e, {})} ref={this.createDropTarget} style={{ borderWidth: `${COLLECTION_BORDER_WIDTH}px` }}>
-                <h3>
+                <div className="coll-title">
                     <EditableView contents={titleStr}
                         height={72} GetValue={() => {
                             return this.props.Document.Title;
@@ -165,7 +173,8 @@ export class CollectionTreeView extends CollectionViewBase {
                             this.props.Document.SetData(KeyStore.Title, value, TextField);
                             return true;
                         }} />
-                </h3>
+                </div>
+                <hr />
                 <ul className="no-indent">
                     {childrenElement}
                 </ul>

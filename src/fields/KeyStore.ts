@@ -19,11 +19,13 @@ export namespace KeyStore {
     export const Annotations = new Key("Annotations");
     export const ViewType = new Key("ViewType");
     export const Layout = new Key("Layout");
+    export const BackgroundColor = new Key("BackgroundColor");
     export const BackgroundLayout = new Key("BackgroundLayout");
     export const OverlayLayout = new Key("OverlayLayout");
     export const LayoutKeys = new Key("LayoutKeys");
     export const LayoutFields = new Key("LayoutFields");
     export const ColumnsKey = new Key("SchemaColumns");
+    export const SchemaSplitPercentage = new Key("SchemaSplitPercentage");
     export const Caption = new Key("Caption");
     export const ActiveFrame = new Key("ActiveFrame");
     export const DocumentText = new Key("DocumentText");
@@ -33,7 +35,6 @@ export namespace KeyStore {
     export const LinkTags = new Key("LinkTag");
     export const Thumbnail = new Key("Thumbnail");
     export const CurPage = new Key("CurPage");
-    export const CurFrame = new Key("CurFrame");
     export const NumPages = new Key("NumPages");
     export const Ink = new Key("Ink");
 }
