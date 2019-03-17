@@ -68,12 +68,16 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
 
     @action
     protected onDrop(e: React.DragEvent, options: DocumentOptions): void {
-        e.stopPropagation()
-        e.preventDefault()
         let that = this;
 
         let html = e.dataTransfer.getData("text/html");
         let text = e.dataTransfer.getData("text/plain");
+
+        if (text && text.startsWith("<div")) {
+            return;
+        }
+        e.stopPropagation()
+        e.preventDefault()
 
         if (html && html.indexOf("<img") != 0) {
             console.log("not good");

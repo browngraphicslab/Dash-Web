@@ -209,10 +209,23 @@ export namespace Documents {
             + FormattedTextBox.LayoutString("CaptionKey") +
             `</div> 
         </div>` };
-    export function FixedCaption(fieldName: string = "Caption") {
+    function FixedCaption(fieldName: string = "Caption") {
         return `<div style="position:absolute; height:30px; bottom:0; width:100%">
             <div style="position:absolute; width:100%; height:100%; text-align:center;bottom:0;">`
             + FormattedTextBox.LayoutString(fieldName + "Key") +
             `</div> 
         </div>` };
+
+    function Caption() {
+        return (`
+<div>
+    <div style="margin:auto; height:85%; width:85%;">
+        {layout}
+    </div>
+    <div style="height:15%">
+        <FormattedTextBox doc={Document} DocumentViewForField={DocumentView} bindings={bindings} fieldKey={"CaptionKey"} isSelected={isSelected} select={select} selectOnLoad={SelectOnLoad} isTopMost={isTopMost}/>
+    </div>
+</div>       
+        `)
+    }
 }

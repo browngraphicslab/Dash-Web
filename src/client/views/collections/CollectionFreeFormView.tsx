@@ -209,27 +209,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
     @action
     onDrop = (e: React.DragEvent): void => {
         var pt = this.getTransform().transformPoint(e.pageX, e.pageY);
-
-        let text = e.dataTransfer.getData("text/plain");
-        let start = text.startsWith("<div")
-        if (start) {
-            console.log(e.target);
-            console.log(this.props.Document.GetData(KeyStore.Layout, TextField, new String))
-            var children = this.props.Document.GetList<Document>(KeyStore.Data, []);
-            console.log(children);
-            if (children) {
-                children.forEach(f => {
-                    console.log(f.GetData(KeyStore.Layout, TextField, new String));
-                });
-            }
-            // let xx = this.props.Document.GetT(KeyStore.Thumbnail, ImageField)
-            // if (xx) {
-            //     console.log(xx.toString())
-            // }
-            this.props.Document.SetData(KeyStore.Layout, text, TextField);
-            e.stopPropagation();
-        }
-        else { super.onDrop(e, { x: pt[0], y: pt[1] }); }
+        super.onDrop(e, { x: pt[0], y: pt[1] });
     }
 
     onDragOver = (): void => {
