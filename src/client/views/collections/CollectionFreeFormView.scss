@@ -1,36 +1,56 @@
-.collectionfreeformview-container {
+@import "../global_variables";
 
-    .collectionfreeformview  > .jsx-parser{
-        position:absolute;
-        height: 100%;
-        width: 100%;
-    }
-        
-    border-style: solid;
-    box-sizing: border-box;
-    position: relative;
+.collectionfreeformview-container {
+  .collectionfreeformview > .jsx-parser {
+    position: absolute;
+    height: 100%;
+    width: 100%;
+  }
+
+  //nested freeform views
+  .collectionfreeformview-container {
+    // background-image: linear-gradient(to right, $light-color-secondary 1px, transparent 1px),
+    //   linear-gradient(to bottom, $light-color-secondary 1px, transparent 1px);
+    // background-size: 30px 30px;
+  }
+
+  border: 0px solid $light-color-secondary;
+  border-radius: $border-radius;
+  box-sizing: border-box;
+  position: relative;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  box-shadow: $intermediate-color 0.2vw 0.2vw 0.8vw;
+  .collectionfreeformview {
+    position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    overflow: hidden;
-    .collectionfreeformview {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width:100%;
-        height: 100%;
-    }
-}
-.collectionfreeformview-marquee{
-    border-style: dashed;
-    box-sizing: border-box;
-    position: absolute;
-    border-width: 1px;
-    border-color: black;
+  }
 }
 .collectionfreeformview-overlay {
+  .collectionfreeformview > .jsx-parser {
+    position: absolute;
+    height: 100%;
+  }
+  .formattedTextBox-cont {
+    background: $light-color-secondary;
+  }
 
+  position:absolute;
+  border: 0px solid transparent;
+  border-radius: $border-radius;
+  overflow: hidden;
+  box-sizing: border-box;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  .collectionfreeformview {
     .collectionfreeformview > .jsx-parser{
         position:absolute;
         height: 100%;
@@ -39,37 +59,39 @@
         background:yellow;
     }
         
-    border-style: solid;
-    box-sizing: border-box;
+    // overflow: hidden;
+    // border-style: solid;
+    // box-sizing: border-box;
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    overflow: hidden;
-    .collectionfreeformview {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width:100%;
-        height: 100%;
-    }
+  }
 }
 
+// selection border...?
 .border {
-    border-style: solid;
-    box-sizing: border-box;
-    width: 100%;
-    height: 100%;
+  border-style: solid;
+  box-sizing: border-box;
+  width: 98%;
+  height: 98%;
+  border-radius: $border-radius;
 }
 
 //this is an animation for the blinking cursor!
 @keyframes blink {
-	0% {opacity: 0}
-	49%{opacity: 0}
-	50% {opacity: 1}
+  0% {
+    opacity: 0;
+  }
+  49% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 #prevCursor {
-    animation: blink 1s infinite;
+  animation: blink 1s infinite;
 }

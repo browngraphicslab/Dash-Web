@@ -1,14 +1,23 @@
+@import "../global_variables";
 #body {
     padding: 20px;
-    background: #bbbbbb;
+    background: $light-color-secondary;
+    font-size: 13px;
+    overflow: scroll;
 }
 
 ul {
     list-style: none;
+    padding-left: 20px;
 }
 
 li {
     margin: 5px 0;
+}
+
+.collection-child {
+    margin-top: 10px;
+    margin-bottom: 10px;
 }
 
 .no-indent {
@@ -18,10 +27,17 @@ li {
 .bullet {
     width: 1.5em;
     display: inline-block;
+    color: $intermediate-color;
+}
+
+.coll-title {
+    font-size: 24px;
+    margin-bottom: 20px;
 }
 
 .collectionTreeView-dropTarget {
-    border-style: solid;
+    border: 0px solid transparent;
+    border-radius: $border-radius;
     box-sizing: border-box;
     height: 100%;
 }
@@ -30,8 +46,16 @@ li {
     display: inline-table;
 }
 
+.docContainer:hover {
+    .delete-button {
+        display: inline;
+    }
+}
+
 .delete-button {
-    color: #999999;
+    color: $intermediate-color;
     float: right;
-    margin-left: 1em;
+    margin-left: 15px;
+    margin-top: 3px;
+    display: none;
 }
