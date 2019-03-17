@@ -75,15 +75,15 @@ export namespace Documents {
     }
     function assignOptions(doc: Document, options: DocumentOptions): Document {
         if (options.title !== undefined) { doc.SetText(KeyStore.Title, options.title); }
-        if (options.panx !== undefined) { doc.SetNumber(KeyStore.PanX, options.panx); }
-        if (options.pany !== undefined) { doc.SetNumber(KeyStore.PanY, options.pany); }
         if (options.page !== undefined) { doc.SetNumber(KeyStore.Page, options.page); }
         if (options.scale !== undefined) { doc.SetNumber(KeyStore.Scale, options.scale); }
         if (options.viewType !== undefined) { doc.SetNumber(KeyStore.ViewType, options.viewType); }
         if (options.backgroundColor !== undefined) { doc.SetText(KeyStore.BackgroundColor, options.backgroundColor); }
+        if (options.ink !== undefined) { doc.Set(KeyStore.Ink, new InkField(options.ink)); }
         if (options.layout !== undefined) { doc.SetText(KeyStore.Layout, options.layout); }
         if (options.layoutKeys !== undefined) { doc.Set(KeyStore.LayoutKeys, new ListField(options.layoutKeys)); }
-        if (options.ink !== undefined) { doc.Set(KeyStore.Ink, new InkField(options.ink)); }
+        if (options.panx !== undefined) { doc.SetNumber(KeyStore.PanX, options.panx); }
+        if (options.pany !== undefined) { doc.SetNumber(KeyStore.PanY, options.pany); }
         return doc;
     }
 
@@ -162,8 +162,7 @@ export namespace Documents {
 
 
     export function ImageDocument(url: string, options: DocumentOptions = {}) {
-        return SetInstanceOptions(GetImagePrototype(), { ...options, layoutKeys: [KeyStore.Data, KeyStore.Annotations, KeyStore.Caption] },
-            [new URL(url), ImageField]).MakeDelegate();
+        return assignToDelegate(SetInstanceOptions(GetImagePrototype(), options, [new URL(url), ImageField]).MakeDelegate(), { ...options, layoutKeys: [KeyStore.Data, KeyStore.Annotations, KeyStore.Caption] });
         // let doc = SetInstanceOptions(GetImagePrototype(), { ...options, layoutKeys: [KeyStore.Data, KeyStore.Annotations, KeyStore.Caption] },
         //     [new URL(url), ImageField]);
         // doc.SetText(KeyStore.Caption, "my caption...");
@@ -172,38 +171,38 @@ export namespace Documents {
         // return doc;
     }
     export function VideoDocument(url: string, options: DocumentOptions = {}) {
-        return SetInstanceOptions(GetVideoPrototype(), options, [new URL(url), VideoField]);
+        return assignToDelegate(SetInstanceOptions(GetVideoPrototype(), options, [new URL(url), VideoField]), options);
     }
     export function AudioDocument(url: string, options: DocumentOptions = {}) {
-        return SetInstanceOptions(GetAudioPrototype(), options, [new URL(url), AudioField]);
+        return assignToDelegate(SetInstanceOptions(GetAudioPrototype(), options, [new URL(url), AudioField]), options);
     }
 
     export function TextDocument(options: DocumentOptions = {}) {
         return assignToDelegate(SetInstanceOptions(GetTextPrototype(), options, ["", TextField]).MakeDelegate(), options);
     }
     export function PdfDocument(url: string, options: DocumentOptions = {}) {
-        return SetInstanceOptions(GetPdfPrototype(), options, [new URL(url), PDFField]).MakeDelegate();
+        return assignToDelegate(SetInstanceOptions(GetPdfPrototype(), options, [new URL(url), PDFField]).MakeDelegate(), options);
     }
     export function WebDocument(url: string, options: DocumentOptions = {}) {
-        return SetInstanceOptions(GetWebPrototype(), options, [new URL(url), WebField]).MakeDelegate();
+        return assignToDelegate(SetInstanceOptions(GetWebPrototype(), options, [new URL(url), WebField]).MakeDelegate(), options);
     }
     export function HtmlDocument(html: string, options: DocumentOptions = {}) {
-        return SetInstanceOptions(GetWebPrototype(), options, [html, HtmlField]).MakeDelegate();
+        return assignToDelegate(SetInstanceOptions(GetWebPrototype(), options, [html, HtmlField]).MakeDelegate(), options);
     }
     export function KVPDocument(document: Document, options: DocumentOptions = {}, id?: string) {
-        return SetInstanceOptions(GetKVPPrototype(), options, document, id).MakeDelegate()
+        return assignToDelegate(SetInstanceOptions(GetKVPPrototype(), options, document, id), options)
     }
     export function FreeformDocument(documents: Array<Document>, options: DocumentOptions, id?: string, makePrototype: boolean = true) {
         if (!makePrototype) {
             return SetInstanceOptions(GetCollectionPrototype(), { ...options, viewType: CollectionViewType.Freeform }, [documents, ListField], id)
         }
-        return SetInstanceOptions(GetCollectionPrototype(), { ...options, viewType: CollectionViewType.Freeform }, [documents, ListField], id).MakeDelegate()
+        return assignToDelegate(SetInstanceOptions(GetCollectionPrototype(), { ...options, viewType: CollectionViewType.Freeform }, [documents, ListField], id).MakeDelegate(), options)
     }
     export function SchemaDocument(documents: Array<Document>, options: DocumentOptions, id?: string) {
-        return SetInstanceOptions(GetCollectionPrototype(), { ...options, viewType: CollectionViewType.Schema }, [documents, ListField], id)
+        return assignToDelegate(SetInstanceOptions(GetCollectionPrototype(), { ...options, viewType: CollectionViewType.Schema }, [documents, ListField], id), options)
     }
     export function DockDocument(config: string, options: DocumentOptions, id?: string) {
-        return SetInstanceOptions(GetCollectionPrototype(), { ...options, viewType: CollectionViewType.Docking }, [config, TextField], id)
+        return assignToDelegate(SetInstanceOptions(GetCollectionPrototype(), { ...options, viewType: CollectionViewType.Docking }, [config, TextField], id), options)
     }
 
     // example of custom display string for an image that shows a caption.

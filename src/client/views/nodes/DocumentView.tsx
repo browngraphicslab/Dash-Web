@@ -156,7 +156,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             const [left, top] = this.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
             let dragData: { [id: string]: any } = {};
             dragData["documentView"] = this;
-            dragData["document"] = ctrlPressed ? this.props.Document.CreateAlias() : this.props.Document
+            dragData["document"] = this.props.Document
             dragData["xOffset"] = x - left;
             dragData["yOffset"] = y - top;
             dragData["alias"] = ctrlPressed
@@ -203,7 +203,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
 
     fieldsClicked = (e: React.MouseEvent): void => {
         if (this.props.AddDocument) {
-            this.props.AddDocument(Documents.KVPDocument(this.props.Document));
+            this.props.AddDocument(Documents.KVPDocument(this.props.Document, { width: 300, height: 300 }));
         }
     }
     fullScreenClicked = (e: React.MouseEvent): void => {

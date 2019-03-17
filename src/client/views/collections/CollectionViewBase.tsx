@@ -3,7 +3,7 @@ import { Document } from "../../../fields/Document";
 import { ListField } from "../../../fields/ListField";
 import React = require("react");
 import { KeyStore } from "../../../fields/KeyStore";
-import { FieldWaiting, Field } from "../../../fields/Field";
+import { FieldWaiting, Field, Opt } from "../../../fields/Field";
 import { undoBatch } from "../../util/UndoManager";
 import { DragManager } from "../../util/DragManager";
 import { DocumentView } from "../nodes/DocumentView";
@@ -11,6 +11,7 @@ import { Documents, DocumentOptions } from "../../documents/Documents";
 import { Key } from "../../../fields/Key";
 import { Transform } from "../../util/Transform";
 import { CollectionView } from "./CollectionView";
+import { NumberField } from "../../../fields/NumberField";
 
 export interface CollectionViewProps {
     fieldKey: Key;
@@ -51,11 +52,15 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
             let newDoc = docView ? docView.props.Document.CreateAlias() : doc.CreateAlias()
             de.data["newDoc"] = newDoc
             let oldDoc = docView ? docView.props.Document : doc
-            oldDoc.GetAsync(KeyStore.Width, (f: Field) => {
-                newDoc.Set(KeyStore.Width, f)
+            oldDoc.GetTAsync(KeyStore.Width, NumberField, (f: Opt<NumberField>) => {
+                if (f) {
+                    newDoc.SetNumber(KeyStore.Width, f.Data)
+                }
             })
-            oldDoc.GetAsync(KeyStore.Height, (f: Field) => {
-                newDoc.Set(KeyStore.Height, f)
+            oldDoc.GetTAsync(KeyStore.Height, NumberField, (f: Opt<NumberField>) => {
+                if (f) {
+                    newDoc.SetNumber(KeyStore.Height, f.Data)
+                }
             })
         }
 
@@ -68,7 +73,7 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
             if (!de.data["alias"]) {
                 this.props.removeDocument(doc)
             }
-            this.props.addDocument(doc)
+            this.props.addDocument(de.data["alias"] ? de.data["newDoc"] : doc)
         }
         e.stopPropagation();
     }
