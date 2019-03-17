@@ -78,14 +78,14 @@ export class InkingControl extends React.Component {
             <ul className="inking-control" style={this._open ? { display: "flex" } : { display: "none" }}>
                 <li className="ink-tools ink-panel">
                     <div className="ink-tool-buttons">
-                        <button onClick={() => this.switchTool(InkTool.Pen)} style={this.selected(InkTool.Pen)}><FontAwesomeIcon icon="pen" size="2x" /></button>
-                        <button onClick={() => this.switchTool(InkTool.Highlighter)} style={this.selected(InkTool.Highlighter)}><FontAwesomeIcon icon="highlighter" size="2x" /></button>
-                        <button onClick={() => this.switchTool(InkTool.Eraser)} style={this.selected(InkTool.Eraser)}><FontAwesomeIcon icon="eraser" size="2x" /></button>
-                        <button onClick={() => this.switchTool(InkTool.None)} style={this.selected(InkTool.None)}><FontAwesomeIcon icon="ban" size="2x" /></button>
+                        <button onClick={() => this.switchTool(InkTool.Pen)} style={this.selected(InkTool.Pen)}><FontAwesomeIcon icon="pen" size="lg" title="Pen" /></button>
+                        <button onClick={() => this.switchTool(InkTool.Highlighter)} style={this.selected(InkTool.Highlighter)}><FontAwesomeIcon icon="highlighter" size="lg" title="Highlighter" /></button>
+                        <button onClick={() => this.switchTool(InkTool.Eraser)} style={this.selected(InkTool.Eraser)}><FontAwesomeIcon icon="eraser" size="lg" title="Eraser" /></button>
+                        <button onClick={() => this.switchTool(InkTool.None)} style={this.selected(InkTool.None)}><FontAwesomeIcon icon="ban" size="lg" title="Pointer" /></button>
                     </div>
                 </li>
                 <li className="ink-color ink-panel">
-                    <label>Color: </label>
+                    <label>COLOR: </label>
                     <div className="ink-color-display" style={{ backgroundColor: this._selectedColor }}
                         onClick={() => this.toggleColorPicker()}>
                         {/* {this._colorPickerDisplay ? <span>&#9660;</span> : <span>&#9650;</span>} */}
@@ -95,9 +95,9 @@ export class InkingControl extends React.Component {
                     </div>
                 </li>
                 <li className="ink-size ink-panel">
-                    <label htmlFor="stroke-width">Size: </label>
-                    {/* <input type="text" min="1" max="100" value={this._selectedWidth} name="stroke-width"
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => this.switchWidth(e.target.value)} /> */}
+                    <label htmlFor="stroke-width">SIZE: </label>
+                    <input type="text" min="1" max="100" value={this._selectedWidth} name="stroke-width"
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => this.switchWidth(e.target.value)} />
                     <input type="range" min="1" max="100" value={this._selectedWidth} name="stroke-width"
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => this.switchWidth(e.target.value)} />
                 </li>

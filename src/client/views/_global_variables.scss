@@ -1,23 +1,17 @@
-@import url("https://fonts.googleapis.com/css?family=Roboto+Slab:300,700|Crimson+Text:400,400i,700");
+@import url("https://fonts.googleapis.com/css?family=Noto+Sans:400,700|Crimson+Text:400,400i,700");
 // colors
 $light-color: #fcfbf7;
-$light-color-secondary: rgb(241,
-239,
-235);
+$light-color-secondary: rgb(241, 239, 235);
 $main-accent: #61aaa3;
 // $alt-accent: #cdd5ec;
 // $alt-accent: #cdeceb;
-$alt-accent: #f9e1db;
-$lighter-alt-accent: rgb(207,
-220,
-240);
+$alt-accent: #59dff7;
+$lighter-alt-accent: rgb(207, 220, 240);
 $intermediate-color: #9c9396;
 $dark-color: #121721;
 // fonts
-$sans-serif: "Noto Sans",
-sans-serif;
+$sans-serif: "Noto Sans", sans-serif;
 // $sans-serif: "Roboto Slab", sans-serif;
-$serif: "Crimson Text",
-serif;
+$serif: "Crimson Text", serif;
 // misc values
 $border-radius: 0.3em;

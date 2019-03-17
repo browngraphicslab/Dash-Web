@@ -1,5 +1,5 @@
 
-import { action, observable } from 'mobx';
+import { action, observable, trace } from 'mobx';
 import { observer } from "mobx-react";
 import Lightbox from 'react-image-lightbox';
 import 'react-image-lightbox/style.css'; // This only needs to be imported once in your app
@@ -70,7 +70,7 @@ export class ImageBox extends React.Component<FieldViewProps> {
     }
 
     lightbox = (path: string) => {
-        const images = [path, "http://www.cs.brown.edu/~bcz/face.gif"];
+        const images = [path];
         if (this._isOpen && this.props.isSelected()) {
             return (<Lightbox
                 mainSrc={images[this._photoIndex]}
