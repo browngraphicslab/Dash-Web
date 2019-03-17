@@ -1,31 +1,31 @@
 .keyValueBox-cont {
-    overflow-y:scroll;
-    height: 100%;
-    border: black;
-    border-width: 1px;
-    border-style: solid;
-    box-sizing: border-box;
-    display: inline-block;
-    .imageBox-cont img {
-        max-height:45px;
-        height: auto;
-    }
+  overflow-y: scroll;
+  height: 100%;
+  border: black;
+  border-width: 1px;
+  border-style: solid;
+  box-sizing: border-box;
+  display: inline-block;
+  .imageBox-cont img {
+    max-height: 45px;
+    height: auto;
+  }
 }
 .keyValueBox-table {
-    position: relative;
+  position: relative;
 }
 .keyValueBox-header {
-    background:gray;
+  background: gray;
 }
 .keyValueBox-evenRow {
+  background: white;
+  .formattedTextBox-cont {
     background: white;
-    .formattedTextBox-cont {
-        background: white;
-    }
+  }
 }
 .keyValueBox-oddRow {
-    background: lightGray;
-    .formattedTextBox-cont {
-        background: lightgray;
-    }
+  background: lightGray;
+  .formattedTextBox-cont {
+    background: lightgray;
+  }
 }

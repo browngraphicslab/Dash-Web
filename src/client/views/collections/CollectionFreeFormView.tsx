@@ -52,13 +52,13 @@ export class CollectionFreeFormView extends CollectionViewBase {
     }
 
     public getActiveDocuments = () => {
-        var curPage = this.props.Document.GetNumber(KeyStore.CurPage, 1);
+        var curPage = this.props.Document.GetNumber(KeyStore.CurPage, -1);
         const lvalue = this.props.Document.GetT<ListField<Document>>(this.props.fieldKey, ListField);
         let active: Document[] = [];
         if (lvalue && lvalue != FieldWaiting) {
             lvalue.Data.map(doc => {
-                var page = doc.GetNumber(KeyStore.Page, 0);
-                if (page == curPage || page == 0) {
+                var page = doc.GetNumber(KeyStore.Page, -1);
+                if (page == curPage || page == -1) {
                     active.push(doc);
                 }
             })
@@ -126,7 +126,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
     onPointerUp = (e: PointerEvent): void => {
         e.stopPropagation();
 
-        if (!this.MarqueeVisible && Math.abs(this.DownX - e.clientX) < 3 && Math.abs(this.DownY - e.clientY) < 3) {
+        if (Math.abs(this.DownX - e.clientX) < 4 && Math.abs(this.DownY - e.clientY) < 4) {
             //show preview text cursor on tap
             this.PreviewCursorVisible = true;
             //select is not already selected
@@ -140,9 +140,8 @@ export class CollectionFreeFormView extends CollectionViewBase {
     @action
     onPointerMove = (e: PointerEvent): void => {
         if (!e.cancelBubble && this.props.active()) {
-            if (e.buttons != 2 && !e.altKey && !e.metaKey && !this.MarqueeVisible) {
+            if (e.buttons == 1 && !e.altKey && !e.metaKey) {
                 this.MarqueeVisible = true;
-                this.PreviewCursorVisible = false;
             }
             if (this.MarqueeVisible) {
                 e.stopPropagation();
@@ -152,7 +151,6 @@ export class CollectionFreeFormView extends CollectionViewBase {
                 let x = this.props.Document.GetNumber(KeyStore.PanX, 0);
                 let y = this.props.Document.GetNumber(KeyStore.PanY, 0);
                 let [dx, dy] = this.getTransform().transformDirection(e.clientX - this._lastX, e.clientY - this._lastY);
-                this.PreviewCursorVisible = false;
                 this.SetPan(x - dx, y - dy);
                 this._lastX = e.pageX;
                 this._lastY = e.pageY;
@@ -272,7 +270,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
     @computed
     get views() {
-        var curPage = this.props.Document.GetNumber(KeyStore.CurPage, 1);
+        var curPage = this.props.Document.GetNumber(KeyStore.CurPage, -1);
         const lvalue = this.props.Document.GetT<ListField<Document>>(this.props.fieldKey, ListField);
         if (lvalue && lvalue != FieldWaiting) {
             return lvalue.Data.map(doc => {
@@ -343,10 +341,12 @@ export class CollectionFreeFormView extends CollectionViewBase {
                     ref={this._canvasRef}>
                     {this.backgroundView}
                     <InkingCanvas getScreenTransform={this.getTransform} Document={this.props.Document} />
-                    <PreviewCursor container={this} addLiveTextDocuemnt={this.addLiveTextBox} getTransform={this.getTransform} />
+                    <PreviewCursor container={this} addLiveTextDocument={this.addLiveTextBox} getTransform={this.getTransform} />
                     {this.views}
                 </div>
-                <MarqueeView container={this} activeDocuemnts={this.getActiveDocuments} selectDocuments={this.selectDocuments} addDocument={this.props.addDocument} removeDocument={this.props.removeDocument} getMarqueeTransform={this.getMarqueeTransform} getTransform={this.getTransform} />
+                <MarqueeView container={this} activeDocuments={this.getActiveDocuments} selectDocuments={this.selectDocuments}
+                    addDocument={this.props.addDocument} removeDocument={this.props.removeDocument}
+                    getMarqueeTransform={this.getMarqueeTransform} getTransform={this.getTransform} />
                 {this.overlayView}
             </div>
         );

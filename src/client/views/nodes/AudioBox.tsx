@@ -18,7 +18,7 @@ export class AudioBox extends React.Component<FieldViewProps> {
         super(props);
     }
 
-   
+
 
     componentDidMount() {
     }
@@ -26,16 +26,16 @@ export class AudioBox extends React.Component<FieldViewProps> {
     componentWillUnmount() {
     }
 
-   
+
     render() {
         let field = this.props.doc.Get(this.props.fieldKey)
-        let path = field == FieldWaiting ? "http://techslides.com/demos/samples/sample.mp3":
+        let path = field == FieldWaiting ? "http://techslides.com/demos/samples/sample.mp3" :
             field instanceof AudioField ? field.Data.href : "http://techslides.com/demos/samples/sample.mp3";
-    
+
         return (
             <div>
-                <audio controls className = "audiobox-cont">
-                    <source src = {path} type="audio/mpeg"/>
+                <audio controls className="audiobox-cont">
+                    <source src={path} type="audio/mpeg" />
                     Not supported.
                 </audio>
             </div>

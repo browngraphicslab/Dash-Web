@@ -1,32 +1,22 @@
-import { action, computed, IReactionDisposer, runInAction, reaction, trace } from "mobx";
+import { action, computed, IReactionDisposer, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { Document } from "../../../fields/Document";
 import { Field, FieldWaiting, Opt } from "../../../fields/Field";
 import { Key } from "../../../fields/Key";
 import { KeyStore } from "../../../fields/KeyStore";
 import { ListField } from "../../../fields/ListField";
+import { TextField } from "../../../fields/TextField";
+import { Documents } from "../../documents/Documents";
+import { DocumentManager } from "../../util/DocumentManager";
 import { DragManager } from "../../util/DragManager";
 import { SelectionManager } from "../../util/SelectionManager";
 import { Transform } from "../../util/Transform";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
-import { CollectionFreeFormView } from "../collections/CollectionFreeFormView";
-import { CollectionSchemaView } from "../collections/CollectionSchemaView";
 import { CollectionView, CollectionViewType } from "../collections/CollectionView";
-import { CollectionPDFView } from "../collections/CollectionPDFView";
-import { CollectionVideoView } from "../collections/CollectionVideoView";
 import { ContextMenu } from "../ContextMenu";
-import { FormattedTextBox } from "../nodes/FormattedTextBox";
-import { ImageBox } from "../nodes/ImageBox";
-import { VideoBox } from "../nodes/VideoBox";
-import { AudioBox } from "../nodes/AudioBox";
-import { Documents } from "../../documents/Documents"
-import { KeyValueBox } from "./KeyValueBox"
-import { WebBox } from "../nodes/WebBox";
-import { PDFBox } from "../nodes/PDFBox";
 import "./DocumentView.scss";
 import React = require("react");
-import { TextField } from "../../../fields/TextField";
-import { DocumentManager } from "../../util/DocumentManager";
+import { DocumentContentsView } from "./DocumentContentsView";
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 
@@ -339,9 +329,11 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         var scaling = this.props.ContentScaling();
         var nativeWidth = this.props.Document.GetNumber(KeyStore.NativeWidth, 0);
         var nativeHeight = this.props.Document.GetNumber(KeyStore.NativeHeight, 0);
+        var backgroundcolor = this.props.Document.GetText(KeyStore.BackgroundColor, "");
         return (
             <div className="documentView-node" ref={this._mainCont}
                 style={{
+                    background: backgroundcolor,
                     width: nativeWidth > 0 ? nativeWidth.toString() + "px" : "100%",
                     height: nativeHeight > 0 ? nativeHeight.toString() + "px" : "100%",
                     transformOrigin: "left top",

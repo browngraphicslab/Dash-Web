@@ -23,10 +23,13 @@ import { PDFField } from "../../fields/PDFField";
 import { PDFBox } from "../views/nodes/PDFBox";
 import { CollectionPDFView } from "../views/collections/CollectionPDFView";
 import { RichTextField } from "../../fields/RichTextField";
+import { CollectionVideoView } from "../views/collections/CollectionVideoView";
+import { StrokeData, InkField } from "../../fields/InkField";
 
 export interface DocumentOptions {
     x?: number;
     y?: number;
+    ink?: Map<string, StrokeData>;
     width?: number;
     height?: number;
     nativeWidth?: number;
@@ -39,6 +42,7 @@ export interface DocumentOptions {
     layout?: string;
     layoutKeys?: Key[];
     viewType?: number;
+    backgroundColor?: string;
 }
 
 export namespace Documents {
@@ -82,8 +86,10 @@ export namespace Documents {
         if (options.page !== undefined) { doc.SetNumber(KeyStore.Page, options.page); }
         if (options.scale !== undefined) { doc.SetNumber(KeyStore.Scale, options.scale); }
         if (options.viewType !== undefined) { doc.SetNumber(KeyStore.ViewType, options.viewType); }
+        if (options.backgroundColor !== undefined) { doc.SetText(KeyStore.BackgroundColor, options.backgroundColor); }
         if (options.layout !== undefined) { doc.SetText(KeyStore.Layout, options.layout); }
         if (options.layoutKeys !== undefined) { doc.Set(KeyStore.LayoutKeys, new ListField(options.layoutKeys)); }
+        if (options.ink !== undefined) { doc.Set(KeyStore.Ink, new InkField(options.ink)); }
         return doc;
     }
     function setupPrototypeOptions(protoId: string, title: string, layout: string, options: DocumentOptions): Document {
@@ -128,7 +134,7 @@ export namespace Documents {
     function GetCollectionPrototype(): Document {
         return collProto ? collProto :
             collProto = setupPrototypeOptions(collProtoId, "COLLECTION_PROTO", CollectionView.LayoutString("DataKey"),
-                { panx: 0, pany: 0, scale: 1, layoutKeys: [KeyStore.Data] });
+                { panx: 0, pany: 0, scale: 1, width: 500, height: 500, layoutKeys: [KeyStore.Data] });
     }
 
     function GetKVPPrototype(): Document {
@@ -138,9 +144,9 @@ export namespace Documents {
     }
     function GetVideoPrototype(): Document {
         if (!videoProto) {
-            videoProto = setupPrototypeOptions(videoProtoId, "VIDEO_PROTO", CollectionView.LayoutString("AnnotationsKey"),
+            videoProto = setupPrototypeOptions(videoProtoId, "VIDEO_PROTO", CollectionVideoView.LayoutString("AnnotationsKey"),
                 { x: 0, y: 0, nativeWidth: 600, width: 300, layoutKeys: [KeyStore.Data, KeyStore.Annotations] });
-            videoProto.SetNumber(KeyStore.CurFrame, 1);
+            videoProto.SetNumber(KeyStore.CurPage, 0);
             videoProto.SetText(KeyStore.BackgroundLayout, VideoBox.LayoutString());
         }
         return videoProto;
