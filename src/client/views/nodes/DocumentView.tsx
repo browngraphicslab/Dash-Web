@@ -240,6 +240,20 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         e.stopPropagation();
     }
 
+    onDrop = (e: React.DragEvent) => {
+        if (e.isDefaultPrevented()) {
+            return;
+        }
+        let text = e.dataTransfer.getData("text/plain");
+        if (text && text.startsWith("<div")) {
+            let oldLayout = this.props.Document.GetText(KeyStore.Layout, "");
+            let layout = text.replace("{layout}", oldLayout);
+            this.props.Document.SetText(KeyStore.Layout, layout);
+            e.stopPropagation();
+            e.preventDefault();
+        }
+    }
+
     @action
     onContextMenu = (e: React.MouseEvent): void => {
         e.stopPropagation();
@@ -322,6 +336,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
                     transformOrigin: "left top",
                     transform: `scale(${scaling} , ${scaling})`
                 }}
+                onDrop={this.onDrop}
                 onContextMenu={this.onContextMenu}
                 onPointerDown={this.onPointerDown} >
                 <DocumentContentsView {...this.getProps} />

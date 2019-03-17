@@ -215,4 +215,17 @@ export namespace Documents {
             + FormattedTextBox.LayoutString(fieldName + "Key") +
             `</div> 
         </div>` };
+
+    function Caption() {
+        return (`
+<div>
+    <div style="margin:auto; height:85%; width:85%;">
+        {layout}
+    </div>
+    <div style="height:15%">
+        <FormattedTextBox doc={Document} DocumentViewForField={DocumentView} bindings={bindings} fieldKey={"CaptionKey"} isSelected={isSelected} select={select} selectOnLoad={SelectOnLoad} isTopMost={isTopMost}/>
+    </div>
+</div>       
+        `)
+    }
 }
