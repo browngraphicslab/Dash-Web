@@ -50,16 +50,10 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
 
         if (docView && (!docView.props.ContainingCollectionView || docView.props.ContainingCollectionView !== this.props.CollectionView)) {
             if (docView.props.RemoveDocument) {
-
                 docView.props.RemoveDocument(docView.props.Document);
             }
-            console.log("2");
-            //console.log(docView.props.Document.GetData(KeyStore.Data, ""))
-            //let text = doc.GetText(KeyStore.DocumentText, "");
-            console.log("text")
             this.props.addDocument(docView.props.Document);
         } else if (doc) {
-            // console.log("3");
             this.props.removeDocument(doc);
             this.props.addDocument(doc);
         }
