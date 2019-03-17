@@ -1,4 +1,4 @@
-import { action, configure } from 'mobx';
+import { action, configure, observable } from 'mobx';
 import "normalize.css";
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
@@ -31,6 +31,9 @@ import { faRedoAlt } from '@fortawesome/free-solid-svg-icons';
 import { faPenNib } from '@fortawesome/free-solid-svg-icons';
 import { faFilm } from '@fortawesome/free-solid-svg-icons';
 import { faMusic } from '@fortawesome/free-solid-svg-icons';
+import Measure from 'react-measure';
+import { withContentRect } from 'react-measure'
+
 
 
 configure({ enforceActions: "observed" });  // causes errors to be generated when modifying an observable outside of an action
@@ -45,6 +48,11 @@ const pathname = window.location.pathname.split("/");
 const mainDocId = pathname[pathname.length - 1];
 let mainContainer: Document;
 let mainfreeform: Document;
+
+class mainDocFrame {
+    @observable public static pwidth: number = 0;
+    @observable public static pheight: number = 0;
+}
 
 library.add(faFont);
 library.add(faImage);
@@ -106,16 +114,24 @@ Documents.initProtos(mainDocId, (res?: Document) => {
     ReactDOM.render((
         <div style={{ position: "absolute", width: "100%", height: "100%" }}>
             {/* <div id="dash-title">— DASH —</div> */}
-
-            <DocumentView Document={mainContainer}
-                AddDocument={undefined} RemoveDocument={undefined} ScreenToLocalTransform={() => Transform.Identity}
-                ContentScaling={() => 1}
-                PanelWidth={() => 0}
-                PanelHeight={() => 0}
-                isTopMost={true}
-                SelectOnLoad={false}
-                focus={() => { }}
-                ContainingCollectionView={undefined} />
+            <Measure onResize={(r: any) => {
+                mainDocFrame.pwidth = r.entry.width;
+                mainDocFrame.pheight = r.entry.height;
+            }}>
+                {({ measureRef }) =>
+                    <div ref={measureRef} style={{ position: "absolute", width: "100%", height: "100%" }}>
+                        <DocumentView Document={mainContainer}
+                            AddDocument={undefined} RemoveDocument={undefined} ScreenToLocalTransform={() => Transform.Identity}
+                            ContentScaling={() => 1}
+                            PanelWidth={() => mainDocFrame.pwidth}
+                            PanelHeight={() => mainDocFrame.pheight}
+                            isTopMost={true}
+                            SelectOnLoad={false}
+                            focus={() => { }}
+                            ContainingCollectionView={undefined} />
+                    </div>
+                }
+            </Measure>
             <DocumentDecorations />
             <ContextMenu />
             <button className="clear-db-button" onClick={clearDatabase}>Clear Database</button>
