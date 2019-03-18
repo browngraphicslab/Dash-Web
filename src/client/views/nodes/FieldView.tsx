@@ -59,9 +59,6 @@ export class FieldView extends React.Component<FieldViewProps> {
         else if (field instanceof ImageField) {
             return <ImageBox {...this.props} />
         }
-        else if (field instanceof WebField) {
-            return <WebBox {...this.props} />
-        }
         else if (field instanceof VideoField) {
             return <VideoBox {...this.props} />
         }
