@@ -22,6 +22,8 @@ import { TupleField } from '../fields/TupleField';
 
 
 export class ServerUtils {
+    public static prepend(extension: string): string { return window.location.origin + extension; }
+
     public static FromJson(json: any): Field {
         let obj = json
         let data: any = obj.data

@@ -39,6 +39,8 @@ import { faFilm } from '@fortawesome/free-solid-svg-icons';
 import { faMusic } from '@fortawesome/free-solid-svg-icons';
 import Measure from 'react-measure';
 import { DashUserModel } from '../../server/authentication/models/user_model';
+import { ServerUtils } from '../../server/ServerUtil';
+import { UserUtils } from '../../server/authentication/models/user_utils';
 
 @observer
 export class Main extends React.Component {
@@ -61,6 +63,8 @@ export class Main extends React.Component {
             this.mainDocId = pathname[pathname.length - 1];
         }
 
+        UserUtils.loadCurrentUserId();
+
         library.add(faFont);
         library.add(faImage);
         library.add(faFilePdf);
@@ -77,14 +81,6 @@ export class Main extends React.Component {
         Documents.initProtos(() => {
             this.initAuthenticationRouters();
         });
-
-        request.get(this.prepend(RouteStore.getCurrUser), (error, response, body) => {
-            if (body) {
-                this.currentUser = body as DashUserModel;
-            } else {
-                throw new Error("There should be a user! Why does Dash think there isn't one?")
-            }
-        })
     }
 
     initEventListeners = () => {
@@ -101,7 +97,7 @@ export class Main extends React.Component {
 
     initAuthenticationRouters = () => {
         // Load the user's active workspace, or create a new one if initial session after signup
-        request.get(this.prepend(RouteStore.getActiveWorkspace), (error, response, body) => {
+        request.get(ServerUtils.prepend(RouteStore.getActiveWorkspace), (error, response, body) => {
             if (this.mainDocId || body) {
                 Server.GetField(this.mainDocId || body, field => {
                     if (field instanceof Document) {
@@ -122,7 +118,7 @@ export class Main extends React.Component {
     createNewWorkspace = (init: boolean): void => {
         let mainDoc = Documents.DockDocument(JSON.stringify({ content: [{ type: 'row', content: [] }] }), { title: `Main Container ${this.userWorkspaces.length + 1}` });
         let newId = mainDoc.Id;
-        request.post(this.prepend(RouteStore.addWorkspace), {
+        request.post(ServerUtils.prepend(RouteStore.addWorkspace), {
             body: { target: newId },
             json: true
         }, () => { if (init) this.populateWorkspaces(); });
@@ -141,7 +137,7 @@ export class Main extends React.Component {
     @action
     populateWorkspaces = () => {
         // retrieve all workspace documents from the server
-        request.get(this.prepend(RouteStore.getAllWorkspaces), (error, res, body) => {
+        request.get(ServerUtils.prepend(RouteStore.getAllWorkspaces), (error, res, body) => {
             let ids = JSON.parse(body) as string[];
             Server.GetFields(ids, action((fields: { [id: string]: Field }) => this.userWorkspaces = ids.map(id => fields[id] as Document)));
         });
@@ -149,7 +145,7 @@ export class Main extends React.Component {
 
     @action
     openWorkspace = (doc: Document): void => {
-        request.post(this.prepend(RouteStore.setActiveWorkspace), {
+        request.post(ServerUtils.prepend(RouteStore.setActiveWorkspace), {
             body: { target: doc.Id },
             json: true
         });
@@ -162,8 +158,6 @@ export class Main extends React.Component {
             WorkspacesMenu.Instance.toggle()
         }
     }
-
-    prepend = (extension: string) => window.location.origin + extension;
 
     render() {
         let imgRef = React.createRef<HTMLDivElement>();
@@ -233,7 +227,7 @@ export class Main extends React.Component {
                 <div className="main-buttonDiv" style={{ top: '34px', left: '2px', position: 'absolute' }} ref={workspacesRef}>
                     <button onClick={this.toggleWorkspaces}>Workspaces</button></div>
                 <div className="main-buttonDiv" style={{ top: '34px', right: '1px', position: 'absolute' }} ref={logoutRef}>
-                    <button onClick={() => request.get(this.prepend(RouteStore.logout), () => { })}>Log Out</button></div>
+                    <button onClick={() => request.get(ServerUtils.prepend(RouteStore.logout), () => { })}>Log Out</button></div>
 
                 <WorkspacesMenu active={this.mainContainer} open={this.openWorkspace} new={this.createNewWorkspace} allWorkspaces={this.userWorkspaces} />
                 {/* for the expandable add nodes menu. Not included with the above because once it expands it expands the whole div with it, making canvas interactions limited. */}

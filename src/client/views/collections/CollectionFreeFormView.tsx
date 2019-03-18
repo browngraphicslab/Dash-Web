@@ -322,7 +322,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
         return (
             <div className={`collectionfreeformview${this.isAnnotationOverlay ? "-overlay" : "-container"}`}
                 onPointerDown={this.onPointerDown}
-                onPointerMove={(e) => super.setCursorPosition(this.props.ScreenToLocalTransform().transformPoint(e.screenX, e.screenY))}
+                onPointerMove={(e) => super.setCursorPosition(this.getTransform().transformPoint(e.clientX, e.clientY))}
                 onWheel={this.onPointerWheel}
                 onDrop={this.onDrop.bind(this)}
                 onDragOver={this.onDragOver}
@@ -330,20 +330,6 @@ export class CollectionFreeFormView extends CollectionViewBase {
                 style={{ borderWidth: `${COLLECTION_BORDER_WIDTH}px`, }}
                 tabIndex={0}
                 ref={this.createDropTarget}>
-                {super.getCursors().map(entry => {
-                    let point = entry.Data[1]
-                    return (
-                        <div
-                            style={{
-                                position: 'absolute',
-                                left: point[0],
-                                top: point[1],
-                                borderRadius: "50%",
-                                background: "pink"
-                            }}
-                        />
-                    );
-                })}
                 <div className="collectionfreeformview"
                     style={{ transformOrigin: "left top", transform: `translate(${dx}px, ${dy}px) scale(${this.zoomScaling}, ${this.zoomScaling}) translate(${panx}px, ${pany}px)` }}
                     ref={this._canvasRef}>
@@ -351,11 +337,33 @@ export class CollectionFreeFormView extends CollectionViewBase {
                     <InkingCanvas getScreenTransform={this.getTransform} Document={this.props.Document} />
                     <PreviewCursor container={this} addLiveTextDocument={this.addLiveTextBox} getTransform={this.getTransform} />
                     {this.views}
+                    {super.getCursors().map(entry => {
+                        if (entry.Data.length > 0) {
+                            let point = entry.Data[1]
+                            return (
+                                <div
+                                    key={entry.Data[0]}
+                                    style={{
+                                        position: 'absolute',
+                                        transform: `translate(${point[0] - 10}px, ${point[1] - 10}px)`,
+                                        zIndex: 10000,
+                                        transformOrigin: 'center center',
+                                        width: "20px",
+                                        height: "20px",
+                                        borderRadius: "50%",
+                                        background: "pink",
+                                        border: "2px solid black"
+                                    }}
+                                />
+                            );
+                        }
+                    })}
                 </div>
                 <MarqueeView container={this} activeDocuments={this.getActiveDocuments} selectDocuments={this.selectDocuments}
                     addDocument={this.props.addDocument} removeDocument={this.props.removeDocument}
                     getMarqueeTransform={this.getMarqueeTransform} getTransform={this.getTransform} />
                 {this.overlayView}
+
             </div>
         );
     }

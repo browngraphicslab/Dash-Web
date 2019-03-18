@@ -6,19 +6,14 @@ import * as whm from 'webpack-hot-middleware';
 import * as path from 'path'
 import * as formidable from 'formidable'
 import * as passport from 'passport';
-import { MessageStore, Message, SetFieldArgs, GetFieldArgs, Transferable } from "./Message";
+import { MessageStore, Transferable } from "./Message";
 import { Client } from './Client';
 import { Socket } from 'socket.io';
 import { Utils } from '../Utils';
 import { ObservableMap } from 'mobx';
 import { FieldId, Field } from '../fields/Field';
 import { Database } from './database';
-import { ServerUtils } from './ServerUtil';
-import { ObjectID } from 'mongodb';
-import * as bcrypt from "bcrypt-nodejs";
-import { Document } from '../fields/Document';
 import * as io from 'socket.io'
-import * as passportConfig from './authentication/config/passport';
 import { getLogin, postLogin, getSignup, postSignup, getLogout, postReset, getForgot, postForgot, getReset } from './authentication/controllers/user_controller';
 const config = require('../../webpack.config');
 const compiler = webpack(config);
@@ -29,17 +24,14 @@ import expressFlash = require('express-flash');
 import flash = require('connect-flash');
 import * as bodyParser from 'body-parser';
 import * as session from 'express-session';
-// import cookieSession = require('cookie-session');
 import * as cookieParser from 'cookie-parser';
 import c = require("crypto");
 const MongoStore = require('connect-mongo')(session);
 const mongoose = require('mongoose');
-import { performance } from 'perf_hooks'
-import User, { DashUserModel } from './authentication/models/user_model';
+import { DashUserModel } from './authentication/models/user_model';
 import * as fs from 'fs';
 import * as request from 'request'
 import { RouteStore } from './RouteStore';
-import * as MobileDetect from 'mobile-detect';
 
 const download = (url: string, dest: fs.PathLike) => {
     request.get(url).pipe(fs.createWriteStream(dest));
@@ -56,7 +48,7 @@ mongoose.connection.on('connected', function () {
 
 app.use(cookieParser());
 app.use(session({
-    secret: `our secret`,
+    secret: "64d6866242d3b5a5503c675b32c9605e4e90478e9b77bcf2bc",
     resave: true,
     cookie: { maxAge: 7 * 24 * 60 * 60 },
     saveUninitialized: true,
@@ -91,30 +83,30 @@ enum Method {
  * It ensures that any requests leading to or containing user-sensitive information
  * does not execute unless Passport authentication detects a user logged in.
  * @param method whether or not the request is a GET or a POST
- * @param route the forward slash prepended path name (reference and add to RouteStore.ts)
  * @param handler the action to invoke, recieving a DashUserModel and, as expected, the Express.Request and Express.Response
  * @param onRejection an optional callback invoked on return if no user is found to be logged in
+ * @param subscribers the forward slash prepended path names (reference and add to RouteStore.ts) that will all invoke the given @param handler 
  */
 function addSecureRoute(method: Method,
-    route: string,
     handler: (user: DashUserModel, res: express.Response, req: express.Request) => void,
-    onRejection: (res: express.Response) => any = (res) => res.redirect(RouteStore.logout)) {
-    switch (method) {
-        case Method.GET:
-            app.get(route, (req, res) => {
-                const dashUser: DashUserModel = req.user;
-                if (!dashUser) return onRejection(res);
-                handler(dashUser, res, req);
-            });
-            break;
-        case Method.POST:
-            app.post(route, (req, res) => {
-                const dashUser: DashUserModel = req.user;
-                if (!dashUser) return onRejection(res);
-                handler(dashUser, res, req);
-            });
-            break;
+    onRejection: (res: express.Response) => any = (res) => res.redirect(RouteStore.logout),
+    ...subscribers: string[]
+) {
+    let abstracted = (req: express.Request, res: express.Response) => {
+        const dashUser: DashUserModel = req.user;
+        if (!dashUser) return onRejection(res);
+        handler(dashUser, res, req);
     }
+    subscribers.forEach(route => {
+        switch (method) {
+            case Method.GET:
+                app.get(route, abstracted);
+                break;
+            case Method.POST:
+                app.post(route, abstracted);
+                break;
+        }
+    });
 }
 
 // STATIC FILE SERVING
@@ -128,60 +120,87 @@ app.use(RouteStore.images, express.static(__dirname + RouteStore.public))
 
 // anyone attempting to navigate to localhost at this port will
 // first have to login
-addSecureRoute(Method.GET, RouteStore.root, (user, res) => {
-    res.redirect(RouteStore.home);
-});
+addSecureRoute(
+    Method.GET,
+    (user, res) => res.redirect(RouteStore.home),
+    undefined,
+    RouteStore.root
+);
 
-addSecureRoute(Method.GET, RouteStore.home, (user, res) => {
-    res.sendFile(path.join(__dirname, '../../deploy/index.html'));
-});
+addSecureRoute(
+    Method.GET,
+    (user, res) => res.sendFile(path.join(__dirname, '../../deploy/index.html')),
+    undefined,
+    RouteStore.home,
+    RouteStore.openDocumentWithId
+);
 
-addSecureRoute(Method.GET, RouteStore.openDocumentWithId, (user, res) => {
-    res.sendFile(path.join(__dirname, '../../deploy/index.html'));
-});
+addSecureRoute(
+    Method.GET,
+    (user, res) => res.send(user.activeWorkspaceId || ""),
+    undefined,
+    RouteStore.getActiveWorkspace,
+);
 
-addSecureRoute(Method.GET, RouteStore.getActiveWorkspace, (user, res) => {
-    res.send(user.activeWorkspaceId || "");
-});
+addSecureRoute(
+    Method.GET,
+    (user, res) => res.send(JSON.stringify(user.allWorkspaceIds)),
+    undefined,
+    RouteStore.getAllWorkspaces
+);
 
-addSecureRoute(Method.GET, RouteStore.getAllWorkspaces, (user, res) => {
-    res.send(JSON.stringify(user.allWorkspaceIds));
-});
-
-addSecureRoute(Method.GET, RouteStore.getCurrUser, (user, res) => {
-    res.send(JSON.stringify(user));
-});
+addSecureRoute(
+    Method.GET,
+    (user, res) => res.send(JSON.stringify(user.id)),
+    undefined,
+    RouteStore.getCurrUser
+);
 
 // SETTERS
 
-addSecureRoute(Method.POST, RouteStore.setActiveWorkspace, (user, res, req) => {
-    user.update({ $set: { activeWorkspaceId: req.body.target } }, (err, raw) => {
-        res.sendStatus(err ? 500 : 200);
-    });
-});
+addSecureRoute(
+    Method.POST,
+    (user, res, req) => {
+        user.update({ $set: { activeWorkspaceId: req.body.target } }, (err, raw) => {
+            res.sendStatus(err ? 500 : 200);
+        });
+    },
+    undefined,
+    RouteStore.setActiveWorkspace
+);
 
-addSecureRoute(Method.POST, RouteStore.addWorkspace, (user, res, req) => {
-    user.update({ $push: { allWorkspaceIds: req.body.target } }, (err, raw) => {
-        res.sendStatus(err ? 500 : 200);
-    });
-});
+addSecureRoute(
+    Method.POST,
+    (user, res, req) => {
+        user.update({ $push: { allWorkspaceIds: req.body.target } }, (err, raw) => {
+            res.sendStatus(err ? 500 : 200);
+        });
+    },
+    undefined,
+    RouteStore.addWorkspace
+);
 
-addSecureRoute(Method.POST, RouteStore.upload, (user, res, req) => {
-    let form = new formidable.IncomingForm()
-    form.uploadDir = __dirname + "/public/files/"
-    form.keepExtensions = true
-    // let path = req.body.path;
-    console.log("upload")
-    form.parse(req, (err, fields, files) => {
-        console.log("parsing")
-        let names: any[] = [];
-        for (const name in files) {
-            let file = files[name];
-            names.push(`/files/` + path.basename(file.path));
-        }
-        res.send(names);
-    });
-});
+addSecureRoute(
+    Method.POST,
+    (user, res, req) => {
+        let form = new formidable.IncomingForm()
+        form.uploadDir = __dirname + "/public/files/"
+        form.keepExtensions = true
+        // let path = req.body.path;
+        console.log("upload")
+        form.parse(req, (err, fields, files) => {
+            console.log("parsing")
+            let names: any[] = [];
+            for (const name in files) {
+                let file = files[name];
+                names.push(`/files/` + path.basename(file.path));
+            }
+            res.send(names);
+        });
+    },
+    undefined,
+    RouteStore.upload
+);
 
 // AUTHENTICATION
 
