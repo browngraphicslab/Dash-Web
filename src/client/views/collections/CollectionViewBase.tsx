@@ -14,7 +14,7 @@ import { CollectionView } from "./CollectionView";
 import { RouteStore } from "../../../server/RouteStore";
 import { TupleField } from "../../../fields/TupleField";
 import { DashUserModel } from "../../../server/authentication/models/user_model";
-import { UserUtils } from "../../../server/authentication/models/user_utils";
+import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 
 export interface CollectionViewProps {
     fieldKey: Key;
@@ -53,7 +53,7 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
     protected setCursorPosition(position: [number, number]) {
         let ind;
         let doc = this.props.Document;
-        let id = UserUtils.currentUserId;
+        let id = CurrentUserUtils.id;
         if (id) {
             doc.GetOrCreateAsync<ListField<CursorEntry>>(KeyStore.Cursors, ListField, field => {
                 let cursors = field.Data;
@@ -71,7 +71,7 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
 
     protected getCursors(): CursorEntry[] {
         let doc = this.props.Document;
-        let id = UserUtils.currentUserId;
+        let id = CurrentUserUtils.id;
         let cursors = doc.GetList<CursorEntry>(KeyStore.Cursors, []);
         let notMe = cursors.filter(entry => entry.Data[0] !== id);
         return id ? notMe : [];

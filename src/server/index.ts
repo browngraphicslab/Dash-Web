@@ -151,7 +151,12 @@ addSecureRoute(
 
 addSecureRoute(
     Method.GET,
-    (user, res) => res.send(JSON.stringify(user.id)),
+    (user, res) => {
+        res.send(JSON.stringify({
+            id: user.id,
+            email: user.email
+        }));
+    },
     undefined,
     RouteStore.getCurrUser
 );

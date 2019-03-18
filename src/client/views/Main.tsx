@@ -40,7 +40,7 @@ import { faMusic } from '@fortawesome/free-solid-svg-icons';
 import Measure from 'react-measure';
 import { DashUserModel } from '../../server/authentication/models/user_model';
 import { ServerUtils } from '../../server/ServerUtil';
-import { UserUtils } from '../../server/authentication/models/user_utils';
+import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
 
 @observer
 export class Main extends React.Component {
@@ -63,7 +63,7 @@ export class Main extends React.Component {
             this.mainDocId = pathname[pathname.length - 1];
         }
 
-        UserUtils.loadCurrentUserId();
+        CurrentUserUtils.loadCurrentUser();
 
         library.add(faFont);
         library.add(faImage);
