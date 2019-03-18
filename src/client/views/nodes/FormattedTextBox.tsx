@@ -14,9 +14,13 @@ import { Plugin } from 'prosemirror-state'
 import { Decoration, DecorationSet } from 'prosemirror-view'
 import { TooltipTextMenu } from "../../util/TooltipTextMenu"
 import { ContextMenu } from "../../views/ContextMenu";
+import { library } from '@fortawesome/fontawesome-svg-core';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faEdit } from '@fortawesome/free-solid-svg-icons';
+import { faSmile } from '@fortawesome/free-solid-svg-icons';
 
-
-
+library.add(faEdit);
+library.add(faSmile);
 
 // FormattedTextBox: Displays an editable plain text node that maps to a specified Key of a Document
 //
@@ -124,13 +128,13 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
 
     @action
     specificContextMenu = (e: React.MouseEvent): void => {
-        ContextMenu.Instance.addItem({ description: "Text Capability", event: this.textCapability });
+        ContextMenu.Instance.addItem({ description: "Text Capability", event: this.textCapability, icon: "edit" });
         ContextMenu.Instance.addItem({
             description: "Sub", subitems: [
-                { description: "Subitem 1", event: this.textCapability },
-                { description: "Subitem 2", event: this.textCapability },
-                { description: "Subitem 3", event: this.textCapability },
-                { description: "Submenu", subitems: [{ description: "Inner Subitem", event: this.textCapability }] }
+                { description: "Subitem 1", event: this.textCapability, icon: "smile" },
+                { description: "Subitem 2", event: this.textCapability, icon: "smile" },
+                { description: "Subitem 3", event: this.textCapability, icon: "smile" },
+                { description: "Submenu", subitems: [{ description: "Inner Subitem", event: this.textCapability, icon: "smile" }] }
             ]
         });
     }

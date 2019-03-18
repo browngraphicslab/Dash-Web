@@ -27,6 +27,23 @@ import React = require("react");
 import { TextField } from "../../../fields/TextField";
 import { DocumentManager } from "../../util/DocumentManager";
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
+import { library } from '@fortawesome/fontawesome-svg-core';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faTrash } from '@fortawesome/free-solid-svg-icons';
+import { faExpandArrowsAlt } from '@fortawesome/free-solid-svg-icons';
+import { faCompressArrowsAlt } from '@fortawesome/free-solid-svg-icons';
+import { faLayerGroup } from '@fortawesome/free-solid-svg-icons';
+import { faAlignCenter } from '@fortawesome/free-solid-svg-icons';
+import { faCaretSquareRight } from '@fortawesome/free-solid-svg-icons';
+import { faSquare } from '@fortawesome/free-solid-svg-icons';
+
+library.add(faTrash);
+library.add(faExpandArrowsAlt);
+library.add(faCompressArrowsAlt);
+library.add(faLayerGroup);
+library.add(faAlignCenter);
+library.add(faCaretSquareRight);
+library.add(faSquare);
 
 
 export interface DocumentViewProps {
@@ -212,14 +229,14 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     fullScreenClicked = (e: React.MouseEvent): void => {
         CollectionDockingView.Instance.OpenFullScreen(this.props.Document);
         ContextMenu.Instance.clearItems();
-        ContextMenu.Instance.addItem({ description: "Close Full Screen", event: this.closeFullScreenClicked });
+        ContextMenu.Instance.addItem({ description: "Close Full Screen", event: this.closeFullScreenClicked, icon: "compress-arrows-alt" });
         ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15)
     }
 
     closeFullScreenClicked = (e: React.MouseEvent): void => {
         CollectionDockingView.Instance.CloseFullScreen();
         ContextMenu.Instance.clearItems();
-        ContextMenu.Instance.addItem({ description: "Full Screen", event: this.fullScreenClicked })
+        ContextMenu.Instance.addItem({ description: "Full Screen", event: this.fullScreenClicked, icon: "expand-arrows-alt" })
         ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15)
     }
 
@@ -261,18 +278,18 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         }
         e.preventDefault()
 
-        ContextMenu.Instance.addItem({ description: "Full Screen", event: this.fullScreenClicked })
-        ContextMenu.Instance.addItem({ description: "Fields", event: this.fieldsClicked })
-        ContextMenu.Instance.addItem({ description: "Center", event: () => this.props.focus(this.props.Document) })
-        ContextMenu.Instance.addItem({ description: "Open Right", event: () => CollectionDockingView.Instance.AddRightSplit(this.props.Document) })
-        //ContextMenu.Instance.addItem({ description: "Docking", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Docking) })
+        ContextMenu.Instance.addItem({ description: "Full Screen", event: this.fullScreenClicked, icon: "expand-arrows-alt" })
+        ContextMenu.Instance.addItem({ description: "Fields", event: this.fieldsClicked, icon: "layer-group" })
+        ContextMenu.Instance.addItem({ description: "Center", event: () => this.props.focus(this.props.Document), icon: "align-center" })
+        ContextMenu.Instance.addItem({ description: "Open Right", event: () => CollectionDockingView.Instance.AddRightSplit(this.props.Document), icon: "caret-square-right" })
+        ContextMenu.Instance.addItem({ description: "Docking", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Docking), icon: "square" })
         ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15)
         if (!this.topMost) {
             // DocumentViews should stop propagation of this event
             e.stopPropagation();
         }
 
-        ContextMenu.Instance.addItem({ description: "Delete", event: this.deleteClicked })
+        ContextMenu.Instance.addItem({ description: "Delete", event: this.deleteClicked, icon: "trash" })
         ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15)
         SelectionManager.SelectDoc(this, e.ctrlKey);
     }

@@ -15,10 +15,9 @@
 }
 
 .contextMenu-item {
-    width: 10vw; //10vw
-    height: 2vh;
-    background: #DDDDDD;
-    display: flex;
+    width: 11vw; //10vw
+    height: 2.5vh; //2vh
+    background: #DDDDDD; // display: flex;
     justify-content: left;
     align-items: center;
     -webkit-touch-callout: none;
@@ -46,4 +45,9 @@
     font-size: 1.5vw;
     text-align: left;
     width: 8vw;
+    display: inline; //need this?
+}
+
+.icon-background {
+    background-color: #DDDDDD;
 }

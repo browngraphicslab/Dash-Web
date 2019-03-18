@@ -94,7 +94,7 @@ export class ImageBox extends React.Component<FieldViewProps> {
     }
 
     specificContextMenu = (e: React.MouseEvent): void => {
-        ContextMenu.Instance.addItem({ description: "Image Capability", event: this.imageCapability });
+        ContextMenu.Instance.addItem({ description: "Image Capability", event: this.imageCapability, icon: "smile" });
     }
 
     render() {

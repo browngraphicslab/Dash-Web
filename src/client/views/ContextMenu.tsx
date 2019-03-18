@@ -13,7 +13,7 @@ library.add(faSearch);
 export class ContextMenu extends React.Component {
     static Instance: ContextMenu
 
-    @observable private _items: Array<ContextMenuProps> = [{ description: "test", event: (e: React.MouseEvent) => e.preventDefault() }];
+    @observable private _items: Array<ContextMenuProps> = [{ description: "test", event: (e: React.MouseEvent) => e.preventDefault(), icon: "smile" }];
     @observable private _pageX: number = 0;
     @observable private _pageY: number = 0;
     @observable private _display: string = "none";
@@ -72,11 +72,13 @@ export class ContextMenu extends React.Component {
     render() {
         return (
             <div className="contextMenu-cont" style={{ left: this._pageX, top: this._pageY, display: this._display }} ref={this.ref}>
-                <div>
-                    {/* <i className="fa fa-search"> </i> */}
-                    <FontAwesomeIcon icon="search" size="lg" />
-                    <input className="contextMenu-item" type="text" placeholder="&#xf002; Search . . ." value={this._searchString} onChange={this.onChange} ></input>
-                </div>
+                <span>
+                    <span className="icon-background">
+                        <FontAwesomeIcon icon="circle" size="lg" />
+                        <FontAwesomeIcon icon="search" size="lg" />
+                    </span>
+                    <input className="contextMenu-item" type="text" placeholder="Search . . ." value={this._searchString} onChange={this.onChange} ></input>
+                </span>
                 {this._items.filter(prop => {
                     return prop.description.toLowerCase().indexOf(this._searchString.toLowerCase()) !== -1;
                 }).map(prop => {

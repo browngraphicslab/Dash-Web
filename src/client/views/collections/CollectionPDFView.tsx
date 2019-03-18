@@ -41,7 +41,7 @@ export class CollectionPDFView extends React.Component<CollectionViewProps> {
 
     specificContextMenu = (e: React.MouseEvent): void => {
         if (!e.isPropagationStopped() && this.props.Document.Id != "mainDoc") { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
-            ContextMenu.Instance.addItem({ description: "PDFOptions", event: () => { } });
+            ContextMenu.Instance.addItem({ description: "PDFOptions", event: () => { }, icon: "file-pdf" });
         }
     }
 
