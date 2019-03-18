@@ -77,7 +77,7 @@ Documents.initProtos(mainDocId, (res?: Document) => {
 
         // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
         setTimeout(() => {
-            mainfreeform = Documents.FreeformDocument([], { x: 0, y: 400, title: "mini collection" });
+            mainfreeform = Documents.FreeformDocument([], { x: 0, y: 400, title: "mini collection" }, undefined, false);
 
             var dockingLayout = { content: [{ type: 'row', content: [CollectionDockingView.makeDocumentConfig(mainfreeform)] }] };
             mainContainer.SetText(KeyStore.Data, JSON.stringify(dockingLayout));

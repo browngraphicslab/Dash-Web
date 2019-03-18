@@ -3,7 +3,7 @@ import { Document } from "../../../fields/Document";
 import { ListField } from "../../../fields/ListField";
 import React = require("react");
 import { KeyStore } from "../../../fields/KeyStore";
-import { FieldWaiting } from "../../../fields/Field";
+import { FieldWaiting, Field, Opt } from "../../../fields/Field";
 import { undoBatch } from "../../util/UndoManager";
 import { DragManager } from "../../util/DragManager";
 import { DocumentView } from "../nodes/DocumentView";
@@ -11,6 +11,7 @@ import { Documents, DocumentOptions } from "../../documents/Documents";
 import { Key } from "../../../fields/Key";
 import { Transform } from "../../util/Transform";
 import { CollectionView } from "./CollectionView";
+import { NumberField } from "../../../fields/NumberField";
 
 export interface CollectionViewProps {
     fieldKey: Key;
@@ -45,16 +46,26 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
     @undoBatch
     @action
     protected drop(e: Event, de: DragManager.DropEvent) {
-        const docView: DocumentView = de.data["documentView"];
-        const doc: Document = de.data["document"];
-
-        if (docView && (!docView.props.ContainingCollectionView || docView.props.ContainingCollectionView !== this.props.CollectionView)) {
-            if (docView.props.RemoveDocument) {
-                docView.props.RemoveDocument(docView.props.Document);
+        let docToAlias = de.data["documentToAlias"];
+        let docView = de.data["documentView"];
+        let doc = docToAlias ? docToAlias.CreateAlias() : de.data["document"];
+        if (docToAlias) {
+            [KeyStore.Width, KeyStore.Height].map(key =>
+                docToAlias.GetTAsync(key, NumberField, (f: Opt<NumberField>) => {
+                    if (f) {
+                        doc.SetNumber(key, f.Data)
+                    }
+                })
+            );
+            this.props.addDocument(doc);
+        } else if (docView) {
+            if (doc && docView.props.RemoveDocument && docView.props.ContainingCollectionView !== this.props.CollectionView) {
+                docView.props.RemoveDocument(doc);
+                this.props.removeDocument(doc); // bcz: not good -- want to check if it's there and then add if it isn't
+                this.props.addDocument(doc);
             }
-            this.props.addDocument(docView.props.Document);
         } else if (doc) {
-            this.props.removeDocument(doc);
+            this.props.removeDocument(doc); // bcz: not good -- want to check if it's there and then add if it isn't
             this.props.addDocument(doc);
         }
         e.stopPropagation();

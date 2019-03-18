@@ -103,7 +103,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         this._downY = e.clientY;
         if (e.shiftKey && e.buttons === 2) {
             if (this.props.isTopMost) {
-                this.startDragging(e.pageX, e.pageY);
+                this.startDragging(e.pageX, e.pageY, e.altKey || e.ctrlKey);
             }
             else CollectionDockingView.Instance.StartOtherDrag(this.props.Document, e);
             e.stopPropagation();
@@ -160,18 +160,19 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         }
     }
 
-    startDragging(x: number, y: number) {
+    startDragging(x: number, y: number, dropAliasOfDraggedDoc: boolean) {
         if (this._mainCont.current) {
             const [left, top] = this.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
             let dragData: { [id: string]: any } = {};
             dragData["documentView"] = this;
+            dragData[dropAliasOfDraggedDoc ? "documentToAlias" : "document"] = this.props.Document;
             dragData["xOffset"] = x - left;
             dragData["yOffset"] = y - top;
             DragManager.StartDrag(this._mainCont.current, dragData, {
                 handlers: {
                     dragComplete: action(() => { }),
                 },
-                hideSource: true
+                hideSource: !dropAliasOfDraggedDoc
             })
         }
     }
@@ -184,7 +185,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             document.removeEventListener("pointermove", this.onPointerMove)
             document.removeEventListener("pointerup", this.onPointerUp);
             if (!this.topMost || e.buttons == 2 || e.altKey) {
-                this.startDragging(e.x, e.y);
+                this.startDragging(e.x, e.y, e.ctrlKey || e.altKey);
             }
         }
         e.stopPropagation();
@@ -210,7 +211,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
 
     fieldsClicked = (e: React.MouseEvent): void => {
         if (this.props.AddDocument) {
-            this.props.AddDocument(Documents.KVPDocument(this.props.Document));
+            this.props.AddDocument(Documents.KVPDocument(this.props.Document, { width: 300, height: 300 }));
         }
     }
     fullScreenClicked = (e: React.MouseEvent): void => {
