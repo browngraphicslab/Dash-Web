@@ -14,8 +14,9 @@ import { HtmlField } from '../fields/HtmlField';
 import { WebField } from '../fields/WebField';
 import { AudioField } from '../fields/AudioField';
 import { VideoField } from '../fields/VideoField';
-import {InkField} from '../fields/InkField';
-import {PDFField} from '../fields/PDFField';
+import { InkField } from '../fields/InkField';
+import { PDFField } from '../fields/PDFField';
+import { TupleField } from '../fields/TupleField';
 
 
 
@@ -55,6 +56,8 @@ export class ServerUtils {
                 return new AudioField(new URL(data), id, false)
             case Types.Video:
                 return new VideoField(new URL(data), id, false)
+            case Types.Tuple:
+                return new TupleField(data, id, false);
             case Types.Ink:
                 return InkField.FromJson(id, data);
             case Types.Document:

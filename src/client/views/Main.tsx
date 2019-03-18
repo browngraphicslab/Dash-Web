@@ -38,6 +38,7 @@ import { faPenNib } from '@fortawesome/free-solid-svg-icons';
 import { faFilm } from '@fortawesome/free-solid-svg-icons';
 import { faMusic } from '@fortawesome/free-solid-svg-icons';
 import Measure from 'react-measure';
+import { DashUserModel } from '../../server/authentication/models/user_model';
 
 @observer
 export class Main extends React.Component {
@@ -49,12 +50,13 @@ export class Main extends React.Component {
     @observable public pheight: number = 0;
 
     private mainDocId: string | undefined;
+    private currentUser?: DashUserModel;
 
     constructor(props: Readonly<{}>) {
         super(props);
         // causes errors to be generated when modifying an observable outside of an action
         configure({ enforceActions: "observed" });
-        if (window.location.pathname !== "/home") {
+        if (window.location.pathname !== RouteStore.home) {
             let pathname = window.location.pathname.split("/");
             this.mainDocId = pathname[pathname.length - 1];
         }
@@ -75,6 +77,14 @@ export class Main extends React.Component {
         Documents.initProtos(() => {
             this.initAuthenticationRouters();
         });
+
+        request.get(this.prepend(RouteStore.getCurrUser), (error, response, body) => {
+            if (body) {
+                this.currentUser = body as DashUserModel;
+            } else {
+                throw new Error("There should be a user! Why does Dash think there isn't one?")
+            }
+        })
     }
 
     initEventListeners = () => {

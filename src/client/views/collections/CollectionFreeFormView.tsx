@@ -322,6 +322,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
         return (
             <div className={`collectionfreeformview${this.isAnnotationOverlay ? "-overlay" : "-container"}`}
                 onPointerDown={this.onPointerDown}
+                onPointerMove={(e) => super.setCursorPosition(this.props.ScreenToLocalTransform().transformPoint(e.screenX, e.screenY))}
                 onWheel={this.onPointerWheel}
                 onDrop={this.onDrop.bind(this)}
                 onDragOver={this.onDragOver}
@@ -329,6 +330,20 @@ export class CollectionFreeFormView extends CollectionViewBase {
                 style={{ borderWidth: `${COLLECTION_BORDER_WIDTH}px`, }}
                 tabIndex={0}
                 ref={this.createDropTarget}>
+                {super.getCursors().map(entry => {
+                    let point = entry.Data[1]
+                    return (
+                        <div
+                            style={{
+                                position: 'absolute',
+                                left: point[0],
+                                top: point[1],
+                                borderRadius: "50%",
+                                background: "pink"
+                            }}
+                        />
+                    );
+                })}
                 <div className="collectionfreeformview"
                     style={{ transformOrigin: "left top", transform: `translate(${dx}px, ${dy}px) scale(${this.zoomScaling}, ${this.zoomScaling}) translate(${panx}px, ${pany}px)` }}
                     ref={this._canvasRef}>

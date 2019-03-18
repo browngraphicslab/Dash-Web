@@ -13,11 +13,14 @@ export enum RouteStore {
     images = "/images",
 
     // USER AND WORKSPACES
+    getCurrUser = "/getCurrentUser",
     addWorkspace = "/addWorkspaceId",
     getAllWorkspaces = "/getAllWorkspaceIds",
     getActiveWorkspace = "/getActiveWorkspaceId",
     setActiveWorkspace = "/setActiveWorkspaceId",
     updateCursor = "/updateCursor",
+
+    openDocumentWithId = "/doc/:docId",
 
     // AUTHENTICATION
     signup = "/signup",

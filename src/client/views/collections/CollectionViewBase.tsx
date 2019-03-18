@@ -1,4 +1,4 @@
-import { action, runInAction } from "mobx";
+import { action, runInAction, observable, computed } from "mobx";
 import { Document } from "../../../fields/Document";
 import { ListField } from "../../../fields/ListField";
 import React = require("react");
@@ -12,6 +12,9 @@ import { Key } from "../../../fields/Key";
 import { Transform } from "../../util/Transform";
 import { CollectionView } from "./CollectionView";
 import { RouteStore } from "../../../server/RouteStore";
+import { TupleField } from "../../../fields/TupleField";
+import { Server } from "mongodb";
+import { DashUserModel } from "../../../server/authentication/models/user_model";
 
 export interface CollectionViewProps {
     fieldKey: Key;
@@ -25,12 +28,16 @@ export interface CollectionViewProps {
     panelHeight: () => number;
     focus: (doc: Document) => void;
 }
+
 export interface SubCollectionViewProps extends CollectionViewProps {
     active: () => boolean;
     addDocument: (doc: Document) => void;
     removeDocument: (doc: Document) => boolean;
     CollectionView: CollectionView;
+    currentUser?: DashUserModel;
 }
+
+export type CursorEntry = TupleField<DashUserModel, [number, number]>;
 
 export class CollectionViewBase extends React.Component<SubCollectionViewProps> {
     private dropDisposer?: DragManager.DragDropDisposer;
@@ -42,6 +49,31 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
             this.dropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.drop.bind(this) } });
         }
     }
+
+    protected setCursorPosition(position: [number, number]) {
+        let user = this.props.currentUser;
+        if (user && user.id) {
+            let ind;
+            let doc = this.props.Document;
+            let cursors = doc.GetOrCreate<ListField<CursorEntry>>(KeyStore.Cursors, ListField, false).Data;
+            let entry = new TupleField<DashUserModel, [number, number]>([user.id, position]);
+            // if ((ind = cursors.findIndex(entry => entry.Data[0] === user.id)) > -1) {
+            //     cursors[ind] = entry;
+            // } else {
+            //     cursors.push(entry);
+            // }
+        }
+    }
+
+    protected getCursors(): CursorEntry[] {
+        let user = this.props.currentUser;
+        if (user && user.id) {
+            let doc = this.props.Document;
+            // return doc.GetList<CursorEntry>(KeyStore.Cursors, []).filter(entry => entry.Data[0] !== user.id);
+        }
+        return [];
+    }
+
 
     @undoBatch
     @action

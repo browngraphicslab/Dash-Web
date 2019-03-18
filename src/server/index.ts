@@ -77,6 +77,10 @@ app.use((req, res, next) => {
     next();
 });
 
+app.get("/hello", (req, res) => {
+    res.send("<p>Hello</p>");
+})
+
 enum Method {
     GET,
     POST
@@ -88,26 +92,26 @@ enum Method {
  * does not execute unless Passport authentication detects a user logged in.
  * @param method whether or not the request is a GET or a POST
  * @param route the forward slash prepended path name (reference and add to RouteStore.ts)
- * @param handler the action to invoke, recieving a DashUserModel and the expected request and response
+ * @param handler the action to invoke, recieving a DashUserModel and, as expected, the Express.Request and Express.Response
  * @param onRejection an optional callback invoked on return if no user is found to be logged in
  */
 function addSecureRoute(method: Method,
     route: string,
-    handler: (user: DashUserModel, req: express.Request, res: express.Response) => void,
+    handler: (user: DashUserModel, res: express.Response, req: express.Request) => void,
     onRejection: (res: express.Response) => any = (res) => res.redirect(RouteStore.logout)) {
     switch (method) {
         case Method.GET:
             app.get(route, (req, res) => {
                 const dashUser: DashUserModel = req.user;
                 if (!dashUser) return onRejection(res);
-                handler(dashUser, req, res);
+                handler(dashUser, res, req);
             });
             break;
         case Method.POST:
             app.post(route, (req, res) => {
                 const dashUser: DashUserModel = req.user;
                 if (!dashUser) return onRejection(res);
-                handler(dashUser, req, res);
+                handler(dashUser, res, req);
             });
             break;
     }
@@ -120,7 +124,49 @@ let FieldStore: ObservableMap<FieldId, Field> = new ObservableMap();
 app.use(express.static(__dirname + RouteStore.public));
 app.use(RouteStore.images, express.static(__dirname + RouteStore.public))
 
-addSecureRoute(Method.POST, RouteStore.upload, (user, req, res) => {
+// GETTERS
+
+// anyone attempting to navigate to localhost at this port will
+// first have to login
+addSecureRoute(Method.GET, RouteStore.root, (user, res) => {
+    res.redirect(RouteStore.home);
+});
+
+addSecureRoute(Method.GET, RouteStore.home, (user, res) => {
+    res.sendFile(path.join(__dirname, '../../deploy/index.html'));
+});
+
+addSecureRoute(Method.GET, RouteStore.openDocumentWithId, (user, res) => {
+    res.sendFile(path.join(__dirname, '../../deploy/index.html'));
+});
+
+addSecureRoute(Method.GET, RouteStore.getActiveWorkspace, (user, res) => {
+    res.send(user.activeWorkspaceId || "");
+});
+
+addSecureRoute(Method.GET, RouteStore.getAllWorkspaces, (user, res) => {
+    res.send(JSON.stringify(user.allWorkspaceIds));
+});
+
+addSecureRoute(Method.GET, RouteStore.getCurrUser, (user, res) => {
+    res.send(JSON.stringify(user));
+});
+
+// SETTERS
+
+addSecureRoute(Method.POST, RouteStore.setActiveWorkspace, (user, res, req) => {
+    user.update({ $set: { activeWorkspaceId: req.body.target } }, (err, raw) => {
+        res.sendStatus(err ? 500 : 200);
+    });
+});
+
+addSecureRoute(Method.POST, RouteStore.addWorkspace, (user, res, req) => {
+    user.update({ $push: { allWorkspaceIds: req.body.target } }, (err, raw) => {
+        res.sendStatus(err ? 500 : 200);
+    });
+});
+
+addSecureRoute(Method.POST, RouteStore.upload, (user, res, req) => {
     let form = new formidable.IncomingForm()
     form.uploadDir = __dirname + "/public/files/"
     form.keepExtensions = true
@@ -136,50 +182,6 @@ addSecureRoute(Method.POST, RouteStore.upload, (user, req, res) => {
         res.send(names);
     });
 });
-
-// anyone attempting to navigate to localhost at this port will
-// first have to login
-addSecureRoute(Method.GET, RouteStore.root, (user, req, res) => {
-    res.redirect(RouteStore.home);
-});
-
-// YAY! SHOW THEM THEIR WORKSPACES NOW
-addSecureRoute(Method.GET, RouteStore.home, (user, req, res) => {
-    res.sendFile(path.join(__dirname, '../../deploy/index.html'));
-});
-
-addSecureRoute(Method.GET, RouteStore.getActiveWorkspace, (user, req, res) => {
-    res.send(user.activeWorkspaceId || "");
-});
-
-addSecureRoute(Method.GET, RouteStore.getAllWorkspaces, (user, req, res) => {
-    res.send(JSON.stringify(user.allWorkspaceIds));
-});
-
-addSecureRoute(Method.POST, RouteStore.setActiveWorkspace, (user, req, res) => {
-    user.update({ $set: { activeWorkspaceId: req.body.target } }, (err, raw) => {
-        res.sendStatus(err ? 500 : 200);
-    });
-});
-
-addSecureRoute(Method.POST, RouteStore.addWorkspace, (user, req, res) => {
-    user.update({ $push: { allWorkspaceIds: req.body.target } }, (err, raw) => {
-        res.sendStatus(err ? 500 : 200);
-    });
-});
-// define a route handler for the default home page
-// app.get("/", (req, res) => {
-//     res.redirect("/doc/mainDoc");
-//     // res.sendFile(path.join(__dirname, '../../deploy/index.html'));
-// });
-
-app.get("/doc/:docId", (req, res) => {
-    res.sendFile(path.join(__dirname, '../../deploy/index.html'));
-})
-
-app.get("/hello", (req, res) => {
-    res.send("<p>Hello</p>");
-})
 
 // AUTHENTICATION
 
