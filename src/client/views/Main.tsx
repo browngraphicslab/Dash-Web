@@ -32,6 +32,8 @@ import { faPenNib } from '@fortawesome/free-solid-svg-icons';
 import { faFilm } from '@fortawesome/free-solid-svg-icons';
 import { faMusic } from '@fortawesome/free-solid-svg-icons';
 import Measure from 'react-measure';
+import { Field, Opt } from '../../fields/Field';
+import { ListField } from '../../fields/ListField';
 
 
 configure({ enforceActions: "observed" });  // causes errors to be generated when modifying an observable outside of an action
@@ -44,6 +46,7 @@ document.addEventListener("pointerdown", action(function (e: PointerEvent) {
 }), true)
 const pathname = window.location.pathname.split("/");
 const mainDocId = pathname[pathname.length - 1];
+const pendingDocId = "pending-doc"
 var mainContainer: Document;
 let mainfreeform: Document;
 
@@ -79,8 +82,23 @@ Documents.initProtos(mainDocId, (res?: Document) => {
             var dockingLayout = { content: [{ type: 'row', content: [CollectionDockingView.makeDocumentConfig(mainfreeform)] }] };
             mainContainer.SetText(KeyStore.Data, JSON.stringify(dockingLayout));
             mainContainer.Set(KeyStore.ActiveFrame, mainfreeform);
+            let pendingDocument = Documents.SchemaDocument([], { title: "New Mobile Uploads" }, pendingDocId)
+            mainContainer.Set(KeyStore.OptionalRightCollection, pendingDocument)
         }, 0);
     }
+
+    // if there is a pending doc, and it has new data, show it (syip: we use a timeout to prevent collection docking view from being uninitialized)
+    setTimeout(() => {
+        Server.GetField(pendingDocId, (res?: Field) => {
+            if (res instanceof Document) {
+                res.GetTAsync<ListField<Document>>(KeyStore.Data, ListField, (f: Opt<ListField<Document>>) => {
+                    if (f && f.Data.length > 0) {
+                        CollectionDockingView.Instance.AddRightSplit(res)
+                    }
+                })
+            }
+        })
+    }, 100)
 
     let imgurl = "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg";
     let pdfurl = "http://www.adobe.com/support/products/enterprise/knowledgecenter/media/c4611_sample_explain.pdf"

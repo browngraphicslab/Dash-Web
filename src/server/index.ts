@@ -27,6 +27,7 @@ import * as expressValidator from 'express-validator';
 import expressFlash = require('express-flash');
 import * as bodyParser from 'body-parser';
 import * as session from 'express-session';
+import * as mobileDetect from 'mobile-detect';
 import c = require("crypto");
 const MongoStore = require('connect-mongo')(session);
 const mongoose = require('mongoose');
@@ -34,6 +35,7 @@ const bluebird = require('bluebird');
 import { performance } from 'perf_hooks'
 import * as fs from 'fs';
 import * as request from 'request'
+import { exec } from 'child_process'
 
 const download = (url: string, dest: fs.PathLike) => {
     request.get(url).pipe(fs.createWriteStream(dest));
@@ -99,9 +101,23 @@ app.use('/images', express.static(__dirname + '/public'))
 let FieldStore: ObservableMap<FieldId, Field> = new ObservableMap();
 
 // define a route handler for the default home page
-app.get("/", (req, res) => {
-    res.redirect("/doc/mainDoc");
-    // res.sendFile(path.join(__dirname, '../../deploy/index.html'));
+app.get("/", (req: express.Request, res: express.Response) => {
+    let detector = new mobileDetect(req.headers['user-agent'] || "");
+    if (detector.mobile() != null) {
+        res.sendFile(path.join(__dirname, '../../deploy/mobile/image.html'));
+    } else {
+        res.redirect("/doc/mainDoc");
+    }
+});
+
+app.get("/pull", (req, res) => {
+    exec('"C:\\Program Files\\Git\\git-bash.exe" -c "git pull"', (err, stdout, stderr) => {
+        if (err) {
+            res.send(err.message);
+            return;
+        }
+        res.redirect("/");
+    })
 });
 
 app.get("/doc/:docId", (req, res) => {

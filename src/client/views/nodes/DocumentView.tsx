@@ -334,7 +334,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
                 onContextMenu={this.onContextMenu}
                 onPointerDown={this.onPointerDown} >
                 <DocumentContentsView {...this.props} isSelected={this.isSelected} select={this.select} layoutKey={KeyStore.Layout} />
-            </div>
+            </div >
         )
     }
 }
