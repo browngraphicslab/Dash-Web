@@ -94,7 +94,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         this._downY = e.clientY;
         if (e.shiftKey && e.buttons === 2) {
             if (this.props.isTopMost) {
-                this.startDragging(e.pageX, e.pageY, e.ctrlKey);
+                this.startDragging(e.pageX, e.pageY, e.altKey || e.ctrlKey);
             }
             else CollectionDockingView.Instance.StartOtherDrag(this.props.Document, e);
             e.stopPropagation();
@@ -177,7 +177,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             document.removeEventListener("pointermove", this.onPointerMove)
             document.removeEventListener("pointerup", this.onPointerUp);
             if (!this.topMost || e.buttons == 2 || e.altKey) {
-                this.startDragging(e.x, e.y, e.ctrlKey);
+                this.startDragging(e.x, e.y, e.ctrlKey || e.altKey);
             }
         }
         e.stopPropagation();
