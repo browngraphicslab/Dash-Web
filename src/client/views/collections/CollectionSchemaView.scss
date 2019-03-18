@@ -28,6 +28,23 @@
         top: 0;
         background: $main-accent;
     }
+    .collectionSchemaView-columnsHandle {
+        position: absolute;
+        height: 37px;
+        width: 20px;
+        z-index: 20;
+        left: 0;
+        bottom: 0;
+        background: $main-accent;
+    }
+    .collectionSchemaView-colDividerDragger {
+        position: relative;
+        box-sizing: border-box;
+        border-top: 1px solid $intermediate-color;
+        border-bottom: 1px solid $intermediate-color;
+        float: top;
+        width: 100%;
+    }
     .collectionSchemaView-dividerDragger {
         position: relative;
         box-sizing: border-box;
