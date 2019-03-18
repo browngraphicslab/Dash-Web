@@ -76,14 +76,13 @@ export class CollectionFreeFormView extends CollectionViewBase {
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
         super.drop(e, de);
-        let screenX = de.x - (de.data["xOffset"] as number || 0);
-        let screenY = de.y - (de.data["yOffset"] as number || 0);
-        const [x, y] = this.getTransform().transformPoint(screenX, screenY);
-        let doc: Document = de.data["droppedDocument"];
-        if (doc) {
-            doc.SetNumber(KeyStore.X, x);
-            doc.SetNumber(KeyStore.Y, y);
-            this.bringToFront(doc);
+        if (de.data instanceof DragManager.DocumentDragData) {
+            let screenX = de.x - (de.data.xOffset as number || 0);
+            let screenY = de.y - (de.data.yOffset as number || 0);
+            const [x, y] = this.getTransform().transformPoint(screenX, screenY);
+            de.data.droppedDocument.SetNumber(KeyStore.X, x);
+            de.data.droppedDocument.SetNumber(KeyStore.Y, y);
+            this.bringToFront(de.data.droppedDocument);
         }
     }
 

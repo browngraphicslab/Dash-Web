@@ -6,12 +6,12 @@ import { KeyStore } from "../../../fields/KeyStore";
 import { FieldWaiting, Field, Opt } from "../../../fields/Field";
 import { undoBatch } from "../../util/UndoManager";
 import { DragManager } from "../../util/DragManager";
-import { DocumentView } from "../nodes/DocumentView";
 import { Documents, DocumentOptions } from "../../documents/Documents";
 import { Key } from "../../../fields/Key";
 import { Transform } from "../../util/Transform";
 import { CollectionView } from "./CollectionView";
 import { NumberField } from "../../../fields/NumberField";
+import { DocumentManager } from "../../util/DocumentManager";
 
 export interface CollectionViewProps {
     fieldKey: Key;
@@ -46,18 +46,17 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
     @undoBatch
     @action
     protected drop(e: Event, de: DragManager.DropEvent) {
-        let dropped = de.data["droppedDocument"];
-        if (dropped) {
-            if (de.data["aliasOnDrop"]) {
-                let dragged = de.data["draggedDocument"];
+        if (de.data instanceof DragManager.DocumentDragData) {
+            if (de.data.aliasOnDrop) {
+                let dragged = de.data.draggedDocument;
                 [KeyStore.Width, KeyStore.Height, KeyStore.CurPage].map(key =>
-                    dragged.GetTAsync(key, NumberField, (f: Opt<NumberField>) => f ? dropped.SetNumber(key, f.Data) : null));
-            } else if (de.data["removeDocument"]) {
-                de.data["removeDocument"](this.props.CollectionView);
+                    dragged.GetTAsync(key, NumberField, (f: Opt<NumberField>) => f ? de.data.droppedDocument.SetNumber(key, f.Data) : null));
+            } else if (de.data.removeDocument) {
+                de.data.removeDocument(this.props.CollectionView);
             }
-            this.props.addDocument(dropped, false);
+            this.props.addDocument(de.data.droppedDocument, false);
+            e.stopPropagation();
         }
-        e.stopPropagation();
     }
 
     @action

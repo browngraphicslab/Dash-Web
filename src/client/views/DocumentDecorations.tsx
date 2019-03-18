@@ -87,9 +87,8 @@ export class DocumentDecorations extends React.Component {
         if (this._linkButton.current != null) {
             document.removeEventListener("pointermove", this.onLinkButtonMoved)
             document.removeEventListener("pointerup", this.onLinkButtonUp)
-            let dragData: { [id: string]: any } = {};
-            dragData["linkSourceDoc"] = SelectionManager.SelectedDocuments()[0];
-            DragManager.StartDrag(this._linkButton.current, dragData, {
+            let dragData = new DragManager.LinkDragData(SelectionManager.SelectedDocuments()[0]);
+            DragManager.StartLinkDrag(this._linkButton.current, dragData, {
                 handlers: {
                     dragComplete: action(() => { }),
                 },
