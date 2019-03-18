@@ -98,7 +98,7 @@ Documents.initProtos(mainDocId, (res?: Document) => {
                 })
             }
         })
-    }, 50)
+    }, 100)
 
     let imgurl = "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg";
     let pdfurl = "http://www.adobe.com/support/products/enterprise/knowledgecenter/media/c4611_sample_explain.pdf"

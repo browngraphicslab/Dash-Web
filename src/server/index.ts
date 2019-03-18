@@ -106,7 +106,7 @@ app.get("/", (req: express.Request, res: express.Response) => {
     if (detector.mobile() != null) {
         res.sendFile(path.join(__dirname, '../../deploy/mobile/image.html'));
     } else {
-        res.sendFile(path.join(__dirname, '../../deploy/index.html'));
+        res.redirect("/doc/mainDoc");
     }
 });
 
