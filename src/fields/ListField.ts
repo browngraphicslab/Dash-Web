@@ -20,6 +20,9 @@ export class ListField<T extends Field> extends BasicField<T[]> {
 
     private observeDisposer: Lambda | undefined;
     private observeList(): void {
+        if (this.observeDisposer) {
+            this.observeDisposer()
+        }
         this.observeDisposer = observe(this.Data as IObservableArray<T>, (change: IArrayChange<T> | IArraySplice<T>) => {
             this.updateProxies()
             if (change.type == "splice") {
@@ -39,9 +42,6 @@ export class ListField<T extends Field> extends BasicField<T[]> {
     }
 
     protected setData(value: T[]) {
-        if (this.observeDisposer) {
-            this.observeDisposer()
-        }
         this.data = observable(value);
         this.updateProxies();
         this.observeList();
