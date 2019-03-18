@@ -5,7 +5,7 @@ import Measure from "react-measure";
 import ReactTable, { CellInfo, ComponentPropsGetterR, ReactTableDefaults } from "react-table";
 import "react-table/react-table.css";
 import { Document } from "../../../fields/Document";
-import { Field } from "../../../fields/Field";
+import { Field, Opt } from "../../../fields/Field";
 import { KeyStore } from "../../../fields/KeyStore";
 import { CompileScript, ToField } from "../../util/Scripting";
 import { Transform } from "../../util/Transform";
@@ -18,10 +18,36 @@ import { COLLECTION_BORDER_WIDTH } from "./CollectionView";
 import { CollectionViewBase } from "./CollectionViewBase";
 import { setupDrag } from "../../util/DragManager";
 import { Key } from "./../../../fields/Key";
+import { Server } from "../../Server";
+import { ListField } from "../../../fields/ListField";
 
 
 // bcz: need to add drag and drop of rows and columns.  This seems like it might work for rows: https://codesandbox.io/s/l94mn1q657
 
+
+@observer
+class KeyToggle extends React.Component<{ keyId: string, checked: boolean, toggle: (key: Key) => void }> {
+    @observable
+    key: Key | undefined;
+
+    componentWillReceiveProps() {
+        Server.GetField(this.props.keyId, action((field: Opt<Field>) => {
+            if (field instanceof Key) {
+                this.key = field;
+            }
+        }))
+    }
+
+    render() {
+        if (this.key) {
+            return (<div key={this.key.Id}>
+                <input type="checkbox" checked={this.props.checked} onChange={() => this.key && this.props.toggle(this.key)} />{this.key.Name}
+            </div>)
+        } else {
+            return <div></div>
+        }
+    }
+}
 
 @observer
 export class CollectionSchemaView extends CollectionViewBase {
@@ -106,26 +132,40 @@ export class CollectionSchemaView extends CollectionViewBase {
         };
     }
 
-    @action
-    addColumn = (k: Key): void => {
-        this._columns.push(k);
-        console.log("adding", this._columns.length);
+    get columns() {
+        return this.props.Document.GetList<Key>(KeyStore.ColumnsKey, []);
     }
 
-    findAllDocumentKeys = (docs: Array<Document>): Set<Key> => {
-        let keys = new Set();
-        docs.forEach(doc => {
-            let fields: ObservableMap<string, { key: Key, field: Field }> = doc.Fields;
-            Array.from(fields).map(item => {
-                let v: { key: Key, field: Field } = item[1];
-                let k = v.key;
-                keys.add(k);
+    @action
+    toggleKey = (key: Key) => {
+        this.props.Document.GetOrCreateAsync<ListField<Key>>(KeyStore.ColumnsKey, ListField,
+            (field) => {
+                const index = field.Data.indexOf(key);
+                if (index === -1) {
+                    this.columns.push(key);
+                } else {
+                    this.columns.splice(index, 1);
+                }
+
             })
+    }
+
+    @observable keys: Key[] = [];
+
+    findAllDocumentKeys = (): { [id: string]: boolean } => {
+        const docs = this.props.Document.GetList<Document>(this.props.fieldKey, []);
+        let keys: { [id: string]: boolean } = {}
+        docs.forEach(doc => {
+            let protos = doc.GetAllPrototypes();
+            for (const proto of protos) {
+                proto._proxies.forEach((val: any, key: string) => {
+                    keys[key] = false
+                })
+            }
         })
-        keys.delete(KeyStore.Title);
-        keys.delete(KeyStore.Data);
-        keys.delete(KeyStore.Author);
-        console.log("key set", keys);
+        this.columns.forEach(key => {
+            keys[key.Id] = true;
+        })
         return keys;
     }
 
@@ -206,9 +246,10 @@ export class CollectionSchemaView extends CollectionViewBase {
     focusDocument = (doc: Document) => { }
 
     render() {
-        const columns = this.props.Document.GetList(KeyStore.ColumnsKey, this._columns)
+        const columns = this.columns;
         const children = this.props.Document.GetList<Document>(this.props.fieldKey, []);
         const selected = children.length > this._selectedIndex ? children[this._selectedIndex] : undefined;
+        const allKeys = this.findAllDocumentKeys();
         let content = this._selectedIndex == -1 || !selected ? (null) : (
             <Measure onResize={this.setScaling}>
                 {({ measureRef }) =>
@@ -259,15 +300,18 @@ export class CollectionSchemaView extends CollectionViewBase {
 
                                     }}
                                     getTrProps={this.getTrProps}
+                                    style={{ height: "50%" }}
                                 />
-                                <div className="collectionSchemaView-addColumn" >
-                                    <input type="checkbox" id="addColumn-toggle" />
-                                    <label htmlFor="addColumn-toggle" title="Add Column"><p>+</p></label>
+                                <div className="collectionSchemaView-addColumn" style={{ height: "50%" }} >
+                                    {/* <input type="checkbox" id="addColumn-toggle" />
+                                    <label htmlFor="addColumn-toggle" title="Add Column"><p>+</p></label> */}
 
                                     <div className="addColumn-options">
-                                        <ul>{Array.from(this.findAllDocumentKeys(children)).map(item => {
-                                            return <li onClick={() => this.addColumn(item)}>{item.Name}</li>
-                                        })}</ul>
+                                        <ul>
+                                            {Array.from(Object.keys(allKeys)).map(item => {
+                                                return (<KeyToggle checked={allKeys[item]} key={item} keyId={item} toggle={this.toggleKey} />)
+                                            })}
+                                        </ul>
                                     </div>
                                 </div>
                             </div>
