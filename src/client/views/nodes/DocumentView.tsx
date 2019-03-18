@@ -1,11 +1,12 @@
 import { action, computed, IReactionDisposer, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { Document } from "../../../fields/Document";
-import { Field, FieldWaiting, Opt } from "../../../fields/Field";
+import { Field, Opt } from "../../../fields/Field";
 import { Key } from "../../../fields/Key";
 import { KeyStore } from "../../../fields/KeyStore";
 import { ListField } from "../../../fields/ListField";
 import { TextField } from "../../../fields/TextField";
+import { Utils } from "../../../Utils";
 import { Documents } from "../../documents/Documents";
 import { DocumentManager } from "../../util/DocumentManager";
 import { DragManager } from "../../util/DragManager";
@@ -14,12 +15,9 @@ import { Transform } from "../../util/Transform";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { CollectionView, CollectionViewType } from "../collections/CollectionView";
 import { ContextMenu } from "../ContextMenu";
+import { DocumentContentsView } from "./DocumentContentsView";
 import "./DocumentView.scss";
 import React = require("react");
-import { props } from "bluebird";
-import { DocumentContentsView } from "./DocumentContentsView";
-import { Utils } from "../../../Utils";
-const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 
 export interface DocumentViewProps {
@@ -76,6 +74,17 @@ export function FakeJsxArgs(keys: string[], fields: string[] = []): JsxArgs {
     } as any;
     return args;
 }
+
+export interface JsxBindings {
+    Document: Document;
+    isSelected: () => boolean;
+    select: (isCtrlPressed: boolean) => void;
+    isTopMost: boolean;
+    SelectOnLoad: boolean;
+    [prop: string]: any;
+}
+
+
 
 @observer
 export class DocumentView extends React.Component<DocumentViewProps> {
@@ -301,26 +310,6 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         SelectionManager.SelectDoc(this, ctrlPressed)
     }
 
-    @computed
-    get getProps() {
-        let bindings: any = {
-            ...this.props,
-            isSelected: this.isSelected,
-            select: this.select,
-            layout: this.layout
-        };
-        for (const key of this.layoutKeys) {
-            bindings[key.Name + "Key"] = key; // this maps string values of the form <keyname>Key to an actual key Kestore.keyname  e.g,   "DataKey" => KeyStore.Data
-        }
-        for (const key of this.layoutFields) {
-            let field = this.props.Document.Get(key);
-            bindings[key.Name] = field && field != FieldWaiting ? field.GetValue() : field;
-        }
-        bindings.bindings = bindings;
-
-        return bindings
-    }
-
     render() {
         if (!this.props.Document) {
             return (null);
@@ -344,9 +333,8 @@ export class DocumentView extends React.Component<DocumentViewProps> {
                 }}
                 onDrop={this.onDrop}
                 onContextMenu={this.onContextMenu}
-                onPointerDown={this.onPointerDown}
-                onPointerUp={this.stopPropogation} >
-                <DocumentContentsView {...this.getProps} />
+                onPointerDown={this.onPointerDown} >
+                <DocumentContentsView {...this.props} isSelected={this.isSelected} select={this.select} layoutKey={KeyStore.Layout} />
             </div>
         )
     }
