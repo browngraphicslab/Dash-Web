@@ -59,7 +59,6 @@ export class PreviewCursor extends React.Component<PreviewCursorProps>  {
             let newBox = Documents.TextDocument({ width: 200, height: 100, x: x, y: y, title: "new" });
             this.props.addLiveTextDocument(newBox);
             e.stopPropagation();
-            e.preventDefault();
         }
     }
 
