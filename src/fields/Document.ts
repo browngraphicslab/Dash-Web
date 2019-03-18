@@ -39,6 +39,11 @@ export class Document extends Field {
         return this.GetText(KeyStore.Title, "<untitled>");
     }
 
+    @computed
+    public get Fields() {
+        return this.fields;
+    }
+
     /**
      * Get the field in the document associated with the given key. If the
      * associated field has not yet been filled in from the server, a request
@@ -305,6 +310,7 @@ export class Document extends Field {
         throw new Error("Method not implemented.");
     }
     GetValue() {
+        return this.Title;
         var title = (this._proxies.has(KeyStore.Title.Id) ? "???" : this.Title) + "(" + this.Id + ")";
         return title;
         //throw new Error("Method not implemented.");
