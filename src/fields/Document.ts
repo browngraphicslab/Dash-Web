@@ -310,6 +310,7 @@ export class Document extends Field {
         throw new Error("Method not implemented.");
     }
     GetValue() {
+        return this.Title;
         var title = (this._proxies.has(KeyStore.Title.Id) ? "???" : this.Title) + "(" + this.Id + ")";
         return title;
         //throw new Error("Method not implemented.");
