@@ -1,4 +1,4 @@
-import React = require("react")
+import React = require("react");
 import { action, observable } from "mobx";
 import { observer } from "mobx-react";
 import Measure from "react-measure";
@@ -17,6 +17,16 @@ import "./CollectionSchemaView.scss";
 import { COLLECTION_BORDER_WIDTH } from "./CollectionView";
 import { CollectionViewBase } from "./CollectionViewBase";
 import { setupDrag } from "../../util/DragManager";
+import '../DocumentDecorations.scss';
+import { Flyout, anchorPoints } from "../DocumentDecorations";
+import { DropdownButton, Dropdown } from 'react-bootstrap';
+import { ListField } from "../../../fields/ListField";
+import { Key } from "../../../fields/Key";
+//import { Server } from "http";
+//import { Server } from "http";
+import { Server } from "../../Server";
+
+//import { MenuItem } from 'react-bootstrap';
 
 // bcz: need to add drag and drop of rows and columns.  This seems like it might work for rows: https://codesandbox.io/s/l94mn1q657
 
@@ -178,6 +188,19 @@ export class CollectionSchemaView extends CollectionViewBase {
 
     focusDocument = (doc: Document) => { }
 
+    keyDropDownOnSelect = (keyId: string) => {
+        const columns = this.props.Document.GetList(KeyStore.ColumnsKey, [KeyStore.Title, KeyStore.Data, KeyStore.Author]);
+        const listOfFields = this.props.Document.GetList<Document>(this.props.fieldKey, [])[1].fields;
+        if (listOfFields.has(keyId)) {
+            let index = columns.push(listOfFields!.get(keyId)!.key);
+            this.props.Document.SetData(KeyStore.ColumnsKey, columns, ListField);
+        }
+    }
+
+    dropdownItemOnPointerDown = (e: React.PointerEvent): void => {
+        //(e.currentTarget.children[0] as Dropdown.Item ).onSelect();
+    }
+
     render() {
         const columns = this.props.Document.GetList(KeyStore.ColumnsKey, [KeyStore.Title, KeyStore.Data, KeyStore.Author])
         const children = this.props.Document.GetList<Document>(this.props.fieldKey, []);
@@ -205,6 +228,47 @@ export class CollectionSchemaView extends CollectionViewBase {
             <div className="collectionSchemaView-previewHandle" onPointerDown={this.onExpanderDown} />);
         let dividerDragger = this._splitPercentage == 100 ? (null) :
             <div className="collectionSchemaView-dividerDragger" onPointerDown={this.onDividerDown} style={{ width: `${this.DIVIDER_WIDTH}px` }} />
+
+        //get the union of all childrens' keys
+        let addFields: { id: string, name: string }[] = [];
+        let removeFields: { id: string, name: string }[] = [];
+        //children.forEach((child) => {
+        //   for (var keyId in fields.keys) {
+        //       if (!allFields.includes(keyId)) {
+        //           allFields.push(keyId);
+        //      }
+        //   }
+        // });
+        let optionsMenu = null;
+        if (this.props.active()) {
+            let protos = this.props.Document.GetAllPrototypes();
+            for (const proto of protos) {
+                proto._proxies.forEach((val, key) => {
+                    if (!(key in addFields.keys)) {
+                        let this_name: string = proto.fields!.get(key)!.key.Name;
+                        addFields.push({ id: key, name: this_name });
+                    }
+                })
+            }
+            optionsMenu = !this.props.active() ? (null) : (<Flyout
+                anchorPoint={anchorPoints.LEFT_TOP}
+                content={<div id="options-flyout-div"> <h5>Options</h5>
+                    <DropdownButton id="dropdown-basic-button" className="colDropDown" title="Add Column">
+                        {addFields.map(({ id, name }) => (
+                            <div className="dd-item-containter"><Dropdown.Item className="dd-item" eventKey={id} onSelect={this.keyDropDownOnSelect}>{name} </Dropdown.Item></div>))}
+                    </DropdownButton>
+                    <DropdownButton id="dropdown-basic-button" className="colDropDown" title="Remove Column">
+                        {addFields.map(({ id, name }) => (
+                            <div className="dd-item-containter"><Dropdown.Item className="dd-item" eventKey={id} onSelect={this.keyDropDownOnSelect}>{name} </Dropdown.Item></div>))}
+                    </DropdownButton>
+                </div>
+                }>
+                <div id="schemaOptionsMenuBtn" />
+            </Flyout>);
+        }
+
+
+
         return (
             <div className="collectionSchemaView-container" onPointerDown={this.onPointerDown} ref={this._mainCont} style={{ borderWidth: `${COLLECTION_BORDER_WIDTH}px` }} >
                 <div className="collectionSchemaView-dropTarget" onDrop={(e: React.DragEvent) => this.onDrop(e, {})} ref={this.createDropTarget}>
@@ -239,6 +303,8 @@ export class CollectionSchemaView extends CollectionViewBase {
                         {content}
                     </div>
                     {previewHandle}
+                    {optionsMenu}
+
                 </div>
             </div >
         )

@@ -1,5 +1,65 @@
+//options menu styling
+#schemaOptionsMenuBtn {
+    position: absolute;
+    height: 15px;
+    width: 15px;
+    border-radius: 50%;
+    z-index: 21; 
+    right: 3px;
+    top: 3px; 
+    pointer-events: auto;
+    background-color:red;
+}
 
+.dd-item-containter:hover {
+  background-color: rgb(204, 204, 204);
+}
 
+.dd-item {
+    color: black;
+    padding-left: 6px;
+    padding-bottom: 0px;
+    padding-top: 4px;
+    font-size: 12px;
+    margin: 0px;
+    display: block;
+    width: 100%;
+    height: 25px;
+    z-index: 100;
+}
+.dd-item:hover {
+    color: black;
+    font-weight: 500;
+}
+
+.dropdown-menu {
+    height: 100px;
+    overflow-y: scroll;
+  }
+
+#dropdown-basic-button {
+    background-color: #fff;
+    border: .75px solid #bbbbbb;
+    border-radius: 0;
+    -webkit-box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    margin:10px;
+    margin-top: 8px;
+    color: black;
+    display: inline-block;
+    width: 160px;
+    height: 25px;
+    font-size: 15px;
+    padding: 0px;
+    border-radius: 3px;
+    font-size: 12px;
+  }
+
+  #options-flyout-div {
+    text-align: center;
+    padding:0px;
+  }
+  
 .collectionSchemaView-container {
     border-style: solid;
     box-sizing: border-box;
@@ -14,11 +74,11 @@
     }
     .collectionSchemaView-previewHandle {
         position: absolute;
-        height: 37px;
-        width: 20px; 
+        height: 15px;
+        width: 15px; 
         z-index: 20; 
         right: 0; 
-        top: 0; 
+        top: 20px; 
         background: Black ;
     }
     .collectionSchemaView-dividerDragger{
