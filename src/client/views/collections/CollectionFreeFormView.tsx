@@ -8,28 +8,16 @@ import { TextField } from "../../../fields/TextField";
 import { DragManager } from "../../util/DragManager";
 import { Transform } from "../../util/Transform";
 import { undoBatch } from "../../util/UndoManager";
-import { CollectionDockingView } from "../collections/CollectionDockingView";
-import { CollectionPDFView } from "../collections/CollectionPDFView";
-import { CollectionSchemaView } from "../collections/CollectionSchemaView";
-import { CollectionVideoView } from "../collections/CollectionVideoView";
-import { CollectionView } from "../collections/CollectionView";
 import { InkingCanvas } from "../InkingCanvas";
-import { AudioBox } from "../nodes/AudioBox";
 import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
-import { DocumentView, DocumentViewProps, DocumentContents } from "../nodes/DocumentView";
-import { FormattedTextBox } from "../nodes/FormattedTextBox";
-import { ImageBox } from "../nodes/ImageBox";
-import { KeyValueBox } from "../nodes/KeyValueBox";
-import { PDFBox } from "../nodes/PDFBox";
-import { VideoBox } from "../nodes/VideoBox";
-import { WebBox } from "../nodes/WebBox";
+import { DocumentContentsView } from "../nodes/DocumentContentsView";
+import { DocumentView, DocumentViewProps } from "../nodes/DocumentView";
 import "./CollectionFreeFormView.scss";
 import { COLLECTION_BORDER_WIDTH } from "./CollectionView";
 import { CollectionViewBase } from "./CollectionViewBase";
 import { MarqueeView } from "./MarqueeView";
 import { PreviewCursor } from "./PreviewCursor";
 import React = require("react");
-const JsxParser = require('react-jsx-parser').default;//TODO Why does this need to be imported like this?
 
 @observer
 export class CollectionFreeFormView extends CollectionViewBase {
@@ -283,28 +271,14 @@ export class CollectionFreeFormView extends CollectionViewBase {
     @computed
     get backgroundView() {
         return !this.backgroundLayout ? (null) :
-            (<DocumentContents {...this.getDocumentViewProps(this.props.Document)}
+            (<DocumentContentsView {...this.getDocumentViewProps(this.props.Document)}
                 layoutKey={KeyStore.BackgroundLayout} isSelected={() => false} select={() => { }} />);
-        // (<JsxParser
-        //     components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, CollectionVideoView, WebBox, KeyValueBox, PDFBox, VideoBox, AudioBox }}
-        //     bindings={this.props.bindings}
-        //     jsx={this.backgroundLayout}
-        //     showWarnings={true}
-        //     onError={(test: any) => console.log(test)}
-        // />);
     }
     @computed
     get overlayView() {
         return !this.overlayLayout ? (null) :
-            (<DocumentContents {...this.getDocumentViewProps(this.props.Document)}
+            (<DocumentContentsView {...this.getDocumentViewProps(this.props.Document)}
                 layoutKey={KeyStore.OverlayLayout} isSelected={() => false} select={() => { }} />);
-        // (<JsxParser
-        //     components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, CollectionVideoView, WebBox, KeyValueBox, PDFBox, VideoBox, AudioBox }}
-        //     bindings={this.props.bindings}
-        //     jsx={this.overlayLayout}
-        //     showWarnings={true}
-        //     onError={(test: any) => console.log(test)}
-        // />);
     }
 
     getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-COLLECTION_BORDER_WIDTH, -COLLECTION_BORDER_WIDTH).translate(-this.centeringShiftX, -this.centeringShiftY).transform(this.getLocalTransform())
