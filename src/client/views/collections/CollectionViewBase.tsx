@@ -92,6 +92,7 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
                     }
                 })
             );
+            de.data["document"] = doc;
             this.props.addDocument(doc);
         } else if (docView) {
             if (doc && docView.props.RemoveDocument && docView.props.ContainingCollectionView !== this.props.CollectionView) {
