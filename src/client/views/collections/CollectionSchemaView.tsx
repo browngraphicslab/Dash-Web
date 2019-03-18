@@ -1,10 +1,5 @@
-<<<<<<< HEAD
-import React = require("react");
-import { action, observable } from "mobx";
-=======
 import React = require("react")
 import { action, observable, ObservableMap, computed } from "mobx";
->>>>>>> f70ad315167b714f11f7d68f35a46abe9e525a4d
 import { observer } from "mobx-react";
 import Measure from "react-measure";
 import ReactTable, { CellInfo, ComponentPropsGetterR, ReactTableDefaults } from "react-table";
@@ -22,23 +17,13 @@ import "./CollectionSchemaView.scss";
 import { COLLECTION_BORDER_WIDTH, CollectionView } from "./CollectionView";
 import { CollectionViewBase } from "./CollectionViewBase";
 import { setupDrag } from "../../util/DragManager";
-<<<<<<< HEAD
 import '../DocumentDecorations.scss';
 import { Flyout, anchorPoints } from "../DocumentDecorations";
 import { DropdownButton, Dropdown } from 'react-bootstrap';
 import { ListField } from "../../../fields/ListField";
 import { Key } from "../../../fields/Key";
-//import { Server } from "http";
-//import { Server } from "http";
 import { Server } from "../../Server";
 
-//import { MenuItem } from 'react-bootstrap';
-=======
-import { Key } from "./../../../fields/Key";
-import { Server } from "../../Server";
-import { ListField } from "../../../fields/ListField";
-
->>>>>>> f70ad315167b714f11f7d68f35a46abe9e525a4d
 
 // bcz: need to add drag and drop of rows and columns.  This seems like it might work for rows: https://codesandbox.io/s/l94mn1q657
 
@@ -349,18 +334,10 @@ export class CollectionSchemaView extends CollectionViewBase {
             <div className="collectionSchemaView-columnsHandle" onPointerDown={this.onColumnsDown} />);
         let dividerDragger = this.splitPercentage == 0 ? (null) :
             <div className="collectionSchemaView-dividerDragger" onPointerDown={this.onDividerDown} style={{ width: `${this.DIVIDER_WIDTH}px` }} />
-<<<<<<< HEAD
 
         //get the union of all childrens' keys
         let addFields: { id: string, name: string }[] = [];
         let removeFields: { id: string, name: string }[] = [];
-        //children.forEach((child) => {
-        //   for (var keyId in fields.keys) {
-        //       if (!allFields.includes(keyId)) {
-        //           allFields.push(keyId);
-        //      }
-        //   }
-        // });
         let optionsMenu = null;
         if (this.props.active()) {
             let protos = this.props.Document.GetAllPrototypes();
@@ -372,28 +349,32 @@ export class CollectionSchemaView extends CollectionViewBase {
                     }
                 })
             }
-            optionsMenu = !this.props.active() ? (null) : (<Flyout
-                anchorPoint={anchorPoints.LEFT_TOP}
-                content={<div id="options-flyout-div"> <h5>Options</h5>
-                    <DropdownButton id="dropdown-basic-button" className="colDropDown" title="Add Column">
+            /*<DropdownButton id="dropdown-basic-button" className="colDropDown" title="Add Column">
                         {addFields.map(({ id, name }) => (
                             <div className="dd-item-containter"><Dropdown.Item className="dd-item" eventKey={id} onSelect={this.keyDropDownOnSelect}>{name} </Dropdown.Item></div>))}
                     </DropdownButton>
                     <DropdownButton id="dropdown-basic-button" className="colDropDown" title="Remove Column">
                         {addFields.map(({ id, name }) => (
                             <div className="dd-item-containter"><Dropdown.Item className="dd-item" eventKey={id} onSelect={this.keyDropDownOnSelect}>{name} </Dropdown.Item></div>))}
-                    </DropdownButton>
+                    </DropdownButton>*/
+            optionsMenu = !this.props.active() ? (null) : (<Flyout
+                anchorPoint={anchorPoints.LEFT_TOP}
+                content={<div id="options-flyout-div"> <h5>Options</h5>
+                    <div className="addColumn-options">
+                        <ul style={{ overflow: "scroll" }}>
+                            {Array.from(Object.keys(allKeys)).map(item => {
+                                return (<KeyToggle checked={allKeys[item]} key={item} keyId={item} toggle={this.toggleKey} />)
+                            })}
+                        </ul>
+                    </div>
                 </div>
                 }>
                 <div id="schemaOptionsMenuBtn" />
             </Flyout>);
         }
 
-
-=======
         let colDividerDragger = this._columnsPercentage == 0 ? (null) :
             <div className="collectionSchemaView-colDividerDragger" onPointerDown={this.onColDividerDown} style={{ height: `${this.DIVIDER_WIDTH}px` }} />
->>>>>>> f70ad315167b714f11f7d68f35a46abe9e525a4d
 
         return (
             <div className="collectionSchemaView-container" onPointerDown={this.onPointerDown} ref={this._mainCont} style={{ borderWidth: `${COLLECTION_BORDER_WIDTH}px` }} >
@@ -424,10 +405,27 @@ export class CollectionSchemaView extends CollectionViewBase {
                                         getTrProps={this.getTrProps}
                                     />
                                 </div>
-                                {colDividerDragger}
+                            </div>
+                        }
+                    </Measure>
+                    {dividerDragger}
+                    <div className="collectionSchemaView-previewRegion" style={{ width: `calc(${this.props.Document.GetNumber(KeyStore.SchemaSplitPercentage, 0)}% - ${this.DIVIDER_WIDTH}px)` }}>
+                        {content}
+                    </div>
+                    {previewHandle}
+
+                    {columnsHandle}
+                    {optionsMenu}
+                </div>
+            </div >
+        )
+    }
+}
+/*
+{colDividerDragger}
                                 <div className="collectionSchemaView-addColumn" style={{ height: `${this._columnsPercentage}%` }} >
                                     {/* <input type="checkbox" id="addColumn-toggle" />
-                                    <label htmlFor="addColumn-toggle" title="Add Column"><p>+</p></label> */}
+                                    <label htmlFor="addColumn-toggle" title="Add Column"><p>+</p></label> }
 
                                     <div className="addColumn-options">
                                         <ul style={{ overflow: "scroll" }}>
@@ -437,22 +435,4 @@ export class CollectionSchemaView extends CollectionViewBase {
                                         </ul>
                                     </div>
                                 </div>
-                            </div>
-                        }
-                    </Measure>
-                    {dividerDragger}
-                    <div className="collectionSchemaView-previewRegion" style={{ width: `calc(${this.props.Document.GetNumber(KeyStore.SchemaSplitPercentage, 0)}% - ${this.DIVIDER_WIDTH}px)` }}>
-                        {content}
-                    </div>
-                    {previewHandle}
-<<<<<<< HEAD
-                    {optionsMenu}
-=======
-                    {columnsHandle}
->>>>>>> f70ad315167b714f11f7d68f35a46abe9e525a4d
-
-                </div>
-            </div >
-        )
-    }
-}
+                                */
