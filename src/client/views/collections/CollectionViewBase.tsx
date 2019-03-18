@@ -50,16 +50,13 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
         if (de.data["alias"] && dropDoc) {
             let oldDoc = dropDoc;
             de.data["document"] = dropDoc = oldDoc.CreateAlias();
-            oldDoc.GetTAsync(KeyStore.Width, NumberField, (f: Opt<NumberField>) => {
-                if (f) {
-                    dropDoc.SetNumber(KeyStore.Width, f.Data)
-                }
-            })
-            oldDoc.GetTAsync(KeyStore.Height, NumberField, (f: Opt<NumberField>) => {
-                if (f) {
-                    dropDoc.SetNumber(KeyStore.Height, f.Data)
-                }
-            })
+            [KeyStore.Width, KeyStore.Height].map(key =>
+                oldDoc.GetTAsync(key, NumberField, (f: Opt<NumberField>) => {
+                    if (f) {
+                        dropDoc.SetNumber(key, f.Data)
+                    }
+                })
+            );
         } else {
             const docView: DocumentView = de.data["documentView"];
             if (docView && docView.props.RemoveDocument && docView.props.ContainingCollectionView !== this.props.CollectionView) {
