@@ -55,7 +55,9 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
         if (this._editorView) {
             const state = this._editorView.state.apply(tx);
             this._editorView.updateState(state);
-            this.props.doc.SetData(this.props.fieldKey, JSON.stringify(state.toJSON()), RichTextField);
+            const { doc, fieldKey } = this.props;
+            doc.SetOnPrototype(fieldKey, new RichTextField(JSON.stringify(state.toJSON())))
+            // doc.SetData(fieldKey, JSON.stringify(state.toJSON()), RichTextField);
         }
     }
 
@@ -114,7 +116,9 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
 
     @action
     onChange(e: React.ChangeEvent<HTMLInputElement>) {
-        this.props.doc.SetData(this.props.fieldKey, e.target.value, RichTextField);
+        const { fieldKey, doc } = this.props;
+        doc.SetOnPrototype(fieldKey, new RichTextField(e.target.value))
+        // doc.SetData(fieldKey, e.target.value, RichTextField);
     }
     onPointerDown = (e: React.PointerEvent): void => {
         if (e.buttons === 1 && this.props.isSelected() && !e.altKey) {

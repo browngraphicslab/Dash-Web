@@ -1,46 +1,29 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
+import JsxParser from 'react-jsx-parser'
 
-class TestInternal extends React.Component {
-    onContextMenu = (e: React.MouseEvent) => {
-        console.log("Internal");
-        e.stopPropagation();
-    }
-
-    onPointerDown = (e: React.MouseEvent) => {
-        console.log("pointer down")
-        e.preventDefault();
-    }
-
+class Hello extends React.Component<{ firstName: string, lastName: string }> {
     render() {
-        return <div onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown}
-            onPointerUp={this.onPointerDown}>Hello world</div>
+        return <div>Hello {this.props.firstName} {this.props.lastName}</div>
     }
 }
 
-class TestChild extends React.Component {
-    onContextMenu = () => {
-        console.log("Child");
-    }
-
+class Test extends React.Component {
     render() {
-        return <div onContextMenu={this.onContextMenu}><TestInternal /></div>
-    }
-}
-
-class TestParent extends React.Component {
-    onContextMenu = () => {
-        console.log("Parent");
-    }
-
-    render() {
-        return <div onContextMenu={this.onContextMenu}><TestChild /></div>
+        let jsx = "<Hello {...props}/>";
+        let bindings = {
+            props: {
+                firstName: "First",
+                lastName: "Last"
+            }
+        }
+        return <JsxParser jsx={jsx} bindings={bindings} components={{ Hello }}></JsxParser>
     }
 }
 
 ReactDOM.render((
     <div style={{ position: "absolute", width: "100%", height: "100%" }}>
-        <TestParent />
+        <Test />
     </div>),
     document.getElementById('root')
 );
