@@ -160,20 +160,20 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         }
     }
 
-    startDragging(x: number, y: number, ctrlPressed: boolean) {
+    startDragging(x: number, y: number, dropAliasOfDraggedDoc: boolean) {
         if (this._mainCont.current) {
             const [left, top] = this.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
             let dragData: { [id: string]: any } = {};
             dragData["documentView"] = this;
-            dragData["document"] = this.props.Document
+            dragData["document"] = this.props.Document;
             dragData["xOffset"] = x - left;
             dragData["yOffset"] = y - top;
-            dragData["alias"] = ctrlPressed
+            dragData["alias"] = dropAliasOfDraggedDoc;
             DragManager.StartDrag(this._mainCont.current, dragData, {
                 handlers: {
                     dragComplete: action(() => { }),
                 },
-                hideSource: !ctrlPressed
+                hideSource: !dropAliasOfDraggedDoc
             })
         }
     }

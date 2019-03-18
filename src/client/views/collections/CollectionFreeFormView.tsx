@@ -79,20 +79,11 @@ export class CollectionFreeFormView extends CollectionViewBase {
         let screenX = de.x - (de.data["xOffset"] as number || 0);
         let screenY = de.y - (de.data["yOffset"] as number || 0);
         const [x, y] = this.getTransform().transformPoint(screenX, screenY);
-        if (!de.data["alias"]) {
-            const docView: DocumentView = de.data["documentView"];
-            let doc: Document = docView ? docView.props.Document : de.data["document"];
-            if (doc) {
-                doc.SetNumber(KeyStore.X, x);
-                doc.SetNumber(KeyStore.Y, y);
-                this.bringToFront(doc);
-            }
-        }
-        else {
-            let newDoc: Document = de.data["newDoc"]
-            newDoc.SetNumber(KeyStore.X, x)
-            newDoc.SetNumber(KeyStore.Y, y)
-            this.bringToFront(newDoc)
+        let doc: Document = de.data["document"];
+        if (doc) {
+            doc.SetNumber(KeyStore.X, x);
+            doc.SetNumber(KeyStore.Y, y);
+            this.bringToFront(doc);
         }
     }
 

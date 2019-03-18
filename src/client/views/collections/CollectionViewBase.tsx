@@ -46,34 +46,30 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
     @undoBatch
     @action
     protected drop(e: Event, de: DragManager.DropEvent) {
-        const docView: DocumentView = de.data["documentView"]
-        const doc: Document = de.data["document"]
-        if (de.data["alias"]) {
-            let newDoc = docView ? docView.props.Document.CreateAlias() : doc.CreateAlias()
-            de.data["newDoc"] = newDoc
-            let oldDoc = docView ? docView.props.Document : doc
+        let dropDoc: Document = de.data["document"];
+        if (de.data["alias"] && dropDoc) {
+            let oldDoc = dropDoc;
+            de.data["document"] = dropDoc = oldDoc.CreateAlias();
             oldDoc.GetTAsync(KeyStore.Width, NumberField, (f: Opt<NumberField>) => {
                 if (f) {
-                    newDoc.SetNumber(KeyStore.Width, f.Data)
+                    dropDoc.SetNumber(KeyStore.Width, f.Data)
                 }
             })
             oldDoc.GetTAsync(KeyStore.Height, NumberField, (f: Opt<NumberField>) => {
                 if (f) {
-                    newDoc.SetNumber(KeyStore.Height, f.Data)
+                    dropDoc.SetNumber(KeyStore.Height, f.Data)
                 }
             })
+        } else {
+            const docView: DocumentView = de.data["documentView"];
+            if (docView && docView.props.RemoveDocument && docView.props.ContainingCollectionView !== this.props.CollectionView) {
+                docView.props.RemoveDocument(dropDoc);
+            } else if (dropDoc) {
+                this.props.removeDocument(dropDoc);
+            }
         }
-
-        if (docView && docView.props.ContainingCollectionView && docView.props.ContainingCollectionView !== this.props.CollectionView) {
-            if (docView.props.RemoveDocument && !de.data["alias"]) {
-                docView.props.RemoveDocument(docView.props.Document)
-            }
-            this.props.addDocument(de.data["alias"] ? de.data["newDoc"] : docView.props.Document)
-        } else if (doc) {
-            if (!de.data["alias"]) {
-                this.props.removeDocument(doc)
-            }
-            this.props.addDocument(de.data["alias"] ? de.data["newDoc"] : doc)
+        if (dropDoc) {
+            this.props.addDocument(dropDoc);
         }
         e.stopPropagation();
     }

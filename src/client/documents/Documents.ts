@@ -1,30 +1,27 @@
-import { Document } from "../../fields/Document";
-import { Server } from "../Server";
-import { KeyStore } from "../../fields/KeyStore";
-import { TextField } from "../../fields/TextField";
-import { NumberField } from "../../fields/NumberField";
-import { ListField } from "../../fields/ListField";
-import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
-import { ImageField } from "../../fields/ImageField";
-import { ImageBox } from "../views/nodes/ImageBox";
-import { WebField } from "../../fields/WebField";
-import { WebBox } from "../views/nodes/WebBox";
-import { CollectionView, CollectionViewType } from "../views/collections/CollectionView";
-import { HtmlField } from "../../fields/HtmlField";
-import { Key } from "../../fields/Key"
-import { Field } from "../../fields/Field";
-import { KeyValueBox } from "../views/nodes/KeyValueBox"
-import { KVPField } from "../../fields/KVPField";
-import { VideoField } from "../../fields/VideoField"
-import { VideoBox } from "../views/nodes/VideoBox";
 import { AudioField } from "../../fields/AudioField";
-import { AudioBox } from "../views/nodes/AudioBox";
+import { Document } from "../../fields/Document";
+import { Field } from "../../fields/Field";
+import { HtmlField } from "../../fields/HtmlField";
+import { ImageField } from "../../fields/ImageField";
+import { InkField, StrokeData } from "../../fields/InkField";
+import { Key } from "../../fields/Key";
+import { KeyStore } from "../../fields/KeyStore";
+import { ListField } from "../../fields/ListField";
 import { PDFField } from "../../fields/PDFField";
-import { PDFBox } from "../views/nodes/PDFBox";
+import { TextField } from "../../fields/TextField";
+import { VideoField } from "../../fields/VideoField";
+import { WebField } from "../../fields/WebField";
+import { Server } from "../Server";
 import { CollectionPDFView } from "../views/collections/CollectionPDFView";
-import { RichTextField } from "../../fields/RichTextField";
 import { CollectionVideoView } from "../views/collections/CollectionVideoView";
-import { StrokeData, InkField } from "../../fields/InkField";
+import { CollectionView, CollectionViewType } from "../views/collections/CollectionView";
+import { AudioBox } from "../views/nodes/AudioBox";
+import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
+import { ImageBox } from "../views/nodes/ImageBox";
+import { KeyValueBox } from "../views/nodes/KeyValueBox";
+import { PDFBox } from "../views/nodes/PDFBox";
+import { VideoBox } from "../views/nodes/VideoBox";
+import { WebBox } from "../views/nodes/WebBox";
 
 export interface DocumentOptions {
     x?: number;
@@ -137,7 +134,7 @@ export namespace Documents {
                 { x: 0, y: 0, width: 300, height: 300, layoutKeys: [KeyStore.Data] });
     }
     function GetCollectionPrototype(): Document {
-        return collProto ? collProto.MakeDelegate() :
+        return collProto ? collProto :
             collProto = setupPrototypeOptions(collProtoId, "COLLECTION_PROTO", CollectionView.LayoutString("DataKey"),
                 { panx: 0, pany: 0, scale: 1, width: 500, height: 500, layoutKeys: [KeyStore.Data] });
     }
