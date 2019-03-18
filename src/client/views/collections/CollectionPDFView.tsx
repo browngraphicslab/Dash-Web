@@ -38,7 +38,7 @@ export class CollectionPDFView extends React.Component<CollectionViewProps> {
     public SelectedDocs: FieldId[] = []
     public active: () => boolean = () => CollectionView.Active(this);
 
-    addDocument = (doc: Document): void => { CollectionView.AddDocument(this.props, doc); }
+    addDocument = (doc: Document, allowDuplicates: boolean): void => { CollectionView.AddDocument(this.props, doc, allowDuplicates); }
     removeDocument = (doc: Document): boolean => { return CollectionView.RemoveDocument(this.props, doc); }
 
     specificContextMenu = (e: React.MouseEvent): void => {

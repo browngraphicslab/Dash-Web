@@ -23,7 +23,7 @@ import React = require("react");
 export interface DocumentViewProps {
     ContainingCollectionView: Opt<CollectionView>;
     Document: Document;
-    AddDocument?: (doc: Document) => void;
+    AddDocument?: (doc: Document, allowDuplicates: boolean) => void;
     RemoveDocument?: (doc: Document) => boolean;
     ScreenToLocalTransform: () => Transform;
     isTopMost: boolean;
@@ -163,12 +163,16 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     startDragging(x: number, y: number, dropAliasOfDraggedDoc: boolean) {
         if (this._mainCont.current) {
             const [left, top] = this.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
-            let dragData: { [id: string]: any } = {};
-            dragData["documentView"] = this;
-            dragData[dropAliasOfDraggedDoc ? "documentToAlias" : "document"] = this.props.Document;
-            dragData["xOffset"] = x - left;
-            dragData["yOffset"] = y - top;
-            DragManager.StartDrag(this._mainCont.current, dragData, {
+            let dragData = new DragManager.DocumentDragData(this.props.Document);
+            dragData.aliasOnDrop = dropAliasOfDraggedDoc;
+            dragData.xOffset = x - left;
+            dragData.yOffset = y - top;
+            dragData.removeDocument = (dropCollectionView: CollectionView) => {
+                if (this.props.RemoveDocument && this.props.ContainingCollectionView !== dropCollectionView) {
+                    this.props.RemoveDocument(this.props.Document);
+                }
+            }
+            DragManager.StartDocumentDrag(this._mainCont.current, dragData, {
                 handlers: {
                     dragComplete: action(() => { }),
                 },
@@ -211,7 +215,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
 
     fieldsClicked = (e: React.MouseEvent): void => {
         if (this.props.AddDocument) {
-            this.props.AddDocument(Documents.KVPDocument(this.props.Document, { width: 300, height: 300 }));
+            this.props.AddDocument(Documents.KVPDocument(this.props.Document, { width: 300, height: 300 }), false);
         }
     }
     fullScreenClicked = (e: React.MouseEvent): void => {
@@ -230,28 +234,25 @@ export class DocumentView extends React.Component<DocumentViewProps> {
 
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
-        console.log("drop");
-        const sourceDocView: DocumentView = de.data["linkSourceDoc"];
-        if (!sourceDocView) {
-            return;
+        if (de.data instanceof DragManager.LinkDragData) {
+            let sourceDoc: Document = de.data.linkSourceDocumentView.props.Document;
+            let destDoc: Document = this.props.Document;
+            if (this.props.isTopMost) {
+                return;
+            }
+            let linkDoc: Document = new Document();
+
+            linkDoc.Set(KeyStore.Title, new TextField("New Link"));
+            linkDoc.Set(KeyStore.LinkDescription, new TextField(""));
+            linkDoc.Set(KeyStore.LinkTags, new TextField("Default"));
+
+            sourceDoc.GetOrCreateAsync(KeyStore.LinkedToDocs, ListField, field => { (field as ListField<Document>).Data.push(linkDoc) });
+            linkDoc.Set(KeyStore.LinkedToDocs, destDoc);
+            destDoc.GetOrCreateAsync(KeyStore.LinkedFromDocs, ListField, field => { (field as ListField<Document>).Data.push(linkDoc) });
+            linkDoc.Set(KeyStore.LinkedFromDocs, sourceDoc);
+
+            e.stopPropagation();
         }
-        let sourceDoc: Document = sourceDocView.props.Document;
-        let destDoc: Document = this.props.Document;
-        if (this.props.isTopMost) {
-            return;
-        }
-        let linkDoc: Document = new Document();
-
-        linkDoc.Set(KeyStore.Title, new TextField("New Link"));
-        linkDoc.Set(KeyStore.LinkDescription, new TextField(""));
-        linkDoc.Set(KeyStore.LinkTags, new TextField("Default"));
-
-        sourceDoc.GetOrCreateAsync(KeyStore.LinkedToDocs, ListField, field => { (field as ListField<Document>).Data.push(linkDoc) });
-        linkDoc.Set(KeyStore.LinkedToDocs, destDoc);
-        destDoc.GetOrCreateAsync(KeyStore.LinkedFromDocs, ListField, field => { (field as ListField<Document>).Data.push(linkDoc) });
-        linkDoc.Set(KeyStore.LinkedFromDocs, sourceDoc);
-
-        e.stopPropagation();
     }
 
     onDrop = (e: React.DragEvent) => {

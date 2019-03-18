@@ -97,7 +97,7 @@ export class PDFBox extends React.Component<FieldViewProps> {
                     this.saveThumbnail();
                     this._interactive = true;
                 } else {
-                    if (this.curPage)
+                    if (this.curPage > 0)
                         this.initPage = true;
                 }
             },

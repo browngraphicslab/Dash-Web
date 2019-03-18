@@ -11,6 +11,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPen, faHighlighter, faEraser, faBan } from '@fortawesome/free-solid-svg-icons';
 import { SelectionManager } from "../util/SelectionManager";
 import { KeyStore } from "../../fields/KeyStore";
+import { TextField } from "../../fields/TextField";
 
 library.add(faPen, faHighlighter, faEraser, faBan);
 
@@ -39,7 +40,7 @@ export class InkingControl extends React.Component {
         if (SelectionManager.SelectedDocuments().length == 1) {
             var sdoc = SelectionManager.SelectedDocuments()[0];
             if (sdoc.props.ContainingCollectionView && sdoc.props.ContainingCollectionView) {
-                sdoc.props.Document.SetText(KeyStore.BackgroundColor, color.hex);
+                sdoc.props.Document.SetOnPrototype(KeyStore.BackgroundColor, new TextField(color.hex));
             }
         }
     }

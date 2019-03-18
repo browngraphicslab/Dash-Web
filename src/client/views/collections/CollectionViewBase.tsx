@@ -14,6 +14,7 @@ import { RouteStore } from "../../../server/RouteStore";
 import { TupleField } from "../../../fields/TupleField";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { NumberField } from "../../../fields/NumberField";
+import { DocumentManager } from "../../util/DocumentManager";
 
 export interface CollectionViewProps {
     fieldKey: Key;
@@ -30,7 +31,7 @@ export interface CollectionViewProps {
 
 export interface SubCollectionViewProps extends CollectionViewProps {
     active: () => boolean;
-    addDocument: (doc: Document) => void;
+    addDocument: (doc: Document, allowDuplicates: boolean) => void;
     removeDocument: (doc: Document) => boolean;
     CollectionView: CollectionView;
 }
@@ -81,30 +82,16 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
     @undoBatch
     @action
     protected drop(e: Event, de: DragManager.DropEvent) {
-        let docToAlias = de.data["documentToAlias"];
-        let docView = de.data["documentView"];
-        let doc = docToAlias ? docToAlias.CreateAlias() : de.data["document"];
-        if (docToAlias) {
-            [KeyStore.Width, KeyStore.Height].map(key =>
-                docToAlias.GetTAsync(key, NumberField, (f: Opt<NumberField>) => {
-                    if (f) {
-                        doc.SetNumber(key, f.Data)
-                    }
-                })
-            );
-            de.data["document"] = doc;
-            this.props.addDocument(doc);
-        } else if (docView) {
-            if (doc && docView.props.RemoveDocument && docView.props.ContainingCollectionView !== this.props.CollectionView) {
-                docView.props.RemoveDocument(doc);
-                this.props.removeDocument(doc); // bcz: not good -- want to check if it's there and then add if it isn't
-                this.props.addDocument(doc);
+        if (de.data instanceof DragManager.DocumentDragData) {
+            if (de.data.aliasOnDrop) {
+                [KeyStore.Width, KeyStore.Height, KeyStore.CurPage].map(key =>
+                    de.data.draggedDocument.GetTAsync(key, NumberField, (f: Opt<NumberField>) => f ? de.data.droppedDocument.SetNumber(key, f.Data) : null));
+            } else if (de.data.removeDocument) {
+                de.data.removeDocument(this.props.CollectionView);
             }
-        } else if (doc) {
-            this.props.removeDocument(doc); // bcz: not good -- want to check if it's there and then add if it isn't
-            this.props.addDocument(doc);
+            this.props.addDocument(de.data.droppedDocument, false);
+            e.stopPropagation();
         }
-        e.stopPropagation();
     }
 
     @action
@@ -124,7 +111,7 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
             console.log("not good");
             let htmlDoc = Documents.HtmlDocument(html, { ...options, width: 300, height: 300 });
             htmlDoc.SetText(KeyStore.DocumentText, text);
-            this.props.addDocument(htmlDoc);
+            this.props.addDocument(htmlDoc, false);
             return;
         }
 
@@ -134,7 +121,7 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
             const upload = window.location.origin + RouteStore.upload;
             let item = e.dataTransfer.items[i];
             if (item.kind === "string" && item.type.indexOf("uri") != -1) {
-                e.dataTransfer.items[i].getAsString(action((s: string) => this.props.addDocument(Documents.WebDocument(s, options))))
+                e.dataTransfer.items[i].getAsString(action((s: string) => this.props.addDocument(Documents.WebDocument(s, options), false)))
             }
             let type = item.type
             console.log(type)

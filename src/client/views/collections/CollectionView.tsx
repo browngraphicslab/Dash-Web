@@ -36,7 +36,7 @@ export class CollectionView extends React.Component<CollectionViewProps> {
     @observable
     public SelectedDocs: FieldId[] = [];
     public active: () => boolean = () => CollectionView.Active(this);
-    addDocument = (doc: Document): void => { CollectionView.AddDocument(this.props, doc); }
+    addDocument = (doc: Document, allowDuplicates: boolean): void => { CollectionView.AddDocument(this.props, doc, allowDuplicates); }
     removeDocument = (doc: Document): boolean => { return CollectionView.RemoveDocument(this.props, doc); }
     get subView() { return CollectionView.SubView(this); }
 
@@ -48,12 +48,13 @@ export class CollectionView extends React.Component<CollectionViewProps> {
     }
 
     @action
-    public static AddDocument(props: CollectionViewProps, doc: Document) {
+    public static AddDocument(props: CollectionViewProps, doc: Document, allowDuplicates: boolean) {
         doc.SetNumber(KeyStore.Page, props.Document.GetNumber(KeyStore.CurPage, -1));
         if (props.Document.Get(props.fieldKey) instanceof Field) {
             //TODO This won't create the field if it doesn't already exist
             const value = props.Document.GetData(props.fieldKey, ListField, new Array<Document>())
-            value.push(doc);
+            if (!value.some(v => v.Id == doc.Id) || allowDuplicates)
+                value.push(doc);
         } else {
             props.Document.SetOnPrototype(props.fieldKey, new ListField([doc]));
         }

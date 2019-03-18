@@ -14,7 +14,7 @@ import { EditableView } from "../EditableView";
 import { DocumentView } from "../nodes/DocumentView";
 import { FieldView, FieldViewProps } from "../nodes/FieldView";
 import "./CollectionSchemaView.scss";
-import { COLLECTION_BORDER_WIDTH } from "./CollectionView";
+import { COLLECTION_BORDER_WIDTH, CollectionView } from "./CollectionView";
 import { CollectionViewBase } from "./CollectionViewBase";
 import { setupDrag } from "../../util/DragManager";
 
@@ -47,7 +47,7 @@ export class CollectionSchemaView extends CollectionViewBase {
             <FieldView {...props} />
         )
         let reference = React.createRef<HTMLDivElement>();
-        let onItemDown = setupDrag(reference, () => props.doc);
+        let onItemDown = setupDrag(reference, () => props.doc, (containingCollection: CollectionView) => this.props.removeDocument(props.doc));
         return (
             <div className="collectionSchemaView-cellContents" onPointerDown={onItemDown} style={{ height: "36px" }} key={props.doc.Id} ref={reference}>
                 <EditableView
