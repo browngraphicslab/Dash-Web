@@ -49,13 +49,7 @@ class PresentationViewItem extends React.Component<PresViewProps> {
         }
         if (index !== -1) {
             value.splice(index, 1)
-
-            //TODO: do i need below lines??
-            // SelectionManager.DeselectAll()
-            // ContextMenu.Instance.clearItems()
-            //   return true;
         }
-        // return false
     }
 
     /**
@@ -71,7 +65,6 @@ class PresentationViewItem extends React.Component<PresViewProps> {
         }
         // finally, if it's a normal document, then render it as such.
         else {
-            //TODO: there is a zoom event that will be merged for on click
             return <li className="presentationView-item" key={document.Id} >
                 <div className="presentationView-header" onClick={() => this.openDoc(document)}>{title.Data}</div>
                 <div className="presentation-icon" onClick={() => this.RemoveDoc(document)}>X</div></li>;
@@ -123,7 +116,6 @@ export class PresentationView extends React.Component<PresViewProps>  {
             this.props.Document.SetData(KeyStore.Data, [doc], ListField);
         }
 
-        //TODO: open presentation view if not already open
         this.props.Document.SetData(KeyStore.Width, 300, NumberField);
     }
 
@@ -133,13 +125,15 @@ export class PresentationView extends React.Component<PresViewProps>  {
         if (title && title !== "<Waiting>") {
             titleStr = title.Data;
         }
-        //TODO: programmatically change width
         let width = this.props.Document.GetNumber(KeyStore.Width, 0);
         return (
             <div className="presentationView-cont" style={{ width: width }}>
                 <div className="presentationView-heading">
                     <div className="presentationView-title">{titleStr}</div>
                     <div className='presentation-icon' onClick={this.closePresentation}>X</div></div>
+                <div>
+
+                </div>
                 <ul>
                     <PresentationViewItem
                         Document={this.props.Document}
