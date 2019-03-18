@@ -54,9 +54,9 @@ mongoose.connection.on('connected', function () {
 // SESSION MANAGEMENT AND AUTHENTICATION MIDDLEWARE
 // ORDER OF IMPORTS MATTERS
 
-app.use(cookieParser(`${c.randomBytes(64)}`));
+app.use(cookieParser());
 app.use(session({
-    secret: `${c.randomBytes(64)}`,
+    secret: `our secret`,
     resave: true,
     cookie: { maxAge: 7 * 24 * 60 * 60 },
     saveUninitialized: true,
