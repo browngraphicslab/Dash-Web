@@ -1,5 +1,5 @@
 import React = require("react")
-import { action, observable, ObservableMap, runInAction } from "mobx";
+import { action, observable, ObservableMap, computed } from "mobx";
 import { observer } from "mobx-react";
 import Measure from "react-measure";
 import ReactTable, { CellInfo, ComponentPropsGetterR, ReactTableDefaults } from "react-table";
@@ -26,7 +26,7 @@ import { Key } from "./../../../fields/Key";
 @observer
 export class CollectionSchemaView extends CollectionViewBase {
     private _mainCont = React.createRef<HTMLDivElement>();
-    private DIVIDER_WIDTH = 5;
+    private DIVIDER_WIDTH = 4;
 
     @observable _columns: Array<Key> = [KeyStore.Title, KeyStore.Data, KeyStore.Author];
     @observable _contentScaling = 1; // used to transfer the dimensions of the content pane in the DOM to the ContentScaling prop of the DocumentView
@@ -34,7 +34,7 @@ export class CollectionSchemaView extends CollectionViewBase {
     @observable _panelWidth = 0;
     @observable _panelHeight = 0;
     @observable _selectedIndex = 0;
-    @observable _splitPercentage: number = 50;
+    @computed get splitPercentage() { return this.props.Document.GetNumber(KeyStore.SchemaSplitPercentage, 0); }
 
     renderCell = (rowProps: CellInfo) => {
         let props: FieldViewProps = {
@@ -52,7 +52,7 @@ export class CollectionSchemaView extends CollectionViewBase {
         let reference = React.createRef<HTMLDivElement>();
         let onItemDown = setupDrag(reference, () => props.doc);
         return (
-            <div onPointerDown={onItemDown} key={props.doc.Id} ref={reference}>
+            <div className="collectionSchemaView-cellContents" onPointerDown={onItemDown} style={{ height: "36px" }} key={props.doc.Id} ref={reference}>
                 <EditableView contents={contents}
                     height={36} GetValue={() => {
                         let field = props.doc.Get(props.fieldKey);
@@ -92,7 +92,8 @@ export class CollectionSchemaView extends CollectionViewBase {
         return {
             onClick: action((e: React.MouseEvent, handleOriginal: Function) => {
                 that._selectedIndex = rowInfo.index;
-                this._splitPercentage += 0.05; // bcz - ugh - needed to force Measure to do its thing and call onResize
+                // bcz - ugh - needed to force Measure to do its thing and call onResize
+                this.props.Document.SetNumber(KeyStore.SchemaSplitPercentage, this.splitPercentage - 0.05)
 
                 if (handleOriginal) {
                     handleOriginal()
@@ -132,18 +133,18 @@ export class CollectionSchemaView extends CollectionViewBase {
     @action
     onDividerMove = (e: PointerEvent): void => {
         let nativeWidth = this._mainCont.current!.getBoundingClientRect();
-        this._splitPercentage = Math.round((e.clientX - nativeWidth.left) / nativeWidth.width * 100);
+        this.props.Document.SetNumber(KeyStore.SchemaSplitPercentage, 100 - Math.round((e.clientX - nativeWidth.left) / nativeWidth.width * 100));
     }
     @action
     onDividerUp = (e: PointerEvent): void => {
         document.removeEventListener("pointermove", this.onDividerMove);
         document.removeEventListener('pointerup', this.onDividerUp);
-        if (this._startSplitPercent == this._splitPercentage) {
-            this._splitPercentage = this._splitPercentage == 1 ? 66 : 100;
+        if (this._startSplitPercent == this.splitPercentage) {
+            this.props.Document.SetNumber(KeyStore.SchemaSplitPercentage, this.splitPercentage == 0 ? 33 : 0);
         }
     }
     onDividerDown = (e: React.PointerEvent) => {
-        this._startSplitPercent = this._splitPercentage;
+        this._startSplitPercent = this.splitPercentage;
         e.stopPropagation();
         e.preventDefault();
         document.addEventListener("pointermove", this.onDividerMove);
@@ -160,12 +161,12 @@ export class CollectionSchemaView extends CollectionViewBase {
         e.preventDefault();
         document.removeEventListener("pointermove", this.onExpanderMove);
         document.removeEventListener('pointerup', this.onExpanderUp);
-        if (this._startSplitPercent == this._splitPercentage) {
-            this._splitPercentage = this._splitPercentage == 100 ? 66 : 100;
+        if (this._startSplitPercent == this.splitPercentage) {
+            this.props.Document.SetNumber(KeyStore.SchemaSplitPercentage, this.splitPercentage == 0 ? 33 : 0);
         }
     }
     onExpanderDown = (e: React.PointerEvent) => {
-        this._startSplitPercent = this._splitPercentage;
+        this._startSplitPercent = this.splitPercentage;
         e.stopPropagation();
         e.preventDefault();
         document.addEventListener("pointermove", this.onExpanderMove);
@@ -229,7 +230,7 @@ export class CollectionSchemaView extends CollectionViewBase {
         )
         let previewHandle = !this.props.active() ? (null) : (
             <div className="collectionSchemaView-previewHandle" onPointerDown={this.onExpanderDown} />);
-        let dividerDragger = this._splitPercentage == 100 ? (null) :
+        let dividerDragger = this.splitPercentage == 0 ? (null) :
             <div className="collectionSchemaView-dividerDragger" onPointerDown={this.onDividerDown} style={{ width: `${this.DIVIDER_WIDTH}px` }} />
 
         return (
@@ -240,7 +241,8 @@ export class CollectionSchemaView extends CollectionViewBase {
                         this._panelHeight = r.entry.height;
                     })}>
                         {({ measureRef }) =>
-                            <div ref={measureRef} className="collectionSchemaView-tableContainer" style={{ width: `${this._splitPercentage}%` }}>
+                            <div ref={measureRef} className="collectionSchemaView-tableContainer"
+                                style={{ width: `calc(100% - ${this.splitPercentage}%)` }}>
                                 <ReactTable
                                     data={children}
                                     pageSize={children.length}
@@ -272,7 +274,7 @@ export class CollectionSchemaView extends CollectionViewBase {
                         }
                     </Measure>
                     {dividerDragger}
-                    <div className="collectionSchemaView-previewRegion" style={{ width: `calc(${100 - this._splitPercentage}% - ${this.DIVIDER_WIDTH}px)` }}>
+                    <div className="collectionSchemaView-previewRegion" style={{ width: `calc(${this.props.Document.GetNumber(KeyStore.SchemaSplitPercentage, 0)}% - ${this.DIVIDER_WIDTH}px)` }}>
                         {content}
                     </div>
                     {previewHandle}

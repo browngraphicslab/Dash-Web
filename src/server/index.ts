@@ -100,8 +100,13 @@ let FieldStore: ObservableMap<FieldId, Field> = new ObservableMap();
 
 // define a route handler for the default home page
 app.get("/", (req, res) => {
-    res.sendFile(path.join(__dirname, '../../deploy/index.html'));
+    res.redirect("/doc/mainDoc");
+    // res.sendFile(path.join(__dirname, '../../deploy/index.html'));
 });
+
+app.get("/doc/:docId", (req, res) => {
+    res.sendFile(path.join(__dirname, '../../deploy/index.html'));
+})
 
 app.get("/hello", (req, res) => {
     res.send("<p>Hello</p>");
