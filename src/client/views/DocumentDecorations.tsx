@@ -18,6 +18,8 @@ export class DocumentDecorations extends React.Component {
     static Instance: DocumentDecorations
     private _resizer = ""
     private _isPointerDown = false;
+
+    private _resizeBorderWidth = 16;
     private _linkButton = React.createRef<HTMLDivElement>();
     @observable private _hidden = false;
 
@@ -75,7 +77,6 @@ export class DocumentDecorations extends React.Component {
     }
 
     onLinkButtonUp = (e: PointerEvent): void => {
-        console.log("up");
         document.removeEventListener("pointermove", this.onLinkButtonMoved)
         document.removeEventListener("pointerup", this.onLinkButtonUp)
         e.stopPropagation();
@@ -83,19 +84,17 @@ export class DocumentDecorations extends React.Component {
 
 
     onLinkButtonMoved = (e: PointerEvent): void => {
-        console.log("moved");
-        let dragData: { [id: string]: any } = {};
-        dragData["linkSourceDoc"] = SelectionManager.SelectedDocuments()[0];
         if (this._linkButton.current != null) {
-            DragManager.StartDrag(this._linkButton.current, dragData, {
+            document.removeEventListener("pointermove", this.onLinkButtonMoved)
+            document.removeEventListener("pointerup", this.onLinkButtonUp)
+            let dragData = new DragManager.LinkDragData(SelectionManager.SelectedDocuments()[0]);
+            DragManager.StartLinkDrag(this._linkButton.current, dragData, {
                 handlers: {
                     dragComplete: action(() => { }),
                 },
                 hideSource: false
             })
         }
-        document.removeEventListener("pointermove", this.onLinkButtonMoved)
-        document.removeEventListener("pointerup", this.onLinkButtonUp)
         e.stopPropagation();
     }
 
@@ -206,21 +205,24 @@ export class DocumentDecorations extends React.Component {
         let linkButton = null;
         if (SelectionManager.SelectedDocuments().length > 0) {
             let selFirst = SelectionManager.SelectedDocuments()[0];
+            let linkToSize = selFirst.props.Document.GetData(KeyStore.LinkedToDocs, ListField, []).length;
+            let linkFromSize = selFirst.props.Document.GetData(KeyStore.LinkedFromDocs, ListField, []).length;
+            let linkCount = linkToSize + linkFromSize;
             linkButton = (<Flyout
                 anchorPoint={anchorPoints.RIGHT_TOP}
                 content={
                     <LinkMenu docView={selFirst} changeFlyout={this.changeFlyoutContent}>
                     </LinkMenu>
                 }>
-                <div className={"linkButton-" + (selFirst.props.Document.GetData(KeyStore.LinkedToDocs, ListField, []).length ? "nonempty" : "empty")} onPointerDown={this.onLinkButtonDown} ref={this._linkButton} />
+                <div className={"linkButton-" + (selFirst.props.Document.GetData(KeyStore.LinkedToDocs, ListField, []).length ? "nonempty" : "empty")} onPointerDown={this.onLinkButtonDown} >{linkCount}</div>
             </Flyout>);
         }
         return (
             <div id="documentDecorations-container" style={{
-                width: (bounds.r - bounds.x + 40) + "px",
-                height: (bounds.b - bounds.y + 40) + "px",
-                left: bounds.x - 20,
-                top: bounds.y - 20,
+                width: (bounds.r - bounds.x + this._resizeBorderWidth) + "px",
+                height: (bounds.b - bounds.y + this._resizeBorderWidth + 30) + "px",
+                left: bounds.x - this._resizeBorderWidth / 2,
+                top: bounds.y - this._resizeBorderWidth / 2,
             }}>
                 <div id="documentDecorations-topLeftResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-topResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
@@ -232,7 +234,7 @@ export class DocumentDecorations extends React.Component {
                 <div id="documentDecorations-bottomResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-bottomRightResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
 
-                {linkButton}
+                <div title="View Links" className="linkFlyout" ref={this._linkButton}>{linkButton}</div>
 
             </div >
         )

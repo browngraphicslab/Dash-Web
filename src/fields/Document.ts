@@ -2,7 +2,7 @@ import { Key } from "./Key"
 import { KeyStore } from "./KeyStore";
 import { Field, Cast, FieldWaiting, FieldValue, FieldId, Opt } from "./Field"
 import { NumberField } from "./NumberField";
-import { ObservableMap, computed, action } from "mobx";
+import { ObservableMap, computed, action, runInAction } from "mobx";
 import { TextField } from "./TextField";
 import { ListField } from "./ListField";
 import { Server } from "../client/Server";
@@ -11,6 +11,7 @@ import { UndoManager } from "../client/util/UndoManager";
 import { HtmlField } from "./HtmlField";
 
 export class Document extends Field {
+    //TODO tfs: We should probably store FieldWaiting in fields when we request it from the server so that we don't set up multiple server gets for the same document and field
     public fields: ObservableMap<string, { key: Key, field: Field }> = new ObservableMap();
     public _proxies: ObservableMap<string, FieldId> = new ObservableMap();
 
@@ -36,6 +37,11 @@ export class Document extends Field {
     @computed
     public get Title() {
         return this.GetText(KeyStore.Title, "<untitled>");
+    }
+
+    @computed
+    public get Fields() {
+        return this.fields;
     }
 
     /**
@@ -119,9 +125,11 @@ export class Document extends Field {
      * @returns `true` if the field exists on the document and `callback` will be called, and `false` otherwise
      */
     GetAsync(key: Key, callback: (field: Field) => void): boolean {
-        //TODO: This should probably check if this.fields contains the key before calling Server.GetDocumentField
-        //This currently doesn't deal with prototypes
-        if (this._proxies.has(key.Id)) {
+        //TODO: This currently doesn't deal with prototypes
+        let field = this.fields.get(key.Id);
+        if (field && field.field) {
+            callback(field.field);
+        } else if (this._proxies.has(key.Id)) {
             Server.GetDocumentField(this, key, callback);
             return true;
         }
@@ -207,25 +215,37 @@ export class Document extends Field {
     }
 
     @action
-    Set(key: Key, field: Field | undefined): void {
+    SetOnPrototype(key: Key, field: Field | undefined): void {
+        this.GetAsync(KeyStore.Prototype, (f: Field) => {
+            (f as Document).Set(key, field)
+        })
+    }
+
+    @action
+    Set(key: Key, field: Field | undefined, setOnPrototype = false): void {
         let old = this.fields.get(key.Id);
         let oldField = old ? old.field : undefined;
-        if (field) {
-            this.fields.set(key.Id, { key, field });
-            this._proxies.set(key.Id, field.Id)
-            // Server.AddDocumentField(this, key, field);
-        } else {
-            this.fields.delete(key.Id);
-            this._proxies.delete(key.Id)
-            // Server.DeleteDocumentField(this, key);
+        if (setOnPrototype) {
+            this.SetOnPrototype(key, field)
+        }
+        else {
+            if (field) {
+                this.fields.set(key.Id, { key, field });
+                this._proxies.set(key.Id, field.Id)
+                // Server.AddDocumentField(this, key, field);
+            } else {
+                this.fields.delete(key.Id);
+                this._proxies.delete(key.Id)
+                // Server.DeleteDocumentField(this, key);
+            }
+            Server.UpdateField(this);
         }
         if (oldField || field) {
             UndoManager.AddEvent({
-                undo: () => this.Set(key, oldField),
-                redo: () => this.Set(key, field)
+                undo: () => this.Set(key, oldField, setOnPrototype),
+                redo: () => this.Set(key, field, setOnPrototype)
             })
         }
-        Server.UpdateField(this);
     }
 
     @action
@@ -265,6 +285,15 @@ export class Document extends Field {
         return protos;
     }
 
+    CreateAlias(id?: string): Document {
+        let alias = new Document(id)
+        this.GetAsync(KeyStore.Prototype, (f: Field) => {
+            alias.Set(KeyStore.Prototype, f)
+        })
+
+        return alias
+    }
+
     MakeDelegate(id?: string): Document {
         let delegate = new Document(id);
 
@@ -281,6 +310,7 @@ export class Document extends Field {
         throw new Error("Method not implemented.");
     }
     GetValue() {
+        return this.Title;
         var title = (this._proxies.has(KeyStore.Title.Id) ? "???" : this.Title) + "(" + this.Id + ")";
         return title;
         //throw new Error("Method not implemented.");

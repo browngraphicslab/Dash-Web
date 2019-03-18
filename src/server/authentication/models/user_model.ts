@@ -1,6 +1,5 @@
 //@ts-ignore
 import * as bcrypt from "bcrypt-nodejs";
-import * as crypto from "crypto";
 //@ts-ignore
 import * as mongoose from "mongoose";
 var url = 'mongodb://localhost:27017/Dash'
@@ -16,12 +15,15 @@ mongoose.connection.on('error', function (error) {
 mongoose.connection.on('disconnected', function () {
     console.log('connection closed');
 });
-export type UserModel = mongoose.Document & {
+export type DashUserModel = mongoose.Document & {
     email: string,
     password: string,
-    passwordResetToken: string,
-    passwordResetExpires: Date,
-    tokens: AuthToken[],
+    passwordResetToken: string | undefined,
+    passwordResetExpires: Date | undefined,
+
+    allWorkspaceIds: Array<String>,
+    activeWorkspaceId: String,
+    activeUsersId: String,
 
     profile: {
         name: string,
@@ -47,10 +49,16 @@ const userSchema = new mongoose.Schema({
     passwordResetToken: String,
     passwordResetExpires: Date,
 
+    allWorkspaceIds: {
+        type: Array,
+        default: []
+    },
+    activeWorkspaceId: String,
+    activeUsersId: String,
+
     facebook: String,
     twitter: String,
     google: String,
-    tokens: Array,
 
     profile: {
         name: String,
@@ -65,7 +73,7 @@ const userSchema = new mongoose.Schema({
  * Password hash middleware.
  */
 userSchema.pre("save", function save(next) {
-    const user = this as UserModel;
+    const user = this as DashUserModel;
     if (!user.isModified("password")) { return next(); }
     bcrypt.genSalt(10, (err, salt) => {
         if (err) { return next(err); }
@@ -77,7 +85,7 @@ userSchema.pre("save", function save(next) {
     });
 });
 
-const comparePassword: comparePasswordFunction = function (this: UserModel, candidatePassword, cb) {
+const comparePassword: comparePasswordFunction = function (this: DashUserModel, candidatePassword, cb) {
     bcrypt.compare(candidatePassword, this.password, (err: mongoose.Error, isMatch: boolean) => {
         cb(err, isMatch);
     });

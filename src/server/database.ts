@@ -19,7 +19,7 @@ export class Database {
     public update(id: string, value: any, callback: () => void) {
         if (this.db) {
             let collection = this.db.collection('documents');
-            collection.update({ _id: id }, { $set: value }, {
+            collection.updateOne({ _id: id }, { $set: value }, {
                 upsert: true
             }, callback);
         }
@@ -32,9 +32,9 @@ export class Database {
         }
     }
 
-    public deleteAll() {
+    public deleteAll(collectionName: string = 'documents') {
         if (this.db) {
-            let collection = this.db.collection('documents');
+            let collection = this.db.collection(collectionName);
             collection.deleteMany({});
         }
     }
@@ -70,6 +70,10 @@ export class Database {
             let collection = this.db.collection('documents');
             let cursor = collection.find({ _id: { "$in": ids } })
             cursor.toArray((err, docs) => {
+                if (err) {
+                    console.log(err.message);
+                    console.log(err.errmsg);
+                }
                 fn(docs);
             })
         };

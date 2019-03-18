@@ -14,6 +14,9 @@ import { Plugin } from 'prosemirror-state'
 import { Decoration, DecorationSet } from 'prosemirror-view'
 import { TooltipTextMenu } from "../../util/TooltipTextMenu"
 import { ContextMenu } from "../../views/ContextMenu";
+import { inpRules } from "../../util/RichTextRules";
+const { buildMenuItems } = require("prosemirror-example-setup");
+const { menuBar } = require("prosemirror-menu");
 
 
 
@@ -31,7 +34,7 @@ import { ContextMenu } from "../../views/ContextMenu";
 //    and 'doc' property to the document that is being rendered
 //
 //  When rendered() by React, this extracts the TextController from the Document stored at the 
-//  specified Key and assigns it to an HTML input node.  When changes are made tot his node, 
+//  specified Key and assigns it to an HTML input node.  When changes are made to this node, 
 //  this will edit the document and assign the new value to that field.
 //]
 export class FormattedTextBox extends React.Component<FieldViewProps> {
@@ -52,7 +55,9 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
         if (this._editorView) {
             const state = this._editorView.state.apply(tx);
             this._editorView.updateState(state);
-            this.props.doc.SetData(this.props.fieldKey, JSON.stringify(state.toJSON()), RichTextField);
+            const { doc, fieldKey } = this.props;
+            doc.SetOnPrototype(fieldKey, new RichTextField(JSON.stringify(state.toJSON())))
+            // doc.SetData(fieldKey, JSON.stringify(state.toJSON()), RichTextField);
         }
     }
 
@@ -60,6 +65,7 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
         let state: EditorState;
         const config = {
             schema,
+            inpRules, //these currently don't do anything, but could eventually be helpful
             plugins: [
                 history(),
                 keymap({ "Mod-z": undo, "Mod-y": redo }),
@@ -110,7 +116,9 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
 
     @action
     onChange(e: React.ChangeEvent<HTMLInputElement>) {
-        this.props.doc.SetData(this.props.fieldKey, e.target.value, RichTextField);
+        const { fieldKey, doc } = this.props;
+        doc.SetOnPrototype(fieldKey, new RichTextField(e.target.value))
+        // doc.SetData(fieldKey, e.target.value, RichTextField);
     }
     onPointerDown = (e: React.PointerEvent): void => {
         if (e.buttons === 1 && this.props.isSelected() && !e.altKey) {

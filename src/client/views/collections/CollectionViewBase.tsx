@@ -3,14 +3,18 @@ import { Document } from "../../../fields/Document";
 import { ListField } from "../../../fields/ListField";
 import React = require("react");
 import { KeyStore } from "../../../fields/KeyStore";
-import { FieldWaiting } from "../../../fields/Field";
+import { FieldWaiting, Opt } from "../../../fields/Field";
 import { undoBatch } from "../../util/UndoManager";
 import { DragManager } from "../../util/DragManager";
-import { DocumentView } from "../nodes/DocumentView";
 import { Documents, DocumentOptions } from "../../documents/Documents";
 import { Key } from "../../../fields/Key";
 import { Transform } from "../../util/Transform";
 import { CollectionView } from "./CollectionView";
+import { RouteStore } from "../../../server/RouteStore";
+import { TupleField } from "../../../fields/TupleField";
+import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
+import { NumberField } from "../../../fields/NumberField";
+import { DocumentManager } from "../../util/DocumentManager";
 
 export interface CollectionViewProps {
     fieldKey: Key;
@@ -24,12 +28,15 @@ export interface CollectionViewProps {
     panelHeight: () => number;
     focus: (doc: Document) => void;
 }
+
 export interface SubCollectionViewProps extends CollectionViewProps {
     active: () => boolean;
-    addDocument: (doc: Document) => void;
+    addDocument: (doc: Document, allowDuplicates: boolean) => void;
     removeDocument: (doc: Document) => boolean;
     CollectionView: CollectionView;
 }
+
+export type CursorEntry = TupleField<[string, string], [number, number]>;
 
 export class CollectionViewBase extends React.Component<SubCollectionViewProps> {
     private dropDisposer?: DragManager.DragDropDisposer;
@@ -42,52 +49,83 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
         }
     }
 
+    @action
+    protected setCursorPosition(position: [number, number]) {
+        let ind;
+        let doc = this.props.Document;
+        let id = CurrentUserUtils.id;
+        let email = CurrentUserUtils.email;
+        if (id && email) {
+            let textInfo: [string, string] = [id, email];
+            doc.GetOrCreateAsync<ListField<CursorEntry>>(KeyStore.Cursors, ListField, field => {
+                let cursors = field.Data;
+                if (cursors.length > 0 && (ind = cursors.findIndex(entry => entry.Data[0][0] === id)) > -1) {
+                    cursors[ind].Data[1] = position;
+                } else {
+                    let entry = new TupleField<[string, string], [number, number]>([textInfo, position]);
+                    cursors.push(entry);
+                }
+            })
+
+
+        }
+    }
+
+    protected getCursors(): CursorEntry[] {
+        let doc = this.props.Document;
+        let id = CurrentUserUtils.id;
+        let cursors = doc.GetList<CursorEntry>(KeyStore.Cursors, []);
+        let notMe = cursors.filter(entry => entry.Data[0][0] !== id);
+        return id ? notMe : [];
+    }
+
     @undoBatch
     @action
     protected drop(e: Event, de: DragManager.DropEvent) {
-        const docView: DocumentView = de.data["documentView"];
-        const doc: Document = de.data["document"];
-        if (docView && (!docView.props.ContainingCollectionView || docView.props.ContainingCollectionView !== this.props.CollectionView)) {
-            if (docView.props.RemoveDocument) {
-                docView.props.RemoveDocument(docView.props.Document);
+        if (de.data instanceof DragManager.DocumentDragData) {
+            if (de.data.aliasOnDrop) {
+                [KeyStore.Width, KeyStore.Height, KeyStore.CurPage].map(key =>
+                    de.data.draggedDocument.GetTAsync(key, NumberField, (f: Opt<NumberField>) => f ? de.data.droppedDocument.SetNumber(key, f.Data) : null));
+            } else if (de.data.removeDocument) {
+                de.data.removeDocument(this.props.CollectionView);
             }
-            this.props.addDocument(docView.props.Document);
-            e.stopPropagation();
-        } else if (doc) {
-            this.props.removeDocument(doc);
-            this.props.addDocument(doc);
+            this.props.addDocument(de.data.droppedDocument, false);
             e.stopPropagation();
         }
     }
 
     @action
     protected onDrop(e: React.DragEvent, options: DocumentOptions): void {
-        e.stopPropagation()
-        e.preventDefault()
         let that = this;
 
         let html = e.dataTransfer.getData("text/html");
         let text = e.dataTransfer.getData("text/plain");
+
+        if (text && text.startsWith("<div")) {
+            return;
+        }
+        e.stopPropagation()
+        e.preventDefault()
+
         if (html && html.indexOf("<img") != 0) {
             console.log("not good");
             let htmlDoc = Documents.HtmlDocument(html, { ...options, width: 300, height: 300 });
             htmlDoc.SetText(KeyStore.DocumentText, text);
-            this.props.addDocument(htmlDoc);
+            this.props.addDocument(htmlDoc, false);
             return;
         }
 
         console.log(e.dataTransfer.items.length);
 
         for (let i = 0; i < e.dataTransfer.items.length; i++) {
-            const upload = window.location.origin + "/upload";
+            const upload = window.location.origin + RouteStore.upload;
             let item = e.dataTransfer.items[i];
             if (item.kind === "string" && item.type.indexOf("uri") != -1) {
-                e.dataTransfer.items[i].getAsString(action((s: string) => this.props.addDocument(Documents.WebDocument(s, options))))
+                e.dataTransfer.items[i].getAsString(action((s: string) => this.props.addDocument(Documents.WebDocument(s, options), false)))
             }
             let type = item.type
             console.log(type)
             if (item.kind == "file") {
-                let fReader = new FileReader()
                 let file = item.getAsFile();
                 let formData = new FormData()
 
@@ -109,7 +147,7 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
                                 var doc: any;
 
                                 if (type.indexOf("image") !== -1) {
-                                    doc = Documents.ImageDocument(path, { ...options, nativeWidth: 300, width: 300, })
+                                    doc = Documents.ImageDocument(path, { ...options, nativeWidth: 200, width: 200, })
                                 }
                                 if (type.indexOf("video") !== -1) {
                                     doc = Documents.VideoDocument(path, { ...options, nativeWidth: 300, width: 300, })

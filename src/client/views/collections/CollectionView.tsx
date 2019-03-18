@@ -22,13 +22,10 @@ export enum CollectionViewType {
     Tree
 }
 
-export const COLLECTION_BORDER_WIDTH = 2;
+export const COLLECTION_BORDER_WIDTH = 1;
 
 @observer
 export class CollectionView extends React.Component<CollectionViewProps> {
-
-    @observable
-    public SelectedDocs: FieldId[] = [];
 
     public static LayoutString(fieldKey: string = "DataKey") {
         return `<${CollectionView.name} Document={Document}
@@ -36,8 +33,10 @@ export class CollectionView extends React.Component<CollectionViewProps> {
                     isTopMost={isTopMost} SelectOnLoad={selectOnLoad} BackgroundView={BackgroundView} focus={focus}/>`;
     }
 
+    @observable
+    public SelectedDocs: FieldId[] = [];
     public active: () => boolean = () => CollectionView.Active(this);
-    addDocument = (doc: Document): void => { CollectionView.AddDocument(this.props, doc); }
+    addDocument = (doc: Document, allowDuplicates: boolean): void => { CollectionView.AddDocument(this.props, doc, allowDuplicates); }
     removeDocument = (doc: Document): boolean => { return CollectionView.RemoveDocument(this.props, doc); }
     get subView() { return CollectionView.SubView(this); }
 
@@ -49,14 +48,15 @@ export class CollectionView extends React.Component<CollectionViewProps> {
     }
 
     @action
-    public static AddDocument(props: CollectionViewProps, doc: Document) {
-        doc.SetNumber(KeyStore.Page, props.Document.GetNumber(KeyStore.CurPage, 0));
+    public static AddDocument(props: CollectionViewProps, doc: Document, allowDuplicates: boolean) {
+        doc.SetNumber(KeyStore.Page, props.Document.GetNumber(KeyStore.CurPage, -1));
         if (props.Document.Get(props.fieldKey) instanceof Field) {
             //TODO This won't create the field if it doesn't already exist
             const value = props.Document.GetData(props.fieldKey, ListField, new Array<Document>())
-            value.push(doc);
+            if (!value.some(v => v.Id == doc.Id) || allowDuplicates)
+                value.push(doc);
         } else {
-            props.Document.SetData(props.fieldKey, [doc], ListField);
+            props.Document.SetOnPrototype(props.fieldKey, new ListField([doc]));
         }
     }
 

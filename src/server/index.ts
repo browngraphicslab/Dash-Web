@@ -6,63 +6,64 @@ import * as whm from 'webpack-hot-middleware';
 import * as path from 'path'
 import * as formidable from 'formidable'
 import * as passport from 'passport';
-import { MessageStore, Message, SetFieldArgs, GetFieldArgs, Transferable } from "./Message";
+import { MessageStore, Transferable } from "./Message";
 import { Client } from './Client';
 import { Socket } from 'socket.io';
 import { Utils } from '../Utils';
 import { ObservableMap } from 'mobx';
 import { FieldId, Field } from '../fields/Field';
 import { Database } from './database';
-import { ServerUtils } from './ServerUtil';
-import { ObjectID } from 'mongodb';
-import { Document } from '../fields/Document';
 import * as io from 'socket.io'
-import * as passportConfig from './authentication/config/passport';
-import { getLogin, postLogin, getSignup, postSignup } from './authentication/controllers/user';
+import { getLogin, postLogin, getSignup, postSignup, getLogout, postReset, getForgot, postForgot, getReset } from './authentication/controllers/user_controller';
 const config = require('../../webpack.config');
 const compiler = webpack(config);
 const port = 1050; // default port to listen
 const serverPort = 1234;
 import * as expressValidator from 'express-validator';
 import expressFlash = require('express-flash');
+import flash = require('connect-flash');
 import * as bodyParser from 'body-parser';
 import * as session from 'express-session';
+import * as cookieParser from 'cookie-parser';
+import * as mobileDetect from 'mobile-detect';
 import c = require("crypto");
 const MongoStore = require('connect-mongo')(session);
 const mongoose = require('mongoose');
-const bluebird = require('bluebird');
-import { performance } from 'perf_hooks'
+import { DashUserModel } from './authentication/models/user_model';
 import * as fs from 'fs';
 import * as request from 'request'
+import { RouteStore } from './RouteStore';
+import { exec } from 'child_process'
 
 const download = (url: string, dest: fs.PathLike) => {
     request.get(url).pipe(fs.createWriteStream(dest));
 }
 
 const mongoUrl = 'mongodb://localhost:27017/Dash';
-// mongoose.Promise = bluebird;
-mongoose.connect(mongoUrl)//.then(
-// () => { /** ready to use. The `mongoose.connect()` promise resolves to undefined. */ },
-// ).catch((err: any) => {
-// console.log("MongoDB connection error. Please make sure MongoDB is running. " + err);
-// process.exit();
-// });
+mongoose.connect(mongoUrl)
 mongoose.connection.on('connected', function () {
     console.log("connected");
 })
 
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(expressValidator());
-app.use(expressFlash());
-app.use(require('express-session')({
-    secret: `${c.randomBytes(64)}`,
+// SESSION MANAGEMENT AND AUTHENTICATION MIDDLEWARE
+// ORDER OF IMPORTS MATTERS
+
+app.use(cookieParser());
+app.use(session({
+    secret: "64d6866242d3b5a5503c675b32c9605e4e90478e9b77bcf2bc",
     resave: true,
+    cookie: { maxAge: 7 * 24 * 60 * 60 },
     saveUninitialized: true,
     store: new MongoStore({
         url: 'mongodb://localhost:27017/Dash'
     })
 }));
+
+app.use(flash());
+app.use(expressFlash());
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(expressValidator());
 app.use(passport.initialize());
 app.use(passport.session());
 app.use((req, res, next) => {
@@ -70,50 +71,194 @@ app.use((req, res, next) => {
     next();
 });
 
-app.get("/signup", getSignup);
-app.post("/signup", postSignup);
-app.get("/login", getLogin);
-app.post("/login", postLogin);
-
-// IMAGE UPLOADING HANDLER
-app.post("/upload", (req, res, err) => {
-    let form = new formidable.IncomingForm()
-    form.uploadDir = __dirname + "/public/files/"
-    form.keepExtensions = true
-    // let path = req.body.path;
-    console.log("upload")
-    form.parse(req, (err, fields, files) => {
-        console.log("parsing")
-        let names: any[] = [];
-        for (const name in files) {
-            let file = files[name];
-            names.push(`/files/` + path.basename(file.path));
-        }
-        res.send(names);
-    });
-})
-
-app.use(express.static(__dirname + '/public'));
-app.use('/images', express.static(__dirname + '/public'))
-
-let FieldStore: ObservableMap<FieldId, Field> = new ObservableMap();
-
-// define a route handler for the default home page
-app.get("/", (req, res) => {
-    res.sendFile(path.join(__dirname, '../../deploy/index.html'));
-});
-
 app.get("/hello", (req, res) => {
     res.send("<p>Hello</p>");
 })
 
-app.use("/corsProxy", (req, res) => {
+enum Method {
+    GET,
+    POST
+}
+
+/**
+ * Please invoke this function when adding a new route to Dash's server.
+ * It ensures that any requests leading to or containing user-sensitive information
+ * does not execute unless Passport authentication detects a user logged in.
+ * @param method whether or not the request is a GET or a POST
+ * @param handler the action to invoke, recieving a DashUserModel and, as expected, the Express.Request and Express.Response
+ * @param onRejection an optional callback invoked on return if no user is found to be logged in
+ * @param subscribers the forward slash prepended path names (reference and add to RouteStore.ts) that will all invoke the given @param handler 
+ */
+function addSecureRoute(method: Method,
+    handler: (user: DashUserModel, res: express.Response, req: express.Request) => void,
+    onRejection: (res: express.Response) => any = (res) => res.redirect(RouteStore.logout),
+    ...subscribers: string[]
+) {
+    let abstracted = (req: express.Request, res: express.Response) => {
+        const dashUser: DashUserModel = req.user;
+        if (!dashUser) return onRejection(res);
+        handler(dashUser, res, req);
+    }
+    subscribers.forEach(route => {
+        switch (method) {
+            case Method.GET:
+                app.get(route, abstracted);
+                break;
+            case Method.POST:
+                app.post(route, abstracted);
+                break;
+        }
+    });
+}
+
+// STATIC FILE SERVING
+
+let FieldStore: ObservableMap<FieldId, Field> = new ObservableMap();
+
+app.use(express.static(__dirname + RouteStore.public));
+app.use(RouteStore.images, express.static(__dirname + RouteStore.public))
+
+app.get("/pull", (req, res) => {
+    exec('"C:\\Program Files\\Git\\git-bash.exe" -c "git pull"', (err, stdout, stderr) => {
+        if (err) {
+            res.send(err.message);
+            return;
+        }
+        res.redirect("/");
+    })
+});
+
+// GETTERS
+
+// anyone attempting to navigate to localhost at this port will
+// first have to login
+addSecureRoute(
+    Method.GET,
+    (user, res) => res.redirect(RouteStore.home),
+    undefined,
+    RouteStore.root
+);
+
+addSecureRoute(
+    Method.GET,
+    (user, res, req) => {
+        let detector = new mobileDetect(req.headers['user-agent'] || "");
+        if (detector.mobile() != null) {
+            res.sendFile(path.join(__dirname, '../../deploy/mobile/image.html'));
+        } else {
+            res.sendFile(path.join(__dirname, '../../deploy/index.html'));
+        }
+    },
+    undefined,
+    RouteStore.home,
+    RouteStore.openDocumentWithId
+);
+
+addSecureRoute(
+    Method.GET,
+    (user, res) => res.send(user.activeWorkspaceId || ""),
+    undefined,
+    RouteStore.getActiveWorkspace,
+);
+
+addSecureRoute(
+    Method.GET,
+    (user, res) => res.send(JSON.stringify(user.allWorkspaceIds)),
+    undefined,
+    RouteStore.getAllWorkspaces
+);
+
+addSecureRoute(
+    Method.GET,
+    (user, res) => {
+        res.send(JSON.stringify({
+            id: user.id,
+            email: user.email
+        }));
+    },
+    undefined,
+    RouteStore.getCurrUser
+);
+
+// SETTERS
+
+addSecureRoute(
+    Method.POST,
+    (user, res, req) => {
+        user.update({ $set: { activeWorkspaceId: req.body.target } }, (err, raw) => {
+            res.sendStatus(err ? 500 : 200);
+        });
+    },
+    undefined,
+    RouteStore.setActiveWorkspace
+);
+
+addSecureRoute(
+    Method.POST,
+    (user, res, req) => {
+        user.update({ $push: { allWorkspaceIds: req.body.target } }, (err, raw) => {
+            res.sendStatus(err ? 500 : 200);
+        });
+    },
+    undefined,
+    RouteStore.addWorkspace
+);
+
+addSecureRoute(
+    Method.POST,
+    (user, res, req) => {
+        let form = new formidable.IncomingForm()
+        form.uploadDir = __dirname + "/public/files/"
+        form.keepExtensions = true
+        // let path = req.body.path;
+        console.log("upload")
+        form.parse(req, (err, fields, files) => {
+            console.log("parsing")
+            let names: any[] = [];
+            for (const name in files) {
+                let file = files[name];
+                names.push(`/files/` + path.basename(file.path));
+            }
+            res.send(names);
+        });
+    },
+    undefined,
+    RouteStore.upload
+);
+
+// AUTHENTICATION
+
+// Sign Up
+app.get(RouteStore.signup, getSignup);
+app.post(RouteStore.signup, postSignup);
+
+// Log In
+app.get(RouteStore.login, getLogin);
+app.post(RouteStore.login, postLogin);
+
+// Log Out
+app.get(RouteStore.logout, getLogout);
+
+// FORGOT PASSWORD EMAIL HANDLING
+app.get(RouteStore.forgot, getForgot)
+app.post(RouteStore.forgot, postForgot)
+
+// RESET PASSWORD EMAIL HANDLING
+app.get(RouteStore.reset, getReset);
+app.post(RouteStore.reset, postReset);
+
+app.use(RouteStore.corsProxy, (req, res) => {
     req.pipe(request(req.url.substring(1))).pipe(res);
 });
 
-app.get("/delete", (req, res) => {
+app.get(RouteStore.delete, (req, res) => {
+    deleteFields();
+    res.redirect(RouteStore.home);
+});
+
+app.get(RouteStore.deleteAll, (req, res) => {
     deleteAll();
-    res.redirect("/");
+    res.redirect(RouteStore.home);
 });
 
 app.use(wdm(compiler, {
@@ -142,19 +287,21 @@ server.on("connection", function (socket: Socket) {
     Utils.AddServerHandler(socket, MessageStore.SetField, (args) => setField(socket, args))
     Utils.AddServerHandlerCallback(socket, MessageStore.GetField, getField)
     Utils.AddServerHandlerCallback(socket, MessageStore.GetFields, getFields)
-    Utils.AddServerHandler(socket, MessageStore.DeleteAll, deleteAll)
+    Utils.AddServerHandler(socket, MessageStore.DeleteAll, deleteFields)
 })
+
+function deleteFields() {
+    Database.Instance.deleteAll();
+}
 
 function deleteAll() {
     Database.Instance.deleteAll();
+    Database.Instance.deleteAll('sessions');
+    Database.Instance.deleteAll('users');
 }
 
 function barReceived(guid: String) {
     clients[guid.toString()] = new Client(guid.toString());
-}
-
-function addDocument(document: Document) {
-
 }
 
 function getField([id, callback]: [string, (result: any) => void]) {

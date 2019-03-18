@@ -144,7 +144,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         if (this._containerRef.current) {
             reaction(
                 () => this.props.Document.GetText(KeyStore.Data, ""),
-                () => this.setupGoldenLayout(), { fireImmediately: true });
+                () => setTimeout(() => this.setupGoldenLayout(), 1), { fireImmediately: true });
 
             window.addEventListener('resize', this.onResize); // bcz: would rather add this event to the parent node, but resize events only come from Window
         }
@@ -211,6 +211,12 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                 //if (confirm('really close this?')) {
                 stack.remove();
                 //}
+            }));
+        stack.header.controlsContainer.find('.lm_popout') //get the close icon
+            .off('click') //unbind the current click handler
+            .click(action(function () {
+                var url = "http://localhost:1050/doc/" + stack.contentItems[0].tab.contentItem.config.props.documentId;
+                let win = window.open(url, stack.contentItems[0].tab.title, "width=300,height=400");
             }));
     }
 

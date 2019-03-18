@@ -16,6 +16,7 @@ import { WebBox } from "./WebBox";
 import { VideoBox } from "./VideoBox";
 import { AudioBox } from "./AudioBox";
 import { AudioField } from "../../../fields/AudioField";
+import { ListField } from "../../../fields/ListField";
 
 
 //
@@ -60,12 +61,20 @@ export class FieldView extends React.Component<FieldViewProps> {
         }
         else if (field instanceof WebField) {
             return <WebBox {...this.props} />
-        } 
-        else if (field instanceof VideoField){ 
-            return <VideoBox {...this.props}/>
         }
-        else if (field instanceof AudioField){ 
-            return <AudioBox {...this.props}/>
+        else if (field instanceof VideoField) {
+            return <VideoBox {...this.props} />
+        }
+        else if (field instanceof AudioField) {
+            return <AudioBox {...this.props} />
+        } else if (field instanceof Document) {
+            return <div>{field.Title}</div>
+        } else if (field instanceof ListField) {
+            return (<div>
+                {(field as ListField<Field>).Data.map(f => {
+                    return f instanceof Document ? f.Title : f.GetValue().toString();
+                }).join(", ")}
+            </div>)
         }
         // bcz: this belongs here, but it doesn't render well so taking it out for now
         // else if (field instanceof HtmlField) {

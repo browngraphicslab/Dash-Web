@@ -1,5 +1,5 @@
 import * as htmlToImage from "html-to-image";
-import { action, computed, observable, reaction, IReactionDisposer } from 'mobx';
+import { action, computed, observable, reaction, IReactionDisposer, trace } from 'mobx';
 import { observer } from "mobx-react";
 import 'react-image-lightbox/style.css';
 import Measure from "react-measure";
@@ -17,6 +17,7 @@ import "./ImageBox.scss";
 import "./PDFBox.scss";
 import { Sticky } from './Sticky'; //you should look at sticky and annotation, because they are used here
 import React = require("react")
+import { RouteStore } from "../../../server/RouteStore";
 
 /** ALSO LOOK AT: Annotation.tsx, Sticky.tsx
  * This method renders PDF and puts all kinds of functionalities such as annotation, highlighting, 
@@ -86,7 +87,7 @@ export class PDFBox extends React.Component<FieldViewProps> {
     @observable private _interactive: boolean = false;
     @observable private _loaded: boolean = false;
 
-    @computed private get curPage() { return this.props.doc.GetNumber(KeyStore.CurPage, 0); }
+    @computed private get curPage() { return this.props.doc.GetNumber(KeyStore.CurPage, -1); }
 
     componentDidMount() {
         this._reactionDisposer = reaction(
@@ -96,7 +97,7 @@ export class PDFBox extends React.Component<FieldViewProps> {
                     this.saveThumbnail();
                     this._interactive = true;
                 } else {
-                    if (this.curPage)
+                    if (this.curPage > 0)
                         this.initPage = true;
                 }
             },
@@ -441,7 +442,7 @@ export class PDFBox extends React.Component<FieldViewProps> {
         let pdfUrl = this.props.doc.GetT(this.props.fieldKey, PDFField);
         let xf = this.props.doc.GetNumber(KeyStore.NativeHeight, 0) / renderHeight;
         return <div className="pdfBox-contentContainer" key="container" style={{ transform: `scale(${xf}, ${xf})` }}>
-            <Document file={window.origin + "/corsProxy/" + `${pdfUrl}`}>
+            <Document file={window.origin + RouteStore.corsProxy + `/${pdfUrl}`}>
                 <Measure onResize={this.setScaling}>
                     {({ measureRef }) =>
                         <div className="pdfBox-page" ref={measureRef}>

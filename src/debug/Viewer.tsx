@@ -137,11 +137,13 @@ class DebugViewer extends React.Component<{ fieldId: string }> {
                 content = (<FieldViewer field={this.field} />)
             } else if (this.field instanceof Key) {
                 content = (<KeyViewer field={this.field} />)
+            } else {
+                content = (<span>Unrecognized field type</span>)
             }
         } else if (this.error) {
             content = <span>Field <b>{this.props.fieldId}</b> not found <button onClick={() => this.update()}>Refresh</button></span>
         } else {
-            content = <>Field loading</>
+            content = <span>Field loading: {this.props.fieldId}</span>
         }
         return content;
     }
