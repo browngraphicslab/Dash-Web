@@ -65,7 +65,7 @@ const onFileLoad = (file: any) => {
 ReactDOM.render((
     <div className="imgupload_cont">
         {/* <button className = "button_file"  = {onPointerDown}> Open Image </button> */}
-        <input type="file" accept="image/*" capture="camera" onChange={onFileLoad} className="input_file" id="input_image_file"></input>
+        <input type="file" accept="image/*" onChange={onFileLoad} className="input_file" id="input_image_file"></input>
         <img id="img_preview" src=""></img>
     </div>),
     document.getElementById('root')
