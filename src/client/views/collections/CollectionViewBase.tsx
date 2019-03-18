@@ -46,27 +46,26 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
     @undoBatch
     @action
     protected drop(e: Event, de: DragManager.DropEvent) {
-        let dropDoc: Document = de.data["document"];
-        if (de.data["alias"] && dropDoc) {
-            let oldDoc = dropDoc;
-            de.data["document"] = dropDoc = oldDoc.CreateAlias();
+        let docToAlias = de.data["documentToAlias"];
+        let docView = de.data["documentView"];
+        let doc = docToAlias ? docToAlias.CreateAlias() : de.data["document"];
+        if (docToAlias) {
             [KeyStore.Width, KeyStore.Height].map(key =>
-                oldDoc.GetTAsync(key, NumberField, (f: Opt<NumberField>) => {
+                docToAlias.GetTAsync(key, NumberField, (f: Opt<NumberField>) => {
                     if (f) {
-                        dropDoc.SetNumber(key, f.Data)
+                        doc.SetNumber(key, f.Data)
                     }
                 })
             );
-        } else {
-            const docView: DocumentView = de.data["documentView"];
-            if (docView && docView.props.RemoveDocument && docView.props.ContainingCollectionView !== this.props.CollectionView) {
-                docView.props.RemoveDocument(dropDoc);
-            } else if (dropDoc) {
-                this.props.removeDocument(dropDoc);
+            this.props.addDocument(doc);
+        } else if (docView) {
+            if (doc && docView.props.RemoveDocument && docView.props.ContainingCollectionView !== this.props.CollectionView) {
+                docView.props.RemoveDocument(doc);
+                this.props.addDocument(doc);
             }
-        }
-        if (dropDoc) {
-            this.props.addDocument(dropDoc);
+        } else if (doc) {
+            // this.props.removeDocument(doc);  bcz: causes an exception
+            this.props.addDocument(doc);
         }
         e.stopPropagation();
     }
