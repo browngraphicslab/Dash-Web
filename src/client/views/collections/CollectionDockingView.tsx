@@ -16,6 +16,7 @@ import "./CollectionDockingView.scss";
 import { COLLECTION_BORDER_WIDTH } from "./CollectionView";
 import React = require("react");
 import { SubCollectionViewProps } from "./CollectionViewBase";
+import { ServerUtils } from "../../../server/ServerUtil";
 
 @observer
 export class CollectionDockingView extends React.Component<SubCollectionViewProps> {
@@ -215,7 +216,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         stack.header.controlsContainer.find('.lm_popout') //get the close icon
             .off('click') //unbind the current click handler
             .click(action(function () {
-                var url = "http://localhost:1050/doc/" + stack.contentItems[0].tab.contentItem.config.props.documentId;
+                var url = ServerUtils.prepend("/doc/" + stack.contentItems[0].tab.contentItem.config.props.documentId);
                 let win = window.open(url, stack.contentItems[0].tab.title, "width=300,height=400");
             }));
     }
