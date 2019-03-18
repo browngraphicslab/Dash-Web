@@ -61,10 +61,11 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
         } else if (docView) {
             if (doc && docView.props.RemoveDocument && docView.props.ContainingCollectionView !== this.props.CollectionView) {
                 docView.props.RemoveDocument(doc);
+                this.props.removeDocument(doc); // bcz: not good -- want to check if it's there and then add if it isn't
                 this.props.addDocument(doc);
             }
         } else if (doc) {
-            // this.props.removeDocument(doc);  bcz: causes an exception
+            this.props.removeDocument(doc); // bcz: not good -- want to check if it's there and then add if it isn't
             this.props.addDocument(doc);
         }
         e.stopPropagation();
