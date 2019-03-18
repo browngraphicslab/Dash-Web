@@ -176,13 +176,15 @@ export class Main extends React.Component {
         this.mainContainer.GetTAsync(KeyStore.ActiveFrame, Document, field => this.mainfreeform = field);
         this.mainContainer.GetTAsync(KeyStore.OptionalRightCollection, Document, col => {
             // if there is a pending doc, and it has new data, show it (syip: we use a timeout to prevent collection docking view from being uninitialized)
-            if (col) {
-                col.GetTAsync<ListField<Document>>(KeyStore.Data, ListField, (f: Opt<ListField<Document>>) => {
-                    if (f && f.Data.length > 0) {
-                        CollectionDockingView.Instance.AddRightSplit(col);
-                    }
-                })
-            }
+            setTimeout(() => {
+                if (col) {
+                    col.GetTAsync<ListField<Document>>(KeyStore.Data, ListField, (f: Opt<ListField<Document>>) => {
+                        if (f && f.Data.length > 0) {
+                            CollectionDockingView.Instance.AddRightSplit(col);
+                        }
+                    })
+                }
+            }, 100);
         });
     }
 

@@ -1,15 +1,15 @@
 import * as ReactDOM from 'react-dom';
 import React = require('react');
 import "./ImageUpload.scss"
-import { action, runInAction } from "mobx";
-import { type } from 'os';
-import { Documents } from '../client/documents/Documents';
 import { Document } from '../fields/Document';
-import { Server } from '../client/Server';
-import { Opt, Field } from '../fields/Field';
-import { ListField } from '../fields/ListField';
 import { KeyStore } from '../fields/KeyStore';
+import { Server } from '../client/Server';
+import { Documents } from '../client/documents/Documents';
+import { ListField } from '../fields/ListField';
 import { ImageField } from '../fields/ImageField';
+import request = require('request');
+import { ServerUtils } from '../server/ServerUtil';
+import { RouteStore } from '../server/RouteStore';
 
 
 
@@ -20,7 +20,6 @@ import { ImageField } from '../fields/ImageField';
 //         imgInput.click();
 //     }
 // }
-const pendingDocId = "pending-doc"
 
 const onFileLoad = (file: any) => {
     let imgPrev = document.getElementById("img_preview")
@@ -40,32 +39,36 @@ const onFileLoad = (file: any) => {
             }).then(json => {
                 json.map((file: any) => {
                     let path = window.location.origin + file
-                    runInAction(() => {
-                        var doc: Document = Documents.ImageDocument(path, { nativeWidth: 200, width: 200 })
-                        doc.GetTAsync(KeyStore.Data, ImageField, (i) => {
-                            if (i) {
-                                document.getElementById("message")!.innerText = i.Data.href;
-                            }
-                        })
-                        Server.GetField(pendingDocId, (res: Opt<Field>) => {
-                            if (res) {
-                                if (res instanceof Document) {
-                                    res.GetOrCreateAsync(KeyStore.Data, ListField, (f: ListField<Document>) => {
-                                        f.Data.push(doc)
-                                    })
+                    var doc: Document = Documents.ImageDocument(path, { nativeWidth: 200, width: 200 })
+                    doc.GetTAsync(KeyStore.Data, ImageField, (i) => {
+                        if (i) {
+                            document.getElementById("message")!.innerText = i.Data.href;
+                        }
+                    })
+                    request.get(ServerUtils.prepend(RouteStore.getActiveWorkspace), (error, response, body) => {
+                        if (body) {
+                            Server.GetField(body, field => {
+                                if (field instanceof Document) {
+                                    field.GetTAsync(KeyStore.OptionalRightCollection, Document,
+                                        pending => {
+                                            if (pending) {
+                                                pending.GetOrCreateAsync(KeyStore.Data, ListField, list => {
+                                                    list.Data.push(doc);
+                                                })
+                                            }
+                                        })
                                 }
                             }
-                        })
+                            );
+                        }
                     })
+                    // console.log(window.location.origin + file[0])
+
+                    //imgPrev.setAttribute("src", window.location.origin + files[0].name)
                 })
             })
-            // console.log(window.location.origin + file[0])
-
-            //imgPrev.setAttribute("src", window.location.origin + files[0].name)
         }
     }
-
-
 }
 
 ReactDOM.render((
