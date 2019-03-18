@@ -28,7 +28,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
         // mark this collection so that when the text box is created we can send it the SelectOnLoad prop to focus itself
         this._selectOnLoaded = newBox.Id;
         //set text to be the typed key and get focus on text box
-        this.props.addDocument(newBox);
+        this.props.addDocument(newBox, false);
         //remove cursor from screen
         this.PreviewCursorVisible = false;
     }
@@ -79,7 +79,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
         let screenX = de.x - (de.data["xOffset"] as number || 0);
         let screenY = de.y - (de.data["yOffset"] as number || 0);
         const [x, y] = this.getTransform().transformPoint(screenX, screenY);
-        let doc: Document = de.data["document"];
+        let doc: Document = de.data["droppedDocument"];
         if (doc) {
             doc.SetNumber(KeyStore.X, x);
             doc.SetNumber(KeyStore.Y, y);

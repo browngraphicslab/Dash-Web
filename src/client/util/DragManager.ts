@@ -2,18 +2,18 @@ import { DocumentDecorations } from "../views/DocumentDecorations";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import { Document } from "../../fields/Document"
 import { action } from "mobx";
-import { DocumentView } from "../views/nodes/DocumentView";
 import { ImageField } from "../../fields/ImageField";
 import { KeyStore } from "../../fields/KeyStore";
+import { CollectionView } from "../views/collections/CollectionView";
 
-export function setupDrag(_reference: React.RefObject<HTMLDivElement>, docFunc: () => Document) {
+export function setupDrag(_reference: React.RefObject<HTMLDivElement>, docFunc: () => Document, removeFunc: (containingCollection: CollectionView) => void = () => { }) {
     let onRowMove = action((e: PointerEvent): void => {
         e.stopPropagation();
         e.preventDefault();
 
         document.removeEventListener("pointermove", onRowMove);
         document.removeEventListener('pointerup', onRowUp);
-        DragManager.StartDrag(_reference.current!, { document: docFunc() });
+        DragManager.StartDrag(_reference.current!, { draggedDocument: docFunc(), removeDocument: removeFunc });
     });
     let onRowUp = action((e: PointerEvent): void => {
         document.removeEventListener("pointermove", onRowMove);
@@ -122,9 +122,7 @@ export namespace DragManager {
         // bcz: PDFs don't show up if you clone them because they contain a canvas.
         //      however, PDF's have a thumbnail field that contains an image of their canvas.
         //      So we replace the pdf's canvas with the image thumbnail
-        const docView: DocumentView = dragData["documentView"];
-        const doc: Document = dragData["document"];
-
+        const doc: Document = dragData["draggedDocument"];
         if (doc) {
             var pdfBox = dragElement.getElementsByClassName("pdfBox-cont")[0] as HTMLElement;
             let thumbnail = doc.GetT(KeyStore.Thumbnail, ImageField);
@@ -137,7 +135,6 @@ export namespace DragManager {
                 pdfBox.replaceChild(img!, pdfBox.children[0])
             }
         }
-
 
         dragDiv.appendChild(dragElement);
 
@@ -191,6 +188,7 @@ export namespace DragManager {
         if (!target) {
             return;
         }
+        dragData["droppedDocument"] = dragData["aliasOnDrop"] ? (dragData["draggedDocument"] as Document).CreateAlias() : dragData["draggedDocument"];
         target.dispatchEvent(new CustomEvent<DropEvent>("dashOnDrop", {
             bubbles: true,
             detail: {

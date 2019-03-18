@@ -23,7 +23,7 @@ import React = require("react");
 export interface DocumentViewProps {
     ContainingCollectionView: Opt<CollectionView>;
     Document: Document;
-    AddDocument?: (doc: Document) => void;
+    AddDocument?: (doc: Document, allowDuplicates: boolean) => void;
     RemoveDocument?: (doc: Document) => boolean;
     ScreenToLocalTransform: () => Transform;
     isTopMost: boolean;
@@ -164,12 +164,15 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         if (this._mainCont.current) {
             const [left, top] = this.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
             let dragData: { [id: string]: any } = {};
-            dragData["documentView"] = this;
-            if (dropAliasOfDraggedDoc)
-                dragData["documentToAlias"] = this.props.Document;
-            dragData["document"] = this.props.Document;
+            dragData["aliasOnDrop"] = dropAliasOfDraggedDoc;
+            dragData["draggedDocument"] = this.props.Document;
             dragData["xOffset"] = x - left;
             dragData["yOffset"] = y - top;
+            dragData["removeDocument"] = (dropCollectionView: CollectionView) => {
+                if (this.props.RemoveDocument && this.props.ContainingCollectionView !== dropCollectionView) {
+                    this.props.RemoveDocument(this.props.Document);
+                }
+            }
             DragManager.StartDrag(this._mainCont.current, dragData, {
                 handlers: {
                     dragComplete: action(() => { }),
@@ -213,7 +216,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
 
     fieldsClicked = (e: React.MouseEvent): void => {
         if (this.props.AddDocument) {
-            this.props.AddDocument(Documents.KVPDocument(this.props.Document, { width: 300, height: 300 }));
+            this.props.AddDocument(Documents.KVPDocument(this.props.Document, { width: 300, height: 300 }), false);
         }
     }
     fullScreenClicked = (e: React.MouseEvent): void => {
@@ -232,7 +235,6 @@ export class DocumentView extends React.Component<DocumentViewProps> {
 
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
-        console.log("drop");
         const sourceDocView: DocumentView = de.data["linkSourceDoc"];
         if (!sourceDocView) {
             return;
