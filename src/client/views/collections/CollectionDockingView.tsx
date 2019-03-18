@@ -212,6 +212,12 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                 stack.remove();
                 //}
             }));
+        stack.header.controlsContainer.find('.lm_popout') //get the close icon
+            .off('click') //unbind the current click handler
+            .click(action(function () {
+                var url = "http://localhost:1050/doc/" + stack.contentItems[0].tab.contentItem.config.props.documentId;
+                let win = window.open(url, stack.contentItems[0].tab.title, "width=300,height=400");
+            }));
     }
 
     render() {

@@ -1,10 +1,22 @@
+@import "global_variables";
+@import "nodeModuleOverrides";
 html,
 body {
     width: 100%;
     height: 100%;
     overflow: hidden;
-    font-family: 'Hind Siliguri', sans-serif;
+    font-family: $sans-serif;
     margin: 0;
+}
+
+#dash-title {
+    position: absolute;
+    right: 46.5%;
+    letter-spacing: 3px;
+    top: 9px;
+    font-size: 12px;
+    color: $alt-accent;
+    z-index: 9999;
 }
 
 h1 {
@@ -13,10 +25,11 @@ h1 {
     top: 30px;
     left: 50%;
     transform: translateX(-50%);
-    color: black;
+    color: $dark-color;
     text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff;
     z-index: 9999;
-    font-family: 'Fjalla One', sans-serif;
+    font-family: $sans-serif;
+    font-weight: 700;
     -webkit-touch-callout: none;
     -webkit-user-select: none;
     -khtml-user-select: none;
@@ -33,23 +46,131 @@ p {
     margin: 0px;
     padding: 0px;
 }
+
 ::-webkit-scrollbar {
     -webkit-appearance: none;
-    height:5px;
-    width:5px;
-}
-::-webkit-scrollbar-thumb {
-    border-radius: 2px;
-    background-color: rgba(0,0,0,.5);
+    height: 5px;
+    width: 5px;
 }
 
-.main-buttonDiv {
-    position: absolute;
-    width: 150px;
-    left: 0px;
+::-webkit-scrollbar-thumb {
+    border-radius: 2px;
+    background-color: rgba(0, 0, 0, 0.5);
 }
+
+// button stuff
+button {
+    background: $dark-color;
+    outline: none;
+    border: 0px;
+    color: $light-color;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-size: 75%;
+    padding: 10px;
+    transition: transform 0.2s;
+}
+
+button:hover {
+    background: $main-accent;
+    transform: scale(1.05);
+    cursor: pointer;
+}
+
+.clear-db-button {
+    position: absolute;
+    right: 45%;
+    bottom: 3%;
+    font-size: 50%;
+}
+
+.round-button {
+    width: 36px;
+    height: 36px;
+    border-radius: 18px;
+    font-size: 15px;
+}
+
+.round-button:hover {
+    transform: scale(1.15);
+}
+
+.add-button {
+    position: relative;
+    margin-right: 10px;
+}
+
 .main-undoButtons {
     position: absolute;
     width: 150px;
     right: 0px;
+}
+
+//toolbar stuff
+#toolbar {
+    position: absolute;
+    bottom: 62px;
+    left: 24px;
+    .toolbar-button {
+        display: block;
+        margin-bottom: 10px;
+    }
+}
+
+// add nodes menu. Note that the + button is actually an input label, not an actual button.
+#add-nodes-menu {
+    position: absolute;
+    bottom: 24px;
+    left: 24px;
+    label {
+        background: $dark-color;
+        color: $light-color;
+        display: inline-block;
+        border-radius: 18px;
+        font-size: 25px;
+        width: 36px;
+        height: 36px;
+        margin-right: 10px;
+        cursor: pointer;
+        transition: transform 0.2s;
+    }
+    label p {
+        padding-left: 10.5px;
+        padding-top: 3px;
+    }
+    label:hover {
+        background: $main-accent;
+        transform: scale(1.15);
+    }
+    input {
+        display: none;
+    }
+    input:not(:checked)~#add-options-content {
+        display: none;
+    }
+    input:checked~label {
+        transform: rotate(45deg);
+        transition: transform 0.5s;
+        cursor: pointer;
+    }
+}
+
+#add-options-content {
+    display: table;
+    opacity: 1;
+    margin: 0;
+    padding: 0;
+    position: relative;
+    float: right;
+    bottom: 0.3em;
+    margin-bottom: -1.68em;
+}
+
+ul#add-options-list {
+    list-style: none;
+    padding: 0;
+    li {
+        display: inline-block;
+        padding: 0;
+    }
 }

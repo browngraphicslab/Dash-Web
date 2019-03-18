@@ -10,6 +10,7 @@ import { ContextMenu } from "../../views/ContextMenu";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./ImageBox.scss";
 import React = require("react")
+import { Utils } from '../../../Utils';
 
 @observer
 export class ImageBox extends React.Component<FieldViewProps> {
@@ -70,7 +71,7 @@ export class ImageBox extends React.Component<FieldViewProps> {
     }
 
     lightbox = (path: string) => {
-        const images = [path, "http://www.cs.brown.edu/~bcz/face.gif"];
+        const images = [path];
         if (this._isOpen && this.props.isSelected()) {
             return (<Lightbox
                 mainSrc={images[this._photoIndex]}
@@ -89,12 +90,16 @@ export class ImageBox extends React.Component<FieldViewProps> {
         }
     }
 
-    //REPLACE THIS WITH CAPABILITIES SPECIFIC TO THIS TYPE OF NODE
-    imageCapability = (e: React.MouseEvent): void => {
-    }
-
     specificContextMenu = (e: React.MouseEvent): void => {
-        ContextMenu.Instance.addItem({ description: "Image Capability", event: this.imageCapability });
+        let field = this.props.doc.GetT(this.props.fieldKey, ImageField);
+        if (field && field !== FieldWaiting) {
+            let url = field.Data.href;
+            ContextMenu.Instance.addItem({
+                description: "Copy path", event: () => {
+                    Utils.CopyText(url)
+                }
+            });
+        }
     }
 
     render() {
