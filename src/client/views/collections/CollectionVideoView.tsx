@@ -112,7 +112,7 @@ export class CollectionVideoView extends React.Component<CollectionViewProps> {
     render() {
         return (<div className="collectionVideoView-cont" ref={this._mainCont} onContextMenu={this.specificContextMenu}>
             {this.subView}
-            {this.uIButtons}
+            {this.props.isSelected() ? this.uIButtons : (null)}
         </div>)
     }
 }

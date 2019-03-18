@@ -343,7 +343,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
                 onDrop={this.onDrop.bind(this)}
                 onDragOver={this.onDragOver}
                 onBlur={this.onBlur}
-                style={{ borderWidth: `${COLLECTION_BORDER_WIDTH}px`, }}
+                style={{ borderWidth: `${COLLECTION_BORDER_WIDTH}px` }}// , zIndex: !this.props.isTopMost ? -1 : undefined }}
                 tabIndex={0}
                 ref={this.createDropTarget}>
                 <div className="collectionfreeformview"

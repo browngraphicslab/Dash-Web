@@ -56,6 +56,7 @@ export class Server {
             let field = this.ClientFieldsCached.get(id);
             if (!field) {
                 neededFieldIds.push(id);
+                this.ClientFieldsCached.set(id, FieldWaiting);
             } else if (field === FieldWaiting) {
                 waitingFieldIds.push(id);
             } else {
@@ -65,7 +66,7 @@ export class Server {
         SocketStub.SEND_FIELDS_REQUEST(neededFieldIds, (fields) => {
             for (let key in fields) {
                 let field = fields[key];
-                if (!this.ClientFieldsCached.has(field.Id)) {
+                if (!(this.ClientFieldsCached.get(field.Id) instanceof Field)) {
                     this.ClientFieldsCached.set(field.Id, field)
                 }
             }
