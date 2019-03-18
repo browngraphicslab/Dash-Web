@@ -1,11 +1,12 @@
 import { action, computed, IReactionDisposer, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { Document } from "../../../fields/Document";
-import { Field, FieldWaiting, Opt } from "../../../fields/Field";
+import { Field, Opt } from "../../../fields/Field";
 import { Key } from "../../../fields/Key";
 import { KeyStore } from "../../../fields/KeyStore";
 import { ListField } from "../../../fields/ListField";
 import { TextField } from "../../../fields/TextField";
+import { Utils } from "../../../Utils";
 import { Documents } from "../../documents/Documents";
 import { DocumentManager } from "../../util/DocumentManager";
 import { DragManager } from "../../util/DragManager";
@@ -14,22 +15,9 @@ import { Transform } from "../../util/Transform";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { CollectionView, CollectionViewType } from "../collections/CollectionView";
 import { ContextMenu } from "../ContextMenu";
+import { DocumentContentsView } from "./DocumentContentsView";
 import "./DocumentView.scss";
 import React = require("react");
-import { DocumentContentsView } from "./DocumentContentsView";
-import { Utils } from "../../../Utils";
-import { FormattedTextBox } from "./FormattedTextBox";
-import { ImageBox } from "./ImageBox";
-import { CollectionFreeFormView } from "../collections/CollectionFreeFormView";
-import { CollectionSchemaView } from "../collections/CollectionSchemaView";
-import { CollectionPDFView } from "../collections/CollectionPDFView";
-import { CollectionVideoView } from "../collections/CollectionVideoView";
-import { WebBox } from "./WebBox";
-import { KeyValueBox } from "./KeyValueBox";
-import { PDFBox } from "./PDFBox";
-import { VideoBox } from "./VideoBox";
-import { AudioBox } from "./AudioBox";
-const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 
 export interface DocumentViewProps {
@@ -87,7 +75,7 @@ export function FakeJsxArgs(keys: string[], fields: string[] = []): JsxArgs {
     return args;
 }
 
-interface JsxBindings {
+export interface JsxBindings {
     Document: Document;
     isSelected: () => boolean;
     select: (isCtrlPressed: boolean) => void;
@@ -96,40 +84,7 @@ interface JsxBindings {
     [prop: string]: any;
 }
 
-@observer
-export class DocumentContents extends React.Component<DocumentViewProps & {
-    isSelected: () => boolean,
-    select: (ctrl: boolean) => void,
-    layoutKey: Key
-}> {
-    @computed get layout(): string { return this.props.Document.GetText(this.props.layoutKey, "<p>Error loading layout data</p>"); }
-    @computed get layoutKeys(): Key[] { return this.props.Document.GetData(KeyStore.LayoutKeys, ListField, new Array<Key>()); }
-    @computed get layoutFields(): Key[] { return this.props.Document.GetData(KeyStore.LayoutFields, ListField, new Array<Key>()); }
 
-    CreateBindings(): JsxBindings {
-        let bindings: JsxBindings = {
-            ...this.props,
-        };
-        for (const key of this.layoutKeys) {
-            bindings[key.Name + "Key"] = key; // this maps string values of the form <keyname>Key to an actual key Kestore.keyname  e.g,   "DataKey" => KeyStore.Data
-        }
-        for (const key of this.layoutFields) {
-            let field = this.props.Document.Get(key);
-            bindings[key.Name] = field && field != FieldWaiting ? field.GetValue() : field;
-        }
-        return bindings;
-    }
-
-    render() {
-        return <JsxParser
-            components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, CollectionVideoView, WebBox, KeyValueBox, PDFBox, VideoBox, AudioBox }}
-            bindings={this.CreateBindings()}
-            jsx={this.layout}
-            showWarnings={true}
-            onError={(test: any) => { console.log(test) }}
-        />
-    }
-}
 
 @observer
 export class DocumentView extends React.Component<DocumentViewProps> {
@@ -377,7 +332,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
                 onDrop={this.onDrop}
                 onContextMenu={this.onContextMenu}
                 onPointerDown={this.onPointerDown} >
-                <DocumentContents {...this.props} isSelected={this.isSelected} select={this.select} layoutKey={KeyStore.Layout} />
+                <DocumentContentsView {...this.props} isSelected={this.isSelected} select={this.select} layoutKey={KeyStore.Layout} />
             </div>
         )
     }

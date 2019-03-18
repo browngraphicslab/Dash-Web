@@ -121,7 +121,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         let centerShiftX = 0 - (selRect.left + selRect.width / 2); // moves each point by the offset that shifts the selection's center to the origin.
         let centerShiftY = 0 - (selRect.top + selRect.height / 2);
         let ink = this.props.container.props.Document.GetT(KeyStore.Ink, InkField);
-        if (ink && ink != FieldWaiting) {
+        if (ink && ink != FieldWaiting && ink.Data) {
             let idata = new Map();
             ink.Data.forEach((value: StrokeData, key: string, map: any) => {
                 let inside = InkingCanvas.IntersectStrokeRect(value, selRect);
