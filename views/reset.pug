@@ -4,16 +4,11 @@ extends ./layout
 block content
     style
         include ./stylesheets/authentication.css
-    form.form-horizontal(id='signup-form', method='POST')
+    form.form-horizontal(id='reset-form', method='POST')
         input(type='hidden', name='_csrf', value=_csrf)
-        .overlay(id='overlay_signup')
-            a(href="/login")
-                img(id='to_login', src="https://bit.ly/2U6ouZk", alt="")
-            .inner.signup
-                h3.auth_header Create An Account
-                .form-group
-                    .col-sm-7
-                        input.form-control(type='email', name='email', id='email', placeholder='Email', autofocus, required)
+        .overlay(id='overlay_reset')
+            .inner.reset
+                h3.auth_header Reset Password
                 .form-group
                     .col-sm-7
                         input.form-control(type='password', name='password', id='password', placeholder='Password', required)
@@ -24,4 +19,4 @@ block content
                     .col-sm-offset-3.col-sm-7
                         button.btn.btn-success(type='submit')
                             i.fa.fa-user-plus
-                            | Sign Up
+                            | Reset

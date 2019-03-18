@@ -17,6 +17,7 @@ import "./ImageBox.scss";
 import "./PDFBox.scss";
 import { Sticky } from './Sticky'; //you should look at sticky and annotation, because they are used here
 import React = require("react")
+import { RouteStore } from "../../../server/RouteStore";
 
 /** ALSO LOOK AT: Annotation.tsx, Sticky.tsx
  * This method renders PDF and puts all kinds of functionalities such as annotation, highlighting, 
@@ -441,7 +442,7 @@ export class PDFBox extends React.Component<FieldViewProps> {
         let pdfUrl = this.props.doc.GetT(this.props.fieldKey, PDFField);
         let xf = this.props.doc.GetNumber(KeyStore.NativeHeight, 0) / renderHeight;
         return <div className="pdfBox-contentContainer" key="container" style={{ transform: `scale(${xf}, ${xf})` }}>
-            <Document file={window.origin + "/corsProxy/" + `${pdfUrl}`}>
+            <Document file={window.origin + RouteStore.corsProxy + `/${pdfUrl}`}>
                 <Measure onResize={this.setScaling}>
                     {({ measureRef }) =>
                         <div className="pdfBox-page" ref={measureRef}>

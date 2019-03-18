@@ -11,13 +11,14 @@ import { undoBatch } from "../../util/UndoManager";
 import { InkingCanvas } from "../InkingCanvas";
 import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
 import { DocumentContentsView } from "../nodes/DocumentContentsView";
-import { DocumentView, DocumentViewProps } from "../nodes/DocumentView";
+import { DocumentViewProps } from "../nodes/DocumentView";
 import "./CollectionFreeFormView.scss";
 import { COLLECTION_BORDER_WIDTH } from "./CollectionView";
 import { CollectionViewBase } from "./CollectionViewBase";
 import { MarqueeView } from "./MarqueeView";
 import { PreviewCursor } from "./PreviewCursor";
 import React = require("react");
+import v5 = require("uuid/v5");
 
 @observer
 export class CollectionFreeFormView extends CollectionViewBase {
@@ -290,15 +291,53 @@ export class CollectionFreeFormView extends CollectionViewBase {
         this.PreviewCursorVisible = false;
     }
 
+    private crosshairs?: HTMLCanvasElement;
+    drawCrosshairs = (backgroundColor: string) => {
+        if (this.crosshairs) {
+            let c = this.crosshairs;
+            let ctx = c.getContext('2d');
+            if (ctx) {
+                ctx.fillStyle = backgroundColor;
+                ctx.fillRect(0, 0, 20, 20);
+
+                ctx.fillStyle = "black";
+                ctx.lineWidth = 0.5;
+
+                ctx.beginPath();
+
+                ctx.moveTo(10, 0);
+                ctx.lineTo(10, 8);
+
+                ctx.moveTo(10, 20);
+                ctx.lineTo(10, 12);
+
+                ctx.moveTo(0, 10);
+                ctx.lineTo(8, 10);
+
+                ctx.moveTo(20, 10);
+                ctx.lineTo(12, 10);
+
+                ctx.stroke();
+
+                // ctx.font = "10px Arial";
+                // ctx.fillText(CurrentUserUtils.email[0].toUpperCase(), 10, 10);
+            }
+        }
+    }
+
     render() {
         let [dx, dy] = [this.centeringShiftX, this.centeringShiftY];
 
         const panx: number = -this.props.Document.GetNumber(KeyStore.PanX, 0);
         const pany: number = -this.props.Document.GetNumber(KeyStore.PanY, 0);
+        // const panx: number = this.props.Document.GetNumber(KeyStore.PanX, 0) + this.centeringShiftX;
+        // const pany: number = this.props.Document.GetNumber(KeyStore.PanY, 0) + this.centeringShiftY;
+        // console.log("center:", this.getLocalTransform().transformPoint(this.centeringShiftX, this.centeringShiftY));
 
         return (
             <div className={`collectionfreeformview${this.isAnnotationOverlay ? "-overlay" : "-container"}`}
                 onPointerDown={this.onPointerDown}
+                onPointerMove={(e) => super.setCursorPosition(this.getTransform().transformPoint(e.clientX, e.clientY))}
                 onWheel={this.onPointerWheel}
                 onDrop={this.onDrop.bind(this)}
                 onDragOver={this.onDragOver}
@@ -313,11 +352,54 @@ export class CollectionFreeFormView extends CollectionViewBase {
                     <InkingCanvas getScreenTransform={this.getTransform} Document={this.props.Document} />
                     <PreviewCursor container={this} addLiveTextDocument={this.addLiveTextBox} getTransform={this.getTransform} />
                     {this.views}
+                    {super.getCursors().map(entry => {
+                        if (entry.Data.length > 0) {
+                            let id = entry.Data[0][0];
+                            let email = entry.Data[0][1];
+                            let point = entry.Data[1];
+                            this.drawCrosshairs("#" + v5(id, v5.URL).substring(0, 6).toUpperCase() + "22")
+                            return (
+                                <div
+                                    key={id}
+                                    style={{
+                                        position: "absolute",
+                                        transform: `translate(${point[0] - 10}px, ${point[1] - 10}px)`,
+                                        zIndex: 10000,
+                                        transformOrigin: 'center center',
+                                    }}
+                                >
+                                    <canvas
+                                        ref={(el) => { if (el) this.crosshairs = el }}
+                                        width={20}
+                                        height={20}
+                                        style={{
+                                            position: 'absolute',
+                                            width: "20px",
+                                            height: "20px",
+                                            opacity: 0.5,
+                                            borderRadius: "50%",
+                                            border: "2px solid black"
+                                        }}
+                                    />
+                                    <p
+                                        style={{
+                                            fontSize: 14,
+                                            color: "black",
+                                            // fontStyle: "italic",
+                                            marginLeft: -12,
+                                            marginTop: 4
+                                        }}
+                                    >{email[0].toUpperCase()}</p>
+                                </div>
+                            );
+                        }
+                    })}
                 </div>
                 <MarqueeView container={this} activeDocuments={this.getActiveDocuments} selectDocuments={this.selectDocuments}
                     addDocument={this.props.addDocument} removeDocument={this.props.removeDocument}
                     getMarqueeTransform={this.getMarqueeTransform} getTransform={this.getTransform} />
                 {this.overlayView}
+
             </div>
         );
     }

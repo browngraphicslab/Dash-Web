@@ -144,7 +144,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         if (this._containerRef.current) {
             reaction(
                 () => this.props.Document.GetText(KeyStore.Data, ""),
-                () => this.setupGoldenLayout(), { fireImmediately: true });
+                () => setTimeout(() => this.setupGoldenLayout(), 1), { fireImmediately: true });
 
             window.addEventListener('resize', this.onResize); // bcz: would rather add this event to the parent node, but resize events only come from Window
         }

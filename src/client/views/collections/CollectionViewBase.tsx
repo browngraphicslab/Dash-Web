@@ -3,13 +3,16 @@ import { Document } from "../../../fields/Document";
 import { ListField } from "../../../fields/ListField";
 import React = require("react");
 import { KeyStore } from "../../../fields/KeyStore";
-import { FieldWaiting, Field, Opt } from "../../../fields/Field";
+import { FieldWaiting, Opt } from "../../../fields/Field";
 import { undoBatch } from "../../util/UndoManager";
 import { DragManager } from "../../util/DragManager";
 import { Documents, DocumentOptions } from "../../documents/Documents";
 import { Key } from "../../../fields/Key";
 import { Transform } from "../../util/Transform";
 import { CollectionView } from "./CollectionView";
+import { RouteStore } from "../../../server/RouteStore";
+import { TupleField } from "../../../fields/TupleField";
+import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { NumberField } from "../../../fields/NumberField";
 import { DocumentManager } from "../../util/DocumentManager";
 
@@ -25,12 +28,15 @@ export interface CollectionViewProps {
     panelHeight: () => number;
     focus: (doc: Document) => void;
 }
+
 export interface SubCollectionViewProps extends CollectionViewProps {
     active: () => boolean;
     addDocument: (doc: Document, allowDuplicates: boolean) => void;
     removeDocument: (doc: Document) => boolean;
     CollectionView: CollectionView;
 }
+
+export type CursorEntry = TupleField<[string, string], [number, number]>;
 
 export class CollectionViewBase extends React.Component<SubCollectionViewProps> {
     private dropDisposer?: DragManager.DragDropDisposer;
@@ -43,14 +49,43 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
         }
     }
 
+    @action
+    protected setCursorPosition(position: [number, number]) {
+        let ind;
+        let doc = this.props.Document;
+        let id = CurrentUserUtils.id;
+        let email = CurrentUserUtils.email;
+        if (id && email) {
+            let textInfo: [string, string] = [id, email];
+            doc.GetOrCreateAsync<ListField<CursorEntry>>(KeyStore.Cursors, ListField, field => {
+                let cursors = field.Data;
+                if (cursors.length > 0 && (ind = cursors.findIndex(entry => entry.Data[0][0] === id)) > -1) {
+                    cursors[ind].Data[1] = position;
+                } else {
+                    let entry = new TupleField<[string, string], [number, number]>([textInfo, position]);
+                    cursors.push(entry);
+                }
+            })
+
+
+        }
+    }
+
+    protected getCursors(): CursorEntry[] {
+        let doc = this.props.Document;
+        let id = CurrentUserUtils.id;
+        let cursors = doc.GetList<CursorEntry>(KeyStore.Cursors, []);
+        let notMe = cursors.filter(entry => entry.Data[0][0] !== id);
+        return id ? notMe : [];
+    }
+
     @undoBatch
     @action
     protected drop(e: Event, de: DragManager.DropEvent) {
         if (de.data instanceof DragManager.DocumentDragData) {
             if (de.data.aliasOnDrop) {
-                let dragged = de.data.draggedDocument;
                 [KeyStore.Width, KeyStore.Height, KeyStore.CurPage].map(key =>
-                    dragged.GetTAsync(key, NumberField, (f: Opt<NumberField>) => f ? de.data.droppedDocument.SetNumber(key, f.Data) : null));
+                    de.data.draggedDocument.GetTAsync(key, NumberField, (f: Opt<NumberField>) => f ? de.data.droppedDocument.SetNumber(key, f.Data) : null));
             } else if (de.data.removeDocument) {
                 de.data.removeDocument(this.props.CollectionView);
             }
@@ -83,7 +118,7 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
         console.log(e.dataTransfer.items.length);
 
         for (let i = 0; i < e.dataTransfer.items.length; i++) {
-            const upload = window.location.origin + "/upload";
+            const upload = window.location.origin + RouteStore.upload;
             let item = e.dataTransfer.items[i];
             if (item.kind === "string" && item.type.indexOf("uri") != -1) {
                 e.dataTransfer.items[i].getAsString(action((s: string) => this.props.addDocument(Documents.WebDocument(s, options), false)))
@@ -91,7 +126,6 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
             let type = item.type
             console.log(type)
             if (item.kind == "file") {
-                let fReader = new FileReader()
                 let file = item.getAsFile();
                 let formData = new FormData()
 

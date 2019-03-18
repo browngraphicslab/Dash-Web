@@ -21,6 +21,7 @@ export interface EditableProps {
      */
     contents: any;
     height: number
+    display?: string;
 }
 
 /**
@@ -47,10 +48,10 @@ export class EditableView extends React.Component<EditableProps> {
     render() {
         if (this.editing) {
             return <input defaultValue={this.props.GetValue()} onKeyDown={this.onKeyDown} autoFocus onBlur={action(() => this.editing = false)}
-                style={{ display: "inline" }}></input>
+                style={{ display: this.props.display }}></input>
         } else {
             return (
-                <div className="editableView-container-editing" style={{ display: "inline", height: "auto", maxHeight: `${this.props.height}` }}
+                <div className="editableView-container-editing" style={{ display: this.props.display, height: "auto", maxHeight: `${this.props.height}` }}
                     onClick={action(() => this.editing = true)}>
                     {this.props.contents}
                 </div>
