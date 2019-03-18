@@ -25,6 +25,7 @@ import flash = require('connect-flash');
 import * as bodyParser from 'body-parser';
 import * as session from 'express-session';
 import * as cookieParser from 'cookie-parser';
+import * as mobileDetect from 'mobile-detect';
 import c = require("crypto");
 const MongoStore = require('connect-mongo')(session);
 const mongoose = require('mongoose');
@@ -32,6 +33,7 @@ import { DashUserModel } from './authentication/models/user_model';
 import * as fs from 'fs';
 import * as request from 'request'
 import { RouteStore } from './RouteStore';
+import { exec } from 'child_process'
 
 const download = (url: string, dest: fs.PathLike) => {
     request.get(url).pipe(fs.createWriteStream(dest));
@@ -116,6 +118,16 @@ let FieldStore: ObservableMap<FieldId, Field> = new ObservableMap();
 app.use(express.static(__dirname + RouteStore.public));
 app.use(RouteStore.images, express.static(__dirname + RouteStore.public))
 
+app.get("/pull", (req, res) => {
+    exec('"C:\\Program Files\\Git\\git-bash.exe" -c "git pull"', (err, stdout, stderr) => {
+        if (err) {
+            res.send(err.message);
+            return;
+        }
+        res.redirect("/");
+    })
+});
+
 // GETTERS
 
 // anyone attempting to navigate to localhost at this port will
@@ -129,7 +141,14 @@ addSecureRoute(
 
 addSecureRoute(
     Method.GET,
-    (user, res) => res.sendFile(path.join(__dirname, '../../deploy/index.html')),
+    (user, res, req) => {
+        let detector = new mobileDetect(req.headers['user-agent'] || "");
+        if (detector.mobile() != null) {
+            res.sendFile(path.join(__dirname, '../../deploy/mobile/image.html'));
+        } else {
+            res.sendFile(path.join(__dirname, '../../deploy/index.html'));
+        }
+    },
     undefined,
     RouteStore.home,
     RouteStore.openDocumentWithId
@@ -233,6 +252,11 @@ app.use(RouteStore.corsProxy, (req, res) => {
 });
 
 app.get(RouteStore.delete, (req, res) => {
+    deleteFields();
+    res.redirect(RouteStore.home);
+});
+
+app.get(RouteStore.deleteAll, (req, res) => {
     deleteAll();
     res.redirect(RouteStore.home);
 });
@@ -263,11 +287,17 @@ server.on("connection", function (socket: Socket) {
     Utils.AddServerHandler(socket, MessageStore.SetField, (args) => setField(socket, args))
     Utils.AddServerHandlerCallback(socket, MessageStore.GetField, getField)
     Utils.AddServerHandlerCallback(socket, MessageStore.GetFields, getFields)
-    Utils.AddServerHandler(socket, MessageStore.DeleteAll, deleteAll)
+    Utils.AddServerHandler(socket, MessageStore.DeleteAll, deleteFields)
 })
+
+function deleteFields() {
+    Database.Instance.deleteAll();
+}
 
 function deleteAll() {
     Database.Instance.deleteAll();
+    Database.Instance.deleteAll('sessions');
+    Database.Instance.deleteAll('users');
 }
 
 function barReceived(guid: String) {

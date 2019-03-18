@@ -123,7 +123,7 @@ export namespace DragManager {
         //      however, PDF's have a thumbnail field that contains an image of their canvas.
         //      So we replace the pdf's canvas with the image thumbnail
         const docView: DocumentView = dragData["documentView"];
-        const doc: Document = docView ? docView.props.Document : dragData["document"];
+        const doc: Document = dragData["document"];
 
         if (doc) {
             var pdfBox = dragElement.getElementsByClassName("pdfBox-cont")[0] as HTMLElement;

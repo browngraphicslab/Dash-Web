@@ -32,9 +32,9 @@ export class Database {
         }
     }
 
-    public deleteAll() {
+    public deleteAll(collectionName: string = 'documents') {
         if (this.db) {
-            let collection = this.db.collection('documents');
+            let collection = this.db.collection(collectionName);
             collection.deleteMany({});
         }
     }

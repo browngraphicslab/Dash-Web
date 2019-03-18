@@ -10,8 +10,8 @@ export class AudioField extends BasicField<URL> {
     toString(): string {
         return this.Data.href;
     }
-    
-    
+
+
     ToScriptString(): string {
         return `new AudioField("${this.Data}")`;
     }
@@ -20,10 +20,10 @@ export class AudioField extends BasicField<URL> {
         return new AudioField(this.Data);
     }
 
-    ToJson(): { type: Types, data: URL, _id: string } {
+    ToJson(): { type: Types, data: string, _id: string } {
         return {
             type: Types.Audio,
-            data: this.Data,
+            data: this.Data.href,
             _id: this.Id
         }
     }

@@ -38,4 +38,7 @@ export namespace KeyStore {
     export const NumPages = new Key("NumPages");
     export const Ink = new Key("Ink");
     export const Cursors = new Key("Cursors");
+    export const OptionalRightCollection = new Key("OptionalRightCollection");
+    export const Archives = new Key("Archives");
+    export const Updated = new Key("Updated");
 }

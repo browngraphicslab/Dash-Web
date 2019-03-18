@@ -155,11 +155,11 @@ export class CollectionSchemaView extends CollectionViewBase {
         //     e.preventDefault();
         // } else 
         {
-            if (e.buttons === 1) {
-                if (this.props.isSelected()) {
-                    e.stopPropagation();
-                }
-            }
+            // if (e.buttons === 1) {
+            //     if (this.props.isSelected()) {
+            //         e.stopPropagation();
+            //     }
+            // }
         }
     }
 

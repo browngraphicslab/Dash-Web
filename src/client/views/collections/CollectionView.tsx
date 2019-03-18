@@ -55,7 +55,7 @@ export class CollectionView extends React.Component<CollectionViewProps> {
             const value = props.Document.GetData(props.fieldKey, ListField, new Array<Document>())
             value.push(doc);
         } else {
-            props.Document.SetData(props.fieldKey, [doc], ListField);
+            props.Document.SetOnPrototype(props.fieldKey, new ListField([doc]));
         }
     }
 
