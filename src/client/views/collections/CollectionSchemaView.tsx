@@ -223,8 +223,12 @@ export class CollectionSchemaView extends CollectionViewBase {
         e.preventDefault();
         document.removeEventListener("pointermove", this.onExpanderMove);
         document.removeEventListener('pointerup', this.onExpanderUp);
+        if (this._startSplitPercent == this.splitPercentage) {
+            this.props.Document.SetNumber(KeyStore.SchemaSplitPercentage, this.splitPercentage == 0 ? 33 : 0);
+        }
     }
     onExpanderDown = (e: React.PointerEvent) => {
+        this._startSplitPercent = this.splitPercentage;
         e.stopPropagation();
         e.preventDefault();
         document.addEventListener("pointermove", this.onExpanderMove);
