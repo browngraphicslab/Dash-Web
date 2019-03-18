@@ -9,6 +9,7 @@ import { Server } from '../client/Server';
 import { Opt, Field } from '../fields/Field';
 import { ListField } from '../fields/ListField';
 import { KeyStore } from '../fields/KeyStore';
+import { ImageField } from '../fields/ImageField';
 
 
 
@@ -41,6 +42,11 @@ const onFileLoad = (file: any) => {
                     let path = window.location.origin + file
                     runInAction(() => {
                         var doc: Document = Documents.ImageDocument(path, { nativeWidth: 200, width: 200 })
+                        doc.GetTAsync(KeyStore.Data, ImageField, (i) => {
+                            if (i) {
+                                document.getElementById("message")!.innerText = i.Data.href;
+                            }
+                        })
                         Server.GetField(pendingDocId, (res: Opt<Field>) => {
                             if (res) {
                                 if (res instanceof Document) {
@@ -67,6 +73,7 @@ ReactDOM.render((
         {/* <button className = "button_file"  = {onPointerDown}> Open Image </button> */}
         <input type="file" accept="image/*" onChange={onFileLoad} className="input_file" id="input_image_file"></input>
         <img id="img_preview" src=""></img>
+        <div id="message" />
     </div>),
     document.getElementById('root')
 );
