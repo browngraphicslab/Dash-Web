@@ -42,15 +42,17 @@ export class VideoBox extends React.Component<FieldViewProps> {
 
 
     render() {
-        let field = this.props.doc.Get(this.props.fieldKey)
-        let path = field == FieldWaiting ? "http://techslides.com/demos/sample-videos/small.mp4" :
-            field instanceof VideoField ? field.Data.href : "http://techslides.com/demos/sample-videos/small.mp4";
+        let field = this.props.doc.GetT(this.props.fieldKey, VideoField);
+        if (!field || field === FieldWaiting) {
+            return <div>Loading</div>
+        }
+        let path = field.Data.href;
 
         //setTimeout(action(() => this._loaded = true), 500);
         return (
             <Measure onResize={this.setScaling}>
                 {({ measureRef }) =>
-                    <video className="videobox-cont" ref={measureRef}>
+                    <video className="videobox-cont" onClick={() => { }} ref={measureRef}>
                         <source src={path} type="video/mp4" />
                         Not supported.
                         </video>
