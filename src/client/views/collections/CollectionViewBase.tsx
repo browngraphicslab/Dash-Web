@@ -36,7 +36,7 @@ export interface SubCollectionViewProps extends CollectionViewProps {
     CollectionView: CollectionView;
 }
 
-export type CursorEntry = TupleField<string, [number, number]>;
+export type CursorEntry = TupleField<[string, string], [number, number]>;
 
 export class CollectionViewBase extends React.Component<SubCollectionViewProps> {
     private dropDisposer?: DragManager.DragDropDisposer;
@@ -54,13 +54,15 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
         let ind;
         let doc = this.props.Document;
         let id = CurrentUserUtils.id;
-        if (id) {
+        let email = CurrentUserUtils.email;
+        if (id && email) {
+            let textInfo: [string, string] = [id, email];
             doc.GetOrCreateAsync<ListField<CursorEntry>>(KeyStore.Cursors, ListField, field => {
                 let cursors = field.Data;
-                if (cursors.length > 0 && (ind = cursors.findIndex(entry => entry.Data[0] === id)) > -1) {
+                if (cursors.length > 0 && (ind = cursors.findIndex(entry => entry.Data[0][0] === id)) > -1) {
                     cursors[ind].Data[1] = position;
                 } else {
-                    let entry = new TupleField<string, [number, number]>([id, position]);
+                    let entry = new TupleField<[string, string], [number, number]>([textInfo, position]);
                     cursors.push(entry);
                 }
             })
@@ -73,7 +75,7 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
         let doc = this.props.Document;
         let id = CurrentUserUtils.id;
         let cursors = doc.GetList<CursorEntry>(KeyStore.Cursors, []);
-        let notMe = cursors.filter(entry => entry.Data[0] !== id);
+        let notMe = cursors.filter(entry => entry.Data[0][0] !== id);
         return id ? notMe : [];
     }
 

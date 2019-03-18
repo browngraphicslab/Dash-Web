@@ -376,7 +376,8 @@ export class CollectionFreeFormView extends CollectionViewBase {
                     {this.views}
                     {super.getCursors().map(entry => {
                         if (entry.Data.length > 0) {
-                            let id = entry.Data[0];
+                            let id = entry.Data[0][0];
+                            let email = entry.Data[0][1];
                             let point = entry.Data[1];
                             this.drawCrosshairs("#" + v5(id, v5.URL).substring(0, 6).toUpperCase() + "22")
                             return (
@@ -410,7 +411,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
                                             marginLeft: -12,
                                             marginTop: 4
                                         }}
-                                    >{CurrentUserUtils.email[0].toUpperCase()}</p>
+                                    >{email[0].toUpperCase()}</p>
                                 </div>
                             );
                         }
