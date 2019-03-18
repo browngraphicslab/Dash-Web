@@ -143,8 +143,7 @@ class DebugViewer extends React.Component<{ fieldId: string }> {
         } else if (this.error) {
             content = <span>Field <b>{this.props.fieldId}</b> not found <button onClick={() => this.update()}>Refresh</button></span>
         } else {
-            content = <>Field loading</>
-            console.log(this.props.fieldId);
+            content = <span>Field loading: {this.props.fieldId}</span>
         }
         return content;
     }
