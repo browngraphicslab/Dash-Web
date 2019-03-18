@@ -71,12 +71,14 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
         }
     }
 
-    protected getCursors(): CursorEntry[] {
+    protected getRemoteCursors = (): CursorEntry[] => {
         let doc = this.props.Document;
         let id = CurrentUserUtils.id;
-        let cursors = doc.GetList<CursorEntry>(KeyStore.Cursors, []);
-        let notMe = cursors.filter(entry => entry.Data[0][0] !== id);
-        return id ? notMe : [];
+        if (doc && id) {
+            // get me all stored cursors that don't correspond to my own cursor
+            return doc.GetList<CursorEntry>(KeyStore.Cursors, []).filter(entry => entry.Data[0][0] !== id);
+        }
+        return [];
     }
 
     @undoBatch
