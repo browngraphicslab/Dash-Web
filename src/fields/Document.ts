@@ -249,6 +249,13 @@ export class Document extends Field {
     }
 
     @action
+    SetDataOnPrototype<T, U extends Field & { Data: T }>(key: Key, value: T, ctor: { new(): U }, replaceWrongType = true) {
+        this.GetAsync(KeyStore.Prototype, (f: Field) => {
+            (f as Document).SetData(key, value, ctor)
+        })
+    }
+
+    @action
     SetData<T, U extends Field & { Data: T }>(key: Key, value: T, ctor: { new(): U }, replaceWrongType = true) {
 
         let field = this.Get(key, true);
