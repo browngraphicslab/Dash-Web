@@ -37,6 +37,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     private _containerRef = React.createRef<HTMLDivElement>();
     private _fullScreen: any = null;
     private _flush: boolean = false;
+    private _ignoreStateChange = "";
 
     constructor(props: SubCollectionViewProps) {
         super(props);
@@ -105,20 +106,17 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         newContentItem.callDownwards('_$init');
         this._goldenLayout.root.callDownwards('setSize', [this._goldenLayout.width, this._goldenLayout.height]);
         this._goldenLayout.emit('stateChanged');
-        this.ignoreStateChange = JSON.stringify(this._goldenLayout.toConfig());
+        this._ignoreStateChange = JSON.stringify(this._goldenLayout.toConfig());
         this.stateChanged();
 
         return newContentItem;
     }
 
-    ignoreStateChange = "";
     setupGoldenLayout() {
         var config = this.props.Document.GetText(KeyStore.Data, "");
-        if (config) {
-            if (this.ignoreStateChange == config) {
-                this.ignoreStateChange = "";
-                return;
-            }
+        var ignore = this._ignoreStateChange;
+        this._ignoreStateChange = "";
+        if (config && ignore != config) {
             if (!this._goldenLayout) {
                 this._goldenLayout = new GoldenLayout(JSON.parse(config));
             }
