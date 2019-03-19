@@ -52,7 +52,7 @@ app.use(cookieParser());
 app.use(session({
     secret: "64d6866242d3b5a5503c675b32c9605e4e90478e9b77bcf2bc",
     resave: true,
-    cookie: { maxAge: 7 * 24 * 60 * 60 },
+    cookie: { maxAge: 7 * 24 * 60 * 60 * 1000 },
     saveUninitialized: true,
     store: new MongoStore({
         url: 'mongodb://localhost:27017/Dash'
