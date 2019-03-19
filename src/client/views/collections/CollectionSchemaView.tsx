@@ -19,10 +19,12 @@ import { CollectionViewBase } from "./CollectionViewBase";
 import { setupDrag } from "../../util/DragManager";
 import '../DocumentDecorations.scss';
 import { Flyout, anchorPoints } from "../DocumentDecorations";
-import { DropdownButton, Dropdown } from 'react-bootstrap';
 import { ListField } from "../../../fields/ListField";
 import { Key } from "../../../fields/Key";
 import { Server } from "../../Server";
+import { library } from '@fortawesome/fontawesome-svg-core';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faCog } from '@fortawesome/free-solid-svg-icons';
 
 
 // bcz: need to add drag and drop of rows and columns.  This seems like it might work for rows: https://codesandbox.io/s/l94mn1q657
@@ -44,7 +46,7 @@ class KeyToggle extends React.Component<{ keyId: string, checked: boolean, toggl
     render() {
         if (this.key) {
             return (<div key={this.key.Id}>
-                <input type="checkbox" checked={this.props.checked} onChange={() => this.key && this.props.toggle(this.key)} />{this.key.Name}
+                <input type="checkbox" checked={this.props.checked} onChange={() => this.key && this.props.toggle(this.key)} />  {this.key.Name}
             </div>)
         } else {
             return <div></div>
@@ -65,6 +67,7 @@ export class CollectionSchemaView extends CollectionViewBase {
     @observable _selectedIndex = 0;
     @observable _columnsPercentage = 0;
     @computed get splitPercentage() { return this.props.Document.GetNumber(KeyStore.SchemaSplitPercentage, 0); }
+
 
     renderCell = (rowProps: CellInfo) => {
         let props: FieldViewProps = {
@@ -156,6 +159,15 @@ export class CollectionSchemaView extends CollectionViewBase {
             })
     }
 
+    //toggles preview side-panel of schema
+    @action
+    toggleExpander = (event: React.ChangeEvent<HTMLInputElement>) => {
+        this._startSplitPercent = this.splitPercentage;
+        if (this._startSplitPercent == this.splitPercentage) {
+            this.props.Document.SetNumber(KeyStore.SchemaSplitPercentage, this.splitPercentage == 0 ? 33 : 0);
+        }
+    }
+
     @observable keys: Key[] = [];
 
     findAllDocumentKeys = (): { [id: string]: boolean } => {
@@ -220,37 +232,6 @@ export class CollectionSchemaView extends CollectionViewBase {
         e.stopPropagation();
         e.preventDefault();
     }
-    @action
-    onExpanderUp = (e: PointerEvent): void => {
-        e.stopPropagation();
-        e.preventDefault();
-        document.removeEventListener("pointermove", this.onExpanderMove);
-        document.removeEventListener('pointerup', this.onExpanderUp);
-        if (this._startSplitPercent == this.splitPercentage) {
-            this.props.Document.SetNumber(KeyStore.SchemaSplitPercentage, this.splitPercentage == 0 ? 33 : 0);
-        }
-    }
-    onExpanderDown = (e: React.PointerEvent) => {
-        this._startSplitPercent = this.splitPercentage;
-        e.stopPropagation();
-        e.preventDefault();
-        document.addEventListener("pointermove", this.onExpanderMove);
-        document.addEventListener('pointerup', this.onExpanderUp);
-    }
-
-    onPointerDown = (e: React.PointerEvent) => {
-        // if (e.button === 2 && this.active) {
-        //     e.stopPropagation();
-        //     e.preventDefault();
-        // } else 
-        {
-            // if (e.buttons === 1) {
-            //     if (this.props.isSelected()) {
-            //         e.stopPropagation();
-            //     }
-            // }
-        }
-    }
 
     @action
     onColumnsMove = (e: PointerEvent): void => {
@@ -291,23 +272,16 @@ export class CollectionSchemaView extends CollectionViewBase {
 
     focusDocument = (doc: Document) => { }
 
-    keyDropDownOnSelect = (keyId: string) => {
-        const columns = this.props.Document.GetList(KeyStore.ColumnsKey, [KeyStore.Title, KeyStore.Data, KeyStore.Author]);
-        const listOfFields = this.props.Document.GetList<Document>(this.props.fieldKey, [])[1].fields;
-        if (listOfFields.has(keyId)) {
-            let index = columns.push(listOfFields!.get(keyId)!.key);
-            this.props.Document.SetData(KeyStore.ColumnsKey, columns, ListField);
-        }
-    }
-
-    dropdownItemOnPointerDown = (e: React.PointerEvent): void => {
-        //(e.currentTarget.children[0] as Dropdown.Item ).onSelect();
+    onPointerDown = (e: React.PointerEvent): void => {
+        //
     }
 
     render() {
+        library.add(faCog);
         const columns = this.columns;
         const children = this.props.Document.GetList<Document>(this.props.fieldKey, []);
         const selected = children.length > this._selectedIndex ? children[this._selectedIndex] : undefined;
+        //all the keys/columns that will be displayed in the schema
         const allKeys = this.findAllDocumentKeys();
         let content = this._selectedIndex == -1 || !selected ? (null) : (
             <Measure onResize={this.setScaling}>
@@ -328,53 +302,28 @@ export class CollectionSchemaView extends CollectionViewBase {
                 }
             </Measure>
         )
-        let previewHandle = !this.props.active() ? (null) : (
-            <div className="collectionSchemaView-previewHandle" onPointerDown={this.onExpanderDown} />);
-        let columnsHandle = !this.props.active() ? (null) : (
-            <div className="collectionSchemaView-columnsHandle" onPointerDown={this.onColumnsDown} />);
         let dividerDragger = this.splitPercentage == 0 ? (null) :
             <div className="collectionSchemaView-dividerDragger" onPointerDown={this.onDividerDown} style={{ width: `${this.DIVIDER_WIDTH}px` }} />
 
-        //get the union of all childrens' keys
-        let addFields: { id: string, name: string }[] = [];
-        let removeFields: { id: string, name: string }[] = [];
-        let optionsMenu = null;
-        if (this.props.active()) {
-            let protos = this.props.Document.GetAllPrototypes();
-            for (const proto of protos) {
-                proto._proxies.forEach((val, key) => {
-                    if (!(key in addFields.keys)) {
-                        let this_name: string = proto.fields!.get(key)!.key.Name;
-                        addFields.push({ id: key, name: this_name });
-                    }
-                })
-            }
-            /*<DropdownButton id="dropdown-basic-button" className="colDropDown" title="Add Column">
-                        {addFields.map(({ id, name }) => (
-                            <div className="dd-item-containter"><Dropdown.Item className="dd-item" eventKey={id} onSelect={this.keyDropDownOnSelect}>{name} </Dropdown.Item></div>))}
-                    </DropdownButton>
-                    <DropdownButton id="dropdown-basic-button" className="colDropDown" title="Remove Column">
-                        {addFields.map(({ id, name }) => (
-                            <div className="dd-item-containter"><Dropdown.Item className="dd-item" eventKey={id} onSelect={this.keyDropDownOnSelect}>{name} </Dropdown.Item></div>))}
-                    </DropdownButton>*/
-            optionsMenu = !this.props.active() ? (null) : (<Flyout
-                anchorPoint={anchorPoints.LEFT_TOP}
-                content={<div id="options-flyout-div"> <h5>Options</h5>
-                    <div className="addColumn-options">
-                        <ul style={{ overflow: "scroll" }}>
-                            {Array.from(Object.keys(allKeys)).map(item => {
-                                return (<KeyToggle checked={allKeys[item]} key={item} keyId={item} toggle={this.toggleKey} />)
-                            })}
-                        </ul>
-                    </div>
+        //options button and menu
+        let optionsMenu = !this.props.active() ? (null) : (<Flyout
+            anchorPoint={anchorPoints.LEFT_TOP}
+            content={<div>
+                <div id="schema-options-header"><h5><b>Options</b></h5></div>
+                <div id="options-flyout-div">
+                    <h6 className="schema-options-subHeader">Preview Window</h6>
+                    <div id="preview-schema-checkbox-div"><input type="checkbox" key={"Show Preview"} checked={this.splitPercentage != 0} onChange={this.toggleExpander} />  Show Preview </div>
+                    <h6 className="schema-options-subHeader" >Displayed Columns</h6>
+                    <ul id="schema-col-checklist" >
+                        {Array.from(Object.keys(allKeys)).map(item => {
+                            return (<KeyToggle checked={allKeys[item]} key={item} keyId={item} toggle={this.toggleKey} />)
+                        })}
+                    </ul>
                 </div>
-                }>
-                <div id="schemaOptionsMenuBtn" />
-            </Flyout>);
-        }
-
-        let colDividerDragger = this._columnsPercentage == 0 ? (null) :
-            <div className="collectionSchemaView-colDividerDragger" onPointerDown={this.onColDividerDown} style={{ height: `${this.DIVIDER_WIDTH}px` }} />
+            </div>
+            }>
+            <button id="schemaOptionsMenuBtn"><FontAwesomeIcon style={{ color: "white" }} icon="cog" size="sm" /></button>
+        </Flyout>);
 
         return (
             <div className="collectionSchemaView-container" onPointerDown={this.onPointerDown} ref={this._mainCont} style={{ borderWidth: `${COLLECTION_BORDER_WIDTH}px` }} >
@@ -412,27 +361,9 @@ export class CollectionSchemaView extends CollectionViewBase {
                     <div className="collectionSchemaView-previewRegion" style={{ width: `calc(${this.props.Document.GetNumber(KeyStore.SchemaSplitPercentage, 0)}% - ${this.DIVIDER_WIDTH}px)` }}>
                         {content}
                     </div>
-                    {previewHandle}
-
-                    {columnsHandle}
                     {optionsMenu}
                 </div>
             </div >
         )
     }
 }
-/*
-{colDividerDragger}
-                                <div className="collectionSchemaView-addColumn" style={{ height: `${this._columnsPercentage}%` }} >
-                                    {/* <input type="checkbox" id="addColumn-toggle" />
-                                    <label htmlFor="addColumn-toggle" title="Add Column"><p>+</p></label> }
-
-                                    <div className="addColumn-options">
-                                        <ul style={{ overflow: "scroll" }}>
-                                            {Array.from(Object.keys(allKeys)).map(item => {
-                                                return (<KeyToggle checked={allKeys[item]} key={item} keyId={item} toggle={this.toggleKey} />)
-                                            })}
-                                        </ul>
-                                    </div>
-                                </div>
-                                */
