@@ -52,11 +52,13 @@ export class Main extends React.Component {
     @observable public pwidth: number = 0;
     @observable public pheight: number = 0;
 
-    private mainDocId: string | undefined;
+    public mainDocId: string | undefined;
     private currentUser?: DashUserModel;
+    public static Instance: Main;
 
     constructor(props: Readonly<{}>) {
         super(props);
+        Main.Instance = this;
         // causes errors to be generated when modifying an observable outside of an action
         configure({ enforceActions: "observed" });
         if (window.location.pathname !== RouteStore.home) {
