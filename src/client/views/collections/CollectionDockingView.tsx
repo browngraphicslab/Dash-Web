@@ -115,8 +115,10 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     setupGoldenLayout() {
         var config = this.props.Document.GetText(KeyStore.Data, "");
         if (config) {
-            if (this.ignoreStateChange == config)
+            if (this.ignoreStateChange == config) {
+                this.ignoreStateChange = "";
                 return;
+            }
             if (!this._goldenLayout) {
                 this._goldenLayout = new GoldenLayout(JSON.parse(config));
             }
