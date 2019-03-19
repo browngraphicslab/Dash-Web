@@ -20,7 +20,6 @@ import { DocumentDecorations } from './DocumentDecorations';
 import { DocumentView } from './nodes/DocumentView';
 import "./Main.scss";
 import { observer } from 'mobx-react';
-import { Field, Opt } from '../../fields/Field';
 import { InkingControl } from './InkingControl';
 import { RouteStore } from '../../server/RouteStore';
 import { json } from 'body-parser';
@@ -41,6 +40,8 @@ import Measure from 'react-measure';
 import { DashUserModel } from '../../server/authentication/models/user_model';
 import { ServerUtils } from '../../server/ServerUtil';
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
+import { Field, Opt } from '../../fields/Field';
+import { ListField } from '../../fields/ListField';
 
 @observer
 export class Main extends React.Component {
@@ -83,6 +84,26 @@ export class Main extends React.Component {
         });
     }
 
+    onHistory = () => {
+        if (window.location.pathname !== RouteStore.home) {
+            let pathname = window.location.pathname.split("/");
+            this.mainDocId = pathname[pathname.length - 1];
+            Server.GetField(this.mainDocId, action((field: Opt<Field>) => {
+                if (field instanceof Document) {
+                    this.openWorkspace(field, true);
+                }
+            }));
+        }
+    }
+
+    componentDidMount() {
+        window.onpopstate = this.onHistory;
+    }
+
+    componentWillUnmount() {
+        window.onpopstate = null;
+    }
+
     initEventListeners = () => {
         // window.addEventListener("pointermove", (e) => this.reportLocation(e))
         window.addEventListener("drop", (e) => e.preventDefault(), false) // drop event handler
@@ -104,19 +125,18 @@ export class Main extends React.Component {
                         this.openWorkspace(field);
                         this.populateWorkspaces();
                     } else {
-                        this.createNewWorkspace(true);
+                        this.createNewWorkspace(true, this.mainDocId);
                     }
                 });
             } else {
-                this.createNewWorkspace(true);
+                this.createNewWorkspace(true, this.mainDocId);
             }
         });
-
     }
 
     @action
-    createNewWorkspace = (init: boolean): void => {
-        let mainDoc = Documents.DockDocument(JSON.stringify({ content: [{ type: 'row', content: [] }] }), { title: `Main Container ${this.userWorkspaces.length + 1}` });
+    createNewWorkspace = (init: boolean, id?: string): void => {
+        let mainDoc = Documents.DockDocument(JSON.stringify({ content: [{ type: 'row', content: [] }] }), { title: `Main Container ${this.userWorkspaces.length + 1}` }, id);
         let newId = mainDoc.Id;
         request.post(ServerUtils.prepend(RouteStore.addWorkspace), {
             body: { target: newId },
@@ -130,6 +150,8 @@ export class Main extends React.Component {
             mainDoc.SetText(KeyStore.Data, JSON.stringify(dockingLayout));
             mainDoc.Set(KeyStore.ActiveFrame, freeformDoc);
             this.openWorkspace(mainDoc);
+            let pendingDocument = Documents.SchemaDocument([], { title: "New Mobile Uploads" })
+            mainDoc.Set(KeyStore.OptionalRightCollection, pendingDocument);
         }, 0);
         this.userWorkspaces.push(mainDoc);
     }
@@ -144,13 +166,26 @@ export class Main extends React.Component {
     }
 
     @action
-    openWorkspace = (doc: Document): void => {
+    openWorkspace = (doc: Document, fromHistory = false): void => {
         request.post(ServerUtils.prepend(RouteStore.setActiveWorkspace), {
             body: { target: doc.Id },
             json: true
         });
         this.mainContainer = doc;
-        this.mainContainer.GetAsync(KeyStore.ActiveFrame, field => this.mainfreeform = field as Document);
+        fromHistory || window.history.pushState(null, doc.Title, "/doc/" + doc.Id);
+        this.mainContainer.GetTAsync(KeyStore.ActiveFrame, Document, field => this.mainfreeform = field);
+        this.mainContainer.GetTAsync(KeyStore.OptionalRightCollection, Document, col => {
+            // if there is a pending doc, and it has new data, show it (syip: we use a timeout to prevent collection docking view from being uninitialized)
+            setTimeout(() => {
+                if (col) {
+                    col.GetTAsync<ListField<Document>>(KeyStore.Data, ListField, (f: Opt<ListField<Document>>) => {
+                        if (f && f.Data.length > 0) {
+                            CollectionDockingView.Instance.AddRightSplit(col);
+                        }
+                    })
+                }
+            }, 100);
+        });
     }
 
     toggleWorkspaces = () => {

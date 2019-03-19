@@ -17,7 +17,7 @@ interface MarqueeViewProps {
     getMarqueeTransform: () => Transform;
     getTransform: () => Transform;
     container: CollectionFreeFormView;
-    addDocument: (doc: Document) => void;
+    addDocument: (doc: Document, allowDuplicates: false) => void;
     activeDocuments: () => Document[];
     selectDocuments: (docs: Document[]) => void;
     removeDocument: (doc: Document) => boolean;
@@ -111,7 +111,18 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             let liftedInk = this.marqueeInkSelect(true);
             this.props.container.props.Document.SetData(KeyStore.Ink, this.marqueeInkSelect(false), InkField);
             //setTimeout(() => {
-            this.props.addDocument(Documents.FreeformDocument(selected, { x: bounds.left, y: bounds.top, panx: 0, pany: 0, width: bounds.width, backgroundColor: "Transparent", height: bounds.height, ink: liftedInk, title: "a nested collection" }));
+            let newCollection = Documents.FreeformDocument(selected, {
+                x: bounds.left,
+                y: bounds.top,
+                panx: 0,
+                pany: 0,
+                width: bounds.width,
+                height: bounds.height,
+                backgroundColor: "Transparent",
+                ink: liftedInk,
+                title: "a nested collection"
+            });
+            this.props.addDocument(newCollection, false);
             // }, 100);
             this.cleanupInteractions();
         }
@@ -121,7 +132,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         let centerShiftX = 0 - (selRect.left + selRect.width / 2); // moves each point by the offset that shifts the selection's center to the origin.
         let centerShiftY = 0 - (selRect.top + selRect.height / 2);
         let ink = this.props.container.props.Document.GetT(KeyStore.Ink, InkField);
-        if (ink && ink != FieldWaiting) {
+        if (ink && ink != FieldWaiting && ink.Data) {
             let idata = new Map();
             ink.Data.forEach((value: StrokeData, key: string, map: any) => {
                 let inside = InkingCanvas.IntersectStrokeRect(value, selRect);

@@ -19,10 +19,10 @@ export class WebField extends BasicField<URL> {
         return new WebField(this.Data);
     }
 
-    ToJson(): { type: Types, data: URL, _id: string } {
+    ToJson(): { type: Types, data: string, _id: string } {
         return {
             type: Types.Web,
-            data: this.Data,
+            data: this.Data.href,
             _id: this.Id
         }
     }

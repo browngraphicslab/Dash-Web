@@ -97,7 +97,7 @@ export class PDFBox extends React.Component<FieldViewProps> {
                     this.saveThumbnail();
                     this._interactive = true;
                 } else {
-                    if (this.curPage)
+                    if (this.curPage > 0)
                         this.initPage = true;
                 }
             },
@@ -442,7 +442,7 @@ export class PDFBox extends React.Component<FieldViewProps> {
         let pdfUrl = this.props.doc.GetT(this.props.fieldKey, PDFField);
         let xf = this.props.doc.GetNumber(KeyStore.NativeHeight, 0) / renderHeight;
         return <div className="pdfBox-contentContainer" key="container" style={{ transform: `scale(${xf}, ${xf})` }}>
-            <Document file={window.origin + RouteStore.corsProxy + `${pdfUrl}`}>
+            <Document file={window.origin + RouteStore.corsProxy + `/${pdfUrl}`}>
                 <Measure onResize={this.setScaling}>
                     {({ measureRef }) =>
                         <div className="pdfBox-page" ref={measureRef}>

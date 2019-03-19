@@ -8,21 +8,10 @@ import { TextField } from "../../../fields/TextField";
 import { DragManager } from "../../util/DragManager";
 import { Transform } from "../../util/Transform";
 import { undoBatch } from "../../util/UndoManager";
-import { CollectionDockingView } from "../collections/CollectionDockingView";
-import { CollectionPDFView } from "../collections/CollectionPDFView";
-import { CollectionSchemaView } from "../collections/CollectionSchemaView";
-import { CollectionVideoView } from "../collections/CollectionVideoView";
-import { CollectionView } from "../collections/CollectionView";
 import { InkingCanvas } from "../InkingCanvas";
-import { AudioBox } from "../nodes/AudioBox";
 import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
-import { DocumentView } from "../nodes/DocumentView";
-import { FormattedTextBox } from "../nodes/FormattedTextBox";
-import { ImageBox } from "../nodes/ImageBox";
-import { KeyValueBox } from "../nodes/KeyValueBox";
-import { PDFBox } from "../nodes/PDFBox";
-import { VideoBox } from "../nodes/VideoBox";
-import { WebBox } from "../nodes/WebBox";
+import { DocumentContentsView } from "../nodes/DocumentContentsView";
+import { DocumentViewProps } from "../nodes/DocumentView";
 import "./CollectionFreeFormView.scss";
 import { COLLECTION_BORDER_WIDTH } from "./CollectionView";
 import { CollectionViewBase } from "./CollectionViewBase";
@@ -30,7 +19,6 @@ import { MarqueeView } from "./MarqueeView";
 import { PreviewCursor } from "./PreviewCursor";
 import React = require("react");
 const JsxParser = require('react-jsx-parser').default;//TODO Why does this need to be imported like this?
-import CursorTarget from "./CursorTarget";
 import RemoteCursors from "./CursorTarget";
 
 @observer
@@ -42,7 +30,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
         // mark this collection so that when the text box is created we can send it the SelectOnLoad prop to focus itself
         this._selectOnLoaded = newBox.Id;
         //set text to be the typed key and get focus on text box
-        this.props.addDocument(newBox);
+        this.props.addDocument(newBox, false);
         //remove cursor from screen
         this.PreviewCursorVisible = false;
     }
@@ -90,15 +78,13 @@ export class CollectionFreeFormView extends CollectionViewBase {
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
         super.drop(e, de);
-        const docView: DocumentView = de.data["documentView"];
-        let doc: Document = docView ? docView.props.Document : de.data["document"];
-        if (doc) {
-            let screenX = de.x - (de.data["xOffset"] as number || 0);
-            let screenY = de.y - (de.data["yOffset"] as number || 0);
+        if (de.data instanceof DragManager.DocumentDragData) {
+            let screenX = de.x - (de.data.xOffset as number || 0);
+            let screenY = de.y - (de.data.yOffset as number || 0);
             const [x, y] = this.getTransform().transformPoint(screenX, screenY);
-            doc.SetNumber(KeyStore.X, x);
-            doc.SetNumber(KeyStore.Y, y);
-            this.bringToFront(doc);
+            de.data.droppedDocument.SetNumber(KeyStore.X, x);
+            de.data.droppedDocument.SetNumber(KeyStore.Y, y);
+            this.bringToFront(de.data.droppedDocument);
         }
     }
 
@@ -252,6 +238,21 @@ export class CollectionFreeFormView extends CollectionViewBase {
         this.props.focus(this.props.Document);
     }
 
+    getDocumentViewProps(document: Document): DocumentViewProps {
+        return {
+            Document: document,
+            AddDocument: this.props.addDocument,
+            RemoveDocument: this.props.removeDocument,
+            ScreenToLocalTransform: this.getTransform,
+            isTopMost: false,
+            SelectOnLoad: document.Id == this._selectOnLoaded,
+            PanelWidth: document.Width,
+            PanelHeight: document.Height,
+            ContentScaling: this.noScaling,
+            ContainingCollectionView: this.props.CollectionView,
+            focus: this.focusDocument
+        }
+    }
 
     @computed
     get views() {
@@ -261,18 +262,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
             return lvalue.Data.map(doc => {
                 var page = doc.GetNumber(KeyStore.Page, 0);
                 return (page != curPage && page != 0) ? (null) :
-                    (<CollectionFreeFormDocumentView key={doc.Id} Document={doc}
-                        AddDocument={this.props.addDocument}
-                        RemoveDocument={this.props.removeDocument}
-                        ScreenToLocalTransform={this.getTransform}
-                        isTopMost={false}
-                        SelectOnLoad={doc.Id === this._selectOnLoaded}
-                        ContentScaling={this.noScaling}
-                        PanelWidth={doc.Width}
-                        PanelHeight={doc.Height}
-                        ContainingCollectionView={this.props.CollectionView}
-                        focus={this.focusDocument}
-                    />);
+                    (<CollectionFreeFormDocumentView key={doc.Id} {...this.getDocumentViewProps(doc)} />);
             })
         }
         return null;
@@ -281,24 +271,14 @@ export class CollectionFreeFormView extends CollectionViewBase {
     @computed
     get backgroundView() {
         return !this.backgroundLayout ? (null) :
-            (<JsxParser
-                components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, CollectionVideoView, WebBox, KeyValueBox, PDFBox, VideoBox, AudioBox }}
-                bindings={this.props.bindings}
-                jsx={this.backgroundLayout}
-                showWarnings={true}
-                onError={(test: any) => console.log(test)}
-            />);
+            (<DocumentContentsView {...this.getDocumentViewProps(this.props.Document)}
+                layoutKey={KeyStore.BackgroundLayout} isSelected={() => false} select={() => { }} />);
     }
     @computed
     get overlayView() {
         return !this.overlayLayout ? (null) :
-            (<JsxParser
-                components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, CollectionVideoView, WebBox, KeyValueBox, PDFBox, VideoBox, AudioBox }}
-                bindings={this.props.bindings}
-                jsx={this.overlayLayout}
-                showWarnings={true}
-                onError={(test: any) => console.log(test)}
-            />);
+            (<DocumentContentsView {...this.getDocumentViewProps(this.props.Document)}
+                layoutKey={KeyStore.OverlayLayout} isSelected={() => false} select={() => { }} />);
     }
 
     getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-COLLECTION_BORDER_WIDTH, -COLLECTION_BORDER_WIDTH).translate(-this.centeringShiftX, -this.centeringShiftY).transform(this.getLocalTransform())
@@ -329,7 +309,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
                 onDrop={this.onDrop.bind(this)}
                 onDragOver={this.onDragOver}
                 onBlur={this.onBlur}
-                style={{ borderWidth: `${COLLECTION_BORDER_WIDTH}px`, }}
+                style={{ borderWidth: `${COLLECTION_BORDER_WIDTH}px` }}// , zIndex: !this.props.isTopMost ? -1 : undefined }}
                 tabIndex={0}
                 ref={this.createDropTarget}>
                 <div className="collectionfreeformview"

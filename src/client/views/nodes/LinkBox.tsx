@@ -16,6 +16,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEye } from '@fortawesome/free-solid-svg-icons';
 import { faEdit } from '@fortawesome/free-solid-svg-icons';
 import { faTimes } from '@fortawesome/free-solid-svg-icons';
+import { undoBatch } from "../../util/UndoManager";
 
 
 library.add(faEye);
@@ -33,8 +34,8 @@ interface Props {
 @observer
 export class LinkBox extends React.Component<Props> {
 
+    @undoBatch
     onViewButtonPressed = (e: React.PointerEvent): void => {
-        console.log("view down");
         e.stopPropagation();
         let docView = DocumentManager.Instance.getDocumentView(this.props.pairedDoc);
         if (docView) {

@@ -9,6 +9,9 @@ import "./InkingCanvas.scss"
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPen, faHighlighter, faEraser, faBan } from '@fortawesome/free-solid-svg-icons';
+import { SelectionManager } from "../util/SelectionManager";
+import { KeyStore } from "../../fields/KeyStore";
+import { TextField } from "../../fields/TextField";
 
 library.add(faPen, faHighlighter, faEraser, faBan);
 
@@ -34,6 +37,12 @@ export class InkingControl extends React.Component {
     @action
     switchColor = (color: ColorResult): void => {
         this._selectedColor = color.hex;
+        if (SelectionManager.SelectedDocuments().length == 1) {
+            var sdoc = SelectionManager.SelectedDocuments()[0];
+            if (sdoc.props.ContainingCollectionView && sdoc.props.ContainingCollectionView) {
+                sdoc.props.Document.SetOnPrototype(KeyStore.BackgroundColor, new TextField(color.hex));
+            }
+        }
     }
 
     @action

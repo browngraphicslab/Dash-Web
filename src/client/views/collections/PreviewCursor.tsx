@@ -1,16 +1,12 @@
-import { trace } from "mobx";
-import "./PreviewCursor.scss";
-import React = require("react");
 import { action, IReactionDisposer, observable, reaction } from "mobx";
 import { observer } from "mobx-react";
 import { Document } from "../../../fields/Document";
-import { FieldWaiting, Opt } from "../../../fields/Field";
-import { KeyStore } from "../../../fields/KeyStore";
-import { ListField } from "../../../fields/ListField";
+import { Opt } from "../../../fields/Field";
 import { Documents } from "../../documents/Documents";
-import { SelectionManager } from "../../util/SelectionManager";
 import { Transform } from "../../util/Transform";
 import { CollectionFreeFormView } from "./CollectionFreeFormView";
+import "./PreviewCursor.scss";
+import React = require("react");
 
 
 export interface PreviewCursorProps {
@@ -63,7 +59,6 @@ export class PreviewCursor extends React.Component<PreviewCursorProps>  {
             let newBox = Documents.TextDocument({ width: 200, height: 100, x: x, y: y, title: "new" });
             this.props.addLiveTextDocument(newBox);
             e.stopPropagation();
-            e.preventDefault();
         }
     }
 
