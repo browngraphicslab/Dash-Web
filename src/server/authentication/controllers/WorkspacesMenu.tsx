@@ -65,31 +65,33 @@ export class WorkspacesMenu extends React.Component<WorkspaceMenuProps> {
                     }}
                     onClick={this.addNewWorkspace}
                 />
-                {this.props.allWorkspaces.map((s, i) =>
-                    <div
-                        key={s.Id}
-                        onContextMenu={(e) => {
-                            e.preventDefault();
-                            this.props.open(s);
-                        }}
-                        style={{
-                            marginTop: 10,
-                            color: s === this.props.active ? "red" : "black"
-                        }}
-                    >
-                        <span>{i + 1} - </span>
-                        <EditableView
-                            display={"inline"}
-                            GetValue={() => { return s.Title }}
-                            SetValue={(title: string): boolean => {
-                                s.SetText(KeyStore.Title, title);
-                                return true;
+                {this.props.allWorkspaces.map((s, i) => {
+                    if (s) {
+                        return (<div
+                            key={s.Id}
+                            onContextMenu={(e) => {
+                                e.preventDefault();
+                                this.props.open(s);
                             }}
-                            contents={s.Title}
-                            height={20}
-                        />
-                    </div>
-                )}
+                            style={{
+                                marginTop: 10,
+                                color: s === this.props.active ? "red" : "black"
+                            }}
+                        >
+                            <span>{i + 1} - </span>
+                            <EditableView
+                                display={"inline"}
+                                GetValue={() => { return s.Title }}
+                                SetValue={(title: string): boolean => {
+                                    s.SetText(KeyStore.Title, title);
+                                    return true;
+                                }}
+                                contents={s.Title}
+                                height={20}
+                            />
+                        </div>);
+                    }
+                })}
             </div>
         );
     }

@@ -40,7 +40,7 @@ export class InkingControl extends React.Component {
         if (SelectionManager.SelectedDocuments().length == 1) {
             var sdoc = SelectionManager.SelectedDocuments()[0];
             if (sdoc.props.ContainingCollectionView && sdoc.props.ContainingCollectionView) {
-                sdoc.props.Document.SetOnPrototype(KeyStore.BackgroundColor, new TextField(color.hex));
+                sdoc.props.Document.SetDataOnPrototype(KeyStore.BackgroundColor, color.hex, TextField);
             }
         }
     }

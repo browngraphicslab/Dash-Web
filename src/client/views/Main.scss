@@ -79,7 +79,14 @@ button:hover {
 
 .clear-db-button {
     position: absolute;
-    right: 45%;
+    left: calc(50% - 110px);
+    bottom: 3%;
+    font-size: 50%;
+}
+
+.clear-all-db-button {
+    position: absolute;
+    left: calc(50% + 10px);
     bottom: 3%;
     font-size: 50%;
 }
@@ -154,7 +161,16 @@ button:hover {
         cursor: pointer;
     }
 }
-
+#main-div {
+    width:100%;
+    height:100%;
+    position:absolute;
+}
+#mainContent-div {
+    width:100%;
+    height:100%;
+    position:absolute;
+}
 #add-options-content {
     display: table;
     opacity: 1;

@@ -221,16 +221,51 @@ export namespace Documents {
             `</div> 
         </div>` };
 
-    function Caption() {
+    function OuterCaption() {
         return (`
 <div>
-    <div style="margin:auto; height:85%; width:85%;">
+    <div style="margin:auto; height:calc(100%); width:100%;">
         {layout}
     </div>
-    <div style="height:15%; width:100%; position:absolute">
+    <div style="height:(100% + 25px); width:100%; position:absolute">
         <FormattedTextBox doc={Document} DocumentViewForField={DocumentView} bindings={bindings} fieldKey={"CaptionKey"} isSelected={isSelected} select={select} selectOnLoad={SelectOnLoad} isTopMost={isTopMost}/>
     </div>
 </div>       
         `)
+    }
+    function InnerCaption() {
+        return (`
+    <div>
+        <div style="margin:auto; height:calc(100% - 25px); width:100%;">
+            {layout}
+        </div>
+        <div style="height:25px; width:100%; position:absolute">
+            <FormattedTextBox doc={Document} DocumentViewForField={DocumentView} bindings={bindings} fieldKey={"CaptionKey"} isSelected={isSelected} select={select} selectOnLoad={SelectOnLoad} isTopMost={isTopMost}/>
+        </div>
+    </div>       
+            `)
+    }
+
+    /*
+
+    this template requires an additional style setting on the collectionView-cont to make the layout relative
+    
+.collectionView-cont {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+    */
+    function Percentaption() {
+        return (`
+    <div>
+        <div style="margin:auto; height:85%; width:85%;">
+            {layout}
+        </div>
+        <div style="height:15%; width:100%; position:absolute">
+            <FormattedTextBox doc={Document} DocumentViewForField={DocumentView} bindings={bindings} fieldKey={"CaptionKey"} isSelected={isSelected} select={select} selectOnLoad={SelectOnLoad} isTopMost={isTopMost}/>
+        </div>
+    </div>       
+            `)
     }
 }

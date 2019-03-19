@@ -1,15 +1,14 @@
 import React = require("react")
-import { action, observable, computed } from "mobx";
+import { action, observable, ObservableMap, computed } from "mobx";
 import { observer } from "mobx-react";
 import Measure from "react-measure";
 import ReactTable, { CellInfo, ComponentPropsGetterR, ReactTableDefaults } from "react-table";
 import "react-table/react-table.css";
 import { Document } from "../../../fields/Document";
-import { Field } from "../../../fields/Field";
+import { Field, Opt } from "../../../fields/Field";
 import { KeyStore } from "../../../fields/KeyStore";
 import { CompileScript, ToField } from "../../util/Scripting";
 import { Transform } from "../../util/Transform";
-import { ContextMenu } from "../ContextMenu";
 import { EditableView } from "../EditableView";
 import { DocumentView } from "../nodes/DocumentView";
 import { FieldView, FieldViewProps } from "../nodes/FieldView";
@@ -17,20 +16,49 @@ import "./CollectionSchemaView.scss";
 import { COLLECTION_BORDER_WIDTH, CollectionView } from "./CollectionView";
 import { CollectionViewBase } from "./CollectionViewBase";
 import { setupDrag } from "../../util/DragManager";
+import { Key } from "./../../../fields/Key";
+import { Server } from "../../Server";
+import { ListField } from "../../../fields/ListField";
+
 
 // bcz: need to add drag and drop of rows and columns.  This seems like it might work for rows: https://codesandbox.io/s/l94mn1q657
 
+
+@observer
+class KeyToggle extends React.Component<{ keyId: string, checked: boolean, toggle: (key: Key) => void }> {
+    @observable key: Key | undefined;
+
+    componentWillReceiveProps() {
+        Server.GetField(this.props.keyId, action((field: Opt<Field>) => {
+            if (field instanceof Key) {
+                this.key = field;
+            }
+        }))
+    }
+
+    render() {
+        if (this.key) {
+            return (<div key={this.key.Id}>
+                <input type="checkbox" checked={this.props.checked} onChange={() => this.key && this.props.toggle(this.key)} />{this.key.Name}
+            </div>)
+        } else {
+            return <div></div>
+        }
+    }
+}
 
 @observer
 export class CollectionSchemaView extends CollectionViewBase {
     private _mainCont = React.createRef<HTMLDivElement>();
     private DIVIDER_WIDTH = 4;
 
+    @observable _columns: Array<Key> = [KeyStore.Title, KeyStore.Data, KeyStore.Author];
     @observable _contentScaling = 1; // used to transfer the dimensions of the content pane in the DOM to the ContentScaling prop of the DocumentView
     @observable _dividerX = 0;
     @observable _panelWidth = 0;
     @observable _panelHeight = 0;
     @observable _selectedIndex = 0;
+    @observable _columnsPercentage = 0;
     @computed get splitPercentage() { return this.props.Document.GetNumber(KeyStore.SchemaSplitPercentage, 0); }
 
     renderCell = (rowProps: CellInfo) => {
@@ -105,6 +133,43 @@ export class CollectionSchemaView extends CollectionViewBase {
         };
     }
 
+    get columns() {
+        return this.props.Document.GetList<Key>(KeyStore.ColumnsKey, []);
+    }
+
+    @action
+    toggleKey = (key: Key) => {
+        this.props.Document.GetOrCreateAsync<ListField<Key>>(KeyStore.ColumnsKey, ListField,
+            (field) => {
+                const index = field.Data.indexOf(key);
+                if (index === -1) {
+                    this.columns.push(key);
+                } else {
+                    this.columns.splice(index, 1);
+                }
+
+            })
+    }
+
+    @observable keys: Key[] = [];
+
+    findAllDocumentKeys = (): { [id: string]: boolean } => {
+        const docs = this.props.Document.GetList<Document>(this.props.fieldKey, []);
+        let keys: { [id: string]: boolean } = {}
+        docs.forEach(doc => {
+            let protos = doc.GetAllPrototypes();
+            for (const proto of protos) {
+                proto._proxies.forEach((val: any, key: string) => {
+                    keys[key] = false
+                })
+            }
+        })
+        this.columns.forEach(key => {
+            keys[key.Id] = true;
+        })
+        return keys;
+    }
+
     _startSplitPercent = 0;
     @action
     onDividerMove = (e: PointerEvent): void => {
@@ -126,6 +191,25 @@ export class CollectionSchemaView extends CollectionViewBase {
         document.addEventListener("pointermove", this.onDividerMove);
         document.addEventListener('pointerup', this.onDividerUp);
     }
+
+
+    @action
+    onColDividerMove = (e: PointerEvent): void => {
+        let nativeWidth = this._mainCont.current!.getBoundingClientRect();
+        this._columnsPercentage = 100 - (e.clientY - nativeWidth.top) / nativeWidth.height * 100;
+    }
+    @action
+    onColDividerUp = (e: PointerEvent): void => {
+        document.removeEventListener("pointermove", this.onColDividerMove);
+        document.removeEventListener('pointerup', this.onColDividerUp);
+    }
+    onColDividerDown = (e: React.PointerEvent) => {
+        e.stopPropagation();
+        e.preventDefault();
+        document.addEventListener("pointermove", this.onColDividerMove);
+        document.addEventListener('pointerup', this.onColDividerUp);
+    }
+
     @action
     onExpanderMove = (e: PointerEvent): void => {
         e.stopPropagation();
@@ -164,6 +248,27 @@ export class CollectionSchemaView extends CollectionViewBase {
     }
 
     @action
+    onColumnsMove = (e: PointerEvent): void => {
+        e.stopPropagation();
+        e.preventDefault();
+    }
+    @action
+    onColumnsUp = (e: PointerEvent): void => {
+        e.stopPropagation();
+        e.preventDefault();
+        document.removeEventListener("pointermove", this.onColumnsMove);
+        document.removeEventListener('pointerup', this.onColumnsUp);
+        this._columnsPercentage = this._columnsPercentage ? 0 : 50;
+    }
+    onColumnsDown = (e: React.PointerEvent) => {
+        this._startSplitPercent = this.splitPercentage;
+        e.stopPropagation();
+        e.preventDefault();
+        document.addEventListener("pointermove", this.onColumnsMove);
+        document.addEventListener('pointerup', this.onColumnsUp);
+    }
+
+    @action
     setScaling = (r: any) => {
         const children = this.props.Document.GetList<Document>(this.props.fieldKey, []);
         const selected = children.length > this._selectedIndex ? children[this._selectedIndex] : undefined;
@@ -182,9 +287,10 @@ export class CollectionSchemaView extends CollectionViewBase {
     focusDocument = (doc: Document) => { }
 
     render() {
-        const columns = this.props.Document.GetList(KeyStore.ColumnsKey, [KeyStore.Title, KeyStore.Data, KeyStore.Author])
+        const columns = this.columns;
         const children = this.props.Document.GetList<Document>(this.props.fieldKey, []);
         const selected = children.length > this._selectedIndex ? children[this._selectedIndex] : undefined;
+        const allKeys = this.findAllDocumentKeys();
         let content = this._selectedIndex == -1 || !selected ? (null) : (
             <Measure onResize={this.setScaling}>
                 {({ measureRef }) =>
@@ -206,8 +312,13 @@ export class CollectionSchemaView extends CollectionViewBase {
         )
         let previewHandle = !this.props.active() ? (null) : (
             <div className="collectionSchemaView-previewHandle" onPointerDown={this.onExpanderDown} />);
+        let columnsHandle = !this.props.active() ? (null) : (
+            <div className="collectionSchemaView-columnsHandle" onPointerDown={this.onColumnsDown} />);
         let dividerDragger = this.splitPercentage == 0 ? (null) :
             <div className="collectionSchemaView-dividerDragger" onPointerDown={this.onDividerDown} style={{ width: `${this.DIVIDER_WIDTH}px` }} />
+        let colDividerDragger = this._columnsPercentage == 0 ? (null) :
+            <div className="collectionSchemaView-colDividerDragger" onPointerDown={this.onColDividerDown} style={{ height: `${this.DIVIDER_WIDTH}px` }} />
+
         return (
             <div className="collectionSchemaView-container" onPointerDown={this.onPointerDown} ref={this._mainCont} style={{ borderWidth: `${COLLECTION_BORDER_WIDTH}px` }} >
                 <div className="collectionSchemaView-dropTarget" onDrop={(e: React.DragEvent) => this.onDrop(e, {})} ref={this.createDropTarget}>
@@ -218,23 +329,38 @@ export class CollectionSchemaView extends CollectionViewBase {
                         {({ measureRef }) =>
                             <div ref={measureRef} className="collectionSchemaView-tableContainer"
                                 style={{ width: `calc(100% - ${this.splitPercentage}%)` }}>
-                                <ReactTable
-                                    data={children}
-                                    pageSize={children.length}
-                                    page={0}
-                                    showPagination={false}
-                                    columns={columns.map(col => ({
-                                        Header: col.Name,
-                                        accessor: (doc: Document) => [doc, col],
-                                        id: col.Id
-                                    }))}
-                                    column={{
-                                        ...ReactTableDefaults.column,
-                                        Cell: this.renderCell,
+                                <div className="collectionSchemaView-reactContainer" style={{ height: `calc(100% - ${this._columnsPercentage}%)` }}>
+                                    <ReactTable
+                                        data={children}
+                                        pageSize={children.length}
+                                        page={0}
+                                        showPagination={false}
+                                        columns={columns.map(col => ({
+                                            Header: col.Name,
+                                            accessor: (doc: Document) => [doc, col],
+                                            id: col.Id
+                                        }))}
+                                        column={{
+                                            ...ReactTableDefaults.column,
+                                            Cell: this.renderCell,
 
-                                    }}
-                                    getTrProps={this.getTrProps}
-                                />
+                                        }}
+                                        getTrProps={this.getTrProps}
+                                    />
+                                </div>
+                                {colDividerDragger}
+                                <div className="collectionSchemaView-addColumn" style={{ height: `${this._columnsPercentage}%` }} >
+                                    {/* <input type="checkbox" id="addColumn-toggle" />
+                                    <label htmlFor="addColumn-toggle" title="Add Column"><p>+</p></label> */}
+
+                                    <div className="addColumn-options">
+                                        <ul style={{ overflow: "scroll" }}>
+                                            {Array.from(Object.keys(allKeys)).map(item => {
+                                                return (<KeyToggle checked={allKeys[item]} key={item} keyId={item} toggle={this.toggleKey} />)
+                                            })}
+                                        </ul>
+                                    </div>
+                                </div>
                             </div>
                         }
                     </Measure>
@@ -243,6 +369,8 @@ export class CollectionSchemaView extends CollectionViewBase {
                         {content}
                     </div>
                     {previewHandle}
+                    {columnsHandle}
+
                 </div>
             </div >
         )

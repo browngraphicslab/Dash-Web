@@ -39,6 +39,11 @@ export class Document extends Field {
         return this.GetText(KeyStore.Title, "<untitled>");
     }
 
+    @computed
+    public get Fields() {
+        return this.fields;
+    }
+
     /**
      * Get the field in the document associated with the given key. If the
      * associated field has not yet been filled in from the server, a request
@@ -244,6 +249,13 @@ export class Document extends Field {
     }
 
     @action
+    SetDataOnPrototype<T, U extends Field & { Data: T }>(key: Key, value: T, ctor: { new(): U }, replaceWrongType = true) {
+        this.GetAsync(KeyStore.Prototype, (f: Field) => {
+            (f as Document).SetData(key, value, ctor)
+        })
+    }
+
+    @action
     SetData<T, U extends Field & { Data: T }>(key: Key, value: T, ctor: { new(): U }, replaceWrongType = true) {
 
         let field = this.Get(key, true);
@@ -305,6 +317,7 @@ export class Document extends Field {
         throw new Error("Method not implemented.");
     }
     GetValue() {
+        return this.Title;
         var title = (this._proxies.has(KeyStore.Title.Id) ? "???" : this.Title) + "(" + this.Id + ")";
         return title;
         //throw new Error("Method not implemented.");

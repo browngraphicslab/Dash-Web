@@ -11,7 +11,7 @@ export class Database {
     private db?: mongodb.Db;
 
     constructor() {
-        this.MongoClient.connect(this.url, (err, client) => {
+        this.MongoClient.connect(this.url, { useNewUrlParser: true }, (err, client) => {
             this.db = client.db()
         })
     }

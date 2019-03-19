@@ -26,7 +26,7 @@ block content
                     button.btn.btn-success(id='submit', type='submit')
                         i.fa.fa-user-plus
                         | Submit
-    form.form-horizontal(id='login-form', method='POST')
+    form.form-horizontal(id='dev-login-form', method='POST')
         input(type='hidden', name='_csrf', value=_csrf)
         input.form-control(name='usernum', id='usernum', value=defaultId placeholder='dev_id > 0', autofocus, required)
         button.btn.btn-success(id='submit_dev', type='submit')

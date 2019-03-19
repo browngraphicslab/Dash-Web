@@ -18,7 +18,7 @@ import { getLogin, postLogin, getSignup, postSignup, getLogout, postReset, getFo
 const config = require('../../webpack.config');
 const compiler = webpack(config);
 const port = 1050; // default port to listen
-const serverPort = 1234;
+const serverPort = 4321;
 import * as expressValidator from 'express-validator';
 import expressFlash = require('express-flash');
 import flash = require('connect-flash');
@@ -75,6 +75,28 @@ app.get("/hello", (req, res) => {
     res.send("<p>Hello</p>");
 })
 
+// DEVELOPMENT
+
+app.get(RouteStore.delete, (req, res) => {
+    deleteFields();
+    res.sendStatus(200);
+});
+
+app.get(RouteStore.deleteAll, (req, res) => {
+    deleteAll();
+    res.sendStatus(200);
+});
+
+app.get(RouteStore.pull, (req, res) => {
+    exec('"C:\\Program Files\\Git\\git-bash.exe" -c "git pull"', (err, stdout, stderr) => {
+        if (err) {
+            res.send(err.message);
+            return;
+        }
+        res.redirect(RouteStore.root);
+    })
+});
+
 enum Method {
     GET,
     POST
@@ -113,20 +135,8 @@ function addSecureRoute(method: Method,
 
 // STATIC FILE SERVING
 
-let FieldStore: ObservableMap<FieldId, Field> = new ObservableMap();
-
 app.use(express.static(__dirname + RouteStore.public));
 app.use(RouteStore.images, express.static(__dirname + RouteStore.public))
-
-app.get("/pull", (req, res) => {
-    exec('"C:\\Program Files\\Git\\git-bash.exe" -c "git pull"', (err, stdout, stderr) => {
-        if (err) {
-            res.send(err.message);
-            return;
-        }
-        res.redirect("/");
-    })
-});
 
 // GETTERS
 
@@ -247,18 +257,10 @@ app.post(RouteStore.forgot, postForgot)
 app.get(RouteStore.reset, getReset);
 app.post(RouteStore.reset, postReset);
 
+// END OF ROUTING
+
 app.use(RouteStore.corsProxy, (req, res) => {
     req.pipe(request(req.url.substring(1))).pipe(res);
-});
-
-app.get(RouteStore.delete, (req, res) => {
-    deleteFields();
-    res.redirect(RouteStore.home);
-});
-
-app.get(RouteStore.deleteAll, (req, res) => {
-    deleteAll();
-    res.redirect(RouteStore.home);
 });
 
 app.use(wdm(compiler, {

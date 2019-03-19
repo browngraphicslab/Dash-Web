@@ -1,7 +1,7 @@
 import * as GoldenLayout from "golden-layout";
 import 'golden-layout/src/css/goldenlayout-base.css';
 import 'golden-layout/src/css/goldenlayout-dark-theme.css';
-import { action, observable, reaction } from "mobx";
+import { action, observable, reaction, trace } from "mobx";
 import { observer } from "mobx-react";
 import * as ReactDOM from 'react-dom';
 import { Document } from "../../../fields/Document";
@@ -16,6 +16,7 @@ import "./CollectionDockingView.scss";
 import { COLLECTION_BORDER_WIDTH } from "./CollectionView";
 import React = require("react");
 import { SubCollectionViewProps } from "./CollectionViewBase";
+import { ServerUtils } from "../../../server/ServerUtil";
 
 @observer
 export class CollectionDockingView extends React.Component<SubCollectionViewProps> {
@@ -36,6 +37,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     private _containerRef = React.createRef<HTMLDivElement>();
     private _fullScreen: any = null;
     private _flush: boolean = false;
+    private _ignoreStateChange = "";
 
     constructor(props: SubCollectionViewProps) {
         super(props);
@@ -44,7 +46,8 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         (window as any).ReactDOM = ReactDOM;
     }
     public StartOtherDrag(dragDoc: Document, e: any) {
-        this.AddRightSplit(dragDoc, true).contentItems[0].tab._dragListener.onMouseDown({ pageX: e.pageX, pageY: e.pageY, preventDefault: () => { }, button: 0 })
+        this.AddRightSplit(dragDoc, true).contentItems[0].tab._dragListener.
+            onMouseDown({ pageX: e.pageX, pageY: e.pageY, preventDefault: () => { }, button: 0 })
     }
 
     @action
@@ -75,7 +78,6 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     //
     @action
     public AddRightSplit(document: Document, minimize: boolean = false) {
-        this._goldenLayout.emit('stateChanged');
         let newItemStackConfig = {
             type: 'stack',
             content: [CollectionDockingView.makeDocumentConfig(document)]
@@ -104,7 +106,9 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         newContentItem.callDownwards('_$init');
         this._goldenLayout.root.callDownwards('setSize', [this._goldenLayout.width, this._goldenLayout.height]);
         this._goldenLayout.emit('stateChanged');
+        this._ignoreStateChange = JSON.stringify(this._goldenLayout.toConfig());
         this.stateChanged();
+
         return newContentItem;
     }
 
@@ -144,7 +148,12 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         if (this._containerRef.current) {
             reaction(
                 () => this.props.Document.GetText(KeyStore.Data, ""),
-                () => setTimeout(() => this.setupGoldenLayout(), 1), { fireImmediately: true });
+                () => {
+                    if (!this._goldenLayout || this._ignoreStateChange != JSON.stringify(this._goldenLayout.toConfig())) {
+                        setTimeout(() => this.setupGoldenLayout(), 1);
+                    }
+                    this._ignoreStateChange = "";
+                }, { fireImmediately: true });
 
             window.addEventListener('resize', this.onResize); // bcz: would rather add this event to the parent node, but resize events only come from Window
         }
@@ -215,7 +224,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         stack.header.controlsContainer.find('.lm_popout') //get the close icon
             .off('click') //unbind the current click handler
             .click(action(function () {
-                var url = "http://localhost:1050/doc/" + stack.contentItems[0].tab.contentItem.config.props.documentId;
+                var url = ServerUtils.prepend("/doc/" + stack.contentItems[0].tab.contentItem.config.props.documentId);
                 let win = window.open(url, stack.contentItems[0].tab.title, "width=300,height=400");
             }));
     }
