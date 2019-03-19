@@ -114,9 +114,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
 
     setupGoldenLayout() {
         var config = this.props.Document.GetText(KeyStore.Data, "");
-        var ignore = this._ignoreStateChange;
-        this._ignoreStateChange = "";
-        if (config && ignore != config) {
+        if (config) {
             if (!this._goldenLayout) {
                 this._goldenLayout = new GoldenLayout(JSON.parse(config));
             }
@@ -150,7 +148,12 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         if (this._containerRef.current) {
             reaction(
                 () => this.props.Document.GetText(KeyStore.Data, ""),
-                () => setTimeout(() => this.setupGoldenLayout(), 1), { fireImmediately: true });
+                () => {
+                    if (!this._goldenLayout || this._ignoreStateChange != JSON.stringify(this._goldenLayout.toConfig())) {
+                        setTimeout(() => this.setupGoldenLayout(), 1);
+                    }
+                    this._ignoreStateChange = "";
+                }, { fireImmediately: true });
 
             window.addEventListener('resize', this.onResize); // bcz: would rather add this event to the parent node, but resize events only come from Window
         }
