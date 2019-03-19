@@ -14,7 +14,6 @@ import { CollectionViewProps } from "./CollectionViewBase";
 import { CollectionTreeView } from "./CollectionTreeView";
 import { Field, FieldId } from "../../../fields/Field";
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTh } from '@fortawesome/free-solid-svg-icons';
 import { faTree } from '@fortawesome/free-solid-svg-icons';
 import { faSquare } from '@fortawesome/free-solid-svg-icons';

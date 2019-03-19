@@ -15,7 +15,6 @@ import { Decoration, DecorationSet } from 'prosemirror-view'
 import { TooltipTextMenu } from "../../util/TooltipTextMenu"
 import { ContextMenu } from "../../views/ContextMenu";
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEdit } from '@fortawesome/free-solid-svg-icons';
 import { faSmile } from '@fortawesome/free-solid-svg-icons';
 

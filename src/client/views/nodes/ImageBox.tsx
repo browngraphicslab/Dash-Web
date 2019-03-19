@@ -1,4 +1,3 @@
-
 import { action, observable } from 'mobx';
 import { observer } from "mobx-react";
 import Lightbox from 'react-image-lightbox';

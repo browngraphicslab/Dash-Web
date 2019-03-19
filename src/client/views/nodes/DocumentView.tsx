@@ -28,7 +28,6 @@ import { TextField } from "../../../fields/TextField";
 import { DocumentManager } from "../../util/DocumentManager";
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrash } from '@fortawesome/free-solid-svg-icons';
 import { faExpandArrowsAlt } from '@fortawesome/free-solid-svg-icons';
 import { faCompressArrowsAlt } from '@fortawesome/free-solid-svg-icons';

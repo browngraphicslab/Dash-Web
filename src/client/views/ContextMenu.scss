@@ -18,7 +18,7 @@
     width: 11vw; //10vw
     height: 2.5vh; //2vh
     background: #DDDDDD;
-    display: flex;
+    display: flex; //comment out to allow search icon to be inline with search text
     justify-content: left;
     align-items: center;
     -webkit-touch-callout: none;
