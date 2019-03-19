@@ -51,3 +51,18 @@
     font-size: 15px;
     float:left;
  }
+
+ .presentation-next{
+     float: right;
+ }
+ .presentation-back{
+     float: left;
+ }
+ .presentation-next:hover{
+    transition: all .1s;
+    background: #AAAAAA
+}
+.presentation-back:hover{
+    transition: all .1s;
+    background: #AAAAAA
+}

@@ -59,15 +59,30 @@ class PresentationViewItem extends React.Component<PresViewProps> {
     renderChild(document: Document) {
         let title = document.GetT<TextField>(KeyStore.Title, TextField);
 
+        //to get currently selected presentation doc
+        let selected = this.props.Document.GetNumber(KeyStore.SelectedDoc, 0);
+
         // if the title hasn't loaded, immediately return the div
         if (!title || title === "<Waiting>") {
             return <div className="presentationView-item" key={document.Id}></div>;
         }
         // finally, if it's a normal document, then render it as such.
         else {
-            return <li className="presentationView-item" key={document.Id} >
-                <div className="presentationView-header" onClick={() => this.openDoc(document)}>{title.Data}</div>
-                <div className="presentation-icon" onClick={() => this.RemoveDoc(document)}>X</div></li>;
+            const children = this.props.Document.GetT<ListField<Document>>(KeyStore.Data, ListField);
+            if (children && children !== "<Waiting>" && children.Data[selected] == document) {
+                //this doc is selected
+                const styles = {
+                    background: "gray"
+                }
+                return <li className="presentationView-item" style={styles} key={document.Id}>
+                    <div className="presentationView-header" onClick={() => this.openDoc(document)}>{title.Data}</div>
+                    <div className="presentation-icon" onClick={() => this.RemoveDoc(document)}>X</div></li>;
+            } else {
+                return <li className="presentationView-item" key={document.Id} >
+                    <div className="presentationView-header" onClick={() => this.openDoc(document)}>{title.Data}</div>
+                    <div className="presentation-icon" onClick={() => this.RemoveDoc(document)}>X</div></li>;
+            }
+
         }
     }
 
@@ -93,6 +108,34 @@ export class PresentationView extends React.Component<PresViewProps>  {
     @observable
     collapsed: boolean = false;
     closePresentation = action(() => this.props.Document.SetNumber(KeyStore.Width, 0));
+    next = () => {
+        const current = this.props.Document.GetNumber(KeyStore.SelectedDoc, 0);
+        const allDocs = this.props.Document.GetT<ListField<Document>>(KeyStore.Data, ListField);
+        if (allDocs && allDocs !== "<Waiting>" && current < allDocs.Data.length + 1) {
+            //can move forwards
+            this.props.Document.SetNumber(KeyStore.SelectedDoc, current + 1);
+            const doc = allDocs.Data[current + 1];
+            let docView = DocumentManager.Instance.getDocumentView(doc);
+            if (docView) {
+                docView.focus();
+            }
+        }
+
+    };
+    back = () => {
+        const current = this.props.Document.GetNumber(KeyStore.SelectedDoc, 0);
+        const allDocs = this.props.Document.GetT<ListField<Document>>(KeyStore.Data, ListField);
+        if (allDocs && allDocs !== "<Waiting>" && current - 1 >= 0) {
+            //can move forwards
+            this.props.Document.SetNumber(KeyStore.SelectedDoc, current - 1);
+            const doc = allDocs.Data[current - 1];
+            let docView = DocumentManager.Instance.getDocumentView(doc);
+            if (docView) {
+                docView.focus();
+            }
+        }
+
+    };
 
     private ref: React.RefObject<HTMLDivElement>;
 
@@ -126,12 +169,16 @@ export class PresentationView extends React.Component<PresViewProps>  {
             titleStr = title.Data;
         }
         let width = this.props.Document.GetNumber(KeyStore.Width, 0);
+
+        //TODO: next and back should be icons
         return (
             <div className="presentationView-cont" style={{ width: width }}>
                 <div className="presentationView-heading">
                     <div className="presentationView-title">{titleStr}</div>
                     <div className='presentation-icon' onClick={this.closePresentation}>X</div></div>
                 <div>
+                    <div className="presentation-back" onClick={this.back}>back</div>
+                    <div className="presentation-next" onClick={this.next}>next</div>
 
                 </div>
                 <ul>
