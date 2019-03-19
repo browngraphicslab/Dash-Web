@@ -1,7 +1,7 @@
 import * as GoldenLayout from "golden-layout";
 import 'golden-layout/src/css/goldenlayout-base.css';
 import 'golden-layout/src/css/goldenlayout-dark-theme.css';
-import { action, observable, reaction } from "mobx";
+import { action, observable, reaction, trace } from "mobx";
 import { observer } from "mobx-react";
 import * as ReactDOM from 'react-dom';
 import { Document } from "../../../fields/Document";
@@ -44,7 +44,8 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         (window as any).ReactDOM = ReactDOM;
     }
     public StartOtherDrag(dragDoc: Document, e: any) {
-        this.AddRightSplit(dragDoc, true).contentItems[0].tab._dragListener.onMouseDown({ pageX: e.pageX, pageY: e.pageY, preventDefault: () => { }, button: 0 })
+        this.AddRightSplit(dragDoc, true).contentItems[0].tab._dragListener.
+            onMouseDown({ pageX: e.pageX, pageY: e.pageY, preventDefault: () => { }, button: 0 })
     }
 
     @action
@@ -75,7 +76,6 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     //
     @action
     public AddRightSplit(document: Document, minimize: boolean = false) {
-        this._goldenLayout.emit('stateChanged');
         let newItemStackConfig = {
             type: 'stack',
             content: [CollectionDockingView.makeDocumentConfig(document)]
@@ -104,13 +104,18 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         newContentItem.callDownwards('_$init');
         this._goldenLayout.root.callDownwards('setSize', [this._goldenLayout.width, this._goldenLayout.height]);
         this._goldenLayout.emit('stateChanged');
+        this.ignoreStateChange = JSON.stringify(this._goldenLayout.toConfig());
         this.stateChanged();
+
         return newContentItem;
     }
 
+    ignoreStateChange = "";
     setupGoldenLayout() {
         var config = this.props.Document.GetText(KeyStore.Data, "");
         if (config) {
+            if (this.ignoreStateChange == config)
+                return;
             if (!this._goldenLayout) {
                 this._goldenLayout = new GoldenLayout(JSON.parse(config));
             }
