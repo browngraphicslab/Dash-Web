@@ -46,7 +46,7 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
     }
 
     set inkData(value: StrokeMap) {
-        this.props.Document.SetOnPrototype(KeyStore.Ink, new InkField(value));
+        this.props.Document.SetDataOnPrototype(KeyStore.Ink, value, InkField);
     }
 
     componentDidMount() {

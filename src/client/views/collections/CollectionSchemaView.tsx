@@ -9,7 +9,6 @@ import { Field, Opt } from "../../../fields/Field";
 import { KeyStore } from "../../../fields/KeyStore";
 import { CompileScript, ToField } from "../../util/Scripting";
 import { Transform } from "../../util/Transform";
-import { ContextMenu } from "../ContextMenu";
 import { EditableView } from "../EditableView";
 import { DocumentView } from "../nodes/DocumentView";
 import { FieldView, FieldViewProps } from "../nodes/FieldView";
@@ -32,8 +31,7 @@ import { faCog } from '@fortawesome/free-solid-svg-icons';
 
 @observer
 class KeyToggle extends React.Component<{ keyId: string, checked: boolean, toggle: (key: Key) => void }> {
-    @observable
-    key: Key | undefined;
+    @observable key: Key | undefined;
 
     componentWillReceiveProps() {
         Server.GetField(this.props.keyId, action((field: Opt<Field>) => {

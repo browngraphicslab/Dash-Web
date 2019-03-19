@@ -154,7 +154,16 @@ button:hover {
         cursor: pointer;
     }
 }
-
+#main-div {
+    width:100%;
+    height:100%;
+    position:absolute;
+}
+#mainContent-div {
+    width:100%;
+    height:100%;
+    position:absolute;
+}
 #add-options-content {
     display: table;
     opacity: 1;
