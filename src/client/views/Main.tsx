@@ -43,6 +43,8 @@ import { CurrentUserUtils } from '../../server/authentication/models/current_use
 import { Field, Opt } from '../../fields/Field';
 import { ListField } from '../../fields/ListField';
 import { map } from 'bluebird';
+import { Gateway, Settings } from '../northstar/manager/Gateway';
+import { Catalog } from '../northstar/model/idea/idea';
 
 @observer
 export class Main extends React.Component {
@@ -52,6 +54,7 @@ export class Main extends React.Component {
     @observable private userWorkspaces: Document[] = [];
     @observable public pwidth: number = 0;
     @observable public pheight: number = 0;
+    @observable private _northstarCatalog: Catalog | undefined = undefined;
 
     public mainDocId: string | undefined;
     private currentUser?: DashUserModel;
@@ -65,7 +68,9 @@ export class Main extends React.Component {
         if (window.location.pathname !== RouteStore.home) {
             let pathname = window.location.pathname.split("/");
             this.mainDocId = pathname[pathname.length - 1];
-        }
+        };
+
+        this.initializeNorthstar();
 
         CurrentUserUtils.loadCurrentUser();
 
@@ -82,9 +87,26 @@ export class Main extends React.Component {
         library.add(faMusic);
 
         this.initEventListeners();
-        Documents.initProtos(() => {
-            this.initAuthenticationRouters();
+        Documents.initProtos(() => this.initAuthenticationRouters());
+    }
+
+    @action SetNorthstarCatalog(ctlog: Catalog) {
+        this._northstarCatalog = ctlog;
+        if (this._northstarCatalog) {
+            console.log("CATALOG " + this._northstarCatalog.schemas);
+        }
+    }
+    async initializeNorthstar(): Promise<void> {
+        let envPath = "assets/env.json";
+        const response = await fetch(envPath, {
+            redirect: "follow",
+            method: "GET",
+            credentials: "include"
         });
+        const env = await response.json();
+        Settings.Instance.Update(env);
+        let cat = Gateway.Instance.ClearCatalog();
+        cat.then(async () => this.SetNorthstarCatalog(await Gateway.Instance.GetCatalog()));
     }
 
     onHistory = () => {

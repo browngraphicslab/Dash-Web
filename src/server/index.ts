@@ -18,7 +18,7 @@ import { getLogin, postLogin, getSignup, postSignup, getLogout, postReset, getFo
 const config = require('../../webpack.config');
 const compiler = webpack(config);
 const port = 1050; // default port to listen
-const serverPort = 1234;
+const serverPort = 4321;
 import * as expressValidator from 'express-validator';
 import expressFlash = require('express-flash');
 import flash = require('connect-flash');

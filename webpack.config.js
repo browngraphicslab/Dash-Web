@@ -77,7 +77,7 @@ module.exports = {
     compress: false,
     host: "localhost",
     contentBase: path.join(__dirname, 'deploy'),
-    port: 1234,
+    port: 4321,
     hot: true,
     https: false,
     overlay: {
