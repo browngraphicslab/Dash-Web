@@ -140,3 +140,14 @@ body {
     font-family: Arial, Helvetica, sans-serif;
     font-size: 16px;
 }
+
+/* dev */
+#usernum {
+    position: absolute;
+    margin-top: 43px;
+}
+
+#submit-dev {
+    position: absolute;
+    visibility: hidden;
+}

@@ -227,7 +227,7 @@ export class Main extends React.Component {
                 <div className="main-buttonDiv" style={{ top: '34px', left: '2px', position: 'absolute' }} ref={workspacesRef}>
                     <button onClick={this.toggleWorkspaces}>Workspaces</button></div>
                 <div className="main-buttonDiv" style={{ top: '34px', right: '1px', position: 'absolute' }} ref={logoutRef}>
-                    <button onClick={() => request.get(ServerUtils.prepend(RouteStore.logout), () => { })}>Log Out</button></div>
+                    <button onClick={() => window.location.href = ServerUtils.prepend(RouteStore.logout)}>Log Out</button></div>
 
                 <WorkspacesMenu active={this.mainContainer} open={this.openWorkspace} new={this.createNewWorkspace} allWorkspaces={this.userWorkspaces} />
                 {/* for the expandable add nodes menu. Not included with the above because once it expands it expands the whole div with it, making canvas interactions limited. */}

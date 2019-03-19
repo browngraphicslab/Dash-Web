@@ -54,7 +54,6 @@ export let postSignup = (req: Request, res: Response, next: NextFunction) => {
     const user = new User({
         email,
         password,
-        userDoc: "document here"
     });
 
     User.findOne({ email }, (err, existingUser) => {
@@ -86,7 +85,8 @@ export let getLogin = (req: Request, res: Response) => {
     }
     res.render("login.pug", {
         title: "Log In",
-        user: req.user
+        user: req.user,
+        defaultId: 1
     });
 };
 
@@ -96,6 +96,40 @@ export let getLogin = (req: Request, res: Response) => {
  * On failure, redirect to signup page
  */
 export let postLogin = (req: Request, res: Response, next: NextFunction) => {
+    let usernum = req.body.usernum as number;
+    if (usernum && usernum > 0) {
+        let email = `dev${usernum}`;
+        let password = '';
+
+        const user = new User({
+            email,
+            password,
+        });
+
+        User.findOne({ email }, (err, existingUser) => {
+            if (err) { return next(err); }
+            if (existingUser) {
+                req.logIn(existingUser, (err) => {
+                    if (err) {
+                        return next(err);
+                    }
+                    res.redirect(RouteStore.home);
+                });
+                return;
+            }
+            user.save((err) => {
+                if (err) { return next(err); }
+                req.logIn(user, (err) => {
+                    if (err) {
+                        return next(err);
+                    }
+                    res.redirect(RouteStore.home);
+                });
+            });
+        });
+        return;
+    }
+
     req.assert("email", "Email is not valid").isEmail();
     req.assert("password", "Password cannot be blank").notEmpty();
     req.sanitize("email").normalizeEmail({ gmail_remove_dots: false });
