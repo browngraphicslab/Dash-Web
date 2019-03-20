@@ -1,4 +1,13 @@
 import { observable, action } from "mobx";
+import 'source-map-support/register'
+
+function getBatchName(target: any, key: string | symbol): string {
+    let keyName = key.toString();
+    if (target && target.constructor && target.constructor.name) {
+        return `${target.constructor.name}.${keyName}`;
+    }
+    return keyName;
+}
 
 function propertyDecorator(target: any, key: string | symbol) {
     Object.defineProperty(target, key, {
@@ -13,11 +22,11 @@ function propertyDecorator(target: any, key: string | symbol) {
                 writable: true,
                 configurable: true,
                 value: function (...args: any[]) {
+                    let batch = UndoManager.StartBatch(getBatchName(target, key));
                     try {
-                        UndoManager.StartBatch();
                         return value.apply(this, args);
                     } finally {
-                        UndoManager.EndBatch();
+                        batch.end();
                     }
                 }
             })
@@ -32,11 +41,11 @@ export function undoBatch(target: any, key: string | symbol, descriptor?: TypedP
     const oldFunction = descriptor.value;
 
     descriptor.value = function (...args: any[]) {
+        let batch = UndoManager.StartBatch(getBatchName(target, key));
         try {
-            UndoManager.StartBatch()
             return oldFunction.apply(this, args)
         } finally {
-            UndoManager.EndBatch()
+            batch.end();
         }
     }
 
@@ -70,26 +79,53 @@ export namespace UndoManager {
         return redoStack.length > 0;
     }
 
-    export function StartBatch(): void {
+    let openBatches: Batch[] = [];
+    export function GetOpenBatches(): { batchName: string, cancel: () => void }[] {
+        return openBatches;
+    }
+    export class Batch {
+        private disposed: boolean = false;
+
+        constructor(readonly batchName: string) {
+            openBatches.push(this);
+        }
+
+        private dispose = (cancel: boolean) => {
+            if (this.disposed) {
+                throw new Error("Cannot dispose an already disposed batch");
+            }
+            this.disposed = true;
+            openBatches.splice(openBatches.indexOf(this));
+            EndBatch(cancel);
+        }
+
+        end = () => { this.dispose(false); }
+        cancel = () => { this.dispose(true); }
+    }
+
+    export function StartBatch(batchName: string): Batch {
         batchCounter++;
         if (batchCounter > 0) {
             currentBatch = [];
         }
+        return new Batch(batchName);
     }
 
-    export const EndBatch = action(() => {
+    const EndBatch = action((cancel: boolean = false) => {
         batchCounter--;
         if (batchCounter === 0 && currentBatch && currentBatch.length) {
-            undoStack.push(currentBatch);
+            if (!cancel) {
+                undoStack.push(currentBatch);
+            }
             redoStack.length = 0;
             currentBatch = undefined;
         }
     })
 
-    export function RunInBatch(fn: () => void) {
-        StartBatch();
+    export function RunInBatch(fn: () => void, batchName: string) {
+        let batch = StartBatch(batchName);
         fn();
-        EndBatch();
+        batch.end();
     }
 
     export const Undo = action(() => {
