@@ -35,6 +35,7 @@ import { faRedoAlt } from '@fortawesome/free-solid-svg-icons';
 import { faPenNib } from '@fortawesome/free-solid-svg-icons';
 import { faFilm } from '@fortawesome/free-solid-svg-icons';
 import { faMusic } from '@fortawesome/free-solid-svg-icons';
+import { faTree } from '@fortawesome/free-solid-svg-icons';
 import Measure from 'react-measure';
 import { DashUserModel } from '../../server/authentication/models/user_model';
 import { ServerUtils } from '../../server/ServerUtil';
@@ -85,6 +86,7 @@ export class Main extends React.Component {
         library.add(faPenNib);
         library.add(faFilm);
         library.add(faMusic);
+        library.add(faTree);
 
         this.initEventListeners();
         Documents.initProtos(() => this.initAuthenticationRouters());
@@ -280,7 +282,8 @@ export class Main extends React.Component {
 
         let addTextNode = action(() => Documents.TextDocument({ width: 200, height: 200, title: "a text note" }))
         let addColNode = action(() => Documents.FreeformDocument([], { width: 200, height: 200, title: "a freeform collection" }));
-        let addSchemaNode = action(() => Documents.SchemaDocument(this.NorthstarCatalog, { width: 200, height: 200, title: "a schema collection" }));
+        let addSchemaNode = action(() => Documents.SchemaDocument([], { width: 200, height: 200, title: "a schema collection" }));
+        let addTreeNode = action(() => Documents.TreeDocument(this.NorthstarCatalog, { width: 200, height: 200, title: "a tree collection" }));
         let addVideoNode = action(() => Documents.VideoDocument(videourl, { width: 200, height: 200, title: "video node" }));
         let addPDFNode = action(() => Documents.PdfDocument(pdfurl, { width: 200, height: 200, title: "a schema collection" }));
         let addImageNode = action(() => Documents.ImageDocument(imgurl, { width: 200, height: 200, title: "an image of a cat" }));
@@ -295,12 +298,11 @@ export class Main extends React.Component {
             [React.createRef<HTMLDivElement>(), "music", "Add Audio", addAudioNode],
             [React.createRef<HTMLDivElement>(), "globe-asia", "Add Web Clipping", addWebNode],
             [React.createRef<HTMLDivElement>(), "object-group", "Add Collection", addColNode],
+            [React.createRef<HTMLDivElement>(), "tree", "Add Tree", addTreeNode],
             [React.createRef<HTMLDivElement>(), "table", "Add Schema", addSchemaNode],
         ]
 
-        let addClick = (creator: () => Document) => action(() => {
-            this.mainfreeform!.GetList<Document>(KeyStore.Data, []).push(creator())
-        });
+        let addClick = (creator: () => Document) => action(() => this.mainfreeform!.GetList<Document>(KeyStore.Data, []).push(creator()));
 
         return < div id="add-nodes-menu" >
             <input type="checkbox" id="add-menu-toggle" />

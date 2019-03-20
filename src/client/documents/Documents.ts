@@ -212,6 +212,9 @@ export namespace Documents {
     export function SchemaDocument(documents: Array<Document>, options: DocumentOptions, id?: string) {
         return assignToDelegate(SetInstanceOptions(GetCollectionPrototype(), { ...options, viewType: CollectionViewType.Schema }, [documents, ListField], id), options)
     }
+    export function TreeDocument(documents: Array<Document>, options: DocumentOptions, id?: string) {
+        return assignToDelegate(SetInstanceOptions(GetCollectionPrototype(), { ...options, viewType: CollectionViewType.Tree }, [documents, ListField], id), options)
+    }
     export function DockDocument(config: string, options: DocumentOptions, id?: string) {
         return assignToDelegate(SetInstanceOptions(GetCollectionPrototype(), { ...options, viewType: CollectionViewType.Docking }, [config, TextField], id), options)
     }

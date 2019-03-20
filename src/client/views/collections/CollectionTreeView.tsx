@@ -10,11 +10,12 @@ import "./CollectionTreeView.scss";
 import { EditableView } from "../EditableView";
 import { setupDrag } from "../../util/DragManager";
 import { FieldWaiting } from "../../../fields/Field";
-import { COLLECTION_BORDER_WIDTH } from "./CollectionView";
+import { COLLECTION_BORDER_WIDTH, CollectionView } from "./CollectionView";
 
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrashAlt, faCaretRight, faCaretDown } from '@fortawesome/free-solid-svg-icons';
+import { CollectionDockingView } from "./CollectionDockingView";
 
 export interface TreeViewProps {
     document: Document;
@@ -41,7 +42,8 @@ class TreeView extends React.Component<TreeViewProps> {
     collapsed: boolean = false;
 
     delete = () => {
-        this.props.deleteDoc(this.props.document);
+        CollectionDockingView.Instance.AddRightSplit(this.props.document)
+        //this.props.deleteDoc(this.props.document);
     }
 
 
@@ -55,10 +57,11 @@ class TreeView extends React.Component<TreeViewProps> {
 
     renderBullet(type: BulletType) {
         let onClicked = action(() => this.collapsed = !this.collapsed);
+        let onDoubleClick = action(() => CollectionDockingView.Instance.AddRightSplit(this.props.document));
 
         switch (type) {
             case BulletType.Collapsed:
-                return <div className="bullet" onClick={onClicked}><FontAwesomeIcon icon="caret-right" /></div>
+                return <div className="bullet" onDoubleClick={onDoubleClick} onClick={onClicked}><FontAwesomeIcon icon="caret-right" /></div>
             case BulletType.Collapsible:
                 return <div className="bullet" onClick={onClicked}><FontAwesomeIcon icon="caret-down" /></div>
             case BulletType.List:
@@ -70,6 +73,8 @@ class TreeView extends React.Component<TreeViewProps> {
      * Renders the EditableView title element for placement into the tree.
      */
     renderTitle() {
+        let reference = React.createRef<HTMLDivElement>();
+        let onItemDown = setupDrag(reference, () => this.props.document, (containingCollection: CollectionView) => this.props.deleteDoc(this.props.document));
         let title = this.props.document.GetT<TextField>(KeyStore.Title, TextField);
 
         // if the title hasn't loaded, immediately return the div
@@ -77,7 +82,7 @@ class TreeView extends React.Component<TreeViewProps> {
             return <div key={this.props.document.Id}></div>;
         }
 
-        return <div className="docContainer"> <EditableView
+        return <div className="docContainer" ref={reference} onPointerDown={onItemDown}> <EditableView
             display={"inline"}
             contents={title.Data}
             height={36} GetValue={() => {
