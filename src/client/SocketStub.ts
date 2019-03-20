@@ -35,15 +35,22 @@ export class SocketStub {
         Utils.Emit(Server.Socket, MessageStore.AddDocument, new DocumentTransfer(document.ToJson()))
     }
 
-    public static SEND_FIELD_REQUEST(fieldid: FieldId, callback: (field: Opt<Field>) => void) {
-        if (fieldid) {
+    public static SEND_FIELD_REQUEST(fieldid: FieldId): Promise<Opt<Field>>;
+    public static SEND_FIELD_REQUEST(fieldid: FieldId, callback: (field: Opt<Field>) => void): void;
+    public static SEND_FIELD_REQUEST(fieldid: FieldId, callback?: (field: Opt<Field>) => void): Promise<Opt<Field>> | void {
+        let fn = function (cb: (field: Opt<Field>) => void) {
             Utils.EmitCallback(Server.Socket, MessageStore.GetField, fieldid, (field: any) => {
                 if (field) {
-                    ServerUtils.FromJson(field).init(callback);
+                    ServerUtils.FromJson(field).init(cb);
                 } else {
-                    callback(undefined);
+                    cb(undefined);
                 }
             })
+        }
+        if (callback) {
+            fn(callback);
+        } else {
+            return new Promise(res => fn(res))
         }
     }
 

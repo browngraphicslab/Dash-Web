@@ -41,8 +41,16 @@ export class Utils {
         socket.emit(message.Message, args);
     }
 
-    public static EmitCallback<T>(socket: Socket | SocketIOClient.Socket, message: Message<T>, args: T, fn: (args: any) => any) {
-        socket.emit(message.Message, args, fn);
+    public static EmitCallback<T>(socket: Socket | SocketIOClient.Socket, message: Message<T>, args: T): Promise<any>;
+    public static EmitCallback<T>(socket: Socket | SocketIOClient.Socket, message: Message<T>, args: T, fn: (args: any) => any): void;
+    public static EmitCallback<T>(socket: Socket | SocketIOClient.Socket, message: Message<T>, args: T, fn?: (args: any) => any): void | Promise<any> {
+        if (fn) {
+            socket.emit(message.Message, args, fn);
+        } else {
+            return new Promise<any>(res => {
+                socket.emit(message.Message, args, res);
+            })
+        }
     }
 
     public static AddServerHandler<T>(socket: Socket, message: Message<T>, handler: (args: T) => any) {

@@ -15,37 +15,45 @@ export class Server {
 
     // Retrieves the cached value of the field and sends a request to the server for the real value (if it's not cached).
     // Call this is from within a reaction and test whether the return value is FieldWaiting.
-    // 'hackTimeout' is here temporarily for simplicity when debugging things.
-    public static GetField(fieldid: FieldId, callback: (field: Opt<Field>) => void): Opt<Field> | FIELD_WAITING {
-        let cached = this.ClientFieldsCached.get(fieldid);
-        if (!cached) {
-            this.ClientFieldsCached.set(fieldid, FieldWaiting);
-            SocketStub.SEND_FIELD_REQUEST(fieldid, action((field: Field | undefined) => {
-                let cached = this.ClientFieldsCached.get(fieldid);
-                if (cached != FieldWaiting)
-                    callback(cached);
-                else {
-                    if (field) {
-                        this.ClientFieldsCached.set(fieldid, field);
-                    } else {
-                        this.ClientFieldsCached.delete(fieldid)
+    public static GetField(fieldid: FieldId): Promise<Opt<Field>>;
+    public static GetField(fieldid: FieldId, callback: (field: Opt<Field>) => void): void;
+    public static GetField(fieldid: FieldId, callback?: (field: Opt<Field>) => void): Promise<Opt<Field>> | void {
+        let fn = (cb: (field: Opt<Field>) => void) => {
+
+            let cached = this.ClientFieldsCached.get(fieldid);
+            if (!cached) {
+                this.ClientFieldsCached.set(fieldid, FieldWaiting);
+                SocketStub.SEND_FIELD_REQUEST(fieldid, action((field: Field | undefined) => {
+                    let cached = this.ClientFieldsCached.get(fieldid);
+                    if (cached != FieldWaiting)
+                        cb(cached);
+                    else {
+                        if (field) {
+                            this.ClientFieldsCached.set(fieldid, field);
+                        } else {
+                            this.ClientFieldsCached.delete(fieldid)
+                        }
+                        cb(field)
                     }
-                    callback(field)
-                }
-            }));
-        } else if (cached != FieldWaiting) {
-            setTimeout(() => callback(cached as Field), 0);
-        } else {
-            reaction(() => {
-                return this.ClientFieldsCached.get(fieldid);
-            }, (field, reaction) => {
-                if (field !== "<Waiting>") {
-                    reaction.dispose()
-                    callback(field)
-                }
-            })
+                }));
+            } else if (cached != FieldWaiting) {
+                setTimeout(() => cb(cached as Field), 0);
+            } else {
+                reaction(() => {
+                    return this.ClientFieldsCached.get(fieldid);
+                }, (field, reaction) => {
+                    if (field !== "<Waiting>") {
+                        reaction.dispose()
+                        cb(field)
+                    }
+                })
+            }
         }
-        return cached;
+        if (callback) {
+            fn(callback);
+        } else {
+            return new Promise<Opt<Field>>(res => fn(res));
+        }
     }
 
     public static GetFields(fieldIds: FieldId[], callback: (fields: { [id: string]: Field }) => any) {
@@ -71,7 +79,7 @@ export class Server {
                 }
             }
             reaction(() => {
-                return waitingFieldIds.map(this.ClientFieldsCached.get);
+                return waitingFieldIds.map(id => this.ClientFieldsCached.get(id));
             }, (cachedFields, reaction) => {
                 if (!cachedFields.some(field => !field || field === FieldWaiting)) {
                     reaction.dispose();
