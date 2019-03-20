@@ -21,9 +21,7 @@ export type DashUserModel = mongoose.Document & {
     passwordResetToken: string | undefined,
     passwordResetExpires: Date | undefined,
 
-    allWorkspaceIds: Array<String>,
-    activeWorkspaceId: String,
-    activeUsersId: String,
+    userDocumentId: string;
 
     profile: {
         name: string,
@@ -49,12 +47,7 @@ const userSchema = new mongoose.Schema({
     passwordResetToken: String,
     passwordResetExpires: Date,
 
-    allWorkspaceIds: {
-        type: Array,
-        default: []
-    },
-    activeWorkspaceId: String,
-    activeUsersId: String,
+    userDocumentId: String,
 
     facebook: String,
     twitter: String,

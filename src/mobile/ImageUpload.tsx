@@ -7,7 +7,7 @@ import { Server } from '../client/Server';
 import { Documents } from '../client/documents/Documents';
 import { ListField } from '../fields/ListField';
 import { ImageField } from '../fields/ImageField';
-import request = require('request');
+import * as rp from 'request-promise'
 import { ServerUtils } from '../server/ServerUtil';
 import { RouteStore } from '../server/RouteStore';
 
@@ -40,28 +40,24 @@ const onFileLoad = (file: any) => {
                 json.map((file: any) => {
                     let path = window.location.origin + file
                     var doc: Document = Documents.ImageDocument(path, { nativeWidth: 200, width: 200 })
-                    doc.GetTAsync(KeyStore.Data, ImageField, (i) => {
-                        if (i) {
-                            document.getElementById("message")!.innerText = i.Data.href;
+
+                    rp.get(ServerUtils.prepend(RouteStore.getUserDocumentId)).then(res => {
+                        if (res) {
+                            return Server.GetField(res);
                         }
-                    })
-                    request.get(ServerUtils.prepend(RouteStore.getActiveWorkspace), (error, response, body) => {
-                        if (body) {
-                            Server.GetField(body, field => {
-                                if (field instanceof Document) {
-                                    field.GetTAsync(KeyStore.OptionalRightCollection, Document,
-                                        pending => {
-                                            if (pending) {
-                                                pending.GetOrCreateAsync(KeyStore.Data, ListField, list => {
-                                                    list.Data.push(doc);
-                                                })
-                                            }
-                                        })
-                                }
-                            }
-                            );
+                        throw new Error("No user id returned");
+                    }).then(field => {
+                        if (field instanceof Document) {
+                            return field.GetTAsync(KeyStore.OptionalRightCollection, Document)
                         }
-                    })
+                    }).then(pending => {
+                        if (pending) {
+                            pending.GetOrCreateAsync(KeyStore.Data, ListField, list => {
+                                list.Data.push(doc);
+                            })
+                        }
+                    });
+
                     // console.log(window.location.origin + file[0])
 
                     //imgPrev.setAttribute("src", window.location.origin + files[0].name)

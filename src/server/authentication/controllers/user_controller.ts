@@ -11,6 +11,7 @@ import * as async from 'async';
 import * as nodemailer from 'nodemailer';
 import c = require("crypto");
 import { RouteStore } from "../../RouteStore";
+import { Utils } from "../../../Utils";
 
 /**
  * GET /signup
@@ -54,7 +55,7 @@ export let postSignup = (req: Request, res: Response, next: NextFunction) => {
     const user = new User({
         email,
         password,
-        userDoc: "document here"
+        userDocumentId: Utils.GenerateGuid()
     });
 
     User.findOne({ email }, (err, existingUser) => {

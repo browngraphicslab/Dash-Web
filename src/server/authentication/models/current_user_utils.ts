@@ -1,29 +1,61 @@
 import { DashUserModel } from "./user_model";
-import * as request from 'request'
+import * as rp from 'request-promise';
 import { RouteStore } from "../../RouteStore";
 import { ServerUtils } from "../../ServerUtil";
+import { Server } from "../../../client/Server";
+import { Document } from "../../../fields/Document";
+import { KeyStore } from "../../../fields/KeyStore";
+import { ListField } from "../../../fields/ListField";
+import { Documents } from "../../../client/documents/Documents";
 
 export class CurrentUserUtils {
     private static curr_email: string;
     private static curr_id: string;
+    private static user_document: Document;
 
-    public static get email() {
+    public static get email(): string {
         return CurrentUserUtils.curr_email;
     }
 
-    public static get id() {
+    public static get id(): string {
         return CurrentUserUtils.curr_id;
     }
 
-    public static loadCurrentUser() {
-        request.get(ServerUtils.prepend(RouteStore.getCurrUser), (error, response, body) => {
-            if (body) {
-                let obj = JSON.parse(body);
+    public static get UserDocument(): Document {
+        return CurrentUserUtils.user_document;
+    }
+
+    private static createUserDocument(id: string): Document {
+        let doc = new Document(id);
+
+        doc.Set(KeyStore.Workspaces, new ListField<Document>());
+        doc.Set(KeyStore.OptionalRightCollection, Documents.SchemaDocument([], { title: "Pending documents" }))
+        return doc;
+    }
+
+    public static loadCurrentUser(): Promise<any> {
+        let userPromise = rp.get(ServerUtils.prepend(RouteStore.getCurrUser)).then((response) => {
+            if (response) {
+                let obj = JSON.parse(response);
                 CurrentUserUtils.curr_id = obj.id as string;
                 CurrentUserUtils.curr_email = obj.email as string;
             } else {
                 throw new Error("There should be a user! Why does Dash think there isn't one?")
             }
         });
+        let userDocPromise = rp.get(ServerUtils.prepend(RouteStore.getUserDocumentId)).then(id => {
+            if (id) {
+                return Server.GetField(id).then(field => {
+                    if (field instanceof Document) {
+                        this.user_document = field;
+                    } else {
+                        this.user_document = this.createUserDocument(id);
+                    }
+                })
+            } else {
+                throw new Error("There should be a user id! Why does Dash think there isn't one?")
+            }
+        });
+        return Promise.all([userPromise, userDocPromise]);
     }
 }

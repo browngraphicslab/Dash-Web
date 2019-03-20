@@ -8,6 +8,7 @@ import "./Main.scss";
 import { MessageStore } from '../../server/Message';
 import { Utils } from '../../Utils';
 import * as request from 'request'
+import * as rp from 'request-promise'
 import { Documents } from '../documents/Documents';
 import { Server } from '../Server';
 import { setupDrag } from '../util/DragManager';
@@ -40,7 +41,7 @@ import Measure from 'react-measure';
 import { DashUserModel } from '../../server/authentication/models/user_model';
 import { ServerUtils } from '../../server/ServerUtil';
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
-import { Field, Opt } from '../../fields/Field';
+import { Field, Opt, FieldWaiting } from '../../fields/Field';
 import { ListField } from '../../fields/ListField';
 import { map } from 'bluebird';
 import { Gateway, Settings } from '../northstar/manager/Gateway';
@@ -49,12 +50,25 @@ import { Catalog } from '../northstar/model/idea/idea';
 @observer
 export class Main extends React.Component {
     // dummy initializations keep the compiler happy
-    @observable private mainContainer?: Document;
     @observable private mainfreeform?: Document;
-    @observable private userWorkspaces: Document[] = [];
     @observable public pwidth: number = 0;
     @observable public pheight: number = 0;
     @observable private _northstarCatalog: Catalog | undefined = undefined;
+
+    @computed private get mainContainer(): Document | undefined {
+        let doc = this.userDocument.GetT(KeyStore.ActiveWorkspace, Document);
+        return doc == FieldWaiting ? undefined : doc;
+    }
+
+    private set mainContainer(doc: Document | undefined) {
+        if (doc) {
+            this.userDocument.Set(KeyStore.ActiveWorkspace, doc);
+        }
+    }
+
+    private get userDocument(): Document {
+        return CurrentUserUtils.UserDocument;
+    }
 
     public mainDocId: string | undefined;
     private currentUser?: DashUserModel;
@@ -67,12 +81,12 @@ export class Main extends React.Component {
         configure({ enforceActions: "observed" });
         if (window.location.pathname !== RouteStore.home) {
             let pathname = window.location.pathname.split("/");
-            this.mainDocId = pathname[pathname.length - 1];
+            if (pathname.length > 1 && pathname[pathname.length - 2] == 'doc') {
+                this.mainDocId = pathname[pathname.length - 1];
+            }
         };
 
-        this.initializeNorthstar();
-
-        CurrentUserUtils.loadCurrentUser();
+        // this.initializeNorthstar();
 
         library.add(faFont);
         library.add(faImage);
@@ -143,63 +157,50 @@ export class Main extends React.Component {
 
     initAuthenticationRouters = () => {
         // Load the user's active workspace, or create a new one if initial session after signup
-        request.get(ServerUtils.prepend(RouteStore.getActiveWorkspace), (error, response, body) => {
-            if (this.mainDocId || body) {
-                Server.GetField(this.mainDocId || body, field => {
-                    if (field instanceof Document) {
-                        this.openWorkspace(field);
-                        this.populateWorkspaces();
-                    } else {
-                        this.createNewWorkspace(true, this.mainDocId);
-                    }
-                });
-            } else {
-                this.createNewWorkspace(true, this.mainDocId);
+        if (!this.mainDocId) {
+            this.userDocument.GetTAsync(KeyStore.ActiveWorkspace, Document).then(doc => {
+                if (doc) {
+                    this.openWorkspace(doc);
+                } else {
+                    this.createNewWorkspace();
+                }
+            })
+        } else {
+            Server.GetField(this.mainDocId).then(field => {
+                if (field instanceof Document) {
+                    this.openWorkspace(field)
+                } else {
+                    this.createNewWorkspace(this.mainDocId);
+                }
+            })
+        }
+    }
+
+    @action
+    createNewWorkspace = (id?: string): void => {
+        this.userDocument.GetTAsync<ListField<Document>>(KeyStore.Workspaces, ListField).then(action((list: Opt<ListField<Document>>) => {
+            if (list) {
+                let freeformDoc = Documents.FreeformDocument([], { x: 0, y: 400, title: "mini collection" });
+                var dockingLayout = { content: [{ type: 'row', content: [CollectionDockingView.makeDocumentConfig(freeformDoc)] }] };
+                let mainDoc = Documents.DockDocument(JSON.stringify(dockingLayout), { title: `Main Container ${list.Data.length + 1}` }, id);
+                list.Data.push(mainDoc);
+                // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
+                setTimeout(() => {
+                    mainDoc.Set(KeyStore.ActiveFrame, freeformDoc);
+                    this.openWorkspace(mainDoc);
+                    let pendingDocument = Documents.SchemaDocument([], { title: "New Mobile Uploads" })
+                    mainDoc.Set(KeyStore.OptionalRightCollection, pendingDocument);
+                }, 0);
             }
-        });
-    }
-
-    @action
-    createNewWorkspace = (init: boolean, id?: string): void => {
-        let mainDoc = Documents.DockDocument(JSON.stringify({ content: [{ type: 'row', content: [] }] }), { title: `Main Container ${this.userWorkspaces.length + 1}` }, id);
-        let newId = mainDoc.Id;
-        request.post(ServerUtils.prepend(RouteStore.addWorkspace), {
-            body: { target: newId },
-            json: true
-        }, () => { if (init) this.populateWorkspaces(); });
-
-        // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
-        setTimeout(() => {
-            let freeformDoc = Documents.FreeformDocument([], { x: 0, y: 400, title: "mini collection" });
-            var dockingLayout = { content: [{ type: 'row', content: [CollectionDockingView.makeDocumentConfig(freeformDoc)] }] };
-            mainDoc.SetText(KeyStore.Data, JSON.stringify(dockingLayout));
-            mainDoc.Set(KeyStore.ActiveFrame, freeformDoc);
-            this.openWorkspace(mainDoc);
-            let pendingDocument = Documents.SchemaDocument([], { title: "New Mobile Uploads" })
-            mainDoc.Set(KeyStore.OptionalRightCollection, pendingDocument);
-        }, 0);
-        this.userWorkspaces.push(mainDoc);
-    }
-
-    @action
-    populateWorkspaces = () => {
-        // retrieve all workspace documents from the server
-        request.get(ServerUtils.prepend(RouteStore.getAllWorkspaces), (error, res, body) => {
-            let ids = JSON.parse(body) as string[];
-            Server.GetFields(ids, action((fields: { [id: string]: Field }) => this.userWorkspaces = ids.map(id => fields[id] as Document)));
-        });
+        }));
     }
 
     @action
     openWorkspace = (doc: Document, fromHistory = false): void => {
-        request.post(ServerUtils.prepend(RouteStore.setActiveWorkspace), {
-            body: { target: doc.Id },
-            json: true
-        });
         this.mainContainer = doc;
         fromHistory || window.history.pushState(null, doc.Title, "/doc/" + doc.Id);
         this.mainContainer.GetTAsync(KeyStore.ActiveFrame, Document, field => this.mainfreeform = field);
-        this.mainContainer.GetTAsync(KeyStore.OptionalRightCollection, Document, col => {
+        this.userDocument.GetTAsync(KeyStore.OptionalRightCollection, Document).then(col => {
             // if there is a pending doc, and it has new data, show it (syip: we use a timeout to prevent collection docking view from being uninitialized)
             setTimeout(() => {
                 if (col) {
@@ -213,10 +214,15 @@ export class Main extends React.Component {
         });
     }
 
+    @observable
+    workspacesShown: boolean = false;
+
+    areWorkspacesShown = () => {
+        return this.workspacesShown;
+    }
+    @action
     toggleWorkspaces = () => {
-        if (WorkspacesMenu.Instance) {
-            WorkspacesMenu.Instance.toggle()
-        }
+        this.workspacesShown = !this.workspacesShown;
     }
 
     screenToLocalTransform = () => Transform.Identity
@@ -310,6 +316,12 @@ export class Main extends React.Component {
     }
 
     render() {
+        let workspaceMenu: any = null;
+        let workspaces = this.userDocument.GetT<ListField<Document>>(KeyStore.Workspaces, ListField);
+        if (workspaces && workspaces !== FieldWaiting) {
+            workspaceMenu = <WorkspacesMenu active={this.mainContainer} open={this.openWorkspace} new={this.createNewWorkspace} allWorkspaces={workspaces.Data}
+                isShown={this.areWorkspacesShown} toggle={this.toggleWorkspaces} />
+        }
         return (
             <div id="main-div">
                 <Measure onResize={(r: any) => runInAction(() => {
@@ -326,11 +338,13 @@ export class Main extends React.Component {
                 <ContextMenu />
                 {this.nodesMenu}
                 {this.miscButtons}
-                <WorkspacesMenu active={this.mainContainer} open={this.openWorkspace} new={this.createNewWorkspace} allWorkspaces={this.userWorkspaces} />
+                {workspaceMenu}
                 <InkingControl />
             </div>
         );
     }
 }
 
-ReactDOM.render(<Main />, document.getElementById('root'));
+CurrentUserUtils.loadCurrentUser().then(() => {
+    ReactDOM.render(<Main />, document.getElementById('root'));
+});

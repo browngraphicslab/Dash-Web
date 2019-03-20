@@ -9,30 +9,23 @@ import { KeyStore } from '../../../fields/KeyStore';
 export interface WorkspaceMenuProps {
     active: Document | undefined;
     open: (workspace: Document) => void;
-    new: (init: boolean) => void;
+    new: () => void;
     allWorkspaces: Document[];
+    isShown: () => boolean;
+    toggle: () => void;
 }
 
 @observer
 export class WorkspacesMenu extends React.Component<WorkspaceMenuProps> {
-    static Instance: WorkspacesMenu;
-    @observable private workspacesExposed: boolean = false;
-
     constructor(props: WorkspaceMenuProps) {
         super(props);
-        WorkspacesMenu.Instance = this;
         this.addNewWorkspace = this.addNewWorkspace.bind(this);
     }
 
     @action
     addNewWorkspace() {
-        this.props.new(false);
-        this.toggle();
-    }
-
-    @action
-    toggle() {
-        this.workspacesExposed = !this.workspacesExposed;
+        this.props.new();
+        this.props.toggle();
     }
 
     render() {
@@ -45,7 +38,7 @@ export class WorkspacesMenu extends React.Component<WorkspaceMenuProps> {
                     borderRadius: 5,
                     position: "absolute",
                     top: 78,
-                    left: this.workspacesExposed ? 11 : -500,
+                    left: this.props.isShown() ? 11 : -500,
                     background: "white",
                     border: "black solid 2px",
                     transition: "all 1s ease",

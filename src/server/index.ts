@@ -156,16 +156,9 @@ addSecureRoute(
 
 addSecureRoute(
     Method.GET,
-    (user, res) => res.send(user.activeWorkspaceId || ""),
+    (user, res) => res.send(user.userDocumentId || ""),
     undefined,
-    RouteStore.getActiveWorkspace,
-);
-
-addSecureRoute(
-    Method.GET,
-    (user, res) => res.send(JSON.stringify(user.allWorkspaceIds)),
-    undefined,
-    RouteStore.getAllWorkspaces
+    RouteStore.getUserDocumentId,
 );
 
 addSecureRoute(
@@ -181,28 +174,6 @@ addSecureRoute(
 );
 
 // SETTERS
-
-addSecureRoute(
-    Method.POST,
-    (user, res, req) => {
-        user.update({ $set: { activeWorkspaceId: req.body.target } }, (err, raw) => {
-            res.sendStatus(err ? 500 : 200);
-        });
-    },
-    undefined,
-    RouteStore.setActiveWorkspace
-);
-
-addSecureRoute(
-    Method.POST,
-    (user, res, req) => {
-        user.update({ $push: { allWorkspaceIds: req.body.target } }, (err, raw) => {
-            res.sendStatus(err ? 500 : 200);
-        });
-    },
-    undefined,
-    RouteStore.addWorkspace
-);
 
 addSecureRoute(
     Method.POST,
