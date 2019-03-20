@@ -1,4 +1,4 @@
-import { action, configure, observable, runInAction, trace, computed } from 'mobx';
+import { action, configure, observable, runInAction, trace, computed, reaction } from 'mobx';
 import "normalize.css";
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
@@ -22,7 +22,6 @@ import "./Main.scss";
 import { observer } from 'mobx-react';
 import { InkingControl } from './InkingControl';
 import { RouteStore } from '../../server/RouteStore';
-import { json } from 'body-parser';
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faFont } from '@fortawesome/free-solid-svg-icons';
@@ -42,9 +41,10 @@ import { ServerUtils } from '../../server/ServerUtil';
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
 import { Field, Opt } from '../../fields/Field';
 import { ListField } from '../../fields/ListField';
-import { map } from 'bluebird';
 import { Gateway, Settings } from '../northstar/manager/Gateway';
-import { Catalog } from '../northstar/model/idea/idea';
+import { Catalog, Schema, Attribute, AttributeGroup } from '../northstar/model/idea/idea';
+import { ArrayUtil } from '../northstar/utils/ArrayUtil';
+import '../northstar/model/ModelExtensions'
 
 @observer
 export class Main extends React.Component {
@@ -88,16 +88,45 @@ export class Main extends React.Component {
 
         this.initEventListeners();
         Documents.initProtos(() => this.initAuthenticationRouters());
+
+        reaction(() => [this.mainContainer, this.ActiveSchema],
+            () => {
+                if (this.mainContainer && this.ActiveSchema) {
+                    if (!this.mainContainer!.GetTAsync(KeyStore.ActiveDB, ListField, field => this.NorthstarCatalog = field!.Data as Document[])) {
+                        this.NorthstarCatalog = this.GetAllAttributes().map(a => Documents.HistogramDocument({ width: 200, height: 200, title: a.displayName! }));
+                        this.mainContainer!.SetData(KeyStore.ActiveDB, this.NorthstarCatalog, ListField);
+                    }
+                }
+            })
     }
 
+    NorthstarCatalog: Document[] = [];
+    @observable ActiveSchema: Schema | undefined;
     @action SetNorthstarCatalog(ctlog: Catalog) {
         this._northstarCatalog = ctlog;
-        if (this._northstarCatalog) {
+        if (this._northstarCatalog && this._northstarCatalog.schemas) {
             console.log("CATALOG " + this._northstarCatalog.schemas);
+            this.ActiveSchema = ArrayUtil.FirstOrDefault<Schema>(this._northstarCatalog.schemas!, (s: Schema) => s.displayName === "mimic");
         }
     }
+    public GetAllAttributes() {
+        if (!this.ActiveSchema || !this.ActiveSchema.rootAttributeGroup) {
+            return [];
+        }
+        const recurs = (attrs: Attribute[], g: AttributeGroup) => {
+            if (g.attributes) {
+                attrs.push.apply(attrs, g.attributes);
+                if (g.attributeGroups) {
+                    g.attributeGroups.forEach(ng => recurs(attrs, ng));
+                }
+            }
+        };
+        const allAttributes: Attribute[] = new Array<Attribute>();
+        recurs(allAttributes, this.ActiveSchema.rootAttributeGroup);
+        return allAttributes;
+    }
     async initializeNorthstar(): Promise<void> {
-        let envPath = "assets/env.json";
+        let envPath = "/assets/env.json";
         const response = await fetch(envPath, {
             redirect: "follow",
             method: "GET",
@@ -251,7 +280,7 @@ export class Main extends React.Component {
 
         let addTextNode = action(() => Documents.TextDocument({ width: 200, height: 200, title: "a text note" }))
         let addColNode = action(() => Documents.FreeformDocument([], { width: 200, height: 200, title: "a freeform collection" }));
-        let addSchemaNode = action(() => Documents.SchemaDocument([], { width: 200, height: 200, title: "a schema collection" }));
+        let addSchemaNode = action(() => Documents.SchemaDocument(this.NorthstarCatalog, { width: 200, height: 200, title: "a schema collection" }));
         let addVideoNode = action(() => Documents.VideoDocument(videourl, { width: 200, height: 200, title: "video node" }));
         let addPDFNode = action(() => Documents.PdfDocument(pdfurl, { width: 200, height: 200, title: "a schema collection" }));
         let addImageNode = action(() => Documents.ImageDocument(imgurl, { width: 200, height: 200, title: "an image of a cat" }));
@@ -269,7 +298,9 @@ export class Main extends React.Component {
             [React.createRef<HTMLDivElement>(), "table", "Add Schema", addSchemaNode],
         ]
 
-        let addClick = (creator: () => Document) => action(() => this.mainfreeform!.GetList<Document>(KeyStore.Data, []).push(creator()));
+        let addClick = (creator: () => Document) => action(() => {
+            this.mainfreeform!.GetList<Document>(KeyStore.Data, []).push(creator())
+        });
 
         return < div id="add-nodes-menu" >
             <input type="checkbox" id="add-menu-toggle" />
