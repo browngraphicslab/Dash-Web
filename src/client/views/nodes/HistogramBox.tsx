@@ -23,7 +23,7 @@ export class HistogramBox extends React.Component<FieldViewProps> {
     _histoOp?: HistogramOperation;
 
     componentDidMount() {
-        Main.Instance.GetAllAttributes().map(a => {
+        Main.Instance.GetAllNorthstarColumnAttributes().map(a => {
             if (a.displayName == this.props.doc.Title) {
                 var atmod = new ColumnAttributeModel(a);
                 this._histoOp = new HistogramOperation(new AttributeTransformationModel(atmod, AggregateFunction.None),

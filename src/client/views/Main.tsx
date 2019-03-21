@@ -46,6 +46,7 @@ import { Gateway, Settings } from '../northstar/manager/Gateway';
 import { Catalog, Schema, Attribute, AttributeGroup } from '../northstar/model/idea/idea';
 import { ArrayUtil } from '../northstar/utils/ArrayUtil';
 import '../northstar/model/ModelExtensions'
+import '../northstar/utils/Extensions'
 
 @observer
 export class Main extends React.Component {
@@ -55,7 +56,8 @@ export class Main extends React.Component {
     @observable private userWorkspaces: Document[] = [];
     @observable public pwidth: number = 0;
     @observable public pheight: number = 0;
-    @observable private _northstarCatalog: Catalog | undefined = undefined;
+    @observable ActiveSchema: Schema | undefined;
+    private _northstarColumns: Document[] = [];
 
     public mainDocId: string | undefined;
     private currentUser?: DashUserModel;
@@ -71,7 +73,8 @@ export class Main extends React.Component {
             this.mainDocId = pathname[pathname.length - 1];
         };
 
-        this.initializeNorthstar();
+        let y = "";
+        y.ReplaceAll("a", "B");
 
         CurrentUserUtils.loadCurrentUser();
 
@@ -88,57 +91,10 @@ export class Main extends React.Component {
         library.add(faMusic);
         library.add(faTree);
 
-
         this.initEventListeners();
         Documents.initProtos(() => this.initAuthenticationRouters());
 
-        reaction(() => [this.mainContainer, this.ActiveSchema],
-            () => {
-                if (this.mainContainer && this.ActiveSchema) {
-                    if (!this.mainContainer!.GetTAsync(KeyStore.ActiveDB, ListField, field => this.NorthstarCatalog = field!.Data as Document[])) {
-                        this.NorthstarCatalog = this.GetAllAttributes().map(a => Documents.HistogramDocument({ width: 200, height: 200, title: a.displayName! }));
-                        this.mainContainer!.SetData(KeyStore.ActiveDB, this.NorthstarCatalog, ListField);
-                    }
-                }
-            })
-    }
-
-    NorthstarCatalog: Document[] = [];
-    @observable ActiveSchema: Schema | undefined;
-    @action SetNorthstarCatalog(ctlog: Catalog) {
-        this._northstarCatalog = ctlog;
-        if (this._northstarCatalog && this._northstarCatalog.schemas) {
-            console.log("CATALOG " + this._northstarCatalog.schemas);
-            this.ActiveSchema = ArrayUtil.FirstOrDefault<Schema>(this._northstarCatalog.schemas!, (s: Schema) => s.displayName === "mimic");
-        }
-    }
-    public GetAllAttributes() {
-        if (!this.ActiveSchema || !this.ActiveSchema.rootAttributeGroup) {
-            return [];
-        }
-        const recurs = (attrs: Attribute[], g: AttributeGroup) => {
-            if (g.attributes) {
-                attrs.push.apply(attrs, g.attributes);
-                if (g.attributeGroups) {
-                    g.attributeGroups.forEach(ng => recurs(attrs, ng));
-                }
-            }
-        };
-        const allAttributes: Attribute[] = new Array<Attribute>();
-        recurs(allAttributes, this.ActiveSchema.rootAttributeGroup);
-        return allAttributes;
-    }
-    async initializeNorthstar(): Promise<void> {
-        let envPath = "/assets/env.json";
-        const response = await fetch(envPath, {
-            redirect: "follow",
-            method: "GET",
-            credentials: "include"
-        });
-        const env = await response.json();
-        Settings.Instance.Update(env);
-        let cat = Gateway.Instance.ClearCatalog();
-        cat.then(async () => this.SetNorthstarCatalog(await Gateway.Instance.GetCatalog()));
+        this.initializeNorthstar();
     }
 
     onHistory = () => {
@@ -284,7 +240,7 @@ export class Main extends React.Component {
         let addTextNode = action(() => Documents.TextDocument({ width: 200, height: 200, title: "a text note" }))
         let addColNode = action(() => Documents.FreeformDocument([], { width: 200, height: 200, title: "a freeform collection" }));
         let addSchemaNode = action(() => Documents.SchemaDocument([], { width: 200, height: 200, title: "a schema collection" }));
-        let addTreeNode = action(() => Documents.TreeDocument(this.NorthstarCatalog, { width: 200, height: 200, title: "a tree collection" }));
+        let addTreeNode = action(() => Documents.TreeDocument(this._northstarColumns, { width: 200, height: 200, title: "a tree collection" }));
         let addVideoNode = action(() => Documents.VideoDocument(videourl, { width: 200, height: 200, title: "video node" }));
         let addPDFNode = action(() => Documents.PdfDocument(pdfurl, { width: 200, height: 200, title: "a schema collection" }));
         let addImageNode = action(() => Documents.ImageDocument(imgurl, { width: 200, height: 200, title: "an image of a cat" }));
@@ -364,6 +320,43 @@ export class Main extends React.Component {
                 <InkingControl />
             </div>
         );
+    }
+
+    // --------------- Northstar hooks ------------- /
+
+    @action SetNorthstarCatalog(ctlog: Catalog) {
+        if (ctlog && ctlog.schemas) {
+            this.ActiveSchema = ArrayUtil.FirstOrDefault<Schema>(ctlog.schemas!, (s: Schema) => s.displayName === "mimic");
+            this._northstarColumns = this.GetAllNorthstarColumnAttributes().map(a => Documents.HistogramDocument({ width: 200, height: 200, title: a.displayName! }));
+        }
+    }
+    async initializeNorthstar(): Promise<void> {
+        let envPath = "/assets/env.json";
+        const response = await fetch(envPath, {
+            redirect: "follow",
+            method: "GET",
+            credentials: "include"
+        });
+        const env = await response.json();
+        Settings.Instance.Update(env);
+        let cat = Gateway.Instance.ClearCatalog();
+        cat.then(async () => this.SetNorthstarCatalog(await Gateway.Instance.GetCatalog()));
+    }
+    public GetAllNorthstarColumnAttributes() {
+        if (!this.ActiveSchema || !this.ActiveSchema.rootAttributeGroup) {
+            return [];
+        }
+        const recurs = (attrs: Attribute[], g: AttributeGroup) => {
+            if (g.attributes) {
+                attrs.push.apply(attrs, g.attributes);
+                if (g.attributeGroups) {
+                    g.attributeGroups.forEach(ng => recurs(attrs, ng));
+                }
+            }
+        };
+        const allAttributes: Attribute[] = new Array<Attribute>();
+        recurs(allAttributes, this.ActiveSchema.rootAttributeGroup);
+        return allAttributes;
     }
 }
 
