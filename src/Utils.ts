@@ -47,9 +47,7 @@ export class Utils {
         if (fn) {
             socket.emit(message.Message, args, fn);
         } else {
-            return new Promise<any>(res => {
-                socket.emit(message.Message, args, res);
-            })
+            return new Promise<any>(res => socket.emit(message.Message, args, res));
         }
     }
 
