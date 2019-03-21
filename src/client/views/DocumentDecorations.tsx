@@ -10,8 +10,8 @@ import { DragManager } from "../util/DragManager";
 import { LinkMenu } from "./nodes/LinkMenu";
 import { ListField } from "../../fields/ListField";
 const higflyout = require("@hig/flyout");
-const { anchorPoints } = higflyout;
-const Flyout = higflyout.default;
+export const { anchorPoints } = higflyout;
+export const Flyout = higflyout.default;
 
 @observer
 export class DocumentDecorations extends React.Component {

@@ -88,6 +88,7 @@ export class Main extends React.Component {
         library.add(faMusic);
         library.add(faTree);
 
+
         this.initEventListeners();
         Documents.initProtos(() => this.initAuthenticationRouters());
 

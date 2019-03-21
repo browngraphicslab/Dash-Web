@@ -61,6 +61,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         docconfig.callDownwards('_$init');
         this._goldenLayout._$maximiseItem(docconfig);
         this._fullScreen = docconfig;
+        this._ignoreStateChange = JSON.stringify(this._goldenLayout.toConfig());
         this.stateChanged();
     }
     @action
@@ -69,6 +70,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             this._goldenLayout._$minimiseItem(this._fullScreen);
             this._goldenLayout.root.contentItems[0].removeChild(this._fullScreen);
             this._fullScreen = null;
+            this._ignoreStateChange = JSON.stringify(this._goldenLayout.toConfig());
             this.stateChanged();
         }
     }
