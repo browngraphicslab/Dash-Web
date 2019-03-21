@@ -1,5 +1,6 @@
 import 'react-image-lightbox/style.css'; // This only needs to be imported once in your app
 import "./KeyValueBox.scss";
+import "./KeyValuePair.scss";
 import React = require("react")
 import { FieldViewProps, FieldView } from './FieldView';
 import { Opt, Field } from '../../../fields/Field';
@@ -55,7 +56,18 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
         );
         return (
             <tr className={this.props.rowStyle}>
-                <td>{this.key.Name}</td>
+                {/* <button>X</button> */}
+                <td>
+                    <div className="container">
+                        <div>{this.key.Name}</div>
+                        <button className="delete" onClick={() => {
+                            let field = props.doc.Get(props.fieldKey);
+                            if (field && field instanceof Field) {
+                                props.doc.Set(props.fieldKey, undefined);
+                            }
+                        }}>X</button>
+                    </div>
+                </td>
                 <td><EditableView contents={contents} height={36} GetValue={() => {
                     let field = props.doc.Get(props.fieldKey);
                     if (field && field instanceof Field) {

@@ -53,3 +53,5 @@ export class Utils {
         socket.on(message.Message, (arg: T, fn: (res: any) => any) => handler([arg, fn]));
     }
 }
+
+export type Without<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;

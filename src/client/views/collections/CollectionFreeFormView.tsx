@@ -219,13 +219,13 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
     @computed get backgroundLayout(): string | undefined {
         let field = this.props.Document.GetT(KeyStore.BackgroundLayout, TextField);
-        if (field && field !== "<Waiting>") {
+        if (field && field !== FieldWaiting) {
             return field.Data;
         }
     }
     @computed get overlayLayout(): string | undefined {
         let field = this.props.Document.GetT(KeyStore.OverlayLayout, TextField);
-        if (field && field !== "<Waiting>") {
+        if (field && field !== FieldWaiting) {
             return field.Data;
         }
     }

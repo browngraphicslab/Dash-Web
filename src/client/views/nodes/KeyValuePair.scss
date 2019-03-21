@@ -1,0 +1,12 @@
+@import "../global_variables";
+
+.container{
+    display: flex;                 
+    flex-direction: row;           
+    flex-wrap: nowrap;              
+    justify-content: space-between; 
+}
+
+.delete{
+    color: red;
+}
