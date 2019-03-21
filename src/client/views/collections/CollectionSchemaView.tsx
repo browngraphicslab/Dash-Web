@@ -1,29 +1,29 @@
 import React = require("react")
-import { action, observable, ObservableMap, computed } from "mobx";
+import { library } from '@fortawesome/fontawesome-svg-core';
+import { faCog } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import Measure from "react-measure";
 import ReactTable, { CellInfo, ComponentPropsGetterR, ReactTableDefaults } from "react-table";
 import "react-table/react-table.css";
 import { Document } from "../../../fields/Document";
 import { Field, Opt } from "../../../fields/Field";
+import { Key } from "../../../fields/Key";
 import { KeyStore } from "../../../fields/KeyStore";
+import { ListField } from "../../../fields/ListField";
+import { Server } from "../../Server";
+import { setupDrag } from "../../util/DragManager";
 import { CompileScript, ToField } from "../../util/Scripting";
 import { Transform } from "../../util/Transform";
+import { anchorPoints, Flyout } from "../DocumentDecorations";
+import '../DocumentDecorations.scss';
 import { EditableView } from "../EditableView";
 import { DocumentView } from "../nodes/DocumentView";
 import { FieldView, FieldViewProps } from "../nodes/FieldView";
 import "./CollectionSchemaView.scss";
-import { COLLECTION_BORDER_WIDTH, CollectionView } from "./CollectionView";
+import { CollectionView, COLLECTION_BORDER_WIDTH } from "./CollectionView";
 import { CollectionViewBase } from "./CollectionViewBase";
-import { setupDrag } from "../../util/DragManager";
-import '../DocumentDecorations.scss';
-import { Flyout, anchorPoints } from "../DocumentDecorations";
-import { ListField } from "../../../fields/ListField";
-import { Key } from "../../../fields/Key";
-import { Server } from "../../Server";
-import { library } from '@fortawesome/fontawesome-svg-core';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCog } from '@fortawesome/free-solid-svg-icons';
 
 
 // bcz: need to add drag and drop of rows and columns.  This seems like it might work for rows: https://codesandbox.io/s/l94mn1q657
@@ -44,17 +44,18 @@ class KeyToggle extends React.Component<{ keyId: string, checked: boolean, toggl
     render() {
         if (this.key) {
             return (<div key={this.key.Id}>
-                <input type="checkbox" checked={this.props.checked} onChange={() => this.key && this.props.toggle(this.key)} />  {this.key.Name}
+                <input type="checkbox" checked={this.props.checked} onChange={() => this.key && this.props.toggle(this.key)} />
+                {this.key.Name}
             </div>)
-        } else {
-            return <div></div>
         }
+        return (null);
     }
 }
 
 @observer
 export class CollectionSchemaView extends CollectionViewBase {
     private _mainCont = React.createRef<HTMLDivElement>();
+    private _startSplitPercent = 0;
     private DIVIDER_WIDTH = 4;
 
     @observable _columns: Array<Key> = [KeyStore.Title, KeyStore.Data, KeyStore.Author];
@@ -64,6 +65,8 @@ export class CollectionSchemaView extends CollectionViewBase {
     @observable _panelHeight = 0;
     @observable _selectedIndex = 0;
     @observable _columnsPercentage = 0;
+    @observable _keys: Key[] = [];
+
     @computed get splitPercentage() { return this.props.Document.GetNumber(KeyStore.SchemaSplitPercentage, 0); }
 
 
@@ -124,9 +127,8 @@ export class CollectionSchemaView extends CollectionViewBase {
         }
         return {
             onClick: action((e: React.MouseEvent, handleOriginal: Function) => {
+                that.props.select(e.ctrlKey);
                 that._selectedIndex = rowInfo.index;
-                // bcz - ugh - needed to force Measure to do its thing and call onResize
-                this.props.Document.SetNumber(KeyStore.SchemaSplitPercentage, this.splitPercentage - 0.05)
 
                 if (handleOriginal) {
                     handleOriginal()
@@ -165,27 +167,14 @@ export class CollectionSchemaView extends CollectionViewBase {
             this.props.Document.SetNumber(KeyStore.SchemaSplitPercentage, this.splitPercentage == 0 ? 33 : 0);
         }
     }
-
-    @observable keys: Key[] = [];
-
     findAllDocumentKeys = (): { [id: string]: boolean } => {
         const docs = this.props.Document.GetList<Document>(this.props.fieldKey, []);
         let keys: { [id: string]: boolean } = {}
-        docs.forEach(doc => {
-            let protos = doc.GetAllPrototypes();
-            for (const proto of protos) {
-                proto._proxies.forEach((val: any, key: string) => {
-                    keys[key] = false
-                })
-            }
-        })
-        this.columns.forEach(key => {
-            keys[key.Id] = true;
-        })
+        docs.map(doc => doc.GetAllPrototypes().map(proto => proto._proxies.forEach((val: any, key: string) => keys[key] = false)));
+        this.columns.forEach(key => keys[key.Id] = true)
         return keys;
     }
 
-    _startSplitPercent = 0;
     @action
     onDividerMove = (e: PointerEvent): void => {
         let nativeWidth = this._mainCont.current!.getBoundingClientRect();
@@ -207,51 +196,11 @@ export class CollectionSchemaView extends CollectionViewBase {
         document.addEventListener('pointerup', this.onDividerUp);
     }
 
-
+    @observable _tableWidth = 0;
     @action
-    onColDividerMove = (e: PointerEvent): void => {
-        let nativeWidth = this._mainCont.current!.getBoundingClientRect();
-        this._columnsPercentage = 100 - (e.clientY - nativeWidth.top) / nativeWidth.height * 100;
+    setTableDimensions = (r: any) => {
+        this._tableWidth = r.entry.width;
     }
-    @action
-    onColDividerUp = (e: PointerEvent): void => {
-        document.removeEventListener("pointermove", this.onColDividerMove);
-        document.removeEventListener('pointerup', this.onColDividerUp);
-    }
-    onColDividerDown = (e: React.PointerEvent) => {
-        e.stopPropagation();
-        e.preventDefault();
-        document.addEventListener("pointermove", this.onColDividerMove);
-        document.addEventListener('pointerup', this.onColDividerUp);
-    }
-
-    @action
-    onExpanderMove = (e: PointerEvent): void => {
-        e.stopPropagation();
-        e.preventDefault();
-    }
-
-    @action
-    onColumnsMove = (e: PointerEvent): void => {
-        e.stopPropagation();
-        e.preventDefault();
-    }
-    @action
-    onColumnsUp = (e: PointerEvent): void => {
-        e.stopPropagation();
-        e.preventDefault();
-        document.removeEventListener("pointermove", this.onColumnsMove);
-        document.removeEventListener('pointerup', this.onColumnsUp);
-        this._columnsPercentage = this._columnsPercentage ? 0 : 50;
-    }
-    onColumnsDown = (e: React.PointerEvent) => {
-        this._startSplitPercent = this.splitPercentage;
-        e.stopPropagation();
-        e.preventDefault();
-        document.addEventListener("pointermove", this.onColumnsMove);
-        document.addEventListener('pointerup', this.onColumnsUp);
-    }
-
     @action
     setScaling = (r: any) => {
         const children = this.props.Document.GetList<Document>(this.props.fieldKey, []);
@@ -267,11 +216,16 @@ export class CollectionSchemaView extends CollectionViewBase {
     getTransform = (): Transform => {
         return this.props.ScreenToLocalTransform().translate(- COLLECTION_BORDER_WIDTH - this.DIVIDER_WIDTH - this._dividerX, - COLLECTION_BORDER_WIDTH).scale(1 / this._contentScaling);
     }
+    getPreviewTransform = (): Transform => {
+        return this.props.ScreenToLocalTransform().translate(- COLLECTION_BORDER_WIDTH - this.DIVIDER_WIDTH - this._dividerX - this._tableWidth, - COLLECTION_BORDER_WIDTH).scale(1 / this._contentScaling);
+    }
 
     focusDocument = (doc: Document) => { }
 
     onPointerDown = (e: React.PointerEvent): void => {
-        //
+        if (this.props.isSelected()) {
+            e.stopPropagation();
+        }
     }
 
     render() {
@@ -289,7 +243,7 @@ export class CollectionSchemaView extends CollectionViewBase {
                             AddDocument={this.props.addDocument} RemoveDocument={this.props.removeDocument}
                             isTopMost={false}
                             SelectOnLoad={false}
-                            ScreenToLocalTransform={this.getTransform}
+                            ScreenToLocalTransform={this.getPreviewTransform}
                             ContentScaling={this.getContentScaling}
                             PanelWidth={this.getPanelWidth}
                             PanelHeight={this.getPanelHeight}
@@ -326,34 +280,27 @@ export class CollectionSchemaView extends CollectionViewBase {
         return (
             <div className="collectionSchemaView-container" onPointerDown={this.onPointerDown} ref={this._mainCont} style={{ borderWidth: `${COLLECTION_BORDER_WIDTH}px` }} >
                 <div className="collectionSchemaView-dropTarget" onDrop={(e: React.DragEvent) => this.onDrop(e, {})} ref={this.createDropTarget}>
-                    <Measure onResize={action((r: any) => {
-                        this._dividerX = r.entry.width;
-                        this._panelHeight = r.entry.height;
-                    })}>
+                    <Measure onResize={this.setTableDimensions}>
                         {({ measureRef }) =>
-                            <div ref={measureRef} className="collectionSchemaView-tableContainer"
-                                style={{ width: `calc(100% - ${this.splitPercentage}%)` }}>
-                                <div className="collectionSchemaView-reactContainer" style={{ height: `calc(100% - ${this._columnsPercentage}%)` }}>
-                                    <ReactTable
-                                        data={children}
-                                        pageSize={children.length}
-                                        page={0}
-                                        showPagination={false}
-                                        columns={columns.map(col => ({
-                                            Header: col.Name,
-                                            accessor: (doc: Document) => [doc, col],
-                                            id: col.Id
-                                        }))}
-                                        column={{
-                                            ...ReactTableDefaults.column,
-                                            Cell: this.renderCell,
+                            <div className="collectionSchemaView-tableContainer" ref={measureRef} style={{ width: `calc(100% - ${this.splitPercentage}%)` }}>
+                                <ReactTable
+                                    data={children}
+                                    pageSize={children.length}
+                                    page={0}
+                                    showPagination={false}
+                                    columns={columns.map(col => ({
+                                        Header: col.Name,
+                                        accessor: (doc: Document) => [doc, col],
+                                        id: col.Id
+                                    }))}
+                                    column={{
+                                        ...ReactTableDefaults.column,
+                                        Cell: this.renderCell,
 
-                                        }}
-                                        getTrProps={this.getTrProps}
-                                    />
-                                </div>
-                            </div>
-                        }
+                                    }}
+                                    getTrProps={this.getTrProps}
+                                />
+                            </div>}
                     </Measure>
                     {dividerDragger}
                     <div className="collectionSchemaView-previewRegion" style={{ width: `calc(${this.props.Document.GetNumber(KeyStore.SchemaSplitPercentage, 0)}% - ${this.DIVIDER_WIDTH}px)` }}>
