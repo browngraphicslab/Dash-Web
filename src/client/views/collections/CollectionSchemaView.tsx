@@ -189,7 +189,7 @@ export class CollectionSchemaView extends CollectionViewBase {
     @action
     onDividerMove = (e: PointerEvent): void => {
         let nativeWidth = this._mainCont.current!.getBoundingClientRect();
-        this.props.Document.SetNumber(KeyStore.SchemaSplitPercentage, 100 - Math.round((e.clientX - nativeWidth.left) / nativeWidth.width * 100));
+        this.props.Document.SetNumber(KeyStore.SchemaSplitPercentage, Math.max(0, 100 - Math.round((e.clientX - nativeWidth.left) / nativeWidth.width * 100)));
     }
     @action
     onDividerUp = (e: PointerEvent): void => {

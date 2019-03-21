@@ -1,7 +1,7 @@
 import { IconProp, library } from '@fortawesome/fontawesome-svg-core';
 import { faCaretDown, faCaretRight, faTrashAlt } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { action, observable } from "mobx";
+import { action, observable, trace } from "mobx";
 import { observer } from "mobx-react";
 import { Document } from "../../../fields/Document";
 import { FieldWaiting } from "../../../fields/Field";
@@ -90,14 +90,14 @@ class TreeView extends React.Component<TreeViewProps> {
         if (children && children !== FieldWaiting) { // add children for a collection
             if (!this._collapsed) {
                 bulletType = BulletType.Collapsible;
-                childElements = <ul key={this.props.document.Id}>
+                childElements = <ul>
                     {children.Data.map(value => <TreeView key={value.Id} document={value} deleteDoc={this.remove} />)}
                 </ul>
             }
             else bulletType = BulletType.Collapsed;
         }
         return <div className="treeViewItem-container" >
-            <li className="collection-child" key={this.props.document.Id}>
+            <li className="collection-child">
                 {this.renderBullet(bulletType)}
                 {this.renderTitle()}
                 {childElements ? childElements : (null)}
