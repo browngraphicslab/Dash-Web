@@ -12,7 +12,7 @@ import { CollectionDockingView } from "./CollectionDockingView";
 import { CollectionSchemaView } from "./CollectionSchemaView";
 import { CollectionViewProps } from "./CollectionViewBase";
 import { CollectionTreeView } from "./CollectionTreeView";
-import { Field, FieldId } from "../../../fields/Field";
+import { Field, FieldId, FieldWaiting } from "../../../fields/Field";
 import { Main } from "../Main";
 
 export enum CollectionViewType {
@@ -86,7 +86,7 @@ export class CollectionView extends React.Component<CollectionViewProps> {
     get collectionViewType(): CollectionViewType {
         let Document = this.props.Document;
         let viewField = Document.GetT(KeyStore.ViewType, NumberField);
-        if (viewField === "<Waiting>") {
+        if (viewField === FieldWaiting) {
             return CollectionViewType.Invalid;
         } else if (viewField) {
             return viewField.Data;
