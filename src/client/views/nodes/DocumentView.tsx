@@ -1,7 +1,7 @@
 import { action, computed, IReactionDisposer, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { Document } from "../../../fields/Document";
-import { Field, Opt } from "../../../fields/Field";
+import { Field, Opt, FieldWaiting } from "../../../fields/Field";
 import { Key } from "../../../fields/Key";
 import { KeyStore } from "../../../fields/KeyStore";
 import { ListField } from "../../../fields/ListField";
@@ -315,7 +315,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             return (null);
         }
         let lkeys = this.props.Document.GetT(KeyStore.LayoutKeys, ListField);
-        if (!lkeys || lkeys === "<Waiting>") {
+        if (!lkeys || lkeys === FieldWaiting) {
             return <p>Error loading layout keys</p>;
         }
         var scaling = this.props.ContentScaling();

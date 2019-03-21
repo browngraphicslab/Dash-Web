@@ -137,7 +137,7 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
 
         // get data from server
         // let inkField = this.props.Document.GetT(KeyStore.Ink, InkField);
-        // if (!inkField || inkField == "<Waiting>") {
+        // if (!inkField || inkField == FieldWaiting) {
         //     return (<div className="inking-canvas" style={canvasStyle}
         //         onMouseDown={this.handleMouseDown} onMouseMove={this.handleMouseMove} >
         //         <svg>
