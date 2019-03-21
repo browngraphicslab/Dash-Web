@@ -2,7 +2,7 @@ import React = require("react")
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faCog } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { action, computed, observable } from "mobx";
+import { action, computed, observable, trace, untracked } from "mobx";
 import { observer } from "mobx-react";
 import Measure from "react-measure";
 import ReactTable, { CellInfo, ComponentPropsGetterR, ReactTableDefaults } from "react-table";
@@ -141,6 +141,7 @@ export class CollectionSchemaView extends CollectionViewBase {
         };
     }
 
+    @computed
     get columns() {
         return this.props.Document.GetList<Key>(KeyStore.ColumnsKey, []);
     }
@@ -167,10 +168,19 @@ export class CollectionSchemaView extends CollectionViewBase {
             this.props.Document.SetNumber(KeyStore.SchemaSplitPercentage, this.splitPercentage == 0 ? 33 : 0);
         }
     }
-    findAllDocumentKeys = (): { [id: string]: boolean } => {
+
+    @computed
+    get findAllDocumentKeys(): { [id: string]: boolean } {
         const docs = this.props.Document.GetList<Document>(this.props.fieldKey, []);
         let keys: { [id: string]: boolean } = {}
-        docs.map(doc => doc.GetAllPrototypes().map(proto => proto._proxies.forEach((val: any, key: string) => keys[key] = false)));
+        if (this._optionsActivated > -1) {
+            // bcz: ugh.  this is untracked since otherwise a large collection of documents will blast the server for all their fields.
+            //  then as each document's fields come back, we update the documents _proxies.  Each time we do this, the whole schema will be
+            //  invalidated and re-rendered.   This workaround will inquire all of the document fields before the options button is clicked.
+            //  then by the time the options button is clicked, all of the fields should be in place.  If a new field is added while this menu
+            //  is displayed (unlikely) it won't show up until something else changes.
+            untracked(() => docs.map(doc => doc.GetAllPrototypes().map(proto => proto._proxies.forEach((val: any, key: string) => keys[key] = false))));
+        }
         this.columns.forEach(key => keys[key.Id] = true)
         return keys;
     }
@@ -228,13 +238,18 @@ export class CollectionSchemaView extends CollectionViewBase {
         }
     }
 
+    @observable _optionsActivated: number = 0;
+    @action
+    OptionsMenuDown = (e: React.PointerEvent) => {
+        this._optionsActivated++;
+    }
     render() {
         library.add(faCog);
         const columns = this.columns;
         const children = this.props.Document.GetList<Document>(this.props.fieldKey, []);
         const selected = children.length > this._selectedIndex ? children[this._selectedIndex] : undefined;
         //all the keys/columns that will be displayed in the schema
-        const allKeys = this.findAllDocumentKeys();
+        const allKeys = this.findAllDocumentKeys;
         let content = this._selectedIndex == -1 || !selected ? (null) : (
             <Measure onResize={this.setScaling}>
                 {({ measureRef }) =>
@@ -274,7 +289,7 @@ export class CollectionSchemaView extends CollectionViewBase {
                 </div>
             </div>
             }>
-            <button id="schemaOptionsMenuBtn"><FontAwesomeIcon style={{ color: "white" }} icon="cog" size="sm" /></button>
+            <button id="schemaOptionsMenuBtn" onPointerDown={this.OptionsMenuDown}><FontAwesomeIcon style={{ color: "white" }} icon="cog" size="sm" /></button>
         </Flyout>);
 
         return (

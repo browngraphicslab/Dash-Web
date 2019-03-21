@@ -76,7 +76,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 }}
             />);
         return (
-            <div key={this.props.document.Id} className="docContainer" ref={reference} onPointerDown={onItemDown}>
+            <div className="docContainer" ref={reference} onPointerDown={onItemDown}>
                 {editableView(this.props.document.Title)}
                 <div className="delete-button" onClick={this.delete}><FontAwesomeIcon icon="trash-alt" size="xs" /></div>
             </div >)
