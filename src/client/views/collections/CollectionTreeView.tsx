@@ -10,7 +10,7 @@ import "./CollectionTreeView.scss";
 import { EditableView } from "../EditableView";
 import { setupDrag } from "../../util/DragManager";
 import { FieldWaiting } from "../../../fields/Field";
-import { COLLECTION_BORDER_WIDTH } from "./CollectionView";
+import { COLLECTION_BORDER_WIDTH, CollectionView } from "./CollectionView";
 
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -70,16 +70,12 @@ class TreeView extends React.Component<TreeViewProps> {
      * Renders the EditableView title element for placement into the tree.
      */
     renderTitle() {
+        let reference = React.createRef<HTMLDivElement>();
+        let onItemDown = setupDrag(reference, () => this.props.document, (containingCollection: CollectionView) => this.props.deleteDoc(this.props.document));
         let title = this.props.document.GetT<TextField>(KeyStore.Title, TextField);
-
-        // if the title hasn't loaded, immediately return the div
-        if (!title || title === "<Waiting>") {
-            return <div key={this.props.document.Id}></div>;
-        }
-
-        return <div className="docContainer"> <EditableView
+        let editableView = (titleString: string) => (<EditableView
             display={"inline"}
-            contents={title.Data}
+            contents={titleString}
             height={36} GetValue={() => {
                 let title = this.props.document.GetT<TextField>(KeyStore.Title, TextField);
                 if (title && title !== "<Waiting>")
@@ -88,9 +84,12 @@ class TreeView extends React.Component<TreeViewProps> {
             }} SetValue={(value: string) => {
                 this.props.document.SetData(KeyStore.Title, value, TextField);
                 return true;
-            }} />
-            <div className="delete-button" onClick={this.delete}><FontAwesomeIcon icon="trash-alt" size="xs" /></div>
-        </div >
+            }} />);
+        return (
+            <div key={this.props.document.Id} className="docContainer" ref={reference} onPointerDown={onItemDown}>
+                {(!title || title === "<Waiting>") ? (null) : editableView(title.Data)}
+                <div className="delete-button" onClick={this.delete}><FontAwesomeIcon icon="trash-alt" size="xs" /></div>
+            </div >)
     }
 
     render() {
