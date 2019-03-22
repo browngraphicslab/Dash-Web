@@ -110,7 +110,7 @@ export function CompileScript(script: string, scope?: { [name: string]: any }, a
     let host = new ScriptingCompilerHost;
     let funcScript = `(function() {
         ${addReturn ? `return ${script};` : script}
-    })()`
+    }).apply(this)`
     host.writeFile("file.ts", funcScript);
     host.writeFile('node_modules/typescript/lib/lib.d.ts', typescriptlib);
     let program = ts.createProgram(["file.ts"], {}, host);

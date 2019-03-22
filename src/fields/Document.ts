@@ -132,7 +132,13 @@ export class Document extends Field {
         } else if (this._proxies.has(key.Id)) {
             Server.GetDocumentField(this, key, callback);
         } else {
-            callback(undefined);
+            this.GetTAsync(KeyStore.Prototype, Document, proto => {
+                if (proto) {
+                    proto.GetAsync(key, callback);
+                } else {
+                    callback(undefined);
+                }
+            })
         }
     }
 

@@ -85,12 +85,31 @@ export class CollectionSchemaView extends CollectionViewBase {
         )
         let reference = React.createRef<HTMLDivElement>();
         let onItemDown = setupDrag(reference, () => props.doc, (containingCollection: CollectionView) => this.props.removeDocument(props.doc));
+        let applyToDoc = (doc: Document, value: string) => {
+            let script = CompileScript(value, { this: doc }, true);
+            if (!script.compiled) {
+                return false;
+            }
+            let field = script();
+            if (field instanceof Field) {
+                doc.Set(props.fieldKey, field);
+                return true;
+            } else {
+                let dataField = ToField(field);
+                if (dataField) {
+                    doc.Set(props.fieldKey, dataField);
+                    return true;
+                }
+            }
+            return false;
+        }
         return (
             <div className="collectionSchemaView-cellContents" onPointerDown={onItemDown} style={{ height: "36px" }} key={props.doc.Id} ref={reference}>
                 <EditableView
                     display={"inline"}
                     contents={contents}
-                    height={36} GetValue={() => {
+                    height={36}
+                    GetValue={() => {
                         let field = props.doc.Get(props.fieldKey);
                         if (field && field instanceof Field) {
                             return field.ToScriptString();
@@ -98,22 +117,14 @@ export class CollectionSchemaView extends CollectionViewBase {
                         return field || "";
                     }}
                     SetValue={(value: string) => {
-                        let script = CompileScript(value);
-                        if (!script.compiled) {
-                            return false;
-                        }
-                        let field = script();
-                        if (field instanceof Field) {
-                            props.doc.Set(props.fieldKey, field);
-                            return true;
-                        } else {
-                            let dataField = ToField(field);
-                            if (dataField) {
-                                props.doc.Set(props.fieldKey, dataField);
-                                return true;
+                        return applyToDoc(props.doc, value);
+                    }}
+                    OnFillDown={(value: string) => {
+                        this.props.Document.GetTAsync<ListField<Document>>(this.props.fieldKey, ListField).then((val) => {
+                            if (val) {
+                                val.Data.forEach(doc => applyToDoc(doc, value));
                             }
-                        }
-                        return false;
+                        })
                     }}>
                 </EditableView>
             </div>

@@ -213,3 +213,10 @@ declare class Document extends Field {
     GetAllPrototypes(): Document[];
     MakeDelegate(): Document;
 }
+
+declare const KeyStore: {
+    [name: string]: Key;
+}
+
+// @ts-ignore
+declare const console: any;
