@@ -1,4 +1,4 @@
-import { action, configure, observable, runInAction, trace, computed } from 'mobx';
+import { action, configure, observable, runInAction, trace, computed, reaction } from 'mobx';
 import "normalize.css";
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
@@ -23,7 +23,6 @@ import "./Main.scss";
 import { observer } from 'mobx-react';
 import { InkingControl } from './InkingControl';
 import { RouteStore } from '../../server/RouteStore';
-import { json } from 'body-parser';
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faFont } from '@fortawesome/free-solid-svg-icons';
@@ -37,15 +36,18 @@ import { faRedoAlt } from '@fortawesome/free-solid-svg-icons';
 import { faPenNib } from '@fortawesome/free-solid-svg-icons';
 import { faFilm } from '@fortawesome/free-solid-svg-icons';
 import { faMusic } from '@fortawesome/free-solid-svg-icons';
+import { faTree } from '@fortawesome/free-solid-svg-icons';
 import Measure from 'react-measure';
 import { DashUserModel } from '../../server/authentication/models/user_model';
 import { ServerUtils } from '../../server/ServerUtil';
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
 import { Field, Opt, FieldWaiting } from '../../fields/Field';
 import { ListField } from '../../fields/ListField';
-import { map } from 'bluebird';
 import { Gateway, Settings } from '../northstar/manager/Gateway';
-import { Catalog } from '../northstar/model/idea/idea';
+import { Catalog, Schema, Attribute, AttributeGroup } from '../northstar/model/idea/idea';
+import { ArrayUtil } from '../northstar/utils/ArrayUtil';
+import '../northstar/model/ModelExtensions'
+import '../northstar/utils/Extensions'
 
 @observer
 export class Main extends React.Component {
@@ -53,7 +55,8 @@ export class Main extends React.Component {
     @observable private mainfreeform?: Document;
     @observable public pwidth: number = 0;
     @observable public pheight: number = 0;
-    @observable private _northstarCatalog: Catalog | undefined = undefined;
+    @observable ActiveSchema: Schema | undefined;
+    private _northstarColumns: Document[] = [];
 
     @computed private get mainContainer(): Document | undefined {
         let doc = this.userDocument.GetT(KeyStore.ActiveWorkspace, Document);
@@ -87,6 +90,10 @@ export class Main extends React.Component {
         };
 
         // this.initializeNorthstar();
+        let y = "";
+        y.ReplaceAll("a", "B");
+
+        CurrentUserUtils.loadCurrentUser();
 
         library.add(faFont);
         library.add(faImage);
@@ -99,29 +106,12 @@ export class Main extends React.Component {
         library.add(faPenNib);
         library.add(faFilm);
         library.add(faMusic);
-
+        library.add(faTree);
 
         this.initEventListeners();
         Documents.initProtos(() => this.initAuthenticationRouters());
-    }
 
-    @action SetNorthstarCatalog(ctlog: Catalog) {
-        this._northstarCatalog = ctlog;
-        if (this._northstarCatalog) {
-            console.log("CATALOG " + this._northstarCatalog.schemas);
-        }
-    }
-    async initializeNorthstar(): Promise<void> {
-        let envPath = "assets/env.json";
-        const response = await fetch(envPath, {
-            redirect: "follow",
-            method: "GET",
-            credentials: "include"
-        });
-        const env = await response.json();
-        Settings.Instance.Update(env);
-        let cat = Gateway.Instance.ClearCatalog();
-        cat.then(async () => this.SetNorthstarCatalog(await Gateway.Instance.GetCatalog()));
+        this.initializeNorthstar();
     }
 
     onHistory = () => {
@@ -259,6 +249,7 @@ export class Main extends React.Component {
         let addTextNode = action(() => Documents.TextDocument({ width: 200, height: 200, title: "a text note" }))
         let addColNode = action(() => Documents.FreeformDocument([], { width: 200, height: 200, title: "a freeform collection" }));
         let addSchemaNode = action(() => Documents.SchemaDocument([], { width: 200, height: 200, title: "a schema collection" }));
+        let addTreeNode = action(() => Documents.TreeDocument(this._northstarColumns, { width: 200, height: 200, title: "a tree collection" }));
         let addVideoNode = action(() => Documents.VideoDocument(videourl, { width: 200, height: 200, title: "video node" }));
         let addPDFNode = action(() => Documents.PdfDocument(pdfurl, { width: 200, height: 200, title: "a schema collection" }));
         let addImageNode = action(() => Documents.ImageDocument(imgurl, { width: 200, height: 200, title: "an image of a cat" }));
@@ -273,6 +264,7 @@ export class Main extends React.Component {
             [React.createRef<HTMLDivElement>(), "music", "Add Audio", addAudioNode],
             [React.createRef<HTMLDivElement>(), "globe-asia", "Add Web Clipping", addWebNode],
             [React.createRef<HTMLDivElement>(), "object-group", "Add Collection", addColNode],
+            [React.createRef<HTMLDivElement>(), "tree", "Add Tree", addTreeNode],
             [React.createRef<HTMLDivElement>(), "table", "Add Schema", addSchemaNode],
         ]
 
@@ -343,6 +335,43 @@ export class Main extends React.Component {
                 <InkingControl />
             </div>
         );
+    }
+
+    // --------------- Northstar hooks ------------- /
+
+    @action SetNorthstarCatalog(ctlog: Catalog) {
+        if (ctlog && ctlog.schemas) {
+            this.ActiveSchema = ArrayUtil.FirstOrDefault<Schema>(ctlog.schemas!, (s: Schema) => s.displayName === "mimic");
+            this._northstarColumns = this.GetAllNorthstarColumnAttributes().map(a => Documents.HistogramDocument({ width: 200, height: 200, title: a.displayName! }));
+        }
+    }
+    async initializeNorthstar(): Promise<void> {
+        let envPath = "/assets/env.json";
+        const response = await fetch(envPath, {
+            redirect: "follow",
+            method: "GET",
+            credentials: "include"
+        });
+        const env = await response.json();
+        Settings.Instance.Update(env);
+        let cat = Gateway.Instance.ClearCatalog();
+        cat.then(async () => this.SetNorthstarCatalog(await Gateway.Instance.GetCatalog()));
+    }
+    public GetAllNorthstarColumnAttributes() {
+        if (!this.ActiveSchema || !this.ActiveSchema.rootAttributeGroup) {
+            return [];
+        }
+        const recurs = (attrs: Attribute[], g: AttributeGroup) => {
+            if (g.attributes) {
+                attrs.push.apply(attrs, g.attributes);
+                if (g.attributeGroups) {
+                    g.attributeGroups.forEach(ng => recurs(attrs, ng));
+                }
+            }
+        };
+        const allAttributes: Attribute[] = new Array<Attribute>();
+        recurs(allAttributes, this.ActiveSchema.rootAttributeGroup);
+        return allAttributes;
     }
 }
 

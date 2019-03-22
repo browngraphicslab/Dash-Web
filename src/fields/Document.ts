@@ -36,7 +36,7 @@ export class Document extends Field {
 
     @computed
     public get Title() {
-        return this.GetText(KeyStore.Title, "<untitled>");
+        return this.GetText(KeyStore.Title, "-untitled-");
     }
 
     @computed

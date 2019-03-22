@@ -7,7 +7,6 @@ import { TextField } from "../../../fields/TextField";
 import { NumberField } from "../../../fields/NumberField";
 import { RichTextField } from "../../../fields/RichTextField";
 import { ImageField } from "../../../fields/ImageField";
-import { WebField } from "../../../fields/WebField";
 import { VideoField } from "../../../fields/VideoField"
 import { Key } from "../../../fields/Key";
 import { FormattedTextBox } from "./FormattedTextBox";
@@ -64,9 +63,11 @@ export class FieldView extends React.Component<FieldViewProps> {
         }
         else if (field instanceof AudioField) {
             return <AudioBox {...this.props} />
-        } else if (field instanceof Document) {
+        }
+        else if (field instanceof Document) {
             return <div>{field.Title}</div>
-        } else if (field instanceof ListField) {
+        }
+        else if (field instanceof ListField) {
             return (<div>
                 {(field as ListField<Field>).Data.map(f => {
                     return f instanceof Document ? f.Title : f.GetValue().toString();

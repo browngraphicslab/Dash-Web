@@ -17,6 +17,7 @@ import { COLLECTION_BORDER_WIDTH } from "./CollectionView";
 import React = require("react");
 import { SubCollectionViewProps } from "./CollectionViewBase";
 import { ServerUtils } from "../../../server/ServerUtil";
+import { DragManager } from "../../util/DragManager";
 
 @observer
 export class CollectionDockingView extends React.Component<SubCollectionViewProps> {
@@ -190,6 +191,21 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     @action
     onPointerDown = (e: React.PointerEvent): void => {
         var className = (e.target as any).className;
+        if ((className == "lm_title" || className == "lm_tab lm_active") && e.ctrlKey) {
+            e.stopPropagation();
+            e.preventDefault();
+            let docid = (e.target as any).DashDocId;
+            let tab = (e.target as any).parentElement as HTMLElement;
+            Server.GetField(docid, action((f: Opt<Field>) =>
+                DragManager.StartDocumentDrag(tab, new DragManager.DocumentDragData(f as Document),
+                    {
+                        handlers: {
+                            dragComplete: action(() => { }),
+                        },
+                        hideSource: true
+                    }))
+            );
+        }
         if (className == "lm_drag_handle" || className == "lm_close" || className == "lm_maximise" || className == "lm_minimise" || className == "lm_close_tab") {
             this._flush = true;
         }
@@ -208,6 +224,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         this.stateChanged();
     }
     tabCreated = (tab: any) => {
+        tab.titleElement[0].DashDocId = tab.contentItem.config.props.documentId;
         tab.closeElement.off('click') //unbind the current click handler
             .click(function () {
                 tab.contentItem.remove();

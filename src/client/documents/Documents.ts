@@ -22,6 +22,7 @@ import { KeyValueBox } from "../views/nodes/KeyValueBox";
 import { PDFBox } from "../views/nodes/PDFBox";
 import { VideoBox } from "../views/nodes/VideoBox";
 import { WebBox } from "../views/nodes/WebBox";
+import { HistogramBox } from "../views/nodes/HistogramBox";
 
 export interface DocumentOptions {
     x?: number;
@@ -44,6 +45,7 @@ export interface DocumentOptions {
 
 export namespace Documents {
     let textProto: Document;
+    let histoProto: Document;
     let imageProto: Document;
     let webProto: Document;
     let collProto: Document;
@@ -52,6 +54,7 @@ export namespace Documents {
     let audioProto: Document;
     let pdfProto: Document;
     const textProtoId = "textProto";
+    const histoProtoId = "histoProto";
     const pdfProtoId = "pdfProto";
     const imageProtoId = "imageProto";
     const webProtoId = "webProto";
@@ -62,9 +65,10 @@ export namespace Documents {
 
     export function initProtos(callback: () => void) {
         Server.GetFields([collProtoId, textProtoId, imageProtoId], (fields) => {
+            textProto = fields[textProtoId] as Document;
+            histoProto = fields[histoProtoId] as Document;
             collProto = fields[collProtoId] as Document;
             imageProto = fields[imageProtoId] as Document;
-            textProto = fields[textProtoId] as Document;
             webProto = fields[webProtoId] as Document;
             kvpProto = fields[kvpProtoId] as Document;
             callback();
@@ -113,6 +117,11 @@ export namespace Documents {
             imageProto.SetText(KeyStore.BackgroundLayout, ImageBox.LayoutString());
         }
         return imageProto;
+    }
+    function GetHistogramPrototype(): Document {
+        return histoProto ? histoProto :
+            histoProto = setupPrototypeOptions(textProtoId, "HISTO PROTOTYPE", HistogramBox.LayoutString(),
+                { x: 0, y: 0, width: 300, height: 300, layoutKeys: [KeyStore.Data] });
     }
     function GetTextPrototype(): Document {
         return textProto ? textProto :
@@ -176,6 +185,9 @@ export namespace Documents {
         return assignToDelegate(SetInstanceOptions(GetAudioPrototype(), options, [new URL(url), AudioField]), options);
     }
 
+    export function HistogramDocument(options: DocumentOptions = {}) {
+        return assignToDelegate(SetInstanceOptions(GetHistogramPrototype(), options, ["", TextField]).MakeDelegate(), options);
+    }
     export function TextDocument(options: DocumentOptions = {}) {
         return assignToDelegate(SetInstanceOptions(GetTextPrototype(), options, ["", TextField]).MakeDelegate(), options);
     }
@@ -199,6 +211,9 @@ export namespace Documents {
     }
     export function SchemaDocument(documents: Array<Document>, options: DocumentOptions, id?: string) {
         return assignToDelegate(SetInstanceOptions(GetCollectionPrototype(), { ...options, viewType: CollectionViewType.Schema }, [documents, ListField], id), options)
+    }
+    export function TreeDocument(documents: Array<Document>, options: DocumentOptions, id?: string) {
+        return assignToDelegate(SetInstanceOptions(GetCollectionPrototype(), { ...options, viewType: CollectionViewType.Tree }, [documents, ListField], id), options)
     }
     export function DockDocument(config: string, options: DocumentOptions, id?: string) {
         return assignToDelegate(SetInstanceOptions(GetCollectionPrototype(), { ...options, viewType: CollectionViewType.Docking }, [config, TextField], id), options)
