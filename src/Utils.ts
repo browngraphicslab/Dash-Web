@@ -38,12 +38,15 @@ export class Utils {
     }
 
     public static loggingEnabled: Boolean = false;
+    public static logFilter: number | undefined = undefined;
     private static log(prefix: string, messageName: string, message: any, receiving: boolean) {
         if (!this.loggingEnabled) {
             return;
         }
-        !message && console.log(prefix, messageName)
         message = message || {};
+        if (this.logFilter !== undefined && this.logFilter !== message.type) {
+            return;
+        }
         let idString = (message._id || message.id || "").padStart(36, ' ');
         prefix = prefix.padEnd(16, ' ');
         console.log(`${prefix}: ${idString}, ${receiving ? 'receiving' : 'sending'} ${messageName} with data ${JSON.stringify(message)}`);
