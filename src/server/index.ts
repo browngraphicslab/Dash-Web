@@ -223,13 +223,11 @@ app.use(RouteStore.corsProxy, (req, res) => {
 });
 
 app.get(RouteStore.delete, (req, res) => {
-    deleteFields();
-    res.redirect(RouteStore.home);
+    deleteFields().then(() => res.redirect(RouteStore.home));
 });
 
 app.get(RouteStore.deleteAll, (req, res) => {
-    deleteAll();
-    res.redirect(RouteStore.home);
+    deleteAll().then(() => res.redirect(RouteStore.home));
 });
 
 app.use(wdm(compiler, {
@@ -262,13 +260,15 @@ server.on("connection", function (socket: Socket) {
 })
 
 function deleteFields() {
-    Database.Instance.deleteAll();
+    return Database.Instance.deleteAll();
 }
 
 function deleteAll() {
-    Database.Instance.deleteAll();
-    Database.Instance.deleteAll('sessions');
-    Database.Instance.deleteAll('users');
+    return Database.Instance.deleteAll().then(() => {
+        return Database.Instance.deleteAll('sessions')
+    }).then(() => {
+        return Database.Instance.deleteAll('users')
+    });
 }
 
 function barReceived(guid: String) {
