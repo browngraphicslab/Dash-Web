@@ -61,40 +61,50 @@ export class Server {
     public static GetFields(fieldIds: FieldId[], callback?: (fields: FieldMap) => any): Promise<FieldMap> | void {
         let fn = (cb: (fields: FieldMap) => void) => {
 
-        let neededFieldIds: FieldId[] = [];
-        let waitingFieldIds: FieldId[] = [];
-        let existingFields: { [id: string]: Field } = {};
-        for (let id of fieldIds) {
-            let field = this.ClientFieldsCached.get(id);
-            if (!field) {
-                neededFieldIds.push(id);
-                this.ClientFieldsCached.set(id, FieldWaiting);
-            } else if (field === FieldWaiting) {
-                waitingFieldIds.push(id);
-            } else {
-                existingFields[id] = field;
-            }
-        }
-        SocketStub.SEND_FIELDS_REQUEST(neededFieldIds, (fields) => {
-            for (let key in fields) {
-                let field = fields[key];
-                if (!(this.ClientFieldsCached.get(field.Id) instanceof Field)) {
-                    this.ClientFieldsCached.set(field.Id, field)
+            let neededFieldIds: FieldId[] = [];
+            let waitingFieldIds: FieldId[] = [];
+            let existingFields: { [id: string]: Field } = {};
+            for (let id of fieldIds) {
+                let field = this.ClientFieldsCached.get(id);
+                if (!field) {
+                    neededFieldIds.push(id);
+                    this.ClientFieldsCached.set(id, FieldWaiting);
+                } else if (field === FieldWaiting) {
+                    waitingFieldIds.push(id);
+                } else {
+                    existingFields[id] = field;
                 }
             }
-            reaction(() => {
-                return waitingFieldIds.map(id => this.ClientFieldsCached.get(id));
-            }, (cachedFields, reaction) => {
-                if (!cachedFields.some(field => !field || field === FieldWaiting)) {
-                    reaction.dispose();
-                    for (let field of cachedFields) {
-                        let realField = field as Field;
-                        existingFields[realField.Id] = realField;
+            SocketStub.SEND_FIELDS_REQUEST(neededFieldIds, (fields) => {
+                for (let id of neededFieldIds) {
+                    let field = fields[id];
+                    if (field) {
+                        if (!(this.ClientFieldsCached.get(field.Id) instanceof Field)) {
+                            this.ClientFieldsCached.set(field.Id, field)
+                        } else {
+                            throw new Error("we shouldn't be trying to replace things that are already in the cache")
+                        }
+                    } else {
+                        if (this.ClientFieldsCached.get(id) === FieldWaiting) {
+                            this.ClientFieldsCached.delete(id);
+                        } else {
+                            throw new Error("we shouldn't be trying to replace things that are already in the cache")
+                        }
                     }
-                        cb({ ...fields, ...existingFields })
                 }
-            }, { fireImmediately: true })
-        });
+                reaction(() => {
+                    return waitingFieldIds.map(id => this.ClientFieldsCached.get(id));
+                }, (cachedFields, reaction) => {
+                    if (!cachedFields.some(field => !field || field === FieldWaiting)) {
+                        reaction.dispose();
+                        for (let field of cachedFields) {
+                            let realField = field as Field;
+                            existingFields[realField.Id] = realField;
+                        }
+                        cb({ ...fields, ...existingFields })
+                    }
+                }, { fireImmediately: true })
+            });
         };
         if (callback) {
             fn(callback);
@@ -156,12 +166,17 @@ export class Server {
         if (Server.ClientFieldsCached.has(field._id)) {
             var f = Server.ClientFieldsCached.get(field._id);
             if (f && f != FieldWaiting) {
+                // console.log("Applying        : " + field._id);
                 f.UpdateFromServer(field.data);
                 f.init(() => { });
+            } else {
+                // console.log("Not applying wa : " + field._id);
             }
+        } else {
+            // console.log("Not applying mi : " + field._id);
         }
     }
 }
 
-Server.Socket.on(MessageStore.Foo.Message, Server.connected);
-Server.Socket.on(MessageStore.SetField.Message, Server.updateField);
+Utils.AddServerHandler(Server.Socket, MessageStore.Foo, Server.connected);
+Utils.AddServerHandler(Server.Socket, MessageStore.SetField, Server.updateField);
