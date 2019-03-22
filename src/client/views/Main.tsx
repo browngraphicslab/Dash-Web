@@ -73,8 +73,6 @@ export class Main extends React.Component {
         return CurrentUserUtils.UserDocument;
     }
 
-    public mainDocId: string | undefined;
-    private currentUser?: DashUserModel;
     public static Instance: Main;
 
     constructor(props: Readonly<{}>) {
@@ -85,7 +83,7 @@ export class Main extends React.Component {
         if (window.location.pathname !== RouteStore.home) {
             let pathname = window.location.pathname.split("/");
             if (pathname.length > 1 && pathname[pathname.length - 2] == 'doc') {
-                this.mainDocId = pathname[pathname.length - 1];
+                CurrentUserUtils.MainDocId = pathname[pathname.length - 1];
             }
         };
 
@@ -117,8 +115,8 @@ export class Main extends React.Component {
     onHistory = () => {
         if (window.location.pathname !== RouteStore.home) {
             let pathname = window.location.pathname.split("/");
-            this.mainDocId = pathname[pathname.length - 1];
-            Server.GetField(this.mainDocId, action((field: Opt<Field>) => {
+            CurrentUserUtils.MainDocId = pathname[pathname.length - 1];
+            Server.GetField(CurrentUserUtils.MainDocId, action((field: Opt<Field>) => {
                 if (field instanceof Document) {
                     this.openWorkspace(field, true);
                 }
@@ -148,7 +146,7 @@ export class Main extends React.Component {
 
     initAuthenticationRouters = () => {
         // Load the user's active workspace, or create a new one if initial session after signup
-        if (!this.mainDocId) {
+        if (!CurrentUserUtils.MainDocId) {
             this.userDocument.GetTAsync(KeyStore.ActiveWorkspace, Document).then(doc => {
                 if (doc) {
                     this.openWorkspace(doc);
@@ -157,11 +155,11 @@ export class Main extends React.Component {
                 }
             })
         } else {
-            Server.GetField(this.mainDocId).then(field => {
+            Server.GetField(CurrentUserUtils.MainDocId).then(field => {
                 if (field instanceof Document) {
                     this.openWorkspace(field)
                 } else {
-                    this.createNewWorkspace(this.mainDocId);
+                    this.createNewWorkspace(CurrentUserUtils.MainDocId);
                 }
             })
         }

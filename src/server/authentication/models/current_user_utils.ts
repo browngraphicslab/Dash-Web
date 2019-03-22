@@ -12,17 +12,27 @@ export class CurrentUserUtils {
     private static curr_email: string;
     private static curr_id: string;
     private static user_document: Document;
+    //TODO tfs: this should be temporary...
+    private static mainDocId: string | undefined;
 
     public static get email(): string {
-        return CurrentUserUtils.curr_email;
+        return this.curr_email;
     }
 
     public static get id(): string {
-        return CurrentUserUtils.curr_id;
+        return this.curr_id;
     }
 
     public static get UserDocument(): Document {
-        return CurrentUserUtils.user_document;
+        return this.user_document;
+    }
+
+    public static get MainDocId(): string | undefined {
+        return this.mainDocId;
+    }
+
+    public static set MainDocId(id: string | undefined) {
+        this.mainDocId = id;
     }
 
     private static createUserDocument(id: string): Document {
