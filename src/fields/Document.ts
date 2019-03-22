@@ -273,13 +273,13 @@ export class Document extends Field {
     }
 
     @action
-    SetData<T, U extends Field & { Data: T }>(key: Key, value: T, ctor: { new(): U }, replaceWrongType = true) {
+    SetData<T, U extends Field & { Data: T }>(key: Key, value: T, ctor: { new(data: T): U }, replaceWrongType = true) {
         let field = this.Get(key, true);
         if (field instanceof ctor) {
             field.Data = value;
         } else if (!field || replaceWrongType) {
-            let newField = new ctor();
-            newField.Data = value;
+            let newField = new ctor(value);
+            // newField.Data = value;
             this.Set(key, newField);
         }
     }
