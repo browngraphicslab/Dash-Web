@@ -7,6 +7,11 @@ import { Utils } from "../Utils";
 import { Server } from "./Server";
 import { ServerUtils } from "../server/ServerUtil";
 
+
+export interface FieldMap {
+    [id: string]: Opt<Field>;
+}
+
 //TODO tfs: I think it might be cleaner to not have SocketStub deal with turning what the server gives it into Fields (in other words not call ServerUtils.FromJson), and leave that for the Server class.
 export class SocketStub {
 
@@ -54,7 +59,7 @@ export class SocketStub {
         }
     }
 
-    public static SEND_FIELDS_REQUEST(fieldIds: FieldId[], callback: (fields: { [key: string]: Field }) => any) {
+    public static SEND_FIELDS_REQUEST(fieldIds: FieldId[], callback: (fields: FieldMap) => any) {
         Utils.EmitCallback(Server.Socket, MessageStore.GetFields, fieldIds, (fields: any[]) => {
             let fieldMap: any = {};
             for (let field of fields) {

@@ -2,7 +2,7 @@ import { Key } from "../fields/Key"
 import { ObservableMap, action, reaction } from "mobx";
 import { Field, FieldWaiting, FIELD_WAITING, Opt, FieldId } from "../fields/Field"
 import { Document } from "../fields/Document"
-import { SocketStub } from "./SocketStub";
+import { SocketStub, FieldMap } from "./SocketStub";
 import * as OpenSocket from 'socket.io-client';
 import { Utils } from "./../Utils";
 import { MessageStore, Types } from "./../server/Message";
@@ -52,11 +52,15 @@ export class Server {
         if (callback) {
             fn(callback);
         } else {
-            return new Promise<Opt<Field>>(res => fn(res));
+            return new Promise(res => fn(res));
         }
     }
 
-    public static GetFields(fieldIds: FieldId[], callback: (fields: { [id: string]: Field }) => any) {
+    public static GetFields(fieldIds: FieldId[]): Promise<{ [id: string]: Field }>;
+    public static GetFields(fieldIds: FieldId[], callback: (fields: FieldMap) => any): void;
+    public static GetFields(fieldIds: FieldId[], callback?: (fields: FieldMap) => any): Promise<FieldMap> | void {
+        let fn = (cb: (fields: FieldMap) => void) => {
+
         let neededFieldIds: FieldId[] = [];
         let waitingFieldIds: FieldId[] = [];
         let existingFields: { [id: string]: Field } = {};
@@ -87,10 +91,16 @@ export class Server {
                         let realField = field as Field;
                         existingFields[realField.Id] = realField;
                     }
-                    callback({ ...fields, ...existingFields })
+                        cb({ ...fields, ...existingFields })
                 }
             }, { fireImmediately: true })
         });
+        };
+        if (callback) {
+            fn(callback);
+        } else {
+            return new Promise(res => fn(res));
+        }
     }
 
     public static GetDocumentField(doc: Document, key: Key, callback?: (field: Field) => void) {
