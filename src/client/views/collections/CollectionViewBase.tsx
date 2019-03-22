@@ -17,6 +17,7 @@ import { NumberField } from "../../../fields/NumberField";
 import { DocumentManager } from "../../util/DocumentManager";
 import request = require("request");
 import { ServerUtils } from "../../../server/ServerUtil";
+import { addHiddenFinalProp } from "mobx/lib/internal";
 
 export interface CollectionViewProps {
     fieldKey: Key;
@@ -33,7 +34,7 @@ export interface CollectionViewProps {
 
 export interface SubCollectionViewProps extends CollectionViewProps {
     active: () => boolean;
-    addDocument: (doc: Document, allowDuplicates: boolean) => void;
+    addDocument: (doc: Document, allowDuplicates: boolean) => boolean;
     removeDocument: (doc: Document) => boolean;
     CollectionView: CollectionView;
 }
@@ -83,17 +84,20 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
 
     @undoBatch
     @action
-    protected drop(e: Event, de: DragManager.DropEvent) {
+    protected drop(e: Event, de: DragManager.DropEvent): boolean {
         if (de.data instanceof DragManager.DocumentDragData) {
             if (de.data.aliasOnDrop) {
                 [KeyStore.Width, KeyStore.Height, KeyStore.CurPage].map(key =>
                     de.data.draggedDocument.GetTAsync(key, NumberField, (f: Opt<NumberField>) => f ? de.data.droppedDocument.SetNumber(key, f.Data) : null));
-            } else if (de.data.removeDocument) {
+            }
+            let added = this.props.addDocument(de.data.droppedDocument, false);
+            if (added && de.data.removeDocument && !de.data.aliasOnDrop) {
                 de.data.removeDocument(this.props.CollectionView);
             }
-            this.props.addDocument(de.data.droppedDocument, false);
             e.stopPropagation();
+            return added;
         }
+        return false;
     }
 
     protected getDocumentFromType(type: string, path: string, options: DocumentOptions): Opt<Document> {

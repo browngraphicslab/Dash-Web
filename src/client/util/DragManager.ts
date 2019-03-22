@@ -197,9 +197,7 @@ export namespace DragManager {
             document.removeEventListener("pointermove", moveHandler, true);
             document.removeEventListener("pointerup", upHandler);
             dragDiv.removeChild(dragElement);
-            if (hideSource && !wasHidden) {
-                ele.hidden = false;
-            }
+            ele.hidden = false;
         }
         const upHandler = (e: PointerEvent) => {
             abortDrag();

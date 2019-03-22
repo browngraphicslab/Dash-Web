@@ -17,7 +17,7 @@ interface MarqueeViewProps {
     getMarqueeTransform: () => Transform;
     getTransform: () => Transform;
     container: CollectionFreeFormView;
-    addDocument: (doc: Document, allowDuplicates: false) => void;
+    addDocument: (doc: Document, allowDuplicates: false) => boolean;
     activeDocuments: () => Document[];
     selectDocuments: (docs: Document[]) => void;
     removeDocument: (doc: Document) => boolean;

@@ -202,7 +202,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                         handlers: {
                             dragComplete: action(() => { }),
                         },
-                        hideSource: true
+                        hideSource: false
                     }))
             );
         }
