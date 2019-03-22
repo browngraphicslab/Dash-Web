@@ -14,6 +14,7 @@ import { CollectionViewProps } from "./CollectionViewBase";
 import { CollectionTreeView } from "./CollectionTreeView";
 import { Field, FieldId, FieldWaiting } from "../../../fields/Field";
 import { Main } from "../Main";
+import { dropPoint } from "prosemirror-transform";
 
 export enum CollectionViewType {
     Invalid,
@@ -48,13 +49,22 @@ export class CollectionView extends React.Component<CollectionViewProps> {
         return isSelected || childSelected || topMost;
     }
 
-    static createsCycle(doc: Document, props: CollectionViewProps): boolean {
-        let ldata = doc.GetList<Document>(KeyStore.Data, []);
-        for (let i = 0; i < ldata.length; i++) {
-            if (CollectionView.createsCycle(ldata[i], props))
+    static createsCycle(documentToAdd: Document, containerDocument: Document): boolean {
+        let data = documentToAdd.GetList<Document>(KeyStore.Data, []);
+        for (let i = 0; i < data.length; i++) {
+            if (CollectionView.createsCycle(data[i], containerDocument))
                 return true;
         }
-        return doc.Id == props.Document.Id;
+        let annots = documentToAdd.GetList<Document>(KeyStore.Annotations, []);
+        for (let i = 0; i < annots.length; i++) {
+            if (CollectionView.createsCycle(annots[i], containerDocument))
+                return true;
+        }
+        for (let containerProto: any = containerDocument; containerProto && containerProto != FieldWaiting; containerProto = containerProto.GetPrototype()) {
+            if (containerProto.Id == documentToAdd.Id)
+                return true;
+        }
+        return false;
     }
 
     @action
@@ -63,14 +73,19 @@ export class CollectionView extends React.Component<CollectionViewProps> {
         if (props.Document.Get(props.fieldKey) instanceof Field) {
             //TODO This won't create the field if it doesn't already exist
             const value = props.Document.GetData(props.fieldKey, ListField, new Array<Document>())
-            if (!CollectionView.createsCycle(doc, props)) {
+            if (!CollectionView.createsCycle(doc, props.Document)) {
                 if (!value.some(v => v.Id == doc.Id) || allowDuplicates)
                     value.push(doc);
             }
             else
                 return false;
         } else {
-            props.Document.SetOnPrototype(props.fieldKey, new ListField([doc]));
+            let proto = props.Document.GetPrototype();
+            if (!proto || proto == FieldWaiting || !CollectionView.createsCycle(proto, doc)) {
+                props.Document.SetOnPrototype(props.fieldKey, new ListField([doc]));
+            }
+            else
+                return false;
         }
         return true;
     }
