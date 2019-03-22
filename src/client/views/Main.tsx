@@ -55,7 +55,6 @@ export class Main extends React.Component {
     @observable private mainfreeform?: Document;
     @observable public pwidth: number = 0;
     @observable public pheight: number = 0;
-    @observable ActiveSchema: Schema | undefined;
     private _northstarColumns: Document[] = [];
 
     @computed private get mainContainer(): Document | undefined {
@@ -339,8 +338,8 @@ export class Main extends React.Component {
 
     @action SetNorthstarCatalog(ctlog: Catalog) {
         if (ctlog && ctlog.schemas) {
-            this.ActiveSchema = ArrayUtil.FirstOrDefault<Schema>(ctlog.schemas!, (s: Schema) => s.displayName === "mimic");
-            this._northstarColumns = this.GetAllNorthstarColumnAttributes().map(a => Documents.HistogramDocument({ width: 200, height: 200, title: a.displayName! }));
+            CurrentUserUtils.ActiveSchema = ArrayUtil.FirstOrDefault<Schema>(ctlog.schemas!, (s: Schema) => s.displayName === "mimic");
+            this._northstarColumns = CurrentUserUtils.GetAllNorthstarColumnAttributes().map(a => Documents.HistogramDocument({ width: 200, height: 200, title: a.displayName! }));
         }
     }
     async initializeNorthstar(): Promise<void> {
@@ -354,22 +353,6 @@ export class Main extends React.Component {
         Settings.Instance.Update(env);
         let cat = Gateway.Instance.ClearCatalog();
         cat.then(async () => this.SetNorthstarCatalog(await Gateway.Instance.GetCatalog()));
-    }
-    public GetAllNorthstarColumnAttributes() {
-        if (!this.ActiveSchema || !this.ActiveSchema.rootAttributeGroup) {
-            return [];
-        }
-        const recurs = (attrs: Attribute[], g: AttributeGroup) => {
-            if (g.attributes) {
-                attrs.push.apply(attrs, g.attributes);
-                if (g.attributeGroups) {
-                    g.attributeGroups.forEach(ng => recurs(attrs, ng));
-                }
-            }
-        };
-        const allAttributes: Attribute[] = new Array<Attribute>();
-        recurs(allAttributes, this.ActiveSchema.rootAttributeGroup);
-        return allAttributes;
     }
 }
 

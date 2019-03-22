@@ -5,8 +5,8 @@ import { CalculatedAttributeManager } from "../core/attribute/CalculatedAttribut
 import { ModelHelpers } from "../model/ModelHelpers";
 import { SETTINGS_X_BINS, SETTINGS_Y_BINS, SETTINGS_SAMPLE_SIZE } from "../model/binRanges/VisualBinRangeHelper";
 import { AttributeTransformationModel } from "../core/attribute/AttributeTransformationModel";
-import { Main } from "../../views/Main";
 import { BaseOperation } from "./BaseOperation";
+import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 
 
 export class HistogramOperation extends BaseOperation {
@@ -83,7 +83,7 @@ export class HistogramOperation extends BaseOperation {
             let [perBinAggregateParameters, globalAggregateParameters] = this.GetAggregateParameters(this.X, this.Y, this.V);
             return new HistogramOperationParameters({
                 enableBrushComputation: true,
-                adapterName: Main.Instance.ActiveSchema!.displayName,
+                adapterName: CurrentUserUtils.ActiveSchema!.displayName,
                 filter: this.FilterString,
                 brushes: this.BrushString,
                 binningParameters: [ModelHelpers.GetBinningParameters(this.X, SETTINGS_X_BINS, this.QRange ? this.QRange.minValue : undefined, this.QRange ? this.QRange.maxValue : undefined),

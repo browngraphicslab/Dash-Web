@@ -9,7 +9,7 @@ import { AlphabeticVisualBinRange } from "./binRanges/AlphabeticVisualBinRange";
 import { NominalVisualBinRange } from "./binRanges/NominalVisualBinRange";
 import { VisualBinRangeHelper } from "./binRanges/VisualBinRangeHelper";
 import { AttributeTransformationModel } from "../core/attribute/AttributeTransformationModel";
-import { Main } from "../../views/Main";
+import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 
 export class ModelHelpers {
 
@@ -39,19 +39,19 @@ export class ModelHelpers {
         if (atm.AggregateFunction === AggregateFunction.Avg) {
             var avg = new AverageAggregateParameters();
             avg.attributeParameters = ModelHelpers.GetAttributeParameters(atm.AttributeModel);
-            avg.distinctAttributeParameters = Main.Instance.ActiveSchema!.distinctAttributeParameters;
+            avg.distinctAttributeParameters = CurrentUserUtils.ActiveSchema!.distinctAttributeParameters;
             aggParam = avg;
         }
         else if (atm.AggregateFunction === AggregateFunction.Count) {
             var cnt = new CountAggregateParameters();
             cnt.attributeParameters = ModelHelpers.GetAttributeParameters(atm.AttributeModel);
-            cnt.distinctAttributeParameters = Main.Instance.ActiveSchema!.distinctAttributeParameters;
+            cnt.distinctAttributeParameters = CurrentUserUtils.ActiveSchema!.distinctAttributeParameters;
             aggParam = cnt;
         }
         else if (atm.AggregateFunction === AggregateFunction.Sum) {
             var sum = new SumAggregateParameters();
             sum.attributeParameters = ModelHelpers.GetAttributeParameters(atm.AttributeModel);
-            sum.distinctAttributeParameters = Main.Instance.ActiveSchema!.distinctAttributeParameters;
+            sum.distinctAttributeParameters = CurrentUserUtils.ActiveSchema!.distinctAttributeParameters;
             aggParam = sum;
         }
         return aggParam;
@@ -66,7 +66,7 @@ export class ModelHelpers {
 
                 var margin = new MarginAggregateParameters();
                 margin.attributeParameters = ModelHelpers.GetAttributeParameters(agg.AttributeModel);
-                margin.distinctAttributeParameters = Main.Instance.ActiveSchema!.distinctAttributeParameters;
+                margin.distinctAttributeParameters = CurrentUserUtils.ActiveSchema!.distinctAttributeParameters;
                 margin.aggregateFunction = agg.AggregateFunction;
                 aggregateParameters.push(margin);
             }

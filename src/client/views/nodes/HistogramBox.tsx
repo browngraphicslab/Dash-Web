@@ -4,11 +4,11 @@ import { FieldView, FieldViewProps } from './FieldView';
 import "./VideoBox.scss";
 import { observable, reaction } from "mobx";
 import { HistogramOperation } from "../../northstar/operations/HistogramOperation";
-import { Main } from "../Main";
 import { ColumnAttributeModel } from "../../northstar/core/attribute/AttributeModel";
 import { AttributeTransformationModel } from "../../northstar/core/attribute/AttributeTransformationModel";
 import { AggregateFunction, HistogramResult, DoubleValueAggregateResult } from "../../northstar/model/idea/idea";
 import { ModelHelpers } from "../../northstar/model/ModelHelpers";
+import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 
 @observer
 export class HistogramBox extends React.Component<FieldViewProps> {
@@ -23,7 +23,7 @@ export class HistogramBox extends React.Component<FieldViewProps> {
     _histoOp?: HistogramOperation;
 
     componentDidMount() {
-        Main.Instance.GetAllNorthstarColumnAttributes().map(a => {
+        CurrentUserUtils.GetAllNorthstarColumnAttributes().map(a => {
             if (a.displayName == this.props.doc.Title) {
                 var atmod = new ColumnAttributeModel(a);
                 this._histoOp = new HistogramOperation(new AttributeTransformationModel(atmod, AggregateFunction.None),
