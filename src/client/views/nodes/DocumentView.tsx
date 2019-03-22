@@ -314,10 +314,6 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         if (!this.props.Document) {
             return (null);
         }
-        let lkeys = this.props.Document.GetT(KeyStore.LayoutKeys, ListField);
-        if (!lkeys || lkeys === FieldWaiting) {
-            return <p>Error loading layout keys</p>;
-        }
         var scaling = this.props.ContentScaling();
         var nativeWidth = this.props.Document.GetNumber(KeyStore.NativeWidth, 0);
         var nativeHeight = this.props.Document.GetNumber(KeyStore.NativeHeight, 0);

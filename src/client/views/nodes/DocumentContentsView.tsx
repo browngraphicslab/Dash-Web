@@ -47,8 +47,13 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
     }
 
     render() {
+        let lkeys = this.props.Document.GetT(KeyStore.LayoutKeys, ListField);
+        if (!lkeys || lkeys === FieldWaiting) {
+            return <p>Error loading layout keys</p>;
+        }
         return <JsxParser
-            components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, CollectionVideoView, WebBox, KeyValueBox, PDFBox, VideoBox, AudioBox, HistogramBox }} bindings={this.CreateBindings()}
+            components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, CollectionVideoView, WebBox, KeyValueBox, PDFBox, VideoBox, AudioBox, HistogramBox }}
+            bindings={this.CreateBindings()}
             jsx={this.layout}
             showWarnings={true}
             onError={(test: any) => { console.log(test) }}
