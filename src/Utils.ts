@@ -37,26 +37,49 @@ export class Utils {
         document.body.removeChild(textArea);
     }
 
+    public static loggingEnabled: Boolean = false;
+    private static log(prefix: string, messageName: string, message: any, receiving: boolean) {
+        if (!this.loggingEnabled) {
+            return;
+        }
+        !message && console.log(prefix, messageName)
+        message = message || {};
+        let idString = (message._id || message.id || "").padStart(36, ' ');
+        prefix = prefix.padEnd(16, ' ');
+        console.log(`${prefix}: ${idString}, ${receiving ? 'receiving' : 'sending'} ${messageName} with data ${JSON.stringify(message)}`);
+    }
+    private static loggingCallback(prefix: string, func: (args: any) => any, messageName: string) {
+        return (args: any) => {
+            this.log(prefix, messageName, args, true);
+            func(args);
+        }
+    };
+
     public static Emit<T>(socket: Socket | SocketIOClient.Socket, message: Message<T>, args: T) {
+        this.log("Emit", message.Name, args, false);
         socket.emit(message.Message, args);
     }
 
     public static EmitCallback<T>(socket: Socket | SocketIOClient.Socket, message: Message<T>, args: T): Promise<any>;
     public static EmitCallback<T>(socket: Socket | SocketIOClient.Socket, message: Message<T>, args: T, fn: (args: any) => any): void;
     public static EmitCallback<T>(socket: Socket | SocketIOClient.Socket, message: Message<T>, args: T, fn?: (args: any) => any): void | Promise<any> {
+        this.log("Emit", message.Name, args, false);
         if (fn) {
-            socket.emit(message.Message, args, fn);
+            socket.emit(message.Message, args, this.loggingCallback('Receiving', fn, message.Name));
         } else {
-            return new Promise<any>(res => socket.emit(message.Message, args, res));
+            return new Promise<any>(res => socket.emit(message.Message, args, this.loggingCallback('Receiving', res, message.Name)));
         }
     }
 
-    public static AddServerHandler<T>(socket: Socket, message: Message<T>, handler: (args: T) => any) {
-        socket.on(message.Message, handler);
+    public static AddServerHandler<T>(socket: Socket | SocketIOClient.Socket, message: Message<T>, handler: (args: T) => any) {
+        socket.on(message.Message, this.loggingCallback('Incoming', handler, message.Name));
     }
 
     public static AddServerHandlerCallback<T>(socket: Socket, message: Message<T>, handler: (args: [T, (res: any) => any]) => any) {
-        socket.on(message.Message, (arg: T, fn: (res: any) => any) => handler([arg, fn]));
+        socket.on(message.Message, (arg: T, fn: (res: any) => any) => {
+            this.log('S receiving', message.Name, arg, true);
+            handler([arg, this.loggingCallback('S sending', fn, message.Name)])
+        });
     }
 }
 
