@@ -63,15 +63,14 @@ export namespace Documents {
     const videoProtoId = "videoProto"
     const audioProtoId = "audioProto";
 
-    export function initProtos(callback: () => void) {
-        Server.GetFields([collProtoId, textProtoId, imageProtoId], (fields) => {
+    export function initProtos(): Promise<void> {
+        return Server.GetFields([textProtoId, histoProtoId, collProtoId, imageProtoId, webProtoId, kvpProtoId]).then(fields => {
             textProto = fields[textProtoId] as Document;
             histoProto = fields[histoProtoId] as Document;
             collProto = fields[collProtoId] as Document;
             imageProto = fields[imageProtoId] as Document;
             webProto = fields[webProtoId] as Document;
             kvpProto = fields[kvpProtoId] as Document;
-            callback();
         });
     }
     function assignOptions(doc: Document, options: DocumentOptions): Document {

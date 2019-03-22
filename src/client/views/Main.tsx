@@ -23,7 +23,7 @@ import "./Main.scss";
 import { observer } from 'mobx-react';
 import { InkingControl } from './InkingControl';
 import { RouteStore } from '../../server/RouteStore';
-import { library } from '@fortawesome/fontawesome-svg-core';
+import { library, IconName } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faFont } from '@fortawesome/free-solid-svg-icons';
 import { faImage } from '@fortawesome/free-solid-svg-icons';
@@ -109,7 +109,7 @@ export class Main extends React.Component {
         library.add(faTree);
 
         this.initEventListeners();
-        Documents.initProtos(() => this.initAuthenticationRouters());
+        this.initAuthenticationRouters();
 
         this.initializeNorthstar();
     }
@@ -256,7 +256,7 @@ export class Main extends React.Component {
         let addWebNode = action(() => Documents.WebDocument(weburl, { width: 200, height: 200, title: "a sample web page" }));
         let addAudioNode = action(() => Documents.AudioDocument(audiourl, { width: 200, height: 200, title: "audio node" }))
 
-        let btns = [
+        let btns: [React.RefObject<HTMLDivElement>, IconName, string, () => Document][] = [
             [React.createRef<HTMLDivElement>(), "font", "Add Textbox", addTextNode],
             [React.createRef<HTMLDivElement>(), "image", "Add Image", addImageNode],
             [React.createRef<HTMLDivElement>(), "file-pdf", "Add PDF", addPDFNode],
@@ -277,9 +277,9 @@ export class Main extends React.Component {
             <div id="add-options-content">
                 <ul id="add-options-list">
                     {btns.map(btn =>
-                        <li key={btn[1] as string} ><div ref={btn[0] as React.RefObject<HTMLDivElement>}>
-                            <button className="round-button add-button" title={btn[2] as string} onPointerDown={setupDrag(btn[0] as React.RefObject<HTMLDivElement>, btn[3] as any)} onClick={addClick(btn[3] as any)}>
-                                <FontAwesomeIcon icon={btn[1] as any} size="sm" />
+                        <li key={btn[1]} ><div ref={btn[0]}>
+                            <button className="round-button add-button" title={btn[2]} onPointerDown={setupDrag(btn[0], btn[3])} onClick={addClick(btn[3])}>
+                                <FontAwesomeIcon icon={btn[1]} size="sm" />
                             </button>
                         </div></li>)}
                 </ul>
@@ -375,6 +375,8 @@ export class Main extends React.Component {
     }
 }
 
-CurrentUserUtils.loadCurrentUser().then(() => {
+Documents.initProtos().then(() => {
+    return CurrentUserUtils.loadCurrentUser()
+}).then(() => {
     ReactDOM.render(<Main />, document.getElementById('root'));
 });
