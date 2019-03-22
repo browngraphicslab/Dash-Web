@@ -238,6 +238,11 @@ export class CollectionSchemaView extends CollectionViewBase {
         }
     }
 
+    onWheel = (e: React.WheelEvent): void => {
+        if (this.props.active())
+            e.stopPropagation();
+    }
+
     @observable _optionsActivated: number = 0;
     @action
     OptionsMenuDown = (e: React.PointerEvent) => {
@@ -293,7 +298,7 @@ export class CollectionSchemaView extends CollectionViewBase {
         </Flyout>);
 
         return (
-            <div className="collectionSchemaView-container" onPointerDown={this.onPointerDown} ref={this._mainCont} style={{ borderWidth: `${COLLECTION_BORDER_WIDTH}px` }} >
+            <div className="collectionSchemaView-container" onPointerDown={this.onPointerDown} onWheel={this.onWheel} ref={this._mainCont} style={{ borderWidth: `${COLLECTION_BORDER_WIDTH}px` }} >
                 <div className="collectionSchemaView-dropTarget" onDrop={(e: React.DragEvent) => this.onDrop(e, {})} ref={this.createDropTarget}>
                     <Measure onResize={this.setTableDimensions}>
                         {({ measureRef }) =>
