@@ -21,7 +21,16 @@ export class Database {
             let collection = this.db.collection('documents');
             collection.updateOne({ _id: id }, { $set: value }, {
                 upsert: true
-            }, callback);
+            }, (err, res) => {
+                if (err) {
+                    console.log(err.message);
+                    console.log(err.errmsg);
+                }
+                if (res) {
+                    console.log(JSON.stringify(res.result));
+                }
+                callback()
+            });
         }
     }
 
