@@ -17,6 +17,7 @@ import { NumberField } from "../../../fields/NumberField";
 import { DocumentManager } from "../../util/DocumentManager";
 import request = require("request");
 import { ServerUtils } from "../../../server/ServerUtil";
+import { Server } from "../../Server";
 
 export interface CollectionViewProps {
     fieldKey: Key;
@@ -59,17 +60,20 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
         let email = CurrentUserUtils.email;
         if (id && email) {
             let textInfo: [string, string] = [id, email];
-            doc.GetOrCreateAsync<ListField<CursorEntry>>(KeyStore.Cursors, ListField, field => {
-                let cursors = field.Data;
-                if (cursors.length > 0 && (ind = cursors.findIndex(entry => entry.Data[0][0] === id)) > -1) {
-                    cursors[ind].Data[1] = position;
-                } else {
-                    let entry = new TupleField<[string, string], [number, number]>([textInfo, position]);
-                    cursors.push(entry);
+            doc.GetTAsync(KeyStore.Prototype, Document).then(proto => {
+                if (!proto) {
+                    return;
                 }
+                proto.GetOrCreateAsync<ListField<CursorEntry>>(KeyStore.Cursors, ListField, action((field: ListField<CursorEntry>) => {
+                    let cursors = field.Data;
+                    if (cursors.length > 0 && (ind = cursors.findIndex(entry => entry.Data[0][0] === id)) > -1) {
+                        cursors[ind].Data[1] = position;
+                    } else {
+                        let entry = new TupleField<[string, string], [number, number]>([textInfo, position]);
+                        cursors.push(entry);
+                    }
+                }))
             })
-
-
         }
     }
 
@@ -111,6 +115,21 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
             ctor = Documents.PdfDocument;
         }
         if (type.indexOf("html") !== -1) {
+            if (path.includes('localhost')) {
+                let s = path.split('/');
+                let id = s[s.length - 1];
+                Server.GetField(id).then(field => {
+                    if (field instanceof Document) {
+                        let alias = field.CreateAlias();
+                        alias.SetNumber(KeyStore.X, options.x || 0);
+                        alias.SetNumber(KeyStore.Y, options.y || 0);
+                        alias.SetNumber(KeyStore.Width, options.width || 300);
+                        alias.SetNumber(KeyStore.Height, options.height || options.width || 300);
+                        this.props.addDocument(alias, false);
+                    }
+                })
+                return undefined;
+            }
             ctor = Documents.WebDocument;
             options = { height: options.width, ...options, };
         }
@@ -130,7 +149,7 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
         e.stopPropagation()
         e.preventDefault()
 
-        if (html && html.indexOf("<img") != 0) {
+        if (html && html.indexOf("<img") != 0 && !html.startsWith("<a")) {
             console.log("not good");
             let htmlDoc = Documents.HtmlDocument(html, { ...options, width: 300, height: 300 });
             htmlDoc.SetText(KeyStore.DocumentText, text);

@@ -174,6 +174,7 @@ declare class ListField<T> extends BasicField<T[]>{
     Copy(): Field;
 }
 declare class Key extends Field {
+    constructor(name:string);
     Name: string;
     TrySetValue(value: any): boolean;
     GetValue(): any;
@@ -220,3 +221,5 @@ declare const KeyStore: {
 
 // @ts-ignore
 declare const console: any;
+
+declare const Documents: any;

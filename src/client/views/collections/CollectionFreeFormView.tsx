@@ -83,6 +83,10 @@ export class CollectionFreeFormView extends CollectionViewBase {
             const [x, y] = this.getTransform().transformPoint(screenX, screenY);
             de.data.droppedDocument.SetNumber(KeyStore.X, x);
             de.data.droppedDocument.SetNumber(KeyStore.Y, y);
+            if (!de.data.droppedDocument.GetNumber(KeyStore.Width, 0)) {
+                de.data.droppedDocument.SetNumber(KeyStore.Width, 300);
+                de.data.droppedDocument.SetNumber(KeyStore.Height, 300);
+            }
             this.bringToFront(de.data.droppedDocument);
         }
     }
@@ -259,6 +263,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
         const lvalue = this.props.Document.GetT<ListField<Document>>(this.props.fieldKey, ListField);
         if (lvalue && lvalue != FieldWaiting) {
             return lvalue.Data.map(doc => {
+                if (!doc) return null;
                 var page = doc.GetNumber(KeyStore.Page, 0);
                 return (page != curPage && page != 0) ? (null) :
                     (<CollectionFreeFormDocumentView key={doc.Id} {...this.getDocumentViewProps(doc)} />);

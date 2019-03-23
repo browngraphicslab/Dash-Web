@@ -1,6 +1,6 @@
 import { AudioField } from "../../fields/AudioField";
 import { Document } from "../../fields/Document";
-import { Field } from "../../fields/Field";
+import { Field, FieldWaiting } from "../../fields/Field";
 import { HtmlField } from "../../fields/HtmlField";
 import { ImageField } from "../../fields/ImageField";
 import { InkField, StrokeData } from "../../fields/InkField";
@@ -23,6 +23,7 @@ import { PDFBox } from "../views/nodes/PDFBox";
 import { VideoBox } from "../views/nodes/VideoBox";
 import { WebBox } from "../views/nodes/WebBox";
 import { HistogramBox } from "../views/nodes/HistogramBox";
+import { FieldView } from "../views/nodes/FieldView";
 
 export interface DocumentOptions {
     x?: number;
@@ -112,7 +113,7 @@ export namespace Documents {
     function GetImagePrototype(): Document {
         if (!imageProto) {
             imageProto = setupPrototypeOptions(imageProtoId, "IMAGE_PROTO", CollectionView.LayoutString("AnnotationsKey"),
-                { x: 0, y: 0, nativeWidth: 300, width: 300, layoutKeys: [KeyStore.Data, KeyStore.Annotations] });
+                { x: 0, y: 0, nativeWidth: 300, width: 300, layoutKeys: [KeyStore.Data, KeyStore.Annotations, KeyStore.Caption] });
             imageProto.SetText(KeyStore.BackgroundLayout, ImageBox.LayoutString());
         }
         return imageProto;
@@ -155,7 +156,7 @@ export namespace Documents {
     function GetVideoPrototype(): Document {
         if (!videoProto) {
             videoProto = setupPrototypeOptions(videoProtoId, "VIDEO_PROTO", CollectionVideoView.LayoutString("AnnotationsKey"),
-                { x: 0, y: 0, nativeWidth: 600, width: 300, layoutKeys: [KeyStore.Data, KeyStore.Annotations] });
+                { x: 0, y: 0, nativeWidth: 600, width: 300, layoutKeys: [KeyStore.Data, KeyStore.Annotations, KeyStore.Caption] });
             videoProto.SetNumber(KeyStore.CurPage, 0);
             videoProto.SetText(KeyStore.BackgroundLayout, VideoBox.LayoutString());
         }
@@ -218,6 +219,14 @@ export namespace Documents {
         return assignToDelegate(SetInstanceOptions(GetCollectionPrototype(), { ...options, viewType: CollectionViewType.Docking }, [config, TextField], id), options)
     }
 
+    export function CaptionDocument(doc: Document) {
+        const captionDoc = doc.CreateAlias();
+        captionDoc.SetText(KeyStore.OverlayLayout, FixedCaption());
+        captionDoc.SetNumber(KeyStore.Width, doc.GetNumber(KeyStore.Width, 0));
+        captionDoc.SetNumber(KeyStore.Height, doc.GetNumber(KeyStore.Height, 0));
+        return captionDoc;
+    }
+
     // example of custom display string for an image that shows a caption.
     function EmbeddedCaption() {
         return `<div style="height:100%">
@@ -228,7 +237,7 @@ export namespace Documents {
             + FormattedTextBox.LayoutString("CaptionKey") +
             `</div> 
         </div>` };
-    function FixedCaption(fieldName: string = "Caption") {
+    export function FixedCaption(fieldName: string = "Caption") {
         return `<div style="position:absolute; height:30px; bottom:0; width:100%">
             <div style="position:absolute; width:100%; height:100%; text-align:center;bottom:0;">`
             + FormattedTextBox.LayoutString(fieldName + "Key") +

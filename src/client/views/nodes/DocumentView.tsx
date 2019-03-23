@@ -18,6 +18,7 @@ import { ContextMenu } from "../ContextMenu";
 import { DocumentContentsView } from "./DocumentContentsView";
 import "./DocumentView.scss";
 import React = require("react");
+import { ServerUtils } from "../../../server/ServerUtil";
 
 
 export interface DocumentViewProps {
@@ -283,6 +284,12 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         ContextMenu.Instance.addItem({ description: "Fields", event: this.fieldsClicked })
         ContextMenu.Instance.addItem({ description: "Center", event: () => this.props.focus(this.props.Document) })
         ContextMenu.Instance.addItem({ description: "Open Right", event: () => CollectionDockingView.Instance.AddRightSplit(this.props.Document) })
+        ContextMenu.Instance.addItem({
+            description: "Copy URL",
+            event: () => {
+                Utils.CopyText(ServerUtils.prepend("/doc/" + this.props.Document.Id));
+            }
+        });
         ContextMenu.Instance.addItem({
             description: "Copy ID",
             event: () => {

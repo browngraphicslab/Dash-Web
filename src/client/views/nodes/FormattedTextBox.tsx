@@ -167,6 +167,8 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
             onKeyPress={this.onKeyPress}
             onPointerDown={this.onPointerDown}
             onContextMenu={this.specificContextMenu}
+            // tfs: do we need this event handler
+            onKeyDown={this.onKeyPress}
             onWheel={this.onPointerWheel}
             ref={this._ref} />)
     }
