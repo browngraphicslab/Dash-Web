@@ -37,7 +37,7 @@ export class CollectionView extends React.Component<CollectionViewProps> {
     @observable
     public SelectedDocs: FieldId[] = [];
     public active: () => boolean = () => CollectionView.Active(this);
-    addDocument = (doc: Document, allowDuplicates: boolean): void => { CollectionView.AddDocument(this.props, doc, allowDuplicates); }
+    addDocument = (doc: Document, allowDuplicates: boolean): boolean => { return CollectionView.AddDocument(this.props, doc, allowDuplicates); }
     removeDocument = (doc: Document): boolean => { return CollectionView.RemoveDocument(this.props, doc); }
     get subView() { return CollectionView.SubView(this); }
 
@@ -48,17 +48,45 @@ export class CollectionView extends React.Component<CollectionViewProps> {
         return isSelected || childSelected || topMost;
     }
 
+    static createsCycle(documentToAdd: Document, containerDocument: Document): boolean {
+        let data = documentToAdd.GetList<Document>(KeyStore.Data, []);
+        for (let i = 0; i < data.length; i++) {
+            if (CollectionView.createsCycle(data[i], containerDocument))
+                return true;
+        }
+        let annots = documentToAdd.GetList<Document>(KeyStore.Annotations, []);
+        for (let i = 0; i < annots.length; i++) {
+            if (CollectionView.createsCycle(annots[i], containerDocument))
+                return true;
+        }
+        for (let containerProto: any = containerDocument; containerProto && containerProto != FieldWaiting; containerProto = containerProto.GetPrototype()) {
+            if (containerProto.Id == documentToAdd.Id)
+                return true;
+        }
+        return false;
+    }
+
     @action
-    public static AddDocument(props: CollectionViewProps, doc: Document, allowDuplicates: boolean) {
+    public static AddDocument(props: CollectionViewProps, doc: Document, allowDuplicates: boolean): boolean {
         doc.SetNumber(KeyStore.Page, props.Document.GetNumber(KeyStore.CurPage, -1));
         if (props.Document.Get(props.fieldKey) instanceof Field) {
             //TODO This won't create the field if it doesn't already exist
             const value = props.Document.GetData(props.fieldKey, ListField, new Array<Document>())
-            if (!value.some(v => v.Id == doc.Id) || allowDuplicates)
-                value.push(doc);
+            if (!CollectionView.createsCycle(doc, props.Document)) {
+                if (!value.some(v => v.Id == doc.Id) || allowDuplicates)
+                    value.push(doc);
+            }
+            else
+                return false;
         } else {
-            props.Document.SetOnPrototype(props.fieldKey, new ListField([doc]));
+            let proto = props.Document.GetPrototype();
+            if (!proto || proto == FieldWaiting || !CollectionView.createsCycle(proto, doc)) {
+                props.Document.SetOnPrototype(props.fieldKey, new ListField([doc]));
+            }
+            else
+                return false;
         }
+        return true;
     }
 
     @action

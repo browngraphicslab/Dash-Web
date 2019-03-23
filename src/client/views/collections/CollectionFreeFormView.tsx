@@ -76,19 +76,22 @@ export class CollectionFreeFormView extends CollectionViewBase {
     @undoBatch
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
-        super.drop(e, de);
-        if (de.data instanceof DragManager.DocumentDragData) {
-            let screenX = de.x - (de.data.xOffset as number || 0);
-            let screenY = de.y - (de.data.yOffset as number || 0);
-            const [x, y] = this.getTransform().transformPoint(screenX, screenY);
-            de.data.droppedDocument.SetNumber(KeyStore.X, x);
-            de.data.droppedDocument.SetNumber(KeyStore.Y, y);
-            if (!de.data.droppedDocument.GetNumber(KeyStore.Width, 0)) {
-                de.data.droppedDocument.SetNumber(KeyStore.Width, 300);
-                de.data.droppedDocument.SetNumber(KeyStore.Height, 300);
+        if (super.drop(e, de)) {
+            if (de.data instanceof DragManager.DocumentDragData) {
+                let screenX = de.x - (de.data.xOffset as number || 0);
+                let screenY = de.y - (de.data.yOffset as number || 0);
+                const [x, y] = this.getTransform().transformPoint(screenX, screenY);
+                de.data.droppedDocument.SetNumber(KeyStore.X, x);
+                de.data.droppedDocument.SetNumber(KeyStore.Y, y);
+                if (!de.data.droppedDocument.GetNumber(KeyStore.Width, 0)) {
+                    de.data.droppedDocument.SetNumber(KeyStore.Width, 300);
+                    de.data.droppedDocument.SetNumber(KeyStore.Height, 300);
+                }
+                this.bringToFront(de.data.droppedDocument);
             }
-            this.bringToFront(de.data.droppedDocument);
+            return true;
         }
+        return false;
     }
 
 

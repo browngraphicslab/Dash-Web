@@ -24,7 +24,7 @@ import { ServerUtils } from "../../../server/ServerUtil";
 export interface DocumentViewProps {
     ContainingCollectionView: Opt<CollectionView>;
     Document: Document;
-    AddDocument?: (doc: Document, allowDuplicates: boolean) => void;
+    AddDocument?: (doc: Document, allowDuplicates: boolean) => boolean;
     RemoveDocument?: (doc: Document) => boolean;
     ScreenToLocalTransform: () => Transform;
     isTopMost: boolean;
