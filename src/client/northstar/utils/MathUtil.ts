@@ -1,13 +1,17 @@
 
 
 export class PIXIPoint {
-    public x: number;
-    public y: number;
+    public get x() { return this.coords[0]; }
+    public get y() { return this.coords[1]; }
+    public set x(value: number) { this.coords[0] = value; }
+    public set y(value: number) { this.coords[1] = value; }
+    public coords: number[] = [0, 0];
     constructor(x: number, y: number) {
-        this.x = x;
-        this.y = y;
+        this.coords[0] = x;
+        this.coords[1] = y;
     }
 }
+
 export class PIXIRectangle {
     public x: number;
     public y: number;
@@ -17,6 +21,7 @@ export class PIXIRectangle {
     public get right() { return this.x + this.width; }
     public get top() { return this.y }
     public get bottom() { return this.top + this.height }
+    public static get EMPTY() { return new PIXIRectangle(0, 0, -1, -1); }
     constructor(x: number, y: number, width: number, height: number) {
         this.x = x;
         this.y = y;

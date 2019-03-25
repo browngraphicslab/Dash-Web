@@ -1,4 +1,4 @@
-import { reaction, computed, action } from "mobx";
+import { reaction, computed, action, observable } from "mobx";
 import { Attribute, DataType, QuantitativeBinRange, HistogramOperationParameters, AggregateParameters, AggregateFunction, AverageAggregateParameters } from "../model/idea/idea";
 import { ArrayUtil } from "../utils/ArrayUtil";
 import { CalculatedAttributeManager } from "../core/attribute/CalculatedAttributeModel";
@@ -7,12 +7,15 @@ import { SETTINGS_X_BINS, SETTINGS_Y_BINS, SETTINGS_SAMPLE_SIZE } from "../model
 import { AttributeTransformationModel } from "../core/attribute/AttributeTransformationModel";
 import { BaseOperation } from "./BaseOperation";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
+import { FilterModel } from "../core/filter/FilterModel";
 
 
 export class HistogramOperation extends BaseOperation {
-    public X: AttributeTransformationModel;
-    public Y: AttributeTransformationModel;
-    public V: AttributeTransformationModel;
+    @observable public Normalization: number = -1;
+    @observable public FilterModels: FilterModel[] = [];
+    @observable public X: AttributeTransformationModel;
+    @observable public Y: AttributeTransformationModel;
+    @observable public V: AttributeTransformationModel;
     constructor(x: AttributeTransformationModel, y: AttributeTransformationModel, v: AttributeTransformationModel) {
         super();
         this.X = x;

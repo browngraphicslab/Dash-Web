@@ -1,15 +1,14 @@
 import * as ReactDOM from 'react-dom';
-import React = require('react');
-import "./ImageUpload.scss"
+import * as rp from 'request-promise';
+import { Documents } from '../client/documents/Documents';
+import { Server } from '../client/Server';
 import { Document } from '../fields/Document';
 import { KeyStore } from '../fields/KeyStore';
-import { Server } from '../client/Server';
-import { Documents } from '../client/documents/Documents';
 import { ListField } from '../fields/ListField';
-import { ImageField } from '../fields/ImageField';
-import * as rp from 'request-promise'
-import { ServerUtils } from '../server/ServerUtil';
 import { RouteStore } from '../server/RouteStore';
+import { ServerUtils } from '../server/ServerUtil';
+import "./ImageUpload.scss";
+import React = require('react');
 
 
 
