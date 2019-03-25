@@ -93,8 +93,8 @@ export class HistogramBox extends React.Component<FieldViewProps> {
         return <div key={DashUtils.GenerateGuid()} style={{ position: "absolute", width: `${width}px`, height: `${height}px`, background: "lightgray", transform: `translate(${xFrom}px, ${yFrom}px)` }} />;
     }
 
-    drawRect(r: PIXIRectangle, color: number) {
-        return <div key={DashUtils.GenerateGuid()} style={{ position: "absolute", transform: `translate(${r.x}px,${r.y}px)`, width: `${r.width - 1}`, height: `${r.height}`, background: LABColor.RGBtoHexString(color) }} />
+    drawRect(r: PIXIRectangle, color: number, tapHandler: () => void) {
+        return <div key={DashUtils.GenerateGuid()} onPointerDown={tapHandler} style={{ position: "absolute", transform: `translate(${r.x}px,${r.y}px)`, width: `${r.width - 1}`, height: `${r.height}`, background: LABColor.RGBtoHexString(color) }} />
     }
 
     private renderGridLinesAndLabels(axis: number) {
@@ -161,8 +161,8 @@ export class HistogramBox extends React.Component<FieldViewProps> {
                 }
 
                 drawPrims.BinPrimitives.filter(bp => bp.DataValue && bp.BrushIndex !== allBrushIndex).map(binPrimitive => {
-                    prims.push(this.drawRect(binPrimitive.Rect, binPrimitive.Color));
-                    prims.push(this.drawRect(binPrimitive.MarginRect, StyleConstants.MARGIN_BARS_COLOR));
+                    prims.push(this.drawRect(binPrimitive.Rect, binPrimitive.Color, () => { console.log("FM = " + drawPrims.FilterModel.ToPythonString()) }));
+                    prims.push(this.drawRect(binPrimitive.MarginRect, StyleConstants.MARGIN_BARS_COLOR, () => { console.log("FM = " + drawPrims.FilterModel.ToPythonString()) }));
                 });
             }
         }
