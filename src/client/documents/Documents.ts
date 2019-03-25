@@ -119,9 +119,13 @@ export namespace Documents {
         return imageProto;
     }
     function GetHistogramPrototype(): Document {
-        return histoProto ? histoProto :
-            histoProto = setupPrototypeOptions(textProtoId, "HISTO PROTOTYPE", HistogramBox.LayoutString(),
-                { x: 0, y: 0, width: 300, height: 300, layoutKeys: [KeyStore.Data] });
+        if (!histoProto) {
+
+            histoProto = setupPrototypeOptions(histoProtoId, "HISTO PROTO", CollectionView.LayoutString("AnnotationsKey"),
+                { x: 0, y: 0, width: 300, height: 300, layoutKeys: [KeyStore.Data, KeyStore.Annotations, KeyStore.Caption] });
+            histoProto.SetText(KeyStore.BackgroundLayout, HistogramBox.LayoutString());
+        }
+        return histoProto;
     }
     function GetTextPrototype(): Document {
         return textProto ? textProto :
