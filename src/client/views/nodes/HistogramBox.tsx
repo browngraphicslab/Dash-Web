@@ -1,17 +1,19 @@
 import React = require("react")
-import { computed, observable, reaction, runInAction, action, observe } from "mobx";
+import { computed, observable, reaction, runInAction, trace } from "mobx";
 import { observer } from "mobx-react";
 import Measure from "react-measure";
 import { Dictionary } from "typescript-collections";
+import { Document } from "../../../fields/Document";
+import { Opt } from "../../../fields/Field";
+import { HistogramField } from "../../../fields/HistogramField";
+import { KeyStore } from "../../../fields/KeyStore";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { Utils as DashUtils } from '../../../Utils';
-import { ColumnAttributeModel, AttributeModel } from "../../northstar/core/attribute/AttributeModel";
-import { AttributeTransformationModel } from "../../northstar/core/attribute/AttributeTransformationModel";
 import { FilterModel } from '../../northstar/core/filter/FilterModel';
 import { NominalVisualBinRange } from "../../northstar/model/binRanges/NominalVisualBinRange";
 import { ChartType, VisualBinRange } from '../../northstar/model/binRanges/VisualBinRange';
 import { VisualBinRangeHelper } from "../../northstar/model/binRanges/VisualBinRangeHelper";
-import { AggregateBinRange, AggregateFunction, Bin, Brush, DoubleValueAggregateResult, HistogramResult, MarginAggregateParameters, MarginAggregateResult, Attribute, BinRange } from "../../northstar/model/idea/idea";
+import { AggregateBinRange, AggregateFunction, Bin, BinRange, Brush, DoubleValueAggregateResult, HistogramResult, MarginAggregateParameters, MarginAggregateResult } from "../../northstar/model/idea/idea";
 import { ModelHelpers } from "../../northstar/model/ModelHelpers";
 import { HistogramOperation } from "../../northstar/operations/HistogramOperation";
 import { ArrayUtil } from "../../northstar/utils/ArrayUtil";
@@ -21,11 +23,6 @@ import { SizeConverter } from "../../northstar/utils/SizeConverter";
 import { StyleConstants } from "../../northstar/utils/StyleContants";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./HistogramBox.scss";
-import { KeyStore } from "../../../fields/KeyStore";
-import { ListField } from "../../../fields/ListField";
-import { Document } from "../../../fields/Document"
-import { HistogramField } from "../../../fields/HistogramField";
-import { FieldWaiting, Opt } from "../../../fields/Field";
 
 @observer
 export class HistogramBox extends React.Component<FieldViewProps> {
@@ -92,12 +89,13 @@ export class HistogramBox extends React.Component<FieldViewProps> {
             if (histoOp) {
                 runInAction(() => this.HistoOp = histoOp.Data);
                 this.HistoOp!.Update();
-                reaction(() => this.createOperationParamsCache, () => this.HistoOp!.Update());
+                reaction(
+                    () => this.createOperationParamsCache,
+                    () => this.HistoOp!.Update();
                 reaction(() => this.props.doc.GetList(KeyStore.LinkedFromDocs, []),
-                    () => {
-                        let linkFrom: Document[] = this.props.doc.GetData(KeyStore.LinkedFromDocs, ListField, []);
+                    (docs: Document[]) => {
                         this.HistoOp!.Links.length = 0;
-                        linkFrom.map(l => this.HistoOp!.Links.push(l.GetData(KeyStore.Data, HistogramField, HistogramOperation.Empty)));
+                        this.HistoOp!.Links.push(...docs);
                     },
                     { fireImmediately: true }
                 );
@@ -172,7 +170,6 @@ export class HistogramBox extends React.Component<FieldViewProps> {
 
                 let filterModel = ModelHelpers.GetBinFilterModel(this.HistoOp.Result.bins![key], allBrushIndex, this.HistoOp.Result, this.HistoOp.X, this.HistoOp.Y);
 
-
                 this.HitTargets.setValue(drawPrims.HitGeom, filterModel);
 
                 if (ArrayUtil.Contains(this.HistoOp.FilterModels, filterModel)) {
@@ -180,8 +177,13 @@ export class HistogramBox extends React.Component<FieldViewProps> {
                 }
 
                 drawPrims.BinPrimitives.filter(bp => bp.DataValue && bp.BrushIndex !== allBrushIndex).map(binPrimitive => {
-                    prims.push(this.drawRect(binPrimitive.Rect, binPrimitive.Color, () => { console.log("FM = " + filterModel.ToPythonString()) }));
-                    prims.push(this.drawRect(binPrimitive.MarginRect, StyleConstants.MARGIN_BARS_COLOR, () => { console.log("FM = " + filterModel.ToPythonString()) }));
+                    let toggleFilter = () => {
+                        if ([filterModel].filter(h => ArrayUtil.Contains(this.HistoOp!.FilterModels, h)).length > 0)
+                            this.HistoOp!.RemoveFilterModels([filterModel]);
+                        else this.HistoOp!.AddFilterModels([filterModel]);
+                    }
+                    prims.push(this.drawRect(binPrimitive.Rect, binPrimitive.Color, () => runInAction(toggleFilter)));
+                    prims.push(this.drawRect(binPrimitive.MarginRect, StyleConstants.MARGIN_BARS_COLOR, () => runInAction(toggleFilter)));
                 });
             }
         }
@@ -189,6 +191,7 @@ export class HistogramBox extends React.Component<FieldViewProps> {
     }
 
     render() {
+        trace();
         if (!this.binPrimitives || !this.VisualBinRanges.length) {
             return (null);
         }

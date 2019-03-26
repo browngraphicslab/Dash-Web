@@ -25,6 +25,8 @@ export abstract class BaseOperation {
     @computed
     public get FilterString(): string {
 
+        // let filterModels: FilterModel[] = [];
+        // return FilterModel.GetFilterModelsRecursive(this, new Set<GraphNode<BaseOperationViewModel, FilterLinkViewModel>>(), filterModels, true)
         // if (this.OverridingFilters.length > 0) {
         //     return "(" + this.OverridingFilters.filter(fm => fm != null).map(fm => fm.ToPythonString()).join(" || ") + ")";
         // }

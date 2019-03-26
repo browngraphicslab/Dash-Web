@@ -1,10 +1,10 @@
 import { FilterOperand } from '../filter/FilterOperand'
 import { IEquatable } from '../../utils/IEquatable'
-import { IBaseFilterProvider } from './IBaseFilterProvider';
+import { Document } from "../../../../fields/Document";
 
 export interface IBaseFilterConsumer extends IEquatable {
     FilterOperand: FilterOperand;
-    Links: IBaseFilterProvider[];
+    Links: Document[];
 }
 
 export function instanceOfIBaseFilterConsumer(object: any): object is IBaseFilterConsumer {

@@ -1,23 +1,24 @@
-import { reaction, computed, action, observable } from "mobx";
-import { Attribute, DataType, QuantitativeBinRange, HistogramOperationParameters, AggregateParameters, AggregateFunction, AverageAggregateParameters } from "../model/idea/idea";
-import { ArrayUtil } from "../utils/ArrayUtil";
-import { CalculatedAttributeManager } from "../core/attribute/CalculatedAttributeModel";
-import { ModelHelpers } from "../model/ModelHelpers";
-import { SETTINGS_X_BINS, SETTINGS_Y_BINS, SETTINGS_SAMPLE_SIZE } from "../model/binRanges/VisualBinRangeHelper";
-import { AttributeTransformationModel } from "../core/attribute/AttributeTransformationModel";
-import { BaseOperation } from "./BaseOperation";
+import { action, computed, observable } from "mobx";
+import { Document } from "../../../fields/Document";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
-import { FilterModel } from "../core/filter/FilterModel";
+import { ColumnAttributeModel } from "../core/attribute/AttributeModel";
+import { AttributeTransformationModel } from "../core/attribute/AttributeTransformationModel";
+import { CalculatedAttributeManager } from "../core/attribute/CalculatedAttributeModel";
 import { BrushLinkModel } from "../core/brusher/BrushLinkModel";
-import { IBaseFilterConsumer } from "../core/filter/IBaseFilterConsumer";
+import { FilterModel } from "../core/filter/FilterModel";
 import { FilterOperand } from "../core/filter/FilterOperand";
+import { IBaseFilterConsumer } from "../core/filter/IBaseFilterConsumer";
 import { IBaseFilterProvider } from "../core/filter/IBaseFilterProvider";
-import { AttributeModel, ColumnAttributeModel } from "../core/attribute/AttributeModel";
+import { SETTINGS_SAMPLE_SIZE, SETTINGS_X_BINS, SETTINGS_Y_BINS } from "../model/binRanges/VisualBinRangeHelper";
+import { AggregateFunction, AggregateParameters, Attribute, AverageAggregateParameters, DataType, HistogramOperationParameters, QuantitativeBinRange } from "../model/idea/idea";
+import { ModelHelpers } from "../model/ModelHelpers";
+import { ArrayUtil } from "../utils/ArrayUtil";
+import { BaseOperation } from "./BaseOperation";
 
 
 export class HistogramOperation extends BaseOperation implements IBaseFilterConsumer, IBaseFilterProvider {
     @observable public FilterOperand: FilterOperand = FilterOperand.AND;
-    @observable public Links: IBaseFilterProvider[] = [];
+    @observable public Links: Document[] = [];
     @observable public BrushColors: number[] = [];
     @observable public Normalization: number = -1;
     @observable public FilterModels: FilterModel[] = [];
@@ -26,6 +27,15 @@ export class HistogramOperation extends BaseOperation implements IBaseFilterCons
     @observable public V: AttributeTransformationModel;
     @observable public BrusherModels: BrushLinkModel<HistogramOperation>[] = [];
     @observable public BrushableModels: BrushLinkModel<HistogramOperation>[] = [];
+
+    @action
+    public AddFilterModels(filterModels: FilterModel[]): void {
+        filterModels.filter(f => f !== null).forEach(fm => this.FilterModels.push(fm));
+    }
+    @action
+    public RemoveFilterModels(filterModels: FilterModel[]): void {
+        ArrayUtil.RemoveMany(this.FilterModels, filterModels);
+    }
 
     public static Empty = new HistogramOperation(new AttributeTransformationModel(new ColumnAttributeModel(new Attribute())), new AttributeTransformationModel(new ColumnAttributeModel(new Attribute())), new AttributeTransformationModel(new ColumnAttributeModel(new Attribute())));
 
@@ -39,6 +49,19 @@ export class HistogramOperation extends BaseOperation implements IBaseFilterCons
         this.Y = y;
         this.V = v;
         this.Normalization = normalized ? normalized : -1;
+    }
+
+    @computed
+    public get FilterString(): string {
+        let filterModels: FilterModel[] = [];
+        let fstring = FilterModel.GetFilterModelsRecursive(this, new Set<IBaseFilterProvider>(), filterModels, true)
+        console.log("Filter string " + this.X.AttributeModel.DisplayName + " = " + fstring);
+        return fstring;
+    }
+    @computed
+    public get OutputFilterString(): string {
+        let filterModels: FilterModel[] = [];
+        return FilterModel.GetFilterModelsRecursive(this, new Set<IBaseFilterProvider>(), filterModels, false)
     }
 
     @computed.struct
@@ -59,11 +82,11 @@ export class HistogramOperation extends BaseOperation implements IBaseFilterCons
     }
 
 
-    // @computed.struct
-    // public get SelectionString() {
-    //     let filterModels = new Array<FilterModel>();
-    //     return FilterModel.GetFilterModelsRecursive(this, new Set<GraphNode<BaseOperationViewModel, FilterLinkViewModel>>(), filterModels, false);
-    // }
+    @computed.struct
+    public get SelectionString() {
+        let filterModels = new Array<FilterModel>();
+        return FilterModel.GetFilterModelsRecursive(this, new Set<IBaseFilterProvider>(), filterModels, false);
+    }
 
     GetAggregateParameters(histoX: AttributeTransformationModel, histoY: AttributeTransformationModel, histoValue: AttributeTransformationModel) {
         let allAttributes = new Array<AttributeTransformationModel>(histoX, histoY, histoValue);
