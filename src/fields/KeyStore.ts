@@ -36,7 +36,9 @@ export namespace KeyStore {
     export const LinkDescription = new Key("LinkDescription");
     export const LinkTags = new Key("LinkTag");
     export const Thumbnail = new Key("Thumbnail");
+    export const ThumbnailPage = new Key("ThumbnailPage");
     export const CurPage = new Key("CurPage");
+    export const AnnotationOn = new Key("AnnotationOn");
     export const NumPages = new Key("NumPages");
     export const Ink = new Key("Ink");
     export const Cursors = new Key("Cursors");

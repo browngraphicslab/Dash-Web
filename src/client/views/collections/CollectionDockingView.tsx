@@ -191,7 +191,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     @action
     onPointerDown = (e: React.PointerEvent): void => {
         var className = (e.target as any).className;
-        if ((className == "lm_title" || className == "lm_tab lm_active") && e.ctrlKey) {
+        if ((className == "lm_title" || className == "lm_tab lm_active") && (e.ctrlKey || e.altKey)) {
             e.stopPropagation();
             e.preventDefault();
             let docid = (e.target as any).DashDocId;

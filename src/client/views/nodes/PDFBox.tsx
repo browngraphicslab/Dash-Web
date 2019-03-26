@@ -1,5 +1,5 @@
 import * as htmlToImage from "html-to-image";
-import { action, computed, observable, reaction, IReactionDisposer, trace } from 'mobx';
+import { action, computed, observable, reaction, IReactionDisposer, trace, keys } from 'mobx';
 import { observer } from "mobx-react";
 import 'react-image-lightbox/style.css';
 import Measure from "react-measure";
@@ -18,6 +18,7 @@ import "./PDFBox.scss";
 import { Sticky } from './Sticky'; //you should look at sticky and annotation, because they are used here
 import React = require("react")
 import { RouteStore } from "../../../server/RouteStore";
+import { NumberField } from "../../../fields/NumberField";
 
 /** ALSO LOOK AT: Annotation.tsx, Sticky.tsx
  * This method renders PDF and puts all kinds of functionalities such as annotation, highlighting, 
@@ -60,7 +61,6 @@ export class PDFBox extends React.Component<FieldViewProps> {
     //very useful for keeping track of X and y position throughout the PDF Canvas
     private initX: number = 0;
     private initY: number = 0;
-    private initPage: boolean = false;
 
     //checks if tool is on
     private _toolOn: boolean = false; //checks if tool is on
@@ -88,17 +88,15 @@ export class PDFBox extends React.Component<FieldViewProps> {
     @observable private _loaded: boolean = false;
 
     @computed private get curPage() { return this.props.doc.GetNumber(KeyStore.CurPage, -1); }
+    @computed private get thumbnailPage() { return this.props.doc.GetNumber(KeyStore.ThumbnailPage, -1); }
 
     componentDidMount() {
         this._reactionDisposer = reaction(
-            () => this.curPage,
+            () => [this.curPage, this.thumbnailPage],
             () => {
-                if (this.curPage && this.initPage) {
+                if (this.curPage > 0 && this.thumbnailPage > 0 && this.curPage != this.thumbnailPage) {
                     this.saveThumbnail();
                     this._interactive = true;
-                } else {
-                    if (this.curPage > 0)
-                        this.initPage = true;
                 }
             },
             { fireImmediately: true });
@@ -384,6 +382,7 @@ export class PDFBox extends React.Component<FieldViewProps> {
                 { width: me.props.doc.GetNumber(KeyStore.NativeWidth, 0), height: me.props.doc.GetNumber(KeyStore.NativeHeight, 0), quality: 0.5 })
                 .then(function (dataUrl: string) {
                     me.props.doc.SetData(KeyStore.Thumbnail, new URL(dataUrl), ImageField);
+                    me.props.doc.SetNumber(KeyStore.ThumbnailPage, me.props.doc.GetNumber(KeyStore.CurPage, -1));
                 })
                 .catch(function (error: any) {
                     console.error('oops, something went wrong!', error);
@@ -473,10 +472,10 @@ export class PDFBox extends React.Component<FieldViewProps> {
 
     @computed
     get imageProxyRenderer() {
-        let field = this.props.doc.Get(KeyStore.Thumbnail);
-        if (field) {
-            let path = field == FieldWaiting ? "https://image.flaticon.com/icons/svg/66/66163.svg" :
-                field instanceof ImageField ? field.Data.href : "http://cs.brown.edu/people/bcz/prairie.jpg";
+        let thumbField = this.props.doc.Get(KeyStore.Thumbnail);
+        if (thumbField) {
+            let path = thumbField == FieldWaiting || this.thumbnailPage != this.curPage ? "https://image.flaticon.com/icons/svg/66/66163.svg" :
+                thumbField instanceof ImageField ? thumbField.Data.href : "http://cs.brown.edu/people/bcz/prairie.jpg";
             return <img src={path} width="100%" />;
         }
         return (null);
