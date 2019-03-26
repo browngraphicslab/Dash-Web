@@ -55,7 +55,6 @@ export class HistogramOperation extends BaseOperation implements IBaseFilterCons
     public get FilterString(): string {
         let filterModels: FilterModel[] = [];
         let fstring = FilterModel.GetFilterModelsRecursive(this, new Set<IBaseFilterProvider>(), filterModels, true)
-        console.log("Filter string " + this.X.AttributeModel.DisplayName + " = " + fstring);
         return fstring;
     }
     @computed

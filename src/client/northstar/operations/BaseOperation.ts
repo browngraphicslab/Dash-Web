@@ -61,7 +61,8 @@ export abstract class BaseOperation {
             }
 
             let operationParameters = this.CreateOperationParameters();
-            this.Result = undefined;
+            if (this.Result)
+                this.Result.progress = 0; // bcz: used to set Result to undefined, but that causes the display to blink
             this.Error = "";
             let salt = Math.random().toString();
             this.RequestSalt = salt;
