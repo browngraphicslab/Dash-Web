@@ -64,10 +64,10 @@ export class ModelHelpers {
             if (aggParams) {
                 aggregateParameters.push(aggParams);
 
-                var margin = new MarginAggregateParameters();
+                var margin = new MarginAggregateParameters()
+                margin.aggregateFunction = agg.AggregateFunction;
                 margin.attributeParameters = ModelHelpers.GetAttributeParameters(agg.AttributeModel);
                 margin.distinctAttributeParameters = CurrentUserUtils.ActiveSchema!.distinctAttributeParameters;
-                margin.aggregateFunction = agg.AggregateFunction;
                 aggregateParameters.push(margin);
             }
         });

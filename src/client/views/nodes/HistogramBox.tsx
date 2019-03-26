@@ -154,15 +154,18 @@ export class HistogramBox extends React.Component<FieldViewProps> {
             if (this.HistoOp.Result.bins.hasOwnProperty(key)) {
                 let drawPrims = new HistogramBinPrimitiveCollection(key, this);
 
-                this.HitTargets.setValue(drawPrims.HitGeom, drawPrims.FilterModel);
+                let filterModel = ModelHelpers.GetBinFilterModel(this.HistoOp.Result.bins![key], allBrushIndex, this.HistoOp.Result, this.HistoOp.X, this.HistoOp.Y);
 
-                if (ArrayUtil.Contains(this.HistoOp.FilterModels, drawPrims.FilterModel)) {
+
+                this.HitTargets.setValue(drawPrims.HitGeom, filterModel);
+
+                if (ArrayUtil.Contains(this.HistoOp.FilterModels, filterModel)) {
                     selectedBinPrimitiveCollections.push(drawPrims);
                 }
 
                 drawPrims.BinPrimitives.filter(bp => bp.DataValue && bp.BrushIndex !== allBrushIndex).map(binPrimitive => {
-                    prims.push(this.drawRect(binPrimitive.Rect, binPrimitive.Color, () => { console.log("FM = " + drawPrims.FilterModel.ToPythonString()) }));
-                    prims.push(this.drawRect(binPrimitive.MarginRect, StyleConstants.MARGIN_BARS_COLOR, () => { console.log("FM = " + drawPrims.FilterModel.ToPythonString()) }));
+                    prims.push(this.drawRect(binPrimitive.Rect, binPrimitive.Color, () => { console.log("FM = " + filterModel.ToPythonString()) }));
+                    prims.push(this.drawRect(binPrimitive.MarginRect, StyleConstants.MARGIN_BARS_COLOR, () => { console.log("FM = " + filterModel.ToPythonString()) }));
                 });
             }
         }
@@ -205,21 +208,17 @@ export class HistogramBinPrimitive {
 export class HistogramBinPrimitiveCollection {
     private static TOLERANCE: number = 0.0001;
 
-    public BinPrimitives: Array<HistogramBinPrimitive> = new Array<HistogramBinPrimitive>();
-    public FilterModel: FilterModel;
-    public HitGeom: PIXIRectangle = PIXIRectangle.EMPTY;
     private _histoBox: HistogramBox;
     private get histoOp() { return this._histoBox.HistoOp!; }
     private get histoResult() { return this.histoOp.Result as HistogramResult; }
+    public BinPrimitives: Array<HistogramBinPrimitive> = new Array<HistogramBinPrimitive>();
+    public HitGeom: PIXIRectangle = PIXIRectangle.EMPTY;
 
     constructor(key: string, histoBox: HistogramBox) {
         this._histoBox = histoBox;
         let bin = this.histoResult.bins![key];
 
-        var allBrushIndex = ModelHelpers.AllBrushIndex(this.histoResult);
         var overlapBrushIndex = ModelHelpers.OverlapBrushIndex(this.histoResult);
-        this.FilterModel = ModelHelpers.GetBinFilterModel(bin, allBrushIndex, this.histoResult, this.histoOp.X, this.histoOp.Y);
-
         var orderedBrushes = new Array<Brush>();
         orderedBrushes.push(this.histoResult.brushes![0]);
         orderedBrushes.push(this.histoResult.brushes![overlapBrushIndex]);
@@ -257,6 +256,7 @@ export class HistogramBinPrimitiveCollection {
 
         // adjust brush rects (stacking or not)
         var sum: number = 0;
+        var allBrushIndex = ModelHelpers.AllBrushIndex(this.histoResult);
         var filteredBinPrims = this.BinPrimitives.filter(b => b.BrushIndex != allBrushIndex && b.DataValue != 0.0);
         var count: number = filteredBinPrims.length;
         filteredBinPrims.map(fbp => {
@@ -304,23 +304,19 @@ export class HistogramBinPrimitiveCollection {
         return binBrushMaxAxis;
     }
     private createHeatmapBinPrimitives(bin: Bin, brush: Brush, unNormalizedValue: number, brushFactorSum: number, normalizedValue: number, sizeConverter: SizeConverter): number {
-        var xFrom: number = 0;
-        var xTo: number = 0;
-        var yFrom: number = 0;
-        var yTo: number = 0;
-        var returnBrushFactorSum = brushFactorSum;
 
         var valueAggregateKey = ModelHelpers.CreateAggregateKey(this.histoOp.V, this.histoResult, ModelHelpers.AllBrushIndex(this.histoResult));
         var allUnNormalizedValue = ModelHelpers.GetAggregateResult(bin, valueAggregateKey) as DoubleValueAggregateResult;
 
         var tx = this._histoBox.VisualBinRanges[0].GetValueFromIndex(bin.binIndex!.indices![0]);
-        xFrom = sizeConverter.DataToScreenX(tx);
-        xTo = sizeConverter.DataToScreenX(this._histoBox.VisualBinRanges[0].AddStep(tx));
+        var xFrom = sizeConverter.DataToScreenX(tx);
+        var xTo = sizeConverter.DataToScreenX(this._histoBox.VisualBinRanges[0].AddStep(tx));
 
         var ty = this._histoBox.VisualBinRanges[1].GetValueFromIndex(bin.binIndex!.indices![1]);
-        yFrom = sizeConverter.DataToScreenY(ty);
-        yTo = sizeConverter.DataToScreenY(this._histoBox.VisualBinRanges[1].AddStep(ty));
+        var yFrom = sizeConverter.DataToScreenY(ty);
+        var yTo = sizeConverter.DataToScreenY(this._histoBox.VisualBinRanges[1].AddStep(ty));
 
+        var returnBrushFactorSum = brushFactorSum;
         if (allUnNormalizedValue.hasResult) {
             var brushFactor = (unNormalizedValue / allUnNormalizedValue.result!);
             returnBrushFactorSum += brushFactor;
@@ -344,23 +340,13 @@ export class HistogramBinPrimitiveCollection {
             (alpha + Math.pow(normalizedValue, 1.0 / 3.0) * (1.0 - alpha)));
         var dataColor = LABColor.ToColor(lerpColor);
 
-        var marginParams = new MarginAggregateParameters();
-        marginParams.aggregateFunction = this.histoOp.V.AggregateFunction;
-        var marginAggregateKey = ModelHelpers.CreateAggregateKey(this.histoOp.V, this.histoResult,
-            ModelHelpers.AllBrushIndex(this.histoResult), marginParams);
-
         this.createBinPrimitive(bin, brush, PIXIRectangle.EMPTY, 0, xFrom, xTo, yFrom, yTo, dataColor, 1, unNormalizedValue);
         return returnBrushFactorSum;
     }
 
     private createSinlgePointChartBinPrimitives(bin: Bin, brush: Brush, unNormalizedValue: number, sizeConverter: SizeConverter): void {
         var yAggregateKey = ModelHelpers.CreateAggregateKey(this.histoOp.Y, this.histoResult, brush.brushIndex!);
-        var marginParams = new MarginAggregateParameters();
-        marginParams.aggregateFunction = this.histoOp.Y.AggregateFunction;
-
         var xAggregateKey = ModelHelpers.CreateAggregateKey(this.histoOp.X, this.histoResult, brush.brushIndex!);
-        var marginParams = new MarginAggregateParameters();
-        marginParams.aggregateFunction = this.histoOp.X.AggregateFunction;
 
         var xValue = ModelHelpers.GetAggregateResult(bin, xAggregateKey) as DoubleValueAggregateResult;
         if (!xValue.hasResult)
@@ -395,8 +381,8 @@ export class HistogramBinPrimitiveCollection {
             var xFrom = sizeConverter.DataToScreenX(xValue);
             var xTo = sizeConverter.DataToScreenX(this._histoBox.VisualBinRanges[0].AddStep(xValue));
 
-            var marginResult = ModelHelpers.GetAggregateResult(bin, yMarginAggregateKey)!;
-            var yMarginAbsolute = marginResult == null ? 0 : (marginResult as MarginAggregateResult).absolutMargin!;
+            var marginResult = ModelHelpers.GetAggregateResult(bin, yMarginAggregateKey) as MarginAggregateResult;
+            var yMarginAbsolute = !marginResult ? 0 : marginResult.absolutMargin!;
             var marginRect = new PIXIRectangle(xFrom + (xTo - xFrom) / 2.0 - 1,
                 sizeConverter.DataToScreenY(yValue + yMarginAbsolute), 2,
                 sizeConverter.DataToScreenY(yValue - yMarginAbsolute) - sizeConverter.DataToScreenY(yValue + yMarginAbsolute));
@@ -423,8 +409,8 @@ export class HistogramBinPrimitiveCollection {
             var yFrom = yValue;
             var yTo = this._histoBox.VisualBinRanges[1].AddStep(yValue);
 
-            var marginResult = ModelHelpers.GetAggregateResult(bin, xMarginAggregateKey);
-            var xMarginAbsolute = sizeConverter.IsSmall || marginResult == null ? 0 : (marginResult as MarginAggregateResult).absolutMargin!;
+            var marginResult = ModelHelpers.GetAggregateResult(bin, xMarginAggregateKey) as MarginAggregateResult;
+            var xMarginAbsolute = sizeConverter.IsSmall || !marginResult ? 0 : marginResult.absolutMargin!;
 
             var marginRect = new PIXIRectangle(sizeConverter.DataToScreenX(xValue - xMarginAbsolute),
                 yTo + (yFrom - yTo) / 2.0 - 1,
@@ -469,12 +455,12 @@ export class HistogramBinPrimitiveCollection {
             baseColor = 0x00ff00;
         }
         else {
-            // if (this._histogramOperationViewModel.BrushColors.length > 0) {
-            //     baseColor = this._histogramOperationViewModel.BrushColors[brush.brushIndex! % this._histogramOperationViewModel.BrushColors.length];
-            // }
-            // else {
-            baseColor = StyleConstants.HIGHLIGHT_COLOR;
-            // }
+            if (this._histoBox.HistoOp!.BrushColors.length > 0) {
+                baseColor = this._histoBox.HistoOp!.BrushColors[brush.brushIndex! % this._histoBox.HistoOp!.BrushColors.length];
+            }
+            else {
+                baseColor = StyleConstants.HIGHLIGHT_COLOR;
+            }
         }
         return baseColor;
     }

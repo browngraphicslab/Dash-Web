@@ -8,14 +8,19 @@ import { AttributeTransformationModel } from "../core/attribute/AttributeTransfo
 import { BaseOperation } from "./BaseOperation";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { FilterModel } from "../core/filter/FilterModel";
+import { BrushLinkModel } from "../core/brusher/BrushLinkModel";
 
 
 export class HistogramOperation extends BaseOperation {
+    @observable public BrushColors: number[] = [];
     @observable public Normalization: number = -1;
     @observable public FilterModels: FilterModel[] = [];
     @observable public X: AttributeTransformationModel;
     @observable public Y: AttributeTransformationModel;
     @observable public V: AttributeTransformationModel;
+    @observable public BrusherModels: BrushLinkModel<HistogramOperation>[] = [];
+    @observable public BrushableModels: BrushLinkModel<HistogramOperation>[] = [];
+
     constructor(x: AttributeTransformationModel, y: AttributeTransformationModel, v: AttributeTransformationModel) {
         super();
         this.X = x;
@@ -106,7 +111,7 @@ export class HistogramOperation extends BaseOperation {
 
     @action
     public async Update(): Promise<void> {
-        // this.TypedViewModel.BrushColors = this.TypedViewModel.BrusherModels.map(e => e.Color);
+        this.BrushColors = this.BrusherModels.map(e => e.Color);
         return super.Update();
     }
 }
