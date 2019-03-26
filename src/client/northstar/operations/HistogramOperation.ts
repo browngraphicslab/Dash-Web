@@ -9,9 +9,15 @@ import { BaseOperation } from "./BaseOperation";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { FilterModel } from "../core/filter/FilterModel";
 import { BrushLinkModel } from "../core/brusher/BrushLinkModel";
+import { IBaseFilterConsumer } from "../core/filter/IBaseFilterConsumer";
+import { FilterOperand } from "../core/filter/FilterOperand";
+import { IBaseFilterProvider } from "../core/filter/IBaseFilterProvider";
+import { AttributeModel, ColumnAttributeModel } from "../core/attribute/AttributeModel";
 
 
-export class HistogramOperation extends BaseOperation {
+export class HistogramOperation extends BaseOperation implements IBaseFilterConsumer, IBaseFilterProvider {
+    @observable public FilterOperand: FilterOperand = FilterOperand.AND;
+    @observable public Links: IBaseFilterProvider[] = [];
     @observable public BrushColors: number[] = [];
     @observable public Normalization: number = -1;
     @observable public FilterModels: FilterModel[] = [];
@@ -21,12 +27,18 @@ export class HistogramOperation extends BaseOperation {
     @observable public BrusherModels: BrushLinkModel<HistogramOperation>[] = [];
     @observable public BrushableModels: BrushLinkModel<HistogramOperation>[] = [];
 
-    constructor(x: AttributeTransformationModel, y: AttributeTransformationModel, v: AttributeTransformationModel) {
+    public static Empty = new HistogramOperation(new AttributeTransformationModel(new ColumnAttributeModel(new Attribute())), new AttributeTransformationModel(new ColumnAttributeModel(new Attribute())), new AttributeTransformationModel(new ColumnAttributeModel(new Attribute())));
+
+    Equals(other: Object): boolean {
+        throw new Error("Method not implemented.");
+    }
+
+    constructor(x: AttributeTransformationModel, y: AttributeTransformationModel, v: AttributeTransformationModel, normalized?: number) {
         super();
         this.X = x;
         this.Y = y;
         this.V = v;
-        reaction(() => this.createOperationParamsCache, () => this.Update());
+        this.Normalization = normalized ? normalized : -1;
     }
 
     @computed.struct
@@ -47,20 +59,11 @@ export class HistogramOperation extends BaseOperation {
     }
 
 
-    @computed.struct
-    public get SelectionString() {
-        return "";
-        // let filterModels = new Array<FilterModel>();
-        // let rdg = MainManager.Instance.MainViewModel.FilterReverseDependencyGraph;
-        // let graphNode: GraphNode<BaseOperationViewModel, FilterLinkViewModel>;
-        // if (rdg.has(this.TypedViewModel)) {
-        //     graphNode = MainManager.Instance.MainViewModel.FilterReverseDependencyGraph.get(this.TypedViewModel);
-        // }
-        // else {
-        //     graphNode = new GraphNode<BaseOperationViewModel, FilterLinkViewModel>(this.TypedViewModel);
-        // }
-        // return FilterModel.GetFilterModelsRecursive(graphNode, new Set<GraphNode<BaseOperationViewModel, FilterLinkViewModel>>(), filterModels, false);
-    }
+    // @computed.struct
+    // public get SelectionString() {
+    //     let filterModels = new Array<FilterModel>();
+    //     return FilterModel.GetFilterModelsRecursive(this, new Set<GraphNode<BaseOperationViewModel, FilterLinkViewModel>>(), filterModels, false);
+    // }
 
     GetAggregateParameters(histoX: AttributeTransformationModel, histoY: AttributeTransformationModel, histoValue: AttributeTransformationModel) {
         let allAttributes = new Array<AttributeTransformationModel>(histoX, histoY, histoValue);
@@ -77,11 +80,6 @@ export class HistogramOperation extends BaseOperation {
                 globalAggregateParameters.push(avg);
             });
         return [perBinAggregateParameters, globalAggregateParameters];
-    }
-
-    @computed
-    get createOperationParamsCache() {
-        return this.CreateOperationParameters();
     }
 
     public QRange: QuantitativeBinRange | undefined;

@@ -8,6 +8,7 @@ import { KeyStore } from "../../../fields/KeyStore";
 import { ListField } from "../../../fields/ListField";
 import { Documents } from "../../../client/documents/Documents";
 import { Schema, Attribute, AttributeGroup } from "../../../client/northstar/model/idea/idea";
+import { observable, computed, action } from "mobx";
 
 export class CurrentUserUtils {
     private static curr_email: string;
@@ -16,6 +17,7 @@ export class CurrentUserUtils {
     //TODO tfs: these should be temporary...
     private static mainDocId: string | undefined;
     private static activeSchema: Schema | undefined;
+    @observable public static ActiveSchemaName: string = "";
 
     public static get email(): string {
         return this.curr_email;
@@ -36,6 +38,7 @@ export class CurrentUserUtils {
     public static set MainDocId(id: string | undefined) {
         this.mainDocId = id;
     }
+
 
     public static get ActiveSchema(): Schema | undefined {
         return this.activeSchema;

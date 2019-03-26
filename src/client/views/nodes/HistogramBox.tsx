@@ -1,17 +1,17 @@
 import React = require("react")
-import { computed, observable, reaction, runInAction } from "mobx";
+import { computed, observable, reaction, runInAction, action, observe } from "mobx";
 import { observer } from "mobx-react";
 import Measure from "react-measure";
 import { Dictionary } from "typescript-collections";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { Utils as DashUtils } from '../../../Utils';
-import { ColumnAttributeModel } from "../../northstar/core/attribute/AttributeModel";
+import { ColumnAttributeModel, AttributeModel } from "../../northstar/core/attribute/AttributeModel";
 import { AttributeTransformationModel } from "../../northstar/core/attribute/AttributeTransformationModel";
 import { FilterModel } from '../../northstar/core/filter/FilterModel';
 import { NominalVisualBinRange } from "../../northstar/model/binRanges/NominalVisualBinRange";
 import { ChartType, VisualBinRange } from '../../northstar/model/binRanges/VisualBinRange';
 import { VisualBinRangeHelper } from "../../northstar/model/binRanges/VisualBinRangeHelper";
-import { AggregateBinRange, AggregateFunction, Bin, Brush, DoubleValueAggregateResult, HistogramResult, MarginAggregateParameters, MarginAggregateResult } from "../../northstar/model/idea/idea";
+import { AggregateBinRange, AggregateFunction, Bin, Brush, DoubleValueAggregateResult, HistogramResult, MarginAggregateParameters, MarginAggregateResult, Attribute, BinRange } from "../../northstar/model/idea/idea";
 import { ModelHelpers } from "../../northstar/model/ModelHelpers";
 import { HistogramOperation } from "../../northstar/operations/HistogramOperation";
 import { ArrayUtil } from "../../northstar/utils/ArrayUtil";
@@ -22,6 +22,10 @@ import { StyleConstants } from "../../northstar/utils/StyleContants";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./HistogramBox.scss";
 import { KeyStore } from "../../../fields/KeyStore";
+import { ListField } from "../../../fields/ListField";
+import { Document } from "../../../fields/Document"
+import { HistogramField } from "../../../fields/HistogramField";
+import { FieldWaiting, Opt } from "../../../fields/Field";
 
 @observer
 export class HistogramBox extends React.Component<FieldViewProps> {
@@ -38,37 +42,26 @@ export class HistogramBox extends React.Component<FieldViewProps> {
     @observable public ChartType: ChartType = ChartType.VerticalBar;
     public HitTargets: Dictionary<PIXIRectangle, FilterModel> = new Dictionary<PIXIRectangle, FilterModel>();
 
-    constructor(props: FieldViewProps) {
-        super(props);
-    }
-
     @computed get xaxislines() { return this.renderGridLinesAndLabels(0); }
     @computed get yaxislines() { return this.renderGridLinesAndLabels(1); }
 
     componentDidMount() {
-        reaction(() => CurrentUserUtils.GetAllNorthstarColumnAttributes().filter(a => a.displayName == this.props.doc.Title),
-            (columnAttrs) => columnAttrs.map(a => {
-                var atmod = new ColumnAttributeModel(a);
-                this.HistoOp = new HistogramOperation(new AttributeTransformationModel(atmod, AggregateFunction.None),
-                    new AttributeTransformationModel(atmod, AggregateFunction.Count),
-                    new AttributeTransformationModel(atmod, AggregateFunction.Count));
-                this.HistoOp.Update();
-            })
-            , { fireImmediately: true });
+        reaction(() => [CurrentUserUtils.ActiveSchemaName, this.props.doc.GetText(KeyStore.NorthstarSchema, "?")],
+            () => CurrentUserUtils.ActiveSchemaName == this.props.doc.GetText(KeyStore.NorthstarSchema, "?") && this.activateHistogramOperation(),
+            { fireImmediately: true });
         reaction(() => [this.VisualBinRanges && this.VisualBinRanges.slice(), this._panelHeight, this._panelWidth],
             () => this.SizeConverter = new SizeConverter({ x: this._panelWidth, y: this._panelHeight }, this.VisualBinRanges, Math.PI / 4));
-        reaction(() => [this.HistoOp && this.HistoOp.Result],
-            () => {
-                if (!this.HistoOp || !(this.HistoOp.Result instanceof HistogramResult) || !this.HistoOp.Result.binRanges)
+        reaction(() => this.HistoOp && this.HistoOp.Result instanceof HistogramResult ? this.HistoOp.Result.binRanges : undefined,
+            (binRanges: BinRange[] | undefined) => {
+                if (!binRanges || !this.HistoOp || !(this.HistoOp!.Result instanceof HistogramResult))
                     return;
 
-                let binRanges = this.HistoOp.Result.binRanges;
                 this.ChartType = binRanges[0] instanceof AggregateBinRange ? (binRanges[1] instanceof AggregateBinRange ? ChartType.SinglePoint : ChartType.HorizontalBar) :
                     binRanges[1] instanceof AggregateBinRange ? ChartType.VerticalBar : ChartType.HeatMap;
 
                 this.VisualBinRanges.length = 0;
-                this.VisualBinRanges.push(VisualBinRangeHelper.GetVisualBinRange(this.HistoOp.Result.binRanges[0], this.HistoOp.Result, this.HistoOp.X, this.ChartType));
-                this.VisualBinRanges.push(VisualBinRangeHelper.GetVisualBinRange(this.HistoOp.Result.binRanges[1], this.HistoOp.Result, this.HistoOp.Y, this.ChartType));
+                this.VisualBinRanges.push(VisualBinRangeHelper.GetVisualBinRange(binRanges[0], this.HistoOp.Result, this.HistoOp.X, this.ChartType));
+                this.VisualBinRanges.push(VisualBinRangeHelper.GetVisualBinRange(binRanges[1], this.HistoOp.Result, this.HistoOp.Y, this.ChartType));
 
                 if (!this.HistoOp.Result.isEmpty) {
                     this.MaxValue = Number.MIN_VALUE;
@@ -87,6 +80,29 @@ export class HistogramBox extends React.Component<FieldViewProps> {
                 }
             }
         );
+    }
+
+    @computed
+    get createOperationParamsCache() {
+        return this.HistoOp!.CreateOperationParameters();
+    }
+
+    activateHistogramOperation() {
+        this.props.doc.GetTAsync(this.props.fieldKey, HistogramField).then((histoOp: Opt<HistogramField>) => {
+            if (histoOp) {
+                runInAction(() => this.HistoOp = histoOp.Data);
+                this.HistoOp!.Update();
+                reaction(() => this.createOperationParamsCache, () => this.HistoOp!.Update());
+                reaction(() => this.props.doc.GetList(KeyStore.LinkedFromDocs, []),
+                    () => {
+                        let linkFrom: Document[] = this.props.doc.GetData(KeyStore.LinkedFromDocs, ListField, []);
+                        this.HistoOp!.Links.length = 0;
+                        linkFrom.map(l => this.HistoOp!.Links.push(l.GetData(KeyStore.Data, HistogramField, HistogramOperation.Empty)));
+                    },
+                    { fireImmediately: true }
+                );
+            }
+        })
     }
 
     drawLine(xFrom: number, yFrom: number, width: number, height: number) {

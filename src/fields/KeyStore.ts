@@ -29,7 +29,6 @@ export namespace KeyStore {
     export const Caption = new Key("Caption");
     export const ActiveFrame = new Key("ActiveFrame");
     export const ActiveWorkspace = new Key("ActiveWorkspace");
-    export const ActiveDB = new Key("ActiveDB");
     export const DocumentText = new Key("DocumentText");
     export const LinkedToDocs = new Key("LinkedToDocs");
     export const LinkedFromDocs = new Key("LinkedFromDocs");
@@ -46,4 +45,5 @@ export namespace KeyStore {
     export const Archives = new Key("Archives");
     export const Updated = new Key("Updated");
     export const Workspaces = new Key("Workspaces");
+    export const NorthstarSchema = new Key("NorthstarSchema");
 }

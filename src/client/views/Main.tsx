@@ -44,10 +44,13 @@ import { CurrentUserUtils } from '../../server/authentication/models/current_use
 import { Field, Opt, FieldWaiting } from '../../fields/Field';
 import { ListField } from '../../fields/ListField';
 import { Gateway, Settings } from '../northstar/manager/Gateway';
-import { Catalog, Schema, Attribute, AttributeGroup } from '../northstar/model/idea/idea';
+import { Catalog, Schema, Attribute, AttributeGroup, AggregateFunction } from '../northstar/model/idea/idea';
 import { ArrayUtil } from '../northstar/utils/ArrayUtil';
 import '../northstar/model/ModelExtensions'
 import '../northstar/utils/Extensions'
+import { HistogramOperation } from '../northstar/operations/HistogramOperation';
+import { AttributeTransformationModel } from '../northstar/core/attribute/AttributeTransformationModel';
+import { ColumnAttributeModel } from '../northstar/core/attribute/AttributeModel';
 
 @observer
 export class Main extends React.Component {
@@ -339,7 +342,22 @@ export class Main extends React.Component {
     @action SetNorthstarCatalog(ctlog: Catalog) {
         if (ctlog && ctlog.schemas) {
             CurrentUserUtils.ActiveSchema = ArrayUtil.FirstOrDefault<Schema>(ctlog.schemas!, (s: Schema) => s.displayName === "mimic");
-            this._northstarColumns = CurrentUserUtils.GetAllNorthstarColumnAttributes().map(a => Documents.HistogramDocument({ width: 200, height: 200, title: a.displayName! }));
+            CurrentUserUtils.GetAllNorthstarColumnAttributes().map(attr => {
+                Server.GetField(attr.displayName!, action((field: Opt<Field>) => {
+                    if (field instanceof Document) {
+                        this._northstarColumns.push(field);
+                    } else {
+                        var atmod = new ColumnAttributeModel(attr);
+                        let histoOp = new HistogramOperation(
+                            new AttributeTransformationModel(atmod, AggregateFunction.None),
+                            new AttributeTransformationModel(atmod, AggregateFunction.Count),
+                            new AttributeTransformationModel(atmod, AggregateFunction.Count));
+                        this._northstarColumns.push(Documents.HistogramDocument(histoOp, { width: 200, height: 200, title: attr.displayName!, northstarSchema: CurrentUserUtils.ActiveSchema!.displayName! }, attr.displayName!));
+                    }
+                }));
+            })
+            console.log("Activating schema " + CurrentUserUtils.ActiveSchema!.displayName!)
+            CurrentUserUtils.ActiveSchemaName = CurrentUserUtils.ActiveSchema!.displayName!;
         }
     }
     async initializeNorthstar(): Promise<void> {

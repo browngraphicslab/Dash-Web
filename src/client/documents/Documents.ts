@@ -24,6 +24,8 @@ import { VideoBox } from "../views/nodes/VideoBox";
 import { WebBox } from "../views/nodes/WebBox";
 import { HistogramBox } from "../views/nodes/HistogramBox";
 import { FieldView } from "../views/nodes/FieldView";
+import { HistogramField } from "../../fields/HistogramField";
+import { HistogramOperation } from "../northstar/operations/HistogramOperation";
 
 export interface DocumentOptions {
     x?: number;
@@ -42,6 +44,7 @@ export interface DocumentOptions {
     layoutKeys?: Key[];
     viewType?: number;
     backgroundColor?: string;
+    northstarSchema?: string;
 }
 
 export namespace Documents {
@@ -85,6 +88,7 @@ export namespace Documents {
         if (options.ink !== undefined) { doc.Set(KeyStore.Ink, new InkField(options.ink)); }
         if (options.layout !== undefined) { doc.SetText(KeyStore.Layout, options.layout); }
         if (options.layoutKeys !== undefined) { doc.Set(KeyStore.LayoutKeys, new ListField(options.layoutKeys)); }
+        if (options.northstarSchema !== undefined) { doc.SetText(KeyStore.NorthstarSchema, options.northstarSchema); }
         return doc;
     }
 
@@ -120,7 +124,6 @@ export namespace Documents {
     }
     function GetHistogramPrototype(): Document {
         if (!histoProto) {
-
             histoProto = setupPrototypeOptions(histoProtoId, "HISTO PROTO", CollectionView.LayoutString("AnnotationsKey"),
                 { x: 0, y: 0, width: 300, height: 300, layoutKeys: [KeyStore.Data, KeyStore.Annotations, KeyStore.Caption] });
             histoProto.SetText(KeyStore.BackgroundLayout, HistogramBox.LayoutString());
@@ -189,8 +192,8 @@ export namespace Documents {
         return assignToDelegate(SetInstanceOptions(GetAudioPrototype(), options, [new URL(url), AudioField]), options);
     }
 
-    export function HistogramDocument(options: DocumentOptions = {}) {
-        return assignToDelegate(SetInstanceOptions(GetHistogramPrototype(), options, ["", TextField]).MakeDelegate(), options);
+    export function HistogramDocument(histoOp: HistogramOperation, options: DocumentOptions = {}, id?: string) {
+        return assignToDelegate(SetInstanceOptions(GetHistogramPrototype(), options, [histoOp, HistogramField], id).MakeDelegate(), options);
     }
     export function TextDocument(options: DocumentOptions = {}) {
         return assignToDelegate(SetInstanceOptions(GetTextPrototype(), options, ["", TextField]).MakeDelegate(), options);
