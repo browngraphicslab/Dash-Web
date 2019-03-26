@@ -125,7 +125,7 @@ export class CollectionTreeView extends CollectionViewBase {
             )
 
         return (
-            <div id="body" className="collectionTreeView-dropTarget" onDrop={(e: React.DragEvent) => this.onDrop(e, {})} ref={this.createDropTarget} style={{ borderWidth: `${COLLECTION_BORDER_WIDTH}px` }}>
+            <div id="body" className="collectionTreeView-dropTarget" onWheel={(e: React.WheelEvent) => e.stopPropagation()} onDrop={(e: React.DragEvent) => this.onDrop(e, {})} ref={this.createDropTarget} style={{ borderWidth: `${COLLECTION_BORDER_WIDTH}px` }}>
                 <div className="coll-title">
                     <EditableView
                         contents={this.props.Document.Title}
