@@ -35,6 +35,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
     @computed get layoutKeys(): Key[] { return this.props.Document.GetData(KeyStore.LayoutKeys, ListField, new Array<Key>()); }
     @computed get layoutFields(): Key[] { return this.props.Document.GetData(KeyStore.LayoutFields, ListField, new Array<Key>()); }
 
+
     CreateBindings(): JsxBindings {
         let bindings: JsxBindings = { ...this.props, };
         for (const key of this.layoutKeys) {

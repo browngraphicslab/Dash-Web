@@ -79,7 +79,7 @@ export class HistogramBoxPrimitives extends React.Component<HistogramBoxPrimitiv
     }
 
     drawRect(r: PIXIRectangle, color: number, tapHandler: () => void) {
-        return <div key={DashUtils.GenerateGuid()} onPointerDown={tapHandler}
+        return <div key={DashUtils.GenerateGuid()} onPointerDown={(e: React.PointerEvent) => { if (e.button == 0) tapHandler() }}
             style={{
                 position: "absolute",
                 transform: `translate(${r.x}px,${r.y}px)`,

@@ -279,13 +279,13 @@ export class CollectionFreeFormView extends CollectionViewBase {
     get backgroundView() {
         return !this.backgroundLayout ? (null) :
             (<DocumentContentsView {...this.getDocumentViewProps(this.props.Document)}
-                layoutKey={KeyStore.BackgroundLayout} isSelected={() => false} select={() => { }} />);
+                layoutKey={KeyStore.BackgroundLayout} isTopMost={this.props.isTopMost} isSelected={() => false} select={() => { }} />);
     }
     @computed
     get overlayView() {
         return !this.overlayLayout ? (null) :
             (<DocumentContentsView {...this.getDocumentViewProps(this.props.Document)}
-                layoutKey={KeyStore.OverlayLayout} isSelected={() => false} select={() => { }} />);
+                layoutKey={KeyStore.OverlayLayout} isTopMost={this.props.isTopMost} isSelected={() => false} select={() => { }} />);
     }
 
     getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-COLLECTION_BORDER_WIDTH, -COLLECTION_BORDER_WIDTH).translate(-this.centeringShiftX, -this.centeringShiftY).transform(this.getLocalTransform())

@@ -150,10 +150,12 @@ export class HistogramBox extends React.Component<FieldViewProps> {
         let label = this.HistoOp && this.HistoOp.X ? this.HistoOp.X.AttributeModel.DisplayName : "<...>";
         let xaxislines = this.xaxislines;
         let yaxislines = this.yaxislines;
+        var h = this.props.isTopMost ? this._panelHeight : this.props.doc.GetNumber(KeyStore.Height, 0);
+        var w = this.props.isTopMost ? this._panelWidth : this.props.doc.GetNumber(KeyStore.Width, 0);
         return (
             <Measure onResize={(r: any) => runInAction(() => { this._panelWidth = r.entry.width; this._panelHeight = r.entry.height })}>
                 {({ measureRef }) =>
-                    <div className="histogrambox-container" ref={measureRef} style={{ transform: `translate(${-this.props.doc.GetNumber(KeyStore.Width, 0) / 2}px, ${-this.props.doc.GetNumber(KeyStore.Height, 0) / 2}px)` }}>
+                    <div className="histogrambox-container" ref={measureRef} style={{ transform: `translate(${-w / 2}px, ${-h / 2}px)` }}>
                         {xaxislines}
                         {yaxislines}
                         <HistogramBoxPrimitives HistoBox={this} />
