@@ -37,13 +37,13 @@ export class PreviewCursor extends React.Component<PreviewCursorProps>  {
 
     @action
     cleanupInteractions = () => {
-        document.removeEventListener("keypress", this.onKeyPress, true);
+        document.removeEventListener("keypress", this.onKeyPress, false);
     }
 
     @action
     onCursorPlaced = (visible: boolean, downX: number, downY: number): void => {
         if (visible) {
-            document.addEventListener("keypress", this.onKeyPress, true);
+            document.addEventListener("keypress", this.onKeyPress, false);
             this._lastX = downX;
             this._lastY = downY;
         } else
@@ -52,8 +52,11 @@ export class PreviewCursor extends React.Component<PreviewCursorProps>  {
 
     @action
     onKeyPress = (e: KeyboardEvent) => {
+        // Mixing events between React and Native is finicky.  In FormattedTextBox, we set the
+        // DASHFormattedTextBoxHandled flag when a text box consumes a key press so that we can ignore
+        // the keyPress here.
         //if not these keys, make a textbox if preview cursor is active!
-        if (!e.ctrlKey && !e.altKey && !e.defaultPrevented) {
+        if (!e.ctrlKey && !e.altKey && !e.defaultPrevented && !(e as any).DASHFormattedTextBoxHandled) {
             //make textbox and add it to this collection
             let [x, y] = this.props.getTransform().transformPoint(this._lastX, this._lastY);
             let newBox = Documents.TextDocument({ width: 200, height: 100, x: x, y: y, title: "new" });
