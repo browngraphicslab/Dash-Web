@@ -5,14 +5,28 @@
     width: 100%;
     height: 100%;
   }
-  .histogrambox-gridlabel {
-    position:absolute;
-    transform-origin: left top;
-  }
   .histogrambox-xaxislabel {
     position:absolute;
     width:100%;
     text-align: center;
     bottom:0;
+    font-size: 12;
+  }
+  
+  .histogrambox-container {
+    position:absolute;
+    width:100%;
+    height: 100%;
+  }
+  .histogramLabelPrimitives-gridlabel {
+    position:absolute;
+    transform-origin: left top;
+    font-size: 12;
+  }
+  .histogramLabelPrimitives-placer {
+    position:absolute;
+    width:100%;
+    height:100%;
+    pointer-events: none;
   }
   
