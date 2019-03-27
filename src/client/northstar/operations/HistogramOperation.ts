@@ -10,7 +10,7 @@ import { FilterOperand } from "../core/filter/FilterOperand";
 import { IBaseFilterConsumer } from "../core/filter/IBaseFilterConsumer";
 import { IBaseFilterProvider } from "../core/filter/IBaseFilterProvider";
 import { SETTINGS_SAMPLE_SIZE, SETTINGS_X_BINS, SETTINGS_Y_BINS } from "../model/binRanges/VisualBinRangeHelper";
-import { AggregateFunction, AggregateParameters, Attribute, AverageAggregateParameters, DataType, HistogramOperationParameters, QuantitativeBinRange } from "../model/idea/idea";
+import { AggregateFunction, AggregateParameters, Attribute, AverageAggregateParameters, DataType, HistogramOperationParameters, QuantitativeBinRange, HistogramResult, Brush, DoubleValueAggregateResult, Bin } from "../model/idea/idea";
 import { ModelHelpers } from "../model/ModelHelpers";
 import { ArrayUtil } from "../utils/ArrayUtil";
 import { BaseOperation } from "./BaseOperation";
@@ -37,6 +37,12 @@ export class HistogramOperation extends BaseOperation implements IBaseFilterCons
         ArrayUtil.RemoveMany(this.FilterModels, filterModels);
     }
 
+    public getValue(axis: number, bin: Bin, result: HistogramResult, brushIndex: number) {
+        var aggregateKey = ModelHelpers.CreateAggregateKey(axis == 0 ? this.X : axis == 1 ? this.Y : this.V, result, brushIndex);
+        let dataValue = ModelHelpers.GetAggregateResult(bin, aggregateKey) as DoubleValueAggregateResult;
+        return dataValue != null && dataValue.hasResult ? dataValue.result : undefined;
+    }
+
     public static Empty = new HistogramOperation(new AttributeTransformationModel(new ColumnAttributeModel(new Attribute())), new AttributeTransformationModel(new ColumnAttributeModel(new Attribute())), new AttributeTransformationModel(new ColumnAttributeModel(new Attribute())));
 
     Equals(other: Object): boolean {
@@ -56,11 +62,6 @@ export class HistogramOperation extends BaseOperation implements IBaseFilterCons
         let filterModels: FilterModel[] = [];
         let fstring = FilterModel.GetFilterModelsRecursive(this, new Set<IBaseFilterProvider>(), filterModels, true)
         return fstring;
-    }
-    @computed
-    public get OutputFilterString(): string {
-        let filterModels: FilterModel[] = [];
-        return FilterModel.GetFilterModelsRecursive(this, new Set<IBaseFilterProvider>(), filterModels, false)
     }
 
     @computed.struct

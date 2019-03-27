@@ -1,6 +1,9 @@
 import { PIXIPoint } from "./MathUtil";
 import { NominalVisualBinRange } from "../model/binRanges/NominalVisualBinRange";
 import { VisualBinRange } from "../model/binRanges/VisualBinRange";
+import { Bin, DoubleValueAggregateResult, AggregateKey } from "../model/idea/idea";
+import { AttributeTransformationModel } from "../core/attribute/AttributeTransformationModel";
+import { ModelHelpers } from "../model/ModelHelpers";
 
 export class SizeConverter {
     public RenderSize: Array<number> = new Array<number>(2);
@@ -70,11 +73,43 @@ export class SizeConverter {
         this.DataRanges[1] = this.DataMaxs[1] - this.DataMins[1];
     }
 
+    public DataToScreenNormalizedRange(dataValue: number, normalization: number, axis: number, binBrushMaxAxis: number) {
+        var value = normalization != 1 - axis || binBrushMaxAxis == 0 ? dataValue : (dataValue - 0) / (binBrushMaxAxis - 0) * this.DataRanges[axis];
+        var from = this.DataToScreenCoord(Math.min(0, value), axis);
+        var to = this.DataToScreenCoord(Math.max(0, value), axis);
+        return [from, value, to];
+    }
+
+    public DataToScreenPointRange(axis: number, bin: Bin, aggregateKey: AggregateKey) {
+        var value = ModelHelpers.GetAggregateResult(bin, aggregateKey) as DoubleValueAggregateResult;
+        if (value.hasResult)
+            return [this.DataToScreenCoord(value.result!, axis) - 5,
+            this.DataToScreenCoord(value.result!, axis) + 5];
+        return [undefined, undefined];
+    }
+
+    public DataToScreenAxisRange(visualBinRanges: VisualBinRange[], index: number, bin: Bin) {
+        var value = visualBinRanges[0].GetValueFromIndex(bin.binIndex!.indices![index]);
+        return [this.DataToScreenX(value), this.DataToScreenX(visualBinRanges[index].AddStep(value))]
+    }
+
     public DataToScreenX(x: number): number {
         return (((x - this.DataMins[0]) / this.DataRanges[0]) * (this.RenderSize[0]) + (this.LeftOffset));
     }
     public DataToScreenY(y: number, flip: boolean = true) {
         var retY = ((y - this.DataMins[1]) / this.DataRanges[1]) * (this.RenderSize[1]);
         return flip ? (this.RenderSize[1]) - retY + (this.TopOffset) : retY + (this.TopOffset);
+    }
+    public DataToScreenCoord(v: number, axis: number) {
+        if (axis == 0)
+            return this.DataToScreenX(v);
+        return this.DataToScreenY(v);
+    }
+    public DataToScreenRange(minVal: number, maxVal: number, axis: number) {
+        let xFrom = this.DataToScreenX(axis === 0 ? minVal : this.DataMins[0]);
+        let xTo = this.DataToScreenX(axis === 0 ? maxVal : this.DataMaxs[0]);
+        let yFrom = this.DataToScreenY(axis === 1 ? minVal : this.DataMins[1]);
+        let yTo = this.DataToScreenY(axis === 1 ? maxVal : this.DataMaxs[1]);
+        return { xFrom, yFrom, xTo, yTo }
     }
 }

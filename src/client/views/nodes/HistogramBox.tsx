@@ -1,9 +1,8 @@
 import React = require("react")
-import { computed, observable, reaction, runInAction, trace } from "mobx";
+import { computed, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import Measure from "react-measure";
 import { Dictionary } from "typescript-collections";
-import { Document } from "../../../fields/Document";
 import { Opt } from "../../../fields/Field";
 import { HistogramField } from "../../../fields/HistogramField";
 import { KeyStore } from "../../../fields/KeyStore";
@@ -19,81 +18,60 @@ import { HistogramOperation } from "../../northstar/operations/HistogramOperatio
 import { PIXIRectangle } from "../../northstar/utils/MathUtil";
 import { SizeConverter } from "../../northstar/utils/SizeConverter";
 import { StyleConstants } from "../../northstar/utils/StyleContants";
+import "./../../northstar/utils/Extensions";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./HistogramBox.scss";
 import { HistogramBoxPrimitives } from './HistogramBoxPrimitives';
 
 @observer
 export class HistogramBox extends React.Component<FieldViewProps> {
-
     public static LayoutString(fieldStr: string = "DataKey") { return FieldView.LayoutString(HistogramBox, fieldStr) }
 
     @observable private _panelWidth: number = 100;
     @observable private _panelHeight: number = 100;
     @observable public HistoOp?: HistogramOperation;
     @observable public VisualBinRanges: VisualBinRange[] = [];
-    @observable public MinValue: number = 0;
-    @observable public MaxValue: number = 0;
+    @observable public ValueRange: number[] = [];
     @observable public SizeConverter?: SizeConverter;
-    @observable public ChartType: ChartType = ChartType.VerticalBar;
     public HitTargets: Dictionary<PIXIRectangle, FilterModel> = new Dictionary<PIXIRectangle, FilterModel>();
 
     @computed get xaxislines() { return this.renderGridLinesAndLabels(0); }
     @computed get yaxislines() { return this.renderGridLinesAndLabels(1); }
     @computed get createOperationParamsCache() { return this.HistoOp!.CreateOperationParameters(); }
+    @computed get HistogramResult() { return this.HistoOp ? this.HistoOp.Result as HistogramResult : undefined; }
+    @computed get BinRanges() { return this.HistogramResult ? this.HistogramResult.binRanges : undefined; }
+    @computed get ChartType() {
+        return !this.BinRanges ? ChartType.SinglePoint : this.BinRanges[0] instanceof AggregateBinRange ?
+            (this.BinRanges[1] instanceof AggregateBinRange ? ChartType.SinglePoint : ChartType.HorizontalBar) :
+            this.BinRanges[1] instanceof AggregateBinRange ? ChartType.VerticalBar : ChartType.HeatMap;
+    }
 
     componentDidMount() {
         reaction(() => [CurrentUserUtils.ActiveSchemaName, this.props.doc.GetText(KeyStore.NorthstarSchema, "?")],
-            () => CurrentUserUtils.ActiveSchemaName == this.props.doc.GetText(KeyStore.NorthstarSchema, "?") && this.activateHistogramOperation(),
-            { fireImmediately: true });
+            (params: string[]) => params[0] == params[1] && this.activateHistogramOperation(), { fireImmediately: true });
         reaction(() => [this.VisualBinRanges && this.VisualBinRanges.slice(), this._panelHeight, this._panelWidth],
             () => this.SizeConverter = new SizeConverter({ x: this._panelWidth, y: this._panelHeight }, this.VisualBinRanges, Math.PI / 4));
-        reaction(() => this.HistoOp && this.HistoOp.Result instanceof HistogramResult ? this.HistoOp.Result.binRanges : undefined,
-            (binRanges: BinRange[] | undefined) => {
-                if (!binRanges || !this.HistoOp || !(this.HistoOp!.Result instanceof HistogramResult))
-                    return;
+        reaction(() => this.BinRanges, (binRanges: BinRange[] | undefined) => {
+            if (binRanges && this.HistogramResult && !this.HistogramResult!.isEmpty && this.HistogramResult!.bins) {
+                this.VisualBinRanges.splice(0, this.VisualBinRanges.length, ...binRanges.map(br =>
+                    VisualBinRangeHelper.GetVisualBinRange(br, this.HistogramResult!, this.HistoOp!.X, this.ChartType)));
 
-                this.ChartType = binRanges[0] instanceof AggregateBinRange ? (binRanges[1] instanceof AggregateBinRange ? ChartType.SinglePoint : ChartType.HorizontalBar) :
-                    binRanges[1] instanceof AggregateBinRange ? ChartType.VerticalBar : ChartType.HeatMap;
-
-                this.VisualBinRanges.length = 0;
-                this.VisualBinRanges.push(VisualBinRangeHelper.GetVisualBinRange(binRanges[0], this.HistoOp!.Result!, this.HistoOp!.X, this.ChartType));
-                this.VisualBinRanges.push(VisualBinRangeHelper.GetVisualBinRange(binRanges[1], this.HistoOp!.Result!, this.HistoOp!.Y, this.ChartType));
-
-                if (!this.HistoOp.Result.isEmpty) {
-                    this.MaxValue = Number.MIN_VALUE;
-                    this.MinValue = Number.MAX_VALUE;
-                    for (let key in this.HistoOp.Result.bins) {
-                        if (this.HistoOp.Result.bins.hasOwnProperty(key)) {
-                            let bin = this.HistoOp.Result.bins[key];
-                            let valueAggregateKey = ModelHelpers.CreateAggregateKey(this.HistoOp.V, this.HistoOp.Result, ModelHelpers.AllBrushIndex(this.HistoOp.Result));
-                            let value = ModelHelpers.GetAggregateResult(bin, valueAggregateKey) as DoubleValueAggregateResult;
-                            if (value && value.hasResult) {
-                                this.MaxValue = Math.max(this.MaxValue, value.result!);
-                                this.MinValue = Math.min(this.MinValue, value.result!);
-                            }
-                        }
-                    }
-                }
+                let valueAggregateKey = ModelHelpers.CreateAggregateKey(this.HistoOp!.V, this.HistogramResult!, ModelHelpers.AllBrushIndex(this.HistogramResult!));
+                this.ValueRange = Object.values(this.HistogramResult!.bins).reduce((prev, cur) => {
+                    let value = ModelHelpers.GetAggregateResult(cur, valueAggregateKey) as DoubleValueAggregateResult;
+                    return value && value.hasResult ? [Math.min(prev[0], value.result!), Math.max(prev[1], value.result!)] : prev;
+                }, [Number.MIN_VALUE, Number.MAX_VALUE]);
             }
-        );
+        });
     }
 
     activateHistogramOperation() {
         this.props.doc.GetTAsync(this.props.fieldKey, HistogramField).then((histoOp: Opt<HistogramField>) => {
             if (histoOp) {
                 runInAction(() => this.HistoOp = histoOp.Data);
-                this.HistoOp!.Update();
-                reaction(
-                    () => this.createOperationParamsCache,
-                    () => this.HistoOp!.Update());
                 reaction(() => this.props.doc.GetList(KeyStore.LinkedFromDocs, []),
-                    (docs: Document[]) => {
-                        this.HistoOp!.Links.length = 0;
-                        this.HistoOp!.Links.push(...docs);
-                    },
-                    { fireImmediately: true }
-                );
+                    docs => this.HistoOp!.Links.splice(0, this.HistoOp!.Links.length, ...docs), { fireImmediately: true });
+                reaction(() => this.createOperationParamsCache, () => this.HistoOp!.Update(), { fireImmediately: true });
             }
         })
     }
@@ -113,33 +91,27 @@ export class HistogramBox extends React.Component<FieldViewProps> {
         let prims: JSX.Element[] = [];
         let labels = this.VisualBinRanges[axis].GetLabels();
         labels.map((binLabel, i) => {
-            let xFrom = sc.DataToScreenX(axis === 0 ? binLabel.minValue! : sc.DataMins[0]);
-            let xTo = sc.DataToScreenX(axis === 0 ? binLabel.maxValue! : sc.DataMaxs[0]);
-            let yFrom = sc.DataToScreenY(axis === 0 ? sc.DataMins[1] : binLabel.minValue!);
-            let yTo = sc.DataToScreenY(axis === 0 ? sc.DataMaxs[1] : binLabel.maxValue!);
+            let r = sc.DataToScreenRange(binLabel.minValue!, binLabel.maxValue!, axis);
 
-            prims.push(this.drawLine(xFrom, yFrom, axis == 0 ? 1 : xTo - xFrom, axis == 0 ? yTo - yFrom : 1));
+            prims.push(this.drawLine(r.xFrom, r.yFrom, axis == 0 ? 1 : r.xTo - r.xFrom, axis == 0 ? r.yTo - r.yFrom : 1));
             if (i == labels.length - 1)
-                prims.push(this.drawLine(axis == 0 ? xTo : xFrom, axis == 0 ? yFrom : yTo, axis == 0 ? 1 : xTo - xFrom, axis == 0 ? yTo - yFrom : 1));
+                prims.push(this.drawLine(axis == 0 ? r.xTo : r.xFrom, axis == 0 ? r.yFrom : r.yTo, axis == 0 ? 1 : r.xTo - r.xFrom, axis == 0 ? r.yTo - r.yFrom : 1));
 
             if (i % Math.ceil(labels.length / dim) === 0 && binLabel.label) {
-                let text = binLabel.label;
-                if (text.length >= StyleConstants.MAX_CHAR_FOR_HISTOGRAM_LABELS) {
-                    text = text.slice(0, StyleConstants.MAX_CHAR_FOR_HISTOGRAM_LABELS - 3) + "...";
-                }
+                const label = binLabel.label.Truncate(StyleConstants.MAX_CHAR_FOR_HISTOGRAM_LABELS, "...");
                 const textHeight = 14; const textWidth = 30;
-                let xStart = (axis === 0 ? xFrom + (xTo - xFrom) / 2.0 : xFrom - 10 - textWidth);
-                let yStart = (axis === 1 ? yFrom - textHeight / 2 : yFrom);
+                let xStart = (axis === 0 ? r.xFrom + (r.xTo - r.xFrom) / 2.0 : r.xFrom - 10 - textWidth);
+                let yStart = (axis === 1 ? r.yFrom - textHeight / 2 : r.yFrom);
                 let rotation = 0;
 
                 if (axis == 0 && this.VisualBinRanges[axis] instanceof NominalVisualBinRange) {
-                    rotation = Math.min(90, Math.max(30, textWidth / (xTo - xFrom) * 90));
-                    xStart += Math.max(textWidth / 2, (1 - textWidth / (xTo - xFrom)) * textWidth / 2) - textHeight / 2;
+                    rotation = Math.min(90, Math.max(30, textWidth / (r.xTo - r.xFrom) * 90));
+                    xStart += Math.max(textWidth / 2, (1 - textWidth / (r.xTo - r.xFrom)) * textWidth / 2) - textHeight / 2;
                 }
 
                 prims.push(
                     <div key={DashUtils.GenerateGuid()} className="histogrambox-gridlabel" style={{ transform: `translate(${xStart}px, ${yStart}px) rotate(${rotation}deg)` }}>
-                        {text}
+                        {label}
                     </div>)
             }
         });

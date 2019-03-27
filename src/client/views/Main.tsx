@@ -89,10 +89,6 @@ export class Main extends React.Component {
             }
         };
 
-        // this.initializeNorthstar();
-        let y = "";
-        y.ReplaceAll("a", "B");
-
         CurrentUserUtils.loadCurrentUser();
 
         library.add(faFont);
