@@ -12,6 +12,9 @@ import { PIXIRectangle } from "../../northstar/utils/MathUtil";
 import { StyleConstants } from "../../northstar/utils/StyleContants";
 import { HistogramBox } from "./HistogramBox";
 import "./HistogramBox.scss";
+import { HistogramOperation } from "../../northstar/operations/HistogramOperation";
+import { FilterModel } from "../../northstar/core/filter/FilterModel";
+import { jSXElement } from "babel-types";
 
 export interface HistogramBoxPrimitivesProps {
     HistoBox: HistogramBox;
@@ -25,41 +28,37 @@ export class HistogramBoxPrimitives extends React.Component<HistogramBoxPrimitiv
     get selectedPrimitives() {
         return this._selectedPrims.map((bp) => this.drawRect(bp.Rect, undefined, () => { }, "border"));
     }
+    private getSelectionToggle(histoOp: HistogramOperation, binPrimitives: HistogramBinPrimitive[], allBrushIndex: number, filterModel: FilterModel) {
+        let allBrushPrim = ArrayUtil.FirstOrDefault(binPrimitives, bp => bp.BrushIndex == allBrushIndex);
+        return !allBrushPrim ? () => { } : () => runInAction(() => {
+            if (ArrayUtil.Contains(histoOp!.FilterModels, filterModel)) {
+                this._selectedPrims.splice(this._selectedPrims.indexOf(allBrushPrim!), 1);
+                histoOp!.RemoveFilterModels([filterModel]);
+            }
+            else {
+                this._selectedPrims.push(allBrushPrim!);
+                histoOp!.AddFilterModels([filterModel]);
+            }
+        })
+    }
     @computed
     get binPrimitives() {
         let histoOp = this.props.HistoBox.HistoOp;
         let histoResult = this.props.HistoBox.HistogramResult;
         if (!histoOp || !histoResult || !this.props.HistoBox.SizeConverter || !histoResult.bins)
             return (null);
-
-        let prims: JSX.Element[] = [];
         let allBrushIndex = ModelHelpers.AllBrushIndex(histoResult);
-        for (let key in Object.keys(histoResult.bins)) {
-            let drawPrims = new HistogramBinPrimitiveCollection(histoResult.bins![key], this.props.HistoBox);
-            let filterModel = ModelHelpers.GetBinFilterModel(histoResult.bins[key], allBrushIndex, histoResult, histoOp.X, histoOp.Y);
+        return Object.keys(histoResult.bins).reduce((prims, key) => {
+            let drawPrims = new HistogramBinPrimitiveCollection(histoResult!.bins![key], this.props.HistoBox);
+            let filterModel = ModelHelpers.GetBinFilterModel(histoResult!.bins![key], allBrushIndex, histoResult!, histoOp!.X, histoOp!.Y);
 
             this.props.HistoBox.HitTargets.setValue(drawPrims.HitGeom, filterModel);
 
-            let allBrushPrim = ArrayUtil.FirstOrDefault<HistogramBinPrimitive>(drawPrims.BinPrimitives, (bp: HistogramBinPrimitive) => bp.BrushIndex == allBrushIndex);
-            if (allBrushPrim && allBrushPrim.DataValue) {
-                let toggleFilter = () => {
-                    if (ArrayUtil.Contains(histoOp!.FilterModels, filterModel)) {
-                        this._selectedPrims.splice(this._selectedPrims.indexOf(allBrushPrim!), 1);
-                        histoOp!.RemoveFilterModels([filterModel]);
-                    }
-                    else {
-                        this._selectedPrims.push(allBrushPrim!);
-                        histoOp!.AddFilterModels([filterModel]);
-                    }
-                }
-                drawPrims.BinPrimitives.filter(bp => bp.DataValue && bp.BrushIndex !== allBrushIndex).map(bp =>
-                    prims.push(
-                        this.drawRect(bp.Rect, bp.Color, () => runInAction(toggleFilter), "bar"),
-                        this.drawRect(bp.MarginRect, StyleConstants.MARGIN_BARS_COLOR, () => runInAction(toggleFilter), "bar")));
-            }
-        }
-
-        return prims;
+            let toggle = this.getSelectionToggle(histoOp!, drawPrims.BinPrimitives, allBrushIndex, filterModel);
+            drawPrims.BinPrimitives.filter(bp => bp.DataValue && bp.BrushIndex !== allBrushIndex).map(bp =>
+                prims.push(...[{ r: bp.Rect, c: bp.Color }, { r: bp.MarginRect, c: StyleConstants.MARGIN_BARS_COLOR }].map(pair => this.drawRect(pair.r, pair.c, toggle, "bar"))));
+            return prims;
+        }, [] as JSX.Element[]);
     }
 
     drawRect(r: PIXIRectangle, color: number | undefined, tapHandler: () => void, classExt: string) {
