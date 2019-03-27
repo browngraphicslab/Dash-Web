@@ -133,7 +133,7 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
                 return undefined;
             }
             ctor = Documents.WebDocument;
-            options = { height: options.width, ...options, };
+            options = { height: options.width, ...options, title: path };
         }
         return ctor ? ctor(path, options) : undefined;
     }

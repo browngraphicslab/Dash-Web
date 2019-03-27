@@ -59,7 +59,7 @@ export class PreviewCursor extends React.Component<PreviewCursorProps>  {
         if (!e.ctrlKey && !e.altKey && !e.defaultPrevented && !(e as any).DASHFormattedTextBoxHandled) {
             //make textbox and add it to this collection
             let [x, y] = this.props.getTransform().transformPoint(this._lastX, this._lastY);
-            let newBox = Documents.TextDocument({ width: 200, height: 100, x: x, y: y, title: "new" });
+            let newBox = Documents.TextDocument({ width: 200, height: 100, x: x, y: y, title: "typed text" });
             this.props.addLiveTextDocument(newBox);
             e.stopPropagation();
         }

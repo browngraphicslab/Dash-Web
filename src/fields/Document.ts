@@ -35,8 +35,18 @@ export class Document extends Field {
     public Scale = () => { return this.GetNumber(KeyStore.Scale, 1) }
 
     @computed
-    public get Title() {
-        return this.GetText(KeyStore.Title, "-untitled-");
+    public get Title(): string {
+        let title = this.Get(KeyStore.Title, true);
+        if (title)
+            if (title != FieldWaiting && title instanceof TextField)
+                return title.Data;
+            else return "<waiting>";
+        let parTitle = this.GetT(KeyStore.Title, TextField);
+        if (parTitle)
+            if (parTitle != FieldWaiting)
+                return parTitle.Data + ".alias";
+            else return "<waiting>.alias";
+        return "-untitled-";
     }
 
     @computed

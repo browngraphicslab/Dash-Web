@@ -41,7 +41,7 @@ export class LinkBox extends React.Component<Props> {
         e.stopPropagation();
         let docView = DocumentManager.Instance.getDocumentView(this.props.pairedDoc);
         if (docView) {
-            docView.props.focus(this.props.pairedDoc);
+            docView.props.focus(docView.props.Document);
         } else {
             this.props.pairedDoc.GetAsync(KeyStore.AnnotationOn, (contextDoc: any) => {
                 if (!contextDoc) {

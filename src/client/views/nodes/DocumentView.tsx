@@ -243,15 +243,20 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             }
             let linkDoc: Document = new Document();
 
-            linkDoc.Set(KeyStore.Title, new TextField("New Link"));
-            linkDoc.Set(KeyStore.LinkDescription, new TextField(""));
-            linkDoc.Set(KeyStore.LinkTags, new TextField("Default"));
+            destDoc.GetTAsync(KeyStore.Prototype, Document).then((protoDest) =>
+                sourceDoc.GetTAsync(KeyStore.Prototype, Document).then((protoSrc) => runInAction(() => {
+                    let dstTarg = (protoDest ? protoDest : destDoc);
+                    let srcTarg = (protoSrc ? protoSrc : sourceDoc);
+                    linkDoc.Set(KeyStore.Title, new TextField("New Link"));
+                    linkDoc.Set(KeyStore.LinkDescription, new TextField(""));
+                    linkDoc.Set(KeyStore.LinkTags, new TextField("Default"));
 
-            sourceDoc.GetOrCreateAsync(KeyStore.LinkedToDocs, ListField, field => { (field as ListField<Document>).Data.push(linkDoc) });
-            linkDoc.Set(KeyStore.LinkedToDocs, destDoc);
-            destDoc.GetOrCreateAsync(KeyStore.LinkedFromDocs, ListField, field => { (field as ListField<Document>).Data.push(linkDoc) });
-            linkDoc.Set(KeyStore.LinkedFromDocs, sourceDoc);
-
+                    linkDoc.Set(KeyStore.LinkedToDocs, dstTarg);
+                    linkDoc.Set(KeyStore.LinkedFromDocs, srcTarg);
+                    dstTarg.GetOrCreateAsync(KeyStore.LinkedFromDocs, ListField, field => { (field as ListField<Document>).Data.push(linkDoc) })
+                    srcTarg.GetOrCreateAsync(KeyStore.LinkedToDocs, ListField, field => { (field as ListField<Document>).Data.push(linkDoc) })
+                }))
+            )
             e.stopPropagation();
         }
     }

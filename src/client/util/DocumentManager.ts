@@ -3,6 +3,8 @@ import { observer } from 'mobx-react';
 import { observable, action } from 'mobx';
 import { Document } from "../../fields/Document"
 import { DocumentView } from '../views/nodes/DocumentView';
+import { KeyStore } from '../../fields/KeyStore';
+import { FieldWaiting } from '../../fields/Field';
 
 
 export class DocumentManager {
@@ -39,11 +41,15 @@ export class DocumentManager {
             //     }
             // }
 
+
             if (Object.is(doc, toFind)) {
                 toReturn = view;
                 return;
             }
-
+            let docSrc = doc.GetT(KeyStore.Prototype, Document);
+            if (docSrc && docSrc != FieldWaiting && Object.is(docSrc, toFind)) {
+                toReturn = view;
+            }
         })
 
         return (toReturn);
