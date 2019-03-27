@@ -40,12 +40,12 @@ export class Document extends Field {
         if (title)
             if (title != FieldWaiting && title instanceof TextField)
                 return title.Data;
-            else return "<waiting>";
+            else return "-waiting-";
         let parTitle = this.GetT(KeyStore.Title, TextField);
         if (parTitle)
             if (parTitle != FieldWaiting)
                 return parTitle.Data + ".alias";
-            else return "<waiting>.alias";
+            else return "-waiting-.alias";
         return "-untitled-";
     }
 

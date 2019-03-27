@@ -18,6 +18,7 @@ import React = require("react");
 import { SubCollectionViewProps } from "./CollectionViewBase";
 import { ServerUtils } from "../../../server/ServerUtil";
 import { DragManager } from "../../util/DragManager";
+import { TextField } from "../../../fields/TextField";
 
 @observer
 export class CollectionDockingView extends React.Component<SubCollectionViewProps> {
@@ -225,8 +226,21 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         this.stateChanged();
     }
     tabCreated = (tab: any) => {
-        if (tab.hasOwnProperty("contentItem") && tab.contentItem.config.type != "stack")
+        if (tab.hasOwnProperty("contentItem") && tab.contentItem.config.type != "stack") {
+            if (tab.titleElement[0].textContent.indexOf("-waiting") != -1) {
+                Server.GetField(tab.contentItem.config.props.documentId, action((f: Opt<Field>) => {
+                    if (f != undefined && f instanceof Document) {
+                        f.GetTAsync(KeyStore.Title, TextField, (tfield) => {
+                            if (tfield != undefined) {
+                                tab.titleElement[0].textContent = f.Title;
+                            }
+                        })
+                    }
+                }));
+                tab.titleElement[0].DashDocId = tab.contentItem.config.props.documentId;
+            }
             tab.titleElement[0].DashDocId = tab.contentItem.config.props.documentId;
+        }
         tab.closeElement.off('click') //unbind the current click handler
             .click(function () {
                 tab.contentItem.remove();
