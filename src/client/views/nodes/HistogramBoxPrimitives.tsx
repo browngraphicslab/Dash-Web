@@ -4,82 +4,78 @@ import { observer } from "mobx-react";
 import { Utils as DashUtils } from '../../../Utils';
 import { AttributeTransformationModel } from "../../northstar/core/attribute/AttributeTransformationModel";
 import { ChartType } from '../../northstar/model/binRanges/VisualBinRange';
-import { AggregateFunction, Bin, Brush, HistogramResult, MarginAggregateParameters, MarginAggregateResult } from "../../northstar/model/idea/idea";
+import { AggregateFunction, Bin, Brush, HistogramResult, MarginAggregateParameters, MarginAggregateResult, BinLabel } from "../../northstar/model/idea/idea";
 import { ModelHelpers } from "../../northstar/model/ModelHelpers";
 import { ArrayUtil } from "../../northstar/utils/ArrayUtil";
 import { LABColor } from '../../northstar/utils/LABcolor';
 import { PIXIRectangle } from "../../northstar/utils/MathUtil";
 import { StyleConstants } from "../../northstar/utils/StyleContants";
-import { HistogramBox } from "./HistogramBox";
+import { HistogramBox, HistogramPrimitivesProps } from "./HistogramBox";
 import "./HistogramBoxPrimitives.scss";
 import { HistogramOperation } from "../../northstar/operations/HistogramOperation";
 import { FilterModel } from "../../northstar/core/filter/FilterModel";
 
-export interface HistogramBoxPrimitivesProps {
-    HistoBox: HistogramBox;
-}
 
 @observer
-export class HistogramBoxPrimitives extends React.Component<HistogramBoxPrimitivesProps> {
+export class HistogramBoxPrimitives extends React.Component<HistogramPrimitivesProps> {
+    private get histoOp() { return this.props.HistoBox.HistoOp; }
+    private get renderDimension() { return this.props.HistoBox.SizeConverter.RenderDimension; }
     @observable _selectedPrims: HistogramBinPrimitive[] = [];
-
     @computed get xaxislines() { return this.renderGridLinesAndLabels(0); }
     @computed get yaxislines() { return this.renderGridLinesAndLabels(1); }
-    @computed get selectedPrimitives() {
-        return this._selectedPrims.map((bp) => this.drawRect(bp.Rect, bp.BarAxis, undefined, () => { }, "border"));
-    }
-    private getSelectionToggle(histoOp: HistogramOperation, binPrimitives: HistogramBinPrimitive[], allBrushIndex: number, filterModel: FilterModel) {
-        let allBrushPrim = ArrayUtil.FirstOrDefault(binPrimitives, bp => bp.BrushIndex == allBrushIndex);
-        return !allBrushPrim ? () => { } : () => runInAction(() => {
-            if (ArrayUtil.Contains(histoOp!.FilterModels, filterModel)) {
-                this._selectedPrims.splice(this._selectedPrims.indexOf(allBrushPrim!), 1);
-                histoOp!.RemoveFilterModels([filterModel]);
-            }
-            else {
-                this._selectedPrims.push(allBrushPrim!);
-                histoOp!.AddFilterModels([filterModel]);
-            }
-        })
-    }
-    @computed
-    get binPrimitives() {
-        let histoOp = this.props.HistoBox.HistoOp;
+    @computed get selectedPrimitives() { return this._selectedPrims.map(bp => this.drawRect(bp.Rect, bp.BarAxis, undefined, "border")); }
+    @computed get binPrimitives() {
         let histoResult = this.props.HistoBox.HistogramResult;
-        if (!histoOp || !histoResult || !histoResult.bins || !this.props.HistoBox.VisualBinRanges.length)
+        if (!histoResult || !histoResult.bins || !this.props.HistoBox.VisualBinRanges.length)
             return (null);
         let allBrushIndex = ModelHelpers.AllBrushIndex(histoResult);
         return Object.keys(histoResult.bins).reduce((prims, key) => {
             let drawPrims = new HistogramBinPrimitiveCollection(histoResult!.bins![key], this.props.HistoBox);
-            let filterModel = ModelHelpers.GetBinFilterModel(histoResult!.bins![key], allBrushIndex, histoResult!, histoOp!.X, histoOp!.Y);
+            let filterModel = ModelHelpers.GetBinFilterModel(histoResult!.bins![key], allBrushIndex, histoResult!, this.histoOp!.X, this.histoOp!.Y);
 
             this.props.HistoBox.HitTargets.setValue(drawPrims.HitGeom, filterModel);
 
-            let toggle = this.getSelectionToggle(histoOp!, drawPrims.BinPrimitives, allBrushIndex, filterModel);
+            let toggle = this.getSelectionToggle(drawPrims.BinPrimitives, allBrushIndex, filterModel);
             drawPrims.BinPrimitives.filter(bp => bp.DataValue && bp.BrushIndex !== allBrushIndex).map(bp =>
-                prims.push(...[{ r: bp.Rect, c: bp.Color }, { r: bp.MarginRect, c: StyleConstants.MARGIN_BARS_COLOR }].map(pair => this.drawRect(pair.r, bp.BarAxis, pair.c, toggle, "bar"))));
+                prims.push(...[{ r: bp.Rect, c: bp.Color }, { r: bp.MarginRect, c: StyleConstants.MARGIN_BARS_COLOR }].map(pair => this.drawRect(pair.r, bp.BarAxis, pair.c, "bar", toggle))));
             return prims;
         }, [] as JSX.Element[]);
     }
 
-
-    private renderGridLinesAndLabels(axis: number) {
-        let sc = this.props.HistoBox.SizeConverter;
-        let vb = this.props.HistoBox.VisualBinRanges;
-        if (!vb.length || !sc.Initialized)
-            return (null);
-
-        let prims: JSX.Element[] = [];
-        let labels = vb[axis].GetLabels();
-        labels.map((binLabel, i) => {
-            let r = sc.DataToScreenRange(binLabel.minValue!, binLabel.maxValue!, axis);
-
-            prims.push(this.drawLine(r.xFrom, r.yFrom, axis == 0 ? 1 : r.xTo - r.xFrom, axis == 0 ? r.yTo - r.yFrom : 1));
-            if (i == labels.length - 1)
-                prims.push(this.drawLine(axis == 0 ? r.xTo : r.xFrom, axis == 0 ? r.yFrom : r.yTo, axis == 0 ? 1 : r.xTo - r.xFrom, axis == 0 ? r.yTo - r.yFrom : 1));
-        });
-        return prims;
+    private getSelectionToggle(binPrimitives: HistogramBinPrimitive[], allBrushIndex: number, filterModel: FilterModel) {
+        let allBrushPrim = ArrayUtil.FirstOrDefault(binPrimitives, bp => bp.BrushIndex == allBrushIndex);
+        return !allBrushPrim ? () => { } : () => runInAction(() => {
+            if (ArrayUtil.Contains(this.histoOp!.FilterModels, filterModel)) {
+                this._selectedPrims.splice(this._selectedPrims.indexOf(allBrushPrim!), 1);
+                this.histoOp!.RemoveFilterModels([filterModel]);
+            }
+            else {
+                this._selectedPrims.push(allBrushPrim!);
+                this.histoOp!.AddFilterModels([filterModel]);
+            }
+        })
     }
 
+    private renderGridLinesAndLabels(axis: number) {
+        if (!this.props.HistoBox.SizeConverter.Initialized)
+            return (null);
+        let labels = this.props.HistoBox.VisualBinRanges[axis].GetLabels();
+        return labels.reduce((prims, binLabel, i) => {
+            let r = this.props.HistoBox.SizeConverter.DataToScreenRange(binLabel.minValue!, binLabel.maxValue!, axis);
+            prims.push(this.drawLine(r.xFrom, r.yFrom, axis == 0 ? 0 : r.xTo - r.xFrom, axis == 0 ? r.yTo - r.yFrom : 0));
+            if (i == labels.length - 1)
+                prims.push(this.drawLine(axis == 0 ? r.xTo : r.xFrom, axis == 0 ? r.yFrom : r.yTo, axis == 0 ? 0 : r.xTo - r.xFrom, axis == 0 ? r.yTo - r.yFrom : 0));
+            return prims;
+        }, [] as JSX.Element[]);
+    }
+
+    drawEntity(xFrom: number, yFrom: number, entity: JSX.Element) {
+        let transXpercent = xFrom / this.renderDimension * 100;
+        let transYpercent = yFrom / this.renderDimension * 100;
+        return (<div key={DashUtils.GenerateGuid()} className={`histogramboxprimitives-placer`} style={{ transform: `translate(${transXpercent}%, ${transYpercent}%)` }}>
+            {entity}
+        </div>);
+    }
     drawLine(xFrom: number, yFrom: number, width: number, height: number) {
         if (height < 0) {
             yFrom += height;
@@ -89,46 +85,33 @@ export class HistogramBoxPrimitives extends React.Component<HistogramBoxPrimitiv
             xFrom += width;
             width = -width;
         }
-        let transXpercent = (xFrom) / this.props.HistoBox.SizeConverter.RenderDimension;
-        let transYpercent = (yFrom) / this.props.HistoBox.SizeConverter.RenderDimension;
-        let trans2Xpercent = width == 1 ? "1px" : `${(xFrom + width) / this.props.HistoBox.SizeConverter.RenderDimension * 100}%`;
-        let trans2Ypercent = height == 1 ? "1px" : `${(yFrom + height) / this.props.HistoBox.SizeConverter.RenderDimension * 100}%`;
-        return <div key={DashUtils.GenerateGuid()} className="histogramboxprimitives-placer" style={{ transform: `translate(${transXpercent * 100}%, ${transYpercent * 100}%)` }}>
-            <div className="histogramboxprimitives-line"
-                style={{
-                    width: trans2Xpercent,
-                    height: trans2Ypercent,
-                }}
-            /></div>;
+        let trans2Xpercent = width == 0 ? `1px` : `${(xFrom + width) / this.renderDimension * 100}%`;
+        let trans2Ypercent = height == 0 ? `1px` : `${(yFrom + height) / this.renderDimension * 100}%`;
+        let line = (<div className="histogramboxprimitives-line" style={{ width: trans2Xpercent, height: trans2Ypercent, }} />);
+        return this.drawEntity(xFrom, yFrom, line);
     }
 
-    drawRect(r: PIXIRectangle, barAxis: number, color: number | undefined, tapHandler: () => void, classExt: string) {
-        let widthPercent = (r.width - 0) / this.props.HistoBox.SizeConverter.RenderDimension;
-        let heightPercent = r.height / this.props.HistoBox.SizeConverter.RenderDimension;
-        let transXpercent = (r.x) / this.props.HistoBox.SizeConverter.RenderDimension;
-        let transYpercent = (r.y) / this.props.HistoBox.SizeConverter.RenderDimension;
-        return (<div key={DashUtils.GenerateGuid()} className={`histogramboxprimitives-placer`} style={{ transform: `translate(${transXpercent * 100}%, ${transYpercent * 100}%)` }}>
-            <div className={`histogramboxprimitives-${classExt}`} onPointerDown={(e: React.PointerEvent) => { if (e.button == 0) tapHandler() }}
-                style={{
-                    borderBottomStyle: barAxis == 1 ? "none" : "solid",
-                    borderLeftStyle: barAxis == 0 ? "none" : "solid",
-                    width: `${widthPercent * 100}%`,
-                    height: `${heightPercent * 100}%`,
-                    background: color ? `${LABColor.RGBtoHexString(color)}` : ""
-                }}
-            /></div>);
+    drawRect(r: PIXIRectangle, barAxis: number, color: number | undefined, classExt: string, tapHandler: () => void = () => { }) {
+        let widthPercent = r.width / this.renderDimension * 100;
+        let heightPercent = r.height / this.renderDimension * 100;
+        let rect = (<div className={`histogramboxprimitives-${classExt}`} onPointerDown={(e: React.PointerEvent) => { if (e.button == 0) tapHandler() }}
+            style={{
+                borderBottomStyle: barAxis == 1 ? "none" : "solid",
+                borderLeftStyle: barAxis == 0 ? "none" : "solid",
+                width: `${widthPercent}%`,
+                height: `${heightPercent}%`,
+                background: color ? `${LABColor.RGBtoHexString(color)}` : ""
+            }}
+        />);
+        return this.drawEntity(r.x, r.y, rect);
     }
     render() {
-        if (!this.props.HistoBox.SizeConverter.Initialized)
-            return (null);
-        let xaxislines = this.xaxislines;
-        let yaxislines = this.yaxislines;
         return <div className="histogramboxprimitives-container" style={{
             width: "100%",
             height: "100%",
         }}>
-            {xaxislines}
-            {yaxislines}
+            {this.xaxislines}
+            {this.yaxislines}
             {this.binPrimitives}
             {this.selectedPrimitives}
         </div>
