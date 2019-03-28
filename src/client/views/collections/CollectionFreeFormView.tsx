@@ -429,7 +429,7 @@ export class LinksView extends React.Component<CollectionViewProps> {
     @observable _triples: { a: Document, b: Document, l: Document }[] = [];
 
     findPairs() {
-        return DocumentManager.Instance.DocumentViews.filter(dv => dv.props.ContainingCollectionView && dv.props.ContainingCollectionView.props.Document === this.props.Document).reduce((pairs, dv) => {
+        let self = this.props.Document;
 
         return DocumentManager.Instance.DocumentViews.reduce((pairs, dv) => {
             let srcViews = [dv];
