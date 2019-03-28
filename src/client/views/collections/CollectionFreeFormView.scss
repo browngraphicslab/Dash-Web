@@ -1,5 +1,22 @@
 @import "../global_variables";
 
+.collectionfreeformview-linkLine {
+    stroke: black;
+    stroke-width: 3;
+    transform: translate(10000px,10000px)
+}
+.collectionfreeformview-svgContainer{
+  transform: translate(-10000px,-10000px);
+  position: absolute;
+  width: 20000px; 
+  height: 20000px;
+}
+.collectionfreeformview-svgCanvas{
+  transform: translate(-10000px,-10000px);
+  position: absolute;
+  width: 20000px; 
+  height: 20000px;
+}
 .collectionfreeformview-container {
   .collectionfreeformview > .jsx-parser {
     position: absolute;

@@ -424,7 +424,7 @@ export class LinksView extends React.Component<CollectionViewProps> {
         super(props);
     }
 
-    @observable _pairs: { a: DocumentView, b: DocumentView }[] = [];
+    @observable _pairs: { a: Document, b: Document }[] = [];
 
     findPairs() {
         return DocumentManager.Instance.DocumentViews.filter(dv => dv.props.ContainingCollectionView && dv.props.ContainingCollectionView.props.Document === this.props.Document).reduce((pairs, dv) => {
@@ -435,44 +435,35 @@ export class LinksView extends React.Component<CollectionViewProps> {
                         let linkToDoc = link.GetT(KeyStore.LinkedToDocs, Document);
                         if (linkToDoc && linkToDoc != FieldWaiting) {
                             DocumentManager.Instance.getDocumentViews(linkToDoc).map(docView1 =>
-                                pairs.push({ a: dv, b: docView1 })
+                                pairs.push({ a: dv.props.Document, b: docView1.props.Document })
                             )
                         }
                     }
                     return pairs;
-                }, [] as { a: DocumentView, b: DocumentView }[]));
+                }, [] as { a: Document, b: Document }[]));
             }
             return pairs;
-        }, [] as { a: DocumentView, b: DocumentView }[]);
+        }, [] as { a: Document, b: Document }[]);
     }
     componentDidMount() {
-        reaction(() => this.findPairs()
-            , (pairs) => runInAction(() => this._pairs = pairs));
+        reaction(() => this.findPairs(), (pairs) => runInAction(() => this._pairs = pairs));
     }
 
     render() {
         if (!this._pairs.length)
             return (null);
-        return <div>
+        return <svg className="collectionfreeformview-svgCanvas">
             {this._pairs.map(pair => {
-                let doc1 = pair.a.props.Document;
-                let doc2 = pair.b.props.Document;
-                let x1 = doc1.GetNumber(KeyStore.X, 0) + doc1.GetNumber(KeyStore.Width, 0) / 2;
-                let y1 = doc1.GetNumber(KeyStore.Y, 0) + doc1.GetNumber(KeyStore.Height, 0) / 2;
-                let x2 = doc2.GetNumber(KeyStore.X, 0) + doc2.GetNumber(KeyStore.Width, 0) / 2;
-                let y2 = doc2.GetNumber(KeyStore.Y, 0) + doc2.GetNumber(KeyStore.Height, 0) / 2;
-                let lx = Math.min(x1, x2);
-                let ly = Math.min(y1, y2);
-                let w = Math.max(x1, x2) - lx;
-                let h = Math.max(y1, y2) - ly;
-                let unflipped = (x1 == lx && y1 == ly) || (x2 == lx && y2 == ly);
+                let x1 = pair.a.GetNumber(KeyStore.X, 0) + pair.a.GetNumber(KeyStore.Width, 0) / 2;
+                let y1 = pair.a.GetNumber(KeyStore.Y, 0) + pair.a.GetNumber(KeyStore.Height, 0) / 2;
+                let x2 = pair.b.GetNumber(KeyStore.X, 0) + pair.b.GetNumber(KeyStore.Width, 0) / 2;
+                let y2 = pair.b.GetNumber(KeyStore.Y, 0) + pair.b.GetNumber(KeyStore.Height, 0) / 2;
                 return (
-                    <div key={Utils.GenerateGuid()} style={{ width: w, height: h, transform: `translate(${lx}px, ${ly}px)`, position: "absolute" }}>
-                        <svg width="5000" height="5000">
-                            <line x1="0" x2={`${w}`} y1={`${unflipped ? 0 : h}`} y2={`${unflipped ? h : 0}`} width="4" style={{ stroke: "black", strokeWidth: "5" }}  ></line>
-                        </svg>
-                    </div>);
+                    <line key={Utils.GenerateGuid()} className="collectionfreeformview-linkLine"
+                        x1={`${x1}`} y1={`${y1}`}
+                        x2={`${x2}`} y2={`${y2}`} />
+                )
             })}
-        </div>
+        </svg>
     }
 }
