@@ -70,7 +70,7 @@ export class CollectionView extends React.Component<CollectionViewProps> {
     public static AddDocument(props: CollectionViewProps, doc: Document, allowDuplicates: boolean): boolean {
         var curPage = props.Document.GetNumber(KeyStore.CurPage, -1);
         doc.SetOnPrototype(KeyStore.Page, new NumberField(curPage));
-        if (curPage > 0) {
+        if (curPage >= 0) {
             doc.SetOnPrototype(KeyStore.AnnotationOn, props.Document);
         }
         if (props.Document.Get(props.fieldKey) instanceof Field) {

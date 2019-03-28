@@ -1,4 +1,4 @@
-import { action, computed, observable, reaction, runInAction } from "mobx";
+import { action, computed, observable, reaction, runInAction, trace, untracked } from "mobx";
 import { observer } from "mobx-react";
 import { Document } from "../../../fields/Document";
 import { FieldWaiting, Field, Opt } from "../../../fields/Field";
@@ -424,6 +424,7 @@ export class LinksView extends React.Component<CollectionViewProps> {
 
     constructor(props: CollectionViewProps) {
         super(props);
+        console.log("Create links View");
     }
 
     @observable _triples: { a: Document, b: Document, l: Document }[] = [];
@@ -432,42 +433,47 @@ export class LinksView extends React.Component<CollectionViewProps> {
         let self = this.props.Document;
 
         return DocumentManager.Instance.DocumentViews.reduce((pairs, dv) => {
-            let srcViews = [dv];
-            let srcAnnot = dv.props.Document.GetT(KeyStore.AnnotationOn, Document);
-            if (srcAnnot && srcAnnot != FieldWaiting && srcAnnot instanceof Document) {
-                srcViews = DocumentManager.Instance.getDocumentViews(srcAnnot.GetPrototype() as Document)
-            }
-            srcViews = srcViews.filter(sv =>
-                sv.props.ContainingCollectionView && sv.props.ContainingCollectionView.props.Document == self
-            );
-            let linksList = dv.props.Document.GetT(KeyStore.LinkedToDocs, ListField);
-            if (linksList && linksList != FieldWaiting && linksList.Data.length) {
-                pairs.push(...linksList.Data.reduce((pairs, link) => {
-                    if (link instanceof Document) {
-                        let linkToDoc = link.GetT(KeyStore.LinkedToDocs, Document);
-                        if (linkToDoc && linkToDoc != FieldWaiting) {
-                            DocumentManager.Instance.getDocumentViews(linkToDoc).map(docView1 => {
-
-                                let targetViews = [docView1];
-                                let docAnnot = docView1.props.Document.GetT(KeyStore.AnnotationOn, Document);
-                                if (docAnnot && docAnnot != FieldWaiting && docAnnot instanceof Document) {
-                                    targetViews = DocumentManager.Instance.getDocumentViews(docAnnot.GetPrototype() as Document)
-                                }
-                                targetViews.filter(tv =>
-                                    tv.props.ContainingCollectionView && tv.props.ContainingCollectionView.props.Document == self
-                                ).map(tv => srcViews.map(sv =>
-                                    pairs.push({ a: sv.props.Document, b: tv.props.Document, l: link })))
-                            })
+            untracked(() => {
+                let srcViews = [dv];
+                let srcAnnot = dv.props.Document.GetT(KeyStore.AnnotationOn, Document);
+                if (srcAnnot && srcAnnot != FieldWaiting && srcAnnot instanceof Document) {
+                    srcViews = DocumentManager.Instance.getDocumentViews(srcAnnot.GetPrototype() as Document)
+                }
+                srcViews = srcViews.filter(sv =>
+                    sv.props.ContainingCollectionView && sv.props.ContainingCollectionView.props.Document == self
+                );
+                let linksList = dv.props.Document.GetT(KeyStore.LinkedToDocs, ListField);
+                if (linksList && linksList != FieldWaiting && linksList.Data.length) {
+                    pairs.push(...linksList.Data.reduce((pairs, link) => {
+                        if (link instanceof Document) {
+                            let linkToDoc = link.GetT(KeyStore.LinkedToDocs, Document);
+                            if (linkToDoc && linkToDoc != FieldWaiting) {
+                                DocumentManager.Instance.getDocumentViews(linkToDoc).map(docView1 => {
+                                    let targetViews = [docView1];
+                                    let docAnnot = docView1.props.Document.GetT(KeyStore.AnnotationOn, Document);
+                                    if (docAnnot && docAnnot != FieldWaiting && docAnnot instanceof Document) {
+                                        targetViews = DocumentManager.Instance.getDocumentViews(docAnnot.GetPrototype() as Document)
+                                    }
+                                    targetViews.filter(tv =>
+                                        tv.props.ContainingCollectionView && tv.props.ContainingCollectionView.props.Document == self
+                                    ).map(tv => srcViews.map(sv =>
+                                        pairs.push({ a: sv.props.Document, b: tv.props.Document, l: link })))
+                                })
+                            }
                         }
-                    }
-                    return pairs;
-                }, [] as { a: Document, b: Document, l: Document }[]));
-            }
+                        return pairs;
+                    }, [] as { a: Document, b: Document, l: Document }[]));
+                }
+            })
             return pairs;
         }, [] as { a: Document, b: Document, l: Document }[]);
     }
     componentDidMount() {
-        reaction(() => this.findPairs(), (pairs) => runInAction(() => this._triples = pairs));
+        reaction(() => DocumentManager.Instance.DocumentViews.map(dv => [
+            dv.props.Document.Get(KeyStore.AnnotationOn, false),
+            dv.props.Document.Get(KeyStore.LinkedFromDocs, false),
+            dv.props.Document.Get(KeyStore.LinkedToDocs, false)
+        ]), () => runInAction(() => this._triples = this.findPairs()));
     }
 
     onPointerDown(e: React.PointerEvent) {
@@ -483,14 +489,29 @@ export class LinksView extends React.Component<CollectionViewProps> {
     render() {
         if (!this._triples.length)
             return (null);
+        let y: { a: Document, b: Document, l: Document, n: number }[] = []
+        this._triples.map(t => {
+            if (!y.reduce((found, yi) => {
+                if (yi.a == t.a && yi.b == t.b) {
+                    if (yi.l != t.l)
+                        yi.n++;
+                    return true;
+                }
+                return found;
+            }, false)) {
+                y.push({ a: t.a, b: t.b, l: t.l, n: 1 });
+            }
+        })
+        console.log("RENDERING " + y.length)
         return <svg className="collectionfreeformview-svgCanvas">
-            {this._triples.map(pair => {
+            {y.map(pair => {
                 let x1 = pair.a.GetNumber(KeyStore.X, 0) + pair.a.GetNumber(KeyStore.Width, 0) / 2;
                 let y1 = pair.a.GetNumber(KeyStore.Y, 0) + pair.a.GetNumber(KeyStore.Height, 0) / 2;
                 let x2 = pair.b.GetNumber(KeyStore.X, 0) + pair.b.GetNumber(KeyStore.Width, 0) / 2;
                 let y2 = pair.b.GetNumber(KeyStore.Y, 0) + pair.b.GetNumber(KeyStore.Height, 0) / 2;
                 return (
                     <line key={Utils.GenerateGuid()} id={pair.l.Id} className="collectionfreeformview-linkLine" onPointerDown={this.onPointerDown}
+                        style={{ strokeWidth: `${pair.n * 5}` }}
                         x1={`${x1}`} y1={`${y1}`}
                         x2={`${x2}`} y2={`${y2}`} />
                 )

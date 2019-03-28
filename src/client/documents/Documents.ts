@@ -119,6 +119,7 @@ export namespace Documents {
             imageProto = setupPrototypeOptions(imageProtoId, "IMAGE_PROTO", CollectionView.LayoutString("AnnotationsKey"),
                 { x: 0, y: 0, nativeWidth: 300, width: 300, layoutKeys: [KeyStore.Data, KeyStore.Annotations, KeyStore.Caption] });
             imageProto.SetText(KeyStore.BackgroundLayout, ImageBox.LayoutString());
+            imageProto.SetNumber(KeyStore.CurPage, 0);
         }
         return imageProto;
     }
