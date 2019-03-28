@@ -255,8 +255,6 @@ export class DocumentView extends React.Component<DocumentViewProps> {
                     linkDoc.Set(KeyStore.LinkedFromDocs, srcTarg);
                     dstTarg.GetOrCreateAsync(KeyStore.LinkedFromDocs, ListField, field => { (field as ListField<Document>).Data.push(linkDoc) })
                     srcTarg.GetOrCreateAsync(KeyStore.LinkedToDocs, ListField, field => { (field as ListField<Document>).Data.push(linkDoc) })
-                    if (this.props.AddDocument)
-                        this.props.AddDocument(linkDoc, false);
                 }))
             )
             e.stopPropagation();

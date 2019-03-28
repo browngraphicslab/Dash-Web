@@ -1,7 +1,7 @@
-import { action, computed, observable } from "mobx";
+import { action, computed, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { Document } from "../../../fields/Document";
-import { FieldWaiting } from "../../../fields/Field";
+import { FieldWaiting, Field } from "../../../fields/Field";
 import { KeyStore } from "../../../fields/KeyStore";
 import { ListField } from "../../../fields/ListField";
 import { TextField } from "../../../fields/TextField";
@@ -11,14 +11,16 @@ import { undoBatch } from "../../util/UndoManager";
 import { InkingCanvas } from "../InkingCanvas";
 import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
 import { DocumentContentsView } from "../nodes/DocumentContentsView";
-import { DocumentViewProps } from "../nodes/DocumentView";
+import { DocumentViewProps, DocumentView } from "../nodes/DocumentView";
 import "./CollectionFreeFormView.scss";
 import { COLLECTION_BORDER_WIDTH } from "./CollectionView";
-import { CollectionViewBase } from "./CollectionViewBase";
+import { CollectionViewBase, CollectionViewProps } from "./CollectionViewBase";
 import { MarqueeView } from "./MarqueeView";
 import { PreviewCursor } from "./PreviewCursor";
 import React = require("react");
 import v5 = require("uuid/v5");
+import { DocumentManager } from "../../util/DocumentManager";
+import { Utils } from "../../../Utils";
 
 @observer
 export class CollectionFreeFormView extends CollectionViewBase {
@@ -360,6 +362,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
                     <InkingCanvas getScreenTransform={this.getTransform} Document={this.props.Document} />
                     <PreviewCursor container={this} addLiveTextDocument={this.addLiveTextBox} getTransform={this.getTransform} />
                     {this.views}
+                    <LinksView {...this.props} />
                     {super.getCursors().map(entry => {
                         if (entry.Data.length > 0) {
                             let id = entry.Data[0][0];
@@ -410,5 +413,66 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
             </div>
         );
+    }
+}
+
+@observer
+export class LinksView extends React.Component<CollectionViewProps> {
+    private _mainCont = React.createRef<HTMLDivElement>();
+
+    constructor(props: CollectionViewProps) {
+        super(props);
+    }
+
+    @observable _pairs: { a: DocumentView, b: DocumentView }[] = [];
+
+    findPairs() {
+        return DocumentManager.Instance.DocumentViews.filter(dv => dv.props.ContainingCollectionView && dv.props.ContainingCollectionView.props.Document === this.props.Document).reduce((pairs, dv) => {
+            let linksList = dv.props.Document.GetT(KeyStore.LinkedToDocs, ListField);
+            if (linksList && linksList != FieldWaiting && linksList.Data.length) {
+                pairs.push(...linksList.Data.reduce((pairs, link) => {
+                    if (link instanceof Document) {
+                        let linkToDoc = link.GetT(KeyStore.LinkedToDocs, Document);
+                        if (linkToDoc && linkToDoc != FieldWaiting) {
+                            DocumentManager.Instance.getDocumentViews(linkToDoc).map(docView1 =>
+                                pairs.push({ a: dv, b: docView1 })
+                            )
+                        }
+                    }
+                    return pairs;
+                }, [] as { a: DocumentView, b: DocumentView }[]));
+            }
+            return pairs;
+        }, [] as { a: DocumentView, b: DocumentView }[]);
+    }
+    componentDidMount() {
+        reaction(() => this.findPairs()
+            , (pairs) => runInAction(() => this._pairs = pairs));
+    }
+
+    render() {
+        if (!this._pairs.length)
+            return (null);
+        return <div>
+            {this._pairs.map(pair => {
+                let doc1 = pair.a.props.Document;
+                let doc2 = pair.b.props.Document;
+                let x1 = doc1.GetNumber(KeyStore.X, 0) + doc1.GetNumber(KeyStore.Width, 0) / 2;
+                let y1 = doc1.GetNumber(KeyStore.Y, 0) + doc1.GetNumber(KeyStore.Height, 0) / 2;
+                let x2 = doc2.GetNumber(KeyStore.X, 0) + doc2.GetNumber(KeyStore.Width, 0) / 2;
+                let y2 = doc2.GetNumber(KeyStore.Y, 0) + doc2.GetNumber(KeyStore.Height, 0) / 2;
+                let lx = Math.min(x1, x2);
+                let ly = Math.min(y1, y2);
+                let w = Math.max(x1, x2) - lx;
+                let h = Math.max(y1, y2) - ly;
+                let unflipped = (x1 == lx && y1 == ly) || (x2 == lx && y2 == ly);
+                return (
+                    <div key={Utils.GenerateGuid()} style={{ width: w, height: h, transform: `translate(${lx}px, ${ly}px)`, position: "absolute" }}>
+                        <svg width="5000" height="5000">
+                            <line x1="0" x2={`${w}`} y1={`${unflipped ? 0 : h}`} y2={`${unflipped ? h : 0}`} width="4" style={{ stroke: "black", strokeWidth: "5" }}  ></line>
+                        </svg>
+                    </div>);
+            })}
+        </div>
     }
 }

@@ -35,12 +35,6 @@ export class DocumentManager {
         DocumentManager.Instance.DocumentViews.map(view => {
             let doc = view.props.Document;
             // if (view.props.ContainingCollectionView instanceof CollectionFreeFormView) {
-            //     if (Object.is(doc, toFind)) {
-            //         toReturn = view;
-            //         return;
-            //     }
-            // }
-
 
             if (Object.is(doc, toFind)) {
                 toReturn = view;
@@ -49,6 +43,27 @@ export class DocumentManager {
             let docSrc = doc.GetT(KeyStore.Prototype, Document);
             if (docSrc && docSrc != FieldWaiting && Object.is(docSrc, toFind)) {
                 toReturn = view;
+            }
+        })
+
+        return (toReturn);
+    }
+    public getDocumentViews(toFind: Document): DocumentView[] {
+
+        let toReturn: DocumentView[] = [];
+
+        //gets document view that is in a freeform canvas collection
+        DocumentManager.Instance.DocumentViews.map(view => {
+            let doc = view.props.Document;
+            // if (view.props.ContainingCollectionView instanceof CollectionFreeFormView) {
+
+            if (Object.is(doc, toFind)) {
+                toReturn.push(view);
+            } else {
+                let docSrc = doc.GetT(KeyStore.Prototype, Document);
+                if (docSrc && docSrc != FieldWaiting && Object.is(docSrc, toFind)) {
+                    toReturn.push(view);
+                }
             }
         })
 
