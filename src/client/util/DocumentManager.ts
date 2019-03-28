@@ -26,6 +26,11 @@ export class DocumentManager {
         // this.DocumentViews = new Array<DocumentView>();
     }
 
+    public getAllDocumentViews(collection: Document) {
+        return this.DocumentViews.filter(dv =>
+            dv.props.ContainingCollectionView && dv.props.ContainingCollectionView.props.Document == collection);
+    }
+
     public getDocumentView(toFind: Document): DocumentView | null {
 
         let toReturn: DocumentView | null;

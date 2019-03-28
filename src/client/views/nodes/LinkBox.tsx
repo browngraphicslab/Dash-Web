@@ -45,7 +45,7 @@ export class LinkBox extends React.Component<Props> {
         } else {
             this.props.pairedDoc.GetAsync(KeyStore.AnnotationOn, (contextDoc: any) => {
                 if (!contextDoc) {
-                    CollectionDockingView.Instance.AddRightSplit(this.props.pairedDoc);
+                    CollectionDockingView.Instance.AddRightSplit(this.props.pairedDoc.MakeDelegate());
                 } else if (contextDoc instanceof Document) {
                     this.props.pairedDoc.GetTAsync(KeyStore.Page, NumberField).then((pfield: any) => {
                         contextDoc.GetTAsync(KeyStore.CurPage, NumberField).then((cfield: any) => {

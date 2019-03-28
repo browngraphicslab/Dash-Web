@@ -69,9 +69,9 @@ export class CollectionView extends React.Component<CollectionViewProps> {
     @action
     public static AddDocument(props: CollectionViewProps, doc: Document, allowDuplicates: boolean): boolean {
         var curPage = props.Document.GetNumber(KeyStore.CurPage, -1);
-        doc.SetNumber(KeyStore.Page, curPage);
+        doc.SetOnPrototype(KeyStore.Page, new NumberField(curPage));
         if (curPage > 0) {
-            doc.Set(KeyStore.AnnotationOn, props.Document);
+            doc.SetOnPrototype(KeyStore.AnnotationOn, props.Document);
         }
         if (props.Document.Get(props.fieldKey) instanceof Field) {
             //TODO This won't create the field if it doesn't already exist
