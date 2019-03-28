@@ -49,7 +49,7 @@ export class ContextMenu extends React.Component {
         //maxX and maxY will change if the UI/font size changes, but will work for any amount
         //of items added to the menu
         let maxX = window.innerWidth - 150;
-        let maxY = window.innerHeight - (this._items.length * 34 + 30);
+        let maxY = window.innerHeight - ((this._items.length + 1/*for search box*/) * 34 + 30);
 
         this._pageX = x > maxX ? maxX : x;
         this._pageY = y > maxY ? maxY : y;
@@ -83,11 +83,8 @@ export class ContextMenu extends React.Component {
         return (
             <div className="contextMenu-cont" style={style} ref={this.ref}>
                 <input className="contextMenu-item" type="text" placeholder="Search . . ." value={this._searchString} onChange={this.onChange}></input>
-                {this._items.filter(prop => {
-                    return prop.description.toLowerCase().indexOf(this._searchString.toLowerCase()) !== -1;
-                }).map(prop => {
-                    return <ContextMenuItem {...prop} key={prop.description} />
-                })}
+                {this._items.filter(prop => prop.description.toLowerCase().indexOf(this._searchString.toLowerCase()) !== -1).
+                    map(prop => <ContextMenuItem {...prop} key={prop.description} />)}
             </div>
         )
     }

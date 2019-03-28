@@ -27,7 +27,6 @@ export namespace KeyStore {
     export const ColumnsKey = new Key("SchemaColumns");
     export const SchemaSplitPercentage = new Key("SchemaSplitPercentage");
     export const Caption = new Key("Caption");
-    export const ActiveFrame = new Key("ActiveFrame");
     export const ActiveWorkspace = new Key("ActiveWorkspace");
     export const DocumentText = new Key("DocumentText");
     export const LinkedToDocs = new Key("LinkedToDocs");

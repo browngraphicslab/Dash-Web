@@ -147,6 +147,7 @@ export class Main extends React.Component {
         if (!CurrentUserUtils.MainDocId) {
             this.userDocument.GetTAsync(KeyStore.ActiveWorkspace, Document).then(doc => {
                 if (doc) {
+                    CurrentUserUtils.MainDocId = doc.Id;
                     this.openWorkspace(doc);
                 } else {
                     this.createNewWorkspace();
@@ -171,9 +172,9 @@ export class Main extends React.Component {
                 var dockingLayout = { content: [{ type: 'row', content: [CollectionDockingView.makeDocumentConfig(freeformDoc)] }] };
                 let mainDoc = Documents.DockDocument(JSON.stringify(dockingLayout), { title: `Main Container ${list.Data.length + 1}` }, id);
                 list.Data.push(mainDoc);
+                CurrentUserUtils.MainDocId = mainDoc.Id;
                 // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
                 setTimeout(() => {
-                    mainDoc.Set(KeyStore.ActiveFrame, freeformDoc);
                     this.openWorkspace(mainDoc);
                     let pendingDocument = Documents.SchemaDocument([], { title: "New Mobile Uploads" })
                     mainDoc.Set(KeyStore.OptionalRightCollection, pendingDocument);
@@ -186,7 +187,6 @@ export class Main extends React.Component {
     openWorkspace = (doc: Document, fromHistory = false): void => {
         this.mainContainer = doc;
         fromHistory || window.history.pushState(null, doc.Title, "/doc/" + doc.Id);
-        this.mainContainer.GetTAsync(KeyStore.ActiveFrame, Document, field => this.mainfreeform = field);
         this.userDocument.GetTAsync(KeyStore.OptionalRightCollection, Document).then(col => {
             // if there is a pending doc, and it has new data, show it (syip: we use a timeout to prevent collection docking view from being uninitialized)
             setTimeout(() => {
@@ -264,8 +264,6 @@ export class Main extends React.Component {
             [React.createRef<HTMLDivElement>(), "table", "Add Schema", addSchemaNode],
         ]
 
-        let addClick = (creator: () => Document) => action(() => this.mainfreeform!.GetList<Document>(KeyStore.Data, []).push(creator()));
-
         return < div id="add-nodes-menu" >
             <input type="checkbox" id="add-menu-toggle" />
             <label htmlFor="add-menu-toggle" title="Add Node"><p>+</p></label>
@@ -274,7 +272,7 @@ export class Main extends React.Component {
                 <ul id="add-options-list">
                     {btns.map(btn =>
                         <li key={btn[1]} ><div ref={btn[0]}>
-                            <button className="round-button add-button" title={btn[2]} onPointerDown={setupDrag(btn[0], btn[3])} onClick={addClick(btn[3])}>
+                            <button className="round-button add-button" title={btn[2]} onPointerDown={setupDrag(btn[0], btn[3])}>
                                 <FontAwesomeIcon icon={btn[1]} size="sm" />
                             </button>
                         </div></li>)}
