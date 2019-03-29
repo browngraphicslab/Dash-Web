@@ -2,26 +2,25 @@ import React = require("react")
 import { action, computed, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import Measure from "react-measure";
-import { Dictionary } from "typescript-collections";
 import { FieldWaiting, Opt } from "../../../fields/Field";
+import { Document } from "../../../fields/Document";
 import { KeyStore } from "../../../fields/KeyStore";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
-import { FilterModel } from '../../northstar/core/filter/FilterModel';
 import { ChartType, VisualBinRange } from '../../northstar/model/binRanges/VisualBinRange';
 import { VisualBinRangeHelper } from "../../northstar/model/binRanges/VisualBinRangeHelper";
-import { AggregateBinRange, BinRange, DoubleValueAggregateResult, HistogramResult, Catalog, AggregateFunction } from "../../northstar/model/idea/idea";
+import { AggregateBinRange, AggregateFunction, BinRange, Catalog, DoubleValueAggregateResult, HistogramResult } from "../../northstar/model/idea/idea";
 import { ModelHelpers } from "../../northstar/model/ModelHelpers";
 import { HistogramOperation } from "../../northstar/operations/HistogramOperation";
-import { PIXIRectangle } from "../../northstar/utils/MathUtil";
 import { SizeConverter } from "../../northstar/utils/SizeConverter";
 import { DragManager } from "../../util/DragManager";
 import { FieldView, FieldViewProps } from "../../views/nodes/FieldView";
+import { AttributeTransformationModel } from "../core/attribute/AttributeTransformationModel";
 import { HistogramField } from "../dash-fields/HistogramField";
-import "../utils/Extensions"
+import "../utils/Extensions";
 import "./HistogramBox.scss";
 import { HistogramBoxPrimitives } from './HistogramBoxPrimitives';
 import { HistogramLabelPrimitives } from "./HistogramLabelPrimitives";
-import { AttributeTransformationModel } from "../core/attribute/AttributeTransformationModel";
+import { StyleConstants } from "../utils/StyleContants";
 
 export interface HistogramPrimitivesProps {
     HistoBox: HistogramBox;
@@ -124,7 +123,13 @@ export class HistogramBox extends React.Component<FieldViewProps> {
             this.props.doc.GetTAsync(this.props.fieldKey, HistogramField).then((histoOp: Opt<HistogramField>) => runInAction(() => {
                 this.HistoOp = histoOp ? histoOp.Data : HistogramOperation.Empty;
                 if (this.HistoOp != HistogramOperation.Empty) {
-                    reaction(() => this.props.doc.GetList(KeyStore.LinkedFromDocs, []), docs => this.HistoOp.Links.splice(0, this.HistoOp.Links.length, ...docs), { fireImmediately: true });
+                    reaction(() => this.props.doc.GetList(KeyStore.LinkedFromDocs, []),
+                        (docs: Document[]) => {
+                            var availableColors = StyleConstants.BRUSH_COLORS.map(c => c);
+                            docs.map((brush, i) => brush.SetNumber(KeyStore.BackgroundColor, availableColors[i % availableColors.length]));
+                            this.HistoOp.BrushLinks.splice(0, this.HistoOp.BrushLinks.length, ...docs);
+                            //this.HistoOp.Links.splice(0, this.HistoOp.Links.length, ...docs)
+                        }, { fireImmediately: true });
                     reaction(() => this.createOperationParamsCache, () => this.HistoOp.Update(), { fireImmediately: true });
                 }
             }));

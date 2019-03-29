@@ -4,29 +4,30 @@ import { CurrentUserUtils } from "../../../server/authentication/models/current_
 import { ColumnAttributeModel } from "../core/attribute/AttributeModel";
 import { AttributeTransformationModel } from "../core/attribute/AttributeTransformationModel";
 import { CalculatedAttributeManager } from "../core/attribute/CalculatedAttributeModel";
-import { BrushLinkModel } from "../core/brusher/BrushLinkModel";
 import { FilterModel } from "../core/filter/FilterModel";
 import { FilterOperand } from "../core/filter/FilterOperand";
 import { IBaseFilterConsumer } from "../core/filter/IBaseFilterConsumer";
-import { IBaseFilterProvider } from "../core/filter/IBaseFilterProvider";
+import { IBaseFilterProvider, instanceOfIBaseFilterProvider } from "../core/filter/IBaseFilterProvider";
 import { SETTINGS_SAMPLE_SIZE, SETTINGS_X_BINS, SETTINGS_Y_BINS } from "../model/binRanges/VisualBinRangeHelper";
 import { AggregateFunction, AggregateParameters, Attribute, AverageAggregateParameters, DataType, HistogramOperationParameters, QuantitativeBinRange, HistogramResult, Brush, DoubleValueAggregateResult, Bin } from "../model/idea/idea";
 import { ModelHelpers } from "../model/ModelHelpers";
 import { ArrayUtil } from "../utils/ArrayUtil";
 import { BaseOperation } from "./BaseOperation";
+import { KeyStore } from "../../../fields/KeyStore";
+import { HistogramField } from "../dash-fields/HistogramField";
+import { FieldWaiting } from "../../../fields/Field";
 
 
 export class HistogramOperation extends BaseOperation implements IBaseFilterConsumer, IBaseFilterProvider {
     @observable public FilterOperand: FilterOperand = FilterOperand.AND;
     @observable public Links: Document[] = [];
+    @observable public BrushLinks: Document[] = [];
     @observable public BrushColors: number[] = [];
     @observable public Normalization: number = -1;
     @observable public FilterModels: FilterModel[] = [];
     @observable public X: AttributeTransformationModel;
     @observable public Y: AttributeTransformationModel;
     @observable public V: AttributeTransformationModel;
-    @observable public BrusherModels: BrushLinkModel<HistogramOperation>[] = [];
-    @observable public BrushableModels: BrushLinkModel<HistogramOperation>[] = [];
     @observable public SchemaName: string;
     @computed public get Schema() { return CurrentUserUtils.GetNorthstarSchema(this.SchemaName); }
 
@@ -63,25 +64,24 @@ export class HistogramOperation extends BaseOperation implements IBaseFilterCons
     @computed
     public get FilterString(): string {
         let filterModels: FilterModel[] = [];
-        let fstring = FilterModel.GetFilterModelsRecursive(this, new Set<IBaseFilterProvider>(), filterModels, true)
-        return fstring;
+        return FilterModel.GetFilterModelsRecursive(this, new Set<IBaseFilterProvider>(), filterModels, true)
     }
 
-    @computed.struct
-    public get BrushString() {
-        return [];
-        // let brushes = [];
-        // this.TypedViewModel.BrusherModels.map(brushLinkModel => {
-        //     if (instanceOfIBaseFilterProvider(brushLinkModel.From) && brushLinkModel.From.FilterModels.some && brushLinkModel.From instanceof BaseOperationViewModel) {
-        //         let brushFilterModels = [];
-        //         let gnode = MainManager.Instance.MainViewModel.FilterDependencyGraph.has(brushLinkModel.From) ?
-        //             MainManager.Instance.MainViewModel.FilterDependencyGraph.get(brushLinkModel.From) :
-        //             new GraphNode<BaseOperationViewModel, FilterLinkViewModel>(brushLinkModel.From);
-        //         let brush = FilterModel.GetFilterModelsRecursive(gnode, new Set<GraphNode<BaseOperationViewModel, FilterLinkViewModel>>(), brushFilterModels, false);
-        //         brushes.push(brush);
-        //     }
-        // });
-        // return brushes;
+    @computed
+    public get BrushString(): string[] {
+        let brushes: string[] = [];
+        this.BrushLinks.map(brushLink => {
+            let brusherDoc = brushLink.Get(KeyStore.LinkedFromDocs);
+            if (brusherDoc && brusherDoc != FieldWaiting && brusherDoc instanceof Document) {
+                let brushHistogram = brusherDoc.GetT(KeyStore.Data, HistogramField);
+                if (brushHistogram && brushHistogram != FieldWaiting) {
+                    let filterModels: FilterModel[] = [];
+                    let brush = FilterModel.GetFilterModelsRecursive(brushHistogram!.Data, new Set<IBaseFilterProvider>(), filterModels, false)
+                    brushes.push(brush);
+                }
+            }
+        });
+        return brushes;
     }
 
 
@@ -131,11 +131,13 @@ export class HistogramOperation extends BaseOperation implements IBaseFilterCons
             });
         }
     }
-
+    get_random_color(): number {
+        return (Math.floor(Math.random() * 256) << 16) + (Math.floor(Math.random() * 256) << 8) + (Math.floor(Math.random() * 256));
+    }
 
     @action
     public async Update(): Promise<void> {
-        this.BrushColors = this.BrusherModels.map(e => e.Color);
+        this.BrushColors = this.BrushLinks.map(e => e.GetNumber(KeyStore.BackgroundColor, 0));
         return super.Update();
     }
 }

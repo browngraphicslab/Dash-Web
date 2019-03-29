@@ -168,7 +168,7 @@ export class HistogramBinPrimitiveCollection {
         var filteredBinPrims = this.BinPrimitives.filter(b => b.BrushIndex != allBrushIndex && b.DataValue != 0.0);
         filteredBinPrims.reduce((sum, fbp) => {
             if (histoBox.ChartType == ChartType.VerticalBar) {
-                if (this.histoOp.X.AggregateFunction == AggregateFunction.Count) {
+                if (this.histoOp.Y.AggregateFunction == AggregateFunction.Count) {
                     fbp.Rect = new PIXIRectangle(fbp.Rect.x, fbp.Rect.y - sum, fbp.Rect.width, fbp.Rect.height);
                     fbp.MarginRect = new PIXIRectangle(fbp.MarginRect.x, fbp.MarginRect.y - sum, fbp.MarginRect.width, fbp.MarginRect.height);
                     return sum + fbp.Rect.height;
@@ -269,6 +269,9 @@ export class HistogramBinPrimitiveCollection {
     private createVerticalBarChartBinPrimitives(bin: Bin, brush: Brush, binBrushMaxAxis: number, normalization: number): number {
         let dataValue = this.histoOp.getValue(1, bin, this.histoResult, brush.brushIndex!);
         if (dataValue != undefined) {
+            if (bin.binIndex!.indices![0] == 0 && bin.binIndex!.indices![1] == 0) {
+                console.log("DV = " + dataValue)
+            }
             let [yFrom, yValue, yTo] = this.sizeConverter.DataToScreenNormalizedRange(dataValue, normalization, 1, binBrushMaxAxis);
             let [xFrom, xTo] = this.sizeConverter.DataToScreenXAxisRange(this._histoBox.VisualBinRanges, 0, bin);
 
