@@ -269,9 +269,6 @@ export class HistogramBinPrimitiveCollection {
     private createVerticalBarChartBinPrimitives(bin: Bin, brush: Brush, binBrushMaxAxis: number, normalization: number): number {
         let dataValue = this.histoOp.getValue(1, bin, this.histoResult, brush.brushIndex!);
         if (dataValue != undefined) {
-            if (bin.binIndex!.indices![0] == 0 && bin.binIndex!.indices![1] == 0) {
-                console.log("DV = " + dataValue)
-            }
             let [yFrom, yValue, yTo] = this.sizeConverter.DataToScreenNormalizedRange(dataValue, normalization, 1, binBrushMaxAxis);
             let [xFrom, xTo] = this.sizeConverter.DataToScreenXAxisRange(this._histoBox.VisualBinRanges, 0, bin);
 
