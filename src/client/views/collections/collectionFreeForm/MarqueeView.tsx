@@ -1,17 +1,17 @@
 import { action, IReactionDisposer, observable, reaction } from "mobx";
 import { observer } from "mobx-react";
-import { Document } from "../../../fields/Document";
-import { FieldWaiting, Opt } from "../../../fields/Field";
-import { KeyStore } from "../../../fields/KeyStore";
-import { Documents } from "../../documents/Documents";
-import { SelectionManager } from "../../util/SelectionManager";
-import { Transform } from "../../util/Transform";
+import { Document } from "../../../../fields/Document";
+import { FieldWaiting, Opt } from "../../../../fields/Field";
+import { KeyStore } from "../../../../fields/KeyStore";
+import { Documents } from "../../../documents/Documents";
+import { SelectionManager } from "../../../util/SelectionManager";
+import { Transform } from "../../../util/Transform";
 import { CollectionFreeFormView } from "./CollectionFreeFormView";
 import "./MarqueeView.scss";
 import React = require("react");
-import { InkField, StrokeData } from "../../../fields/InkField";
-import { Utils } from "../../../Utils";
-import { InkingCanvas } from "../InkingCanvas";
+import { InkField, StrokeData } from "../../../../fields/InkField";
+import { Utils } from "../../../../Utils";
+import { InkingCanvas } from "../../InkingCanvas";
 
 interface MarqueeViewProps {
     getMarqueeTransform: () => Transform;

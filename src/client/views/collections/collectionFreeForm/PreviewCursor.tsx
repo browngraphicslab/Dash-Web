@@ -1,9 +1,9 @@
 import { action, IReactionDisposer, observable, reaction } from "mobx";
 import { observer } from "mobx-react";
-import { Document } from "../../../fields/Document";
-import { Opt } from "../../../fields/Field";
-import { Documents } from "../../documents/Documents";
-import { Transform } from "../../util/Transform";
+import { Document } from "../../../../fields/Document";
+import { Opt } from "../../../../fields/Field";
+import { Documents } from "../../../documents/Documents";
+import { Transform } from "../../../util/Transform";
 import { CollectionFreeFormView } from "./CollectionFreeFormView";
 import "./PreviewCursor.scss";
 import React = require("react");

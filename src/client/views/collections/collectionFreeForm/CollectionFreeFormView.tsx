@@ -1,28 +1,25 @@
-import { action, computed, observable, reaction, runInAction, trace, untracked, IReactionDisposer } from "mobx";
+import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
-import { Document } from "../../../fields/Document";
-import { FieldWaiting, Field, Opt } from "../../../fields/Field";
-import { KeyStore } from "../../../fields/KeyStore";
-import { ListField } from "../../../fields/ListField";
-import { TextField } from "../../../fields/TextField";
-import { DragManager } from "../../util/DragManager";
-import { Transform } from "../../util/Transform";
-import { undoBatch } from "../../util/UndoManager";
-import { InkingCanvas } from "../InkingCanvas";
-import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
-import { DocumentContentsView } from "../nodes/DocumentContentsView";
-import { DocumentViewProps, DocumentView } from "../nodes/DocumentView";
-import "./CollectionFreeFormView.scss";
-import { COLLECTION_BORDER_WIDTH } from "./CollectionView";
-import { CollectionViewBase, CollectionViewProps } from "./CollectionViewBase";
+import { Document } from "../../../../fields/Document";
+import { FieldWaiting } from "../../../../fields/Field";
+import { KeyStore } from "../../../../fields/KeyStore";
+import { ListField } from "../../../../fields/ListField";
+import { TextField } from "../../../../fields/TextField";
+import { DragManager } from "../../../util/DragManager";
+import { Transform } from "../../../util/Transform";
+import { undoBatch } from "../../../util/UndoManager";
+import { InkingCanvas } from "../../InkingCanvas";
+import { CollectionFreeFormDocumentView } from "../../nodes/CollectionFreeFormDocumentView";
+import { DocumentContentsView } from "../../nodes/DocumentContentsView";
+import { DocumentViewProps } from "../../nodes/DocumentView";
+import { COLLECTION_BORDER_WIDTH } from "../CollectionView";
+import { CollectionViewBase } from "../CollectionViewBase";
 import { MarqueeView } from "./MarqueeView";
 import { PreviewCursor } from "./PreviewCursor";
+import { CollectionFreeFormLinksView } from "./CollectionFreeFormLinksView";
+import "./CollectionFreeFormView.scss";
 import React = require("react");
 import v5 = require("uuid/v5");
-import { DocumentManager } from "../../util/DocumentManager";
-import { Utils } from "../../../Utils";
-import { Server } from "../../Server";
-import { AverageAggregateParameters } from "../../northstar/model/idea/idea";
 
 @observer
 export class CollectionFreeFormView extends CollectionViewBase {
@@ -364,7 +361,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
                     <InkingCanvas getScreenTransform={this.getTransform} Document={this.props.Document} />
                     <PreviewCursor container={this} addLiveTextDocument={this.addLiveTextBox} getTransform={this.getTransform} />
                     {this.views}
-                    <LinksView {...this.props} />
+                    <CollectionFreeFormLinksView {...this.props} />
                     {super.getCursors().map(entry => {
                         if (entry.Data.length > 0) {
                             let id = entry.Data[0][0];
@@ -415,111 +412,5 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
             </div>
         );
-    }
-}
-
-@observer
-export class LinksView extends React.Component<CollectionViewProps> {
-    @observable _connections: { a: Document, b: Document, l: Document }[] = [];
-
-    private _reactionDisposer: Opt<IReactionDisposer>;
-
-    componentDidMount() {
-        this._reactionDisposer = reaction(() => DocumentManager.Instance.DocumentViews.map(dv => [
-            dv.props.Document.Get(KeyStore.AnnotationOn, false),
-            dv.props.Document.Get(KeyStore.LinkedFromDocs, false),
-            dv.props.Document.Get(KeyStore.LinkedToDocs, false)
-        ]), () => runInAction(() => this._connections = this.findPairs()), { fireImmediately: true });
-    }
-    componentWillUnmount() {
-        if (this._reactionDisposer) {
-            this._reactionDisposer();
-        }
-        this._reactionDisposer = undefined;
-    }
-
-    filtered(views: DocumentView[]) {
-        return views.filter(sv =>
-            sv.props.ContainingCollectionView && sv.props.ContainingCollectionView.props.Document == this.props.Document
-        );
-    }
-
-    findPairs() {
-        return DocumentManager.Instance.DocumentViews.reduce((pairs, dv) => {
-            untracked(() => {
-                let srcViews = [dv];
-                let srcAnnot = dv.props.Document.GetT(KeyStore.AnnotationOn, Document);
-                if (srcAnnot && srcAnnot != FieldWaiting && srcAnnot instanceof Document) {
-                    srcViews = DocumentManager.Instance.getDocumentViews(srcAnnot.GetPrototype() as Document)
-                }
-                let linksList = dv.props.Document.GetT(KeyStore.LinkedToDocs, ListField);
-                if (linksList && linksList != FieldWaiting && linksList.Data.length) {
-                    pairs.push(...linksList.Data.reduce((pairs, link) => {
-                        if (link instanceof Document) {
-                            let linkToDoc = link.GetT(KeyStore.LinkedToDocs, Document);
-                            if (linkToDoc && linkToDoc != FieldWaiting) {
-                                DocumentManager.Instance.getDocumentViews(linkToDoc).map(docView1 => {
-                                    let targetViews = [docView1];
-                                    let docAnnot = docView1.props.Document.GetT(KeyStore.AnnotationOn, Document);
-                                    if (docAnnot && docAnnot != FieldWaiting && docAnnot instanceof Document) {
-                                        targetViews = DocumentManager.Instance.getDocumentViews(docAnnot.GetPrototype() as Document)
-                                    }
-                                    this.filtered(targetViews).map(tv => this.filtered(srcViews).map(sv =>
-                                        pairs.push({ a: sv.props.Document, b: tv.props.Document, l: link })))
-                                })
-                            }
-                        }
-                        return pairs;
-                    }, [] as { a: Document, b: Document, l: Document }[]));
-                }
-            })
-            return pairs;
-        }, [] as { a: Document, b: Document, l: Document }[]);
-    }
-
-    onPointerDown(e: React.PointerEvent) {
-        let line = (e.nativeEvent as any).path[0];
-        line.style.stroke = "red";
-        Server.GetField(line.id, action((f: Opt<Field>) => {
-            if (f instanceof Document) {
-                console.log(f.Title);
-            }
-        }));
-    }
-
-    @computed
-    get uniqueConnections() {
-        return this._connections.reduce((y, t) => {
-            if (!y.reduce((found, yi) => {
-                if (yi.a == t.a && yi.b == t.b) {
-                    if (yi.l != t.l)
-                        yi.n++;
-                    return true;
-                }
-                return found;
-            }, false)) {
-                y.push({ a: t.a, b: t.b, l: t.l, n: 1 });
-            }
-            return y
-        }, [] as { a: Document, b: Document, l: Document, n: number }[]);
-    }
-
-    render() {
-        if (!this._connections.length)
-            return (null);
-        return <svg className="collectionfreeformview-svgCanvas">
-            {this.uniqueConnections.map(c => {
-                let x1 = c.a.GetNumber(KeyStore.X, 0) + c.a.GetNumber(KeyStore.Width, 0) / 2;
-                let y1 = c.a.GetNumber(KeyStore.Y, 0) + c.a.GetNumber(KeyStore.Height, 0) / 2;
-                let x2 = c.b.GetNumber(KeyStore.X, 0) + c.b.GetNumber(KeyStore.Width, 0) / 2;
-                let y2 = c.b.GetNumber(KeyStore.Y, 0) + c.b.GetNumber(KeyStore.Height, 0) / 2;
-                return (
-                    <line key={Utils.GenerateGuid()} id={c.l.Id} className="collectionfreeformview-linkLine" onPointerDown={this.onPointerDown}
-                        style={{ strokeWidth: `${c.n * 5}` }}
-                        x1={`${x1}`} y1={`${y1}`}
-                        x2={`${x2}`} y2={`${y2}`} />
-                )
-            })}
-        </svg>
     }
 }

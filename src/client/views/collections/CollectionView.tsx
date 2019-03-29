@@ -7,7 +7,7 @@ import { ContextMenu } from "../ContextMenu";
 import React = require("react");
 import { KeyStore } from "../../../fields/KeyStore";
 import { NumberField } from "../../../fields/NumberField";
-import { CollectionFreeFormView } from "./CollectionFreeFormView";
+import { CollectionFreeFormView } from "./collectionFreeForm/CollectionFreeFormView";
 import { CollectionDockingView } from "./CollectionDockingView";
 import { CollectionSchemaView } from "./CollectionSchemaView";
 import { CollectionViewProps } from "./CollectionViewBase";
@@ -104,6 +104,11 @@ export class CollectionView extends React.Component<CollectionViewProps> {
                 break;
             }
         }
+        doc.GetTAsync(KeyStore.AnnotationOn, Document).then((annotationOn) => {
+            if (annotationOn == props.Document) {
+                doc.Set(KeyStore.AnnotationOn, undefined, true);
+            }
+        })
 
         if (index !== -1) {
             value.splice(index, 1)

@@ -1,18 +1,5 @@
-@import "../global_variables";
+@import "../../global_variables";
 
-.collectionfreeformview-linkLine {
-    stroke: black;
-    stroke-width: 3;
-    transform: translate(10000px,10000px);
-    pointer-events: all;
-}
-.collectionfreeformview-svgCanvas{
-  transform: translate(-10000px,-10000px);
-  position: absolute;
-  width: 20000px; 
-  height: 20000px;
-  pointer-events: none;
-}
 .collectionfreeformview-container {
   .collectionfreeformview > .jsx-parser {
     position: absolute;
@@ -75,14 +62,6 @@
   width: 100%;
   height: 100%;
   .collectionfreeformview {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    .inking-canvas {
-      transform-origin: 50000px 50000px;
-    }
     .formattedTextBox-cont {
         background:yellow;
     }
