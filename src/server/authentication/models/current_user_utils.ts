@@ -7,8 +7,9 @@ import { Document } from "../../../fields/Document";
 import { KeyStore } from "../../../fields/KeyStore";
 import { ListField } from "../../../fields/ListField";
 import { Documents } from "../../../client/documents/Documents";
-import { Schema, Attribute, AttributeGroup } from "../../../client/northstar/model/idea/idea";
+import { Schema, Attribute, AttributeGroup, Catalog } from "../../../client/northstar/model/idea/idea";
 import { observable, computed, action } from "mobx";
+import { ArrayUtil } from "../../../client/northstar/utils/ArrayUtil";
 
 export class CurrentUserUtils {
     private static curr_email: string;
@@ -16,8 +17,7 @@ export class CurrentUserUtils {
     private static user_document: Document;
     //TODO tfs: these should be temporary...
     private static mainDocId: string | undefined;
-    private static activeSchema: Schema | undefined;
-    @observable public static ActiveSchemaName: string = "";
+    @observable private static catalog?: Catalog;
 
     public static get email(): string {
         return this.curr_email;
@@ -39,12 +39,18 @@ export class CurrentUserUtils {
         this.mainDocId = id;
     }
 
-
-    public static get ActiveSchema(): Schema | undefined {
-        return this.activeSchema;
+    @computed public static get NorthstarDBCatalog(): Catalog | undefined {
+        return this.catalog;
     }
-    public static GetAllNorthstarColumnAttributes() {
-        if (!this.ActiveSchema || !this.ActiveSchema.rootAttributeGroup) {
+    public static set NorthstarDBCatalog(ctlog: Catalog | undefined) {
+        this.catalog = ctlog;
+    }
+    public static GetNorthstarSchema(name: string): Schema | undefined {
+        return !this.catalog || !this.catalog.schemas ? undefined :
+            ArrayUtil.FirstOrDefault<Schema>(this.catalog.schemas, (s: Schema) => s.displayName === name);
+    }
+    public static GetAllNorthstarColumnAttributes(schema: Schema) {
+        if (!schema || !schema.rootAttributeGroup) {
             return [];
         }
         const recurs = (attrs: Attribute[], g: AttributeGroup) => {
@@ -56,13 +62,10 @@ export class CurrentUserUtils {
             }
         };
         const allAttributes: Attribute[] = new Array<Attribute>();
-        recurs(allAttributes, this.ActiveSchema.rootAttributeGroup);
+        recurs(allAttributes, schema.rootAttributeGroup);
         return allAttributes;
     }
 
-    public static set ActiveSchema(id: Schema | undefined) {
-        this.activeSchema = id;
-    }
     private static createUserDocument(id: string): Document {
         let doc = new Document(id);
 

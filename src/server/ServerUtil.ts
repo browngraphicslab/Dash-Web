@@ -17,8 +17,7 @@ import { VideoField } from '../fields/VideoField';
 import { InkField } from '../fields/InkField';
 import { PDFField } from '../fields/PDFField';
 import { TupleField } from '../fields/TupleField';
-import { HistogramField } from '../fields/HistogramField';
-
+import { HistogramField } from '../client/northstar/dash-fields/HistogramField';
 
 
 

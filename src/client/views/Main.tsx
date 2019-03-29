@@ -58,7 +58,7 @@ export class Main extends React.Component {
     @observable private mainfreeform?: Document;
     @observable public pwidth: number = 0;
     @observable public pheight: number = 0;
-    private _northstarColumns: Document[] = [];
+    private _northstarSchemas: Document[] = [];
 
     @computed private get mainContainer(): Document | undefined {
         let doc = this.userDocument.GetT(KeyStore.ActiveWorkspace, Document);
@@ -245,7 +245,7 @@ export class Main extends React.Component {
         let addTextNode = action(() => Documents.TextDocument({ width: 200, height: 200, title: "a text note" }))
         let addColNode = action(() => Documents.FreeformDocument([], { width: 200, height: 200, title: "a freeform collection" }));
         let addSchemaNode = action(() => Documents.SchemaDocument([], { width: 200, height: 200, title: "a schema collection" }));
-        let addTreeNode = action(() => Documents.TreeDocument(this._northstarColumns, { width: 200, height: 200, title: "a tree collection" }));
+        let addTreeNode = action(() => Documents.TreeDocument(this._northstarSchemas, { width: 100, height: 400, title: "northstar schemas" }));
         let addVideoNode = action(() => Documents.VideoDocument(videourl, { width: 200, height: 200, title: "video node" }));
         let addPDFNode = action(() => Documents.PdfDocument(pdfurl, { width: 200, height: 200, title: "a schema collection" }));
         let addImageNode = action(() => Documents.ImageDocument(imgurl, { width: 200, height: 200, title: "an image of a cat" }));
@@ -334,24 +334,27 @@ export class Main extends React.Component {
     // --------------- Northstar hooks ------------- /
 
     @action SetNorthstarCatalog(ctlog: Catalog) {
+        CurrentUserUtils.NorthstarDBCatalog = ctlog;
         if (ctlog && ctlog.schemas) {
-            CurrentUserUtils.ActiveSchema = ArrayUtil.FirstOrDefault<Schema>(ctlog.schemas!, (s: Schema) => s.displayName === "mimic");
-            CurrentUserUtils.GetAllNorthstarColumnAttributes().map(attr => {
-                Server.GetField(attr.displayName!, action((field: Opt<Field>) => {
-                    if (field instanceof Document) {
-                        this._northstarColumns.push(field);
-                    } else {
-                        var atmod = new ColumnAttributeModel(attr);
-                        let histoOp = new HistogramOperation(
-                            new AttributeTransformationModel(atmod, AggregateFunction.None),
-                            new AttributeTransformationModel(atmod, AggregateFunction.Count),
-                            new AttributeTransformationModel(atmod, AggregateFunction.Count));
-                        this._northstarColumns.push(Documents.HistogramDocument(histoOp, { width: 200, height: 200, title: attr.displayName!, northstarSchema: CurrentUserUtils.ActiveSchema!.displayName! }, attr.displayName!));
-                    }
-                }));
+            this._northstarSchemas = ctlog.schemas.map(schema => {
+                let schemaDoc = Documents.TreeDocument([], { width: 50, height: 100, title: schema.displayName! });
+                let schemaDocuments = schemaDoc.GetList(KeyStore.Data, [] as Document[]);
+                CurrentUserUtils.GetAllNorthstarColumnAttributes(schema).map(attr => {
+                    Server.GetField(attr.displayName!, action((field: Opt<Field>) => {
+                        if (field instanceof Document) {
+                            schemaDocuments.push(field);
+                        } else {
+                            var atmod = new ColumnAttributeModel(attr);
+                            let histoOp = new HistogramOperation(schema!.displayName!,
+                                new AttributeTransformationModel(atmod, AggregateFunction.None),
+                                new AttributeTransformationModel(atmod, AggregateFunction.Count),
+                                new AttributeTransformationModel(atmod, AggregateFunction.Count));
+                            schemaDocuments.push(Documents.HistogramDocument(histoOp, { width: 200, height: 200, title: attr.displayName! }, attr.displayName!));
+                        }
+                    }));
+                });
+                return schemaDoc;
             })
-            console.log("Activating schema " + CurrentUserUtils.ActiveSchema!.displayName!)
-            CurrentUserUtils.ActiveSchemaName = CurrentUserUtils.ActiveSchema!.displayName!;
         }
     }
     async initializeNorthstar(): Promise<void> {

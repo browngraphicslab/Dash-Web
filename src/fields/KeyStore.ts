@@ -44,5 +44,4 @@ export namespace KeyStore {
     export const Archives = new Key("Archives");
     export const Updated = new Key("Updated");
     export const Workspaces = new Key("Workspaces");
-    export const NorthstarSchema = new Key("NorthstarSchema");
 }

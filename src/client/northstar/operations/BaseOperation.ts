@@ -10,9 +10,9 @@ export abstract class BaseOperation {
 
     @observable public Error: string = "";
     @observable public OverridingFilters: FilterModel[] = [];
-    @observable public Result: Result | undefined;
+    @observable public Result?: Result = undefined;
     @observable public ComputationStarted: boolean = false;
-    public OperationReference: OperationReference | undefined = undefined;
+    public OperationReference?: OperationReference = undefined;
 
     private static _nextId = 0;
     public RequestSalt: string = "";

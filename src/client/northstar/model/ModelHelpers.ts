@@ -13,11 +13,11 @@ import { CurrentUserUtils } from "../../../server/authentication/models/current_
 
 export class ModelHelpers {
 
-    public static CreateAggregateKey(atm: AttributeTransformationModel, histogramResult: HistogramResult,
+    public static CreateAggregateKey(distinctAttributeParameters: AttributeParameters | undefined, atm: AttributeTransformationModel, histogramResult: HistogramResult,
         brushIndex: number, aggParameters?: SingleDimensionAggregateParameters): AggregateKey {
         {
             if (aggParameters == undefined) {
-                aggParameters = ModelHelpers.GetAggregateParameter(atm);
+                aggParameters = ModelHelpers.GetAggregateParameter(distinctAttributeParameters, atm);
             }
             else {
                 aggParameters.attributeParameters = ModelHelpers.GetAttributeParameters(atm.AttributeModel);
@@ -34,40 +34,40 @@ export class ModelHelpers {
         return ArrayUtil.IndexOfWithEqual(histogramResult.aggregateParameters!, aggParameters);
     }
 
-    public static GetAggregateParameter(atm: AttributeTransformationModel): AggregateParameters | undefined {
+    public static GetAggregateParameter(distinctAttributeParameters: AttributeParameters | undefined, atm: AttributeTransformationModel): AggregateParameters | undefined {
         var aggParam: AggregateParameters | undefined;
         if (atm.AggregateFunction === AggregateFunction.Avg) {
             var avg = new AverageAggregateParameters();
             avg.attributeParameters = ModelHelpers.GetAttributeParameters(atm.AttributeModel);
-            avg.distinctAttributeParameters = CurrentUserUtils.ActiveSchema!.distinctAttributeParameters;
+            avg.distinctAttributeParameters = distinctAttributeParameters;
             aggParam = avg;
         }
         else if (atm.AggregateFunction === AggregateFunction.Count) {
             var cnt = new CountAggregateParameters();
             cnt.attributeParameters = ModelHelpers.GetAttributeParameters(atm.AttributeModel);
-            cnt.distinctAttributeParameters = CurrentUserUtils.ActiveSchema!.distinctAttributeParameters;
+            cnt.distinctAttributeParameters = distinctAttributeParameters;
             aggParam = cnt;
         }
         else if (atm.AggregateFunction === AggregateFunction.Sum) {
             var sum = new SumAggregateParameters();
             sum.attributeParameters = ModelHelpers.GetAttributeParameters(atm.AttributeModel);
-            sum.distinctAttributeParameters = CurrentUserUtils.ActiveSchema!.distinctAttributeParameters;
+            sum.distinctAttributeParameters = distinctAttributeParameters;
             aggParam = sum;
         }
         return aggParam;
     }
 
-    public static GetAggregateParametersWithMargins(atms: Array<AttributeTransformationModel>): Array<AggregateParameters> {
+    public static GetAggregateParametersWithMargins(distinctAttributeParameters: AttributeParameters | undefined, atms: Array<AttributeTransformationModel>): Array<AggregateParameters> {
         var aggregateParameters = new Array<AggregateParameters>();
         atms.forEach(agg => {
-            var aggParams = ModelHelpers.GetAggregateParameter(agg);
+            var aggParams = ModelHelpers.GetAggregateParameter(distinctAttributeParameters, agg);
             if (aggParams) {
                 aggregateParameters.push(aggParams);
 
                 var margin = new MarginAggregateParameters()
                 margin.aggregateFunction = agg.AggregateFunction;
                 margin.attributeParameters = ModelHelpers.GetAttributeParameters(agg.AttributeModel);
-                margin.distinctAttributeParameters = CurrentUserUtils.ActiveSchema!.distinctAttributeParameters;
+                margin.distinctAttributeParameters = distinctAttributeParameters;
                 aggregateParameters.push(margin);
             }
         });

@@ -1,6 +1,6 @@
 import { AudioField } from "../../fields/AudioField";
 import { Document } from "../../fields/Document";
-import { Field, FieldWaiting } from "../../fields/Field";
+import { Field } from "../../fields/Field";
 import { HtmlField } from "../../fields/HtmlField";
 import { ImageField } from "../../fields/ImageField";
 import { InkField, StrokeData } from "../../fields/InkField";
@@ -11,6 +11,9 @@ import { PDFField } from "../../fields/PDFField";
 import { TextField } from "../../fields/TextField";
 import { VideoField } from "../../fields/VideoField";
 import { WebField } from "../../fields/WebField";
+import { HistogramField } from "../northstar/dash-fields/HistogramField";
+import { HistogramBox } from "../northstar/dash-nodes/HistogramBox";
+import { HistogramOperation } from "../northstar/operations/HistogramOperation";
 import { Server } from "../Server";
 import { CollectionPDFView } from "../views/collections/CollectionPDFView";
 import { CollectionVideoView } from "../views/collections/CollectionVideoView";
@@ -22,10 +25,6 @@ import { KeyValueBox } from "../views/nodes/KeyValueBox";
 import { PDFBox } from "../views/nodes/PDFBox";
 import { VideoBox } from "../views/nodes/VideoBox";
 import { WebBox } from "../views/nodes/WebBox";
-import { HistogramBox } from "../views/nodes/HistogramBox";
-import { FieldView } from "../views/nodes/FieldView";
-import { HistogramField } from "../../fields/HistogramField";
-import { HistogramOperation } from "../northstar/operations/HistogramOperation";
 
 export interface DocumentOptions {
     x?: number;
@@ -44,7 +43,6 @@ export interface DocumentOptions {
     layoutKeys?: Key[];
     viewType?: number;
     backgroundColor?: string;
-    northstarSchema?: string;
 }
 
 export namespace Documents {
@@ -88,7 +86,6 @@ export namespace Documents {
         if (options.ink !== undefined) { doc.Set(KeyStore.Ink, new InkField(options.ink)); }
         if (options.layout !== undefined) { doc.SetText(KeyStore.Layout, options.layout); }
         if (options.layoutKeys !== undefined) { doc.Set(KeyStore.LayoutKeys, new ListField(options.layoutKeys)); }
-        if (options.northstarSchema !== undefined) { doc.SetText(KeyStore.NorthstarSchema, options.northstarSchema); }
         return doc;
     }
 
@@ -126,7 +123,7 @@ export namespace Documents {
     function GetHistogramPrototype(): Document {
         if (!histoProto) {
             histoProto = setupPrototypeOptions(histoProtoId, "HISTO PROTO", CollectionView.LayoutString("AnnotationsKey"),
-                { x: 0, y: 0, width: 300, height: 300, layoutKeys: [KeyStore.Data, KeyStore.Annotations, KeyStore.Caption] });
+                { x: 0, y: 0, width: 300, height: 300, backgroundColor: "black", layoutKeys: [KeyStore.Data, KeyStore.Annotations, KeyStore.Caption] });
             histoProto.SetText(KeyStore.BackgroundLayout, HistogramBox.LayoutString());
         }
         return histoProto;

@@ -2,11 +2,11 @@ import React = require("react")
 import { action, computed, reaction } from "mobx";
 import { observer } from "mobx-react";
 import { Utils as DashUtils } from '../../../Utils';
-import { NominalVisualBinRange } from "../../northstar/model/binRanges/NominalVisualBinRange";
-import { StyleConstants } from "../../northstar/utils/StyleContants";
-import "./../../northstar/utils/Extensions";
-import "./HistogramLabelPrimitives.scss";
+import { NominalVisualBinRange } from "../model/binRanges/NominalVisualBinRange";
+import "../utils/Extensions";
+import { StyleConstants } from "../utils/StyleContants";
 import { HistogramBox, HistogramPrimitivesProps } from "./HistogramBox";
+import "./HistogramLabelPrimitives.scss";
 
 @observer
 export class HistogramLabelPrimitives extends React.Component<HistogramPrimitivesProps> {

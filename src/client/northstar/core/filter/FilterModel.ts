@@ -2,10 +2,10 @@ import { ValueComparison } from "./ValueComparision";
 import { Utils } from "../../utils/Utils";
 import { IBaseFilterProvider } from "./IBaseFilterProvider";
 import { FilterOperand } from "./FilterOperand";
-import { HistogramField } from "../../../../fields/HistogramField";
 import { KeyStore } from "../../../../fields/KeyStore";
 import { FieldWaiting } from "../../../../fields/Field";
 import { Document } from "../../../../fields/Document";
+import { HistogramField } from "../../dash-fields/HistogramField";
 
 export class FilterModel {
     public ValueComparisons: ValueComparison[];

@@ -27,6 +27,8 @@ export class HistogramOperation extends BaseOperation implements IBaseFilterCons
     @observable public V: AttributeTransformationModel;
     @observable public BrusherModels: BrushLinkModel<HistogramOperation>[] = [];
     @observable public BrushableModels: BrushLinkModel<HistogramOperation>[] = [];
+    @observable public SchemaName: string;
+    @computed public get Schema() { return CurrentUserUtils.GetNorthstarSchema(this.SchemaName); }
 
     @action
     public AddFilterModels(filterModels: FilterModel[]): void {
@@ -38,23 +40,24 @@ export class HistogramOperation extends BaseOperation implements IBaseFilterCons
     }
 
     public getValue(axis: number, bin: Bin, result: HistogramResult, brushIndex: number) {
-        var aggregateKey = ModelHelpers.CreateAggregateKey(axis == 0 ? this.X : axis == 1 ? this.Y : this.V, result, brushIndex);
+        var aggregateKey = ModelHelpers.CreateAggregateKey(this.Schema!.distinctAttributeParameters, axis == 0 ? this.X : axis == 1 ? this.Y : this.V, result, brushIndex);
         let dataValue = ModelHelpers.GetAggregateResult(bin, aggregateKey) as DoubleValueAggregateResult;
         return dataValue != null && dataValue.hasResult ? dataValue.result : undefined;
     }
 
-    public static Empty = new HistogramOperation(new AttributeTransformationModel(new ColumnAttributeModel(new Attribute())), new AttributeTransformationModel(new ColumnAttributeModel(new Attribute())), new AttributeTransformationModel(new ColumnAttributeModel(new Attribute())));
+    public static Empty = new HistogramOperation("-empty schema-", new AttributeTransformationModel(new ColumnAttributeModel(new Attribute())), new AttributeTransformationModel(new ColumnAttributeModel(new Attribute())), new AttributeTransformationModel(new ColumnAttributeModel(new Attribute())));
 
     Equals(other: Object): boolean {
         throw new Error("Method not implemented.");
     }
 
-    constructor(x: AttributeTransformationModel, y: AttributeTransformationModel, v: AttributeTransformationModel, normalized?: number) {
+    constructor(schemaName: string, x: AttributeTransformationModel, y: AttributeTransformationModel, v: AttributeTransformationModel, normalized?: number) {
         super();
         this.X = x;
         this.Y = y;
         this.V = v;
         this.Normalization = normalized ? normalized : -1;
+        this.SchemaName = schemaName;
     }
 
     @computed
@@ -93,7 +96,7 @@ export class HistogramOperation extends BaseOperation implements IBaseFilterCons
         allAttributes = ArrayUtil.Distinct(allAttributes.filter(a => a.AggregateFunction !== AggregateFunction.None));
 
         let numericDataTypes = [DataType.Int, DataType.Double, DataType.Float];
-        let perBinAggregateParameters: AggregateParameters[] = ModelHelpers.GetAggregateParametersWithMargins(allAttributes);
+        let perBinAggregateParameters: AggregateParameters[] = ModelHelpers.GetAggregateParametersWithMargins(this.Schema!.distinctAttributeParameters, allAttributes);
         let globalAggregateParameters: AggregateParameters[] = [];
         [histoX, histoY]
             .filter(a => a.AggregateFunction === AggregateFunction.None && ArrayUtil.Contains(numericDataTypes, a.AttributeModel.DataType))
@@ -112,7 +115,7 @@ export class HistogramOperation extends BaseOperation implements IBaseFilterCons
             let [perBinAggregateParameters, globalAggregateParameters] = this.GetAggregateParameters(this.X, this.Y, this.V);
             return new HistogramOperationParameters({
                 enableBrushComputation: true,
-                adapterName: CurrentUserUtils.ActiveSchema!.displayName,
+                adapterName: this.SchemaName,
                 filter: this.FilterString,
                 brushes: this.BrushString,
                 binningParameters: [ModelHelpers.GetBinningParameters(this.X, SETTINGS_X_BINS, this.QRange ? this.QRange.minValue : undefined, this.QRange ? this.QRange.maxValue : undefined),

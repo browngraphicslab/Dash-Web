@@ -68,9 +68,13 @@ export class SizeConverter {
         return [undefined, undefined];
     }
 
-    public DataToScreenAxisRange(visualBinRanges: VisualBinRange[], index: number, bin: Bin) {
+    public DataToScreenXAxisRange(visualBinRanges: VisualBinRange[], index: number, bin: Bin) {
         var value = visualBinRanges[0].GetValueFromIndex(bin.binIndex!.indices![index]);
         return [this.DataToScreenX(value), this.DataToScreenX(visualBinRanges[index].AddStep(value))]
+    }
+    public DataToScreenYAxisRange(visualBinRanges: VisualBinRange[], index: number, bin: Bin) {
+        var value = visualBinRanges[1].GetValueFromIndex(bin.binIndex!.indices![index]);
+        return [this.DataToScreenY(value), this.DataToScreenY(visualBinRanges[index].AddStep(value))]
     }
 
     public DataToScreenX(x: number): number {

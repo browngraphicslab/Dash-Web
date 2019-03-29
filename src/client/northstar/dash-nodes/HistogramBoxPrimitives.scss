@@ -1,7 +1,7 @@
 .histogramboxprimitives-border {
     border: 3px;
     border-style: solid;
-    border-color: #282828;
+    border-color: white;
     pointer-events: none;
     position: absolute;
 }
@@ -21,5 +21,6 @@
 }
 .histogramboxprimitives-line {
     position: absolute;
-    background: lightgray;
+    background: darkGray;
+    opacity: 0.4;
 }

@@ -120,9 +120,6 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     }
 
     private dropDisposer?: DragManager.DragDropDisposer;
-    protected createDropTarget = (ele: HTMLDivElement) => {
-
-    }
 
     componentDidMount() {
         if (this._mainCont.current) {
