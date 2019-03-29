@@ -190,8 +190,8 @@ export namespace Documents {
         return assignToDelegate(SetInstanceOptions(GetAudioPrototype(), options, [new URL(url), AudioField]), options);
     }
 
-    export function HistogramDocument(histoOp: HistogramOperation, options: DocumentOptions = {}, id?: string) {
-        return assignToDelegate(SetInstanceOptions(GetHistogramPrototype(), options, [histoOp, HistogramField], id).MakeDelegate(), options);
+    export function HistogramDocument(histoOp: HistogramOperation, options: DocumentOptions = {}, id?: string, delegId?: string) {
+        return assignToDelegate(SetInstanceOptions(GetHistogramPrototype(), options, [histoOp, HistogramField], id).MakeDelegate(delegId), options);
     }
     export function TextDocument(options: DocumentOptions = {}) {
         return assignToDelegate(SetInstanceOptions(GetTextPrototype(), options, ["", TextField]).MakeDelegate(), options);

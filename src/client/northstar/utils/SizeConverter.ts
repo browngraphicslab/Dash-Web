@@ -62,7 +62,7 @@ export class SizeConverter {
 
     public DataToScreenPointRange(axis: number, bin: Bin, aggregateKey: AggregateKey) {
         var value = ModelHelpers.GetAggregateResult(bin, aggregateKey) as DoubleValueAggregateResult;
-        if (value.hasResult)
+        if (value && value.hasResult)
             return [this.DataToScreenCoord(value.result!, axis) - 5,
             this.DataToScreenCoord(value.result!, axis) + 5];
         return [undefined, undefined];

@@ -245,7 +245,7 @@ export class Main extends React.Component {
         let addTextNode = action(() => Documents.TextDocument({ width: 200, height: 200, title: "a text note" }))
         let addColNode = action(() => Documents.FreeformDocument([], { width: 200, height: 200, title: "a freeform collection" }));
         let addSchemaNode = action(() => Documents.SchemaDocument([], { width: 200, height: 200, title: "a schema collection" }));
-        let addTreeNode = action(() => Documents.TreeDocument(this._northstarSchemas, { width: 100, height: 400, title: "northstar schemas" }));
+        let addTreeNode = action(() => Documents.TreeDocument(this._northstarSchemas, { width: 250, height: 400, title: "northstar schemas" }));
         let addVideoNode = action(() => Documents.VideoDocument(videourl, { width: 200, height: 200, title: "video node" }));
         let addPDFNode = action(() => Documents.PdfDocument(pdfurl, { width: 200, height: 200, title: "a schema collection" }));
         let addImageNode = action(() => Documents.ImageDocument(imgurl, { width: 200, height: 200, title: "an image of a cat" }));
@@ -340,7 +340,7 @@ export class Main extends React.Component {
                 let schemaDoc = Documents.TreeDocument([], { width: 50, height: 100, title: schema.displayName! });
                 let schemaDocuments = schemaDoc.GetList(KeyStore.Data, [] as Document[]);
                 CurrentUserUtils.GetAllNorthstarColumnAttributes(schema).map(attr => {
-                    Server.GetField(attr.displayName!, action((field: Opt<Field>) => {
+                    Server.GetField(attr.displayName! + ".alias", action((field: Opt<Field>) => {
                         if (field instanceof Document) {
                             schemaDocuments.push(field);
                         } else {
@@ -349,7 +349,7 @@ export class Main extends React.Component {
                                 new AttributeTransformationModel(atmod, AggregateFunction.None),
                                 new AttributeTransformationModel(atmod, AggregateFunction.Count),
                                 new AttributeTransformationModel(atmod, AggregateFunction.Count));
-                            schemaDocuments.push(Documents.HistogramDocument(histoOp, { width: 200, height: 200, title: attr.displayName! }, attr.displayName!));
+                            schemaDocuments.push(Documents.HistogramDocument(histoOp, { width: 200, height: 200, title: attr.displayName! }, undefined, attr.displayName! + ".alias"));
                         }
                     }));
                 });

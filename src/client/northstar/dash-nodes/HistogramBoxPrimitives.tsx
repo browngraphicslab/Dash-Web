@@ -1,5 +1,5 @@
 import React = require("react")
-import { computed, observable, runInAction } from "mobx";
+import { computed, observable, runInAction, reaction } from "mobx";
 import { observer } from "mobx-react";
 import { Utils as DashUtils } from '../../../Utils';
 import { AttributeTransformationModel } from "../../northstar/core/attribute/AttributeTransformationModel";
@@ -19,6 +19,9 @@ import "./HistogramBoxPrimitives.scss";
 export class HistogramBoxPrimitives extends React.Component<HistogramPrimitivesProps> {
     private get histoOp() { return this.props.HistoBox.HistoOp; }
     private get renderDimension() { return this.props.HistoBox.SizeConverter.RenderDimension; }
+    componentDidMount() {
+        reaction(() => this.props.HistoBox.HistogramResult, () => this._selectedPrims.length = 0);
+    }
     @observable _selectedPrims: HistogramBinPrimitive[] = [];
     @computed get xaxislines() { return this.renderGridLinesAndLabels(0); }
     @computed get yaxislines() { return this.renderGridLinesAndLabels(1); }

@@ -9,7 +9,7 @@ import { CurrentUserUtils } from "../../../server/authentication/models/current_
 import { FilterModel } from '../../northstar/core/filter/FilterModel';
 import { ChartType, VisualBinRange } from '../../northstar/model/binRanges/VisualBinRange';
 import { VisualBinRangeHelper } from "../../northstar/model/binRanges/VisualBinRangeHelper";
-import { AggregateBinRange, BinRange, DoubleValueAggregateResult, HistogramResult, Catalog } from "../../northstar/model/idea/idea";
+import { AggregateBinRange, BinRange, DoubleValueAggregateResult, HistogramResult, Catalog, AggregateFunction } from "../../northstar/model/idea/idea";
 import { ModelHelpers } from "../../northstar/model/ModelHelpers";
 import { HistogramOperation } from "../../northstar/operations/HistogramOperation";
 import { PIXIRectangle } from "../../northstar/utils/MathUtil";
@@ -21,6 +21,7 @@ import "../utils/Extensions"
 import "./HistogramBox.scss";
 import { HistogramBoxPrimitives } from './HistogramBoxPrimitives';
 import { HistogramLabelPrimitives } from "./HistogramLabelPrimitives";
+import { AttributeTransformationModel } from "../core/attribute/AttributeTransformationModel";
 
 export interface HistogramPrimitivesProps {
     HistoBox: HistogramBox;
@@ -104,7 +105,11 @@ export class HistogramBox extends React.Component<FieldViewProps> {
 
     @action
     xLabelPointerDown = (e: React.PointerEvent) => {
-
+        this.HistoOp.X = new AttributeTransformationModel(this.HistoOp.X.AttributeModel, this.HistoOp.X.AggregateFunction == AggregateFunction.None ? AggregateFunction.Count : AggregateFunction.None);
+    }
+    @action
+    yLabelPointerDown = (e: React.PointerEvent) => {
+        this.HistoOp.Y = new AttributeTransformationModel(this.HistoOp.Y.AttributeModel, this.HistoOp.Y.AggregateFunction == AggregateFunction.None ? AggregateFunction.Count : AggregateFunction.None);
     }
 
     componentWillUnmount() {
@@ -138,12 +143,12 @@ export class HistogramBox extends React.Component<FieldViewProps> {
             <Measure onResize={(r: any) => runInAction(() => { this.PanelWidth = r.entry.width; this.PanelHeight = r.entry.height })}>
                 {({ measureRef }) =>
                     <div className="histogrambox-container" ref={measureRef} style={{ transform: `translate(${-w / 2}px, ${-h / 2}px)` }}>
-                        <div className="histogrambox-yaxislabel" ref={this._dropYRef} >
+                        <div className="histogrambox-yaxislabel" onPointerDown={this.yLabelPointerDown} ref={this._dropYRef} >
                             <span className="histogrambox-yaxislabel-text">
                                 {labelY}
                             </span>
                         </div>
-                        <div style={{
+                        <div className="histogrambox-primitives" style={{
                             transform: `translate(${loff + 25}px, ${toff}px)`,
                             width: `calc(100% - ${loff + roff + 25}px)`,
                             height: `calc(100% - ${toff + boff}px)`,
@@ -151,7 +156,9 @@ export class HistogramBox extends React.Component<FieldViewProps> {
                             <HistogramLabelPrimitives HistoBox={this} />
                             <HistogramBoxPrimitives HistoBox={this} />
                         </div>
-                        <div className="histogrambox-xaxislabel" onPointerDown={this.xLabelPointerDown} ref={this._dropXRef} >{labelX}</div>
+                        <div className="histogrambox-xaxislabel" onPointerDown={this.xLabelPointerDown} ref={this._dropXRef} >
+                            {labelX}
+                        </div>
                     </div>
                 }
             </Measure>

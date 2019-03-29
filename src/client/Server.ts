@@ -75,7 +75,7 @@ export class Server {
                     existingFields[id] = field;
                 }
             }
-            SocketStub.SEND_FIELDS_REQUEST(neededFieldIds, (fields) => {
+            SocketStub.SEND_FIELDS_REQUEST(neededFieldIds, action((fields: FieldMap) => {
                 for (let id of neededFieldIds) {
                     let field = fields[id];
                     if (field) {
@@ -104,7 +104,7 @@ export class Server {
                         cb({ ...fields, ...existingFields })
                     }
                 }, { fireImmediately: true })
-            });
+            }));
         };
         if (callback) {
             fn(callback);
