@@ -1,4 +1,4 @@
-import { action, computed, observable } from "mobx";
+import { action, computed, observable, trace } from "mobx";
 import { Document } from "../../../fields/Document";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { ColumnAttributeModel } from "../core/attribute/AttributeModel";
@@ -16,12 +16,13 @@ import { BaseOperation } from "./BaseOperation";
 import { KeyStore } from "../../../fields/KeyStore";
 import { HistogramField } from "../dash-fields/HistogramField";
 import { FieldWaiting } from "../../../fields/Field";
+import { StyleConstants } from "../utils/StyleContants";
 
 
 export class HistogramOperation extends BaseOperation implements IBaseFilterConsumer, IBaseFilterProvider {
     @observable public FilterOperand: FilterOperand = FilterOperand.AND;
     @observable public Links: Document[] = [];
-    @observable public BrushLinks: Document[] = [];
+    @observable public BrushLinks: { l: Document, b: Document }[] = [];
     @observable public BrushColors: number[] = [];
     @observable public Normalization: number = -1;
     @observable public FilterModels: FilterModel[] = [];
@@ -69,16 +70,15 @@ export class HistogramOperation extends BaseOperation implements IBaseFilterCons
 
     @computed
     public get BrushString(): string[] {
+        trace();
         let brushes: string[] = [];
         this.BrushLinks.map(brushLink => {
-            let brusherDoc = brushLink.Get(KeyStore.LinkedFromDocs);
-            if (brusherDoc && brusherDoc != FieldWaiting && brusherDoc instanceof Document) {
-                let brushHistogram = brusherDoc.GetT(KeyStore.Data, HistogramField);
-                if (brushHistogram && brushHistogram != FieldWaiting) {
-                    let filterModels: FilterModel[] = [];
-                    let brush = FilterModel.GetFilterModelsRecursive(brushHistogram!.Data, new Set<IBaseFilterProvider>(), filterModels, false)
-                    brushes.push(brush);
-                }
+            let brusherDoc = brushLink.b;
+            let brushHistogram = brusherDoc.GetT(KeyStore.Data, HistogramField);
+            if (brushHistogram && brushHistogram != FieldWaiting) {
+                let filterModels: FilterModel[] = [];
+                let brush = FilterModel.GetFilterModelsRecursive(brushHistogram!.Data, new Set<IBaseFilterProvider>(), filterModels, false)
+                brushes.push(brush);
             }
         });
         return brushes;
@@ -137,7 +137,7 @@ export class HistogramOperation extends BaseOperation implements IBaseFilterCons
 
     @action
     public async Update(): Promise<void> {
-        this.BrushColors = this.BrushLinks.map(e => e.GetNumber(KeyStore.BackgroundColor, 0));
+        //this.BrushColors = this.BrushLinks.map(e => e.l.GetNumber(KeyStore.BackgroundColor, 0));
         return super.Update();
     }
 }

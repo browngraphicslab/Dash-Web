@@ -1,5 +1,5 @@
 import React = require("react")
-import { computed, observable, runInAction, reaction } from "mobx";
+import { computed, observable, runInAction, reaction, untracked, trace } from "mobx";
 import { observer } from "mobx-react";
 import { Utils as DashUtils } from '../../../Utils';
 import { AttributeTransformationModel } from "../../northstar/core/attribute/AttributeTransformationModel";
@@ -20,7 +20,7 @@ export class HistogramBoxPrimitives extends React.Component<HistogramPrimitivesP
     private get histoOp() { return this.props.HistoBox.HistoOp; }
     private get renderDimension() { return this.props.HistoBox.SizeConverter.RenderDimension; }
     componentDidMount() {
-        reaction(() => this.props.HistoBox.HistogramResult, () => this._selectedPrims.length = 0);
+        reaction(() => this.props.HistoBox.HistoOp.FilterString, () => this._selectedPrims.length = this.histoOp.FilterModels.length = 0);
     }
     @observable _selectedPrims: HistogramBinPrimitive[] = [];
     @computed get xaxislines() { return this.renderGridLinesAndLabels(0); }
@@ -30,10 +30,10 @@ export class HistogramBoxPrimitives extends React.Component<HistogramPrimitivesP
         let histoResult = this.props.HistoBox.HistogramResult;
         if (!histoResult || !histoResult.bins || !this.props.HistoBox.VisualBinRanges.length)
             return (null);
+        trace();
         let allBrushIndex = ModelHelpers.AllBrushIndex(histoResult);
         return Object.keys(histoResult.bins).reduce((prims, key) => {
             let drawPrims = new HistogramBinPrimitiveCollection(histoResult!.bins![key], this.props.HistoBox);
-
             let toggle = this.getSelectionToggle(drawPrims.BinPrimitives, allBrushIndex,
                 ModelHelpers.GetBinFilterModel(histoResult!.bins![key], allBrushIndex, histoResult!, this.histoOp.X, this.histoOp.Y));
             drawPrims.BinPrimitives.filter(bp => bp.DataValue && bp.BrushIndex !== allBrushIndex).map(bp =>
@@ -327,6 +327,7 @@ export class HistogramBinPrimitiveCollection {
     }
 
     private baseColorFromBrush(brush: Brush): number {
+        let bc = StyleConstants.BRUSH_COLORS;
         if (brush.brushIndex == ModelHelpers.RestBrushIndex(this.histoResult)) {
             return StyleConstants.HIGHLIGHT_COLOR;
         }
@@ -336,9 +337,12 @@ export class HistogramBinPrimitiveCollection {
         else if (brush.brushIndex == ModelHelpers.AllBrushIndex(this.histoResult)) {
             return 0x00ff00;
         }
-        else if (this.histoOp.BrushColors.length > 0) {
-            return this.histoOp.BrushColors[brush.brushIndex! % this.histoOp.BrushColors.length];
+        else if (bc.length > 0) {
+            return bc[brush.brushIndex! % bc.length];
         }
+        // else if (this.histoOp.BrushColors.length > 0) {
+        //     return this.histoOp.BrushColors[brush.brushIndex! % this.histoOp.BrushColors.length];
+        // }
         return StyleConstants.HIGHLIGHT_COLOR;
     }
 }

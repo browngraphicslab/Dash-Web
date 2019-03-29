@@ -1,5 +1,5 @@
 import React = require("react")
-import { action, computed, observable, reaction, runInAction } from "mobx";
+import { action, computed, observable, reaction, runInAction, trace } from "mobx";
 import { observer } from "mobx-react";
 import Measure from "react-measure";
 import { FieldWaiting, Opt } from "../../../fields/Field";
@@ -8,7 +8,7 @@ import { KeyStore } from "../../../fields/KeyStore";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { ChartType, VisualBinRange } from '../../northstar/model/binRanges/VisualBinRange';
 import { VisualBinRangeHelper } from "../../northstar/model/binRanges/VisualBinRangeHelper";
-import { AggregateBinRange, AggregateFunction, BinRange, Catalog, DoubleValueAggregateResult, HistogramResult } from "../../northstar/model/idea/idea";
+import { AggregateBinRange, AggregateFunction, BinRange, Catalog, DoubleValueAggregateResult, HistogramResult, Result } from "../../northstar/model/idea/idea";
 import { ModelHelpers } from "../../northstar/model/ModelHelpers";
 import { HistogramOperation } from "../../northstar/operations/HistogramOperation";
 import { SizeConverter } from "../../northstar/utils/SizeConverter";
@@ -39,10 +39,10 @@ export class HistogramBox extends React.Component<FieldViewProps> {
     @observable public HistoOp: HistogramOperation = HistogramOperation.Empty;
     @observable public VisualBinRanges: VisualBinRange[] = [];
     @observable public ValueRange: number[] = [];
+    @observable public HistogramResult: HistogramResult = new HistogramResult();
     @observable public SizeConverter: SizeConverter = new SizeConverter();
 
-    @computed get createOperationParamsCache() { return this.HistoOp.CreateOperationParameters(); }
-    @computed get HistogramResult() { return this.HistoOp ? this.HistoOp.Result as HistogramResult : undefined; }
+    @computed get createOperationParamsCache() { trace(); return this.HistoOp.CreateOperationParameters(); }
     @computed get BinRanges() { return this.HistogramResult ? this.HistogramResult.binRanges : undefined; }
     @computed get ChartType() {
         return !this.BinRanges ? ChartType.SinglePoint : this.BinRanges[0] instanceof AggregateBinRange ?
@@ -123,12 +123,21 @@ export class HistogramBox extends React.Component<FieldViewProps> {
             this.props.doc.GetTAsync(this.props.fieldKey, HistogramField).then((histoOp: Opt<HistogramField>) => runInAction(() => {
                 this.HistoOp = histoOp ? histoOp.Data : HistogramOperation.Empty;
                 if (this.HistoOp != HistogramOperation.Empty) {
-                    reaction(() => this.props.doc.GetList(KeyStore.LinkedFromDocs, []),
-                        (docs: Document[]) => {
+                    this.HistoOp.YieldResult = (r: Result) => action(() => this.HistogramResult = r as HistogramResult)();
+                    reaction(() => this.props.doc.GetList(KeyStore.LinkedFromDocs, []), (docs: Document[]) => this.HistoOp.Links.splice(0, this.HistoOp.Links.length, ...docs), { fireImmediately: true });
+                    reaction(() => this.props.doc.GetList(KeyStore.BrushingDocs, []).length,
+                        () => {
+                            let brushingDocs = this.props.doc.GetList(KeyStore.BrushingDocs, [] as Document[]);
                             var availableColors = StyleConstants.BRUSH_COLORS.map(c => c);
-                            docs.map((brush, i) => brush.SetNumber(KeyStore.BackgroundColor, availableColors[i % availableColors.length]));
-                            this.HistoOp.BrushLinks.splice(0, this.HistoOp.BrushLinks.length, ...docs);
-                            //this.HistoOp.Links.splice(0, this.HistoOp.Links.length, ...docs)
+                            let proto = this.props.doc.GetPrototype() as Document;
+                            let brushingLinks = brushingDocs.map((brush, i) => {
+                                // brush.SetNumber(KeyStore.BackgroundColor, availableColors[i % availableColors.length]);
+                                let brushed = brush.GetList(KeyStore.BrushingDocs, [] as Document[]);
+                                if (!brushed || brushed.length < 2)
+                                    return undefined;
+                                return { l: brush, b: brushed[0].Id == proto.Id ? brushed[1] : brushed[0] }
+                            }).filter(x => x != undefined) as { l: Document, b: Document }[];
+                            this.HistoOp.BrushLinks.splice(0, this.HistoOp.BrushLinks.length, ...brushingLinks);
                         }, { fireImmediately: true });
                     reaction(() => this.createOperationParamsCache, () => this.HistoOp.Update(), { fireImmediately: true });
                 }

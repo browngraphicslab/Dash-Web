@@ -29,6 +29,7 @@ export namespace KeyStore {
     export const Caption = new Key("Caption");
     export const ActiveWorkspace = new Key("ActiveWorkspace");
     export const DocumentText = new Key("DocumentText");
+    export const BrushingDocs = new Key("BrushingDocs");
     export const LinkedToDocs = new Key("LinkedToDocs");
     export const LinkedFromDocs = new Key("LinkedFromDocs");
     export const LinkDescription = new Key("LinkDescription");
