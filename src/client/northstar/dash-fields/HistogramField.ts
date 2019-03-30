@@ -1,13 +1,11 @@
+import { action } from "mobx";
+import { ColumnAttributeModel } from "../../../client/northstar/core/attribute/AttributeModel";
+import { AttributeTransformationModel } from "../../../client/northstar/core/attribute/AttributeTransformationModel";
+import { HistogramOperation } from "../../../client/northstar/operations/HistogramOperation";
 import { BasicField } from "../../../fields/BasicField";
 import { Field, FieldId } from "../../../fields/Field";
-import { Types } from "../../../server/Message";
-import { HistogramOperation } from "../../../client/northstar/operations/HistogramOperation";
-import { action } from "mobx";
-import { AttributeTransformationModel } from "../../../client/northstar/core/attribute/AttributeTransformationModel";
-import { ColumnAttributeModel } from "../../../client/northstar/core/attribute/AttributeModel";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
-import { ArrayUtil } from "../utils/ArrayUtil";
-import { Schema } from "../model/idea/idea";
+import { Types } from "../../../server/Message";
 
 
 export class HistogramField extends BasicField<HistogramOperation> {
@@ -25,7 +23,7 @@ export class HistogramField extends BasicField<HistogramOperation> {
         return dup;
     }
     toString(): string {
-        return JSON.stringify(this.omitKeys(this.Data, ['Links', 'BrushLinks', 'Result', 'BrushColors']));
+        return JSON.stringify(this.omitKeys(this.Data, ['Links', 'BrushLinks', 'Result', 'BrushColors', 'FilterModels', 'FilterOperand']));
     }
 
     Copy(): Field {
