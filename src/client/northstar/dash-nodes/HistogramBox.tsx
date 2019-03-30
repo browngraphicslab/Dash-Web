@@ -22,9 +22,6 @@ import { HistogramBoxPrimitives } from './HistogramBoxPrimitives';
 import { HistogramLabelPrimitives } from "./HistogramLabelPrimitives";
 import { StyleConstants } from "../utils/StyleContants";
 
-export interface HistogramPrimitivesProps {
-    HistoBox: HistogramBox;
-}
 
 @observer
 export class HistogramBox extends React.Component<FieldViewProps> {
@@ -77,6 +74,15 @@ export class HistogramBox extends React.Component<FieldViewProps> {
         }
     }
 
+    @action
+    xLabelPointerDown = (e: React.PointerEvent) => {
+        this.HistoOp.X = new AttributeTransformationModel(this.HistoOp.X.AttributeModel, this.HistoOp.X.AggregateFunction == AggregateFunction.None ? AggregateFunction.Count : AggregateFunction.None);
+    }
+    @action
+    yLabelPointerDown = (e: React.PointerEvent) => {
+        this.HistoOp.Y = new AttributeTransformationModel(this.HistoOp.Y.AttributeModel, this.HistoOp.Y.AggregateFunction == AggregateFunction.None ? AggregateFunction.Count : AggregateFunction.None);
+    }
+
     componentDidMount() {
         if (this._dropXRef.current) {
             this._dropXDisposer = DragManager.MakeDropTarget(this._dropXRef.current, { handlers: { drop: this.dropX.bind(this) } });
@@ -100,15 +106,6 @@ export class HistogramBox extends React.Component<FieldViewProps> {
                     }, [Number.MAX_VALUE, Number.MIN_VALUE]);
                 }
             });
-    }
-
-    @action
-    xLabelPointerDown = (e: React.PointerEvent) => {
-        this.HistoOp.X = new AttributeTransformationModel(this.HistoOp.X.AttributeModel, this.HistoOp.X.AggregateFunction == AggregateFunction.None ? AggregateFunction.Count : AggregateFunction.None);
-    }
-    @action
-    yLabelPointerDown = (e: React.PointerEvent) => {
-        this.HistoOp.Y = new AttributeTransformationModel(this.HistoOp.Y.AttributeModel, this.HistoOp.Y.AggregateFunction == AggregateFunction.None ? AggregateFunction.Count : AggregateFunction.None);
     }
 
     componentWillUnmount() {

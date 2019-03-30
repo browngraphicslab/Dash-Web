@@ -5,8 +5,9 @@ import { Utils as DashUtils } from '../../../Utils';
 import { NominalVisualBinRange } from "../model/binRanges/NominalVisualBinRange";
 import "../utils/Extensions";
 import { StyleConstants } from "../utils/StyleContants";
-import { HistogramBox, HistogramPrimitivesProps } from "./HistogramBox";
+import { HistogramBox } from "./HistogramBox";
 import "./HistogramLabelPrimitives.scss";
+import { HistogramPrimitivesProps } from "./HistogramBoxPrimitives";
 
 @observer
 export class HistogramLabelPrimitives extends React.Component<HistogramPrimitivesProps> {

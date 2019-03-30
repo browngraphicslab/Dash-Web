@@ -1,5 +1,7 @@
 import { action, computed, observable, trace } from "mobx";
 import { Document } from "../../../fields/Document";
+import { FieldWaiting } from "../../../fields/Field";
+import { KeyStore } from "../../../fields/KeyStore";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { ColumnAttributeModel } from "../core/attribute/AttributeModel";
 import { AttributeTransformationModel } from "../core/attribute/AttributeTransformationModel";
@@ -7,51 +9,29 @@ import { CalculatedAttributeManager } from "../core/attribute/CalculatedAttribut
 import { FilterModel } from "../core/filter/FilterModel";
 import { FilterOperand } from "../core/filter/FilterOperand";
 import { IBaseFilterConsumer } from "../core/filter/IBaseFilterConsumer";
-import { IBaseFilterProvider, instanceOfIBaseFilterProvider } from "../core/filter/IBaseFilterProvider";
+import { IBaseFilterProvider } from "../core/filter/IBaseFilterProvider";
+import { HistogramField } from "../dash-fields/HistogramField";
 import { SETTINGS_SAMPLE_SIZE, SETTINGS_X_BINS, SETTINGS_Y_BINS } from "../model/binRanges/VisualBinRangeHelper";
-import { AggregateFunction, AggregateParameters, Attribute, AverageAggregateParameters, DataType, HistogramOperationParameters, QuantitativeBinRange, HistogramResult, Brush, DoubleValueAggregateResult, Bin } from "../model/idea/idea";
+import { AggregateFunction, AggregateParameters, Attribute, AverageAggregateParameters, Bin, DataType, DoubleValueAggregateResult, HistogramOperationParameters, HistogramResult, QuantitativeBinRange } from "../model/idea/idea";
 import { ModelHelpers } from "../model/ModelHelpers";
 import { ArrayUtil } from "../utils/ArrayUtil";
 import { BaseOperation } from "./BaseOperation";
-import { KeyStore } from "../../../fields/KeyStore";
-import { HistogramField } from "../dash-fields/HistogramField";
-import { FieldWaiting } from "../../../fields/Field";
-import { StyleConstants } from "../utils/StyleContants";
-
 
 export class HistogramOperation extends BaseOperation implements IBaseFilterConsumer, IBaseFilterProvider {
+    public static Empty = new HistogramOperation("-empty schema-", new AttributeTransformationModel(new ColumnAttributeModel(new Attribute())), new AttributeTransformationModel(new ColumnAttributeModel(new Attribute())), new AttributeTransformationModel(new ColumnAttributeModel(new Attribute())));
     @observable public FilterOperand: FilterOperand = FilterOperand.AND;
     @observable public Links: Document[] = [];
     @observable public BrushLinks: { l: Document, b: Document }[] = [];
     @observable public BrushColors: number[] = [];
-    @observable public Normalization: number = -1;
     @observable public FilterModels: FilterModel[] = [];
+
+    @observable public Normalization: number = -1;
     @observable public X: AttributeTransformationModel;
     @observable public Y: AttributeTransformationModel;
     @observable public V: AttributeTransformationModel;
     @observable public SchemaName: string;
+    @observable public QRange: QuantitativeBinRange | undefined;
     @computed public get Schema() { return CurrentUserUtils.GetNorthstarSchema(this.SchemaName); }
-
-    @action
-    public AddFilterModels(filterModels: FilterModel[]): void {
-        filterModels.filter(f => f !== null).forEach(fm => this.FilterModels.push(fm));
-    }
-    @action
-    public RemoveFilterModels(filterModels: FilterModel[]): void {
-        ArrayUtil.RemoveMany(this.FilterModels, filterModels);
-    }
-
-    public getValue(axis: number, bin: Bin, result: HistogramResult, brushIndex: number) {
-        var aggregateKey = ModelHelpers.CreateAggregateKey(this.Schema!.distinctAttributeParameters, axis == 0 ? this.X : axis == 1 ? this.Y : this.V, result, brushIndex);
-        let dataValue = ModelHelpers.GetAggregateResult(bin, aggregateKey) as DoubleValueAggregateResult;
-        return dataValue != null && dataValue.hasResult ? dataValue.result : undefined;
-    }
-
-    public static Empty = new HistogramOperation("-empty schema-", new AttributeTransformationModel(new ColumnAttributeModel(new Attribute())), new AttributeTransformationModel(new ColumnAttributeModel(new Attribute())), new AttributeTransformationModel(new ColumnAttributeModel(new Attribute())));
-
-    Equals(other: Object): boolean {
-        throw new Error("Method not implemented.");
-    }
 
     constructor(schemaName: string, x: AttributeTransformationModel, y: AttributeTransformationModel, v: AttributeTransformationModel, normalized?: number) {
         super();
@@ -60,6 +40,19 @@ export class HistogramOperation extends BaseOperation implements IBaseFilterCons
         this.V = v;
         this.Normalization = normalized ? normalized : -1;
         this.SchemaName = schemaName;
+    }
+
+    Equals(other: Object): boolean {
+        throw new Error("Method not implemented.");
+    }
+
+    @action
+    public AddFilterModels(filterModels: FilterModel[]): void {
+        filterModels.filter(f => f !== null).forEach(fm => this.FilterModels.push(fm));
+    }
+    @action
+    public RemoveFilterModels(filterModels: FilterModel[]): void {
+        ArrayUtil.RemoveMany(this.FilterModels, filterModels);
     }
 
     @computed
@@ -73,25 +66,16 @@ export class HistogramOperation extends BaseOperation implements IBaseFilterCons
         trace();
         let brushes: string[] = [];
         this.BrushLinks.map(brushLink => {
-            let brusherDoc = brushLink.b;
-            let brushHistogram = brusherDoc.GetT(KeyStore.Data, HistogramField);
+            let brushHistogram = brushLink.b.GetT(KeyStore.Data, HistogramField);
             if (brushHistogram && brushHistogram != FieldWaiting) {
                 let filterModels: FilterModel[] = [];
-                let brush = FilterModel.GetFilterModelsRecursive(brushHistogram!.Data, new Set<IBaseFilterProvider>(), filterModels, false)
-                brushes.push(brush);
+                brushes.push(FilterModel.GetFilterModelsRecursive(brushHistogram.Data, new Set<IBaseFilterProvider>(), filterModels, false));
             }
         });
         return brushes;
     }
 
-
-    @computed.struct
-    public get SelectionString() {
-        let filterModels = new Array<FilterModel>();
-        return FilterModel.GetFilterModelsRecursive(this, new Set<IBaseFilterProvider>(), filterModels, false);
-    }
-
-    GetAggregateParameters(histoX: AttributeTransformationModel, histoY: AttributeTransformationModel, histoValue: AttributeTransformationModel) {
+    private getAggregateParameters(histoX: AttributeTransformationModel, histoY: AttributeTransformationModel, histoValue: AttributeTransformationModel) {
         let allAttributes = new Array<AttributeTransformationModel>(histoX, histoY, histoValue);
         allAttributes = ArrayUtil.Distinct(allAttributes.filter(a => a.AggregateFunction !== AggregateFunction.None));
 
@@ -108,11 +92,9 @@ export class HistogramOperation extends BaseOperation implements IBaseFilterCons
         return [perBinAggregateParameters, globalAggregateParameters];
     }
 
-    public QRange: QuantitativeBinRange | undefined;
-
     public CreateOperationParameters(): HistogramOperationParameters | undefined {
         if (this.X && this.Y && this.V) {
-            let [perBinAggregateParameters, globalAggregateParameters] = this.GetAggregateParameters(this.X, this.Y, this.V);
+            let [perBinAggregateParameters, globalAggregateParameters] = this.getAggregateParameters(this.X, this.Y, this.V);
             return new HistogramOperationParameters({
                 enableBrushComputation: true,
                 adapterName: this.SchemaName,
@@ -130,9 +112,6 @@ export class HistogramOperation extends BaseOperation implements IBaseFilterCons
                 isCachable: false
             });
         }
-    }
-    get_random_color(): number {
-        return (Math.floor(Math.random() * 256) << 16) + (Math.floor(Math.random() * 256) << 8) + (Math.floor(Math.random() * 256));
     }
 
     @action

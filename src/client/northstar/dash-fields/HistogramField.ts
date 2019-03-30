@@ -15,9 +15,17 @@ export class HistogramField extends BasicField<HistogramOperation> {
         super(data ? data : HistogramOperation.Empty, save, id);
     }
 
+    omitKeys(obj: any, keys: any) {
+        var dup: any = {};
+        for (var key in obj) {
+            if (keys.indexOf(key) == -1) {
+                dup[key] = obj[key];
+            }
+        }
+        return dup;
+    }
     toString(): string {
-        let omitted = this.omitKeys(this.Data, ['Links', 'BrushLinks']);
-        return JSON.stringify(omitted);
+        return JSON.stringify(this.omitKeys(this.Data, ['Links', 'BrushLinks', 'Result']));
     }
 
     Copy(): Field {
@@ -28,22 +36,12 @@ export class HistogramField extends BasicField<HistogramOperation> {
         return `new HistogramField("${this.Data}")`;
     }
 
-    omitKeys(obj: any, keys: any) {
-        var dup: any = {};
-        for (var key in obj) {
-            if (keys.indexOf(key) == -1) {
-                dup[key] = obj[key];
-            }
-        }
-        return dup;
-    }
 
     ToJson(): { type: Types, data: string, _id: string } {
-        let omitted = this.omitKeys(this.Data, ['Links', 'BrushLinks']);
         return {
             type: Types.HistogramOp,
 
-            data: JSON.stringify(omitted),
+            data: this.toString(),
             _id: this.Id
         }
     }
