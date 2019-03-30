@@ -116,7 +116,7 @@ export class HistogramOperation extends BaseOperation implements IBaseFilterCons
 
     @action
     public async Update(): Promise<void> {
-        //this.BrushColors = this.BrushLinks.map(e => e.l.GetNumber(KeyStore.BackgroundColor, 0));
+        this.BrushColors = this.BrushLinks.map(e => e.l.GetNumber(KeyStore.BackgroundColor, 0));
         return super.Update();
     }
 }

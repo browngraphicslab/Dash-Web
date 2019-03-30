@@ -124,16 +124,12 @@ export class HistogramBox extends React.Component<FieldViewProps> {
                     reaction(() => this.props.doc.GetList(KeyStore.BrushingDocs, []).length,
                         () => {
                             let brushingDocs = this.props.doc.GetList(KeyStore.BrushingDocs, [] as Document[]);
-                            var availableColors = StyleConstants.BRUSH_COLORS.map(c => c);
                             let proto = this.props.doc.GetPrototype() as Document;
-                            let brushingLinks = brushingDocs.map((brush, i) => {
-                                brush.SetNumber(KeyStore.BackgroundColor, availableColors[i % availableColors.length]);
+                            this.HistoOp.BrushLinks.splice(0, this.HistoOp.BrushLinks.length, ...brushingDocs.map((brush, i) => {
+                                brush.SetNumber(KeyStore.BackgroundColor, StyleConstants.BRUSH_COLORS[i % StyleConstants.BRUSH_COLORS.length]);
                                 let brushed = brush.GetList(KeyStore.BrushingDocs, [] as Document[]);
-                                if (!brushed || brushed.length < 2)
-                                    return undefined;
                                 return { l: brush, b: brushed[0].Id == proto.Id ? brushed[1] : brushed[0] }
-                            }).filter(x => x != undefined) as { l: Document, b: Document }[];
-                            this.HistoOp.BrushLinks.splice(0, this.HistoOp.BrushLinks.length, ...brushingLinks);
+                            }));
                         }, { fireImmediately: true });
                     reaction(() => this.createOperationParamsCache, () => this.HistoOp.Update(), { fireImmediately: true });
                 }

@@ -25,7 +25,7 @@ export class HistogramField extends BasicField<HistogramOperation> {
         return dup;
     }
     toString(): string {
-        return JSON.stringify(this.omitKeys(this.Data, ['Links', 'BrushLinks', 'Result']));
+        return JSON.stringify(this.omitKeys(this.Data, ['Links', 'BrushLinks', 'Result', 'BrushColors']));
     }
 
     Copy(): Field {
