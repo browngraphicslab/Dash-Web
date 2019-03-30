@@ -36,7 +36,7 @@ export class HistogramBox extends React.Component<FieldViewProps> {
     @observable public HistoOp: HistogramOperation = HistogramOperation.Empty;
     @observable public VisualBinRanges: VisualBinRange[] = [];
     @observable public ValueRange: number[] = [];
-    @observable public HistogramResult: HistogramResult = new HistogramResult();
+    @computed public get HistogramResult(): HistogramResult { return this.HistoOp.Result as HistogramResult; }
     @observable public SizeConverter: SizeConverter = new SizeConverter();
 
     @computed get createOperationParamsCache() { trace(); return this.HistoOp.CreateOperationParameters(); }
@@ -120,7 +120,6 @@ export class HistogramBox extends React.Component<FieldViewProps> {
             this.props.doc.GetTAsync(this.props.fieldKey, HistogramField).then((histoOp: Opt<HistogramField>) => runInAction(() => {
                 this.HistoOp = histoOp ? histoOp.Data : HistogramOperation.Empty;
                 if (this.HistoOp != HistogramOperation.Empty) {
-                    this.HistoOp.YieldResult = (r: Result) => action(() => this.HistogramResult = r as HistogramResult)();
                     reaction(() => this.props.doc.GetList(KeyStore.LinkedFromDocs, []), (docs: Document[]) => this.HistoOp.Links.splice(0, this.HistoOp.Links.length, ...docs), { fireImmediately: true });
                     reaction(() => this.props.doc.GetList(KeyStore.BrushingDocs, []).length,
                         () => {
@@ -128,7 +127,7 @@ export class HistogramBox extends React.Component<FieldViewProps> {
                             var availableColors = StyleConstants.BRUSH_COLORS.map(c => c);
                             let proto = this.props.doc.GetPrototype() as Document;
                             let brushingLinks = brushingDocs.map((brush, i) => {
-                                // brush.SetNumber(KeyStore.BackgroundColor, availableColors[i % availableColors.length]);
+                                brush.SetNumber(KeyStore.BackgroundColor, availableColors[i % availableColors.length]);
                                 let brushed = brush.GetList(KeyStore.BrushingDocs, [] as Document[]);
                                 if (!brushed || brushed.length < 2)
                                     return undefined;

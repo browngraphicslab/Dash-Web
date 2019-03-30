@@ -11,7 +11,7 @@ export abstract class BaseOperation {
     @observable public Error: string = "";
     @observable public OverridingFilters: FilterModel[] = [];
     //@observable 
-    public Result?: Result = undefined;
+    @observable public Result?: Result = undefined;
     @observable public ComputationStarted: boolean = false;
     public OperationReference?: OperationReference = undefined;
 
@@ -46,11 +46,8 @@ export abstract class BaseOperation {
     }
 
 
-    public YieldResult: ((result: Result) => void) | undefined;
     @action
     public SetResult(result: Result): void {
-        if (this.YieldResult)
-            this.YieldResult(result);
         this.Result = result;
     }
 

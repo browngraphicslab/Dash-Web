@@ -3,17 +3,15 @@ import { observer } from "mobx-react";
 import { Document } from "../../../../fields/Document";
 import { FieldWaiting } from "../../../../fields/Field";
 import { KeyStore } from "../../../../fields/KeyStore";
+import { ListField } from "../../../../fields/ListField";
 import { Utils } from "../../../../Utils";
 import { DocumentManager } from "../../../util/DocumentManager";
 import { DocumentView } from "../../nodes/DocumentView";
 import { CollectionViewProps } from "../CollectionViewBase";
 import "./CollectionFreeFormLinksView.scss";
+import { CollectionFreeFormLinkView } from "./CollectionFreeFormLinkView";
 import React = require("react");
 import v5 = require("uuid/v5");
-import { CollectionFreeFormLinkView } from "./CollectionFreeFormLinkView";
-import { ListField } from "../../../../fields/ListField";
-import { TextField } from "../../../../fields/TextField";
-import { StyleConstants } from "../../../northstar/utils/StyleContants";
 
 @observer
 export class CollectionFreeFormLinksView extends React.Component<CollectionViewProps> {
@@ -31,36 +29,34 @@ export class CollectionFreeFormLinksView extends React.Component<CollectionViewP
                     let x1w = srcDoc.GetNumber(KeyStore.Width, 0);
                     let x2 = dstDoc.GetNumber(KeyStore.X, 0);
                     let x2w = dstDoc.GetNumber(KeyStore.Width, 0);
-                    if (Math.abs(x1 + x1w - x2) < 20 || Math.abs(x2 + x2w - x1) < 20) {
-                        let linkDoc: Document = new Document();
-                        dstDoc.GetTAsync(KeyStore.Prototype, Document).then((protoDest) =>
-                            srcDoc.GetTAsync(KeyStore.Prototype, Document).then((protoSrc) => runInAction(() => {
-                                linkDoc.Set(KeyStore.Title, new TextField("New Brush"));
-                                linkDoc.Set(KeyStore.LinkDescription, new TextField(""));
-                                linkDoc.Set(KeyStore.LinkTags, new TextField("Default"));
-                                linkDoc.SetNumber(KeyStore.BackgroundColor, StyleConstants.BRUSH_COLORS[0]);
-
-                                let dstTarg = (protoDest ? protoDest : dstDoc);
-                                let srcTarg = (protoSrc ? protoSrc : srcDoc);
+                    dstDoc.GetTAsync(KeyStore.Prototype, Document).then((protoDest) =>
+                        srcDoc.GetTAsync(KeyStore.Prototype, Document).then((protoSrc) => runInAction(() => {
+                            let dstTarg = (protoDest ? protoDest : dstDoc);
+                            let srcTarg = (protoSrc ? protoSrc : srcDoc);
+                            let findBrush = (field: ListField<Document>) => field.Data.findIndex(brush => {
+                                let bdocs = brush.GetList(KeyStore.BrushingDocs, [] as Document[]);
+                                return (bdocs[0] == dstTarg && bdocs[1] == srcTarg) || (bdocs[0] == srcTarg && bdocs[1] == dstTarg)
+                            });
+                            let brushAction = (field: ListField<Document>) => {
+                                let found = findBrush(field);
+                                if (found != -1)
+                                    field.Data.splice(found, 1);
+                            };
+                            if (Math.abs(x1 + x1w - x2) < 20 || Math.abs(x2 + x2w - x1) < 20) {
+                                let linkDoc: Document = new Document();
+                                linkDoc.SetText(KeyStore.Title, "Histogram Brush");
+                                linkDoc.SetText(KeyStore.LinkDescription, "Brush between " + srcTarg.Title + " and " + dstTarg.Title);
                                 linkDoc.SetData(KeyStore.BrushingDocs, [dstTarg, srcTarg], ListField);
-                                dstTarg.GetOrCreateAsync(KeyStore.BrushingDocs, ListField, field => { (field as ListField<Document>).Data.push(linkDoc) })
-                                srcTarg.GetOrCreateAsync(KeyStore.BrushingDocs, ListField, field => { (field as ListField<Document>).Data.push(linkDoc) })
-                            }))
-                        )
-                    } else {
-                        dstDoc.GetTAsync(KeyStore.Prototype, Document).then((protoDest) =>
-                            srcDoc.GetTAsync(KeyStore.Prototype, Document).then((protoSrc) => runInAction(() => {
 
-                                let dstTarg = (protoDest ? protoDest : dstDoc);
-                                let srcTarg = (protoSrc ? protoSrc : srcDoc);
-                                dstTarg.GetOrCreateAsync(KeyStore.BrushingDocs, ListField, field => { (field as ListField<Document>).Data.length = 0 })
-                                srcTarg.GetOrCreateAsync(KeyStore.BrushingDocs, ListField, field => { (field as ListField<Document>).Data.length = 0 })
-                            }))
-                        )
-                    }
+                                brushAction = (field: ListField<Document>) => (findBrush(field) == -1) && field.Data.push(linkDoc);
+                            }
+                            dstTarg.GetOrCreateAsync(KeyStore.BrushingDocs, ListField, brushAction);
+                            srcTarg.GetOrCreateAsync(KeyStore.BrushingDocs, ListField, brushAction);
+                        }
+                        )))
                 }
             }
-        });
+        })
     }
     documentAnchors(view: DocumentView) {
         let equalViews = [view];
