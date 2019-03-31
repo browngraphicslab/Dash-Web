@@ -5,6 +5,11 @@
     transform-origin: left top;
     pointer-events: none;
 }
+.previewCursorView {
+    position: absolute;
+    width:100%;
+    height:100%;
+}
 
 //this is an animation for the blinking cursor!
 @keyframes blink {
@@ -14,5 +19,5 @@
 }
 
 #previewCursor {
-    animation: blink 1s infinite;
+     animation: blink 1s infinite;
 }

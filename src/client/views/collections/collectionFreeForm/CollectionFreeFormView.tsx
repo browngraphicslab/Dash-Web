@@ -3,7 +3,6 @@ import { observer } from "mobx-react";
 import { Document } from "../../../../fields/Document";
 import { FieldWaiting } from "../../../../fields/Field";
 import { KeyStore } from "../../../../fields/KeyStore";
-import { ListField } from "../../../../fields/ListField";
 import { TextField } from "../../../../fields/TextField";
 import { DragManager } from "../../../util/DragManager";
 import { Transform } from "../../../util/Transform";
@@ -14,10 +13,9 @@ import { DocumentContentsView } from "../../nodes/DocumentContentsView";
 import { DocumentViewProps } from "../../nodes/DocumentView";
 import { COLLECTION_BORDER_WIDTH } from "../CollectionView";
 import { CollectionViewBase } from "../CollectionViewBase";
-import { MarqueeView } from "./MarqueeView";
-import { PreviewCursor } from "./PreviewCursor";
 import { CollectionFreeFormLinksView } from "./CollectionFreeFormLinksView";
 import "./CollectionFreeFormView.scss";
+import { MarqueeView } from "./MarqueeView";
 import React = require("react");
 import v5 = require("uuid/v5");
 
@@ -27,12 +25,15 @@ export class CollectionFreeFormView extends CollectionViewBase {
     private _selectOnLoaded: string = ""; // id of document that should be selected once it's loaded (used for click-to-type)
 
     public addLiveTextBox = (newBox: Document) => {
-        // mark this collection so that when the text box is created we can send it the SelectOnLoad prop to focus itself
+        // mark this collection so that when the text box is created we can send it the SelectOnLoad prop to focus itself and receive text input
         this._selectOnLoaded = newBox.Id;
-        //set text to be the typed key and get focus on text box
-        this.props.addDocument(newBox, false);
-        //remove cursor from screen
-        this.PreviewCursorVisible = false;
+        this.addDocument(newBox, false);
+    }
+
+    public addDocument = (newBox: Document, allowDuplicates: boolean) => {
+        let added = this.props.addDocument(newBox, false);
+        this.bringToFront(newBox);
+        return added;
     }
 
     public selectDocuments = (docs: Document[]) => {
@@ -42,23 +43,15 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
     public getActiveDocuments = () => {
         var curPage = this.props.Document.GetNumber(KeyStore.CurPage, -1);
-        const lvalue = this.props.Document.GetT<ListField<Document>>(this.props.fieldKey, ListField);
-        let active: Document[] = [];
-        if (lvalue && lvalue != FieldWaiting) {
-            lvalue.Data.map(doc => {
-                var page = doc.GetNumber(KeyStore.Page, -1);
-                if (page == curPage || page == -1) {
-                    active.push(doc);
-                }
-            })
-        }
-
-        return active;
+        return this.props.Document.GetList(this.props.fieldKey, [] as Document[]).reduce((active, doc) => {
+            var page = doc.GetNumber(KeyStore.Page, -1);
+            if (page == curPage || page == -1) {
+                active.push(doc);
+            }
+            return active;
+        }, [] as Document[]);
     }
 
-    //determines whether the blinking cursor for indicating whether a text will be made on key down is visible
-    @observable public PreviewCursorVisible: boolean = false;
-    @observable public MarqueeVisible = false;
     @observable public DownX: number = 0;
     @observable public DownY: number = 0;
     @observable private _lastX: number = 0;
@@ -100,12 +93,10 @@ export class CollectionFreeFormView extends CollectionViewBase {
     cleanupInteractions = () => {
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
-        this.MarqueeVisible = false;
     }
 
     @action
     onPointerDown = (e: React.PointerEvent): void => {
-        this.PreviewCursorVisible = false;
         if ((e.button === 2 && this.props.active() && (!this.isAnnotationOverlay || this.zoomScaling != 1)) || e.button == 0) {
             document.removeEventListener("pointermove", this.onPointerMove);
             document.addEventListener("pointermove", this.onPointerMove);
@@ -120,28 +111,13 @@ export class CollectionFreeFormView extends CollectionViewBase {
     onPointerUp = (e: PointerEvent): void => {
         e.stopPropagation();
 
-        if (Math.abs(this.DownX - e.clientX) < 4 && Math.abs(this.DownY - e.clientY) < 4) {
-            //show preview text cursor on tap
-            this.PreviewCursorVisible = true;
-            //select is not already selected
-            if (!this.props.isSelected()) {
-                this.props.select(false);
-            }
-        }
         this.cleanupInteractions();
     }
 
     @action
     onPointerMove = (e: PointerEvent): void => {
         if (!e.cancelBubble && this.props.active()) {
-            if (e.buttons == 1 && !e.altKey && !e.metaKey) {
-                this.MarqueeVisible = true;
-            }
-            if (this.MarqueeVisible) {
-                e.stopPropagation();
-                e.preventDefault();
-            }
-            else if ((!this.isAnnotationOverlay || this.zoomScaling != 1) && !e.shiftKey) {
+            if ((!this.isAnnotationOverlay || this.zoomScaling != 1) && !e.shiftKey) {
                 let x = this.props.Document.GetNumber(KeyStore.PanX, 0);
                 let y = this.props.Document.GetNumber(KeyStore.PanY, 0);
                 let [dx, dy] = this.getTransform().transformDirection(e.clientX - this._lastX, e.clientY - this._lastY);
@@ -264,16 +240,12 @@ export class CollectionFreeFormView extends CollectionViewBase {
     @computed
     get views() {
         var curPage = this.props.Document.GetNumber(KeyStore.CurPage, -1);
-        const lvalue = this.props.Document.GetT<ListField<Document>>(this.props.fieldKey, ListField);
-        if (lvalue && lvalue != FieldWaiting) {
-            return lvalue.Data.map(doc => {
-                if (!doc) return null;
-                var page = doc.GetNumber(KeyStore.Page, 0);
-                return (page != curPage && page != 0) ? (null) :
-                    (<CollectionFreeFormDocumentView key={doc.Id} {...this.getDocumentViewProps(doc)} />);
-            })
-        }
-        return null;
+        return this.props.Document.GetList(this.props.fieldKey, [] as Document[]).filter(doc => doc).reduce((prev, doc) => {
+            var page = doc.GetNumber(KeyStore.Page, -1);
+            if (page == curPage || page == -1)
+                prev.push(<CollectionFreeFormDocumentView key={doc.Id} {...this.getDocumentViewProps(doc)} />);
+            return prev;
+        }, [] as JSX.Element[])
     }
 
     @computed
@@ -290,15 +262,10 @@ export class CollectionFreeFormView extends CollectionViewBase {
     }
 
     getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-COLLECTION_BORDER_WIDTH, -COLLECTION_BORDER_WIDTH).translate(-this.centeringShiftX, -this.centeringShiftY).transform(this.getLocalTransform())
-    getMarqueeTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-COLLECTION_BORDER_WIDTH, -COLLECTION_BORDER_WIDTH)
+    getContainerTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-COLLECTION_BORDER_WIDTH, -COLLECTION_BORDER_WIDTH)
     getLocalTransform = (): Transform => Transform.Identity.scale(1 / this.scale).translate(this.panX, this.panY);
     noScaling = () => 1;
 
-    //when focus is lost, this will remove the preview cursor
-    @action
-    onBlur = (): void => {
-        this.PreviewCursorVisible = false;
-    }
 
     private crosshairs?: HTMLCanvasElement;
     drawCrosshairs = (backgroundColor: string) => {
@@ -345,71 +312,63 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
         return (
             <div className={`collectionfreeformview${this.isAnnotationOverlay ? "-overlay" : "-container"}`}
-                onPointerDown={this.onPointerDown}
-                onPointerMove={(e) => super.setCursorPosition(this.getTransform().transformPoint(e.clientX, e.clientY))}
-                onWheel={this.onPointerWheel}
-                onDrop={this.onDrop.bind(this)}
-                onDragOver={this.onDragOver}
-                onBlur={this.onBlur}
-                style={{ borderWidth: `${COLLECTION_BORDER_WIDTH}px` }}// , zIndex: !this.props.isTopMost ? -1 : undefined }}
-                tabIndex={0}
-                ref={this.createDropTarget}>
-                <div className="collectionfreeformview"
-                    style={{ transformOrigin: "left top", transform: `translate(${dx}px, ${dy}px) scale(${this.zoomScaling}, ${this.zoomScaling}) translate(${panx}px, ${pany}px)` }}
-                    ref={this._canvasRef}>
-                    {this.backgroundView}
-                    <InkingCanvas getScreenTransform={this.getTransform} Document={this.props.Document} />
-                    <PreviewCursor container={this} addLiveTextDocument={this.addLiveTextBox} getTransform={this.getTransform} />
-                    {this.views}
-                    <CollectionFreeFormLinksView {...this.props} />
-                    {super.getCursors().map(entry => {
-                        if (entry.Data.length > 0) {
-                            let id = entry.Data[0][0];
-                            let email = entry.Data[0][1];
-                            let point = entry.Data[1];
-                            this.drawCrosshairs("#" + v5(id, v5.URL).substring(0, 6).toUpperCase() + "22")
-                            return (
-                                <div
-                                    key={id}
-                                    style={{
-                                        position: "absolute",
-                                        transform: `translate(${point[0] - 10}px, ${point[1] - 10}px)`,
-                                        zIndex: 10000,
-                                        transformOrigin: 'center center',
-                                    }}
-                                >
-                                    <canvas
-                                        ref={(el) => { if (el) this.crosshairs = el }}
-                                        width={20}
-                                        height={20}
-                                        style={{
-                                            position: 'absolute',
-                                            width: "20px",
-                                            height: "20px",
-                                            opacity: 0.5,
-                                            borderRadius: "50%",
-                                            border: "2px solid black"
-                                        }}
-                                    />
-                                    <p
-                                        style={{
-                                            fontSize: 14,
-                                            color: "black",
-                                            // fontStyle: "italic",
-                                            marginLeft: -12,
-                                            marginTop: 4
-                                        }}
-                                    >{email[0].toUpperCase()}</p>
-                                </div>
-                            );
-                        }
-                    })}
-                </div>
+                onPointerDown={this.onPointerDown} onPointerMove={(e) => super.setCursorPosition(this.getTransform().transformPoint(e.clientX, e.clientY))}
+                onDrop={this.onDrop.bind(this)} onDragOver={this.onDragOver} onWheel={this.onPointerWheel}
+                style={{ borderWidth: `${COLLECTION_BORDER_WIDTH}px` }} tabIndex={0} ref={this.createDropTarget}>
                 <MarqueeView container={this} activeDocuments={this.getActiveDocuments} selectDocuments={this.selectDocuments}
-                    addDocument={this.props.addDocument} removeDocument={this.props.removeDocument}
-                    getMarqueeTransform={this.getMarqueeTransform} getTransform={this.getTransform} />
-                {this.overlayView}
-
+                    addDocument={this.addDocument} removeDocument={this.props.removeDocument} addLiveTextDocument={this.addLiveTextBox}
+                    getContainerTransform={this.getContainerTransform} getTransform={this.getTransform}>
+                    <div className="collectionfreeformview" ref={this._canvasRef}
+                        style={{ transform: `translate(${dx}px, ${dy}px) scale(${this.zoomScaling}, ${this.zoomScaling}) translate(${panx}px, ${pany}px)` }}>
+                        {this.backgroundView}
+                        <CollectionFreeFormLinksView {...this.props} />
+                        {this.views}
+                        <InkingCanvas getScreenTransform={this.getTransform} Document={this.props.Document} />
+                        {super.getCursors().map(entry => {
+                            if (entry.Data.length > 0) {
+                                let id = entry.Data[0][0];
+                                let email = entry.Data[0][1];
+                                let point = entry.Data[1];
+                                this.drawCrosshairs("#" + v5(id, v5.URL).substring(0, 6).toUpperCase() + "22")
+                                return (
+                                    <div
+                                        key={id}
+                                        style={{
+                                            position: "absolute",
+                                            transform: `translate(${point[0] - 10}px, ${point[1] - 10}px)`,
+                                            zIndex: 10000,
+                                            transformOrigin: 'center center',
+                                        }}
+                                    >
+                                        <canvas
+                                            ref={(el) => { if (el) this.crosshairs = el }}
+                                            width={20}
+                                            height={20}
+                                            style={{
+                                                position: 'absolute',
+                                                width: "20px",
+                                                height: "20px",
+                                                opacity: 0.5,
+                                                borderRadius: "50%",
+                                                border: "2px solid black"
+                                            }}
+                                        />
+                                        <p
+                                            style={{
+                                                fontSize: 14,
+                                                color: "black",
+                                                // fontStyle: "italic",
+                                                marginLeft: -12,
+                                                marginTop: 4
+                                            }}
+                                        >{email[0].toUpperCase()}</p>
+                                    </div>
+                                );
+                            }
+                        })}
+                    </div>
+                    {this.overlayView}
+                </MarqueeView>
             </div>
         );
     }

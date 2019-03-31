@@ -1,16 +1,15 @@
-import { observer } from "mobx-react";
-import { observable } from "mobx";
 import { action, computed } from "mobx";
-import { InkingControl } from "./InkingControl";
-import React = require("react");
-import { Transform } from "../util/Transform";
+import { observer } from "mobx-react";
 import { Document } from "../../fields/Document";
-import { KeyStore } from "../../fields/KeyStore";
-import { InkField, InkTool, StrokeData, StrokeMap } from "../../fields/InkField";
-import { InkingStroke } from "./InkingStroke";
-import "./InkingCanvas.scss"
-import { Utils } from "../../Utils";
 import { FieldWaiting } from "../../fields/Field";
+import { InkField, InkTool, StrokeData, StrokeMap } from "../../fields/InkField";
+import { KeyStore } from "../../fields/KeyStore";
+import { Utils } from "../../Utils";
+import { Transform } from "../util/Transform";
+import "./InkingCanvas.scss";
+import { InkingControl } from "./InkingControl";
+import { InkingStroke } from "./InkingStroke";
+import React = require("react");
 
 interface InkCanvasProps {
     getScreenTransform: () => Transform;
@@ -71,8 +70,7 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
 
         // start the new line, saves a uuid to represent the field of the stroke
         this._idGenerator = Utils.GenerateGuid();
-        let data = this.inkData;
-        data.set(this._idGenerator,
+        this.inkData.set(this._idGenerator,
             {
                 pathData: [point],
                 color: InkingControl.Instance.selectedColor,
@@ -80,7 +78,6 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
                 tool: InkingControl.Instance.selectedTool,
                 page: this.props.Document.GetNumber(KeyStore.CurPage, -1)
             });
-        this.inkData = data;
         this._isDrawing = true;
     }
 
@@ -163,9 +160,7 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
         })
 
         return (
-
-            <div className="inking-canvas" style={canvasStyle}
-                onPointerDown={this.handleMouseDown} onPointerMove={this.handleMouseMove} >
+            <div className="inking-canvas" style={canvasStyle} onPointerDown={this.handleMouseDown} onPointerMove={this.handleMouseMove} >
                 <svg>
                     {paths}
                 </svg>

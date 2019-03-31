@@ -96,6 +96,7 @@ export class CollectionFreeFormLinksView extends React.Component<CollectionViewP
         return (
             <svg className="collectionfreeformlinksview-svgCanvas">
                 {this.uniqueConnections.map(c => <CollectionFreeFormLinkView key={Utils.GenerateGuid()} A={c.a} B={c.b} LinkDocs={c.l} />)}
+                {this.props.children}
             </svg>);
     }
 }
