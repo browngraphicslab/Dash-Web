@@ -1,4 +1,4 @@
-import { action, observable } from "mobx";
+import { action, observable, trace } from "mobx";
 import { observer } from "mobx-react";
 import { Document } from "../../../../fields/Document";
 import { Documents } from "../../../documents/Documents";
@@ -84,11 +84,12 @@ export class PreviewCursor extends React.Component<PreviewCursorProps>  {
         let p = this.props.getContainerTransform().transformPoint(this._lastX, this._lastY);
         if (this._visible && this._previewDivRef.current)
             this._previewDivRef.current!.focus();
+        trace();
         return (
-            <div className="previewCursorView" tabIndex={0} ref={this._previewDivRef} onBlur={this.onBlur} onPointerDown={this.onPointerDown}>
+            <div className="previewCursorView" onBlur={this.onBlur} onPointerDown={this.onPointerDown}>
                 {this.props.children}
                 {!this._visible ? (null) :
-                    <div className="previewCursor" id="previewCursor" style={{ transform: `translate(${p[0]}px, ${p[1]}px)` }}>I</div>}
+                    <div className="previewCursor" tabIndex={0} ref={this._previewDivRef} id="previewCursor" style={{ transform: `translate(${p[0]}px, ${p[1]}px)` }}>I</div>}
             </div>
         )
     }

@@ -21,21 +21,14 @@ export class InkingStroke extends React.Component<StrokeProps> {
     @observable private _strokeColor: string = this.props.color;
     @observable private _strokeWidth: string = this.props.width;
 
-    deleteStroke = (e: React.MouseEvent): void => {
+    deleteStroke = (e: React.PointerEvent): void => {
         if (InkingControl.Instance.selectedTool === InkTool.Eraser && e.buttons === 1) {
             this.props.deleteCallback(this.props.id);
         }
     }
 
     parseData = (line: Array<{ x: number, y: number }>): string => {
-        if (line.length === 0) {
-            return "";
-        }
-        const pathData = "M " +
-            line.map(p => {
-                return p.x + " " + p.y;
-            }).join(" L ");
-        return pathData;
+        return !line.length ? "" : "M " + line.map(p => p.x + " " + p.y).join(" L ");
     }
 
     createStyle() {
@@ -57,8 +50,8 @@ export class InkingStroke extends React.Component<StrokeProps> {
 
         return (
             <path className={(this._strokeTool === InkTool.Highlighter) ? "highlight" : ""}
-                d={pathData} style={pathStyle} strokeLinejoin="round" strokeLinecap="round"
-                onMouseOver={this.deleteStroke} onMouseDown={this.deleteStroke} />
+                d={pathData} style={{ ...pathStyle, pointerEvents: "all" }} strokeLinejoin="round" strokeLinecap="round"
+                onPointerOver={this.deleteStroke} onPointerDown={this.deleteStroke} />
         )
     }
 }

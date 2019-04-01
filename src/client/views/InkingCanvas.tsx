@@ -19,19 +19,12 @@ interface InkCanvasProps {
 @observer
 export class InkingCanvas extends React.Component<InkCanvasProps> {
     static InkOffset: number = 50000;
-    public static IntersectStrokeRect(stroke: StrokeData, selRect: { left: number, top: number, width: number, height: number }): boolean {
-        let inside = false;
-        stroke.pathData.map(val => {
-            if (selRect.left < val.x - InkingCanvas.InkOffset && selRect.left + selRect.width > val.x - InkingCanvas.InkOffset &&
-                selRect.top < val.y - InkingCanvas.InkOffset && selRect.top + selRect.height > val.y - InkingCanvas.InkOffset)
-                inside = true;
-        });
-        return inside
-    }
     private _currentStrokeId: string = "";
-
-    constructor(props: Readonly<InkCanvasProps>) {
-        super(props);
+    public static IntersectStrokeRect(stroke: StrokeData, selRect: { left: number, top: number, width: number, height: number }): boolean {
+        return stroke.pathData.reduce((inside, val) => inside ||
+            (selRect.left < val.x - InkingCanvas.InkOffset && selRect.left + selRect.width > val.x - InkingCanvas.InkOffset &&
+                selRect.top < val.y - InkingCanvas.InkOffset && selRect.top + selRect.height > val.y - InkingCanvas.InkOffset)
+            , false);
     }
 
     @computed
