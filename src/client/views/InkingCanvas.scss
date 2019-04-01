@@ -1,6 +1,6 @@
 @import "global_variables";
 
-.inkingCanvas-paths-ink, .inkingCanvas-paths-markers, .inkingCanvas-paths {
+.inkingCanvas-paths-ink, .inkingCanvas-paths-markers, .inkingCanvas-noSelect, .inkingCanvas-canSelect {
     position: absolute;
     top: -50000px;
     left: -50000px;
@@ -14,7 +14,11 @@
     pointer-events: auto;
     
 }
-.inkingCanvas-paths-ink, .inkingCanvas-paths-markers  {
+.inkingCanvas-noSelect  {
+    pointer-events: none;
+    cursor: "arrow";
+}
+.inkingCanvas-paths-ink, .inkingCanvas-paths-markers {
     pointer-events: none;
     z-index: 10000; // overlays ink on top of everything 
     cursor: "arrow";

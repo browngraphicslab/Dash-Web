@@ -28,8 +28,7 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
         });
         return inside
     }
-    private _isDrawing: boolean = false;
-    private _idGenerator: string = "";
+    private _currentStrokeId: string = "";
 
     constructor(props: Readonly<InkCanvasProps>) {
         super(props);
@@ -48,76 +47,49 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
         this.props.Document.SetDataOnPrototype(KeyStore.Ink, value, InkField);
     }
 
-    componentDidMount() {
-        document.addEventListener("mouseup", this.handleMouseUp);
-    }
-
-    componentWillUnmount() {
-        document.removeEventListener("mouseup", this.handleMouseUp);
-    }
-
     @action
     onPointerDown = (e: React.PointerEvent): void => {
-        this._isDrawing = false;
-        if (e.button != 0 || e.altKey || e.ctrlKey ||
-            InkingControl.Instance.selectedTool === InkTool.None) {
+        if (e.button != 0 || e.altKey || e.ctrlKey || InkingControl.Instance.selectedTool === InkTool.None) {
             return;
         }
         document.addEventListener("pointermove", this.onPointerMove, true);
         document.addEventListener("pointerup", this.onPointerUp, true);
         e.stopPropagation();
+        e.preventDefault();
 
-        this._isDrawing = true;
         if (InkingControl.Instance.selectedTool != InkTool.Eraser) {
-            const point = this.relativeCoordinatesForEvent(e.clientX, e.clientY);
-
             // start the new line, saves a uuid to represent the field of the stroke
-            this._idGenerator = Utils.GenerateGuid();
-            this.inkData.set(this._idGenerator,
-                {
-                    pathData: [point],
-                    color: InkingControl.Instance.selectedColor,
-                    width: InkingControl.Instance.selectedWidth,
-                    tool: InkingControl.Instance.selectedTool,
-                    page: this.props.Document.GetNumber(KeyStore.CurPage, -1)
-                });
+            this._currentStrokeId = Utils.GenerateGuid();
+            this.inkData.set(this._currentStrokeId, {
+                pathData: [this.relativeCoordinatesForEvent(e.clientX, e.clientY)],
+                color: InkingControl.Instance.selectedColor,
+                width: InkingControl.Instance.selectedWidth,
+                tool: InkingControl.Instance.selectedTool,
+                page: this.props.Document.GetNumber(KeyStore.CurPage, -1)
+            });
         }
     }
 
     onPointerUp = (e: PointerEvent): void => {
-        if (this._isDrawing) {
-            document.removeEventListener("pointermove", this.onPointerMove);
-            document.removeEventListener("pointerup", this.onPointerUp);
-            this._isDrawing = false;
-            e.stopPropagation();
-        }
+        document.removeEventListener("pointermove", this.onPointerMove, true);
+        document.removeEventListener("pointerup", this.onPointerUp, true);
+        e.stopPropagation();
+        e.preventDefault();
     }
 
     @action
     onPointerMove = (e: PointerEvent): void => {
-        if (this._isDrawing) {
-            e.stopPropagation()
-            e.preventDefault();
-            if (InkingControl.Instance.selectedTool === InkTool.Eraser) {
-                return
-            }
-            const point = this.relativeCoordinatesForEvent(e.clientX, e.clientY);
-
-            // add points to new line as it is being drawn
-            let data = this.inkData;
-            let strokeData = data.get(this._idGenerator);
+        e.stopPropagation()
+        e.preventDefault();
+        if (InkingControl.Instance.selectedTool != InkTool.Eraser) {
+            let data = this.inkData;  // add points to new line as it is being drawn
+            let strokeData = data.get(this._currentStrokeId);
             if (strokeData) {
-                strokeData.pathData.push(point);
-                data.set(this._idGenerator, strokeData);
+                strokeData.pathData.push(this.relativeCoordinatesForEvent(e.clientX, e.clientY));
+                data.set(this._currentStrokeId, strokeData);
             }
-
             this.inkData = data;
         }
-    }
-
-    @action
-    handleMouseUp = (e: MouseEvent): void => {
-        this._isDrawing = false;
     }
 
     relativeCoordinatesForEvent = (ex: number, ey: number): { x: number, y: number } => {
@@ -134,43 +106,35 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
         this.inkData = data;
     }
 
-    render() {
+    @computed
+    get drawnPaths() {
+        trace();
         // parse data from server
         let curPage = this.props.Document.GetNumber(KeyStore.CurPage, -1)
-        let markerpaths = Array.from(this.inkData).reduce((paths, [id, strokeData]) => {
-            if ((strokeData.page == -1 || strokeData.page == curPage) &&
-                strokeData.tool == InkTool.Highlighter)
-                paths.push(<InkingStroke key={id} id={id}
-                    line={strokeData.pathData}
-                    color={strokeData.color}
-                    width={strokeData.width}
-                    tool={strokeData.tool}
-                    deleteCallback={this.removeLine} />)
+        let paths = Array.from(this.inkData).reduce((paths, [id, strokeData]) => {
+            if (strokeData.page == -1 || strokeData.page == curPage)
+                paths.push(<InkingStroke key={id} id={id} line={strokeData.pathData}
+                    color={strokeData.color} width={strokeData.width}
+                    tool={strokeData.tool} deleteCallback={this.removeLine} />)
             return paths;
         }, [] as JSX.Element[]);
-        let penpaths = Array.from(this.inkData).reduce((paths, [id, strokeData]) => {
-            if ((strokeData.page == -1 || strokeData.page == curPage) &&
-                strokeData.tool == InkTool.Pen)
-                paths.push(<InkingStroke key={id} id={id}
-                    line={strokeData.pathData}
-                    color={strokeData.color}
-                    width={strokeData.width}
-                    tool={strokeData.tool}
-                    deleteCallback={this.removeLine} />)
-            return paths;
-        }, [] as JSX.Element[]);
+        return [<svg className={`inkingCanvas-paths-markers`}  >
+            {paths.filter(path => path.props.tool == InkTool.Highlighter)}
+        </svg>,
+        <svg className={`inkingCanvas-paths-ink`}  >
+            {paths.filter(path => path.props.tool != InkTool.Highlighter)}
+        </svg>];
+    }
+
+    render() {
+        let svgCanvasStyle = InkingControl.Instance.selectedTool != InkTool.None ? "canSelect" : "noSelect";
 
         trace();
         return (
             <div className="inkingCanvas" >
-                <svg className={`inkingCanvas-paths`} onPointerDown={this.onPointerDown} />
+                <svg className={`inkingCanvas-${svgCanvasStyle}`} onPointerDown={this.onPointerDown} />
                 {this.props.children}
-                <svg className={`inkingCanvas-paths-markers`}  >
-                    {markerpaths}
-                </svg>
-                <svg className={`inkingCanvas-paths-ink`}  >
-                    {penpaths}
-                </svg>
+                {this.drawnPaths}
             </div >
         )
     }
