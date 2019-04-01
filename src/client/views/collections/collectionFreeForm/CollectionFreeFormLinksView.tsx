@@ -1,4 +1,4 @@
-import { computed, reaction, runInAction } from "mobx";
+import { computed, reaction, runInAction, trace } from "mobx";
 import { observer } from "mobx-react";
 import { Document } from "../../../../fields/Document";
 import { FieldWaiting } from "../../../../fields/Field";
@@ -71,7 +71,7 @@ export class CollectionFreeFormLinksView extends React.Component<CollectionViewP
 
     @computed
     get uniqueConnections() {
-        return DocumentManager.Instance.LinkedDocumentViews.reduce((drawnPairs, connection) => {
+        let connections = DocumentManager.Instance.LinkedDocumentViews.reduce((drawnPairs, connection) => {
             let srcViews = this.documentAnchors(connection.a);
             let targetViews = this.documentAnchors(connection.b);
             let possiblePairs: { a: Document, b: Document, }[] = [];
@@ -90,13 +90,14 @@ export class CollectionFreeFormLinksView extends React.Component<CollectionViewP
             })
             return drawnPairs
         }, [] as { a: Document, b: Document, l: Document[] }[]);
+        return connections.map(c => <CollectionFreeFormLinkView key={Utils.GenerateGuid()} A={c.a} B={c.b} LinkDocs={c.l} />);
     }
 
     render() {
         return (
             <div className="collectionfreeformlinksview-container">
                 <svg className="collectionfreeformlinksview-svgCanvas">
-                    {this.uniqueConnections.map(c => <CollectionFreeFormLinkView key={Utils.GenerateGuid()} A={c.a} B={c.b} LinkDocs={c.l} />)}
+                    {this.uniqueConnections}
                 </svg>
                 {this.props.children}
             </div>

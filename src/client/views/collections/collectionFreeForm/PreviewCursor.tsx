@@ -1,4 +1,4 @@
-import { action, observable, trace } from "mobx";
+import { action, observable, trace, computed, reaction } from "mobx";
 import { observer } from "mobx-react";
 import { Document } from "../../../../fields/Document";
 import { Documents } from "../../../documents/Documents";
@@ -6,6 +6,7 @@ import { Transform } from "../../../util/Transform";
 import { CollectionFreeFormView } from "./CollectionFreeFormView";
 import "./PreviewCursor.scss";
 import React = require("react");
+import { interfaceDeclaration } from "babel-types";
 
 
 export interface PreviewCursorProps {
@@ -23,27 +24,29 @@ export class PreviewCursor extends React.Component<PreviewCursorProps>  {
     @observable public DownX: number = 0;
     @observable public DownY: number = 0;
     _showOnUp: boolean = false;
-    public _previewDivRef = React.createRef<HTMLDivElement>();
 
     @action
     cleanupInteractions = () => {
         document.removeEventListener("pointerup", this.onPointerUp, true);
+        document.removeEventListener("pointermove", this.onPointerMove, true);
     }
 
     @action
     onPointerDown = (e: React.PointerEvent) => {
-        this._visible = false;
-        document.removeEventListener("keypress", this.onKeyPress, false);
-        this._showOnUp = true;
-        this._lastX = this.DownX = e.pageX;
-        this._lastY = this.DownY = e.pageY;
-        document.addEventListener("pointerup", this.onPointerUp, true);
-        document.addEventListener("pointermove", this.onPointerMove, true);
+        if (e.button == 0 && this.props.container.props.active()) {
+            document.removeEventListener("keypress", this.onKeyPress, false);
+            this._showOnUp = true;
+            this.DownX = e.pageX;
+            this.DownY = e.pageY;
+            document.addEventListener("pointerup", this.onPointerUp, true);
+            document.addEventListener("pointermove", this.onPointerMove, true);
+        }
     }
     @action
     onPointerMove = (e: PointerEvent): void => {
         if (Math.abs(this.DownX - e.clientX) > 4 || Math.abs(this.DownY - e.clientY) > 4) {
             this._showOnUp = false;
+            this._visible = false;
         }
     }
 
@@ -51,6 +54,8 @@ export class PreviewCursor extends React.Component<PreviewCursorProps>  {
     onPointerUp = (e: PointerEvent): void => {
         if (this._showOnUp) {
             document.addEventListener("keypress", this.onKeyPress, false);
+            this._lastX = this.DownX;
+            this._lastY = this.DownY;
             this._visible = true;
         }
         this.cleanupInteractions();
@@ -72,25 +77,43 @@ export class PreviewCursor extends React.Component<PreviewCursorProps>  {
             e.stopPropagation();
         }
     }
-    //when focus is lost, this will remove the preview cursor
-    @action
-    onBlur = (): void => {
-        this._visible = false;
+
+    getPoint = () => this.props.getContainerTransform().transformPoint(this._lastX, this._lastY);
+    getVisible = () => this._visible;
+    setVisible = (v: boolean) => {
+        this._visible = v;
         document.removeEventListener("keypress", this.onKeyPress, false);
     }
-
     render() {
-        //get local position and place cursor there!
-        let p = this.props.getContainerTransform().transformPoint(this._lastX, this._lastY);
-        if (this._visible && this._previewDivRef.current)
-            this._previewDivRef.current!.focus();
-        trace();
         return (
-            <div className="previewCursorView" onBlur={this.onBlur} onPointerDown={this.onPointerDown}>
+            <div className="previewCursorView" onPointerDown={this.onPointerDown}>
                 {this.props.children}
-                {!this._visible ? (null) :
-                    <div className="previewCursor" tabIndex={0} ref={this._previewDivRef} id="previewCursor" style={{ transform: `translate(${p[0]}px, ${p[1]}px)` }}>I</div>}
+                <PreviewCursorPrompt setVisible={this.setVisible} getPoint={this.getPoint} getVisible={this.getVisible} />
             </div>
         )
+    }
+}
+
+export interface PromptProps {
+    getPoint: () => number[];
+    getVisible: () => boolean;
+    setVisible: (v: boolean) => void;
+}
+
+@observer
+export class PreviewCursorPrompt extends React.Component<PromptProps> {
+    private _promptRef = React.createRef<HTMLDivElement>();
+
+    //when focus is lost, this will remove the preview cursor
+    @action onBlur = (): void => this.props.setVisible(false);
+
+    render() {
+        let p = this.props.getPoint();
+        if (this.props.getVisible() && this._promptRef.current)
+            this._promptRef.current.focus();
+        return <div className="previewCursor" id="previewCursor" onBlur={this.onBlur} tabIndex={0} ref={this._promptRef}
+            style={{ transform: `translate(${p[0]}px, ${p[1]}px)`, opacity: this.props.getVisible() ? 1 : 0 }}>
+            I
+        </div >;
     }
 }

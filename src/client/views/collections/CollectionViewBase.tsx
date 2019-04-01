@@ -76,14 +76,6 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
         }
     }
 
-    protected getCursors(): CursorEntry[] {
-        let doc = this.props.Document;
-        let id = CurrentUserUtils.id;
-        let cursors = doc.GetList<CursorEntry>(KeyStore.Cursors, []);
-        let notMe = cursors.filter(entry => entry.Data[0][0] !== id);
-        return id ? notMe : [];
-    }
-
     @undoBatch
     @action
     protected drop(e: Event, de: DragManager.DropEvent): boolean {

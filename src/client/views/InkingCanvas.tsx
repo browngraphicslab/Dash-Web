@@ -101,7 +101,6 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
 
     @computed
     get drawnPaths() {
-        trace();
         // parse data from server
         let curPage = this.props.Document.GetNumber(KeyStore.CurPage, -1)
         let paths = Array.from(this.inkData).reduce((paths, [id, strokeData]) => {
@@ -111,10 +110,10 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
                     tool={strokeData.tool} deleteCallback={this.removeLine} />)
             return paths;
         }, [] as JSX.Element[]);
-        return [<svg className={`inkingCanvas-paths-markers`}  >
+        return [<svg className={`inkingCanvas-paths-markers`} key="Markers"  >
             {paths.filter(path => path.props.tool == InkTool.Highlighter)}
         </svg>,
-        <svg className={`inkingCanvas-paths-ink`}  >
+        <svg className={`inkingCanvas-paths-ink`} key="Pens" >
             {paths.filter(path => path.props.tool != InkTool.Highlighter)}
         </svg>];
     }
@@ -122,11 +121,10 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
     render() {
         let svgCanvasStyle = InkingControl.Instance.selectedTool != InkTool.None ? "canSelect" : "noSelect";
 
-        trace();
         return (
             <div className="inkingCanvas" >
                 <svg className={`inkingCanvas-${svgCanvasStyle}`} onPointerDown={this.onPointerDown} />
-                {this.props.children}
+                {(this.props.children as any)() /* bcz: is there a better way to know that children is a function? */}
                 {this.drawnPaths}
             </div >
         )

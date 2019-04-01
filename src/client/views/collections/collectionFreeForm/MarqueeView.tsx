@@ -1,4 +1,4 @@
-import { action, computed, observable } from "mobx";
+import { action, computed, observable, trace } from "mobx";
 import { observer } from "mobx-react";
 import { Document } from "../../../../fields/Document";
 import { FieldWaiting } from "../../../../fields/Field";
@@ -21,7 +21,6 @@ interface MarqueeViewProps {
     activeDocuments: () => Document[];
     selectDocuments: (docs: Document[]) => void;
     removeDocument: (doc: Document) => boolean;
-    addLiveTextDocument: (doc: Document) => void;
 }
 
 @observer
@@ -77,10 +76,11 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     onPointerUp = (e: PointerEvent): void => {
         this.cleanupInteractions(true);
         this._visible = false;
+        let mselect = this.marqueeSelect();
         if (!e.shiftKey) {
-            SelectionManager.DeselectAll();
+            SelectionManager.DeselectAll(mselect.length ? undefined : this.props.container.props.Document);
         }
-        this.props.selectDocuments(this.marqueeSelect());
+        this.props.selectDocuments(mselect.length ? mselect : [this.props.container.props.Document]);
     }
 
     intersectRect(r1: { left: number, top: number, width: number, height: number },
@@ -184,17 +184,17 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         return selection;
     }
 
-    render() {
+    @computed
+    get marqueeDiv() {
         let p = this.props.getContainerTransform().transformPoint(this._downX < this._lastX ? this._downX : this._lastX, this._downY < this._lastY ? this._downY : this._lastY);
         let v = this.props.getContainerTransform().transformDirection(this._lastX - this._downX, this._lastY - this._downY);
-        return <div className="marqueeView" onPointerDown={this.onPointerDown}>
-            <PreviewCursor container={this.props.container} addLiveTextDocument={this.props.addLiveTextDocument}
-                getContainerTransform={this.props.getContainerTransform} getTransform={this.props.getTransform} >
-                {this.props.children}
-                {!this._visible ? (null) :
-                    <div className="marquee" style={{ transform: `translate(${p[0]}px, ${p[1]}px)`, width: `${Math.abs(v[0])}`, height: `${Math.abs(v[1])}` }} />}
+        return <div className="marquee" style={{ transform: `translate(${p[0]}px, ${p[1]}px)`, width: `${Math.abs(v[0])}`, height: `${Math.abs(v[1])}` }} />
+    }
 
-            </PreviewCursor>
+    render() {
+        return <div className="marqueeView" onPointerDown={this.onPointerDown}>
+            {this.props.children}
+            {!this._visible ? (null) : this.marqueeDiv}
         </div>;
     }
 }

@@ -1,4 +1,4 @@
-import { action, computed, observable } from "mobx";
+import { action, computed, observable, trace } from "mobx";
 import { observer } from "mobx-react";
 import { Document } from "../../../../fields/Document";
 import { FieldWaiting } from "../../../../fields/Field";
@@ -18,6 +18,8 @@ import "./CollectionFreeFormView.scss";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
 import v5 = require("uuid/v5");
+import { CollectionFreeFormRemoteCursors } from "./CollectionFreeFormRemoteCursors";
+import { PreviewCursor } from "./PreviewCursor";
 
 @observer
 export class CollectionFreeFormView extends CollectionViewBase {
@@ -60,7 +62,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
     @computed get panX(): number { return this.props.Document.GetNumber(KeyStore.PanX, 0) }
     @computed get panY(): number { return this.props.Document.GetNumber(KeyStore.PanY, 0) }
     @computed get scale(): number { return this.props.Document.GetNumber(KeyStore.Scale, 1); }
-    @computed get isAnnotationOverlay() { return this.props.fieldKey.Id === KeyStore.Annotations.Id; } // bcz: ? Why do we need to compare Id's?
+    @computed get isAnnotationOverlay() { return this.props.fieldKey && this.props.fieldKey.Id === KeyStore.Annotations.Id; } // bcz: ? Why do we need to compare Id's?
     @computed get nativeWidth() { return this.props.Document.GetNumber(KeyStore.NativeWidth, 0); }
     @computed get nativeHeight() { return this.props.Document.GetNumber(KeyStore.NativeHeight, 0); }
     @computed get zoomScaling() { return this.props.Document.GetNumber(KeyStore.Scale, 1); }
@@ -97,13 +99,15 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
     @action
     onPointerDown = (e: React.PointerEvent): void => {
-        if ((e.button === 2 && this.props.active() && (!this.isAnnotationOverlay || this.zoomScaling != 1)) || e.button == 0) {
+        if (((e.button === 2 && (!this.isAnnotationOverlay || this.zoomScaling != 1)) || e.button == 0) && this.props.active()) {
             document.removeEventListener("pointermove", this.onPointerMove);
             document.addEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
             document.addEventListener("pointerup", this.onPointerUp);
             this._lastX = this.DownX = e.pageX;
             this._lastY = this.DownY = e.pageY;
+            if (this.props.isSelected())
+                e.stopPropagation();
         }
     }
 
@@ -134,7 +138,6 @@ export class CollectionFreeFormView extends CollectionViewBase {
     onPointerWheel = (e: React.WheelEvent): void => {
         this.props.select(false);
         e.stopPropagation();
-        e.preventDefault();
         let coefficient = 1000;
 
         if (e.ctrlKey) {
@@ -265,50 +268,13 @@ export class CollectionFreeFormView extends CollectionViewBase {
     getContainerTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-COLLECTION_BORDER_WIDTH, -COLLECTION_BORDER_WIDTH)
     getLocalTransform = (): Transform => Transform.Identity.scale(1 / this.scale).translate(this.panX, this.panY);
     noScaling = () => 1;
-
-
-    private crosshairs?: HTMLCanvasElement;
-    drawCrosshairs = (backgroundColor: string) => {
-        if (this.crosshairs) {
-            let c = this.crosshairs;
-            let ctx = c.getContext('2d');
-            if (ctx) {
-                ctx.fillStyle = backgroundColor;
-                ctx.fillRect(0, 0, 20, 20);
-
-                ctx.fillStyle = "black";
-                ctx.lineWidth = 0.5;
-
-                ctx.beginPath();
-
-                ctx.moveTo(10, 0);
-                ctx.lineTo(10, 8);
-
-                ctx.moveTo(10, 20);
-                ctx.lineTo(10, 12);
-
-                ctx.moveTo(0, 10);
-                ctx.lineTo(8, 10);
-
-                ctx.moveTo(20, 10);
-                ctx.lineTo(12, 10);
-
-                ctx.stroke();
-
-                // ctx.font = "10px Arial";
-                // ctx.fillText(CurrentUserUtils.email[0].toUpperCase(), 10, 10);
-            }
-        }
-    }
+    childViews = () => this.views;
 
     render() {
         let [dx, dy] = [this.centeringShiftX, this.centeringShiftY];
 
         const panx: number = -this.props.Document.GetNumber(KeyStore.PanX, 0);
         const pany: number = -this.props.Document.GetNumber(KeyStore.PanY, 0);
-        // const panx: number = this.props.Document.GetNumber(KeyStore.PanX, 0) + this.centeringShiftX;
-        // const pany: number = this.props.Document.GetNumber(KeyStore.PanY, 0) + this.centeringShiftY;
-        // console.log("center:", this.getLocalTransform().transformPoint(this.centeringShiftX, this.centeringShiftY));
 
         return (
             <div className={`collectionfreeformview${this.isAnnotationOverlay ? "-overlay" : "-container"}`}
@@ -316,60 +282,22 @@ export class CollectionFreeFormView extends CollectionViewBase {
                 onDrop={this.onDrop.bind(this)} onDragOver={this.onDragOver} onWheel={this.onPointerWheel}
                 style={{ borderWidth: `${COLLECTION_BORDER_WIDTH}px` }} ref={this.createDropTarget}>
                 <MarqueeView container={this} activeDocuments={this.getActiveDocuments} selectDocuments={this.selectDocuments}
-                    addDocument={this.addDocument} removeDocument={this.props.removeDocument} addLiveTextDocument={this.addLiveTextBox}
+                    addDocument={this.addDocument} removeDocument={this.props.removeDocument}
                     getContainerTransform={this.getContainerTransform} getTransform={this.getTransform}>
-                    <div className="collectionfreeformview" ref={this._canvasRef}
-                        style={{ transform: `translate(${dx}px, ${dy}px) scale(${this.zoomScaling}, ${this.zoomScaling}) translate(${panx}px, ${pany}px)` }}>
-                        {this.backgroundView}
-                        <CollectionFreeFormLinksView {...this.props}>
-                            <InkingCanvas getScreenTransform={this.getTransform} Document={this.props.Document} >
-                                {this.views}
-                            </InkingCanvas>
-                        </CollectionFreeFormLinksView>
-                        {super.getCursors().map(entry => {
-                            if (entry.Data.length > 0) {
-                                let id = entry.Data[0][0];
-                                let email = entry.Data[0][1];
-                                let point = entry.Data[1];
-                                this.drawCrosshairs("#" + v5(id, v5.URL).substring(0, 6).toUpperCase() + "22")
-                                return (
-                                    <div
-                                        key={id}
-                                        style={{
-                                            position: "absolute",
-                                            transform: `translate(${point[0] - 10}px, ${point[1] - 10}px)`,
-                                            zIndex: 10000,
-                                            transformOrigin: 'center center',
-                                        }}
-                                    >
-                                        <canvas
-                                            ref={(el) => { if (el) this.crosshairs = el }}
-                                            width={20}
-                                            height={20}
-                                            style={{
-                                                position: 'absolute',
-                                                width: "20px",
-                                                height: "20px",
-                                                opacity: 0.5,
-                                                borderRadius: "50%",
-                                                border: "2px solid black"
-                                            }}
-                                        />
-                                        <p
-                                            style={{
-                                                fontSize: 14,
-                                                color: "black",
-                                                // fontStyle: "italic",
-                                                marginLeft: -12,
-                                                marginTop: 4
-                                            }}
-                                        >{email[0].toUpperCase()}</p>
-                                    </div>
-                                );
-                            }
-                        })}
-                    </div>
-                    {this.overlayView}
+                    <PreviewCursor container={this} addLiveTextDocument={this.addLiveTextBox}
+                        getContainerTransform={this.getContainerTransform} getTransform={this.getTransform} >
+                        <div className="collectionfreeformview" ref={this._canvasRef}
+                            style={{ transform: `translate(${dx}px, ${dy}px) scale(${this.zoomScaling}, ${this.zoomScaling}) translate(${panx}px, ${pany}px)` }}>
+                            {this.backgroundView}
+                            <CollectionFreeFormLinksView {...this.props}>
+                                <InkingCanvas getScreenTransform={this.getTransform} Document={this.props.Document} >
+                                    {this.childViews}
+                                </InkingCanvas>
+                            </CollectionFreeFormLinksView>
+                            <CollectionFreeFormRemoteCursors {...this.props} />
+                        </div>
+                        {this.overlayView}
+                    </PreviewCursor>
                 </MarqueeView>
             </div>
         );
