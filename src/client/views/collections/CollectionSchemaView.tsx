@@ -73,19 +73,18 @@ export class CollectionSchemaView extends CollectionViewBase {
 
     renderCell = (rowProps: CellInfo) => {
         let props: FieldViewProps = {
-            doc: rowProps.value[0],
+            Document: rowProps.value[0],
             fieldKey: rowProps.value[1],
             isSelected: () => false,
             select: () => { },
             isTopMost: false,
-            bindings: {},
             selectOnLoad: false,
         }
         let contents = (
             <FieldView {...props} />
         )
         let reference = React.createRef<HTMLDivElement>();
-        let onItemDown = setupDrag(reference, () => props.doc, (containingCollection: CollectionView) => this.props.removeDocument(props.doc));
+        let onItemDown = setupDrag(reference, () => props.Document, (containingCollection: CollectionView) => this.props.removeDocument(props.Document));
         let applyToDoc = (doc: Document, value: string) => {
             let script = CompileScript(value, { this: doc }, true);
             if (!script.compiled) {
@@ -105,20 +104,20 @@ export class CollectionSchemaView extends CollectionViewBase {
             return false;
         }
         return (
-            <div className="collectionSchemaView-cellContents" onPointerDown={onItemDown} style={{ height: "56px" }} key={props.doc.Id} ref={reference}>
+            <div className="collectionSchemaView-cellContents" onPointerDown={onItemDown} style={{ height: "56px" }} key={props.Document.Id} ref={reference}>
                 <EditableView
                     display={"inline"}
                     contents={contents}
                     height={56}
                     GetValue={() => {
-                        let field = props.doc.Get(props.fieldKey);
+                        let field = props.Document.Get(props.fieldKey);
                         if (field && field instanceof Field) {
                             return field.ToScriptString();
                         }
                         return field || "";
                     }}
                     SetValue={(value: string) => {
-                        return applyToDoc(props.doc, value);
+                        return applyToDoc(props.Document, value);
                     }}
                     OnFillDown={(value: string) => {
                         this.props.Document.GetTAsync<ListField<Document>>(this.props.fieldKey, ListField).then((val) => {
@@ -298,7 +297,7 @@ export class CollectionSchemaView extends CollectionViewBase {
                         {doc instanceof Document ? <DocumentView Document={doc}
                             AddDocument={this.props.addDocument} RemoveDocument={this.props.removeDocument}
                             isTopMost={false}
-                            SelectOnLoad={false}
+                            selectOnLoad={false}
                             ScreenToLocalTransform={this.getPreviewTransform}
                             ContentScaling={this.getContentScaling}
                             PanelWidth={this.getPanelWidth}

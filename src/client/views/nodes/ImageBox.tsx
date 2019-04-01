@@ -39,7 +39,7 @@ export class ImageBox extends React.Component<FieldViewProps> {
     onLoad = (target: any) => {
         var h = this._imgRef.current!.naturalHeight;
         var w = this._imgRef.current!.naturalWidth;
-        this.props.doc.SetNumber(KeyStore.NativeHeight, this.props.doc.GetNumber(KeyStore.NativeWidth, 0) * h / w)
+        this.props.Document.SetNumber(KeyStore.NativeHeight, this.props.Document.GetNumber(KeyStore.NativeWidth, 0) * h / w)
     }
 
     componentDidMount() {
@@ -91,7 +91,7 @@ export class ImageBox extends React.Component<FieldViewProps> {
     }
 
     specificContextMenu = (e: React.MouseEvent): void => {
-        let field = this.props.doc.GetT(this.props.fieldKey, ImageField);
+        let field = this.props.Document.GetT(this.props.fieldKey, ImageField);
         if (field && field !== FieldWaiting) {
             let url = field.Data.href;
             ContextMenu.Instance.addItem({
@@ -103,10 +103,10 @@ export class ImageBox extends React.Component<FieldViewProps> {
     }
 
     render() {
-        let field = this.props.doc.Get(this.props.fieldKey);
+        let field = this.props.Document.Get(this.props.fieldKey);
         let path = field == FieldWaiting ? "https://image.flaticon.com/icons/svg/66/66163.svg" :
             field instanceof ImageField ? field.Data.href : "http://www.cs.brown.edu/~bcz/face.gif";
-        let nativeWidth = this.props.doc.GetNumber(KeyStore.NativeWidth, 1);
+        let nativeWidth = this.props.Document.GetNumber(KeyStore.NativeWidth, 1);
         return (
             <div className="imageBox-cont" onPointerDown={this.onPointerDown} ref={this._ref} onContextMenu={this.specificContextMenu}>
                 <img src={path} width={nativeWidth} alt="Image not found" ref={this._imgRef} onLoad={this.onLoad} />

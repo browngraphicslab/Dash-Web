@@ -231,7 +231,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
             RemoveDocument: this.props.removeDocument,
             ScreenToLocalTransform: this.getTransform,
             isTopMost: false,
-            SelectOnLoad: document.Id == this._selectOnLoaded,
+            selectOnLoad: document.Id == this._selectOnLoaded,
             PanelWidth: document.Width,
             PanelHeight: document.Height,
             ContentScaling: this.noScaling,

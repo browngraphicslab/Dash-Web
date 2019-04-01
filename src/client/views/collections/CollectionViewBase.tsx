@@ -17,15 +17,10 @@ import { NumberField } from "../../../fields/NumberField";
 import request = require("request");
 import { ServerUtils } from "../../../server/ServerUtil";
 import { Server } from "../../Server";
+import { FieldViewProps } from "../nodes/FieldView";
 
-export interface CollectionViewProps {
-    fieldKey: Key;
-    Document: Document;
+export interface CollectionViewProps extends FieldViewProps {
     ScreenToLocalTransform: () => Transform;
-    isSelected: () => boolean;
-    isTopMost: boolean;
-    select: (ctrlPressed: boolean) => void;
-    bindings: any;
     panelWidth: () => number;
     panelHeight: () => number;
     focus: (doc: Document) => void;

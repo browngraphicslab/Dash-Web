@@ -10,7 +10,7 @@ import { NumberField } from "../../../fields/NumberField";
 import { CollectionFreeFormView } from "./collectionFreeForm/CollectionFreeFormView";
 import { CollectionDockingView } from "./CollectionDockingView";
 import { CollectionSchemaView } from "./CollectionSchemaView";
-import { CollectionViewProps } from "./CollectionViewBase";
+import { CollectionViewProps, SubCollectionViewProps } from "./CollectionViewBase";
 import { CollectionTreeView } from "./CollectionTreeView";
 import { Field, FieldId, FieldWaiting } from "../../../fields/Field";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
@@ -39,7 +39,6 @@ export class CollectionView extends React.Component<CollectionViewProps> {
     public active: () => boolean = () => CollectionView.Active(this);
     addDocument = (doc: Document, allowDuplicates: boolean): boolean => { return CollectionView.AddDocument(this.props, doc, allowDuplicates); }
     removeDocument = (doc: Document): boolean => { return CollectionView.RemoveDocument(this.props, doc); }
-    get subView() { return CollectionView.SubView(this); }
 
     public static Active(self: CollectionView): boolean {
         var isSelected = self.props.isSelected();
@@ -140,9 +139,13 @@ export class CollectionView extends React.Component<CollectionViewProps> {
         }
     }
 
-    public static SubView(self: CollectionView) {
-        let subProps = { ...self.props, addDocument: self.addDocument, removeDocument: self.removeDocument, active: self.active, CollectionView: self }
-        switch (self.collectionViewType) {
+    public static SubViewProps(self: CollectionView): SubCollectionViewProps {
+        return { ...self.props, addDocument: self.addDocument, removeDocument: self.removeDocument, active: self.active, CollectionView: self }
+    }
+
+    private get SubView() {
+        let subProps = CollectionView.SubViewProps(this);
+        switch (this.collectionViewType) {
             case CollectionViewType.Freeform: return (<CollectionFreeFormView {...subProps} />)
             case CollectionViewType.Schema: return (<CollectionSchemaView {...subProps} />)
             case CollectionViewType.Docking: return (<CollectionDockingView {...subProps} />)
@@ -153,7 +156,7 @@ export class CollectionView extends React.Component<CollectionViewProps> {
 
     render() {
         return (<div className="collectionView-cont" onContextMenu={this.specificContextMenu}>
-            {this.subView}
+            {this.SubView}
         </div>)
     }
 }

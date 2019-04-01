@@ -228,7 +228,7 @@ export class Main extends React.Component {
                 PanelWidth={this.pwidthFunc}
                 PanelHeight={this.pheightFunc}
                 isTopMost={true}
-                SelectOnLoad={false}
+                selectOnLoad={false}
                 focus={this.focusDocument}
                 ContainingCollectionView={undefined} />
     }

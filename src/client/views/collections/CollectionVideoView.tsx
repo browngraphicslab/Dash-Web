@@ -8,6 +8,7 @@ import { CollectionViewProps } from "./CollectionViewBase";
 import React = require("react");
 import { FieldId } from "../../../fields/Field";
 import "./CollectionVideoView.scss"
+import { CollectionFreeFormView } from "./CollectionFreeFormView";
 
 
 @observer
@@ -116,14 +117,10 @@ export class CollectionVideoView extends React.Component<CollectionViewProps> {
         }
     }
 
-    get collectionViewType(): CollectionViewType { return CollectionViewType.Freeform; }
-    get subView(): any { return CollectionView.SubView(this); }
-
-
     render() {
         trace();
         return (<div className="collectionVideoView-cont" ref={this.mainCont} onContextMenu={this.specificContextMenu}>
-            {this.subView}
+            <CollectionFreeFormView {...CollectionView.SubViewProps(this)} />
             {this.props.isSelected() ? this.uIButtons : (null)}
         </div>)
     }

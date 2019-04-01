@@ -43,12 +43,11 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
 
         }
         let props: FieldViewProps = {
-            doc: this.props.doc,
+            Document: this.props.doc,
             fieldKey: this.key,
             isSelected: () => false,
             select: () => { },
             isTopMost: false,
-            bindings: {},
             selectOnLoad: false,
         }
         let contents = (
@@ -61,15 +60,15 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
                     <div className="container">
                         <div>{this.key.Name}</div>
                         <button className="delete" onClick={() => {
-                            let field = props.doc.Get(props.fieldKey);
+                            let field = props.Document.Get(props.fieldKey);
                             if (field && field instanceof Field) {
-                                props.doc.Set(props.fieldKey, undefined);
+                                props.Document.Set(props.fieldKey, undefined);
                             }
                         }}>X</button>
                     </div>
                 </td>
                 <td><EditableView contents={contents} height={36} GetValue={() => {
-                    let field = props.doc.Get(props.fieldKey);
+                    let field = props.Document.Get(props.fieldKey);
                     if (field && field instanceof Field) {
                         return field.ToScriptString();
                     }
@@ -82,12 +81,12 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
                         }
                         let field = script();
                         if (field instanceof Field) {
-                            props.doc.Set(props.fieldKey, field);
+                            props.Document.Set(props.fieldKey, field);
                             return true;
                         } else {
                             let dataField = ToField(field);
                             if (dataField) {
-                                props.doc.Set(props.fieldKey, dataField);
+                                props.Document.Set(props.fieldKey, dataField);
                                 return true;
                             }
                         }

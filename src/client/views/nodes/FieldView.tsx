@@ -28,23 +28,22 @@ import { KeyStore } from "../../../fields/KeyStore";
 //
 export interface FieldViewProps {
     fieldKey: Key;
-    doc: Document;
+    Document: Document;
     isSelected: () => boolean;
-    select: () => void;
+    select: (isCtrlPressed: boolean) => void;
     isTopMost: boolean;
     selectOnLoad: boolean;
-    bindings: any;
 }
 
 @observer
 export class FieldView extends React.Component<FieldViewProps> {
     public static LayoutString(fieldType: { name: string }, fieldStr: string = "DataKey") {
-        return `<${fieldType.name} doc={Document} DocumentViewForField={DocumentView} bindings={bindings} fieldKey={${fieldStr}} isSelected={isSelected} select={select} selectOnLoad={SelectOnLoad} isTopMost={isTopMost} />`;
+        return `<${fieldType.name} {...props} fieldKey={${fieldStr}} />`;
     }
 
     @computed
     get field(): FieldValue<Field> {
-        const { doc, fieldKey } = this.props;
+        const { Document: doc, fieldKey } = this.props;
         return doc.Get(fieldKey);
     }
     render() {
@@ -76,7 +75,7 @@ export class FieldView extends React.Component<FieldViewProps> {
                 PanelWidth={() => 100}
                 PanelHeight={() => 100}
                 isTopMost={true}
-                SelectOnLoad={false}
+                selectOnLoad={false}
                 focus={() => { }}
                 isSelected={() => false}
                 select={() => false}

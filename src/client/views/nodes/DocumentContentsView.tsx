@@ -1,6 +1,6 @@
 import { computed } from "mobx";
 import { observer } from "mobx-react";
-import { FieldWaiting } from "../../../fields/Field";
+import { FieldWaiting, Field } from "../../../fields/Field";
 import { Key } from "../../../fields/Key";
 import { KeyStore } from "../../../fields/KeyStore";
 import { ListField } from "../../../fields/ListField";
@@ -11,7 +11,7 @@ import { CollectionSchemaView } from "../collections/CollectionSchemaView";
 import { CollectionVideoView } from "../collections/CollectionVideoView";
 import { CollectionView } from "../collections/CollectionView";
 import { AudioBox } from "./AudioBox";
-import { DocumentViewProps, JsxBindings } from "./DocumentView";
+import { DocumentViewProps } from "./DocumentView";
 import "./DocumentView.scss";
 import { FormattedTextBox } from "./FormattedTextBox";
 import { ImageBox } from "./ImageBox";
@@ -21,8 +21,16 @@ import { VideoBox } from "./VideoBox";
 import { WebBox } from "./WebBox";
 import { HistogramBox } from "../../northstar/dash-nodes/HistogramBox";
 import React = require("react");
+import { Document } from "../../../fields/Document";
+import { FieldViewProps } from "./FieldView";
+import { Without } from "../../../Utils";
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
+type BindingProps = Without<FieldViewProps, 'fieldKey'>
+export interface JsxBindings {
+    props: BindingProps;
+    [keyName: string]: BindingProps | Field;
+}
 
 @observer
 export class DocumentContentsView extends React.Component<DocumentViewProps & {
@@ -36,7 +44,16 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
 
 
     CreateBindings(): JsxBindings {
-        let bindings: JsxBindings = { ...this.props, };
+        let { Document, isSelected, select, isTopMost, selectOnLoad } = this.props;
+        let bindings: JsxBindings = {
+            props: {
+                Document,
+                isSelected,
+                select,
+                isTopMost,
+                selectOnLoad,
+            }
+        };
         for (const key of this.layoutKeys) {
             bindings[key.Name + "Key"] = key; // this maps string values of the form <keyname>Key to an actual key Kestore.keyname  e.g,   "DataKey" => KeyStore.Data
         }

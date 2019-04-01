@@ -32,7 +32,7 @@ export interface DocumentViewProps {
     PanelWidth: () => number;
     PanelHeight: () => number;
     focus: (doc: Document) => void;
-    SelectOnLoad: boolean;
+    selectOnLoad: boolean;
 }
 export interface JsxArgs extends DocumentViewProps {
     Keys: { [name: string]: Key }
@@ -74,15 +74,6 @@ export function FakeJsxArgs(keys: string[], fields: string[] = []): JsxArgs {
         Fields
     } as any;
     return args;
-}
-
-export interface JsxBindings {
-    Document: Document;
-    isSelected: () => boolean;
-    select: (isCtrlPressed: boolean) => void;
-    isTopMost: boolean;
-    SelectOnLoad: boolean;
-    [prop: string]: any;
 }
 
 

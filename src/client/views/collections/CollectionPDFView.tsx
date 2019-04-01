@@ -8,6 +8,7 @@ import { CollectionViewProps } from "./CollectionViewBase";
 import "./CollectionPDFView.scss"
 import React = require("react");
 import { FieldId } from "../../../fields/Field";
+import { CollectionFreeFormView } from "./collectionFreeForm/CollectionFreeFormView";
 
 
 @observer
@@ -30,7 +31,8 @@ export class CollectionPDFView extends React.Component<CollectionViewProps> {
             <div className="collectionPdfView-buttonTray" key="tray" style={{ transform: `scale(${scaling}, ${scaling})` }}>
                 <button className="collectionPdfView-backward" onClick={this.onPageBack}>{"<"}</button>
                 <button className="collectionPdfView-forward" onClick={this.onPageForward}>{">"}</button>
-            </div>);
+            </div>
+        );
     }
 
     // "inherited" CollectionView API starts here...
@@ -47,13 +49,12 @@ export class CollectionPDFView extends React.Component<CollectionViewProps> {
         }
     }
 
-    get collectionViewType(): CollectionViewType { return CollectionViewType.Freeform; }
-    get subView(): any { return CollectionView.SubView(this); }
-
     render() {
-        return (<div className="collectionPdfView-cont" onContextMenu={this.specificContextMenu}>
-            {this.subView}
-            {this.props.isSelected() ? this.uIButtons : (null)}
-        </div>)
+        return (
+            <div className="collectionPdfView-cont" onContextMenu={this.specificContextMenu}>
+                <CollectionFreeFormView {...CollectionView.SubViewProps(this)} />
+                {this.props.isSelected() ? this.uIButtons : (null)}
+            </div>
+        )
     }
 }

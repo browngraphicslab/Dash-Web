@@ -55,7 +55,7 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
         if (this._editorView) {
             const state = this._editorView.state.apply(tx);
             this._editorView.updateState(state);
-            const { doc, fieldKey } = this.props;
+            const { Document: doc, fieldKey } = this.props;
             doc.SetDataOnPrototype(fieldKey, JSON.stringify(state.toJSON()), RichTextField);
             // doc.SetData(fieldKey, JSON.stringify(state.toJSON()), RichTextField);
         }
@@ -74,7 +74,7 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
             ]
         };
 
-        let field = this.props.doc.GetT(this.props.fieldKey, RichTextField);
+        let field = this.props.Document.GetT(this.props.fieldKey, RichTextField);
         if (field && field != FieldWaiting && field.Data) {
             state = EditorState.fromJSON(config, JSON.parse(field.Data));
         } else {
@@ -88,7 +88,7 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
         }
 
         this._reactionDisposer = reaction(() => {
-            const field = this.props.doc.GetT(this.props.fieldKey, RichTextField);
+            const field = this.props.Document.GetT(this.props.fieldKey, RichTextField);
             return field && field != FieldWaiting ? field.Data : undefined;
         }, (field) => {
             if (field && this._editorView) {
@@ -96,7 +96,7 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
             }
         })
         if (this.props.selectOnLoad) {
-            this.props.select();
+            this.props.select(false);
             this._editorView!.focus();
         }
     }
@@ -116,7 +116,7 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
 
     @action
     onChange(e: React.ChangeEvent<HTMLInputElement>) {
-        const { fieldKey, doc } = this.props;
+        const { fieldKey, Document: doc } = this.props;
         doc.SetOnPrototype(fieldKey, new RichTextField(e.target.value))
         // doc.SetData(fieldKey, e.target.value, RichTextField);
     }

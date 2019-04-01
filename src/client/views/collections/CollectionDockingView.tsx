@@ -317,7 +317,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
                     PanelHeight={this._nativeHeight}
                     ScreenToLocalTransform={this.ScreenToLocalTransform}
                     isTopMost={true}
-                    SelectOnLoad={false}
+                    selectOnLoad={false}
                     focus={(doc: Document) => { }}
                     ContainingCollectionView={undefined} />
             </div>
