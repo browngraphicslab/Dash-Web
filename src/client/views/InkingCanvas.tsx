@@ -1,4 +1,4 @@
-import { action, computed } from "mobx";
+import { action, computed, trace } from "mobx";
 import { observer } from "mobx-react";
 import { Document } from "../../fields/Document";
 import { FieldWaiting } from "../../fields/Field";
@@ -137,8 +137,9 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
     render() {
         // parse data from server
         let curPage = this.props.Document.GetNumber(KeyStore.CurPage, -1)
-        let paths = Array.from(this.inkData).reduce((paths, [id, strokeData]) => {
-            if (strokeData.page == -1 || strokeData.page == curPage)
+        let markerpaths = Array.from(this.inkData).reduce((paths, [id, strokeData]) => {
+            if ((strokeData.page == -1 || strokeData.page == curPage) &&
+                strokeData.tool == InkTool.Highlighter)
                 paths.push(<InkingStroke key={id} id={id}
                     line={strokeData.pathData}
                     color={strokeData.color}
@@ -147,13 +148,28 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
                     deleteCallback={this.removeLine} />)
             return paths;
         }, [] as JSX.Element[]);
-        let svgCanvasStyle = InkingControl.Instance.selectedTool == InkTool.None ? "-none" : "";
+        let penpaths = Array.from(this.inkData).reduce((paths, [id, strokeData]) => {
+            if ((strokeData.page == -1 || strokeData.page == curPage) &&
+                strokeData.tool == InkTool.Pen)
+                paths.push(<InkingStroke key={id} id={id}
+                    line={strokeData.pathData}
+                    color={strokeData.color}
+                    width={strokeData.width}
+                    tool={strokeData.tool}
+                    deleteCallback={this.removeLine} />)
+            return paths;
+        }, [] as JSX.Element[]);
 
+        trace();
         return (
             <div className="inkingCanvas" >
+                <svg className={`inkingCanvas-paths`} onPointerDown={this.onPointerDown} />
                 {this.props.children}
-                <svg className={`inkingCanvas-paths${svgCanvasStyle}`} onPointerDown={this.onPointerDown} >
-                    {paths}
+                <svg className={`inkingCanvas-paths-markers`}  >
+                    {markerpaths}
+                </svg>
+                <svg className={`inkingCanvas-paths-ink`}  >
+                    {penpaths}
                 </svg>
             </div >
         )
