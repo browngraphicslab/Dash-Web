@@ -40,6 +40,8 @@ export namespace SelectionManager {
             }
         }
         manager.SelectedDocuments.length = 0;
+        if (found)
+            manager.SelectedDocuments.push(found);
     }
 
     export function SelectedDocuments(): Array<DocumentView> {
