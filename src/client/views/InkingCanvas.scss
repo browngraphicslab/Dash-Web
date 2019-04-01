@@ -1,6 +1,6 @@
 @import "global_variables";
 
-.inkingCanvas-paths-ink, .inkingCanvas-paths-markers, .inkingCanvas-paths {
+.inkingCanvas-paths, .inkingCanvas-paths-none {
     position: absolute;
     top: -50000px;
     left: -50000px;
@@ -17,12 +17,8 @@
     pointer-events: auto;
     
 }
-.inkingCanvas-paths-ink, .inkingCanvas-paths-markers  {
+.inkingCanvas-paths-none {
     pointer-events: none;
-    z-index: 10000; // overlays ink on top of everything 
     cursor: "arrow";
-}
-.inkingCanvas-paths-markers {
-    mix-blend-mode: multiply;
 }
 
