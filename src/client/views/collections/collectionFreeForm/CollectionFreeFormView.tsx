@@ -314,16 +314,18 @@ export class CollectionFreeFormView extends CollectionViewBase {
             <div className={`collectionfreeformview${this.isAnnotationOverlay ? "-overlay" : "-container"}`}
                 onPointerDown={this.onPointerDown} onPointerMove={(e) => super.setCursorPosition(this.getTransform().transformPoint(e.clientX, e.clientY))}
                 onDrop={this.onDrop.bind(this)} onDragOver={this.onDragOver} onWheel={this.onPointerWheel}
-                style={{ borderWidth: `${COLLECTION_BORDER_WIDTH}px` }} tabIndex={0} ref={this.createDropTarget}>
+                style={{ borderWidth: `${COLLECTION_BORDER_WIDTH}px` }} ref={this.createDropTarget}>
                 <MarqueeView container={this} activeDocuments={this.getActiveDocuments} selectDocuments={this.selectDocuments}
                     addDocument={this.addDocument} removeDocument={this.props.removeDocument} addLiveTextDocument={this.addLiveTextBox}
                     getContainerTransform={this.getContainerTransform} getTransform={this.getTransform}>
                     <div className="collectionfreeformview" ref={this._canvasRef}
                         style={{ transform: `translate(${dx}px, ${dy}px) scale(${this.zoomScaling}, ${this.zoomScaling}) translate(${panx}px, ${pany}px)` }}>
                         {this.backgroundView}
-                        <CollectionFreeFormLinksView {...this.props} />
-                        {this.views}
-                        <InkingCanvas getScreenTransform={this.getTransform} Document={this.props.Document} />
+                        <CollectionFreeFormLinksView {...this.props}>
+                            <InkingCanvas getScreenTransform={this.getTransform} Document={this.props.Document} >
+                                {this.views}
+                            </InkingCanvas>
+                        </CollectionFreeFormLinksView>
                         {super.getCursors().map(entry => {
                             if (entry.Data.length > 0) {
                                 let id = entry.Data[0][0];

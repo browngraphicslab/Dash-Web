@@ -87,7 +87,7 @@ export class PDFBox extends React.Component<FieldViewProps> {
     @observable private _interactive: boolean = false;
     @observable private _loaded: boolean = false;
 
-    @computed private get curPage() { return this.props.doc.GetNumber(KeyStore.CurPage, -1); }
+    @computed private get curPage() { return this.props.doc.GetNumber(KeyStore.CurPage, 1); }
     @computed private get thumbnailPage() { return this.props.doc.GetNumber(KeyStore.ThumbnailPage, -1); }
 
     componentDidMount() {
@@ -435,8 +435,6 @@ export class PDFBox extends React.Component<FieldViewProps> {
     @computed
     get pdfContent() {
         let page = this.curPage;
-        if (page == 0)
-            page = 1;
         const renderHeight = 2400;
         let pdfUrl = this.props.doc.GetT(this.props.fieldKey, PDFField);
         let xf = this.props.doc.GetNumber(KeyStore.NativeHeight, 0) / renderHeight;
@@ -463,10 +461,8 @@ export class PDFBox extends React.Component<FieldViewProps> {
         return [
             this._pageInfo.area.filter(() => this._pageInfo.area).map((element: any) => element),
             this._currAnno.map((element: any) => element),
-            <div key="pdfBox-contentShell">
-                {this.pdfContent}
-                {proxy}
-            </div>
+            this.pdfContent,
+            proxy
         ];
     }
 

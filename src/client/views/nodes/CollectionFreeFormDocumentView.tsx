@@ -1,4 +1,4 @@
-import { computed, trace, reaction, runInAction, observable } from "mobx";
+import { computed } from "mobx";
 import { observer } from "mobx-react";
 import { KeyStore } from "../../../fields/KeyStore";
 import { NumberField } from "../../../fields/NumberField";
@@ -6,8 +6,7 @@ import { Transform } from "../../util/Transform";
 import { DocumentView, DocumentViewProps } from "./DocumentView";
 import "./DocumentView.scss";
 import React = require("react");
-import { Document } from "../../../fields/Document";
-import { DocumentManager } from "../../util/DocumentManager";
+import { thisExpression } from "babel-types";
 
 
 @observer
@@ -75,6 +74,7 @@ export class CollectionFreeFormDocumentView extends React.Component<DocumentView
             <div className="collectionFreeFormDocumentView-container" ref={this._mainCont} style={{
                 transformOrigin: "left top",
                 transform: this.transform,
+                pointerEvents: "all",
                 width: this.width,
                 height: this.height,
                 position: "absolute",
