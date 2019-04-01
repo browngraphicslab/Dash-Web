@@ -16,6 +16,7 @@ import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { CollectionView, CollectionViewType } from "../collections/CollectionView";
 import { ContextMenu } from "../ContextMenu";
 import { DocumentContentsView } from "./DocumentContentsView";
+import { Template } from "./../Templates"
 import "./DocumentView.scss";
 import React = require("react");
 import { ServerUtils } from "../../../server/ServerUtil";
@@ -93,6 +94,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     private _downX: number = 0;
     private _downY: number = 0;
     private _reactionDisposer: Opt<IReactionDisposer>;
+    private _templates: Array<Template> = [];
     @computed get active(): boolean { return SelectionManager.IsSelected(this) || !this.props.ContainingCollectionView || this.props.ContainingCollectionView.active(); }
     @computed get topMost(): boolean { return !this.props.ContainingCollectionView || this.props.ContainingCollectionView.collectionViewType == CollectionViewType.Docking; }
     @computed get layout(): string { return this.props.Document.GetText(KeyStore.Layout, "<p>Error loading layout data</p>"); }
@@ -273,6 +275,20 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     }
 
     @action
+    addTemplate = (template: Template) => {
+        // TODO: should change to set
+        this._templates.push(template);
+
+        // TODO: apply templates to original layout
+        this._templates.forEach(temp => {
+            let text = temp.Layout;
+            let oldLayout = this.props.Document.GetText(KeyStore.Layout, "");
+            let layout = text.replace("{layout}", oldLayout);
+            this.props.Document.SetText(KeyStore.Layout, layout);
+        })
+    }
+
+    @action
     onContextMenu = (e: React.MouseEvent): void => {
         e.stopPropagation();
         let moved = Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3;
@@ -327,6 +343,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         var nativeWidth = this.props.Document.GetNumber(KeyStore.NativeWidth, 0);
         var nativeHeight = this.props.Document.GetNumber(KeyStore.NativeHeight, 0);
         var backgroundcolor = this.props.Document.GetText(KeyStore.BackgroundColor, "");
+
         return (
             <div className="documentView-node" ref={this._mainCont}
                 style={{

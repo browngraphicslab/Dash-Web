@@ -9,6 +9,7 @@ import { props } from "bluebird";
 import { DragManager } from "../util/DragManager";
 import { LinkMenu } from "./nodes/LinkMenu";
 import { ListField } from "../../fields/ListField";
+import { Templates } from "./Templates";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -192,6 +193,22 @@ export class DocumentDecorations extends React.Component {
     //     e.stopPropagation();
     // }
 
+    addTemplate = (): void => {
+        console.log("add template");
+        let text = `
+        <div>
+            <div style="margin:auto; height:calc(100%); width:100%;">
+                {layout}
+            </div>
+            <div style="height:(100% + 25px); width:100%; position:absolute">
+                <FormattedTextBox doc={Document} DocumentViewForField={DocumentView} bindings={bindings} fieldKey={"CaptionKey"} isSelected={isSelected} select={select} selectOnLoad={SelectOnLoad} isTopMost={isTopMost}/>
+            </div>
+        </div>       
+                `;
+        let view = SelectionManager.SelectedDocuments()[0];
+        view.addTemplate(Templates.OuterCaption);
+    }
+
     render() {
         var bounds = this.Bounds;
         if (this.Hidden) {
@@ -235,6 +252,8 @@ export class DocumentDecorations extends React.Component {
                 <div id="documentDecorations-bottomRightResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
 
                 <div title="View Links" className="linkFlyout" ref={this._linkButton}>{linkButton}</div>
+
+                <div className="templating-button" onClick={this.addTemplate}></div>
 
             </div >
         )
