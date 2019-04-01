@@ -113,7 +113,7 @@ export class CollectionView extends React.Component<CollectionViewProps> {
         if (index !== -1) {
             value.splice(index, 1)
 
-            SelectionManager.DeselectAll()
+            //SelectionManager.DeselectAll()
             ContextMenu.Instance.clearItems()
             return true;
         }

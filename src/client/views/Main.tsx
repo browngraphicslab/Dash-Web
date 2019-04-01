@@ -218,7 +218,8 @@ export class Main extends React.Component {
     focusDocument = (doc: Document) => { }
     noScaling = () => 1;
 
-    get content() {
+    @computed
+    get mainContent() {
         return !this.mainContainer ? (null) :
             <DocumentView Document={this.mainContainer}
                 AddDocument={undefined}
@@ -311,17 +312,17 @@ export class Main extends React.Component {
         }
         return (
             <div id="main-div">
+                <DocumentDecorations />
                 <Measure onResize={(r: any) => runInAction(() => {
                     this.pwidth = r.entry.width;
                     this.pheight = r.entry.height;
                 })}>
                     {({ measureRef }) =>
                         <div ref={measureRef} id="mainContent-div">
-                            {this.content}
+                            {this.mainContent}
                         </div>
                     }
                 </Measure>
-                <DocumentDecorations />
                 <ContextMenu />
                 {this.nodesMenu}
                 {this.miscButtons}

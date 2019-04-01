@@ -47,9 +47,10 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         (window as any).React = React;
         (window as any).ReactDOM = ReactDOM;
     }
-    public StartOtherDrag(dragDoc: Document, e: any) {
-        this.AddRightSplit(dragDoc, true).contentItems[0].tab._dragListener.
-            onMouseDown({ pageX: e.pageX, pageY: e.pageY, preventDefault: () => { }, button: 0 })
+    public StartOtherDrag(dragDocs: Document[], e: any) {
+        dragDocs.map(dragDoc =>
+            this.AddRightSplit(dragDoc, true).contentItems[0].tab._dragListener.
+                onMouseDown({ pageX: e.pageX, pageY: e.pageY, preventDefault: () => { }, button: 0 }));
     }
 
     @action
@@ -199,7 +200,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             let tab = (e.target as any).parentElement as HTMLElement;
             Server.GetField(docid, action((f: Opt<Field>) => {
                 if (f instanceof Document)
-                    DragManager.StartDocumentDrag(tab, new DragManager.DocumentDragData(f as Document),
+                    DragManager.StartDocumentDrag([tab], new DragManager.DocumentDragData([f as Document]),
                         {
                             handlers: {
                                 dragComplete: action(() => { }),
@@ -265,6 +266,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     }
 
     render() {
+        trace();
         return (
             <div className="collectiondockingview-container" id="menuContainer"
                 onPointerDown={this.onPointerDown} onPointerUp={this.onPointerUp} ref={this._containerRef}
@@ -305,6 +307,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     }
 
     render() {
+        trace();
         if (!this._document)
             return (null);
         var content =

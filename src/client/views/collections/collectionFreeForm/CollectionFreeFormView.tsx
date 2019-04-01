@@ -77,13 +77,20 @@ export class CollectionFreeFormView extends CollectionViewBase {
                 let screenX = de.x - (de.data.xOffset as number || 0);
                 let screenY = de.y - (de.data.yOffset as number || 0);
                 const [x, y] = this.getTransform().transformPoint(screenX, screenY);
-                de.data.droppedDocument.SetNumber(KeyStore.X, x);
-                de.data.droppedDocument.SetNumber(KeyStore.Y, y);
-                if (!de.data.droppedDocument.GetNumber(KeyStore.Width, 0)) {
-                    de.data.droppedDocument.SetNumber(KeyStore.Width, 300);
-                    de.data.droppedDocument.SetNumber(KeyStore.Height, 300);
-                }
-                this.bringToFront(de.data.droppedDocument);
+                let dragDoc = de.data.draggedDocuments[0];
+                let dragX = dragDoc.GetNumber(KeyStore.X, 0);
+                let dragY = dragDoc.GetNumber(KeyStore.Y, 0);
+                de.data.draggedDocuments.map(d => {
+                    let docX = d.GetNumber(KeyStore.X, 0);
+                    let docY = d.GetNumber(KeyStore.Y, 0);
+                    d.SetNumber(KeyStore.X, x + (docX - dragX));
+                    d.SetNumber(KeyStore.Y, y + (docY - dragY));
+                    if (!d.GetNumber(KeyStore.Width, 0)) {
+                        d.SetNumber(KeyStore.Width, 300);
+                        d.SetNumber(KeyStore.Height, 300);
+                    }
+                    this.bringToFront(d);
+                })
             }
             return true;
         }
