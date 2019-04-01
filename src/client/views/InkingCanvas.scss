@@ -1,12 +1,11 @@
 @import "global_variables";
 
-.inkingCanvas-paths, .inkingCanvas-paths-none {
+.inkingCanvas-paths-ink, .inkingCanvas-paths-markers, .inkingCanvas-paths {
     position: absolute;
     top: -50000px;
     left: -50000px;
     width: 100000px;
     height: 100000px;
-    //z-index: 10000; // z-index: 99; //overlays ink on top of everything but that messes up blending and events don't propagate down to nested collections
     .highlight {
         mix-blend-mode: multiply;
     }
@@ -18,8 +17,12 @@
     pointer-events: auto;
     
 }
-.inkingCanvas-paths-none {
+.inkingCanvas-paths-ink, .inkingCanvas-paths-markers  {
     pointer-events: none;
+    z-index: 10000; // overlays ink on top of everything 
     cursor: "arrow";
+}
+.inkingCanvas-paths-markers {
+    mix-blend-mode: multiply;
 }
 
