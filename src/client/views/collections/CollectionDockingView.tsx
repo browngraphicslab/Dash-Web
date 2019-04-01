@@ -266,7 +266,6 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     }
 
     render() {
-        trace();
         return (
             <div className="collectiondockingview-container" id="menuContainer"
                 onPointerDown={this.onPointerDown} onPointerUp={this.onPointerUp} ref={this._containerRef}
@@ -307,7 +306,6 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     }
 
     render() {
-        trace();
         if (!this._document)
             return (null);
         var content =
