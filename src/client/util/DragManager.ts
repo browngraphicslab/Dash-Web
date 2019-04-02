@@ -192,7 +192,6 @@ export namespace DragManager {
       scaleYs.push(scaleY);
       let dragElement = ele.cloneNode(true) as HTMLElement;
       dragElement.style.opacity = "0.7";
-      console.log(dragElement);
       dragElement.style.position = "absolute";
       dragElement.style.bottom = "";
       dragElement.style.left = "";

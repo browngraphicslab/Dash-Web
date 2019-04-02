@@ -9,6 +9,7 @@ import { Server } from "../client/Server";
 import { Types } from "../server/Message";
 import { UndoManager } from "../client/util/UndoManager";
 import { HtmlField } from "./HtmlField";
+import { MinimizedField } from "./MinimizedField";
 
 export class Document extends Field {
     //TODO tfs: We should probably store FieldWaiting in fields when we request it from the server so that we don't set up multiple server gets for the same document and field
@@ -224,6 +225,10 @@ export class Document extends Field {
         let vval = (val && val instanceof ctor) ? val.Data : defaultVal;
         return vval;
     }
+
+    // GetMinimized(key: Key, defaultVal: boolean): boolean {
+    //     return this.GetData(key, MinimizedField, defaultVal);
+    // }
 
     GetHtml(key: Key, defaultVal: string): string {
         return this.GetData(key, HtmlField, defaultVal);

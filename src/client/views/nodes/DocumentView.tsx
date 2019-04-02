@@ -31,6 +31,7 @@ import "./DocumentView.scss";
 import React = require("react");
 import { ServerUtils } from "../../../server/ServerUtil";
 import { DocumentDecorations } from "../DocumentDecorations";
+import { MinimizedField } from "../../../fields/MinimizedField";
 
 export interface DocumentViewProps {
   ContainingCollectionView: Opt<CollectionView>;
@@ -102,8 +103,15 @@ export class DocumentView extends React.Component<DocumentViewProps> {
   private _downX: number = 0;
   private _downY: number = 0;
 
+  // @observable
+  // private minimized: boolean = false;
+
   @observable
-  private minimized: boolean = false;
+  private _minimized: boolean = this.props.Document.GetData(
+    KeyStore.Minimized,
+    MinimizedField,
+    false as boolean
+  );
 
   private _reactionDisposer: Opt<IReactionDisposer>;
   @computed get active(): boolean {
@@ -310,7 +318,13 @@ export class DocumentView extends React.Component<DocumentViewProps> {
 
   @action
   minimize = (e: React.MouseEvent): void => {
-    this.minimized = true;
+    //hopefully sets field?
+    this._minimized = true as boolean;
+    this.props.Document.SetData(
+      KeyStore.Minimized,
+      true as boolean,
+      MinimizedField
+    );
     SelectionManager.DeselectAll();
   };
 
@@ -383,7 +397,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     e.preventDefault();
 
     //for testing purposes
-    if (!this.minimized) {
+    if (!this.isMinimized()) {
       ContextMenu.Instance.addItem({
         description: "Minimize",
         event: this.minimize
@@ -434,12 +448,21 @@ export class DocumentView extends React.Component<DocumentViewProps> {
   };
 
   isMinimized = () => {
-    return this.minimized;
+    let field = this.props.Document.GetT(KeyStore.Minimized, MinimizedField);
+    if (field && field !== FieldWaiting) {
+      return field.Data;
+    }
+    //return this.minimized;
   };
 
   @action
   expand = () => {
-    this.minimized = false;
+    //this._minimized = false;
+    this.props.Document.SetData(
+      KeyStore.Minimized,
+      false as boolean,
+      MinimizedField
+    );
   };
 
   isSelected = () => {
@@ -459,7 +482,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     var nativeWidth = this.props.Document.GetNumber(KeyStore.NativeWidth, 0);
     var nativeHeight = this.props.Document.GetNumber(KeyStore.NativeHeight, 0);
 
-    if (this.minimized) {
+    if (this.isMinimized()) {
       return (
         <div
           className="minimized-box"
