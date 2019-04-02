@@ -103,16 +103,6 @@ export class DocumentView extends React.Component<DocumentViewProps> {
   private _downX: number = 0;
   private _downY: number = 0;
 
-  // @observable
-  // private minimized: boolean = false;
-
-  @observable
-  private _minimized: boolean = this.props.Document.GetData(
-    KeyStore.Minimized,
-    MinimizedField,
-    false as boolean
-  );
-
   private _reactionDisposer: Opt<IReactionDisposer>;
   @computed get active(): boolean {
     return (
@@ -318,8 +308,6 @@ export class DocumentView extends React.Component<DocumentViewProps> {
 
   @action
   minimize = (e: React.MouseEvent): void => {
-    //hopefully sets field?
-    this._minimized = true as boolean;
     this.props.Document.SetData(
       KeyStore.Minimized,
       true as boolean,
@@ -396,7 +384,6 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     }
     e.preventDefault();
 
-    //for testing purposes
     if (!this.isMinimized()) {
       ContextMenu.Instance.addItem({
         description: "Minimize",
@@ -452,12 +439,10 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     if (field && field !== FieldWaiting) {
       return field.Data;
     }
-    //return this.minimized;
   };
 
   @action
   expand = () => {
-    //this._minimized = false;
     this.props.Document.SetData(
       KeyStore.Minimized,
       false as boolean,
