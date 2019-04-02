@@ -1,23 +1,39 @@
 @import "../global_variables";
+
 .documentView-node {
   position: absolute;
   background: $light-color; //overflow: hidden;
+
   &.minimized {
     width: 30px;
     height: 30px;
   }
+
   .top {
     background: #232323;
     height: 20px;
     cursor: pointer;
   }
+
   .content {
     padding: 20px 20px;
     height: auto;
     box-sizing: border-box;
   }
+
   .scroll-box {
     overflow-y: scroll;
     height: calc(100% - 20px);
+  }
+
+  .minimized-box {
+    height: 10px;
+    width: 10px;
+    border-radius: 2px;
+    background: #232323
+  }
+
+  .minimized-box:hover {
+    background: #232323
   }
 }
