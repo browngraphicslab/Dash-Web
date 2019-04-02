@@ -47,7 +47,6 @@ export class ServerUtils {
       case Types.Html:
         return new HtmlField(data, id, false);
       case Types.Web:
-        console.log("LOOK HERE! " + data);
         return new WebField(new URL(data), id, false);
       case Types.RichText:
         return new RichTextField(data, id, false);
