@@ -33,6 +33,11 @@ export interface FieldViewProps {
     select: (isCtrlPressed: boolean) => void;
     isTopMost: boolean;
     selectOnLoad: boolean;
+    addDocument: (document: Document, allowDuplicates: boolean) => boolean;
+    removeDocument: (document: Document) => boolean;
+    ScreenToLocalTransform: () => Transform;
+    active: () => boolean;
+    focus: (doc: Document) => void;
 }
 
 @observer

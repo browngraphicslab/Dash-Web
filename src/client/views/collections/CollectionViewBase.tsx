@@ -20,17 +20,9 @@ import { Server } from "../../Server";
 import { FieldViewProps } from "../nodes/FieldView";
 
 export interface CollectionViewProps extends FieldViewProps {
-    ScreenToLocalTransform: () => Transform;
-    panelWidth: () => number;
-    panelHeight: () => number;
-    focus: (doc: Document) => void;
 }
 
 export interface SubCollectionViewProps extends CollectionViewProps {
-    active: () => boolean;
-    addDocument: (doc: Document, allowDuplicates: boolean) => boolean;
-    removeDocument: (doc: Document) => boolean;
-    CollectionView: CollectionView;
 }
 
 export type CursorEntry = TupleField<[string, string], [number, number]>;
@@ -127,8 +119,6 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
 
     @action
     protected onDrop(e: React.DragEvent, options: DocumentOptions): void {
-        let that = this;
-
         let html = e.dataTransfer.getData("text/html");
         let text = e.dataTransfer.getData("text/plain");
 
@@ -151,7 +141,6 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
             let item = e.dataTransfer.items[i];
             if (item.kind === "string" && item.type.indexOf("uri") != -1) {
                 e.dataTransfer.items[i].getAsString(action((s: string) => {
-                    let document: Document;
                     request.head(ServerUtils.prepend(RouteStore.corsProxy + "/" + s), (err, res, body) => {
                         let type = res.headers["content-type"];
                         if (type) {
@@ -184,11 +173,11 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
                         runInAction(() => {
                             let doc = this.getDocumentFromType(type, path, { ...options, nativeWidth: 300, width: 300 })
 
-                            let docs = that.props.Document.GetT(KeyStore.Data, ListField);
+                            let docs = this.props.Document.GetT(KeyStore.Data, ListField);
                             if (docs != FieldWaiting) {
                                 if (!docs) {
                                     docs = new ListField<Document>();
-                                    that.props.Document.Set(KeyStore.Data, docs)
+                                    this.props.Document.Set(KeyStore.Data, docs)
                                 }
                                 if (doc) {
                                     docs.Data.push(doc);
