@@ -39,7 +39,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             (visible: boolean) => this.onPointerDown(visible, this.props.container.DownX, this.props.container.DownY))
         this._reactionDisposer = reaction(
             () => this.props.container.Marquee,
-            (visible: boolean) => this.createMarquee(visible, this.props.container.DownX, this.props.container.DownY, this.props.container.UpX, this.props.container.UpY, this.props.container.ShiftKey)
+            (visible: boolean) => this.createMarquee(visible, this.props.container.FirstX, this.props.container.FirstY, this.props.container.SecondX, this.props.container.SecondY, this.props.container.ShiftKey)
         )
     }
     componentWillUnmount() {
@@ -50,17 +50,18 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     }
 
     @action
-    createMarquee = (visible: boolean, downX: number, downY: number, lastX: number, lastY: number, shiftKey: boolean) => {
+    createMarquee = (visible: boolean, firstX: number, firstY: number, secondX: number, secondY: number, shiftKey: boolean) => {
         if (visible) {
-            this._downX = downX
-            this._downY = downY
-            this._lastX = lastX
-            this._lastY = lastY
+            this._downX = firstX
+            this._downY = firstY
+            this._lastX = secondX
+            this._lastY = secondY
             if (!shiftKey) {
                 SelectionManager.DeselectAll();
             }
             this.props.selectDocuments(this.marqueeSelect());
             this.props.container.ShiftKey = false;
+            this.props.container.Marquee = false;
         }
     }
 
@@ -90,6 +91,8 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
 
     @action
     onPointerUp = (e: PointerEvent): void => {
+        if (e.pointerType === "touch") return;
+
         this.cleanupInteractions();
         if (!e.shiftKey) {
             SelectionManager.DeselectAll();

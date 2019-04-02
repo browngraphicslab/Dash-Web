@@ -109,6 +109,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
     @action
     onPointerDown = (e: React.PointerEvent): void => {
         this.PreviewCursorVisible = false;
+        e.currentTarget.setPointerCapture(e.pointerId)
         if ((this.shouldPan(e) && this.props.active() && (!this.isAnnotationOverlay || this.zoomScaling != 1)) || e.button == 0) {
             document.removeEventListener("pointermove", this.onPointerMove);
             document.addEventListener("pointermove", this.onPointerMove);
@@ -156,21 +157,36 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
     @action
     onTouchEnd = (e: TouchEvent): void => {
+        if (!this._touchDrag) {
+            if (this.prevPoints.size === 2) {
+                let pts = this.prevPoints.values();
+                let pt1 = pts.next().value
+                let pt2 = pts.next().value
+                if (pt1 && pt2) {
+                    this.ShiftKey = e.shiftKey
+                    this.FirstX = pt1.clientX
+                    this.FirstY = pt1.clientY
+                    this.SecondX = pt2.clientX
+                    this.SecondY = pt2.clientY
+                    this.Marquee = true;
+                }
+            }
+        }
+
+        this._touchDrag = false;
         e.stopPropagation()
         for (let i = 0; i < e.targetTouches.length; i++) {
             let pt = e.targetTouches.item(i)
             if (pt) {
-                let pts = this.prevPoints.filter(j => pt ? j.identifier === pt.identifier : false)
-                pts.forEach(k => {
-                    this.prevPoints.splice(this.prevPoints.indexOf(k), 1)
-                });
+                if (this.prevPoints.has(pt.identifier)) {
+                    this.prevPoints.delete(pt.identifier)
+                }
             }
         }
 
         if (e.targetTouches.length === 0) {
-            this.prevPoints = []
+            this.prevPoints.clear()
         }
-        console.log(e.changedTouches.length)
         this.cleanupInteractions();
     }
 
@@ -184,22 +200,30 @@ export class CollectionFreeFormView extends CollectionViewBase {
         this._lastY = e.pageY;
     }
 
-    private prevPoints: React.Touch[] = []
+    private prevPoints: Map<number, React.Touch> = new Map<number, React.Touch>()
+    public FirstX: number = 0;
+    public FirstY: number = 0;
+    public SecondX: number = 0;
+    public SecondY: number = 0;
 
     @action
     onTouchStart = (e: React.TouchEvent): void => {
         for (let i = 0; i < e.targetTouches.length; i++) {
-            this.prevPoints.push(e.targetTouches.item(i))
+            let pt = e.targetTouches.item(i)
+            this.prevPoints.set(pt.identifier, pt)
         }
-        console.log(e.changedTouches.length)
         document.removeEventListener("touchmove", this.onTouch);
         document.addEventListener("touchmove", this.onTouch);
         document.removeEventListener("touchend", this.onTouchEnd);
         document.addEventListener("touchend", this.onTouchEnd);
     }
 
+    private _touchDrag: boolean = false
+
     @action
     onTouch = (e: TouchEvent): void => {
+        if (!TouchInteractions.IsDragging(this.prevPoints, e.targetTouches, 5) && !this._touchDrag) return;
+        this._touchDrag = true;
         switch (e.targetTouches.length) {
             case 1:
                 let pt = e.targetTouches.item(0)
@@ -213,46 +237,24 @@ export class CollectionFreeFormView extends CollectionViewBase {
                 let pt1: Touch | null = e.targetTouches.item(0)
                 let pt2: Touch | null = e.targetTouches.item(1)
                 if (!pt1 || !pt2) return
-                console.log(this.prevPoints.length)
-                if (this.prevPoints.length === 1) {
-                    this.ShiftKey = e.shiftKey
-                    this.MarqueeVisible = true;
-                    this.Marquee = true;
-                    this.DownX = Math.min(pt1.clientX, pt2.clientX)
-                    this.DownY = Math.max(pt1.clientY, pt2.clientY)
-                    this.UpX = Math.max(pt1.clientX, pt2.clientX)
-                    this.UpY = Math.min(pt1.clientY, pt2.clientY)
-                    return;
-                }
 
-                if (this.prevPoints.length === 2) {
-                    let oldPoint1 = this.prevPoints[0]
-                    let oldPoint2 = this.prevPoints[1]
-                    // if x or y getting further away or closer then zoom
-                    // else if pt1 and pt2 euclidist close then marquee
-                    //let pinching = Math.abs(pt1.clientX - pt2.clientX) < Math.abs(oldPoint1.clientX - oldPoint2.clientX) || Math.abs(pt1.clientY - pt2.clientY) < Math.abs(oldPoint1.clientY - oldPoint2.clientY);
-                    let dir = TouchInteractions.Pinching(pt1, pt2, oldPoint1, oldPoint2)
+                if (this.prevPoints.size === 2) {
+                    let oldPoint1 = this.prevPoints.get(pt1.identifier)
+                    let oldPoint2 = this.prevPoints.get(pt2.identifier)
+                    if (oldPoint1 && oldPoint2) {
+                        let dir = TouchInteractions.Pinching(pt1, pt2, oldPoint1, oldPoint2)
 
-                    if (dir !== 0) {
-                        let d1 = Math.sqrt(Math.pow(pt1.clientX - oldPoint1.clientX, 2) + Math.pow(pt1.clientY - oldPoint1.clientY, 2))
-                        let d2 = Math.sqrt(Math.pow(pt2.clientX - oldPoint2.clientX, 2) + Math.pow(pt2.clientY - oldPoint2.clientY, 2))
-                        let centerX = Math.min(pt1.clientX, pt2.clientX) + Math.abs(pt2.clientX - pt1.clientX) / 2
-                        let centerY = Math.min(pt1.clientY, pt2.clientY) + Math.abs(pt2.clientY - pt1.clientY) / 2
-                        let delta = dir * (d1 + d2)
-                        this.zoom(centerX, centerY, delta, 100)
+                        if (dir !== 0) {
+                            let d1 = Math.sqrt(Math.pow(pt1.clientX - oldPoint1.clientX, 2) + Math.pow(pt1.clientY - oldPoint1.clientY, 2))
+                            let d2 = Math.sqrt(Math.pow(pt2.clientX - oldPoint2.clientX, 2) + Math.pow(pt2.clientY - oldPoint2.clientY, 2))
+                            let centerX = Math.min(pt1.clientX, pt2.clientX) + Math.abs(pt2.clientX - pt1.clientX) / 2
+                            let centerY = Math.min(pt1.clientY, pt2.clientY) + Math.abs(pt2.clientY - pt1.clientY) / 2
+                            let delta = dir * (d1 + d2)
+                            this.zoom(centerX, centerY, delta, 100)
+                            this.prevPoints.set(pt1.identifier, pt1)
+                            this.prevPoints.set(pt2.identifier, pt2)
+                        }
                     }
-
-                    // let deltaScale = (1 - (delta / coefficient));
-                    // if (deltaScale * this.zoomScaling < 1 && this.isAnnotationOverlay)
-                    //     deltaScale = 1 / this.zoomScaling;
-                    // let [x_2, y_2] = transform.transformPoint(centerX, centerY);
-
-                    // let localTransform = this.getLocalTransform()
-                    // localTransform = localTransform.inverse().scaleAbout(deltaScale, x_2, y_2)
-                    // // console.log(localTransform)
-
-                    // this.props.Document.SetNumber(KeyStore.Scale, localTransform.Scale);
-                    // this.SetPan(-localTransform.TranslateX / localTransform.Scale, -localTransform.TranslateY / localTransform.Scale);
                 }
                 e.stopPropagation();
                 e.preventDefault();

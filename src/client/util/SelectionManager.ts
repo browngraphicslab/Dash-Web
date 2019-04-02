@@ -30,6 +30,7 @@ export namespace SelectionManager {
     }
 
     export function DeselectAll(): void {
+        console.log("deselected")
         manager.SelectedDocuments = []
     }
 

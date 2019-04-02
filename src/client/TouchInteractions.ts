@@ -22,4 +22,20 @@ export namespace TouchInteractions {
         }
         return 0
     }
+
+    export function IsDragging(oldTouches: Map<number, React.Touch>, newTouches: TouchList, leniency: number): boolean {
+        for (let i = 0; i < newTouches.length; i++) {
+            let touch = newTouches.item(i)
+            if (touch) {
+                let oldTouch = oldTouches.get(touch.identifier)
+                if (oldTouch) {
+                    let dist = Math.sqrt(Math.pow(touch.clientX - oldTouch.clientX, 2) + Math.pow(touch.clientY - oldTouch.clientY, 2))
+                    if (dist >= leniency) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
 }
