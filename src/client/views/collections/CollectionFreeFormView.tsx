@@ -19,6 +19,7 @@ import { MarqueeView } from "./MarqueeView";
 import { PreviewCursor } from "./PreviewCursor";
 import React = require("react");
 import v5 = require("uuid/v5");
+import { TouchInteractions } from "../../TouchInteractions";
 
 @observer
 export class CollectionFreeFormView extends CollectionViewBase {
@@ -58,8 +59,12 @@ export class CollectionFreeFormView extends CollectionViewBase {
     //determines whether the blinking cursor for indicating whether a text will be made on key down is visible
     @observable public PreviewCursorVisible: boolean = false;
     @observable public MarqueeVisible = false;
+    @observable public Marquee = false;
     @observable public DownX: number = 0;
     @observable public DownY: number = 0;
+    @observable public UpX: number = 0;
+    @observable public UpY: number = 0;
+    @observable public ShiftKey: boolean = false;
     @observable private _lastX: number = 0;
     @observable private _lastY: number = 0;
 
@@ -92,13 +97,19 @@ export class CollectionFreeFormView extends CollectionViewBase {
     cleanupInteractions = () => {
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
+        document.removeEventListener("touchmove", this.onTouch);
+        document.removeEventListener("touchend", this.onTouchEnd);
         this.MarqueeVisible = false;
+    }
+
+    shouldPan = (e: PointerEvent | React.PointerEvent): boolean => {
+        return e.pointerType === "touch" || (e.pointerType === "mouse" && e.button === 2)
     }
 
     @action
     onPointerDown = (e: React.PointerEvent): void => {
         this.PreviewCursorVisible = false;
-        if ((e.button === 2 && this.props.active() && (!this.isAnnotationOverlay || this.zoomScaling != 1)) || e.button == 0) {
+        if ((this.shouldPan(e) && this.props.active() && (!this.isAnnotationOverlay || this.zoomScaling != 1)) || e.button == 0) {
             document.removeEventListener("pointermove", this.onPointerMove);
             document.addEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
@@ -110,6 +121,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
     @action
     onPointerUp = (e: PointerEvent): void => {
+        if (e.pointerType === "touch") return;
         e.stopPropagation();
 
         if (Math.abs(this.DownX - e.clientX) < 4 && Math.abs(this.DownY - e.clientY) < 4) {
@@ -125,8 +137,9 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
     @action
     onPointerMove = (e: PointerEvent): void => {
+        if (e.pointerType === "touch") return;
         if (!e.cancelBubble && this.props.active()) {
-            if (e.buttons == 1 && !e.altKey && !e.metaKey) {
+            if (e.buttons === 1 && e.pointerType !== "touch" && !e.altKey && !e.metaKey) {
                 this.MarqueeVisible = true;
             }
             if (this.MarqueeVisible) {
@@ -134,16 +147,133 @@ export class CollectionFreeFormView extends CollectionViewBase {
                 e.preventDefault();
             }
             else if ((!this.isAnnotationOverlay || this.zoomScaling != 1) && !e.shiftKey) {
-                let x = this.props.Document.GetNumber(KeyStore.PanX, 0);
-                let y = this.props.Document.GetNumber(KeyStore.PanY, 0);
-                let [dx, dy] = this.getTransform().transformDirection(e.clientX - this._lastX, e.clientY - this._lastY);
-                this.SetPan(x - dx, y - dy);
-                this._lastX = e.pageX;
-                this._lastY = e.pageY;
+                this.pan(e)
                 e.stopPropagation();
                 e.preventDefault();
             }
         }
+    }
+
+    @action
+    onTouchEnd = (e: TouchEvent): void => {
+        e.stopPropagation()
+        for (let i = 0; i < e.targetTouches.length; i++) {
+            let pt = e.targetTouches.item(i)
+            if (pt) {
+                let pts = this.prevPoints.filter(j => pt ? j.identifier === pt.identifier : false)
+                pts.forEach(k => {
+                    this.prevPoints.splice(this.prevPoints.indexOf(k), 1)
+                });
+            }
+        }
+
+        if (e.targetTouches.length === 0) {
+            this.prevPoints = []
+        }
+        console.log(e.changedTouches.length)
+        this.cleanupInteractions();
+    }
+
+    @action
+    pan = (e: PointerEvent | React.Touch): void => {
+        let x = this.props.Document.GetNumber(KeyStore.PanX, 0);
+        let y = this.props.Document.GetNumber(KeyStore.PanY, 0);
+        let [dx, dy] = this.getTransform().transformDirection(e.clientX - this._lastX, e.clientY - this._lastY);
+        this.SetPan(x - dx, y - dy);
+        this._lastX = e.pageX;
+        this._lastY = e.pageY;
+    }
+
+    private prevPoints: React.Touch[] = []
+
+    @action
+    onTouchStart = (e: React.TouchEvent): void => {
+        for (let i = 0; i < e.targetTouches.length; i++) {
+            this.prevPoints.push(e.targetTouches.item(i))
+        }
+        console.log(e.changedTouches.length)
+        document.removeEventListener("touchmove", this.onTouch);
+        document.addEventListener("touchmove", this.onTouch);
+        document.removeEventListener("touchend", this.onTouchEnd);
+        document.addEventListener("touchend", this.onTouchEnd);
+    }
+
+    @action
+    onTouch = (e: TouchEvent): void => {
+        switch (e.targetTouches.length) {
+            case 1:
+                let pt = e.targetTouches.item(0)
+                if (pt) {
+                    this.pan(pt)
+                }
+                e.stopPropagation();
+                e.preventDefault();
+                break;
+            case 2:
+                let pt1: Touch | null = e.targetTouches.item(0)
+                let pt2: Touch | null = e.targetTouches.item(1)
+                if (!pt1 || !pt2) return
+                console.log(this.prevPoints.length)
+                if (this.prevPoints.length === 1) {
+                    this.ShiftKey = e.shiftKey
+                    this.MarqueeVisible = true;
+                    this.Marquee = true;
+                    this.DownX = Math.min(pt1.clientX, pt2.clientX)
+                    this.DownY = Math.max(pt1.clientY, pt2.clientY)
+                    this.UpX = Math.max(pt1.clientX, pt2.clientX)
+                    this.UpY = Math.min(pt1.clientY, pt2.clientY)
+                    return;
+                }
+
+                if (this.prevPoints.length === 2) {
+                    let oldPoint1 = this.prevPoints[0]
+                    let oldPoint2 = this.prevPoints[1]
+                    // if x or y getting further away or closer then zoom
+                    // else if pt1 and pt2 euclidist close then marquee
+                    //let pinching = Math.abs(pt1.clientX - pt2.clientX) < Math.abs(oldPoint1.clientX - oldPoint2.clientX) || Math.abs(pt1.clientY - pt2.clientY) < Math.abs(oldPoint1.clientY - oldPoint2.clientY);
+                    let dir = TouchInteractions.Pinching(pt1, pt2, oldPoint1, oldPoint2)
+
+                    if (dir !== 0) {
+                        let d1 = Math.sqrt(Math.pow(pt1.clientX - oldPoint1.clientX, 2) + Math.pow(pt1.clientY - oldPoint1.clientY, 2))
+                        let d2 = Math.sqrt(Math.pow(pt2.clientX - oldPoint2.clientX, 2) + Math.pow(pt2.clientY - oldPoint2.clientY, 2))
+                        let centerX = Math.min(pt1.clientX, pt2.clientX) + Math.abs(pt2.clientX - pt1.clientX) / 2
+                        let centerY = Math.min(pt1.clientY, pt2.clientY) + Math.abs(pt2.clientY - pt1.clientY) / 2
+                        let delta = dir * (d1 + d2)
+                        this.zoom(centerX, centerY, delta, 100)
+                    }
+
+                    // let deltaScale = (1 - (delta / coefficient));
+                    // if (deltaScale * this.zoomScaling < 1 && this.isAnnotationOverlay)
+                    //     deltaScale = 1 / this.zoomScaling;
+                    // let [x_2, y_2] = transform.transformPoint(centerX, centerY);
+
+                    // let localTransform = this.getLocalTransform()
+                    // localTransform = localTransform.inverse().scaleAbout(deltaScale, x_2, y_2)
+                    // // console.log(localTransform)
+
+                    // this.props.Document.SetNumber(KeyStore.Scale, localTransform.Scale);
+                    // this.SetPan(-localTransform.TranslateX / localTransform.Scale, -localTransform.TranslateY / localTransform.Scale);
+                }
+                e.stopPropagation();
+                e.preventDefault();
+                break;
+        }
+    }
+
+    @action
+    zoom = (pointX: number, pointY: number, deltaY: number, coefficient: number): void => {
+        let transform = this.getTransform();
+        let deltaScale = (1 - (deltaY / coefficient));
+        if (deltaScale * this.zoomScaling < 1 && this.isAnnotationOverlay)
+            deltaScale = 1 / this.zoomScaling;
+        let [x, y] = transform.transformPoint(pointX, pointY);
+
+        let localTransform = this.getLocalTransform()
+        localTransform = localTransform.inverse().scaleAbout(deltaScale, x, y)
+        // console.log(localTransform)
+
+        this.props.Document.SetNumber(KeyStore.Scale, localTransform.Scale);
+        this.SetPan(-localTransform.TranslateX / localTransform.Scale, -localTransform.TranslateY / localTransform.Scale);
     }
 
     @action
@@ -165,19 +295,20 @@ export class CollectionFreeFormView extends CollectionViewBase {
         } else {
             // if (modes[e.deltaMode] == 'pixels') coefficient = 50;
             // else if (modes[e.deltaMode] == 'lines') coefficient = 1000; // This should correspond to line-height??
-            let transform = this.getTransform();
+            this.zoom(e.clientX, e.clientY, e.deltaY, coefficient)
+            // let transform = this.getTransform();
 
-            let deltaScale = (1 - (e.deltaY / coefficient));
-            if (deltaScale * this.zoomScaling < 1 && this.isAnnotationOverlay)
-                deltaScale = 1 / this.zoomScaling;
-            let [x, y] = transform.transformPoint(e.clientX, e.clientY);
+            // let deltaScale = (1 - (e.deltaY / coefficient));
+            // if (deltaScale * this.zoomScaling < 1 && this.isAnnotationOverlay)
+            //     deltaScale = 1 / this.zoomScaling;
+            // let [x, y] = transform.transformPoint(e.clientX, e.clientY);
 
-            let localTransform = this.getLocalTransform()
-            localTransform = localTransform.inverse().scaleAbout(deltaScale, x, y)
-            // console.log(localTransform)
+            // let localTransform = this.getLocalTransform()
+            // localTransform = localTransform.inverse().scaleAbout(deltaScale, x, y)
+            // // console.log(localTransform)
 
-            this.props.Document.SetNumber(KeyStore.Scale, localTransform.Scale);
-            this.SetPan(-localTransform.TranslateX / localTransform.Scale, -localTransform.TranslateY / localTransform.Scale);
+            // this.props.Document.SetNumber(KeyStore.Scale, localTransform.Scale);
+            // this.SetPan(-localTransform.TranslateX / localTransform.Scale, -localTransform.TranslateY / localTransform.Scale);
         }
     }
 
@@ -327,7 +458,6 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
     render() {
         let [dx, dy] = [this.centeringShiftX, this.centeringShiftY];
-
         const panx: number = -this.props.Document.GetNumber(KeyStore.PanX, 0);
         const pany: number = -this.props.Document.GetNumber(KeyStore.PanY, 0);
         // const panx: number = this.props.Document.GetNumber(KeyStore.PanX, 0) + this.centeringShiftX;
@@ -340,6 +470,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
                 onPointerMove={(e) => super.setCursorPosition(this.getTransform().transformPoint(e.clientX, e.clientY))}
                 onWheel={this.onPointerWheel}
                 onDrop={this.onDrop.bind(this)}
+                onTouchStart={this.onTouchStart}
                 onDragOver={this.onDragOver}
                 onBlur={this.onBlur}
                 style={{ borderWidth: `${COLLECTION_BORDER_WIDTH}px` }}// , zIndex: !this.props.isTopMost ? -1 : undefined }}

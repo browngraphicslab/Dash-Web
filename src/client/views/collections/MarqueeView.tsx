@@ -37,12 +37,31 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         this._reactionDisposer = reaction(
             () => this.props.container.MarqueeVisible,
             (visible: boolean) => this.onPointerDown(visible, this.props.container.DownX, this.props.container.DownY))
+        this._reactionDisposer = reaction(
+            () => this.props.container.Marquee,
+            (visible: boolean) => this.createMarquee(visible, this.props.container.DownX, this.props.container.DownY, this.props.container.UpX, this.props.container.UpY, this.props.container.ShiftKey)
+        )
     }
     componentWillUnmount() {
         if (this._reactionDisposer) {
             this._reactionDisposer();
         }
         this.cleanupInteractions();
+    }
+
+    @action
+    createMarquee = (visible: boolean, downX: number, downY: number, lastX: number, lastY: number, shiftKey: boolean) => {
+        if (visible) {
+            this._downX = downX
+            this._downY = downY
+            this._lastX = lastX
+            this._lastY = lastY
+            if (!shiftKey) {
+                SelectionManager.DeselectAll();
+            }
+            this.props.selectDocuments(this.marqueeSelect());
+            this.props.container.ShiftKey = false;
+        }
     }
 
     @action
