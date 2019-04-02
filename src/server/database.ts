@@ -27,7 +27,7 @@ export class Database {
                     console.log(err.errmsg);
                 }
                 if (res) {
-                    console.log(JSON.stringify(res.result));
+                    // console.log(JSON.stringify(res.result));
                 }
                 callback()
             });
