@@ -41,12 +41,46 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             () => this.props.container.Marquee,
             (visible: boolean) => this.createMarquee(visible, this.props.container.FirstX, this.props.container.FirstY, this.props.container.SecondX, this.props.container.SecondY, this.props.container.ShiftKey)
         )
+        this._reactionDisposer = reaction(
+            () => this.props.container.Collection,
+            (params: { left: number, top: number, width: number, height: number, create: boolean }) => {
+                if (params.create)
+                    this.createCollection(params)
+            }
+        )
     }
     componentWillUnmount() {
         if (this._reactionDisposer) {
             this._reactionDisposer();
         }
         this.cleanupInteractions();
+    }
+
+    @action
+    createCollection = (params: { left: number, top: number, width: number, height: number }) => {
+        let selected = this.marqueeSelect().map(d => {
+            this.props.removeDocument(d);
+            d.SetNumber(KeyStore.X, d.GetNumber(KeyStore.X, 0) - params.left - params.width / 2);
+            d.SetNumber(KeyStore.Y, d.GetNumber(KeyStore.Y, 0) - params.top - params.height / 2);
+            d.SetNumber(KeyStore.Page, 0);
+            d.SetText(KeyStore.Title, "" + d.GetNumber(KeyStore.Width, 0) + " " + d.GetNumber(KeyStore.Height, 0));
+            return d;
+        });
+        let liftedInk = this.marqueeInkSelect(true);
+        this.props.container.props.Document.SetData(KeyStore.Ink, this.marqueeInkSelect(false), InkField);
+        //setTimeout(() => {
+        let newCollection = Documents.FreeformDocument(selected, {
+            x: params.left,
+            y: params.top,
+            panx: 0,
+            pany: 0,
+            width: params.width,
+            height: params.height,
+            backgroundColor: "Transparent",
+            ink: liftedInk,
+            title: "a nested collection"
+        });
+        this.props.addDocument(newCollection, false);
     }
 
     @action
@@ -100,11 +134,6 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         this.props.selectDocuments(this.marqueeSelect());
     }
 
-    intersectRect(r1: { left: number, top: number, width: number, height: number },
-        r2: { left: number, top: number, width: number, height: number }) {
-        return !(r2.left > r1.left + r1.width || r2.left + r2.width < r1.left || r2.top > r1.top + r1.height || r2.top + r2.height < r1.top);
-    }
-
     get Bounds() {
         let left = this._downX < this._lastX ? this._downX : this._lastX;
         let top = this._downY < this._lastY ? this._downY : this._lastY;
@@ -122,29 +151,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         }
         if (e.key == "c") {
             let bounds = this.Bounds;
-            let selected = this.marqueeSelect().map(d => {
-                this.props.removeDocument(d);
-                d.SetNumber(KeyStore.X, d.GetNumber(KeyStore.X, 0) - bounds.left - bounds.width / 2);
-                d.SetNumber(KeyStore.Y, d.GetNumber(KeyStore.Y, 0) - bounds.top - bounds.height / 2);
-                d.SetNumber(KeyStore.Page, 0);
-                d.SetText(KeyStore.Title, "" + d.GetNumber(KeyStore.Width, 0) + " " + d.GetNumber(KeyStore.Height, 0));
-                return d;
-            });
-            let liftedInk = this.marqueeInkSelect(true);
-            this.props.container.props.Document.SetData(KeyStore.Ink, this.marqueeInkSelect(false), InkField);
-            //setTimeout(() => {
-            let newCollection = Documents.FreeformDocument(selected, {
-                x: bounds.left,
-                y: bounds.top,
-                panx: 0,
-                pany: 0,
-                width: bounds.width,
-                height: bounds.height,
-                backgroundColor: "Transparent",
-                ink: liftedInk,
-                title: "a nested collection"
-            });
-            this.props.addDocument(newCollection, false);
+            this.createCollection(bounds)
             // }, 100);
             this.cleanupInteractions();
         }
@@ -183,7 +190,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             var y = doc.GetNumber(KeyStore.Y, 0);
             var w = doc.GetNumber(KeyStore.Width, 0);
             var h = doc.GetNumber(KeyStore.Height, 0);
-            if (this.intersectRect({ left: x, top: y, width: w, height: h }, selRect))
+            if (Utils.IntersectRect({ left: x, top: y, width: w, height: h }, selRect))
                 selection.push(doc)
         })
         return selection;

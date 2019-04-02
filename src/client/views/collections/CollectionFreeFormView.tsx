@@ -19,7 +19,9 @@ import { MarqueeView } from "./MarqueeView";
 import { PreviewCursor } from "./PreviewCursor";
 import React = require("react");
 import v5 = require("uuid/v5");
-import { TouchInteractions } from "../../TouchInteractions";
+import { TouchInteractions, TouchInteraction } from "../../TouchInteractions";
+import { number } from "prop-types";
+import { Utils } from "../../../Utils";
 
 @observer
 export class CollectionFreeFormView extends CollectionViewBase {
@@ -60,6 +62,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
     @observable public PreviewCursorVisible: boolean = false;
     @observable public MarqueeVisible = false;
     @observable public Marquee = false;
+    @observable public Collection: { left: number, top: number, width: number, height: number, create: boolean } = { left: 0, top: 0, width: 0, height: 0, create: false };
     @observable public DownX: number = 0;
     @observable public DownY: number = 0;
     @observable public UpX: number = 0;
@@ -158,18 +161,36 @@ export class CollectionFreeFormView extends CollectionViewBase {
     @action
     onTouchEnd = (e: TouchEvent): void => {
         if (!this._touchDrag) {
-            if (this.prevPoints.size === 2) {
-                let pts = this.prevPoints.values();
-                let pt1 = pts.next().value
-                let pt2 = pts.next().value
-                if (pt1 && pt2) {
-                    this.ShiftKey = e.shiftKey
-                    this.FirstX = pt1.clientX
-                    this.FirstY = pt1.clientY
-                    this.SecondX = pt2.clientX
-                    this.SecondY = pt2.clientY
-                    this.Marquee = true;
-                }
+            console.log(this.prevPoints.size)
+            switch (this.prevPoints.size) {
+                case 2:
+                    let pts = this.prevPoints.values();
+                    let pt1 = pts.next().value
+                    let pt2 = pts.next().value
+                    if (pt1 && pt2) {
+                        this.ShiftKey = e.shiftKey
+                        this.FirstX = pt1.clientX
+                        this.FirstY = pt1.clientY
+                        this.SecondX = pt2.clientX
+                        this.SecondY = pt2.clientY
+                        this.Marquee = true;
+                    }
+                    break;
+                case 3:
+                    let pointsArray = Array.from(this.prevPoints.values())
+                    let result = TouchInteractions.InterpretPointers(pointsArray)
+                    let data: number[] = result.data
+                    console.log(result.type)
+                    if (result.type === TouchInteractions.TwoToOneFingers && data && data.length === 3) {
+                        let pt1 = TouchInteractions.CenterPoint([pointsArray[data[0]], pointsArray[data[1]]])
+                        let pt2 = pointsArray[data[2]]
+                        let left = Math.min(pt1.X, pt2.clientX)
+                        let top = Math.min(pt1.Y, pt2.clientY)
+                        let topLeft = this.getTransform().transformPoint(left, top);
+                        let size = this.getTransform().transformDirection(pt2.clientX - pt1.X, pt2.clientY - pt1.Y);
+                        this.Collection = { left: topLeft[0], top: topLeft[1], width: Math.abs(size[0]), height: Math.abs(size[1]), create: true }
+                    }
+                    break;
             }
         }
 

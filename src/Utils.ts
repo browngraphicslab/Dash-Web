@@ -5,6 +5,11 @@ import { Message, Types } from './server/Message';
 
 export class Utils {
 
+    public static IntersectRect(r1: { left: number, top: number, width: number, height: number },
+        r2: { left: number, top: number, width: number, height: number }) {
+        return !(r2.left > r1.left + r1.width || r2.left + r2.width < r1.left || r2.top > r1.top + r1.height || r2.top + r2.height < r1.top);
+    }
+
     public static GenerateGuid(): string {
         return v4()
     }
