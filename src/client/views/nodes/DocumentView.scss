@@ -30,10 +30,12 @@
     height: 10px;
     width: 10px;
     border-radius: 2px;
-    background: #232323
+    background: $dark-color
   }
 
   .minimized-box:hover {
-    background: #232323
+    background: $main-accent;
+    transform: scale(1.15);
+    cursor: pointer;
   }
 }

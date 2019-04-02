@@ -7,7 +7,6 @@ import {
   observable
 } from "mobx";
 import { library } from "@fortawesome/fontawesome-svg-core";
-import { faSquare } from "@fortawesome/free-solid-svg-icons";
 import { observer } from "mobx-react";
 import { Document } from "../../../fields/Document";
 import { Field, Opt, FieldWaiting } from "../../../fields/Field";
@@ -32,8 +31,6 @@ import "./DocumentView.scss";
 import React = require("react");
 import { ServerUtils } from "../../../server/ServerUtil";
 import { DocumentDecorations } from "../DocumentDecorations";
-
-library.add(faSquare);
 
 export interface DocumentViewProps {
   ContainingCollectionView: Opt<CollectionView>;
@@ -438,6 +435,11 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     return this.minimized;
   };
 
+  @action
+  expand = () => {
+    this.minimized = false;
+  };
+
   isSelected = () => {
     return SelectionManager.IsSelected(this);
   };
@@ -450,18 +452,26 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     if (!this.props.Document) {
       return null;
     }
+
+    var scaling = this.props.ContentScaling();
+    var nativeWidth = this.props.Document.GetNumber(KeyStore.NativeWidth, 0);
+    var nativeHeight = this.props.Document.GetNumber(KeyStore.NativeHeight, 0);
+
     if (this.minimized) {
       return (
-        //<i class="fas fa-square" />
-        <div className="minimized-box" />
+        <div
+          className="minimized-box"
+          ref={this._mainCont}
+          style={{
+            transformOrigin: "left top",
+            transform: `scale(${scaling} , ${scaling})`
+          }}
+          onClick={this.expand}
+          onDrop={this.onDrop}
+          onPointerDown={this.onPointerDown}
+        />
       );
     } else {
-      var scaling = this.props.ContentScaling();
-      var nativeWidth = this.props.Document.GetNumber(KeyStore.NativeWidth, 0);
-      var nativeHeight = this.props.Document.GetNumber(
-        KeyStore.NativeHeight,
-        0
-      );
       var backgroundcolor = this.props.Document.GetText(
         KeyStore.BackgroundColor,
         ""
