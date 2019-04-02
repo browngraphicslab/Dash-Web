@@ -9,7 +9,7 @@ import { props } from "bluebird";
 import { DragManager } from "../util/DragManager";
 import { LinkMenu } from "./nodes/LinkMenu";
 import { ListField } from "../../fields/ListField";
-import { Templates } from "./Templates";
+import { Templates, Template } from "./Templates";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -23,6 +23,7 @@ export class DocumentDecorations extends React.Component {
     private _resizeBorderWidth = 16;
     private _linkButton = React.createRef<HTMLDivElement>();
     @observable private _hidden = false;
+    @observable private _templatesActive: boolean = false;
 
     constructor(props: Readonly<{}>) {
         super(props)
@@ -193,20 +194,18 @@ export class DocumentDecorations extends React.Component {
     //     e.stopPropagation();
     // }
 
-    addTemplate = (): void => {
-        console.log("add template");
-        let text = `
-        <div>
-            <div style="margin:auto; height:calc(100%); width:100%;">
-                {layout}
-            </div>
-            <div style="height:(100% + 25px); width:100%; position:absolute">
-                <FormattedTextBox doc={Document} DocumentViewForField={DocumentView} bindings={bindings} fieldKey={"CaptionKey"} isSelected={isSelected} select={select} selectOnLoad={SelectOnLoad} isTopMost={isTopMost}/>
-            </div>
-        </div>       
-                `;
+    toggleTemplate = (event: React.ChangeEvent<HTMLInputElement>, template: Template): void => {
         let view = SelectionManager.SelectedDocuments()[0];
-        view.addTemplate(Templates.OuterCaption);
+        if (event.target.checked) {
+            view.addTemplate(template);
+        } else {
+            view.removeTemplate(template);
+        }
+    }
+
+    @action
+    toggleTemplateActivity = (): void => {
+        this._templatesActive = !this._templatesActive;
     }
 
     render() {
@@ -234,28 +233,52 @@ export class DocumentDecorations extends React.Component {
                 <div className={"linkButton-" + (selFirst.props.Document.GetData(KeyStore.LinkedToDocs, ListField, []).length ? "nonempty" : "empty")} onPointerDown={this.onLinkButtonDown} >{linkCount}</div>
             </Flyout>);
         }
+
+        let templateMenu = !this._templatesActive ? (null) : (
+            <ul id="template-list">
+                {Array.from(Object.values(Templates)).map(template => {
+                    return (
+                        <li>
+                            <input type="checkbox" onChange={(event) => this.toggleTemplate(event, template)} />
+                            {template.Name}
+                        </li>
+                    )
+                })}
+            </ul>
+        )
         return (
-            <div id="documentDecorations-container" style={{
-                width: (bounds.r - bounds.x + this._resizeBorderWidth) + "px",
-                height: (bounds.b - bounds.y + this._resizeBorderWidth + 30) + "px",
-                left: bounds.x - this._resizeBorderWidth / 2,
-                top: bounds.y - this._resizeBorderWidth / 2,
-            }}>
-                <div id="documentDecorations-topLeftResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
-                <div id="documentDecorations-topResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
-                <div id="documentDecorations-topRightResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
-                <div id="documentDecorations-leftResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
-                <div id="documentDecorations-centerCont"></div>
-                <div id="documentDecorations-rightResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
-                <div id="documentDecorations-bottomLeftResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
-                <div id="documentDecorations-bottomResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
-                <div id="documentDecorations-bottomRightResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
+            <div id="documentDecorations">
+                <div id="documentDecorations-container" style={{
+                    width: (bounds.r - bounds.x + this._resizeBorderWidth) + "px",
+                    height: (bounds.b - bounds.y + this._resizeBorderWidth + 30) + "px",
+                    left: bounds.x - this._resizeBorderWidth / 2,
+                    top: bounds.y - this._resizeBorderWidth / 2,
+                }}>
+                    <div id="documentDecorations-topLeftResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
+                    <div id="documentDecorations-topResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
+                    <div id="documentDecorations-topRightResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
+                    <div id="documentDecorations-leftResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
+                    <div id="documentDecorations-centerCont"></div>
+                    <div id="documentDecorations-rightResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
+                    <div id="documentDecorations-bottomLeftResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
+                    <div id="documentDecorations-bottomResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
+                    <div id="documentDecorations-bottomRightResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
 
-                <div title="View Links" className="linkFlyout" ref={this._linkButton}>{linkButton}</div>
+                </div >
+                <div className="documentDecorations-extra" style={{
+                    width: (bounds.r - bounds.x + this._resizeBorderWidth) + "px",
+                    left: bounds.x - this._resizeBorderWidth / 2,
+                    top: bounds.y - this._resizeBorderWidth / 2 + (bounds.b - bounds.y + this._resizeBorderWidth)
+                }}>
+                    <div title="View Links" className="linkFlyout documentDecorations-ex-wrapper" ref={this._linkButton}>{linkButton}</div>
 
-                <div className="templating-button" onClick={this.addTemplate}></div>
-
-            </div >
+                    <div className="templating-button-wrapper documentDecorations-ex-wrapper">
+                        <div className="templating-button documentDecorations-ex"
+                            onClick={() => this.toggleTemplateActivity()}>T</div>
+                        {templateMenu}
+                    </div>
+                </div>
+            </div>
         )
     }
 }

@@ -2,21 +2,30 @@ import { observer } from "mobx-react";
 import { observable } from "mobx";
 import { action, computed } from "mobx";
 import React = require("react");
+import { StringLiteral } from "babel-types";
 
 export class Template {
-    constructor(layout: string) {
+    constructor(name: string, layout: string) {
+        this._name = name;
         this._layout = layout;
     }
 
-    private _layout: string = "";
+    private _name: string;
+    private _layout: string;
+
+    get Name(): string {
+        return this._name;
+    }
 
     get Layout(): string {
         return this._layout;
     }
+
 }
 
 export namespace Templates {
-    export const OuterCaption = new Template(`
+    export const OuterCaption = new Template("Outer caption",
+        `
     <div>
         <div style="margin:auto; height:calc(100%); width:100%;">
             {layout}
@@ -26,7 +35,8 @@ export namespace Templates {
         </div>
     </div>       
             `);
-    export const InnerCaption = new Template(`
+    export const InnerCaption = new Template("Inner caption",
+        `
     <div>
         <div style="margin:auto; height:calc(100% - 25px); width:100%;">
             {layout}

@@ -94,7 +94,8 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     private _downX: number = 0;
     private _downY: number = 0;
     private _reactionDisposer: Opt<IReactionDisposer>;
-    private _templates: Array<Template> = [];
+    private _templates: Set<Template> = new Set<Template>();
+    private _basicLayout: string = this.props.Document.GetText(KeyStore.Layout, "<p>Error loading layout data</p>");
     @computed get active(): boolean { return SelectionManager.IsSelected(this) || !this.props.ContainingCollectionView || this.props.ContainingCollectionView.active(); }
     @computed get topMost(): boolean { return !this.props.ContainingCollectionView || this.props.ContainingCollectionView.collectionViewType == CollectionViewType.Docking; }
     @computed get layout(): string { return this.props.Document.GetText(KeyStore.Layout, "<p>Error loading layout data</p>"); }
@@ -276,16 +277,28 @@ export class DocumentView extends React.Component<DocumentViewProps> {
 
     @action
     addTemplate = (template: Template) => {
-        // TODO: should change to set
-        this._templates.push(template);
+        this._templates.add(template);
 
         // TODO: apply templates to original layout
+        this.props.Document.SetText(KeyStore.Layout, this._basicLayout);
         this._templates.forEach(temp => {
             let text = temp.Layout;
             let oldLayout = this.props.Document.GetText(KeyStore.Layout, "");
             let layout = text.replace("{layout}", oldLayout);
             this.props.Document.SetText(KeyStore.Layout, layout);
-        })
+        });
+    }
+
+    @action removeTemplate = (template: Template) => {
+        this._templates.delete(template);
+
+        this.props.Document.SetText(KeyStore.Layout, this._basicLayout);
+        this._templates.forEach(temp => {
+            let text = temp.Layout;
+            let oldLayout = this.props.Document.GetText(KeyStore.Layout, "");
+            let layout = text.replace("{layout}", oldLayout);
+            this.props.Document.SetText(KeyStore.Layout, layout);
+        });
     }
 
     @action
