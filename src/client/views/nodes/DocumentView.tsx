@@ -383,10 +383,12 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     e.preventDefault();
 
     //for testing purposes
-    ContextMenu.Instance.addItem({
-      description: "Minimize",
-      event: this.minimize
-    });
+    if (!this.minimized) {
+      ContextMenu.Instance.addItem({
+        description: "Minimize",
+        event: this.minimize
+      });
+    }
     ContextMenu.Instance.addItem({
       description: "Full Screen",
       event: this.fullScreenClicked

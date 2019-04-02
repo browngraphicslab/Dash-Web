@@ -25,17 +25,17 @@
     overflow-y: scroll;
     height: calc(100% - 20px);
   }
+}
 
-  .minimized-box {
-    height: 10px;
-    width: 10px;
-    border-radius: 2px;
-    background: $dark-color
-  }
+.minimized-box {
+  height: 10px;
+  width: 10px;
+  border-radius: 2px;
+  background: $dark-color
+}
 
-  .minimized-box:hover {
-    background: $main-accent;
-    transform: scale(1.15);
-    cursor: pointer;
-  }
+.minimized-box:hover {
+  background: $main-accent;
+  transform: scale(1.15);
+  cursor: pointer;
 }
