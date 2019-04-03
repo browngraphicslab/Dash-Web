@@ -8,12 +8,12 @@ import { Document } from "../../../fields/Document";
 import { KeyStore } from "../../../fields/KeyStore";
 import Measure from "react-measure";
 import { FieldId, Opt, Field } from "../../../fields/Field";
-import { Utils } from "../../../Utils";
+import { Utils, returnTrue } from "../../../Utils";
 import { Server } from "../../Server";
 import { undoBatch } from "../../util/UndoManager";
 import { DocumentView } from "../nodes/DocumentView";
 import "./CollectionDockingView.scss";
-import { COLLECTION_BORDER_WIDTH } from "./CollectionView";
+import { COLLECTION_BORDER_WIDTH } from "./CollectionBaseView";
 import React = require("react");
 import { SubCollectionViewProps } from "./CollectionViewBase";
 import { ServerUtils } from "../../../server/ServerUtil";
@@ -310,14 +310,15 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         var content =
             <div className="collectionDockingView-content" ref={this._mainCont}>
                 <DocumentView key={this._document.Id} Document={this._document}
-                    AddDocument={undefined}
-                    RemoveDocument={undefined}
+                    addDocument={undefined}
+                    removeDocument={undefined}
                     ContentScaling={this._contentScaling}
                     PanelWidth={this._nativeWidth}
                     PanelHeight={this._nativeHeight}
                     ScreenToLocalTransform={this.ScreenToLocalTransform}
                     isTopMost={true}
                     selectOnLoad={false}
+                    parentActive={returnTrue}
                     focus={(doc: Document) => { }}
                     ContainingCollectionView={undefined} />
             </div>

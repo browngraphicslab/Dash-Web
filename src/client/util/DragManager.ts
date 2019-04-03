@@ -110,7 +110,7 @@ export namespace DragManager {
         xOffset?: number;
         yOffset?: number;
         aliasOnDrop?: boolean;
-        removeDocument?: (collectionDrop: CollectionView) => void;
+        moveDocument?: (targetCollection: Document, addDocument: (document: Document) => void) => void;
         [id: string]: any;
     }
     export function StartDocumentDrag(ele: HTMLElement, dragData: DocumentDragData, options?: DragOptions) {

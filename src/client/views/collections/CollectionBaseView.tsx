@@ -19,15 +19,20 @@ export enum CollectionViewType {
 }
 
 export interface CollectionRenderProps {
-    addDocument: (document: Document, allowDuplicates: boolean) => void;
+    addDocument: (document: Document, allowDuplicates?: boolean) => boolean;
     removeDocument: (document: Document) => boolean;
+    moveDocument: (document: Document, targetCollection: Document, addDocument: (document: Document) => void) => boolean;
     active: () => boolean;
 }
 
 export interface CollectionViewProps extends FieldViewProps {
     onContextMenu?: (e: React.MouseEvent) => void;
-    children: (type: CollectionViewType, props: CollectionRenderProps) => JSX.Element | null;
+    children: (type: CollectionViewType, props: CollectionRenderProps) => JSX.Element | JSX.Element[] | null;
+    className?: string;
+    contentRef?: React.Ref<HTMLDivElement>;
 }
+
+export const COLLECTION_BORDER_WIDTH = 1;
 
 export class CollectionBaseView extends React.Component<CollectionViewProps> {
     get collectionViewType(): CollectionViewType {
@@ -44,7 +49,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
 
     active = (): boolean => {
         var isSelected = this.props.isSelected();
-        var childSelected = SelectionManager.SelectedDocuments().some(view => view.props.ContainingCollectionView == self);
+        var childSelected = SelectionManager.SelectedDocuments().some(view => view.props.ContainingCollectionView == this);
         var topMost = this.props.isTopMost;
         return isSelected || childSelected || topMost;
     }
@@ -68,7 +73,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
     }
 
     @action.bound
-    addDocument(doc: Document, allowDuplicates: boolean): boolean {
+    addDocument(doc: Document, allowDuplicates: boolean = false): boolean {
         let props = this.props;
         var curPage = props.Document.GetNumber(KeyStore.CurPage, -1);
         doc.SetOnPrototype(KeyStore.Page, new NumberField(curPage));
@@ -123,14 +128,27 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         return false
     }
 
+    @action.bound
+    moveDocument(doc: Document, targetCollection: Document, addDocument: (doc: Document) => void): boolean {
+        if (this.props.Document === targetCollection) {
+            return false;
+        }
+        if (this.removeDocument(doc)) {
+            addDocument(doc);
+            return true;
+        }
+        return false;
+    }
+
     render() {
         const props: CollectionRenderProps = {
             addDocument: this.addDocument,
             removeDocument: this.removeDocument,
+            moveDocument: this.moveDocument,
             active: this.active
         }
         return (
-            <div className="collectionView-cont" onContextMenu={this.props.onContextMenu}>
+            <div className={this.props.className || "collectionView-cont"} onContextMenu={this.props.onContextMenu} ref={this.props.contentRef}>
                 {this.props.children(this.collectionViewType, props)}
             </div>
         )

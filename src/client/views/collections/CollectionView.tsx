@@ -12,7 +12,7 @@ export class CollectionView extends React.Component<FieldViewProps> {
     public static LayoutString(fieldStr: string = "DataKey") { return FieldView.LayoutString(CollectionView, fieldStr) }
 
     private SubView = (type: CollectionViewType, renderProps: CollectionRenderProps) => {
-        let props = { ...renderProps, ...this.props };
+        let props = { ...this.props, ...renderProps };
         switch (type) {
             case CollectionViewType.Freeform: return (<CollectionFreeFormView {...props} />)
             case CollectionViewType.Schema: return (<CollectionSchemaView {...props} />)
@@ -34,7 +34,7 @@ export class CollectionView extends React.Component<FieldViewProps> {
         return (
             <CollectionBaseView {...this.props} onContextMenu={this.onContextMenu}>
                 {this.SubView}
-            </CollectionBaseView> >
+            </CollectionBaseView>
         )
     }
 }

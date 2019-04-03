@@ -11,7 +11,7 @@ import { InkingCanvas } from "../../InkingCanvas";
 import { CollectionFreeFormDocumentView } from "../../nodes/CollectionFreeFormDocumentView";
 import { DocumentContentsView } from "../../nodes/DocumentContentsView";
 import { DocumentViewProps } from "../../nodes/DocumentView";
-import { COLLECTION_BORDER_WIDTH } from "../CollectionView";
+import { COLLECTION_BORDER_WIDTH } from "../CollectionBaseView";
 import { CollectionViewBase } from "../CollectionViewBase";
 import { CollectionFreeFormLinksView } from "./CollectionFreeFormLinksView";
 import "./CollectionFreeFormView.scss";
@@ -20,6 +20,8 @@ import React = require("react");
 import v5 = require("uuid/v5");
 import { CollectionFreeFormRemoteCursors } from "./CollectionFreeFormRemoteCursors";
 import { PreviewCursor } from "./PreviewCursor";
+import { DocumentManager } from "../../../util/DocumentManager";
+import { SelectionManager } from "../../../util/SelectionManager";
 
 @observer
 export class CollectionFreeFormView extends CollectionViewBase {
@@ -39,8 +41,13 @@ export class CollectionFreeFormView extends CollectionViewBase {
     }
 
     public selectDocuments = (docs: Document[]) => {
-        this.props.CollectionView.SelectedDocs.length = 0;
-        docs.map(d => this.props.CollectionView.SelectedDocs.push(d.Id));
+        SelectionManager.DeselectAll;
+        docs.map(doc => {
+            const dv = DocumentManager.Instance.getDocumentView(doc);
+            if (dv) {
+                SelectionManager.SelectDoc(dv, true);
+            }
+        })
     }
 
     public getActiveDocuments = () => {
@@ -59,6 +66,8 @@ export class CollectionFreeFormView extends CollectionViewBase {
     @observable private _lastX: number = 0;
     @observable private _lastY: number = 0;
 
+    private outerElement?: HTMLDivElement;
+
     @computed get panX(): number { return this.props.Document.GetNumber(KeyStore.PanX, 0) }
     @computed get panY(): number { return this.props.Document.GetNumber(KeyStore.PanY, 0) }
     @computed get scale(): number { return this.props.Document.GetNumber(KeyStore.Scale, 1); }
@@ -66,8 +75,8 @@ export class CollectionFreeFormView extends CollectionViewBase {
     @computed get nativeWidth() { return this.props.Document.GetNumber(KeyStore.NativeWidth, 0); }
     @computed get nativeHeight() { return this.props.Document.GetNumber(KeyStore.NativeHeight, 0); }
     @computed get zoomScaling() { return this.props.Document.GetNumber(KeyStore.Scale, 1); }
-    @computed get centeringShiftX() { return !this.props.Document.GetNumber(KeyStore.NativeWidth, 0) ? this.props.panelWidth() / 2 : 0; }  // shift so pan position is at center of window for non-overlay collections
-    @computed get centeringShiftY() { return !this.props.Document.GetNumber(KeyStore.NativeHeight, 0) ? this.props.panelHeight() / 2 : 0; }// shift so pan position is at center of window for non-overlay collections
+    @computed get centeringShiftX() { return !this.props.Document.GetNumber(KeyStore.NativeWidth, 0) && this.outerElement ? this.outerElement.clientWidth / 2 : 0; }  // shift so pan position is at center of window for non-overlay collections
+    @computed get centeringShiftY() { return !this.props.Document.GetNumber(KeyStore.NativeHeight, 0) && this.outerElement ? this.outerElement.clientHeight / 2 : 0; }// shift so pan position is at center of window for non-overlay collections
 
     @undoBatch
     @action
@@ -227,16 +236,17 @@ export class CollectionFreeFormView extends CollectionViewBase {
     getDocumentViewProps(document: Document): DocumentViewProps {
         return {
             Document: document,
-            AddDocument: this.props.addDocument,
-            RemoveDocument: this.props.removeDocument,
+            addDocument: this.props.addDocument,
+            removeDocument: this.props.removeDocument,
             ScreenToLocalTransform: this.getTransform,
             isTopMost: false,
             selectOnLoad: document.Id == this._selectOnLoaded,
             PanelWidth: document.Width,
             PanelHeight: document.Height,
             ContentScaling: this.noScaling,
-            ContainingCollectionView: this.props.CollectionView,
-            focus: this.focusDocument
+            ContainingCollectionView: undefined,
+            focus: this.focusDocument,
+            parentActive: this.props.active,
         }
     }
 
@@ -266,7 +276,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
     getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-COLLECTION_BORDER_WIDTH, -COLLECTION_BORDER_WIDTH).translate(-this.centeringShiftX, -this.centeringShiftY).transform(this.getLocalTransform())
     getContainerTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-COLLECTION_BORDER_WIDTH, -COLLECTION_BORDER_WIDTH)
-    getLocalTransform = (): Transform => Transform.Identity.scale(1 / this.scale).translate(this.panX, this.panY);
+    getLocalTransform = (): Transform => Transform.Identity().scale(1 / this.scale).translate(this.panX, this.panY);
     noScaling = () => 1;
     childViews = () => this.views;
 

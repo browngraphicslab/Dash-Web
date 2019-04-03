@@ -6,7 +6,7 @@ import { Document } from '../../fields/Document';
 import { KeyStore } from '../../fields/KeyStore';
 import "./Main.scss";
 import { MessageStore } from '../../server/Message';
-import { Utils } from '../../Utils';
+import { Utils, returnTrue } from '../../Utils';
 import * as request from 'request'
 import * as rp from 'request-promise'
 import { Documents } from '../documents/Documents';
@@ -212,7 +212,6 @@ export class Main extends React.Component {
         this.workspacesShown = !this.workspacesShown;
     }
 
-    screenToLocalTransform = () => Transform.Identity
     pwidthFunc = () => this.pwidth;
     pheightFunc = () => this.pheight;
     focusDocument = (doc: Document) => { }
@@ -221,15 +220,16 @@ export class Main extends React.Component {
     get content() {
         return !this.mainContainer ? (null) :
             <DocumentView Document={this.mainContainer}
-                AddDocument={undefined}
-                RemoveDocument={undefined}
-                ScreenToLocalTransform={this.screenToLocalTransform}
+                addDocument={undefined}
+                removeDocument={undefined}
+                ScreenToLocalTransform={Transform.Identity}
                 ContentScaling={this.noScaling}
                 PanelWidth={this.pwidthFunc}
                 PanelHeight={this.pheightFunc}
                 isTopMost={true}
                 selectOnLoad={false}
                 focus={this.focusDocument}
+                parentActive={returnTrue}
                 ContainingCollectionView={undefined} />
     }
 

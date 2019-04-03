@@ -86,4 +86,14 @@ export class Utils {
     }
 }
 
+export function returnTrue() {
+    return true;
+}
+
+export function returnFalse() {
+    return false;
+}
+
+export function emptyFunction() { }
+
 export type Without<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;

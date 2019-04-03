@@ -11,6 +11,7 @@ import { Key } from '../../../fields/Key';
 import { Server } from "../../Server"
 import { EditableView } from "../EditableView";
 import { CompileScript, ToField } from "../../util/Scripting";
+import { Transform } from '../../util/Transform';
 
 // Represents one row in a key value plane
 
@@ -49,6 +50,9 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
             select: () => { },
             isTopMost: false,
             selectOnLoad: false,
+            active: () => false,
+            ScreenToLocalTransform: Transform.Identity,
+            focus: () => { },
         }
         let contents = (
             <FieldView {...props} />

@@ -117,14 +117,14 @@ export class HistogramBox extends React.Component<FieldViewProps> {
 
     activateHistogramOperation(catalog?: Catalog) {
         if (catalog) {
-            this.props.doc.GetTAsync(this.props.fieldKey, HistogramField).then((histoOp: Opt<HistogramField>) => runInAction(() => {
+            this.props.Document.GetTAsync(this.props.fieldKey, HistogramField).then((histoOp: Opt<HistogramField>) => runInAction(() => {
                 this.HistoOp = histoOp ? histoOp.Data : HistogramOperation.Empty;
                 if (this.HistoOp != HistogramOperation.Empty) {
-                    reaction(() => this.props.doc.GetList(KeyStore.LinkedFromDocs, []), (docs: Document[]) => this.HistoOp.Links.splice(0, this.HistoOp.Links.length, ...docs), { fireImmediately: true });
-                    reaction(() => this.props.doc.GetList(KeyStore.BrushingDocs, []).length,
+                    reaction(() => this.props.Document.GetList(KeyStore.LinkedFromDocs, []), (docs: Document[]) => this.HistoOp.Links.splice(0, this.HistoOp.Links.length, ...docs), { fireImmediately: true });
+                    reaction(() => this.props.Document.GetList(KeyStore.BrushingDocs, []).length,
                         () => {
-                            let brushingDocs = this.props.doc.GetList(KeyStore.BrushingDocs, [] as Document[]);
-                            let proto = this.props.doc.GetPrototype() as Document;
+                            let brushingDocs = this.props.Document.GetList(KeyStore.BrushingDocs, [] as Document[]);
+                            let proto = this.props.Document.GetPrototype() as Document;
                             this.HistoOp.BrushLinks.splice(0, this.HistoOp.BrushLinks.length, ...brushingDocs.map((brush, i) => {
                                 brush.SetNumber(KeyStore.BackgroundColor, StyleConstants.BRUSH_COLORS[i % StyleConstants.BRUSH_COLORS.length]);
                                 let brushed = brush.GetList(KeyStore.BrushingDocs, [] as Document[]);
@@ -139,8 +139,8 @@ export class HistogramBox extends React.Component<FieldViewProps> {
     render() {
         let labelY = this.HistoOp && this.HistoOp.Y ? this.HistoOp.Y.PresentedName : "<...>";
         let labelX = this.HistoOp && this.HistoOp.X ? this.HistoOp.X.PresentedName : "<...>";
-        var h = this.props.isTopMost ? this.PanelHeight : this.props.doc.GetNumber(KeyStore.Height, 0);
-        var w = this.props.isTopMost ? this.PanelWidth : this.props.doc.GetNumber(KeyStore.Width, 0);
+        var h = this.props.isTopMost ? this.PanelHeight : this.props.Document.GetNumber(KeyStore.Height, 0);
+        var w = this.props.isTopMost ? this.PanelWidth : this.props.Document.GetNumber(KeyStore.Width, 0);
         let loff = this.SizeConverter.LeftOffset;
         let toff = this.SizeConverter.TopOffset;
         let roff = this.SizeConverter.RightOffset;

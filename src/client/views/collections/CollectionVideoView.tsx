@@ -3,12 +3,14 @@ import { observer } from "mobx-react";
 import { Document } from "../../../fields/Document";
 import { KeyStore } from "../../../fields/KeyStore";
 import { ContextMenu } from "../ContextMenu";
-import { CollectionView, CollectionViewType } from "./CollectionView";
+import { CollectionView } from "./CollectionView";
+import { CollectionViewType, CollectionBaseView, CollectionRenderProps } from "./CollectionBaseView";
 import { CollectionViewProps } from "./CollectionViewBase";
 import React = require("react");
 import { FieldId } from "../../../fields/Field";
 import "./CollectionVideoView.scss"
-import { CollectionFreeFormView } from "./CollectionFreeFormView";
+import { CollectionFreeFormView } from "./collectionFreeForm/CollectionFreeFormView";
+import { FieldView } from "../nodes/FieldView";
 
 
 @observer
@@ -20,9 +22,7 @@ export class CollectionVideoView extends React.Component<CollectionViewProps> {
     @observable _isPlaying: boolean = false;
 
     public static LayoutString(fieldKey: string = "DataKey") {
-        return `<${CollectionVideoView.name} Document={Document}
-                    ScreenToLocalTransform={ScreenToLocalTransform} fieldKey={${fieldKey}} panelWidth={PanelWidth} panelHeight={PanelHeight} isSelected={isSelected} select={select} bindings={bindings}
-                    isTopMost={isTopMost} SelectOnLoad={selectOnLoad} BackgroundView={BackgroundView} focus={focus}/>`;
+        return FieldView.LayoutString(CollectionVideoView, fieldKey);
     }
     private get uIButtons() {
         let scaling = Math.min(1.8, this.props.ScreenToLocalTransform().transformDirection(1, 1)[0]);
@@ -102,26 +102,27 @@ export class CollectionVideoView extends React.Component<CollectionViewProps> {
 
     }
 
-    // "inherited" CollectionView API starts here...
-
-    @observable
-    public SelectedDocs: FieldId[] = []
-    public active: () => boolean = () => CollectionView.Active(this);
-
-    addDocument = (doc: Document, allowDuplicates: boolean): boolean => { return CollectionView.AddDocument(this.props, doc, allowDuplicates); }
-    removeDocument = (doc: Document): boolean => { return CollectionView.RemoveDocument(this.props, doc); }
-
-    specificContextMenu = (e: React.MouseEvent): void => {
+    onContextMenu = (e: React.MouseEvent): void => {
         if (!e.isPropagationStopped() && this.props.Document.Id != "mainDoc") { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
             ContextMenu.Instance.addItem({ description: "VideoOptions", event: () => { } });
         }
     }
 
+    private subView = (_type: CollectionViewType, renderProps: CollectionRenderProps) => {
+        let props = { ...renderProps, ...this.props };
+        return (
+            <>
+                <CollectionFreeFormView {...props} />
+                {this.props.isSelected() ? this.uIButtons : (null)}
+            </>
+        )
+    }
+
     render() {
         trace();
-        return (<div className="collectionVideoView-cont" ref={this.mainCont} onContextMenu={this.specificContextMenu}>
-            <CollectionFreeFormView {...CollectionView.SubViewProps(this)} />
-            {this.props.isSelected() ? this.uIButtons : (null)}
-        </div>)
+        return (
+            <CollectionBaseView {...this.props} className="collectionVideoView-cont" contentRef={this.mainCont} onContextMenu={this.onContextMenu}>
+                {this.subView}
+            </CollectionBaseView>)
     }
 }

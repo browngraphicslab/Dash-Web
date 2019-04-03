@@ -3,7 +3,7 @@ export class Transform {
     private _translateY: number = 0;
     private _scale: number = 1;
 
-    static get Identity(): Transform {
+    static Identity(): Transform {
         return new Transform(0, 0, 1);
     }
 

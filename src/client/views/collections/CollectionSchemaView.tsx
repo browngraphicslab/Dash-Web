@@ -22,9 +22,11 @@ import { EditableView } from "../EditableView";
 import { DocumentView } from "../nodes/DocumentView";
 import { FieldView, FieldViewProps } from "../nodes/FieldView";
 import "./CollectionSchemaView.scss";
-import { CollectionView, COLLECTION_BORDER_WIDTH } from "./CollectionView";
+import { CollectionView } from "./CollectionView";
 import { CollectionViewBase } from "./CollectionViewBase";
 import { TextField } from "../../../fields/TextField";
+import { COLLECTION_BORDER_WIDTH } from "./CollectionBaseView";
+import { emptyFunction, returnFalse } from "../../../Utils";
 
 
 // bcz: need to add drag and drop of rows and columns.  This seems like it might work for rows: https://codesandbox.io/s/l94mn1q657
@@ -79,6 +81,9 @@ export class CollectionSchemaView extends CollectionViewBase {
             select: () => { },
             isTopMost: false,
             selectOnLoad: false,
+            ScreenToLocalTransform: Transform.Identity,
+            focus: emptyFunction,
+            active: returnFalse
         }
         let contents = (
             <FieldView {...props} />
@@ -295,15 +300,16 @@ export class CollectionSchemaView extends CollectionViewBase {
                 {({ measureRef }) =>
                     <div className="collectionSchemaView-content" ref={measureRef}>
                         {doc instanceof Document ? <DocumentView Document={doc}
-                            AddDocument={this.props.addDocument} RemoveDocument={this.props.removeDocument}
+                            addDocument={this.props.addDocument} removeDocument={this.props.removeDocument}
                             isTopMost={false}
                             selectOnLoad={false}
                             ScreenToLocalTransform={this.getPreviewTransform}
                             ContentScaling={this.getContentScaling}
                             PanelWidth={this.getPanelWidth}
                             PanelHeight={this.getPanelHeight}
-                            ContainingCollectionView={this.props.CollectionView}
+                            ContainingCollectionView={undefined}
                             focus={this.focusDocument}
+                            parentActive={this.props.active}
                         /> : null}
                         <input value={this.previewScript} onChange={this.onPreviewScriptChange}
                             style={{ position: 'absolute', bottom: '0px' }} />

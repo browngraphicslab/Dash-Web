@@ -42,7 +42,7 @@ export class Server {
                 reaction(() => {
                     return this.ClientFieldsCached.get(fieldid);
                 }, (field, reaction) => {
-                    if (field !== "<Waiting>") {
+                    if (field !== FieldWaiting) {
                         reaction.dispose()
                         cb(field)
                     }

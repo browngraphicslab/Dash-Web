@@ -20,6 +20,9 @@ import { Server } from "../../Server";
 import { FieldViewProps } from "../nodes/FieldView";
 
 export interface CollectionViewProps extends FieldViewProps {
+    addDocument: (document: Document, allowDuplicates?: boolean) => boolean;
+    removeDocument: (document: Document) => boolean;
+    moveDocument: (document: Document, targetCollection: Document, addDocument: (document: Document) => void) => boolean;
 }
 
 export interface SubCollectionViewProps extends CollectionViewProps {
@@ -72,8 +75,8 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
                     de.data.draggedDocument.GetTAsync(key, NumberField, (f: Opt<NumberField>) => f ? de.data.droppedDocument.SetNumber(key, f.Data) : null));
             }
             let added = this.props.addDocument(de.data.droppedDocument, false);
-            if (added && de.data.removeDocument && !de.data.aliasOnDrop) {
-                de.data.removeDocument(this.props.CollectionView);
+            if (added && de.data.moveDocument && !de.data.aliasOnDrop) {
+                de.data.moveDocument(this.props.Document, this.props.addDocument);
             }
             e.stopPropagation();
             return added;

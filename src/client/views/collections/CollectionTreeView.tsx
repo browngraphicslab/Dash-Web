@@ -10,9 +10,10 @@ import { ListField } from "../../../fields/ListField";
 import { setupDrag } from "../../util/DragManager";
 import { EditableView } from "../EditableView";
 import "./CollectionTreeView.scss";
-import { CollectionView, COLLECTION_BORDER_WIDTH } from "./CollectionView";
+import { CollectionView } from "./CollectionView";
 import { CollectionViewBase } from "./CollectionViewBase";
 import React = require("react")
+import { COLLECTION_BORDER_WIDTH } from './CollectionBaseView';
 
 
 export interface TreeViewProps {
