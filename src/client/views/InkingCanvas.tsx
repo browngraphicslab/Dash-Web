@@ -18,7 +18,7 @@ interface InkCanvasProps {
 
 @observer
 export class InkingCanvas extends React.Component<InkCanvasProps> {
-    static InkOffset: number = 50000;
+    static InkOffset: number = 4096;
     private _currentStrokeId: string = "";
     public static IntersectStrokeRect(stroke: StrokeData, selRect: { left: number, top: number, width: number, height: number }): boolean {
         return stroke.pathData.reduce((inside, val) => inside ||

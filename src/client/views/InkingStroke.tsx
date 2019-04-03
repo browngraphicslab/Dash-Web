@@ -48,9 +48,10 @@ export class InkingStroke extends React.Component<StrokeProps> {
         let pathStyle = this.createStyle();
         let pathData = this.parseData(this.props.line);
 
+        let pointerEvents: any = InkingControl.Instance.selectedTool == InkTool.Eraser ? "all" : "none";
         return (
-            <path className={(this._strokeTool === InkTool.Highlighter) ? "highlight" : ""}
-                d={pathData} style={{ ...pathStyle, pointerEvents: "all" }} strokeLinejoin="round" strokeLinecap="round"
+            <path className={(this._strokeTool === InkTool.Highlighter) ? "highlight" : "normal"}
+                d={pathData} style={{ ...pathStyle, pointerEvents: pointerEvents }} strokeLinejoin="round" strokeLinecap="round"
                 onPointerOver={this.deleteStroke} onPointerDown={this.deleteStroke} />
         )
     }
