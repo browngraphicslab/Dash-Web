@@ -27,18 +27,22 @@ export namespace KeyStore {
     export const ColumnsKey = new Key("SchemaColumns");
     export const SchemaSplitPercentage = new Key("SchemaSplitPercentage");
     export const Caption = new Key("Caption");
-    export const ActiveFrame = new Key("ActiveFrame");
+    export const ActiveWorkspace = new Key("ActiveWorkspace");
     export const DocumentText = new Key("DocumentText");
+    export const BrushingDocs = new Key("BrushingDocs");
     export const LinkedToDocs = new Key("LinkedToDocs");
     export const LinkedFromDocs = new Key("LinkedFromDocs");
     export const LinkDescription = new Key("LinkDescription");
     export const LinkTags = new Key("LinkTag");
     export const Thumbnail = new Key("Thumbnail");
+    export const ThumbnailPage = new Key("ThumbnailPage");
     export const CurPage = new Key("CurPage");
+    export const AnnotationOn = new Key("AnnotationOn");
     export const NumPages = new Key("NumPages");
     export const Ink = new Key("Ink");
     export const Cursors = new Key("Cursors");
     export const OptionalRightCollection = new Key("OptionalRightCollection");
     export const Archives = new Key("Archives");
     export const Updated = new Key("Updated");
+    export const Workspaces = new Key("Workspaces");
 }

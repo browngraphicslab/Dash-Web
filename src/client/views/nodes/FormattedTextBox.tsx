@@ -158,15 +158,19 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
             }
         })
     }
-
     onKeyPress(e: React.KeyboardEvent) {
         e.stopPropagation();
+        // stop propagation doesn't seem to stop propagation of native keyboard events.
+        // so we set a flag on the native event that marks that the event's been handled.
+        // (e.nativeEvent as any).DASHFormattedTextBoxHandled = true;
     }
     render() {
         return (<div className="formattedTextBox-cont"
+            onKeyDown={this.onKeyPress}
             onKeyPress={this.onKeyPress}
             onPointerDown={this.onPointerDown}
             onContextMenu={this.specificContextMenu}
+            // tfs: do we need this event handler
             onWheel={this.onPointerWheel}
             ref={this._ref} />)
     }

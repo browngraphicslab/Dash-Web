@@ -35,8 +35,18 @@ export class Document extends Field {
     public Scale = () => { return this.GetNumber(KeyStore.Scale, 1) }
 
     @computed
-    public get Title() {
-        return this.GetText(KeyStore.Title, "<untitled>");
+    public get Title(): string {
+        let title = this.Get(KeyStore.Title, true);
+        if (title)
+            if (title != FieldWaiting && title instanceof TextField)
+                return title.Data;
+            else return "-waiting-";
+        let parTitle = this.GetT(KeyStore.Title, TextField);
+        if (parTitle)
+            if (parTitle != FieldWaiting)
+                return parTitle.Data + ".alias";
+            else return "-waiting-.alias";
+        return "-untitled-";
     }
 
     @computed
@@ -124,22 +134,39 @@ export class Document extends Field {
      * Note: The callback will not be called if there is no associated field.
      * @returns `true` if the field exists on the document and `callback` will be called, and `false` otherwise
      */
-    GetAsync(key: Key, callback: (field: Field) => void): boolean {
+    GetAsync(key: Key, callback: (field: Opt<Field>) => void): void {
         //TODO: This currently doesn't deal with prototypes
         let field = this.fields.get(key.Id);
         if (field && field.field) {
             callback(field.field);
         } else if (this._proxies.has(key.Id)) {
             Server.GetDocumentField(this, key, callback);
-            return true;
+        } else if (this._proxies.has(KeyStore.Prototype.Id)) {
+            this.GetTAsync(KeyStore.Prototype, Document, proto => {
+                if (proto) {
+                    proto.GetAsync(key, callback);
+                } else {
+                    callback(undefined);
+                }
+            })
+        } else {
+            callback(undefined);
         }
-        return false;
     }
 
-    GetTAsync<T extends Field>(key: Key, ctor: { new(): T }, callback: (field: Opt<T>) => void): boolean {
-        return this.GetAsync(key, (field) => {
-            callback(Cast(field, ctor));
-        })
+    GetTAsync<T extends Field>(key: Key, ctor: { new(): T }): Promise<Opt<T>>;
+    GetTAsync<T extends Field>(key: Key, ctor: { new(): T }, callback: (field: Opt<T>) => void): void;
+    GetTAsync<T extends Field>(key: Key, ctor: { new(): T }, callback?: (field: Opt<T>) => void): Promise<Opt<T>> | void {
+        let fn = (cb: (field: Opt<T>) => void) => {
+            return this.GetAsync(key, (field) => {
+                cb(Cast(field, ctor));
+            });
+        }
+        if (callback) {
+            fn(callback);
+        } else {
+            return new Promise(res => fn(res));
+        }
     }
 
     /**
@@ -215,13 +242,6 @@ export class Document extends Field {
     }
 
     @action
-    SetOnPrototype(key: Key, field: Field | undefined): void {
-        this.GetAsync(KeyStore.Prototype, (f: Field) => {
-            (f as Document).Set(key, field)
-        })
-    }
-
-    @action
     Set(key: Key, field: Field | undefined, setOnPrototype = false): void {
         let old = this.fields.get(key.Id);
         let oldField = old ? old.field : undefined;
@@ -249,21 +269,27 @@ export class Document extends Field {
     }
 
     @action
-    SetDataOnPrototype<T, U extends Field & { Data: T }>(key: Key, value: T, ctor: { new(): U }, replaceWrongType = true) {
-        this.GetAsync(KeyStore.Prototype, (f: Field) => {
-            (f as Document).SetData(key, value, ctor)
+    SetOnPrototype(key: Key, field: Field | undefined): void {
+        this.GetTAsync(KeyStore.Prototype, Document, (f: Opt<Document>) => {
+            f && f.Set(key, field)
         })
     }
 
     @action
-    SetData<T, U extends Field & { Data: T }>(key: Key, value: T, ctor: { new(): U }, replaceWrongType = true) {
+    SetDataOnPrototype<T, U extends Field & { Data: T }>(key: Key, value: T, ctor: { new(): U }, replaceWrongType = true) {
+        this.GetTAsync(KeyStore.Prototype, Document, (f: Opt<Document>) => {
+            f && f.SetData(key, value, ctor)
+        })
+    }
 
+    @action
+    SetData<T, U extends Field & { Data: T }>(key: Key, value: T, ctor: { new(data: T): U }, replaceWrongType = true) {
         let field = this.Get(key, true);
         if (field instanceof ctor) {
             field.Data = value;
         } else if (!field || replaceWrongType) {
-            let newField = new ctor();
-            newField.Data = value;
+            let newField = new ctor(value);
+            // newField.Data = value;
             this.Set(key, newField);
         }
     }
@@ -294,8 +320,8 @@ export class Document extends Field {
 
     CreateAlias(id?: string): Document {
         let alias = new Document(id)
-        this.GetAsync(KeyStore.Prototype, (f: Field) => {
-            alias.Set(KeyStore.Prototype, f)
+        this.GetTAsync(KeyStore.Prototype, Document, (f: Opt<Document>) => {
+            f && alias.Set(KeyStore.Prototype, f)
         })
 
         return alias

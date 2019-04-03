@@ -1,22 +1,26 @@
 import React = require("react")
 import { observer } from "mobx-react";
-import { FieldWaiting } from '../../../fields/Field';
+import { FieldWaiting, Opt } from '../../../fields/Field';
 import { VideoField } from '../../../fields/VideoField';
 import { FieldView, FieldViewProps } from './FieldView';
 import "./VideoBox.scss";
 import Measure from "react-measure";
-import { action, trace, observable } from "mobx";
+import { action, trace, observable, IReactionDisposer, computed, reaction } from "mobx";
 import { KeyStore } from "../../../fields/KeyStore";
 import { number } from "prop-types";
 
 @observer
 export class VideoBox extends React.Component<FieldViewProps> {
 
+    private _reactionDisposer: Opt<IReactionDisposer>;
+    private _videoRef = React.createRef<HTMLVideoElement>()
     public static LayoutString() { return FieldView.LayoutString(VideoBox) }
 
     constructor(props: FieldViewProps) {
         super(props);
     }
+
+    @computed private get curPage() { return this.props.doc.GetNumber(KeyStore.CurPage, -1); }
 
 
     _loaded: boolean = false;
@@ -39,7 +43,17 @@ export class VideoBox extends React.Component<FieldViewProps> {
         }
     }
 
+    get player(): HTMLVideoElement | undefined {
+        return this._videoRef.current ? this._videoRef.current.getElementsByTagName("video")[0] : undefined;
+    }
 
+    @action
+    setVideoRef = (vref: HTMLVideoElement | null) => {
+        if (this.curPage >= 0 && vref) {
+            vref!.currentTime = this.curPage;
+            (vref! as any).AHackBecauseSomethingResetsTheVideoToZero = this.curPage;
+        }
+    }
 
     render() {
         let field = this.props.doc.GetT(this.props.fieldKey, VideoField);
@@ -47,15 +61,16 @@ export class VideoBox extends React.Component<FieldViewProps> {
             return <div>Loading</div>
         }
         let path = field.Data.href;
-
-        //setTimeout(action(() => this._loaded = true), 500);
+        trace();
         return (
             <Measure onResize={this.setScaling}>
                 {({ measureRef }) =>
-                    <video className="videobox-cont" onClick={() => { }} ref={measureRef}>
-                        <source src={path} type="video/mp4" />
-                        Not supported.
+                    <div style={{ width: "100%", height: "auto" }} ref={measureRef}>
+                        <video className="videobox-cont" onClick={() => { }} ref={this.setVideoRef}>
+                            <source src={path} type="video/mp4" />
+                            Not supported.
                         </video>
+                    </div>
                 }
             </Measure>
         )

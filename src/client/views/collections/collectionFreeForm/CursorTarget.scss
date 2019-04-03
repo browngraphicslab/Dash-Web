@@ -1,0 +1,17 @@
+.remoteCursor {
+    position: absolute;
+    z-index:  10000;
+    transform-origin: center center;
+}
+.cursorTarget-canvas {
+    position: absolute;
+    border-radius: 50%;
+    border: 2px solid black;
+}
+.cursorTarget-p {
+    position: absolute;
+    font-size: 14;
+    color: black;
+    margin-left: -12;
+    margin-top: 4;
+}

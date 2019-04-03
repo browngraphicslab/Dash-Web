@@ -1,5 +1,13 @@
-@import "../global_variables";
+@import "../../global_variables";
 
+.collectionfreeformview {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  transform-origin: left top;
+}
 .collectionfreeformview-container {
   .collectionfreeformview > .jsx-parser {
     position: absolute;
@@ -14,23 +22,16 @@
     // background-size: 30px 30px;
   // }
 
+  box-shadow: $intermediate-color 0.2vw 0.2vw 0.8vw;
   border: 0px solid $light-color-secondary;
   border-radius: $border-radius;
   box-sizing: border-box;
   position: relative;
+  overflow: hidden;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  overflow: hidden;
-  box-shadow: $intermediate-color 0.2vw 0.2vw 0.8vw;
-  .collectionfreeformview {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-  }
 }
 .collectionfreeformview-overlay {
   .collectionfreeformview > .jsx-parser {
@@ -42,32 +43,19 @@
   }
 
   opacity: 0.99;
-  position:absolute;
   border: 0px solid transparent;
   border-radius: $border-radius;
-  overflow: hidden;
   box-sizing: border-box;
+  position:relative;
+  overflow: hidden;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
   .collectionfreeformview {
-    .collectionfreeformview > .jsx-parser{
-        position:absolute;
-        height: 100%;
-    }
     .formattedTextBox-cont {
         background:yellow;
     }
-        
-    // overflow: hidden;
-    // border-style: solid;
-    // box-sizing: border-box;
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
   }
 }
 

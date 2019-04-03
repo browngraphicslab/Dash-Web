@@ -1,6 +1,6 @@
 import React = require('react')
 import { observer } from 'mobx-react';
-import { observable, action } from 'mobx';
+import { observable, action, trace } from 'mobx';
 import "./EditableView.scss"
 
 export interface EditableProps {
@@ -15,6 +15,8 @@ export interface EditableProps {
      * @returns `true` if setting the value was successful, `false` otherwise
      *  */
     SetValue(value: string): boolean;
+
+    OnFillDown?(value: string): void;
 
     /**
      * The contents to render when not editing
@@ -36,8 +38,13 @@ export class EditableView extends React.Component<EditableProps> {
 
     @action
     onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key == "Enter" && !e.ctrlKey) {
-            if (this.props.SetValue(e.currentTarget.value)) {
+        if (e.key == "Enter") {
+            if (!e.ctrlKey) {
+                if (this.props.SetValue(e.currentTarget.value)) {
+                    this.editing = false;
+                }
+            } else if (this.props.OnFillDown) {
+                this.props.OnFillDown(e.currentTarget.value);
                 this.editing = false;
             }
         } else if (e.key == "Escape") {
@@ -52,7 +59,7 @@ export class EditableView extends React.Component<EditableProps> {
         } else {
             return (
                 <div className="editableView-container-editing" style={{ display: this.props.display, height: "auto", maxHeight: `${this.props.height}` }}
-                    onClick={action(() => this.editing = true)}>
+                    onClick={action(() => this.editing = true)} >
                     {this.props.contents}
                 </div>
             )

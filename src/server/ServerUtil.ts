@@ -17,7 +17,7 @@ import { VideoField } from '../fields/VideoField';
 import { InkField } from '../fields/InkField';
 import { PDFField } from '../fields/PDFField';
 import { TupleField } from '../fields/TupleField';
-
+import { HistogramField } from '../client/northstar/dash-fields/HistogramField';
 
 
 
@@ -50,6 +50,8 @@ export class ServerUtils {
                 return new Key(data, id, false)
             case Types.Image:
                 return new ImageField(new URL(data), id, false)
+            case Types.HistogramOp:
+                return HistogramField.FromJson(id, data);
             case Types.PDF:
                 return new PDFField(new URL(data), id, false)
             case Types.List:

@@ -1,7 +1,7 @@
 import { action, computed, IReactionDisposer, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { Document } from "../../../fields/Document";
-import { Field, Opt } from "../../../fields/Field";
+import { Field, Opt, FieldWaiting } from "../../../fields/Field";
 import { Key } from "../../../fields/Key";
 import { KeyStore } from "../../../fields/KeyStore";
 import { ListField } from "../../../fields/ListField";
@@ -18,12 +18,13 @@ import { ContextMenu } from "../ContextMenu";
 import { DocumentContentsView } from "./DocumentContentsView";
 import "./DocumentView.scss";
 import React = require("react");
+import { ServerUtils } from "../../../server/ServerUtil";
 
 
 export interface DocumentViewProps {
     ContainingCollectionView: Opt<CollectionView>;
     Document: Document;
-    AddDocument?: (doc: Document, allowDuplicates: boolean) => void;
+    AddDocument?: (doc: Document, allowDuplicates: boolean) => boolean;
     RemoveDocument?: (doc: Document) => boolean;
     ScreenToLocalTransform: () => Transform;
     isTopMost: boolean;
@@ -105,7 +106,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             if (this.props.isTopMost) {
                 this.startDragging(e.pageX, e.pageY, e.altKey || e.ctrlKey);
             }
-            else CollectionDockingView.Instance.StartOtherDrag(this.props.Document, e);
+            else CollectionDockingView.Instance.StartOtherDrag([this.props.Document], e);
             e.stopPropagation();
         } else {
             if (this.active && !e.isDefaultPrevented()) {
@@ -119,17 +120,12 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     }
 
     private dropDisposer?: DragManager.DragDropDisposer;
-    protected createDropTarget = (ele: HTMLDivElement) => {
-
-    }
 
     componentDidMount() {
         if (this._mainCont.current) {
             this.dropDisposer = DragManager.MakeDropTarget(this._mainCont.current, { handlers: { drop: this.drop.bind(this) } });
         }
-        runInAction(() => {
-            DocumentManager.Instance.DocumentViews.push(this);
-        })
+        runInAction(() => DocumentManager.Instance.DocumentViews.push(this))
         this._reactionDisposer = reaction(
             () => this.props.ContainingCollectionView && this.props.ContainingCollectionView.SelectedDocs.slice(),
             () => {
@@ -151,10 +147,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         if (this.dropDisposer) {
             this.dropDisposer();
         }
-        runInAction(() => {
-            DocumentManager.Instance.DocumentViews.splice(DocumentManager.Instance.DocumentViews.indexOf(this), 1);
-
-        })
+        runInAction(() => DocumentManager.Instance.DocumentViews.splice(DocumentManager.Instance.DocumentViews.indexOf(this), 1))
         if (this._reactionDisposer) {
             this._reactionDisposer();
         }
@@ -163,7 +156,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     startDragging(x: number, y: number, dropAliasOfDraggedDoc: boolean) {
         if (this._mainCont.current) {
             const [left, top] = this.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
-            let dragData = new DragManager.DocumentDragData(this.props.Document);
+            let dragData = new DragManager.DocumentDragData([this.props.Document]);
             dragData.aliasOnDrop = dropAliasOfDraggedDoc;
             dragData.xOffset = x - left;
             dragData.yOffset = y - top;
@@ -172,7 +165,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
                     this.props.RemoveDocument(this.props.Document);
                 }
             }
-            DragManager.StartDocumentDrag(this._mainCont.current, dragData, {
+            DragManager.StartDocumentDrag([this._mainCont.current], dragData, {
                 handlers: {
                     dragComplete: action(() => { }),
                 },
@@ -242,15 +235,20 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             }
             let linkDoc: Document = new Document();
 
-            linkDoc.Set(KeyStore.Title, new TextField("New Link"));
-            linkDoc.Set(KeyStore.LinkDescription, new TextField(""));
-            linkDoc.Set(KeyStore.LinkTags, new TextField("Default"));
+            destDoc.GetTAsync(KeyStore.Prototype, Document).then((protoDest) =>
+                sourceDoc.GetTAsync(KeyStore.Prototype, Document).then((protoSrc) => runInAction(() => {
+                    linkDoc.Set(KeyStore.Title, new TextField("New Link"));
+                    linkDoc.Set(KeyStore.LinkDescription, new TextField(""));
+                    linkDoc.Set(KeyStore.LinkTags, new TextField("Default"));
 
-            sourceDoc.GetOrCreateAsync(KeyStore.LinkedToDocs, ListField, field => { (field as ListField<Document>).Data.push(linkDoc) });
-            linkDoc.Set(KeyStore.LinkedToDocs, destDoc);
-            destDoc.GetOrCreateAsync(KeyStore.LinkedFromDocs, ListField, field => { (field as ListField<Document>).Data.push(linkDoc) });
-            linkDoc.Set(KeyStore.LinkedFromDocs, sourceDoc);
-
+                    let dstTarg = (protoDest ? protoDest : destDoc);
+                    let srcTarg = (protoSrc ? protoSrc : sourceDoc);
+                    linkDoc.Set(KeyStore.LinkedToDocs, dstTarg);
+                    linkDoc.Set(KeyStore.LinkedFromDocs, srcTarg);
+                    dstTarg.GetOrCreateAsync(KeyStore.LinkedFromDocs, ListField, field => { (field as ListField<Document>).Data.push(linkDoc) })
+                    srcTarg.GetOrCreateAsync(KeyStore.LinkedToDocs, ListField, field => { (field as ListField<Document>).Data.push(linkDoc) })
+                }))
+            )
             e.stopPropagation();
         }
     }
@@ -284,6 +282,12 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         ContextMenu.Instance.addItem({ description: "Center", event: () => this.props.focus(this.props.Document) })
         ContextMenu.Instance.addItem({ description: "Open Right", event: () => CollectionDockingView.Instance.AddRightSplit(this.props.Document) })
         ContextMenu.Instance.addItem({
+            description: "Copy URL",
+            event: () => {
+                Utils.CopyText(ServerUtils.prepend("/doc/" + this.props.Document.Id));
+            }
+        });
+        ContextMenu.Instance.addItem({
             description: "Copy ID",
             event: () => {
                 Utils.CopyText(this.props.Document.Id);
@@ -313,10 +317,6 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     render() {
         if (!this.props.Document) {
             return (null);
-        }
-        let lkeys = this.props.Document.GetT(KeyStore.LayoutKeys, ListField);
-        if (!lkeys || lkeys === "<Waiting>") {
-            return <p>Error loading layout keys</p>;
         }
         var scaling = this.props.ContentScaling();
         var nativeWidth = this.props.Document.GetNumber(KeyStore.NativeWidth, 0);

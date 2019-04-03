@@ -4,6 +4,7 @@ import { UndoManager } from "../client/util/UndoManager";
 import { Types } from "../server/Message";
 import { BasicField } from "./BasicField";
 import { Field, FieldId } from "./Field";
+import { FieldMap } from "../client/SocketStub";
 
 export class ListField<T extends Field> extends BasicField<T[]> {
     private _proxies: string[] = []
@@ -71,7 +72,7 @@ export class ListField<T extends Field> extends BasicField<T[]> {
     }
 
     init(callback: (field: Field) => any) {
-        Server.GetFields(this._proxies, action((fields: { [index: string]: Field }) => {
+        Server.GetFields(this._proxies, action((fields: FieldMap) => {
             if (!this.arraysEqual(this._proxies, this.data.map(field => field.Id))) {
                 var dataids = this.data.map(d => d.Id);
                 var proxies = this._proxies.map(p => p);
@@ -111,7 +112,7 @@ export class ListField<T extends Field> extends BasicField<T[]> {
     ToJson(): { type: Types, data: string[], _id: string } {
         return {
             type: Types.List,
-            data: this._proxies,
+            data: this._proxies || [],
             _id: this.Id
         }
     }

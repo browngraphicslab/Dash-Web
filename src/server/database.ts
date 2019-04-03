@@ -21,7 +21,16 @@ export class Database {
             let collection = this.db.collection('documents');
             collection.updateOne({ _id: id }, { $set: value }, {
                 upsert: true
-            }, callback);
+            }, (err, res) => {
+                if (err) {
+                    console.log(err.message);
+                    console.log(err.errmsg);
+                }
+                if (res) {
+                    console.log(JSON.stringify(res.result));
+                }
+                callback()
+            });
         }
     }
 
@@ -32,11 +41,13 @@ export class Database {
         }
     }
 
-    public deleteAll(collectionName: string = 'documents') {
-        if (this.db) {
-            let collection = this.db.collection(collectionName);
-            collection.deleteMany({});
-        }
+    public deleteAll(collectionName: string = 'documents'): Promise<any> {
+        return new Promise(res => {
+            if (this.db) {
+                let collection = this.db.collection(collectionName);
+                collection.deleteMany({}, res);
+            }
+        })
     }
 
     public insert(kvpairs: any) {

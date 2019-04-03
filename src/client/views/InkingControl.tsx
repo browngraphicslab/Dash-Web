@@ -2,10 +2,9 @@ import { observable, action, computed } from "mobx";
 
 import { CirclePicker, ColorResult } from 'react-color'
 import React = require("react");
-import "./InkingCanvas.scss"
 import { InkTool } from "../../fields/InkField";
 import { observer } from "mobx-react";
-import "./InkingCanvas.scss"
+import "./InkingControl.scss"
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPen, faHighlighter, faEraser, faBan } from '@fortawesome/free-solid-svg-icons';
