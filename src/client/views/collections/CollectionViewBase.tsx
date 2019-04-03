@@ -82,7 +82,8 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
         if (de.data instanceof DragManager.DocumentDragData) {
             if (de.data.aliasOnDrop) {
                 [KeyStore.Width, KeyStore.Height, KeyStore.CurPage].map(key =>
-                    de.data.draggedDocuments.GetTAsync(key, NumberField, (f: Opt<NumberField>) => f ? de.data.droppedDocument.SetNumber(key, f.Data) : null));
+                    de.data.draggedDocuments.map((draggedDocument: Document, i: number) =>
+                        draggedDocument.GetTAsync(key, NumberField, (f: Opt<NumberField>) => f ? de.data.droppedDocuments[i].SetNumber(key, f.Data) : null)));
             }
             let added = de.data.droppedDocuments.reduce((added, d) => this.props.addDocument(d, false), true);
             if (added && de.data.removeDocument && !de.data.aliasOnDrop) {
