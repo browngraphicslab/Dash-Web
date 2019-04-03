@@ -39,12 +39,16 @@
     }
     .title{
         background: lightblue;
-        grid-column-start:1;
+        grid-column-start:2;
         grid-column-end: 4;
         pointer-events: auto;
     }
 }
 
+.documentDecorations-minimizeButton {
+    background: rgb(250, 57, 9);
+    pointer-events: all;
+}
 .documentDecorations-background {
     background: lightblue;
     position: absolute;

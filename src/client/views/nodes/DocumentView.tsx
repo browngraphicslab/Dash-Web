@@ -70,18 +70,18 @@ export function FakeJsxArgs(keys: string[], fields: string[] = []): JsxArgs {
   let Keys: { [name: string]: any } = {};
   let Fields: { [name: string]: any } = {};
   for (const key of keys) {
-    let fn = () => {};
+    let fn = () => { };
     Object.defineProperty(fn, "name", { value: key + "Key" });
     Keys[key] = fn;
   }
   for (const field of fields) {
-    let fn = () => {};
+    let fn = () => { };
     Object.defineProperty(fn, "name", { value: field });
     Fields[field] = fn;
   }
   let args: JsxArgs = {
-    Document: function Document() {},
-    DocumentView: function DocumentView() {},
+    Document: function Document() { },
+    DocumentView: function DocumentView() { },
     Keys,
     Fields
   } as any;
@@ -115,7 +115,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     return (
       !this.props.ContainingCollectionView ||
       this.props.ContainingCollectionView.collectionViewType ==
-        CollectionViewType.Docking
+      CollectionViewType.Docking
     );
   }
   @computed get layout(): string {
@@ -233,7 +233,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
       };
       DragManager.StartDocumentDrag([this._mainCont.current], dragData, {
         handlers: {
-          dragComplete: action(() => {})
+          dragComplete: action(() => { })
         },
         hideSource: !dropAliasOfDraggedDoc
       });
@@ -307,7 +307,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
   };
 
   @action
-  minimize = (e: React.MouseEvent): void => {
+  public minimize = (): void => {
     this.props.Document.SetData(
       KeyStore.Minimized,
       true as boolean,

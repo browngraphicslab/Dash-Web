@@ -139,11 +139,33 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         e.preventDefault();
     }
 
+    onMinimizeDown = (e: React.PointerEvent): void => {
+        e.stopPropagation();
+        if (e.button === 0) {
+            document.removeEventListener("pointermove", this.onMinimizeMove);
+            document.addEventListener("pointermove", this.onMinimizeMove);
+            document.removeEventListener("pointerup", this.onMinimizeUp);
+            document.addEventListener("pointerup", this.onMinimizeUp);
+        }
+    }
+    onMinimizeMove = (e: PointerEvent): void => {
+        e.stopPropagation();
+        if (e.button === 0) {
+        }
+    }
+    onMinimizeUp = (e: PointerEvent): void => {
+        e.stopPropagation();
+        if (e.button === 0) {
+            SelectionManager.SelectedDocuments().map(dv => dv.minimize());
+            document.removeEventListener("pointermove", this.onMinimizeMove);
+            document.removeEventListener("pointerup", this.onMinimizeUp);
+        }
+    }
+
     onPointerDown = (e: React.PointerEvent): void => {
         e.stopPropagation();
         if (e.button === 0) {
             this._isPointerDown = true;
-            console.log("Pointer down");
             this._resizer = e.currentTarget.id;
             document.removeEventListener("pointermove", this.onPointerMove);
             document.addEventListener("pointermove", this.onPointerMove);
@@ -339,6 +361,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 top: bounds.y - this._resizeBorderWidth / 2 - this._titleHeight,
                 opacity: this._opacity
             }}>
+                <div className="documentDecorations-minimizeButton" onPointerDown={this.onMinimizeDown}>v</div>
                 <input ref={this.keyinput} className="title" type="text" name="dynbox" value={this.getValue()} onChange={this.handleChange} onPointerDown={this.onPointerDown} onKeyPress={this.enterPressed} />
                 <div id="documentDecorations-topLeftResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-topResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
