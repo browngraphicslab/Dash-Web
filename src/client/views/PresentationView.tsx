@@ -6,12 +6,9 @@ import React = require("react")
 import { TextField } from "../../fields/TextField";
 import { observable, action } from "mobx";
 import { Field } from "../../fields/Field";
-import { Documents } from '../documents/Documents';
 import "./PresentationView.scss"
-import { mobxPendingDecorators } from "mobx/lib/internal";
 import { NumberField } from "../../fields/NumberField";
 import "./Main.tsx";
-import { CollectionFreeFormView } from "./collections/CollectionFreeFormView";
 import { DocumentManager } from "../util/DocumentManager";
 
 export interface PresViewProps {
@@ -159,7 +156,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
             this.props.Document.SetData(KeyStore.Data, [doc], ListField);
         }
 
-        this.props.Document.SetData(KeyStore.Width, 300, NumberField);
+        this.props.Document.SetNumber(KeyStore.Width, 300);
     }
 
     render() {

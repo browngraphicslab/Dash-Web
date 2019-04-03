@@ -15,7 +15,7 @@ export class HtmlField extends BasicField<string> {
         return new HtmlField(this.Data);
     }
 
-    ToJson(): { _id: string; type: Types; data: any; } {
+    ToJson(): { _id: string; type: Types; data: string; } {
         return {
             type: Types.Html,
             data: this.Data,

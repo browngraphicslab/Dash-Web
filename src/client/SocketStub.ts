@@ -7,6 +7,12 @@ import { Utils } from "../Utils";
 import { Server } from "./Server";
 import { ServerUtils } from "../server/ServerUtil";
 
+
+export interface FieldMap {
+    [id: string]: Opt<Field>;
+}
+
+//TODO tfs: I think it might be cleaner to not have SocketStub deal with turning what the server gives it into Fields (in other words not call ServerUtils.FromJson), and leave that for the Server class.
 export class SocketStub {
 
     static FieldStore: ObservableMap<FieldId, Field> = new ObservableMap();
@@ -34,19 +40,26 @@ export class SocketStub {
         Utils.Emit(Server.Socket, MessageStore.AddDocument, new DocumentTransfer(document.ToJson()))
     }
 
-    public static SEND_FIELD_REQUEST(fieldid: FieldId, callback: (field: Opt<Field>) => void) {
-        if (fieldid) {
+    public static SEND_FIELD_REQUEST(fieldid: FieldId): Promise<Opt<Field>>;
+    public static SEND_FIELD_REQUEST(fieldid: FieldId, callback: (field: Opt<Field>) => void): void;
+    public static SEND_FIELD_REQUEST(fieldid: FieldId, callback?: (field: Opt<Field>) => void): Promise<Opt<Field>> | void {
+        let fn = function (cb: (field: Opt<Field>) => void) {
             Utils.EmitCallback(Server.Socket, MessageStore.GetField, fieldid, (field: any) => {
                 if (field) {
-                    ServerUtils.FromJson(field).init(callback);
+                    ServerUtils.FromJson(field).init(cb);
                 } else {
-                    callback(undefined);
+                    cb(undefined);
                 }
             })
         }
+        if (callback) {
+            fn(callback);
+        } else {
+            return new Promise(res => fn(res))
+        }
     }
 
-    public static SEND_FIELDS_REQUEST(fieldIds: FieldId[], callback: (fields: { [key: string]: Field }) => any) {
+    public static SEND_FIELDS_REQUEST(fieldIds: FieldId[], callback: (fields: FieldMap) => any) {
         Utils.EmitCallback(Server.Socket, MessageStore.GetFields, fieldIds, (fields: any[]) => {
             let fieldMap: any = {};
             for (let field of fields) {

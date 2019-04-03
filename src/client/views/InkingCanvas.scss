@@ -1,32 +1,30 @@
-.inking-canvas {
-    position: fixed;
-    top: -50000px;
-    left: -50000px; // z-index: 99; //overlays ink on top of everything
-    svg {
-        width: 100000px;
-        height: 100000px;
-        .highlight {
-            mix-blend-mode: multiply;
-        }
-    }
+@import "global_variables";
+
+.inkingCanvas-paths-ink, .inkingCanvas-paths-markers, .inkingCanvas-noSelect, .inkingCanvas-canSelect {
+    position: absolute;
+    width: 8192px;
+    height: 8192px;
+    cursor:"crosshair";
+    pointer-events: auto;
+    
+}
+.inkingCanvas-canSelect, 
+.inkingCanvas-noSelect    {
+    top:-50000px;
+    left:-50000px;
+    width: 100000px;
+    height: 100000px;
+}
+.inkingCanvas-noSelect  {
+    pointer-events: none;
+    cursor: "arrow";
+}
+.inkingCanvas-paths-ink, .inkingCanvas-paths-markers {
+    pointer-events: none;
+    z-index: 10000; // overlays ink on top of everything 
+    cursor: "arrow";
+}
+.inkingCanvas-paths-markers {
+    mix-blend-mode: multiply;
 }
 
-.inking-control {
-    position: absolute;
-    right: 0;
-    bottom: 75px;
-    text-align: right;
-    .ink-panel {
-        margin-top: 12px;
-        &:first {
-            margin-top: 0;
-        }
-    }
-    .ink-size {
-        display: flex;
-        justify-content: space-between;
-        input {
-            width: 85%;
-        }
-    }
-}

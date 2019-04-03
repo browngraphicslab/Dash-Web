@@ -11,6 +11,19 @@ import { ListField } from "../../../fields/ListField";
 import { DocumentManager } from "../../util/DocumentManager";
 import { LinkEditor } from "./LinkEditor";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
+import { library } from '@fortawesome/fontawesome-svg-core';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faEye } from '@fortawesome/free-solid-svg-icons';
+import { faEdit } from '@fortawesome/free-solid-svg-icons';
+import { faTimes } from '@fortawesome/free-solid-svg-icons';
+import { undoBatch } from "../../util/UndoManager";
+import { FieldWaiting } from "../../../fields/Field";
+import { NumberField } from "../../../fields/NumberField";
+
+
+library.add(faEye);
+library.add(faEdit);
+library.add(faTimes);
 
 interface Props {
     linkDoc: Document;
@@ -23,14 +36,31 @@ interface Props {
 @observer
 export class LinkBox extends React.Component<Props> {
 
+    @undoBatch
     onViewButtonPressed = (e: React.PointerEvent): void => {
-        console.log("view down");
         e.stopPropagation();
         let docView = DocumentManager.Instance.getDocumentView(this.props.pairedDoc);
         if (docView) {
-            docView.props.focus(this.props.pairedDoc);
+            docView.props.focus(docView.props.Document);
         } else {
-            CollectionDockingView.Instance.AddRightSplit(this.props.pairedDoc)
+            this.props.pairedDoc.GetAsync(KeyStore.AnnotationOn, (contextDoc: any) => {
+                if (!contextDoc) {
+                    CollectionDockingView.Instance.AddRightSplit(this.props.pairedDoc.MakeDelegate());
+                } else if (contextDoc instanceof Document) {
+                    this.props.pairedDoc.GetTAsync(KeyStore.Page, NumberField).then((pfield: any) => {
+                        contextDoc.GetTAsync(KeyStore.CurPage, NumberField).then((cfield: any) => {
+                            if (pfield != cfield)
+                                contextDoc.SetNumber(KeyStore.CurPage, pfield.Data);
+                            let contextView = DocumentManager.Instance.getDocumentView(contextDoc);
+                            if (contextView) {
+                                contextView.props.focus(contextDoc);
+                            } else {
+                                CollectionDockingView.Instance.AddRightSplit(contextDoc);
+                            }
+                        })
+                    });
+                }
+            });
         }
     }
 
@@ -79,9 +109,12 @@ export class LinkBox extends React.Component<Props> {
                 </div>
 
                 <div className="button-container">
-                    <div className="button" onPointerDown={this.onViewButtonPressed}></div>
-                    <div className="button" onPointerDown={this.onEditButtonPressed}></div>
-                    <div className="button" onPointerDown={this.onDeleteButtonPressed}></div>
+                    <div title="Follow Link" className="button" onPointerDown={this.onViewButtonPressed}>
+                        <FontAwesomeIcon className="fa-icon-view" icon="eye" size="sm" /></div>
+                    <div title="Edit Link" className="button" onPointerDown={this.onEditButtonPressed}>
+                        <FontAwesomeIcon className="fa-icon-edit" icon="edit" size="sm" /></div>
+                    <div title="Delete Link" className="button" onPointerDown={this.onDeleteButtonPressed}>
+                        <FontAwesomeIcon className="fa-icon-delete" icon="times" size="sm" /></div>
                 </div>
             </div>
         )

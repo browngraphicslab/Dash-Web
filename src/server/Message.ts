@@ -45,7 +45,7 @@ export class GetFieldArgs {
 }
 
 export enum Types {
-    Number, List, Key, Image, Web, Document, Text, RichText, DocumentReference, Html, Video, Audio, Ink, PDF
+    Number, List, Key, Image, Web, Document, Text, RichText, DocumentReference, Html, Video, Audio, Ink, PDF, Tuple, HistogramOp
 }
 
 export class DocumentTransfer implements Transferable {

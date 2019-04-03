@@ -14,13 +14,16 @@ import { HtmlField } from '../fields/HtmlField';
 import { WebField } from '../fields/WebField';
 import { AudioField } from '../fields/AudioField';
 import { VideoField } from '../fields/VideoField';
-import {InkField} from '../fields/InkField';
-import {PDFField} from '../fields/PDFField';
-
+import { InkField } from '../fields/InkField';
+import { PDFField } from '../fields/PDFField';
+import { TupleField } from '../fields/TupleField';
+import { HistogramField } from '../client/northstar/dash-fields/HistogramField';
 
 
 
 export class ServerUtils {
+    public static prepend(extension: string): string { return window.location.origin + extension; }
+
     public static FromJson(json: any): Field {
         let obj = json
         let data: any = obj.data
@@ -47,6 +50,8 @@ export class ServerUtils {
                 return new Key(data, id, false)
             case Types.Image:
                 return new ImageField(new URL(data), id, false)
+            case Types.HistogramOp:
+                return HistogramField.FromJson(id, data);
             case Types.PDF:
                 return new PDFField(new URL(data), id, false)
             case Types.List:
@@ -55,6 +60,8 @@ export class ServerUtils {
                 return new AudioField(new URL(data), id, false)
             case Types.Video:
                 return new VideoField(new URL(data), id, false)
+            case Types.Tuple:
+                return new TupleField(data, id, false);
             case Types.Ink:
                 return InkField.FromJson(id, data);
             case Types.Document:

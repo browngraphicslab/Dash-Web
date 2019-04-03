@@ -2,8 +2,9 @@ import * as passport from 'passport'
 import * as passportLocal from 'passport-local';
 import * as mongodb from 'mongodb';
 import * as _ from "lodash";
-import { default as User } from '../models/User';
+import { default as User } from '../models/user_model';
 import { Request, Response, NextFunction } from "express";
+import { RouteStore } from '../../RouteStore';
 
 const LocalStrategy = passportLocal.Strategy;
 
@@ -18,7 +19,7 @@ passport.deserializeUser<any, any>((id, done) => {
 });
 
 // AUTHENTICATE JUST WITH EMAIL AND PASSWORD
-passport.use(new LocalStrategy({ usernameField: 'email' }, (email, password, done) => {
+passport.use(new LocalStrategy({ usernameField: 'email', passReqToCallback: true }, (req, email, password, done) => {
     User.findOne({ email: email.toLowerCase() }, (error: any, user: any) => {
         if (error) return done(error);
         if (!user) return done(undefined, false, { message: "Invalid email or password" }) // invalid email
@@ -35,7 +36,7 @@ export let isAuthenticated = (req: Request, res: Response, next: NextFunction) =
     if (req.isAuthenticated()) {
         return next();
     }
-    return res.redirect("/login");
+    return res.redirect(RouteStore.login);
 }
 
 export let isAuthorized = (req: Request, res: Response, next: NextFunction) => {
