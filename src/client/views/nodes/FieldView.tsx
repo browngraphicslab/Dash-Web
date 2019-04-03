@@ -7,11 +7,19 @@ import { TextField } from "../../../fields/TextField";
 import { NumberField } from "../../../fields/NumberField";
 import { RichTextField } from "../../../fields/RichTextField";
 import { ImageField } from "../../../fields/ImageField";
-import { WebField } from "../../../fields/WebField";
+import { VideoField } from "../../../fields/VideoField"
 import { Key } from "../../../fields/Key";
 import { FormattedTextBox } from "./FormattedTextBox";
 import { ImageBox } from "./ImageBox";
 import { WebBox } from "./WebBox";
+import { VideoBox } from "./VideoBox";
+import { AudioBox } from "./AudioBox";
+import { AudioField } from "../../../fields/AudioField";
+import { ListField } from "../../../fields/ListField";
+import { DocumentContentsView } from "./DocumentContentsView";
+import { Transform } from "../../util/Transform";
+import { KeyStore } from "../../../fields/KeyStore";
+
 
 //
 // these properties get assigned through the render() method of the DocumentView when it creates this node.
@@ -53,8 +61,34 @@ export class FieldView extends React.Component<FieldViewProps> {
         else if (field instanceof ImageField) {
             return <ImageBox {...this.props} />
         }
-        else if (field instanceof WebField) {
-            return <WebBox {...this.props} />
+        else if (field instanceof VideoField) {
+            return <VideoBox {...this.props} />
+        }
+        else if (field instanceof AudioField) {
+            return <AudioBox {...this.props} />
+        }
+        else if (field instanceof Document) {
+            return (<DocumentContentsView Document={field}
+                AddDocument={undefined}
+                RemoveDocument={undefined}
+                ScreenToLocalTransform={() => Transform.Identity}
+                ContentScaling={() => 1}
+                PanelWidth={() => 100}
+                PanelHeight={() => 100}
+                isTopMost={true}
+                SelectOnLoad={false}
+                focus={() => { }}
+                isSelected={() => false}
+                select={() => false}
+                layoutKey={KeyStore.Layout}
+                ContainingCollectionView={undefined} />)
+        }
+        else if (field instanceof ListField) {
+            return (<div>
+                {(field as ListField<Field>).Data.map(f => {
+                    return f instanceof Document ? f.Title : f.GetValue().toString();
+                }).join(", ")}
+            </div>)
         }
         // bcz: this belongs here, but it doesn't render well so taking it out for now
         // else if (field instanceof HtmlField) {

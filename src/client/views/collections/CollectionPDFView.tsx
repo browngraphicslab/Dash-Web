@@ -1,11 +1,13 @@
-import { action, computed } from "mobx";
+import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import { Document } from "../../../fields/Document";
 import { KeyStore } from "../../../fields/KeyStore";
 import { ContextMenu } from "../ContextMenu";
 import { CollectionView, CollectionViewType } from "./CollectionView";
 import { CollectionViewProps } from "./CollectionViewBase";
+import "./CollectionPDFView.scss"
 import React = require("react");
+import { FieldId } from "../../../fields/Field";
 
 
 @observer
@@ -17,24 +19,26 @@ export class CollectionPDFView extends React.Component<CollectionViewProps> {
                     isTopMost={isTopMost} SelectOnLoad={selectOnLoad} BackgroundView={BackgroundView} focus={focus}/>`;
     }
 
-    @action onPageBack = () => this.curPage > 1 ? this.props.Document.SetNumber(KeyStore.CurPage, this.curPage - 1) : 0;
-    @action onPageForward = () => this.curPage < this.numPages ? this.props.Document.SetNumber(KeyStore.CurPage, this.curPage + 1) : 0;
+    private get curPage() { return this.props.Document.GetNumber(KeyStore.CurPage, -1); }
+    private get numPages() { return this.props.Document.GetNumber(KeyStore.NumPages, 0); }
+    @action onPageBack = () => this.curPage > 1 ? this.props.Document.SetNumber(KeyStore.CurPage, this.curPage - 1) : -1;
+    @action onPageForward = () => this.curPage < this.numPages ? this.props.Document.SetNumber(KeyStore.CurPage, this.curPage + 1) : -1;
 
-    @computed private get curPage() { return this.props.Document.GetNumber(KeyStore.CurPage, 0); }
-    @computed private get numPages() { return this.props.Document.GetNumber(KeyStore.NumPages, 0); }
-    @computed private get uIButtons() {
+    private get uIButtons() {
+        let scaling = Math.min(1.8, this.props.ScreenToLocalTransform().transformDirection(1, 1)[0]);
         return (
-            <div className="pdfBox-buttonTray" key="tray">
-                <button className="pdfButton" onClick={this.onPageBack}>{"<"}</button>
-                <button className="pdfButton" onClick={this.onPageForward}>{">"}</button>
+            <div className="collectionPdfView-buttonTray" key="tray" style={{ transform: `scale(${scaling}, ${scaling})` }}>
+                <button className="collectionPdfView-backward" onClick={this.onPageBack}>{"<"}</button>
+                <button className="collectionPdfView-forward" onClick={this.onPageForward}>{">"}</button>
             </div>);
     }
 
     // "inherited" CollectionView API starts here...
-
+    @observable
+    public SelectedDocs: FieldId[] = []
     public active: () => boolean = () => CollectionView.Active(this);
 
-    addDocument = (doc: Document): void => { CollectionView.AddDocument(this.props, doc); }
+    addDocument = (doc: Document, allowDuplicates: boolean): boolean => { return CollectionView.AddDocument(this.props, doc, allowDuplicates); }
     removeDocument = (doc: Document): boolean => { return CollectionView.RemoveDocument(this.props, doc); }
 
     specificContextMenu = (e: React.MouseEvent): void => {
@@ -47,7 +51,7 @@ export class CollectionPDFView extends React.Component<CollectionViewProps> {
     get subView(): any { return CollectionView.SubView(this); }
 
     render() {
-        return (<div className="collectionView-cont" onContextMenu={this.specificContextMenu}>
+        return (<div className="collectionPdfView-cont" onContextMenu={this.specificContextMenu}>
             {this.subView}
             {this.props.isSelected() ? this.uIButtons : (null)}
         </div>)

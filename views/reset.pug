@@ -1,0 +1,22 @@
+
+extends ./layout
+
+block content
+    style
+        include ./stylesheets/authentication.css
+    form.form-horizontal(id='reset-form', method='POST')
+        input(type='hidden', name='_csrf', value=_csrf)
+        .overlay(id='overlay_reset')
+            .inner.reset
+                h3.auth_header Reset Password
+                .form-group
+                    .col-sm-7
+                        input.form-control(type='password', name='password', id='password', placeholder='Password', required)
+                .form-group
+                    .col-sm-7
+                        input.form-control(type='password', name='confirmPassword', id='confirmPassword', placeholder='Confirm Password', required)
+                .form-group
+                    .col-sm-offset-3.col-sm-7
+                        button.btn.btn-success(type='submit')
+                            i.fa.fa-user-plus
+                            | Reset

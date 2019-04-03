@@ -1,5 +1,6 @@
 import 'react-image-lightbox/style.css'; // This only needs to be imported once in your app
 import "./KeyValueBox.scss";
+import "./KeyValuePair.scss";
 import React = require("react")
 import { FieldViewProps, FieldView } from './FieldView';
 import { Opt, Field } from '../../../fields/Field';
@@ -8,6 +9,8 @@ import { observable, action } from 'mobx';
 import { Document } from '../../../fields/Document';
 import { Key } from '../../../fields/Key';
 import { Server } from "../../Server"
+import { EditableView } from "../EditableView";
+import { CompileScript, ToField } from "../../util/Scripting";
 
 // Represents one row in a key value plane
 
@@ -48,10 +51,48 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
             bindings: {},
             selectOnLoad: false,
         }
+        let contents = (
+            <FieldView {...props} />
+        );
         return (
             <tr className={this.props.rowStyle}>
-                <td>{this.key.Name}</td>
-                <td><FieldView {...props} /></td>
+                {/* <button>X</button> */}
+                <td>
+                    <div className="container">
+                        <div>{this.key.Name}</div>
+                        <button className="delete" onClick={() => {
+                            let field = props.doc.Get(props.fieldKey);
+                            if (field && field instanceof Field) {
+                                props.doc.Set(props.fieldKey, undefined);
+                            }
+                        }}>X</button>
+                    </div>
+                </td>
+                <td><EditableView contents={contents} height={36} GetValue={() => {
+                    let field = props.doc.Get(props.fieldKey);
+                    if (field && field instanceof Field) {
+                        return field.ToScriptString();
+                    }
+                    return field || "";
+                }}
+                    SetValue={(value: string) => {
+                        let script = CompileScript(value, undefined, true);
+                        if (!script.compiled) {
+                            return false;
+                        }
+                        let field = script();
+                        if (field instanceof Field) {
+                            props.doc.Set(props.fieldKey, field);
+                            return true;
+                        } else {
+                            let dataField = ToField(field);
+                            if (dataField) {
+                                props.doc.Set(props.fieldKey, dataField);
+                                return true;
+                            }
+                        }
+                        return false;
+                    }}></EditableView></td>
             </tr>
         )
     }

@@ -1,0 +1,14 @@
+
+.marqueeView {
+    position: absolute;
+    width:100%;
+    height:100%;
+}
+.marquee {
+    border-style: dashed;
+    box-sizing: border-box;
+    position: absolute;
+    border-width: 1px;
+    border-color: black;
+    pointer-events: none;
+}

@@ -16,11 +16,20 @@ export class Database {
         })
     }
 
-    public update(id: string, value: any) {
+    public update(id: string, value: any, callback: () => void) {
         if (this.db) {
             let collection = this.db.collection('documents');
-            collection.update({ _id: id }, { $set: value }, {
+            collection.updateOne({ _id: id }, { $set: value }, {
                 upsert: true
+            }, (err, res) => {
+                if (err) {
+                    console.log(err.message);
+                    console.log(err.errmsg);
+                }
+                if (res) {
+                    console.log(JSON.stringify(res.result));
+                }
+                callback()
             });
         }
     }
@@ -32,11 +41,13 @@ export class Database {
         }
     }
 
-    public deleteAll() {
-        if (this.db) {
-            let collection = this.db.collection('documents');
-            collection.deleteMany({});
-        }
+    public deleteAll(collectionName: string = 'documents'): Promise<any> {
+        return new Promise(res => {
+            if (this.db) {
+                let collection = this.db.collection(collectionName);
+                collection.deleteMany({}, res);
+            }
+        })
     }
 
     public insert(kvpairs: any) {
@@ -70,6 +81,10 @@ export class Database {
             let collection = this.db.collection('documents');
             let cursor = collection.find({ _id: { "$in": ids } })
             cursor.toArray((err, docs) => {
+                if (err) {
+                    console.log(err.message);
+                    console.log(err.errmsg);
+                }
                 fn(docs);
             })
         };
