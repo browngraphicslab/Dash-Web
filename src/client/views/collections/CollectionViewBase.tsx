@@ -128,7 +128,7 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
         }
         if (type.indexOf("pdf") !== -1) {
             ctor = Documents.PdfDocument;
-            options.nativeWidth = 600;
+            options.nativeWidth = 1200;
         }
         if (type.indexOf("html") !== -1) {
             if (path.includes('localhost')) {

@@ -18,6 +18,7 @@ import "./ImageBox.scss";
 import "./PDFBox.scss";
 import { Sticky } from './Sticky'; //you should look at sticky and annotation, because they are used here
 import React = require("react")
+import { SelectionManager } from "../../util/SelectionManager";
 
 /** ALSO LOOK AT: Annotation.tsx, Sticky.tsx
  * This method renders PDF and puts all kinds of functionalities such as annotation, highlighting, 
@@ -57,6 +58,8 @@ export class PDFBox extends React.Component<FieldViewProps> {
     private _mainDiv = React.createRef<HTMLDivElement>()
     private _pdf = React.createRef<HTMLCanvasElement>();
 
+    @observable private _renderAsSvg = true;
+
     //very useful for keeping track of X and y position throughout the PDF Canvas
     private initX: number = 0;
     private initY: number = 0;
@@ -91,9 +94,9 @@ export class PDFBox extends React.Component<FieldViewProps> {
 
     componentDidMount() {
         this._reactionDisposer = reaction(
-            () => [this.curPage, this.thumbnailPage],
+            () => [SelectionManager.SelectedDocuments().slice()],
             () => {
-                if (this.curPage > 0 && this.thumbnailPage > 0 && this.curPage != this.thumbnailPage) {
+                if (this.curPage > 0 && this.thumbnailPage > 0 && this.curPage != this.thumbnailPage && !this.props.isSelected()) {
                     this.saveThumbnail();
                     this._interactive = true;
                 }
@@ -375,19 +378,21 @@ export class PDFBox extends React.Component<FieldViewProps> {
 
     @action
     saveThumbnail = () => {
+        this._renderAsSvg = false;
         setTimeout(() => {
             var me = this;
             let nwidth = me.props.doc.GetNumber(KeyStore.NativeWidth, 0);
             let nheight = me.props.doc.GetNumber(KeyStore.NativeHeight, 0);
             htmlToImage.toPng(this._mainDiv.current!, { width: nwidth, height: nheight, quality: 1 })
-                .then(function (dataUrl: string) {
+                .then(action((dataUrl: string) => {
                     me.props.doc.SetData(KeyStore.Thumbnail, new URL(dataUrl), ImageField);
                     me.props.doc.SetNumber(KeyStore.ThumbnailPage, me.props.doc.GetNumber(KeyStore.CurPage, -1));
-                })
+                    me._renderAsSvg = true;
+                }))
                 .catch(function (error: any) {
                     console.error('oops, something went wrong!', error);
                 });
-        }, 1000);
+        }, 250);
     }
 
     @action
@@ -427,9 +432,6 @@ export class PDFBox extends React.Component<FieldViewProps> {
             this.props.doc.SetNumber(KeyStore.Height, nativeHeight / nativeWidth * this.props.doc.GetNumber(KeyStore.Width, 0));
             this.props.doc.SetNumber(KeyStore.NativeHeight, nativeHeight);
         }
-        if (!this.props.doc.GetT(KeyStore.Thumbnail, ImageField)) {
-            this.saveThumbnail();
-        }
     }
 
     @computed
@@ -439,7 +441,7 @@ export class PDFBox extends React.Component<FieldViewProps> {
         let pdfUrl = this.props.doc.GetT(this.props.fieldKey, PDFField);
         let xf = this.props.doc.GetNumber(KeyStore.NativeHeight, 0) / renderHeight;
         return <div className="pdfBox-contentContainer" key="container" style={{ transform: `scale(${xf}, ${xf})` }}>
-            <Document file={window.origin + RouteStore.corsProxy + `/${pdfUrl}`} renderMode="svg">
+            <Document file={window.origin + RouteStore.corsProxy + `/${pdfUrl}`} renderMode={this._renderAsSvg ? "svg" : ""}>
                 <Measure onResize={this.setScaling}>
                     {({ measureRef }) =>
                         <div className="pdfBox-page" ref={measureRef}>
