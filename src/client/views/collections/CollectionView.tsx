@@ -8,16 +8,21 @@ import { CollectionTreeView } from './CollectionTreeView';
 import { ContextMenu } from '../ContextMenu';
 import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
 import { KeyStore } from '../../../fields/KeyStore';
+import { observer } from 'mobx-react';
+
+@observer
 export class CollectionView extends React.Component<FieldViewProps> {
     public static LayoutString(fieldStr: string = "DataKey") { return FieldView.LayoutString(CollectionView, fieldStr) }
 
     private SubView = (type: CollectionViewType, renderProps: CollectionRenderProps) => {
         let props = { ...this.props, ...renderProps };
         switch (type) {
-            case CollectionViewType.Freeform: return (<CollectionFreeFormView {...props} />)
             case CollectionViewType.Schema: return (<CollectionSchemaView {...props} />)
             case CollectionViewType.Docking: return (<CollectionDockingView {...props} />)
             case CollectionViewType.Tree: return (<CollectionTreeView {...props} />)
+            case CollectionViewType.Freeform:
+            default:
+                return (<CollectionFreeFormView {...props} />)
         }
         return (null);
     }

@@ -6,9 +6,9 @@ import { ImageField } from "../../fields/ImageField";
 import { KeyStore } from "../../fields/KeyStore";
 import { CollectionView } from "../views/collections/CollectionView";
 import { DocumentView } from "../views/nodes/DocumentView";
-import { emptyFunction } from "../../Utils";
+import { returnFalse } from "../../Utils";
 
-export function setupDrag(_reference: React.RefObject<HTMLDivElement>, docFunc: () => Document, removeFunc: (containingCollection: CollectionView) => void = () => { }) {
+export function setupDrag(_reference: React.RefObject<HTMLDivElement>, docFunc: () => Document, moveFunc?: DragManager.MoveFunction) {
     let onRowMove = action((e: PointerEvent): void => {
         e.stopPropagation();
         e.preventDefault();
@@ -16,7 +16,7 @@ export function setupDrag(_reference: React.RefObject<HTMLDivElement>, docFunc: 
         document.removeEventListener("pointermove", onRowMove);
         document.removeEventListener('pointerup', onRowUp);
         var dragData = new DragManager.DocumentDragData([docFunc()]);
-        dragData.removeDocument = removeFunc;
+        dragData.moveDocument = moveFunc;
         DragManager.StartDocumentDrag([_reference.current!], dragData);
     });
     let onRowUp = action((e: PointerEvent): void => {
@@ -101,6 +101,7 @@ export namespace DragManager {
         };
     }
 
+    export type MoveFunction = (document: Document, targetCollection: Document, addDocument: (document: Document) => boolean) => boolean;
     export class DocumentDragData {
         constructor(dragDoc: Document[]) {
             this.draggedDocuments = dragDoc;
@@ -111,7 +112,7 @@ export namespace DragManager {
         xOffset?: number;
         yOffset?: number;
         aliasOnDrop?: boolean;
-        moveDocument?: (document: Document, targetCollection: Document, addDocument: (document: Document) => boolean) => boolean;
+        moveDocument?: MoveFunction;
         [id: string]: any;
     }
 

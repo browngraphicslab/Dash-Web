@@ -9,6 +9,7 @@ import { Document } from '../../../fields/Document';
 import { ListField } from '../../../fields/ListField';
 import { action } from 'mobx';
 import { Transform } from '../../util/Transform';
+import { observer } from 'mobx-react';
 
 export enum CollectionViewType {
     Invalid,
@@ -35,6 +36,7 @@ export interface CollectionViewProps extends FieldViewProps {
 
 export const COLLECTION_BORDER_WIDTH = 1;
 
+@observer
 export class CollectionBaseView extends React.Component<CollectionViewProps> {
     get collectionViewType(): CollectionViewType {
         let Document = this.props.Document;
@@ -72,8 +74,8 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
             if (this.createsCycle(annots[i], containerDocument))
                 return true;
         }
-        for (let containerProto: FieldValue<Document> = containerDocument; containerProto && containerProto != FieldWaiting; containerProto = containerProto.GetPrototype()) {
-            if (containerProto.Id == documentToAdd.Id)
+        for (let containerProto: FieldValue<Document> = containerDocument; containerProto && containerProto !== FieldWaiting; containerProto = containerProto.GetPrototype()) {
+            if (containerProto.Id === documentToAdd.Id)
                 return true;
         }
         return false;
@@ -91,14 +93,14 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
             //TODO This won't create the field if it doesn't already exist
             const value = props.Document.GetData(props.fieldKey, ListField, new Array<Document>())
             if (!this.createsCycle(doc, props.Document)) {
-                if (!value.some(v => v.Id == doc.Id) || allowDuplicates)
+                if (!value.some(v => v.Id === doc.Id) || allowDuplicates)
                     value.push(doc);
             }
             else
                 return false;
         } else {
             let proto = props.Document.GetPrototype();
-            if (!proto || proto == FieldWaiting || !this.createsCycle(proto, doc)) {
+            if (!proto || proto === FieldWaiting || !this.createsCycle(proto, doc)) {
                 props.Document.SetOnPrototype(props.fieldKey, new ListField([doc]));
             }
             else
@@ -114,13 +116,13 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         const value = props.Document.GetData(props.fieldKey, ListField, new Array<Document>())
         let index = -1;
         for (let i = 0; i < value.length; i++) {
-            if (value[i].Id == doc.Id) {
+            if (value[i].Id === doc.Id) {
                 index = i;
                 break;
             }
         }
         doc.GetTAsync(KeyStore.AnnotationOn, Document).then((annotationOn) => {
-            if (annotationOn == props.Document) {
+            if (annotationOn === props.Document) {
                 doc.Set(KeyStore.AnnotationOn, undefined, true);
             }
         })
@@ -138,7 +140,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
     @action.bound
     moveDocument(doc: Document, targetCollection: Document, addDocument: (doc: Document) => boolean): boolean {
         if (this.props.Document === targetCollection) {
-            return false;
+            return true;
         }
         if (this.removeDocument(doc)) {
             return addDocument(doc);

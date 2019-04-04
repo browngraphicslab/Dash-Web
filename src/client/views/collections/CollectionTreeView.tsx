@@ -7,7 +7,7 @@ import { Document } from "../../../fields/Document";
 import { FieldWaiting } from "../../../fields/Field";
 import { KeyStore } from "../../../fields/KeyStore";
 import { ListField } from "../../../fields/ListField";
-import { setupDrag } from "../../util/DragManager";
+import { setupDrag, DragManager } from "../../util/DragManager";
 import { EditableView } from "../EditableView";
 import "./CollectionTreeView.scss";
 import { CollectionView } from "./CollectionView";
@@ -19,6 +19,7 @@ import { COLLECTION_BORDER_WIDTH } from './CollectionBaseView';
 export interface TreeViewProps {
     document: Document;
     deleteDoc: (doc: Document) => void;
+    moveDocument: DragManager.MoveFunction;
 }
 
 export enum BulletType {
@@ -49,6 +50,16 @@ class TreeView extends React.Component<TreeViewProps> {
         }
     }
 
+    @action
+    move: DragManager.MoveFunction = (document, target, addDoc) => {
+        if (this.props.document === target) {
+            return true;
+        }
+        //TODO This should check if it was removed
+        this.remove(document)
+        return addDoc(document);
+    }
+
     renderBullet(type: BulletType) {
         let onClicked = action(() => this._collapsed = !this._collapsed);
         let bullet: IconProp | undefined = undefined;
@@ -64,7 +75,7 @@ class TreeView extends React.Component<TreeViewProps> {
      */
     renderTitle() {
         let reference = React.createRef<HTMLDivElement>();
-        let onItemDown = setupDrag(reference, () => this.props.document, (containingCollection: CollectionView) => this.props.deleteDoc(this.props.document));
+        let onItemDown = setupDrag(reference, () => this.props.document, this.props.moveDocument);
         let editableView = (titleString: string) =>
             (<EditableView
                 display={"inline"}
@@ -92,7 +103,7 @@ class TreeView extends React.Component<TreeViewProps> {
             if (!this._collapsed) {
                 bulletType = BulletType.Collapsible;
                 childElements = <ul>
-                    {children.Data.map(value => <TreeView key={value.Id} document={value} deleteDoc={this.remove} />)}
+                    {children.Data.map(value => <TreeView key={value.Id} document={value} deleteDoc={this.remove} moveDocument={this.move} />)}
                 </ul>
             }
             else bulletType = BulletType.Collapsed;
@@ -122,7 +133,7 @@ export class CollectionTreeView extends CollectionViewBase {
         var children = this.props.Document.GetT<ListField<Document>>(KeyStore.Data, ListField);
         let childrenElement = !children || children === FieldWaiting ? (null) :
             (children.Data.map(value =>
-                <TreeView document={value} key={value.Id} deleteDoc={this.remove} />)
+                <TreeView document={value} key={value.Id} deleteDoc={this.remove} moveDocument={this.props.moveDocument} />)
             )
 
         return (

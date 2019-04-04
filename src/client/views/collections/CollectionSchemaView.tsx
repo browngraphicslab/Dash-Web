@@ -90,7 +90,7 @@ export class CollectionSchemaView extends CollectionViewBase {
             <FieldView {...props} />
         )
         let reference = React.createRef<HTMLDivElement>();
-        let onItemDown = setupDrag(reference, () => props.Document, (containingCollection: CollectionView) => this.props.removeDocument(props.Document));
+        let onItemDown = setupDrag(reference, () => props.Document, this.props.moveDocument);
         let applyToDoc = (doc: Document, value: string) => {
             let script = CompileScript(value, { this: doc }, true);
             if (!script.compiled) {
@@ -150,7 +150,7 @@ export class CollectionSchemaView extends CollectionViewBase {
                 }
             }),
             style: {
-                background: rowInfo.index == this._selectedIndex ? "lightGray" : "white",
+                background: rowInfo.index === this._selectedIndex ? "lightGray" : "white",
                 //color: rowInfo.index == this._selectedIndex ? "white" : "black"
             }
         };
@@ -179,8 +179,8 @@ export class CollectionSchemaView extends CollectionViewBase {
     @action
     toggleExpander = (event: React.ChangeEvent<HTMLInputElement>) => {
         this._startSplitPercent = this.splitPercentage;
-        if (this._startSplitPercent == this.splitPercentage) {
-            this.props.Document.SetNumber(KeyStore.SchemaSplitPercentage, this.splitPercentage == 0 ? 33 : 0);
+        if (this._startSplitPercent === this.splitPercentage) {
+            this.props.Document.SetNumber(KeyStore.SchemaSplitPercentage, this.splitPercentage === 0 ? 33 : 0);
         }
     }
 
@@ -209,8 +209,8 @@ export class CollectionSchemaView extends CollectionViewBase {
     onDividerUp = (e: PointerEvent): void => {
         document.removeEventListener("pointermove", this.onDividerMove);
         document.removeEventListener('pointerup', this.onDividerUp);
-        if (this._startSplitPercent == this.splitPercentage) {
-            this.props.Document.SetNumber(KeyStore.SchemaSplitPercentage, this.splitPercentage == 0 ? 33 : 0);
+        if (this._startSplitPercent === this.splitPercentage) {
+            this.props.Document.SetNumber(KeyStore.SchemaSplitPercentage, this.splitPercentage === 0 ? 33 : 0);
         }
     }
     onDividerDown = (e: React.PointerEvent) => {
@@ -290,7 +290,7 @@ export class CollectionSchemaView extends CollectionViewBase {
         let doc: any = selected ? selected.Get(new Key(this.previewScript)) : undefined;
 
         // let doc = CompileScript(this.previewScript, { this: selected }, true)();
-        let content = this._selectedIndex == -1 || !selected ? (null) : (
+        let content = this._selectedIndex === -1 || !selected ? (null) : (
             <Measure onResize={this.setScaling}>
                 {({ measureRef }) =>
                     <div className="collectionSchemaView-content" ref={measureRef}>
@@ -313,7 +313,7 @@ export class CollectionSchemaView extends CollectionViewBase {
                 }
             </Measure>
         )
-        let dividerDragger = this.splitPercentage == 0 ? (null) :
+        let dividerDragger = this.splitPercentage === 0 ? (null) :
             <div className="collectionSchemaView-dividerDragger" onPointerDown={this.onDividerDown} style={{ width: `${this.DIVIDER_WIDTH}px` }} />
 
         //options button and menu
@@ -323,7 +323,7 @@ export class CollectionSchemaView extends CollectionViewBase {
                 <div id="schema-options-header"><h5><b>Options</b></h5></div>
                 <div id="options-flyout-div">
                     <h6 className="schema-options-subHeader">Preview Window</h6>
-                    <div id="preview-schema-checkbox-div"><input type="checkbox" key={"Show Preview"} checked={this.splitPercentage != 0} onChange={this.toggleExpander} />  Show Preview </div>
+                    <div id="preview-schema-checkbox-div"><input type="checkbox" key={"Show Preview"} checked={this.splitPercentage !== 0} onChange={this.toggleExpander} />  Show Preview </div>
                     <h6 className="schema-options-subHeader" >Displayed Columns</h6>
                     <ul id="schema-col-checklist" >
                         {Array.from(Object.keys(allKeys)).map(item =>

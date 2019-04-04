@@ -80,6 +80,8 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
             } else if (de.data.moveDocument) {
                 const move = de.data.moveDocument;
                 added = de.data.droppedDocuments.reduce((added, d) => added || move(d, this.props.Document, this.props.addDocument), false)
+            } else {
+                added = de.data.droppedDocuments.reduce((added, d) => added || this.props.addDocument(d), false)
             }
             e.stopPropagation();
             return added;

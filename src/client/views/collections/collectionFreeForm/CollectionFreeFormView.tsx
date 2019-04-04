@@ -245,6 +245,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
             Document: document,
             addDocument: this.props.addDocument,
             removeDocument: this.props.removeDocument,
+            moveDocument: this.props.moveDocument,
             ScreenToLocalTransform: this.getTransform,
             isTopMost: false,
             selectOnLoad: document.Id === this._selectOnLoaded,

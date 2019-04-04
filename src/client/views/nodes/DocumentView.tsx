@@ -27,7 +27,7 @@ export interface DocumentViewProps {
     Document: Document;
     addDocument?: (doc: Document, allowDuplicates?: boolean) => boolean;
     removeDocument?: (doc: Document) => boolean;
-    moveDocument?: (doc: Document, targetCollection: Document, addDocument: (document: Document) => void) => boolean;
+    moveDocument?: (doc: Document, targetCollection: Document, addDocument: (document: Document) => boolean) => boolean;
     ScreenToLocalTransform: () => Transform;
     isTopMost: boolean;
     ContentScaling: () => number;
