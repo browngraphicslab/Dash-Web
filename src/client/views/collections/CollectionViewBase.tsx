@@ -17,6 +17,8 @@ import { NumberField } from "../../../fields/NumberField";
 import request = require("request");
 import { ServerUtils } from "../../../server/ServerUtil";
 import { Server } from "../../Server";
+import { CollectionDockingView } from "./CollectionDockingView";
+import { runReactions } from "mobx/lib/internal";
 
 export interface CollectionViewProps {
     fieldKey: Key;
@@ -91,6 +93,24 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
             }
             e.stopPropagation();
             return added;
+        }
+        if (de.data instanceof DragManager.LinkDragData) {
+            let sourceDoc: Document = de.data.linkSourceDocumentView.props.Document;
+            if (sourceDoc) runInAction(() => {
+                let srcTarg = sourceDoc.GetT(KeyStore.Prototype, Document)
+                if (srcTarg && srcTarg != FieldWaiting) {
+                    let linkDocs = srcTarg.GetList(KeyStore.LinkedToDocs, [] as Document[]);
+                    linkDocs.map(linkDoc => {
+                        let targDoc = linkDoc.GetT(KeyStore.LinkedToDocs, Document);
+                        if (targDoc && targDoc != FieldWaiting) {
+                            let dropdoc = targDoc.MakeDelegate();
+                            de.data.droppedDocuments.push(dropdoc);
+                            this.props.addDocument(dropdoc, false);
+                        }
+                    })
+                }
+            })
+            return true;
         }
         return false;
     }

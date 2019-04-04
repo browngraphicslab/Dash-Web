@@ -23,10 +23,10 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
         let l = this.props.LinkDocs;
         let a = this.props.A;
         let b = this.props.B;
-        let x1 = a.GetNumber(KeyStore.X, 0) + a.GetNumber(KeyStore.Width, 0) / 2;
-        let y1 = a.GetNumber(KeyStore.Y, 0) + a.GetNumber(KeyStore.Height, 0) / 2;
-        let x2 = b.GetNumber(KeyStore.X, 0) + b.GetNumber(KeyStore.Width, 0) / 2;
-        let y2 = b.GetNumber(KeyStore.Y, 0) + b.GetNumber(KeyStore.Height, 0) / 2;
+        let x1 = a.GetNumber(KeyStore.X, 0) + (a.GetBoolean(KeyStore.Minimized, false) ? 5 : a.GetNumber(KeyStore.Width, 0) / 2);
+        let y1 = a.GetNumber(KeyStore.Y, 0) + (a.GetBoolean(KeyStore.Minimized, false) ? 5 : a.GetNumber(KeyStore.Height, 0) / 2);
+        let x2 = b.GetNumber(KeyStore.X, 0) + (b.GetBoolean(KeyStore.Minimized, false) ? 5 : b.GetNumber(KeyStore.Width, 0) / 2);
+        let y2 = b.GetNumber(KeyStore.Y, 0) + (b.GetBoolean(KeyStore.Minimized, false) ? 5 : b.GetNumber(KeyStore.Height, 0) / 2);
         return (
             <line key={Utils.GenerateGuid()} className="collectionfreeformlinkview-linkLine" onPointerDown={this.onPointerDown}
                 style={{ strokeWidth: `${l.length * 5}` }}

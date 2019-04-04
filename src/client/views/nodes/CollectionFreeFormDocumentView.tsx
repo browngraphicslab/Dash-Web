@@ -66,8 +66,12 @@ export class CollectionFreeFormDocumentView extends React.Component<DocumentView
         return <DocumentView {...this.props}
             ContentScaling={this.contentScaling}
             ScreenToLocalTransform={this.getTransform}
+            PanelWidth={this.panelWidth}
+            PanelHeight={this.panelHeight}
         />
     }
+    panelWidth = () => this.props.Document.GetBoolean(KeyStore.Minimized, false) ? 10 : this.props.PanelWidth();
+    panelHeight = () => this.props.Document.GetBoolean(KeyStore.Minimized, false) ? 10 : this.props.PanelHeight();
 
     render() {
         return (

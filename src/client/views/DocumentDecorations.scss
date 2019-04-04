@@ -2,13 +2,16 @@
 
 #documentDecorations-container {
     position: absolute;
+    top: 0;
+    left:0;
     display: grid;
     z-index: 1000;
     grid-template-rows: 20px 8px 1fr 8px;
-    grid-template-columns: 8px 1fr 8px;
+    grid-template-columns: 8px 8px 1fr 8px;
     pointer-events: none;
 
     #documentDecorations-centerCont {
+        grid-column:3;
         background: none;
     }
 
@@ -16,6 +19,24 @@
         pointer-events: auto;
         background: $alt-accent;
         opacity: 0.8;
+    }
+
+    #documentDecorations-topLeftResizer,
+    #documentDecorations-leftResizer,
+    #documentDecorations-bottomLeftResizer {
+        grid-column: 1
+    }
+
+    #documentDecorations-topResizer,
+    #documentDecorations-bottomResizer {
+        grid-column-start: 2;
+        grid-column-end: 4;
+    }
+
+    #documentDecorations-bottomRightResizer,
+    #documentDecorations-topRightResizer,
+    #documentDecorations-rightResizer {
+        grid-column:4
     }
 
     #documentDecorations-topLeftResizer,
@@ -39,15 +60,19 @@
     }
     .title{
         background: lightblue;
-        grid-column-start:2;
-        grid-column-end: 4;
+        grid-column-start:3;
+        grid-column-end: 5;
         pointer-events: auto;
     }
 }
 
 .documentDecorations-minimizeButton {
-    background: rgb(250, 57, 9);
+    background:$alt-accent;
+    opacity: 0.8;
+    grid-column-start: 1;
+    grid-column-end: 3;
     pointer-events: all;
+    text-align: center;
 }
 .documentDecorations-background {
     background: lightblue;
@@ -87,7 +112,8 @@
 //     }
 // }
 .linkFlyout {
-    grid-column: 1/4
+    grid-column: 1/4;
+    margin-left: 25px;
 }
 
 .linkButton-empty:hover {
@@ -102,6 +128,31 @@
     cursor: pointer;
 }
 
+.linkButton-linker {
+    position:absolute;
+    bottom:0px;
+    left: 0px;
+    height: 20px;
+    width: 20px;
+    margin-top: 10px;
+    margin-right: 5px;
+    border-radius: 50%;
+    opacity: 0.9;
+    pointer-events: auto;
+    color: $dark-color;
+    border: $dark-color 1px solid;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-size: 75%;
+    transition: transform 0.2s;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.linkButton-tray {
+    grid-column: 1/4;
+}
 .linkButton-empty {
     height: 20px;
     width: 20px;
