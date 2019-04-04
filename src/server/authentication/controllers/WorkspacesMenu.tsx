@@ -73,7 +73,7 @@ export class WorkspacesMenu extends React.Component<WorkspaceMenuProps> {
                         <span>{i + 1} - </span>
                         <EditableView
                             display={"inline"}
-                            GetValue={() => { return s.Title }}
+                            GetValue={() => s.Title}
                             SetValue={(title: string): boolean => {
                                 s.SetText(KeyStore.Title, title);
                                 return true;

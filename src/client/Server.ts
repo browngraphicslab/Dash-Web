@@ -21,11 +21,11 @@ export class Server {
         let fn = (cb: (field: Opt<Field>) => void) => {
 
             let cached = this.ClientFieldsCached.get(fieldid);
-            if (!cached) {
+            if (cached === undefined) {
                 this.ClientFieldsCached.set(fieldid, FieldWaiting);
                 SocketStub.SEND_FIELD_REQUEST(fieldid, action((field: Field | undefined) => {
                     let cached = this.ClientFieldsCached.get(fieldid);
-                    if (cached != FieldWaiting)
+                    if (cached !== FieldWaiting)
                         cb(cached);
                     else {
                         if (field) {
@@ -36,23 +36,22 @@ export class Server {
                         cb(field)
                     }
                 }));
-            } else if (cached != FieldWaiting) {
+            } else if (cached !== FieldWaiting) {
                 setTimeout(() => cb(cached as Field), 0);
             } else {
-                reaction(() => {
-                    return this.ClientFieldsCached.get(fieldid);
-                }, (field, reaction) => {
-                    if (field !== FieldWaiting) {
-                        reaction.dispose()
-                        cb(field)
-                    }
-                })
+                reaction(() =>
+                    this.ClientFieldsCached.get(fieldid), (field, reaction) => {
+                        if (field !== FieldWaiting) {
+                            reaction.dispose()
+                            cb(field)
+                        }
+                    })
             }
         }
         if (callback) {
             fn(callback);
         } else {
-            return new Promise(res => fn(res));
+            return new Promise(fn);
         }
     }
 
@@ -92,24 +91,23 @@ export class Server {
                         }
                     }
                 }
-                reaction(() => {
-                    return waitingFieldIds.map(id => this.ClientFieldsCached.get(id));
-                }, (cachedFields, reaction) => {
-                    if (!cachedFields.some(field => !field || field === FieldWaiting)) {
-                        reaction.dispose();
-                        for (let field of cachedFields) {
-                            let realField = field as Field;
-                            existingFields[realField.Id] = realField;
+                reaction(() =>
+                    waitingFieldIds.map(id => this.ClientFieldsCached.get(id)), (cachedFields, reaction) => {
+                        if (!cachedFields.some(field => !field)) {
+                            reaction.dispose();
+                            for (let field of cachedFields) {
+                                let realField = field as Field;
+                                existingFields[realField.Id] = realField;
+                            }
+                            cb({ ...fields, ...existingFields })
                         }
-                        cb({ ...fields, ...existingFields })
-                    }
-                }, { fireImmediately: true })
+                    }, { fireImmediately: true })
             }));
         };
         if (callback) {
             fn(callback);
         } else {
-            return new Promise(res => fn(res));
+            return new Promise(fn);
         }
     }
 
@@ -153,19 +151,19 @@ export class Server {
     @action
     private static cacheField(clientField: Field) {
         var cached = this.ClientFieldsCached.get(clientField.Id);
-        if (!cached || cached == FieldWaiting) {
+        if (!cached || cached === FieldWaiting) {
             this.ClientFieldsCached.set(clientField.Id, clientField);
         } else {
             // probably should overwrite the values within any field that was already here...
         }
-        return this.ClientFieldsCached.get(clientField.Id) as Field;
+        return this.ClientFieldsCached.get(clientField.Id);
     }
 
     @action
     static updateField(field: { _id: string, data: any, type: Types }) {
         if (Server.ClientFieldsCached.has(field._id)) {
             var f = Server.ClientFieldsCached.get(field._id);
-            if (f && f != FieldWaiting) {
+            if (f && f !== FieldWaiting) {
                 // console.log("Applying        : " + field._id);
                 f.UpdateFromServer(field.data);
                 f.init(() => { });

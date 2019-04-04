@@ -36,9 +36,9 @@ export class InkingControl extends React.Component {
     @action
     switchColor = (color: ColorResult): void => {
         this._selectedColor = color.hex;
-        if (SelectionManager.SelectedDocuments().length == 1) {
+        if (SelectionManager.SelectedDocuments().length === 1) {
             var sdoc = SelectionManager.SelectedDocuments()[0];
-            if (sdoc.props.ContainingCollectionView && sdoc.props.ContainingCollectionView) {
+            if (sdoc.props.ContainingCollectionView) {
                 sdoc.props.Document.SetDataOnPrototype(KeyStore.BackgroundColor, color.hex, TextField);
             }
         }

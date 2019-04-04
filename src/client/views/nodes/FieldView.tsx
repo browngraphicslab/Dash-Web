@@ -96,9 +96,8 @@ export class FieldView extends React.Component<FieldViewProps> {
         }
         else if (field instanceof ListField) {
             return (<div>
-                {(field as ListField<Field>).Data.map(f => {
-                    return f instanceof Document ? f.Title : f.GetValue().toString();
-                }).join(", ")}
+                {(field as ListField<Field>).Data.map(f =>
+                    f instanceof Document ? f.Title : f.GetValue().toString()).join(", ")}
             </div>)
         }
         // bcz: this belongs here, but it doesn't render well so taking it out for now

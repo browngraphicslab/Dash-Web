@@ -18,7 +18,7 @@ export class Utils {
             return { scale: 1, translateX: 1, translateY: 1 }
         }
         const rect = ele.getBoundingClientRect();
-        const scale = ele.offsetWidth == 0 && rect.width == 0 ? 1 : rect.width / ele.offsetWidth;
+        const scale = ele.offsetWidth === 0 && rect.width === 0 ? 1 : rect.width / ele.offsetWidth;
         const translateX = rect.left;
         const translateY = rect.top;
 

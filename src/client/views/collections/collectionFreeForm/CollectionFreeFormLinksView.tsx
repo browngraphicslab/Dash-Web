@@ -37,11 +37,11 @@ export class CollectionFreeFormLinksView extends React.Component<CollectionViewP
                             let srcTarg = (protoSrc ? protoSrc : srcDoc);
                             let findBrush = (field: ListField<Document>) => field.Data.findIndex(brush => {
                                 let bdocs = brush.GetList(KeyStore.BrushingDocs, [] as Document[]);
-                                return (bdocs.length == 0 || (bdocs[0] == dstTarg && bdocs[1] == srcTarg) || (bdocs[0] == srcTarg && bdocs[1] == dstTarg))
+                                return (bdocs.length === 0 || (bdocs[0] === dstTarg && bdocs[1] === srcTarg) || (bdocs[0] === srcTarg && bdocs[1] === dstTarg))
                             });
                             let brushAction = (field: ListField<Document>) => {
                                 let found = findBrush(field);
-                                if (found != -1)
+                                if (found !== -1)
                                     field.Data.splice(found, 1);
                             };
                             if (Math.abs(x1 + x1w - x2) < 20 || Math.abs(x2 + x2w - x1) < 20) {
@@ -50,7 +50,7 @@ export class CollectionFreeFormLinksView extends React.Component<CollectionViewP
                                 linkDoc.SetText(KeyStore.LinkDescription, "Brush between " + srcTarg.Title + " and " + dstTarg.Title);
                                 linkDoc.SetData(KeyStore.BrushingDocs, [dstTarg, srcTarg], ListField);
 
-                                brushAction = brushAction = (field: ListField<Document>) => (findBrush(field) == -1) && field.Data.push(linkDoc);
+                                brushAction = brushAction = (field: ListField<Document>) => (findBrush(field) === -1) && field.Data.push(linkDoc);
                             }
                             dstTarg.GetOrCreateAsync(KeyStore.BrushingDocs, ListField, brushAction);
                             srcTarg.GetOrCreateAsync(KeyStore.BrushingDocs, ListField, brushAction);
@@ -63,10 +63,10 @@ export class CollectionFreeFormLinksView extends React.Component<CollectionViewP
     documentAnchors(view: DocumentView) {
         let equalViews = [view];
         let containerDoc = view.props.Document.GetT(KeyStore.AnnotationOn, Document);
-        if (containerDoc && containerDoc != FieldWaiting && containerDoc instanceof Document) {
-            equalViews = DocumentManager.Instance.getDocumentViews(containerDoc.GetPrototype() as Document)
+        if (containerDoc && containerDoc instanceof Document) {
+            equalViews = DocumentManager.Instance.getDocumentViews(containerDoc.GetPrototype()!)
         }
-        return equalViews.filter(sv => sv.props.ContainingCollectionView && sv.props.ContainingCollectionView.props.Document == this.props.Document);
+        return equalViews.filter(sv => sv.props.ContainingCollectionView && sv.props.ContainingCollectionView.props.Document === this.props.Document);
     }
 
     @computed
@@ -78,14 +78,14 @@ export class CollectionFreeFormLinksView extends React.Component<CollectionViewP
             srcViews.map(sv => targetViews.map(tv => possiblePairs.push({ a: sv.props.Document, b: tv.props.Document })));
             possiblePairs.map(possiblePair => {
                 if (!drawnPairs.reduce((found, drawnPair) => {
-                    let match = (possiblePair.a == drawnPair.a && possiblePair.b == drawnPair.b);
+                    let match = (possiblePair.a === drawnPair.a && possiblePair.b === drawnPair.b);
                     if (match) {
-                        if (!drawnPair.l.reduce((found, link) => found || link.Id == connection.l.Id, false))
+                        if (!drawnPair.l.reduce((found, link) => found || link.Id === connection.l.Id, false))
                             drawnPair.l.push(connection.l);
                     }
                     return match || found;
                 }, false)) {
-                    drawnPairs.push({ a: possiblePair.a, b: possiblePair.b, l: [connection.l] as Document[] });
+                    drawnPairs.push({ a: possiblePair.a, b: possiblePair.b, l: [connection.l] });
                 }
             })
             return drawnPairs

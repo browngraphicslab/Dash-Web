@@ -26,7 +26,7 @@ export interface ExecutableScript {
 }
 
 function Compile(script: string | undefined, diagnostics: Opt<any[]>, scope: { [name: string]: any }): ExecutableScript {
-    const compiled = !(diagnostics && diagnostics.some(diag => diag.category == ts.DiagnosticCategory.Error));
+    const compiled = !(diagnostics && diagnostics.some(diag => diag.category === ts.DiagnosticCategory.Error));
 
     let func: () => Opt<Field>;
     if (compiled && script) {
@@ -40,7 +40,7 @@ function Compile(script: string | undefined, diagnostics: Opt<any[]>, scope: { [
             paramNames.push(prop);
             params.push(scope[prop]);
         }
-        let thisParam = scope["this"];
+        let thisParam = scope.this;
         let compiledFunction = new Function(...paramNames, script);
         func = function (): Opt<Field> {
             return compiledFunction.apply(thisParam, params)
@@ -49,10 +49,8 @@ function Compile(script: string | undefined, diagnostics: Opt<any[]>, scope: { [
         func = () => undefined;
     }
 
-    return Object.assign(func,
-        {
-            compiled
-        });
+    Object.assign(func, { compiled });
+    return func as ExecutableScript;
 }
 
 interface File {
@@ -125,9 +123,9 @@ export function CompileScript(script: string, scope?: { [name: string]: any }, a
 }
 
 export function ToField(data: any): Opt<Field> {
-    if (typeof data == "string") {
+    if (typeof data === "string") {
         return new TextField(data);
-    } else if (typeof data == "number") {
+    } else if (typeof data === "number") {
         return new NumberField(data);
     }
     return undefined;

@@ -264,11 +264,9 @@ function deleteFields() {
 }
 
 function deleteAll() {
-    return Database.Instance.deleteAll().then(() => {
-        return Database.Instance.deleteAll('sessions')
-    }).then(() => {
-        return Database.Instance.deleteAll('users')
-    });
+    return Database.Instance.deleteAll().then(() =>
+        Database.Instance.deleteAll('sessions')).then(() =>
+            Database.Instance.deleteAll('users'));
 }
 
 function barReceived(guid: String) {

@@ -38,7 +38,7 @@ export class EditableView extends React.Component<EditableProps> {
 
     @action
     onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key == "Enter") {
+        if (e.key === "Enter") {
             if (!e.ctrlKey) {
                 if (this.props.SetValue(e.currentTarget.value)) {
                     this.editing = false;
@@ -47,7 +47,7 @@ export class EditableView extends React.Component<EditableProps> {
                 this.props.OnFillDown(e.currentTarget.value);
                 this.editing = false;
             }
-        } else if (e.key == "Escape") {
+        } else if (e.key === "Escape") {
             this.editing = false;
         }
     }

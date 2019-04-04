@@ -103,14 +103,13 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
         this._valueInput = e.currentTarget.value;
     }
 
-    newKeyValue = () => {
-        return (
+    newKeyValue = () =>
+        (
             <tr>
                 <td><input type="text" value={this._keyInput} placeholder="Key" onChange={this.keyChanged} /></td>
                 <td><input type="text" value={this._valueInput} placeholder="Value" onChange={this.valueChanged} onKeyPress={this.onEnterKey} /></td>
             </tr>
         )
-    }
 
     render() {
         return (<div className="keyValueBox-cont" onWheel={this.onPointerWheel}>

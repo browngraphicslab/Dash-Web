@@ -122,9 +122,7 @@ export class CollectionSchemaView extends CollectionViewBase {
                         }
                         return field || "";
                     }}
-                    SetValue={(value: string) => {
-                        return applyToDoc(props.Document, value);
-                    }}
+                    SetValue={(value: string) => applyToDoc(props.Document, value)}
                     OnFillDown={(value: string) => {
                         this.props.Document.GetTAsync<ListField<Document>>(this.props.fieldKey, ListField).then((val) => {
                             if (val) {
@@ -240,12 +238,8 @@ export class CollectionSchemaView extends CollectionViewBase {
     getContentScaling = (): number => this._contentScaling;
     getPanelWidth = (): number => this._panelWidth;
     getPanelHeight = (): number => this._panelHeight;
-    getTransform = (): Transform => {
-        return this.props.ScreenToLocalTransform().translate(- COLLECTION_BORDER_WIDTH - this.DIVIDER_WIDTH - this._dividerX, - COLLECTION_BORDER_WIDTH).scale(1 / this._contentScaling);
-    }
-    getPreviewTransform = (): Transform => {
-        return this.props.ScreenToLocalTransform().translate(- COLLECTION_BORDER_WIDTH - this.DIVIDER_WIDTH - this._dividerX - this._tableWidth, - COLLECTION_BORDER_WIDTH).scale(1 / this._contentScaling);
-    }
+    getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(- COLLECTION_BORDER_WIDTH - this.DIVIDER_WIDTH - this._dividerX, - COLLECTION_BORDER_WIDTH).scale(1 / this._contentScaling)
+    getPreviewTransform = (): Transform => this.props.ScreenToLocalTransform().translate(- COLLECTION_BORDER_WIDTH - this.DIVIDER_WIDTH - this._dividerX - this._tableWidth, - COLLECTION_BORDER_WIDTH).scale(1 / this._contentScaling)
 
     focusDocument = (doc: Document) => { }
 
@@ -332,9 +326,8 @@ export class CollectionSchemaView extends CollectionViewBase {
                     <div id="preview-schema-checkbox-div"><input type="checkbox" key={"Show Preview"} checked={this.splitPercentage != 0} onChange={this.toggleExpander} />  Show Preview </div>
                     <h6 className="schema-options-subHeader" >Displayed Columns</h6>
                     <ul id="schema-col-checklist" >
-                        {Array.from(Object.keys(allKeys)).map(item => {
-                            return (<KeyToggle checked={allKeys[item]} key={item} keyId={item} toggle={this.toggleKey} />)
-                        })}
+                        {Array.from(Object.keys(allKeys)).map(item =>
+                            (<KeyToggle checked={allKeys[item]} key={item} keyId={item} toggle={this.toggleKey} />))}
                     </ul>
                     <input value={this.newKeyName} onChange={this.newKeyChange} />
                     <button onClick={this.addColumn}><FontAwesomeIcon style={{ color: "white" }} icon="plus" size="lg" /></button>

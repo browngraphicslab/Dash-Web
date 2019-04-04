@@ -2,7 +2,7 @@ import * as React from 'react';
 import { FieldViewProps } from '../nodes/FieldView';
 import { KeyStore } from '../../../fields/KeyStore';
 import { NumberField } from '../../../fields/NumberField';
-import { FieldWaiting, Field } from '../../../fields/Field';
+import { FieldWaiting, Field, FieldValue } from '../../../fields/Field';
 import { ContextMenu } from '../ContextMenu';
 import { SelectionManager } from '../../util/SelectionManager';
 import { Document } from '../../../fields/Document';
@@ -72,7 +72,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
             if (this.createsCycle(annots[i], containerDocument))
                 return true;
         }
-        for (let containerProto: any = containerDocument; containerProto && containerProto != FieldWaiting; containerProto = containerProto.GetPrototype()) {
+        for (let containerProto: FieldValue<Document> = containerDocument; containerProto && containerProto != FieldWaiting; containerProto = containerProto.GetPrototype()) {
             if (containerProto.Id == documentToAdd.Id)
                 return true;
         }

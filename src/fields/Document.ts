@@ -30,9 +30,9 @@ export class Document extends Field {
         }
     }
 
-    public Width = () => { return this.GetNumber(KeyStore.Width, 0) }
-    public Height = () => { return this.GetNumber(KeyStore.Height, this.GetNumber(KeyStore.NativeWidth, 0) ? this.GetNumber(KeyStore.NativeHeight, 0) / this.GetNumber(KeyStore.NativeWidth, 0) * this.GetNumber(KeyStore.Width, 0) : 0) }
-    public Scale = () => { return this.GetNumber(KeyStore.Scale, 1) }
+    public Width = () => this.GetNumber(KeyStore.Width, 0)
+    public Height = () => this.GetNumber(KeyStore.Height, this.GetNumber(KeyStore.NativeWidth, 0) ? this.GetNumber(KeyStore.NativeHeight, 0) / this.GetNumber(KeyStore.NativeWidth, 0) * this.GetNumber(KeyStore.Width, 0) : 0)
+    public Scale = () => this.GetNumber(KeyStore.Scale, 1)
 
     @computed
     public get Title(): string {
@@ -90,7 +90,7 @@ export class Document extends Field {
             }
         } else {
             let doc: FieldValue<Document> = this;
-            while (doc && doc != FieldWaiting && field != FieldWaiting) {
+            while (doc && doc !== FieldWaiting && field !== FieldWaiting) {
                 let curField = doc.fields.get(key.Id);
                 let curProxy = doc._proxies.get(key.Id);
                 if (!curField || (curProxy && curField.field.Id !== curProxy)) {
@@ -118,7 +118,7 @@ export class Document extends Field {
                     break;
                 }
             }
-            if (doc == FieldWaiting)
+            if (doc === FieldWaiting)
                 field = FieldWaiting;
         }
 
@@ -165,7 +165,7 @@ export class Document extends Field {
         if (callback) {
             fn(callback);
         } else {
-            return new Promise(res => fn(res));
+            return new Promise(fn);
         }
     }
 
@@ -356,7 +356,7 @@ export class Document extends Field {
         let fields: [string, string][] = []
         this._proxies.forEach((field, key) => {
             if (field) {
-                fields.push([key, field as string])
+                fields.push([key, field])
             }
         });
 

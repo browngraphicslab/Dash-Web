@@ -246,18 +246,18 @@ export class Settings {
         else {
             this.ServerUrl = environment["SERVER_URL"] ? environment["SERVER_URL"] : document.URL;
         }*/
-        this.ServerUrl = environment["SERVER_URL"] ? environment["SERVER_URL"] : document.URL;
-        this.ServerApiPath = environment["SERVER_API_PATH"];
-        this.SampleSize = environment["SAMPLE_SIZE"];
-        this.XBins = environment["X_BINS"];
-        this.YBins = environment["Y_BINS"];
-        this.SplashTimeInMS = environment["SPLASH_TIME_IN_MS"];
-        this.ShowFpsCounter = environment["SHOW_FPS_COUNTER"];
-        this.ShowShutdownButton = environment["SHOW_SHUTDOWN_BUTTON"];
-        this.IsMenuFixed = environment["IS_MENU_FIXED"];
-        this.IsDarpa = environment["IS_DARPA"];
-        this.IsIGT = environment["IS_IGT"];
-        this.DegreeOfParallelism = environment["DEGREE_OF_PARALLISM"];
+        this.ServerUrl = environment.SERVER_URL ? environment.SERVER_URL : document.URL;
+        this.ServerApiPath = environment.SERVER_API_PATH;
+        this.SampleSize = environment.SAMPLE_SIZE;
+        this.XBins = environment.X_BINS;
+        this.YBins = environment.Y_BINS;
+        this.SplashTimeInMS = environment.SPLASH_TIME_IN_MS;
+        this.ShowFpsCounter = environment.SHOW_FPS_COUNTER;
+        this.ShowShutdownButton = environment.SHOW_SHUTDOWN_BUTTON;
+        this.IsMenuFixed = environment.IS_MENU_FIXED;
+        this.IsDarpa = environment.IS_DARPA;
+        this.IsIGT = environment.IS_IGT;
+        this.DegreeOfParallelism = environment.DEGREE_OF_PARALLISM;
     }
 
     public static get Instance(): Settings {

@@ -152,7 +152,7 @@ describe("Reference", () => {
         let ran = false;
         reaction(() => {
             let field = doc2.GetT(key, NumberField);
-            if (field && field != FieldWaiting) {
+            if (field && field !== FieldWaiting) {
                 return field.Data;
             }
             return undefined;

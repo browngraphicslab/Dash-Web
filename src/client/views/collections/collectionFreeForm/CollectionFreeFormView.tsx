@@ -83,8 +83,8 @@ export class CollectionFreeFormView extends CollectionViewBase {
     drop = (e: Event, de: DragManager.DropEvent) => {
         if (super.drop(e, de)) {
             if (de.data instanceof DragManager.DocumentDragData) {
-                let screenX = de.x - (de.data.xOffset as number || 0);
-                let screenY = de.y - (de.data.yOffset as number || 0);
+                let screenX = de.x - (de.data.xOffset || 0);
+                let screenY = de.y - (de.data.yOffset || 0);
                 const [x, y] = this.getTransform().transformPoint(screenX, screenY);
                 let dragDoc = de.data.draggedDocuments[0];
                 let dragX = dragDoc.GetNumber(KeyStore.X, 0);

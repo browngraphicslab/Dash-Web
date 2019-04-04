@@ -159,8 +159,8 @@ export namespace UndoManager {
         }
 
         undoing = true;
-        for (let i = 0; i < commands.length; i++) {
-            commands[i].redo();
+        for (const command of commands) {
+            command.redo();
         }
         undoing = false;
 

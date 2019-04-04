@@ -146,7 +146,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             if (InkingCanvas.IntersectStrokeRect(value, this.Bounds)) {
                 idata.set(key,
                     {
-                        pathData: value.pathData.map(val => { return { x: val.x + centerShiftX, y: val.y + centerShiftY } }),
+                        pathData: value.pathData.map(val => ({ x: val.x + centerShiftX, y: val.y + centerShiftY })),
                         color: value.color,
                         width: value.width,
                         tool: value.tool,

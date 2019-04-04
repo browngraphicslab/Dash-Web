@@ -40,9 +40,8 @@ export namespace SelectionManager {
     export function DeselectAll(except?: Document): void {
         let found: DocumentView | undefined = undefined;
         if (except) {
-            for (let i = 0; i < manager.SelectedDocuments.length; i++) {
-                let view = manager.SelectedDocuments[i];
-                if (view.props.Document == except)
+            for (const view of manager.SelectedDocuments) {
+                if (view.props.Document === except)
                     found = view;
             }
         }

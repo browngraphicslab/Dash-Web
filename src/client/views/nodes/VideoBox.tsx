@@ -50,8 +50,8 @@ export class VideoBox extends React.Component<FieldViewProps> {
     @action
     setVideoRef = (vref: HTMLVideoElement | null) => {
         if (this.curPage >= 0 && vref) {
-            vref!.currentTime = this.curPage;
-            (vref! as any).AHackBecauseSomethingResetsTheVideoToZero = this.curPage;
+            vref.currentTime = this.curPage;
+            (vref as any).AHackBecauseSomethingResetsTheVideoToZero = this.curPage;
         }
     }
 

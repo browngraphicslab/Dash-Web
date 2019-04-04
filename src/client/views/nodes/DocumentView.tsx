@@ -287,9 +287,8 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     }
 
 
-    isSelected = () => {
-        return SelectionManager.IsSelected(this);
-    }
+    isSelected = () =>
+        SelectionManager.IsSelected(this)
 
     select = (ctrlPressed: boolean) => {
         SelectionManager.SelectDoc(this, ctrlPressed)

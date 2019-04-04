@@ -6,6 +6,7 @@ import { ImageField } from "../../fields/ImageField";
 import { KeyStore } from "../../fields/KeyStore";
 import { CollectionView } from "../views/collections/CollectionView";
 import { DocumentView } from "../views/nodes/DocumentView";
+import { emptyFunction } from "../../Utils";
 
 export function setupDrag(_reference: React.RefObject<HTMLDivElement>, docFunc: () => Document, removeFunc: (containingCollection: CollectionView) => void = () => { }) {
     let onRowMove = action((e: PointerEvent): void => {
@@ -24,7 +25,7 @@ export function setupDrag(_reference: React.RefObject<HTMLDivElement>, docFunc: 
     });
     let onItemDown = (e: React.PointerEvent) => {
         // if (this.props.isSelected() || this.props.isTopMost) {
-        if (e.button == 0) {
+        if (e.button === 0) {
             e.stopPropagation();
             if (e.shiftKey) {
                 CollectionDockingView.Instance.StartOtherDrag([docFunc()], e);
@@ -88,7 +89,7 @@ export namespace DragManager {
         if ("canDrop" in element.dataset) {
             throw new Error("Element is already droppable, can't make it droppable again");
         }
-        element.dataset["canDrop"] = "true";
+        element.dataset.canDrop = "true";
         const handler = (e: Event) => {
             const ce = e as CustomEvent<DropEvent>;
             options.handlers.drop(e, ce.detail);
@@ -96,7 +97,7 @@ export namespace DragManager {
         element.addEventListener("dashOnDrop", handler);
         return () => {
             element.removeEventListener("dashOnDrop", handler);
-            delete element.dataset["canDrop"]
+            delete element.dataset.canDrop
         };
     }
 
@@ -167,11 +168,11 @@ export namespace DragManager {
                 let thumbnail = docs[0].GetT(KeyStore.Thumbnail, ImageField);
                 if (pdfBox && pdfBox.childElementCount && thumbnail) {
                     let img = new Image();
-                    img!.src = thumbnail.toString();
-                    img!.style.position = "absolute";
-                    img!.style.width = `${rect.width / scaleX}px`;
-                    img!.style.height = `${rect.height / scaleY}px`;
-                    pdfBox.replaceChild(img!, pdfBox.children[0])
+                    img.src = thumbnail.toString();
+                    img.style.position = "absolute";
+                    img.style.width = `${rect.width / scaleX}px`;
+                    img.style.height = `${rect.height / scaleY}px`;
+                    pdfBox.replaceChild(img, pdfBox.children[0])
                 }
             }
 
@@ -224,9 +225,9 @@ export namespace DragManager {
         });
         const target = document.elementFromPoint(e.x, e.y);
         removed.map(r => {
-            let dragEle: HTMLElement = r[0]!;
-            let parent: HTMLElement | null = r[1];
-            if (parent)
+            let dragEle = r[0];
+            let parent = r[1];
+            if (parent && dragEle)
                 parent.appendChild(dragEle);
         });
         if (target) {

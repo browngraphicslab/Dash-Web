@@ -171,9 +171,8 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
                 fetch(upload, {
                     method: 'POST',
                     body: formData
-                }).then((res: Response) => {
-                    return res.json()
-                }).then(json => {
+                }).then((res: Response) =>
+                    res.json()).then(json => {
                     json.map((file: any) => {
                         let path = window.location.origin + file
                         runInAction(() => {

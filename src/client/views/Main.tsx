@@ -204,9 +204,7 @@ export class Main extends React.Component {
     @observable
     workspacesShown: boolean = false;
 
-    areWorkspacesShown = () => {
-        return this.workspacesShown;
-    }
+    areWorkspacesShown = () => this.workspacesShown
     @action
     toggleWorkspaces = () => {
         this.workspacesShown = !this.workspacesShown;
@@ -373,8 +371,7 @@ export class Main extends React.Component {
     }
 }
 
-Documents.initProtos().then(() => {
-    return CurrentUserUtils.loadCurrentUser()
-}).then(() => {
-    ReactDOM.render(<Main />, document.getElementById('root'));
-});
+Documents.initProtos().then(() =>
+    CurrentUserUtils.loadCurrentUser()).then(() => {
+        ReactDOM.render(<Main />, document.getElementById('root'));
+    });

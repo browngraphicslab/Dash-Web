@@ -33,9 +33,8 @@ const onFileLoad = (file: any) => {
             fetch(upload, {
                 method: 'POST',
                 body: formData
-            }).then((res: Response) => {
-                return res.json()
-            }).then(json => {
+            }).then((res: Response) =>
+                res.json()).then(json => {
                 json.map((file: any) => {
                     let path = window.location.origin + file
                     var doc: Document = Documents.ImageDocument(path, { nativeWidth: 200, width: 200 })

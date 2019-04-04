@@ -43,7 +43,7 @@ export class CollectionVideoView extends React.Component<CollectionViewProps> {
     @action
     mainCont = (ele: HTMLDivElement | null) => {
         if (ele) {
-            this._player = ele!.getElementsByTagName("video")[0];
+            this._player = ele.getElementsByTagName("video")[0];
             if (this.props.Document.GetNumber(KeyStore.CurPage, -1) >= 0) {
                 this._currentTimecode = this.props.Document.GetNumber(KeyStore.CurPage, -1);
             }
