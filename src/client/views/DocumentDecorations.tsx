@@ -1,14 +1,14 @@
-import { observable, computed, action } from "mobx";
-import React = require("react");
-import { SelectionManager } from "../util/SelectionManager";
+import { action, computed, observable, trace } from "mobx";
 import { observer } from "mobx-react";
-import './DocumentDecorations.scss'
-import { KeyStore } from '../../fields/KeyStore'
-import { NumberField } from "../../fields/NumberField";
-import { props } from "bluebird";
-import { DragManager } from "../util/DragManager";
-import { LinkMenu } from "./nodes/LinkMenu";
+import { KeyStore } from '../../fields/KeyStore';
 import { ListField } from "../../fields/ListField";
+import { NumberField } from "../../fields/NumberField";
+import { DragManager } from "../util/DragManager";
+import { SelectionManager } from "../util/SelectionManager";
+import { CollectionView } from "./collections/CollectionView";
+import './DocumentDecorations.scss';
+import { LinkMenu } from "./nodes/LinkMenu";
+import React = require("react");
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -22,6 +22,7 @@ export class DocumentDecorations extends React.Component {
     private _resizeBorderWidth = 16;
     private _linkButton = React.createRef<HTMLDivElement>();
     @observable private _hidden = false;
+    @observable private _dragging = false;
 
     constructor(props: Readonly<{}>) {
         super(props)
@@ -49,6 +50,46 @@ export class DocumentDecorations extends React.Component {
     @computed
     public get Hidden() { return this._hidden; }
     public set Hidden(value: boolean) { this._hidden = value; }
+
+    _lastDrag: number[] = [0, 0];
+    onBackgroundDown = (e: React.PointerEvent): void => {
+        document.removeEventListener("pointermove", this.onBackgroundMove);
+        document.addEventListener("pointermove", this.onBackgroundMove);
+        document.removeEventListener("pointerup", this.onBackgroundUp);
+        document.addEventListener("pointerup", this.onBackgroundUp);
+        this._lastDrag = [e.clientX, e.clientY]
+        e.stopPropagation();
+        e.preventDefault();
+    }
+
+    @action
+    onBackgroundMove = (e: PointerEvent): void => {
+        let dragDocView = SelectionManager.SelectedDocuments()[0];
+        const [left, top] = dragDocView.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
+        let dragData = new DragManager.DocumentDragData(SelectionManager.SelectedDocuments().map(dv => dv.props.Document));
+        dragData.aliasOnDrop = false;
+        dragData.xOffset = e.x - left;
+        dragData.yOffset = e.y - top;
+        let move = SelectionManager.SelectedDocuments()[0].props.moveDocument;
+        dragData.moveDocument = move;
+        this._dragging = true;
+        document.removeEventListener("pointermove", this.onBackgroundMove);
+        document.removeEventListener("pointerup", this.onBackgroundUp);
+        DragManager.StartDocumentDrag(SelectionManager.SelectedDocuments().map(docView => (docView as any)._mainCont!.current!), dragData, {
+            handlers: {
+                dragComplete: action(() => this._dragging = false),
+            },
+            hideSource: true
+        })
+        e.stopPropagation();
+    }
+
+    onBackgroundUp = (e: PointerEvent): void => {
+        document.removeEventListener("pointermove", this.onBackgroundMove);
+        document.removeEventListener("pointerup", this.onBackgroundUp);
+        e.stopPropagation();
+        e.preventDefault();
+    }
 
     onPointerDown = (e: React.PointerEvent): void => {
         e.stopPropagation();
@@ -191,7 +232,6 @@ export class DocumentDecorations extends React.Component {
     // buttonOnPointerUp = (e: React.PointerEvent): void => {
     //     e.stopPropagation();
     // }
-
     render() {
         var bounds = this.Bounds;
         if (this.Hidden) {
@@ -218,25 +258,36 @@ export class DocumentDecorations extends React.Component {
             </Flyout>);
         }
         return (
-            <div id="documentDecorations-container" style={{
-                width: (bounds.r - bounds.x + this._resizeBorderWidth) + "px",
-                height: (bounds.b - bounds.y + this._resizeBorderWidth + 30) + "px",
-                left: bounds.x - this._resizeBorderWidth / 2,
-                top: bounds.y - this._resizeBorderWidth / 2,
-            }}>
-                <div id="documentDecorations-topLeftResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
-                <div id="documentDecorations-topResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
-                <div id="documentDecorations-topRightResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
-                <div id="documentDecorations-leftResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
-                <div id="documentDecorations-centerCont"></div>
-                <div id="documentDecorations-rightResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
-                <div id="documentDecorations-bottomLeftResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
-                <div id="documentDecorations-bottomResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
-                <div id="documentDecorations-bottomRightResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
+            <div className="documentDecorations">
+                <div className="documentDecorations-background" style={{
+                    width: (bounds.r - bounds.x + this._resizeBorderWidth) + "px",
+                    height: (bounds.b - bounds.y + this._resizeBorderWidth) + "px",
+                    left: bounds.x - this._resizeBorderWidth / 2,
+                    top: bounds.y - this._resizeBorderWidth / 2,
+                    pointerEvents: this._dragging ? "none" : "all",
+                    zIndex: SelectionManager.SelectedDocuments().length > 1 ? 1000 : 0,
+                }} onPointerDown={this.onBackgroundDown} onContextMenu={(e: React.MouseEvent) => { e.preventDefault(); e.stopPropagation() }} >
+                </div>
+                <div id="documentDecorations-container" style={{
+                    width: (bounds.r - bounds.x + this._resizeBorderWidth) + "px",
+                    height: (bounds.b - bounds.y + this._resizeBorderWidth + 30) + "px",
+                    left: bounds.x - this._resizeBorderWidth / 2,
+                    top: bounds.y - this._resizeBorderWidth / 2,
+                }}>
+                    <div id="documentDecorations-topLeftResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
+                    <div id="documentDecorations-topResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
+                    <div id="documentDecorations-topRightResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
+                    <div id="documentDecorations-leftResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
+                    <div id="documentDecorations-centerCont"></div>
+                    <div id="documentDecorations-rightResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
+                    <div id="documentDecorations-bottomLeftResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
+                    <div id="documentDecorations-bottomResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
+                    <div id="documentDecorations-bottomRightResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
 
-                <div title="View Links" className="linkFlyout" ref={this._linkButton}>{linkButton}</div>
+                    <div title="View Links" className="linkFlyout" ref={this._linkButton}>{linkButton}</div>
 
-            </div >
+                </div >
+            </div>
         )
     }
 }

@@ -54,7 +54,7 @@ export class HistogramBox extends React.Component<FieldViewProps> {
     @action
     dropX = (e: Event, de: DragManager.DropEvent) => {
         if (de.data instanceof DragManager.DocumentDragData) {
-            let h = de.data.draggedDocument.GetT(KeyStore.Data, HistogramField);
+            let h = de.data.draggedDocuments[0].GetT(KeyStore.Data, HistogramField);
             if (h && h != FieldWaiting) {
                 this.HistoOp.X = h.Data.X;
             }
@@ -65,7 +65,7 @@ export class HistogramBox extends React.Component<FieldViewProps> {
     @action
     dropY = (e: Event, de: DragManager.DropEvent) => {
         if (de.data instanceof DragManager.DocumentDragData) {
-            let h = de.data.draggedDocument.GetT(KeyStore.Data, HistogramField);
+            let h = de.data.draggedDocuments[0].GetT(KeyStore.Data, HistogramField);
             if (h && h != FieldWaiting) {
                 this.HistoOp.Y = h.Data.X;
             }

@@ -21,8 +21,9 @@ export enum CollectionViewType {
 export interface CollectionRenderProps {
     addDocument: (document: Document, allowDuplicates?: boolean) => boolean;
     removeDocument: (document: Document) => boolean;
-    moveDocument: (document: Document, targetCollection: Document, addDocument: (document: Document) => void) => boolean;
+    moveDocument: (document: Document, targetCollection: Document, addDocument: (document: Document) => boolean) => boolean;
     active: () => boolean;
+    onActiveChanged: (isActive: boolean) => void;
 }
 
 export interface CollectionViewProps extends FieldViewProps {
@@ -49,9 +50,15 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
 
     active = (): boolean => {
         var isSelected = this.props.isSelected();
-        var childSelected = SelectionManager.SelectedDocuments().some(view => view.props.ContainingCollectionView == this);
         var topMost = this.props.isTopMost;
-        return isSelected || childSelected || topMost;
+        return isSelected || this._isChildActive || topMost;
+    }
+
+    //TODO should this be observable?
+    private _isChildActive = false;
+    onActiveChanged = (isActive: boolean) => {
+        this._isChildActive = isActive;
+        this.props.onActiveChanged(isActive);
     }
 
     createsCycle(documentToAdd: Document, containerDocument: Document): boolean {
@@ -121,7 +128,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         if (index !== -1) {
             value.splice(index, 1)
 
-            SelectionManager.DeselectAll()
+            // SelectionManager.DeselectAll()
             ContextMenu.Instance.clearItems()
             return true;
         }
@@ -129,13 +136,12 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
     }
 
     @action.bound
-    moveDocument(doc: Document, targetCollection: Document, addDocument: (doc: Document) => void): boolean {
+    moveDocument(doc: Document, targetCollection: Document, addDocument: (doc: Document) => boolean): boolean {
         if (this.props.Document === targetCollection) {
             return false;
         }
         if (this.removeDocument(doc)) {
-            addDocument(doc);
-            return true;
+            return addDocument(doc);
         }
         return false;
     }
@@ -145,7 +151,8 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
             addDocument: this.addDocument,
             removeDocument: this.removeDocument,
             moveDocument: this.moveDocument,
-            active: this.active
+            active: this.active,
+            onActiveChanged: this.onActiveChanged,
         }
         return (
             <div className={this.props.className || "collectionView-cont"} onContextMenu={this.props.onContextMenu} ref={this.props.contentRef}>

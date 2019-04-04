@@ -36,6 +36,7 @@ export interface DocumentViewProps {
     focus: (doc: Document) => void;
     selectOnLoad: boolean;
     parentActive: () => boolean;
+    onActiveChanged: (isActive: boolean) => void;
 }
 export interface JsxArgs extends DocumentViewProps {
     Keys: { [name: string]: Key }
@@ -99,7 +100,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             if (this.props.isTopMost) {
                 this.startDragging(e.pageX, e.pageY, e.altKey || e.ctrlKey);
             }
-            else CollectionDockingView.Instance.StartOtherDrag(this.props.Document, e);
+            else CollectionDockingView.Instance.StartOtherDrag([this.props.Document], e);
             e.stopPropagation();
         } else {
             if (this.active && !e.isDefaultPrevented()) {
@@ -118,9 +119,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         if (this._mainCont.current) {
             this.dropDisposer = DragManager.MakeDropTarget(this._mainCont.current, { handlers: { drop: this.drop.bind(this) } });
         }
-        runInAction(() => {
-            DocumentManager.Instance.DocumentViews.push(this);
-        })
+        runInAction(() => DocumentManager.Instance.DocumentViews.push(this))
     }
 
     componentDidUpdate() {
@@ -136,25 +135,18 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         if (this.dropDisposer) {
             this.dropDisposer();
         }
-        runInAction(() => {
-            DocumentManager.Instance.DocumentViews.splice(DocumentManager.Instance.DocumentViews.indexOf(this), 1);
-
-        })
+        runInAction(() => DocumentManager.Instance.DocumentViews.splice(DocumentManager.Instance.DocumentViews.indexOf(this), 1))
     }
 
     startDragging(x: number, y: number, dropAliasOfDraggedDoc: boolean) {
         if (this._mainCont.current) {
             const [left, top] = this.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
-            let dragData = new DragManager.DocumentDragData(this.props.Document);
+            let dragData = new DragManager.DocumentDragData([this.props.Document]);
             dragData.aliasOnDrop = dropAliasOfDraggedDoc;
             dragData.xOffset = x - left;
             dragData.yOffset = y - top;
-            dragData.moveDocument = (targetCollection: Document, addDocument: (document: Document) => void) => {
-                if (this.props.moveDocument) {
-                    this.props.moveDocument(this.props.Document, targetCollection, addDocument)
-                }
-            }
-            DragManager.StartDocumentDrag(this._mainCont.current, dragData, {
+            dragData.moveDocument = this.props.moveDocument;
+            DragManager.StartDocumentDrag([this._mainCont.current], dragData, {
                 handlers: {
                     dragComplete: action(() => { }),
                 },

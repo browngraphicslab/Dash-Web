@@ -83,7 +83,8 @@ export class CollectionSchemaView extends CollectionViewBase {
             selectOnLoad: false,
             ScreenToLocalTransform: Transform.Identity,
             focus: emptyFunction,
-            active: returnFalse
+            active: returnFalse,
+            onActiveChanged: emptyFunction,
         }
         let contents = (
             <FieldView {...props} />
@@ -299,18 +300,19 @@ export class CollectionSchemaView extends CollectionViewBase {
             <Measure onResize={this.setScaling}>
                 {({ measureRef }) =>
                     <div className="collectionSchemaView-content" ref={measureRef}>
-                        {doc instanceof Document ? <DocumentView Document={doc}
-                            addDocument={this.props.addDocument} removeDocument={this.props.removeDocument}
-                            isTopMost={false}
-                            selectOnLoad={false}
-                            ScreenToLocalTransform={this.getPreviewTransform}
-                            ContentScaling={this.getContentScaling}
-                            PanelWidth={this.getPanelWidth}
-                            PanelHeight={this.getPanelHeight}
-                            ContainingCollectionView={undefined}
-                            focus={this.focusDocument}
-                            parentActive={this.props.active}
-                        /> : null}
+                        {doc instanceof Document ?
+                            <DocumentView Document={doc}
+                                addDocument={this.props.addDocument} removeDocument={this.props.removeDocument}
+                                isTopMost={false}
+                                selectOnLoad={false}
+                                ScreenToLocalTransform={this.getPreviewTransform}
+                                ContentScaling={this.getContentScaling}
+                                PanelWidth={this.getPanelWidth}
+                                PanelHeight={this.getPanelHeight}
+                                ContainingCollectionView={undefined}
+                                focus={this.focusDocument}
+                                parentActive={this.props.active}
+                                onActiveChanged={this.props.onActiveChanged} /> : null}
                         <input value={this.previewScript} onChange={this.onPreviewScriptChange}
                             style={{ position: 'absolute', bottom: '0px' }} />
                     </div>

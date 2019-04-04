@@ -54,7 +54,8 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
                 ScreenToLocalTransform,
                 addDocument,
                 removeDocument,
-                parentActive: active
+                onActiveChanged,
+                parentActive: active,
             } = this.props;
         let bindings: JsxBindings = {
             props: {
@@ -65,6 +66,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
                 selectOnLoad,
                 ScreenToLocalTransform,
                 active,
+                onActiveChanged,
                 addDocument,
                 removeDocument,
                 focus,

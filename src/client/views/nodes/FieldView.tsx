@@ -36,9 +36,10 @@ export interface FieldViewProps {
     selectOnLoad: boolean;
     addDocument?: (document: Document, allowDuplicates?: boolean) => boolean;
     removeDocument?: (document: Document) => boolean;
-    moveDocument?: (document: Document, targetCollection: Document, addDocument: (document: Document) => void) => boolean;
+    moveDocument?: (document: Document, targetCollection: Document, addDocument: (document: Document) => boolean) => boolean;
     ScreenToLocalTransform: () => Transform;
     active: () => boolean;
+    onActiveChanged: (isActive: boolean) => void;
     focus: (doc: Document) => void;
 }
 
@@ -74,21 +75,24 @@ export class FieldView extends React.Component<FieldViewProps> {
             return <AudioBox {...this.props} />
         }
         else if (field instanceof Document) {
-            return (<DocumentContentsView Document={field}
-                addDocument={undefined}
-                removeDocument={undefined}
-                ScreenToLocalTransform={Transform.Identity}
-                ContentScaling={() => 1}
-                PanelWidth={() => 100}
-                PanelHeight={() => 100}
-                isTopMost={true} //TODO Why is this top most?
-                selectOnLoad={false}
-                focus={() => { }}
-                isSelected={() => false}
-                select={() => false}
-                layoutKey={KeyStore.Layout}
-                ContainingCollectionView={undefined}
-                parentActive={this.props.active} />)
+            return (
+                <DocumentContentsView Document={field}
+                    addDocument={undefined}
+                    removeDocument={undefined}
+                    ScreenToLocalTransform={Transform.Identity}
+                    ContentScaling={() => 1}
+                    PanelWidth={() => 100}
+                    PanelHeight={() => 100}
+                    isTopMost={true} //TODO Why is this top most?
+                    selectOnLoad={false}
+                    focus={() => { }}
+                    isSelected={() => false}
+                    select={() => false}
+                    layoutKey={KeyStore.Layout}
+                    ContainingCollectionView={undefined}
+                    parentActive={this.props.active}
+                    onActiveChanged={this.props.onActiveChanged} />
+            )
         }
         else if (field instanceof ListField) {
             return (<div>

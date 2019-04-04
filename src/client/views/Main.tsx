@@ -6,7 +6,7 @@ import { Document } from '../../fields/Document';
 import { KeyStore } from '../../fields/KeyStore';
 import "./Main.scss";
 import { MessageStore } from '../../server/Message';
-import { Utils, returnTrue } from '../../Utils';
+import { Utils, returnTrue, emptyFunction } from '../../Utils';
 import * as request from 'request'
 import * as rp from 'request-promise'
 import { Documents } from '../documents/Documents';
@@ -217,7 +217,8 @@ export class Main extends React.Component {
     focusDocument = (doc: Document) => { }
     noScaling = () => 1;
 
-    get content() {
+    @computed
+    get mainContent() {
         return !this.mainContainer ? (null) :
             <DocumentView Document={this.mainContainer}
                 addDocument={undefined}
@@ -230,6 +231,7 @@ export class Main extends React.Component {
                 selectOnLoad={false}
                 focus={this.focusDocument}
                 parentActive={returnTrue}
+                onActiveChanged={emptyFunction}
                 ContainingCollectionView={undefined} />
     }
 
@@ -311,17 +313,17 @@ export class Main extends React.Component {
         }
         return (
             <div id="main-div">
+                <DocumentDecorations />
                 <Measure onResize={(r: any) => runInAction(() => {
                     this.pwidth = r.entry.width;
                     this.pheight = r.entry.height;
                 })}>
                     {({ measureRef }) =>
                         <div ref={measureRef} id="mainContent-div">
-                            {this.content}
+                            {this.mainContent}
                         </div>
                     }
                 </Measure>
-                <DocumentDecorations />
                 <ContextMenu />
                 {this.nodesMenu}
                 {this.miscButtons}

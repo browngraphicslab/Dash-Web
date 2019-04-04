@@ -22,7 +22,7 @@ import { FieldViewProps } from "../nodes/FieldView";
 export interface CollectionViewProps extends FieldViewProps {
     addDocument: (document: Document, allowDuplicates?: boolean) => boolean;
     removeDocument: (document: Document) => boolean;
-    moveDocument: (document: Document, targetCollection: Document, addDocument: (document: Document) => void) => boolean;
+    moveDocument: (document: Document, targetCollection: Document, addDocument: (document: Document) => boolean) => boolean;
 }
 
 export interface SubCollectionViewProps extends CollectionViewProps {
@@ -72,11 +72,14 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
         if (de.data instanceof DragManager.DocumentDragData) {
             if (de.data.aliasOnDrop) {
                 [KeyStore.Width, KeyStore.Height, KeyStore.CurPage].map(key =>
-                    de.data.draggedDocument.GetTAsync(key, NumberField, (f: Opt<NumberField>) => f ? de.data.droppedDocument.SetNumber(key, f.Data) : null));
+                    de.data.draggedDocuments.GetTAsync(key, NumberField, (f: Opt<NumberField>) => f ? de.data.droppedDocument.SetNumber(key, f.Data) : null));
             }
-            let added = this.props.addDocument(de.data.droppedDocument, false);
-            if (added && de.data.moveDocument && !de.data.aliasOnDrop) {
-                de.data.moveDocument(this.props.Document, this.props.addDocument);
+            let added = false;
+            if (de.data.aliasOnDrop) {
+                added = de.data.droppedDocuments.reduce((added, d) => added || this.props.addDocument(d), false);
+            } else if (de.data.moveDocument) {
+                const move = de.data.moveDocument;
+                added = de.data.droppedDocuments.reduce((added, d) => added || move(d, this.props.Document, this.props.addDocument), false)
             }
             e.stopPropagation();
             return added;
