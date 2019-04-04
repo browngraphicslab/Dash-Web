@@ -20,6 +20,7 @@ import React = require("react");
 import v5 = require("uuid/v5");
 import { CollectionFreeFormRemoteCursors } from "./CollectionFreeFormRemoteCursors";
 import { PreviewCursor } from "./PreviewCursor";
+import { NumberField } from "../../../../fields/NumberField";
 
 @observer
 export class CollectionFreeFormView extends CollectionViewBase {
@@ -83,13 +84,17 @@ export class CollectionFreeFormView extends CollectionViewBase {
                 let dragDoc = de.data.droppedDocuments[0];
                 let dragX = dragDoc.GetNumber(KeyStore.X, 0);
                 let dragY = dragDoc.GetNumber(KeyStore.Y, 0);
-                droppedDocs.map(d => {
+                droppedDocs.map(async d => {
                     let docX = d.GetNumber(KeyStore.X, 0);
                     let docY = d.GetNumber(KeyStore.Y, 0);
                     d.SetNumber(KeyStore.X, x + (docX - dragX));
                     d.SetNumber(KeyStore.Y, y + (docY - dragY));
-                    if (!d.GetNumber(KeyStore.Width, 0)) {
+                    let docW = await d.GetTAsync(KeyStore.Width, NumberField);
+                    let docH = await d.GetTAsync(KeyStore.Height, NumberField);
+                    if (!docW) {
                         d.SetNumber(KeyStore.Width, 300);
+                    }
+                    if (!docH) {
                         d.SetNumber(KeyStore.Height, 300);
                     }
                     this.bringToFront(d);

@@ -142,6 +142,30 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         e.preventDefault();
     }
 
+    onCloseDown = (e: React.PointerEvent): void => {
+        e.stopPropagation();
+        if (e.button === 0) {
+            document.removeEventListener("pointermove", this.onCloseMove);
+            document.addEventListener("pointermove", this.onCloseMove);
+            document.removeEventListener("pointerup", this.onCloseUp);
+            document.addEventListener("pointerup", this.onCloseUp);
+        }
+    }
+    onCloseMove = (e: PointerEvent): void => {
+        e.stopPropagation();
+        if (e.button === 0) {
+        }
+    }
+    @action
+    onCloseUp = (e: PointerEvent): void => {
+        e.stopPropagation();
+        if (e.button === 0) {
+            SelectionManager.SelectedDocuments().map(dv => dv.props.RemoveDocument && dv.props.RemoveDocument(dv.props.Document));
+            SelectionManager.DeselectAll();
+            document.removeEventListener("pointermove", this.onCloseMove);
+            document.removeEventListener("pointerup", this.onCloseUp);
+        }
+    }
     onMinimizeDown = (e: React.PointerEvent): void => {
         e.stopPropagation();
         if (e.button === 0) {
@@ -219,7 +243,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         e.stopPropagation();
     }
 
-    onLinkButtonMoved = (e: PointerEvent): void => {
+    onLinkButtonMoved = async (e: PointerEvent) => {
         if (this._linkButton.current != null) {
             document.removeEventListener("pointermove", this.onLinkButtonMoved)
             document.removeEventListener("pointerup", this.onLinkButtonUp);
@@ -234,10 +258,13 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     (linkDoc.GetT(KeyStore.LinkedFromDocs, Document)) as Document) : [];
             draggedDocs.push(...draggedFromDocs);
             if (draggedDocs.length) {
-                let dragData = new DragManager.DocumentDragData(draggedDocs.map(d => {
-                    let annot = d.GetT(KeyStore.AnnotationOn, Document); // bcz: ... needs to change ... the annotationOn document may not have been retrieved yet...
-                    return annot && annot != FieldWaiting ? annot : d;
-                }));
+                let moddrag = [] as Document[];
+                for (let i = 0; i < draggedDocs.length; i++) {
+                    let doc = await draggedDocs[i].GetTAsync(KeyStore.AnnotationOn, Document);
+                    if (doc)
+                        moddrag.push(doc);
+                }
+                let dragData = new DragManager.DocumentDragData(moddrag);
                 DragManager.StartDocumentDrag([this._linkButton.current], dragData, {
                     handlers: {
                         dragComplete: action(() => { }),
@@ -400,6 +427,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             }}>
                 <div className="documentDecorations-minimizeButton" onPointerDown={this.onMinimizeDown}>...</div>
                 <input ref={this.keyinput} className="title" type="text" name="dynbox" value={this.getValue()} onChange={this.handleChange} onPointerDown={this.onPointerDown} onKeyPress={this.enterPressed} />
+                <div className="documentDecorations-closeButton" onPointerDown={this.onCloseDown}>X</div>
                 <div id="documentDecorations-topLeftResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-topResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-topRightResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>

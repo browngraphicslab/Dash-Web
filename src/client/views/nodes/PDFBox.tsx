@@ -1,5 +1,5 @@
 import * as htmlToImage from "html-to-image";
-import { action, computed, observable, reaction, IReactionDisposer, trace, keys } from 'mobx';
+import { action, computed, IReactionDisposer, observable, reaction } from 'mobx';
 import { observer } from "mobx-react";
 import 'react-image-lightbox/style.css';
 import Measure from "react-measure";
@@ -10,6 +10,7 @@ import { FieldWaiting, Opt } from '../../../fields/Field';
 import { ImageField } from '../../../fields/ImageField';
 import { KeyStore } from '../../../fields/KeyStore';
 import { PDFField } from '../../../fields/PDFField';
+import { RouteStore } from "../../../server/RouteStore";
 import { Utils } from '../../../Utils';
 import { Annotation } from './Annotation';
 import { FieldView, FieldViewProps } from './FieldView';
@@ -17,8 +18,6 @@ import "./ImageBox.scss";
 import "./PDFBox.scss";
 import { Sticky } from './Sticky'; //you should look at sticky and annotation, because they are used here
 import React = require("react")
-import { RouteStore } from "../../../server/RouteStore";
-import { NumberField } from "../../../fields/NumberField";
 
 /** ALSO LOOK AT: Annotation.tsx, Sticky.tsx
  * This method renders PDF and puts all kinds of functionalities such as annotation, highlighting, 
@@ -378,8 +377,9 @@ export class PDFBox extends React.Component<FieldViewProps> {
     saveThumbnail = () => {
         setTimeout(() => {
             var me = this;
-            htmlToImage.toPng(this._mainDiv.current!,
-                { width: me.props.doc.GetNumber(KeyStore.NativeWidth, 0), height: me.props.doc.GetNumber(KeyStore.NativeHeight, 0), quality: 0.5 })
+            let nwidth = me.props.doc.GetNumber(KeyStore.NativeWidth, 0);
+            let nheight = me.props.doc.GetNumber(KeyStore.NativeHeight, 0);
+            htmlToImage.toPng(this._mainDiv.current!, { width: nwidth, height: nheight, quality: 1 })
                 .then(function (dataUrl: string) {
                     me.props.doc.SetData(KeyStore.Thumbnail, new URL(dataUrl), ImageField);
                     me.props.doc.SetNumber(KeyStore.ThumbnailPage, me.props.doc.GetNumber(KeyStore.CurPage, -1));

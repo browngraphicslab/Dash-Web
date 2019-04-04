@@ -7,7 +7,7 @@
     display: grid;
     z-index: 1000;
     grid-template-rows: 20px 8px 1fr 8px;
-    grid-template-columns: 8px 8px 1fr 8px;
+    grid-template-columns: 8px 8px 1fr 8px 8px;
     pointer-events: none;
 
     #documentDecorations-centerCont {
@@ -30,13 +30,14 @@
     #documentDecorations-topResizer,
     #documentDecorations-bottomResizer {
         grid-column-start: 2;
-        grid-column-end: 4;
+        grid-column-end: 5;
     }
 
     #documentDecorations-bottomRightResizer,
     #documentDecorations-topRightResizer,
     #documentDecorations-rightResizer {
-        grid-column:4
+        grid-column-start:5;
+        grid-column-end:7;
     }
 
     #documentDecorations-topLeftResizer,
@@ -61,11 +62,19 @@
     .title{
         background: lightblue;
         grid-column-start:3;
-        grid-column-end: 5;
+        grid-column-end: 4;
         pointer-events: auto;
     }
 }
 
+.documentDecorations-closeButton {
+    background:$alt-accent;
+    opacity: 0.8;
+    grid-column-start: 4;
+    grid-column-end: 6;
+    pointer-events: all;
+    text-align: center;
+}
 .documentDecorations-minimizeButton {
     background:$alt-accent;
     opacity: 0.8;

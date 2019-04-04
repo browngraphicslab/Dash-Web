@@ -128,6 +128,7 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
         }
         if (type.indexOf("pdf") !== -1) {
             ctor = Documents.PdfDocument;
+            options.nativeWidth = 600;
         }
         if (type.indexOf("html") !== -1) {
             if (path.includes('localhost')) {
@@ -177,7 +178,6 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
             let item = e.dataTransfer.items[i];
             if (item.kind === "string" && item.type.indexOf("uri") != -1) {
                 e.dataTransfer.items[i].getAsString(action((s: string) => {
-                    let document: Document;
                     request.head(ServerUtils.prepend(RouteStore.corsProxy + "/" + s), (err, res, body) => {
                         let type = res.headers["content-type"];
                         if (type) {

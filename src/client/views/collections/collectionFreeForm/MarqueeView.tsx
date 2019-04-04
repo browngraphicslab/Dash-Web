@@ -135,6 +135,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             this.marqueeInkDelete(inkData);
             // }, 100);
             this.cleanupInteractions();
+            SelectionManager.DeselectAll();
         }
     }
     @action
