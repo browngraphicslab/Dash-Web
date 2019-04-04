@@ -96,8 +96,7 @@ export class FieldView extends React.Component<FieldViewProps> {
         }
         else if (field instanceof ListField) {
             return (<div>
-                {(field as ListField<Field>).Data.map(f =>
-                    f instanceof Document ? f.Title : f.GetValue().toString()).join(", ")}
+                {(field as ListField<Field>).Data.map(f => f instanceof Document ? f.Title : f.GetValue().toString()).join(", ")}
             </div>)
         }
         // bcz: this belongs here, but it doesn't render well so taking it out for now
@@ -107,7 +106,7 @@ export class FieldView extends React.Component<FieldViewProps> {
         else if (field instanceof NumberField) {
             return <p>{field.Data}</p>
         }
-        else if (field != FieldWaiting) {
+        else if (field !== FieldWaiting) {
             return <p>{JSON.stringify(field.GetValue())}</p>
         }
         else

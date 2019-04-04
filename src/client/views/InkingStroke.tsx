@@ -29,8 +29,9 @@ export class InkingStroke extends React.Component<StrokeProps> {
         }
     }
 
-    parseData = (line: Array<{ x: number, y: number }>): string =>
-        !line.length ? "" : "M " + line.map(p => (p.x + this.props.offsetX) + " " + (p.y + this.props.offsetY)).join(" L ")
+    parseData = (line: Array<{ x: number, y: number }>): string => {
+        return !line.length ? "" : "M " + line.map(p => (p.x + this.props.offsetX) + " " + (p.y + this.props.offsetY)).join(" L ")
+    }
 
     createStyle() {
         switch (this._strokeTool) {

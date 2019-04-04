@@ -134,7 +134,7 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
         e.stopPropagation()
         e.preventDefault()
 
-        if (html && html.indexOf("<img") != 0 && !html.startsWith("<a")) {
+        if (html && html.indexOf("<img") !== 0 && !html.startsWith("<a")) {
             console.log("not good");
             let htmlDoc = Documents.HtmlDocument(html, { ...options, width: 300, height: 300 });
             htmlDoc.SetText(KeyStore.DocumentText, text);
@@ -142,10 +142,11 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
             return;
         }
 
+        // tslint:disable-next-line:prefer-for-of
         for (let i = 0; i < e.dataTransfer.items.length; i++) {
             const upload = window.location.origin + RouteStore.upload;
             let item = e.dataTransfer.items[i];
-            if (item.kind === "string" && item.type.indexOf("uri") != -1) {
+            if (item.kind === "string" && item.type.indexOf("uri") !== -1) {
                 e.dataTransfer.items[i].getAsString(action((s: string) => {
                     request.head(ServerUtils.prepend(RouteStore.corsProxy + "/" + s), (err, res, body) => {
                         let type = res.headers["content-type"];
@@ -160,7 +161,7 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
                 }))
             }
             let type = item.type
-            if (item.kind == "file") {
+            if (item.kind === "file") {
                 let file = item.getAsFile();
                 let formData = new FormData()
 
@@ -171,15 +172,15 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
                 fetch(upload, {
                     method: 'POST',
                     body: formData
-                }).then((res: Response) =>
-                    res.json()).then(json => {
+                }).then(async (res: Response) => {
+                    const json = await res.json();
                     json.map((file: any) => {
                         let path = window.location.origin + file
                         runInAction(() => {
                             let doc = this.getDocumentFromType(type, path, { ...options, nativeWidth: 300, width: 300 })
 
                             let docs = this.props.Document.GetT(KeyStore.Data, ListField);
-                            if (docs != FieldWaiting) {
+                            if (docs !== FieldWaiting) {
                                 if (!docs) {
                                     docs = new ListField<Document>();
                                     this.props.Document.Set(KeyStore.Data, docs)

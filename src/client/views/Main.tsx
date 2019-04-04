@@ -371,7 +371,8 @@ export class Main extends React.Component {
     }
 }
 
-Documents.initProtos().then(() =>
-    CurrentUserUtils.loadCurrentUser()).then(() => {
-        ReactDOM.render(<Main />, document.getElementById('root'));
-    });
+(async () => {
+    await Documents.initProtos()
+    await CurrentUserUtils.loadCurrentUser()
+    ReactDOM.render(<Main />, document.getElementById('root'));
+})()

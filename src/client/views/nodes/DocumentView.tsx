@@ -85,6 +85,9 @@ export function FakeJsxArgs(keys: string[], fields: string[] = []): JsxArgs {
 @observer
 export class DocumentView extends React.Component<DocumentViewProps> {
     private _mainCont = React.createRef<HTMLDivElement>();
+    public get ContentRef() {
+        return this._mainCont;
+    }
     private _downX: number = 0;
     private _downY: number = 0;
     @computed get active(): boolean { return SelectionManager.IsSelected(this) || this.props.parentActive(); }
@@ -287,8 +290,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     }
 
 
-    isSelected = () =>
-        SelectionManager.IsSelected(this)
+    isSelected = () => SelectionManager.IsSelected(this)
 
     select = (ctrlPressed: boolean) => {
         SelectionManager.SelectDoc(this, ctrlPressed)

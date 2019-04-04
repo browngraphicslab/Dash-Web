@@ -90,7 +90,7 @@ export class Document extends Field {
             }
         } else {
             let doc: FieldValue<Document> = this;
-            while (doc && doc !== FieldWaiting && field !== FieldWaiting) {
+            while (doc && field !== FieldWaiting) {
                 let curField = doc.fields.get(key.Id);
                 let curProxy = doc._proxies.get(key.Id);
                 if (!curField || (curProxy && curField.field.Id !== curProxy)) {

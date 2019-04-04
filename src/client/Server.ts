@@ -39,8 +39,8 @@ export class Server {
             } else if (cached !== FieldWaiting) {
                 setTimeout(() => cb(cached as Field), 0);
             } else {
-                reaction(() =>
-                    this.ClientFieldsCached.get(fieldid), (field, reaction) => {
+                reaction(() => this.ClientFieldsCached.get(fieldid),
+                    (field, reaction) => {
                         if (field !== FieldWaiting) {
                             reaction.dispose()
                             cb(field)
@@ -91,8 +91,8 @@ export class Server {
                         }
                     }
                 }
-                reaction(() =>
-                    waitingFieldIds.map(id => this.ClientFieldsCached.get(id)), (cachedFields, reaction) => {
+                reaction(() => waitingFieldIds.map(id => this.ClientFieldsCached.get(id)),
+                    (cachedFields, reaction) => {
                         if (!cachedFields.some(field => !field)) {
                             reaction.dispose();
                             for (let field of cachedFields) {
@@ -151,7 +151,7 @@ export class Server {
     @action
     private static cacheField(clientField: Field) {
         var cached = this.ClientFieldsCached.get(clientField.Id);
-        if (!cached || cached === FieldWaiting) {
+        if (!cached) {
             this.ClientFieldsCached.set(clientField.Id, clientField);
         } else {
             // probably should overwrite the values within any field that was already here...
@@ -163,7 +163,7 @@ export class Server {
     static updateField(field: { _id: string, data: any, type: Types }) {
         if (Server.ClientFieldsCached.has(field._id)) {
             var f = Server.ClientFieldsCached.get(field._id);
-            if (f && f !== FieldWaiting) {
+            if (f) {
                 // console.log("Applying        : " + field._id);
                 f.UpdateFromServer(field.data);
                 f.init(() => { });

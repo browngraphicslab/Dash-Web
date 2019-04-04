@@ -42,7 +42,7 @@ export class DocumentManager {
             let doc = view.props.Document;
             // if (view.props.ContainingCollectionView instanceof CollectionFreeFormView) {
 
-            if (Object.is(doc, toFind)) {
+            if (doc === toFind) {
                 toReturn = view;
                 return;
             }
@@ -63,7 +63,7 @@ export class DocumentManager {
             let doc = view.props.Document;
             // if (view.props.ContainingCollectionView instanceof CollectionFreeFormView) {
 
-            if (Object.is(doc, toFind)) {
+            if (doc === toFind) {
                 toReturn.push(view);
             } else {
                 let docSrc = doc.GetT(KeyStore.Prototype, Document);

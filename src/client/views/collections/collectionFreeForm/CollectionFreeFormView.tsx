@@ -54,7 +54,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
         var curPage = this.props.Document.GetNumber(KeyStore.CurPage, -1);
         return this.props.Document.GetList(this.props.fieldKey, [] as Document[]).reduce((active, doc) => {
             var page = doc.GetNumber(KeyStore.Page, -1);
-            if (page == curPage || page == -1) {
+            if (page === curPage || page === -1) {
                 active.push(doc);
             }
             return active;
@@ -115,7 +115,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
     @action
     onPointerDown = (e: React.PointerEvent): void => {
-        if (((e.button === 2 && (!this.isAnnotationOverlay || this.zoomScaling != 1)) || e.button == 0) && this.props.active()) {
+        if (((e.button === 2 && (!this.isAnnotationOverlay || this.zoomScaling !== 1)) || e.button === 0) && this.props.active()) {
             document.removeEventListener("pointermove", this.onPointerMove);
             document.addEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
@@ -137,7 +137,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
     @action
     onPointerMove = (e: PointerEvent): void => {
         if (!e.cancelBubble && this.props.active()) {
-            if ((!this.isAnnotationOverlay || this.zoomScaling != 1) && !e.shiftKey) {
+            if ((!this.isAnnotationOverlay || this.zoomScaling !== 1) && !e.shiftKey) {
                 let x = this.props.Document.GetNumber(KeyStore.PanX, 0);
                 let y = this.props.Document.GetNumber(KeyStore.PanY, 0);
                 let [dx, dy] = this.getTransform().transformDirection(e.clientX - this._lastX, e.clientY - this._lastY);
@@ -247,7 +247,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
             removeDocument: this.props.removeDocument,
             ScreenToLocalTransform: this.getTransform,
             isTopMost: false,
-            selectOnLoad: document.Id == this._selectOnLoaded,
+            selectOnLoad: document.Id === this._selectOnLoaded,
             PanelWidth: document.Width,
             PanelHeight: document.Height,
             ContentScaling: this.noScaling,
@@ -263,7 +263,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
         var curPage = this.props.Document.GetNumber(KeyStore.CurPage, -1);
         return this.props.Document.GetList(this.props.fieldKey, [] as Document[]).filter(doc => doc).reduce((prev, doc) => {
             var page = doc.GetNumber(KeyStore.Page, -1);
-            if (page == curPage || page == -1)
+            if (page === curPage || page === -1)
                 prev.push(<CollectionFreeFormDocumentView key={doc.Id} {...this.getDocumentViewProps(doc)} />);
             return prev;
         }, [] as JSX.Element[])

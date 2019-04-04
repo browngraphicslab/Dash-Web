@@ -177,8 +177,7 @@ class Viewer extends React.Component {
                     onChange={this.inputOnChange}
                     onKeyDown={this.onKeyPress} />
                 <div>
-                    {this.ids.map(id =>
-                        <DebugViewer fieldId={id} key={id}></DebugViewer>)}
+                    {this.ids.map(id => <DebugViewer fieldId={id} key={id}></DebugViewer>)}
                 </div>
             </>
         )
