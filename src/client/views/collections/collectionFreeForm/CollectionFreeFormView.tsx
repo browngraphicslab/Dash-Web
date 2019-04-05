@@ -176,8 +176,8 @@ export class CollectionFreeFormView extends CollectionViewBase {
             e.stopPropagation();
             e.preventDefault();
         } else {
-            // if (modes[e.deltaMode] == 'pixels') coefficient = 50;
-            // else if (modes[e.deltaMode] == 'lines') coefficient = 1000; // This should correspond to line-height??
+            // if (modes[e.deltaMode] === 'pixels') coefficient = 50;
+            // else if (modes[e.deltaMode] === 'lines') coefficient = 1000; // This should correspond to line-height??
             let transform = this.getTransform();
 
             let deltaScale = (1 - (e.deltaY / coefficient));

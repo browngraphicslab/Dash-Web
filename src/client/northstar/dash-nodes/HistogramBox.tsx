@@ -55,7 +55,7 @@ export class HistogramBox extends React.Component<FieldViewProps> {
     dropX = (e: Event, de: DragManager.DropEvent) => {
         if (de.data instanceof DragManager.DocumentDragData) {
             let h = de.data.draggedDocuments[0].GetT(KeyStore.Data, HistogramField);
-            if (h && h != FieldWaiting) {
+            if (h && h !== FieldWaiting) {
                 this.HistoOp.X = h.Data.X;
             }
             e.stopPropagation();
@@ -66,7 +66,7 @@ export class HistogramBox extends React.Component<FieldViewProps> {
     dropY = (e: Event, de: DragManager.DropEvent) => {
         if (de.data instanceof DragManager.DocumentDragData) {
             let h = de.data.draggedDocuments[0].GetT(KeyStore.Data, HistogramField);
-            if (h && h != FieldWaiting) {
+            if (h && h !== FieldWaiting) {
                 this.HistoOp.Y = h.Data.X;
             }
             e.stopPropagation();
@@ -76,11 +76,11 @@ export class HistogramBox extends React.Component<FieldViewProps> {
 
     @action
     xLabelPointerDown = (e: React.PointerEvent) => {
-        this.HistoOp.X = new AttributeTransformationModel(this.HistoOp.X.AttributeModel, this.HistoOp.X.AggregateFunction == AggregateFunction.None ? AggregateFunction.Count : AggregateFunction.None);
+        this.HistoOp.X = new AttributeTransformationModel(this.HistoOp.X.AttributeModel, this.HistoOp.X.AggregateFunction === AggregateFunction.None ? AggregateFunction.Count : AggregateFunction.None);
     }
     @action
     yLabelPointerDown = (e: React.PointerEvent) => {
-        this.HistoOp.Y = new AttributeTransformationModel(this.HistoOp.Y.AttributeModel, this.HistoOp.Y.AggregateFunction == AggregateFunction.None ? AggregateFunction.Count : AggregateFunction.None);
+        this.HistoOp.Y = new AttributeTransformationModel(this.HistoOp.Y.AttributeModel, this.HistoOp.Y.AggregateFunction === AggregateFunction.None ? AggregateFunction.Count : AggregateFunction.None);
     }
 
     componentDidMount() {
@@ -119,7 +119,7 @@ export class HistogramBox extends React.Component<FieldViewProps> {
         if (catalog) {
             this.props.Document.GetTAsync(this.props.fieldKey, HistogramField).then((histoOp: Opt<HistogramField>) => runInAction(() => {
                 this.HistoOp = histoOp ? histoOp.Data : HistogramOperation.Empty;
-                if (this.HistoOp != HistogramOperation.Empty) {
+                if (this.HistoOp !== HistogramOperation.Empty) {
                     reaction(() => this.props.Document.GetList(KeyStore.LinkedFromDocs, []), (docs: Document[]) => this.HistoOp.Links.splice(0, this.HistoOp.Links.length, ...docs), { fireImmediately: true });
                     reaction(() => this.props.Document.GetList(KeyStore.BrushingDocs, []).length,
                         () => {
@@ -128,7 +128,7 @@ export class HistogramBox extends React.Component<FieldViewProps> {
                             this.HistoOp.BrushLinks.splice(0, this.HistoOp.BrushLinks.length, ...brushingDocs.map((brush, i) => {
                                 brush.SetNumber(KeyStore.BackgroundColor, StyleConstants.BRUSH_COLORS[i % StyleConstants.BRUSH_COLORS.length]);
                                 let brushed = brush.GetList(KeyStore.BrushingDocs, [] as Document[]);
-                                return { l: brush, b: brushed[0].Id == proto.Id ? brushed[1] : brushed[0] }
+                                return { l: brush, b: brushed[0].Id === proto.Id ? brushed[1] : brushed[0] }
                             }));
                         }, { fireImmediately: true });
                     reaction(() => this.createOperationParamsCache, () => this.HistoOp.Update(), { fireImmediately: true });

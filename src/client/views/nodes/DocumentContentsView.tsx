@@ -77,7 +77,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
         }
         for (const key of this.layoutFields) {
             let field = this.props.Document.Get(key);
-            bindings[key.Name] = field && field != FieldWaiting ? field.GetValue() : field;
+            bindings[key.Name] = field && field !== FieldWaiting ? field.GetValue() : field;
         }
         return bindings;
     }

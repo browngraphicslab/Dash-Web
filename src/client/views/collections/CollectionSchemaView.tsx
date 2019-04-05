@@ -151,7 +151,7 @@ export class CollectionSchemaView extends CollectionViewBase {
             }),
             style: {
                 background: rowInfo.index === this._selectedIndex ? "lightGray" : "white",
-                //color: rowInfo.index == this._selectedIndex ? "white" : "black"
+                //color: rowInfo.index === this._selectedIndex ? "white" : "black"
             }
         };
     }

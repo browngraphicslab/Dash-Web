@@ -44,7 +44,7 @@ export class HistogramBoxPrimitives extends React.Component<HistogramPrimitivesP
     }
 
     private getSelectionToggle(binPrimitives: HistogramBinPrimitive[], allBrushIndex: number, filterModel: FilterModel) {
-        let allBrushPrim = ArrayUtil.FirstOrDefault(binPrimitives, bp => bp.BrushIndex == allBrushIndex);
+        let allBrushPrim = ArrayUtil.FirstOrDefault(binPrimitives, bp => bp.BrushIndex === allBrushIndex);
         return !allBrushPrim ? () => { } : () => runInAction(() => {
             if (ArrayUtil.Contains(this.histoOp.FilterModels, filterModel)) {
                 this._selectedPrims.splice(this._selectedPrims.indexOf(allBrushPrim!), 1);
@@ -63,9 +63,9 @@ export class HistogramBoxPrimitives extends React.Component<HistogramPrimitivesP
         let labels = this.props.HistoBox.VisualBinRanges[axis].GetLabels();
         return labels.reduce((prims, binLabel, i) => {
             let r = this.props.HistoBox.SizeConverter.DataToScreenRange(binLabel.minValue!, binLabel.maxValue!, axis);
-            prims.push(this.drawLine(r.xFrom, r.yFrom, axis == 0 ? 0 : r.xTo - r.xFrom, axis == 0 ? r.yTo - r.yFrom : 0));
-            if (i == labels.length - 1)
-                prims.push(this.drawLine(axis == 0 ? r.xTo : r.xFrom, axis == 0 ? r.yFrom : r.yTo, axis == 0 ? 0 : r.xTo - r.xFrom, axis == 0 ? r.yTo - r.yFrom : 0));
+            prims.push(this.drawLine(r.xFrom, r.yFrom, axis === 0 ? 0 : r.xTo - r.xFrom, axis === 0 ? r.yTo - r.yFrom : 0));
+            if (i === labels.length - 1)
+                prims.push(this.drawLine(axis === 0 ? r.xTo : r.xFrom, axis === 0 ? r.yFrom : r.yTo, axis === 0 ? 0 : r.xTo - r.xFrom, axis === 0 ? r.yTo - r.yFrom : 0));
             return prims;
         }, [] as JSX.Element[]);
     }
@@ -86,8 +86,8 @@ export class HistogramBoxPrimitives extends React.Component<HistogramPrimitivesP
             xFrom += width;
             width = -width;
         }
-        let trans2Xpercent = width == 0 ? `1px` : `${(xFrom + width) / this.renderDimension * 100}%`;
-        let trans2Ypercent = height == 0 ? `1px` : `${(yFrom + height) / this.renderDimension * 100}%`;
+        let trans2Xpercent = width === 0 ? `1px` : `${(xFrom + width) / this.renderDimension * 100}%`;
+        let trans2Ypercent = height === 0 ? `1px` : `${(yFrom + height) / this.renderDimension * 100}%`;
         let line = (<div className="histogramboxprimitives-line" style={{ width: trans2Xpercent, height: trans2Ypercent, }} />);
         return this.drawEntity(xFrom, yFrom, line);
     }
@@ -102,10 +102,10 @@ export class HistogramBoxPrimitives extends React.Component<HistogramPrimitivesP
         }
         let widthPercent = r.width / this.renderDimension * 100;
         let heightPercent = r.height / this.renderDimension * 100;
-        let rect = (<div className={`histogramboxprimitives-${classExt}`} onPointerDown={(e: React.PointerEvent) => { if (e.button == 0) tapHandler() }}
+        let rect = (<div className={`histogramboxprimitives-${classExt}`} onPointerDown={(e: React.PointerEvent) => { if (e.button === 0) tapHandler() }}
             style={{
-                borderBottomStyle: barAxis == 1 ? "none" : "solid",
-                borderLeftStyle: barAxis == 0 ? "none" : "solid",
+                borderBottomStyle: barAxis === 1 ? "none" : "solid",
+                borderLeftStyle: barAxis === 0 ? "none" : "solid",
                 width: `${widthPercent}%`,
                 height: `${heightPercent}%`,
                 background: color ? `${LABColor.RGBtoHexString(color)}` : ""

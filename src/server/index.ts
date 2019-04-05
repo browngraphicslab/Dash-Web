@@ -143,7 +143,7 @@ addSecureRoute(
     Method.GET,
     (user, res, req) => {
         let detector = new mobileDetect(req.headers['user-agent'] || "");
-        if (detector.mobile() != null) {
+        if (detector.mobile() !== null) {
             res.sendFile(path.join(__dirname, '../../deploy/mobile/image.html'));
         } else {
             res.sendFile(path.join(__dirname, '../../deploy/index.html'));

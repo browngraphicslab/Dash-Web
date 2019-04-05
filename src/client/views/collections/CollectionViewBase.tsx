@@ -91,11 +91,11 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
             let sourceDoc: Document = de.data.linkSourceDocumentView.props.Document;
             if (sourceDoc) runInAction(() => {
                 let srcTarg = sourceDoc.GetT(KeyStore.Prototype, Document)
-                if (srcTarg && srcTarg != FieldWaiting) {
+                if (srcTarg && srcTarg !== FieldWaiting) {
                     let linkDocs = srcTarg.GetList(KeyStore.LinkedToDocs, [] as Document[]);
                     linkDocs.map(linkDoc => {
                         let targDoc = linkDoc.GetT(KeyStore.LinkedToDocs, Document);
-                        if (targDoc && targDoc != FieldWaiting) {
+                        if (targDoc && targDoc !== FieldWaiting) {
                             let dropdoc = targDoc.MakeDelegate();
                             de.data.droppedDocuments.push(dropdoc);
                             this.props.addDocument(dropdoc, false);

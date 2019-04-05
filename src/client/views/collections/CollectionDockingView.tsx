@@ -101,12 +101,12 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             newRow.addChild(newContentItem, undefined, true);
             newRow.addChild(collayout, 0, true);
 
-            collayout.config["width"] = 50;
-            newContentItem.config["width"] = 50;
+            collayout.config.width = 50;
+            newContentItem.config.width = 50;
         }
         if (minimize) {
-            newContentItem.config["width"] = 10;
-            newContentItem.config["height"] = 10;
+            newContentItem.config.width = 10;
+            newContentItem.config.height = 10;
         }
         newContentItem.callDownwards('_$init');
         this._goldenLayout.root.callDownwards('setSize', [this._goldenLayout.width, this._goldenLayout.height]);
@@ -124,7 +124,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                 this._goldenLayout = new GoldenLayout(JSON.parse(config));
             }
             else {
-                if (config == JSON.stringify(this._goldenLayout.toConfig()))
+                if (config === JSON.stringify(this._goldenLayout.toConfig()))
                     return;
                 try {
                     this._goldenLayout.unbind('itemDropped', this.itemDropped);
@@ -154,7 +154,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             reaction(
                 () => this.props.Document.GetText(KeyStore.Data, ""),
                 () => {
-                    if (!this._goldenLayout || this._ignoreStateChange != JSON.stringify(this._goldenLayout.toConfig())) {
+                    if (!this._goldenLayout || this._ignoreStateChange !== JSON.stringify(this._goldenLayout.toConfig())) {
                         setTimeout(() => this.setupGoldenLayout(), 1);
                     }
                     this._ignoreStateChange = "";
@@ -193,7 +193,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     @action
     onPointerDown = (e: React.PointerEvent): void => {
         var className = (e.target as any).className;
-        if ((className == "lm_title" || className == "lm_tab lm_active") && (e.ctrlKey || e.altKey)) {
+        if ((className === "lm_title" || className === "lm_tab lm_active") && (e.ctrlKey || e.altKey)) {
             e.stopPropagation();
             e.preventDefault();
             let docid = (e.target as any).DashDocId;
@@ -209,7 +209,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                         })
             }));
         }
-        if (className == "lm_drag_handle" || className == "lm_close" || className == "lm_maximise" || className == "lm_minimise" || className == "lm_close_tab") {
+        if (className === "lm_drag_handle" || className === "lm_close" || className === "lm_maximise" || className === "lm_minimise" || className === "lm_close_tab") {
             this._flush = true;
         }
         if (this.props.active()) {
@@ -227,12 +227,12 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         this.stateChanged();
     }
     tabCreated = (tab: any) => {
-        if (tab.hasOwnProperty("contentItem") && tab.contentItem.config.type != "stack") {
-            if (tab.titleElement[0].textContent.indexOf("-waiting") != -1) {
+        if (tab.hasOwnProperty("contentItem") && tab.contentItem.config.type !== "stack") {
+            if (tab.titleElement[0].textContent.indexOf("-waiting") !== -1) {
                 Server.GetField(tab.contentItem.config.props.documentId, action((f: Opt<Field>) => {
-                    if (f != undefined && f instanceof Document) {
+                    if (f !== undefined && f instanceof Document) {
                         f.GetTAsync(KeyStore.Title, TextField, (tfield) => {
-                            if (tfield != undefined) {
+                            if (tfield !== undefined) {
                                 tab.titleElement[0].textContent = f.Title;
                             }
                         })
@@ -296,9 +296,9 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         Server.GetField(this.props.documentId, action((f: Opt<Field>) => this._document = f as Document));
     }
 
-    private _nativeWidth = () => { return this._document!.GetNumber(KeyStore.NativeWidth, this._panelWidth); }
-    private _nativeHeight = () => { return this._document!.GetNumber(KeyStore.NativeHeight, this._panelHeight); }
-    private _contentScaling = () => { return this._panelWidth / (this._nativeWidth() ? this._nativeWidth() : this._panelWidth); }
+    private _nativeWidth = () => this._document!.GetNumber(KeyStore.NativeWidth, this._panelWidth)
+    private _nativeHeight = () => this._document!.GetNumber(KeyStore.NativeHeight, this._panelHeight)
+    private _contentScaling = () => this._panelWidth / (this._nativeWidth() ? this._nativeWidth() : this._panelWidth)
 
     ScreenToLocalTransform = () => {
         let { scale, translateX, translateY } = Utils.GetScreenTransform(this._mainCont.current!);

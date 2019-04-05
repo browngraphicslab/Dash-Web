@@ -49,7 +49,7 @@ export class Gateway {
 
     public async Compile(data: any): Promise<CompileResults | undefined> {
         const json = await this.MakePostJsonRequest("compile", data);
-        if (json != null) {
+        if (json !== null) {
             const cr = CompileResults.fromJS(json);
             return cr;
         }
@@ -108,7 +108,7 @@ export class Gateway {
 
     public async StartOperation(data: any): Promise<OperationReference | undefined> {
         const json = await this.MakePostJsonRequest("operation", data);
-        if (json != null) {
+        if (json !== null) {
             const or = OperationReference.fromJS(json);
             return or;
         }
@@ -116,7 +116,7 @@ export class Gateway {
 
     public async GetResult(data: any): Promise<Result | undefined> {
         const json = await this.MakePostJsonRequest("result", data);
-        if (json != null) {
+        if (json !== null) {
             const res = Result.fromJS(json);
             return res;
         }
@@ -163,7 +163,7 @@ export class Gateway {
 
     public static ConstructUrl(appendix: string): string {
         let base = Settings.Instance.ServerUrl;
-        if (base.slice(-1) == "/") {
+        if (base.slice(-1) === "/") {
             base = base.slice(0, -1);
         }
         let url = base + "/" + Settings.Instance.ServerApiPath + "/" + appendix;

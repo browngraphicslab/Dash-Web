@@ -67,7 +67,7 @@ export class HistogramOperation extends BaseOperation implements IBaseFilterCons
         let brushes: string[] = [];
         this.BrushLinks.map(brushLink => {
             let brushHistogram = brushLink.b.GetT(KeyStore.Data, HistogramField);
-            if (brushHistogram && brushHistogram != FieldWaiting) {
+            if (brushHistogram && brushHistogram !== FieldWaiting) {
                 let filterModels: FilterModel[] = [];
                 brushes.push(FilterModel.GetFilterModelsRecursive(brushHistogram.Data, new Set<IBaseFilterProvider>(), filterModels, false));
             }

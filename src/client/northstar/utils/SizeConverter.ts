@@ -54,7 +54,7 @@ export class SizeConverter {
     }
 
     public DataToScreenNormalizedRange(dataValue: number, normalization: number, axis: number, binBrushMaxAxis: number) {
-        var value = normalization != 1 - axis || binBrushMaxAxis == 0 ? dataValue : (dataValue - 0) / (binBrushMaxAxis - 0) * this.DataRanges[axis];
+        var value = normalization !== 1 - axis || binBrushMaxAxis === 0 ? dataValue : (dataValue - 0) / (binBrushMaxAxis - 0) * this.DataRanges[axis];
         var from = this.DataToScreenCoord(Math.min(0, value), axis);
         var to = this.DataToScreenCoord(Math.max(0, value), axis);
         return [from, value, to];
@@ -85,7 +85,7 @@ export class SizeConverter {
         return flip ? (this.RenderDimension) - retY : retY;
     }
     public DataToScreenCoord(v: number, axis: number) {
-        if (axis == 0)
+        if (axis === 0)
             return this.DataToScreenX(v);
         return this.DataToScreenY(v);
     }

@@ -48,7 +48,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
 
     @action
     onPointerDown = (e: React.PointerEvent): void => {
-        if (e.buttons == 1 && !e.altKey && !e.metaKey && this.props.container.props.active()) {
+        if (e.buttons === 1 && !e.altKey && !e.metaKey && this.props.container.props.active()) {
             this._downX = this._lastX = e.pageX;
             this._downY = this._lastY = e.pageY;
             this._used = false;
@@ -63,7 +63,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         this._lastX = e.pageX;
         this._lastY = e.pageY;
         if (!e.cancelBubble) {
-            if (!this._used && e.buttons == 1 && !e.altKey && !e.metaKey &&
+            if (!this._used && e.buttons === 1 && !e.altKey && !e.metaKey &&
                 (Math.abs(this._lastX - this._downX) > MarqueeView.DRAG_THRESHOLD || Math.abs(this._lastY - this._downY) > MarqueeView.DRAG_THRESHOLD)) {
                 this._visible = true;
             }
@@ -99,15 +99,15 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
 
     @action
     marqueeCommand = (e: KeyboardEvent) => {
-        if (e.key == "Backspace" || e.key == "Delete") {
+        if (e.key === "Backspace" || e.key === "Delete") {
             this.marqueeSelect().map(d => this.props.removeDocument(d));
             let ink = this.props.container.props.Document.GetT(KeyStore.Ink, InkField);
-            if (ink && ink != FieldWaiting) {
+            if (ink && ink !== FieldWaiting) {
                 this.marqueeInkDelete(ink.Data);
             }
             this.cleanupInteractions();
         }
-        if (e.key == "c") {
+        if (e.key === "c") {
             let bounds = this.Bounds;
             let selected = this.marqueeSelect().map(d => {
                 this.props.removeDocument(d);
@@ -118,7 +118,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 return d;
             });
             let ink = this.props.container.props.Document.GetT(KeyStore.Ink, InkField);
-            let inkData = ink && ink != FieldWaiting ? ink.Data : undefined;
+            let inkData = ink && ink !== FieldWaiting ? ink.Data : undefined;
             //setTimeout(() => {
             let newCollection = Documents.FreeformDocument(selected, {
                 x: bounds.left,

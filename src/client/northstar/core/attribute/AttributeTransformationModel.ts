@@ -41,7 +41,7 @@ export class AttributeTransformationModel implements IEquatable {
     }
 
     public Equals(other: AttributeTransformationModel): boolean {
-        return this.AggregateFunction == other.AggregateFunction &&
+        return this.AggregateFunction === other.AggregateFunction &&
             this.AttributeModel.Equals(other.AttributeModel);
     }
 }

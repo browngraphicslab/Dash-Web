@@ -4,7 +4,7 @@ import { Types } from "../server/Message";
 
 export class VideoField extends BasicField<URL> {
     constructor(data: URL | undefined = undefined, id?: FieldId, save: boolean = true) {
-        super(data == undefined ? new URL("http://techslides.com/demos/sample-videos/small.mp4") : data, save, id);
+        super(data === undefined ? new URL("http://techslides.com/demos/sample-videos/small.mp4") : data, save, id);
     }
 
     toString(): string {

@@ -29,7 +29,7 @@ export class AudioBox extends React.Component<FieldViewProps> {
 
     render() {
         let field = this.props.Document.Get(this.props.fieldKey)
-        let path = field == FieldWaiting ? "http://techslides.com/demos/samples/sample.mp3" :
+        let path = field === FieldWaiting ? "http://techslides.com/demos/samples/sample.mp3" :
             field instanceof AudioField ? field.Data.href : "http://techslides.com/demos/samples/sample.mp3";
 
         return (

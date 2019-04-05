@@ -60,10 +60,10 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             if (text[0] === '#') {
                 let command = text.slice(1, text.length);
                 this._fieldKey = new Key(command)
-                // if (command == "Title" || command == "title") {
+                // if (command === "Title" || command === "title") {
                 //     this._fieldKey = KeyStore.Title;
                 // }
-                // else if (command == "Width" || command == "width") {
+                // else if (command === "Width" || command === "width") {
                 //     this._fieldKey = KeyStore.Width;
                 // }
                 this._title = "changed"

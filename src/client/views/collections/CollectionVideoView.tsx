@@ -61,7 +61,7 @@ export class CollectionVideoView extends React.Component<CollectionViewProps> {
     @action
     updateTimecode = () => {
         if (this._player) {
-            if ((this._player as any).AHackBecauseSomethingResetsTheVideoToZero != -1) {
+            if ((this._player as any).AHackBecauseSomethingResetsTheVideoToZero !== -1) {
                 this._player.currentTime = (this._player as any).AHackBecauseSomethingResetsTheVideoToZero;
                 (this._player as any).AHackBecauseSomethingResetsTheVideoToZero = -1;
             } else {
@@ -103,7 +103,7 @@ export class CollectionVideoView extends React.Component<CollectionViewProps> {
     }
 
     onContextMenu = (e: React.MouseEvent): void => {
-        if (!e.isPropagationStopped() && this.props.Document.Id != "mainDoc") { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
+        if (!e.isPropagationStopped() && this.props.Document.Id !== "mainDoc") { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
             ContextMenu.Instance.addItem({ description: "VideoOptions", event: () => { } });
         }
     }

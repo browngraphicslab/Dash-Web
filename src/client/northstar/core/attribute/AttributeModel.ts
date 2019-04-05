@@ -34,7 +34,7 @@ export class ColumnAttributeModel extends AttributeModel {
     }
 
     public Equals(other: ColumnAttributeModel): boolean {
-        return this.Attribute.rawName == other.Attribute.rawName;
+        return this.Attribute.rawName === other.Attribute.rawName;
     }
 }
 
@@ -105,7 +105,7 @@ export class BackendAttributeModel extends AttributeModel {
     }
 
     public Equals(other: BackendAttributeModel): boolean {
-        return this.Id == other.Id;
+        return this.Id === other.Id;
     }
 
 }

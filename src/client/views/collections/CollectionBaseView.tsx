@@ -65,13 +65,13 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
 
     createsCycle(documentToAdd: Document, containerDocument: Document): boolean {
         let data = documentToAdd.GetList<Document>(KeyStore.Data, []);
-        for (let i = 0; i < data.length; i++) {
-            if (this.createsCycle(data[i], containerDocument))
+        for (const doc of data) {
+            if (this.createsCycle(doc, containerDocument))
                 return true;
         }
         let annots = documentToAdd.GetList<Document>(KeyStore.Annotations, []);
-        for (let i = 0; i < annots.length; i++) {
-            if (this.createsCycle(annots[i], containerDocument))
+        for (const annot of annots) {
+            if (this.createsCycle(annot, containerDocument))
                 return true;
         }
         for (let containerProto: FieldValue<Document> = containerDocument; containerProto && containerProto !== FieldWaiting; containerProto = containerProto.GetPrototype()) {

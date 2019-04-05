@@ -93,7 +93,7 @@ export class MathUtil {
     public static DistToLineSegment(v: PIXIPoint, w: PIXIPoint, p: PIXIPoint) {
         // Return minimum distance between line segment vw and point p
         var l2 = MathUtil.DistSquared(v, w);  // i.e. |w-v|^2 -  avoid a sqrt
-        if (l2 == 0.0) return MathUtil.Dist(p, v);   // v == w case
+        if (l2 === 0.0) return MathUtil.Dist(p, v);   // v === w case
         // Consider the line extending the segment, parameterized as v + t (w - v).
         // We find projection of point p onto the line. 
         // It falls where t = [(p-v) . (w-v)] / |w-v|^2
@@ -117,7 +117,7 @@ export class MathUtil {
         var b2 = ps2.x - pe2.x;
 
         var delta = a1 * b2 - a2 * b1;
-        if (delta == 0) {
+        if (delta === 0) {
             return undefined;
         }
         var c2 = a2 * ps2.x + b2 * ps2.y;
@@ -147,19 +147,19 @@ export class MathUtil {
         var ret = new Array<PIXIPoint>();
         var dist = this.Dist(lineFrom, lineTo)
         var inter = this.LineSegmentIntersection(lineFrom, lineTo, r1, r2);
-        if (inter != null && this.PointInPIXIRectangle(inter, rect) &&
+        if (inter && this.PointInPIXIRectangle(inter, rect) &&
             this.Dist(inter, lineFrom) < dist && this.Dist(inter, lineTo) < dist)
             ret.push(inter);
         inter = this.LineSegmentIntersection(lineFrom, lineTo, r2, r3);
-        if (inter != null && this.PointInPIXIRectangle(inter, rect) &&
+        if (inter && this.PointInPIXIRectangle(inter, rect) &&
             this.Dist(inter, lineFrom) < dist && this.Dist(inter, lineTo) < dist)
             ret.push(inter);
         inter = this.LineSegmentIntersection(lineFrom, lineTo, r3, r4);
-        if (inter != null && this.PointInPIXIRectangle(inter, rect) &&
+        if (inter && this.PointInPIXIRectangle(inter, rect) &&
             this.Dist(inter, lineFrom) < dist && this.Dist(inter, lineTo) < dist)
             ret.push(inter);
         inter = this.LineSegmentIntersection(lineFrom, lineTo, r4, r1);
-        if (inter != null && this.PointInPIXIRectangle(inter, rect) &&
+        if (inter && this.PointInPIXIRectangle(inter, rect) &&
             this.Dist(inter, lineFrom) < dist && this.Dist(inter, lineTo) < dist)
             ret.push(inter);
         return ret;

@@ -4,7 +4,7 @@ import { Types } from "../server/Message";
 
 export class ImageField extends BasicField<URL> {
     constructor(data: URL | undefined = undefined, id?: FieldId, save: boolean = true) {
-        super(data == undefined ? new URL("http://cs.brown.edu/~bcz/bob_fettucine.jpg") : data, save, id);
+        super(data === undefined ? new URL("http://cs.brown.edu/~bcz/bob_fettucine.jpg") : data, save, id);
     }
 
     toString(): string {

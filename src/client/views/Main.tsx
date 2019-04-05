@@ -62,7 +62,7 @@ export class Main extends React.Component {
 
     @computed private get mainContainer(): Document | undefined {
         let doc = this.userDocument.GetT(KeyStore.ActiveWorkspace, Document);
-        return doc == FieldWaiting ? undefined : doc;
+        return doc === FieldWaiting ? undefined : doc;
     }
 
     private set mainContainer(doc: Document | undefined) {
@@ -84,7 +84,7 @@ export class Main extends React.Component {
         configure({ enforceActions: "observed" });
         if (window.location.pathname !== RouteStore.home) {
             let pathname = window.location.pathname.split("/");
-            if (pathname.length > 1 && pathname[pathname.length - 2] == 'doc') {
+            if (pathname.length > 1 && pathname[pathname.length - 2] === 'doc') {
                 CurrentUserUtils.MainDocId = pathname[pathname.length - 1];
             }
         };

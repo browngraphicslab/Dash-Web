@@ -32,10 +32,10 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
 
     @action
     onEnterKey = (e: React.KeyboardEvent): void => {
-        if (e.key == 'Enter') {
+        if (e.key === 'Enter') {
             if (this._keyInput && this._valueInput) {
                 let doc = this.props.Document.GetT(KeyStore.Data, Document);
-                if (!doc || doc == FieldWaiting) {
+                if (!doc || doc === FieldWaiting) {
                     return
                 }
                 let realDoc = doc;
@@ -70,7 +70,7 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
 
     createTable = () => {
         let doc = this.props.Document.GetT(KeyStore.Data, Document);
-        if (!doc || doc == FieldWaiting) {
+        if (!doc || doc === FieldWaiting) {
             return <tr><td>Loading...</td></tr>
         }
         let realDoc = doc;

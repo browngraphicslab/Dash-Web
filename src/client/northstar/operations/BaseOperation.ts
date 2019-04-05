@@ -29,11 +29,11 @@ export abstract class BaseOperation {
         // let filterModels: FilterModel[] = [];
         // return FilterModel.GetFilterModelsRecursive(this, new Set<GraphNode<BaseOperationViewModel, FilterLinkViewModel>>(), filterModels, true)
         // if (this.OverridingFilters.length > 0) {
-        //     return "(" + this.OverridingFilters.filter(fm => fm != null).map(fm => fm.ToPythonString()).join(" || ") + ")";
+        //     return "(" + this.OverridingFilters.filter(fm => fm !== null).map(fm => fm.ToPythonString()).join(" || ") + ")";
         // }
         // let rdg = MainManager.Instance.MainViewModel.FilterReverseDependencyGraph;
         // let sliceModel = this.TypedViewModel.IncomingSliceModel;
-        // if (sliceModel != null && sliceModel.Source != null && instanceOfIBaseFilterProvider(sliceModel.Source) && rdg.has(sliceModel.Source)) {
+        // if (sliceModel !== null && sliceModel.Source !== null && instanceOfIBaseFilterProvider(sliceModel.Source) && rdg.has(sliceModel.Source)) {
         //     let filterModels = sliceModel.Source.FilterModels.map(f => f);
         //     return FilterModel.GetFilterModelsRecursive(rdg.get(sliceModel.Source), new Set<GraphNode<BaseOperationViewModel, FilterLinkViewModel>>(), filterModels, false);
         // }
@@ -99,8 +99,8 @@ export abstract class BaseOperation {
                     if (result instanceof ErrorResult) {
                         throw new Error((result as ErrorResult).message);
                     }
-                    if (this.RequestSalt == pollPromise.RequestSalt) {
-                        if (result && (!this.Result || this.Result.progress != result.progress)) {
+                    if (this.RequestSalt === pollPromise.RequestSalt) {
+                        if (result && (!this.Result || this.Result.progress !== result.progress)) {
                             /*if (operationViewModel.Result !== null && operationViewModel.Result !== undefined) {
                                 let t1 = performance.now();
                                 console.log((t1 - start) + " milliseconds.");

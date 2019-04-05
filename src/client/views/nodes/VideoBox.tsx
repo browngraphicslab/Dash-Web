@@ -34,7 +34,7 @@ export class VideoBox extends React.Component<FieldViewProps> {
             var nativeWidth = this.props.Document.GetNumber(KeyStore.NativeWidth, 0);
             var nativeHeight = this.props.Document.GetNumber(KeyStore.NativeHeight, 0);
             var newNativeHeight = nativeWidth * r.entry.height / r.entry.width;
-            if (!nativeHeight && newNativeHeight != nativeHeight && !isNaN(newNativeHeight)) {
+            if (!nativeHeight && newNativeHeight !== nativeHeight && !isNaN(newNativeHeight)) {
                 this.props.Document.SetNumber(KeyStore.Height, newNativeHeight / nativeWidth * this.props.Document.GetNumber(KeyStore.Width, 0));
                 this.props.Document.SetNumber(KeyStore.NativeHeight, newNativeHeight);
             }
