@@ -15,10 +15,7 @@ export enum RouteStore {
 
     // USER AND WORKSPACES
     getCurrUser = "/getCurrentUser",
-    addWorkspace = "/addWorkspaceId",
-    getAllWorkspaces = "/getAllWorkspaceIds",
-    getActiveWorkspace = "/getActiveWorkspaceId",
-    setActiveWorkspace = "/setActiveWorkspaceId",
+    getUserDocumentId = "/getUserDocumentId",
     updateCursor = "/updateCursor",
 
     openDocumentWithId = "/doc/:docId",

@@ -16,6 +16,8 @@ export interface EditableProps {
      *  */
     SetValue(value: string): boolean;
 
+    OnFillDown?(value: string): void;
+
     /**
      * The contents to render when not editing
      */
@@ -36,8 +38,13 @@ export class EditableView extends React.Component<EditableProps> {
 
     @action
     onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key == "Enter" && !e.ctrlKey) {
-            if (this.props.SetValue(e.currentTarget.value)) {
+        if (e.key == "Enter") {
+            if (!e.ctrlKey) {
+                if (this.props.SetValue(e.currentTarget.value)) {
+                    this.editing = false;
+                }
+            } else if (this.props.OnFillDown) {
+                this.props.OnFillDown(e.currentTarget.value);
                 this.editing = false;
             }
         } else if (e.key == "Escape") {

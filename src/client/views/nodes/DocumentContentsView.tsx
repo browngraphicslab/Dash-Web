@@ -5,7 +5,7 @@ import { Key } from "../../../fields/Key";
 import { KeyStore } from "../../../fields/KeyStore";
 import { ListField } from "../../../fields/ListField";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
-import { CollectionFreeFormView } from "../collections/CollectionFreeFormView";
+import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
 import { CollectionPDFView } from "../collections/CollectionPDFView";
 import { CollectionSchemaView } from "../collections/CollectionSchemaView";
 import { CollectionVideoView } from "../collections/CollectionVideoView";
@@ -19,7 +19,7 @@ import { KeyValueBox } from "./KeyValueBox";
 import { PDFBox } from "./PDFBox";
 import { VideoBox } from "./VideoBox";
 import { WebBox } from "./WebBox";
-import { HistogramBox } from "./HistogramBox";
+import { HistogramBox } from "../../northstar/dash-nodes/HistogramBox";
 import React = require("react");
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
@@ -34,6 +34,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
     @computed get layoutKeys(): Key[] { return this.props.Document.GetData(KeyStore.LayoutKeys, ListField, new Array<Key>()); }
     @computed get layoutFields(): Key[] { return this.props.Document.GetData(KeyStore.LayoutFields, ListField, new Array<Key>()); }
 
+
     CreateBindings(): JsxBindings {
         let bindings: JsxBindings = { ...this.props, };
         for (const key of this.layoutKeys) {
@@ -47,8 +48,13 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
     }
 
     render() {
+        let lkeys = this.props.Document.GetT(KeyStore.LayoutKeys, ListField);
+        if (!lkeys || lkeys === FieldWaiting) {
+            return <p>Error loading layout keys</p>;
+        }
         return <JsxParser
-            components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, CollectionVideoView, WebBox, KeyValueBox, PDFBox, VideoBox, AudioBox, HistogramBox }} bindings={this.CreateBindings()}
+            components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, CollectionVideoView, WebBox, KeyValueBox, PDFBox, VideoBox, AudioBox, HistogramBox }}
+            bindings={this.CreateBindings()}
             jsx={this.layout}
             showWarnings={true}
             onError={(test: any) => { console.log(test) }}

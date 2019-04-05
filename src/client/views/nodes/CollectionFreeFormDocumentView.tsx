@@ -1,4 +1,4 @@
-import { computed, trace } from "mobx";
+import { computed } from "mobx";
 import { observer } from "mobx-react";
 import { KeyStore } from "../../../fields/KeyStore";
 import { NumberField } from "../../../fields/NumberField";
@@ -6,6 +6,7 @@ import { Transform } from "../../util/Transform";
 import { DocumentView, DocumentViewProps } from "./DocumentView";
 import "./DocumentView.scss";
 import React = require("react");
+import { thisExpression } from "babel-types";
 
 
 @observer
@@ -65,14 +66,19 @@ export class CollectionFreeFormDocumentView extends React.Component<DocumentView
         return <DocumentView {...this.props}
             ContentScaling={this.contentScaling}
             ScreenToLocalTransform={this.getTransform}
+            PanelWidth={this.panelWidth}
+            PanelHeight={this.panelHeight}
         />
     }
+    panelWidth = () => this.props.Document.GetBoolean(KeyStore.Minimized, false) ? 10 : this.props.PanelWidth();
+    panelHeight = () => this.props.Document.GetBoolean(KeyStore.Minimized, false) ? 10 : this.props.PanelHeight();
 
     render() {
         return (
             <div className="collectionFreeFormDocumentView-container" ref={this._mainCont} style={{
                 transformOrigin: "left top",
                 transform: this.transform,
+                pointerEvents: "all",
                 width: this.width,
                 height: this.height,
                 position: "absolute",

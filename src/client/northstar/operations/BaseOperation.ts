@@ -10,9 +10,10 @@ export abstract class BaseOperation {
 
     @observable public Error: string = "";
     @observable public OverridingFilters: FilterModel[] = [];
-    @observable public Result: Result | undefined;
+    //@observable 
+    @observable public Result?: Result = undefined;
     @observable public ComputationStarted: boolean = false;
-    public OperationReference: OperationReference | undefined = undefined;
+    public OperationReference?: OperationReference = undefined;
 
     private static _nextId = 0;
     public RequestSalt: string = "";
@@ -25,6 +26,8 @@ export abstract class BaseOperation {
     @computed
     public get FilterString(): string {
 
+        // let filterModels: FilterModel[] = [];
+        // return FilterModel.GetFilterModelsRecursive(this, new Set<GraphNode<BaseOperationViewModel, FilterLinkViewModel>>(), filterModels, true)
         // if (this.OverridingFilters.length > 0) {
         //     return "(" + this.OverridingFilters.filter(fm => fm != null).map(fm => fm.ToPythonString()).join(" || ") + ")";
         // }
@@ -59,7 +62,8 @@ export abstract class BaseOperation {
             }
 
             let operationParameters = this.CreateOperationParameters();
-            this.Result = undefined;
+            if (this.Result)
+                this.Result.progress = 0; // bcz: used to set Result to undefined, but that causes the display to blink
             this.Error = "";
             let salt = Math.random().toString();
             this.RequestSalt = salt;

@@ -1,4 +1,4 @@
-import { BinRange, NominalBinRange, QuantitativeBinRange, Exception, AlphabeticBinRange, DateTimeBinRange, AggregateBinRange, DoubleValueAggregateResult, HistogramResult } from "../idea/idea";
+import { BinRange, NominalBinRange, QuantitativeBinRange, Exception, AlphabeticBinRange, DateTimeBinRange, AggregateBinRange, DoubleValueAggregateResult, HistogramResult, AttributeParameters } from "../idea/idea";
 import { VisualBinRange, ChartType } from "./VisualBinRange";
 import { NominalVisualBinRange } from "./NominalVisualBinRange";
 import { QuantitativeVisualBinRange } from "./QuantitativeVisualBinRange";
@@ -30,13 +30,13 @@ export class VisualBinRangeHelper {
         throw new Exception()
     }
 
-    public static GetVisualBinRange(dataBinRange: BinRange, histoResult: HistogramResult, attr: AttributeTransformationModel, chartType: ChartType): VisualBinRange {
+    public static GetVisualBinRange(distinctAttributeParameters: AttributeParameters | undefined, dataBinRange: BinRange, histoResult: HistogramResult, attr: AttributeTransformationModel, chartType: ChartType): VisualBinRange {
 
         if (!(dataBinRange instanceof AggregateBinRange)) {
             return VisualBinRangeHelper.GetNonAggregateVisualBinRange(dataBinRange);
         }
         else {
-            var aggregateKey = ModelHelpers.CreateAggregateKey(attr, histoResult, ModelHelpers.AllBrushIndex(histoResult));
+            var aggregateKey = ModelHelpers.CreateAggregateKey(distinctAttributeParameters, attr, histoResult, ModelHelpers.AllBrushIndex(histoResult));
             var minValue = Number.MAX_VALUE;
             var maxValue = Number.MIN_VALUE;
             for (var b = 0; b < histoResult.brushes!.length; b++) {

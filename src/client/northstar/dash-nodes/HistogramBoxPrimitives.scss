@@ -1,0 +1,30 @@
+.histogramboxprimitives-container {
+    width: 100%;
+    height: 100%;
+}
+.histogramboxprimitives-border {
+    border: 3px;
+    border-style: solid;
+    border-color: white;
+    pointer-events: none;
+    position: absolute;
+}
+.histogramboxprimitives-bar {
+    position: absolute;
+    border: 1px;
+    border-style: solid;
+    border-color: #282828;
+    pointer-events: all;
+}
+
+.histogramboxprimitives-placer {
+    position: absolute;
+    pointer-events: none;
+    width: 100%;
+    height: 100%;
+}
+.histogramboxprimitives-line {
+    position: absolute;
+    background: darkGray;
+    opacity: 0.4;
+}

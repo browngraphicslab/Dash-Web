@@ -1,0 +1,39 @@
+.histogrambox-container {
+    padding: 0vw;
+    position: absolute;
+    top: 0;
+    left:0;
+    text-align: center;
+    width: 100%;
+    height: 100%;
+    background: black;
+  }
+  .histogrambox-xaxislabel {
+    position:absolute;
+    left:0;
+    width:100%;
+    text-align: center;
+    bottom:0;
+    background: lightgray;
+    font-size: 14;
+    font-weight: bold;
+  }
+  .histogrambox-yaxislabel {
+    position:absolute;
+    height:100%;
+    width: 25px;
+    left:0;
+    bottom:0;
+    background: lightgray;
+  }
+  .histogrambox-yaxislabel-text {
+    position:absolute;
+    left:0;
+    transform-origin: left;
+    transform: rotate(-90deg);
+    text-align: center;
+    font-size: 14;
+    font-weight: bold;
+    bottom: calc(50% - 25px);
+  }
+  

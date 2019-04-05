@@ -1,6 +1,6 @@
 import React = require("react")
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faCog } from '@fortawesome/free-solid-svg-icons';
+import { faCog, faPlus } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable, trace, untracked } from "mobx";
 import { observer } from "mobx-react";
@@ -8,7 +8,7 @@ import Measure from "react-measure";
 import ReactTable, { CellInfo, ComponentPropsGetterR, ReactTableDefaults } from "react-table";
 import "react-table/react-table.css";
 import { Document } from "../../../fields/Document";
-import { Field, Opt } from "../../../fields/Field";
+import { Field, Opt, FieldWaiting } from "../../../fields/Field";
 import { Key } from "../../../fields/Key";
 import { KeyStore } from "../../../fields/KeyStore";
 import { ListField } from "../../../fields/ListField";
@@ -24,6 +24,7 @@ import { FieldView, FieldViewProps } from "../nodes/FieldView";
 import "./CollectionSchemaView.scss";
 import { CollectionView, COLLECTION_BORDER_WIDTH } from "./CollectionView";
 import { CollectionViewBase } from "./CollectionViewBase";
+import { TextField } from "../../../fields/TextField";
 
 
 // bcz: need to add drag and drop of rows and columns.  This seems like it might work for rows: https://codesandbox.io/s/l94mn1q657
@@ -85,12 +86,31 @@ export class CollectionSchemaView extends CollectionViewBase {
         )
         let reference = React.createRef<HTMLDivElement>();
         let onItemDown = setupDrag(reference, () => props.doc, (containingCollection: CollectionView) => this.props.removeDocument(props.doc));
+        let applyToDoc = (doc: Document, value: string) => {
+            let script = CompileScript(value, { this: doc }, true);
+            if (!script.compiled) {
+                return false;
+            }
+            let field = script();
+            if (field instanceof Field) {
+                doc.Set(props.fieldKey, field);
+                return true;
+            } else {
+                let dataField = ToField(field);
+                if (dataField) {
+                    doc.Set(props.fieldKey, dataField);
+                    return true;
+                }
+            }
+            return false;
+        }
         return (
-            <div className="collectionSchemaView-cellContents" onPointerDown={onItemDown} style={{ height: "36px" }} key={props.doc.Id} ref={reference}>
+            <div className="collectionSchemaView-cellContents" onPointerDown={onItemDown} style={{ height: "56px" }} key={props.doc.Id} ref={reference}>
                 <EditableView
                     display={"inline"}
                     contents={contents}
-                    height={36} GetValue={() => {
+                    height={56}
+                    GetValue={() => {
                         let field = props.doc.Get(props.fieldKey);
                         if (field && field instanceof Field) {
                             return field.ToScriptString();
@@ -98,22 +118,14 @@ export class CollectionSchemaView extends CollectionViewBase {
                         return field || "";
                     }}
                     SetValue={(value: string) => {
-                        let script = CompileScript(value);
-                        if (!script.compiled) {
-                            return false;
-                        }
-                        let field = script();
-                        if (field instanceof Field) {
-                            props.doc.Set(props.fieldKey, field);
-                            return true;
-                        } else {
-                            let dataField = ToField(field);
-                            if (dataField) {
-                                props.doc.Set(props.fieldKey, dataField);
-                                return true;
+                        return applyToDoc(props.doc, value);
+                    }}
+                    OnFillDown={(value: string) => {
+                        this.props.Document.GetTAsync<ListField<Document>>(this.props.fieldKey, ListField).then((val) => {
+                            if (val) {
+                                val.Data.forEach(doc => applyToDoc(doc, value));
                             }
-                        }
-                        return false;
+                        })
                     }}>
                 </EditableView>
             </div>
@@ -238,23 +250,52 @@ export class CollectionSchemaView extends CollectionViewBase {
         }
     }
 
+    @action
+    addColumn = () => {
+        this.columns.push(new Key(this.newKeyName));
+        this.newKeyName = "";
+    }
+
+    @observable
+    newKeyName: string = "";
+
+    @action
+    newKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        this.newKeyName = e.currentTarget.value;
+    }
+    onWheel = (e: React.WheelEvent): void => {
+        if (this.props.active())
+            e.stopPropagation();
+    }
+
     @observable _optionsActivated: number = 0;
     @action
     OptionsMenuDown = (e: React.PointerEvent) => {
         this._optionsActivated++;
     }
+
+    @observable previewScript: string = "this";
+    @action
+    onPreviewScriptChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        this.previewScript = e.currentTarget.value;
+    }
+
     render() {
         library.add(faCog);
+        library.add(faPlus);
         const columns = this.columns;
         const children = this.props.Document.GetList<Document>(this.props.fieldKey, []);
         const selected = children.length > this._selectedIndex ? children[this._selectedIndex] : undefined;
         //all the keys/columns that will be displayed in the schema
         const allKeys = this.findAllDocumentKeys;
+        let doc: any = selected ? selected.Get(new Key(this.previewScript)) : undefined;
+
+        // let doc = CompileScript(this.previewScript, { this: selected }, true)();
         let content = this._selectedIndex == -1 || !selected ? (null) : (
             <Measure onResize={this.setScaling}>
                 {({ measureRef }) =>
                     <div className="collectionSchemaView-content" ref={measureRef}>
-                        <DocumentView Document={selected}
+                        {doc instanceof Document ? <DocumentView Document={doc}
                             AddDocument={this.props.addDocument} RemoveDocument={this.props.removeDocument}
                             isTopMost={false}
                             SelectOnLoad={false}
@@ -264,7 +305,9 @@ export class CollectionSchemaView extends CollectionViewBase {
                             PanelHeight={this.getPanelHeight}
                             ContainingCollectionView={this.props.CollectionView}
                             focus={this.focusDocument}
-                        />
+                        /> : null}
+                        <input value={this.previewScript} onChange={this.onPreviewScriptChange}
+                            style={{ position: 'absolute', bottom: '0px' }} />
                     </div>
                 }
             </Measure>
@@ -286,6 +329,8 @@ export class CollectionSchemaView extends CollectionViewBase {
                             return (<KeyToggle checked={allKeys[item]} key={item} keyId={item} toggle={this.toggleKey} />)
                         })}
                     </ul>
+                    <input value={this.newKeyName} onChange={this.newKeyChange} />
+                    <button onClick={this.addColumn}><FontAwesomeIcon style={{ color: "white" }} icon="plus" size="lg" /></button>
                 </div>
             </div>
             }>
@@ -293,7 +338,7 @@ export class CollectionSchemaView extends CollectionViewBase {
         </Flyout>);
 
         return (
-            <div className="collectionSchemaView-container" onPointerDown={this.onPointerDown} ref={this._mainCont} style={{ borderWidth: `${COLLECTION_BORDER_WIDTH}px` }} >
+            <div className="collectionSchemaView-container" onPointerDown={this.onPointerDown} onWheel={this.onWheel} ref={this._mainCont} style={{ borderWidth: `${COLLECTION_BORDER_WIDTH}px` }} >
                 <div className="collectionSchemaView-dropTarget" onDrop={(e: React.DragEvent) => this.onDrop(e, {})} ref={this.createDropTarget}>
                     <Measure onResize={this.setTableDimensions}>
                         {({ measureRef }) =>

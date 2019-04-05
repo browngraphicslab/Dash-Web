@@ -156,16 +156,9 @@ addSecureRoute(
 
 addSecureRoute(
     Method.GET,
-    (user, res) => res.send(user.activeWorkspaceId || ""),
+    (user, res) => res.send(user.userDocumentId || ""),
     undefined,
-    RouteStore.getActiveWorkspace,
-);
-
-addSecureRoute(
-    Method.GET,
-    (user, res) => res.send(JSON.stringify(user.allWorkspaceIds)),
-    undefined,
-    RouteStore.getAllWorkspaces
+    RouteStore.getUserDocumentId,
 );
 
 addSecureRoute(
@@ -181,28 +174,6 @@ addSecureRoute(
 );
 
 // SETTERS
-
-addSecureRoute(
-    Method.POST,
-    (user, res, req) => {
-        user.update({ $set: { activeWorkspaceId: req.body.target } }, (err, raw) => {
-            res.sendStatus(err ? 500 : 200);
-        });
-    },
-    undefined,
-    RouteStore.setActiveWorkspace
-);
-
-addSecureRoute(
-    Method.POST,
-    (user, res, req) => {
-        user.update({ $push: { allWorkspaceIds: req.body.target } }, (err, raw) => {
-            res.sendStatus(err ? 500 : 200);
-        });
-    },
-    undefined,
-    RouteStore.addWorkspace
-);
 
 addSecureRoute(
     Method.POST,
@@ -252,13 +223,11 @@ app.use(RouteStore.corsProxy, (req, res) => {
 });
 
 app.get(RouteStore.delete, (req, res) => {
-    deleteFields();
-    res.redirect(RouteStore.home);
+    deleteFields().then(() => res.redirect(RouteStore.home));
 });
 
 app.get(RouteStore.deleteAll, (req, res) => {
-    deleteAll();
-    res.redirect(RouteStore.home);
+    deleteAll().then(() => res.redirect(RouteStore.home));
 });
 
 app.use(wdm(compiler, {
@@ -291,13 +260,15 @@ server.on("connection", function (socket: Socket) {
 })
 
 function deleteFields() {
-    Database.Instance.deleteAll();
+    return Database.Instance.deleteAll();
 }
 
 function deleteAll() {
-    Database.Instance.deleteAll();
-    Database.Instance.deleteAll('sessions');
-    Database.Instance.deleteAll('users');
+    return Database.Instance.deleteAll().then(() => {
+        return Database.Instance.deleteAll('sessions')
+    }).then(() => {
+        return Database.Instance.deleteAll('users')
+    });
 }
 
 function barReceived(guid: String) {

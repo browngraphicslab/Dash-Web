@@ -8,6 +8,7 @@ import "./Main.scss";
 import { MessageStore } from '../../server/Message';
 import { Utils } from '../../Utils';
 import * as request from 'request'
+import * as rp from 'request-promise'
 import { Documents } from '../documents/Documents';
 import { Server } from '../Server';
 import { setupDrag } from '../util/DragManager';
@@ -22,7 +23,7 @@ import "./Main.scss";
 import { observer } from 'mobx-react';
 import { InkingControl } from './InkingControl';
 import { RouteStore } from '../../server/RouteStore';
-import { library } from '@fortawesome/fontawesome-svg-core';
+import { library, IconName } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faFont } from '@fortawesome/free-solid-svg-icons';
 import { faImage } from '@fortawesome/free-solid-svg-icons';
@@ -40,27 +41,40 @@ import Measure from 'react-measure';
 import { DashUserModel } from '../../server/authentication/models/user_model';
 import { ServerUtils } from '../../server/ServerUtil';
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
-import { Field, Opt } from '../../fields/Field';
+import { Field, Opt, FieldWaiting } from '../../fields/Field';
 import { ListField } from '../../fields/ListField';
 import { Gateway, Settings } from '../northstar/manager/Gateway';
-import { Catalog, Schema, Attribute, AttributeGroup } from '../northstar/model/idea/idea';
+import { Catalog, Schema, Attribute, AttributeGroup, AggregateFunction } from '../northstar/model/idea/idea';
 import { ArrayUtil } from '../northstar/utils/ArrayUtil';
 import '../northstar/model/ModelExtensions'
 import '../northstar/utils/Extensions'
+import { HistogramOperation } from '../northstar/operations/HistogramOperation';
+import { AttributeTransformationModel } from '../northstar/core/attribute/AttributeTransformationModel';
+import { ColumnAttributeModel } from '../northstar/core/attribute/AttributeModel';
 
 @observer
 export class Main extends React.Component {
     // dummy initializations keep the compiler happy
-    @observable private mainContainer?: Document;
     @observable private mainfreeform?: Document;
-    @observable private userWorkspaces: Document[] = [];
     @observable public pwidth: number = 0;
     @observable public pheight: number = 0;
-    @observable ActiveSchema: Schema | undefined;
-    private _northstarColumns: Document[] = [];
+    private _northstarSchemas: Document[] = [];
 
-    public mainDocId: string | undefined;
-    private currentUser?: DashUserModel;
+    @computed private get mainContainer(): Document | undefined {
+        let doc = this.userDocument.GetT(KeyStore.ActiveWorkspace, Document);
+        return doc == FieldWaiting ? undefined : doc;
+    }
+
+    private set mainContainer(doc: Document | undefined) {
+        if (doc) {
+            this.userDocument.Set(KeyStore.ActiveWorkspace, doc);
+        }
+    }
+
+    private get userDocument(): Document {
+        return CurrentUserUtils.UserDocument;
+    }
+
     public static Instance: Main;
 
     constructor(props: Readonly<{}>) {
@@ -70,11 +84,10 @@ export class Main extends React.Component {
         configure({ enforceActions: "observed" });
         if (window.location.pathname !== RouteStore.home) {
             let pathname = window.location.pathname.split("/");
-            this.mainDocId = pathname[pathname.length - 1];
+            if (pathname.length > 1 && pathname[pathname.length - 2] == 'doc') {
+                CurrentUserUtils.MainDocId = pathname[pathname.length - 1];
+            }
         };
-
-        let y = "";
-        y.ReplaceAll("a", "B");
 
         CurrentUserUtils.loadCurrentUser();
 
@@ -92,7 +105,7 @@ export class Main extends React.Component {
         library.add(faTree);
 
         this.initEventListeners();
-        Documents.initProtos(() => this.initAuthenticationRouters());
+        this.initAuthenticationRouters();
 
         this.initializeNorthstar();
     }
@@ -100,8 +113,8 @@ export class Main extends React.Component {
     onHistory = () => {
         if (window.location.pathname !== RouteStore.home) {
             let pathname = window.location.pathname.split("/");
-            this.mainDocId = pathname[pathname.length - 1];
-            Server.GetField(this.mainDocId, action((field: Opt<Field>) => {
+            CurrentUserUtils.MainDocId = pathname[pathname.length - 1];
+            Server.GetField(CurrentUserUtils.MainDocId, action((field: Opt<Field>) => {
                 if (field instanceof Document) {
                     this.openWorkspace(field, true);
                 }
@@ -131,63 +144,50 @@ export class Main extends React.Component {
 
     initAuthenticationRouters = () => {
         // Load the user's active workspace, or create a new one if initial session after signup
-        request.get(ServerUtils.prepend(RouteStore.getActiveWorkspace), (error, response, body) => {
-            if (this.mainDocId || body) {
-                Server.GetField(this.mainDocId || body, field => {
-                    if (field instanceof Document) {
-                        this.openWorkspace(field);
-                        this.populateWorkspaces();
-                    } else {
-                        this.createNewWorkspace(true, this.mainDocId);
-                    }
-                });
-            } else {
-                this.createNewWorkspace(true, this.mainDocId);
+        if (!CurrentUserUtils.MainDocId) {
+            this.userDocument.GetTAsync(KeyStore.ActiveWorkspace, Document).then(doc => {
+                if (doc) {
+                    CurrentUserUtils.MainDocId = doc.Id;
+                    this.openWorkspace(doc);
+                } else {
+                    this.createNewWorkspace();
+                }
+            })
+        } else {
+            Server.GetField(CurrentUserUtils.MainDocId).then(field => {
+                if (field instanceof Document) {
+                    this.openWorkspace(field)
+                } else {
+                    this.createNewWorkspace(CurrentUserUtils.MainDocId);
+                }
+            })
+        }
+    }
+
+    @action
+    createNewWorkspace = (id?: string): void => {
+        this.userDocument.GetTAsync<ListField<Document>>(KeyStore.Workspaces, ListField).then(action((list: Opt<ListField<Document>>) => {
+            if (list) {
+                let freeformDoc = Documents.FreeformDocument([], { x: 0, y: 400, title: "mini collection" });
+                var dockingLayout = { content: [{ type: 'row', content: [CollectionDockingView.makeDocumentConfig(freeformDoc)] }] };
+                let mainDoc = Documents.DockDocument(JSON.stringify(dockingLayout), { title: `Main Container ${list.Data.length + 1}` }, id);
+                list.Data.push(mainDoc);
+                CurrentUserUtils.MainDocId = mainDoc.Id;
+                // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
+                setTimeout(() => {
+                    this.openWorkspace(mainDoc);
+                    let pendingDocument = Documents.SchemaDocument([], { title: "New Mobile Uploads" })
+                    mainDoc.Set(KeyStore.OptionalRightCollection, pendingDocument);
+                }, 0);
             }
-        });
-    }
-
-    @action
-    createNewWorkspace = (init: boolean, id?: string): void => {
-        let mainDoc = Documents.DockDocument(JSON.stringify({ content: [{ type: 'row', content: [] }] }), { title: `Main Container ${this.userWorkspaces.length + 1}` }, id);
-        let newId = mainDoc.Id;
-        request.post(ServerUtils.prepend(RouteStore.addWorkspace), {
-            body: { target: newId },
-            json: true
-        }, () => { if (init) this.populateWorkspaces(); });
-
-        // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
-        setTimeout(() => {
-            let freeformDoc = Documents.FreeformDocument([], { x: 0, y: 400, title: "mini collection" });
-            var dockingLayout = { content: [{ type: 'row', content: [CollectionDockingView.makeDocumentConfig(freeformDoc)] }] };
-            mainDoc.SetText(KeyStore.Data, JSON.stringify(dockingLayout));
-            mainDoc.Set(KeyStore.ActiveFrame, freeformDoc);
-            this.openWorkspace(mainDoc);
-            let pendingDocument = Documents.SchemaDocument([], { title: "New Mobile Uploads" })
-            mainDoc.Set(KeyStore.OptionalRightCollection, pendingDocument);
-        }, 0);
-        this.userWorkspaces.push(mainDoc);
-    }
-
-    @action
-    populateWorkspaces = () => {
-        // retrieve all workspace documents from the server
-        request.get(ServerUtils.prepend(RouteStore.getAllWorkspaces), (error, res, body) => {
-            let ids = JSON.parse(body) as string[];
-            Server.GetFields(ids, action((fields: { [id: string]: Field }) => this.userWorkspaces = ids.map(id => fields[id] as Document)));
-        });
+        }));
     }
 
     @action
     openWorkspace = (doc: Document, fromHistory = false): void => {
-        request.post(ServerUtils.prepend(RouteStore.setActiveWorkspace), {
-            body: { target: doc.Id },
-            json: true
-        });
         this.mainContainer = doc;
         fromHistory || window.history.pushState(null, doc.Title, "/doc/" + doc.Id);
-        this.mainContainer.GetTAsync(KeyStore.ActiveFrame, Document, field => this.mainfreeform = field);
-        this.mainContainer.GetTAsync(KeyStore.OptionalRightCollection, Document, col => {
+        this.userDocument.GetTAsync(KeyStore.OptionalRightCollection, Document).then(col => {
             // if there is a pending doc, and it has new data, show it (syip: we use a timeout to prevent collection docking view from being uninitialized)
             setTimeout(() => {
                 if (col) {
@@ -201,10 +201,15 @@ export class Main extends React.Component {
         });
     }
 
+    @observable
+    workspacesShown: boolean = false;
+
+    areWorkspacesShown = () => {
+        return this.workspacesShown;
+    }
+    @action
     toggleWorkspaces = () => {
-        if (WorkspacesMenu.Instance) {
-            WorkspacesMenu.Instance.toggle()
-        }
+        this.workspacesShown = !this.workspacesShown;
     }
 
     screenToLocalTransform = () => Transform.Identity
@@ -213,7 +218,8 @@ export class Main extends React.Component {
     focusDocument = (doc: Document) => { }
     noScaling = () => 1;
 
-    get content() {
+    @computed
+    get mainContent() {
         return !this.mainContainer ? (null) :
             <DocumentView Document={this.mainContainer}
                 AddDocument={undefined}
@@ -240,14 +246,14 @@ export class Main extends React.Component {
         let addTextNode = action(() => Documents.TextDocument({ width: 200, height: 200, title: "a text note" }))
         let addColNode = action(() => Documents.FreeformDocument([], { width: 200, height: 200, title: "a freeform collection" }));
         let addSchemaNode = action(() => Documents.SchemaDocument([], { width: 200, height: 200, title: "a schema collection" }));
-        let addTreeNode = action(() => Documents.TreeDocument(this._northstarColumns, { width: 200, height: 200, title: "a tree collection" }));
+        let addTreeNode = action(() => Documents.TreeDocument(this._northstarSchemas, { width: 250, height: 400, title: "northstar schemas" }));
         let addVideoNode = action(() => Documents.VideoDocument(videourl, { width: 200, height: 200, title: "video node" }));
         let addPDFNode = action(() => Documents.PdfDocument(pdfurl, { width: 200, height: 200, title: "a schema collection" }));
         let addImageNode = action(() => Documents.ImageDocument(imgurl, { width: 200, height: 200, title: "an image of a cat" }));
         let addWebNode = action(() => Documents.WebDocument(weburl, { width: 200, height: 200, title: "a sample web page" }));
         let addAudioNode = action(() => Documents.AudioDocument(audiourl, { width: 200, height: 200, title: "audio node" }))
 
-        let btns = [
+        let btns: [React.RefObject<HTMLDivElement>, IconName, string, () => Document][] = [
             [React.createRef<HTMLDivElement>(), "font", "Add Textbox", addTextNode],
             [React.createRef<HTMLDivElement>(), "image", "Add Image", addImageNode],
             [React.createRef<HTMLDivElement>(), "file-pdf", "Add PDF", addPDFNode],
@@ -259,8 +265,6 @@ export class Main extends React.Component {
             [React.createRef<HTMLDivElement>(), "table", "Add Schema", addSchemaNode],
         ]
 
-        let addClick = (creator: () => Document) => action(() => this.mainfreeform!.GetList<Document>(KeyStore.Data, []).push(creator()));
-
         return < div id="add-nodes-menu" >
             <input type="checkbox" id="add-menu-toggle" />
             <label htmlFor="add-menu-toggle" title="Add Node"><p>+</p></label>
@@ -268,9 +272,9 @@ export class Main extends React.Component {
             <div id="add-options-content">
                 <ul id="add-options-list">
                     {btns.map(btn =>
-                        <li key={btn[1] as string} ><div ref={btn[0] as React.RefObject<HTMLDivElement>}>
-                            <button className="round-button add-button" title={btn[2] as string} onPointerDown={setupDrag(btn[0] as React.RefObject<HTMLDivElement>, btn[3] as any)} onClick={addClick(btn[3] as any)}>
-                                <FontAwesomeIcon icon={btn[1] as any} size="sm" />
+                        <li key={btn[1]} ><div ref={btn[0]}>
+                            <button className="round-button add-button" title={btn[2]} onPointerDown={setupDrag(btn[0], btn[3])}>
+                                <FontAwesomeIcon icon={btn[1]} size="sm" />
                             </button>
                         </div></li>)}
                 </ul>
@@ -300,23 +304,29 @@ export class Main extends React.Component {
     }
 
     render() {
+        let workspaceMenu: any = null;
+        let workspaces = this.userDocument.GetT<ListField<Document>>(KeyStore.Workspaces, ListField);
+        if (workspaces && workspaces !== FieldWaiting) {
+            workspaceMenu = <WorkspacesMenu active={this.mainContainer} open={this.openWorkspace} new={this.createNewWorkspace} allWorkspaces={workspaces.Data}
+                isShown={this.areWorkspacesShown} toggle={this.toggleWorkspaces} />
+        }
         return (
             <div id="main-div">
+                <DocumentDecorations />
                 <Measure onResize={(r: any) => runInAction(() => {
                     this.pwidth = r.entry.width;
                     this.pheight = r.entry.height;
                 })}>
                     {({ measureRef }) =>
                         <div ref={measureRef} id="mainContent-div">
-                            {this.content}
+                            {this.mainContent}
                         </div>
                     }
                 </Measure>
-                <DocumentDecorations />
                 <ContextMenu />
                 {this.nodesMenu}
                 {this.miscButtons}
-                <WorkspacesMenu active={this.mainContainer} open={this.openWorkspace} new={this.createNewWorkspace} allWorkspaces={this.userWorkspaces} />
+                {workspaceMenu}
                 <InkingControl />
             </div>
         );
@@ -325,9 +335,27 @@ export class Main extends React.Component {
     // --------------- Northstar hooks ------------- /
 
     @action SetNorthstarCatalog(ctlog: Catalog) {
+        CurrentUserUtils.NorthstarDBCatalog = ctlog;
         if (ctlog && ctlog.schemas) {
-            this.ActiveSchema = ArrayUtil.FirstOrDefault<Schema>(ctlog.schemas!, (s: Schema) => s.displayName === "mimic");
-            this._northstarColumns = this.GetAllNorthstarColumnAttributes().map(a => Documents.HistogramDocument({ width: 200, height: 200, title: a.displayName! }));
+            this._northstarSchemas = ctlog.schemas.map(schema => {
+                let schemaDoc = Documents.TreeDocument([], { width: 50, height: 100, title: schema.displayName! });
+                let schemaDocuments = schemaDoc.GetList(KeyStore.Data, [] as Document[]);
+                CurrentUserUtils.GetAllNorthstarColumnAttributes(schema).map(attr => {
+                    Server.GetField(attr.displayName! + ".alias", action((field: Opt<Field>) => {
+                        if (field instanceof Document) {
+                            schemaDocuments.push(field);
+                        } else {
+                            var atmod = new ColumnAttributeModel(attr);
+                            let histoOp = new HistogramOperation(schema!.displayName!,
+                                new AttributeTransformationModel(atmod, AggregateFunction.None),
+                                new AttributeTransformationModel(atmod, AggregateFunction.Count),
+                                new AttributeTransformationModel(atmod, AggregateFunction.Count));
+                            schemaDocuments.push(Documents.HistogramDocument(histoOp, { width: 200, height: 200, title: attr.displayName! }, undefined, attr.displayName! + ".alias"));
+                        }
+                    }));
+                });
+                return schemaDoc;
+            })
         }
     }
     async initializeNorthstar(): Promise<void> {
@@ -342,22 +370,10 @@ export class Main extends React.Component {
         let cat = Gateway.Instance.ClearCatalog();
         cat.then(async () => this.SetNorthstarCatalog(await Gateway.Instance.GetCatalog()));
     }
-    public GetAllNorthstarColumnAttributes() {
-        if (!this.ActiveSchema || !this.ActiveSchema.rootAttributeGroup) {
-            return [];
-        }
-        const recurs = (attrs: Attribute[], g: AttributeGroup) => {
-            if (g.attributes) {
-                attrs.push.apply(attrs, g.attributes);
-                if (g.attributeGroups) {
-                    g.attributeGroups.forEach(ng => recurs(attrs, ng));
-                }
-            }
-        };
-        const allAttributes: Attribute[] = new Array<Attribute>();
-        recurs(allAttributes, this.ActiveSchema.rootAttributeGroup);
-        return allAttributes;
-    }
 }
 
-ReactDOM.render(<Main />, document.getElementById('root'));
+Documents.initProtos().then(() => {
+    return CurrentUserUtils.loadCurrentUser()
+}).then(() => {
+    ReactDOM.render(<Main />, document.getElementById('root'));
+});

@@ -1,5 +1,13 @@
-@import "../global_variables";
+@import "../../global_variables";
 
+.collectionfreeformview {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  transform-origin: left top;
+}
 .collectionfreeformview-container {
   .collectionfreeformview > .jsx-parser {
     position: absolute;
@@ -7,9 +15,6 @@
     width: 100%;
   }
 
-  .inking-canvas {
-    transform-origin: 50000px 50000px;
-  }
   //nested freeform views
   // .collectionfreeformview-container {
     // background-image: linear-gradient(to right, $light-color-secondary 1px, transparent 1px),
@@ -21,22 +26,12 @@
   border: 0px solid $light-color-secondary;
   border-radius: $border-radius;
   box-sizing: border-box;
-  position: relative;
+  position: absolute;
   overflow: hidden;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  .collectionfreeformview {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    .inking-canvas {
-      transform-origin: 50000px 50000px;
-    }
-  }
 }
 .collectionfreeformview-overlay {
   .collectionfreeformview > .jsx-parser {
@@ -46,30 +41,18 @@
   .formattedTextBox-cont {
     background: $light-color-secondary;
   }
-
-  .inking-canvas {
-    transform-origin: 50000px 50000px;
-  }
-
+ 
   opacity: 0.99;
   border: 0px solid transparent;
   border-radius: $border-radius;
   box-sizing: border-box;
-  position:relative;
+  position:absolute;
   overflow: hidden;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
   .collectionfreeformview {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    .inking-canvas {
-      transform-origin: 50000px 50000px;
-    }
     .formattedTextBox-cont {
         background:yellow;
     }

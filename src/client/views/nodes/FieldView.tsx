@@ -16,6 +16,9 @@ import { VideoBox } from "./VideoBox";
 import { AudioBox } from "./AudioBox";
 import { AudioField } from "../../../fields/AudioField";
 import { ListField } from "../../../fields/ListField";
+import { DocumentContentsView } from "./DocumentContentsView";
+import { Transform } from "../../util/Transform";
+import { KeyStore } from "../../../fields/KeyStore";
 
 
 //
@@ -65,7 +68,20 @@ export class FieldView extends React.Component<FieldViewProps> {
             return <AudioBox {...this.props} />
         }
         else if (field instanceof Document) {
-            return <div>{field.Title}</div>
+            return (<DocumentContentsView Document={field}
+                AddDocument={undefined}
+                RemoveDocument={undefined}
+                ScreenToLocalTransform={() => Transform.Identity}
+                ContentScaling={() => 1}
+                PanelWidth={() => 100}
+                PanelHeight={() => 100}
+                isTopMost={true}
+                SelectOnLoad={false}
+                focus={() => { }}
+                isSelected={() => false}
+                select={() => false}
+                layoutKey={KeyStore.Layout}
+                ContainingCollectionView={undefined} />)
         }
         else if (field instanceof ListField) {
             return (<div>

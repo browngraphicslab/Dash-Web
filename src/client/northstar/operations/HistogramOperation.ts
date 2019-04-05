@@ -1,65 +1,86 @@
-import { reaction, computed, action } from "mobx";
-import { Attribute, DataType, QuantitativeBinRange, HistogramOperationParameters, AggregateParameters, AggregateFunction, AverageAggregateParameters } from "../model/idea/idea";
-import { ArrayUtil } from "../utils/ArrayUtil";
-import { CalculatedAttributeManager } from "../core/attribute/CalculatedAttributeModel";
-import { ModelHelpers } from "../model/ModelHelpers";
-import { SETTINGS_X_BINS, SETTINGS_Y_BINS, SETTINGS_SAMPLE_SIZE } from "../model/binRanges/VisualBinRangeHelper";
+import { action, computed, observable, trace } from "mobx";
+import { Document } from "../../../fields/Document";
+import { FieldWaiting } from "../../../fields/Field";
+import { KeyStore } from "../../../fields/KeyStore";
+import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
+import { ColumnAttributeModel } from "../core/attribute/AttributeModel";
 import { AttributeTransformationModel } from "../core/attribute/AttributeTransformationModel";
-import { Main } from "../../views/Main";
+import { CalculatedAttributeManager } from "../core/attribute/CalculatedAttributeModel";
+import { FilterModel } from "../core/filter/FilterModel";
+import { FilterOperand } from "../core/filter/FilterOperand";
+import { IBaseFilterConsumer } from "../core/filter/IBaseFilterConsumer";
+import { IBaseFilterProvider } from "../core/filter/IBaseFilterProvider";
+import { HistogramField } from "../dash-fields/HistogramField";
+import { SETTINGS_SAMPLE_SIZE, SETTINGS_X_BINS, SETTINGS_Y_BINS } from "../model/binRanges/VisualBinRangeHelper";
+import { AggregateFunction, AggregateParameters, Attribute, AverageAggregateParameters, Bin, DataType, DoubleValueAggregateResult, HistogramOperationParameters, HistogramResult, QuantitativeBinRange } from "../model/idea/idea";
+import { ModelHelpers } from "../model/ModelHelpers";
+import { ArrayUtil } from "../utils/ArrayUtil";
 import { BaseOperation } from "./BaseOperation";
 
+export class HistogramOperation extends BaseOperation implements IBaseFilterConsumer, IBaseFilterProvider {
+    public static Empty = new HistogramOperation("-empty schema-", new AttributeTransformationModel(new ColumnAttributeModel(new Attribute())), new AttributeTransformationModel(new ColumnAttributeModel(new Attribute())), new AttributeTransformationModel(new ColumnAttributeModel(new Attribute())));
+    @observable public FilterOperand: FilterOperand = FilterOperand.AND;
+    @observable public Links: Document[] = [];
+    @observable public BrushLinks: { l: Document, b: Document }[] = [];
+    @observable public BrushColors: number[] = [];
+    @observable public FilterModels: FilterModel[] = [];
 
-export class HistogramOperation extends BaseOperation {
-    public X: AttributeTransformationModel;
-    public Y: AttributeTransformationModel;
-    public V: AttributeTransformationModel;
-    constructor(x: AttributeTransformationModel, y: AttributeTransformationModel, v: AttributeTransformationModel) {
+    @observable public Normalization: number = -1;
+    @observable public X: AttributeTransformationModel;
+    @observable public Y: AttributeTransformationModel;
+    @observable public V: AttributeTransformationModel;
+    @observable public SchemaName: string;
+    @observable public QRange: QuantitativeBinRange | undefined;
+    @computed public get Schema() { return CurrentUserUtils.GetNorthstarSchema(this.SchemaName); }
+
+    constructor(schemaName: string, x: AttributeTransformationModel, y: AttributeTransformationModel, v: AttributeTransformationModel, normalized?: number) {
         super();
         this.X = x;
         this.Y = y;
         this.V = v;
-        reaction(() => this.createOperationParamsCache, () => this.Update());
+        this.Normalization = normalized ? normalized : -1;
+        this.SchemaName = schemaName;
     }
 
-    @computed.struct
-    public get BrushString() {
-        return [];
-        // let brushes = [];
-        // this.TypedViewModel.BrusherModels.map(brushLinkModel => {
-        //     if (instanceOfIBaseFilterProvider(brushLinkModel.From) && brushLinkModel.From.FilterModels.some && brushLinkModel.From instanceof BaseOperationViewModel) {
-        //         let brushFilterModels = [];
-        //         let gnode = MainManager.Instance.MainViewModel.FilterDependencyGraph.has(brushLinkModel.From) ?
-        //             MainManager.Instance.MainViewModel.FilterDependencyGraph.get(brushLinkModel.From) :
-        //             new GraphNode<BaseOperationViewModel, FilterLinkViewModel>(brushLinkModel.From);
-        //         let brush = FilterModel.GetFilterModelsRecursive(gnode, new Set<GraphNode<BaseOperationViewModel, FilterLinkViewModel>>(), brushFilterModels, false);
-        //         brushes.push(brush);
-        //     }
-        // });
-        // return brushes;
+    Equals(other: Object): boolean {
+        throw new Error("Method not implemented.");
     }
 
-
-    @computed.struct
-    public get SelectionString() {
-        return "";
-        // let filterModels = new Array<FilterModel>();
-        // let rdg = MainManager.Instance.MainViewModel.FilterReverseDependencyGraph;
-        // let graphNode: GraphNode<BaseOperationViewModel, FilterLinkViewModel>;
-        // if (rdg.has(this.TypedViewModel)) {
-        //     graphNode = MainManager.Instance.MainViewModel.FilterReverseDependencyGraph.get(this.TypedViewModel);
-        // }
-        // else {
-        //     graphNode = new GraphNode<BaseOperationViewModel, FilterLinkViewModel>(this.TypedViewModel);
-        // }
-        // return FilterModel.GetFilterModelsRecursive(graphNode, new Set<GraphNode<BaseOperationViewModel, FilterLinkViewModel>>(), filterModels, false);
+    @action
+    public AddFilterModels(filterModels: FilterModel[]): void {
+        filterModels.filter(f => f !== null).forEach(fm => this.FilterModels.push(fm));
+    }
+    @action
+    public RemoveFilterModels(filterModels: FilterModel[]): void {
+        ArrayUtil.RemoveMany(this.FilterModels, filterModels);
     }
 
-    GetAggregateParameters(histoX: AttributeTransformationModel, histoY: AttributeTransformationModel, histoValue: AttributeTransformationModel) {
+    @computed
+    public get FilterString(): string {
+        let filterModels: FilterModel[] = [];
+        return FilterModel.GetFilterModelsRecursive(this, new Set<IBaseFilterProvider>(), filterModels, true)
+    }
+
+    @computed
+    public get BrushString(): string[] {
+        trace();
+        let brushes: string[] = [];
+        this.BrushLinks.map(brushLink => {
+            let brushHistogram = brushLink.b.GetT(KeyStore.Data, HistogramField);
+            if (brushHistogram && brushHistogram != FieldWaiting) {
+                let filterModels: FilterModel[] = [];
+                brushes.push(FilterModel.GetFilterModelsRecursive(brushHistogram.Data, new Set<IBaseFilterProvider>(), filterModels, false));
+            }
+        });
+        return brushes;
+    }
+
+    private getAggregateParameters(histoX: AttributeTransformationModel, histoY: AttributeTransformationModel, histoValue: AttributeTransformationModel) {
         let allAttributes = new Array<AttributeTransformationModel>(histoX, histoY, histoValue);
         allAttributes = ArrayUtil.Distinct(allAttributes.filter(a => a.AggregateFunction !== AggregateFunction.None));
 
         let numericDataTypes = [DataType.Int, DataType.Double, DataType.Float];
-        let perBinAggregateParameters: AggregateParameters[] = ModelHelpers.GetAggregateParametersWithMargins(allAttributes);
+        let perBinAggregateParameters: AggregateParameters[] = ModelHelpers.GetAggregateParametersWithMargins(this.Schema!.distinctAttributeParameters, allAttributes);
         let globalAggregateParameters: AggregateParameters[] = [];
         [histoX, histoY]
             .filter(a => a.AggregateFunction === AggregateFunction.None && ArrayUtil.Contains(numericDataTypes, a.AttributeModel.DataType))
@@ -71,19 +92,12 @@ export class HistogramOperation extends BaseOperation {
         return [perBinAggregateParameters, globalAggregateParameters];
     }
 
-    @computed
-    get createOperationParamsCache() {
-        return this.CreateOperationParameters();
-    }
-
-    public QRange: QuantitativeBinRange | undefined;
-
     public CreateOperationParameters(): HistogramOperationParameters | undefined {
         if (this.X && this.Y && this.V) {
-            let [perBinAggregateParameters, globalAggregateParameters] = this.GetAggregateParameters(this.X, this.Y, this.V);
+            let [perBinAggregateParameters, globalAggregateParameters] = this.getAggregateParameters(this.X, this.Y, this.V);
             return new HistogramOperationParameters({
                 enableBrushComputation: true,
-                adapterName: Main.Instance.ActiveSchema!.displayName,
+                adapterName: this.SchemaName,
                 filter: this.FilterString,
                 brushes: this.BrushString,
                 binningParameters: [ModelHelpers.GetBinningParameters(this.X, SETTINGS_X_BINS, this.QRange ? this.QRange.minValue : undefined, this.QRange ? this.QRange.maxValue : undefined),
@@ -100,10 +114,9 @@ export class HistogramOperation extends BaseOperation {
         }
     }
 
-
     @action
     public async Update(): Promise<void> {
-        // this.TypedViewModel.BrushColors = this.TypedViewModel.BrusherModels.map(e => e.Color);
+        this.BrushColors = this.BrushLinks.map(e => e.l.GetNumber(KeyStore.BackgroundColor, 0));
         return super.Update();
     }
 }

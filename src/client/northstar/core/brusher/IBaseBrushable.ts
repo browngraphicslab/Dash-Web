@@ -1,9 +1,9 @@
-import { BrushLinkModel } from '../brusher/BrushLinkModel'
 import { PIXIPoint } from '../../utils/MathUtil'
 import { IEquatable } from '../../utils/IEquatable';
+import { Document } from '../../../../fields/Document'
 
 export interface IBaseBrushable<T> extends IEquatable {
-    BrusherModels: Array<BrushLinkModel<T>>;
+    BrusherModels: Array<Document>;
     BrushColors: Array<number>;
     Position: PIXIPoint;
     Size: PIXIPoint;
