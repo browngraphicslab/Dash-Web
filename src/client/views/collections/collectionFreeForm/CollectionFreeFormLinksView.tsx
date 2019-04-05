@@ -36,7 +36,7 @@ export class CollectionFreeFormLinksView extends React.Component<CollectionViewP
                             let dstTarg = (protoDest ? protoDest : dstDoc);
                             let srcTarg = (protoSrc ? protoSrc : srcDoc);
                             let findBrush = (field: ListField<Document>) => field.Data.findIndex(brush => {
-                                let bdocs = brush.GetList(KeyStore.BrushingDocs, [] as Document[]);
+                                let bdocs = brush ? brush.GetList(KeyStore.BrushingDocs, [] as Document[]) : [];
                                 return (bdocs.length == 0 || (bdocs[0] == dstTarg && bdocs[1] == srcTarg) || (bdocs[0] == srcTarg && bdocs[1] == dstTarg))
                             });
                             let brushAction = (field: ListField<Document>) => {

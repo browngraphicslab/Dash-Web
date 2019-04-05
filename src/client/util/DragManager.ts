@@ -1,10 +1,10 @@
-import { DocumentDecorations } from "../views/DocumentDecorations";
-import { CollectionDockingView } from "../views/collections/CollectionDockingView";
-import { Document } from "../../fields/Document";
 import { action } from "mobx";
+import { Document } from "../../fields/Document";
 import { ImageField } from "../../fields/ImageField";
 import { KeyStore } from "../../fields/KeyStore";
+import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import { CollectionView } from "../views/collections/CollectionView";
+import { DocumentDecorations } from "../views/DocumentDecorations";
 import { DocumentView } from "../views/nodes/DocumentView";
 
 export function setupDrag(
