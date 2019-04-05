@@ -29,9 +29,10 @@
   .histogrambox-yaxislabel-text {
     position:absolute;
     left:0;
-    transform-origin: left;
+    width: 1000px;
+    transform-origin: 10px 10px;
     transform: rotate(-90deg);
-    text-align: center;
+    text-align: left;
     font-size: 14;
     font-weight: bold;
     bottom: calc(50% - 25px);
