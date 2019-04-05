@@ -1,6 +1,6 @@
 import { observable, action } from "mobx";
 import { DocumentView } from "../views/nodes/DocumentView";
-import { Document } from "../../fields/Document"
+import { Document } from "../../fields/Document";
 
 export namespace SelectionManager {
     class Manager {
@@ -15,7 +15,7 @@ export namespace SelectionManager {
             }
 
             if (manager.SelectedDocuments.indexOf(doc) === -1) {
-                manager.SelectedDocuments.push(doc)
+                manager.SelectedDocuments.push(doc);
                 doc.props.onActiveChanged(true);
             }
         }
@@ -27,10 +27,10 @@ export namespace SelectionManager {
         }
     }
 
-    const manager = new Manager;
+    const manager = new Manager();
 
     export function SelectDoc(doc: DocumentView, ctrlPressed: boolean): void {
-        manager.SelectDoc(doc, ctrlPressed)
+        manager.SelectDoc(doc, ctrlPressed);
     }
 
     export function IsSelected(doc: DocumentView): boolean {
@@ -41,14 +41,12 @@ export namespace SelectionManager {
         let found: DocumentView | undefined = undefined;
         if (except) {
             for (const view of manager.SelectedDocuments) {
-                if (view.props.Document === except)
-                    found = view;
+                if (view.props.Document === except) found = view;
             }
         }
 
         manager.DeselectAll()
-        if (found)
-            manager.SelectDoc(found, false);
+        if (found) manager.SelectDoc(found, false);
     }
 
     export function SelectedDocuments(): Array<DocumentView> {

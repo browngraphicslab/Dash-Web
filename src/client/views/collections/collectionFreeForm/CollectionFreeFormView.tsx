@@ -22,6 +22,7 @@ import { CollectionFreeFormRemoteCursors } from "./CollectionFreeFormRemoteCurso
 import { PreviewCursor } from "./PreviewCursor";
 import { DocumentManager } from "../../../util/DocumentManager";
 import { SelectionManager } from "../../../util/SelectionManager";
+import { NumberField } from "../../../../fields/NumberField";
 
 @observer
 export class CollectionFreeFormView extends CollectionViewBase {
@@ -83,23 +84,32 @@ export class CollectionFreeFormView extends CollectionViewBase {
     drop = (e: Event, de: DragManager.DropEvent) => {
         if (super.drop(e, de)) {
             if (de.data instanceof DragManager.DocumentDragData) {
-                let screenX = de.x - (de.data.xOffset || 0);
-                let screenY = de.y - (de.data.yOffset || 0);
-                const [x, y] = this.getTransform().transformPoint(screenX, screenY);
-                let dragDoc = de.data.draggedDocuments[0];
-                let dragX = dragDoc.GetNumber(KeyStore.X, 0);
-                let dragY = dragDoc.GetNumber(KeyStore.Y, 0);
-                de.data.draggedDocuments.map(d => {
-                    let docX = d.GetNumber(KeyStore.X, 0);
-                    let docY = d.GetNumber(KeyStore.Y, 0);
-                    d.SetNumber(KeyStore.X, x + (docX - dragX));
-                    d.SetNumber(KeyStore.Y, y + (docY - dragY));
-                    if (!d.GetNumber(KeyStore.Width, 0)) {
-                        d.SetNumber(KeyStore.Width, 300);
-                        d.SetNumber(KeyStore.Height, 300);
-                    }
-                    this.bringToFront(d);
-                })
+                let droppedDocs = de.data.droppedDocuments;
+                let xoff = de.data.xOffset as number || 0;
+                let yoff = de.data.yOffset as number || 0;
+                if (droppedDocs.length) {
+                    let screenX = de.x - xoff;
+                    let screenY = de.y - yoff;
+                    const [x, y] = this.getTransform().transformPoint(screenX, screenY);
+                    let dragDoc = droppedDocs[0];
+                    let dragX = dragDoc.GetNumber(KeyStore.X, 0);
+                    let dragY = dragDoc.GetNumber(KeyStore.Y, 0);
+                    droppedDocs.map(async d => {
+                        let docX = d.GetNumber(KeyStore.X, 0);
+                        let docY = d.GetNumber(KeyStore.Y, 0);
+                        d.SetNumber(KeyStore.X, x + (docX - dragX));
+                        d.SetNumber(KeyStore.Y, y + (docY - dragY));
+                        let docW = await d.GetTAsync(KeyStore.Width, NumberField);
+                        let docH = await d.GetTAsync(KeyStore.Height, NumberField);
+                        if (!docW) {
+                            d.SetNumber(KeyStore.Width, 300);
+                        }
+                        if (!docH) {
+                            d.SetNumber(KeyStore.Height, 300);
+                        }
+                        this.bringToFront(d);
+                    })
+                }
             }
             return true;
         }

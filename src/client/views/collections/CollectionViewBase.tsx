@@ -72,7 +72,8 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
         if (de.data instanceof DragManager.DocumentDragData) {
             if (de.data.aliasOnDrop) {
                 [KeyStore.Width, KeyStore.Height, KeyStore.CurPage].map(key =>
-                    de.data.draggedDocuments.GetTAsync(key, NumberField, (f: Opt<NumberField>) => f ? de.data.droppedDocument.SetNumber(key, f.Data) : null));
+                    de.data.draggedDocuments.map((draggedDocument: Document, i: number) =>
+                        draggedDocument.GetTAsync(key, NumberField, (f: Opt<NumberField>) => f ? de.data.droppedDocuments[i].SetNumber(key, f.Data) : null)));
             }
             let added = false;
             if (de.data.aliasOnDrop) {
@@ -85,6 +86,24 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
             }
             e.stopPropagation();
             return added;
+        }
+        if (de.data instanceof DragManager.LinkDragData) {
+            let sourceDoc: Document = de.data.linkSourceDocumentView.props.Document;
+            if (sourceDoc) runInAction(() => {
+                let srcTarg = sourceDoc.GetT(KeyStore.Prototype, Document)
+                if (srcTarg && srcTarg != FieldWaiting) {
+                    let linkDocs = srcTarg.GetList(KeyStore.LinkedToDocs, [] as Document[]);
+                    linkDocs.map(linkDoc => {
+                        let targDoc = linkDoc.GetT(KeyStore.LinkedToDocs, Document);
+                        if (targDoc && targDoc != FieldWaiting) {
+                            let dropdoc = targDoc.MakeDelegate();
+                            de.data.droppedDocuments.push(dropdoc);
+                            this.props.addDocument(dropdoc, false);
+                        }
+                    })
+                }
+            })
+            return true;
         }
         return false;
     }
@@ -102,6 +121,7 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
         }
         if (type.indexOf("pdf") !== -1) {
             ctor = Documents.PdfDocument;
+            options.nativeWidth = 1200;
         }
         if (type.indexOf("html") !== -1) {
             if (path.includes('localhost')) {

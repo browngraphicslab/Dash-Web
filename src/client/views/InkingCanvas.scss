@@ -2,6 +2,8 @@
 
 .inkingCanvas-paths-ink, .inkingCanvas-paths-markers, .inkingCanvas-noSelect, .inkingCanvas-canSelect {
     position: absolute;
+    top: 0;
+    left:0;
     width: 8192px;
     height: 8192px;
     cursor:"crosshair";
