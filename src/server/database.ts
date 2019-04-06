@@ -12,21 +12,40 @@ export class Database {
         })
     }
 
+    private currentWrites: { [_id: string]: Promise<void> } = {};
+
     public update(id: string, value: any, callback: () => void) {
         if (this.db) {
             let collection = this.db.collection('documents');
-            collection.updateOne({ _id: id }, { $set: value }, {
-                upsert: true
-            }, (err, res) => {
-                if (err) {
-                    console.log(err.message);
-                    console.log(err.errmsg);
-                }
-                // if (res) {
-                //     console.log(JSON.stringify(res.result));
-                // }
-                callback()
-            });
+            const prom = this.currentWrites[id];
+            const run = (resolve?: () => void) => {
+                collection.updateOne({ _id: id }, { $set: value }, {
+                    upsert: true
+                }, (err, res) => {
+                    if (err) {
+                        console.log(err.message);
+                        console.log(err.errmsg);
+                    }
+                    // if (res) {
+                    //     console.log(JSON.stringify(res.result));
+                    // }
+                    if (resolve) {
+                        resolve();
+                    }
+                    callback();
+                });
+            }
+            if (prom) {
+                const newProm = prom.then(() => {
+                    if (this.currentWrites[id] === newProm) {
+                        delete this.currentWrites[id];
+                    }
+                    run();
+                });
+                this.currentWrites[id] = newProm;
+            } else {
+                this.currentWrites[id] = new Promise<void>(res => run(res));
+            }
         }
     }
 
