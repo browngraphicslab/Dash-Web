@@ -291,21 +291,11 @@ function getFields([ids, callback]: [string[], (result: any) => void]) {
 }
 
 function setField(socket: Socket, newValue: Transferable) {
-    const data = JSON.stringify(newValue);
-    if (Utils.logFilter === undefined || newValue.type == Utils.logFilter) {
-        console.log(`setField: writing ${data}`);
-    }
     const value = { ...newValue };
     delete value._id;
     Database.Instance.update(newValue._id, value, () => {
-        if (Utils.logFilter === undefined || newValue.type == Utils.logFilter) {
-            console.log(`setField: wrote ${data}`);
-        }
         socket.broadcast.emit(MessageStore.SetField.Message, newValue);
     })
-    if (Utils.logFilter === undefined || newValue.type == Utils.logFilter) {
-        console.log(`setField: submitted ${data}`);
-    }
 }
 
 server.listen(serverPort);

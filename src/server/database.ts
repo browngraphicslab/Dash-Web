@@ -30,7 +30,6 @@ export class Database {
                     //     console.log(JSON.stringify(res.result));
                     // }
                     if (this.currentWrites[id] === promise) {
-                        console.log("deleting finished promise");
                         delete this.currentWrites[id]
                     }
                     if (resolve) {
@@ -40,11 +39,9 @@ export class Database {
                 });
             }
             if (prom) {
-                console.log("Chaining promise")
                 const newProm: Promise<void> = prom.then(() => run(newProm));
                 this.currentWrites[id] = newProm;
             } else {
-                console.log("New promise")
                 const newProm: Promise<void> = new Promise<void>(res => run(newProm, res))
                 this.currentWrites[id] = newProm;
             }

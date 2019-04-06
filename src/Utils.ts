@@ -37,8 +37,8 @@ export class Utils {
         document.body.removeChild(textArea);
     }
 
-    public static loggingEnabled: Boolean = true;
-    public static logFilter: number | undefined = 0;
+    public static loggingEnabled: Boolean = false;
+    public static logFilter: number | undefined;
     private static log(prefix: string, messageName: string, message: any, receiving: boolean) {
         if (!this.loggingEnabled) {
             return;
