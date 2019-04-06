@@ -38,7 +38,7 @@ export class Utils {
     }
 
     public static loggingEnabled: Boolean = true;
-    public static logFilter: Types | undefined = Types.Number;
+    public static logFilter: number | undefined = 0;
     private static log(prefix: string, messageName: string, message: any, receiving: boolean) {
         if (!this.loggingEnabled) {
             return;
