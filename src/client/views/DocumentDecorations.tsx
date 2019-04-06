@@ -24,6 +24,7 @@ export class DocumentDecorations extends React.Component {
     private _linkButton = React.createRef<HTMLDivElement>();
     @observable private _hidden = false;
     @observable private _templatesActive: boolean = false;
+    @observable private _showBase: boolean = true;
 
     constructor(props: Readonly<{}>) {
         super(props)
@@ -204,6 +205,13 @@ export class DocumentDecorations extends React.Component {
     }
 
     @action
+    toggleBase = (event: React.ChangeEvent<HTMLInputElement>): void => {
+        let view = SelectionManager.SelectedDocuments()[0];
+        view.toggleBase(event.target.checked);
+        this._showBase = !this._showBase;
+    }
+
+    @action
     toggleTemplateActivity = (): void => {
         this._templatesActive = !this._templatesActive;
     }
@@ -236,6 +244,7 @@ export class DocumentDecorations extends React.Component {
 
         let templateMenu = !this._templatesActive ? (null) : (
             <ul id="template-list">
+                <li><input type="checkbox" onChange={(event) => this.toggleBase(event)} checked={this._showBase} />Base layout</li>
                 {Array.from(Object.values(Templates)).map(template => {
                     return (
                         <li>
