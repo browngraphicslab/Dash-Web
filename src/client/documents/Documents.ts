@@ -11,6 +11,9 @@ import { PDFField } from "../../fields/PDFField";
 import { TextField } from "../../fields/TextField";
 import { VideoField } from "../../fields/VideoField";
 import { WebField } from "../../fields/WebField";
+import { HistogramField } from "../northstar/dash-fields/HistogramField";
+import { HistogramBox } from "../northstar/dash-nodes/HistogramBox";
+import { HistogramOperation } from "../northstar/operations/HistogramOperation";
 import { Server } from "../Server";
 import { CollectionPDFView } from "../views/collections/CollectionPDFView";
 import { CollectionVideoView } from "../views/collections/CollectionVideoView";
@@ -44,6 +47,7 @@ export interface DocumentOptions {
 
 export namespace Documents {
     let textProto: Document;
+    let histoProto: Document;
     let imageProto: Document;
     let webProto: Document;
     let collProto: Document;
@@ -52,6 +56,7 @@ export namespace Documents {
     let audioProto: Document;
     let pdfProto: Document;
     const textProtoId = "textProto";
+    const histoProtoId = "histoProto";
     const pdfProtoId = "pdfProto";
     const imageProtoId = "imageProto";
     const webProtoId = "webProto";
@@ -60,14 +65,14 @@ export namespace Documents {
     const videoProtoId = "videoProto"
     const audioProtoId = "audioProto";
 
-    export function initProtos(callback: () => void) {
-        Server.GetFields([collProtoId, textProtoId, imageProtoId], (fields) => {
+    export function initProtos(): Promise<void> {
+        return Server.GetFields([textProtoId, histoProtoId, collProtoId, imageProtoId, webProtoId, kvpProtoId]).then(fields => {
+            textProto = fields[textProtoId] as Document;
+            histoProto = fields[histoProtoId] as Document;
             collProto = fields[collProtoId] as Document;
             imageProto = fields[imageProtoId] as Document;
-            textProto = fields[textProtoId] as Document;
             webProto = fields[webProtoId] as Document;
             kvpProto = fields[kvpProtoId] as Document;
-            callback();
         });
     }
     function assignOptions(doc: Document, options: DocumentOptions): Document {
@@ -109,10 +114,19 @@ export namespace Documents {
     function GetImagePrototype(): Document {
         if (!imageProto) {
             imageProto = setupPrototypeOptions(imageProtoId, "IMAGE_PROTO", CollectionView.LayoutString("AnnotationsKey"),
-                { x: 0, y: 0, nativeWidth: 300, width: 300, layoutKeys: [KeyStore.Data, KeyStore.Annotations] });
+                { x: 0, y: 0, nativeWidth: 300, width: 300, layoutKeys: [KeyStore.Data, KeyStore.Annotations, KeyStore.Caption] });
             imageProto.SetText(KeyStore.BackgroundLayout, ImageBox.LayoutString());
+            imageProto.SetNumber(KeyStore.CurPage, 0);
         }
         return imageProto;
+    }
+    function GetHistogramPrototype(): Document {
+        if (!histoProto) {
+            histoProto = setupPrototypeOptions(histoProtoId, "HISTO PROTO", CollectionView.LayoutString("AnnotationsKey"),
+                { x: 0, y: 0, width: 300, height: 300, backgroundColor: "black", layoutKeys: [KeyStore.Data, KeyStore.Annotations, KeyStore.Caption] });
+            histoProto.SetText(KeyStore.BackgroundLayout, HistogramBox.LayoutString());
+        }
+        return histoProto;
     }
     function GetTextPrototype(): Document {
         return textProto ? textProto :
@@ -122,7 +136,7 @@ export namespace Documents {
     function GetPdfPrototype(): Document {
         if (!pdfProto) {
             pdfProto = setupPrototypeOptions(pdfProtoId, "PDF_PROTO", CollectionPDFView.LayoutString("AnnotationsKey"),
-                { x: 0, y: 0, nativeWidth: 600, width: 300, layoutKeys: [KeyStore.Data, KeyStore.Annotations] });
+                { x: 0, y: 0, nativeWidth: 1200, width: 300, layoutKeys: [KeyStore.Data, KeyStore.Annotations] });
             pdfProto.SetNumber(KeyStore.CurPage, 1);
             pdfProto.SetText(KeyStore.BackgroundLayout, PDFBox.LayoutString());
         }
@@ -147,7 +161,7 @@ export namespace Documents {
     function GetVideoPrototype(): Document {
         if (!videoProto) {
             videoProto = setupPrototypeOptions(videoProtoId, "VIDEO_PROTO", CollectionVideoView.LayoutString("AnnotationsKey"),
-                { x: 0, y: 0, nativeWidth: 600, width: 300, layoutKeys: [KeyStore.Data, KeyStore.Annotations] });
+                { x: 0, y: 0, nativeWidth: 600, width: 300, layoutKeys: [KeyStore.Data, KeyStore.Annotations, KeyStore.Caption] });
             videoProto.SetNumber(KeyStore.CurPage, 0);
             videoProto.SetText(KeyStore.BackgroundLayout, VideoBox.LayoutString());
         }
@@ -176,6 +190,9 @@ export namespace Documents {
         return assignToDelegate(SetInstanceOptions(GetAudioPrototype(), options, [new URL(url), AudioField]), options);
     }
 
+    export function HistogramDocument(histoOp: HistogramOperation, options: DocumentOptions = {}, id?: string, delegId?: string) {
+        return assignToDelegate(SetInstanceOptions(GetHistogramPrototype(), options, [histoOp, HistogramField], id).MakeDelegate(delegId), options);
+    }
     export function TextDocument(options: DocumentOptions = {}) {
         return assignToDelegate(SetInstanceOptions(GetTextPrototype(), options, ["", TextField]).MakeDelegate(), options);
     }
@@ -200,8 +217,19 @@ export namespace Documents {
     export function SchemaDocument(documents: Array<Document>, options: DocumentOptions, id?: string) {
         return assignToDelegate(SetInstanceOptions(GetCollectionPrototype(), { ...options, viewType: CollectionViewType.Schema }, [documents, ListField], id), options)
     }
+    export function TreeDocument(documents: Array<Document>, options: DocumentOptions, id?: string) {
+        return assignToDelegate(SetInstanceOptions(GetCollectionPrototype(), { ...options, viewType: CollectionViewType.Tree }, [documents, ListField], id), options)
+    }
     export function DockDocument(config: string, options: DocumentOptions, id?: string) {
         return assignToDelegate(SetInstanceOptions(GetCollectionPrototype(), { ...options, viewType: CollectionViewType.Docking }, [config, TextField], id), options)
+    }
+
+    export function CaptionDocument(doc: Document) {
+        const captionDoc = doc.CreateAlias();
+        captionDoc.SetText(KeyStore.OverlayLayout, FixedCaption());
+        captionDoc.SetNumber(KeyStore.Width, doc.GetNumber(KeyStore.Width, 0));
+        captionDoc.SetNumber(KeyStore.Height, doc.GetNumber(KeyStore.Height, 0));
+        return captionDoc;
     }
 
     // example of custom display string for an image that shows a caption.
@@ -214,23 +242,58 @@ export namespace Documents {
             + FormattedTextBox.LayoutString("CaptionKey") +
             `</div> 
         </div>` };
-    function FixedCaption(fieldName: string = "Caption") {
+    export function FixedCaption(fieldName: string = "Caption") {
         return `<div style="position:absolute; height:30px; bottom:0; width:100%">
             <div style="position:absolute; width:100%; height:100%; text-align:center;bottom:0;">`
             + FormattedTextBox.LayoutString(fieldName + "Key") +
             `</div> 
         </div>` };
 
-    function Caption() {
+    function OuterCaption() {
         return (`
 <div>
-    <div style="margin:auto; height:85%; width:85%;">
+    <div style="margin:auto; height:calc(100%); width:100%;">
         {layout}
     </div>
-    <div style="height:15%; width:100%; position:absolute">
+    <div style="height:(100% + 25px); width:100%; position:absolute">
         <FormattedTextBox doc={Document} DocumentViewForField={DocumentView} bindings={bindings} fieldKey={"CaptionKey"} isSelected={isSelected} select={select} selectOnLoad={SelectOnLoad} isTopMost={isTopMost}/>
     </div>
 </div>       
         `)
+    }
+    function InnerCaption() {
+        return (`
+    <div>
+        <div style="margin:auto; height:calc(100% - 25px); width:100%;">
+            {layout}
+        </div>
+        <div style="height:25px; width:100%; position:absolute">
+            <FormattedTextBox doc={Document} DocumentViewForField={DocumentView} bindings={bindings} fieldKey={"CaptionKey"} isSelected={isSelected} select={select} selectOnLoad={SelectOnLoad} isTopMost={isTopMost}/>
+        </div>
+    </div>       
+            `)
+    }
+
+    /*
+
+    this template requires an additional style setting on the collectionView-cont to make the layout relative
+    
+.collectionView-cont {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+    */
+    function Percentaption() {
+        return (`
+    <div>
+        <div style="margin:auto; height:85%; width:85%;">
+            {layout}
+        </div>
+        <div style="height:15%; width:100%; position:absolute">
+            <FormattedTextBox doc={Document} DocumentViewForField={DocumentView} bindings={bindings} fieldKey={"CaptionKey"} isSelected={isSelected} select={select} selectOnLoad={SelectOnLoad} isTopMost={isTopMost}/>
+        </div>
+    </div>       
+            `)
     }
 }

@@ -50,7 +50,7 @@ export class ImageBox extends React.Component<FieldViewProps> {
 
     onPointerDown = (e: React.PointerEvent): void => {
         if (Date.now() - this._lastTap < 300) {
-            if (e.buttons === 1 && this.props.isSelected()) {
+            if (e.buttons === 1) {
                 e.stopPropagation();
                 this._downX = e.clientX;
                 this._downY = e.clientY;
@@ -72,7 +72,7 @@ export class ImageBox extends React.Component<FieldViewProps> {
 
     lightbox = (path: string) => {
         const images = [path];
-        if (this._isOpen && this.props.isSelected()) {
+        if (this._isOpen) {
             return (<Lightbox
                 mainSrc={images[this._photoIndex]}
                 nextSrc={images[(this._photoIndex + 1) % images.length]}

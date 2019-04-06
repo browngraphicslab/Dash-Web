@@ -1,7 +1,7 @@
 import * as GoldenLayout from "golden-layout";
 import 'golden-layout/src/css/goldenlayout-base.css';
 import 'golden-layout/src/css/goldenlayout-dark-theme.css';
-import { action, observable, reaction } from "mobx";
+import { action, observable, reaction, trace } from "mobx";
 import { observer } from "mobx-react";
 import * as ReactDOM from 'react-dom';
 import { Document } from "../../../fields/Document";
@@ -17,6 +17,8 @@ import { COLLECTION_BORDER_WIDTH } from "./CollectionView";
 import React = require("react");
 import { SubCollectionViewProps } from "./CollectionViewBase";
 import { ServerUtils } from "../../../server/ServerUtil";
+import { DragManager } from "../../util/DragManager";
+import { TextField } from "../../../fields/TextField";
 
 @observer
 export class CollectionDockingView extends React.Component<SubCollectionViewProps> {
@@ -37,6 +39,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     private _containerRef = React.createRef<HTMLDivElement>();
     private _fullScreen: any = null;
     private _flush: boolean = false;
+    private _ignoreStateChange = "";
 
     constructor(props: SubCollectionViewProps) {
         super(props);
@@ -44,8 +47,10 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         (window as any).React = React;
         (window as any).ReactDOM = ReactDOM;
     }
-    public StartOtherDrag(dragDoc: Document, e: any) {
-        this.AddRightSplit(dragDoc, true).contentItems[0].tab._dragListener.onMouseDown({ pageX: e.pageX, pageY: e.pageY, preventDefault: () => { }, button: 0 })
+    public StartOtherDrag(dragDocs: Document[], e: any) {
+        dragDocs.map(dragDoc =>
+            this.AddRightSplit(dragDoc, true).contentItems[0].tab._dragListener.
+                onMouseDown({ pageX: e.pageX, pageY: e.pageY, preventDefault: () => { }, button: 0 }));
     }
 
     @action
@@ -59,6 +64,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         docconfig.callDownwards('_$init');
         this._goldenLayout._$maximiseItem(docconfig);
         this._fullScreen = docconfig;
+        this._ignoreStateChange = JSON.stringify(this._goldenLayout.toConfig());
         this.stateChanged();
     }
     @action
@@ -67,6 +73,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             this._goldenLayout._$minimiseItem(this._fullScreen);
             this._goldenLayout.root.contentItems[0].removeChild(this._fullScreen);
             this._fullScreen = null;
+            this._ignoreStateChange = JSON.stringify(this._goldenLayout.toConfig());
             this.stateChanged();
         }
     }
@@ -76,7 +83,6 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     //
     @action
     public AddRightSplit(document: Document, minimize: boolean = false) {
-        this._goldenLayout.emit('stateChanged');
         let newItemStackConfig = {
             type: 'stack',
             content: [CollectionDockingView.makeDocumentConfig(document)]
@@ -105,7 +111,9 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         newContentItem.callDownwards('_$init');
         this._goldenLayout.root.callDownwards('setSize', [this._goldenLayout.width, this._goldenLayout.height]);
         this._goldenLayout.emit('stateChanged');
+        this._ignoreStateChange = JSON.stringify(this._goldenLayout.toConfig());
         this.stateChanged();
+
         return newContentItem;
     }
 
@@ -145,7 +153,12 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         if (this._containerRef.current) {
             reaction(
                 () => this.props.Document.GetText(KeyStore.Data, ""),
-                () => setTimeout(() => this.setupGoldenLayout(), 1), { fireImmediately: true });
+                () => {
+                    if (!this._goldenLayout || this._ignoreStateChange != JSON.stringify(this._goldenLayout.toConfig())) {
+                        setTimeout(() => this.setupGoldenLayout(), 1);
+                    }
+                    this._ignoreStateChange = "";
+                }, { fireImmediately: true });
 
             window.addEventListener('resize', this.onResize); // bcz: would rather add this event to the parent node, but resize events only come from Window
         }
@@ -180,6 +193,22 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     @action
     onPointerDown = (e: React.PointerEvent): void => {
         var className = (e.target as any).className;
+        if ((className == "lm_title" || className == "lm_tab lm_active") && (e.ctrlKey || e.altKey)) {
+            e.stopPropagation();
+            e.preventDefault();
+            let docid = (e.target as any).DashDocId;
+            let tab = (e.target as any).parentElement as HTMLElement;
+            Server.GetField(docid, action((f: Opt<Field>) => {
+                if (f instanceof Document)
+                    DragManager.StartDocumentDrag([tab], new DragManager.DocumentDragData([f as Document]), e.pageX, e.pageY,
+                        {
+                            handlers: {
+                                dragComplete: action(() => { }),
+                            },
+                            hideSource: false
+                        })
+            }));
+        }
         if (className == "lm_drag_handle" || className == "lm_close" || className == "lm_maximise" || className == "lm_minimise" || className == "lm_close_tab") {
             this._flush = true;
         }
@@ -198,6 +227,21 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         this.stateChanged();
     }
     tabCreated = (tab: any) => {
+        if (tab.hasOwnProperty("contentItem") && tab.contentItem.config.type != "stack") {
+            if (tab.titleElement[0].textContent.indexOf("-waiting") != -1) {
+                Server.GetField(tab.contentItem.config.props.documentId, action((f: Opt<Field>) => {
+                    if (f != undefined && f instanceof Document) {
+                        f.GetTAsync(KeyStore.Title, TextField, (tfield) => {
+                            if (tfield != undefined) {
+                                tab.titleElement[0].textContent = f.Title;
+                            }
+                        })
+                    }
+                }));
+                tab.titleElement[0].DashDocId = tab.contentItem.config.props.documentId;
+            }
+            tab.titleElement[0].DashDocId = tab.contentItem.config.props.documentId;
+        }
         tab.closeElement.off('click') //unbind the current click handler
             .click(function () {
                 tab.contentItem.remove();

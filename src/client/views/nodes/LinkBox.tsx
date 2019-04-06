@@ -17,6 +17,8 @@ import { faEye } from '@fortawesome/free-solid-svg-icons';
 import { faEdit } from '@fortawesome/free-solid-svg-icons';
 import { faTimes } from '@fortawesome/free-solid-svg-icons';
 import { undoBatch } from "../../util/UndoManager";
+import { FieldWaiting } from "../../../fields/Field";
+import { NumberField } from "../../../fields/NumberField";
 
 
 library.add(faEye);
@@ -39,9 +41,26 @@ export class LinkBox extends React.Component<Props> {
         e.stopPropagation();
         let docView = DocumentManager.Instance.getDocumentView(this.props.pairedDoc);
         if (docView) {
-            docView.props.focus(this.props.pairedDoc);
+            docView.props.focus(docView.props.Document);
         } else {
-            CollectionDockingView.Instance.AddRightSplit(this.props.pairedDoc)
+            this.props.pairedDoc.GetAsync(KeyStore.AnnotationOn, (contextDoc: any) => {
+                if (!contextDoc) {
+                    CollectionDockingView.Instance.AddRightSplit(this.props.pairedDoc.MakeDelegate());
+                } else if (contextDoc instanceof Document) {
+                    this.props.pairedDoc.GetTAsync(KeyStore.Page, NumberField).then((pfield: any) => {
+                        contextDoc.GetTAsync(KeyStore.CurPage, NumberField).then((cfield: any) => {
+                            if (pfield != cfield)
+                                contextDoc.SetNumber(KeyStore.CurPage, pfield.Data);
+                            let contextView = DocumentManager.Instance.getDocumentView(contextDoc);
+                            if (contextView) {
+                                contextView.props.focus(contextDoc);
+                            } else {
+                                CollectionDockingView.Instance.AddRightSplit(contextDoc);
+                            }
+                        })
+                    });
+                }
+            });
         }
     }
 

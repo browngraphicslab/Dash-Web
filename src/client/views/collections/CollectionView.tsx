@@ -7,12 +7,13 @@ import { ContextMenu } from "../ContextMenu";
 import React = require("react");
 import { KeyStore } from "../../../fields/KeyStore";
 import { NumberField } from "../../../fields/NumberField";
-import { CollectionFreeFormView } from "./CollectionFreeFormView";
+import { CollectionFreeFormView } from "./collectionFreeForm/CollectionFreeFormView";
 import { CollectionDockingView } from "./CollectionDockingView";
 import { CollectionSchemaView } from "./CollectionSchemaView";
 import { CollectionViewProps } from "./CollectionViewBase";
 import { CollectionTreeView } from "./CollectionTreeView";
-import { Field, FieldId } from "../../../fields/Field";
+import { Field, FieldId, FieldWaiting } from "../../../fields/Field";
+import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 
 export enum CollectionViewType {
     Invalid,
@@ -36,7 +37,7 @@ export class CollectionView extends React.Component<CollectionViewProps> {
     @observable
     public SelectedDocs: FieldId[] = [];
     public active: () => boolean = () => CollectionView.Active(this);
-    addDocument = (doc: Document, allowDuplicates: boolean): void => { CollectionView.AddDocument(this.props, doc, allowDuplicates); }
+    addDocument = (doc: Document, allowDuplicates: boolean): boolean => { return CollectionView.AddDocument(this.props, doc, allowDuplicates); }
     removeDocument = (doc: Document): boolean => { return CollectionView.RemoveDocument(this.props, doc); }
     get subView() { return CollectionView.SubView(this); }
 
@@ -47,17 +48,49 @@ export class CollectionView extends React.Component<CollectionViewProps> {
         return isSelected || childSelected || topMost;
     }
 
+    static createsCycle(documentToAdd: Document, containerDocument: Document): boolean {
+        let data = documentToAdd.GetList<Document>(KeyStore.Data, []);
+        for (let i = 0; i < data.length; i++) {
+            if (CollectionView.createsCycle(data[i], containerDocument))
+                return true;
+        }
+        let annots = documentToAdd.GetList<Document>(KeyStore.Annotations, []);
+        for (let i = 0; i < annots.length; i++) {
+            if (CollectionView.createsCycle(annots[i], containerDocument))
+                return true;
+        }
+        for (let containerProto: any = containerDocument; containerProto && containerProto != FieldWaiting; containerProto = containerProto.GetPrototype()) {
+            if (containerProto.Id == documentToAdd.Id)
+                return true;
+        }
+        return false;
+    }
+
     @action
-    public static AddDocument(props: CollectionViewProps, doc: Document, allowDuplicates: boolean) {
-        doc.SetNumber(KeyStore.Page, props.Document.GetNumber(KeyStore.CurPage, -1));
+    public static AddDocument(props: CollectionViewProps, doc: Document, allowDuplicates: boolean): boolean {
+        var curPage = props.Document.GetNumber(KeyStore.CurPage, -1);
+        doc.SetOnPrototype(KeyStore.Page, new NumberField(curPage));
+        if (curPage >= 0) {
+            doc.SetOnPrototype(KeyStore.AnnotationOn, props.Document);
+        }
         if (props.Document.Get(props.fieldKey) instanceof Field) {
             //TODO This won't create the field if it doesn't already exist
             const value = props.Document.GetData(props.fieldKey, ListField, new Array<Document>())
-            if (!value.some(v => v.Id == doc.Id) || allowDuplicates)
-                value.push(doc);
+            if (!CollectionView.createsCycle(doc, props.Document)) {
+                if (!value.some(v => v.Id == doc.Id) || allowDuplicates)
+                    value.push(doc);
+            }
+            else
+                return false;
         } else {
-            props.Document.SetOnPrototype(props.fieldKey, new ListField([doc]));
+            let proto = props.Document.GetPrototype();
+            if (!proto || proto == FieldWaiting || !CollectionView.createsCycle(proto, doc)) {
+                props.Document.SetOnPrototype(props.fieldKey, new ListField([doc]));
+            }
+            else
+                return false;
         }
+        return true;
     }
 
     @action
@@ -71,11 +104,16 @@ export class CollectionView extends React.Component<CollectionViewProps> {
                 break;
             }
         }
+        doc.GetTAsync(KeyStore.AnnotationOn, Document).then((annotationOn) => {
+            if (annotationOn == props.Document) {
+                doc.Set(KeyStore.AnnotationOn, undefined, true);
+            }
+        })
 
         if (index !== -1) {
             value.splice(index, 1)
 
-            SelectionManager.DeselectAll()
+            //SelectionManager.DeselectAll()
             ContextMenu.Instance.clearItems()
             return true;
         }
@@ -85,7 +123,7 @@ export class CollectionView extends React.Component<CollectionViewProps> {
     get collectionViewType(): CollectionViewType {
         let Document = this.props.Document;
         let viewField = Document.GetT(KeyStore.ViewType, NumberField);
-        if (viewField === "<Waiting>") {
+        if (viewField === FieldWaiting) {
             return CollectionViewType.Invalid;
         } else if (viewField) {
             return viewField.Data;
@@ -95,7 +133,7 @@ export class CollectionView extends React.Component<CollectionViewProps> {
     }
 
     specificContextMenu = (e: React.MouseEvent): void => {
-        if (!e.isPropagationStopped() && this.props.Document.Id != "mainDoc") { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
+        if (!e.isPropagationStopped() && this.props.Document.Id != CurrentUserUtils.MainDocId) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
             ContextMenu.Instance.addItem({ description: "Freeform", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Freeform) })
             ContextMenu.Instance.addItem({ description: "Schema", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Schema) })
             ContextMenu.Instance.addItem({ description: "Treeview", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Tree) })

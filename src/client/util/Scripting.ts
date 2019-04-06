@@ -15,6 +15,8 @@ import { ListField } from "../../fields/ListField";
 
 // @ts-ignore
 import * as typescriptlib from '!!raw-loader!./type_decls.d'
+import { Documents } from "../documents/Documents";
+import { Key } from "../../fields/Key";
 
 
 export interface ExecutableScript {
@@ -28,9 +30,9 @@ function Compile(script: string | undefined, diagnostics: Opt<any[]>, scope: { [
 
     let func: () => Opt<Field>;
     if (compiled && script) {
-        let fieldTypes = [Document, NumberField, TextField, ImageField, RichTextField, ListField];
-        let paramNames = ["KeyStore", ...fieldTypes.map(fn => fn.name)];
-        let params: any[] = [KeyStore, ...fieldTypes]
+        let fieldTypes = [Document, NumberField, TextField, ImageField, RichTextField, ListField, Key];
+        let paramNames = ["KeyStore", "Documents", ...fieldTypes.map(fn => fn.name)];
+        let params: any[] = [KeyStore, Documents, ...fieldTypes]
         for (let prop in scope) {
             if (prop === "this") {
                 continue;
@@ -110,7 +112,7 @@ export function CompileScript(script: string, scope?: { [name: string]: any }, a
     let host = new ScriptingCompilerHost;
     let funcScript = `(function() {
         ${addReturn ? `return ${script};` : script}
-    })()`
+    }).apply(this)`
     host.writeFile("file.ts", funcScript);
     host.writeFile('node_modules/typescript/lib/lib.d.ts', typescriptlib);
     let program = ts.createProgram(["file.ts"], {}, host);

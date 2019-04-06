@@ -14,9 +14,11 @@ import { RouteStore } from "../../../server/RouteStore";
 import { TupleField } from "../../../fields/TupleField";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { NumberField } from "../../../fields/NumberField";
-import { DocumentManager } from "../../util/DocumentManager";
 import request = require("request");
 import { ServerUtils } from "../../../server/ServerUtil";
+import { Server } from "../../Server";
+import { CollectionDockingView } from "./CollectionDockingView";
+import { runReactions } from "mobx/lib/internal";
 
 export interface CollectionViewProps {
     fieldKey: Key;
@@ -33,7 +35,7 @@ export interface CollectionViewProps {
 
 export interface SubCollectionViewProps extends CollectionViewProps {
     active: () => boolean;
-    addDocument: (doc: Document, allowDuplicates: boolean) => void;
+    addDocument: (doc: Document, allowDuplicates: boolean) => boolean;
     removeDocument: (doc: Document) => boolean;
     CollectionView: CollectionView;
 }
@@ -59,41 +61,58 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
         let email = CurrentUserUtils.email;
         if (id && email) {
             let textInfo: [string, string] = [id, email];
-            doc.GetOrCreateAsync<ListField<CursorEntry>>(KeyStore.Cursors, ListField, field => {
-                let cursors = field.Data;
-                if (cursors.length > 0 && (ind = cursors.findIndex(entry => entry.Data[0][0] === id)) > -1) {
-                    cursors[ind].Data[1] = position;
-                } else {
-                    let entry = new TupleField<[string, string], [number, number]>([textInfo, position]);
-                    cursors.push(entry);
+            doc.GetTAsync(KeyStore.Prototype, Document).then(proto => {
+                if (!proto) {
+                    return;
                 }
+                proto.GetOrCreateAsync<ListField<CursorEntry>>(KeyStore.Cursors, ListField, action((field: ListField<CursorEntry>) => {
+                    let cursors = field.Data;
+                    if (cursors.length > 0 && (ind = cursors.findIndex(entry => entry.Data[0][0] === id)) > -1) {
+                        cursors[ind].Data[1] = position;
+                    } else {
+                        let entry = new TupleField<[string, string], [number, number]>([textInfo, position]);
+                        cursors.push(entry);
+                    }
+                }))
             })
-
-
         }
-    }
-
-    protected getCursors(): CursorEntry[] {
-        let doc = this.props.Document;
-        let id = CurrentUserUtils.id;
-        let cursors = doc.GetList<CursorEntry>(KeyStore.Cursors, []);
-        let notMe = cursors.filter(entry => entry.Data[0][0] !== id);
-        return id ? notMe : [];
     }
 
     @undoBatch
     @action
-    protected drop(e: Event, de: DragManager.DropEvent) {
+    protected drop(e: Event, de: DragManager.DropEvent): boolean {
         if (de.data instanceof DragManager.DocumentDragData) {
             if (de.data.aliasOnDrop) {
                 [KeyStore.Width, KeyStore.Height, KeyStore.CurPage].map(key =>
-                    de.data.draggedDocument.GetTAsync(key, NumberField, (f: Opt<NumberField>) => f ? de.data.droppedDocument.SetNumber(key, f.Data) : null));
-            } else if (de.data.removeDocument) {
+                    de.data.draggedDocuments.map((draggedDocument: Document, i: number) =>
+                        draggedDocument.GetTAsync(key, NumberField, (f: Opt<NumberField>) => f ? de.data.droppedDocuments[i].SetNumber(key, f.Data) : null)));
+            }
+            let added = de.data.droppedDocuments.reduce((added, d) => this.props.addDocument(d, false), true);
+            if (added && de.data.removeDocument && !de.data.aliasOnDrop) {
                 de.data.removeDocument(this.props.CollectionView);
             }
-            this.props.addDocument(de.data.droppedDocument, false);
             e.stopPropagation();
+            return added;
         }
+        if (de.data instanceof DragManager.LinkDragData) {
+            let sourceDoc: Document = de.data.linkSourceDocumentView.props.Document;
+            if (sourceDoc) runInAction(() => {
+                let srcTarg = sourceDoc.GetT(KeyStore.Prototype, Document)
+                if (srcTarg && srcTarg != FieldWaiting) {
+                    let linkDocs = srcTarg.GetList(KeyStore.LinkedToDocs, [] as Document[]);
+                    linkDocs.map(linkDoc => {
+                        let targDoc = linkDoc.GetT(KeyStore.LinkedToDocs, Document);
+                        if (targDoc && targDoc != FieldWaiting) {
+                            let dropdoc = targDoc.MakeDelegate();
+                            de.data.droppedDocuments.push(dropdoc);
+                            this.props.addDocument(dropdoc, false);
+                        }
+                    })
+                }
+            })
+            return true;
+        }
+        return false;
     }
 
     protected getDocumentFromType(type: string, path: string, options: DocumentOptions): Opt<Document> {
@@ -109,10 +128,26 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
         }
         if (type.indexOf("pdf") !== -1) {
             ctor = Documents.PdfDocument;
+            options.nativeWidth = 1200;
         }
         if (type.indexOf("html") !== -1) {
+            if (path.includes('localhost')) {
+                let s = path.split('/');
+                let id = s[s.length - 1];
+                Server.GetField(id).then(field => {
+                    if (field instanceof Document) {
+                        let alias = field.CreateAlias();
+                        alias.SetNumber(KeyStore.X, options.x || 0);
+                        alias.SetNumber(KeyStore.Y, options.y || 0);
+                        alias.SetNumber(KeyStore.Width, options.width || 300);
+                        alias.SetNumber(KeyStore.Height, options.height || options.width || 300);
+                        this.props.addDocument(alias, false);
+                    }
+                })
+                return undefined;
+            }
             ctor = Documents.WebDocument;
-            options = { height: options.width, ...options, };
+            options = { height: options.width, ...options, title: path };
         }
         return ctor ? ctor(path, options) : undefined;
     }
@@ -130,7 +165,7 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
         e.stopPropagation()
         e.preventDefault()
 
-        if (html && html.indexOf("<img") != 0) {
+        if (html && html.indexOf("<img") != 0 && !html.startsWith("<a")) {
             console.log("not good");
             let htmlDoc = Documents.HtmlDocument(html, { ...options, width: 300, height: 300 });
             htmlDoc.SetText(KeyStore.DocumentText, text);
@@ -143,7 +178,6 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
             let item = e.dataTransfer.items[i];
             if (item.kind === "string" && item.type.indexOf("uri") != -1) {
                 e.dataTransfer.items[i].getAsString(action((s: string) => {
-                    let document: Document;
                     request.head(ServerUtils.prepend(RouteStore.corsProxy + "/" + s), (err, res, body) => {
                         let type = res.headers["content-type"];
                         if (type) {
