@@ -34,7 +34,20 @@ function propertyDecorator(target: any, key: string | symbol) {
         }
     })
 }
-export function undoBatch(target: any, key: string | symbol, descriptor?: TypedPropertyDescriptor<any>): any {
+
+export function undoBatch(target: any, key: string | symbol, descriptor?: TypedPropertyDescriptor<any>): any;
+export function undoBatch(fn: (...args: any[]) => any): (...args: any[]) => any;
+export function undoBatch(target: any, key?: string | symbol, descriptor?: TypedPropertyDescriptor<any>): any {
+    if (!key) {
+        return function () {
+            let batch = UndoManager.StartBatch("");
+            try {
+                return target.apply(undefined, arguments)
+            } finally {
+                batch.end();
+            }
+        }
+    }
     if (!descriptor) {
         propertyDecorator(target, key);
         return;
@@ -84,6 +97,7 @@ export namespace UndoManager {
     export function GetOpenBatches(): Without<Batch, 'end'>[] {
         return openBatches;
     }
+
     export class Batch {
         private disposed: boolean = false;
 
@@ -125,8 +139,11 @@ export namespace UndoManager {
 
     export function RunInBatch(fn: () => void, batchName: string) {
         let batch = StartBatch(batchName);
-        fn();
-        batch.end();
+        try {
+            fn();
+        } finally {
+            batch.end();
+        }
     }
 
     export const Undo = action(() => {

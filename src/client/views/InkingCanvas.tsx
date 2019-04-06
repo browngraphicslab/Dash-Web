@@ -10,6 +10,7 @@ import "./InkingCanvas.scss";
 import { InkingControl } from "./InkingControl";
 import { InkingStroke } from "./InkingStroke";
 import React = require("react");
+import { undoBatch } from "../util/UndoManager";
 
 interface InkCanvasProps {
     getScreenTransform: () => Transform;
@@ -21,10 +22,13 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
     static InkOffset: number = 50000;
     private _currentStrokeId: string = "";
     public static IntersectStrokeRect(stroke: StrokeData, selRect: { left: number, top: number, width: number, height: number }): boolean {
-        return stroke.pathData.reduce((inside, val) => inside ||
-            (selRect.left < val.x - InkingCanvas.InkOffset && selRect.left + selRect.width > val.x - InkingCanvas.InkOffset &&
-                selRect.top < val.y - InkingCanvas.InkOffset && selRect.top + selRect.height > val.y - InkingCanvas.InkOffset)
-            , false);
+        return stroke.pathData.reduce((inside: boolean, val) => inside ||
+            (
+                selRect.left < val.x - InkingCanvas.InkOffset &&
+                selRect.left + selRect.width > val.x - InkingCanvas.InkOffset &&
+                selRect.top < val.y - InkingCanvas.InkOffset &&
+                selRect.top + selRect.height > val.y - InkingCanvas.InkOffset
+            ), false);
     }
 
     @computed
@@ -83,7 +87,7 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
             }
             this.inkData = data;
         }
-    }
+    };
 
     relativeCoordinatesForEvent = (ex: number, ey: number): { x: number, y: number } => {
         let [x, y] = this.props.getScreenTransform().transformPoint(ex, ey);

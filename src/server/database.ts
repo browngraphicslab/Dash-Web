@@ -26,9 +26,9 @@ export class Database {
                     console.log(err.message);
                     console.log(err.errmsg);
                 }
-                if (res) {
-                    console.log(JSON.stringify(res.result));
-                }
+                // if (res) {
+                //     console.log(JSON.stringify(res.result));
+                // }
                 callback()
             });
         }
