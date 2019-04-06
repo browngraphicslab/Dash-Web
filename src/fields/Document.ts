@@ -308,24 +308,14 @@ export class Document extends Field {
     }
 
     @action
-    SetDataOnPrototype<T, U extends Field & { Data: T }>(
-        key: Key,
-        value: T,
-        ctor: { new(): U },
-        replaceWrongType = true
-    ) {
+    SetDataOnPrototype<T, U extends Field & { Data: T }>(key: Key, value: T, ctor: { new(): U }, replaceWrongType = true) {
         this.GetTAsync(KeyStore.Prototype, Document, (f: Opt<Document>) => {
-            f && f.SetData(key, value, ctor);
+            f && f.SetData(key, value, ctor, replaceWrongType);
         });
     }
 
     @action
-    SetData<T, U extends Field & { Data: T }>(
-        key: Key,
-        value: T,
-        ctor: { new(data: T): U },
-        replaceWrongType = true
-    ) {
+    SetData<T, U extends Field & { Data: T }>(key: Key, value: T, ctor: { new(data: T): U }, replaceWrongType = true) {
         let field = this.Get(key, true);
         if (field instanceof ctor) {
             field.Data = value;
@@ -386,11 +376,7 @@ export class Document extends Field {
     }
     GetValue() {
         return this.Title;
-        var title =
-            (this._proxies.has(KeyStore.Title.Id) ? "???" : this.Title) +
-            "(" +
-            this.Id +
-            ")";
+        var title = (this._proxies.has(KeyStore.Title.Id) ? "???" : this.Title) + "(" + this.Id + ")";
         return title;
         //throw new Error("Method not implemented.");
     }
