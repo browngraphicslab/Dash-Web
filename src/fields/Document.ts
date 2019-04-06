@@ -323,7 +323,7 @@ export class Document extends Field {
     @action
     SetDataOnPrototype<T, U extends Field & { Data: T }>(key: Key, value: T, ctor: { new(): U }, replaceWrongType = true) {
         this.GetTAsync(KeyStore.Prototype, Document, (f: Opt<Document>) => {
-            f && f.SetData(key, value, ctor);
+            f && f.SetData(key, value, ctor, replaceWrongType);
         });
     }
 
