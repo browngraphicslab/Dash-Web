@@ -55,6 +55,7 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
 
     @action
     protected setCursorPosition(position: [number, number]) {
+        return;
         let ind;
         let doc = this.props.Document;
         let id = CurrentUserUtils.id;
