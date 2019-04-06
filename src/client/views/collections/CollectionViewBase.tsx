@@ -77,12 +77,12 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
             }
             let added = false;
             if (de.data.aliasOnDrop) {
-                added = de.data.droppedDocuments.reduce((added, d) => added || this.props.addDocument(d), false);
+                added = de.data.droppedDocuments.reduce((added: boolean, d) => added || this.props.addDocument(d), false);
             } else if (de.data.moveDocument) {
                 const move = de.data.moveDocument;
-                added = de.data.droppedDocuments.reduce((added, d) => added || move(d, this.props.Document, this.props.addDocument), false)
+                added = de.data.droppedDocuments.reduce((added: boolean, d) => added || move(d, this.props.Document, this.props.addDocument), false)
             } else {
-                added = de.data.droppedDocuments.reduce((added, d) => added || this.props.addDocument(d), false)
+                added = de.data.droppedDocuments.reduce((added: boolean, d) => added || this.props.addDocument(d), false)
             }
             e.stopPropagation();
             return added;

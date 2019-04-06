@@ -153,7 +153,7 @@ export class PDFBox extends React.Component<FieldViewProps> {
      */
     makeEditableAndHighlight = (colour: string) => {
         var range, sel = window.getSelection();
-        if (sel.rangeCount && sel.getRangeAt) {
+        if (sel && sel.rangeCount && sel.getRangeAt) {
             range = sel.getRangeAt(0);
         }
         document.designMode = "on";
@@ -161,7 +161,7 @@ export class PDFBox extends React.Component<FieldViewProps> {
             document.execCommand("HiliteColor", false, colour);
         }
 
-        if (range) {
+        if (range && sel) {
             sel.removeAllRanges();
             sel.addRange(range);
 

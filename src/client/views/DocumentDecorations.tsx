@@ -122,7 +122,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         this._dragging = true;
         document.removeEventListener("pointermove", this.onBackgroundMove);
         document.removeEventListener("pointerup", this.onBackgroundUp);
-        DragManager.StartDocumentDrag(SelectionManager.SelectedDocuments().map(docView => docView.ContentRef.current!), dragData, {
+        DragManager.StartDocumentDrag(SelectionManager.SelectedDocuments().map(docView => docView.ContentRef.current!), dragData, e.x, e.y, {
             handlers: {
                 dragComplete: action(() => this._dragging = false),
             },
@@ -215,7 +215,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             document.removeEventListener("pointermove", this.onLinkerButtonMoved)
             document.removeEventListener("pointerup", this.onLinkerButtonUp)
             let dragData = new DragManager.LinkDragData(SelectionManager.SelectedDocuments()[0]);
-            DragManager.StartLinkDrag(this._linkerButton.current, dragData, {
+            DragManager.StartLinkDrag(this._linkerButton.current, dragData, e.pageX, e.pageY, {
                 handlers: {
                     dragComplete: action(() => { }),
                 },
@@ -260,7 +260,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     if (doc) moddrag.push(doc);
                 }
                 let dragData = new DragManager.DocumentDragData(moddrag);
-                DragManager.StartDocumentDrag([this._linkButton.current], dragData, {
+                DragManager.StartDocumentDrag([this._linkButton.current], dragData, e.x, e.y, {
                     handlers: {
                         dragComplete: action(() => { }),
                     },
