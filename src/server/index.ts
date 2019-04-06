@@ -295,7 +295,9 @@ function setField(socket: Socket, newValue: Transferable) {
     if (Utils.logFilter === undefined || newValue.type == Utils.logFilter) {
         console.log(`setField: writing ${data}`);
     }
-    Database.Instance.update(newValue._id, newValue, () => {
+    const value = { ...newValue };
+    delete value._id;
+    Database.Instance.update(newValue._id, value, () => {
         if (Utils.logFilter === undefined || newValue.type == Utils.logFilter) {
             console.log(`setField: wrote ${data}`);
         }
