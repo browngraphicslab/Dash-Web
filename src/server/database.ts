@@ -18,7 +18,7 @@ export class Database {
         if (this.db) {
             let collection = this.db.collection('documents');
             const prom = this.currentWrites[id];
-            const run = (resolve?: () => void) => {
+            const run = (promise: Promise<void>, resolve?: () => void) => {
                 collection.updateOne({ _id: id }, { $set: value }, {
                     upsert: true
                 }, (err, res) => {
@@ -29,6 +29,10 @@ export class Database {
                     // if (res) {
                     //     console.log(JSON.stringify(res.result));
                     // }
+                    if (this.currentWrites[id] === promise) {
+                        console.log("deleting finished promise");
+                        delete this.currentWrites[id]
+                    }
                     if (resolve) {
                         resolve();
                     }
@@ -36,15 +40,13 @@ export class Database {
                 });
             }
             if (prom) {
-                const newProm = prom.then(() => {
-                    if (this.currentWrites[id] === newProm) {
-                        delete this.currentWrites[id];
-                    }
-                    run();
-                });
+                console.log("Chaining promise")
+                const newProm: Promise<void> = prom.then(() => run(newProm));
                 this.currentWrites[id] = newProm;
             } else {
-                this.currentWrites[id] = new Promise<void>(res => run(res));
+                console.log("New promise")
+                const newProm: Promise<void> = new Promise<void>(res => run(newProm, res))
+                this.currentWrites[id] = newProm;
             }
         }
     }
