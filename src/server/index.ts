@@ -301,6 +301,9 @@ function setField(socket: Socket, newValue: Transferable) {
         }
         socket.broadcast.emit(MessageStore.SetField.Message, newValue);
     })
+    if (Utils.logFilter === undefined || newValue.type == Utils.logFilter) {
+        console.log(`setField: submitted ${data}`);
+    }
 }
 
 server.listen(serverPort);
