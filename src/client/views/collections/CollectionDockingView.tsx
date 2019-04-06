@@ -200,7 +200,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             let tab = (e.target as any).parentElement as HTMLElement;
             Server.GetField(docid, action((f: Opt<Field>) => {
                 if (f instanceof Document)
-                    DragManager.StartDocumentDrag([tab], new DragManager.DocumentDragData([f as Document]),
+                    DragManager.StartDocumentDrag([tab], new DragManager.DocumentDragData([f as Document]), e.pageX, e.pageY,
                         {
                             handlers: {
                                 dragComplete: action(() => { }),

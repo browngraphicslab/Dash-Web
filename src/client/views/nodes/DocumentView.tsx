@@ -219,7 +219,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
                     this.props.RemoveDocument(this.props.Document);
                 }
             };
-            DragManager.StartDocumentDrag([this._mainCont.current], dragData, {
+            DragManager.StartDocumentDrag([this._mainCont.current], dragData, x, y, {
                 handlers: {
                     dragComplete: action(() => { })
                 },
@@ -239,7 +239,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             document.removeEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
             if (!this.topMost || e.buttons == 2 || e.altKey) {
-                this.startDragging(e.x, e.y, e.ctrlKey || e.altKey);
+                this.startDragging(this._downX, this._downY, e.ctrlKey || e.altKey);
             }
         }
         e.stopPropagation();

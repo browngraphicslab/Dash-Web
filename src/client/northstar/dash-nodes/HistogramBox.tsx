@@ -148,7 +148,7 @@ export class HistogramBox extends React.Component<FieldViewProps> {
         return (
             <Measure onResize={(r: any) => runInAction(() => { this.PanelWidth = r.entry.width; this.PanelHeight = r.entry.height })}>
                 {({ measureRef }) =>
-                    <div className="histogrambox-container" ref={measureRef} style={{ transform: `translate(${-w / 2}px, ${-h / 2}px)` }}>
+                    <div className="histogrambox-container" ref={measureRef} style={{ transform: `translate(-50%, -50%)` }}>
                         <div className="histogrambox-yaxislabel" onPointerDown={this.yLabelPointerDown} ref={this._dropYRef} >
                             <span className="histogrambox-yaxislabel-text">
                                 {labelY}

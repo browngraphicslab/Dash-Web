@@ -1,10 +1,10 @@
-import { DocumentDecorations } from "../views/DocumentDecorations";
-import { CollectionDockingView } from "../views/collections/CollectionDockingView";
-import { Document } from "../../fields/Document";
 import { action } from "mobx";
+import { Document } from "../../fields/Document";
 import { ImageField } from "../../fields/ImageField";
 import { KeyStore } from "../../fields/KeyStore";
+import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import { CollectionView } from "../views/collections/CollectionView";
+import { DocumentDecorations } from "../views/DocumentDecorations";
 import { DocumentView } from "../views/nodes/DocumentView";
 
 export function setupDrag(
@@ -21,7 +21,7 @@ export function setupDrag(
             document.removeEventListener("pointerup", onRowUp);
             var dragData = new DragManager.DocumentDragData([docFunc()]);
             dragData.removeDocument = removeFunc;
-            DragManager.StartDocumentDrag([_reference.current!], dragData);
+            DragManager.StartDocumentDrag([_reference.current!], dragData, e.x, e.y);
         }
     );
     let onRowUp = action(
@@ -132,11 +132,14 @@ export namespace DragManager {
     export function StartDocumentDrag(
         eles: HTMLElement[],
         dragData: DocumentDragData,
+        downX: number,
+        downY: number,
         options?: DragOptions
     ) {
         StartDrag(
             eles,
             dragData,
+            downX, downY,
             options,
             (dropData: { [id: string]: any }) =>
                 (dropData.droppedDocuments = dragData.aliasOnDrop
@@ -156,13 +159,15 @@ export namespace DragManager {
     export function StartLinkDrag(
         ele: HTMLElement,
         dragData: LinkDragData,
+        downX: number, downY: number,
         options?: DragOptions
     ) {
-        StartDrag([ele], dragData, options);
+        StartDrag([ele], dragData, downX, downY, options);
     }
     function StartDrag(
         eles: HTMLElement[],
         dragData: { [id: string]: any },
+        downX: number, downY: number,
         options?: DragOptions,
         finishDrag?: (dropData: { [id: string]: any }) => void
     ) {
@@ -204,23 +209,22 @@ export namespace DragManager {
             dragElement.style.width = `${rect.width / scaleX}px`;
             dragElement.style.height = `${rect.height / scaleY}px`;
 
-            // bcz: PDFs don't show up if you clone them because they contain a canvas.
+            // bcz: if PDFs are rendered with svg's, then this code isn't needed
+            // bcz: PDFs don't show up if you clone them when rendered using a canvas. 
             //      however, PDF's have a thumbnail field that contains an image of their canvas.
             //      So we replace the pdf's canvas with the image thumbnail
-            if (docs.length) {
-                var pdfBox = dragElement.getElementsByClassName(
-                    "pdfBox-cont"
-                )[0] as HTMLElement;
-                let thumbnail = docs[0].GetT(KeyStore.Thumbnail, ImageField);
-                if (pdfBox && pdfBox.childElementCount && thumbnail) {
-                    let img = new Image();
-                    img!.src = thumbnail.toString();
-                    img!.style.position = "absolute";
-                    img!.style.width = `${rect.width / scaleX}px`;
-                    img!.style.height = `${rect.height / scaleY}px`;
-                    pdfBox.replaceChild(img!, pdfBox.children[0]);
-                }
-            }
+            // if (docs.length) {
+            //     var pdfBox = dragElement.getElementsByClassName("pdfBox-cont")[0] as HTMLElement;
+            //     let thumbnail = docs[0].GetT(KeyStore.Thumbnail, ImageField);
+            //     if (pdfBox && pdfBox.childElementCount && thumbnail) {
+            //         let img = new Image();
+            //         img!.src = thumbnail.toString();
+            //         img!.style.position = "absolute";
+            //         img!.style.width = `${rect.width / scaleX}px`;
+            //         img!.style.height = `${rect.height / scaleY}px`;
+            //         pdfBox.replaceChild(img!, pdfBox.children[0]);
+            //     }
+            // }
 
             dragDiv.appendChild(dragElement);
             return dragElement;
@@ -236,6 +240,8 @@ export namespace DragManager {
         }
         eles.map(ele => (ele.hidden = hideSource));
 
+        let lastX = downX;
+        let lastY = downY;
         const moveHandler = (e: PointerEvent) => {
             e.stopPropagation();
             e.preventDefault();
@@ -250,12 +256,13 @@ export namespace DragManager {
                     button: 0
                 });
             }
-            dragElements.map(
-                (dragElement, i) =>
-                    (dragElement.style.transform = `translate(${(xs[i] +=
-                        e.movementX)}px, ${(ys[i] += e.movementY)}px) scale(${
-                        scaleXs[i]
-                        }, ${scaleYs[i]})`)
+            let moveX = e.pageX - lastX;
+            let moveY = e.pageY - lastY;
+            lastX = e.pageX;
+            lastY = e.pageY;
+            dragElements.map((dragElement, i) => (dragElement.style.transform =
+                `translate(${(xs[i] += moveX)}px, ${(ys[i] += moveY)}px) 
+                scale(${scaleXs[i]}, ${scaleYs[i]})`)
             );
         };
 

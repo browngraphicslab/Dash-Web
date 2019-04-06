@@ -13,7 +13,7 @@ import { Documents } from '../documents/Documents';
 import { Server } from '../Server';
 import { setupDrag } from '../util/DragManager';
 import { Transform } from '../util/Transform';
-import { UndoManager } from '../util/UndoManager';
+import { UndoManager, undoBatch } from '../util/UndoManager';
 import { WorkspacesMenu } from '../../server/authentication/controllers/WorkspacesMenu';
 import { CollectionDockingView } from './collections/CollectionDockingView';
 import { ContextMenu } from './ContextMenu';
@@ -51,6 +51,7 @@ import '../northstar/utils/Extensions'
 import { HistogramOperation } from '../northstar/operations/HistogramOperation';
 import { AttributeTransformationModel } from '../northstar/core/attribute/AttributeTransformationModel';
 import { ColumnAttributeModel } from '../northstar/core/attribute/AttributeModel';
+import { CollectionView } from './collections/CollectionView';
 
 @observer
 export class Main extends React.Component {
@@ -234,6 +235,15 @@ export class Main extends React.Component {
                 ContainingCollectionView={undefined} />
     }
 
+    @undoBatch
+    @action
+    prepareDrag = (
+        _reference: React.RefObject<HTMLDivElement>,
+        docFunc: () => Document,
+        removeFunc: (containingCollection: CollectionView) => void = () => { }) => {
+        return setupDrag(_reference, docFunc, removeFunc);
+    }
+
     /* for the expandable add nodes menu. Not included with the miscbuttons because once it expands it expands the whole div with it, making canvas interactions limited. */
     @computed
     get nodesMenu() {
@@ -273,7 +283,7 @@ export class Main extends React.Component {
                 <ul id="add-options-list">
                     {btns.map(btn =>
                         <li key={btn[1]} ><div ref={btn[0]}>
-                            <button className="round-button add-button" title={btn[2]} onPointerDown={setupDrag(btn[0], btn[3])}>
+                            <button className="round-button add-button" title={btn[2]} onPointerDown={this.prepareDrag(btn[0], btn[3])}>
                                 <FontAwesomeIcon icon={btn[1]} size="sm" />
                             </button>
                         </div></li>)}
