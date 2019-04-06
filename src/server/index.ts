@@ -296,7 +296,7 @@ function setField(socket: Socket, newValue: Transferable) {
         console.log(`setField: writing ${data}`);
     }
     Database.Instance.update(newValue._id, newValue, () => {
-        if (!Utils.logFilter || newValue.type == Utils.logFilter) {
+        if (Utils.logFilter === undefined || newValue.type == Utils.logFilter) {
             console.log(`setField: wrote ${data}`);
         }
         socket.broadcast.emit(MessageStore.SetField.Message, newValue);
