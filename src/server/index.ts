@@ -292,9 +292,13 @@ function getFields([ids, callback]: [string[], (result: any) => void]) {
 
 function setField(socket: Socket, newValue: Transferable) {
     const data = JSON.stringify(newValue);
-    console.log(`setField: writing ${data}`);
+    if (!Utils.logFilter || newValue.type == Utils.logFilter) {
+        console.log(`setField: writing ${data}`);
+    }
     Database.Instance.update(newValue._id, newValue, () => {
-        console.log(`setField: wrote ${data}`);
+        if (!Utils.logFilter || newValue.type == Utils.logFilter) {
+            console.log(`setField: wrote ${data}`);
+        }
         socket.broadcast.emit(MessageStore.SetField.Message, newValue);
     })
 }
