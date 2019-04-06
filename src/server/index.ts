@@ -291,7 +291,9 @@ function getFields([ids, callback]: [string[], (result: any) => void]) {
 }
 
 function setField(socket: Socket, newValue: Transferable) {
+    console.log(`setField: writing ${newValue}`);
     Database.Instance.update(newValue._id, newValue, () => {
+        console.log(`setField: wrote ${newValue}`);
         socket.broadcast.emit(MessageStore.SetField.Message, newValue);
     })
 }

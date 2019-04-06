@@ -17,7 +17,7 @@ export class BooleanField extends BasicField<boolean> {
 
     ToJson(): { type: Types; data: boolean; _id: string } {
         return {
-            type: Types.Minimized,
+            type: Types.Boolean,
             data: this.Data,
             _id: this.Id
         };
