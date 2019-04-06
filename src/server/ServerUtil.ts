@@ -38,7 +38,7 @@ export class ServerUtils {
         }
 
         switch (type) {
-            case Types.Minimized:
+            case Types.Boolean:
                 return new BooleanField(data, id, false);
             case Types.Number:
                 return new NumberField(data, id, false);
