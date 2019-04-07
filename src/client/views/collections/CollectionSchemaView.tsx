@@ -86,12 +86,8 @@ export class CollectionSchemaView extends CollectionViewBase {
         )
         let reference = React.createRef<HTMLDivElement>();
         let onItemDown = setupDrag(reference, () => props.doc, (containingCollection: CollectionView) => this.props.removeDocument(props.doc));
-        let applyToDoc = (doc: Document, value: string) => {
-            let script = CompileScript(value, { addReturn: true, params: { this: "Document" } });
-            if (!script.compiled) {
-                return false;
-            }
-            const res = script.run({ this: doc });
+        let applyToDoc = (doc: Document, run: (args?: { [name: string]: any }) => any) => {
+            const res = run({ this: doc });
             if (!res.success) return false;
             const field = res.result;
             if (field instanceof Field) {
@@ -120,13 +116,22 @@ export class CollectionSchemaView extends CollectionViewBase {
                         return field || "";
                     }}
                     SetValue={(value: string) => {
-                        return applyToDoc(props.doc, value);
+                        let script = CompileScript(value, { addReturn: true, params: { this: "Document" } });
+                        if (!script.compiled) {
+                            return false;
+                        }
+                        return applyToDoc(props.doc, script.run);
                     }}
                     OnFillDown={(value: string) => {
+                        let script = CompileScript(value, { addReturn: true, params: { this: "Document" } });
+                        if (!script.compiled) {
+                            return;
+                        }
+                        const run = script.run;
                         //TODO This should be able to be refactored to compile the script once
                         this.props.Document.GetTAsync<ListField<Document>>(this.props.fieldKey, ListField).then((val) => {
                             if (val) {
-                                val.Data.forEach(doc => applyToDoc(doc, value));
+                                val.Data.forEach(doc => applyToDoc(doc, run));
                             }
                         })
                     }}>
