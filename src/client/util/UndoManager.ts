@@ -1,6 +1,7 @@
 import { observable, action } from "mobx";
 import 'source-map-support/register'
 import { Without } from "../../Utils";
+import { string } from "prop-types";
 
 function getBatchName(target: any, key: string | symbol): string {
     let keyName = key.toString();
@@ -97,7 +98,9 @@ export namespace UndoManager {
     export function GetOpenBatches(): Without<Batch, 'end'>[] {
         return openBatches;
     }
-
+    export function TraceOpenBatches() {
+        console.log(`Open batches:\n\t${openBatches.map(batch => batch.batchName).join("\n\t")}\n`);
+    }
     export class Batch {
         private disposed: boolean = false;
 

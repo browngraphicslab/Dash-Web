@@ -2,17 +2,20 @@
 
 .inkingCanvas-paths-ink, .inkingCanvas-paths-markers, .inkingCanvas-noSelect, .inkingCanvas-canSelect {
     position: absolute;
-    top: -50000px;
-    left: -50000px;
-    width: 100000px;
-    height: 100000px;
-    .inkingCanvas-children {
-      transform: translate(50000px, 50000px);
-      pointer-events: none;
-    }
+    top: 0;
+    left:0;
+    width: 8192px;
+    height: 8192px;
     cursor:"crosshair";
     pointer-events: auto;
     
+}
+.inkingCanvas-canSelect, 
+.inkingCanvas-noSelect    {
+    top:-50000px;
+    left:-50000px;
+    width: 100000px;
+    height: 100000px;
 }
 .inkingCanvas-noSelect  {
     pointer-events: none;

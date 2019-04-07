@@ -6,6 +6,8 @@ import React = require("react");
 
 
 interface StrokeProps {
+    offsetX: number;
+    offsetY: number;
     id: string;
     line: Array<{ x: number, y: number }>;
     color: string;
@@ -28,7 +30,7 @@ export class InkingStroke extends React.Component<StrokeProps> {
     }
 
     parseData = (line: Array<{ x: number, y: number }>): string => {
-        return !line.length ? "" : "M " + line.map(p => p.x + " " + p.y).join(" L ");
+        return !line.length ? "" : "M " + line.map(p => (p.x + this.props.offsetX) + " " + (p.y + this.props.offsetY)).join(" L ");
     }
 
     createStyle() {
@@ -43,14 +45,13 @@ export class InkingStroke extends React.Component<StrokeProps> {
         }
     }
 
-
     render() {
         let pathStyle = this.createStyle();
         let pathData = this.parseData(this.props.line);
 
+        let pointerEvents: any = InkingControl.Instance.selectedTool == InkTool.Eraser ? "all" : "none";
         return (
-            <path className={(this._strokeTool === InkTool.Highlighter) ? "highlight" : ""}
-                d={pathData} style={{ ...pathStyle, pointerEvents: "all" }} strokeLinejoin="round" strokeLinecap="round"
+            <path d={pathData} style={{ ...pathStyle, pointerEvents: pointerEvents }} strokeLinejoin="round" strokeLinecap="round"
                 onPointerOver={this.deleteStroke} onPointerDown={this.deleteStroke} />
         )
     }

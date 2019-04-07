@@ -13,7 +13,7 @@ import { Documents } from '../documents/Documents';
 import { Server } from '../Server';
 import { setupDrag } from '../util/DragManager';
 import { Transform } from '../util/Transform';
-import { UndoManager } from '../util/UndoManager';
+import { UndoManager, undoBatch } from '../util/UndoManager';
 import { WorkspacesMenu } from '../../server/authentication/controllers/WorkspacesMenu';
 import { CollectionDockingView } from './collections/CollectionDockingView';
 import { ContextMenu } from './ContextMenu';
@@ -51,6 +51,7 @@ import '../northstar/utils/Extensions'
 import { HistogramOperation } from '../northstar/operations/HistogramOperation';
 import { AttributeTransformationModel } from '../northstar/core/attribute/AttributeTransformationModel';
 import { ColumnAttributeModel } from '../northstar/core/attribute/AttributeModel';
+import { CollectionView } from './collections/CollectionView';
 
 @observer
 export class Main extends React.Component {

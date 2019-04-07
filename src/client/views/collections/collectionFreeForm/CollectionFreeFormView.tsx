@@ -20,6 +20,7 @@ import React = require("react");
 import v5 = require("uuid/v5");
 import { CollectionFreeFormRemoteCursors } from "./CollectionFreeFormRemoteCursors";
 import { PreviewCursor } from "./PreviewCursor";
+import { NumberField } from "../../../../fields/NumberField";
 
 @observer
 export class CollectionFreeFormView extends CollectionViewBase {
@@ -73,20 +74,27 @@ export class CollectionFreeFormView extends CollectionViewBase {
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
         if (super.drop(e, de)) {
-            if (de.data instanceof DragManager.DocumentDragData) {
-                let screenX = de.x - (de.data.xOffset as number || 0);
-                let screenY = de.y - (de.data.yOffset as number || 0);
+            let droppedDocs = de.data.droppedDocuments as Document[];
+            let xoff = de.data.xOffset as number || 0;
+            let yoff = de.data.yOffset as number || 0;
+            if (droppedDocs && droppedDocs.length) {
+                let screenX = de.x - xoff;
+                let screenY = de.y - yoff;
                 const [x, y] = this.getTransform().transformPoint(screenX, screenY);
-                let dragDoc = de.data.draggedDocuments[0];
+                let dragDoc = de.data.droppedDocuments[0];
                 let dragX = dragDoc.GetNumber(KeyStore.X, 0);
                 let dragY = dragDoc.GetNumber(KeyStore.Y, 0);
-                de.data.draggedDocuments.map(d => {
+                droppedDocs.map(async d => {
                     let docX = d.GetNumber(KeyStore.X, 0);
                     let docY = d.GetNumber(KeyStore.Y, 0);
                     d.SetNumber(KeyStore.X, x + (docX - dragX));
                     d.SetNumber(KeyStore.Y, y + (docY - dragY));
-                    if (!d.GetNumber(KeyStore.Width, 0)) {
+                    let docW = await d.GetTAsync(KeyStore.Width, NumberField);
+                    let docH = await d.GetTAsync(KeyStore.Height, NumberField);
+                    if (!docW) {
                         d.SetNumber(KeyStore.Width, 300);
+                    }
+                    if (!docH) {
                         d.SetNumber(KeyStore.Height, 300);
                     }
                     this.bringToFront(d);
