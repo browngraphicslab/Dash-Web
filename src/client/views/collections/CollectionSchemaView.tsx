@@ -87,11 +87,13 @@ export class CollectionSchemaView extends CollectionViewBase {
         let reference = React.createRef<HTMLDivElement>();
         let onItemDown = setupDrag(reference, () => props.doc, (containingCollection: CollectionView) => this.props.removeDocument(props.doc));
         let applyToDoc = (doc: Document, value: string) => {
-            let script = CompileScript(value, { this: doc }, true);
+            let script = CompileScript(value, { addReturn: true, params: { this: "Document" } });
             if (!script.compiled) {
                 return false;
             }
-            let field = script();
+            const res = script.run({ this: doc });
+            if (!res.success) return false;
+            const field = res.result;
             if (field instanceof Field) {
                 doc.Set(props.fieldKey, field);
                 return true;
@@ -121,6 +123,7 @@ export class CollectionSchemaView extends CollectionViewBase {
                         return applyToDoc(props.doc, value);
                     }}
                     OnFillDown={(value: string) => {
+                        //TODO This should be able to be refactored to compile the script once
                         this.props.Document.GetTAsync<ListField<Document>>(this.props.fieldKey, ListField).then((val) => {
                             if (val) {
                                 val.Data.forEach(doc => applyToDoc(doc, value));
