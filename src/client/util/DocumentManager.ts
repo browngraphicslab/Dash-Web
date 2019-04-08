@@ -29,7 +29,7 @@ export class DocumentManager {
 
     public getAllDocumentViews(collection: Document) {
         return this.DocumentViews.filter(dv =>
-            dv.props.ContainingCollectionView && dv.props.ContainingCollectionView.props.Document == collection);
+            dv.props.ContainingCollectionView && dv.props.ContainingCollectionView.props.Document.Id === collection.Id);
     }
 
     public getDocumentView(toFind: Document): DocumentView | null {

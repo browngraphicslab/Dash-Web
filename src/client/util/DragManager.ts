@@ -1,7 +1,5 @@
 import { action } from "mobx";
 import { Document } from "../../fields/Document";
-import { ImageField } from "../../fields/ImageField";
-import { KeyStore } from "../../fields/KeyStore";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import { CollectionView } from "../views/collections/CollectionView";
 import { DocumentDecorations } from "../views/DocumentDecorations";
@@ -18,6 +16,7 @@ export function setupDrag(
             e.stopPropagation();
             e.preventDefault();
 
+            // TODO: bcz -- this needs to have a drag threshold so that it doesn't trigger when just selecting.
             document.removeEventListener("pointermove", onRowMove);
             document.removeEventListener("pointerup", onRowUp);
             var dragData = new DragManager.DocumentDragData([docFunc()]);
