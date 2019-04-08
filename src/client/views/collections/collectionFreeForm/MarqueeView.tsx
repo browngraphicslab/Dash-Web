@@ -102,7 +102,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         if (e.key == "Backspace" || e.key == "Delete") {
             this.marqueeSelect().map(d => this.props.removeDocument(d));
             let ink = this.props.container.props.Document.GetT(KeyStore.Ink, InkField);
-            if (ink && ink != FieldWaiting && ink.Data) {
+            if (ink && ink != FieldWaiting) {
                 this.marqueeInkDelete(ink.Data);
             }
             this.cleanupInteractions();
@@ -118,24 +118,24 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 return d;
             });
             let ink = this.props.container.props.Document.GetT(KeyStore.Ink, InkField);
-            if (ink && ink != FieldWaiting && ink.Data) {
-                //setTimeout(() => {
-                let newCollection = Documents.FreeformDocument(selected, {
-                    x: bounds.left,
-                    y: bounds.top,
-                    panx: 0,
-                    pany: 0,
-                    width: bounds.width,
-                    height: bounds.height,
-                    backgroundColor: "Transparent",
-                    ink: this.marqueeInkSelect(ink.Data),
-                    title: "a nested collection"
-                });
-                this.props.addDocument(newCollection, false);
-                this.marqueeInkDelete(ink.Data);
-            }
+            let inkData = ink && ink != FieldWaiting ? ink.Data : undefined;
+            //setTimeout(() => {
+            let newCollection = Documents.FreeformDocument(selected, {
+                x: bounds.left,
+                y: bounds.top,
+                panx: 0,
+                pany: 0,
+                width: bounds.width,
+                height: bounds.height,
+                backgroundColor: "Transparent",
+                ink: inkData ? this.marqueeInkSelect(inkData) : undefined,
+                title: "a nested collection"
+            });
+            this.props.addDocument(newCollection, false);
+            this.marqueeInkDelete(inkData);
             // }, 100);
             this.cleanupInteractions();
+            SelectionManager.DeselectAll();
         }
     }
     @action
@@ -159,15 +159,17 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     }
 
     @action
-    marqueeInkDelete(ink: Map<any, any>, ) {
+    marqueeInkDelete(ink?: Map<any, any>) {
         // bcz: this appears to work but when you restart all the deleted strokes come back -- InkField isn't observing its changes so they aren't written to the DB.
         // ink.forEach((value: StrokeData, key: string, map: any) =>
         //     InkingCanvas.IntersectStrokeRect(value, this.Bounds) && ink.delete(key));
 
-        let idata = new Map();
-        ink.forEach((value: StrokeData, key: string, map: any) =>
-            !InkingCanvas.IntersectStrokeRect(value, this.Bounds) && idata.set(key, value));
-        this.props.container.props.Document.SetDataOnPrototype(KeyStore.Ink, idata, InkField);
+        if (ink) {
+            let idata = new Map();
+            ink.forEach((value: StrokeData, key: string, map: any) =>
+                !InkingCanvas.IntersectStrokeRect(value, this.Bounds) && idata.set(key, value));
+            this.props.container.props.Document.SetDataOnPrototype(KeyStore.Ink, idata, InkField);
+        }
     }
 
     marqueeSelect() {

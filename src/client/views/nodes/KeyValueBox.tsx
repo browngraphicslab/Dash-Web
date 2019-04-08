@@ -40,11 +40,13 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
                 }
                 let realDoc = doc;
 
-                let script = CompileScript(this._valueInput, undefined, true);
+                let script = CompileScript(this._valueInput, { addReturn: true });
                 if (!script.compiled) {
                     return;
                 }
-                let field = script();
+                let res = script.run();
+                if (!res.success) return;
+                const field = res.result;
                 if (field instanceof Field) {
                     realDoc.Set(new Key(this._keyInput), field);
                 } else {

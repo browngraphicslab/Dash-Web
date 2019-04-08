@@ -17,6 +17,8 @@ import { NumberField } from "../../../fields/NumberField";
 import request = require("request");
 import { ServerUtils } from "../../../server/ServerUtil";
 import { Server } from "../../Server";
+import { CollectionDockingView } from "./CollectionDockingView";
+import { runReactions } from "mobx/lib/internal";
 
 export interface CollectionViewProps {
     fieldKey: Key;
@@ -80,16 +82,35 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
     @action
     protected drop(e: Event, de: DragManager.DropEvent): boolean {
         if (de.data instanceof DragManager.DocumentDragData) {
-            if (de.data.aliasOnDrop) {
+            if (de.data.aliasOnDrop || de.data.copyOnDrop) {
                 [KeyStore.Width, KeyStore.Height, KeyStore.CurPage].map(key =>
-                    de.data.draggedDocuments.GetTAsync(key, NumberField, (f: Opt<NumberField>) => f ? de.data.droppedDocument.SetNumber(key, f.Data) : null));
+                    de.data.draggedDocuments.map((draggedDocument: Document, i: number) =>
+                        draggedDocument.GetTAsync(key, NumberField, (f: Opt<NumberField>) => f ? de.data.droppedDocuments[i].SetNumber(key, f.Data) : null)));
             }
             let added = de.data.droppedDocuments.reduce((added, d) => this.props.addDocument(d, false), true);
-            if (added && de.data.removeDocument && !de.data.aliasOnDrop) {
+            if (added && de.data.removeDocument && !de.data.aliasOnDrop && !de.data.copyOnDrop) {
                 de.data.removeDocument(this.props.CollectionView);
             }
             e.stopPropagation();
             return added;
+        }
+        if (de.data instanceof DragManager.LinkDragData) {
+            let sourceDoc: Document = de.data.linkSourceDocumentView.props.Document;
+            if (sourceDoc) runInAction(() => {
+                let srcTarg = sourceDoc.GetT(KeyStore.Prototype, Document)
+                if (srcTarg && srcTarg != FieldWaiting) {
+                    let linkDocs = srcTarg.GetList(KeyStore.LinkedToDocs, [] as Document[]);
+                    linkDocs.map(linkDoc => {
+                        let targDoc = linkDoc.GetT(KeyStore.LinkedToDocs, Document);
+                        if (targDoc && targDoc != FieldWaiting) {
+                            let dropdoc = targDoc.MakeDelegate();
+                            de.data.droppedDocuments.push(dropdoc);
+                            this.props.addDocument(dropdoc, false);
+                        }
+                    })
+                }
+            })
+            return true;
         }
         return false;
     }
@@ -107,6 +128,7 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
         }
         if (type.indexOf("pdf") !== -1) {
             ctor = Documents.PdfDocument;
+            options.nativeWidth = 1200;
         }
         if (type.indexOf("html") !== -1) {
             if (path.includes('localhost')) {
@@ -156,7 +178,6 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
             let item = e.dataTransfer.items[i];
             if (item.kind === "string" && item.type.indexOf("uri") != -1) {
                 e.dataTransfer.items[i].getAsString(action((s: string) => {
-                    let document: Document;
                     request.head(ServerUtils.prepend(RouteStore.corsProxy + "/" + s), (err, res, body) => {
                         let type = res.headers["content-type"];
                         if (type) {

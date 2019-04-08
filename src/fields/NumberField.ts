@@ -8,7 +8,7 @@ export class NumberField extends BasicField<number> {
     }
 
     ToScriptString(): string {
-        return "new NumberField(this.Data)";
+        return `new NumberField(${this.Data})`;
     }
 
     Copy() {
