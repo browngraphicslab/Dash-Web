@@ -24,7 +24,7 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
         return stroke.pathData.reduce((inside, val) => inside ||
             (selRect.left < val.x - InkingCanvas.InkOffset && selRect.left + selRect.width > val.x - InkingCanvas.InkOffset &&
                 selRect.top < val.y - InkingCanvas.InkOffset && selRect.top + selRect.height > val.y - InkingCanvas.InkOffset)
-            , false);
+            , false as boolean);
     }
 
     @computed
