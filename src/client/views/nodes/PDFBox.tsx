@@ -151,6 +151,7 @@ export class PDFBox extends React.Component<FieldViewProps> {
      */
     makeEditableAndHighlight = (colour: string) => {
         var range, sel = window.getSelection();
+        if (sel) {
         if (sel.rangeCount && sel.getRangeAt) {
             range = sel.getRangeAt(0);
         }
@@ -189,7 +190,7 @@ export class PDFBox extends React.Component<FieldViewProps> {
             }
             this._pageInfo.divs.push(obj);
 
-        }
+        }}
         document.designMode = "off";
     }
 

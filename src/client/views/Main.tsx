@@ -51,7 +51,7 @@ import '../northstar/utils/Extensions'
 import { HistogramOperation } from '../northstar/operations/HistogramOperation';
 import { AttributeTransformationModel } from '../northstar/core/attribute/AttributeTransformationModel';
 import { ColumnAttributeModel } from '../northstar/core/attribute/AttributeModel';
-import {Timeline} from './nodes/Timeline'
+import { Timeline } from './nodes/Timeline'
 @observer
 export class Main extends React.Component {
     // dummy initializations keep the compiler happy
@@ -304,11 +304,6 @@ export class Main extends React.Component {
     }
 
 
-    @computed
-    get timeline(){
-        return <Timeline/>
-    }
-
     render() {
         let workspaceMenu: any = null;
         let workspaces = this.userDocument.GetT<ListField<Document>>(KeyStore.Workspaces, ListField);
@@ -333,7 +328,6 @@ export class Main extends React.Component {
                 {this.nodesMenu}
                 {this.miscButtons}
                 {workspaceMenu}
-                {this.timeline}
                 <InkingControl />
             </div>
         );

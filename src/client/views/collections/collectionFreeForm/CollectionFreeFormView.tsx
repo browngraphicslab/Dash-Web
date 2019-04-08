@@ -20,6 +20,7 @@ import React = require("react");
 import v5 = require("uuid/v5");
 import { CollectionFreeFormRemoteCursors } from "./CollectionFreeFormRemoteCursors";
 import { PreviewCursor } from "./PreviewCursor";
+import { Timeline } from "../../nodes/Timeline"
 
 @observer
 export class CollectionFreeFormView extends CollectionViewBase {
@@ -305,7 +306,9 @@ export class CollectionFreeFormView extends CollectionViewBase {
                         </div>
                         {this.overlayView}
                     </PreviewCursor>
+                    <Timeline />
                 </MarqueeView>
+
             </div>
         );
     }
