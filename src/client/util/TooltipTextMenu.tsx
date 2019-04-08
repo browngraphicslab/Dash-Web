@@ -1,4 +1,5 @@
 import { action, IReactionDisposer, reaction } from "mobx";
+import { Dropdown, DropdownSubmenu, MenuItem } from "prosemirror-menu";
 import { baseKeymap, lift } from "prosemirror-commands";
 import { history, redo, undo } from "prosemirror-history";
 import { keymap } from "prosemirror-keymap";
@@ -6,7 +7,6 @@ import { EditorState, Transaction, NodeSelection } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { schema } from "./RichTextSchema";
 import { Schema, NodeType } from "prosemirror-model";
-import { liftItem } from "prosemirror-menu";
 import React = require("react");
 import "./TooltipTextMenu.scss";
 const { toggleMark, setBlockType, wrapIn } = require("prosemirror-commands");
@@ -44,14 +44,15 @@ export class TooltipTextMenu {
       { command: toggleMark(schema.marks.superscript), dom: this.icon("s", "superscript") },
       { command: toggleMark(schema.marks.subscript), dom: this.icon("s", "subscript") },
       { command: wrapInList(schema.nodes.bullet_list), dom: this.icon(":", "bullets") },
-      //{ command: lift, dom: this.icon("<", "unindent") },
-
-      { command: lift, dom: this.unorderedListIcon() },
+      { command: toggleMark(schema.marks.timesNewRoman), dom: this.icon("x", "TNR") },
+      { command: lift, dom: this.icon("<", "lift") },
     ]
     //add menu items
     items.forEach(({ dom, command }) => {
       this.tooltip.appendChild(dom);
     });
+
+    //add dropdowns
 
     //pointer down handler to activate button effects
     this.tooltip.addEventListener("pointerdown", e => {

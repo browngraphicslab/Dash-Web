@@ -222,7 +222,15 @@ export const marks: { [index: string]: MarkSpec } = {
   code: {
     parseDOM: [{ tag: "code" }],
     toDOM() { return codeDOM }
-  }
+  },
+
+
+  timesNewRoman: {
+    parseDOM: [{ style: 'font-family: "Times New Roman", Times, serif;' }],
+    toDOM: () => ['span', {
+      style: 'font-family: "Times New Roman", Times, serif;'
+    }]
+  },
 }
 
 // :: Schema
