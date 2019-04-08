@@ -18,39 +18,57 @@ import * as typescriptlib from '!!raw-loader!./type_decls.d'
 import { Documents } from "../documents/Documents";
 import { Key } from "../../fields/Key";
 
-
-export interface ExecutableScript {
-    (): any;
-
-    compiled: boolean;
+export interface ScriptSucccess {
+    success: true;
+    result: any;
 }
 
-function Compile(script: string | undefined, diagnostics: Opt<any[]>, scope: { [name: string]: any }): ExecutableScript {
-    const compiled = !(diagnostics && diagnostics.some(diag => diag.category === ts.DiagnosticCategory.Error));
+export interface ScriptError {
+    success: false;
+    error: any;
+}
 
-    let func: () => Opt<Field>;
-    if (compiled && script) {
-        let fieldTypes = [Document, NumberField, TextField, ImageField, RichTextField, ListField, Key];
-        let paramNames = ["KeyStore", "Documents", ...fieldTypes.map(fn => fn.name)];
-        let params: any[] = [KeyStore, Documents, ...fieldTypes]
-        for (let prop in scope) {
-            if (prop === "this") {
-                continue;
-            }
-            paramNames.push(prop);
-            params.push(scope[prop]);
-        }
-        let thisParam = scope.this;
-        let compiledFunction = new Function(...paramNames, script);
-        func = function (): Opt<Field> {
-            return compiledFunction.apply(thisParam, params)
-        };
-    } else {
-        func = () => undefined;
+export type ScriptResult = ScriptSucccess | ScriptError;
+
+export interface CompileSuccess {
+    compiled: true;
+    run(args?: { [name: string]: any }): ScriptResult;
+}
+
+export interface CompileError {
+    compiled: false;
+    errors: any[];
+}
+
+export type CompiledScript = CompileSuccess | CompileError;
+
+function Run(script: string | undefined, customParams: string[], diagnostics: any[]): CompiledScript {
+    const errors = diagnostics.some(diag => diag.category === ts.DiagnosticCategory.Error);
+    if (errors || !script) {
+        return { compiled: false, errors: diagnostics };
     }
 
-    Object.assign(func, { compiled });
-    return func as ExecutableScript;
+    let fieldTypes = [Document, NumberField, TextField, ImageField, RichTextField, ListField, Key];
+    let paramNames = ["KeyStore", "Documents", ...fieldTypes.map(fn => fn.name)];
+    let params: any[] = [KeyStore, Documents, ...fieldTypes]
+    let compiledFunction = new Function(...paramNames, `return ${script}`);
+    let run = (args: { [name: string]: any } = {}): ScriptResult => {
+        let argsArray: any[] = [];
+        for (let name of customParams) {
+            if (name === "this") {
+                continue;
+            }
+            argsArray.push(args[name]);
+        }
+        let thisParam = args.this;
+        try {
+            const result = compiledFunction.apply(thisParam, params).apply(thisParam, argsArray);
+            return { success: true, result };
+        } catch (error) {
+            return { success: false, error };
+        }
+    }
+    return { compiled: true, run };
 }
 
 interface File {
@@ -106,20 +124,39 @@ class ScriptingCompilerHost {
     }
 }
 
-export function CompileScript(script: string, scope?: { [name: string]: any }, addReturn: boolean = false): ExecutableScript {
+export interface ScriptOptions {
+    requiredType?: string;
+    addReturn?: boolean;
+    params?: { [name: string]: string };
+}
+
+export function CompileScript(script: string, { requiredType = "", addReturn = false, params = {} }: ScriptOptions = {}): CompiledScript {
     let host = new ScriptingCompilerHost;
-    let funcScript = `(function() {
+    let paramArray: string[] = [];
+    if ("this" in params) {
+        paramArray.push("this");
+    }
+    for (const key in params) {
+        if (key === "this") continue;
+        paramArray.push(key);
+    }
+    let paramString = paramArray.map(key => `${key}: ${params[key]}`).join(", ");
+    let funcScript = `(function(${paramString})${requiredType ? `: ${requiredType}` : ''} {
         ${addReturn ? `return ${script};` : script}
-    }).apply(this)`
+    })`;
     host.writeFile("file.ts", funcScript);
     host.writeFile('node_modules/typescript/lib/lib.d.ts', typescriptlib);
     let program = ts.createProgram(["file.ts"], {}, host);
     let testResult = program.emit();
-    let outputText = "return " + host.readFile("file.js");
+    let outputText = host.readFile("file.js");
 
     let diagnostics = ts.getPreEmitDiagnostics(program).concat(testResult.diagnostics);
 
-    return Compile(outputText, diagnostics, scope || {});
+    return Run(outputText, paramArray, diagnostics);
+}
+
+export function OrLiteralType(returnType: string): string {
+    return `${returnType} | string | number`;
 }
 
 export function ToField(data: any): Opt<Field> {

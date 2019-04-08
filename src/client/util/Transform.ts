@@ -17,45 +17,45 @@ export class Transform {
         this._scale = scale;
     }
 
-    translate = (x: number, y: number): Transform => {
+    translate = (x: number, y: number): this => {
         this._translateX += x;
         this._translateY += y;
         return this;
     }
 
-    scale = (scale: number): Transform => {
+    scale = (scale: number): this => {
         this._scale *= scale;
         this._translateX *= scale;
         this._translateY *= scale;
         return this;
     }
 
-    scaleAbout = (scale: number, x: number, y: number): Transform => {
+    scaleAbout = (scale: number, x: number, y: number): this => {
         this._translateX += x * this._scale - x * this._scale * scale;
         this._translateY += y * this._scale - y * this._scale * scale;
         this._scale *= scale;
         return this;
     }
 
-    transform = (transform: Transform): Transform => {
+    transform = (transform: Transform): this => {
         this._translateX = transform._translateX + transform._scale * this._translateX;
         this._translateY = transform._translateY + transform._scale * this._translateY;
         this._scale *= transform._scale;
         return this;
     }
 
-    preTranslate = (x: number, y: number): Transform => {
+    preTranslate = (x: number, y: number): this => {
         this._translateX += this._scale * x;
         this._translateY += this._scale * y;
         return this;
     }
 
-    preScale = (scale: number): Transform => {
+    preScale = (scale: number): this => {
         this._scale *= scale;
         return this;
     }
 
-    preTransform = (transform: Transform): Transform => {
+    preTransform = (transform: Transform): this => {
         this._translateX += transform._translateX * this._scale;
         this._translateY += transform._translateY * this._scale;
         this._scale *= transform._scale;

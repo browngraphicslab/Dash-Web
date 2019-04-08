@@ -10,6 +10,9 @@ import { Types } from "../server/Message";
 import { UndoManager } from "../client/util/UndoManager";
 import { HtmlField } from "./HtmlField";
 import { BooleanField } from "./BooleanField";
+import { allLimit } from "async";
+import { prototype } from "nodemailer/lib/smtp-pool";
+import { HistogramField } from "../client/northstar/dash-fields/HistogramField";
 
 export class Document extends Field {
     //TODO tfs: We should probably store FieldWaiting in fields when we request it from the server so that we don't set up multiple server gets for the same document and field
@@ -330,7 +333,10 @@ export class Document extends Field {
     SetText(key: Key, value: string, replaceWrongType = true) {
         this.SetData(key, value, TextField, replaceWrongType);
     }
-
+    @action
+    SetBoolean(key: Key, value: boolean, replaceWrongType = true) {
+        this.SetData(key, value, BooleanField, replaceWrongType);
+    }
     @action
     SetNumber(key: Key, value: number, replaceWrongType = true) {
         this.SetData(key, value, NumberField, replaceWrongType);
@@ -380,8 +386,26 @@ export class Document extends Field {
         return title;
         //throw new Error("Method not implemented.");
     }
-    Copy(): Field {
-        throw new Error("Method not implemented.");
+    Copy(copyProto?: boolean, id?: string): Field {
+        let copy = new Document();
+        this._proxies.forEach((fieldid, keyid) => { // copy each prototype field
+            let key = KeyStore.KeyLookup(keyid);
+            if (key) {
+                this.GetAsync(key, (field: Opt<Field>) => {
+                    if (key === KeyStore.Prototype && copyProto) { // handle prototype field specially
+                        if (field instanceof Document) {
+                            copy.Set(key, field.Copy(false)); // only copying one level of prototypes for now...
+                        }
+                    }
+                    else
+                        if (field instanceof Document)  // ... TODO bcz: should we copy documents or reference them
+                            copy.Set(key!, field)
+                        else if (field)
+                            copy.Set(key!, field.Copy())
+                })
+            }
+        });
+        return copy;
     }
 
     ToJson(): { type: Types; data: [string, string][]; _id: string } {

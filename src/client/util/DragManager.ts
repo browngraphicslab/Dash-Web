@@ -8,7 +8,7 @@ import { DocumentDecorations } from "../views/DocumentDecorations";
 import { DocumentView } from "../views/nodes/DocumentView";
 import { returnFalse } from "../../Utils";
 
-export function setupDrag(_reference: React.RefObject<HTMLDivElement>, docFunc: () => Document, moveFunc?: DragManager.MoveFunction) {
+export function setupDrag(_reference: React.RefObject<HTMLDivElement>, docFunc: () => Document, moveFunc?: DragManager.MoveFunction, copyOnDrop: boolean = false) {
     let onRowMove = action((e: PointerEvent): void => {
         e.stopPropagation();
         e.preventDefault();
@@ -16,6 +16,7 @@ export function setupDrag(_reference: React.RefObject<HTMLDivElement>, docFunc: 
         document.removeEventListener("pointermove", onRowMove);
         document.removeEventListener('pointerup', onRowUp);
         var dragData = new DragManager.DocumentDragData([docFunc()]);
+        dragData.copyOnDrop = copyOnDrop;
         dragData.moveDocument = moveFunc;
         DragManager.StartDocumentDrag([_reference.current!], dragData, e.x, e.y);
     });
@@ -119,13 +120,14 @@ export namespace DragManager {
         xOffset?: number;
         yOffset?: number;
         aliasOnDrop?: boolean;
+        copyOnDrop?: boolean;
         moveDocument?: MoveFunction;
         [id: string]: any;
     }
 
     export function StartDocumentDrag(eles: HTMLElement[], dragData: DocumentDragData, downX: number, downY: number, options?: DragOptions) {
         StartDrag(eles, dragData, downX, downY, options,
-            (dropData: { [id: string]: any }) => (dropData.droppedDocuments = dragData.aliasOnDrop ? dragData.draggedDocuments.map(d => d.CreateAlias()) : dragData.draggedDocuments));
+            (dropData: { [id: string]: any }) => (dropData.droppedDocuments = dragData.aliasOnDrop ? dragData.draggedDocuments.map(d => d.CreateAlias()) : dragData.copyOnDrop ? dragData.draggedDocuments.map(d => d.Copy(true) as Document) : dragData.draggedDocuments));
     }
 
     export class LinkDragData {

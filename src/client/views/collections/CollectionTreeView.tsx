@@ -14,12 +14,14 @@ import { CollectionView } from "./CollectionView";
 import { CollectionViewBase } from "./CollectionViewBase";
 import React = require("react")
 import { COLLECTION_BORDER_WIDTH } from './CollectionBaseView';
+import { props } from 'bluebird';
 
 
 export interface TreeViewProps {
     document: Document;
     deleteDoc: (doc: Document) => void;
     moveDocument: DragManager.MoveFunction;
+    copyOnDrag: boolean;
 }
 
 export enum BulletType {
@@ -75,7 +77,7 @@ class TreeView extends React.Component<TreeViewProps> {
      */
     renderTitle() {
         let reference = React.createRef<HTMLDivElement>();
-        let onItemDown = setupDrag(reference, () => this.props.document, this.props.moveDocument);
+        let onItemDown = setupDrag(reference, () => this.props.document, this.props.moveDocument, this.props.copyOnDrag);
         let editableView = (titleString: string) =>
             (<EditableView
                 display={"inline"}
@@ -97,14 +99,13 @@ class TreeView extends React.Component<TreeViewProps> {
     render() {
         let bulletType = BulletType.List;
         let childElements: JSX.Element | undefined = undefined;
-
         var children = this.props.document.GetT<ListField<Document>>(KeyStore.Data, ListField);
         if (children && children !== FieldWaiting) { // add children for a collection
             if (!this._collapsed) {
                 bulletType = BulletType.Collapsible;
                 childElements = <ul>
-                    {children.Data.map(value => <TreeView key={value.Id} document={value} deleteDoc={this.remove} moveDocument={this.move} />)}
-                </ul>
+                    {children.Data.map(value => <TreeView key={value.Id} document={value} deleteDoc={this.remove} moveDocument={this.move} copyOnDrag={this.props.copyOnDrag} />)}
+                </ul >
             }
             else bulletType = BulletType.Collapsed;
         }
@@ -130,10 +131,11 @@ export class CollectionTreeView extends CollectionViewBase {
     }
 
     render() {
-        var children = this.props.Document.GetT<ListField<Document>>(KeyStore.Data, ListField);
+        let children = this.props.Document.GetT<ListField<Document>>(KeyStore.Data, ListField);
+        let copyOnDrag = this.props.Document.GetBoolean(KeyStore.CopyDraggedItems, false);
         let childrenElement = !children || children === FieldWaiting ? (null) :
             (children.Data.map(value =>
-                <TreeView document={value} key={value.Id} deleteDoc={this.remove} moveDocument={this.props.moveDocument} />)
+                <TreeView document={value} key={value.Id} deleteDoc={this.remove} moveDocument={this.props.moveDocument} copyOnDrag={copyOnDrag} />)
             )
 
         return (

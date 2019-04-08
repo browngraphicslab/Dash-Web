@@ -27,7 +27,7 @@ export class HistogramField extends BasicField<HistogramOperation> {
     }
 
     Copy(): Field {
-        return new HistogramField(this.Data);
+        return new HistogramField(this.Data.Copy());
     }
 
     ToScriptString(): string {
