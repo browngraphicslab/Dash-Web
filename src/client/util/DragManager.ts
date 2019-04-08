@@ -10,7 +10,8 @@ import { DocumentView } from "../views/nodes/DocumentView";
 export function setupDrag(
     _reference: React.RefObject<HTMLDivElement>,
     docFunc: () => Document,
-    removeFunc: (containingCollection: CollectionView) => void = () => { }
+    removeFunc: (containingCollection: CollectionView) => void = () => { },
+    copyOnDrop: boolean = false
 ) {
     let onRowMove = action(
         (e: PointerEvent): void => {
@@ -20,6 +21,7 @@ export function setupDrag(
             document.removeEventListener("pointermove", onRowMove);
             document.removeEventListener("pointerup", onRowUp);
             var dragData = new DragManager.DocumentDragData([docFunc()]);
+            dragData.copyOnDrop = copyOnDrop;
             dragData.removeDocument = removeFunc;
             DragManager.StartDocumentDrag([_reference.current!], dragData, e.x, e.y);
         }
@@ -125,6 +127,7 @@ export namespace DragManager {
         xOffset?: number;
         yOffset?: number;
         aliasOnDrop?: boolean;
+        copyOnDrop?: boolean;
         removeDocument?: (collectionDrop: CollectionView) => void;
         [id: string]: any;
     }
@@ -136,15 +139,12 @@ export namespace DragManager {
         downY: number,
         options?: DragOptions
     ) {
-        StartDrag(
-            eles,
-            dragData,
-            downX, downY,
-            options,
+        StartDrag(eles, dragData, downX, downY, options,
             (dropData: { [id: string]: any }) =>
                 (dropData.droppedDocuments = dragData.aliasOnDrop
                     ? dragData.draggedDocuments.map(d => d.CreateAlias())
-                    : dragData.draggedDocuments)
+                    : dragData.copyOnDrop ? dragData.draggedDocuments.map(d => d.Copy(true) as Document) :
+                        dragData.draggedDocuments)
         );
     }
 
