@@ -23,6 +23,7 @@ import { PreviewCursor } from "./PreviewCursor";
 import { DocumentManager } from "../../../util/DocumentManager";
 import { SelectionManager } from "../../../util/SelectionManager";
 import { NumberField } from "../../../../fields/NumberField";
+import { Main } from "../../Main";
 
 @observer
 export class CollectionFreeFormView extends CollectionViewBase {
@@ -196,6 +197,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
     @action
     private SetPan(panX: number, panY: number) {
+        Main.Instance.SetTextDoc(undefined, undefined);
         var x1 = this.getLocalTransform().inverse().Scale;
         const newPanX = Math.min((1 - 1 / x1) * this.nativeWidth, Math.max(0, panX));
         const newPanY = Math.min((1 - 1 / x1) * this.nativeHeight, Math.max(0, panY));

@@ -1,7 +1,7 @@
 import { IconName, library } from '@fortawesome/fontawesome-svg-core';
 import { faFilePdf, faFilm, faFont, faGlobeAsia, faImage, faMusic, faObjectGroup, faPenNib, faRedoAlt, faTable, faTree, faUndoAlt } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { action, computed, configure, observable, runInAction } from 'mobx';
+import { action, computed, configure, observable, runInAction, trace } from 'mobx';
 import { observer } from 'mobx-react';
 import "normalize.css";
 import * as React from 'react';
@@ -37,6 +37,7 @@ import { DocumentDecorations } from './DocumentDecorations';
 import { InkingControl } from './InkingControl';
 import "./Main.scss";
 import { DocumentView } from './nodes/DocumentView';
+import { FormattedTextBox } from './nodes/FormattedTextBox';
 
 @observer
 export class Main extends React.Component {
@@ -201,6 +202,30 @@ export class Main extends React.Component {
     focusDocument = (doc: Document) => { }
     noScaling = () => 1;
 
+    @observable _textDoc?: Document = undefined;
+    _textRect: any;
+    @action
+    SetTextDoc(textDoc?: Document, div?: HTMLDivElement) {
+        this._textDoc = undefined;
+        this._textDoc = textDoc;
+        if (div)
+            this._textRect = div.getBoundingClientRect();
+    }
+
+    @computed
+    get activeTextBox() {
+        if (this._textDoc) {
+            let x: number = this._textRect.x;
+            let y: number = this._textRect.y;
+            let w: number = this._textRect.width;
+            let h: number = this._textRect.height;
+            return <div className="mainDiv-textInput" style={{ transform: `translate(${x}px, ${y}px)`, width: `${w}px`, height: `${h}px` }} >
+                <FormattedTextBox fieldKey={KeyStore.Archives} Document={this._textDoc} isSelected={returnTrue} select={emptyFunction} isTopMost={true} selectOnLoad={true} onActiveChanged={emptyFunction} active={returnTrue} ScreenToLocalTransform={Transform.Identity} focus={(doc) => { }} />
+            </ div>
+        }
+        else return (null);
+    }
+
     @computed
     get mainContent() {
         return !this.mainContainer ? (null) :
@@ -296,24 +321,27 @@ export class Main extends React.Component {
                 isShown={this.areWorkspacesShown} toggle={this.toggleWorkspaces} />
         }
         return (
-            <div id="main-div">
-                <DocumentDecorations />
-                <Measure onResize={(r: any) => runInAction(() => {
-                    this.pwidth = r.entry.width;
-                    this.pheight = r.entry.height;
-                })}>
-                    {({ measureRef }) =>
-                        <div ref={measureRef} id="mainContent-div">
-                            {this.mainContent}
-                        </div>
-                    }
-                </Measure>
-                <ContextMenu />
-                {this.nodesMenu}
-                {this.miscButtons}
-                {workspaceMenu}
-                <InkingControl />
-            </div>
+            [
+                <div id="main-div">
+                    <DocumentDecorations />
+                    <Measure onResize={(r: any) => runInAction(() => {
+                        this.pwidth = r.entry.width;
+                        this.pheight = r.entry.height;
+                    })}>
+                        {({ measureRef }) =>
+                            <div ref={measureRef} id="mainContent-div">
+                                {this.mainContent}
+                            </div>
+                        }
+                    </Measure>
+                    <ContextMenu />
+                    {this.nodesMenu}
+                    {this.miscButtons}
+                    {workspaceMenu}
+                    <InkingControl />
+                </div>,
+                this.activeTextBox
+            ]
         );
     }
 

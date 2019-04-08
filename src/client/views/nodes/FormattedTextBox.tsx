@@ -2,19 +2,19 @@ import { action, IReactionDisposer, reaction } from "mobx";
 import { baseKeymap } from "prosemirror-commands";
 import { history, redo, undo } from "prosemirror-history";
 import { keymap } from "prosemirror-keymap";
-import { schema } from "../../util/RichTextSchema";
-import { EditorState, Transaction } from "prosemirror-state";
+import { EditorState, Plugin, Transaction } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
-import { Opt, FieldWaiting } from "../../../fields/Field";
-import "./FormattedTextBox.scss";
-import React = require("react");
+import { FieldWaiting, Opt } from "../../../fields/Field";
+import { KeyStore } from "../../../fields/KeyStore";
 import { RichTextField } from "../../../fields/RichTextField";
-import { FieldViewProps, FieldView } from "./FieldView";
-import { Plugin } from "prosemirror-state";
-import { Decoration, DecorationSet } from "prosemirror-view";
+import { inpRules } from "../../util/RichTextRules";
+import { schema } from "../../util/RichTextSchema";
 import { TooltipTextMenu } from "../../util/TooltipTextMenu";
 import { ContextMenu } from "../../views/ContextMenu";
-import { inpRules } from "../../util/RichTextRules";
+import { Main } from "../Main";
+import { FieldView, FieldViewProps } from "./FieldView";
+import "./FormattedTextBox.scss";
+import React = require("react");
 const { buildMenuItems } = require("prosemirror-example-setup");
 const { menuBar } = require("prosemirror-menu");
 
@@ -41,6 +41,7 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
     private _ref: React.RefObject<HTMLDivElement>;
     private _editorView: Opt<EditorView>;
     private _reactionDisposer: Opt<IReactionDisposer>;
+    private _inputReactionDisposer: Opt<IReactionDisposer>;
 
     constructor(props: FieldViewProps) {
         super(props);
@@ -53,9 +54,8 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
         if (this._editorView) {
             const state = this._editorView.state.apply(tx);
             this._editorView.updateState(state);
-            const { Document, fieldKey } = this.props;
-            Document.SetDataOnPrototype(
-                fieldKey,
+            this.FieldDoc.SetDataOnPrototype(
+                this.FieldKey,
                 JSON.stringify(state.toJSON()),
                 RichTextField
             );
@@ -63,8 +63,10 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
         }
     };
 
+    get FieldDoc() { return this.props.fieldKey === KeyStore.Archives ? Main.Instance._textDoc! : this.props.Document; }
+    get FieldKey() { return this.props.fieldKey === KeyStore.Archives ? KeyStore.Data : this.props.fieldKey; }
+
     componentDidMount() {
-        let state: EditorState;
         const config = {
             schema,
             inpRules, //these currently don't do anything, but could eventually be helpful
@@ -76,7 +78,37 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
             ]
         };
 
-        let field = this.props.Document.GetT(this.props.fieldKey, RichTextField);
+        if (this.props.fieldKey === KeyStore.Archives) {
+            this._inputReactionDisposer = reaction(() => Main.Instance._textDoc && Main.Instance._textDoc.Id,
+                () => {
+                    if (this._editorView)
+                        this._editorView!.destroy();
+
+                    this.setupEditor(config);
+                }
+            )
+        }
+
+        this._reactionDisposer = reaction(
+            () => {
+                const field = this.FieldDoc.GetT(this.FieldKey, RichTextField);
+                return field && field !== FieldWaiting ? field.Data : undefined;
+            },
+            field => {
+                if (field && this._editorView) {
+                    this._editorView.updateState(
+                        EditorState.fromJSON(config, JSON.parse(field))
+                    );
+                }
+            }
+        );
+        this.setupEditor(config);
+    }
+
+    private setupEditor(config: any) {
+
+        let state: EditorState;
+        let field = this.FieldDoc.GetT(this.FieldKey, RichTextField);
         if (field && field !== FieldWaiting && field.Data) {
             state = EditorState.fromJSON(config, JSON.parse(field.Data));
         } else {
@@ -89,19 +121,6 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
             });
         }
 
-        this._reactionDisposer = reaction(
-            () => {
-                const field = this.props.Document.GetT(this.props.fieldKey, RichTextField);
-                return field && field !== FieldWaiting ? field.Data : undefined;
-            },
-            field => {
-                if (field && this._editorView) {
-                    this._editorView.updateState(
-                        EditorState.fromJSON(config, JSON.parse(field))
-                    );
-                }
-            }
-        );
         if (this.props.selectOnLoad) {
             this.props.select(false);
             this._editorView!.focus();
@@ -114,6 +133,9 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
         }
         if (this._reactionDisposer) {
             this._reactionDisposer();
+        }
+        if (this._inputReactionDisposer) {
+            this._inputReactionDisposer();
         }
     }
 
@@ -131,7 +153,24 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
         if (e.buttons === 1 && this.props.isSelected() && !e.altKey) {
             e.stopPropagation();
         }
+        if (e.buttons === 1 && this.props.fieldKey !== KeyStore.Archives)
+            e.preventDefault();
     };
+    onPointerUp = (e: React.PointerEvent): void => {
+        if (e.buttons === 1 && this.props.isSelected() && !e.altKey) {
+            e.stopPropagation();
+        }
+        if (this.props.fieldKey !== KeyStore.Archives) {
+            e.preventDefault();
+            Main.Instance.SetTextDoc(this.props.Document, this._ref.current!);
+        }
+    };
+
+    onFocused = (e: React.FocusEvent): void => {
+        if (this.props.fieldKey !== KeyStore.Archives) {
+            Main.Instance.SetTextDoc(this.props.Document, this._ref.current!);
+        }
+    }
 
     //REPLACE THIS WITH CAPABILITIES SPECIFIC TO THIS TYPE OF NODE
     textCapability = (e: React.MouseEvent): void => { };
@@ -179,6 +218,7 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
                 className="formattedTextBox-cont"
                 onKeyDown={this.onKeyPress}
                 onKeyPress={this.onKeyPress}
+                onPointerUp={this.onPointerUp}
                 onPointerDown={this.onPointerDown}
                 onContextMenu={this.specificContextMenu}
                 // tfs: do we need this event handler

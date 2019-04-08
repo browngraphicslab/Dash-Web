@@ -1,6 +1,7 @@
 import { observable, action } from "mobx";
 import { DocumentView } from "../views/nodes/DocumentView";
 import { Document } from "../../fields/Document";
+import { Main } from "../views/Main";
 
 export namespace SelectionManager {
     class Manager {
@@ -47,6 +48,7 @@ export namespace SelectionManager {
 
         manager.DeselectAll()
         if (found) manager.SelectDoc(found, false);
+        Main.Instance.SetTextDoc(undefined, undefined);
     }
 
     export function SelectedDocuments(): Array<DocumentView> {

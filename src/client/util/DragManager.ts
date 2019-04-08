@@ -1,7 +1,5 @@
 import { action } from "mobx";
 import { Document } from "../../fields/Document";
-import { ImageField } from "../../fields/ImageField";
-import { KeyStore } from "../../fields/KeyStore";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import { CollectionView } from "../views/collections/CollectionView";
 import { DocumentDecorations } from "../views/DocumentDecorations";
