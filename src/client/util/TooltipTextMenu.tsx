@@ -53,6 +53,18 @@ export class TooltipTextMenu {
     });
 
     //add dropdowns
+    let cut = arr => arr.filter(x => x);
+    let config = {
+
+    }
+    let tnr = new MenuItem({
+      title: "tnr",
+      label: "Times New Roman",
+      css: "font-family: Times New Roman, Times, serif; ",
+      enable(state) { return canInsert(state, hr) },
+      run(state, dispatch) { dispatch(state.tr.replaceSelectionWith(hr.create())) }
+    })
+    new Dropdown(cut([schema.marks.timesNewRoman, r.insertHorizontalRule]), { label: "Insert" })
 
     //pointer down handler to activate button effects
     this.tooltip.addEventListener("pointerdown", e => {
