@@ -73,7 +73,7 @@ export class TooltipTextMenu {
       //update view of icons
       this.num_icons = 0;
       items.forEach(({ command, dom }) => {
-        if (dom.contains(e.srcElement)) {
+        if (e.srcElement && dom.contains(e.srcElement as Node)) {
           //let active = command(view.state, view.dispatch, view);
           let active = command(view.state, view.dispatch, view);
           //uncomment this if we want the bullet button to disappear if current selection is bulleted

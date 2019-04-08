@@ -9,7 +9,6 @@ import { EditorView, } from "prosemirror-view";
 const pDOM: DOMOutputSpecArray = ["p", 0], blockquoteDOM: DOMOutputSpecArray = ["blockquote", 0], hrDOM: DOMOutputSpecArray = ["hr"],
   preDOM: DOMOutputSpecArray = ["pre", ["code", 0]], brDOM: DOMOutputSpecArray = ["br"], ulDOM: DOMOutputSpecArray = ["ul", 0]
 
-
 // :: Object
 // [Specs](#model.NodeSpec) for the nodes defined in this schema.
 export const nodes: { [index: string]: NodeSpec } = {
