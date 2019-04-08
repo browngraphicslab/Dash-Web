@@ -42,6 +42,10 @@ export class HistogramOperation extends BaseOperation implements IBaseFilterCons
         this.SchemaName = schemaName;
     }
 
+    Copy(): HistogramOperation {
+        return new HistogramOperation(this.SchemaName, this.X, this.Y, this.V, this.Normalization);
+    }
+
     Equals(other: Object): boolean {
         throw new Error("Method not implemented.");
     }
