@@ -20,11 +20,10 @@ interface InkCanvasProps {
 
 @observer
 export class InkingCanvas extends React.Component<InkCanvasProps> {
-    private strokeBatch?: UndoManager.Batch;
-
     maxCanvasDim = 8192 / 2; // 1/2 of the maximum canvas dimension for Chrome
     @observable inkMidX: number = 0;
     @observable inkMidY: number = 0;
+    private previousState?: StrokeMap;
     private _currentStrokeId: string = "";
     public static IntersectStrokeRect(stroke: StrokeData, selRect: { left: number, top: number, width: number, height: number }): boolean {
         return stroke.pathData.reduce((inside: boolean, val) => inside ||
@@ -68,18 +67,20 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
         e.stopPropagation();
         e.preventDefault();
 
+        this.previousState = this.inkData;
+
         if (InkingControl.Instance.selectedTool != InkTool.Eraser) {
             // start the new line, saves a uuid to represent the field of the stroke
             this._currentStrokeId = Utils.GenerateGuid();
-            this.strokeBatch = UndoManager.StartBatch("drawing stroke");
-            this.inkData.set(this._currentStrokeId, {
+            const data = this.inkData;
+            data.set(this._currentStrokeId, {
                 pathData: [this.relativeCoordinatesForEvent(e.clientX, e.clientY)],
                 color: InkingControl.Instance.selectedColor,
                 width: InkingControl.Instance.selectedWidth,
                 tool: InkingControl.Instance.selectedTool,
                 page: this.props.Document.GetNumber(KeyStore.CurPage, -1)
             });
-            this.strokeBatch.end();
+            this.inkData = data;
         }
     };
 
@@ -94,6 +95,16 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
         }
         e.stopPropagation();
         e.preventDefault();
+
+        const batch = UndoManager.StartBatch("One ink stroke");
+        const oldState = this.previousState || new Map;
+        this.previousState = undefined;
+        const newState = this.inkData;
+        UndoManager.AddEvent({
+            undo: () => this.inkData = oldState,
+            redo: () => this.inkData = newState,
+        });
+        batch.end();
     }
 
     @action

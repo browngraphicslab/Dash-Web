@@ -70,7 +70,7 @@ export namespace Documents {
             textProto = fields[textProtoId] as Document;
             histoProto = fields[histoProtoId] as Document;
             collProto = fields[collProtoId] as Document;
-            imageProto = fields[imageProtoId] as Document;
+            imageProto = fields[imageProtoId] as Document || CreateImagePrototype();
             webProto = fields[webProtoId] as Document;
             kvpProto = fields[kvpProtoId] as Document;
         });
@@ -111,15 +111,14 @@ export namespace Documents {
         return assignOptions(deleg, options);
     }
 
-    function GetImagePrototype(): Document {
-        if (!imageProto) {
-            imageProto = setupPrototypeOptions(imageProtoId, "IMAGE_PROTO", CollectionView.LayoutString("AnnotationsKey"),
-                { x: 0, y: 0, nativeWidth: 300, width: 300, layoutKeys: [KeyStore.Data, KeyStore.Annotations, KeyStore.Caption] });
-            imageProto.SetText(KeyStore.BackgroundLayout, ImageBox.LayoutString());
-            imageProto.SetNumber(KeyStore.CurPage, 0);
-        }
+    function CreateImagePrototype(): Document {
+        let imageProto = setupPrototypeOptions(imageProtoId, "IMAGE_PROTO", CollectionView.LayoutString("AnnotationsKey"),
+            { x: 0, y: 0, nativeWidth: 300, width: 300, layoutKeys: [KeyStore.Data, KeyStore.Annotations, KeyStore.Caption] });
+        imageProto.SetText(KeyStore.BackgroundLayout, ImageBox.LayoutString());
+        imageProto.SetNumber(KeyStore.CurPage, 0);
         return imageProto;
     }
+
     function GetHistogramPrototype(): Document {
         if (!histoProto) {
             histoProto = setupPrototypeOptions(histoProtoId, "HISTO PROTO", CollectionView.LayoutString("AnnotationsKey"),
@@ -175,7 +174,7 @@ export namespace Documents {
 
 
     export function ImageDocument(url: string, options: DocumentOptions = {}) {
-        return assignToDelegate(SetInstanceOptions(GetImagePrototype(), options, [new URL(url), ImageField]).MakeDelegate(), { ...options, layoutKeys: [KeyStore.Data, KeyStore.Annotations, KeyStore.Caption] });
+        return assignToDelegate(SetInstanceOptions(imageProto, options, [new URL(url), ImageField]).MakeDelegate(), { ...options, layoutKeys: [KeyStore.Data, KeyStore.Annotations, KeyStore.Caption] });
         // let doc = SetInstanceOptions(GetImagePrototype(), { ...options, layoutKeys: [KeyStore.Data, KeyStore.Annotations, KeyStore.Caption] },
         //     [new URL(url), ImageField]);
         // doc.SetText(KeyStore.Caption, "my caption...");
