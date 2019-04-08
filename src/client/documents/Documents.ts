@@ -43,6 +43,7 @@ export interface DocumentOptions {
     layoutKeys?: Key[];
     viewType?: number;
     backgroundColor?: string;
+    copyDraggedItems?: boolean;
 }
 
 export namespace Documents {
@@ -86,6 +87,7 @@ export namespace Documents {
         if (options.ink !== undefined) { doc.Set(KeyStore.Ink, new InkField(options.ink)); }
         if (options.layout !== undefined) { doc.SetText(KeyStore.Layout, options.layout); }
         if (options.layoutKeys !== undefined) { doc.Set(KeyStore.LayoutKeys, new ListField(options.layoutKeys)); }
+        if (options.copyDraggedItems !== undefined) { doc.SetBoolean(KeyStore.CopyDraggedItems, options.copyDraggedItems); }
         return doc;
     }
 
@@ -136,7 +138,7 @@ export namespace Documents {
     function GetPdfPrototype(): Document {
         if (!pdfProto) {
             pdfProto = setupPrototypeOptions(pdfProtoId, "PDF_PROTO", CollectionPDFView.LayoutString("AnnotationsKey"),
-                { x: 0, y: 0, nativeWidth: 600, width: 300, layoutKeys: [KeyStore.Data, KeyStore.Annotations] });
+                { x: 0, y: 0, nativeWidth: 1200, width: 300, layoutKeys: [KeyStore.Data, KeyStore.Annotations] });
             pdfProto.SetNumber(KeyStore.CurPage, 1);
             pdfProto.SetText(KeyStore.BackgroundLayout, PDFBox.LayoutString());
         }

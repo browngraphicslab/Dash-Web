@@ -1,56 +1,42 @@
-import { action, configure, observable, runInAction, trace, computed, reaction } from 'mobx';
+import { IconName, library } from '@fortawesome/fontawesome-svg-core';
+import { faFilePdf, faFilm, faFont, faGlobeAsia, faImage, faMusic, faObjectGroup, faPenNib, faRedoAlt, faTable, faTree, faUndoAlt } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { action, computed, configure, observable, runInAction, trace } from 'mobx';
+import { observer } from 'mobx-react';
 import "normalize.css";
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
+import Measure from 'react-measure';
+import * as request from 'request';
 import { Document } from '../../fields/Document';
+import { Field, FieldWaiting, Opt } from '../../fields/Field';
 import { KeyStore } from '../../fields/KeyStore';
-import "./Main.scss";
+import { ListField } from '../../fields/ListField';
+import { WorkspacesMenu } from '../../server/authentication/controllers/WorkspacesMenu';
+import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
 import { MessageStore } from '../../server/Message';
+import { RouteStore } from '../../server/RouteStore';
+import { ServerUtils } from '../../server/ServerUtil';
 import { Utils } from '../../Utils';
-import * as request from 'request'
-import * as rp from 'request-promise'
 import { Documents } from '../documents/Documents';
+import { ColumnAttributeModel } from '../northstar/core/attribute/AttributeModel';
+import { AttributeTransformationModel } from '../northstar/core/attribute/AttributeTransformationModel';
+import { Gateway, Settings } from '../northstar/manager/Gateway';
+import { AggregateFunction, Catalog } from '../northstar/model/idea/idea';
+import '../northstar/model/ModelExtensions';
+import { HistogramOperation } from '../northstar/operations/HistogramOperation';
+import '../northstar/utils/Extensions';
 import { Server } from '../Server';
 import { setupDrag } from '../util/DragManager';
 import { Transform } from '../util/Transform';
 import { UndoManager } from '../util/UndoManager';
-import { WorkspacesMenu } from '../../server/authentication/controllers/WorkspacesMenu';
 import { CollectionDockingView } from './collections/CollectionDockingView';
 import { ContextMenu } from './ContextMenu';
 import { DocumentDecorations } from './DocumentDecorations';
-import { DocumentView } from './nodes/DocumentView';
-import "./Main.scss";
-import { observer } from 'mobx-react';
 import { InkingControl } from './InkingControl';
-import { RouteStore } from '../../server/RouteStore';
-import { library, IconName } from '@fortawesome/fontawesome-svg-core';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faFont } from '@fortawesome/free-solid-svg-icons';
-import { faImage } from '@fortawesome/free-solid-svg-icons';
-import { faFilePdf } from '@fortawesome/free-solid-svg-icons';
-import { faObjectGroup } from '@fortawesome/free-solid-svg-icons';
-import { faTable } from '@fortawesome/free-solid-svg-icons';
-import { faGlobeAsia } from '@fortawesome/free-solid-svg-icons';
-import { faUndoAlt } from '@fortawesome/free-solid-svg-icons';
-import { faRedoAlt } from '@fortawesome/free-solid-svg-icons';
-import { faPenNib } from '@fortawesome/free-solid-svg-icons';
-import { faFilm } from '@fortawesome/free-solid-svg-icons';
-import { faMusic } from '@fortawesome/free-solid-svg-icons';
-import { faTree } from '@fortawesome/free-solid-svg-icons';
-import Measure from 'react-measure';
-import { DashUserModel } from '../../server/authentication/models/user_model';
-import { ServerUtils } from '../../server/ServerUtil';
-import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
-import { Field, Opt, FieldWaiting } from '../../fields/Field';
-import { ListField } from '../../fields/ListField';
-import { Gateway, Settings } from '../northstar/manager/Gateway';
-import { Catalog, Schema, Attribute, AttributeGroup, AggregateFunction } from '../northstar/model/idea/idea';
-import { ArrayUtil } from '../northstar/utils/ArrayUtil';
-import '../northstar/model/ModelExtensions'
-import '../northstar/utils/Extensions'
-import { HistogramOperation } from '../northstar/operations/HistogramOperation';
-import { AttributeTransformationModel } from '../northstar/core/attribute/AttributeTransformationModel';
-import { ColumnAttributeModel } from '../northstar/core/attribute/AttributeModel';
+import "./Main.scss";
+import { DocumentView } from './nodes/DocumentView';
+import { FormattedTextBox } from './nodes/FormattedTextBox';
 
 @observer
 export class Main extends React.Component {
@@ -218,6 +204,30 @@ export class Main extends React.Component {
     focusDocument = (doc: Document) => { }
     noScaling = () => 1;
 
+    @observable _textDoc?: Document = undefined;
+    _textRect: any;
+    @action
+    SetTextDoc(textDoc?: Document, div?: HTMLDivElement) {
+        this._textDoc = undefined;
+        this._textDoc = textDoc;
+        if (div)
+            this._textRect = div.getBoundingClientRect();
+    }
+
+    @computed
+    get activeTextBox() {
+        if (this._textDoc) {
+            let x: number = this._textRect.x;
+            let y: number = this._textRect.y;
+            let w: number = this._textRect.width;
+            let h: number = this._textRect.height;
+            return <div className="mainDiv-textInput" style={{ transform: `translate(${x}px, ${y}px)`, width: `${w}px`, height: `${h}px` }} >
+                <FormattedTextBox fieldKey={KeyStore.Archives} doc={this._textDoc} isSelected={() => true} select={() => { }} isTopMost={true} selectOnLoad={true} bindings={undefined} />
+            </ div>
+        }
+        else return (null);
+    }
+
     @computed
     get mainContent() {
         return !this.mainContainer ? (null) :
@@ -246,7 +256,7 @@ export class Main extends React.Component {
         let addTextNode = action(() => Documents.TextDocument({ width: 200, height: 200, title: "a text note" }))
         let addColNode = action(() => Documents.FreeformDocument([], { width: 200, height: 200, title: "a freeform collection" }));
         let addSchemaNode = action(() => Documents.SchemaDocument([], { width: 200, height: 200, title: "a schema collection" }));
-        let addTreeNode = action(() => Documents.TreeDocument(this._northstarSchemas, { width: 250, height: 400, title: "northstar schemas" }));
+        let addTreeNode = action(() => Documents.TreeDocument(this._northstarSchemas, { width: 250, height: 400, title: "northstar schemas", copyDraggedItems: true }));
         let addVideoNode = action(() => Documents.VideoDocument(videourl, { width: 200, height: 200, title: "video node" }));
         let addPDFNode = action(() => Documents.PdfDocument(pdfurl, { width: 200, height: 200, title: "a schema collection" }));
         let addImageNode = action(() => Documents.ImageDocument(imgurl, { width: 200, height: 200, title: "an image of a cat" }));
@@ -311,24 +321,27 @@ export class Main extends React.Component {
                 isShown={this.areWorkspacesShown} toggle={this.toggleWorkspaces} />
         }
         return (
-            <div id="main-div">
-                <DocumentDecorations />
-                <Measure onResize={(r: any) => runInAction(() => {
-                    this.pwidth = r.entry.width;
-                    this.pheight = r.entry.height;
-                })}>
-                    {({ measureRef }) =>
-                        <div ref={measureRef} id="mainContent-div">
-                            {this.mainContent}
-                        </div>
-                    }
-                </Measure>
-                <ContextMenu />
-                {this.nodesMenu}
-                {this.miscButtons}
-                {workspaceMenu}
-                <InkingControl />
-            </div>
+            [
+                <div id="main-div">
+                    <DocumentDecorations />
+                    <Measure onResize={(r: any) => runInAction(() => {
+                        this.pwidth = r.entry.width;
+                        this.pheight = r.entry.height;
+                    })}>
+                        {({ measureRef }) =>
+                            <div ref={measureRef} id="mainContent-div">
+                                {this.mainContent}
+                            </div>
+                        }
+                    </Measure>
+                    <ContextMenu />
+                    {this.nodesMenu}
+                    {this.miscButtons}
+                    {workspaceMenu}
+                    <InkingControl />
+                </div>,
+                this.activeTextBox
+            ]
         );
     }
 

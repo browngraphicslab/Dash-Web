@@ -76,11 +76,13 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
                     return field || "";
                 }}
                     SetValue={(value: string) => {
-                        let script = CompileScript(value, undefined, true);
+                        let script = CompileScript(value, { addReturn: true });
                         if (!script.compiled) {
                             return false;
                         }
-                        let field = script();
+                        let res = script.run();
+                        if (!res.success) return false;
+                        const field = res.result;
                         if (field instanceof Field) {
                             props.doc.Set(props.fieldKey, field);
                             return true;
