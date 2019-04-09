@@ -321,7 +321,7 @@ export class Main extends React.Component {
                 isShown={this.areWorkspacesShown} toggle={this.toggleWorkspaces} />
         }
         return (
-            [
+            <>
                 <div id="main-div">
                     <DocumentDecorations />
                     <Measure onResize={(r: any) => runInAction(() => {
@@ -339,9 +339,9 @@ export class Main extends React.Component {
                     {this.miscButtons}
                     {workspaceMenu}
                     <InkingControl />
-                </div>,
-                this.activeTextBox
-            ]
+                </div>
+                {this.activeTextBox}
+            </>
         );
     }
 

@@ -4,7 +4,7 @@ import { ListField } from "../../../fields/ListField";
 import React = require("react");
 import { KeyStore } from "../../../fields/KeyStore";
 import { FieldWaiting, Opt } from "../../../fields/Field";
-import { undoBatch } from "../../util/UndoManager";
+import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { DragManager } from "../../util/DragManager";
 import { Documents, DocumentOptions } from "../../documents/Documents";
 import { Key } from "../../../fields/Key";
@@ -14,9 +14,10 @@ import { RouteStore } from "../../../server/RouteStore";
 import { TupleField } from "../../../fields/TupleField";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { NumberField } from "../../../fields/NumberField";
-import request = require("request");
+import * as rp from "request-promise";
 import { ServerUtils } from "../../../server/ServerUtil";
 import { Server } from "../../Server";
+import { emptyStatement } from "babel-types";
 import { CollectionDockingView } from "./CollectionDockingView";
 import { runReactions } from "mobx/lib/internal";
 
@@ -152,6 +153,7 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
         return ctor ? ctor(path, options) : undefined;
     }
 
+    @undoBatch
     @action
     protected onDrop(e: React.DragEvent, options: DocumentOptions): void {
         let that = this;
@@ -173,22 +175,28 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
             return;
         }
 
+        let batch = UndoManager.StartBatch("collection view drop");
+        let promises: Promise<void>[] = [];
         for (let i = 0; i < e.dataTransfer.items.length; i++) {
             const upload = window.location.origin + RouteStore.upload;
             let item = e.dataTransfer.items[i];
             if (item.kind === "string" && item.type.indexOf("uri") != -1) {
-                e.dataTransfer.items[i].getAsString(action((s: string) => {
-                    request.head(ServerUtils.prepend(RouteStore.corsProxy + "/" + s), (err, res, body) => {
+                let str: string;
+                let prom = new Promise<string>(res =>
+                    e.dataTransfer.items[i].getAsString(res)).then(action((s: string) => {
+                        str = s;
+                        return rp.head(ServerUtils.prepend(RouteStore.corsProxy + "/" + s))
+                    })).then(res => {
                         let type = res.headers["content-type"];
                         if (type) {
-                            let doc = this.getDocumentFromType(type, s, { ...options, width: 300, nativeWidth: 300 })
+                            let doc = this.getDocumentFromType(type, str, { ...options, width: 300, nativeWidth: 300 })
                             if (doc) {
                                 this.props.addDocument(doc, false);
                             }
                         }
                     });
-                    // this.props.addDocument(Documents.WebDocument(s, { ...options, width: 300, height: 300 }), false)
-                }))
+                promises.push(prom);
+                // this.props.addDocument(Documents.WebDocument(s, { ...options, width: 300, height: 300 }), false)
             }
             let type = item.type
             if (item.kind == "file") {
@@ -199,31 +207,36 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
                     formData.append('file', file)
                 }
 
-                fetch(upload, {
+                let prom = fetch(upload, {
                     method: 'POST',
                     body: formData
                 }).then((res: Response) => {
                     return res.json()
                 }).then(json => {
-                    json.map((file: any) => {
+                    json.map(action((file: any) => {
                         let path = window.location.origin + file
-                        runInAction(() => {
-                            let doc = this.getDocumentFromType(type, path, { ...options, nativeWidth: 300, width: 300 })
+                        let doc = this.getDocumentFromType(type, path, { ...options, nativeWidth: 300, width: 300 })
 
-                            let docs = that.props.Document.GetT(KeyStore.Data, ListField);
-                            if (docs != FieldWaiting) {
-                                if (!docs) {
-                                    docs = new ListField<Document>();
-                                    that.props.Document.Set(KeyStore.Data, docs)
-                                }
-                                if (doc) {
-                                    docs.Data.push(doc);
-                                }
+                        let docs = that.props.Document.GetT(KeyStore.Data, ListField);
+                        if (docs != FieldWaiting) {
+                            if (!docs) {
+                                docs = new ListField<Document>();
+                                that.props.Document.Set(KeyStore.Data, docs)
                             }
-                        })
-                    })
+                            if (doc) {
+                                docs.Data.push(doc);
+                            }
+                        }
+                    }))
                 })
+                promises.push(prom);
             }
+        }
+
+        if (promises.length) {
+            Promise.all(promises).catch(() => { }).then(() => batch.end());
+        } else {
+            batch.end();
         }
     }
 }

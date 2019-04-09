@@ -21,7 +21,7 @@ export class InkingControl extends React.Component {
     @observable private _selectedColor: string = "rgb(244, 67, 54)";
     @observable private _selectedWidth: string = "25";
     @observable private _open: boolean = false;
-    @observable private _colorPickerDisplay: boolean = false;
+    @observable private _colorPickerDisplay = false;
 
     constructor(props: Readonly<{}>) {
         super(props);
@@ -75,6 +75,7 @@ export class InkingControl extends React.Component {
     toggleDisplay = () => {
         this._open = !this._open;
     }
+
 
     @action
     toggleColorPicker = () => {

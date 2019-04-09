@@ -198,7 +198,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
     onDrop = (e: React.DragEvent): void => {
         var pt = this.getTransform().transformPoint(e.pageX, e.pageY);
         super.onDrop(e, { x: pt[0], y: pt[1] });
-    }
+    };
 
     onDragOver = (): void => {
     }
