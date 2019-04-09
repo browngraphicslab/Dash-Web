@@ -45,7 +45,7 @@ export class TooltipTextMenu {
       { command: toggleMark(schema.marks.subscript), dom: this.icon("s", "subscript") },
       { command: wrapInList(schema.nodes.bullet_list), dom: this.icon(":", "bullets") },
       { command: toggleMark(schema.marks.timesNewRoman), dom: this.icon("x", "TNR") },
-      { command: lift, dom: this.icon("<", "lift") },
+      { command: undo, dom: this.icon("<", "lift") },
     ]
     //add menu items
     items.forEach(({ dom, command }) => {
