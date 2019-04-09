@@ -110,8 +110,8 @@ export class LinkBox extends React.Component<Props> {
                 </div>
 
                 <div className="button-container">
-                    <div title="Follow Link" className="button" onPointerDown={this.onViewButtonPressed}>
-                        <FontAwesomeIcon className="fa-icon-view" icon="eye" size="sm" /></div>
+                    {/* <div title="Follow Link" className="button" onPointerDown={this.onViewButtonPressed}>
+                        <FontAwesomeIcon className="fa-icon-view" icon="eye" size="sm" /></div> */}
                     <div title="Edit Link" className="button" onPointerDown={this.onEditButtonPressed}>
                         <FontAwesomeIcon className="fa-icon-edit" icon="edit" size="sm" /></div>
                     <div title="Delete Link" className="button" onPointerDown={this.onDeleteButtonPressed}>
