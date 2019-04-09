@@ -27,7 +27,7 @@ export interface SubCollectionViewProps extends CollectionViewProps {
 
 export type CursorEntry = TupleField<[string, string], [number, number]>;
 
-export class CollectionViewBase extends React.Component<SubCollectionViewProps> {
+export class CollectionSubView extends React.Component<SubCollectionViewProps> {
     private dropDisposer?: DragManager.DragDropDisposer;
     protected createDropTarget = (ele: HTMLDivElement) => {
         if (this.dropDisposer) {

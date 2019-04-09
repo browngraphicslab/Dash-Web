@@ -2,16 +2,15 @@ import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import { KeyStore } from "../../../fields/KeyStore";
 import { ContextMenu } from "../ContextMenu";
-import { CollectionViewProps } from "./CollectionViewBase";
 import "./CollectionPDFView.scss"
 import React = require("react");
 import { CollectionFreeFormView } from "./collectionFreeForm/CollectionFreeFormView";
-import { FieldView } from "../nodes/FieldView";
+import { FieldView, FieldViewProps } from "../nodes/FieldView";
 import { CollectionRenderProps, CollectionBaseView, CollectionViewType } from "./CollectionBaseView";
 
 
 @observer
-export class CollectionPDFView extends React.Component<CollectionViewProps> {
+export class CollectionPDFView extends React.Component<FieldViewProps> {
 
     public static LayoutString(fieldKey: string = "DataKey") {
         return FieldView.LayoutString(CollectionPDFView, fieldKey);
@@ -23,7 +22,7 @@ export class CollectionPDFView extends React.Component<CollectionViewProps> {
     @action onPageForward = () => this.curPage < this.numPages ? this.props.Document.SetNumber(KeyStore.CurPage, this.curPage + 1) : -1;
 
     private get uIButtons() {
-        let scaling = Math.min(1.8, this.props.ScreenToLocalTransform().transformDirection(1, 1)[0]);
+        let scaling = Math.min(1.8, this.props.ScreenToLocalTransform().Scale);
         return (
             <div className="collectionPdfView-buttonTray" key="tray" style={{ transform: `scale(${scaling}, ${scaling})` }}>
                 <button className="collectionPdfView-backward" onClick={this.onPageBack}>{"<"}</button>
@@ -39,7 +38,7 @@ export class CollectionPDFView extends React.Component<CollectionViewProps> {
     }
 
     private subView = (_type: CollectionViewType, renderProps: CollectionRenderProps) => {
-        let props = { ...renderProps, ...this.props };
+        let props = { ...this.props, ...renderProps };
         return (
             <>
                 <CollectionFreeFormView {...props} />

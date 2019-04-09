@@ -1,20 +1,16 @@
-import { action, computed, observable, trace } from "mobx";
+import { action, observable, trace } from "mobx";
 import { observer } from "mobx-react";
-import { Document } from "../../../fields/Document";
 import { KeyStore } from "../../../fields/KeyStore";
 import { ContextMenu } from "../ContextMenu";
-import { CollectionView } from "./CollectionView";
 import { CollectionViewType, CollectionBaseView, CollectionRenderProps } from "./CollectionBaseView";
-import { CollectionViewProps } from "./CollectionViewBase";
 import React = require("react");
-import { FieldId } from "../../../fields/Field";
 import "./CollectionVideoView.scss"
 import { CollectionFreeFormView } from "./collectionFreeForm/CollectionFreeFormView";
-import { FieldView } from "../nodes/FieldView";
+import { FieldView, FieldViewProps } from "../nodes/FieldView";
 
 
 @observer
-export class CollectionVideoView extends React.Component<CollectionViewProps> {
+export class CollectionVideoView extends React.Component<FieldViewProps> {
     private _intervalTimer: any = undefined;
     private _player: HTMLVideoElement | undefined = undefined;
 
@@ -25,7 +21,7 @@ export class CollectionVideoView extends React.Component<CollectionViewProps> {
         return FieldView.LayoutString(CollectionVideoView, fieldKey);
     }
     private get uIButtons() {
-        let scaling = Math.min(1.8, this.props.ScreenToLocalTransform().transformDirection(1, 1)[0]);
+        let scaling = Math.min(1.8, this.props.ScreenToLocalTransform().Scale);
         return ([
             <div className="collectionVideoView-time" key="time" onPointerDown={this.onResetDown} style={{ transform: `scale(${scaling}, ${scaling})` }}>
                 <span>{"" + Math.round(this._currentTimecode)}</span>
@@ -109,7 +105,7 @@ export class CollectionVideoView extends React.Component<CollectionViewProps> {
     }
 
     private subView = (_type: CollectionViewType, renderProps: CollectionRenderProps) => {
-        let props = { ...renderProps, ...this.props };
+        let props = { ...this.props, ...renderProps };
         return (
             <>
                 <CollectionFreeFormView {...props} />

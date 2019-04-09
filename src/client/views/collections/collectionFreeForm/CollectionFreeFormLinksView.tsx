@@ -7,7 +7,7 @@ import { ListField } from "../../../../fields/ListField";
 import { Utils } from "../../../../Utils";
 import { DocumentManager } from "../../../util/DocumentManager";
 import { DocumentView } from "../../nodes/DocumentView";
-import { CollectionViewProps } from "../CollectionViewBase";
+import { CollectionViewProps } from "../CollectionSubView";
 import "./CollectionFreeFormLinksView.scss";
 import { CollectionFreeFormLinkView } from "./CollectionFreeFormLinkView";
 import React = require("react");

@@ -23,7 +23,7 @@ import { DocumentView } from "../nodes/DocumentView";
 import { FieldView, FieldViewProps } from "../nodes/FieldView";
 import "./CollectionSchemaView.scss";
 import { CollectionView } from "./CollectionView";
-import { CollectionViewBase } from "./CollectionViewBase";
+import { CollectionSubView } from "./CollectionSubView";
 import { TextField } from "../../../fields/TextField";
 import { COLLECTION_BORDER_WIDTH } from "./CollectionBaseView";
 import { emptyFunction, returnFalse } from "../../../Utils";
@@ -56,7 +56,7 @@ class KeyToggle extends React.Component<{ keyId: string, checked: boolean, toggl
 }
 
 @observer
-export class CollectionSchemaView extends CollectionViewBase {
+export class CollectionSchemaView extends CollectionSubView {
     private _mainCont = React.createRef<HTMLDivElement>();
     private _startSplitPercent = 0;
     private DIVIDER_WIDTH = 4;

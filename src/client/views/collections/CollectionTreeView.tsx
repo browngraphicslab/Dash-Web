@@ -11,7 +11,7 @@ import { setupDrag, DragManager } from "../../util/DragManager";
 import { EditableView } from "../EditableView";
 import "./CollectionTreeView.scss";
 import { CollectionView } from "./CollectionView";
-import { CollectionViewBase } from "./CollectionViewBase";
+import { CollectionSubView } from "./CollectionSubView";
 import React = require("react")
 import { COLLECTION_BORDER_WIDTH } from './CollectionBaseView';
 import { props } from 'bluebird';
@@ -120,7 +120,7 @@ class TreeView extends React.Component<TreeViewProps> {
 }
 
 @observer
-export class CollectionTreeView extends CollectionViewBase {
+export class CollectionTreeView extends CollectionSubView {
 
     @action
     remove = (document: Document) => {

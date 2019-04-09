@@ -1,7 +1,7 @@
 import { computed } from "mobx";
 import { observer } from "mobx-react";
 import { KeyStore } from "../../../../fields/KeyStore";
-import { CollectionViewProps, CursorEntry } from "../CollectionViewBase";
+import { CollectionViewProps, CursorEntry } from "../CollectionSubView";
 import "./CollectionFreeFormView.scss";
 import React = require("react");
 import v5 = require("uuid/v5");

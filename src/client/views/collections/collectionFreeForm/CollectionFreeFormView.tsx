@@ -12,7 +12,7 @@ import { CollectionFreeFormDocumentView } from "../../nodes/CollectionFreeFormDo
 import { DocumentContentsView } from "../../nodes/DocumentContentsView";
 import { DocumentViewProps } from "../../nodes/DocumentView";
 import { COLLECTION_BORDER_WIDTH } from "../CollectionBaseView";
-import { CollectionViewBase } from "../CollectionViewBase";
+import { CollectionSubView } from "../CollectionSubView";
 import { CollectionFreeFormLinksView } from "./CollectionFreeFormLinksView";
 import "./CollectionFreeFormView.scss";
 import { MarqueeView } from "./MarqueeView";
@@ -26,7 +26,7 @@ import { NumberField } from "../../../../fields/NumberField";
 import { Main } from "../../Main";
 
 @observer
-export class CollectionFreeFormView extends CollectionViewBase {
+export class CollectionFreeFormView extends CollectionSubView {
     public _canvasRef = React.createRef<HTMLDivElement>();
     private _selectOnLoaded: string = ""; // id of document that should be selected once it's loaded (used for click-to-type)
 

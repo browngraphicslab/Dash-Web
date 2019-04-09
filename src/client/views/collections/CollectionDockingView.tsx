@@ -15,7 +15,7 @@ import { DocumentView } from "../nodes/DocumentView";
 import "./CollectionDockingView.scss";
 import { COLLECTION_BORDER_WIDTH } from "./CollectionBaseView";
 import React = require("react");
-import { SubCollectionViewProps } from "./CollectionViewBase";
+import { SubCollectionViewProps } from "./CollectionSubView";
 import { ServerUtils } from "../../../server/ServerUtil";
 import { DragManager } from "../../util/DragManager";
 import { TextField } from "../../../fields/TextField";
