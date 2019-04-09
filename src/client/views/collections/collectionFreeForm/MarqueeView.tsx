@@ -136,11 +136,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
 
     @action
     onPointerDown = (e: React.PointerEvent): void => {
-<<<<<<< HEAD
         if (this.shouldMarquee(e) && !e.altKey && !e.metaKey && this.props.container.props.active()) {
-=======
-        if (e.buttons === 1 && !e.altKey && !e.metaKey && this.props.container.props.active()) {
->>>>>>> 89fd4327db1536990b4a4dc218819a1077f82445
             this._downX = this._lastX = e.pageX;
             this._downY = this._lastY = e.pageY;
             this._used = false;
@@ -227,38 +223,9 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             }
             this.cleanupInteractions();
         }
-<<<<<<< HEAD
         if (e.key == "c") {
             let bounds = this.Bounds
             this.createCollection(bounds.left, bounds.top, bounds.width, bounds.height)
-=======
-        if (e.key === "c") {
-            let bounds = this.Bounds;
-            let selected = this.marqueeSelect().map(d => {
-                this.props.removeDocument(d);
-                d.SetNumber(KeyStore.X, d.GetNumber(KeyStore.X, 0) - bounds.left - bounds.width / 2);
-                d.SetNumber(KeyStore.Y, d.GetNumber(KeyStore.Y, 0) - bounds.top - bounds.height / 2);
-                d.SetNumber(KeyStore.Page, -1);
-                d.SetText(KeyStore.Title, "" + d.GetNumber(KeyStore.Width, 0) + " " + d.GetNumber(KeyStore.Height, 0));
-                return d;
-            });
-            let ink = this.props.container.props.Document.GetT(KeyStore.Ink, InkField);
-            let inkData = ink && ink !== FieldWaiting ? ink.Data : undefined;
-            //setTimeout(() => {
-            let newCollection = Documents.FreeformDocument(selected, {
-                x: bounds.left,
-                y: bounds.top,
-                panx: 0,
-                pany: 0,
-                width: bounds.width,
-                height: bounds.height,
-                backgroundColor: "Transparent",
-                ink: inkData ? this.marqueeInkSelect(inkData) : undefined,
-                title: "a nested collection"
-            });
-            this.props.addDocument(newCollection, false);
-            this.marqueeInkDelete(inkData);
->>>>>>> 89fd4327db1536990b4a4dc218819a1077f82445
             // }, 100);
             this.cleanupInteractions();
             SelectionManager.DeselectAll();
