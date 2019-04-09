@@ -1,4 +1,4 @@
-import { QuantitativeBinRange } from '../idea/idea'
+import { QuantitativeBinRange } from '../idea/idea';
 import { VisualBinRange } from './VisualBinRange';
 import { format } from "d3-format";
 

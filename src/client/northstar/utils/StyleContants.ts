@@ -11,7 +11,7 @@ export class StyleConstants {
 
     static OPERATOR_MENU_LARGE: number = 35;
     static OPERATOR_MENU_SMALL: number = 25;
-    static BRUSH_PALETTE: number[] = [0x42b43c, 0xfa217f, 0x6a9c75, 0xfb5de7, 0x25b8ea, 0x9b5bc4, 0xda9f63, 0xe23209, 0xfb899b, 0x94a6fd]
+    static BRUSH_PALETTE: number[] = [0x42b43c, 0xfa217f, 0x6a9c75, 0xfb5de7, 0x25b8ea, 0x9b5bc4, 0xda9f63, 0xe23209, 0xfb899b, 0x94a6fd];
     static GAP: number = 3;
 
     static BACKGROUND_COLOR: number = 0xF3F3F3;

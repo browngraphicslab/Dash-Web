@@ -16,11 +16,11 @@ export class PIXIRectangle {
     public x: number;
     public y: number;
     public width: number;
-    public height: number
-    public get left() { return this.x }
+    public height: number;
+    public get left() { return this.x; }
     public get right() { return this.x + this.width; }
-    public get top() { return this.y }
-    public get bottom() { return this.top + this.height }
+    public get top() { return this.y; }
+    public get bottom() { return this.top + this.height; }
     public static get EMPTY() { return new PIXIRectangle(0, 0, -1, -1); }
     constructor(x: number, y: number, width: number, height: number) {
         this.x = x;
@@ -93,7 +93,7 @@ export class MathUtil {
     public static DistToLineSegment(v: PIXIPoint, w: PIXIPoint, p: PIXIPoint) {
         // Return minimum distance between line segment vw and point p
         var l2 = MathUtil.DistSquared(v, w);  // i.e. |w-v|^2 -  avoid a sqrt
-        if (l2 == 0.0) return MathUtil.Dist(p, v);   // v == w case
+        if (l2 === 0.0) return MathUtil.Dist(p, v);   // v === w case
         // Consider the line extending the segment, parameterized as v + t (w - v).
         // We find projection of point p onto the line. 
         // It falls where t = [(p-v) . (w-v)] / |w-v|^2
@@ -117,7 +117,7 @@ export class MathUtil {
         var b2 = ps2.x - pe2.x;
 
         var delta = a1 * b2 - a2 * b1;
-        if (delta == 0) {
+        if (delta === 0) {
             return undefined;
         }
         var c2 = a2 * ps2.x + b2 * ps2.y;
@@ -127,14 +127,18 @@ export class MathUtil {
     }
 
     public static PointInPIXIRectangle(p: PIXIPoint, rect: PIXIRectangle): boolean {
-        if (p.x < rect.left - this.EPSILON)
+        if (p.x < rect.left - this.EPSILON) {
             return false;
-        if (p.x > rect.right + this.EPSILON)
+        }
+        if (p.x > rect.right + this.EPSILON) {
             return false;
-        if (p.y < rect.top - this.EPSILON)
+        }
+        if (p.y < rect.top - this.EPSILON) {
             return false;
-        if (p.y > rect.bottom + this.EPSILON)
+        }
+        if (p.y > rect.bottom + this.EPSILON) {
             return false;
+        }
 
         return true;
     }
@@ -145,23 +149,27 @@ export class MathUtil {
         var r3 = new PIXIPoint(rect.right, rect.bottom);
         var r4 = new PIXIPoint(rect.left, rect.bottom);
         var ret = new Array<PIXIPoint>();
-        var dist = this.Dist(lineFrom, lineTo)
+        var dist = this.Dist(lineFrom, lineTo);
         var inter = this.LineSegmentIntersection(lineFrom, lineTo, r1, r2);
-        if (inter != null && this.PointInPIXIRectangle(inter, rect) &&
-            this.Dist(inter, lineFrom) < dist && this.Dist(inter, lineTo) < dist)
+        if (inter && this.PointInPIXIRectangle(inter, rect) &&
+            this.Dist(inter, lineFrom) < dist && this.Dist(inter, lineTo) < dist) {
             ret.push(inter);
+        }
         inter = this.LineSegmentIntersection(lineFrom, lineTo, r2, r3);
-        if (inter != null && this.PointInPIXIRectangle(inter, rect) &&
-            this.Dist(inter, lineFrom) < dist && this.Dist(inter, lineTo) < dist)
+        if (inter && this.PointInPIXIRectangle(inter, rect) &&
+            this.Dist(inter, lineFrom) < dist && this.Dist(inter, lineTo) < dist) {
             ret.push(inter);
+        }
         inter = this.LineSegmentIntersection(lineFrom, lineTo, r3, r4);
-        if (inter != null && this.PointInPIXIRectangle(inter, rect) &&
-            this.Dist(inter, lineFrom) < dist && this.Dist(inter, lineTo) < dist)
+        if (inter && this.PointInPIXIRectangle(inter, rect) &&
+            this.Dist(inter, lineFrom) < dist && this.Dist(inter, lineTo) < dist) {
             ret.push(inter);
+        }
         inter = this.LineSegmentIntersection(lineFrom, lineTo, r4, r1);
-        if (inter != null && this.PointInPIXIRectangle(inter, rect) &&
-            this.Dist(inter, lineFrom) < dist && this.Dist(inter, lineTo) < dist)
+        if (inter && this.PointInPIXIRectangle(inter, rect) &&
+            this.Dist(inter, lineFrom) < dist && this.Dist(inter, lineTo) < dist) {
             ret.push(inter);
+        }
         return ret;
     }
 
@@ -178,7 +186,7 @@ export class MathUtil {
     }
 
     public static Dot(p1: PIXIPoint, p2: PIXIPoint): number {
-        return p1.x * p2.x + p1.y * p2.y
+        return p1.x * p2.x + p1.y * p2.y;
     }
 
     public static Normalize(p1: PIXIPoint) {
@@ -193,7 +201,7 @@ export class MathUtil {
     public static DistSquared(p1: PIXIPoint, p2: PIXIPoint): number {
         const a = p1.x - p2.x;
         const b = p1.y - p2.y;
-        return (a * a + b * b)
+        return (a * a + b * b);
     }
 
     public static RectIntersectsRect(r1: PIXIRectangle, r2: PIXIRectangle): boolean {

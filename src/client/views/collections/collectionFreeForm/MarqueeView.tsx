@@ -37,7 +37,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     @action
     cleanupInteractions = (all: boolean = false) => {
         if (all) {
-            document.removeEventListener("pointermove", this.onPointerMove, true)
+            document.removeEventListener("pointermove", this.onPointerMove, true);
             document.removeEventListener("pointerup", this.onPointerUp, true);
         } else {
             this._used = true;
@@ -48,11 +48,11 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
 
     @action
     onPointerDown = (e: React.PointerEvent): void => {
-        if (e.buttons == 1 && !e.altKey && !e.metaKey && this.props.container.props.active()) {
+        if (e.buttons === 1 && !e.altKey && !e.metaKey && this.props.container.props.active()) {
             this._downX = this._lastX = e.pageX;
             this._downY = this._lastY = e.pageY;
             this._used = false;
-            document.addEventListener("pointermove", this.onPointerMove, true)
+            document.addEventListener("pointermove", this.onPointerMove, true);
             document.addEventListener("pointerup", this.onPointerUp, true);
             document.addEventListener("keydown", this.marqueeCommand, true);
         }
@@ -63,7 +63,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         this._lastX = e.pageX;
         this._lastY = e.pageY;
         if (!e.cancelBubble) {
-            if (!this._used && e.buttons == 1 && !e.altKey && !e.metaKey &&
+            if (!this._used && e.buttons === 1 && !e.altKey && !e.metaKey &&
                 (Math.abs(this._lastX - this._downX) > MarqueeView.DRAG_THRESHOLD || Math.abs(this._lastY - this._downY) > MarqueeView.DRAG_THRESHOLD)) {
                 this._visible = true;
             }
@@ -94,20 +94,20 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         let top = this._downY < this._lastY ? this._downY : this._lastY;
         let topLeft = this.props.getTransform().transformPoint(left, top);
         let size = this.props.getTransform().transformDirection(this._lastX - this._downX, this._lastY - this._downY);
-        return { left: topLeft[0], top: topLeft[1], width: Math.abs(size[0]), height: Math.abs(size[1]) }
+        return { left: topLeft[0], top: topLeft[1], width: Math.abs(size[0]), height: Math.abs(size[1]) };
     }
 
     @action
     marqueeCommand = (e: KeyboardEvent) => {
-        if (e.key == "Backspace" || e.key == "Delete") {
+        if (e.key === "Backspace" || e.key === "Delete") {
             this.marqueeSelect().map(d => this.props.removeDocument(d));
             let ink = this.props.container.props.Document.GetT(KeyStore.Ink, InkField);
-            if (ink && ink != FieldWaiting && ink.Data) {
+            if (ink && ink !== FieldWaiting) {
                 this.marqueeInkDelete(ink.Data);
             }
             this.cleanupInteractions();
         }
-        if (e.key == "c") {
+        if (e.key === "c") {
             let bounds = this.Bounds;
             let selected = this.marqueeSelect().map(d => {
                 this.props.removeDocument(d);
@@ -118,24 +118,24 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 return d;
             });
             let ink = this.props.container.props.Document.GetT(KeyStore.Ink, InkField);
-            if (ink && ink != FieldWaiting && ink.Data) {
-                //setTimeout(() => {
-                let newCollection = Documents.FreeformDocument(selected, {
-                    x: bounds.left,
-                    y: bounds.top,
-                    panx: 0,
-                    pany: 0,
-                    width: bounds.width,
-                    height: bounds.height,
-                    backgroundColor: "Transparent",
-                    ink: this.marqueeInkSelect(ink.Data),
-                    title: "a nested collection"
-                });
-                this.props.addDocument(newCollection, false);
-                this.marqueeInkDelete(ink.Data);
-            }
+            let inkData = ink && ink !== FieldWaiting ? ink.Data : undefined;
+            //setTimeout(() => {
+            let newCollection = Documents.FreeformDocument(selected, {
+                x: bounds.left,
+                y: bounds.top,
+                panx: 0,
+                pany: 0,
+                width: bounds.width,
+                height: bounds.height,
+                backgroundColor: "Transparent",
+                ink: inkData ? this.marqueeInkSelect(inkData) : undefined,
+                title: "a nested collection"
+            });
+            this.props.addDocument(newCollection, false);
+            this.marqueeInkDelete(inkData);
             // }, 100);
             this.cleanupInteractions();
+            SelectionManager.DeselectAll();
         }
     }
     @action
@@ -147,7 +147,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             if (InkingCanvas.IntersectStrokeRect(value, this.Bounds)) {
                 idata.set(key,
                     {
-                        pathData: value.pathData.map(val => { return { x: val.x + centerShiftX, y: val.y + centerShiftY } }),
+                        pathData: value.pathData.map(val => ({ x: val.x + centerShiftX, y: val.y + centerShiftY })),
                         color: value.color,
                         width: value.width,
                         tool: value.tool,
@@ -159,15 +159,17 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     }
 
     @action
-    marqueeInkDelete(ink: Map<any, any>, ) {
+    marqueeInkDelete(ink?: Map<any, any>) {
         // bcz: this appears to work but when you restart all the deleted strokes come back -- InkField isn't observing its changes so they aren't written to the DB.
         // ink.forEach((value: StrokeData, key: string, map: any) =>
         //     InkingCanvas.IntersectStrokeRect(value, this.Bounds) && ink.delete(key));
 
-        let idata = new Map();
-        ink.forEach((value: StrokeData, key: string, map: any) =>
-            !InkingCanvas.IntersectStrokeRect(value, this.Bounds) && idata.set(key, value));
-        this.props.container.props.Document.SetDataOnPrototype(KeyStore.Ink, idata, InkField);
+        if (ink) {
+            let idata = new Map();
+            ink.forEach((value: StrokeData, key: string, map: any) =>
+                !InkingCanvas.IntersectStrokeRect(value, this.Bounds) && idata.set(key, value));
+            this.props.container.props.Document.SetDataOnPrototype(KeyStore.Ink, idata, InkField);
+        }
     }
 
     marqueeSelect() {
@@ -178,9 +180,10 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             var y = doc.GetNumber(KeyStore.Y, 0);
             var w = doc.GetNumber(KeyStore.Width, 0);
             var h = doc.GetNumber(KeyStore.Height, 0);
-            if (this.intersectRect({ left: x, top: y, width: w, height: h }, selRect))
-                selection.push(doc)
-        })
+            if (this.intersectRect({ left: x, top: y, width: w, height: h }, selRect)) {
+                selection.push(doc);
+            }
+        });
         return selection;
     }
 
@@ -188,7 +191,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     get marqueeDiv() {
         let p = this.props.getContainerTransform().transformPoint(this._downX < this._lastX ? this._downX : this._lastX, this._downY < this._lastY ? this._downY : this._lastY);
         let v = this.props.getContainerTransform().transformDirection(this._lastX - this._downX, this._lastY - this._downY);
-        return <div className="marquee" style={{ transform: `translate(${p[0]}px, ${p[1]}px)`, width: `${Math.abs(v[0])}`, height: `${Math.abs(v[1])}` }} />
+        return <div className="marquee" style={{ transform: `translate(${p[0]}px, ${p[1]}px)`, width: `${Math.abs(v[0])}`, height: `${Math.abs(v[1])}` }} />;
     }
 
     render() {

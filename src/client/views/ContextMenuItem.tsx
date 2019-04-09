@@ -11,7 +11,7 @@ export interface SubmenuProps {
 }
 
 export interface ContextMenuItemProps {
-    type: ContextMenuProps | SubmenuProps
+    type: ContextMenuProps | SubmenuProps;
 }
 
 export class ContextMenuItem extends React.Component<ContextMenuProps> {
@@ -20,6 +20,6 @@ export class ContextMenuItem extends React.Component<ContextMenuProps> {
             <div className="contextMenu-item" onClick={this.props.event}>
                 <div className="contextMenu-description">{this.props.description}</div>
             </div>
-        )
+        );
     }
 }

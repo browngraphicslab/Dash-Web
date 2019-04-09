@@ -35,39 +35,41 @@ export class CollectionFreeFormDocumentView extends React.Component<DocumentView
     @computed get nativeHeight(): number { return this.props.Document.GetNumber(KeyStore.NativeHeight, 0); }
 
     set width(w: number) {
-        this.props.Document.SetData(KeyStore.Width, w, NumberField)
+        this.props.Document.SetData(KeyStore.Width, w, NumberField);
         if (this.nativeWidth && this.nativeHeight) {
-            this.props.Document.SetNumber(KeyStore.Height, this.nativeHeight / this.nativeWidth * w)
+            this.props.Document.SetNumber(KeyStore.Height, this.nativeHeight / this.nativeWidth * w);
         }
     }
 
     set height(h: number) {
         this.props.Document.SetData(KeyStore.Height, h, NumberField);
         if (this.nativeWidth && this.nativeHeight) {
-            this.props.Document.SetNumber(KeyStore.Width, this.nativeWidth / this.nativeHeight * h)
+            this.props.Document.SetNumber(KeyStore.Width, this.nativeWidth / this.nativeHeight * h);
         }
     }
 
     set zIndex(h: number) {
-        this.props.Document.SetData(KeyStore.ZIndex, h, NumberField)
+        this.props.Document.SetData(KeyStore.ZIndex, h, NumberField);
     }
 
-    contentScaling = () => {
-        return this.nativeWidth > 0 ? this.width / this.nativeWidth : 1;
-    }
+    contentScaling = () => this.nativeWidth > 0 ? this.width / this.nativeWidth : 1;
 
-    getTransform = (): Transform => {
-        return this.props.ScreenToLocalTransform().
-            translate(-this.props.Document.GetNumber(KeyStore.X, 0), -this.props.Document.GetNumber(KeyStore.Y, 0)).scale(1 / this.contentScaling());
-    }
+    getTransform = (): Transform =>
+        this.props.ScreenToLocalTransform()
+            .translate(-this.props.Document.GetNumber(KeyStore.X, 0), -this.props.Document.GetNumber(KeyStore.Y, 0))
+            .scale(1 / this.contentScaling())
 
     @computed
     get docView() {
         return <DocumentView {...this.props}
             ContentScaling={this.contentScaling}
             ScreenToLocalTransform={this.getTransform}
-        />
+            PanelWidth={this.panelWidth}
+            PanelHeight={this.panelHeight}
+        />;
     }
+    panelWidth = () => this.props.Document.GetBoolean(KeyStore.Minimized, false) ? 10 : this.props.PanelWidth();
+    panelHeight = () => this.props.Document.GetBoolean(KeyStore.Minimized, false) ? 10 : this.props.PanelHeight();
 
     render() {
         return (

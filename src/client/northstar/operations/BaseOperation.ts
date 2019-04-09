@@ -1,4 +1,4 @@
-import { FilterModel } from '../core/filter/FilterModel'
+import { FilterModel } from '../core/filter/FilterModel';
 import { ErrorResult, Exception, OperationParameters, OperationReference, Result, ResultParameters } from '../model/idea/idea';
 import { action, computed, observable } from "mobx";
 import { Gateway } from '../manager/Gateway';
@@ -29,11 +29,11 @@ export abstract class BaseOperation {
         // let filterModels: FilterModel[] = [];
         // return FilterModel.GetFilterModelsRecursive(this, new Set<GraphNode<BaseOperationViewModel, FilterLinkViewModel>>(), filterModels, true)
         // if (this.OverridingFilters.length > 0) {
-        //     return "(" + this.OverridingFilters.filter(fm => fm != null).map(fm => fm.ToPythonString()).join(" || ") + ")";
+        //     return "(" + this.OverridingFilters.filter(fm => fm !== null).map(fm => fm.ToPythonString()).join(" || ") + ")";
         // }
         // let rdg = MainManager.Instance.MainViewModel.FilterReverseDependencyGraph;
         // let sliceModel = this.TypedViewModel.IncomingSliceModel;
-        // if (sliceModel != null && sliceModel.Source != null && instanceOfIBaseFilterProvider(sliceModel.Source) && rdg.has(sliceModel.Source)) {
+        // if (sliceModel !== null && sliceModel.Source !== null && instanceOfIBaseFilterProvider(sliceModel.Source) && rdg.has(sliceModel.Source)) {
         //     let filterModels = sliceModel.Source.FilterModels.map(f => f);
         //     return FilterModel.GetFilterModelsRecursive(rdg.get(sliceModel.Source), new Set<GraphNode<BaseOperationViewModel, FilterLinkViewModel>>(), filterModels, false);
         // }
@@ -62,8 +62,9 @@ export abstract class BaseOperation {
             }
 
             let operationParameters = this.CreateOperationParameters();
-            if (this.Result)
-                this.Result.progress = 0; // bcz: used to set Result to undefined, but that causes the display to blink
+            if (this.Result) {
+                this.Result.progress = 0;
+            } // bcz: used to set Result to undefined, but that causes the display to blink
             this.Error = "";
             let salt = Math.random().toString();
             this.RequestSalt = salt;
@@ -97,10 +98,10 @@ export abstract class BaseOperation {
                 pollPromise.Start(async () => {
                     let result = await Gateway.Instance.GetResult(resultParameters.toJSON());
                     if (result instanceof ErrorResult) {
-                        throw new Error((result as ErrorResult).message);
+                        throw new Error((result).message);
                     }
-                    if (this.RequestSalt == pollPromise.RequestSalt) {
-                        if (result && (!this.Result || this.Result.progress != result.progress)) {
+                    if (this.RequestSalt === pollPromise.RequestSalt) {
+                        if (result && (!this.Result || this.Result.progress !== result.progress)) {
                             /*if (operationViewModel.Result !== null && operationViewModel.Result !== undefined) {
                                 let t1 = performance.now();
                                 console.log((t1 - start) + " milliseconds.");

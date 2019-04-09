@@ -1,36 +1,50 @@
-import { action, configure } from 'mobx';
 import * as mongodb from 'mongodb';
-import { ObjectID } from 'mongodb';
-import { Transferable } from './Message';
-import { Utils } from '../Utils';
 
 export class Database {
-    public static Instance = new Database()
+    public static Instance = new Database();
     private MongoClient = mongodb.MongoClient;
     private url = 'mongodb://localhost:27017/Dash';
     private db?: mongodb.Db;
 
     constructor() {
         this.MongoClient.connect(this.url, (err, client) => {
-            this.db = client.db()
-        })
+            this.db = client.db();
+        });
     }
+
+    private currentWrites: { [_id: string]: Promise<void> } = {};
 
     public update(id: string, value: any, callback: () => void) {
         if (this.db) {
             let collection = this.db.collection('documents');
-            collection.updateOne({ _id: id }, { $set: value }, {
-                upsert: true
-            }, (err, res) => {
-                if (err) {
-                    console.log(err.message);
-                    console.log(err.errmsg);
-                }
-                if (res) {
-                    // console.log(JSON.stringify(res.result));
-                }
-                callback()
-            });
+            const prom = this.currentWrites[id];
+            const run = (promise: Promise<void>, resolve?: () => void) => {
+                collection.updateOne({ _id: id }, { $set: value }, {
+                    upsert: true
+                }, (err, res) => {
+                    if (err) {
+                        console.log(err.message);
+                        console.log(err.errmsg);
+                    }
+                    // if (res) {
+                    //     console.log(JSON.stringify(res.result));
+                    // }
+                    if (this.currentWrites[id] === promise) {
+                        delete this.currentWrites[id];
+                    }
+                    if (resolve) {
+                        resolve();
+                    }
+                    callback();
+                });
+            };
+            if (prom) {
+                const newProm: Promise<void> = prom.then(() => run(newProm));
+                this.currentWrites[id] = newProm;
+            } else {
+                const newProm: Promise<void> = new Promise<void>(res => run(newProm, res));
+                this.currentWrites[id] = newProm;
+            }
         }
     }
 
@@ -47,7 +61,7 @@ export class Database {
                 let collection = this.db.collection(collectionName);
                 collection.deleteMany({}, res);
             }
-        })
+        });
     }
 
     public insert(kvpairs: any) {
@@ -56,7 +70,7 @@ export class Database {
             collection.insertOne(kvpairs, (err: any, res: any) => {
                 if (err) {
                     // console.log(err)
-                    return
+                    return;
                 }
             });
         }
@@ -67,30 +81,30 @@ export class Database {
         if (this.db) {
             let collection = this.db.collection('documents');
             collection.findOne({ _id: id }, (err: any, res: any) => {
-                result = res
+                result = res;
                 if (!result) {
-                    fn(undefined)
+                    fn(undefined);
                 }
-                fn(result)
-            })
-        };
+                fn(result);
+            });
+        }
     }
 
     public getDocuments(ids: string[], fn: (res: any) => void) {
         if (this.db) {
             let collection = this.db.collection('documents');
-            let cursor = collection.find({ _id: { "$in": ids } })
+            let cursor = collection.find({ _id: { "$in": ids } });
             cursor.toArray((err, docs) => {
                 if (err) {
                     console.log(err.message);
                     console.log(err.errmsg);
                 }
                 fn(docs);
-            })
-        };
+            });
+        }
     }
 
     public print() {
-        console.log("db says hi!")
+        console.log("db says hi!");
     }
 }

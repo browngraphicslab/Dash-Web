@@ -1,5 +1,5 @@
-import { DateTimeBinRange, DateTimeStep, DateTimeStepGranularity } from '../idea/idea'
-import { VisualBinRange } from './VisualBinRange'
+import { DateTimeBinRange, DateTimeStep, DateTimeStepGranularity } from '../idea/idea';
+import { VisualBinRange } from './VisualBinRange';
 
 export class DateTimeVisualBinRange extends VisualBinRange {
     public DataBinRange: DateTimeBinRange;
@@ -39,24 +39,24 @@ export class DateTimeVisualBinRange extends VisualBinRange {
 
     public GetLabel(value: number): string {
         var dt = DateTimeVisualBinRange.TicksToDate(value);
-        if (this.DataBinRange.step!.dateTimeStepGranularity == DateTimeStepGranularity.Second ||
-            this.DataBinRange.step!.dateTimeStepGranularity == DateTimeStepGranularity.Minute) {
+        if (this.DataBinRange.step!.dateTimeStepGranularity === DateTimeStepGranularity.Second ||
+            this.DataBinRange.step!.dateTimeStepGranularity === DateTimeStepGranularity.Minute) {
             return ("" + this.pad(dt.getMinutes(), 2) + ":" + this.pad(dt.getSeconds(), 2));
             //return dt.ToString("mm:ss");
         }
-        else if (this.DataBinRange.step!.dateTimeStepGranularity == DateTimeStepGranularity.Hour) {
+        else if (this.DataBinRange.step!.dateTimeStepGranularity === DateTimeStepGranularity.Hour) {
             return (this.pad(dt.getHours(), 2) + ":" + this.pad(dt.getMinutes(), 2));
             //return dt.ToString("HH:mm");
         }
-        else if (this.DataBinRange.step!.dateTimeStepGranularity == DateTimeStepGranularity.Day) {
+        else if (this.DataBinRange.step!.dateTimeStepGranularity === DateTimeStepGranularity.Day) {
             return ((dt.getMonth() + 1) + "/" + dt.getDate() + "/" + dt.getFullYear());
             //return dt.ToString("MM/dd/yyyy");
         }
-        else if (this.DataBinRange.step!.dateTimeStepGranularity == DateTimeStepGranularity.Month) {
+        else if (this.DataBinRange.step!.dateTimeStepGranularity === DateTimeStepGranularity.Month) {
             //return dt.ToString("MM/yyyy");
             return ((dt.getMonth() + 1) + "/" + dt.getFullYear());
         }
-        else if (this.DataBinRange.step!.dateTimeStepGranularity == DateTimeStepGranularity.Year) {
+        else if (this.DataBinRange.step!.dateTimeStepGranularity === DateTimeStepGranularity.Year) {
             return "" + dt.getFullYear();
         }
         return "n/a";
@@ -82,22 +82,22 @@ export class DateTimeVisualBinRange extends VisualBinRange {
     public static AddToDateTimeTicks(ticks: number, dateTimeStep: DateTimeStep): number {
         var copiedDate = DateTimeVisualBinRange.TicksToDate(ticks);
         var returnDate: Date = new Date(Date.now());
-        if (dateTimeStep.dateTimeStepGranularity == DateTimeStepGranularity.Second) {
+        if (dateTimeStep.dateTimeStepGranularity === DateTimeStepGranularity.Second) {
             returnDate = new Date(copiedDate.setSeconds(copiedDate.getSeconds() + dateTimeStep.dateTimeStepValue!));
         }
-        else if (dateTimeStep.dateTimeStepGranularity == DateTimeStepGranularity.Minute) {
+        else if (dateTimeStep.dateTimeStepGranularity === DateTimeStepGranularity.Minute) {
             returnDate = new Date(copiedDate.setMinutes(copiedDate.getMinutes() + dateTimeStep.dateTimeStepValue!));
         }
-        else if (dateTimeStep.dateTimeStepGranularity == DateTimeStepGranularity.Hour) {
+        else if (dateTimeStep.dateTimeStepGranularity === DateTimeStepGranularity.Hour) {
             returnDate = new Date(copiedDate.setHours(copiedDate.getHours() + dateTimeStep.dateTimeStepValue!));
         }
-        else if (dateTimeStep.dateTimeStepGranularity == DateTimeStepGranularity.Day) {
+        else if (dateTimeStep.dateTimeStepGranularity === DateTimeStepGranularity.Day) {
             returnDate = new Date(copiedDate.setDate(copiedDate.getDate() + dateTimeStep.dateTimeStepValue!));
         }
-        else if (dateTimeStep.dateTimeStepGranularity == DateTimeStepGranularity.Month) {
+        else if (dateTimeStep.dateTimeStepGranularity === DateTimeStepGranularity.Month) {
             returnDate = new Date(copiedDate.setMonth(copiedDate.getMonth() + dateTimeStep.dateTimeStepValue!));
         }
-        else if (dateTimeStep.dateTimeStepGranularity == DateTimeStepGranularity.Year) {
+        else if (dateTimeStep.dateTimeStepGranularity === DateTimeStepGranularity.Year) {
             returnDate = new Date(copiedDate.setFullYear(copiedDate.getFullYear() + dateTimeStep.dateTimeStepValue!));
         }
         return DateTimeVisualBinRange.DateToTicks(returnDate);

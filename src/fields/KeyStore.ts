@@ -1,4 +1,5 @@
 import { Key } from "./Key";
+import { KeyTransfer } from "../server/Message";
 
 export namespace KeyStore {
     export const Prototype = new Key("Prototype");
@@ -43,6 +44,22 @@ export namespace KeyStore {
     export const Cursors = new Key("Cursors");
     export const OptionalRightCollection = new Key("OptionalRightCollection");
     export const Archives = new Key("Archives");
-    export const Updated = new Key("Updated");
     export const Workspaces = new Key("Workspaces");
+    export const Minimized = new Key("Minimized");
+    export const CopyDraggedItems = new Key("CopyDraggedItems");
+
+    export const KeyList: Key[] = [Prototype, X, Y, Page, Title, Author, PanX, PanY, Scale, NativeWidth, NativeHeight,
+        Width, Height, ZIndex, Data, Annotations, ViewType, Layout, BackgroundColor, BackgroundLayout, OverlayLayout, LayoutKeys,
+        LayoutFields, ColumnsKey, SchemaSplitPercentage, Caption, ActiveWorkspace, DocumentText, BrushingDocs, LinkedToDocs, LinkedFromDocs,
+        LinkDescription, LinkTags, Thumbnail, ThumbnailPage, CurPage, AnnotationOn, NumPages, Ink, Cursors, OptionalRightCollection,
+        Archives, Workspaces, Minimized, CopyDraggedItems
+    ];
+    export function KeyLookup(keyid: string) {
+        for (const key of KeyList) {
+            if (key.Id === keyid) {
+                return key;
+            }
+        }
+        return undefined;
+    }
 }
