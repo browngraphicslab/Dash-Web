@@ -48,16 +48,16 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     }
 
     shouldMarquee = (e: PointerEvent | React.PointerEvent): boolean => {
-        return e.pointerType === "mouse" && e.button === 0
+        return e.pointerType === "mouse" && e.button === 0;
     }
 
-    private prevPoints: Map<number, React.Touch> = new Map<number, React.Touch>()
+    private prevPoints: Map<number, React.Touch> = new Map<number, React.Touch>();
 
     @action
     onTouchStart = (e: React.TouchEvent): void => {
         for (let i = 0; i < e.targetTouches.length; i++) {
-            let pt = e.targetTouches.item(i)
-            this.prevPoints.set(pt.identifier, pt)
+            let pt = e.targetTouches.item(i);
+            this.prevPoints.set(pt.identifier, pt);
         }
         document.removeEventListener("touchmove", this.onTouch);
         document.addEventListener("touchmove", this.onTouch);
@@ -65,7 +65,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         document.addEventListener("touchend", this.onTouchEnd);
     }
 
-    private _touchDrag: boolean = false
+    private _touchDrag: boolean = false;
 
     @action
     onTouch = (e: TouchEvent): void => {
@@ -76,41 +76,41 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     @action
     onTouchEnd = (e: TouchEvent): void => {
         if (!this._touchDrag) {
-            console.log(this.prevPoints.size)
+            console.log(this.prevPoints.size);
             switch (this.prevPoints.size) {
                 case 2:
                     if (!e.altKey && !e.metaKey && this.props.container.props.active() && !e.cancelBubble) {
                         let pts = this.prevPoints.values();
-                        let pt1 = pts.next().value
-                        let pt2 = pts.next().value
+                        let pt1 = pts.next().value;
+                        let pt2 = pts.next().value;
                         if (pt1 && pt2) {
-                            this._downX = pt1.clientX
-                            this._downY = pt1.clientY
-                            this._lastX = pt2.clientX
-                            this._lastY = pt2.clientY
+                            this._downX = pt1.clientX;
+                            this._downY = pt1.clientY;
+                            this._lastX = pt2.clientX;
+                            this._lastY = pt2.clientY;
                             if (!e.shiftKey) {
-                                SelectionManager.DeselectAll()
+                                SelectionManager.DeselectAll();
                             }
-                            this.props.selectDocuments(this.marqueeSelect())
+                            this.props.selectDocuments(this.marqueeSelect());
                         }
 
-                        e.stopPropagation()
+                        e.stopPropagation();
                     }
                     break;
                 case 3:
                     if (!e.altKey && !e.metaKey && this.props.container.props.active() && !e.cancelBubble) {
-                        let pointsArray = Array.from(this.prevPoints.values())
-                        let result = TouchInteractions.InterpretPointers(pointsArray)
-                        let data: number[] = result.data
-                        console.log(result.type)
+                        let pointsArray = Array.from(this.prevPoints.values());
+                        let result = TouchInteractions.InterpretPointers(pointsArray);
+                        let data: number[] = result.data;
+                        console.log(result.type);
                         if (result.type === TouchInteractions.TwoToOneFingers && data && data.length === 3) {
-                            let pt1 = TouchInteractions.CenterPoint([pointsArray[data[0]], pointsArray[data[1]]])
-                            let pt2 = pointsArray[data[2]]
-                            let left = Math.min(pt1.X, pt2.clientX)
-                            let top = Math.min(pt1.Y, pt2.clientY)
+                            let pt1 = TouchInteractions.CenterPoint([pointsArray[data[0]], pointsArray[data[1]]]);
+                            let pt2 = pointsArray[data[2]];
+                            let left = Math.min(pt1.X, pt2.clientX);
+                            let top = Math.min(pt1.Y, pt2.clientY);
                             let topLeft = this.props.container.getTransform().transformPoint(left, top);
                             let size = this.props.container.getTransform().transformDirection(pt2.clientX - pt1.X, pt2.clientY - pt1.Y);
-                            this.createCollection(topLeft[0], topLeft[1], Math.abs(size[0]), Math.abs(size[1]))
+                            this.createCollection(topLeft[0], topLeft[1], Math.abs(size[0]), Math.abs(size[1]));
                         }
                         e.stopPropagation();
                     }
@@ -120,16 +120,16 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
 
         this._touchDrag = false;
         for (let i = 0; i < e.targetTouches.length; i++) {
-            let pt = e.targetTouches.item(i)
+            let pt = e.targetTouches.item(i);
             if (pt) {
                 if (this.prevPoints.has(pt.identifier)) {
-                    this.prevPoints.delete(pt.identifier)
+                    this.prevPoints.delete(pt.identifier);
                 }
             }
         }
 
         if (e.targetTouches.length === 0) {
-            this.prevPoints.clear()
+            this.prevPoints.clear();
         }
         this.cleanupInteractions();
     }
@@ -196,7 +196,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             return d;
         });
         let ink = this.props.container.props.Document.GetT(KeyStore.Ink, InkField);
-        let inkData = ink && ink != FieldWaiting ? ink.Data : undefined;
+        let inkData = ink && ink !== FieldWaiting ? ink.Data : undefined;
         //setTimeout(() => {
         let newCollection = Documents.FreeformDocument(selected, {
             x: left,
@@ -223,9 +223,9 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             }
             this.cleanupInteractions();
         }
-        if (e.key == "c") {
-            let bounds = this.Bounds
-            this.createCollection(bounds.left, bounds.top, bounds.width, bounds.height)
+        if (e.key === "c") {
+            let bounds = this.Bounds;
+            this.createCollection(bounds.left, bounds.top, bounds.width, bounds.height);
             // }, 100);
             this.cleanupInteractions();
             SelectionManager.DeselectAll();

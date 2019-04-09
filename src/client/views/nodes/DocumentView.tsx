@@ -121,7 +121,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     }
 
     shouldPan = (e: PointerEvent | React.PointerEvent): boolean => {
-        return e.pointerType === "touch" || (e.pointerType === "mouse" && e.button === 2)
+        return e.pointerType === "touch" || (e.pointerType === "mouse" && e.button === 2);
     }
 
     private dropDisposer?: DragManager.DragDropDisposer;
@@ -183,7 +183,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         ) {
             document.removeEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
-            if (!this.topMost || e.pointerType === "touch" || e.buttons == 2 || e.altKey) {
+            if (!this.topMost || e.pointerType === "touch" || e.buttons === 2 || e.altKey) {
                 this.startDragging(this._downX, this._downY, e.ctrlKey || e.altKey);
             }
         }

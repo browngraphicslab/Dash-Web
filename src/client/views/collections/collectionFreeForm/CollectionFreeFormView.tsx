@@ -140,14 +140,14 @@ export class CollectionFreeFormView extends CollectionSubView {
     }
 
     shouldPan = (e: PointerEvent | React.PointerEvent): boolean => {
-        return e.pointerType === "touch" || (e.pointerType === "mouse" && e.button === 2)
+        return e.pointerType === "touch" || (e.pointerType === "mouse" && e.button === 2);
     }
 
     @action
     onPointerDown = (e: React.PointerEvent): void => {
         this.PreviewCursorVisible = false;
-        e.currentTarget.setPointerCapture(e.pointerId)
-        if ((this.shouldPan(e) && this.props.active() && (!this.isAnnotationOverlay || this.zoomScaling != 1)) || e.button == 0) {
+        e.currentTarget.setPointerCapture(e.pointerId);
+        if ((this.shouldPan(e) && this.props.active() && (!this.isAnnotationOverlay || this.zoomScaling !== 1)) || e.button === 0) {
             document.removeEventListener("pointermove", this.onPointerMove);
             document.addEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
@@ -179,8 +179,8 @@ export class CollectionFreeFormView extends CollectionSubView {
                 e.stopPropagation();
                 e.preventDefault();
             }
-            else if ((!this.isAnnotationOverlay || this.zoomScaling != 1) && !e.shiftKey) {
-                this.pan(e)
+            else if ((!this.isAnnotationOverlay || this.zoomScaling !== 1) && !e.shiftKey) {
+                this.pan(e);
                 e.stopPropagation();
                 e.preventDefault();
             }
@@ -197,13 +197,13 @@ export class CollectionFreeFormView extends CollectionSubView {
         this._lastY = e.pageY;
     }
 
-    private prevPoints: Map<number, React.Touch> = new Map<number, React.Touch>()
+    private prevPoints: Map<number, React.Touch> = new Map<number, React.Touch>();
     public FirstX: number = 0;
     public FirstY: number = 0;
     public SecondX: number = 0;
     public SecondY: number = 0;
 
-    private _touchDrag: boolean = false
+    private _touchDrag: boolean = false;
 
     /**
      * When a touch even starts, we keep track of each touch that is associated with that event
@@ -211,8 +211,8 @@ export class CollectionFreeFormView extends CollectionSubView {
     @action
     onTouchStart = (e: React.TouchEvent): void => {
         for (let i = 0; i < e.targetTouches.length; i++) {
-            let pt = e.targetTouches.item(i)
-            this.prevPoints.set(pt.identifier, pt)
+            let pt = e.targetTouches.item(i);
+            this.prevPoints.set(pt.identifier, pt);
         }
         document.removeEventListener("touchmove", this.onTouch);
         document.addEventListener("touchmove", this.onTouch);
@@ -232,9 +232,9 @@ export class CollectionFreeFormView extends CollectionSubView {
             case 1:
                 // panning a workspace
                 if (!e.cancelBubble && this.props.active()) {
-                    let pt = e.targetTouches.item(0)
+                    let pt = e.targetTouches.item(0);
                     if (pt) {
-                        this.pan(pt)
+                        this.pan(pt);
                     }
                     e.stopPropagation();
                     e.preventDefault();
@@ -243,26 +243,26 @@ export class CollectionFreeFormView extends CollectionSubView {
             case 2:
                 // pinch zooming
                 if (!e.cancelBubble) {
-                    let pt1: Touch | null = e.targetTouches.item(0)
-                    let pt2: Touch | null = e.targetTouches.item(1)
-                    if (!pt1 || !pt2) return
+                    let pt1: Touch | null = e.targetTouches.item(0);
+                    let pt2: Touch | null = e.targetTouches.item(1);
+                    if (!pt1 || !pt2) return;
 
                     if (this.prevPoints.size === 2) {
-                        let oldPoint1 = this.prevPoints.get(pt1.identifier)
-                        let oldPoint2 = this.prevPoints.get(pt2.identifier)
+                        let oldPoint1 = this.prevPoints.get(pt1.identifier);
+                        let oldPoint2 = this.prevPoints.get(pt2.identifier);
                         if (oldPoint1 && oldPoint2) {
-                            let dir = TouchInteractions.Pinching(pt1, pt2, oldPoint1, oldPoint2)
+                            let dir = TouchInteractions.Pinching(pt1, pt2, oldPoint1, oldPoint2);
 
                             // if zooming, zoom
                             if (dir !== 0) {
-                                let d1 = Math.sqrt(Math.pow(pt1.clientX - oldPoint1.clientX, 2) + Math.pow(pt1.clientY - oldPoint1.clientY, 2))
-                                let d2 = Math.sqrt(Math.pow(pt2.clientX - oldPoint2.clientX, 2) + Math.pow(pt2.clientY - oldPoint2.clientY, 2))
-                                let centerX = Math.min(pt1.clientX, pt2.clientX) + Math.abs(pt2.clientX - pt1.clientX) / 2
-                                let centerY = Math.min(pt1.clientY, pt2.clientY) + Math.abs(pt2.clientY - pt1.clientY) / 2
-                                let delta = dir * (d1 + d2)
-                                this.zoom(centerX, centerY, delta, 100)
-                                this.prevPoints.set(pt1.identifier, pt1)
-                                this.prevPoints.set(pt2.identifier, pt2)
+                                let d1 = Math.sqrt(Math.pow(pt1.clientX - oldPoint1.clientX, 2) + Math.pow(pt1.clientY - oldPoint1.clientY, 2));
+                                let d2 = Math.sqrt(Math.pow(pt2.clientX - oldPoint2.clientX, 2) + Math.pow(pt2.clientY - oldPoint2.clientY, 2));
+                                let centerX = Math.min(pt1.clientX, pt2.clientX) + Math.abs(pt2.clientX - pt1.clientX) / 2;
+                                let centerY = Math.min(pt1.clientY, pt2.clientY) + Math.abs(pt2.clientY - pt1.clientY) / 2;
+                                let delta = dir * (d1 + d2);
+                                this.zoom(centerX, centerY, delta, 250);
+                                this.prevPoints.set(pt1.identifier, pt1);
+                                this.prevPoints.set(pt2.identifier, pt2);
                             }
                         }
                     }
@@ -276,20 +276,20 @@ export class CollectionFreeFormView extends CollectionSubView {
     @action
     onTouchEnd = (e: TouchEvent): void => {
         this._touchDrag = false;
-        e.stopPropagation()
+        e.stopPropagation();
 
         // remove all the touches associated with the event
         for (let i = 0; i < e.targetTouches.length; i++) {
-            let pt = e.targetTouches.item(i)
+            let pt = e.targetTouches.item(i);
             if (pt) {
                 if (this.prevPoints.has(pt.identifier)) {
-                    this.prevPoints.delete(pt.identifier)
+                    this.prevPoints.delete(pt.identifier);
                 }
             }
         }
 
         if (e.targetTouches.length === 0) {
-            this.prevPoints.clear()
+            this.prevPoints.clear();
         }
         this.cleanupInteractions();
     }
@@ -298,12 +298,13 @@ export class CollectionFreeFormView extends CollectionSubView {
     zoom = (pointX: number, pointY: number, deltaY: number, coefficient: number): void => {
         let transform = this.getTransform();
         let deltaScale = (1 - (deltaY / coefficient));
-        if (deltaScale * this.zoomScaling < 1 && this.isAnnotationOverlay)
+        if (deltaScale * this.zoomScaling < 1 && this.isAnnotationOverlay) {
             deltaScale = 1 / this.zoomScaling;
+        }
         let [x, y] = transform.transformPoint(pointX, pointY);
 
-        let localTransform = this.getLocalTransform()
-        localTransform = localTransform.inverse().scaleAbout(deltaScale, x, y)
+        let localTransform = this.getLocalTransform();
+        localTransform = localTransform.inverse().scaleAbout(deltaScale, x, y);
 
         this.props.Document.SetNumber(KeyStore.Scale, localTransform.Scale);
         this.SetPan(-localTransform.TranslateX / localTransform.Scale, -localTransform.TranslateY / localTransform.Scale);
@@ -327,7 +328,7 @@ export class CollectionFreeFormView extends CollectionSubView {
         } else {
             // if (modes[e.deltaMode] == 'pixels') coefficient = 50;
             // else if (modes[e.deltaMode] == 'lines') coefficient = 1000; // This should correspond to line-height??
-            this.zoom(e.clientX, e.clientY, e.deltaY, coefficient)
+            this.zoom(e.clientX, e.clientY, e.deltaY, coefficient);
             // let transform = this.getTransform();
 
             // let deltaScale = (1 - (e.deltaY / coefficient));
@@ -457,7 +458,7 @@ export class CollectionFreeFormView extends CollectionSubView {
         const pany: number = -this.props.Document.GetNumber(KeyStore.PanY, 0);
 
         return (
-            <Measure onResize={(r: any) => runInAction(() => { this._pwidth = r.entry.width; this._pheight = r.entry.height })}>
+            <Measure onResize={(r: any) => runInAction(() => { this._pwidth = r.entry.width; this._pheight = r.entry.height; })}>
                 {({ measureRef }) => (
                     <div className={`collectionfreeformview-measure`} ref={measureRef}>
                         <div className={`collectionfreeformview${this.isAnnotationOverlay ? "-overlay" : "-container"}`}

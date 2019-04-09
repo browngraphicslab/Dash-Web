@@ -6,7 +6,7 @@ import { KeyStore } from "../../../fields/KeyStore";
 import { Documents } from "../../documents/Documents";
 import { SelectionManager } from "../../util/SelectionManager";
 import { Transform } from "../../util/Transform";
-import { CollectionFreeFormView } from "./CollectionFreeFormView";
+import { CollectionFreeFormView } from "./collectionFreeForm/CollectionFreeFormView";
 import "./MarqueeView.scss";
 import React = require("react");
 import { InkField, StrokeData } from "../../../fields/InkField";
@@ -36,18 +36,19 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     componentDidMount() {
         this._reactionDisposer = reaction(
             () => this.props.container.MarqueeVisible,
-            (visible: boolean) => this.onPointerDown(visible, this.props.container.DownX, this.props.container.DownY))
+            (visible: boolean) => this.onPointerDown(visible, this.props.container.DownX, this.props.container.DownY));
         this._reactionDisposer = reaction(
             () => this.props.container.Marquee,
             (visible: boolean) => this.createMarquee(visible, this.props.container.FirstX, this.props.container.FirstY, this.props.container.SecondX, this.props.container.SecondY, this.props.container.ShiftKey)
-        )
+        );
         this._reactionDisposer = reaction(
             () => this.props.container.Collection,
             (params: { left: number, top: number, width: number, height: number, create: boolean }) => {
-                if (params.create)
-                    this.createCollection(params)
+                if (params.create) {
+                    this.createCollection(params);
+                }
             }
-        )
+        );
     }
     componentWillUnmount() {
         if (this._reactionDisposer) {
@@ -86,10 +87,10 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     @action
     createMarquee = (visible: boolean, firstX: number, firstY: number, secondX: number, secondY: number, shiftKey: boolean) => {
         if (visible) {
-            this._downX = firstX
-            this._downY = firstY
-            this._lastX = secondX
-            this._lastY = secondY
+            this._downX = firstX;
+            this._downY = firstY;
+            this._lastX = secondX;
+            this._lastY = secondY;
             if (!shiftKey) {
                 SelectionManager.DeselectAll();
             }
@@ -101,7 +102,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
 
     @action
     cleanupInteractions = () => {
-        document.removeEventListener("pointermove", this.onPointerMove, true)
+        document.removeEventListener("pointermove", this.onPointerMove, true);
         document.removeEventListener("pointerup", this.onPointerUp, true);
         document.removeEventListener("keydown", this.marqueeCommand, true);
     }
@@ -111,7 +112,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         if (visible) {
             this._downX = this._lastX = downX;
             this._downY = this._lastY = downY;
-            document.addEventListener("pointermove", this.onPointerMove, true)
+            document.addEventListener("pointermove", this.onPointerMove, true);
             document.addEventListener("pointerup", this.onPointerUp, true);
             document.addEventListener("keydown", this.marqueeCommand, true);
         }
@@ -139,19 +140,19 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         let top = this._downY < this._lastY ? this._downY : this._lastY;
         let topLeft = this.props.getTransform().transformPoint(left, top);
         let size = this.props.getTransform().transformDirection(this._lastX - this._downX, this._lastY - this._downY);
-        return { left: topLeft[0], top: topLeft[1], width: Math.abs(size[0]), height: Math.abs(size[1]) }
+        return { left: topLeft[0], top: topLeft[1], width: Math.abs(size[0]), height: Math.abs(size[1]) };
     }
 
     @action
     marqueeCommand = (e: KeyboardEvent) => {
-        if (e.key == "Backspace" || e.key == "Delete") {
+        if (e.key === "Backspace" || e.key === "Delete") {
             this.marqueeSelect().map(d => this.props.removeDocument(d));
             this.props.container.props.Document.SetData(KeyStore.Ink, this.marqueeInkSelect(false), InkField);
             this.cleanupInteractions();
         }
-        if (e.key == "c") {
+        if (e.key === "c") {
             let bounds = this.Bounds;
-            this.createCollection(bounds)
+            this.createCollection(bounds);
             // }, 100);
             this.cleanupInteractions();
         }
@@ -161,14 +162,14 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         let centerShiftX = 0 - (selRect.left + selRect.width / 2); // moves each point by the offset that shifts the selection's center to the origin.
         let centerShiftY = 0 - (selRect.top + selRect.height / 2);
         let ink = this.props.container.props.Document.GetT(KeyStore.Ink, InkField);
-        if (ink && ink != FieldWaiting && ink.Data) {
+        if (ink && ink !== FieldWaiting && ink.Data) {
             let idata = new Map();
             ink.Data.forEach((value: StrokeData, key: string, map: any) => {
                 let inside = InkingCanvas.IntersectStrokeRect(value, selRect);
                 if (inside && select) {
                     idata.set(key,
                         {
-                            pathData: value.pathData.map(val => { return { x: val.x + centerShiftX, y: val.y + centerShiftY } }),
+                            pathData: value.pathData.map(val => ({ x: val.x + centerShiftX, y: val.y + centerShiftY })),
                             color: value.color,
                             width: value.width,
                             tool: value.tool,
@@ -177,7 +178,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 } else if (!inside && !select) {
                     idata.set(key, value);
                 }
-            })
+            });
             return idata;
         }
     }
@@ -190,9 +191,10 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             var y = doc.GetNumber(KeyStore.Y, 0);
             var w = doc.GetNumber(KeyStore.Width, 0);
             var h = doc.GetNumber(KeyStore.Height, 0);
-            if (Utils.IntersectRect({ left: x, top: y, width: w, height: h }, selRect))
-                selection.push(doc)
-        })
+            if (Utils.IntersectRect({ left: x, top: y, width: w, height: h }, selRect)) {
+                selection.push(doc);
+            }
+        });
         return selection;
     }
 
