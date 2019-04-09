@@ -73,7 +73,7 @@ export class CollectionSubView extends React.Component<SubCollectionViewProps> {
                         draggedDocument.GetTAsync(key, NumberField, (f: Opt<NumberField>) => f ? de.data.droppedDocuments[i].SetNumber(key, f.Data) : null)));
             }
             let added = false;
-            if (de.data.aliasOnDrop) {
+            if (de.data.aliasOnDrop || de.data.copyOnDrop) {
                 added = de.data.droppedDocuments.reduce((added: boolean, d) => added || this.props.addDocument(d), false);
             } else if (de.data.moveDocument) {
                 const move = de.data.moveDocument;

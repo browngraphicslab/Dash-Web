@@ -1,17 +1,13 @@
-import * as React from 'react';
-import { FieldViewProps } from '../nodes/FieldView';
-import { KeyStore } from '../../../fields/KeyStore';
-import { NumberField } from '../../../fields/NumberField';
-import { FieldWaiting, Field, FieldValue } from '../../../fields/Field';
-import { ContextMenu } from '../ContextMenu';
-import { SelectionManager } from '../../util/SelectionManager';
-import { Document } from '../../../fields/Document';
-import { ListField } from '../../../fields/ListField';
 import { action } from 'mobx';
-import { Transform } from '../../util/Transform';
 import { observer } from 'mobx-react';
-import { CompileScript } from '../../util/Scripting';
-import { ScriptField } from '../../../fields/ScriptField';
+import * as React from 'react';
+import { Document } from '../../../fields/Document';
+import { Field, FieldValue, FieldWaiting } from '../../../fields/Field';
+import { KeyStore } from '../../../fields/KeyStore';
+import { ListField } from '../../../fields/ListField';
+import { NumberField } from '../../../fields/NumberField';
+import { ContextMenu } from '../ContextMenu';
+import { FieldViewProps } from '../nodes/FieldView';
 
 export enum CollectionViewType {
     Invalid,

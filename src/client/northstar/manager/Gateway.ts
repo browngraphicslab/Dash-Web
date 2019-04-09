@@ -23,6 +23,17 @@ export class Gateway {
         }
     }
 
+    public async GetSchema(dbName: string): Promise<Catalog> {
+        try {
+            const json = await this.MakeGetRequest("schema", undefined, dbName);
+            const cat = Catalog.fromJS(json);
+            return cat;
+        }
+        catch (error) {
+            throw new Error("can not reach northstar's backend");
+        }
+    }
+
     public async ClearCatalog(): Promise<void> {
         try {
             const json = await this.MakePostJsonRequest("Datamart/ClearAllAugmentations", {});
@@ -133,8 +144,15 @@ export class Gateway {
             });
     }
 
-    public async MakeGetRequest(endpoint: string, signal?: AbortSignal): Promise<any> {
-        const url = Gateway.ConstructUrl(endpoint);
+    public async MakeGetRequest(endpoint: string, signal?: AbortSignal, data?: any): Promise<any> {
+        let url = !data ? Gateway.ConstructUrl(endpoint) :
+            (() => {
+                let newUrl = new URL(Gateway.ConstructUrl(endpoint));
+                newUrl.searchParams.append("data", data);
+                return Gateway.ConstructUrl(endpoint) + newUrl.search;
+                return newUrl as any;
+            })();
+
         const response = await fetch(url,
             {
                 redirect: "follow",

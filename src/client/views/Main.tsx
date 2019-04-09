@@ -348,10 +348,10 @@ export class Main extends React.Component {
 
     // --------------- Northstar hooks ------------- /
 
-    @action SetNorthstarCatalog(ctlog: Catalog) {
-        CurrentUserUtils.NorthstarDBCatalog = ctlog;
+    @action AddToNorthstarCatalog(ctlog: Catalog) {
+        CurrentUserUtils.NorthstarDBCatalog = CurrentUserUtils.NorthstarDBCatalog ? CurrentUserUtils.NorthstarDBCatalog : ctlog;
         if (ctlog && ctlog.schemas) {
-            this._northstarSchemas = ctlog.schemas.map(schema => {
+            this._northstarSchemas.push(...ctlog.schemas.map(schema => {
                 let schemaDoc = Documents.TreeDocument([], { width: 50, height: 100, title: schema.displayName! });
                 let schemaDocuments = schemaDoc.GetList(KeyStore.Data, [] as Document[]);
                 CurrentUserUtils.GetAllNorthstarColumnAttributes(schema).map(attr => {
@@ -369,7 +369,7 @@ export class Main extends React.Component {
                     }));
                 });
                 return schemaDoc;
-            });
+            }));
         }
     }
     async initializeNorthstar(): Promise<void> {
@@ -382,7 +382,12 @@ export class Main extends React.Component {
         const env = await response.json();
         Settings.Instance.Update(env);
         let cat = Gateway.Instance.ClearCatalog();
-        cat.then(async () => this.SetNorthstarCatalog(await Gateway.Instance.GetCatalog()));
+        cat.then(async () => {
+            this.AddToNorthstarCatalog(await Gateway.Instance.GetCatalog());
+            if (!CurrentUserUtils.GetNorthstarSchema("Book1"))
+                this.AddToNorthstarCatalog(await Gateway.Instance.GetSchema("http://www.cs.brown.edu/~bcz/Book1.csv"));
+        });
+
     }
 }
 
