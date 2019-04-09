@@ -226,6 +226,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     itemDropped = () => {
         this.stateChanged();
     }
+
     tabCreated = (tab: any) => {
         if (tab.hasOwnProperty("contentItem") && tab.contentItem.config.type !== "stack") {
             if (tab.titleElement[0].textContent.indexOf("-waiting") !== -1) {

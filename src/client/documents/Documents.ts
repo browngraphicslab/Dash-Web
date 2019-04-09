@@ -68,13 +68,16 @@ export namespace Documents {
     const audioProtoId = "audioProto";
 
     export function initProtos(): Promise<void> {
-        return Server.GetFields([textProtoId, histoProtoId, collProtoId, imageProtoId, webProtoId, kvpProtoId]).then(fields => {
-            textProto = fields[textProtoId] as Document;
-            histoProto = fields[histoProtoId] as Document;
-            collProto = fields[collProtoId] as Document;
-            imageProto = fields[imageProtoId] as Document;
-            webProto = fields[webProtoId] as Document;
-            kvpProto = fields[kvpProtoId] as Document;
+        return Server.GetFields([textProtoId, histoProtoId, collProtoId, pdfProtoId, imageProtoId, videoProtoId, audioProtoId, webProtoId, kvpProtoId]).then(fields => {
+            textProto = fields[textProtoId] as Document || CreateTextPrototype();
+            histoProto = fields[histoProtoId] as Document || CreateHistogramPrototype();
+            collProto = fields[collProtoId] as Document || CreateCollectionPrototype();
+            imageProto = fields[imageProtoId] as Document || CreateImagePrototype();
+            webProto = fields[webProtoId] as Document || CreateWebPrototype();
+            kvpProto = fields[kvpProtoId] as Document || CreateKVPPrototype();
+            videoProto = fields[videoProtoId] as Document || CreateVideoPrototype();
+            audioProto = fields[audioProtoId] as Document || CreateAudioPrototype();
+            pdfProto = fields[pdfProtoId] as Document || CreatePdfPrototype();
         });
     }
     function assignOptions(doc: Document, options: DocumentOptions): Document {
@@ -114,71 +117,64 @@ export namespace Documents {
         return assignOptions(deleg, options);
     }
 
-    function GetImagePrototype(): Document {
-        if (!imageProto) {
-            imageProto = setupPrototypeOptions(imageProtoId, "IMAGE_PROTO", CollectionView.LayoutString("AnnotationsKey"),
-                { x: 0, y: 0, nativeWidth: 300, width: 300, layoutKeys: [KeyStore.Data, KeyStore.Annotations, KeyStore.Caption] });
-            imageProto.SetText(KeyStore.BackgroundLayout, ImageBox.LayoutString());
-            imageProto.SetNumber(KeyStore.CurPage, 0);
-        }
+    function CreateImagePrototype(): Document {
+        let imageProto = setupPrototypeOptions(imageProtoId, "IMAGE_PROTO", CollectionView.LayoutString("AnnotationsKey"),
+            { x: 0, y: 0, nativeWidth: 300, width: 300, layoutKeys: [KeyStore.Data, KeyStore.Annotations, KeyStore.Caption] });
+        imageProto.SetText(KeyStore.BackgroundLayout, ImageBox.LayoutString());
+        imageProto.SetNumber(KeyStore.CurPage, 0);
         return imageProto;
     }
-    function GetHistogramPrototype(): Document {
-        if (!histoProto) {
-            histoProto = setupPrototypeOptions(histoProtoId, "HISTO PROTO", CollectionView.LayoutString("AnnotationsKey"),
-                { x: 0, y: 0, width: 300, height: 300, backgroundColor: "black", layoutKeys: [KeyStore.Data, KeyStore.Annotations, KeyStore.Caption] });
-            histoProto.SetText(KeyStore.BackgroundLayout, HistogramBox.LayoutString());
-        }
+
+    function CreateHistogramPrototype(): Document {
+        let histoProto = setupPrototypeOptions(histoProtoId, "HISTO PROTO", CollectionView.LayoutString("AnnotationsKey"),
+            { x: 0, y: 0, width: 300, height: 300, backgroundColor: "black", layoutKeys: [KeyStore.Data, KeyStore.Annotations, KeyStore.Caption] });
+        histoProto.SetText(KeyStore.BackgroundLayout, HistogramBox.LayoutString());
         return histoProto;
     }
-    function GetTextPrototype(): Document {
-        return textProto ? textProto :
-            textProto = setupPrototypeOptions(textProtoId, "TEXT_PROTO", FormattedTextBox.LayoutString(),
-                { x: 0, y: 0, width: 300, height: 150, layoutKeys: [KeyStore.Data] });
+    function CreateTextPrototype(): Document {
+        let textProto = setupPrototypeOptions(textProtoId, "TEXT_PROTO", FormattedTextBox.LayoutString(),
+            { x: 0, y: 0, width: 300, height: 150, layoutKeys: [KeyStore.Data] });
+        return textProto
     }
-    function GetPdfPrototype(): Document {
-        if (!pdfProto) {
-            pdfProto = setupPrototypeOptions(pdfProtoId, "PDF_PROTO", CollectionPDFView.LayoutString("AnnotationsKey"),
-                { x: 0, y: 0, nativeWidth: 1200, width: 300, layoutKeys: [KeyStore.Data, KeyStore.Annotations] });
-            pdfProto.SetNumber(KeyStore.CurPage, 1);
-            pdfProto.SetText(KeyStore.BackgroundLayout, PDFBox.LayoutString());
-        }
+    function CreatePdfPrototype(): Document {
+        let pdfProto = setupPrototypeOptions(pdfProtoId, "PDF_PROTO", CollectionPDFView.LayoutString("AnnotationsKey"),
+            { x: 0, y: 0, nativeWidth: 1200, width: 300, layoutKeys: [KeyStore.Data, KeyStore.Annotations] });
+        pdfProto.SetNumber(KeyStore.CurPage, 1);
+        pdfProto.SetText(KeyStore.BackgroundLayout, PDFBox.LayoutString());
         return pdfProto;
     }
-    function GetWebPrototype(): Document {
-        return webProto ? webProto :
-            webProto = setupPrototypeOptions(webProtoId, "WEB_PROTO", WebBox.LayoutString(),
-                { x: 0, y: 0, width: 300, height: 300, layoutKeys: [KeyStore.Data] });
+    function CreateWebPrototype(): Document {
+        let webProto = setupPrototypeOptions(webProtoId, "WEB_PROTO", WebBox.LayoutString(),
+            { x: 0, y: 0, width: 300, height: 300, layoutKeys: [KeyStore.Data] });
+        return webProto;
     }
-    function GetCollectionPrototype(): Document {
-        return collProto ? collProto :
-            collProto = setupPrototypeOptions(collProtoId, "COLLECTION_PROTO", CollectionView.LayoutString("DataKey"),
-                { panx: 0, pany: 0, scale: 1, width: 500, height: 500, layoutKeys: [KeyStore.Data] });
+    function CreateCollectionPrototype(): Document {
+        let collProto = setupPrototypeOptions(collProtoId, "COLLECTION_PROTO", CollectionView.LayoutString("DataKey"),
+            { panx: 0, pany: 0, scale: 1, width: 500, height: 500, layoutKeys: [KeyStore.Data] });
+        return collProto;
     }
 
-    function GetKVPPrototype(): Document {
-        return kvpProto ? kvpProto :
-            kvpProto = setupPrototypeOptions(kvpProtoId, "KVP_PROTO", KeyValueBox.LayoutString(),
-                { x: 0, y: 0, width: 300, height: 150, layoutKeys: [KeyStore.Data] })
+    function CreateKVPPrototype(): Document {
+        let kvpProto = setupPrototypeOptions(kvpProtoId, "KVP_PROTO", KeyValueBox.LayoutString(),
+            { x: 0, y: 0, width: 300, height: 150, layoutKeys: [KeyStore.Data] });
+        return kvpProto;
     }
-    function GetVideoPrototype(): Document {
-        if (!videoProto) {
-            videoProto = setupPrototypeOptions(videoProtoId, "VIDEO_PROTO", CollectionVideoView.LayoutString("AnnotationsKey"),
-                { x: 0, y: 0, nativeWidth: 600, width: 300, layoutKeys: [KeyStore.Data, KeyStore.Annotations, KeyStore.Caption] });
-            videoProto.SetNumber(KeyStore.CurPage, 0);
-            videoProto.SetText(KeyStore.BackgroundLayout, VideoBox.LayoutString());
-        }
+    function CreateVideoPrototype(): Document {
+        let videoProto = setupPrototypeOptions(videoProtoId, "VIDEO_PROTO", CollectionVideoView.LayoutString("AnnotationsKey"),
+            { x: 0, y: 0, nativeWidth: 600, width: 300, layoutKeys: [KeyStore.Data, KeyStore.Annotations, KeyStore.Caption] });
+        videoProto.SetNumber(KeyStore.CurPage, 0);
+        videoProto.SetText(KeyStore.BackgroundLayout, VideoBox.LayoutString());
         return videoProto;
     }
-    function GetAudioPrototype(): Document {
-        return audioProto ? audioProto :
-            audioProto = setupPrototypeOptions(audioProtoId, "AUDIO_PROTO", AudioBox.LayoutString(),
-                { x: 0, y: 0, width: 300, height: 150, layoutKeys: [KeyStore.Data] })
+    function CreateAudioPrototype(): Document {
+        let audioProto = setupPrototypeOptions(audioProtoId, "AUDIO_PROTO", AudioBox.LayoutString(),
+            { x: 0, y: 0, width: 300, height: 150, layoutKeys: [KeyStore.Data] })
+        return audioProto;
     }
 
 
     export function ImageDocument(url: string, options: DocumentOptions = {}) {
-        return assignToDelegate(SetInstanceOptions(GetImagePrototype(), options, [new URL(url), ImageField]).MakeDelegate(), { ...options, layoutKeys: [KeyStore.Data, KeyStore.Annotations, KeyStore.Caption] });
+        return assignToDelegate(SetInstanceOptions(imageProto, options, [new URL(url), ImageField]).MakeDelegate(), { ...options, layoutKeys: [KeyStore.Data, KeyStore.Annotations, KeyStore.Caption] });
         // let doc = SetInstanceOptions(GetImagePrototype(), { ...options, layoutKeys: [KeyStore.Data, KeyStore.Annotations, KeyStore.Caption] },
         //     [new URL(url), ImageField]);
         // doc.SetText(KeyStore.Caption, "my caption...");
@@ -187,44 +183,44 @@ export namespace Documents {
         // return doc;
     }
     export function VideoDocument(url: string, options: DocumentOptions = {}) {
-        return assignToDelegate(SetInstanceOptions(GetVideoPrototype(), options, [new URL(url), VideoField]), options);
+        return assignToDelegate(SetInstanceOptions(videoProto, options, [new URL(url), VideoField]), options);
     }
     export function AudioDocument(url: string, options: DocumentOptions = {}) {
-        return assignToDelegate(SetInstanceOptions(GetAudioPrototype(), options, [new URL(url), AudioField]), options);
+        return assignToDelegate(SetInstanceOptions(audioProto, options, [new URL(url), AudioField]), options);
     }
 
     export function HistogramDocument(histoOp: HistogramOperation, options: DocumentOptions = {}, id?: string, delegId?: string) {
-        return assignToDelegate(SetInstanceOptions(GetHistogramPrototype(), options, [histoOp, HistogramField], id).MakeDelegate(delegId), options);
+        return assignToDelegate(SetInstanceOptions(histoProto, options, [histoOp, HistogramField], id).MakeDelegate(delegId), options);
     }
     export function TextDocument(options: DocumentOptions = {}) {
-        return assignToDelegate(SetInstanceOptions(GetTextPrototype(), options, ["", TextField]).MakeDelegate(), options);
+        return assignToDelegate(SetInstanceOptions(textProto, options, ["", TextField]).MakeDelegate(), options);
     }
     export function PdfDocument(url: string, options: DocumentOptions = {}) {
-        return assignToDelegate(SetInstanceOptions(GetPdfPrototype(), options, [new URL(url), PDFField]).MakeDelegate(), options);
+        return assignToDelegate(SetInstanceOptions(pdfProto, options, [new URL(url), PDFField]).MakeDelegate(), options);
     }
     export function WebDocument(url: string, options: DocumentOptions = {}) {
-        return assignToDelegate(SetInstanceOptions(GetWebPrototype(), options, [new URL(url), WebField]).MakeDelegate(), options);
+        return assignToDelegate(SetInstanceOptions(webProto, options, [new URL(url), WebField]).MakeDelegate(), options);
     }
     export function HtmlDocument(html: string, options: DocumentOptions = {}) {
-        return assignToDelegate(SetInstanceOptions(GetWebPrototype(), options, [html, HtmlField]).MakeDelegate(), options);
+        return assignToDelegate(SetInstanceOptions(webProto, options, [html, HtmlField]).MakeDelegate(), options);
     }
     export function KVPDocument(document: Document, options: DocumentOptions = {}, id?: string) {
-        return assignToDelegate(SetInstanceOptions(GetKVPPrototype(), options, document, id), options)
+        return assignToDelegate(SetInstanceOptions(kvpProto, options, document, id), options)
     }
     export function FreeformDocument(documents: Array<Document>, options: DocumentOptions, id?: string, makePrototype: boolean = true) {
         if (!makePrototype) {
-            return SetInstanceOptions(GetCollectionPrototype(), { ...options, viewType: CollectionViewType.Freeform }, [documents, ListField], id)
+            return SetInstanceOptions(collProto, { ...options, viewType: CollectionViewType.Freeform }, [documents, ListField], id)
         }
-        return assignToDelegate(SetInstanceOptions(GetCollectionPrototype(), { ...options, viewType: CollectionViewType.Freeform }, [documents, ListField], id).MakeDelegate(), options)
+        return assignToDelegate(SetInstanceOptions(collProto, { ...options, viewType: CollectionViewType.Freeform }, [documents, ListField], id).MakeDelegate(), options)
     }
     export function SchemaDocument(documents: Array<Document>, options: DocumentOptions, id?: string) {
-        return assignToDelegate(SetInstanceOptions(GetCollectionPrototype(), { ...options, viewType: CollectionViewType.Schema }, [documents, ListField], id), options)
+        return assignToDelegate(SetInstanceOptions(collProto, { ...options, viewType: CollectionViewType.Schema }, [documents, ListField], id), options)
     }
     export function TreeDocument(documents: Array<Document>, options: DocumentOptions, id?: string) {
-        return assignToDelegate(SetInstanceOptions(GetCollectionPrototype(), { ...options, viewType: CollectionViewType.Tree }, [documents, ListField], id), options)
+        return assignToDelegate(SetInstanceOptions(collProto, { ...options, viewType: CollectionViewType.Tree }, [documents, ListField], id), options)
     }
     export function DockDocument(config: string, options: DocumentOptions, id?: string) {
-        return assignToDelegate(SetInstanceOptions(GetCollectionPrototype(), { ...options, viewType: CollectionViewType.Docking }, [config, TextField], id), options)
+        return assignToDelegate(SetInstanceOptions(collProto, { ...options, viewType: CollectionViewType.Docking }, [config, TextField], id), options)
     }
 
     export function CaptionDocument(doc: Document) {

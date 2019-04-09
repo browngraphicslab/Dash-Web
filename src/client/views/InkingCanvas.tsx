@@ -10,6 +10,7 @@ import "./InkingCanvas.scss";
 import { InkingControl } from "./InkingControl";
 import { InkingStroke } from "./InkingStroke";
 import React = require("react");
+import { undoBatch, UndoManager } from "../util/UndoManager";
 
 interface InkCanvasProps {
     getScreenTransform: () => Transform;
@@ -22,6 +23,7 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
     maxCanvasDim = 8192 / 2; // 1/2 of the maximum canvas dimension for Chrome
     @observable inkMidX: number = 0;
     @observable inkMidY: number = 0;
+    private previousState?: StrokeMap;
     private _currentStrokeId: string = "";
     public static IntersectStrokeRect(stroke: StrokeData, selRect: { left: number, top: number, width: number, height: number }): boolean {
         return stroke.pathData.reduce((inside: boolean, val) => inside ||
@@ -59,23 +61,28 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
         if (e.button !== 0 || e.altKey || e.ctrlKey || InkingControl.Instance.selectedTool === InkTool.None) {
             return;
         }
+
         document.addEventListener("pointermove", this.onPointerMove, true);
         document.addEventListener("pointerup", this.onPointerUp, true);
         e.stopPropagation();
         e.preventDefault();
 
+        this.previousState = this.inkData;
+
         if (InkingControl.Instance.selectedTool !== InkTool.Eraser) {
             // start the new line, saves a uuid to represent the field of the stroke
             this._currentStrokeId = Utils.GenerateGuid();
-            this.inkData.set(this._currentStrokeId, {
+            const data = this.inkData;
+            data.set(this._currentStrokeId, {
                 pathData: [this.relativeCoordinatesForEvent(e.clientX, e.clientY)],
                 color: InkingControl.Instance.selectedColor,
                 width: InkingControl.Instance.selectedWidth,
                 tool: InkingControl.Instance.selectedTool,
                 page: this.props.Document.GetNumber(KeyStore.CurPage, -1)
             });
+            this.inkData = data;
         }
-    }
+    };
 
     @action
     onPointerUp = (e: PointerEvent): void => {
@@ -88,6 +95,16 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
         }
         e.stopPropagation();
         e.preventDefault();
+
+        const batch = UndoManager.StartBatch("One ink stroke");
+        const oldState = this.previousState || new Map;
+        this.previousState = undefined;
+        const newState = this.inkData;
+        UndoManager.AddEvent({
+            undo: () => this.inkData = oldState,
+            redo: () => this.inkData = newState,
+        });
+        batch.end();
     }
 
     @action
@@ -103,13 +120,14 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
             }
             this.inkData = data;
         }
-    }
+    };
 
     relativeCoordinatesForEvent = (ex: number, ey: number): { x: number, y: number } => {
         let [x, y] = this.props.getScreenTransform().transformPoint(ex, ey);
         return { x, y };
     }
 
+    @undoBatch
     @action
     removeLine = (id: string): void => {
         let data = this.inkData;

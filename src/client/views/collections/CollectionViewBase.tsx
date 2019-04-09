@@ -4,20 +4,17 @@ import { ListField } from "../../../fields/ListField";
 import React = require("react");
 import { KeyStore } from "../../../fields/KeyStore";
 import { FieldWaiting, Opt } from "../../../fields/Field";
-import { undoBatch } from "../../util/UndoManager";
+import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { DragManager } from "../../util/DragManager";
 import { Documents, DocumentOptions } from "../../documents/Documents";
-import { Key } from "../../../fields/Key";
-import { Transform } from "../../util/Transform";
-import { CollectionView } from "./CollectionView";
 import { RouteStore } from "../../../server/RouteStore";
 import { TupleField } from "../../../fields/TupleField";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { NumberField } from "../../../fields/NumberField";
-import request = require("request");
 import { ServerUtils } from "../../../server/ServerUtil";
 import { Server } from "../../Server";
 import { FieldViewProps } from "../nodes/FieldView";
+import * as rp from 'request-promise'
 
 export interface CollectionViewProps extends FieldViewProps {
     addDocument: (document: Document, allowDuplicates?: boolean) => boolean;
@@ -145,6 +142,7 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
         return ctor ? ctor(path, options) : undefined;
     }
 
+    @undoBatch
     @action
     protected onDrop(e: React.DragEvent, options: DocumentOptions): void {
         let html = e.dataTransfer.getData("text/html");
@@ -164,23 +162,29 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
             return;
         }
 
+        let batch = UndoManager.StartBatch("collection view drop");
+        let promises: Promise<void>[] = [];
         // tslint:disable-next-line:prefer-for-of
         for (let i = 0; i < e.dataTransfer.items.length; i++) {
             const upload = window.location.origin + RouteStore.upload;
             let item = e.dataTransfer.items[i];
             if (item.kind === "string" && item.type.indexOf("uri") !== -1) {
-                e.dataTransfer.items[i].getAsString(action((s: string) => {
-                    request.head(ServerUtils.prepend(RouteStore.corsProxy + "/" + s), (err, res, body) => {
+                let str: string;
+                let prom = new Promise<string>(res =>
+                    e.dataTransfer.items[i].getAsString(res)).then(action((s: string) => {
+                        str = s;
+                        return rp.head(ServerUtils.prepend(RouteStore.corsProxy + "/" + s))
+                    })).then(res => {
                         let type = res.headers["content-type"];
                         if (type) {
-                            let doc = this.getDocumentFromType(type, s, { ...options, width: 300, nativeWidth: 300 })
+                            let doc = this.getDocumentFromType(type, str, { ...options, width: 300, nativeWidth: 300 })
                             if (doc) {
                                 this.props.addDocument(doc, false);
                             }
                         }
                     });
-                    // this.props.addDocument(Documents.WebDocument(s, { ...options, width: 300, height: 300 }), false)
-                }))
+                promises.push(prom);
+                // this.props.addDocument(Documents.WebDocument(s, { ...options, width: 300, height: 300 }), false)
             }
             let type = item.type
             if (item.kind === "file") {
@@ -191,7 +195,7 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
                     formData.append('file', file)
                 }
 
-                fetch(upload, {
+                let prom = fetch(upload, {
                     method: 'POST',
                     body: formData
                 }).then(async (res: Response) => {
@@ -211,10 +215,17 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
                                     docs.Data.push(doc);
                                 }
                             }
-                        })
-                    })
-                })
+                        });
+                    });
+                });
+                promises.push(prom);
             }
+        }
+
+        if (promises.length) {
+            Promise.all(promises).catch(() => { }).then(() => batch.end());
+        } else {
+            batch.end();
         }
     }
 }

@@ -379,6 +379,9 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     // }
     render() {
         var bounds = this.Bounds;
+        if (bounds.x === Number.MAX_VALUE) {
+            return (null);
+        }
         // console.log(this._documents.length)
         // let test = this._documents[0].props.Document.Title;
         if (this.Hidden) {
