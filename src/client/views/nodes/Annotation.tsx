@@ -4,13 +4,13 @@ import { observer } from "mobx-react"
 import { observable, action } from 'mobx';
 import 'react-pdf/dist/Page/AnnotationLayer.css'
 
-interface IProps{
+interface IProps {
     Span: HTMLSpanElement;
-    X: number; 
-    Y: number; 
-    Highlights: any[]; 
-    Annotations: any[]; 
-    CurrAnno: any[]; 
+    X: number;
+    Y: number;
+    Highlights: any[];
+    Annotations: any[];
+    CurrAnno: any[];
 
 }
 
@@ -23,95 +23,95 @@ interface IProps{
  */
 @observer
 export class Annotation extends React.Component<IProps> {
-    
+
     /**
      * changes color of the span (highlighted section)
      */
-    onColorChange = (e:React.PointerEvent) => {
-        if (e.currentTarget.innerHTML == "r"){
+    onColorChange = (e: React.PointerEvent) => {
+        if (e.currentTarget.innerHTML === "r") {
             this.props.Span.style.backgroundColor = "rgba(255,0,0, 0.3)"
-        } else if (e.currentTarget.innerHTML == "b"){
+        } else if (e.currentTarget.innerHTML === "b") {
             this.props.Span.style.backgroundColor = "rgba(0,255, 255, 0.3)"
-        } else if (e.currentTarget.innerHTML == "y"){
+        } else if (e.currentTarget.innerHTML === "y") {
             this.props.Span.style.backgroundColor = "rgba(255,255,0, 0.3)"
-        } else if (e.currentTarget.innerHTML == "g"){
+        } else if (e.currentTarget.innerHTML === "g") {
             this.props.Span.style.backgroundColor = "rgba(76, 175, 80, 0.3)"
         }
-      
+
     }
 
     /**
      * removes the highlighted span. Supposed to remove Annotation too, but I don't know how to unmount this
      */
     @action
-    onRemove = (e:any) => {
-        let index:number = -1; 
+    onRemove = (e: any) => {
+        let index: number = -1;
         //finding the highlight in the highlight array 
         this.props.Highlights.forEach((e) => {
-            for (let i = 0; i < e.spans.length; i++){
-                if (e.spans[i] == this.props.Span){
-                    index = this.props.Highlights.indexOf(e); 
-                    this.props.Highlights.splice(index, 1); 
+            for (const span of e.spans) {
+                if (span === this.props.Span) {
+                    index = this.props.Highlights.indexOf(e);
+                    this.props.Highlights.splice(index, 1);
                 }
             }
         })
 
         //removing from CurrAnno and Annotation array 
-        this.props.Annotations.splice(index, 1); 
+        this.props.Annotations.splice(index, 1);
         this.props.CurrAnno.pop()
-        
+
         //removing span from div
-        if(this.props.Span.parentElement){
-            let nodesArray = this.props.Span.parentElement.childNodes; 
+        if (this.props.Span.parentElement) {
+            let nodesArray = this.props.Span.parentElement.childNodes;
             nodesArray.forEach((e) => {
-                if (e == this.props.Span){
-                    if (this.props.Span.parentElement){   
+                if (e === this.props.Span) {
+                    if (this.props.Span.parentElement) {
                         this.props.Highlights.forEach((item) => {
-                            if (item == e){
-                                item.remove(); 
+                            if (item === e) {
+                                item.remove();
                             }
                         })
-                        e.remove();                   
+                        e.remove();
                     }
                 }
-            }) 
+            })
         }
-    
-        
+
+
     }
 
     render() {
         return (
-            <div 
-            style = {{
-            position: "absolute",
-            top: "20px", 
-            left: "0px",  
-            zIndex: 1, 
-            transform: `translate(${this.props.X}px, ${this.props.Y}px)`,
-            
-            }}>
-                <div style = {{width:"200px", height:"50px", backgroundColor: "orange"}}>
+            <div
+                style={{
+                    position: "absolute",
+                    top: "20px",
+                    left: "0px",
+                    zIndex: 1,
+                    transform: `translate(${this.props.X}px, ${this.props.Y}px)`,
+
+                }}>
+                <div style={{ width: "200px", height: "50px", backgroundColor: "orange" }}>
                     <button
-                    style = {{borderRadius: "25px", width:"25%", height:"100%"}}
-                    onClick = {this.onRemove}
+                        style={{ borderRadius: "25px", width: "25%", height: "100%" }}
+                        onClick={this.onRemove}
                     >x</button>
-                    <div style = {{width:"75%", height: "100%" , display:"inline-block"}}>
-                        <button onPointerDown = {this.onColorChange} style = {{backgroundColor:"red", borderRadius:"50%", color: "transparent"}}>r</button>
-                        <button onPointerDown = {this.onColorChange} style = {{backgroundColor:"blue", borderRadius:"50%", color: "transparent"}}>b</button>
-                        <button onPointerDown = {this.onColorChange} style = {{backgroundColor:"yellow", borderRadius:"50%", color:"transparent"}}>y</button>
-                        <button onPointerDown = {this.onColorChange} style = {{backgroundColor:"green", borderRadius:"50%", color:"transparent"}}>g</button>
+                    <div style={{ width: "75%", height: "100%", display: "inline-block" }}>
+                        <button onPointerDown={this.onColorChange} style={{ backgroundColor: "red", borderRadius: "50%", color: "transparent" }}>r</button>
+                        <button onPointerDown={this.onColorChange} style={{ backgroundColor: "blue", borderRadius: "50%", color: "transparent" }}>b</button>
+                        <button onPointerDown={this.onColorChange} style={{ backgroundColor: "yellow", borderRadius: "50%", color: "transparent" }}>y</button>
+                        <button onPointerDown={this.onColorChange} style={{ backgroundColor: "green", borderRadius: "50%", color: "transparent" }}>g</button>
                     </div>
-                    
+
                 </div>
-                <div  style = {{width:"200px", height:"200"}}>
-                    <textarea style = {{width: "100%", height: "100%"}}
-                    defaultValue = "Enter Text Here..."
-                   
+                <div style={{ width: "200px", height: "200" }}>
+                    <textarea style={{ width: "100%", height: "100%" }}
+                        defaultValue="Enter Text Here..."
+
                     ></textarea>
                 </div>
             </div>
-          
+
         );
     }
 }

@@ -85,7 +85,7 @@ export class GeometryUtil {
     //         var xi = vs[i].x, yi = vs[i].y;
     //         var xj = vs[j].x, yj = vs[j].y;
 
-    //         var intersect = ((yi > y) != (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+    //         var intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
     //         if (intersect) 
     //            inside = !inside;
     //     }

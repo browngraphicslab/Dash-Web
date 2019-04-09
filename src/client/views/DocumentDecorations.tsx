@@ -55,15 +55,15 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     enterPressed = (e: any) => {
         var key = e.keyCode || e.which;
         // enter pressed
-        if (key == 13) {
+        if (key === 13) {
             var text = e.target.value;
-            if (text[0] == '#') {
+            if (text[0] === '#') {
                 let command = text.slice(1, text.length);
                 this._fieldKey = new Key(command)
-                // if (command == "Title" || command == "title") {
+                // if (command === "Title" || command === "title") {
                 //     this._fieldKey = KeyStore.Title;
                 // }
-                // else if (command == "Width" || command == "width") {
+                // else if (command === "Width" || command === "width") {
                 //     this._fieldKey = KeyStore.Width;
                 // }
                 this._title = "changed"
@@ -117,23 +117,17 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         dragData.aliasOnDrop = false;
         dragData.xOffset = e.x - left;
         dragData.yOffset = e.y - top;
-        dragData.removeDocument = (dropCollectionView: CollectionView) =>
-            dragData.draggedDocuments.map(d => {
-                if (dragDocView.props.RemoveDocument && dragDocView.props.ContainingCollectionView !== dropCollectionView) {
-                    dragDocView.props.RemoveDocument(d);
-                }
-            });
+        let move = SelectionManager.SelectedDocuments()[0].props.moveDocument;
+        dragData.moveDocument = move;
         this._dragging = true;
         document.removeEventListener("pointermove", this.onBackgroundMove);
         document.removeEventListener("pointerup", this.onBackgroundUp);
-        DragManager.StartDocumentDrag(SelectionManager.SelectedDocuments().map(docView => (docView as any)._mainCont!.current!), dragData,
-            e.x, e.y,
-            {
-                handlers: {
-                    dragComplete: action(() => this._dragging = false),
-                },
-                hideSource: true
-            })
+        DragManager.StartDocumentDrag(SelectionManager.SelectedDocuments().map(docView => docView.ContentRef.current!), dragData, e.x, e.y, {
+            handlers: {
+                dragComplete: action(() => this._dragging = false),
+            },
+            hideSource: true
+        })
         e.stopPropagation();
     }
 
@@ -162,7 +156,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     onCloseUp = (e: PointerEvent): void => {
         e.stopPropagation();
         if (e.button === 0) {
-            SelectionManager.SelectedDocuments().map(dv => dv.props.RemoveDocument && dv.props.RemoveDocument(dv.props.Document));
+            SelectionManager.SelectedDocuments().map(dv => dv.props.removeDocument && dv.props.removeDocument(dv.props.Document));
             SelectionManager.DeselectAll();
             document.removeEventListener("pointermove", this.onCloseMove);
             document.removeEventListener("pointerup", this.onCloseUp);
@@ -217,7 +211,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     }
 
     onLinkerButtonMoved = (e: PointerEvent): void => {
-        if (this._linkerButton.current != null) {
+        if (this._linkerButton.current !== null) {
             document.removeEventListener("pointermove", this.onLinkerButtonMoved)
             document.removeEventListener("pointerup", this.onLinkerButtonUp)
             let dragData = new DragManager.LinkDragData(SelectionManager.SelectedDocuments()[0]);
@@ -246,25 +240,24 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     }
 
     onLinkButtonMoved = async (e: PointerEvent) => {
-        if (this._linkButton.current != null) {
+        if (this._linkButton.current !== null) {
             document.removeEventListener("pointermove", this.onLinkButtonMoved)
             document.removeEventListener("pointerup", this.onLinkButtonUp);
 
             let sourceDoc = SelectionManager.SelectedDocuments()[0].props.Document;
             let srcTarg = sourceDoc.GetT(KeyStore.Prototype, Document)
-            let draggedDocs = (srcTarg && srcTarg != FieldWaiting) ?
+            let draggedDocs = (srcTarg && srcTarg !== FieldWaiting) ?
                 srcTarg.GetList(KeyStore.LinkedToDocs, [] as Document[]).map(linkDoc =>
                     (linkDoc.GetT(KeyStore.LinkedToDocs, Document)) as Document) : [];
-            let draggedFromDocs = (srcTarg && srcTarg != FieldWaiting) ?
+            let draggedFromDocs = (srcTarg && srcTarg !== FieldWaiting) ?
                 srcTarg.GetList(KeyStore.LinkedFromDocs, [] as Document[]).map(linkDoc =>
                     (linkDoc.GetT(KeyStore.LinkedFromDocs, Document)) as Document) : [];
             draggedDocs.push(...draggedFromDocs);
             if (draggedDocs.length) {
                 let moddrag = [] as Document[];
-                for (let i = 0; i < draggedDocs.length; i++) {
-                    let doc = await draggedDocs[i].GetTAsync(KeyStore.AnnotationOn, Document);
-                    if (doc)
-                        moddrag.push(doc);
+                for (const draggedDoc of draggedDocs) {
+                    let doc = await draggedDoc.GetTAsync(KeyStore.AnnotationOn, Document);
+                    if (doc) moddrag.push(doc);
                 }
                 let dragData = new DragManager.DocumentDragData(moddrag);
                 DragManager.StartDocumentDrag([this._linkButton.current], dragData, e.x, e.y, {

@@ -143,7 +143,7 @@ addSecureRoute(
     Method.GET,
     (user, res, req) => {
         let detector = new mobileDetect(req.headers['user-agent'] || "");
-        if (detector.mobile() != null) {
+        if (detector.mobile() !== null) {
             res.sendFile(path.join(__dirname, '../../deploy/mobile/image.html'));
         } else {
             res.sendFile(path.join(__dirname, '../../deploy/index.html'));
@@ -263,12 +263,10 @@ function deleteFields() {
     return Database.Instance.deleteAll();
 }
 
-function deleteAll() {
-    return Database.Instance.deleteAll().then(() => {
-        return Database.Instance.deleteAll('sessions')
-    }).then(() => {
-        return Database.Instance.deleteAll('users')
-    });
+async function deleteAll() {
+    await Database.Instance.deleteAll();
+    await Database.Instance.deleteAll('sessions');
+    await Database.Instance.deleteAll('users');
 }
 
 function barReceived(guid: String) {

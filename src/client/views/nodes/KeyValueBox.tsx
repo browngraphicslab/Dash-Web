@@ -32,10 +32,10 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
 
     @action
     onEnterKey = (e: React.KeyboardEvent): void => {
-        if (e.key == 'Enter') {
+        if (e.key === 'Enter') {
             if (this._keyInput && this._valueInput) {
-                let doc = this.props.doc.GetT(KeyStore.Data, Document);
-                if (!doc || doc == FieldWaiting) {
+                let doc = this.props.Document.GetT(KeyStore.Data, Document);
+                if (!doc || doc === FieldWaiting) {
                     return
                 }
                 let realDoc = doc;
@@ -71,8 +71,8 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
     }
 
     createTable = () => {
-        let doc = this.props.doc.GetT(KeyStore.Data, Document);
-        if (!doc || doc == FieldWaiting) {
+        let doc = this.props.Document.GetT(KeyStore.Data, Document);
+        if (!doc || doc === FieldWaiting) {
             return <tr><td>Loading...</td></tr>
         }
         let realDoc = doc;
@@ -105,14 +105,13 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
         this._valueInput = e.currentTarget.value;
     }
 
-    newKeyValue = () => {
-        return (
+    newKeyValue = () =>
+        (
             <tr>
                 <td><input type="text" value={this._keyInput} placeholder="Key" onChange={this.keyChanged} /></td>
                 <td><input type="text" value={this._valueInput} placeholder="Value" onChange={this.valueChanged} onKeyPress={this.onEnterKey} /></td>
             </tr>
         )
-    }
 
     render() {
         return (<div className="keyValueBox-cont" onWheel={this.onPointerWheel}>

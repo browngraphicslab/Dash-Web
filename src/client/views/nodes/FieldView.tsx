@@ -19,6 +19,7 @@ import { ListField } from "../../../fields/ListField";
 import { DocumentContentsView } from "./DocumentContentsView";
 import { Transform } from "../../util/Transform";
 import { KeyStore } from "../../../fields/KeyStore";
+import { returnFalse } from "../../../Utils";
 
 
 //
@@ -28,23 +29,29 @@ import { KeyStore } from "../../../fields/KeyStore";
 //
 export interface FieldViewProps {
     fieldKey: Key;
-    doc: Document;
+    Document: Document;
     isSelected: () => boolean;
-    select: () => void;
+    select: (isCtrlPressed: boolean) => void;
     isTopMost: boolean;
     selectOnLoad: boolean;
-    bindings: any;
+    addDocument?: (document: Document, allowDuplicates?: boolean) => boolean;
+    removeDocument?: (document: Document) => boolean;
+    moveDocument?: (document: Document, targetCollection: Document, addDocument: (document: Document) => boolean) => boolean;
+    ScreenToLocalTransform: () => Transform;
+    active: () => boolean;
+    onActiveChanged: (isActive: boolean) => void;
+    focus: (doc: Document) => void;
 }
 
 @observer
 export class FieldView extends React.Component<FieldViewProps> {
     public static LayoutString(fieldType: { name: string }, fieldStr: string = "DataKey") {
-        return `<${fieldType.name} doc={Document} DocumentViewForField={DocumentView} bindings={bindings} fieldKey={${fieldStr}} isSelected={isSelected} select={select} selectOnLoad={SelectOnLoad} isTopMost={isTopMost} />`;
+        return `<${fieldType.name} {...props} fieldKey={${fieldStr}} />`;
     }
 
     @computed
     get field(): FieldValue<Field> {
-        const { doc, fieldKey } = this.props;
+        const { Document: doc, fieldKey } = this.props;
         return doc.Get(fieldKey);
     }
     render() {
@@ -68,26 +75,28 @@ export class FieldView extends React.Component<FieldViewProps> {
             return <AudioBox {...this.props} />
         }
         else if (field instanceof Document) {
-            return (<DocumentContentsView Document={field}
-                AddDocument={undefined}
-                RemoveDocument={undefined}
-                ScreenToLocalTransform={() => Transform.Identity}
-                ContentScaling={() => 1}
-                PanelWidth={() => 100}
-                PanelHeight={() => 100}
-                isTopMost={true}
-                SelectOnLoad={false}
-                focus={() => { }}
-                isSelected={() => false}
-                select={() => false}
-                layoutKey={KeyStore.Layout}
-                ContainingCollectionView={undefined} />)
+            return (
+                <DocumentContentsView Document={field}
+                    addDocument={undefined}
+                    removeDocument={undefined}
+                    ScreenToLocalTransform={Transform.Identity}
+                    ContentScaling={() => 1}
+                    PanelWidth={() => 100}
+                    PanelHeight={() => 100}
+                    isTopMost={true} //TODO Why is this top most?
+                    selectOnLoad={false}
+                    focus={() => { }}
+                    isSelected={() => false}
+                    select={() => false}
+                    layoutKey={KeyStore.Layout}
+                    ContainingCollectionView={undefined}
+                    parentActive={this.props.active}
+                    onActiveChanged={this.props.onActiveChanged} />
+            )
         }
         else if (field instanceof ListField) {
             return (<div>
-                {(field as ListField<Field>).Data.map(f => {
-                    return f instanceof Document ? f.Title : f.GetValue().toString();
-                }).join(", ")}
+                {(field as ListField<Field>).Data.map(f => f instanceof Document ? f.Title : f.GetValue().toString()).join(", ")}
             </div>)
         }
         // bcz: this belongs here, but it doesn't render well so taking it out for now
@@ -97,7 +106,7 @@ export class FieldView extends React.Component<FieldViewProps> {
         else if (field instanceof NumberField) {
             return <p>{field.Data}</p>
         }
-        else if (field != FieldWaiting) {
+        else if (field !== FieldWaiting) {
             return <p>{JSON.stringify(field.GetValue())}</p>
         }
         else

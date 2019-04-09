@@ -24,7 +24,7 @@ export class LinkMenu extends React.Component<Props> {
     renderLinkItems(links: Document[], key: Key, type: string) {
         return links.map(link => {
             let doc = link.GetT(key, Document);
-            if (doc && doc != FieldWaiting) {
+            if (doc && doc !== FieldWaiting) {
                 return <LinkBox key={doc.Id} linkDoc={link} linkName={link.Title} pairedDoc={doc} showEditor={action(() => this._editingLink = link)} type={type} />
             }
         })

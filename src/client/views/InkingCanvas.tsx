@@ -58,7 +58,7 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
 
     @action
     onPointerDown = (e: React.PointerEvent): void => {
-        if (e.button != 0 || e.altKey || e.ctrlKey || InkingControl.Instance.selectedTool === InkTool.None) {
+        if (e.button !== 0 || e.altKey || e.ctrlKey || InkingControl.Instance.selectedTool === InkTool.None) {
             return;
         }
 
@@ -69,7 +69,7 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
 
         this.previousState = this.inkData;
 
-        if (InkingControl.Instance.selectedTool != InkTool.Eraser) {
+        if (InkingControl.Instance.selectedTool !== InkTool.Eraser) {
             // start the new line, saves a uuid to represent the field of the stroke
             this._currentStrokeId = Utils.GenerateGuid();
             const data = this.inkData;
@@ -111,7 +111,7 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
     onPointerMove = (e: PointerEvent): void => {
         e.stopPropagation()
         e.preventDefault();
-        if (InkingControl.Instance.selectedTool != InkTool.Eraser) {
+        if (InkingControl.Instance.selectedTool !== InkTool.Eraser) {
             let data = this.inkData;  // add points to new line as it is being drawn
             let strokeData = data.get(this._currentStrokeId);
             if (strokeData) {
@@ -139,7 +139,7 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
     get drawnPaths() {
         let curPage = this.props.Document.GetNumber(KeyStore.CurPage, -1)
         let paths = Array.from(this.inkData).reduce((paths, [id, strokeData]) => {
-            if (strokeData.page == -1 || strokeData.page == curPage)
+            if (strokeData.page === -1 || strokeData.page === curPage)
                 paths.push(<InkingStroke key={id} id={id} line={strokeData.pathData}
                     offsetX={this.maxCanvasDim - this.inkMidX}
                     offsetY={this.maxCanvasDim - this.inkMidY}
@@ -149,16 +149,16 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
         }, [] as JSX.Element[]);
         return [<svg className={`inkingCanvas-paths-markers`} key="Markers"
             style={{ left: `${this.inkMidX - this.maxCanvasDim}px`, top: `${this.inkMidY - this.maxCanvasDim}px` }} >
-            {paths.filter(path => path.props.tool == InkTool.Highlighter)}
+            {paths.filter(path => path.props.tool === InkTool.Highlighter)}
         </svg>,
         <svg className={`inkingCanvas-paths-ink`} key="Pens"
             style={{ left: `${this.inkMidX - this.maxCanvasDim}px`, top: `${this.inkMidY - this.maxCanvasDim}px` }}>
-            {paths.filter(path => path.props.tool != InkTool.Highlighter)}
+            {paths.filter(path => path.props.tool !== InkTool.Highlighter)}
         </svg>];
     }
 
     render() {
-        let svgCanvasStyle = InkingControl.Instance.selectedTool != InkTool.None ? "canSelect" : "noSelect";
+        let svgCanvasStyle = InkingControl.Instance.selectedTool !== InkTool.None ? "canSelect" : "noSelect";
         return (
             <div className="inkingCanvas" >
                 <div className={`inkingCanvas-${svgCanvasStyle}`} onPointerDown={this.onPointerDown} />

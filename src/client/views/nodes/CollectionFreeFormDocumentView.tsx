@@ -52,14 +52,12 @@ export class CollectionFreeFormDocumentView extends React.Component<DocumentView
         this.props.Document.SetData(KeyStore.ZIndex, h, NumberField)
     }
 
-    contentScaling = () => {
-        return this.nativeWidth > 0 ? this.width / this.nativeWidth : 1;
-    }
+    contentScaling = () => this.nativeWidth > 0 ? this.width / this.nativeWidth : 1
 
-    getTransform = (): Transform => {
-        return this.props.ScreenToLocalTransform().
-            translate(-this.props.Document.GetNumber(KeyStore.X, 0), -this.props.Document.GetNumber(KeyStore.Y, 0)).scale(1 / this.contentScaling());
-    }
+    getTransform = (): Transform =>
+        this.props.ScreenToLocalTransform()
+            .translate(-this.props.Document.GetNumber(KeyStore.X, 0), -this.props.Document.GetNumber(KeyStore.Y, 0))
+            .scale(1 / this.contentScaling())
 
     @computed
     get docView() {

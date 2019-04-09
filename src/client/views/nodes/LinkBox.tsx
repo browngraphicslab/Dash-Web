@@ -49,7 +49,7 @@ export class LinkBox extends React.Component<Props> {
                 } else if (contextDoc instanceof Document) {
                     this.props.pairedDoc.GetTAsync(KeyStore.Page, NumberField).then((pfield: any) => {
                         contextDoc.GetTAsync(KeyStore.CurPage, NumberField).then((cfield: any) => {
-                            if (pfield != cfield)
+                            if (pfield !== cfield)
                                 contextDoc.SetNumber(KeyStore.CurPage, pfield.Data);
                             let contextView = DocumentManager.Instance.getDocumentView(contextDoc);
                             if (contextView) {

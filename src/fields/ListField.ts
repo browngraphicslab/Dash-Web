@@ -26,7 +26,7 @@ export class ListField<T extends Field> extends BasicField<T[]> {
         }
         this.observeDisposer = observe(this.Data as IObservableArray<T>, (change: IArrayChange<T> | IArraySplice<T>) => {
             this.updateProxies()
-            if (change.type == "splice") {
+            if (change.type === "splice") {
                 UndoManager.AddEvent({
                     undo: () => this.Data.splice(change.index, change.addedCount, ...change.removed),
                     redo: () => this.Data.splice(change.index, change.removedCount, ...change.added)
@@ -57,8 +57,8 @@ export class ListField<T extends Field> extends BasicField<T[]> {
     }
     private arraysEqual(a: any[], b: any[]) {
         if (a === b) return true;
-        if (a == null || b == null) return false;
-        if (a.length != b.length) return false;
+        if (a === null || b === null) return false;
+        if (a.length !== b.length) return false;
 
         // If you don't care about the order of the elements inside
         // the array, you should sort both arrays here.
@@ -79,9 +79,9 @@ export class ListField<T extends Field> extends BasicField<T[]> {
                 var added = this.data.length < this._proxies.length;
                 var deleted = this.data.length > this._proxies.length;
                 for (let i = 0; i < dataids.length && added; i++)
-                    added = proxies.indexOf(dataids[i]) != -1;
+                    added = proxies.indexOf(dataids[i]) !== -1;
                 for (let i = 0; i < this._proxies.length && deleted; i++)
-                    deleted = dataids.indexOf(proxies[i]) != -1;
+                    deleted = dataids.indexOf(proxies[i]) !== -1;
 
                 this._processingServerUpdate = true;
                 for (let i = 0; i < proxies.length && added; i++) {

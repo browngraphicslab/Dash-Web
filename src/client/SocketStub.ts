@@ -55,7 +55,7 @@ export class SocketStub {
         if (callback) {
             fn(callback);
         } else {
-            return new Promise(res => fn(res))
+            return new Promise(fn)
         }
     }
 

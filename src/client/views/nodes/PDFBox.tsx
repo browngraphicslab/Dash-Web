@@ -89,14 +89,14 @@ export class PDFBox extends React.Component<FieldViewProps> {
     @observable private _interactive: boolean = false;
     @observable private _loaded: boolean = false;
 
-    @computed private get curPage() { return this.props.doc.GetNumber(KeyStore.CurPage, 1); }
-    @computed private get thumbnailPage() { return this.props.doc.GetNumber(KeyStore.ThumbnailPage, -1); }
+    @computed private get curPage() { return this.props.Document.GetNumber(KeyStore.CurPage, 1); }
+    @computed private get thumbnailPage() { return this.props.Document.GetNumber(KeyStore.ThumbnailPage, -1); }
 
     componentDidMount() {
         this._reactionDisposer = reaction(
             () => [SelectionManager.SelectedDocuments().slice()],
             () => {
-                if (this.curPage > 0 && this.thumbnailPage > 0 && this.curPage != this.thumbnailPage && !this.props.isSelected()) {
+                if (this.curPage > 0 && this.thumbnailPage > 0 && this.curPage !== this.thumbnailPage && !this.props.isSelected()) {
                     this.saveThumbnail();
                     this._interactive = true;
                 }
@@ -167,16 +167,16 @@ export class PDFBox extends React.Component<FieldViewProps> {
 
             let obj: Object = { parentDivs: [], spans: [] };
             //@ts-ignore
-            if (range.commonAncestorContainer.className == 'react-pdf__Page__textContent') { //multiline highlighting case
+            if (range.commonAncestorContainer.className === 'react-pdf__Page__textContent') { //multiline highlighting case
                 obj = this.highlightNodes(range.commonAncestorContainer.childNodes)
             } else { //single line highlighting case
                 let parentDiv = range.commonAncestorContainer.parentElement
                 if (parentDiv) {
-                    if (parentDiv.className == 'react-pdf__Page__textContent') { //when highlight is overwritten
+                    if (parentDiv.className === 'react-pdf__Page__textContent') { //when highlight is overwritten
                         obj = this.highlightNodes(parentDiv.childNodes)
                     } else {
                         parentDiv.childNodes.forEach((child) => {
-                            if (child.nodeName == 'SPAN') {
+                            if (child.nodeName === 'SPAN') {
                                 //@ts-ignore
                                 obj.parentDivs.push(parentDiv)
                                 //@ts-ignore
@@ -199,7 +199,7 @@ export class PDFBox extends React.Component<FieldViewProps> {
         let temp = { parentDivs: [], spans: [] }
         nodes.forEach((div) => {
             div.childNodes.forEach((child) => {
-                if (child.nodeName == 'SPAN') {
+                if (child.nodeName === 'SPAN') {
                     //@ts-ignore
                     temp.parentDivs.push(div)
                     //@ts-ignore
@@ -223,7 +223,7 @@ export class PDFBox extends React.Component<FieldViewProps> {
         let index: any;
         this._pageInfo.divs.forEach((obj: any) => {
             obj.spans.forEach((element: any) => {
-                if (element == span) {
+                if (element === span) {
                     if (!index) {
                         index = this._pageInfo.divs.indexOf(obj);
                     }
@@ -232,11 +232,11 @@ export class PDFBox extends React.Component<FieldViewProps> {
         })
 
         if (this._pageInfo.anno.length >= index + 1) {
-            if (this._currAnno.length == 0) {
+            if (this._currAnno.length === 0) {
                 this._currAnno.push(this._pageInfo.anno[index]);
             }
         } else {
-            if (this._currAnno.length == 0) { //if there are no current annotation
+            if (this._currAnno.length === 0) { //if there are no current annotation
                 let div = span.offsetParent;
                 //@ts-ignore
                 let divX = div.style.left
@@ -317,7 +317,7 @@ export class PDFBox extends React.Component<FieldViewProps> {
      * starts drawing the line when user presses down. 
      */
     onDraw = () => {
-        if (this._currTool != null) {
+        if (this._currTool !== null) {
             this._currTool.style.backgroundColor = "grey";
         }
 
@@ -342,13 +342,13 @@ export class PDFBox extends React.Component<FieldViewProps> {
      * for changing color (for ink/pen)
      */
     onColorChange = (e: React.PointerEvent) => {
-        if (e.currentTarget.innerHTML == "Red") {
+        if (e.currentTarget.innerHTML === "Red") {
             this._currColor = "red";
-        } else if (e.currentTarget.innerHTML == "Blue") {
+        } else if (e.currentTarget.innerHTML === "Blue") {
             this._currColor = "blue";
-        } else if (e.currentTarget.innerHTML == "Green") {
+        } else if (e.currentTarget.innerHTML === "Green") {
             this._currColor = "green";
-        } else if (e.currentTarget.innerHTML == "Black") {
+        } else if (e.currentTarget.innerHTML === "Black") {
             this._currColor = "black";
         }
 
@@ -360,7 +360,7 @@ export class PDFBox extends React.Component<FieldViewProps> {
      */
     onHighlight = () => {
         this._drawToolOn = false;
-        if (this._currTool != null) {
+        if (this._currTool !== null) {
             this._currTool.style.backgroundColor = "grey";
         }
         if (this._highlightTool.current) {
@@ -381,12 +381,12 @@ export class PDFBox extends React.Component<FieldViewProps> {
         this._renderAsSvg = false;
         setTimeout(() => {
             var me = this;
-            let nwidth = me.props.doc.GetNumber(KeyStore.NativeWidth, 0);
-            let nheight = me.props.doc.GetNumber(KeyStore.NativeHeight, 0);
+            let nwidth = me.props.Document.GetNumber(KeyStore.NativeWidth, 0);
+            let nheight = me.props.Document.GetNumber(KeyStore.NativeHeight, 0);
             htmlToImage.toPng(this._mainDiv.current!, { width: nwidth, height: nheight, quality: 1 })
                 .then(action((dataUrl: string) => {
-                    me.props.doc.SetData(KeyStore.Thumbnail, new URL(dataUrl), ImageField);
-                    me.props.doc.SetNumber(KeyStore.ThumbnailPage, me.props.doc.GetNumber(KeyStore.CurPage, -1));
+                    me.props.Document.SetData(KeyStore.Thumbnail, new URL(dataUrl), ImageField);
+                    me.props.Document.SetNumber(KeyStore.ThumbnailPage, me.props.Document.GetNumber(KeyStore.CurPage, -1));
                     me._renderAsSvg = true;
                 }))
                 .catch(function (error: any) {
@@ -399,7 +399,7 @@ export class PDFBox extends React.Component<FieldViewProps> {
     onLoaded = (page: any) => {
         if (this._mainDiv.current) {
             this._mainDiv.current.childNodes.forEach((element) => {
-                if (element.nodeName == "DIV") {
+                if (element.nodeName === "DIV") {
                     element.childNodes[0].childNodes.forEach((e) => {
 
                         if (e instanceof HTMLCanvasElement) {
@@ -414,8 +414,8 @@ export class PDFBox extends React.Component<FieldViewProps> {
         }
 
         // bcz: the number of pages should really be set when the document is imported.
-        this.props.doc.SetNumber(KeyStore.NumPages, page._transport.numPages);
-        if (this._perPageInfo.length == 0) { //Makes sure it only runs once
+        this.props.Document.SetNumber(KeyStore.NumPages, page._transport.numPages);
+        if (this._perPageInfo.length === 0) { //Makes sure it only runs once
             this._perPageInfo = [...Array(page._transport.numPages)]
         }
         this._loaded = true;
@@ -426,11 +426,11 @@ export class PDFBox extends React.Component<FieldViewProps> {
         // bcz: the nativeHeight should really be set when the document is imported.
         //      also, the native dimensions could be different for different pages of the PDF
         //      so this design is flawed.
-        var nativeWidth = this.props.doc.GetNumber(KeyStore.NativeWidth, 0);
-        if (!this.props.doc.GetNumber(KeyStore.NativeHeight, 0)) {
+        var nativeWidth = this.props.Document.GetNumber(KeyStore.NativeWidth, 0);
+        if (!this.props.Document.GetNumber(KeyStore.NativeHeight, 0)) {
             var nativeHeight = nativeWidth * r.entry.height / r.entry.width;
-            this.props.doc.SetNumber(KeyStore.Height, nativeHeight / nativeWidth * this.props.doc.GetNumber(KeyStore.Width, 0));
-            this.props.doc.SetNumber(KeyStore.NativeHeight, nativeHeight);
+            this.props.Document.SetNumber(KeyStore.Height, nativeHeight / nativeWidth * this.props.Document.GetNumber(KeyStore.Width, 0));
+            this.props.Document.SetNumber(KeyStore.NativeHeight, nativeHeight);
         }
     }
 
@@ -438,8 +438,8 @@ export class PDFBox extends React.Component<FieldViewProps> {
     get pdfContent() {
         let page = this.curPage;
         const renderHeight = 2400;
-        let pdfUrl = this.props.doc.GetT(this.props.fieldKey, PDFField);
-        let xf = this.props.doc.GetNumber(KeyStore.NativeHeight, 0) / renderHeight;
+        let pdfUrl = this.props.Document.GetT(this.props.fieldKey, PDFField);
+        let xf = this.props.Document.GetNumber(KeyStore.NativeHeight, 0) / renderHeight;
         return <div className="pdfBox-contentContainer" key="container" style={{ transform: `scale(${xf}, ${xf})` }}>
             <Document file={window.origin + RouteStore.corsProxy + `/${pdfUrl}`} renderMode={this._renderAsSvg ? "svg" : ""}>
                 <Measure onResize={this.setScaling}>
@@ -456,8 +456,8 @@ export class PDFBox extends React.Component<FieldViewProps> {
     @computed
     get pdfRenderer() {
         let proxy = this._loaded ? (null) : this.imageProxyRenderer;
-        let pdfUrl = this.props.doc.GetT(this.props.fieldKey, PDFField);
-        if ((!this._interactive && proxy) || !pdfUrl || pdfUrl == FieldWaiting) {
+        let pdfUrl = this.props.Document.GetT(this.props.fieldKey, PDFField);
+        if ((!this._interactive && proxy) || !pdfUrl || pdfUrl === FieldWaiting) {
             return proxy;
         }
         return [
@@ -470,9 +470,9 @@ export class PDFBox extends React.Component<FieldViewProps> {
 
     @computed
     get imageProxyRenderer() {
-        let thumbField = this.props.doc.Get(KeyStore.Thumbnail);
+        let thumbField = this.props.Document.Get(KeyStore.Thumbnail);
         if (thumbField) {
-            let path = thumbField == FieldWaiting || this.thumbnailPage != this.curPage ? "https://image.flaticon.com/icons/svg/66/66163.svg" :
+            let path = thumbField === FieldWaiting || this.thumbnailPage !== this.curPage ? "https://image.flaticon.com/icons/svg/66/66163.svg" :
                 thumbField instanceof ImageField ? thumbField.Data.href : "http://cs.brown.edu/people/bcz/prairie.jpg";
             return <img src={path} width="100%" />;
         }

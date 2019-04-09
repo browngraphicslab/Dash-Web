@@ -87,7 +87,7 @@ class DocumentViewer extends React.Component<{ field: Document }> {
             return (
                 <div key={kv[0]}>
                     <b>({key ? key.Name : kv[0]}): </b>
-                    <DebugViewer fieldId={kv[1]!}></DebugViewer>
+                    <DebugViewer fieldId={kv[1]}></DebugViewer>
                 </div>
             )
         })
@@ -177,9 +177,7 @@ class Viewer extends React.Component {
                     onChange={this.inputOnChange}
                     onKeyDown={this.onKeyPress} />
                 <div>
-                    {this.ids.map(id => {
-                        return <DebugViewer fieldId={id} key={id}></DebugViewer>
-                    })}
+                    {this.ids.map(id => <DebugViewer fieldId={id} key={id}></DebugViewer>)}
                 </div>
             </>
         )

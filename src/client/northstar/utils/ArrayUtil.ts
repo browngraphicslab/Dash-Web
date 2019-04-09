@@ -7,14 +7,14 @@ export class ArrayUtil {
             return false;
         }
         let isComplex = typeof arr1[0] === "object";
-        for (let i = 0; i < arr1.length; i++) {
-            if (isComplex && "Equals" in arr1[i]) {
-                if (arr1[i].Equals(arr2)) {
+        for (const ele of arr1) {
+            if (isComplex && "Equals" in ele) {
+                if (ele.Equals(arr2)) {
                     return true;
                 }
             }
             else {
-                if (arr1[i] === arr2) {
+                if (ele === arr2) {
                     return true;
                 }
             }
@@ -63,9 +63,9 @@ export class ArrayUtil {
 
     public static Distinct(arr: any[]): any[] {
         let ret = [];
-        for (let i = 0; i < arr.length; i++) {
-            if (!ArrayUtil.Contains(ret, arr[i])) {
-                ret.push(arr[i]);
+        for (const ele of arr) {
+            if (!ArrayUtil.Contains(ret, ele)) {
+                ret.push(ele);
             }
         }
         return ret;

@@ -11,7 +11,7 @@ import { InkingCanvas } from "../../InkingCanvas";
 import { CollectionFreeFormDocumentView } from "../../nodes/CollectionFreeFormDocumentView";
 import { DocumentContentsView } from "../../nodes/DocumentContentsView";
 import { DocumentViewProps } from "../../nodes/DocumentView";
-import { COLLECTION_BORDER_WIDTH } from "../CollectionView";
+import { COLLECTION_BORDER_WIDTH } from "../CollectionBaseView";
 import { CollectionViewBase } from "../CollectionViewBase";
 import { CollectionFreeFormLinksView } from "./CollectionFreeFormLinksView";
 import "./CollectionFreeFormView.scss";
@@ -20,6 +20,8 @@ import React = require("react");
 import v5 = require("uuid/v5");
 import { CollectionFreeFormRemoteCursors } from "./CollectionFreeFormRemoteCursors";
 import { PreviewCursor } from "./PreviewCursor";
+import { DocumentManager } from "../../../util/DocumentManager";
+import { SelectionManager } from "../../../util/SelectionManager";
 import { NumberField } from "../../../../fields/NumberField";
 import { Main } from "../../Main";
 
@@ -41,15 +43,20 @@ export class CollectionFreeFormView extends CollectionViewBase {
     }
 
     public selectDocuments = (docs: Document[]) => {
-        this.props.CollectionView.SelectedDocs.length = 0;
-        docs.map(d => this.props.CollectionView.SelectedDocs.push(d.Id));
+        SelectionManager.DeselectAll;
+        docs.map(doc => {
+            const dv = DocumentManager.Instance.getDocumentView(doc);
+            if (dv) {
+                SelectionManager.SelectDoc(dv, true);
+            }
+        })
     }
 
     public getActiveDocuments = () => {
         var curPage = this.props.Document.GetNumber(KeyStore.CurPage, -1);
         return this.props.Document.GetList(this.props.fieldKey, [] as Document[]).reduce((active, doc) => {
             var page = doc.GetNumber(KeyStore.Page, -1);
-            if (page == curPage || page == -1) {
+            if (page === curPage || page === -1) {
                 active.push(doc);
             }
             return active;
@@ -61,6 +68,8 @@ export class CollectionFreeFormView extends CollectionViewBase {
     @observable private _lastX: number = 0;
     @observable private _lastY: number = 0;
 
+    private outerElement?: HTMLDivElement;
+
     @computed get panX(): number { return this.props.Document.GetNumber(KeyStore.PanX, 0) }
     @computed get panY(): number { return this.props.Document.GetNumber(KeyStore.PanY, 0) }
     @computed get scale(): number { return this.props.Document.GetNumber(KeyStore.Scale, 1); }
@@ -68,38 +77,40 @@ export class CollectionFreeFormView extends CollectionViewBase {
     @computed get nativeWidth() { return this.props.Document.GetNumber(KeyStore.NativeWidth, 0); }
     @computed get nativeHeight() { return this.props.Document.GetNumber(KeyStore.NativeHeight, 0); }
     @computed get zoomScaling() { return this.props.Document.GetNumber(KeyStore.Scale, 1); }
-    @computed get centeringShiftX() { return !this.props.Document.GetNumber(KeyStore.NativeWidth, 0) ? this.props.panelWidth() / 2 : 0; }  // shift so pan position is at center of window for non-overlay collections
-    @computed get centeringShiftY() { return !this.props.Document.GetNumber(KeyStore.NativeHeight, 0) ? this.props.panelHeight() / 2 : 0; }// shift so pan position is at center of window for non-overlay collections
+    @computed get centeringShiftX() { return !this.props.Document.GetNumber(KeyStore.NativeWidth, 0) && this.outerElement ? this.outerElement.clientWidth / 2 : 0; }  // shift so pan position is at center of window for non-overlay collections
+    @computed get centeringShiftY() { return !this.props.Document.GetNumber(KeyStore.NativeHeight, 0) && this.outerElement ? this.outerElement.clientHeight / 2 : 0; }// shift so pan position is at center of window for non-overlay collections
 
     @undoBatch
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
         if (super.drop(e, de)) {
-            let droppedDocs = de.data.droppedDocuments as Document[];
-            let xoff = de.data.xOffset as number || 0;
-            let yoff = de.data.yOffset as number || 0;
-            if (droppedDocs && droppedDocs.length) {
-                let screenX = de.x - xoff;
-                let screenY = de.y - yoff;
-                const [x, y] = this.getTransform().transformPoint(screenX, screenY);
-                let dragDoc = de.data.droppedDocuments[0];
-                let dragX = dragDoc.GetNumber(KeyStore.X, 0);
-                let dragY = dragDoc.GetNumber(KeyStore.Y, 0);
-                droppedDocs.map(async d => {
-                    let docX = d.GetNumber(KeyStore.X, 0);
-                    let docY = d.GetNumber(KeyStore.Y, 0);
-                    d.SetNumber(KeyStore.X, x + (docX - dragX));
-                    d.SetNumber(KeyStore.Y, y + (docY - dragY));
-                    let docW = await d.GetTAsync(KeyStore.Width, NumberField);
-                    let docH = await d.GetTAsync(KeyStore.Height, NumberField);
-                    if (!docW) {
-                        d.SetNumber(KeyStore.Width, 300);
-                    }
-                    if (!docH) {
-                        d.SetNumber(KeyStore.Height, 300);
-                    }
-                    this.bringToFront(d);
-                })
+            if (de.data instanceof DragManager.DocumentDragData) {
+                let droppedDocs = de.data.droppedDocuments;
+                let xoff = de.data.xOffset as number || 0;
+                let yoff = de.data.yOffset as number || 0;
+                if (droppedDocs.length) {
+                    let screenX = de.x - xoff;
+                    let screenY = de.y - yoff;
+                    const [x, y] = this.getTransform().transformPoint(screenX, screenY);
+                    let dragDoc = droppedDocs[0];
+                    let dragX = dragDoc.GetNumber(KeyStore.X, 0);
+                    let dragY = dragDoc.GetNumber(KeyStore.Y, 0);
+                    droppedDocs.map(async d => {
+                        let docX = d.GetNumber(KeyStore.X, 0);
+                        let docY = d.GetNumber(KeyStore.Y, 0);
+                        d.SetNumber(KeyStore.X, x + (docX - dragX));
+                        d.SetNumber(KeyStore.Y, y + (docY - dragY));
+                        let docW = await d.GetTAsync(KeyStore.Width, NumberField);
+                        let docH = await d.GetTAsync(KeyStore.Height, NumberField);
+                        if (!docW) {
+                            d.SetNumber(KeyStore.Width, 300);
+                        }
+                        if (!docH) {
+                            d.SetNumber(KeyStore.Height, 300);
+                        }
+                        this.bringToFront(d);
+                    })
+                }
             }
             return true;
         }
@@ -115,7 +126,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
     @action
     onPointerDown = (e: React.PointerEvent): void => {
-        if (((e.button === 2 && (!this.isAnnotationOverlay || this.zoomScaling != 1)) || e.button == 0) && this.props.active()) {
+        if (((e.button === 2 && (!this.isAnnotationOverlay || this.zoomScaling !== 1)) || e.button === 0) && this.props.active()) {
             document.removeEventListener("pointermove", this.onPointerMove);
             document.addEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
@@ -137,7 +148,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
     @action
     onPointerMove = (e: PointerEvent): void => {
         if (!e.cancelBubble && this.props.active()) {
-            if ((!this.isAnnotationOverlay || this.zoomScaling != 1) && !e.shiftKey) {
+            if ((!this.isAnnotationOverlay || this.zoomScaling !== 1) && !e.shiftKey) {
                 let x = this.props.Document.GetNumber(KeyStore.PanX, 0);
                 let y = this.props.Document.GetNumber(KeyStore.PanY, 0);
                 let [dx, dy] = this.getTransform().transformDirection(e.clientX - this._lastX, e.clientY - this._lastY);
@@ -166,8 +177,8 @@ export class CollectionFreeFormView extends CollectionViewBase {
             e.stopPropagation();
             e.preventDefault();
         } else {
-            // if (modes[e.deltaMode] == 'pixels') coefficient = 50;
-            // else if (modes[e.deltaMode] == 'lines') coefficient = 1000; // This should correspond to line-height??
+            // if (modes[e.deltaMode] === 'pixels') coefficient = 50;
+            // else if (modes[e.deltaMode] === 'lines') coefficient = 1000; // This should correspond to line-height??
             let transform = this.getTransform();
 
             let deltaScale = (1 - (e.deltaY / coefficient));
@@ -244,16 +255,19 @@ export class CollectionFreeFormView extends CollectionViewBase {
     getDocumentViewProps(document: Document): DocumentViewProps {
         return {
             Document: document,
-            AddDocument: this.props.addDocument,
-            RemoveDocument: this.props.removeDocument,
+            addDocument: this.props.addDocument,
+            removeDocument: this.props.removeDocument,
+            moveDocument: this.props.moveDocument,
             ScreenToLocalTransform: this.getTransform,
             isTopMost: false,
-            SelectOnLoad: document.Id == this._selectOnLoaded,
+            selectOnLoad: document.Id === this._selectOnLoaded,
             PanelWidth: document.Width,
             PanelHeight: document.Height,
             ContentScaling: this.noScaling,
-            ContainingCollectionView: this.props.CollectionView,
-            focus: this.focusDocument
+            ContainingCollectionView: undefined,
+            focus: this.focusDocument,
+            parentActive: this.props.active,
+            onActiveChanged: this.props.active,
         }
     }
 
@@ -262,7 +276,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
         var curPage = this.props.Document.GetNumber(KeyStore.CurPage, -1);
         return this.props.Document.GetList(this.props.fieldKey, [] as Document[]).filter(doc => doc).reduce((prev, doc) => {
             var page = doc.GetNumber(KeyStore.Page, -1);
-            if (page == curPage || page == -1)
+            if (page === curPage || page === -1)
                 prev.push(<CollectionFreeFormDocumentView key={doc.Id} {...this.getDocumentViewProps(doc)} />);
             return prev;
         }, [] as JSX.Element[])
@@ -283,7 +297,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
     getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-COLLECTION_BORDER_WIDTH, -COLLECTION_BORDER_WIDTH).translate(-this.centeringShiftX, -this.centeringShiftY).transform(this.getLocalTransform())
     getContainerTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-COLLECTION_BORDER_WIDTH, -COLLECTION_BORDER_WIDTH)
-    getLocalTransform = (): Transform => Transform.Identity.scale(1 / this.scale).translate(this.panX, this.panY);
+    getLocalTransform = (): Transform => Transform.Identity().scale(1 / this.scale).translate(this.panX, this.panY);
     noScaling = () => 1;
     childViews = () => this.views;
 

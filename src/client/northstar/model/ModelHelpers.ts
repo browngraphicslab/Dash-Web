@@ -16,7 +16,7 @@ export class ModelHelpers {
     public static CreateAggregateKey(distinctAttributeParameters: AttributeParameters | undefined, atm: AttributeTransformationModel, histogramResult: HistogramResult,
         brushIndex: number, aggParameters?: SingleDimensionAggregateParameters): AggregateKey {
         {
-            if (aggParameters == undefined) {
+            if (aggParameters === undefined) {
                 aggParameters = ModelHelpers.GetAggregateParameter(distinctAttributeParameters, atm);
             }
             else {
@@ -146,7 +146,7 @@ export class ModelHelpers {
     }
 
     public static GetAggregateResult(bin: Bin, aggregateKey: AggregateKey) {
-        if (aggregateKey.aggregateParameterIndex == -1 || aggregateKey.brushIndex == -1) {
+        if (aggregateKey.aggregateParameterIndex === -1 || aggregateKey.brushIndex === -1) {
             return null;
         }
         return bin.aggregateResults![aggregateKey.aggregateParameterIndex! * bin.ySize! + aggregateKey.brushIndex!];
@@ -157,9 +157,9 @@ export class ModelHelpers {
         var ret = new Array<AggregateFunction>();
         ret.push(AggregateFunction.None);
         ret.push(AggregateFunction.Count);
-        if (atm.AttributeModel.DataType == DataType.Float ||
-            atm.AttributeModel.DataType == DataType.Double ||
-            atm.AttributeModel.DataType == DataType.Int) {
+        if (atm.AttributeModel.DataType === DataType.Float ||
+            atm.AttributeModel.DataType === DataType.Double ||
+            atm.AttributeModel.DataType === DataType.Int) {
             ret.push(AggregateFunction.Avg);
             ret.push(AggregateFunction.Sum);
         }

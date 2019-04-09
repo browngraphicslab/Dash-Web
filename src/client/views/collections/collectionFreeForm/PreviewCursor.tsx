@@ -33,7 +33,7 @@ export class PreviewCursor extends React.Component<PreviewCursorProps>  {
 
     @action
     onPointerDown = (e: React.PointerEvent) => {
-        if (e.button == 0 && this.props.container.props.active()) {
+        if (e.button === 0 && this.props.container.props.active()) {
             document.removeEventListener("keypress", this.onKeyPress, false);
             this._showOnUp = true;
             this.DownX = e.pageX;

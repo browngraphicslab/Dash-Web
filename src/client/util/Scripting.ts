@@ -43,7 +43,7 @@ export interface CompileError {
 export type CompiledScript = CompileSuccess | CompileError;
 
 function Run(script: string | undefined, customParams: string[], diagnostics: any[]): CompiledScript {
-    const errors = diagnostics.some(diag => diag.category == ts.DiagnosticCategory.Error);
+    const errors = diagnostics.some(diag => diag.category === ts.DiagnosticCategory.Error);
     if (errors || !script) {
         return { compiled: false, errors: diagnostics };
     }
@@ -60,7 +60,7 @@ function Run(script: string | undefined, customParams: string[], diagnostics: an
             }
             argsArray.push(args[name]);
         }
-        let thisParam = args["this"];
+        let thisParam = args.this;
         try {
             const result = compiledFunction.apply(thisParam, params).apply(thisParam, argsArray);
             return { success: true, result };
@@ -160,9 +160,9 @@ export function OrLiteralType(returnType: string): string {
 }
 
 export function ToField(data: any): Opt<Field> {
-    if (typeof data == "string") {
+    if (typeof data === "string") {
         return new TextField(data);
-    } else if (typeof data == "number") {
+    } else if (typeof data === "number") {
         return new NumberField(data);
     }
     return undefined;

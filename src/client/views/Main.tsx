@@ -15,9 +15,10 @@ import { ListField } from '../../fields/ListField';
 import { WorkspacesMenu } from '../../server/authentication/controllers/WorkspacesMenu';
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
 import { MessageStore } from '../../server/Message';
+import { Utils, returnTrue, emptyFunction } from '../../Utils';
+import * as rp from 'request-promise'
 import { RouteStore } from '../../server/RouteStore';
 import { ServerUtils } from '../../server/ServerUtil';
-import { Utils } from '../../Utils';
 import { Documents } from '../documents/Documents';
 import { ColumnAttributeModel } from '../northstar/core/attribute/AttributeModel';
 import { AttributeTransformationModel } from '../northstar/core/attribute/AttributeTransformationModel';
@@ -48,7 +49,7 @@ export class Main extends React.Component {
 
     @computed private get mainContainer(): Document | undefined {
         let doc = this.userDocument.GetT(KeyStore.ActiveWorkspace, Document);
-        return doc == FieldWaiting ? undefined : doc;
+        return doc === FieldWaiting ? undefined : doc;
     }
 
     private set mainContainer(doc: Document | undefined) {
@@ -70,7 +71,7 @@ export class Main extends React.Component {
         configure({ enforceActions: "observed" });
         if (window.location.pathname !== RouteStore.home) {
             let pathname = window.location.pathname.split("/");
-            if (pathname.length > 1 && pathname[pathname.length - 2] == 'doc') {
+            if (pathname.length > 1 && pathname[pathname.length - 2] === 'doc') {
                 CurrentUserUtils.MainDocId = pathname[pathname.length - 1];
             }
         };
@@ -190,15 +191,12 @@ export class Main extends React.Component {
     @observable
     workspacesShown: boolean = false;
 
-    areWorkspacesShown = () => {
-        return this.workspacesShown;
-    }
+    areWorkspacesShown = () => this.workspacesShown
     @action
     toggleWorkspaces = () => {
         this.workspacesShown = !this.workspacesShown;
     }
 
-    screenToLocalTransform = () => Transform.Identity
     pwidthFunc = () => this.pwidth;
     pheightFunc = () => this.pheight;
     focusDocument = (doc: Document) => { }
@@ -222,7 +220,7 @@ export class Main extends React.Component {
             let w: number = this._textRect.width;
             let h: number = this._textRect.height;
             return <div className="mainDiv-textInput" style={{ transform: `translate(${x}px, ${y}px)`, width: `${w}px`, height: `${h}px` }} >
-                <FormattedTextBox fieldKey={KeyStore.Archives} doc={this._textDoc} isSelected={() => true} select={() => { }} isTopMost={true} selectOnLoad={true} bindings={undefined} />
+                <FormattedTextBox fieldKey={KeyStore.Archives} Document={this._textDoc} isSelected={returnTrue} select={emptyFunction} isTopMost={true} selectOnLoad={true} onActiveChanged={emptyFunction} active={returnTrue} ScreenToLocalTransform={Transform.Identity} focus={(doc) => { }} />
             </ div>
         }
         else return (null);
@@ -232,15 +230,17 @@ export class Main extends React.Component {
     get mainContent() {
         return !this.mainContainer ? (null) :
             <DocumentView Document={this.mainContainer}
-                AddDocument={undefined}
-                RemoveDocument={undefined}
-                ScreenToLocalTransform={this.screenToLocalTransform}
+                addDocument={undefined}
+                removeDocument={undefined}
+                ScreenToLocalTransform={Transform.Identity}
                 ContentScaling={this.noScaling}
                 PanelWidth={this.pwidthFunc}
                 PanelHeight={this.pheightFunc}
                 isTopMost={true}
-                SelectOnLoad={false}
+                selectOnLoad={false}
                 focus={this.focusDocument}
+                parentActive={returnTrue}
+                onActiveChanged={emptyFunction}
                 ContainingCollectionView={undefined} />
     }
 
@@ -385,8 +385,8 @@ export class Main extends React.Component {
     }
 }
 
-Documents.initProtos().then(() => {
-    return CurrentUserUtils.loadCurrentUser()
-}).then(() => {
+(async () => {
+    await Documents.initProtos()
+    await CurrentUserUtils.loadCurrentUser()
     ReactDOM.render(<Main />, document.getElementById('root'));
-});
+})()

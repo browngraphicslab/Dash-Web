@@ -29,7 +29,7 @@ export class DocumentManager {
 
     public getAllDocumentViews(collection: Document) {
         return this.DocumentViews.filter(dv =>
-            dv.props.ContainingCollectionView && dv.props.ContainingCollectionView.props.Document.Id === collection.Id);
+            dv.props.ContainingCollectionView && dv.props.ContainingCollectionView.props.Document === collection);
     }
 
     public getDocumentView(toFind: Document): DocumentView | null {
@@ -42,12 +42,12 @@ export class DocumentManager {
             let doc = view.props.Document;
             // if (view.props.ContainingCollectionView instanceof CollectionFreeFormView) {
 
-            if (Object.is(doc, toFind)) {
+            if (doc === toFind) {
                 toReturn = view;
                 return;
             }
             let docSrc = doc.GetT(KeyStore.Prototype, Document);
-            if (docSrc && docSrc != FieldWaiting && Object.is(docSrc, toFind)) {
+            if (docSrc && docSrc !== FieldWaiting && Object.is(docSrc, toFind)) {
                 toReturn = view;
             }
         })
@@ -63,11 +63,11 @@ export class DocumentManager {
             let doc = view.props.Document;
             // if (view.props.ContainingCollectionView instanceof CollectionFreeFormView) {
 
-            if (Object.is(doc, toFind)) {
+            if (doc === toFind) {
                 toReturn.push(view);
             } else {
                 let docSrc = doc.GetT(KeyStore.Prototype, Document);
-                if (docSrc && docSrc != FieldWaiting && Object.is(docSrc, toFind)) {
+                if (docSrc && docSrc !== FieldWaiting && Object.is(docSrc, toFind)) {
                     toReturn.push(view);
                 }
             }
@@ -80,11 +80,11 @@ export class DocumentManager {
     public get LinkedDocumentViews() {
         return DocumentManager.Instance.DocumentViews.reduce((pairs, dv) => {
             let linksList = dv.props.Document.GetT(KeyStore.LinkedToDocs, ListField);
-            if (linksList && linksList != FieldWaiting && linksList.Data.length) {
+            if (linksList && linksList !== FieldWaiting && linksList.Data.length) {
                 pairs.push(...linksList.Data.reduce((pairs, link) => {
                     if (link instanceof Document) {
                         let linkToDoc = link.GetT(KeyStore.LinkedToDocs, Document);
-                        if (linkToDoc && linkToDoc != FieldWaiting) {
+                        if (linkToDoc && linkToDoc !== FieldWaiting) {
                             DocumentManager.Instance.getDocumentViews(linkToDoc).map(docView1 => {
                                 pairs.push({ a: dv, b: docView1, l: link })
                             })

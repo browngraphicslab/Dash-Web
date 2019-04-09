@@ -7,38 +7,22 @@ import { FieldWaiting, Opt } from "../../../fields/Field";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { DragManager } from "../../util/DragManager";
 import { Documents, DocumentOptions } from "../../documents/Documents";
-import { Key } from "../../../fields/Key";
-import { Transform } from "../../util/Transform";
-import { CollectionView } from "./CollectionView";
 import { RouteStore } from "../../../server/RouteStore";
 import { TupleField } from "../../../fields/TupleField";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { NumberField } from "../../../fields/NumberField";
-import * as rp from "request-promise";
 import { ServerUtils } from "../../../server/ServerUtil";
 import { Server } from "../../Server";
-import { emptyStatement } from "babel-types";
-import { CollectionDockingView } from "./CollectionDockingView";
-import { runReactions } from "mobx/lib/internal";
+import { FieldViewProps } from "../nodes/FieldView";
+import * as rp from 'request-promise'
 
-export interface CollectionViewProps {
-    fieldKey: Key;
-    Document: Document;
-    ScreenToLocalTransform: () => Transform;
-    isSelected: () => boolean;
-    isTopMost: boolean;
-    select: (ctrlPressed: boolean) => void;
-    bindings: any;
-    panelWidth: () => number;
-    panelHeight: () => number;
-    focus: (doc: Document) => void;
+export interface CollectionViewProps extends FieldViewProps {
+    addDocument: (document: Document, allowDuplicates?: boolean) => boolean;
+    removeDocument: (document: Document) => boolean;
+    moveDocument: (document: Document, targetCollection: Document, addDocument: (document: Document) => boolean) => boolean;
 }
 
 export interface SubCollectionViewProps extends CollectionViewProps {
-    active: () => boolean;
-    addDocument: (doc: Document, allowDuplicates: boolean) => boolean;
-    removeDocument: (doc: Document) => boolean;
-    CollectionView: CollectionView;
 }
 
 export type CursorEntry = TupleField<[string, string], [number, number]>;
@@ -88,9 +72,14 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
                     de.data.draggedDocuments.map((draggedDocument: Document, i: number) =>
                         draggedDocument.GetTAsync(key, NumberField, (f: Opt<NumberField>) => f ? de.data.droppedDocuments[i].SetNumber(key, f.Data) : null)));
             }
-            let added = de.data.droppedDocuments.reduce((added, d) => this.props.addDocument(d, false), true);
-            if (added && de.data.removeDocument && !de.data.aliasOnDrop && !de.data.copyOnDrop) {
-                de.data.removeDocument(this.props.CollectionView);
+            let added = false;
+            if (de.data.aliasOnDrop) {
+                added = de.data.droppedDocuments.reduce((added: boolean, d) => added || this.props.addDocument(d), false);
+            } else if (de.data.moveDocument) {
+                const move = de.data.moveDocument;
+                added = de.data.droppedDocuments.reduce((added: boolean, d) => added || move(d, this.props.Document, this.props.addDocument), false)
+            } else {
+                added = de.data.droppedDocuments.reduce((added: boolean, d) => added || this.props.addDocument(d), false)
             }
             e.stopPropagation();
             return added;
@@ -99,11 +88,11 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
             let sourceDoc: Document = de.data.linkSourceDocumentView.props.Document;
             if (sourceDoc) runInAction(() => {
                 let srcTarg = sourceDoc.GetT(KeyStore.Prototype, Document)
-                if (srcTarg && srcTarg != FieldWaiting) {
+                if (srcTarg && srcTarg !== FieldWaiting) {
                     let linkDocs = srcTarg.GetList(KeyStore.LinkedToDocs, [] as Document[]);
                     linkDocs.map(linkDoc => {
                         let targDoc = linkDoc.GetT(KeyStore.LinkedToDocs, Document);
-                        if (targDoc && targDoc != FieldWaiting) {
+                        if (targDoc && targDoc !== FieldWaiting) {
                             let dropdoc = targDoc.MakeDelegate();
                             de.data.droppedDocuments.push(dropdoc);
                             this.props.addDocument(dropdoc, false);
@@ -156,8 +145,6 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
     @undoBatch
     @action
     protected onDrop(e: React.DragEvent, options: DocumentOptions): void {
-        let that = this;
-
         let html = e.dataTransfer.getData("text/html");
         let text = e.dataTransfer.getData("text/plain");
 
@@ -167,7 +154,7 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
         e.stopPropagation()
         e.preventDefault()
 
-        if (html && html.indexOf("<img") != 0 && !html.startsWith("<a")) {
+        if (html && html.indexOf("<img") !== 0 && !html.startsWith("<a")) {
             console.log("not good");
             let htmlDoc = Documents.HtmlDocument(html, { ...options, width: 300, height: 300 });
             htmlDoc.SetText(KeyStore.DocumentText, text);
@@ -177,10 +164,11 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
 
         let batch = UndoManager.StartBatch("collection view drop");
         let promises: Promise<void>[] = [];
+        // tslint:disable-next-line:prefer-for-of
         for (let i = 0; i < e.dataTransfer.items.length; i++) {
             const upload = window.location.origin + RouteStore.upload;
             let item = e.dataTransfer.items[i];
-            if (item.kind === "string" && item.type.indexOf("uri") != -1) {
+            if (item.kind === "string" && item.type.indexOf("uri") !== -1) {
                 let str: string;
                 let prom = new Promise<string>(res =>
                     e.dataTransfer.items[i].getAsString(res)).then(action((s: string) => {
@@ -199,7 +187,7 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
                 // this.props.addDocument(Documents.WebDocument(s, { ...options, width: 300, height: 300 }), false)
             }
             let type = item.type
-            if (item.kind == "file") {
+            if (item.kind === "file") {
                 let file = item.getAsFile();
                 let formData = new FormData()
 
@@ -210,25 +198,26 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
                 let prom = fetch(upload, {
                     method: 'POST',
                     body: formData
-                }).then((res: Response) => {
-                    return res.json()
-                }).then(json => {
-                    json.map(action((file: any) => {
+                }).then(async (res: Response) => {
+                    const json = await res.json();
+                    json.map((file: any) => {
                         let path = window.location.origin + file
-                        let doc = this.getDocumentFromType(type, path, { ...options, nativeWidth: 300, width: 300 })
+                        runInAction(() => {
+                            let doc = this.getDocumentFromType(type, path, { ...options, nativeWidth: 300, width: 300 })
 
-                        let docs = that.props.Document.GetT(KeyStore.Data, ListField);
-                        if (docs != FieldWaiting) {
-                            if (!docs) {
-                                docs = new ListField<Document>();
-                                that.props.Document.Set(KeyStore.Data, docs)
+                            let docs = this.props.Document.GetT(KeyStore.Data, ListField);
+                            if (docs !== FieldWaiting) {
+                                if (!docs) {
+                                    docs = new ListField<Document>();
+                                    this.props.Document.Set(KeyStore.Data, docs)
+                                }
+                                if (doc) {
+                                    docs.Data.push(doc);
+                                }
                             }
-                            if (doc) {
-                                docs.Data.push(doc);
-                            }
-                        }
-                    }))
-                })
+                        });
+                    });
+                });
                 promises.push(prom);
             }
         }

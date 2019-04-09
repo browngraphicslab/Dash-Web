@@ -37,33 +37,20 @@ export class Document extends Field {
         }
     }
 
-    public Width = () => {
-        return this.GetNumber(KeyStore.Width, 0);
-    };
-    public Height = () => {
-        return this.GetNumber(
-            KeyStore.Height,
-            this.GetNumber(KeyStore.NativeWidth, 0)
-                ? (this.GetNumber(KeyStore.NativeHeight, 0) /
-                    this.GetNumber(KeyStore.NativeWidth, 0)) *
-                this.GetNumber(KeyStore.Width, 0)
-                : 0
-        );
-    };
-    public Scale = () => {
-        return this.GetNumber(KeyStore.Scale, 1);
-    };
+    public Width = () => this.GetNumber(KeyStore.Width, 0)
+    public Height = () => this.GetNumber(KeyStore.Height, this.GetNumber(KeyStore.NativeWidth, 0) ? (this.GetNumber(KeyStore.NativeHeight, 0) / this.GetNumber(KeyStore.NativeWidth, 0)) * this.GetNumber(KeyStore.Width, 0) : 0);
+    public Scale = () => this.GetNumber(KeyStore.Scale, 1)
 
     @computed
     public get Title(): string {
         let title = this.Get(KeyStore.Title, true);
         if (title)
-            if (title != FieldWaiting && title instanceof TextField)
+            if (title !== FieldWaiting && title instanceof TextField)
                 return title.Data;
             else return "-waiting-";
         let parTitle = this.GetT(KeyStore.Title, TextField);
         if (parTitle)
-            if (parTitle != FieldWaiting) return parTitle.Data + ".alias";
+            if (parTitle !== FieldWaiting) return parTitle.Data + ".alias";
             else return "-waiting-.alias";
         return "-untitled-";
     }
@@ -109,7 +96,7 @@ export class Document extends Field {
             }
         } else {
             let doc: FieldValue<Document> = this;
-            while (doc && doc != FieldWaiting && field != FieldWaiting) {
+            while (doc && field !== FieldWaiting) {
                 let curField = doc.fields.get(key.Id);
                 let curProxy = doc._proxies.get(key.Id);
                 if (!curField || (curProxy && curField.field.Id !== curProxy)) {
@@ -140,7 +127,7 @@ export class Document extends Field {
                     break;
                 }
             }
-            if (doc == FieldWaiting) field = FieldWaiting;
+            if (doc === FieldWaiting) field = FieldWaiting;
         }
 
         return field;
@@ -194,7 +181,7 @@ export class Document extends Field {
         if (callback) {
             fn(callback);
         } else {
-            return new Promise(res => fn(res));
+            return new Promise(fn);
         }
     }
 
@@ -240,7 +227,7 @@ export class Document extends Field {
         ignoreProto: boolean = false
     ): FieldValue<T> {
         var getfield = this.Get(key, ignoreProto);
-        if (getfield != FieldWaiting) {
+        if (getfield !== FieldWaiting) {
             return Cast(getfield, ctor);
         }
         return FieldWaiting;
@@ -252,7 +239,7 @@ export class Document extends Field {
         ignoreProto: boolean = false
     ): T {
         const field = this.GetT(key, ctor, ignoreProto);
-        if (field && field != FieldWaiting) {
+        if (field && field !== FieldWaiting) {
             return field;
         }
         const newField = new ctor();
@@ -362,7 +349,7 @@ export class Document extends Field {
     GetAllPrototypes(): Document[] {
         let protos: Document[] = [];
         let doc: FieldValue<Document> = this;
-        while (doc && doc != FieldWaiting) {
+        while (doc && doc !== FieldWaiting) {
             protos.push(doc);
             doc = doc.GetPrototype();
         }
@@ -425,7 +412,7 @@ export class Document extends Field {
         let fields: [string, string][] = [];
         this._proxies.forEach((field, key) => {
             if (field) {
-                fields.push([key, field as string]);
+                fields.push([key, field]);
             }
         });
 

@@ -12,8 +12,8 @@ export function Cast<T extends Field>(field: FieldValue<Field>, ctor: { new(): T
     return undefined;
 }
 
-export const FieldWaiting: FIELD_WAITING = "<Waiting>";
-export type FIELD_WAITING = "<Waiting>";
+export const FieldWaiting: FIELD_WAITING = null;
+export type FIELD_WAITING = null;
 export type FieldId = string;
 export type Opt<T> = T | undefined;
 export type FieldValue<T> = Opt<T> | FIELD_WAITING;

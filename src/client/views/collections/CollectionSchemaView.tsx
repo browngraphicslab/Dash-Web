@@ -22,9 +22,11 @@ import { EditableView } from "../EditableView";
 import { DocumentView } from "../nodes/DocumentView";
 import { FieldView, FieldViewProps } from "../nodes/FieldView";
 import "./CollectionSchemaView.scss";
-import { CollectionView, COLLECTION_BORDER_WIDTH } from "./CollectionView";
+import { CollectionView } from "./CollectionView";
 import { CollectionViewBase } from "./CollectionViewBase";
 import { TextField } from "../../../fields/TextField";
+import { COLLECTION_BORDER_WIDTH } from "./CollectionBaseView";
+import { emptyFunction, returnFalse } from "../../../Utils";
 
 
 // bcz: need to add drag and drop of rows and columns.  This seems like it might work for rows: https://codesandbox.io/s/l94mn1q657
@@ -73,19 +75,22 @@ export class CollectionSchemaView extends CollectionViewBase {
 
     renderCell = (rowProps: CellInfo) => {
         let props: FieldViewProps = {
-            doc: rowProps.value[0],
+            Document: rowProps.value[0],
             fieldKey: rowProps.value[1],
             isSelected: () => false,
             select: () => { },
             isTopMost: false,
-            bindings: {},
             selectOnLoad: false,
+            ScreenToLocalTransform: Transform.Identity,
+            focus: emptyFunction,
+            active: returnFalse,
+            onActiveChanged: emptyFunction,
         }
         let contents = (
             <FieldView {...props} />
         )
         let reference = React.createRef<HTMLDivElement>();
-        let onItemDown = setupDrag(reference, () => props.doc, (containingCollection: CollectionView) => this.props.removeDocument(props.doc));
+        let onItemDown = setupDrag(reference, () => props.Document, this.props.moveDocument);
         let applyToDoc = (doc: Document, run: (args?: { [name: string]: any }) => any) => {
             const res = run({ this: doc });
             if (!res.success) return false;
@@ -103,13 +108,13 @@ export class CollectionSchemaView extends CollectionViewBase {
             return false;
         }
         return (
-            <div className="collectionSchemaView-cellContents" onPointerDown={onItemDown} style={{ height: "56px" }} key={props.doc.Id} ref={reference}>
+            <div className="collectionSchemaView-cellContents" onPointerDown={onItemDown} style={{ height: "56px" }} key={props.Document.Id} ref={reference}>
                 <EditableView
                     display={"inline"}
                     contents={contents}
                     height={56}
                     GetValue={() => {
-                        let field = props.doc.Get(props.fieldKey);
+                        let field = props.Document.Get(props.fieldKey);
                         if (field && field instanceof Field) {
                             return field.ToScriptString();
                         }
@@ -120,7 +125,7 @@ export class CollectionSchemaView extends CollectionViewBase {
                         if (!script.compiled) {
                             return false;
                         }
-                        return applyToDoc(props.doc, script.run);
+                        return applyToDoc(props.Document, script.run);
                     }}
                     OnFillDown={(value: string) => {
                         let script = CompileScript(value, { addReturn: true, params: { this: "Document" } });
@@ -155,8 +160,8 @@ export class CollectionSchemaView extends CollectionViewBase {
                 }
             }),
             style: {
-                background: rowInfo.index == this._selectedIndex ? "lightGray" : "white",
-                //color: rowInfo.index == this._selectedIndex ? "white" : "black"
+                background: rowInfo.index === this._selectedIndex ? "lightGray" : "white",
+                //color: rowInfo.index === this._selectedIndex ? "white" : "black"
             }
         };
     }
@@ -184,8 +189,8 @@ export class CollectionSchemaView extends CollectionViewBase {
     @action
     toggleExpander = (event: React.ChangeEvent<HTMLInputElement>) => {
         this._startSplitPercent = this.splitPercentage;
-        if (this._startSplitPercent == this.splitPercentage) {
-            this.props.Document.SetNumber(KeyStore.SchemaSplitPercentage, this.splitPercentage == 0 ? 33 : 0);
+        if (this._startSplitPercent === this.splitPercentage) {
+            this.props.Document.SetNumber(KeyStore.SchemaSplitPercentage, this.splitPercentage === 0 ? 33 : 0);
         }
     }
 
@@ -214,8 +219,8 @@ export class CollectionSchemaView extends CollectionViewBase {
     onDividerUp = (e: PointerEvent): void => {
         document.removeEventListener("pointermove", this.onDividerMove);
         document.removeEventListener('pointerup', this.onDividerUp);
-        if (this._startSplitPercent == this.splitPercentage) {
-            this.props.Document.SetNumber(KeyStore.SchemaSplitPercentage, this.splitPercentage == 0 ? 33 : 0);
+        if (this._startSplitPercent === this.splitPercentage) {
+            this.props.Document.SetNumber(KeyStore.SchemaSplitPercentage, this.splitPercentage === 0 ? 33 : 0);
         }
     }
     onDividerDown = (e: React.PointerEvent) => {
@@ -243,12 +248,8 @@ export class CollectionSchemaView extends CollectionViewBase {
     getContentScaling = (): number => this._contentScaling;
     getPanelWidth = (): number => this._panelWidth;
     getPanelHeight = (): number => this._panelHeight;
-    getTransform = (): Transform => {
-        return this.props.ScreenToLocalTransform().translate(- COLLECTION_BORDER_WIDTH - this.DIVIDER_WIDTH - this._dividerX, - COLLECTION_BORDER_WIDTH).scale(1 / this._contentScaling);
-    }
-    getPreviewTransform = (): Transform => {
-        return this.props.ScreenToLocalTransform().translate(- COLLECTION_BORDER_WIDTH - this.DIVIDER_WIDTH - this._dividerX - this._tableWidth, - COLLECTION_BORDER_WIDTH).scale(1 / this._contentScaling);
-    }
+    getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(- COLLECTION_BORDER_WIDTH - this.DIVIDER_WIDTH - this._dividerX, - COLLECTION_BORDER_WIDTH).scale(1 / this._contentScaling)
+    getPreviewTransform = (): Transform => this.props.ScreenToLocalTransform().translate(- COLLECTION_BORDER_WIDTH - this.DIVIDER_WIDTH - this._dividerX - this._tableWidth, - COLLECTION_BORDER_WIDTH).scale(1 / this._contentScaling)
 
     focusDocument = (doc: Document) => { }
 
@@ -299,28 +300,30 @@ export class CollectionSchemaView extends CollectionViewBase {
         let doc: any = selected ? selected.Get(new Key(this.previewScript)) : undefined;
 
         // let doc = CompileScript(this.previewScript, { this: selected }, true)();
-        let content = this._selectedIndex == -1 || !selected ? (null) : (
+        let content = this._selectedIndex === -1 || !selected ? (null) : (
             <Measure onResize={this.setScaling}>
                 {({ measureRef }) =>
                     <div className="collectionSchemaView-content" ref={measureRef}>
-                        {doc instanceof Document ? <DocumentView Document={doc}
-                            AddDocument={this.props.addDocument} RemoveDocument={this.props.removeDocument}
-                            isTopMost={false}
-                            SelectOnLoad={false}
-                            ScreenToLocalTransform={this.getPreviewTransform}
-                            ContentScaling={this.getContentScaling}
-                            PanelWidth={this.getPanelWidth}
-                            PanelHeight={this.getPanelHeight}
-                            ContainingCollectionView={this.props.CollectionView}
-                            focus={this.focusDocument}
-                        /> : null}
+                        {doc instanceof Document ?
+                            <DocumentView Document={doc}
+                                addDocument={this.props.addDocument} removeDocument={this.props.removeDocument}
+                                isTopMost={false}
+                                selectOnLoad={false}
+                                ScreenToLocalTransform={this.getPreviewTransform}
+                                ContentScaling={this.getContentScaling}
+                                PanelWidth={this.getPanelWidth}
+                                PanelHeight={this.getPanelHeight}
+                                ContainingCollectionView={undefined}
+                                focus={this.focusDocument}
+                                parentActive={this.props.active}
+                                onActiveChanged={this.props.onActiveChanged} /> : null}
                         <input value={this.previewScript} onChange={this.onPreviewScriptChange}
                             style={{ position: 'absolute', bottom: '0px' }} />
                     </div>
                 }
             </Measure>
         )
-        let dividerDragger = this.splitPercentage == 0 ? (null) :
+        let dividerDragger = this.splitPercentage === 0 ? (null) :
             <div className="collectionSchemaView-dividerDragger" onPointerDown={this.onDividerDown} style={{ width: `${this.DIVIDER_WIDTH}px` }} />
 
         //options button and menu
@@ -330,12 +333,11 @@ export class CollectionSchemaView extends CollectionViewBase {
                 <div id="schema-options-header"><h5><b>Options</b></h5></div>
                 <div id="options-flyout-div">
                     <h6 className="schema-options-subHeader">Preview Window</h6>
-                    <div id="preview-schema-checkbox-div"><input type="checkbox" key={"Show Preview"} checked={this.splitPercentage != 0} onChange={this.toggleExpander} />  Show Preview </div>
+                    <div id="preview-schema-checkbox-div"><input type="checkbox" key={"Show Preview"} checked={this.splitPercentage !== 0} onChange={this.toggleExpander} />  Show Preview </div>
                     <h6 className="schema-options-subHeader" >Displayed Columns</h6>
                     <ul id="schema-col-checklist" >
-                        {Array.from(Object.keys(allKeys)).map(item => {
-                            return (<KeyToggle checked={allKeys[item]} key={item} keyId={item} toggle={this.toggleKey} />)
-                        })}
+                        {Array.from(Object.keys(allKeys)).map(item =>
+                            (<KeyToggle checked={allKeys[item]} key={item} keyId={item} toggle={this.toggleKey} />))}
                     </ul>
                     <input value={this.newKeyName} onChange={this.newKeyChange} />
                     <button onClick={this.addColumn}><FontAwesomeIcon style={{ color: "white" }} icon="plus" size="lg" /></button>

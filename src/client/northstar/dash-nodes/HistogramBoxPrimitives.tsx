@@ -46,7 +46,7 @@ export class HistogramBoxPrimitives extends React.Component<HistogramPrimitivesP
     }
 
     private getSelectionToggle(binPrimitives: HistogramBinPrimitive[], allBrushIndex: number, filterModel: FilterModel) {
-        let rawAllBrushPrim = ArrayUtil.FirstOrDefault(binPrimitives, bp => bp.BrushIndex == allBrushIndex);
+        let rawAllBrushPrim = ArrayUtil.FirstOrDefault(binPrimitives, bp => bp.BrushIndex === allBrushIndex);
         if (!rawAllBrushPrim)
             return () => { }
         let allBrushPrim = rawAllBrushPrim;
@@ -70,9 +70,9 @@ export class HistogramBoxPrimitives extends React.Component<HistogramPrimitivesP
         return <svg className="histogramboxprimitives-svgContainer">
             {labels.reduce((prims, binLabel, i) => {
                 let r = this.props.HistoBox.SizeConverter.DataToScreenRange(binLabel.minValue!, binLabel.maxValue!, axis);
-                prims.push(this.drawLine(r.xFrom, r.yFrom, axis == 0 ? 0 : r.xTo - r.xFrom, axis == 0 ? r.yTo - r.yFrom : 0));
-                if (i == labels.length - 1)
-                    prims.push(this.drawLine(axis == 0 ? r.xTo : r.xFrom, axis == 0 ? r.yFrom : r.yTo, axis == 0 ? 0 : r.xTo - r.xFrom, axis == 0 ? r.yTo - r.yFrom : 0));
+                prims.push(this.drawLine(r.xFrom, r.yFrom, axis === 0 ? 0 : r.xTo - r.xFrom, axis === 0 ? r.yTo - r.yFrom : 0));
+                if (i === labels.length - 1)
+                    prims.push(this.drawLine(axis === 0 ? r.xTo : r.xFrom, axis === 0 ? r.yFrom : r.yTo, axis === 0 ? 0 : r.xTo - r.xFrom, axis === 0 ? r.yTo - r.yFrom : 0));
                 return prims;
             }, [] as JSX.Element[])}
         </svg>
@@ -106,7 +106,7 @@ export class HistogramBoxPrimitives extends React.Component<HistogramPrimitivesP
         let transYpercent = `${r.y / this.renderDimension * 100}%`
         let widthXpercent = `${r.width / this.renderDimension * 100}%`;
         let heightYpercent = `${r.height / this.renderDimension * 100}%`;
-        return (<rect className={`histogramboxprimitives-${classExt}`} key={DashUtils.GenerateGuid()} onPointerDown={(e: React.PointerEvent) => { if (e.button == 0) tapHandler() }}
+        return (<rect className={`histogramboxprimitives-${classExt}`} key={DashUtils.GenerateGuid()} onPointerDown={(e: React.PointerEvent) => { if (e.button === 0) tapHandler() }}
             x={transXpercent} width={`${widthXpercent}`} y={transYpercent} height={`${heightYpercent}`} fill={color ? `${LABColor.RGBtoHexString(color)}` : "transparent"} />);
     }
     render() {

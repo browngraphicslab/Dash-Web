@@ -9,6 +9,7 @@ import { RouteStore } from '../server/RouteStore';
 import { ServerUtils } from '../server/ServerUtil';
 import "./ImageUpload.scss";
 import React = require('react');
+import { Opt } from '../fields/Field';
 
 
 
@@ -20,48 +21,44 @@ import React = require('react');
 //     }
 // }
 
-const onFileLoad = (file: any) => {
+const onFileLoad = async (file: any) => {
     let imgPrev = document.getElementById("img_preview")
     if (imgPrev) {
         let files: File[] = file.target.files;
-        if (files.length != 0) {
+        if (files.length !== 0) {
             console.log(files[0]);
             let formData = new FormData();
             formData.append("file", files[0]);
 
             const upload = window.location.origin + "/upload"
-            fetch(upload, {
+            const res = await fetch(upload, {
                 method: 'POST',
                 body: formData
-            }).then((res: Response) => {
-                return res.json()
-            }).then(json => {
-                json.map((file: any) => {
-                    let path = window.location.origin + file
-                    var doc: Document = Documents.ImageDocument(path, { nativeWidth: 200, width: 200 })
+            });
+            const json = await res.json();
+            json.map(async (file: any) => {
+                let path = window.location.origin + file
+                var doc: Document = Documents.ImageDocument(path, { nativeWidth: 200, width: 200 })
 
-                    rp.get(ServerUtils.prepend(RouteStore.getUserDocumentId)).then(res => {
-                        if (res) {
-                            return Server.GetField(res);
-                        }
-                        throw new Error("No user id returned");
-                    }).then(field => {
-                        if (field instanceof Document) {
-                            return field.GetTAsync(KeyStore.OptionalRightCollection, Document)
-                        }
-                    }).then(pending => {
-                        if (pending) {
-                            pending.GetOrCreateAsync(KeyStore.Data, ListField, list => {
-                                list.Data.push(doc);
-                            })
-                        }
-                    });
+                const res = await rp.get(ServerUtils.prepend(RouteStore.getUserDocumentId));
+                if (!res) {
+                    throw new Error("No user id returned");
+                }
+                const field = await Server.GetField(res);
+                let pending: Opt<Document>;
+                if (field instanceof Document) {
+                    pending = await field.GetTAsync(KeyStore.OptionalRightCollection, Document)
+                }
+                if (pending) {
+                    pending.GetOrCreateAsync(KeyStore.Data, ListField, list => {
+                        list.Data.push(doc);
+                    })
+                }
+            });
 
-                    // console.log(window.location.origin + file[0])
+            // console.log(window.location.origin + file[0])
 
-                    //imgPrev.setAttribute("src", window.location.origin + files[0].name)
-                })
-            })
+            //imgPrev.setAttribute("src", window.location.origin + files[0].name)
         }
     }
 }
