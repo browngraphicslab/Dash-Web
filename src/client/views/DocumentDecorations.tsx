@@ -266,7 +266,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     if (doc)
                         moddrag.push(doc);
                 }
-                let dragData = new DragManager.DocumentDragData(moddrag);
+                let dragData = new DragManager.DocumentDragData(moddrag.length ? moddrag : draggedDocs);
                 DragManager.StartDocumentDrag([this._linkButton.current], dragData, e.x, e.y, {
                     handlers: {
                         dragComplete: action(() => { }),
@@ -407,9 +407,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             let linkCount = linkToSize + linkFromSize;
             linkButton = (<Flyout
                 anchorPoint={anchorPoints.RIGHT_TOP}
-                content={
-                    <LinkMenu docView={selFirst} changeFlyout={this.changeFlyoutContent} />
-                }>
+                content={<LinkMenu docView={selFirst}
+                    changeFlyout={this.changeFlyoutContent} />}>
                 <div className={"linkButton-" + (selFirst.props.Document.GetData(KeyStore.LinkedToDocs, ListField, []).length ? "nonempty" : "empty")} onPointerDown={this.onLinkButtonDown} >{linkCount}</div>
             </Flyout>);
         }
