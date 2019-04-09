@@ -4,7 +4,7 @@ import * as passport from "passport";
 import { IVerifyOptions } from "passport-local";
 import "../config/passport";
 import * as request from "express-validator";
-const flash = require("express-flash");
+import flash = require("express-flash");
 import * as session from "express-session";
 import * as pug from 'pug';
 import * as async from 'async';
@@ -109,12 +109,12 @@ export let postLogin = (req: Request, res: Response, next: NextFunction) => {
     }
 
     passport.authenticate("local", (err: Error, user: DashUserModel, info: IVerifyOptions) => {
-        if (err) { return next(err); }
+        if (err) { next(err); return; }
         if (!user) {
             return res.redirect(RouteStore.signup);
         }
         req.logIn(user, (err) => {
-            if (err) { return next(err); }
+            if (err) { next(err); return; }
             res.redirect(RouteStore.home);
         });
     })(req, res, next);
@@ -132,14 +132,14 @@ export let getLogout = (req: Request, res: Response) => {
         sess.destroy((err) => { if (err) { console.log(err); } });
     }
     res.redirect(RouteStore.login);
-}
+};
 
 export let getForgot = function (req: Request, res: Response) {
     res.render("forgot.pug", {
         title: "Recover Password",
         user: req.user,
     });
-}
+};
 
 export let postForgot = function (req: Request, res: Response, next: NextFunction) {
     const email = req.body.email;
@@ -152,13 +152,14 @@ export let postForgot = function (req: Request, res: Response, next: NextFunctio
                     return;
                 }
                 done(null, buffer.toString('hex'));
-            })
+            });
         },
         function (token: string, done: any) {
             User.findOne({ email }, function (err, user: DashUserModel) {
                 if (!user) {
                     // NO ACCOUNT WITH SUBMITTED EMAIL
-                    return res.redirect(RouteStore.forgot);
+                    res.redirect(RouteStore.forgot);
+                    return;
                 }
                 user.passwordResetToken = token;
                 user.passwordResetExpires = new Date(Date.now() + 3600000); // 1 HOUR
@@ -192,8 +193,8 @@ export let postForgot = function (req: Request, res: Response, next: NextFunctio
     ], function (err) {
         if (err) return next(err);
         res.redirect(RouteStore.forgot);
-    })
-}
+    });
+};
 
 export let getReset = function (req: Request, res: Response) {
     User.findOne({ passwordResetToken: req.params.token, passwordResetExpires: { $gt: Date.now() } }, function (err, user: DashUserModel) {
@@ -205,7 +206,7 @@ export let getReset = function (req: Request, res: Response) {
             user: req.user,
         });
     });
-}
+};
 
 export let postReset = function (req: Request, res: Response) {
     async.waterfall([
@@ -228,7 +229,8 @@ export let postReset = function (req: Request, res: Response) {
 
                 user.save(function (err) {
                     if (err) {
-                        return res.redirect(RouteStore.login);
+                        res.redirect(RouteStore.login);
+                        return;
                     }
                     req.logIn(user, function (err) {
                         if (err) {
@@ -261,4 +263,4 @@ export let postReset = function (req: Request, res: Response) {
     ], function (err) {
         res.redirect(RouteStore.login);
     });
-}
+};

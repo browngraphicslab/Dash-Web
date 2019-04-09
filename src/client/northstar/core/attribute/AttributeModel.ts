@@ -1,5 +1,5 @@
-import { Attribute, DataType, VisualizationHint } from '../../model/idea/idea'
-import { BaseObject } from '../BaseObject'
+import { Attribute, DataType, VisualizationHint } from '../../model/idea/idea';
+import { BaseObject } from '../BaseObject';
 import { observable } from "mobx";
 
 export abstract class AttributeModel extends BaseObject {
@@ -34,7 +34,7 @@ export class ColumnAttributeModel extends AttributeModel {
     }
 
     public Equals(other: ColumnAttributeModel): boolean {
-        return this.Attribute.rawName == other.Attribute.rawName;
+        return this.Attribute.rawName === other.Attribute.rawName;
     }
 }
 
@@ -93,7 +93,7 @@ export class BackendAttributeModel extends AttributeModel {
     }
 
     public get DisplayName(): string {
-        return this._displayName.ReplaceAll("_", " ");;
+        return this._displayName.ReplaceAll("_", " ");
     }
 
     public get CodeName(): string {
@@ -105,7 +105,7 @@ export class BackendAttributeModel extends AttributeModel {
     }
 
     public Equals(other: BackendAttributeModel): boolean {
-        return this.Id == other.Id;
+        return this.Id === other.Id;
     }
 
 }

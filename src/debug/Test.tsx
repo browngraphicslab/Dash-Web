@@ -1,10 +1,10 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
-import JsxParser from 'react-jsx-parser'
+import JsxParser from 'react-jsx-parser';
 
 class Hello extends React.Component<{ firstName: string, lastName: string }> {
     render() {
-        return <div>Hello {this.props.firstName} {this.props.lastName}</div>
+        return <div>Hello {this.props.firstName} {this.props.lastName}</div>;
     }
 }
 
@@ -16,8 +16,8 @@ class Test extends React.Component {
                 firstName: "First",
                 lastName: "Last"
             }
-        }
-        return <JsxParser jsx={jsx} bindings={bindings} components={{ Hello }}></JsxParser>
+        };
+        return <JsxParser jsx={jsx} bindings={bindings} components={{ Hello }}></JsxParser>;
     }
 }
 

@@ -10,13 +10,13 @@ import { Types } from "../server/Message";
 import { UndoManager } from "../client/util/UndoManager";
 import { HtmlField } from "./HtmlField";
 import { BooleanField } from "./BooleanField";
+import { allLimit } from "async";
+import { prototype } from "nodemailer/lib/smtp-pool";
+import { HistogramField } from "../client/northstar/dash-fields/HistogramField";
 
 export class Document extends Field {
     //TODO tfs: We should probably store FieldWaiting in fields when we request it from the server so that we don't set up multiple server gets for the same document and field
-    public fields: ObservableMap<
-        string,
-        { key: Key; field: Field }
-    > = new ObservableMap();
+    public fields: ObservableMap<string, { key: Key; field: Field }> = new ObservableMap();
     public _proxies: ObservableMap<string, FieldId> = new ObservableMap();
 
     constructor(id?: string, save: boolean = true) {
@@ -34,34 +34,24 @@ export class Document extends Field {
         }
     }
 
-    public Width = () => {
-        return this.GetNumber(KeyStore.Width, 0);
-    };
-    public Height = () => {
-        return this.GetNumber(
-            KeyStore.Height,
-            this.GetNumber(KeyStore.NativeWidth, 0)
-                ? (this.GetNumber(KeyStore.NativeHeight, 0) /
-                    this.GetNumber(KeyStore.NativeWidth, 0)) *
-                this.GetNumber(KeyStore.Width, 0)
-                : 0
-        );
-    };
-    public Scale = () => {
-        return this.GetNumber(KeyStore.Scale, 1);
-    };
+    public Width = () => this.GetNumber(KeyStore.Width, 0);
+    public Height = () => this.GetNumber(KeyStore.Height, this.GetNumber(KeyStore.NativeWidth, 0) ? (this.GetNumber(KeyStore.NativeHeight, 0) / this.GetNumber(KeyStore.NativeWidth, 0)) * this.GetNumber(KeyStore.Width, 0) : 0);
+    public Scale = () => this.GetNumber(KeyStore.Scale, 1);
 
     @computed
     public get Title(): string {
         let title = this.Get(KeyStore.Title, true);
-        if (title)
-            if (title != FieldWaiting && title instanceof TextField)
+        if (title) {
+            if (title !== FieldWaiting && title instanceof TextField) {
                 return title.Data;
+            }
             else return "-waiting-";
+        }
         let parTitle = this.GetT(KeyStore.Title, TextField);
-        if (parTitle)
-            if (parTitle != FieldWaiting) return parTitle.Data + ".alias";
+        if (parTitle) {
+            if (parTitle !== FieldWaiting) return parTitle.Data + ".alias";
             else return "-waiting-.alias";
+        }
         return "-untitled-";
     }
 
@@ -106,7 +96,7 @@ export class Document extends Field {
             }
         } else {
             let doc: FieldValue<Document> = this;
-            while (doc && doc != FieldWaiting && field != FieldWaiting) {
+            while (doc && field !== FieldWaiting) {
                 let curField = doc.fields.get(key.Id);
                 let curProxy = doc._proxies.get(key.Id);
                 if (!curField || (curProxy && curField.field.Id !== curProxy)) {
@@ -137,7 +127,7 @@ export class Document extends Field {
                     break;
                 }
             }
-            if (doc == FieldWaiting) field = FieldWaiting;
+            if (doc === FieldWaiting) field = FieldWaiting;
         }
 
         return field;
@@ -191,7 +181,7 @@ export class Document extends Field {
         if (callback) {
             fn(callback);
         } else {
-            return new Promise(res => fn(res));
+            return new Promise(fn);
         }
     }
 
@@ -237,7 +227,7 @@ export class Document extends Field {
         ignoreProto: boolean = false
     ): FieldValue<T> {
         var getfield = this.Get(key, ignoreProto);
-        if (getfield != FieldWaiting) {
+        if (getfield !== FieldWaiting) {
             return Cast(getfield, ctor);
         }
         return FieldWaiting;
@@ -249,7 +239,7 @@ export class Document extends Field {
         ignoreProto: boolean = false
     ): T {
         const field = this.GetT(key, ctor, ignoreProto);
-        if (field && field != FieldWaiting) {
+        if (field && field !== FieldWaiting) {
             return field;
         }
         const newField = new ctor();
@@ -343,7 +333,10 @@ export class Document extends Field {
     SetText(key: Key, value: string, replaceWrongType = true) {
         this.SetData(key, value, TextField, replaceWrongType);
     }
-
+    @action
+    SetBoolean(key: Key, value: boolean, replaceWrongType = true) {
+        this.SetData(key, value, BooleanField, replaceWrongType);
+    }
     @action
     SetNumber(key: Key, value: number, replaceWrongType = true) {
         this.SetData(key, value, NumberField, replaceWrongType);
@@ -356,7 +349,7 @@ export class Document extends Field {
     GetAllPrototypes(): Document[] {
         let protos: Document[] = [];
         let doc: FieldValue<Document> = this;
-        while (doc && doc != FieldWaiting) {
+        while (doc && doc !== FieldWaiting) {
             protos.push(doc);
             doc = doc.GetPrototype();
         }
@@ -393,15 +386,35 @@ export class Document extends Field {
         return title;
         //throw new Error("Method not implemented.");
     }
-    Copy(): Field {
-        throw new Error("Method not implemented.");
+    Copy(copyProto?: boolean, id?: string): Field {
+        let copy = new Document();
+        this._proxies.forEach((fieldid, keyid) => { // copy each prototype field
+            let key = KeyStore.KeyLookup(keyid);
+            if (key) {
+                this.GetAsync(key, (field: Opt<Field>) => {
+                    if (key === KeyStore.Prototype && copyProto) { // handle prototype field specially
+                        if (field instanceof Document) {
+                            copy.Set(key, field.Copy(false)); // only copying one level of prototypes for now...
+                        }
+                    }
+                    else
+                        if (field instanceof Document) {  // ... TODO bcz: should we copy documents or reference them
+                            copy.Set(key!, field);
+                        }
+                        else if (field) {
+                            copy.Set(key!, field.Copy());
+                        }
+                });
+            }
+        });
+        return copy;
     }
 
     ToJson(): { type: Types; data: [string, string][]; _id: string } {
         let fields: [string, string][] = [];
         this._proxies.forEach((field, key) => {
             if (field) {
-                fields.push([key, field as string]);
+                fields.push([key, field]);
             }
         });
 

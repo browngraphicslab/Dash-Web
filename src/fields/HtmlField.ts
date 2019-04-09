@@ -20,6 +20,6 @@ export class HtmlField extends BasicField<string> {
             type: Types.Html,
             data: this.Data,
             _id: this.Id,
-        }
+        };
     }
 }

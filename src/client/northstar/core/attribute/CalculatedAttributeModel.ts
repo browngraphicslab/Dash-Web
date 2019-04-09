@@ -1,5 +1,5 @@
 import { BackendAttributeModel, AttributeModel, CodeAttributeModel } from "./AttributeModel";
-import { DataType, VisualizationHint } from '../../model/idea/idea'
+import { DataType, VisualizationHint } from '../../model/idea/idea';
 
 export class CalculatedAttributeManager {
     public static AllCalculatedAttributes: Array<AttributeModel> = new Array<AttributeModel>();
@@ -11,7 +11,7 @@ export class CalculatedAttributeManager {
     public static CreateBackendAttributeModel(id: string, dataType: DataType, displayName: string, codeName: string, visualizationHints: VisualizationHint[]): BackendAttributeModel {
         var filtered = this.AllCalculatedAttributes.filter(am => {
             if (am instanceof BackendAttributeModel &&
-                am.Id == id) {
+                am.Id === id) {
                 return true;
             }
             return false;
@@ -27,7 +27,7 @@ export class CalculatedAttributeManager {
     public static CreateCodeAttributeModel(code: string, codeName: string, visualizationHints: VisualizationHint[]): CodeAttributeModel {
         var filtered = this.AllCalculatedAttributes.filter(am => {
             if (am instanceof CodeAttributeModel &&
-                am.CodeName == codeName) {
+                am.CodeName === codeName) {
                 return true;
             }
             return false;

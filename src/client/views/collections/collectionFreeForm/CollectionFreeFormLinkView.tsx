@@ -32,6 +32,6 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
                 style={{ strokeWidth: `${l.length * 5}` }}
                 x1={`${x1}`} y1={`${y1}`}
                 x2={`${x2}`} y2={`${y2}`} />
-        )
+        );
     }
 }

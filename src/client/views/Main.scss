@@ -1,16 +1,17 @@
 @import "global_variables";
 @import "nodeModuleOverrides";
+
 html,
 body {
     width: 100%;
     height: 100%;
     touch-action: none;
-    overflow: hidden;
+    overflow: auto;
     font-family: $sans-serif;
     margin: 0;
-    position:absolute;
+    position: absolute;
     top: 0;
-    left:0;
+    left: 0;
 }
 
 #dash-title {
@@ -115,6 +116,7 @@ button:hover {
     position: absolute;
     bottom: 62px;
     left: 24px;
+
     .toolbar-button {
         display: block;
         margin-bottom: 10px;
@@ -126,6 +128,7 @@ button:hover {
     position: absolute;
     bottom: 24px;
     left: 24px;
+
     label {
         background: $dark-color;
         color: $light-color;
@@ -138,40 +141,72 @@ button:hover {
         cursor: pointer;
         transition: transform 0.2s;
     }
+
     label p {
         padding-left: 10.5px;
         padding-top: 3px;
     }
+
     label:hover {
         background: $main-accent;
         transform: scale(1.15);
     }
+
     input {
         display: none;
     }
+
     input:not(:checked)~#add-options-content {
         display: none;
     }
+
     input:checked~label {
         transform: rotate(45deg);
         transition: transform 0.5s;
         cursor: pointer;
     }
 }
+
+#root {
+    overflow: visible;
+}
+
 #main-div {
-    width:100%;
-    height:100%;
-    position:absolute;
+    width: 100%;
+    height: 100%;
+    position: absolute;
     top: 0;
-    left:0;
+    left: 0;
+    overflow: scroll;
 }
+
+.mainDiv-textInput {
+    background: pink;
+    width: 200px;
+    height: 200px;
+    position: absolute;
+    overflow: visible;
+    top: 0;
+    left: 0;
+
+    .formattedTextBox-cont {
+        background: pink;
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        top: 0;
+        left: 0;
+    }
+}
+
 #mainContent-div {
-    width:100%;
-    height:100%;
-    position:absolute;
+    width: 100%;
+    height: 100%;
+    position: absolute;
     top: 0;
-    left:0;
+    left: 0;
 }
+
 #add-options-content {
     display: table;
     opacity: 1;
@@ -186,6 +221,7 @@ button:hover {
 ul#add-options-list {
     list-style: none;
     padding: 0;
+
     li {
         display: inline-block;
         padding: 0;

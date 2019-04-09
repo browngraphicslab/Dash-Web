@@ -1,4 +1,4 @@
-import { Catalog, OperationReference, Result, CompileResults } from "../model/idea/idea"
+import { Catalog, OperationReference, Result, CompileResults } from "../model/idea/idea";
 import { computed, observable, action } from "mobx";
 
 export class Gateway {
@@ -15,6 +15,17 @@ export class Gateway {
     public async GetCatalog(): Promise<Catalog> {
         try {
             const json = await this.MakeGetRequest("catalog");
+            const cat = Catalog.fromJS(json);
+            return cat;
+        }
+        catch (error) {
+            throw new Error("can not reach northstar's backend");
+        }
+    }
+
+    public async GetSchema(dbName: string): Promise<Catalog> {
+        try {
+            const json = await this.MakeGetRequest("schema", undefined, dbName);
             const cat = Catalog.fromJS(json);
             return cat;
         }
@@ -49,7 +60,7 @@ export class Gateway {
 
     public async Compile(data: any): Promise<CompileResults | undefined> {
         const json = await this.MakePostJsonRequest("compile", data);
-        if (json != null) {
+        if (json !== null) {
             const cr = CompileResults.fromJS(json);
             return cr;
         }
@@ -108,7 +119,7 @@ export class Gateway {
 
     public async StartOperation(data: any): Promise<OperationReference | undefined> {
         const json = await this.MakePostJsonRequest("operation", data);
-        if (json != null) {
+        if (json !== null) {
             const or = OperationReference.fromJS(json);
             return or;
         }
@@ -116,7 +127,7 @@ export class Gateway {
 
     public async GetResult(data: any): Promise<Result | undefined> {
         const json = await this.MakePostJsonRequest("result", data);
-        if (json != null) {
+        if (json !== null) {
             const res = Result.fromJS(json);
             return res;
         }
@@ -133,8 +144,15 @@ export class Gateway {
             });
     }
 
-    public async MakeGetRequest(endpoint: string, signal?: AbortSignal): Promise<any> {
-        const url = Gateway.ConstructUrl(endpoint);
+    public async MakeGetRequest(endpoint: string, signal?: AbortSignal, data?: any): Promise<any> {
+        let url = !data ? Gateway.ConstructUrl(endpoint) :
+            (() => {
+                let newUrl = new URL(Gateway.ConstructUrl(endpoint));
+                newUrl.searchParams.append("data", data);
+                return Gateway.ConstructUrl(endpoint) + newUrl.search;
+                return newUrl as any;
+            })();
+
         const response = await fetch(url,
             {
                 redirect: "follow",
@@ -163,7 +181,7 @@ export class Gateway {
 
     public static ConstructUrl(appendix: string): string {
         let base = Settings.Instance.ServerUrl;
-        if (base.slice(-1) == "/") {
+        if (base.slice(-1) === "/") {
             base = base.slice(0, -1);
         }
         let url = base + "/" + Settings.Instance.ServerApiPath + "/" + appendix;
@@ -246,18 +264,18 @@ export class Settings {
         else {
             this.ServerUrl = environment["SERVER_URL"] ? environment["SERVER_URL"] : document.URL;
         }*/
-        this.ServerUrl = environment["SERVER_URL"] ? environment["SERVER_URL"] : document.URL;
-        this.ServerApiPath = environment["SERVER_API_PATH"];
-        this.SampleSize = environment["SAMPLE_SIZE"];
-        this.XBins = environment["X_BINS"];
-        this.YBins = environment["Y_BINS"];
-        this.SplashTimeInMS = environment["SPLASH_TIME_IN_MS"];
-        this.ShowFpsCounter = environment["SHOW_FPS_COUNTER"];
-        this.ShowShutdownButton = environment["SHOW_SHUTDOWN_BUTTON"];
-        this.IsMenuFixed = environment["IS_MENU_FIXED"];
-        this.IsDarpa = environment["IS_DARPA"];
-        this.IsIGT = environment["IS_IGT"];
-        this.DegreeOfParallelism = environment["DEGREE_OF_PARALLISM"];
+        this.ServerUrl = environment.SERVER_URL ? environment.SERVER_URL : document.URL;
+        this.ServerApiPath = environment.SERVER_API_PATH;
+        this.SampleSize = environment.SAMPLE_SIZE;
+        this.XBins = environment.X_BINS;
+        this.YBins = environment.Y_BINS;
+        this.SplashTimeInMS = environment.SPLASH_TIME_IN_MS;
+        this.ShowFpsCounter = environment.SHOW_FPS_COUNTER;
+        this.ShowShutdownButton = environment.SHOW_SHUTDOWN_BUTTON;
+        this.IsMenuFixed = environment.IS_MENU_FIXED;
+        this.IsDarpa = environment.IS_DARPA;
+        this.IsIGT = environment.IS_IGT;
+        this.DegreeOfParallelism = environment.DEGREE_OF_PARALLISM;
     }
 
     public static get Instance(): Settings {

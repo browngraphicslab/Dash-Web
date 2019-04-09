@@ -1,4 +1,4 @@
-import { Field, FieldId } from "./Field"
+import { Field, FieldId } from "./Field";
 import { Utils } from "../Utils";
 import { observable } from "mobx";
 import { Types } from "../server/Message";
@@ -16,7 +16,7 @@ export class Key extends Field {
 
         this.name = name;
         if (save) {
-            Server.UpdateField(this)
+            Server.UpdateField(this);
         }
     }
 
@@ -45,6 +45,6 @@ export class Key extends Field {
             type: Types.Key,
             data: this.name,
             _id: this.Id
-        }
+        };
     }
 }

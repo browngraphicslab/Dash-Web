@@ -1,6 +1,6 @@
-import { PIXIPoint } from '../../utils/MathUtil'
+import { PIXIPoint } from '../../utils/MathUtil';
 import { IEquatable } from '../../utils/IEquatable';
-import { Document } from '../../../../fields/Document'
+import { Document } from '../../../../fields/Document';
 
 export interface IBaseBrushable<T> extends IEquatable {
     BrusherModels: Array<Document>;

@@ -18,6 +18,7 @@ import { PDFField } from "../fields/PDFField";
 import { TupleField } from "../fields/TupleField";
 import { BooleanField } from "../fields/BooleanField";
 import { HistogramField } from "../client/northstar/dash-fields/HistogramField";
+import { ScriptField } from "../fields/ScriptField";
 
 export class ServerUtils {
     public static prepend(extension: string): string {
@@ -60,6 +61,8 @@ export class ServerUtils {
                 return new PDFField(new URL(data), id, false);
             case Types.List:
                 return ListField.FromJson(id, data);
+            case Types.Script:
+                return ScriptField.FromJson(id, data);
             case Types.Audio:
                 return new AudioField(new URL(data), id, false);
             case Types.Video:

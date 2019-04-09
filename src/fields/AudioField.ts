@@ -4,7 +4,7 @@ import { Types } from "../server/Message";
 
 export class AudioField extends BasicField<URL> {
     constructor(data: URL | undefined = undefined, id?: FieldId, save: boolean = true) {
-        super(data == undefined ? new URL("http://techslides.com/demos/samples/sample.mp3") : data, save, id);
+        super(data === undefined ? new URL("http://techslides.com/demos/samples/sample.mp3") : data, save, id);
     }
 
     toString(): string {
@@ -25,7 +25,7 @@ export class AudioField extends BasicField<URL> {
             type: Types.Audio,
             data: this.Data.href,
             _id: this.Id
-        }
+        };
     }
 
 }

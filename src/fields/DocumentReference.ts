@@ -52,6 +52,6 @@ export class DocumentReference extends Field {
             type: Types.DocumentReference,
             data: this.document.Id,
             _id: this.Id
-        }
+        };
     }
 }

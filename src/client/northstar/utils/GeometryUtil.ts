@@ -8,15 +8,19 @@ export class GeometryUtil {
         let minY: number = Number.MAX_VALUE;
         let maxX: number = Number.MIN_VALUE;
         let maxY: number = Number.MIN_VALUE;
-        for (var i = 0; i < points.length; i++) {
-            if (points[i].x < minX)
-                minX = points[i].x;
-            if (points[i].y < minY)
-                minY = points[i].y;
-            if (points[i].x > maxX)
-                maxX = points[i].x;
-            if (points[i].y > maxY)
-                maxY = points[i].y;
+        for (const point of points) {
+            if (point.x < minX) {
+                minX = point.x;
+            }
+            if (point.y < minY) {
+                minY = point.y;
+            }
+            if (point.x > maxX) {
+                maxX = point.x;
+            }
+            if (point.y > maxY) {
+                maxY = point.y;
+            }
         }
         return new PIXIRectangle(minX * scale - padding, minY * scale - padding, (maxX - minX) * scale + padding * 2, (maxY - minY) * scale + padding * 2);
     }
@@ -35,7 +39,7 @@ export class GeometryUtil {
                 nx = (cos * (x - cx)) + (sin * (y - cy)) + cx,
                 ny = (cos * (y - cy)) - (sin * (x - cx)) + cy;
             return new PIXIPoint(nx, ny);
-        }
+        };
         return points.map(p => rotate(center.x, center.y, p.x, p.y, angle));
     }
 
@@ -54,9 +58,9 @@ export class GeometryUtil {
             return [];
         }
 
-        for (let v = 0; v < points.length; v++) {
-            x = points[v].x;
-            y = points[v].y;
+        for (const point of points) {
+            x = point.x;
+            y = point.y;
             sum_x += x;
             sum_y += y;
             sum_xx += x * x;
@@ -68,8 +72,8 @@ export class GeometryUtil {
         let b = (sum_y / count) - (m * sum_x) / count;
         let result: PIXIPoint[] = new Array<PIXIPoint>();
 
-        for (let v = 0; v < points.length; v++) {
-            x = points[v].x;
+        for (const point of points) {
+            x = point.x;
             y = x * m + b;
             result.push(new PIXIPoint(x, y));
         }
@@ -85,7 +89,7 @@ export class GeometryUtil {
     //         var xi = vs[i].x, yi = vs[i].y;
     //         var xj = vs[j].x, yj = vs[j].y;
 
-    //         var intersect = ((yi > y) != (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+    //         var intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
     //         if (intersect) 
     //            inside = !inside;
     //     }

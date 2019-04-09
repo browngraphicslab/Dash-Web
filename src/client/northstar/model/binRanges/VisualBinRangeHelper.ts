@@ -16,18 +16,18 @@ export class VisualBinRangeHelper {
 
     public static GetNonAggregateVisualBinRange(dataBinRange: BinRange): VisualBinRange {
         if (dataBinRange instanceof NominalBinRange) {
-            return new NominalVisualBinRange(dataBinRange as NominalBinRange);
+            return new NominalVisualBinRange(dataBinRange);
         }
         else if (dataBinRange instanceof QuantitativeBinRange) {
-            return new QuantitativeVisualBinRange(dataBinRange as QuantitativeBinRange);
+            return new QuantitativeVisualBinRange(dataBinRange);
         }
         else if (dataBinRange instanceof AlphabeticBinRange) {
-            return new AlphabeticVisualBinRange(dataBinRange as AlphabeticBinRange);
+            return new AlphabeticVisualBinRange(dataBinRange);
         }
         else if (dataBinRange instanceof DateTimeBinRange) {
-            return new DateTimeVisualBinRange(dataBinRange as DateTimeBinRange);
+            return new DateTimeVisualBinRange(dataBinRange);
         }
-        throw new Exception()
+        throw new Exception();
     }
 
     public static GetVisualBinRange(distinctAttributeParameters: AttributeParameters | undefined, dataBinRange: BinRange, histoResult: HistogramResult, attr: AttributeTransformationModel, chartType: ChartType): VisualBinRange {
@@ -39,8 +39,7 @@ export class VisualBinRangeHelper {
             var aggregateKey = ModelHelpers.CreateAggregateKey(distinctAttributeParameters, attr, histoResult, ModelHelpers.AllBrushIndex(histoResult));
             var minValue = Number.MAX_VALUE;
             var maxValue = Number.MIN_VALUE;
-            for (var b = 0; b < histoResult.brushes!.length; b++) {
-                var brush = histoResult.brushes![b];
+            for (const brush of histoResult.brushes!) {
                 aggregateKey.brushIndex = brush.brushIndex;
                 for (var key in histoResult.bins) {
                     if (histoResult.bins.hasOwnProperty(key)) {
@@ -52,16 +51,16 @@ export class VisualBinRangeHelper {
                         }
                     }
                 }
-            };
+            }
 
             let visualBinRange = QuantitativeVisualBinRange.Initialize(minValue, maxValue, 10, false);
 
-            if (chartType == ChartType.HorizontalBar || chartType == ChartType.VerticalBar) {
+            if (chartType === ChartType.HorizontalBar || chartType === ChartType.VerticalBar) {
                 visualBinRange = QuantitativeVisualBinRange.Initialize(Math.min(0, minValue),
-                    Math.max(0, (visualBinRange as QuantitativeVisualBinRange).DataBinRange.maxValue!),
+                    Math.max(0, (visualBinRange).DataBinRange.maxValue!),
                     SETTINGS_X_BINS, false);
             }
-            else if (chartType == ChartType.SinglePoint) {
+            else if (chartType === ChartType.SinglePoint) {
                 visualBinRange = QuantitativeVisualBinRange.Initialize(Math.min(0, minValue), Math.max(0, maxValue),
                     SETTINGS_X_BINS, false);
             }
