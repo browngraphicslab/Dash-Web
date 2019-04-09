@@ -121,14 +121,14 @@ export class CollectionSchemaView extends CollectionSubView {
                         return field || "";
                     }}
                     SetValue={(value: string) => {
-                        let script = CompileScript(value, { addReturn: true, params: { this: "Document" } });
+                        let script = CompileScript(value, { addReturn: true, params: { this: Document.name } });
                         if (!script.compiled) {
                             return false;
                         }
                         return applyToDoc(props.Document, script.run);
                     }}
                     OnFillDown={(value: string) => {
-                        let script = CompileScript(value, { addReturn: true, params: { this: "Document" } });
+                        let script = CompileScript(value, { addReturn: true, params: { this: Document.name } });
                         if (!script.compiled) {
                             return;
                         }

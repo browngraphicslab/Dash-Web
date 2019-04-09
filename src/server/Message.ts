@@ -61,7 +61,8 @@ export enum Types {
     PDF,
     Tuple,
     HistogramOp,
-    Boolean
+    Boolean,
+    Script,
 }
 
 export class DocumentTransfer implements Transferable {

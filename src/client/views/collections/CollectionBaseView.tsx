@@ -10,6 +10,8 @@ import { ListField } from '../../../fields/ListField';
 import { action } from 'mobx';
 import { Transform } from '../../util/Transform';
 import { observer } from 'mobx-react';
+import { CompileScript } from '../../util/Scripting';
+import { ScriptField } from '../../../fields/ScriptField';
 
 export enum CollectionViewType {
     Invalid,
@@ -106,7 +108,24 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         } else {
             let proto = props.Document.GetPrototype();
             if (!proto || proto === FieldWaiting || !this.createsCycle(proto, doc)) {
-                props.Document.SetOnPrototype(props.fieldKey, new ListField([doc]));
+                const field = new ListField([doc]);
+                // const script = CompileScript(`
+                //     if(added) {
+                //         console.log("added " + field.Title);
+                //     } else {
+                //         console.log("removed " + field.Title);
+                //     }
+                // `, {
+                //         addReturn: false,
+                //         params: {
+                //             field: Document.name,
+                //             added: "boolean"
+                //         }
+                //     });
+                // if (script.compiled) {
+                //     field.addScript(new ScriptField(script));
+                // }
+                props.Document.SetOnPrototype(props.fieldKey, field);
             }
             else {
                 return false;

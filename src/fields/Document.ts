@@ -16,10 +16,7 @@ import { HistogramField } from "../client/northstar/dash-fields/HistogramField";
 
 export class Document extends Field {
     //TODO tfs: We should probably store FieldWaiting in fields when we request it from the server so that we don't set up multiple server gets for the same document and field
-    public fields: ObservableMap<
-        string,
-        { key: Key; field: Field }
-    > = new ObservableMap();
+    public fields: ObservableMap<string, { key: Key; field: Field }> = new ObservableMap();
     public _proxies: ObservableMap<string, FieldId> = new ObservableMap();
 
     constructor(id?: string, save: boolean = true) {
@@ -406,7 +403,7 @@ export class Document extends Field {
                         }
                         else if (field) {
                             copy.Set(key!, field.Copy());
- }
+                        }
                 });
             }
         });

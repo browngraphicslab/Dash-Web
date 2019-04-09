@@ -30,8 +30,10 @@ export interface ScriptError {
 
 export type ScriptResult = ScriptSucccess | ScriptError;
 
-export interface CompileSuccess {
-    compiled: true;
+export interface CompiledScript {
+    readonly compiled: true;
+    readonly originalScript: string;
+    readonly options: Readonly<ScriptOptions>;
     run(args?: { [name: string]: any }): ScriptResult;
 }
 
@@ -40,9 +42,9 @@ export interface CompileError {
     errors: any[];
 }
 
-export type CompiledScript = CompileSuccess | CompileError;
+export type CompileResult = CompiledScript | CompileError;
 
-function Run(script: string | undefined, customParams: string[], diagnostics: any[]): CompiledScript {
+function Run(script: string | undefined, customParams: string[], diagnostics: any[], originalScript: string, options: ScriptOptions): CompileResult {
     const errors = diagnostics.some(diag => diag.category === ts.DiagnosticCategory.Error);
     if (errors || !script) {
         return { compiled: false, errors: diagnostics };
@@ -68,7 +70,7 @@ function Run(script: string | undefined, customParams: string[], diagnostics: an
             return { success: false, error };
         }
     };
-    return { compiled: true, run };
+    return { compiled: true, run, originalScript, options };
 }
 
 interface File {
@@ -130,7 +132,7 @@ export interface ScriptOptions {
     params?: { [name: string]: string };
 }
 
-export function CompileScript(script: string, { requiredType = "", addReturn = false, params = {} }: ScriptOptions = {}): CompiledScript {
+export function CompileScript(script: string, { requiredType = "", addReturn = false, params = {} }: ScriptOptions = {}): CompileResult {
     let host = new ScriptingCompilerHost;
     let paramArray: string[] = [];
     if ("this" in params) {
@@ -140,7 +142,10 @@ export function CompileScript(script: string, { requiredType = "", addReturn = f
         if (key === "this") continue;
         paramArray.push(key);
     }
-    let paramString = paramArray.map(key => `${key}: ${params[key]}`).join(", ");
+    let paramString = paramArray.map(key => {
+        const val = params[key];
+        return `${key}: ${val}`;
+    }).join(", ");
     let funcScript = `(function(${paramString})${requiredType ? `: ${requiredType}` : ''} {
         ${addReturn ? `return ${script};` : script}
     })`;
@@ -152,7 +157,7 @@ export function CompileScript(script: string, { requiredType = "", addReturn = f
 
     let diagnostics = ts.getPreEmitDiagnostics(program).concat(testResult.diagnostics);
 
-    return Run(outputText, paramArray, diagnostics);
+    return Run(outputText, paramArray, diagnostics, script, { requiredType, addReturn, params });
 }
 
 export function OrLiteralType(returnType: string): string {
