@@ -153,8 +153,6 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
         if (e.buttons === 1 && this.props.isSelected() && !e.altKey) {
             e.stopPropagation();
         }
-        if (e.buttons === 1 && this.props.fieldKey !== KeyStore.Archives)
-            e.preventDefault();
     };
     onPointerUp = (e: React.PointerEvent): void => {
         if (e.buttons === 1 && this.props.isSelected() && !e.altKey) {
