@@ -156,7 +156,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
     @action
     onPointerMove = (e: PointerEvent): void => {
-        if (e.pointerType === "touch" && this.prevPoints.size === 2) return;
+        if (e.pointerType === "touch") return;
         if (!e.cancelBubble && this.props.active()) {
             if (e.buttons === 1 && e.pointerType !== "touch" && !e.altKey && !e.metaKey) {
                 this.MarqueeVisible = true;
@@ -171,28 +171,6 @@ export class CollectionFreeFormView extends CollectionViewBase {
                 e.preventDefault();
             }
         }
-    }
-
-    @action
-    onTouchEnd = (e: TouchEvent): void => {
-        if (!this._touchDrag) {
-        }
-
-        this._touchDrag = false;
-        e.stopPropagation()
-        for (let i = 0; i < e.targetTouches.length; i++) {
-            let pt = e.targetTouches.item(i)
-            if (pt) {
-                if (this.prevPoints.has(pt.identifier)) {
-                    this.prevPoints.delete(pt.identifier)
-                }
-            }
-        }
-
-        if (e.targetTouches.length === 0) {
-            this.prevPoints.clear()
-        }
-        this.cleanupInteractions();
     }
 
     @action
@@ -211,6 +189,11 @@ export class CollectionFreeFormView extends CollectionViewBase {
     public SecondX: number = 0;
     public SecondY: number = 0;
 
+    private _touchDrag: boolean = false
+
+    /**
+     * When a touch even starts, we keep track of each touch that is associated with that event
+     */
     @action
     onTouchStart = (e: React.TouchEvent): void => {
         for (let i = 0; i < e.targetTouches.length; i++) {
@@ -223,15 +206,18 @@ export class CollectionFreeFormView extends CollectionViewBase {
         document.addEventListener("touchend", this.onTouchEnd);
     }
 
-    private _touchDrag: boolean = false
-
+    /**
+     * Handle touch move event
+     */
     @action
     onTouch = (e: TouchEvent): void => {
+        // if we're not actually moving a lot, don't consider it as dragging yet
         if (!TouchInteractions.IsDragging(this.prevPoints, e.targetTouches, 5) && !this._touchDrag) return;
         this._touchDrag = true;
         switch (e.targetTouches.length) {
             case 1:
-                if ((!this.isAnnotationOverlay || this.zoomScaling != 1) && !e.shiftKey && !e.cancelBubble && this.props.active()) {
+                // panning a workspace
+                if (!e.cancelBubble && this.props.active()) {
                     let pt = e.targetTouches.item(0)
                     if (pt) {
                         this.pan(pt)
@@ -241,6 +227,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
                 }
                 break;
             case 2:
+                // pinch zooming
                 if (!e.cancelBubble) {
                     let pt1: Touch | null = e.targetTouches.item(0)
                     let pt2: Touch | null = e.targetTouches.item(1)
@@ -252,6 +239,7 @@ export class CollectionFreeFormView extends CollectionViewBase {
                         if (oldPoint1 && oldPoint2) {
                             let dir = TouchInteractions.Pinching(pt1, pt2, oldPoint1, oldPoint2)
 
+                            // if zooming, zoom
                             if (dir !== 0) {
                                 let d1 = Math.sqrt(Math.pow(pt1.clientX - oldPoint1.clientX, 2) + Math.pow(pt1.clientY - oldPoint1.clientY, 2))
                                 let d2 = Math.sqrt(Math.pow(pt2.clientX - oldPoint2.clientX, 2) + Math.pow(pt2.clientY - oldPoint2.clientY, 2))
@@ -272,6 +260,27 @@ export class CollectionFreeFormView extends CollectionViewBase {
     }
 
     @action
+    onTouchEnd = (e: TouchEvent): void => {
+        this._touchDrag = false;
+        e.stopPropagation()
+
+        // remove all the touches associated with the event
+        for (let i = 0; i < e.targetTouches.length; i++) {
+            let pt = e.targetTouches.item(i)
+            if (pt) {
+                if (this.prevPoints.has(pt.identifier)) {
+                    this.prevPoints.delete(pt.identifier)
+                }
+            }
+        }
+
+        if (e.targetTouches.length === 0) {
+            this.prevPoints.clear()
+        }
+        this.cleanupInteractions();
+    }
+
+    @action
     zoom = (pointX: number, pointY: number, deltaY: number, coefficient: number): void => {
         let transform = this.getTransform();
         let deltaScale = (1 - (deltaY / coefficient));
@@ -281,7 +290,6 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
         let localTransform = this.getLocalTransform()
         localTransform = localTransform.inverse().scaleAbout(deltaScale, x, y)
-        // console.log(localTransform)
 
         this.props.Document.SetNumber(KeyStore.Scale, localTransform.Scale);
         this.SetPan(-localTransform.TranslateX / localTransform.Scale, -localTransform.TranslateY / localTransform.Scale);

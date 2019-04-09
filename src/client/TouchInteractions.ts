@@ -23,6 +23,13 @@ export namespace TouchInteractions {
         return { X: centerX, Y: centerY }
     }
 
+    /**
+     * Returns -1 if pinching out, 0 if not pinching, and 1 if pinching in
+     * @param pt1 - new point that corresponds to oldPoint1
+     * @param pt2 - new point that corresponds to oldPoint2
+     * @param oldPoint1 - previous point 1
+     * @param oldPoint2 - previous point 2
+     */
     export function Pinching(pt1: React.Touch, pt2: React.Touch, oldPoint1: React.Touch, oldPoint2: React.Touch): number {
         const leniency = 10
         let dist1 = TwoPointEuclidist(oldPoint1, pt1) + leniency
@@ -36,6 +43,11 @@ export namespace TouchInteractions {
         return 0
     }
 
+    /**
+     * Returns the type of Touch Interaction from a list of points.
+     * Also returns any data that is associated with a Touch Interaction
+     * @param pts - List of points
+     */
     export function InterpretPointers(pts: React.Touch[]): { type: Opt<TouchInteraction>, data?: any } {
         const leniency = 200;
         switch (pts.length) {

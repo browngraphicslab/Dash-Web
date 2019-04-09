@@ -150,6 +150,11 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         }
     };
 
+    // fixes some dragging bugs with touch
+    onTouch = (e: React.TouchEvent): void => {
+        e.stopPropagation();
+    }
+
     shouldPan = (e: PointerEvent | React.PointerEvent): boolean => {
         return e.pointerType === "touch" || (e.pointerType === "mouse" && e.button === 2)
     }
@@ -471,6 +476,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
                     onClick={this.expand}
                     onDrop={this.onDrop}
                     onPointerDown={this.onPointerDown}
+                    onTouchStart={this.onTouch}
                 />
             );
         } else {
@@ -492,6 +498,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
                     onDrop={this.onDrop}
                     onContextMenu={this.onContextMenu}
                     onPointerDown={this.onPointerDown}
+                    onTouchStart={this.onTouch}
                 >
                     <DocumentContentsView
                         {...this.props}
