@@ -1,4 +1,4 @@
-import { action, computed, observable, trace } from "mobx";
+import { action, computed, observable, trace, ObservableSet, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { Document } from "../../../../fields/Document";
 import { FieldWaiting } from "../../../../fields/Field";
@@ -24,6 +24,7 @@ import { DocumentManager } from "../../../util/DocumentManager";
 import { SelectionManager } from "../../../util/SelectionManager";
 import { NumberField } from "../../../../fields/NumberField";
 import { Main } from "../../Main";
+import Measure from "react-measure";
 
 @observer
 export class CollectionFreeFormView extends CollectionSubView {
@@ -67,8 +68,8 @@ export class CollectionFreeFormView extends CollectionSubView {
     @observable public DownY: number = 0;
     @observable private _lastX: number = 0;
     @observable private _lastY: number = 0;
-
-    private outerElement?: HTMLDivElement;
+    @observable private _pwidth: number = 0;
+    @observable private _pheight: number = 0;
 
     @computed get panX(): number { return this.props.Document.GetNumber(KeyStore.PanX, 0); }
     @computed get panY(): number { return this.props.Document.GetNumber(KeyStore.PanY, 0); }
@@ -77,8 +78,8 @@ export class CollectionFreeFormView extends CollectionSubView {
     @computed get nativeWidth() { return this.props.Document.GetNumber(KeyStore.NativeWidth, 0); }
     @computed get nativeHeight() { return this.props.Document.GetNumber(KeyStore.NativeHeight, 0); }
     @computed get zoomScaling() { return this.props.Document.GetNumber(KeyStore.Scale, 1); }
-    @computed get centeringShiftX() { return !this.props.Document.GetNumber(KeyStore.NativeWidth, 0) && this.outerElement ? this.outerElement.clientWidth / 2 : 0; }  // shift so pan position is at center of window for non-overlay collections
-    @computed get centeringShiftY() { return !this.props.Document.GetNumber(KeyStore.NativeHeight, 0) && this.outerElement ? this.outerElement.clientHeight / 2 : 0; }// shift so pan position is at center of window for non-overlay collections
+    @computed get centeringShiftX() { return !this.props.Document.GetNumber(KeyStore.NativeWidth, 0) ? this._pwidth / 2 : 0; }  // shift so pan position is at center of window for non-overlay collections
+    @computed get centeringShiftY() { return !this.props.Document.GetNumber(KeyStore.NativeHeight, 0) ? this._pheight / 2 : 0; }// shift so pan position is at center of window for non-overlay collections
 
     @undoBatch
     @action
@@ -311,29 +312,34 @@ export class CollectionFreeFormView extends CollectionSubView {
         const pany: number = -this.props.Document.GetNumber(KeyStore.PanY, 0);
 
         return (
-            <div className={`collectionfreeformview${this.isAnnotationOverlay ? "-overlay" : "-container"}`}
-                onPointerDown={this.onPointerDown} onPointerMove={(e) => super.setCursorPosition(this.getTransform().transformPoint(e.clientX, e.clientY))}
-                onDrop={this.onDrop.bind(this)} onDragOver={this.onDragOver} onWheel={this.onPointerWheel}
-                style={{ borderWidth: `${COLLECTION_BORDER_WIDTH}px` }} ref={this.createDropTarget}>
-                <MarqueeView container={this} activeDocuments={this.getActiveDocuments} selectDocuments={this.selectDocuments}
-                    addDocument={this.addDocument} removeDocument={this.props.removeDocument}
-                    getContainerTransform={this.getContainerTransform} getTransform={this.getTransform}>
-                    <PreviewCursor container={this} addLiveTextDocument={this.addLiveTextBox}
-                        getContainerTransform={this.getContainerTransform} getTransform={this.getTransform} >
-                        <div className="collectionfreeformview" ref={this._canvasRef}
-                            style={{ transform: `translate(${dx}px, ${dy}px) scale(${this.zoomScaling}, ${this.zoomScaling}) translate(${panx}px, ${pany}px)` }}>
-                            {this.backgroundView}
-                            <CollectionFreeFormLinksView {...this.props}>
-                                <InkingCanvas getScreenTransform={this.getTransform} Document={this.props.Document} >
-                                    {this.childViews}
-                                </InkingCanvas>
-                            </CollectionFreeFormLinksView>
-                            <CollectionFreeFormRemoteCursors {...this.props} />
+            <Measure onResize={(r: any) => runInAction(() => { this._pwidth = r.entry.width; this._pheight = r.entry.height })}>
+                {({ measureRef }) => (
+                    <div className={`collectionfreeformview-measure`} ref={measureRef}>
+                        <div className={`collectionfreeformview${this.isAnnotationOverlay ? "-overlay" : "-container"}`}
+                            onPointerDown={this.onPointerDown} onPointerMove={(e) => super.setCursorPosition(this.getTransform().transformPoint(e.clientX, e.clientY))}
+                            onDrop={this.onDrop.bind(this)} onDragOver={this.onDragOver} onWheel={this.onPointerWheel}
+                            style={{ borderWidth: `${COLLECTION_BORDER_WIDTH}px` }} ref={this.createDropTarget}>
+                            <MarqueeView container={this} activeDocuments={this.getActiveDocuments} selectDocuments={this.selectDocuments}
+                                addDocument={this.addDocument} removeDocument={this.props.removeDocument}
+                                getContainerTransform={this.getContainerTransform} getTransform={this.getTransform}>
+                                <PreviewCursor container={this} addLiveTextDocument={this.addLiveTextBox}
+                                    getContainerTransform={this.getContainerTransform} getTransform={this.getTransform} >
+                                    <div className="collectionfreeformview" ref={this._canvasRef}
+                                        style={{ transform: `translate(${dx}px, ${dy}px) scale(${this.zoomScaling}, ${this.zoomScaling}) translate(${panx}px, ${pany}px)` }}>
+                                        {this.backgroundView}
+                                        <CollectionFreeFormLinksView {...this.props}>
+                                            <InkingCanvas getScreenTransform={this.getTransform} Document={this.props.Document} >
+                                                {this.childViews}
+                                            </InkingCanvas>
+                                        </CollectionFreeFormLinksView>
+                                        <CollectionFreeFormRemoteCursors {...this.props} />
+                                    </div>
+                                    {this.overlayView}
+                                </PreviewCursor>
+                            </MarqueeView>
                         </div>
-                        {this.overlayView}
-                    </PreviewCursor>
-                </MarqueeView>
-            </div>
+                    </div>)}
+            </Measure>
         );
     }
 }
