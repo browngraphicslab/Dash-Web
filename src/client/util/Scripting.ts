@@ -14,7 +14,7 @@ import { ListField } from "../../fields/ListField";
 // import * as typescriptes5 from '!!raw-loader!../../../node_modules/typescript/lib/lib.es5.d.ts'
 
 // @ts-ignore
-import * as typescriptlib from '!!raw-loader!./type_decls.d'
+import * as typescriptlib from '!!raw-loader!./type_decls.d';
 import { Documents } from "../documents/Documents";
 import { Key } from "../../fields/Key";
 
@@ -50,7 +50,7 @@ function Run(script: string | undefined, customParams: string[], diagnostics: an
 
     let fieldTypes = [Document, NumberField, TextField, ImageField, RichTextField, ListField, Key];
     let paramNames = ["KeyStore", "Documents", ...fieldTypes.map(fn => fn.name)];
-    let params: any[] = [KeyStore, Documents, ...fieldTypes]
+    let params: any[] = [KeyStore, Documents, ...fieldTypes];
     let compiledFunction = new Function(...paramNames, `return ${script}`);
     let run = (args: { [name: string]: any } = {}): ScriptResult => {
         let argsArray: any[] = [];
@@ -67,7 +67,7 @@ function Run(script: string | undefined, customParams: string[], diagnostics: an
         } catch (error) {
             return { success: false, error };
         }
-    }
+    };
     return { compiled: true, run };
 }
 
@@ -90,14 +90,14 @@ class ScriptingCompilerHost {
     }
     // getDefaultLibFileName(options: ts.CompilerOptions): string {
     getDefaultLibFileName(options: any): string {
-        return 'node_modules/typescript/lib/lib.d.ts' // No idea what this means...
+        return 'node_modules/typescript/lib/lib.d.ts'; // No idea what this means...
     }
     writeFile(fileName: string, content: string) {
         const file = this.files.find(file => file.fileName === fileName);
         if (file) {
             file.content = content;
         } else {
-            this.files.push({ fileName, content })
+            this.files.push({ fileName, content });
         }
     }
     getCurrentDirectory(): string {

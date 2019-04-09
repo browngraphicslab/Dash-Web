@@ -1,7 +1,7 @@
-import React = require('react')
+import React = require('react');
 import { observer } from 'mobx-react';
 import { observable, action, trace } from 'mobx';
-import "./EditableView.scss"
+import "./EditableView.scss";
 
 export interface EditableProps {
     /**
@@ -22,7 +22,7 @@ export interface EditableProps {
      * The contents to render when not editing
      */
     contents: any;
-    height: number
+    height: number;
     display?: string;
 }
 
@@ -55,14 +55,14 @@ export class EditableView extends React.Component<EditableProps> {
     render() {
         if (this.editing) {
             return <input defaultValue={this.props.GetValue()} onKeyDown={this.onKeyDown} autoFocus onBlur={action(() => this.editing = false)}
-                style={{ display: this.props.display }}></input>
+                style={{ display: this.props.display }}></input>;
         } else {
             return (
                 <div className="editableView-container-editing" style={{ display: this.props.display, height: "auto", maxHeight: `${this.props.height}` }}
                     onClick={action(() => this.editing = true)} >
                     {this.props.contents}
                 </div>
-            )
+            );
         }
     }
 }

@@ -1,5 +1,5 @@
-import { Attribute, DataType, VisualizationHint } from '../../model/idea/idea'
-import { BaseObject } from '../BaseObject'
+import { Attribute, DataType, VisualizationHint } from '../../model/idea/idea';
+import { BaseObject } from '../BaseObject';
 import { observable } from "mobx";
 
 export abstract class AttributeModel extends BaseObject {
@@ -93,7 +93,7 @@ export class BackendAttributeModel extends AttributeModel {
     }
 
     public get DisplayName(): string {
-        return this._displayName.ReplaceAll("_", " ");;
+        return this._displayName.ReplaceAll("_", " ");
     }
 
     public get CodeName(): string {

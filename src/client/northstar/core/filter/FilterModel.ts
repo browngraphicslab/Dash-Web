@@ -15,7 +15,7 @@ export class FilterModel {
 
     public Equals(other: FilterModel): boolean {
         if (!Utils.EqualityHelper(this, other)) return false;
-        if (!this.isSame(this.ValueComparisons, (other as FilterModel).ValueComparisons)) return false;
+        if (!this.isSame(this.ValueComparisons, (other).ValueComparisons)) return false;
         return true;
     }
 

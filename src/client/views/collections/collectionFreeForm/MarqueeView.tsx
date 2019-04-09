@@ -37,7 +37,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     @action
     cleanupInteractions = (all: boolean = false) => {
         if (all) {
-            document.removeEventListener("pointermove", this.onPointerMove, true)
+            document.removeEventListener("pointermove", this.onPointerMove, true);
             document.removeEventListener("pointerup", this.onPointerUp, true);
         } else {
             this._used = true;
@@ -52,7 +52,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             this._downX = this._lastX = e.pageX;
             this._downY = this._lastY = e.pageY;
             this._used = false;
-            document.addEventListener("pointermove", this.onPointerMove, true)
+            document.addEventListener("pointermove", this.onPointerMove, true);
             document.addEventListener("pointerup", this.onPointerUp, true);
             document.addEventListener("keydown", this.marqueeCommand, true);
         }
@@ -94,7 +94,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         let top = this._downY < this._lastY ? this._downY : this._lastY;
         let topLeft = this.props.getTransform().transformPoint(left, top);
         let size = this.props.getTransform().transformDirection(this._lastX - this._downX, this._lastY - this._downY);
-        return { left: topLeft[0], top: topLeft[1], width: Math.abs(size[0]), height: Math.abs(size[1]) }
+        return { left: topLeft[0], top: topLeft[1], width: Math.abs(size[0]), height: Math.abs(size[1]) };
     }
 
     @action
@@ -180,9 +180,10 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             var y = doc.GetNumber(KeyStore.Y, 0);
             var w = doc.GetNumber(KeyStore.Width, 0);
             var h = doc.GetNumber(KeyStore.Height, 0);
-            if (this.intersectRect({ left: x, top: y, width: w, height: h }, selRect))
-                selection.push(doc)
-        })
+            if (this.intersectRect({ left: x, top: y, width: w, height: h }, selRect)) {
+                selection.push(doc);
+            }
+        });
         return selection;
     }
 
@@ -190,7 +191,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     get marqueeDiv() {
         let p = this.props.getContainerTransform().transformPoint(this._downX < this._lastX ? this._downX : this._lastX, this._downY < this._lastY ? this._downY : this._lastY);
         let v = this.props.getContainerTransform().transformDirection(this._lastX - this._downX, this._lastY - this._downY);
-        return <div className="marquee" style={{ transform: `translate(${p[0]}px, ${p[1]}px)`, width: `${Math.abs(v[0])}`, height: `${Math.abs(v[1])}` }} />
+        return <div className="marquee" style={{ transform: `translate(${p[0]}px, ${p[1]}px)`, width: `${Math.abs(v[0])}`, height: `${Math.abs(v[1])}` }} />;
     }
 
     render() {

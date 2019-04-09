@@ -1,4 +1,4 @@
-import { FilterModel } from '../core/filter/FilterModel'
+import { FilterModel } from '../core/filter/FilterModel';
 import { ErrorResult, Exception, OperationParameters, OperationReference, Result, ResultParameters } from '../model/idea/idea';
 import { action, computed, observable } from "mobx";
 import { Gateway } from '../manager/Gateway';
@@ -62,8 +62,9 @@ export abstract class BaseOperation {
             }
 
             let operationParameters = this.CreateOperationParameters();
-            if (this.Result)
-                this.Result.progress = 0; // bcz: used to set Result to undefined, but that causes the display to blink
+            if (this.Result) {
+                this.Result.progress = 0;
+            } // bcz: used to set Result to undefined, but that causes the display to blink
             this.Error = "";
             let salt = Math.random().toString();
             this.RequestSalt = salt;
@@ -97,7 +98,7 @@ export abstract class BaseOperation {
                 pollPromise.Start(async () => {
                     let result = await Gateway.Instance.GetResult(resultParameters.toJSON());
                     if (result instanceof ErrorResult) {
-                        throw new Error((result as ErrorResult).message);
+                        throw new Error((result).message);
                     }
                     if (this.RequestSalt === pollPromise.RequestSalt) {
                         if (result && (!this.Result || this.Result.progress !== result.progress)) {

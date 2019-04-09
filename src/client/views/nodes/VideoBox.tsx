@@ -1,4 +1,4 @@
-import React = require("react")
+import React = require("react");
 import { observer } from "mobx-react";
 import { FieldWaiting, Opt } from '../../../fields/Field';
 import { VideoField } from '../../../fields/VideoField';
@@ -13,8 +13,8 @@ import { number } from "prop-types";
 export class VideoBox extends React.Component<FieldViewProps> {
 
     private _reactionDisposer: Opt<IReactionDisposer>;
-    private _videoRef = React.createRef<HTMLVideoElement>()
-    public static LayoutString() { return FieldView.LayoutString(VideoBox) }
+    private _videoRef = React.createRef<HTMLVideoElement>();
+    public static LayoutString() { return FieldView.LayoutString(VideoBox); }
 
     constructor(props: FieldViewProps) {
         super(props);
@@ -58,7 +58,7 @@ export class VideoBox extends React.Component<FieldViewProps> {
     render() {
         let field = this.props.Document.GetT(this.props.fieldKey, VideoField);
         if (!field || field === FieldWaiting) {
-            return <div>Loading</div>
+            return <div>Loading</div>;
         }
         let path = field.Data.href;
         trace();
@@ -73,6 +73,6 @@ export class VideoBox extends React.Component<FieldViewProps> {
                     </div>
                 }
             </Measure>
-        )
+        );
     }
 }

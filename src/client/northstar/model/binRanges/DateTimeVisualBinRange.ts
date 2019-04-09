@@ -1,5 +1,5 @@
-import { DateTimeBinRange, DateTimeStep, DateTimeStepGranularity } from '../idea/idea'
-import { VisualBinRange } from './VisualBinRange'
+import { DateTimeBinRange, DateTimeStep, DateTimeStepGranularity } from '../idea/idea';
+import { VisualBinRange } from './VisualBinRange';
 
 export class DateTimeVisualBinRange extends VisualBinRange {
     public DataBinRange: DateTimeBinRange;

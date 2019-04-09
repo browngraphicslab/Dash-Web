@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { observable, action, configure, reaction, computed, ObservableMap, runInAction } from 'mobx';
 import { observer } from "mobx-react";
-import './WorkspacesMenu.css'
+import './WorkspacesMenu.css';
 import { Document } from '../../../fields/Document';
 import { EditableView } from '../../../client/views/EditableView';
 import { KeyStore } from '../../../fields/KeyStore';

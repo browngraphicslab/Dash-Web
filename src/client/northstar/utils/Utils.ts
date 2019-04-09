@@ -1,7 +1,7 @@
-import { IBaseBrushable } from '../core/brusher/IBaseBrushable'
-import { IBaseFilterConsumer } from '../core/filter/IBaseFilterConsumer'
-import { IBaseFilterProvider } from '../core/filter/IBaseFilterProvider'
-import { AggregateFunction } from '../model/idea/idea'
+import { IBaseBrushable } from '../core/brusher/IBaseBrushable';
+import { IBaseFilterConsumer } from '../core/filter/IBaseFilterConsumer';
+import { IBaseFilterProvider } from '../core/filter/IBaseFilterProvider';
+import { AggregateFunction } from '../model/idea/idea';
 
 export class Utils {
 

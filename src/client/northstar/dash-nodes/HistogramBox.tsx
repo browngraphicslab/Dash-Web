@@ -1,4 +1,4 @@
-import React = require("react")
+import React = require("react");
 import { action, computed, observable, reaction, runInAction, trace } from "mobx";
 import { observer } from "mobx-react";
 import Measure from "react-measure";
@@ -25,7 +25,7 @@ import { StyleConstants } from "../utils/StyleContants";
 
 @observer
 export class HistogramBox extends React.Component<FieldViewProps> {
-    public static LayoutString(fieldStr: string = "DataKey") { return FieldView.LayoutString(HistogramBox, fieldStr) }
+    public static LayoutString(fieldStr: string = "DataKey") { return FieldView.LayoutString(HistogramBox, fieldStr); }
     private _dropXRef = React.createRef<HTMLDivElement>();
     private _dropYRef = React.createRef<HTMLDivElement>();
     private _dropXDisposer?: DragManager.DragDropDisposer;
@@ -92,15 +92,15 @@ export class HistogramBox extends React.Component<FieldViewProps> {
         }
         reaction(() => CurrentUserUtils.NorthstarDBCatalog, (catalog?: Catalog) => this.activateHistogramOperation(catalog), { fireImmediately: true });
         reaction(() => [this.VisualBinRanges && this.VisualBinRanges.slice()], () => this.SizeConverter.SetVisualBinRanges(this.VisualBinRanges));
-        reaction(() => [this.PanelHeight, this.PanelWidth], () => this.SizeConverter.SetIsSmall(this.PanelWidth < 40 && this.PanelHeight < 40))
+        reaction(() => [this.PanelHeight, this.PanelWidth], () => this.SizeConverter.SetIsSmall(this.PanelWidth < 40 && this.PanelHeight < 40));
         reaction(() => this.HistogramResult ? this.HistogramResult.binRanges : undefined,
             (binRanges: BinRange[] | undefined) => {
                 if (binRanges) {
                     this.VisualBinRanges.splice(0, this.VisualBinRanges.length, ...binRanges.map((br, ind) =>
-                        VisualBinRangeHelper.GetVisualBinRange(this.HistoOp.Schema!.distinctAttributeParameters, br, this.HistogramResult!, ind ? this.HistoOp.Y : this.HistoOp.X, this.ChartType)));
+                        VisualBinRangeHelper.GetVisualBinRange(this.HistoOp.Schema!.distinctAttributeParameters, br, this.HistogramResult, ind ? this.HistoOp.Y : this.HistoOp.X, this.ChartType)));
 
-                    let valueAggregateKey = ModelHelpers.CreateAggregateKey(this.HistoOp.Schema!.distinctAttributeParameters, this.HistoOp.V, this.HistogramResult!, ModelHelpers.AllBrushIndex(this.HistogramResult!));
-                    this.ValueRange = Object.values(this.HistogramResult!.bins!).reduce((prev, cur) => {
+                    let valueAggregateKey = ModelHelpers.CreateAggregateKey(this.HistoOp.Schema!.distinctAttributeParameters, this.HistoOp.V, this.HistogramResult, ModelHelpers.AllBrushIndex(this.HistogramResult));
+                    this.ValueRange = Object.values(this.HistogramResult.bins!).reduce((prev, cur) => {
                         let value = ModelHelpers.GetAggregateResult(cur, valueAggregateKey) as DoubleValueAggregateResult;
                         return value && value.hasResult ? [Math.min(prev[0], value.result!), Math.max(prev[1], value.result!)] : prev;
                     }, [Number.MAX_VALUE, Number.MIN_VALUE]);
@@ -109,10 +109,12 @@ export class HistogramBox extends React.Component<FieldViewProps> {
     }
 
     componentWillUnmount() {
-        if (this._dropXDisposer)
+        if (this._dropXDisposer) {
             this._dropXDisposer();
-        if (this._dropYDisposer)
+        }
+        if (this._dropYDisposer) {
             this._dropYDisposer();
+        }
     }
 
     activateHistogramOperation(catalog?: Catalog) {
@@ -128,7 +130,7 @@ export class HistogramBox extends React.Component<FieldViewProps> {
                             this.HistoOp.BrushLinks.splice(0, this.HistoOp.BrushLinks.length, ...brushingDocs.map((brush, i) => {
                                 brush.SetNumber(KeyStore.BackgroundColor, StyleConstants.BRUSH_COLORS[i % StyleConstants.BRUSH_COLORS.length]);
                                 let brushed = brush.GetList(KeyStore.BrushingDocs, [] as Document[]);
-                                return { l: brush, b: brushed[0].Id === proto.Id ? brushed[1] : brushed[0] }
+                                return { l: brush, b: brushed[0].Id === proto.Id ? brushed[1] : brushed[0] };
                             }));
                         }, { fireImmediately: true });
                     reaction(() => this.createOperationParamsCache, () => this.HistoOp.Update(), { fireImmediately: true });
@@ -146,7 +148,7 @@ export class HistogramBox extends React.Component<FieldViewProps> {
         let roff = this.SizeConverter.RightOffset;
         let boff = this.SizeConverter.BottomOffset;
         return (
-            <Measure onResize={(r: any) => runInAction(() => { this.PanelWidth = r.entry.width; this.PanelHeight = r.entry.height })}>
+            <Measure onResize={(r: any) => runInAction(() => { this.PanelWidth = r.entry.width; this.PanelHeight = r.entry.height; })}>
                 {({ measureRef }) =>
                     <div className="histogrambox-container" ref={measureRef} style={{ transform: `translate(-50%, -50%)` }}>
                         <div className="histogrambox-yaxislabel" onPointerDown={this.yLabelPointerDown} ref={this._dropYRef} >
@@ -168,7 +170,7 @@ export class HistogramBox extends React.Component<FieldViewProps> {
                     </div>
                 }
             </Measure>
-        )
+        );
     }
 }
 

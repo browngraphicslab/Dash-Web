@@ -1,5 +1,5 @@
-import { IEquatable } from '../utils/IEquatable'
-import { IDisposable } from '../utils/IDisposable'
+import { IEquatable } from '../utils/IEquatable';
+import { IDisposable } from '../utils/IDisposable';
 
 export class BaseObject implements IEquatable, IDisposable {
 

@@ -23,7 +23,7 @@ export namespace SelectionManager {
 
         @action
         DeselectAll(): void {
-            manager.SelectedDocuments.map(dv => dv.props.onActiveChanged(false))
+            manager.SelectedDocuments.map(dv => dv.props.onActiveChanged(false));
             manager.SelectedDocuments = [];
         }
     }
@@ -46,7 +46,7 @@ export namespace SelectionManager {
             }
         }
 
-        manager.DeselectAll()
+        manager.DeselectAll();
         if (found) manager.SelectDoc(found, false);
         Main.Instance.SetTextDoc(undefined, undefined);
     }

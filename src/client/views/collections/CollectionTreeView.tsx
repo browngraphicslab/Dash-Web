@@ -12,7 +12,7 @@ import { EditableView } from "../EditableView";
 import "./CollectionTreeView.scss";
 import { CollectionView } from "./CollectionView";
 import { CollectionSubView } from "./CollectionSubView";
-import React = require("react")
+import React = require("react");
 import { COLLECTION_BORDER_WIDTH } from './CollectionBaseView';
 import { props } from 'bluebird';
 
@@ -58,7 +58,7 @@ class TreeView extends React.Component<TreeViewProps> {
             return true;
         }
         //TODO This should check if it was removed
-        this.remove(document)
+        this.remove(document);
         return addDoc(document);
     }
 
@@ -69,7 +69,7 @@ class TreeView extends React.Component<TreeViewProps> {
             case BulletType.Collapsed: bullet = "caret-right"; break;
             case BulletType.Collapsible: bullet = "caret-down"; break;
         }
-        return <div className="bullet" onClick={onClicked}>{bullet ? <FontAwesomeIcon icon={bullet} /> : ""} </div>
+        return <div className="bullet" onClick={onClicked}>{bullet ? <FontAwesomeIcon icon={bullet} /> : ""} </div>;
     }
 
     /**
@@ -93,7 +93,7 @@ class TreeView extends React.Component<TreeViewProps> {
             <div className="docContainer" ref={reference} onPointerDown={onItemDown}>
                 {editableView(this.props.document.Title)}
                 <div className="delete-button" onClick={this.delete}><FontAwesomeIcon icon="trash-alt" size="xs" /></div>
-            </div >)
+            </div >);
     }
 
     render() {
@@ -105,7 +105,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 bulletType = BulletType.Collapsible;
                 childElements = <ul>
                     {children.Data.map(value => <TreeView key={value.Id} document={value} deleteDoc={this.remove} moveDocument={this.move} copyOnDrag={this.props.copyOnDrag} />)}
-                </ul >
+                </ul >;
             }
             else bulletType = BulletType.Collapsed;
         }
@@ -115,7 +115,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 {this.renderTitle()}
                 {childElements ? childElements : (null)}
             </li>
-        </div>
+        </div>;
     }
 }
 
@@ -136,7 +136,7 @@ export class CollectionTreeView extends CollectionSubView {
         let childrenElement = !children || children === FieldWaiting ? (null) :
             (children.Data.map(value =>
                 <TreeView document={value} key={value.Id} deleteDoc={this.remove} moveDocument={this.props.moveDocument} copyOnDrag={copyOnDrag} />)
-            )
+            );
 
         return (
             <div id="body" className="collectionTreeView-dropTarget" onWheel={(e: React.WheelEvent) => e.stopPropagation()} onDrop={(e: React.DragEvent) => this.onDrop(e, {})} ref={this.createDropTarget} style={{ borderWidth: `${COLLECTION_BORDER_WIDTH}px` }}>

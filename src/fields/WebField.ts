@@ -24,7 +24,7 @@ export class WebField extends BasicField<URL> {
             type: Types.Web,
             data: this.Data.href,
             _id: this.Id
-        }
+        };
     }
 
 }

@@ -14,7 +14,7 @@ import { NumberField } from "../../../fields/NumberField";
 import { ServerUtils } from "../../../server/ServerUtil";
 import { Server } from "../../Server";
 import { FieldViewProps } from "../nodes/FieldView";
-import * as rp from 'request-promise'
+import * as rp from 'request-promise';
 
 export interface CollectionViewProps extends FieldViewProps {
     addDocument: (document: Document, allowDuplicates?: boolean) => boolean;
@@ -58,8 +58,8 @@ export class CollectionSubView extends React.Component<SubCollectionViewProps> {
                         let entry = new TupleField<[string, string], [number, number]>([textInfo, position]);
                         cursors.push(entry);
                     }
-                }))
-            })
+                }));
+            });
         }
     }
 
@@ -77,17 +77,17 @@ export class CollectionSubView extends React.Component<SubCollectionViewProps> {
                 added = de.data.droppedDocuments.reduce((added: boolean, d) => added || this.props.addDocument(d), false);
             } else if (de.data.moveDocument) {
                 const move = de.data.moveDocument;
-                added = de.data.droppedDocuments.reduce((added: boolean, d) => added || move(d, this.props.Document, this.props.addDocument), false)
+                added = de.data.droppedDocuments.reduce((added: boolean, d) => added || move(d, this.props.Document, this.props.addDocument), false);
             } else {
-                added = de.data.droppedDocuments.reduce((added: boolean, d) => added || this.props.addDocument(d), false)
+                added = de.data.droppedDocuments.reduce((added: boolean, d) => added || this.props.addDocument(d), false);
             }
             e.stopPropagation();
             return added;
         }
         if (de.data instanceof DragManager.LinkDragData) {
             let sourceDoc: Document = de.data.linkSourceDocumentView.props.Document;
-            if (sourceDoc) runInAction(() => {
-                let srcTarg = sourceDoc.GetT(KeyStore.Prototype, Document)
+            if (sourceDoc) { runInAction(() => {
+                let srcTarg = sourceDoc.GetT(KeyStore.Prototype, Document);
                 if (srcTarg && srcTarg !== FieldWaiting) {
                     let linkDocs = srcTarg.GetList(KeyStore.LinkedToDocs, [] as Document[]);
                     linkDocs.map(linkDoc => {
@@ -97,9 +97,10 @@ export class CollectionSubView extends React.Component<SubCollectionViewProps> {
                             de.data.droppedDocuments.push(dropdoc);
                             this.props.addDocument(dropdoc, false);
                         }
-                    })
+                    });
                 }
-            })
+            });
+            }
             return true;
         }
         return false;
@@ -133,7 +134,7 @@ export class CollectionSubView extends React.Component<SubCollectionViewProps> {
                         alias.SetNumber(KeyStore.Height, options.height || options.width || 300);
                         this.props.addDocument(alias, false);
                     }
-                })
+                });
                 return undefined;
             }
             ctor = Documents.WebDocument;
@@ -151,8 +152,8 @@ export class CollectionSubView extends React.Component<SubCollectionViewProps> {
         if (text && text.startsWith("<div")) {
             return;
         }
-        e.stopPropagation()
-        e.preventDefault()
+        e.stopPropagation();
+        e.preventDefault();
 
         if (html && html.indexOf("<img") !== 0 && !html.startsWith("<a")) {
             console.log("not good");
@@ -173,11 +174,11 @@ export class CollectionSubView extends React.Component<SubCollectionViewProps> {
                 let prom = new Promise<string>(res =>
                     e.dataTransfer.items[i].getAsString(res)).then(action((s: string) => {
                         str = s;
-                        return rp.head(ServerUtils.prepend(RouteStore.corsProxy + "/" + s))
+                        return rp.head(ServerUtils.prepend(RouteStore.corsProxy + "/" + s));
                     })).then(res => {
                         let type = res.headers["content-type"];
                         if (type) {
-                            let doc = this.getDocumentFromType(type, str, { ...options, width: 300, nativeWidth: 300 })
+                            let doc = this.getDocumentFromType(type, str, { ...options, width: 300, nativeWidth: 300 });
                             if (doc) {
                                 this.props.addDocument(doc, false);
                             }
@@ -186,13 +187,13 @@ export class CollectionSubView extends React.Component<SubCollectionViewProps> {
                 promises.push(prom);
                 // this.props.addDocument(Documents.WebDocument(s, { ...options, width: 300, height: 300 }), false)
             }
-            let type = item.type
+            let type = item.type;
             if (item.kind === "file") {
                 let file = item.getAsFile();
-                let formData = new FormData()
+                let formData = new FormData();
 
                 if (file) {
-                    formData.append('file', file)
+                    formData.append('file', file);
                 }
 
                 let prom = fetch(upload, {
@@ -201,15 +202,15 @@ export class CollectionSubView extends React.Component<SubCollectionViewProps> {
                 }).then(async (res: Response) => {
                     const json = await res.json();
                     json.map((file: any) => {
-                        let path = window.location.origin + file
+                        let path = window.location.origin + file;
                         runInAction(() => {
-                            let doc = this.getDocumentFromType(type, path, { ...options, nativeWidth: 300, width: 300 })
+                            let doc = this.getDocumentFromType(type, path, { ...options, nativeWidth: 300, width: 300 });
 
                             let docs = this.props.Document.GetT(KeyStore.Data, ListField);
                             if (docs !== FieldWaiting) {
                                 if (!docs) {
                                     docs = new ListField<Document>();
-                                    this.props.Document.Set(KeyStore.Data, docs)
+                                    this.props.Document.Set(KeyStore.Data, docs);
                                 }
                                 if (doc) {
                                     docs.Data.push(doc);

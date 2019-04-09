@@ -100,8 +100,9 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         if (e.shiftKey && e.buttons === 2) {
             if (this.props.isTopMost) {
                 this.startDragging(e.pageX, e.pageY, e.altKey || e.ctrlKey);
-            } else
+            } else {
                 CollectionDockingView.Instance.StartOtherDrag([this.props.Document], e);
+            }
             e.stopPropagation();
         } else {
             if (this.active && !e.isDefaultPrevented()) {
@@ -112,7 +113,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
                 document.addEventListener("pointerup", this.onPointerUp);
             }
         }
-    };
+    }
 
     private dropDisposer?: DragManager.DragDropDisposer;
 
@@ -179,7 +180,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         }
         e.stopPropagation();
         e.preventDefault();
-    };
+    }
     onPointerUp = (e: PointerEvent): void => {
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
@@ -190,22 +191,22 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         ) {
             SelectionManager.SelectDoc(this, e.ctrlKey);
         }
-    };
+    }
     stopPropogation = (e: React.SyntheticEvent) => {
         e.stopPropagation();
-    };
+    }
 
     deleteClicked = (): void => {
         if (this.props.removeDocument) {
             this.props.removeDocument(this.props.Document);
         }
-    };
+    }
 
     fieldsClicked = (e: React.MouseEvent): void => {
         if (this.props.addDocument) {
             this.props.addDocument(Documents.KVPDocument(this.props.Document, { width: 300, height: 300 }), false);
         }
-    };
+    }
     fullScreenClicked = (e: React.MouseEvent): void => {
         CollectionDockingView.Instance.OpenFullScreen(this.props.Document);
         ContextMenu.Instance.clearItems();
@@ -214,7 +215,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             event: this.closeFullScreenClicked
         });
         ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15);
-    };
+    }
 
     closeFullScreenClicked = (e: React.MouseEvent): void => {
         CollectionDockingView.Instance.CloseFullScreen();
@@ -224,7 +225,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             event: this.fullScreenClicked
         });
         ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15);
-    };
+    }
 
     @action
     public minimize = (): void => {
@@ -234,7 +235,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             BooleanField
         );
         SelectionManager.DeselectAll();
-    };
+    }
 
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
@@ -276,7 +277,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             );
             e.stopPropagation();
         }
-    };
+    }
 
     onDrop = (e: React.DragEvent) => {
         if (e.isDefaultPrevented()) {
@@ -290,7 +291,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             e.stopPropagation();
             e.preventDefault();
         }
-    };
+    }
 
     @action
     onContextMenu = (e: React.MouseEvent): void => {
@@ -352,14 +353,14 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         });
         ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15);
         SelectionManager.SelectDoc(this, e.ctrlKey);
-    };
+    }
 
     isMinimized = () => {
         let field = this.props.Document.GetT(KeyStore.Minimized, BooleanField);
         if (field && field !== FieldWaiting) {
             return field.Data;
         }
-    };
+    }
 
     @action
     expand = () => {
@@ -368,13 +369,13 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             false as boolean,
             BooleanField
         );
-    };
+    }
 
-    isSelected = () => SelectionManager.IsSelected(this)
+    isSelected = () => SelectionManager.IsSelected(this);
 
     select = (ctrlPressed: boolean) => {
         SelectionManager.SelectDoc(this, ctrlPressed);
-    };
+    }
 
     render() {
         if (!this.props.Document) {

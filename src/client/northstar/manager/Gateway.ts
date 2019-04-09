@@ -1,4 +1,4 @@
-import { Catalog, OperationReference, Result, CompileResults } from "../model/idea/idea"
+import { Catalog, OperationReference, Result, CompileResults } from "../model/idea/idea";
 import { computed, observable, action } from "mobx";
 
 export class Gateway {

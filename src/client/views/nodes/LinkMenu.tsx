@@ -13,7 +13,7 @@ import React = require("react");
 
 interface Props {
     docView: DocumentView;
-    changeFlyout: () => void
+    changeFlyout: () => void;
 }
 
 @observer
@@ -25,9 +25,9 @@ export class LinkMenu extends React.Component<Props> {
         return links.map(link => {
             let doc = link.GetT(key, Document);
             if (doc && doc !== FieldWaiting) {
-                return <LinkBox key={doc.Id} linkDoc={link} linkName={link.Title} pairedDoc={doc} showEditor={action(() => this._editingLink = link)} type={type} />
+                return <LinkBox key={doc.Id} linkDoc={link} linkName={link.Title} pairedDoc={doc} showEditor={action(() => this._editingLink = link)} type={type} />;
             }
-        })
+        });
     }
 
     render() {
@@ -43,11 +43,11 @@ export class LinkMenu extends React.Component<Props> {
                         {this.renderLinkItems(linkFrom, KeyStore.LinkedFromDocs, "Source: ")}
                     </div>
                 </div>
-            )
+            );
         } else {
             return (
                 <LinkEditor linkDoc={this._editingLink} showLinks={action(() => this._editingLink = undefined)}></LinkEditor>
-            )
+            );
         }
 
     }

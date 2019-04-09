@@ -49,7 +49,7 @@ export class CollectionFreeFormView extends CollectionSubView {
             if (dv) {
                 SelectionManager.SelectDoc(dv, true);
             }
-        })
+        });
     }
 
     public getActiveDocuments = () => {
@@ -70,8 +70,8 @@ export class CollectionFreeFormView extends CollectionSubView {
 
     private outerElement?: HTMLDivElement;
 
-    @computed get panX(): number { return this.props.Document.GetNumber(KeyStore.PanX, 0) }
-    @computed get panY(): number { return this.props.Document.GetNumber(KeyStore.PanY, 0) }
+    @computed get panX(): number { return this.props.Document.GetNumber(KeyStore.PanX, 0); }
+    @computed get panY(): number { return this.props.Document.GetNumber(KeyStore.PanY, 0); }
     @computed get scale(): number { return this.props.Document.GetNumber(KeyStore.Scale, 1); }
     @computed get isAnnotationOverlay() { return this.props.fieldKey && this.props.fieldKey.Id === KeyStore.Annotations.Id; } // bcz: ? Why do we need to compare Id's?
     @computed get nativeWidth() { return this.props.Document.GetNumber(KeyStore.NativeWidth, 0); }
@@ -109,7 +109,7 @@ export class CollectionFreeFormView extends CollectionSubView {
                             d.SetNumber(KeyStore.Height, 300);
                         }
                         this.bringToFront(d);
-                    })
+                    });
                 }
             }
             return true;
@@ -133,8 +133,9 @@ export class CollectionFreeFormView extends CollectionSubView {
             document.addEventListener("pointerup", this.onPointerUp);
             this._lastX = this.DownX = e.pageX;
             this._lastY = this.DownY = e.pageY;
-            if (this.props.isSelected())
+            if (this.props.isSelected()) {
                 e.stopPropagation();
+            }
         }
     }
 
@@ -182,12 +183,13 @@ export class CollectionFreeFormView extends CollectionSubView {
             let transform = this.getTransform();
 
             let deltaScale = (1 - (e.deltaY / coefficient));
-            if (deltaScale * this.zoomScaling < 1 && this.isAnnotationOverlay)
+            if (deltaScale * this.zoomScaling < 1 && this.isAnnotationOverlay) {
                 deltaScale = 1 / this.zoomScaling;
+            }
             let [x, y] = transform.transformPoint(e.clientX, e.clientY);
 
-            let localTransform = this.getLocalTransform()
-            localTransform = localTransform.inverse().scaleAbout(deltaScale, x, y)
+            let localTransform = this.getLocalTransform();
+            localTransform = localTransform.inverse().scaleAbout(deltaScale, x, y);
             // console.log(localTransform)
 
             this.props.Document.SetNumber(KeyStore.Scale, localTransform.Scale);
@@ -209,7 +211,7 @@ export class CollectionFreeFormView extends CollectionSubView {
     onDrop = (e: React.DragEvent): void => {
         var pt = this.getTransform().transformPoint(e.pageX, e.pageY);
         super.onDrop(e, { x: pt[0], y: pt[1] });
-    };
+    }
 
     onDragOver = (): void => {
     }
@@ -228,7 +230,7 @@ export class CollectionFreeFormView extends CollectionSubView {
             }
             return doc1.GetNumber(KeyStore.ZIndex, 0) - doc2.GetNumber(KeyStore.ZIndex, 0);
         }).map((doc, index) => {
-            doc.SetNumber(KeyStore.ZIndex, index + 1)
+            doc.SetNumber(KeyStore.ZIndex, index + 1);
         });
     }
 
@@ -268,7 +270,7 @@ export class CollectionFreeFormView extends CollectionSubView {
             focus: this.focusDocument,
             parentActive: this.props.active,
             onActiveChanged: this.props.active,
-        }
+        };
     }
 
     @computed
@@ -276,10 +278,11 @@ export class CollectionFreeFormView extends CollectionSubView {
         var curPage = this.props.Document.GetNumber(KeyStore.CurPage, -1);
         return this.props.Document.GetList(this.props.fieldKey, [] as Document[]).filter(doc => doc).reduce((prev, doc) => {
             var page = doc.GetNumber(KeyStore.Page, -1);
-            if (page === curPage || page === -1)
+            if (page === curPage || page === -1) {
                 prev.push(<CollectionFreeFormDocumentView key={doc.Id} {...this.getDocumentViewProps(doc)} />);
+            }
             return prev;
-        }, [] as JSX.Element[])
+        }, [] as JSX.Element[]);
     }
 
     @computed
@@ -295,8 +298,8 @@ export class CollectionFreeFormView extends CollectionSubView {
                 layoutKey={KeyStore.OverlayLayout} isTopMost={this.props.isTopMost} isSelected={() => false} select={() => { }} />);
     }
 
-    getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-COLLECTION_BORDER_WIDTH, -COLLECTION_BORDER_WIDTH).translate(-this.centeringShiftX, -this.centeringShiftY).transform(this.getLocalTransform())
-    getContainerTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-COLLECTION_BORDER_WIDTH, -COLLECTION_BORDER_WIDTH)
+    getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-COLLECTION_BORDER_WIDTH, -COLLECTION_BORDER_WIDTH).translate(-this.centeringShiftX, -this.centeringShiftY).transform(this.getLocalTransform());
+    getContainerTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-COLLECTION_BORDER_WIDTH, -COLLECTION_BORDER_WIDTH);
     getLocalTransform = (): Transform => Transform.Identity().scale(1 / this.scale).translate(this.panX, this.panY);
     noScaling = () => 1;
     childViews = () => this.views;

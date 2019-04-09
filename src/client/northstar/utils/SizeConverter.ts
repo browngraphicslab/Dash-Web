@@ -32,8 +32,8 @@ export class SizeConverter {
         this.Initialized++;
         var xLabels = visualBinRanges[0].GetLabels();
         var yLabels = visualBinRanges[1].GetLabels();
-        var xLabelStrings = xLabels.map(l => l.label!).sort(function (a, b) { return b.length - a.length });
-        var yLabelStrings = yLabels.map(l => l.label!).sort(function (a, b) { return b.length - a.length });
+        var xLabelStrings = xLabels.map(l => l.label!).sort(function (a, b) { return b.length - a.length; });
+        var yLabelStrings = yLabels.map(l => l.label!).sort(function (a, b) { return b.length - a.length; });
 
         var metricsX = { width: 75 }; // RenderUtils.MeasureText(FontStyles.Default.fontFamily.toString(), 12, // FontStyles.AxisLabel.fontSize as number,
         //xLabelStrings[0]!.slice(0, 20)) // StyleConstants.MAX_CHAR_FOR_HISTOGRAM_LABELS));
@@ -62,19 +62,20 @@ export class SizeConverter {
 
     public DataToScreenPointRange(axis: number, bin: Bin, aggregateKey: AggregateKey) {
         var value = ModelHelpers.GetAggregateResult(bin, aggregateKey) as DoubleValueAggregateResult;
-        if (value && value.hasResult)
+        if (value && value.hasResult) {
             return [this.DataToScreenCoord(value.result!, axis) - 5,
             this.DataToScreenCoord(value.result!, axis) + 5];
+        }
         return [undefined, undefined];
     }
 
     public DataToScreenXAxisRange(visualBinRanges: VisualBinRange[], index: number, bin: Bin) {
         var value = visualBinRanges[0].GetValueFromIndex(bin.binIndex!.indices![index]);
-        return [this.DataToScreenX(value), this.DataToScreenX(visualBinRanges[index].AddStep(value))]
+        return [this.DataToScreenX(value), this.DataToScreenX(visualBinRanges[index].AddStep(value))];
     }
     public DataToScreenYAxisRange(visualBinRanges: VisualBinRange[], index: number, bin: Bin) {
         var value = visualBinRanges[1].GetValueFromIndex(bin.binIndex!.indices![index]);
-        return [this.DataToScreenY(value), this.DataToScreenY(visualBinRanges[index].AddStep(value))]
+        return [this.DataToScreenY(value), this.DataToScreenY(visualBinRanges[index].AddStep(value))];
     }
 
     public DataToScreenX(x: number): number {
@@ -85,8 +86,9 @@ export class SizeConverter {
         return flip ? (this.RenderDimension) - retY : retY;
     }
     public DataToScreenCoord(v: number, axis: number) {
-        if (axis === 0)
+        if (axis === 0) {
             return this.DataToScreenX(v);
+        }
         return this.DataToScreenY(v);
     }
     public DataToScreenRange(minVal: number, maxVal: number, axis: number) {
@@ -94,6 +96,6 @@ export class SizeConverter {
         let xTo = this.DataToScreenX(axis === 0 ? maxVal : this.DataMaxs[0]);
         let yFrom = this.DataToScreenY(axis === 1 ? minVal : this.DataMins[1]);
         let yTo = this.DataToScreenY(axis === 1 ? maxVal : this.DataMaxs[1]);
-        return { xFrom, yFrom, xTo, yTo }
+        return { xFrom, yFrom, xTo, yTo };
     }
 }

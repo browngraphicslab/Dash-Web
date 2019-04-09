@@ -1,4 +1,4 @@
-import React = require("react")
+import React = require("react");
 import { AttributeTransformationModel } from "../../northstar/core/attribute/AttributeTransformationModel";
 import { ChartType } from '../../northstar/model/binRanges/VisualBinRange';
 import { AggregateFunction, Bin, Brush, DoubleValueAggregateResult, HistogramResult, MarginAggregateParameters, MarginAggregateResult } from "../../northstar/model/idea/idea";
@@ -29,7 +29,7 @@ export class HistogramBinPrimitiveCollection {
     private _histoBox: HistogramBox;
     private get histoOp() { return this._histoBox.HistoOp; }
     private get histoResult() { return this.histoOp.Result as HistogramResult; }
-    private get sizeConverter() { return this._histoBox.SizeConverter!; }
+    private get sizeConverter() { return this._histoBox.SizeConverter; }
     public BinPrimitives: Array<HistogramBinPrimitive> = new Array<HistogramBinPrimitive>();
     public HitGeom: PIXIRectangle = PIXIRectangle.EMPTY;
 
@@ -99,13 +99,14 @@ export class HistogramBinPrimitiveCollection {
     private createHeatmapBinPrimitives(bin: Bin, brush: Brush, brushFactorSum: number): number {
 
         let unNormalizedValue = this.getBinValue(2, bin, brush.brushIndex!);
-        if (unNormalizedValue === undefined)
+        if (unNormalizedValue === undefined) {
             return brushFactorSum;
+        }
 
         var normalizedValue = (unNormalizedValue - this._histoBox.ValueRange[0]) / (Math.abs((this._histoBox.ValueRange[1] - this._histoBox.ValueRange[0])) < HistogramBinPrimitiveCollection.TOLERANCE ?
             unNormalizedValue : this._histoBox.ValueRange[1] - this._histoBox.ValueRange[0]);
 
-        let allUnNormalizedValue = this.getBinValue(2, bin, ModelHelpers.AllBrushIndex(this.histoResult))
+        let allUnNormalizedValue = this.getBinValue(2, bin, ModelHelpers.AllBrushIndex(this.histoResult));
 
         // bcz: are these calls needed?  
         let [xFrom, xTo] = this.sizeConverter.DataToScreenXAxisRange(this._histoBox.VisualBinRanges, 0, bin);
@@ -145,8 +146,9 @@ export class HistogramBinPrimitiveCollection {
             let [xFrom, xTo] = this.sizeConverter.DataToScreenPointRange(0, bin, ModelHelpers.CreateAggregateKey(this.histoOp.Schema!.distinctAttributeParameters, this.histoOp.X, this.histoResult, brush.brushIndex!));
             let [yFrom, yTo] = this.sizeConverter.DataToScreenPointRange(1, bin, ModelHelpers.CreateAggregateKey(this.histoOp.Schema!.distinctAttributeParameters, this.histoOp.Y, this.histoResult, brush.brushIndex!));
 
-            if (xFrom !== undefined && yFrom !== undefined && xTo !== undefined && yTo !== undefined)
+            if (xFrom !== undefined && yFrom !== undefined && xTo !== undefined && yTo !== undefined) {
                 this.createBinPrimitive(-1, brush, PIXIRectangle.EMPTY, 0, xFrom, xTo, yFrom, yTo, this.baseColorFromBrush(brush), 1, unNormalizedValue);
+            }
         }
         return 0;
     }

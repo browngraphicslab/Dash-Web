@@ -1,8 +1,8 @@
 import "./ImageBox.scss";
-import React = require("react")
-import { observer } from "mobx-react"
+import React = require("react");
+import { observer } from "mobx-react";
 import { observable, action } from 'mobx';
-import 'react-pdf/dist/Page/AnnotationLayer.css'
+import 'react-pdf/dist/Page/AnnotationLayer.css';
 
 interface IProps {
     Span: HTMLSpanElement;
@@ -29,13 +29,13 @@ export class Annotation extends React.Component<IProps> {
      */
     onColorChange = (e: React.PointerEvent) => {
         if (e.currentTarget.innerHTML === "r") {
-            this.props.Span.style.backgroundColor = "rgba(255,0,0, 0.3)"
+            this.props.Span.style.backgroundColor = "rgba(255,0,0, 0.3)";
         } else if (e.currentTarget.innerHTML === "b") {
-            this.props.Span.style.backgroundColor = "rgba(0,255, 255, 0.3)"
+            this.props.Span.style.backgroundColor = "rgba(0,255, 255, 0.3)";
         } else if (e.currentTarget.innerHTML === "y") {
-            this.props.Span.style.backgroundColor = "rgba(255,255,0, 0.3)"
+            this.props.Span.style.backgroundColor = "rgba(255,255,0, 0.3)";
         } else if (e.currentTarget.innerHTML === "g") {
-            this.props.Span.style.backgroundColor = "rgba(76, 175, 80, 0.3)"
+            this.props.Span.style.backgroundColor = "rgba(76, 175, 80, 0.3)";
         }
 
     }
@@ -54,11 +54,11 @@ export class Annotation extends React.Component<IProps> {
                     this.props.Highlights.splice(index, 1);
                 }
             }
-        })
+        });
 
         //removing from CurrAnno and Annotation array 
         this.props.Annotations.splice(index, 1);
-        this.props.CurrAnno.pop()
+        this.props.CurrAnno.pop();
 
         //removing span from div
         if (this.props.Span.parentElement) {
@@ -70,11 +70,11 @@ export class Annotation extends React.Component<IProps> {
                             if (item === e) {
                                 item.remove();
                             }
-                        })
+                        });
                         e.remove();
                     }
                 }
-            })
+            });
         }
 
 

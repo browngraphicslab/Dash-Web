@@ -32,7 +32,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                 documentId: document.Id,
                 //collectionDockingView: CollectionDockingView.Instance
             }
-        }
+        };
     }
 
     private _goldenLayout: any = null;
@@ -58,7 +58,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         let newItemStackConfig = {
             type: 'stack',
             content: [CollectionDockingView.makeDocumentConfig(document)]
-        }
+        };
         var docconfig = this._goldenLayout.root.layoutManager.createContentItem(newItemStackConfig, this._goldenLayout);
         this._goldenLayout.root.contentItems[0].addChild(docconfig);
         docconfig.callDownwards('_$init');
@@ -86,7 +86,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         let newItemStackConfig = {
             type: 'stack',
             content: [CollectionDockingView.makeDocumentConfig(document)]
-        }
+        };
 
         var newContentItem = this._goldenLayout.root.layoutManager.createContentItem(newItemStackConfig, this._goldenLayout);
 
@@ -124,8 +124,9 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                 this._goldenLayout = new GoldenLayout(JSON.parse(config));
             }
             else {
-                if (config === JSON.stringify(this._goldenLayout.toConfig()))
+                if (config === JSON.stringify(this._goldenLayout.toConfig())) {
                     return;
+                }
                 try {
                     this._goldenLayout.unbind('itemDropped', this.itemDropped);
                     this._goldenLayout.unbind('tabCreated', this.tabCreated);
@@ -199,14 +200,15 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             let docid = (e.target as any).DashDocId;
             let tab = (e.target as any).parentElement as HTMLElement;
             Server.GetField(docid, action((f: Opt<Field>) => {
-                if (f instanceof Document)
-                    DragManager.StartDocumentDrag([tab], new DragManager.DocumentDragData([f as Document]), e.pageX, e.pageY,
+                if (f instanceof Document) {
+                    DragManager.StartDocumentDrag([tab], new DragManager.DocumentDragData([f]), e.pageX, e.pageY,
                         {
                             handlers: {
                                 dragComplete: action(() => { }),
                             },
                             hideSource: false
-                        })
+                        });
+                }
             }));
         }
         if (className === "lm_drag_handle" || className === "lm_close" || className === "lm_maximise" || className === "lm_minimise" || className === "lm_close_tab") {
@@ -220,7 +222,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     @undoBatch
     stateChanged = () => {
         var json = JSON.stringify(this._goldenLayout.toConfig());
-        this.props.Document.SetText(KeyStore.Data, json)
+        this.props.Document.SetText(KeyStore.Data, json);
     }
 
     itemDropped = () => {
@@ -236,7 +238,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                             if (tfield !== undefined) {
                                 tab.titleElement[0].textContent = f.Title;
                             }
-                        })
+                        });
                     }
                 }));
                 tab.titleElement[0].DashDocId = tab.contentItem.config.props.documentId;
@@ -281,7 +283,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
 }
 
 interface DockedFrameProps {
-    documentId: FieldId,
+    documentId: FieldId;
     //collectionDockingView: CollectionDockingView
 }
 @observer
@@ -297,18 +299,19 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         Server.GetField(this.props.documentId, action((f: Opt<Field>) => this._document = f as Document));
     }
 
-    private _nativeWidth = () => this._document!.GetNumber(KeyStore.NativeWidth, this._panelWidth)
-    private _nativeHeight = () => this._document!.GetNumber(KeyStore.NativeHeight, this._panelHeight)
-    private _contentScaling = () => this._panelWidth / (this._nativeWidth() ? this._nativeWidth() : this._panelWidth)
+    private _nativeWidth = () => this._document!.GetNumber(KeyStore.NativeWidth, this._panelWidth);
+    private _nativeHeight = () => this._document!.GetNumber(KeyStore.NativeHeight, this._panelHeight);
+    private _contentScaling = () => this._panelWidth / (this._nativeWidth() ? this._nativeWidth() : this._panelWidth);
 
     ScreenToLocalTransform = () => {
         let { scale, translateX, translateY } = Utils.GetScreenTransform(this._mainCont.current!);
-        return CollectionDockingView.Instance.props.ScreenToLocalTransform().translate(-translateX, -translateY).scale(scale / this._contentScaling())
+        return CollectionDockingView.Instance.props.ScreenToLocalTransform().translate(-translateX, -translateY).scale(scale / this._contentScaling());
     }
 
     render() {
-        if (!this._document)
+        if (!this._document) {
             return (null);
+        }
         var content =
             <div className="collectionDockingView-content" ref={this._mainCont}>
                 <DocumentView key={this._document.Id} Document={this._document}
@@ -324,10 +327,10 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
                     onActiveChanged={emptyFunction}
                     focus={(doc: Document) => { }}
                     ContainingCollectionView={undefined} />
-            </div>
+            </div>;
 
         return <Measure onResize={action((r: any) => { this._panelWidth = r.entry.width; this._panelHeight = r.entry.height; })}>
             {({ measureRef }) => <div ref={measureRef}>  {content} </div>}
-        </Measure>
+        </Measure>;
     }
 }

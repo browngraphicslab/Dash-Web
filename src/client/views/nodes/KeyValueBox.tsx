@@ -7,7 +7,7 @@ import { KeyStore } from '../../../fields/KeyStore';
 import { FieldView, FieldViewProps } from './FieldView';
 import "./KeyValueBox.scss";
 import { KeyValuePair } from "./KeyValuePair";
-import React = require("react")
+import React = require("react");
 import { CompileScript, ToField } from "../../util/Scripting";
 import { Key } from '../../../fields/Key';
 import { observable, action } from "mobx";
@@ -15,7 +15,7 @@ import { observable, action } from "mobx";
 @observer
 export class KeyValueBox extends React.Component<FieldViewProps> {
 
-    public static LayoutString(fieldStr: string = "DataKey") { return FieldView.LayoutString(KeyValueBox, fieldStr) }
+    public static LayoutString(fieldStr: string = "DataKey") { return FieldView.LayoutString(KeyValueBox, fieldStr); }
     @observable private _keyInput: string = "";
     @observable private _valueInput: string = "";
 
@@ -36,7 +36,7 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
             if (this._keyInput && this._valueInput) {
                 let doc = this.props.Document.GetT(KeyStore.Data, Document);
                 if (!doc || doc === FieldWaiting) {
-                    return
+                    return;
                 }
                 let realDoc = doc;
 
@@ -55,8 +55,8 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
                         realDoc.Set(new Key(this._keyInput), dataField);
                     }
                 }
-                this._keyInput = ""
-                this._valueInput = ""
+                this._keyInput = "";
+                this._valueInput = "";
             }
         }
     }
@@ -73,7 +73,7 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
     createTable = () => {
         let doc = this.props.Document.GetT(KeyStore.Data, Document);
         if (!doc || doc === FieldWaiting) {
-            return <tr><td>Loading...</td></tr>
+            return <tr><td>Loading...</td></tr>;
         }
         let realDoc = doc;
 
@@ -84,13 +84,13 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
                 if (!(key in ids)) {
                     ids[key] = key;
                 }
-            })
+            });
         }
 
         let rows: JSX.Element[] = [];
         let i = 0;
         for (let key in ids) {
-            rows.push(<KeyValuePair doc={realDoc} rowStyle={"keyValueBox-" + (i++ % 2 ? "oddRow" : "evenRow")} fieldId={key} key={key} />)
+            rows.push(<KeyValuePair doc={realDoc} rowStyle={"keyValueBox-" + (i++ % 2 ? "oddRow" : "evenRow")} fieldId={key} key={key} />);
         }
         return rows;
     }
@@ -125,6 +125,6 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
                     {this.newKeyValue()}
                 </tbody>
             </table>
-        </div>)
+        </div>);
     }
 }

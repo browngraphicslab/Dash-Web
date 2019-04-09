@@ -27,14 +27,14 @@
         "arrow-return-shorthand": true,
         // "object-literal-shorthand": true,
         // "object-literal-sort-keys": true,
-        // "semicolon": [
-        //     true,
-        //     "always"
-        // ],
-        // "curly": [
-        //     true,
-        //     "ignore-same-line"
-        // ],
+        "semicolon": [
+            true,
+            "always"
+        ],
+        "curly": [
+            true,
+            "ignore-same-line"
+        ],
         // "quotemark": [
         //     true,
         //     "double",

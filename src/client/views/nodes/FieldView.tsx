@@ -1,4 +1,4 @@
-import React = require("react")
+import React = require("react");
 import { observer } from "mobx-react";
 import { computed } from "mobx";
 import { Field, FieldWaiting, FieldValue } from "../../../fields/Field";
@@ -7,7 +7,7 @@ import { TextField } from "../../../fields/TextField";
 import { NumberField } from "../../../fields/NumberField";
 import { RichTextField } from "../../../fields/RichTextField";
 import { ImageField } from "../../../fields/ImageField";
-import { VideoField } from "../../../fields/VideoField"
+import { VideoField } from "../../../fields/VideoField";
 import { Key } from "../../../fields/Key";
 import { FormattedTextBox } from "./FormattedTextBox";
 import { ImageBox } from "./ImageBox";
@@ -57,22 +57,22 @@ export class FieldView extends React.Component<FieldViewProps> {
     render() {
         const field = this.field;
         if (!field) {
-            return <p>{'<null>'}</p>
+            return <p>{'<null>'}</p>;
         }
         if (field instanceof TextField) {
-            return <p>{field.Data}</p>
+            return <p>{field.Data}</p>;
         }
         else if (field instanceof RichTextField) {
-            return <FormattedTextBox {...this.props} />
+            return <FormattedTextBox {...this.props} />;
         }
         else if (field instanceof ImageField) {
-            return <ImageBox {...this.props} />
+            return <ImageBox {...this.props} />;
         }
         else if (field instanceof VideoField) {
-            return <VideoBox {...this.props} />
+            return <VideoBox {...this.props} />;
         }
         else if (field instanceof AudioField) {
-            return <AudioBox {...this.props} />
+            return <AudioBox {...this.props} />;
         }
         else if (field instanceof Document) {
             return (
@@ -92,25 +92,26 @@ export class FieldView extends React.Component<FieldViewProps> {
                     ContainingCollectionView={undefined}
                     parentActive={this.props.active}
                     onActiveChanged={this.props.onActiveChanged} />
-            )
+            );
         }
         else if (field instanceof ListField) {
             return (<div>
                 {(field as ListField<Field>).Data.map(f => f instanceof Document ? f.Title : f.GetValue().toString()).join(", ")}
-            </div>)
+            </div>);
         }
         // bcz: this belongs here, but it doesn't render well so taking it out for now
         // else if (field instanceof HtmlField) {
         //     return <WebBox {...this.props} />
         // }
         else if (field instanceof NumberField) {
-            return <p>{field.Data}</p>
+            return <p>{field.Data}</p>;
         }
         else if (field !== FieldWaiting) {
-            return <p>{JSON.stringify(field.GetValue())}</p>
+            return <p>{JSON.stringify(field.GetValue())}</p>;
         }
-        else
-            return <p> {"Waiting for server..."} </p>
+        else {
+            return <p> {"Waiting for server..."} </p>;
+ }
     }
 
 }

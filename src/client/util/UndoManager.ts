@@ -1,5 +1,5 @@
 import { observable, action } from "mobx";
-import 'source-map-support/register'
+import 'source-map-support/register';
 import { Without } from "../../Utils";
 import { string } from "prop-types";
 
@@ -31,9 +31,9 @@ function propertyDecorator(target: any, key: string | symbol) {
                         batch.end();
                     }
                 }
-            })
+            });
         }
-    })
+    });
 }
 
 export function undoBatch(target: any, key: string | symbol, descriptor?: TypedPropertyDescriptor<any>): any;
@@ -43,11 +43,11 @@ export function undoBatch(target: any, key?: string | symbol, descriptor?: Typed
         return function () {
             let batch = UndoManager.StartBatch("");
             try {
-                return target.apply(undefined, arguments)
+                return target.apply(undefined, arguments);
             } finally {
                 batch.end();
             }
-        }
+        };
     }
     if (!descriptor) {
         propertyDecorator(target, key);
@@ -58,11 +58,11 @@ export function undoBatch(target: any, key?: string | symbol, descriptor?: Typed
     descriptor.value = function (...args: any[]) {
         let batch = UndoManager.StartBatch(getBatchName(target, key));
         try {
-            return oldFunction.apply(this, args)
+            return oldFunction.apply(this, args);
         } finally {
             batch.end();
         }
-    }
+    };
 
     return descriptor;
 }
@@ -117,8 +117,8 @@ export namespace UndoManager {
             EndBatch(cancel);
         }
 
-        end = () => { this.dispose(false); }
-        cancel = () => { this.dispose(true); }
+        end = () => { this.dispose(false); };
+        cancel = () => { this.dispose(true); };
     }
 
     export function StartBatch(batchName: string): Batch {
@@ -138,7 +138,7 @@ export namespace UndoManager {
             redoStack.length = 0;
             currentBatch = undefined;
         }
-    })
+    });
 
     export function RunInBatch(fn: () => void, batchName: string) {
         let batch = StartBatch(batchName);
@@ -166,7 +166,7 @@ export namespace UndoManager {
         undoing = false;
 
         redoStack.push(commands);
-    })
+    });
 
     export const Redo = action(() => {
         if (redoStack.length === 0) {
@@ -185,6 +185,6 @@ export namespace UndoManager {
         undoing = false;
 
         undoStack.push(commands);
-    })
+    });
 
 }

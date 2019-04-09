@@ -90,7 +90,7 @@ export class PreviewCursor extends React.Component<PreviewCursorProps>  {
                 {this.props.children}
                 <PreviewCursorPrompt setVisible={this.setVisible} getPoint={this.getPoint} getVisible={this.getVisible} />
             </div>
-        )
+        );
     }
 }
 
@@ -109,8 +109,9 @@ export class PreviewCursorPrompt extends React.Component<PromptProps> {
 
     render() {
         let p = this.props.getPoint();
-        if (this.props.getVisible() && this._promptRef.current)
+        if (this.props.getVisible() && this._promptRef.current) {
             this._promptRef.current.focus();
+        }
         return <div className="previewCursor" id="previewCursor" onBlur={this.onBlur} tabIndex={0} ref={this._promptRef}
             style={{ transform: `translate(${p[0]}px, ${p[1]}px)`, opacity: this.props.getVisible() ? 1 : 0 }}>
             I

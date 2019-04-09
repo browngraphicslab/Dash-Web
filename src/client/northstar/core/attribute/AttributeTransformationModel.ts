@@ -1,4 +1,4 @@
-;
+
 import { computed, observable } from "mobx";
 import { AggregateFunction } from "../../model/idea/idea";
 import { AttributeModel } from "./AttributeModel";
@@ -20,16 +20,21 @@ export class AttributeTransformationModel implements IEquatable {
         if (this.AggregateFunction === AggregateFunction.Count) {
             return "count";
         }
-        if (this.AggregateFunction === AggregateFunction.Avg)
+        if (this.AggregateFunction === AggregateFunction.Avg) {
             displayName = "avg(" + displayName + ")";
-        else if (this.AggregateFunction === AggregateFunction.Max)
+        }
+        else if (this.AggregateFunction === AggregateFunction.Max) {
             displayName = "max(" + displayName + ")";
-        else if (this.AggregateFunction === AggregateFunction.Min)
+ }
+        else if (this.AggregateFunction === AggregateFunction.Min) {
             displayName = "min(" + displayName + ")";
-        else if (this.AggregateFunction === AggregateFunction.Sum)
+ }
+        else if (this.AggregateFunction === AggregateFunction.Sum) {
             displayName = "sum(" + displayName + ")";
-        else if (this.AggregateFunction === AggregateFunction.SumE)
+ }
+        else if (this.AggregateFunction === AggregateFunction.SumE) {
             displayName = "sumE(" + displayName + ")";
+ }
 
         return displayName;
     }

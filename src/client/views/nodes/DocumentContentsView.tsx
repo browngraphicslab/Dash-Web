@@ -26,7 +26,7 @@ import { FieldViewProps } from "./FieldView";
 import { Without } from "../../../Utils";
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
-type BindingProps = Without<FieldViewProps, 'fieldKey'>
+type BindingProps = Without<FieldViewProps, 'fieldKey'>;
 export interface JsxBindings {
     props: BindingProps;
     [keyName: string]: BindingProps | Field;
@@ -92,7 +92,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
             bindings={this.CreateBindings()}
             jsx={this.layout}
             showWarnings={true}
-            onError={(test: any) => { console.log(test) }}
-        />
+            onError={(test: any) => { console.log(test); }}
+        />;
     }
 }

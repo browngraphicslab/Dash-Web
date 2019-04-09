@@ -7,7 +7,7 @@ import { Field, FieldId } from "./Field";
 import { FieldMap } from "../client/SocketStub";
 
 export class ListField<T extends Field> extends BasicField<T[]> {
-    private _proxies: string[] = []
+    private _proxies: string[] = [];
     constructor(data: T[] = [], id?: FieldId, save: boolean = true) {
         super(data, save, id);
         this.updateProxies();
@@ -22,23 +22,24 @@ export class ListField<T extends Field> extends BasicField<T[]> {
     private observeDisposer: Lambda | undefined;
     private observeList(): void {
         if (this.observeDisposer) {
-            this.observeDisposer()
+            this.observeDisposer();
         }
         this.observeDisposer = observe(this.Data as IObservableArray<T>, (change: IArrayChange<T> | IArraySplice<T>) => {
-            this.updateProxies()
+            this.updateProxies();
             if (change.type === "splice") {
                 UndoManager.AddEvent({
                     undo: () => this.Data.splice(change.index, change.addedCount, ...change.removed),
                     redo: () => this.Data.splice(change.index, change.removedCount, ...change.added)
-                })
+                });
             } else {
                 UndoManager.AddEvent({
                     undo: () => this.Data[change.index] = change.oldValue,
                     redo: () => this.Data[change.index] = change.newValue
-                })
+                });
             }
-            if (!this._processingServerUpdate)
+            if (!this._processingServerUpdate) {
                 Server.UpdateField(this);
+            }
         });
     }
 
@@ -78,19 +79,23 @@ export class ListField<T extends Field> extends BasicField<T[]> {
                 var proxies = this._proxies.map(p => p);
                 var added = this.data.length < this._proxies.length;
                 var deleted = this.data.length > this._proxies.length;
-                for (let i = 0; i < dataids.length && added; i++)
+                for (let i = 0; i < dataids.length && added; i++) {
                     added = proxies.indexOf(dataids[i]) !== -1;
-                for (let i = 0; i < this._proxies.length && deleted; i++)
+                }
+                for (let i = 0; i < this._proxies.length && deleted; i++) {
                     deleted = dataids.indexOf(proxies[i]) !== -1;
+                }
 
                 this._processingServerUpdate = true;
                 for (let i = 0; i < proxies.length && added; i++) {
-                    if (dataids.indexOf(proxies[i]) === -1)
+                    if (dataids.indexOf(proxies[i]) === -1) {
                         this.Data.splice(i, 0, fields[proxies[i]] as T);
+                    }
                 }
                 for (let i = dataids.length - 1; i >= 0 && deleted; i--) {
-                    if (proxies.indexOf(dataids[i]) === -1)
+                    if (proxies.indexOf(dataids[i]) === -1) {
                         this.Data.splice(i, 1);
+                    }
                 }
                 if (!added && !deleted) {// otherwise, just rebuild the whole list
                     this.setData(proxies.map(id => fields[id] as T));
@@ -98,7 +103,7 @@ export class ListField<T extends Field> extends BasicField<T[]> {
                 this._processingServerUpdate = false;
             }
             callback(this);
-        }))
+        }));
     }
 
     ToScriptString(): string {
@@ -114,12 +119,12 @@ export class ListField<T extends Field> extends BasicField<T[]> {
             type: Types.List,
             data: this._proxies || [],
             _id: this.Id
-        }
+        };
     }
 
     static FromJson(id: string, ids: string[]): ListField<Field> {
         let list = new ListField([], id, false);
         list._proxies = ids;
-        return list
+        return list;
     }
 }

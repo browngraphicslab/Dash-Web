@@ -65,5 +65,5 @@ export abstract class Field {
 
     abstract Copy(): Field;
 
-    abstract ToJson(): { _id: string, type: Types, data: any }
+    abstract ToJson(): { _id: string, type: Types, data: any };
 }

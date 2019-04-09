@@ -4,7 +4,7 @@ import { KeyStore } from "../../../fields/KeyStore";
 import { ContextMenu } from "../ContextMenu";
 import { CollectionViewType, CollectionBaseView, CollectionRenderProps } from "./CollectionBaseView";
 import React = require("react");
-import "./CollectionVideoView.scss"
+import "./CollectionVideoView.scss";
 import { CollectionFreeFormView } from "./collectionFreeForm/CollectionFreeFormView";
 import { FieldView, FieldViewProps } from "../nodes/FieldView";
 
@@ -111,7 +111,7 @@ export class CollectionVideoView extends React.Component<FieldViewProps> {
                 <CollectionFreeFormView {...props} />
                 {this.props.isSelected() ? this.uIButtons : (null)}
             </>
-        )
+        );
     }
 
     render() {
@@ -119,6 +119,6 @@ export class CollectionVideoView extends React.Component<FieldViewProps> {
         return (
             <CollectionBaseView {...this.props} className="collectionVideoView-cont" contentRef={this.mainCont} onContextMenu={this.onContextMenu}>
                 {this.subView}
-            </CollectionBaseView>)
+            </CollectionBaseView>);
     }
 }

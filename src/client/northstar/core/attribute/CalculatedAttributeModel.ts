@@ -1,5 +1,5 @@
 import { BackendAttributeModel, AttributeModel, CodeAttributeModel } from "./AttributeModel";
-import { DataType, VisualizationHint } from '../../model/idea/idea'
+import { DataType, VisualizationHint } from '../../model/idea/idea';
 
 export class CalculatedAttributeManager {
     public static AllCalculatedAttributes: Array<AttributeModel> = new Array<AttributeModel>();

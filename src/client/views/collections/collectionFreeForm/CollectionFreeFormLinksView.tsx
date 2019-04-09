@@ -17,7 +17,7 @@ export class CollectionFreeFormLinksView extends React.Component<CollectionViewP
 
     HackToAvoidReactionFiringUnnecessarily?: Document = undefined;
     componentDidMount() {
-        this.HackToAvoidReactionFiringUnnecessarily = this.props.Document
+        this.HackToAvoidReactionFiringUnnecessarily = this.props.Document;
         reaction(() =>
             DocumentManager.Instance.getAllDocumentViews(this.HackToAvoidReactionFiringUnnecessarily!).
                 map(dv => dv.props.Document.GetNumber(KeyStore.X, 0)),
@@ -31,13 +31,14 @@ export class CollectionFreeFormLinksView extends React.Component<CollectionViewP
                         let x1w = srcDoc.GetNumber(KeyStore.Width, -1);
                         let x2 = dstDoc.GetNumber(KeyStore.X, 0);
                         let x2w = dstDoc.GetNumber(KeyStore.Width, -1);
-                        if (x1w < 0 || x2w < 0 || i === j)
+                        if (x1w < 0 || x2w < 0 || i === j) {
                             continue;
+                        }
                         let dstTarg = dstDoc;
                         let srcTarg = srcDoc;
                         let findBrush = (field: ListField<Document>) => field.Data.findIndex(brush => {
                             let bdocs = brush ? brush.GetList(KeyStore.BrushingDocs, [] as Document[]) : [];
-                            return (bdocs.length && ((bdocs[0] === dstTarg && bdocs[1] === srcTarg)) ? true : false)
+                            return (bdocs.length && ((bdocs[0] === dstTarg && bdocs[1] === srcTarg)) ? true : false);
                         });
                         let brushAction = (field: ListField<Document>) => {
                             let found = findBrush(field);
@@ -64,13 +65,13 @@ export class CollectionFreeFormLinksView extends React.Component<CollectionViewP
 
                     }
                 }
-            })
+            });
     }
     documentAnchors(view: DocumentView) {
         let equalViews = [view];
         let containerDoc = view.props.Document.GetT(KeyStore.AnnotationOn, Document);
         if (containerDoc && containerDoc instanceof Document) {
-            equalViews = DocumentManager.Instance.getDocumentViews(containerDoc.GetPrototype()!)
+            equalViews = DocumentManager.Instance.getDocumentViews(containerDoc.GetPrototype()!);
         }
         return equalViews.filter(sv => sv.props.ContainingCollectionView && sv.props.ContainingCollectionView.props.Document === this.props.Document);
     }
@@ -86,15 +87,16 @@ export class CollectionFreeFormLinksView extends React.Component<CollectionViewP
                 if (!drawnPairs.reduce((found, drawnPair) => {
                     let match = (possiblePair.a === drawnPair.a && possiblePair.b === drawnPair.b);
                     if (match) {
-                        if (!drawnPair.l.reduce((found, link) => found || link.Id === connection.l.Id, false))
+                        if (!drawnPair.l.reduce((found, link) => found || link.Id === connection.l.Id, false)) {
                             drawnPair.l.push(connection.l);
+                        }
                     }
                     return match || found;
                 }, false)) {
                     drawnPairs.push({ a: possiblePair.a, b: possiblePair.b, l: [connection.l] });
                 }
-            })
-            return drawnPairs
+            });
+            return drawnPairs;
         }, [] as { a: Document, b: Document, l: Document[] }[]);
         return connections.map(c => <CollectionFreeFormLinkView key={Utils.GenerateGuid()} A={c.a} B={c.b} LinkDocs={c.l} />);
     }

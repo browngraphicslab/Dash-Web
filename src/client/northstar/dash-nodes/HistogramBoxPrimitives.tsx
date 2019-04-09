@@ -1,4 +1,4 @@
-import React = require("react")
+import React = require("react");
 import { computed, observable, reaction, runInAction, trace, action } from "mobx";
 import { observer } from "mobx-react";
 import { Utils as DashUtils } from '../../../Utils';
@@ -28,17 +28,18 @@ export class HistogramBoxPrimitives extends React.Component<HistogramPrimitivesP
     @computed get selectedPrimitives() { return this._selectedPrims.map(bp => this.drawRect(bp.Rect, bp.BarAxis, undefined, "border")); }
     @computed get barPrimitives() {
         let histoResult = this.props.HistoBox.HistogramResult;
-        if (!histoResult || !histoResult.bins || !this.props.HistoBox.VisualBinRanges.length)
+        if (!histoResult || !histoResult.bins || !this.props.HistoBox.VisualBinRanges.length) {
             return (null);
+        }
         let allBrushIndex = ModelHelpers.AllBrushIndex(histoResult);
         return Object.keys(histoResult.bins).reduce((prims: JSX.Element[], key: string) => {
-            let drawPrims = new HistogramBinPrimitiveCollection(histoResult!.bins![key], this.props.HistoBox);
+            let drawPrims = new HistogramBinPrimitiveCollection(histoResult.bins![key], this.props.HistoBox);
             let toggle = this.getSelectionToggle(drawPrims.BinPrimitives, allBrushIndex,
-                ModelHelpers.GetBinFilterModel(histoResult!.bins![key], allBrushIndex, histoResult!, this.histoOp.X, this.histoOp.Y));
+                ModelHelpers.GetBinFilterModel(histoResult.bins![key], allBrushIndex, histoResult, this.histoOp.X, this.histoOp.Y));
             drawPrims.BinPrimitives.filter(bp => bp.DataValue && bp.BrushIndex !== allBrushIndex).map(bp =>
                 prims.push(...[{ r: bp.Rect, c: bp.Color }, { r: bp.MarginRect, c: StyleConstants.MARGIN_BARS_COLOR }].map(pair => this.drawRect(pair.r, bp.BarAxis, pair.c, "bar", toggle))));
             return prims;
-        }, [] as JSX.Element[])
+        }, [] as JSX.Element[]);
     }
 
     componentDidMount() {
@@ -47,8 +48,9 @@ export class HistogramBoxPrimitives extends React.Component<HistogramPrimitivesP
 
     private getSelectionToggle(binPrimitives: HistogramBinPrimitive[], allBrushIndex: number, filterModel: FilterModel) {
         let rawAllBrushPrim = ArrayUtil.FirstOrDefault(binPrimitives, bp => bp.BrushIndex === allBrushIndex);
-        if (!rawAllBrushPrim)
-            return () => { }
+        if (!rawAllBrushPrim) {
+            return () => { };
+        }
         let allBrushPrim = rawAllBrushPrim;
         return () => runInAction(() => {
             if (ArrayUtil.Contains(this.histoOp.FilterModels, filterModel)) {
@@ -59,23 +61,25 @@ export class HistogramBoxPrimitives extends React.Component<HistogramPrimitivesP
                 this._selectedPrims.push(allBrushPrim);
                 this.histoOp.AddFilterModels([filterModel]);
             }
-        })
+        });
     }
 
     private renderGridLinesAndLabels(axis: number) {
         trace();
-        if (!this.props.HistoBox.SizeConverter.Initialized)
+        if (!this.props.HistoBox.SizeConverter.Initialized) {
             return (null);
+        }
         let labels = this.props.HistoBox.VisualBinRanges[axis].GetLabels();
         return <svg className="histogramboxprimitives-svgContainer">
             {labels.reduce((prims, binLabel, i) => {
                 let r = this.props.HistoBox.SizeConverter.DataToScreenRange(binLabel.minValue!, binLabel.maxValue!, axis);
                 prims.push(this.drawLine(r.xFrom, r.yFrom, axis === 0 ? 0 : r.xTo - r.xFrom, axis === 0 ? r.yTo - r.yFrom : 0));
-                if (i === labels.length - 1)
+                if (i === labels.length - 1) {
                     prims.push(this.drawLine(axis === 0 ? r.xTo : r.xFrom, axis === 0 ? r.yFrom : r.yTo, axis === 0 ? 0 : r.xTo - r.xFrom, axis === 0 ? r.yTo - r.yFrom : 0));
+                }
                 return prims;
             }, [] as JSX.Element[])}
-        </svg>
+        </svg>;
     }
 
     drawLine(xFrom: number, yFrom: number, width: number, height: number) {
@@ -89,9 +93,9 @@ export class HistogramBoxPrimitives extends React.Component<HistogramPrimitivesP
         }
         let trans2Xpercent = `${(xFrom + width) / this.renderDimension * 100}%`;
         let trans2Ypercent = `${(yFrom + height) / this.renderDimension * 100}%`;
-        let trans1Xpercent = `${xFrom / this.renderDimension * 100}%`
-        let trans1Ypercent = `${yFrom / this.renderDimension * 100}%`
-        return <line className="histogramboxprimitives-line" key={DashUtils.GenerateGuid()} x1={trans1Xpercent} x2={`${trans2Xpercent}`} y1={trans1Ypercent} y2={`${trans2Ypercent}`} />
+        let trans1Xpercent = `${xFrom / this.renderDimension * 100}%`;
+        let trans1Ypercent = `${yFrom / this.renderDimension * 100}%`;
+        return <line className="histogramboxprimitives-line" key={DashUtils.GenerateGuid()} x1={trans1Xpercent} x2={`${trans2Xpercent}`} y1={trans1Ypercent} y2={`${trans2Ypercent}`} />;
     }
     drawRect(r: PIXIRectangle, barAxis: number, color: number | undefined, classExt: string, tapHandler: () => void = () => { }) {
         if (r.height < 0) {
@@ -102,11 +106,11 @@ export class HistogramBoxPrimitives extends React.Component<HistogramPrimitivesP
             r.x += r.width;
             r.width = -r.width;
         }
-        let transXpercent = `${r.x / this.renderDimension * 100}%`
-        let transYpercent = `${r.y / this.renderDimension * 100}%`
+        let transXpercent = `${r.x / this.renderDimension * 100}%`;
+        let transYpercent = `${r.y / this.renderDimension * 100}%`;
         let widthXpercent = `${r.width / this.renderDimension * 100}%`;
         let heightYpercent = `${r.height / this.renderDimension * 100}%`;
-        return (<rect className={`histogramboxprimitives-${classExt}`} key={DashUtils.GenerateGuid()} onPointerDown={(e: React.PointerEvent) => { if (e.button === 0) tapHandler() }}
+        return (<rect className={`histogramboxprimitives-${classExt}`} key={DashUtils.GenerateGuid()} onPointerDown={(e: React.PointerEvent) => { if (e.button === 0) tapHandler(); }}
             x={transXpercent} width={`${widthXpercent}`} y={transYpercent} height={`${heightYpercent}`} fill={color ? `${LABColor.RGBtoHexString(color)}` : "transparent"} />);
     }
     render() {
@@ -118,6 +122,6 @@ export class HistogramBoxPrimitives extends React.Component<HistogramPrimitivesP
                 {this.barPrimitives}
                 {this.selectedPrimitives}
             </svg>
-        </div>
+        </div>;
     }
 }

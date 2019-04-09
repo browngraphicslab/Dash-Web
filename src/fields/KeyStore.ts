@@ -56,8 +56,9 @@ export namespace KeyStore {
     ];
     export function KeyLookup(keyid: string) {
         for (const key of KeyList) {
-            if (key.Id === keyid)
+            if (key.Id === keyid) {
                 return key;
+            }
         }
         return undefined;
     }

@@ -57,7 +57,7 @@ export class CollectionFreeFormRemoteCursors extends React.Component<CollectionV
                 let id = entry.Data[0][0];
                 let email = entry.Data[0][1];
                 let point = entry.Data[1];
-                this.drawCrosshairs("#" + v5(id, v5.URL).substring(0, 6).toUpperCase() + "22")
+                this.drawCrosshairs("#" + v5(id, v5.URL).substring(0, 6).toUpperCase() + "22");
                 return (
                     <div
                         key={id}
@@ -69,7 +69,7 @@ export class CollectionFreeFormRemoteCursors extends React.Component<CollectionV
                         }}
                     >
                         <canvas
-                            ref={(el) => { if (el) this.crosshairs = el }}
+                            ref={(el) => { if (el) this.crosshairs = el; }}
                             width={20}
                             height={20}
                             style={{
@@ -93,7 +93,7 @@ export class CollectionFreeFormRemoteCursors extends React.Component<CollectionV
                     </div>
                 );
             }
-        })
+        });
     }
 
     render() {

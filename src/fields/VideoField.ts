@@ -24,7 +24,7 @@ export class VideoField extends BasicField<URL> {
             type: Types.Video,
             data: this.Data.href,
             _id: this.Id
-        }
+        };
     }
 
 }

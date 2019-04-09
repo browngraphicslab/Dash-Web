@@ -1,14 +1,14 @@
 import 'react-image-lightbox/style.css'; // This only needs to be imported once in your app
 import "./KeyValueBox.scss";
 import "./KeyValuePair.scss";
-import React = require("react")
+import React = require("react");
 import { FieldViewProps, FieldView } from './FieldView';
 import { Opt, Field } from '../../../fields/Field';
-import { observer } from "mobx-react"
+import { observer } from "mobx-react";
 import { observable, action } from 'mobx';
 import { Document } from '../../../fields/Document';
 import { Key } from '../../../fields/Key';
-import { Server } from "../../Server"
+import { Server } from "../../Server";
 import { EditableView } from "../EditableView";
 import { CompileScript, ToField } from "../../util/Scripting";
 import { Transform } from '../../util/Transform';
@@ -25,7 +25,7 @@ export interface KeyValuePairProps {
 export class KeyValuePair extends React.Component<KeyValuePairProps> {
 
     @observable
-    private key: Opt<Key>
+    private key: Opt<Key>;
 
     constructor(props: KeyValuePairProps) {
         super(props);
@@ -41,7 +41,7 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
 
     render() {
         if (!this.key) {
-            return <tr><td>error</td><td></td></tr>
+            return <tr><td>error</td><td></td></tr>;
 
         }
         let props: FieldViewProps = {
@@ -55,7 +55,7 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
             onActiveChanged: emptyFunction,
             ScreenToLocalTransform: Transform.Identity,
             focus: emptyFunction,
-        }
+        };
         let contents = (
             <FieldView {...props} />
         );
@@ -101,6 +101,6 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
                         return false;
                     }}></EditableView></td>
             </tr>
-        )
+        );
     }
 }

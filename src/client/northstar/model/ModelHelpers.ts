@@ -64,7 +64,7 @@ export class ModelHelpers {
             if (aggParams) {
                 aggregateParameters.push(aggParams);
 
-                var margin = new MarginAggregateParameters()
+                var margin = new MarginAggregateParameters();
                 margin.aggregateFunction = agg.AggregateFunction;
                 margin.attributeParameters = ModelHelpers.GetAttributeParameters(agg.AttributeModel);
                 margin.distinctAttributeParameters = distinctAttributeParameters;
@@ -106,7 +106,7 @@ export class ModelHelpers {
                 {
                     rawName: am.CodeName,
                     visualizationHints: am.VisualizationHints,
-                    id: (am as BackendAttributeModel).Id
+                    id: (am).Id
                 });
         }
         else if (am instanceof CodeAttributeModel) {
@@ -114,11 +114,11 @@ export class ModelHelpers {
                 {
                     rawName: am.CodeName,
                     visualizationHints: am.VisualizationHints,
-                    code: (am as CodeAttributeModel).Code
+                    code: (am).Code
                 });
         }
         else {
-            throw new Exception()
+            throw new Exception();
         }
     }
 

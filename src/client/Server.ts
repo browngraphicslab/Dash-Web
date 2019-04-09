@@ -1,7 +1,7 @@
-import { Key } from "../fields/Key"
+import { Key } from "../fields/Key";
 import { ObservableMap, action, reaction } from "mobx";
-import { Field, FieldWaiting, FIELD_WAITING, Opt, FieldId } from "../fields/Field"
-import { Document } from "../fields/Document"
+import { Field, FieldWaiting, FIELD_WAITING, Opt, FieldId } from "../fields/Field";
+import { Document } from "../fields/Document";
 import { SocketStub, FieldMap } from "./SocketStub";
 import * as OpenSocket from 'socket.io-client';
 import { Utils } from "./../Utils";
@@ -10,7 +10,7 @@ import { MessageStore, Types } from "./../server/Message";
 export class Server {
     public static ClientFieldsCached: ObservableMap<FieldId, Field | FIELD_WAITING> = new ObservableMap();
     static Socket: SocketIOClient.Socket = OpenSocket(`${window.location.protocol}//${window.location.hostname}:4321`);
-    static GUID: string = Utils.GenerateGuid()
+    static GUID: string = Utils.GenerateGuid();
 
 
     // Retrieves the cached value of the field and sends a request to the server for the real value (if it's not cached).
@@ -25,15 +25,16 @@ export class Server {
                 this.ClientFieldsCached.set(fieldid, FieldWaiting);
                 SocketStub.SEND_FIELD_REQUEST(fieldid, action((field: Field | undefined) => {
                     let cached = this.ClientFieldsCached.get(fieldid);
-                    if (cached !== FieldWaiting)
+                    if (cached !== FieldWaiting) {
                         cb(cached);
+                    }
                     else {
                         if (field) {
                             this.ClientFieldsCached.set(fieldid, field);
                         } else {
-                            this.ClientFieldsCached.delete(fieldid)
+                            this.ClientFieldsCached.delete(fieldid);
                         }
-                        cb(field)
+                        cb(field);
                     }
                 }));
             } else if (cached !== FieldWaiting) {
@@ -42,12 +43,12 @@ export class Server {
                 reaction(() => this.ClientFieldsCached.get(fieldid),
                     (field, reaction) => {
                         if (field !== FieldWaiting) {
-                            reaction.dispose()
-                            cb(field)
+                            reaction.dispose();
+                            cb(field);
                         }
-                    })
+                    });
             }
-        }
+        };
         if (callback) {
             fn(callback);
         } else {
@@ -79,15 +80,15 @@ export class Server {
                     let field = fields[id];
                     if (field) {
                         if (!(this.ClientFieldsCached.get(field.Id) instanceof Field)) {
-                            this.ClientFieldsCached.set(field.Id, field)
+                            this.ClientFieldsCached.set(field.Id, field);
                         } else {
-                            throw new Error("we shouldn't be trying to replace things that are already in the cache")
+                            throw new Error("we shouldn't be trying to replace things that are already in the cache");
                         }
                     } else {
                         if (this.ClientFieldsCached.get(id) === FieldWaiting) {
                             this.ClientFieldsCached.delete(id);
                         } else {
-                            throw new Error("we shouldn't be trying to replace things that are already in the cache")
+                            throw new Error("we shouldn't be trying to replace things that are already in the cache");
                         }
                     }
                 }
@@ -99,9 +100,9 @@ export class Server {
                                 let realField = field as Field;
                                 existingFields[realField.Id] = realField;
                             }
-                            cb({ ...fields, ...existingFields })
+                            cb({ ...fields, ...existingFields });
                         }
-                    }, { fireImmediately: true })
+                    }, { fireImmediately: true });
             }));
         };
         if (callback) {
@@ -139,7 +140,7 @@ export class Server {
 
     public static UpdateField(field: Field) {
         if (!this.ClientFieldsCached.has(field.Id)) {
-            this.ClientFieldsCached.set(field.Id, field)
+            this.ClientFieldsCached.set(field.Id, field);
         }
         SocketStub.SEND_SET_FIELD(field);
     }

@@ -2,7 +2,7 @@ import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import { KeyStore } from "../../../fields/KeyStore";
 import { ContextMenu } from "../ContextMenu";
-import "./CollectionPDFView.scss"
+import "./CollectionPDFView.scss";
 import React = require("react");
 import { CollectionFreeFormView } from "./collectionFreeForm/CollectionFreeFormView";
 import { FieldView, FieldViewProps } from "../nodes/FieldView";
@@ -44,7 +44,7 @@ export class CollectionPDFView extends React.Component<FieldViewProps> {
                 <CollectionFreeFormView {...props} />
                 {this.props.isSelected() ? this.uIButtons : (null)}
             </>
-        )
+        );
     }
 
     render() {
@@ -52,6 +52,6 @@ export class CollectionPDFView extends React.Component<FieldViewProps> {
             <CollectionBaseView {...this.props} className="collectionPdfView-cont" onContextMenu={this.onContextMenu}>
                 {this.subView}
             </CollectionBaseView>
-        )
+        );
     }
 }

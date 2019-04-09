@@ -1,4 +1,4 @@
-import { BasicField } from "./BasicField"
+import { BasicField } from "./BasicField";
 import { FieldId } from "./Field";
 import { Types } from "../server/Message";
 
@@ -20,6 +20,6 @@ export class TextField extends BasicField<string> {
             type: Types.Text,
             data: this.Data,
             _id: this.Id
-        }
+        };
     }
 }

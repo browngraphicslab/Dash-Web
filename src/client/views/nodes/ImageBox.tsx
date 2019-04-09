@@ -9,13 +9,13 @@ import { KeyStore } from '../../../fields/KeyStore';
 import { ContextMenu } from "../../views/ContextMenu";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./ImageBox.scss";
-import React = require("react")
+import React = require("react");
 import { Utils } from '../../../Utils';
 
 @observer
 export class ImageBox extends React.Component<FieldViewProps> {
 
-    public static LayoutString() { return FieldView.LayoutString(ImageBox) }
+    public static LayoutString() { return FieldView.LayoutString(ImageBox); }
     private _ref: React.RefObject<HTMLDivElement>;
     private _imgRef: React.RefObject<HTMLImageElement>;
     private _downX: number = 0;
@@ -39,7 +39,7 @@ export class ImageBox extends React.Component<FieldViewProps> {
     onLoad = (target: any) => {
         var h = this._imgRef.current!.naturalHeight;
         var w = this._imgRef.current!.naturalWidth;
-        this.props.Document.SetNumber(KeyStore.NativeHeight, this.props.Document.GetNumber(KeyStore.NativeWidth, 0) * h / w)
+        this.props.Document.SetNumber(KeyStore.NativeHeight, this.props.Document.GetNumber(KeyStore.NativeWidth, 0) * h / w);
     }
 
     componentDidMount() {
@@ -86,7 +86,7 @@ export class ImageBox extends React.Component<FieldViewProps> {
                 onMoveNextRequest={action(() =>
                     this._photoIndex = (this._photoIndex + 1) % images.length
                 )}
-            />)
+            />);
         }
     }
 
@@ -96,7 +96,7 @@ export class ImageBox extends React.Component<FieldViewProps> {
             let url = field.Data.href;
             ContextMenu.Instance.addItem({
                 description: "Copy path", event: () => {
-                    Utils.CopyText(url)
+                    Utils.CopyText(url);
                 }
             });
         }
@@ -111,6 +111,6 @@ export class ImageBox extends React.Component<FieldViewProps> {
             <div className="imageBox-cont" onPointerDown={this.onPointerDown} ref={this._ref} onContextMenu={this.specificContextMenu}>
                 <img src={path} width={nativeWidth} alt="Image not found" ref={this._imgRef} onLoad={this.onLoad} />
                 {this.lightbox(path)}
-            </div>)
+            </div>);
     }
 }

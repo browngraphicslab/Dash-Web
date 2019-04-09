@@ -25,7 +25,7 @@ export class AudioField extends BasicField<URL> {
             type: Types.Audio,
             data: this.Data.href,
             _id: this.Id
-        }
+        };
     }
 
 }

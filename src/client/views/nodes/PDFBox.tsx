@@ -17,7 +17,7 @@ import { FieldView, FieldViewProps } from './FieldView';
 import "./ImageBox.scss";
 import "./PDFBox.scss";
 import { Sticky } from './Sticky'; //you should look at sticky and annotation, because they are used here
-import React = require("react")
+import React = require("react");
 import { SelectionManager } from "../../util/SelectionManager";
 
 /** ALSO LOOK AT: Annotation.tsx, Sticky.tsx
@@ -55,7 +55,7 @@ import { SelectionManager } from "../../util/SelectionManager";
 export class PDFBox extends React.Component<FieldViewProps> {
     public static LayoutString() { return FieldView.LayoutString(PDFBox); }
 
-    private _mainDiv = React.createRef<HTMLDivElement>()
+    private _mainDiv = React.createRef<HTMLDivElement>();
     private _pdf = React.createRef<HTMLCanvasElement>();
 
     @observable private _renderAsSvg = true;
@@ -72,7 +72,7 @@ export class PDFBox extends React.Component<FieldViewProps> {
 
     private _currTool: any; //keeps track of current tool button reference
     private _drawToolOn: boolean = false; //boolean that keeps track of the drawing tool 
-    private _drawTool = React.createRef<HTMLButtonElement>()//drawing tool button reference
+    private _drawTool = React.createRef<HTMLButtonElement>();//drawing tool button reference
 
     private _colorTool = React.createRef<HTMLButtonElement>(); //color button reference
     private _currColor: string = "black"; //current color that user selected (for ink/pen)
@@ -85,7 +85,7 @@ export class PDFBox extends React.Component<FieldViewProps> {
     @observable private _perPageInfo: Object[] = []; //stores pageInfo
     @observable private _pageInfo: any = { area: [], divs: [], anno: [] }; //divs is array of objects linked to anno
 
-    @observable private _currAnno: any = []
+    @observable private _currAnno: any = [];
     @observable private _interactive: boolean = false;
     @observable private _loaded: boolean = false;
 
@@ -168,24 +168,24 @@ export class PDFBox extends React.Component<FieldViewProps> {
             let obj: Object = { parentDivs: [], spans: [] };
             //@ts-ignore
             if (range.commonAncestorContainer.className === 'react-pdf__Page__textContent') { //multiline highlighting case
-                obj = this.highlightNodes(range.commonAncestorContainer.childNodes)
+                obj = this.highlightNodes(range.commonAncestorContainer.childNodes);
             } else { //single line highlighting case
-                let parentDiv = range.commonAncestorContainer.parentElement
+                let parentDiv = range.commonAncestorContainer.parentElement;
                 if (parentDiv) {
                     if (parentDiv.className === 'react-pdf__Page__textContent') { //when highlight is overwritten
-                        obj = this.highlightNodes(parentDiv.childNodes)
+                        obj = this.highlightNodes(parentDiv.childNodes);
                     } else {
                         parentDiv.childNodes.forEach((child) => {
                             if (child.nodeName === 'SPAN') {
                                 //@ts-ignore
-                                obj.parentDivs.push(parentDiv)
+                                obj.parentDivs.push(parentDiv);
                                 //@ts-ignore
-                                child.id = "highlighted"
+                                child.id = "highlighted";
                                 //@ts-ignore
-                                obj.spans.push(child)
+                                obj.spans.push(child);
                                 child.addEventListener("mouseover", this.onEnter); //adds mouseover annotation handler
                             }
-                        })
+                        });
                     }
                 }
             }
@@ -196,21 +196,21 @@ export class PDFBox extends React.Component<FieldViewProps> {
     }
 
     highlightNodes = (nodes: NodeListOf<ChildNode>) => {
-        let temp = { parentDivs: [], spans: [] }
+        let temp = { parentDivs: [], spans: [] };
         nodes.forEach((div) => {
             div.childNodes.forEach((child) => {
                 if (child.nodeName === 'SPAN') {
                     //@ts-ignore
-                    temp.parentDivs.push(div)
+                    temp.parentDivs.push(div);
                     //@ts-ignore
-                    child.id = "highlighted"
+                    child.id = "highlighted";
                     //@ts-ignore
-                    temp.spans.push(child)
+                    temp.spans.push(child);
                     child.addEventListener("mouseover", this.onEnter); //adds mouseover annotation handler
                 }
-            })
+            });
 
-        })
+        });
         return temp;
     }
 
@@ -228,8 +228,8 @@ export class PDFBox extends React.Component<FieldViewProps> {
                         index = this._pageInfo.divs.indexOf(obj);
                     }
                 }
-            })
-        })
+            });
+        });
 
         if (this._pageInfo.anno.length >= index + 1) {
             if (this._currAnno.length === 0) {
@@ -239,13 +239,13 @@ export class PDFBox extends React.Component<FieldViewProps> {
             if (this._currAnno.length === 0) { //if there are no current annotation
                 let div = span.offsetParent;
                 //@ts-ignore
-                let divX = div.style.left
+                let divX = div.style.left;
                 //@ts-ignore
-                let divY = div.style.top
+                let divY = div.style.top;
                 //slicing "px" from the end
                 divX = divX.slice(0, divX.length - 2); //gets X of the DIV element (parent of Span)
                 divY = divY.slice(0, divY.length - 2); //gets Y of the DIV element (parent of Span)
-                let annotation = <Annotation key={Utils.GenerateGuid()} Span={span} X={divX} Y={divY - 300} Highlights={this._pageInfo.divs} Annotations={this._pageInfo.anno} CurrAnno={this._currAnno} />
+                let annotation = <Annotation key={Utils.GenerateGuid()} Span={span} X={divX} Y={divY - 300} Highlights={this._pageInfo.divs} Annotations={this._pageInfo.anno} CurrAnno={this._currAnno} />;
                 this._pageInfo.anno.push(annotation);
                 this._currAnno.push(annotation);
             }
@@ -263,7 +263,7 @@ export class PDFBox extends React.Component<FieldViewProps> {
                     this.makeEditableAndHighlight(color);
                 }
             } catch (ex) {
-                this.makeEditableAndHighlight(color)
+                this.makeEditableAndHighlight(color);
             }
         }
     }
@@ -305,7 +305,7 @@ export class PDFBox extends React.Component<FieldViewProps> {
             }
 
             if (this._mainDiv.current) {
-                let sticky = <Sticky key={Utils.GenerateGuid()} Height={height} Width={width} X={this.initX} Y={this.initY} />
+                let sticky = <Sticky key={Utils.GenerateGuid()} Height={height} Width={width} X={this.initX} Y={this.initY} />;
                 this._pageInfo.area.push(sticky);
             }
             this._toolOn = false;
@@ -404,19 +404,19 @@ export class PDFBox extends React.Component<FieldViewProps> {
 
                         if (e instanceof HTMLCanvasElement) {
                             this._pdfCanvas = e;
-                            this._pdfContext = e.getContext("2d")
+                            this._pdfContext = e.getContext("2d");
 
                         }
 
-                    })
+                    });
                 }
-            })
+            });
         }
 
         // bcz: the number of pages should really be set when the document is imported.
         this.props.Document.SetNumber(KeyStore.NumPages, page._transport.numPages);
         if (this._perPageInfo.length === 0) { //Makes sure it only runs once
-            this._perPageInfo = [...Array(page._transport.numPages)]
+            this._perPageInfo = [...Array(page._transport.numPages)];
         }
         this._loaded = true;
     }

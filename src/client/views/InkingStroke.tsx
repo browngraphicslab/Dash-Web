@@ -30,7 +30,7 @@ export class InkingStroke extends React.Component<StrokeProps> {
     }
 
     parseData = (line: Array<{ x: number, y: number }>): string => {
-        return !line.length ? "" : "M " + line.map(p => (p.x + this.props.offsetX) + " " + (p.y + this.props.offsetY)).join(" L ")
+        return !line.length ? "" : "M " + line.map(p => (p.x + this.props.offsetX) + " " + (p.y + this.props.offsetY)).join(" L ");
     }
 
     createStyle() {
@@ -41,7 +41,7 @@ export class InkingStroke extends React.Component<StrokeProps> {
                     fill: "none",
                     stroke: this._strokeColor,
                     strokeWidth: this._strokeWidth + "px",
-                }
+                };
         }
     }
 
@@ -53,6 +53,6 @@ export class InkingStroke extends React.Component<StrokeProps> {
         return (
             <path d={pathData} style={{ ...pathStyle, pointerEvents: pointerEvents }} strokeLinejoin="round" strokeLinecap="round"
                 onPointerOver={this.deleteStroke} onPointerDown={this.deleteStroke} />
-        )
+        );
     }
 }

@@ -61,7 +61,7 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
             );
             // doc.SetData(fieldKey, JSON.stringify(state.toJSON()), RichTextField);
         }
-    };
+    }
 
     get FieldDoc() { return this.props.fieldKey === KeyStore.Archives ? Main.Instance._textDoc! : this.props.Document; }
     get FieldKey() { return this.props.fieldKey === KeyStore.Archives ? KeyStore.Data : this.props.fieldKey; }
@@ -81,12 +81,13 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
         if (this.props.fieldKey === KeyStore.Archives) {
             this._inputReactionDisposer = reaction(() => Main.Instance._textDoc && Main.Instance._textDoc.Id,
                 () => {
-                    if (this._editorView)
-                        this._editorView!.destroy();
+                    if (this._editorView) {
+                        this._editorView.destroy();
+                    }
 
                     this.setupEditor(config);
                 }
-            )
+            );
         }
 
         this._reactionDisposer = reaction(
@@ -153,7 +154,7 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
         if (e.buttons === 1 && this.props.isSelected() && !e.altKey) {
             e.stopPropagation();
         }
-    };
+    }
     onPointerUp = (e: React.PointerEvent): void => {
         if (e.buttons === 1 && this.props.isSelected() && !e.altKey) {
             e.stopPropagation();
@@ -162,7 +163,7 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
             e.preventDefault();
             Main.Instance.SetTextDoc(this.props.Document, this._ref.current!);
         }
-    };
+    }
 
     onFocused = (e: React.FocusEvent): void => {
         if (this.props.fieldKey !== KeyStore.Archives) {
@@ -191,11 +192,11 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
         //     ]
         // })
         // e.stopPropagation()
-    };
+    }
 
     onPointerWheel = (e: React.WheelEvent): void => {
         e.stopPropagation();
-    };
+    }
 
     tooltipMenuPlugin() {
         return new Plugin({

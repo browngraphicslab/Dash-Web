@@ -40,22 +40,22 @@ class ListViewer extends React.Component<{ field: ListField<Field> }>{
                 <div>
                     {this.props.field.Data.map(field => <DebugViewer fieldId={field.Id} key={field.Id} />)}
                 </div>
-            )
+            );
         } else {
-            content = <>[...] ({this.props.field.Id})</>
+            content = <>[...] ({this.props.field.Id})</>;
         }
         return (
             <div>
                 <button onClick={action(() => this.expanded = !this.expanded)}>Toggle</button>
                 {content}
             </div >
-        )
+        );
     }
 }
 
 @observer
 class DocumentViewer extends React.Component<{ field: Document }> {
-    private keyMap: ObservableMap<string, Key> = new ObservableMap
+    private keyMap: ObservableMap<string, Key> = new ObservableMap;
 
     private disposer?: Lambda;
 
@@ -67,12 +67,12 @@ class DocumentViewer extends React.Component<{ field: Document }> {
                         if (field && field instanceof Key) {
                             this.keyMap.set(id, field);
                         }
-                    })
+                    });
                 }
             });
-        }
-        this.disposer = this.props.field._proxies.observe(f)
-        f()
+        };
+        this.disposer = this.props.field._proxies.observe(f);
+        f();
     }
 
     componentWillUnmount() {
@@ -89,8 +89,8 @@ class DocumentViewer extends React.Component<{ field: Document }> {
                     <b>({key ? key.Name : kv[0]}): </b>
                     <DebugViewer fieldId={kv[1]}></DebugViewer>
                 </div>
-            )
-        })
+            );
+        });
         return (
             <div>
                 Document ({this.props.field.Id})
@@ -98,7 +98,7 @@ class DocumentViewer extends React.Component<{ field: Document }> {
                     {fields}
                 </div>
             </div>
-        )
+        );
     }
 }
 
@@ -111,15 +111,15 @@ class DebugViewer extends React.Component<{ fieldId: string }> {
     private error?: string;
 
     constructor(props: { fieldId: string }) {
-        super(props)
-        this.update()
+        super(props);
+        this.update();
     }
 
     update() {
         Server.GetField(this.props.fieldId, action((field: Opt<Field>) => {
             this.field = field;
             if (!field) {
-                this.error = `Field with id ${this.props.fieldId} not found`
+                this.error = `Field with id ${this.props.fieldId} not found`;
             }
         }));
 
@@ -130,20 +130,20 @@ class DebugViewer extends React.Component<{ fieldId: string }> {
         if (this.field) {
             // content = this.field.ToJson();
             if (this.field instanceof ListField) {
-                content = (<ListViewer field={this.field} />)
+                content = (<ListViewer field={this.field} />);
             } else if (this.field instanceof Document) {
-                content = (<DocumentViewer field={this.field} />)
+                content = (<DocumentViewer field={this.field} />);
             } else if (this.field instanceof BasicField) {
-                content = (<FieldViewer field={this.field} />)
+                content = (<FieldViewer field={this.field} />);
             } else if (this.field instanceof Key) {
-                content = (<KeyViewer field={this.field} />)
+                content = (<KeyViewer field={this.field} />);
             } else {
-                content = (<span>Unrecognized field type</span>)
+                content = (<span>Unrecognized field type</span>);
             }
         } else if (this.error) {
-            content = <span>Field <b>{this.props.fieldId}</b> not found <button onClick={() => this.update()}>Refresh</button></span>
+            content = <span>Field <b>{this.props.fieldId}</b> not found <button onClick={() => this.update()}>Refresh</button></span>;
         } else {
-            content = <span>Field loading: {this.props.fieldId}</span>
+            content = <span>Field loading: {this.props.fieldId}</span>;
         }
         return content;
     }
@@ -165,8 +165,8 @@ class Viewer extends React.Component {
     @action
     onKeyPress = (e: React.KeyboardEvent<HTMLDivElement>) => {
         if (e.key === "Enter") {
-            this.ids.push(this.idToAdd)
-            this.idToAdd = ""
+            this.ids.push(this.idToAdd);
+            this.idToAdd = "";
         }
     }
 
@@ -180,7 +180,7 @@ class Viewer extends React.Component {
                     {this.ids.map(id => <DebugViewer fieldId={id} key={id}></DebugViewer>)}
                 </div>
             </>
-        )
+        );
     }
 }
 

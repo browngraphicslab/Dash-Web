@@ -1,10 +1,10 @@
-import * as express from 'express'
-const app = express()
-import * as webpack from 'webpack'
+import * as express from 'express';
+const app = express();
+import * as webpack from 'webpack';
 import * as wdm from 'webpack-dev-middleware';
 import * as whm from 'webpack-hot-middleware';
-import * as path from 'path'
-import * as formidable from 'formidable'
+import * as path from 'path';
+import * as formidable from 'formidable';
 import * as passport from 'passport';
 import { MessageStore, Transferable } from "./Message";
 import { Client } from './Client';
@@ -13,7 +13,7 @@ import { Utils } from '../Utils';
 import { ObservableMap } from 'mobx';
 import { FieldId, Field } from '../fields/Field';
 import { Database } from './database';
-import * as io from 'socket.io'
+import * as io from 'socket.io';
 import { getLogin, postLogin, getSignup, postSignup, getLogout, postReset, getForgot, postForgot, getReset } from './authentication/controllers/user_controller';
 const config = require('../../webpack.config');
 const compiler = webpack(config);
@@ -31,19 +31,19 @@ const MongoStore = require('connect-mongo')(session);
 const mongoose = require('mongoose');
 import { DashUserModel } from './authentication/models/user_model';
 import * as fs from 'fs';
-import * as request from 'request'
+import * as request from 'request';
 import { RouteStore } from './RouteStore';
-import { exec } from 'child_process'
+import { exec } from 'child_process';
 
 const download = (url: string, dest: fs.PathLike) => {
     request.get(url).pipe(fs.createWriteStream(dest));
-}
+};
 
 const mongoUrl = 'mongodb://localhost:27017/Dash';
-mongoose.connect(mongoUrl)
+mongoose.connect(mongoUrl);
 mongoose.connection.on('connected', function () {
     console.log("connected");
-})
+});
 
 // SESSION MANAGEMENT AND AUTHENTICATION MIDDLEWARE
 // ORDER OF IMPORTS MATTERS
@@ -73,7 +73,7 @@ app.use((req, res, next) => {
 
 app.get("/hello", (req, res) => {
     res.send("<p>Hello</p>");
-})
+});
 
 enum Method {
     GET,
@@ -98,7 +98,7 @@ function addSecureRoute(method: Method,
         const dashUser: DashUserModel = req.user;
         if (!dashUser) return onRejection(res);
         handler(dashUser, res, req);
-    }
+    };
     subscribers.forEach(route => {
         switch (method) {
             case Method.GET:
@@ -116,7 +116,7 @@ function addSecureRoute(method: Method,
 let FieldStore: ObservableMap<FieldId, Field> = new ObservableMap();
 
 app.use(express.static(__dirname + RouteStore.public));
-app.use(RouteStore.images, express.static(__dirname + RouteStore.public))
+app.use(RouteStore.images, express.static(__dirname + RouteStore.public));
 
 app.get("/pull", (req, res) => {
     exec('"C:\\Program Files\\Git\\git-bash.exe" -c "git pull"', (err, stdout, stderr) => {
@@ -125,7 +125,7 @@ app.get("/pull", (req, res) => {
             return;
         }
         res.redirect("/");
-    })
+    });
 });
 
 // GETTERS
@@ -178,13 +178,13 @@ addSecureRoute(
 addSecureRoute(
     Method.POST,
     (user, res, req) => {
-        let form = new formidable.IncomingForm()
-        form.uploadDir = __dirname + "/public/files/"
-        form.keepExtensions = true
+        let form = new formidable.IncomingForm();
+        form.uploadDir = __dirname + "/public/files/";
+        form.keepExtensions = true;
         // let path = req.body.path;
-        console.log("upload")
+        console.log("upload");
         form.parse(req, (err, fields, files) => {
-            console.log("parsing")
+            console.log("parsing");
             let names: any[] = [];
             for (const name in files) {
                 let file = files[name];
@@ -211,8 +211,8 @@ app.post(RouteStore.login, postLogin);
 app.get(RouteStore.logout, getLogout);
 
 // FORGOT PASSWORD EMAIL HANDLING
-app.get(RouteStore.forgot, getForgot)
-app.post(RouteStore.forgot, postForgot)
+app.get(RouteStore.forgot, getForgot);
+app.post(RouteStore.forgot, postForgot);
 
 // RESET PASSWORD EMAIL HANDLING
 app.get(RouteStore.reset, getReset);
@@ -232,32 +232,32 @@ app.get(RouteStore.deleteAll, (req, res) => {
 
 app.use(wdm(compiler, {
     publicPath: config.output.publicPath
-}))
+}));
 
-app.use(whm(compiler))
+app.use(whm(compiler));
 
 // start the Express server
 app.listen(port, () => {
     console.log(`server started at http://localhost:${port}`);
-})
+});
 
 const server = io();
 interface Map {
     [key: string]: Client;
 }
-let clients: Map = {}
+let clients: Map = {};
 
 server.on("connection", function (socket: Socket) {
-    console.log("a user has connected")
+    console.log("a user has connected");
 
-    Utils.Emit(socket, MessageStore.Foo, "handshooken")
+    Utils.Emit(socket, MessageStore.Foo, "handshooken");
 
-    Utils.AddServerHandler(socket, MessageStore.Bar, barReceived)
-    Utils.AddServerHandler(socket, MessageStore.SetField, (args) => setField(socket, args))
-    Utils.AddServerHandlerCallback(socket, MessageStore.GetField, getField)
-    Utils.AddServerHandlerCallback(socket, MessageStore.GetFields, getFields)
-    Utils.AddServerHandler(socket, MessageStore.DeleteAll, deleteFields)
-})
+    Utils.AddServerHandler(socket, MessageStore.Bar, barReceived);
+    Utils.AddServerHandler(socket, MessageStore.SetField, (args) => setField(socket, args));
+    Utils.AddServerHandlerCallback(socket, MessageStore.GetField, getField);
+    Utils.AddServerHandlerCallback(socket, MessageStore.GetFields, getFields);
+    Utils.AddServerHandler(socket, MessageStore.DeleteAll, deleteFields);
+});
 
 function deleteFields() {
     return Database.Instance.deleteAll();
@@ -276,12 +276,12 @@ function barReceived(guid: String) {
 function getField([id, callback]: [string, (result: any) => void]) {
     Database.Instance.getDocument(id, (result: any) => {
         if (result) {
-            callback(result)
+            callback(result);
         }
         else {
-            callback(undefined)
+            callback(undefined);
         }
-    })
+    });
 }
 
 function getFields([ids, callback]: [string[], (result: any) => void]) {
@@ -291,7 +291,7 @@ function getFields([ids, callback]: [string[], (result: any) => void]) {
 function setField(socket: Socket, newValue: Transferable) {
     Database.Instance.update(newValue._id, newValue, () => {
         socket.broadcast.emit(MessageStore.SetField.Message, newValue);
-    })
+    });
 }
 
 server.listen(serverPort);

@@ -1,6 +1,6 @@
 import { BasicField } from "./BasicField";
 import { Field, FieldId } from "./Field";
-import { observable } from "mobx"
+import { observable } from "mobx";
 import { Types } from "../server/Message";
 
 
@@ -27,7 +27,7 @@ export class PDFField extends BasicField<URL> {
             type: Types.PDF,
             data: this.Data.href,
             _id: this.Id
-        }
+        };
     }
 
     @observable

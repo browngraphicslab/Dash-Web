@@ -50,7 +50,7 @@ export class ArrayUtil {
         if (filtered.length > 0) {
             return filtered[0];
         }
-        throw new Exception()
+        throw new Exception();
     }
 
     public static FirstOrDefault<T>(arr: T[], predicate: (x: any) => boolean): T | undefined {

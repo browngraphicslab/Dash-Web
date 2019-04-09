@@ -22,7 +22,7 @@ import { Opt } from '../fields/Field';
 // }
 
 const onFileLoad = async (file: any) => {
-    let imgPrev = document.getElementById("img_preview")
+    let imgPrev = document.getElementById("img_preview");
     if (imgPrev) {
         let files: File[] = file.target.files;
         if (files.length !== 0) {
@@ -30,15 +30,15 @@ const onFileLoad = async (file: any) => {
             let formData = new FormData();
             formData.append("file", files[0]);
 
-            const upload = window.location.origin + "/upload"
+            const upload = window.location.origin + "/upload";
             const res = await fetch(upload, {
                 method: 'POST',
                 body: formData
             });
             const json = await res.json();
             json.map(async (file: any) => {
-                let path = window.location.origin + file
-                var doc: Document = Documents.ImageDocument(path, { nativeWidth: 200, width: 200 })
+                let path = window.location.origin + file;
+                var doc: Document = Documents.ImageDocument(path, { nativeWidth: 200, width: 200 });
 
                 const res = await rp.get(ServerUtils.prepend(RouteStore.getUserDocumentId));
                 if (!res) {
@@ -47,12 +47,12 @@ const onFileLoad = async (file: any) => {
                 const field = await Server.GetField(res);
                 let pending: Opt<Document>;
                 if (field instanceof Document) {
-                    pending = await field.GetTAsync(KeyStore.OptionalRightCollection, Document)
+                    pending = await field.GetTAsync(KeyStore.OptionalRightCollection, Document);
                 }
                 if (pending) {
                     pending.GetOrCreateAsync(KeyStore.Data, ListField, list => {
                         list.Data.push(doc);
-                    })
+                    });
                 }
             });
 
@@ -61,7 +61,7 @@ const onFileLoad = async (file: any) => {
             //imgPrev.setAttribute("src", window.location.origin + files[0].name)
         }
     }
-}
+};
 
 ReactDOM.render((
     <div className="imgupload_cont">

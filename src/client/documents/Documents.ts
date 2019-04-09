@@ -64,7 +64,7 @@ export namespace Documents {
     const webProtoId = "webProto";
     const collProtoId = "collectionProto";
     const kvpProtoId = "kvpProto";
-    const videoProtoId = "videoProto"
+    const videoProtoId = "videoProto";
     const audioProtoId = "audioProto";
 
     export function initProtos(): Promise<void> {
@@ -102,7 +102,7 @@ export namespace Documents {
         if (options.height !== undefined) { doc.SetNumber(KeyStore.Height, options.height); }
         if (options.panx !== undefined) { doc.SetNumber(KeyStore.PanX, options.panx); }
         if (options.pany !== undefined) { doc.SetNumber(KeyStore.PanY, options.pany); }
-        return doc
+        return doc;
     }
 
     function setupPrototypeOptions(protoId: string, title: string, layout: string, options: DocumentOptions): Document {
@@ -110,10 +110,12 @@ export namespace Documents {
     }
     function SetInstanceOptions<T, U extends Field & { Data: T }>(doc: Document, options: DocumentOptions, value: [T, { new(): U }] | Document, id?: string) {
         var deleg = doc.MakeDelegate(id);
-        if (value instanceof Document)
-            deleg.Set(KeyStore.Data, value)
-        else
+        if (value instanceof Document) {
+            deleg.Set(KeyStore.Data, value);
+        }
+        else {
             deleg.SetData(KeyStore.Data, value[0], value[1]);
+        }
         return assignOptions(deleg, options);
     }
 
@@ -134,7 +136,7 @@ export namespace Documents {
     function CreateTextPrototype(): Document {
         let textProto = setupPrototypeOptions(textProtoId, "TEXT_PROTO", FormattedTextBox.LayoutString(),
             { x: 0, y: 0, width: 300, height: 150, layoutKeys: [KeyStore.Data] });
-        return textProto
+        return textProto;
     }
     function CreatePdfPrototype(): Document {
         let pdfProto = setupPrototypeOptions(pdfProtoId, "PDF_PROTO", CollectionPDFView.LayoutString("AnnotationsKey"),
@@ -168,7 +170,7 @@ export namespace Documents {
     }
     function CreateAudioPrototype(): Document {
         let audioProto = setupPrototypeOptions(audioProtoId, "AUDIO_PROTO", AudioBox.LayoutString(),
-            { x: 0, y: 0, width: 300, height: 150, layoutKeys: [KeyStore.Data] })
+            { x: 0, y: 0, width: 300, height: 150, layoutKeys: [KeyStore.Data] });
         return audioProto;
     }
 
@@ -205,22 +207,22 @@ export namespace Documents {
         return assignToDelegate(SetInstanceOptions(webProto, options, [html, HtmlField]).MakeDelegate(), options);
     }
     export function KVPDocument(document: Document, options: DocumentOptions = {}, id?: string) {
-        return assignToDelegate(SetInstanceOptions(kvpProto, options, document, id), options)
+        return assignToDelegate(SetInstanceOptions(kvpProto, options, document, id), options);
     }
     export function FreeformDocument(documents: Array<Document>, options: DocumentOptions, id?: string, makePrototype: boolean = true) {
         if (!makePrototype) {
-            return SetInstanceOptions(collProto, { ...options, viewType: CollectionViewType.Freeform }, [documents, ListField], id)
+            return SetInstanceOptions(collProto, { ...options, viewType: CollectionViewType.Freeform }, [documents, ListField], id);
         }
-        return assignToDelegate(SetInstanceOptions(collProto, { ...options, viewType: CollectionViewType.Freeform }, [documents, ListField], id).MakeDelegate(), options)
+        return assignToDelegate(SetInstanceOptions(collProto, { ...options, viewType: CollectionViewType.Freeform }, [documents, ListField], id).MakeDelegate(), options);
     }
     export function SchemaDocument(documents: Array<Document>, options: DocumentOptions, id?: string) {
-        return assignToDelegate(SetInstanceOptions(collProto, { ...options, viewType: CollectionViewType.Schema }, [documents, ListField], id), options)
+        return assignToDelegate(SetInstanceOptions(collProto, { ...options, viewType: CollectionViewType.Schema }, [documents, ListField], id), options);
     }
     export function TreeDocument(documents: Array<Document>, options: DocumentOptions, id?: string) {
-        return assignToDelegate(SetInstanceOptions(collProto, { ...options, viewType: CollectionViewType.Tree }, [documents, ListField], id), options)
+        return assignToDelegate(SetInstanceOptions(collProto, { ...options, viewType: CollectionViewType.Tree }, [documents, ListField], id), options);
     }
     export function DockDocument(config: string, options: DocumentOptions, id?: string) {
-        return assignToDelegate(SetInstanceOptions(collProto, { ...options, viewType: CollectionViewType.Docking }, [config, TextField], id), options)
+        return assignToDelegate(SetInstanceOptions(collProto, { ...options, viewType: CollectionViewType.Docking }, [config, TextField], id), options);
     }
 
     export function CaptionDocument(doc: Document) {
@@ -240,13 +242,13 @@ export namespace Documents {
             <div style="position:relative; height:15%; text-align:center; ">`
             + FormattedTextBox.LayoutString("CaptionKey") +
             `</div> 
-        </div>` };
+        </div>`; }
     export function FixedCaption(fieldName: string = "Caption") {
         return `<div style="position:absolute; height:30px; bottom:0; width:100%">
             <div style="position:absolute; width:100%; height:100%; text-align:center;bottom:0;">`
             + FormattedTextBox.LayoutString(fieldName + "Key") +
             `</div> 
-        </div>` };
+        </div>`; }
 
     function OuterCaption() {
         return (`
@@ -258,7 +260,7 @@ export namespace Documents {
         <FormattedTextBox doc={Document} DocumentViewForField={DocumentView} bindings={bindings} fieldKey={"CaptionKey"} isSelected={isSelected} select={select} selectOnLoad={SelectOnLoad} isTopMost={isTopMost}/>
     </div>
 </div>       
-        `)
+        `);
     }
     function InnerCaption() {
         return (`
@@ -270,7 +272,7 @@ export namespace Documents {
             <FormattedTextBox doc={Document} DocumentViewForField={DocumentView} bindings={bindings} fieldKey={"CaptionKey"} isSelected={isSelected} select={select} selectOnLoad={SelectOnLoad} isTopMost={isTopMost}/>
         </div>
     </div>       
-            `)
+            `);
     }
 
     /*
@@ -293,6 +295,6 @@ export namespace Documents {
             <FormattedTextBox doc={Document} DocumentViewForField={DocumentView} bindings={bindings} fieldKey={"CaptionKey"} isSelected={isSelected} select={select} selectOnLoad={SelectOnLoad} isTopMost={isTopMost}/>
         </div>
     </div>       
-            `)
+            `);
     }
 }

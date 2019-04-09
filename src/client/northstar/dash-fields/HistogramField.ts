@@ -41,7 +41,7 @@ export class HistogramField extends BasicField<HistogramOperation> {
 
             data: this.toString(),
             _id: this.Id
-        }
+        };
     }
 
     @action

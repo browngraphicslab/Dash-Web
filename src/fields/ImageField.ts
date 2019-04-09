@@ -24,6 +24,6 @@ export class ImageField extends BasicField<URL> {
             type: Types.Image,
             data: this.Data.href,
             _id: this.Id
-        }
+        };
     }
 }

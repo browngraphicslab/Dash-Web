@@ -103,7 +103,7 @@ export namespace DragManager {
         element.addEventListener("dashOnDrop", handler);
         return () => {
             element.removeEventListener("dashOnDrop", handler);
-            delete element.dataset.canDrop
+            delete element.dataset.canDrop;
         };
     }
 
@@ -216,8 +216,9 @@ export namespace DragManager {
         const moveHandler = (e: PointerEvent) => {
             e.stopPropagation();
             e.preventDefault();
-            if (dragData instanceof DocumentDragData)
+            if (dragData instanceof DocumentDragData) {
                 dragData.aliasOnDrop = e.ctrlKey || e.altKey;
+            }
             if (e.shiftKey) {
                 abortDrag();
                 CollectionDockingView.Instance.StartOtherDrag(docs, {

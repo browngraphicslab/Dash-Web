@@ -1,6 +1,6 @@
 import { NumberField } from "../src/fields/NumberField";
 import { expect } from 'chai';
-import 'mocha'
+import 'mocha';
 import { Key } from "../src/fields/Key";
 import { Document } from "../src/fields/Document";
 import { autorun, reaction } from "mobx";
@@ -17,7 +17,7 @@ describe('Number Controller', () => {
     it('Should update', () => {
         const numController = new NumberField(15);
         let ran = false;
-        reaction(() => numController.Data, (data) => { ran = true; })
+        reaction(() => numController.Data, (data) => { ran = true; });
         expect(ran).to.equal(false);
         numController.Data = 5;
         expect(ran).to.equal(true);
@@ -42,7 +42,7 @@ describe("Document", () => {
         let key = new Key("Test");
         let key2 = new Key("Test2");
         let ran = false;
-        reaction(() => doc.Get(key), (field) => { ran = true });
+        reaction(() => doc.Get(key), (field) => { ran = true; });
         expect(ran).to.equal(false);
 
         doc.Set(key2, new NumberField(4));

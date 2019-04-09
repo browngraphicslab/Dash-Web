@@ -82,7 +82,7 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
             });
             this.inkData = data;
         }
-    };
+    }
 
     @action
     onPointerUp = (e: PointerEvent): void => {
@@ -109,7 +109,7 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
 
     @action
     onPointerMove = (e: PointerEvent): void => {
-        e.stopPropagation()
+        e.stopPropagation();
         e.preventDefault();
         if (InkingControl.Instance.selectedTool !== InkTool.Eraser) {
             let data = this.inkData;  // add points to new line as it is being drawn
@@ -120,7 +120,7 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
             }
             this.inkData = data;
         }
-    };
+    }
 
     relativeCoordinatesForEvent = (ex: number, ey: number): { x: number, y: number } => {
         let [x, y] = this.props.getScreenTransform().transformPoint(ex, ey);
@@ -137,14 +137,15 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
 
     @computed
     get drawnPaths() {
-        let curPage = this.props.Document.GetNumber(KeyStore.CurPage, -1)
+        let curPage = this.props.Document.GetNumber(KeyStore.CurPage, -1);
         let paths = Array.from(this.inkData).reduce((paths, [id, strokeData]) => {
-            if (strokeData.page === -1 || strokeData.page === curPage)
+            if (strokeData.page === -1 || strokeData.page === curPage) {
                 paths.push(<InkingStroke key={id} id={id} line={strokeData.pathData}
                     offsetX={this.maxCanvasDim - this.inkMidX}
                     offsetY={this.maxCanvasDim - this.inkMidY}
                     color={strokeData.color} width={strokeData.width}
-                    tool={strokeData.tool} deleteCallback={this.removeLine} />)
+                    tool={strokeData.tool} deleteCallback={this.removeLine} />);
+            }
             return paths;
         }, [] as JSX.Element[]);
         return [<svg className={`inkingCanvas-paths-markers`} key="Markers"
@@ -165,6 +166,6 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
                 {this.props.children()}
                 {this.drawnPaths}
             </div >
-        )
+        );
     }
 }

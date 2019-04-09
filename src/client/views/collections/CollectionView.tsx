@@ -1,4 +1,4 @@
-import * as React from 'react'
+import * as React from 'react';
 import { FieldViewProps, FieldView } from '../nodes/FieldView';
 import { CollectionBaseView, CollectionViewType, CollectionRenderProps } from './CollectionBaseView';
 import { CollectionFreeFormView } from './collectionFreeForm/CollectionFreeFormView';
@@ -13,26 +13,26 @@ import { undoBatch } from '../../util/UndoManager';
 
 @observer
 export class CollectionView extends React.Component<FieldViewProps> {
-    public static LayoutString(fieldStr: string = "DataKey") { return FieldView.LayoutString(CollectionView, fieldStr) }
+    public static LayoutString(fieldStr: string = "DataKey") { return FieldView.LayoutString(CollectionView, fieldStr); }
 
     private SubView = (type: CollectionViewType, renderProps: CollectionRenderProps) => {
         let props = { ...this.props, ...renderProps };
         switch (type) {
-            case CollectionViewType.Schema: return (<CollectionSchemaView {...props} />)
-            case CollectionViewType.Docking: return (<CollectionDockingView {...props} />)
-            case CollectionViewType.Tree: return (<CollectionTreeView {...props} />)
+            case CollectionViewType.Schema: return (<CollectionSchemaView {...props} />);
+            case CollectionViewType.Docking: return (<CollectionDockingView {...props} />);
+            case CollectionViewType.Tree: return (<CollectionTreeView {...props} />);
             case CollectionViewType.Freeform:
             default:
-                return (<CollectionFreeFormView {...props} />)
+                return (<CollectionFreeFormView {...props} />);
         }
         return (null);
     }
 
     onContextMenu = (e: React.MouseEvent): void => {
         if (!e.isPropagationStopped() && this.props.Document.Id !== CurrentUserUtils.MainDocId) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
-            ContextMenu.Instance.addItem({ description: "Freeform", event: undoBatch(() => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Freeform)) })
-            ContextMenu.Instance.addItem({ description: "Schema", event: undoBatch(() => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Schema)) })
-            ContextMenu.Instance.addItem({ description: "Treeview", event: undoBatch(() => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Tree)) })
+            ContextMenu.Instance.addItem({ description: "Freeform", event: undoBatch(() => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Freeform)) });
+            ContextMenu.Instance.addItem({ description: "Schema", event: undoBatch(() => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Schema)) });
+            ContextMenu.Instance.addItem({ description: "Treeview", event: undoBatch(() => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Tree)) });
         }
     }
 
@@ -41,6 +41,6 @@ export class CollectionView extends React.Component<FieldViewProps> {
             <CollectionBaseView {...this.props} onContextMenu={this.onContextMenu}>
                 {this.SubView}
             </CollectionBaseView>
-        )
+        );
     }
 }

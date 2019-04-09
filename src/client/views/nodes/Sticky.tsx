@@ -39,7 +39,7 @@ export class Sticky extends React.Component<IProps> {
       document.addEventListener("pointermove", this.drawMove);
       document.addEventListener("pointerup", this.drawUp);
     }
-  };
+  }
 
   //when user drags
   drawMove = (e: PointerEvent): void => {
@@ -49,7 +49,7 @@ export class Sticky extends React.Component<IProps> {
     //connects the point
     this.ctx.lineTo(x, y);
     this.ctx.stroke();
-  };
+  }
 
   /**
    * when user lifts the mouse, the drawing ends
@@ -58,7 +58,7 @@ export class Sticky extends React.Component<IProps> {
     this.ctx.closePath();
     console.log(this.ctx);
     document.removeEventListener("pointermove", this.drawMove);
-  };
+  }
 
   render() {
     return (

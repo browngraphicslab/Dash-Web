@@ -37,21 +37,24 @@ export class Document extends Field {
         }
     }
 
-    public Width = () => this.GetNumber(KeyStore.Width, 0)
+    public Width = () => this.GetNumber(KeyStore.Width, 0);
     public Height = () => this.GetNumber(KeyStore.Height, this.GetNumber(KeyStore.NativeWidth, 0) ? (this.GetNumber(KeyStore.NativeHeight, 0) / this.GetNumber(KeyStore.NativeWidth, 0)) * this.GetNumber(KeyStore.Width, 0) : 0);
-    public Scale = () => this.GetNumber(KeyStore.Scale, 1)
+    public Scale = () => this.GetNumber(KeyStore.Scale, 1);
 
     @computed
     public get Title(): string {
         let title = this.Get(KeyStore.Title, true);
-        if (title)
-            if (title !== FieldWaiting && title instanceof TextField)
+        if (title) {
+            if (title !== FieldWaiting && title instanceof TextField) {
                 return title.Data;
+            }
             else return "-waiting-";
+        }
         let parTitle = this.GetT(KeyStore.Title, TextField);
-        if (parTitle)
+        if (parTitle) {
             if (parTitle !== FieldWaiting) return parTitle.Data + ".alias";
             else return "-waiting-.alias";
+        }
         return "-untitled-";
     }
 
@@ -398,11 +401,13 @@ export class Document extends Field {
                         }
                     }
                     else
-                        if (field instanceof Document)  // ... TODO bcz: should we copy documents or reference them
-                            copy.Set(key!, field)
-                        else if (field)
-                            copy.Set(key!, field.Copy())
-                })
+                        if (field instanceof Document) {  // ... TODO bcz: should we copy documents or reference them
+                            copy.Set(key!, field);
+                        }
+                        else if (field) {
+                            copy.Set(key!, field.Copy());
+ }
+                });
             }
         });
         return copy;
