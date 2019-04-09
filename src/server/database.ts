@@ -1,15 +1,15 @@
 import * as mongodb from 'mongodb';
 
 export class Database {
-    public static Instance = new Database()
+    public static Instance = new Database();
     private MongoClient = mongodb.MongoClient;
     private url = 'mongodb://localhost:27017/Dash';
     private db?: mongodb.Db;
 
     constructor() {
         this.MongoClient.connect(this.url, (err, client) => {
-            this.db = client.db()
-        })
+            this.db = client.db();
+        });
     }
 
     private currentWrites: { [_id: string]: Promise<void> } = {};
@@ -30,19 +30,19 @@ export class Database {
                     //     console.log(JSON.stringify(res.result));
                     // }
                     if (this.currentWrites[id] === promise) {
-                        delete this.currentWrites[id]
+                        delete this.currentWrites[id];
                     }
                     if (resolve) {
                         resolve();
                     }
                     callback();
                 });
-            }
+            };
             if (prom) {
                 const newProm: Promise<void> = prom.then(() => run(newProm));
                 this.currentWrites[id] = newProm;
             } else {
-                const newProm: Promise<void> = new Promise<void>(res => run(newProm, res))
+                const newProm: Promise<void> = new Promise<void>(res => run(newProm, res));
                 this.currentWrites[id] = newProm;
             }
         }
@@ -61,7 +61,7 @@ export class Database {
                 let collection = this.db.collection(collectionName);
                 collection.deleteMany({}, res);
             }
-        })
+        });
     }
 
     public insert(kvpairs: any) {
@@ -70,7 +70,7 @@ export class Database {
             collection.insertOne(kvpairs, (err: any, res: any) => {
                 if (err) {
                     // console.log(err)
-                    return
+                    return;
                 }
             });
         }
@@ -81,30 +81,30 @@ export class Database {
         if (this.db) {
             let collection = this.db.collection('documents');
             collection.findOne({ _id: id }, (err: any, res: any) => {
-                result = res
+                result = res;
                 if (!result) {
-                    fn(undefined)
+                    fn(undefined);
                 }
-                fn(result)
-            })
-        };
+                fn(result);
+            });
+        }
     }
 
     public getDocuments(ids: string[], fn: (res: any) => void) {
         if (this.db) {
             let collection = this.db.collection('documents');
-            let cursor = collection.find({ _id: { "$in": ids } })
+            let cursor = collection.find({ _id: { "$in": ids } });
             cursor.toArray((err, docs) => {
                 if (err) {
                     console.log(err.message);
                     console.log(err.errmsg);
                 }
                 fn(docs);
-            })
-        };
+            });
+        }
     }
 
     public print() {
-        console.log("db says hi!")
+        console.log("db says hi!");
     }
 }

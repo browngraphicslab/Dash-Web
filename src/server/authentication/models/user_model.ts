@@ -2,7 +2,7 @@
 import * as bcrypt from "bcrypt-nodejs";
 //@ts-ignore
 import * as mongoose from "mongoose";
-var url = 'mongodb://localhost:27017/Dash'
+var url = 'mongodb://localhost:27017/Dash';
 
 mongoose.connect(url, { useNewUrlParser: true });
 

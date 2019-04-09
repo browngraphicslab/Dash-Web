@@ -36,7 +36,7 @@ export class InkField extends BasicField<StrokeMap> {
             type: Types.Ink,
             data: this.Data,
             _id: this.Id,
-        }
+        };
     }
 
     UpdateFromServer(data: any) {

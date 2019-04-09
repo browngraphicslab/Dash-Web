@@ -1,5 +1,8 @@
 @import "global_variables";
 
+.inkingCanvas {
+    opacity:0.99;
+}
 .inkingCanvas-paths-ink, .inkingCanvas-paths-markers, .inkingCanvas-noSelect, .inkingCanvas-canSelect {
     position: absolute;
     top: 0;

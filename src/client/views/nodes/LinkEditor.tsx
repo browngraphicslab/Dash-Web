@@ -2,8 +2,8 @@ import { observable, computed, action } from "mobx";
 import React = require("react");
 import { SelectionManager } from "../../util/SelectionManager";
 import { observer } from "mobx-react";
-import './LinkEditor.scss'
-import { KeyStore } from '../../../fields/KeyStore'
+import './LinkEditor.scss';
+import { KeyStore } from '../../../fields/KeyStore';
 import { props } from "bluebird";
 import { DocumentView } from "./DocumentView";
 import { Document } from "../../../fields/Document";
@@ -43,7 +43,7 @@ export class LinkEditor extends React.Component<Props> {
                 <div className="save-button" onPointerDown={this.onSaveButtonPressed}>SAVE</div>
             </div>
 
-        )
+        );
     }
 
     @action

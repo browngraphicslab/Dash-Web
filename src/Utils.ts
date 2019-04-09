@@ -6,19 +6,19 @@ import { Message, Types } from './server/Message';
 export class Utils {
 
     public static GenerateGuid(): string {
-        return v4()
+        return v4();
     }
 
     public static GenerateDeterministicGuid(seed: string): string {
-        return v5(seed, v5.URL)
+        return v5(seed, v5.URL);
     }
 
     public static GetScreenTransform(ele: HTMLElement): { scale: number, translateX: number, translateY: number } {
         if (!ele) {
-            return { scale: 1, translateX: 1, translateY: 1 }
+            return { scale: 1, translateX: 1, translateY: 1 };
         }
         const rect = ele.getBoundingClientRect();
-        const scale = ele.offsetWidth == 0 && rect.width == 0 ? 1 : rect.width / ele.offsetWidth;
+        const scale = ele.offsetWidth === 0 && rect.width === 0 ? 1 : rect.width / ele.offsetWidth;
         const translateX = rect.left;
         const translateY = rect.top;
 
@@ -55,8 +55,8 @@ export class Utils {
         return (args: any) => {
             this.log(prefix, messageName, args, true);
             func(args);
-        }
-    };
+        };
+    }
 
     public static Emit<T>(socket: Socket | SocketIOClient.Socket, message: Message<T>, args: T) {
         this.log("Emit", message.Name, args, false);
@@ -81,9 +81,19 @@ export class Utils {
     public static AddServerHandlerCallback<T>(socket: Socket, message: Message<T>, handler: (args: [T, (res: any) => any]) => any) {
         socket.on(message.Message, (arg: T, fn: (res: any) => any) => {
             this.log('S receiving', message.Name, arg, true);
-            handler([arg, this.loggingCallback('S sending', fn, message.Name)])
+            handler([arg, this.loggingCallback('S sending', fn, message.Name)]);
         });
     }
 }
+
+export function returnTrue() {
+    return true;
+}
+
+export function returnFalse() {
+    return false;
+}
+
+export function emptyFunction() { }
 
 export type Without<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;

@@ -28,44 +28,53 @@ module.exports = {
     extensions: ['.js', '.ts', '.tsx']
   },
   module: {
-    rules: [{
-      test: [/\.tsx?$/, /\.ts?$/,],
-      loader: "awesome-typescript-loader",
-      include: path.join(__dirname, 'src')
-    },
-    {
-      test: /\.scss|css$/,
-      use: [
-        {
-          loader: "style-loader"
-        },
-        {
-          loader: "css-loader"
-        },
-        {
-          loader: "sass-loader"
-        }
-      ]
-    },
-    {
-      test: /\.(jpg|png|pdf)$/,
-      use: [
-        {
-          loader: 'file-loader'
-        }
-      ]
-    },
-    {
-      test: /\.(png|jpg|gif)$/i,
-      use: [
-        {
-          loader: 'url-loader',
-          options: {
-            limit: 8192
+    rules: [
+      {
+        test: [/\.tsx?$/, /\.ts?$/,],
+        enforce: 'pre',
+        use: [
+          {
+            loader: "tslint-loader",
           }
-        }
-      ]
-    }]
+        ]
+      }, {
+        test: [/\.tsx?$/, /\.ts?$/,],
+        loader: "awesome-typescript-loader",
+        include: path.join(__dirname, 'src')
+      },
+      {
+        test: /\.scss|css$/,
+        use: [
+          {
+            loader: "style-loader"
+          },
+          {
+            loader: "css-loader"
+          },
+          {
+            loader: "sass-loader"
+          }
+        ]
+      },
+      {
+        test: /\.(jpg|png|pdf)$/,
+        use: [
+          {
+            loader: 'file-loader'
+          }
+        ]
+      },
+      {
+        test: /\.(png|jpg|gif)$/i,
+        use: [
+          {
+            loader: 'url-loader',
+            options: {
+              limit: 8192
+            }
+          }
+        ]
+      }]
   },
   plugins: [
     new CopyWebpackPlugin([{ from: "deploy", to: path.join(__dirname, "build") }]),

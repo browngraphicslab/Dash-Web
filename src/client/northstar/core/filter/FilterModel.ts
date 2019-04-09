@@ -15,7 +15,7 @@ export class FilterModel {
 
     public Equals(other: FilterModel): boolean {
         if (!Utils.EqualityHelper(this, other)) return false;
-        if (!this.isSame(this.ValueComparisons, (other as FilterModel).ValueComparisons)) return false;
+        if (!this.isSame(this.ValueComparisons, (other).ValueComparisons)) return false;
         return true;
     }
 
@@ -46,16 +46,16 @@ export class FilterModel {
         let filtered = baseOperation.FilterModels.filter(fm => fm && fm.ValueComparisons.length > 0);
         if (!isFirst && filtered.length > 0) {
             filterModels.push(...filtered);
-            ret = "(" + baseOperation.FilterModels.filter(fm => fm != null).map(fm => fm.ToPythonString()).join(" || ") + ")";
+            ret = "(" + baseOperation.FilterModels.filter(fm => fm !== null).map(fm => fm.ToPythonString()).join(" || ") + ")";
         }
         if (Utils.isBaseFilterConsumer(baseOperation) && baseOperation.Links) {
             let children = new Array<string>();
             let linkedGraphNodes = baseOperation.Links;
             linkedGraphNodes.map(linkVm => {
                 let filterDoc = linkVm.Get(KeyStore.LinkedFromDocs);
-                if (filterDoc && filterDoc != FieldWaiting && filterDoc instanceof Document) {
+                if (filterDoc && filterDoc !== FieldWaiting && filterDoc instanceof Document) {
                     let filterHistogram = filterDoc.GetT(KeyStore.Data, HistogramField);
-                    if (filterHistogram && filterHistogram != FieldWaiting) {
+                    if (filterHistogram && filterHistogram !== FieldWaiting) {
                         if (!visitedFilterProviders.has(filterHistogram.Data)) {
                             let child = FilterModel.GetFilterModelsRecursive(filterHistogram.Data, visitedFilterProviders, filterModels, false);
                             if (child !== "") {

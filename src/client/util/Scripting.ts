@@ -14,7 +14,7 @@ import { ListField } from "../../fields/ListField";
 // import * as typescriptes5 from '!!raw-loader!../../../node_modules/typescript/lib/lib.es5.d.ts'
 
 // @ts-ignore
-import * as typescriptlib from '!!raw-loader!./type_decls.d'
+import * as typescriptlib from '!!raw-loader!./type_decls.d';
 import { Documents } from "../documents/Documents";
 import { Key } from "../../fields/Key";
 
@@ -30,8 +30,10 @@ export interface ScriptError {
 
 export type ScriptResult = ScriptSucccess | ScriptError;
 
-export interface CompileSuccess {
-    compiled: true;
+export interface CompiledScript {
+    readonly compiled: true;
+    readonly originalScript: string;
+    readonly options: Readonly<ScriptOptions>;
     run(args?: { [name: string]: any }): ScriptResult;
 }
 
@@ -40,17 +42,17 @@ export interface CompileError {
     errors: any[];
 }
 
-export type CompiledScript = CompileSuccess | CompileError;
+export type CompileResult = CompiledScript | CompileError;
 
-function Run(script: string | undefined, customParams: string[], diagnostics: any[]): CompiledScript {
-    const errors = diagnostics.some(diag => diag.category == ts.DiagnosticCategory.Error);
+function Run(script: string | undefined, customParams: string[], diagnostics: any[], originalScript: string, options: ScriptOptions): CompileResult {
+    const errors = diagnostics.some(diag => diag.category === ts.DiagnosticCategory.Error);
     if (errors || !script) {
         return { compiled: false, errors: diagnostics };
     }
 
     let fieldTypes = [Document, NumberField, TextField, ImageField, RichTextField, ListField, Key];
     let paramNames = ["KeyStore", "Documents", ...fieldTypes.map(fn => fn.name)];
-    let params: any[] = [KeyStore, Documents, ...fieldTypes]
+    let params: any[] = [KeyStore, Documents, ...fieldTypes];
     let compiledFunction = new Function(...paramNames, `return ${script}`);
     let run = (args: { [name: string]: any } = {}): ScriptResult => {
         let argsArray: any[] = [];
@@ -60,15 +62,15 @@ function Run(script: string | undefined, customParams: string[], diagnostics: an
             }
             argsArray.push(args[name]);
         }
-        let thisParam = args["this"];
+        let thisParam = args.this;
         try {
             const result = compiledFunction.apply(thisParam, params).apply(thisParam, argsArray);
             return { success: true, result };
         } catch (error) {
             return { success: false, error };
         }
-    }
-    return { compiled: true, run };
+    };
+    return { compiled: true, run, originalScript, options };
 }
 
 interface File {
@@ -90,14 +92,14 @@ class ScriptingCompilerHost {
     }
     // getDefaultLibFileName(options: ts.CompilerOptions): string {
     getDefaultLibFileName(options: any): string {
-        return 'node_modules/typescript/lib/lib.d.ts' // No idea what this means...
+        return 'node_modules/typescript/lib/lib.d.ts'; // No idea what this means...
     }
     writeFile(fileName: string, content: string) {
         const file = this.files.find(file => file.fileName === fileName);
         if (file) {
             file.content = content;
         } else {
-            this.files.push({ fileName, content })
+            this.files.push({ fileName, content });
         }
     }
     getCurrentDirectory(): string {
@@ -130,7 +132,7 @@ export interface ScriptOptions {
     params?: { [name: string]: string };
 }
 
-export function CompileScript(script: string, { requiredType = "", addReturn = false, params = {} }: ScriptOptions = {}): CompiledScript {
+export function CompileScript(script: string, { requiredType = "", addReturn = false, params = {} }: ScriptOptions = {}): CompileResult {
     let host = new ScriptingCompilerHost;
     let paramArray: string[] = [];
     if ("this" in params) {
@@ -140,7 +142,10 @@ export function CompileScript(script: string, { requiredType = "", addReturn = f
         if (key === "this") continue;
         paramArray.push(key);
     }
-    let paramString = paramArray.map(key => `${key}: ${params[key]}`).join(", ");
+    let paramString = paramArray.map(key => {
+        const val = params[key];
+        return `${key}: ${val}`;
+    }).join(", ");
     let funcScript = `(function(${paramString})${requiredType ? `: ${requiredType}` : ''} {
         ${addReturn ? `return ${script};` : script}
     })`;
@@ -152,7 +157,7 @@ export function CompileScript(script: string, { requiredType = "", addReturn = f
 
     let diagnostics = ts.getPreEmitDiagnostics(program).concat(testResult.diagnostics);
 
-    return Run(outputText, paramArray, diagnostics);
+    return Run(outputText, paramArray, diagnostics, script, { requiredType, addReturn, params });
 }
 
 export function OrLiteralType(returnType: string): string {
@@ -160,9 +165,9 @@ export function OrLiteralType(returnType: string): string {
 }
 
 export function ToField(data: any): Opt<Field> {
-    if (typeof data == "string") {
+    if (typeof data === "string") {
         return new TextField(data);
-    } else if (typeof data == "number") {
+    } else if (typeof data === "number") {
         return new NumberField(data);
     }
     return undefined;

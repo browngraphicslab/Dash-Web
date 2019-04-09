@@ -55,11 +55,11 @@ export namespace KeyStore {
         Archives, Workspaces, Minimized, CopyDraggedItems
     ];
     export function KeyLookup(keyid: string) {
-        for (let i = 0; i < KeyList.length; i++) {
-            let keylistid = KeyList[i].Id;
-            if (keylistid === keyid)
-                return KeyList[i];
+        for (const key of KeyList) {
+            if (key.Id === keyid) {
+                return key;
+            }
         }
-        return null;
+        return undefined;
     }
 }

@@ -181,7 +181,7 @@ declare class Key extends Field {
     Copy(): Field;
     ToScriptString(): string;
 }
-declare type FIELD_WAITING = "<Waiting>";
+declare type FIELD_WAITING = null;
 declare type Opt<T> = T | undefined;
 declare type FieldValue<T> = Opt<T> | FIELD_WAITING;
 // @ts-ignore

@@ -1,5 +1,5 @@
-import { FilterOperand } from '../filter/FilterOperand'
-import { IEquatable } from '../../utils/IEquatable'
+import { FilterOperand } from '../filter/FilterOperand';
+import { IEquatable } from '../../utils/IEquatable';
 import { Document } from "../../../../fields/Document";
 
 export interface IBaseFilterConsumer extends IEquatable {
