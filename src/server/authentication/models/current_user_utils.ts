@@ -70,7 +70,7 @@ export class CurrentUserUtils {
         let doc = new Document(id);
 
         doc.Set(KeyStore.Workspaces, new ListField<Document>());
-        doc.Set(KeyStore.OptionalRightCollection, Documents.SchemaDocument([], { title: "Pending documents" }))
+        doc.Set(KeyStore.OptionalRightCollection, Documents.SchemaDocument([], { title: "Pending documents" }));
         return doc;
     }
 
@@ -81,7 +81,7 @@ export class CurrentUserUtils {
                 CurrentUserUtils.curr_id = obj.id as string;
                 CurrentUserUtils.curr_email = obj.email as string;
             } else {
-                throw new Error("There should be a user! Why does Dash think there isn't one?")
+                throw new Error("There should be a user! Why does Dash think there isn't one?");
             }
         });
         let userDocPromise = rp.get(ServerUtils.prepend(RouteStore.getUserDocumentId)).then(id => {
@@ -92,9 +92,9 @@ export class CurrentUserUtils {
                     } else {
                         this.user_document = this.createUserDocument(id);
                     }
-                })
+                });
             } else {
-                throw new Error("There should be a user id! Why does Dash think there isn't one?")
+                throw new Error("There should be a user id! Why does Dash think there isn't one?");
             }
         });
         return Promise.all([userPromise, userDocPromise]);

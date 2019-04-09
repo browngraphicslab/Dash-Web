@@ -3,7 +3,7 @@ export class Transform {
     private _translateY: number = 0;
     private _scale: number = 1;
 
-    static get Identity(): Transform {
+    static Identity(): Transform {
         return new Transform(0, 0, 1);
     }
 
@@ -62,33 +62,19 @@ export class Transform {
         return this;
     }
 
-    translated = (x: number, y: number): Transform => {
-        return this.copy().translate(x, y);
-    }
+    translated = (x: number, y: number): Transform => this.copy().translate(x, y);
 
-    preTranslated = (x: number, y: number): Transform => {
-        return this.copy().preTranslate(x, y);
-    }
+    preTranslated = (x: number, y: number): Transform => this.copy().preTranslate(x, y);
 
-    scaled = (scale: number): Transform => {
-        return this.copy().scale(scale);
-    }
+    scaled = (scale: number): Transform => this.copy().scale(scale);
 
-    scaledAbout = (scale: number, x: number, y: number): Transform => {
-        return this.copy().scaleAbout(scale, x, y);
-    }
+    scaledAbout = (scale: number, x: number, y: number): Transform => this.copy().scaleAbout(scale, x, y);
 
-    preScaled = (scale: number): Transform => {
-        return this.copy().preScale(scale);
-    }
+    preScaled = (scale: number): Transform => this.copy().preScale(scale);
 
-    transformed = (transform: Transform): Transform => {
-        return this.copy().transform(transform);
-    }
+    transformed = (transform: Transform): Transform => this.copy().transform(transform);
 
-    preTransformed = (transform: Transform): Transform => {
-        return this.copy().preTransform(transform);
-    }
+    preTransformed = (transform: Transform): Transform => this.copy().preTransform(transform);
 
     transformPoint = (x: number, y: number): [number, number] => {
         x *= this._scale;
@@ -98,9 +84,7 @@ export class Transform {
         return [x, y];
     }
 
-    transformDirection = (x: number, y: number): [number, number] => {
-        return [x * this._scale, y * this._scale];
-    }
+    transformDirection = (x: number, y: number): [number, number] => [x * this._scale, y * this._scale];
 
     transformBounds(x: number, y: number, width: number, height: number): { x: number, y: number, width: number, height: number } {
         [x, y] = this.transformPoint(x, y);
@@ -108,12 +92,8 @@ export class Transform {
         return { x, y, width, height };
     }
 
-    inverse = () => {
-        return new Transform(-this._translateX / this._scale, -this._translateY / this._scale, 1 / this._scale)
-    }
+    inverse = () => new Transform(-this._translateX / this._scale, -this._translateY / this._scale, 1 / this._scale);
 
-    copy = () => {
-        return new Transform(this._translateX, this._translateY, this._scale);
-    }
+    copy = () => new Transform(this._translateX, this._translateY, this._scale);
 
 }

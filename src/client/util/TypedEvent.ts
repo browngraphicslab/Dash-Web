@@ -36,7 +36,5 @@ export class TypedEvent<T> {
     this.listenersOncer = [];
   }
 
-  pipe = (te: TypedEvent<T>): Disposable => {
-    return this.on((e) => te.emit(e));
-  }
+  pipe = (te: TypedEvent<T>): Disposable => this.on((e) => te.emit(e));
 }

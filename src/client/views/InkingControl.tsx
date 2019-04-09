@@ -1,10 +1,10 @@
 import { observable, action, computed } from "mobx";
 
-import { CirclePicker, ColorResult } from 'react-color'
+import { CirclePicker, ColorResult } from 'react-color';
 import React = require("react");
 import { InkTool } from "../../fields/InkField";
 import { observer } from "mobx-react";
-import "./InkingControl.scss"
+import "./InkingControl.scss";
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPen, faHighlighter, faEraser, faBan } from '@fortawesome/free-solid-svg-icons';
@@ -21,11 +21,11 @@ export class InkingControl extends React.Component {
     @observable private _selectedColor: string = "rgb(244, 67, 54)";
     @observable private _selectedWidth: string = "25";
     @observable private _open: boolean = false;
-    @observable private _colorPickerDisplay: boolean = false;
+    @observable private _colorPickerDisplay = false;
 
     constructor(props: Readonly<{}>) {
         super(props);
-        InkingControl.Instance = this
+        InkingControl.Instance = this;
     }
 
     @action
@@ -36,9 +36,9 @@ export class InkingControl extends React.Component {
     @action
     switchColor = (color: ColorResult): void => {
         this._selectedColor = color.hex;
-        if (SelectionManager.SelectedDocuments().length == 1) {
+        if (SelectionManager.SelectedDocuments().length === 1) {
             var sdoc = SelectionManager.SelectedDocuments()[0];
-            if (sdoc.props.ContainingCollectionView && sdoc.props.ContainingCollectionView) {
+            if (sdoc.props.ContainingCollectionView) {
                 sdoc.props.Document.SetDataOnPrototype(KeyStore.BackgroundColor, color.hex, TextField);
             }
         }
@@ -66,15 +66,16 @@ export class InkingControl extends React.Component {
 
     selected = (tool: InkTool) => {
         if (this._selectedTool === tool) {
-            return { color: "#61aaa3" }
+            return { color: "#61aaa3" };
         }
-        return {}
+        return {};
     }
 
     @action
     toggleDisplay = () => {
         this._open = !this._open;
     }
+
 
     @action
     toggleColorPicker = () => {
@@ -110,6 +111,6 @@ export class InkingControl extends React.Component {
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => this.switchWidth(e.target.value)} />
                 </li>
             </ul >
-        )
+        );
     }
 }

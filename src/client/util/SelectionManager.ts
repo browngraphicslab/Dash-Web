@@ -12,12 +12,19 @@ export namespace SelectionManager {
         SelectDoc(doc: DocumentView, ctrlPressed: boolean): void {
             // if doc is not in SelectedDocuments, add it
             if (!ctrlPressed) {
-                manager.SelectedDocuments = [];
+                this.DeselectAll();
             }
 
             if (manager.SelectedDocuments.indexOf(doc) === -1) {
                 manager.SelectedDocuments.push(doc);
+                doc.props.onActiveChanged(true);
             }
+        }
+
+        @action
+        DeselectAll(): void {
+            manager.SelectedDocuments.map(dv => dv.props.onActiveChanged(false));
+            manager.SelectedDocuments = [];
         }
     }
 
@@ -34,13 +41,13 @@ export namespace SelectionManager {
     export function DeselectAll(except?: Document): void {
         let found: DocumentView | undefined = undefined;
         if (except) {
-            for (let i = 0; i < manager.SelectedDocuments.length; i++) {
-                let view = manager.SelectedDocuments[i];
-                if (view.props.Document == except) found = view;
+            for (const view of manager.SelectedDocuments) {
+                if (view.props.Document === except) found = view;
             }
         }
-        manager.SelectedDocuments.length = 0;
-        if (found) manager.SelectedDocuments.push(found);
+
+        manager.DeselectAll();
+        if (found) manager.SelectDoc(found, false);
         Main.Instance.SetTextDoc(undefined, undefined);
     }
 

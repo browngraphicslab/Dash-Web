@@ -20,7 +20,7 @@ export class RichTextField extends BasicField<string> {
             type: Types.RichText,
             data: this.Data,
             _id: this.Id
-        }
+        };
     }
 
 }

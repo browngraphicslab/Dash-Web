@@ -41,7 +41,7 @@ export class InkingStroke extends React.Component<StrokeProps> {
                     fill: "none",
                     stroke: this._strokeColor,
                     strokeWidth: this._strokeWidth + "px",
-                }
+                };
         }
     }
 
@@ -49,10 +49,10 @@ export class InkingStroke extends React.Component<StrokeProps> {
         let pathStyle = this.createStyle();
         let pathData = this.parseData(this.props.line);
 
-        let pointerEvents: any = InkingControl.Instance.selectedTool == InkTool.Eraser ? "all" : "none";
+        let pointerEvents: any = InkingControl.Instance.selectedTool === InkTool.Eraser ? "all" : "none";
         return (
             <path d={pathData} style={{ ...pathStyle, pointerEvents: pointerEvents }} strokeLinejoin="round" strokeLinecap="round"
                 onPointerOver={this.deleteStroke} onPointerDown={this.deleteStroke} />
-        )
+        );
     }
 }
