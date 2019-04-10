@@ -5,6 +5,7 @@ import { CollectionView } from "../views/collections/CollectionView";
 import { DocumentDecorations } from "../views/DocumentDecorations";
 import { DocumentView } from "../views/nodes/DocumentView";
 import { returnFalse, emptyFunction } from "../../Utils";
+import { Main } from "../views/Main";
 
 export function setupDrag(_reference: React.RefObject<HTMLDivElement>, docFunc: () => Document, moveFunc?: DragManager.MoveFunction, copyOnDrop: boolean = false) {
     let onRowMove = action((e: PointerEvent): void => {
@@ -147,6 +148,7 @@ export namespace DragManager {
             dragDiv.className = "dragManager-dragDiv";
             DragManager.Root().appendChild(dragDiv);
         }
+        Main.Instance.SetTextDoc(undefined, undefined, undefined);
 
         let scaleXs: number[] = [];
         let scaleYs: number[] = [];

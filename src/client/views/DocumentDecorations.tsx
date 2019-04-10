@@ -16,6 +16,7 @@ import { LinkMenu } from "./nodes/LinkMenu";
 import React = require("react");
 import { FieldWaiting } from "../../fields/Field";
 import { emptyFunction } from "../../Utils";
+import { Main } from "./Main";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -321,6 +322,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 break;
         }
 
+        Main.Instance.SetTextDoc(undefined, undefined, undefined);
         SelectionManager.SelectedDocuments().forEach(element => {
             const rect = element.screenRect();
             if (rect.width !== 0) {

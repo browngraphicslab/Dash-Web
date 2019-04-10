@@ -92,7 +92,7 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
 
         this._reactionDisposer = reaction(
             () => {
-                const field = this.FieldDoc.GetT(this.FieldKey, RichTextField);
+                const field = this.FieldDoc ? this.FieldDoc.GetT(this.FieldKey, RichTextField) : undefined;
                 return field && field !== FieldWaiting ? field.Data : undefined;
             },
             field => {
@@ -107,9 +107,8 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
     }
 
     private setupEditor(config: any) {
-
         let state: EditorState;
-        let field = this.FieldDoc.GetT(this.FieldKey, RichTextField);
+        let field = this.FieldDoc ? this.FieldDoc.GetT(this.FieldKey, RichTextField) : undefined;
         if (field && field !== FieldWaiting && field.Data) {
             state = EditorState.fromJSON(config, JSON.parse(field.Data));
         } else {
@@ -168,6 +167,10 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
     onFocused = (e: React.FocusEvent): void => {
         if (this.props.fieldKey !== KeyStore.Archives) {
             Main.Instance.SetTextDoc(this.props.Document, this._ref.current!, this.props.ScreenToLocalTransform());
+        } else {
+            if (this._ref.current) {
+                this._ref.current.scrollTop = Main.Instance._textScroll;
+            }
         }
     }
 
@@ -219,6 +222,7 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
                 onKeyPress={this.onKeyPress}
                 onPointerUp={this.onPointerUp}
                 onPointerDown={this.onPointerDown}
+                onFocus={this.onFocused}
                 onContextMenu={this.specificContextMenu}
                 // tfs: do we need this event handler
                 onWheel={this.onPointerWheel}

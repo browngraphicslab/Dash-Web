@@ -66,6 +66,7 @@ export class Main extends React.Component {
 
     constructor(props: Readonly<{}>) {
         super(props);
+        this._textProxyDiv = React.createRef();
         Main.Instance = this;
         // causes errors to be generated when modifying an observable outside of an action
         configure({ enforceActions: "observed" });
@@ -205,13 +206,25 @@ export class Main extends React.Component {
     @observable _textDoc?: Document = undefined;
     _textRect: any;
     _textXf: Transform = Transform.Identity();
+    _textScroll: number = 0;
+    _textTargetDiv: HTMLDivElement | undefined;
+    _textProxyDiv: React.RefObject<HTMLDivElement>;
     @action
     SetTextDoc(textDoc?: Document, div?: HTMLDivElement, tx?: Transform) {
         this._textDoc = undefined;
         this._textDoc = textDoc;
         this._textXf = tx ? tx : Transform.Identity();
+        this._textTargetDiv = div;
         if (div) {
             this._textRect = div.getBoundingClientRect();
+            this._textScroll = div.scrollTop;
+        }
+    }
+
+    @action
+    textScroll = (e: React.UIEvent) => {
+        if (this._textProxyDiv.current && this._textTargetDiv) {
+            this._textTargetDiv.scrollTop = this._textScroll = this._textProxyDiv.current.children[0].scrollTop
         }
     }
 
@@ -225,9 +238,8 @@ export class Main extends React.Component {
             let t = this._textXf.transformPoint(0, 0);
             let s = this._textXf.transformPoint(1, 0);
             s[0] = Math.sqrt((s[0] - t[0]) * (s[0] - t[0]) + (s[1] - t[1]) * (s[1] - t[1]));
-            return <div className="mainDiv-textInput" style={{ transform: `translate(${x}px, ${y}px) scale(${s[0]},${s[0]})` }} >
-                <div className="mainDiv-textInput" style={{ transform: `scale(${1 / s[0]}, ${1 / s[0]})`, width: `${w / s[0]}px`, height: `${h / s[0]}px` }}>
-
+            return <div className="mainDiv-textInput" style={{ transform: `translate(${x}px, ${y}px) scale(${1 / s[0]},${1 / s[0]})`, width: "auto", height: "auto" }} >
+                <div className="mainDiv-textInput" ref={this._textProxyDiv} onScroll={this.textScroll} style={{ transform: `scale(${1}, ${1})`, width: `${w * s[0]}px`, height: `${h * s[0]}px` }}>
                     <FormattedTextBox fieldKey={KeyStore.Archives} Document={this._textDoc} isSelected={returnTrue} select={emptyFunction} isTopMost={true} selectOnLoad={true} onActiveChanged={emptyFunction} active={returnTrue} ScreenToLocalTransform={Transform.Identity} focus={(doc) => { }} />
 
                 </div>

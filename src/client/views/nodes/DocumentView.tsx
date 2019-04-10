@@ -381,7 +381,6 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     @computed get nativeHeight(): number { return this.props.Document.GetNumber(KeyStore.NativeHeight, 0); }
     @computed
     get contents() {
-        trace();
         return (<DocumentContentsView
             {...this.props}
             isSelected={this.isSelected}
@@ -394,7 +393,6 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         if (!this.props.Document) {
             return null;
         }
-        trace();
 
         var scaling = this.props.ContentScaling();
         var nativeWidth = this.nativeWidth;
