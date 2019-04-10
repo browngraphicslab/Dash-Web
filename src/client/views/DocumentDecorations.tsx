@@ -442,9 +442,10 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 <div id="documentDecorations-bottomRightResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div className="link-button-container">
                     <div title="View Links" className="linkFlyout" ref={this._linkButton}> {linkButton}  </div>
-                    <div className="linkButton-linker" ref={this._linkerButton} onPointerDown={this.onLinkerButtonDown}>
+                    <div title="Drag Link" className="linkButton-linker" ref={this._linkerButton} onPointerDown={this.onLinkerButtonDown}>
                         <FontAwesomeIcon className="fa-icon-link" icon="link" size="sm" />
                     </div>
+
                 </div>
             </div >
         </div>

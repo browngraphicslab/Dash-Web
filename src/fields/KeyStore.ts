@@ -47,6 +47,7 @@ export namespace KeyStore {
     export const Workspaces = new Key("Workspaces");
     export const Minimized = new Key("Minimized");
     export const CopyDraggedItems = new Key("CopyDraggedItems");
+    export const PanTransformType = new Key("PanTransformType");
 
     export const KeyList: Key[] = [Prototype, X, Y, Page, Title, Author, PanX, PanY, Scale, NativeWidth, NativeHeight,
         Width, Height, ZIndex, Data, Annotations, ViewType, Layout, BackgroundColor, BackgroundLayout, OverlayLayout, LayoutKeys,

@@ -206,6 +206,7 @@ export class CollectionFreeFormView extends CollectionSubView {
         const newPanY = Math.min((1 - 1 / x1) * this.nativeHeight, Math.max(0, panY));
         this.props.Document.SetNumber(KeyStore.PanX, this.isAnnotationOverlay ? newPanX : panX);
         this.props.Document.SetNumber(KeyStore.PanY, this.isAnnotationOverlay ? newPanY : panY);
+
     }
 
     @action
@@ -249,10 +250,16 @@ export class CollectionFreeFormView extends CollectionSubView {
     }
 
     focusDocument = (doc: Document) => {
+        this.props.Document.SetText(KeyStore.PanTransformType, "Ease");
         let x = doc.GetNumber(KeyStore.X, 0) + doc.GetNumber(KeyStore.Width, 0) / 2;
         let y = doc.GetNumber(KeyStore.Y, 0) + doc.GetNumber(KeyStore.Height, 0) / 2;
         this.SetPan(x, y);
         this.props.focus(this.props.Document);
+        //     if(this.props.Document.GetText(KeyStore.PanTransformType, "") === "Ease") {
+        //         setTimeout(function(){
+        //              this.props.Document.SetText(KeyStore.PanTransformType, "None");
+        //         }.bind(this),5000);  // wait 5 seconds, then reset to false
+        //    }
     }
 
     getDocumentViewProps(document: Document): DocumentViewProps {
@@ -311,6 +318,12 @@ export class CollectionFreeFormView extends CollectionSubView {
         const panx: number = -this.props.Document.GetNumber(KeyStore.PanX, 0);
         const pany: number = -this.props.Document.GetNumber(KeyStore.PanY, 0);
 
+        if (this.props.Document.GetText(KeyStore.PanTransformType, "") === "Ease") {
+            var freeformclass = "collectionfreeformview-ease";
+        } else {
+            var freeformclass = "collectionfreeformview-none";
+        }
+
         return (
             <Measure onResize={(r: any) => runInAction(() => { this._pwidth = r.entry.width; this._pheight = r.entry.height })}>
                 {({ measureRef }) => (
@@ -324,7 +337,7 @@ export class CollectionFreeFormView extends CollectionSubView {
                                 getContainerTransform={this.getContainerTransform} getTransform={this.getTransform}>
                                 <PreviewCursor container={this} addLiveTextDocument={this.addLiveTextBox}
                                     getContainerTransform={this.getContainerTransform} getTransform={this.getTransform} >
-                                    <div className="collectionfreeformview" ref={this._canvasRef}
+                                    <div className={freeformclass} ref={this._canvasRef}
                                         style={{ transform: `translate(${dx}px, ${dy}px) scale(${this.zoomScaling}, ${this.zoomScaling}) translate(${panx}px, ${pany}px)` }}>
                                         {this.backgroundView}
                                         <CollectionFreeFormLinksView {...this.props}>

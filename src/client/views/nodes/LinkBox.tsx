@@ -54,6 +54,7 @@ export class LinkBox extends React.Component<Props> {
                             }
                             let contextView = DocumentManager.Instance.getDocumentView(contextDoc);
                             if (contextView) {
+                                contextDoc.SetText(KeyStore.PanTransformType, "Ease");
                                 contextView.props.focus(contextDoc);
                             } else {
                                 CollectionDockingView.Instance.AddRightSplit(contextDoc);

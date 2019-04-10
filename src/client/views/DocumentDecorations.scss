@@ -69,6 +69,7 @@
     }
 }
 
+
 .documentDecorations-closeButton {
     background: $alt-accent;
     opacity: 0.8;
@@ -125,6 +126,10 @@
 //     }
 // }
 
+.linkFlyout {
+    grid-column: 2/4;
+}
+
 .linkButton-empty:hover {
     background: $main-accent;
     transform: scale(1.05);
@@ -160,10 +165,6 @@
 .linkButton-linker:hover {
     cursor: pointer;
     transform: scale(1.05);
-}
-
-.linkButton-tray {
-    grid-column: 1/4;
 }
 
 .linkButton-empty {
