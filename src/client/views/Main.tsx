@@ -384,8 +384,8 @@ export class Main extends React.Component {
         let cat = Gateway.Instance.ClearCatalog();
         cat.then(async () => {
             this.AddToNorthstarCatalog(await Gateway.Instance.GetCatalog());
-            if (!CurrentUserUtils.GetNorthstarSchema("Book1"))
-                this.AddToNorthstarCatalog(await Gateway.Instance.GetSchema("http://www.cs.brown.edu/~bcz/Book1.csv"));
+            // if (!CurrentUserUtils.GetNorthstarSchema("Book1"))
+            //     this.AddToNorthstarCatalog(await Gateway.Instance.GetSchema("http://www.cs.brown.edu/~bcz/Book1.csv", "Book1"));
         });
 
     }

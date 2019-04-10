@@ -87,8 +87,8 @@ export class CollectionSubView extends React.Component<SubCollectionViewProps> {
         return false;
     }
 
-    protected getDocumentFromType(type: string, path: string, options: DocumentOptions): Opt<Document> {
-        let ctor: ((path: string, options: DocumentOptions) => Document) | undefined;
+    protected async getDocumentFromType(type: string, path: string, options: DocumentOptions): Promise<Opt<Document>> {
+        let ctor: ((path: string, options: DocumentOptions) => (Document | Promise<Document | undefined>)) | undefined = undefined;
         if (type.indexOf("image") !== -1) {
             ctor = Documents.ImageDocument;
         }
@@ -101,6 +101,10 @@ export class CollectionSubView extends React.Component<SubCollectionViewProps> {
         if (type.indexOf("pdf") !== -1) {
             ctor = Documents.PdfDocument;
             options.nativeWidth = 1200;
+        }
+        if (type.indexOf("excel") !== -1) {
+            ctor = Documents.DBDocument;
+            options.copyDraggedItems = true;
         }
         if (type.indexOf("html") !== -1) {
             if (path.includes('localhost')) {
@@ -159,10 +163,11 @@ export class CollectionSubView extends React.Component<SubCollectionViewProps> {
                     })).then(res => {
                         let type = res.headers["content-type"];
                         if (type) {
-                            let doc = this.getDocumentFromType(type, str, { ...options, width: 300, nativeWidth: 300 });
-                            if (doc) {
-                                this.props.addDocument(doc, false);
-                            }
+                            this.getDocumentFromType(type, str, { ...options, width: 300, nativeWidth: 300 }).then(doc => {
+                                if (doc) {
+                                    this.props.addDocument(doc, false);
+                                }
+                            });
                         }
                     });
                 promises.push(prom);
@@ -176,6 +181,7 @@ export class CollectionSubView extends React.Component<SubCollectionViewProps> {
                 if (file) {
                     formData.append('file', file);
                 }
+                let dropFileName = file ? file.name : "-empty-";
 
                 let prom = fetch(upload, {
                     method: 'POST',
@@ -185,18 +191,20 @@ export class CollectionSubView extends React.Component<SubCollectionViewProps> {
                     json.map((file: any) => {
                         let path = window.location.origin + file;
                         runInAction(() => {
-                            let doc = this.getDocumentFromType(type, path, { ...options, nativeWidth: 300, width: 300 });
+                            let docPromise = this.getDocumentFromType(type, path, { ...options, nativeWidth: 300, width: 300, title: dropFileName });
 
-                            let docs = this.props.Document.GetT(KeyStore.Data, ListField);
-                            if (docs !== FieldWaiting) {
-                                if (!docs) {
-                                    docs = new ListField<Document>();
-                                    this.props.Document.Set(KeyStore.Data, docs);
+                            docPromise.then(doc => runInAction(() => {
+                                let docs = this.props.Document.GetT(KeyStore.Data, ListField);
+                                if (docs !== FieldWaiting) {
+                                    if (!docs) {
+                                        docs = new ListField<Document>();
+                                        this.props.Document.Set(KeyStore.Data, docs);
+                                    }
+                                    if (doc) {
+                                        docs.Data.push(doc);
+                                    }
                                 }
-                                if (doc) {
-                                    docs.Data.push(doc);
-                                }
-                            }
+                            }));
                         });
                     });
                 });

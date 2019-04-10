@@ -1,6 +1,6 @@
 import { AudioField } from "../../fields/AudioField";
 import { Document } from "../../fields/Document";
-import { Field } from "../../fields/Field";
+import { Field, Opt } from "../../fields/Field";
 import { HtmlField } from "../../fields/HtmlField";
 import { ImageField } from "../../fields/ImageField";
 import { InkField, StrokeData } from "../../fields/InkField";
@@ -26,6 +26,12 @@ import { KeyValueBox } from "../views/nodes/KeyValueBox";
 import { PDFBox } from "../views/nodes/PDFBox";
 import { VideoBox } from "../views/nodes/VideoBox";
 import { WebBox } from "../views/nodes/WebBox";
+import { Gateway } from "../northstar/manager/Gateway";
+import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
+import { action } from "mobx";
+import { ColumnAttributeModel } from "../northstar/core/attribute/AttributeModel";
+import { AttributeTransformationModel } from "../northstar/core/attribute/AttributeTransformationModel";
+import { AggregateFunction } from "../northstar/model/idea/idea";
 
 export interface DocumentOptions {
     x?: number;
@@ -200,6 +206,31 @@ export namespace Documents {
     export function PdfDocument(url: string, options: DocumentOptions = {}) {
         return assignToDelegate(SetInstanceOptions(pdfProto, options, [new URL(url), PDFField]).MakeDelegate(), options);
     }
+    export async function DBDocument(url: string, options: DocumentOptions = {}) {
+        let schemaName = options.title ? options.title : "-no schema-";
+        let ctlog = await Gateway.Instance.GetSchema(url, schemaName)
+        if (ctlog && ctlog.schemas) {
+            let schema = ctlog.schemas[0];
+            let schemaDoc = Documents.TreeDocument([], { ...options, nativeWidth: undefined, nativeHeight: undefined, width: 150, height: 100, title: schema.displayName! });
+            let schemaDocuments = schemaDoc.GetList(KeyStore.Data, [] as Document[]);
+            CurrentUserUtils.GetAllNorthstarColumnAttributes(schema).map(attr => {
+                Server.GetField(attr.displayName! + ".alias", action((field: Opt<Field>) => {
+                    if (field instanceof Document) {
+                        schemaDocuments.push(field);
+                    } else {
+                        var atmod = new ColumnAttributeModel(attr);
+                        let histoOp = new HistogramOperation(schema.displayName!,
+                            new AttributeTransformationModel(atmod, AggregateFunction.None),
+                            new AttributeTransformationModel(atmod, AggregateFunction.Count),
+                            new AttributeTransformationModel(atmod, AggregateFunction.Count));
+                        schemaDocuments.push(Documents.HistogramDocument(histoOp, { width: 200, height: 200, title: attr.displayName! }, undefined, attr.displayName! + ".alias"));
+                    }
+                }));
+            });
+            return schemaDoc;
+        };
+        return Documents.TreeDocument([], { width: 50, height: 100, title: schemaName });
+    }
     export function WebDocument(url: string, options: DocumentOptions = {}) {
         return assignToDelegate(SetInstanceOptions(webProto, options, [new URL(url), WebField]).MakeDelegate(), options);
     }
@@ -242,13 +273,15 @@ export namespace Documents {
             <div style="position:relative; height:15%; text-align:center; ">`
             + FormattedTextBox.LayoutString("CaptionKey") +
             `</div> 
-        </div>`; }
+        </div>`;
+    }
     export function FixedCaption(fieldName: string = "Caption") {
         return `<div style="position:absolute; height:30px; bottom:0; width:100%">
             <div style="position:absolute; width:100%; height:100%; text-align:center;bottom:0;">`
             + FormattedTextBox.LayoutString(fieldName + "Key") +
             `</div> 
-        </div>`; }
+        </div>`;
+    }
 
     function OuterCaption() {
         return (`

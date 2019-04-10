@@ -23,9 +23,9 @@ export class Gateway {
         }
     }
 
-    public async GetSchema(dbName: string): Promise<Catalog> {
+    public async GetSchema(pathname: string, schemaname: string): Promise<Catalog> {
         try {
-            const json = await this.MakeGetRequest("schema", undefined, dbName);
+            const json = await this.MakeGetRequest("schema", undefined, { path: pathname, schema: schemaname });
             const cat = Catalog.fromJS(json);
             return cat;
         }
@@ -144,13 +144,13 @@ export class Gateway {
             });
     }
 
-    public async MakeGetRequest(endpoint: string, signal?: AbortSignal, data?: any): Promise<any> {
-        let url = !data ? Gateway.ConstructUrl(endpoint) :
+    public async MakeGetRequest(endpoint: string, signal?: AbortSignal, params?: any): Promise<any> {
+        let url = !params ? Gateway.ConstructUrl(endpoint) :
             (() => {
                 let newUrl = new URL(Gateway.ConstructUrl(endpoint));
-                newUrl.searchParams.append("data", data);
+                Object.getOwnPropertyNames(params).map(prop =>
+                    newUrl.searchParams.append(prop, params[prop]));
                 return Gateway.ConstructUrl(endpoint) + newUrl.search;
-                return newUrl as any;
             })();
 
         const response = await fetch(url,
