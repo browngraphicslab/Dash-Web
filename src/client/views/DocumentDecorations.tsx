@@ -18,6 +18,11 @@ import { FieldWaiting } from "../../fields/Field";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
+import { faLink } from '@fortawesome/free-solid-svg-icons';
+import { library } from '@fortawesome/fontawesome-svg-core';
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+
+library.add(faLink);
 
 @observer
 export class DocumentDecorations extends React.Component<{}, { value: string }> {
@@ -435,9 +440,12 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 <div id="documentDecorations-bottomLeftResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-bottomResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-bottomRightResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
-
-                <div title="View Links" className="linkFlyout" ref={this._linkButton}> {linkButton}  </div>
-                <div className="linkButton-linker" ref={this._linkerButton} onPointerDown={this.onLinkerButtonDown}>∞</div>
+                <div className="link-button-container">
+                    <div title="View Links" className="linkFlyout" ref={this._linkButton}> {linkButton}  </div>
+                    <div className="linkButton-linker" ref={this._linkerButton} onPointerDown={this.onLinkerButtonDown}>
+                        <FontAwesomeIcon className="fa-icon-link" icon="link" size="sm" />
+                    </div>
+                </div>
             </div >
         </div>
         );
