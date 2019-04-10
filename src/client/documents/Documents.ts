@@ -208,7 +208,7 @@ export namespace Documents {
     }
     export async function DBDocument(url: string, options: DocumentOptions = {}) {
         let schemaName = options.title ? options.title : "-no schema-";
-        let ctlog = await Gateway.Instance.GetSchema(url, schemaName)
+        let ctlog = await Gateway.Instance.GetSchema(url, schemaName);
         if (ctlog && ctlog.schemas) {
             let schema = ctlog.schemas[0];
             let schemaDoc = Documents.TreeDocument([], { ...options, nativeWidth: undefined, nativeHeight: undefined, width: 150, height: 100, title: schema.displayName! });
@@ -228,7 +228,7 @@ export namespace Documents {
                 }));
             });
             return schemaDoc;
-        };
+        }
         return Documents.TreeDocument([], { width: 50, height: 100, title: schemaName });
     }
     export function WebDocument(url: string, options: DocumentOptions = {}) {

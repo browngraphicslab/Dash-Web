@@ -59,14 +59,14 @@ export class Server {
     public static GetFields(fieldIds: FieldId[]): Promise<{ [id: string]: Field }>;
     public static GetFields(fieldIds: FieldId[], callback: (fields: FieldMap) => any): void;
     public static GetFields(fieldIds: FieldId[], callback?: (fields: FieldMap) => any): Promise<FieldMap> | void {
-        let fn = (cb: (fields: FieldMap) => void) => runInAction(() => {
+        let fn = action((cb: (fields: FieldMap) => void) => {
 
             let neededFieldIds: FieldId[] = [];
             let waitingFieldIds: FieldId[] = [];
-            let existingFields: { [id: string]: Field } = {};
+            let existingFields: FieldMap = {};
             for (let id of fieldIds) {
                 let field = this.ClientFieldsCached.get(id);
-                if (!field) {
+                if (field === undefined) {
                     neededFieldIds.push(id);
                     this.ClientFieldsCached.set(id, FieldWaiting);
                 } else if (field === FieldWaiting) {
@@ -79,7 +79,7 @@ export class Server {
                 for (let id of neededFieldIds) {
                     let field = fields[id];
                     if (field) {
-                        if (!(this.ClientFieldsCached.get(field.Id) instanceof Field)) {
+                        if (this.ClientFieldsCached.get(field.Id) === FieldWaiting) {
                             this.ClientFieldsCached.set(field.Id, field);
                         } else {
                             throw new Error("we shouldn't be trying to replace things that are already in the cache");
@@ -94,12 +94,12 @@ export class Server {
                 }
                 reaction(() => waitingFieldIds.map(id => this.ClientFieldsCached.get(id)),
                     (cachedFields, reaction) => {
-                        if (!cachedFields.some(field => !field)) {
+                        if (!cachedFields.some(field => field === FieldWaiting)) {
+                            const realFields = cachedFields as Opt<Field>[];
                             reaction.dispose();
-                            for (let field of cachedFields) {
-                                let realField = field as Field;
-                                existingFields[realField.Id] = realField;
-                            }
+                            waitingFieldIds.forEach((id, index) => {
+                                existingFields[id] = realFields[index];
+                            });
                             cb({ ...fields, ...existingFields });
                         }
                     }, { fireImmediately: true });
