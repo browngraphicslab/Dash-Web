@@ -1,4 +1,4 @@
-import { action, computed, IReactionDisposer, reaction, runInAction } from "mobx";
+import { action, computed, IReactionDisposer, reaction, runInAction, trace } from "mobx";
 import { observer } from "mobx-react";
 import { Document } from "../../../fields/Document";
 import { Field, FieldWaiting, Opt } from "../../../fields/Field";
@@ -8,7 +8,7 @@ import { ListField } from "../../../fields/ListField";
 import { BooleanField } from "../../../fields/BooleanField";
 import { TextField } from "../../../fields/TextField";
 import { ServerUtils } from "../../../server/ServerUtil";
-import { Utils } from "../../../Utils";
+import { Utils, emptyFunction } from "../../../Utils";
 import { Documents } from "../../documents/Documents";
 import { DocumentManager } from "../../util/DocumentManager";
 import { DragManager } from "../../util/DragManager";
@@ -62,12 +62,12 @@ export function FakeJsxArgs(keys: string[], fields: string[] = []): JsxArgs {
     let Keys: { [name: string]: any } = {};
     let Fields: { [name: string]: any } = {};
     for (const key of keys) {
-        let fn = () => { };
+        let fn = emptyFunction;
         Object.defineProperty(fn, "name", { value: key + "Key" });
         Keys[key] = fn;
     }
     for (const field of fields) {
-        let fn = () => { };
+        let fn = emptyFunction;
         Object.defineProperty(fn, "name", { value: field });
         Fields[field] = fn;
     }
@@ -157,7 +157,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             dragData.moveDocument = this.props.moveDocument;
             DragManager.StartDocumentDrag([this._mainCont.current], dragData, x, y, {
                 handlers: {
-                    dragComplete: action(() => { })
+                    dragComplete: action(emptyFunction)
                 },
                 hideSource: !dropAliasOfDraggedDoc
             });
@@ -377,14 +377,28 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         SelectionManager.SelectDoc(this, ctrlPressed);
     }
 
+    @computed get nativeWidth(): number { return this.props.Document.GetNumber(KeyStore.NativeWidth, 0); }
+    @computed get nativeHeight(): number { return this.props.Document.GetNumber(KeyStore.NativeHeight, 0); }
+    @computed
+    get contents() {
+        trace();
+        return (<DocumentContentsView
+            {...this.props}
+            isSelected={this.isSelected}
+            select={this.select}
+            layoutKey={KeyStore.Layout}
+        />);
+    }
+
     render() {
         if (!this.props.Document) {
             return null;
         }
+        trace();
 
         var scaling = this.props.ContentScaling();
-        var nativeWidth = this.props.Document.GetNumber(KeyStore.NativeWidth, 0);
-        var nativeHeight = this.props.Document.GetNumber(KeyStore.NativeHeight, 0);
+        var nativeWidth = this.nativeWidth;
+        var nativeHeight = this.nativeHeight;
 
         if (this.isMinimized()) {
             return (
@@ -420,12 +434,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
                     onContextMenu={this.onContextMenu}
                     onPointerDown={this.onPointerDown}
                 >
-                    <DocumentContentsView
-                        {...this.props}
-                        isSelected={this.isSelected}
-                        select={this.select}
-                        layoutKey={KeyStore.Layout}
-                    />
+                    {this.contents}
                 </div>
             );
         }

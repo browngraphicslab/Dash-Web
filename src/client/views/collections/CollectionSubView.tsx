@@ -15,6 +15,7 @@ import { ServerUtils } from "../../../server/ServerUtil";
 import { Server } from "../../Server";
 import { FieldViewProps } from "../nodes/FieldView";
 import * as rp from 'request-promise';
+import { emptyFunction } from "../../../Utils";
 
 export interface CollectionViewProps extends FieldViewProps {
     addDocument: (document: Document, allowDuplicates?: boolean) => boolean;
@@ -213,7 +214,7 @@ export class CollectionSubView extends React.Component<SubCollectionViewProps> {
         }
 
         if (promises.length) {
-            Promise.all(promises).catch(() => { }).then(() => batch.end());
+            Promise.all(promises).catch(emptyFunction).then(() => batch.end());
         } else {
             batch.end();
         }

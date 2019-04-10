@@ -161,13 +161,13 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
         }
         if (this.props.fieldKey !== KeyStore.Archives) {
             e.preventDefault();
-            Main.Instance.SetTextDoc(this.props.Document, this._ref.current!);
+            Main.Instance.SetTextDoc(this.props.Document, this._ref.current!, this.props.ScreenToLocalTransform());
         }
     }
 
     onFocused = (e: React.FocusEvent): void => {
         if (this.props.fieldKey !== KeyStore.Archives) {
-            Main.Instance.SetTextDoc(this.props.Document, this._ref.current!);
+            Main.Instance.SetTextDoc(this.props.Document, this._ref.current!, this.props.ScreenToLocalTransform());
         }
     }
 

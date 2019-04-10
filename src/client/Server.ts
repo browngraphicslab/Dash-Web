@@ -1,10 +1,10 @@
 import { Key } from "../fields/Key";
-import { ObservableMap, action, reaction } from "mobx";
+import { ObservableMap, action, reaction, runInAction } from "mobx";
 import { Field, FieldWaiting, FIELD_WAITING, Opt, FieldId } from "../fields/Field";
 import { Document } from "../fields/Document";
 import { SocketStub, FieldMap } from "./SocketStub";
 import * as OpenSocket from 'socket.io-client';
-import { Utils } from "./../Utils";
+import { Utils, emptyFunction } from "./../Utils";
 import { MessageStore, Types } from "./../server/Message";
 
 export class Server {
@@ -59,7 +59,7 @@ export class Server {
     public static GetFields(fieldIds: FieldId[]): Promise<{ [id: string]: Field }>;
     public static GetFields(fieldIds: FieldId[], callback: (fields: FieldMap) => any): void;
     public static GetFields(fieldIds: FieldId[], callback?: (fields: FieldMap) => any): Promise<FieldMap> | void {
-        let fn = (cb: (fields: FieldMap) => void) => {
+        let fn = (cb: (fields: FieldMap) => void) => runInAction(() => {
 
             let neededFieldIds: FieldId[] = [];
             let waitingFieldIds: FieldId[] = [];
@@ -104,7 +104,7 @@ export class Server {
                         }
                     }, { fireImmediately: true });
             }));
-        };
+        });
         if (callback) {
             fn(callback);
         } else {
@@ -167,7 +167,7 @@ export class Server {
             if (f) {
                 // console.log("Applying        : " + field._id);
                 f.UpdateFromServer(field.data);
-                f.init(() => { });
+                f.init(emptyFunction);
             } else {
                 // console.log("Not applying wa : " + field._id);
             }

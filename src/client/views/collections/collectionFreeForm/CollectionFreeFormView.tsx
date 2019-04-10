@@ -25,6 +25,7 @@ import { SelectionManager } from "../../../util/SelectionManager";
 import { NumberField } from "../../../../fields/NumberField";
 import { Main } from "../../Main";
 import Measure from "react-measure";
+import { returnFalse, emptyFunction } from "../../../../Utils";
 
 @observer
 export class CollectionFreeFormView extends CollectionSubView {
@@ -200,7 +201,7 @@ export class CollectionFreeFormView extends CollectionSubView {
 
     @action
     private SetPan(panX: number, panY: number) {
-        Main.Instance.SetTextDoc(undefined, undefined);
+        Main.Instance.SetTextDoc(undefined, undefined, undefined);
         var x1 = this.getLocalTransform().inverse().Scale;
         const newPanX = Math.min((1 - 1 / x1) * this.nativeWidth, Math.max(0, panX));
         const newPanY = Math.min((1 - 1 / x1) * this.nativeHeight, Math.max(0, panY));
@@ -290,13 +291,13 @@ export class CollectionFreeFormView extends CollectionSubView {
     get backgroundView() {
         return !this.backgroundLayout ? (null) :
             (<DocumentContentsView {...this.getDocumentViewProps(this.props.Document)}
-                layoutKey={KeyStore.BackgroundLayout} isTopMost={this.props.isTopMost} isSelected={() => false} select={() => { }} />);
+                layoutKey={KeyStore.BackgroundLayout} isTopMost={this.props.isTopMost} isSelected={returnFalse} select={emptyFunction} />);
     }
     @computed
     get overlayView() {
         return !this.overlayLayout ? (null) :
             (<DocumentContentsView {...this.getDocumentViewProps(this.props.Document)}
-                layoutKey={KeyStore.OverlayLayout} isTopMost={this.props.isTopMost} isSelected={() => false} select={() => { }} />);
+                layoutKey={KeyStore.OverlayLayout} isTopMost={this.props.isTopMost} isSelected={returnFalse} select={emptyFunction} />);
     }
 
     getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-COLLECTION_BORDER_WIDTH, -COLLECTION_BORDER_WIDTH).translate(-this.centeringShiftX, -this.centeringShiftY).transform(this.getLocalTransform());

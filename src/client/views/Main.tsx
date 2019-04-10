@@ -23,7 +23,7 @@ import { Documents } from '../documents/Documents';
 import { ColumnAttributeModel } from '../northstar/core/attribute/AttributeModel';
 import { AttributeTransformationModel } from '../northstar/core/attribute/AttributeTransformationModel';
 import { Gateway, Settings } from '../northstar/manager/Gateway';
-import { AggregateFunction, Catalog } from '../northstar/model/idea/idea';
+import { AggregateFunction, Catalog, Point } from '../northstar/model/idea/idea';
 import '../northstar/model/ModelExtensions';
 import { HistogramOperation } from '../northstar/operations/HistogramOperation';
 import '../northstar/utils/Extensions';
@@ -204,10 +204,12 @@ export class Main extends React.Component {
 
     @observable _textDoc?: Document = undefined;
     _textRect: any;
+    _textXf: Transform = Transform.Identity();
     @action
-    SetTextDoc(textDoc?: Document, div?: HTMLDivElement) {
+    SetTextDoc(textDoc?: Document, div?: HTMLDivElement, tx?: Transform) {
         this._textDoc = undefined;
         this._textDoc = textDoc;
+        this._textXf = tx ? tx : Transform.Identity();
         if (div) {
             this._textRect = div.getBoundingClientRect();
         }
@@ -220,8 +222,15 @@ export class Main extends React.Component {
             let y: number = this._textRect.y;
             let w: number = this._textRect.width;
             let h: number = this._textRect.height;
-            return <div className="mainDiv-textInput" style={{ transform: `translate(${x}px, ${y}px)`, width: `${w}px`, height: `${h}px` }} >
-                <FormattedTextBox fieldKey={KeyStore.Archives} Document={this._textDoc} isSelected={returnTrue} select={emptyFunction} isTopMost={true} selectOnLoad={true} onActiveChanged={emptyFunction} active={returnTrue} ScreenToLocalTransform={Transform.Identity} focus={(doc) => { }} />
+            let t = this._textXf.transformPoint(0, 0);
+            let s = this._textXf.transformPoint(1, 0);
+            s[0] = Math.sqrt((s[0] - t[0]) * (s[0] - t[0]) + (s[1] - t[1]) * (s[1] - t[1]));
+            return <div className="mainDiv-textInput" style={{ transform: `translate(${x}px, ${y}px) scale(${s[0]},${s[0]})` }} >
+                <div className="mainDiv-textInput" style={{ transform: `scale(${1 / s[0]}, ${1 / s[0]})`, width: `${w / s[0]}px`, height: `${h / s[0]}px` }}>
+
+                    <FormattedTextBox fieldKey={KeyStore.Archives} Document={this._textDoc} isSelected={returnTrue} select={emptyFunction} isTopMost={true} selectOnLoad={true} onActiveChanged={emptyFunction} active={returnTrue} ScreenToLocalTransform={Transform.Identity} focus={(doc) => { }} />
+
+                </div>
             </ div>;
         }
         else return (null);
@@ -310,7 +319,7 @@ export class Main extends React.Component {
             <div className="main-buttonDiv" key="workspaces" style={{ top: '34px', left: '2px', position: 'absolute' }} ref={workspacesRef}>
                 <button onClick={this.toggleWorkspaces}>Workspaces</button></div>,
             <div className="main-buttonDiv" key="logout" style={{ top: '34px', right: '1px', position: 'absolute' }} ref={logoutRef}>
-                <button onClick={() => request.get(ServerUtils.prepend(RouteStore.logout), () => { })}>Log Out</button></div>
+                <button onClick={() => request.get(ServerUtils.prepend(RouteStore.logout), emptyFunction)}>Log Out</button></div>
         ];
     }
 
