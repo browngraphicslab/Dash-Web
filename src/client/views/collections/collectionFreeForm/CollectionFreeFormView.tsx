@@ -312,7 +312,7 @@ export class CollectionFreeFormView extends CollectionSubView {
         const pany: number = -this.props.Document.GetNumber(KeyStore.PanY, 0);
 
         return (
-            <Measure onResize={(r: any) => runInAction(() => { this._pwidth = r.entry.width; this._pheight = r.entry.height })}>
+            <Measure onResize={(r: any) => runInAction(() => { this._pwidth = r.entry.width; this._pheight = r.entry.height; })}>
                 {({ measureRef }) => (
                     <div className={`collectionfreeformview-measure`} ref={measureRef}>
                         <div className={`collectionfreeformview${this.isAnnotationOverlay ? "-overlay" : "-container"}`}
