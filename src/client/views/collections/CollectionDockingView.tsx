@@ -50,7 +50,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     public StartOtherDrag(dragDocs: Document[], e: any) {
         dragDocs.map(dragDoc =>
             this.AddRightSplit(dragDoc, true).contentItems[0].tab._dragListener.
-                onMouseDown({ pageX: e.pageX, pageY: e.pageY, preventDefault: () => { }, button: 0 }));
+                onMouseDown({ pageX: e.pageX, pageY: e.pageY, preventDefault: emptyFunction, button: 0 }));
     }
 
     @action
@@ -204,7 +204,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                     DragManager.StartDocumentDrag([tab], new DragManager.DocumentDragData([f]), e.pageX, e.pageY,
                         {
                             handlers: {
-                                dragComplete: action(() => { }),
+                                dragComplete: action(emptyFunction),
                             },
                             hideSource: false
                         });

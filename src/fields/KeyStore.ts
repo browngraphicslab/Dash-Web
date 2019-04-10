@@ -1,5 +1,4 @@
 import { Key } from "./Key";
-import { KeyTransfer } from "../server/Message";
 
 export namespace KeyStore {
     export const Prototype = new Key("Prototype");

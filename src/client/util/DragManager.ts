@@ -4,7 +4,7 @@ import { CollectionDockingView } from "../views/collections/CollectionDockingVie
 import { CollectionView } from "../views/collections/CollectionView";
 import { DocumentDecorations } from "../views/DocumentDecorations";
 import { DocumentView } from "../views/nodes/DocumentView";
-import { returnFalse } from "../../Utils";
+import { returnFalse, emptyFunction } from "../../Utils";
 
 export function setupDrag(_reference: React.RefObject<HTMLDivElement>, docFunc: () => Document, moveFunc?: DragManager.MoveFunction, copyOnDrop: boolean = false) {
     let onRowMove = action((e: PointerEvent): void => {
@@ -224,7 +224,7 @@ export namespace DragManager {
                 CollectionDockingView.Instance.StartOtherDrag(docs, {
                     pageX: e.pageX,
                     pageY: e.pageY,
-                    preventDefault: () => { },
+                    preventDefault: emptyFunction,
                     button: 0
                 });
             }

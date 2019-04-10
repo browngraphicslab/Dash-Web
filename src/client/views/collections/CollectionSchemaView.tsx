@@ -77,8 +77,8 @@ export class CollectionSchemaView extends CollectionSubView {
         let props: FieldViewProps = {
             Document: rowProps.value[0],
             fieldKey: rowProps.value[1],
-            isSelected: () => false,
-            select: () => { },
+            isSelected: returnFalse,
+            select: emptyFunction,
             isTopMost: false,
             selectOnLoad: false,
             ScreenToLocalTransform: Transform.Identity,

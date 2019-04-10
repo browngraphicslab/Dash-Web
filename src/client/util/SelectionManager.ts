@@ -48,7 +48,7 @@ export namespace SelectionManager {
 
         manager.DeselectAll();
         if (found) manager.SelectDoc(found, false);
-        Main.Instance.SetTextDoc(undefined, undefined);
+        Main.Instance.SetTextDoc(undefined, undefined, undefined);
     }
 
     export function SelectedDocuments(): Array<DocumentView> {
