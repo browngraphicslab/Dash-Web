@@ -274,8 +274,8 @@ export class Main extends React.Component {
             let t = this._textXf.transformPoint(0, 0);
             let s = this._textXf.transformPoint(1, 0);
             s[0] = Math.sqrt((s[0] - t[0]) * (s[0] - t[0]) + (s[1] - t[1]) * (s[1] - t[1]));
-            return <div className="mainDiv-textInput" style={{ transform: `translate(${x}px, ${y}px) scale(${1 / s[0]},${1 / s[0]})`, width: "auto", height: "auto" }} >
-                <div className="mainDiv-textInput" onPointerDown={this.textBoxDown} ref={this._textProxyDiv} onScroll={this.textScroll} style={{ transform: `scale(${1}, ${1})`, width: `${w * s[0]}px`, height: `${h * s[0]}px` }}>
+            return <div className="mainDiv-textInput" style={{ pointerEvents: "none", transform: `translate(${x}px, ${y}px) scale(${1 / s[0]},${1 / s[0]})`, width: "auto", height: "auto" }} >
+                <div className="mainDiv-textInput" onPointerDown={this.textBoxDown} ref={this._textProxyDiv} onScroll={this.textScroll} style={{ pointerEvents: "none", transform: `scale(${1}, ${1})`, width: `${w * s[0]}px`, height: `${h * s[0]}px` }}>
                     <FormattedTextBox fieldKey={KeyStore.Archives} Document={this._textDoc} isSelected={returnTrue} select={emptyFunction} isTopMost={true} selectOnLoad={true} onActiveChanged={emptyFunction} active={returnTrue} ScreenToLocalTransform={() => this._textXf} focus={(doc) => { }} />
                 </div>
             </ div>;

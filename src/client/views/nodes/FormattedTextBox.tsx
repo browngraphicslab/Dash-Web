@@ -14,6 +14,7 @@ import { ContextMenu } from "../../views/ContextMenu";
 import { Main } from "../Main";
 import { FieldView, FieldViewProps } from "./FieldView";
 import "./FormattedTextBox.scss";
+import { emptyFunction } from '../../../Utils';
 import React = require("react");
 const { buildMenuItems } = require("prosemirror-example-setup");
 const { menuBar } = require("prosemirror-menu");
@@ -95,8 +96,10 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
             );
         } else {
             this._proxyReactionDisposer = reaction(() => this.props.isSelected(),
-                () =>
-                    this.props.isSelected() && Main.Instance.SetTextDoc(this.props.Document, this._ref.current!, this.props.ScreenToLocalTransform())
+                () => {
+                    if (this.props.isSelected())
+                        Main.Instance.SetTextDoc(this.props.Document, this._ref.current!, this.props.ScreenToLocalTransform());
+                }
             );
         }
 
@@ -166,6 +169,8 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
         if (e.button === 1 && this.props.isSelected() && !e.altKey && !e.ctrlKey && !e.metaKey) {
             e.stopPropagation();
         }
+        if (e.button === 2)
+            e.preventDefault();
     }
     onPointerUp = (e: React.PointerEvent): void => {
         if (e.buttons === 1 && this.props.isSelected() && !e.altKey) {
@@ -227,12 +232,11 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
     render() {
         return (
             <div
-                className="formattedTextBox-cont"
+                className={`formattedTextBox-cont`}
                 onKeyDown={this.onKeyPress}
                 onKeyPress={this.onKeyPress}
                 onPointerUp={this.onPointerUp}
                 onPointerDown={this.onPointerDown}
-                onFocus={this.onFocused}
                 onContextMenu={this.specificContextMenu}
                 // tfs: do we need this event handler
                 onWheel={this.onPointerWheel}

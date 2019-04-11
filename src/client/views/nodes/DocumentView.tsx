@@ -105,7 +105,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             }
             e.stopPropagation();
         } else {
-            if (this.active && !e.isDefaultPrevented()) {
+            if (this.active) {
                 e.stopPropagation();
                 document.removeEventListener("pointermove", this.onPointerMove);
                 document.addEventListener("pointermove", this.onPointerMove);
@@ -186,6 +186,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         document.removeEventListener("pointerup", this.onPointerUp);
         e.stopPropagation();
         if (!SelectionManager.IsSelected(this) &&
+            e.button != 2 &&
             Math.abs(e.clientX - this._downX) < 4 &&
             Math.abs(e.clientY - this._downY) < 4
         ) {

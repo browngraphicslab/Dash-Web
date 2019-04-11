@@ -135,9 +135,6 @@ export class CollectionFreeFormView extends CollectionSubView {
             document.addEventListener("pointerup", this.onPointerUp);
             this._lastX = this.DownX = e.pageX;
             this._lastY = this.DownY = e.pageY;
-            if (this.props.isSelected()) {
-                e.stopPropagation();
-            }
         }
     }
 
