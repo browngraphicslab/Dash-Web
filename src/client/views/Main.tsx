@@ -208,15 +208,21 @@ export class Main extends React.Component {
     _textRect: any;
     _textXf: Transform = Transform.Identity();
     _textScroll: number = 0;
+    _textColor: string | null = null;
     _textTargetDiv: HTMLDivElement | undefined;
     _textProxyDiv: React.RefObject<HTMLDivElement>;
     @action
     SetTextDoc(textDoc?: Document, div?: HTMLDivElement, tx?: Transform) {
+        if (this._textTargetDiv)
+            this._textTargetDiv.style.color = this._textColor;
+
         this._textDoc = undefined;
         this._textDoc = textDoc;
         this._textXf = tx ? tx : Transform.Identity();
         this._textTargetDiv = div;
         if (div) {
+            this._textColor = div.style.color;
+            div.style.color = "transparent";
             this._textRect = div.getBoundingClientRect();
             this._textScroll = div.scrollTop;
         }
