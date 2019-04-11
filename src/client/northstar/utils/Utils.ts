@@ -1,7 +1,7 @@
-import { IBaseBrushable } from '../core/brusher/IBaseBrushable'
-import { IBaseFilterConsumer } from '../core/filter/IBaseFilterConsumer'
-import { IBaseFilterProvider } from '../core/filter/IBaseFilterProvider'
-import { AggregateFunction } from '../model/idea/idea'
+import { IBaseBrushable } from '../core/brusher/IBaseBrushable';
+import { IBaseFilterConsumer } from '../core/filter/IBaseFilterConsumer';
+import { IBaseFilterProvider } from '../core/filter/IBaseFilterProvider';
+import { AggregateFunction } from '../model/idea/idea';
 
 export class Utils {
 
@@ -27,17 +27,17 @@ export class Utils {
 
     public static isBaseBrushable<T>(obj: Object): obj is IBaseBrushable<T> {
         let typed = <IBaseBrushable<T>>obj;
-        return typed != null && typed.BrusherModels !== undefined;
+        return typed !== null && typed.BrusherModels !== undefined;
     }
 
     public static isBaseFilterProvider(obj: Object): obj is IBaseFilterProvider {
         let typed = <IBaseFilterProvider>obj;
-        return typed != null && typed.FilterModels !== undefined;
+        return typed !== null && typed.FilterModels !== undefined;
     }
 
     public static isBaseFilterConsumer(obj: Object): obj is IBaseFilterConsumer {
         let typed = <IBaseFilterConsumer>obj;
-        return typed != null && typed.FilterOperand !== undefined;
+        return typed !== null && typed.FilterOperand !== undefined;
     }
 
     public static EncodeQueryData(data: any): string {
@@ -63,9 +63,9 @@ export class Utils {
     public static GetQueryVariable(variable: string) {
         let query = window.location.search.substring(1);
         let vars = query.split("&");
-        for (let i = 0; i < vars.length; i++) {
-            let pair = vars[i].split("=");
-            if (decodeURIComponent(pair[0]) == variable) {
+        for (const variable of vars) {
+            let pair = variable.split("=");
+            if (decodeURIComponent(pair[0]) === variable) {
                 return decodeURIComponent(pair[1]);
             }
         }

@@ -1,23 +1,23 @@
 {
-  "compilerOptions": {
-    "target": "es5",
-    "removeComments": true,
-    "experimentalDecorators": true,
-    "strict": true,
-    "jsx": "react",
-    "sourceMap": true,
-    "outDir": "dist",
-    "lib": [
-      "dom",
-      "es2015"
-    ],
-  },
-  // "exclude": [
-  //   "node_modules",
-  //   "static"
-  // ],
-  "typeRoots": [
-    "./node_modules/@types",
-    "./src/typings"
-  ]
+    "compilerOptions": {
+        "target": "es5",
+        "removeComments": true,
+        "experimentalDecorators": true,
+        "strict": true,
+        "jsx": "react",
+        "sourceMap": true,
+        "outDir": "dist",
+        "lib": [
+            "dom",
+            "es2015"
+        ],
+    },
+    // "exclude": [
+    //   "node_modules",
+    //   "static"
+    // ],
+    "typeRoots": [
+        "./node_modules/@types",
+        "./src/typings"
+    ]
 }

@@ -1,4 +1,4 @@
-import { action, computed, IReactionDisposer, reaction, runInAction } from "mobx";
+import { action, computed, IReactionDisposer, reaction, runInAction, trace } from "mobx";
 import { observer } from "mobx-react";
 import { Document } from "../../../fields/Document";
 import { Field, FieldWaiting, Opt } from "../../../fields/Field";
@@ -8,31 +8,35 @@ import { ListField } from "../../../fields/ListField";
 import { BooleanField } from "../../../fields/BooleanField";
 import { TextField } from "../../../fields/TextField";
 import { ServerUtils } from "../../../server/ServerUtil";
-import { Utils } from "../../../Utils";
+import { Utils, emptyFunction } from "../../../Utils";
 import { Documents } from "../../documents/Documents";
 import { DocumentManager } from "../../util/DocumentManager";
 import { DragManager } from "../../util/DragManager";
 import { SelectionManager } from "../../util/SelectionManager";
 import { Transform } from "../../util/Transform";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
-import { CollectionView, CollectionViewType } from "../collections/CollectionView";
+import { CollectionView } from "../collections/CollectionView";
 import { ContextMenu } from "../ContextMenu";
 import { DocumentContentsView } from "./DocumentContentsView";
 import "./DocumentView.scss";
 import React = require("react");
 
+
 export interface DocumentViewProps {
     ContainingCollectionView: Opt<CollectionView>;
     Document: Document;
-    AddDocument?: (doc: Document, allowDuplicates: boolean) => boolean;
-    RemoveDocument?: (doc: Document) => boolean;
+    addDocument?: (doc: Document, allowDuplicates?: boolean) => boolean;
+    removeDocument?: (doc: Document) => boolean;
+    moveDocument?: (doc: Document, targetCollection: Document, addDocument: (document: Document) => boolean) => boolean;
     ScreenToLocalTransform: () => Transform;
     isTopMost: boolean;
     ContentScaling: () => number;
     PanelWidth: () => number;
     PanelHeight: () => number;
     focus: (doc: Document) => void;
-    SelectOnLoad: boolean;
+    selectOnLoad: boolean;
+    parentActive: () => boolean;
+    onActiveChanged: (isActive: boolean) => void;
 }
 export interface JsxArgs extends DocumentViewProps {
     Keys: { [name: string]: Key };
@@ -58,12 +62,12 @@ export function FakeJsxArgs(keys: string[], fields: string[] = []): JsxArgs {
     let Keys: { [name: string]: any } = {};
     let Fields: { [name: string]: any } = {};
     for (const key of keys) {
-        let fn = () => { };
+        let fn = emptyFunction;
         Object.defineProperty(fn, "name", { value: key + "Key" });
         Keys[key] = fn;
     }
     for (const field of fields) {
-        let fn = () => { };
+        let fn = emptyFunction;
         Object.defineProperty(fn, "name", { value: field });
         Fields[field] = fn;
     }
@@ -76,71 +80,32 @@ export function FakeJsxArgs(keys: string[], fields: string[] = []): JsxArgs {
     return args;
 }
 
-export interface JsxBindings {
-    Document: Document;
-    isSelected: () => boolean;
-    select: (isCtrlPressed: boolean) => void;
-    isTopMost: boolean;
-    SelectOnLoad: boolean;
-    [prop: string]: any;
-}
-
 @observer
 export class DocumentView extends React.Component<DocumentViewProps> {
     private _mainCont = React.createRef<HTMLDivElement>();
+    public get ContentRef() {
+        return this._mainCont;
+    }
     private _downX: number = 0;
     private _downY: number = 0;
-
-    private _reactionDisposer: Opt<IReactionDisposer>;
-    @computed get active(): boolean {
-        return (
-            SelectionManager.IsSelected(this) ||
-            !this.props.ContainingCollectionView ||
-            this.props.ContainingCollectionView.active()
-        );
-    }
-    @computed get topMost(): boolean {
-        return (
-            !this.props.ContainingCollectionView ||
-            this.props.ContainingCollectionView.collectionViewType ==
-            CollectionViewType.Docking
-        );
-    }
-    @computed get layout(): string {
-        return this.props.Document.GetText(
-            KeyStore.Layout,
-            "<p>Error loading layout data</p>"
-        );
-    }
-    @computed get layoutKeys(): Key[] {
-        return this.props.Document.GetData(
-            KeyStore.LayoutKeys,
-            ListField,
-            new Array<Key>()
-        );
-    }
-    @computed get layoutFields(): Key[] {
-        return this.props.Document.GetData(
-            KeyStore.LayoutFields,
-            ListField,
-            new Array<Key>()
-        );
-    }
-    screenRect = (): ClientRect | DOMRect =>
-        this._mainCont.current
-            ? this._mainCont.current.getBoundingClientRect()
-            : new DOMRect();
+    @computed get active(): boolean { return SelectionManager.IsSelected(this) || this.props.parentActive(); }
+    @computed get topMost(): boolean { return this.props.isTopMost; }
+    @computed get layout(): string { return this.props.Document.GetText(KeyStore.Layout, "<p>Error loading layout data</p>"); }
+    @computed get layoutKeys(): Key[] { return this.props.Document.GetData(KeyStore.LayoutKeys, ListField, new Array<Key>()); }
+    @computed get layoutFields(): Key[] { return this.props.Document.GetData(KeyStore.LayoutFields, ListField, new Array<Key>()); }
+    screenRect = (): ClientRect | DOMRect => this._mainCont.current ? this._mainCont.current.getBoundingClientRect() : new DOMRect();
     onPointerDown = (e: React.PointerEvent): void => {
         this._downX = e.clientX;
         this._downY = e.clientY;
         if (e.shiftKey && e.buttons === 2) {
             if (this.props.isTopMost) {
                 this.startDragging(e.pageX, e.pageY, e.altKey || e.ctrlKey);
-            } else
+            } else {
                 CollectionDockingView.Instance.StartOtherDrag([this.props.Document], e);
+            }
             e.stopPropagation();
         } else {
-            if (this.active && !e.isDefaultPrevented()) {
+            if (this.active) {
                 e.stopPropagation();
                 document.removeEventListener("pointermove", this.onPointerMove);
                 document.addEventListener("pointermove", this.onPointerMove);
@@ -148,7 +113,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
                 document.addEventListener("pointerup", this.onPointerUp);
             }
         }
-    };
+    }
 
     private dropDisposer?: DragManager.DragDropDisposer;
 
@@ -159,20 +124,6 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             });
         }
         runInAction(() => DocumentManager.Instance.DocumentViews.push(this));
-        this._reactionDisposer = reaction(
-            () =>
-                this.props.ContainingCollectionView &&
-                this.props.ContainingCollectionView.SelectedDocs.slice(),
-            () => {
-                if (
-                    this.props.ContainingCollectionView &&
-                    this.props.ContainingCollectionView.SelectedDocs.indexOf(
-                        this.props.Document.Id
-                    ) != -1
-                )
-                    SelectionManager.SelectDoc(this, true);
-            }
-        );
     }
 
     componentDidUpdate() {
@@ -190,15 +141,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         if (this.dropDisposer) {
             this.dropDisposer();
         }
-        runInAction(() =>
-            DocumentManager.Instance.DocumentViews.splice(
-                DocumentManager.Instance.DocumentViews.indexOf(this),
-                1
-            )
-        );
-        if (this._reactionDisposer) {
-            this._reactionDisposer();
-        }
+        runInAction(() => DocumentManager.Instance.DocumentViews.splice(DocumentManager.Instance.DocumentViews.indexOf(this), 1));
     }
 
     startDragging(x: number, y: number, dropAliasOfDraggedDoc: boolean) {
@@ -211,17 +154,10 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             dragData.aliasOnDrop = dropAliasOfDraggedDoc;
             dragData.xOffset = x - left;
             dragData.yOffset = y - top;
-            dragData.removeDocument = (dropCollectionView: CollectionView) => {
-                if (
-                    this.props.RemoveDocument &&
-                    this.props.ContainingCollectionView !== dropCollectionView
-                ) {
-                    this.props.RemoveDocument(this.props.Document);
-                }
-            };
+            dragData.moveDocument = this.props.moveDocument;
             DragManager.StartDocumentDrag([this._mainCont.current], dragData, x, y, {
                 handlers: {
-                    dragComplete: action(() => { })
+                    dragComplete: action(emptyFunction)
                 },
                 hideSource: !dropAliasOfDraggedDoc
             });
@@ -238,42 +174,40 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         ) {
             document.removeEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
-            if (!this.topMost || e.buttons == 2 || e.altKey) {
+            if (!this.topMost || e.buttons === 2 || e.altKey) {
                 this.startDragging(this._downX, this._downY, e.ctrlKey || e.altKey);
             }
         }
         e.stopPropagation();
         e.preventDefault();
-    };
+    }
     onPointerUp = (e: PointerEvent): void => {
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
         e.stopPropagation();
         if (!SelectionManager.IsSelected(this) &&
+            e.button !== 2 &&
             Math.abs(e.clientX - this._downX) < 4 &&
             Math.abs(e.clientY - this._downY) < 4
         ) {
             SelectionManager.SelectDoc(this, e.ctrlKey);
         }
-    };
+    }
     stopPropogation = (e: React.SyntheticEvent) => {
         e.stopPropagation();
-    };
+    }
 
     deleteClicked = (): void => {
-        if (this.props.RemoveDocument) {
-            this.props.RemoveDocument(this.props.Document);
+        if (this.props.removeDocument) {
+            this.props.removeDocument(this.props.Document);
         }
-    };
+    }
 
     fieldsClicked = (e: React.MouseEvent): void => {
-        if (this.props.AddDocument) {
-            this.props.AddDocument(
-                Documents.KVPDocument(this.props.Document, { width: 300, height: 300 }),
-                false
-            );
+        if (this.props.addDocument) {
+            this.props.addDocument(Documents.KVPDocument(this.props.Document, { width: 300, height: 300 }), false);
         }
-    };
+    }
     fullScreenClicked = (e: React.MouseEvent): void => {
         CollectionDockingView.Instance.OpenFullScreen(this.props.Document);
         ContextMenu.Instance.clearItems();
@@ -282,7 +216,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             event: this.closeFullScreenClicked
         });
         ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15);
-    };
+    }
 
     closeFullScreenClicked = (e: React.MouseEvent): void => {
         CollectionDockingView.Instance.CloseFullScreen();
@@ -292,7 +226,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             event: this.fullScreenClicked
         });
         ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15);
-    };
+    }
 
     @action
     public minimize = (): void => {
@@ -302,7 +236,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             BooleanField
         );
         SelectionManager.DeselectAll();
-    };
+    }
 
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
@@ -344,7 +278,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             );
             e.stopPropagation();
         }
-    };
+    }
 
     onDrop = (e: React.DragEvent) => {
         if (e.isDefaultPrevented()) {
@@ -358,7 +292,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             e.stopPropagation();
             e.preventDefault();
         }
-    };
+    }
 
     @action
     onContextMenu = (e: React.MouseEvent): void => {
@@ -420,14 +354,14 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         });
         ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15);
         SelectionManager.SelectDoc(this, e.ctrlKey);
-    };
+    }
 
     isMinimized = () => {
         let field = this.props.Document.GetT(KeyStore.Minimized, BooleanField);
         if (field && field !== FieldWaiting) {
             return field.Data;
         }
-    };
+    }
 
     @action
     expand = () => {
@@ -436,15 +370,25 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             false as boolean,
             BooleanField
         );
-    };
+    }
 
-    isSelected = () => {
-        return SelectionManager.IsSelected(this);
-    };
+    isSelected = () => SelectionManager.IsSelected(this);
 
     select = (ctrlPressed: boolean) => {
         SelectionManager.SelectDoc(this, ctrlPressed);
-    };
+    }
+
+    @computed get nativeWidth(): number { return this.props.Document.GetNumber(KeyStore.NativeWidth, 0); }
+    @computed get nativeHeight(): number { return this.props.Document.GetNumber(KeyStore.NativeHeight, 0); }
+    @computed
+    get contents() {
+        return (<DocumentContentsView
+            {...this.props}
+            isSelected={this.isSelected}
+            select={this.select}
+            layoutKey={KeyStore.Layout}
+        />);
+    }
 
     render() {
         if (!this.props.Document) {
@@ -452,8 +396,8 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         }
 
         var scaling = this.props.ContentScaling();
-        var nativeWidth = this.props.Document.GetNumber(KeyStore.NativeWidth, 0);
-        var nativeHeight = this.props.Document.GetNumber(KeyStore.NativeHeight, 0);
+        var nativeWidth = this.nativeWidth;
+        var nativeHeight = this.nativeHeight;
 
         if (this.isMinimized()) {
             return (
@@ -489,12 +433,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
                     onContextMenu={this.onContextMenu}
                     onPointerDown={this.onPointerDown}
                 >
-                    <DocumentContentsView
-                        {...this.props}
-                        isSelected={this.isSelected}
-                        select={this.select}
-                        layoutKey={KeyStore.Layout}
-                    />
+                    {this.contents}
                 </div>
             );
         }

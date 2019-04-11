@@ -1,21 +1,8 @@
-import { action, computed, observable } from "mobx";
+import { computed } from "mobx";
 import { observer } from "mobx-react";
-import { Document } from "../../../../fields/Document";
-import { FieldWaiting } from "../../../../fields/Field";
 import { KeyStore } from "../../../../fields/KeyStore";
-import { TextField } from "../../../../fields/TextField";
-import { DragManager } from "../../../util/DragManager";
-import { Transform } from "../../../util/Transform";
-import { undoBatch } from "../../../util/UndoManager";
-import { InkingCanvas } from "../../InkingCanvas";
-import { CollectionFreeFormDocumentView } from "../../nodes/CollectionFreeFormDocumentView";
-import { DocumentContentsView } from "../../nodes/DocumentContentsView";
-import { DocumentViewProps } from "../../nodes/DocumentView";
-import { COLLECTION_BORDER_WIDTH } from "../CollectionView";
-import { CollectionViewBase, CollectionViewProps, CursorEntry } from "../CollectionViewBase";
-import { CollectionFreeFormLinksView } from "./CollectionFreeFormLinksView";
+import { CollectionViewProps, CursorEntry } from "../CollectionSubView";
 import "./CollectionFreeFormView.scss";
-import { MarqueeView } from "./MarqueeView";
 import React = require("react");
 import v5 = require("uuid/v5");
 import { CurrentUserUtils } from "../../../../server/authentication/models/current_user_utils";
@@ -70,43 +57,23 @@ export class CollectionFreeFormRemoteCursors extends React.Component<CollectionV
                 let id = entry.Data[0][0];
                 let email = entry.Data[0][1];
                 let point = entry.Data[1];
-                this.drawCrosshairs("#" + v5(id, v5.URL).substring(0, 6).toUpperCase() + "22")
+                this.drawCrosshairs("#" + v5(id, v5.URL).substring(0, 6).toUpperCase() + "22");
                 return (
-                    <div
-                        key={id}
-                        style={{
-                            position: "absolute",
-                            transform: `translate(${point[0] - 10}px, ${point[1] - 10}px)`,
-                            zIndex: 10000,
-                            transformOrigin: 'center center',
-                        }}
+                    <div key={id} className="collectionFreeFormRemoteCursors-cont"
+                        style={{ transform: `translate(${point[0] - 10}px, ${point[1] - 10}px)` }}
                     >
-                        <canvas
-                            ref={(el) => { if (el) this.crosshairs = el }}
+                        <canvas className="collectionFreeFormRemoteCursors-canvas"
+                            ref={(el) => { if (el) this.crosshairs = el; }}
                             width={20}
                             height={20}
-                            style={{
-                                position: 'absolute',
-                                width: "20px",
-                                height: "20px",
-                                opacity: 0.5,
-                                borderRadius: "50%",
-                                border: "2px solid black"
-                            }}
                         />
-                        <p
-                            style={{
-                                fontSize: 14,
-                                color: "black",
-                                // fontStyle: "italic",
-                                marginLeft: -12,
-                                marginTop: 4
-                            }}
-                        >{email[0].toUpperCase()}</p>
+                        <p className="collectionFreeFormRemoteCursors-symbol">
+                            {email[0].toUpperCase()}
+                        </p>
                     </div>
                 );
             }
-        })
+        });
     }
 
     render() {

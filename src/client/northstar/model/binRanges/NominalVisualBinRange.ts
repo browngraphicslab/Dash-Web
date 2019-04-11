@@ -1,5 +1,5 @@
-import { NominalBinRange, BinLabel } from '../../model/idea/idea'
-import { VisualBinRange } from './VisualBinRange'
+import { NominalBinRange, BinLabel } from '../../model/idea/idea';
+import { VisualBinRange } from './VisualBinRange';
 
 export class NominalVisualBinRange extends VisualBinRange {
     public DataBinRange: NominalBinRange;

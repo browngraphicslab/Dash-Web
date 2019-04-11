@@ -1,4 +1,4 @@
-import React = require("react")
+import React = require("react");
 import { observer } from "mobx-react";
 import { FieldWaiting, Opt } from '../../../fields/Field';
 import { VideoField } from '../../../fields/VideoField';
@@ -13,14 +13,14 @@ import { number } from "prop-types";
 export class VideoBox extends React.Component<FieldViewProps> {
 
     private _reactionDisposer: Opt<IReactionDisposer>;
-    private _videoRef = React.createRef<HTMLVideoElement>()
-    public static LayoutString() { return FieldView.LayoutString(VideoBox) }
+    private _videoRef = React.createRef<HTMLVideoElement>();
+    public static LayoutString() { return FieldView.LayoutString(VideoBox); }
 
     constructor(props: FieldViewProps) {
         super(props);
     }
 
-    @computed private get curPage() { return this.props.doc.GetNumber(KeyStore.CurPage, -1); }
+    @computed private get curPage() { return this.props.Document.GetNumber(KeyStore.CurPage, -1); }
 
 
     _loaded: boolean = false;
@@ -31,12 +31,12 @@ export class VideoBox extends React.Component<FieldViewProps> {
             // bcz: the nativeHeight should really be set when the document is imported.
             //      also, the native dimensions could be different for different pages of the PDF
             //      so this design is flawed.
-            var nativeWidth = this.props.doc.GetNumber(KeyStore.NativeWidth, 0);
-            var nativeHeight = this.props.doc.GetNumber(KeyStore.NativeHeight, 0);
+            var nativeWidth = this.props.Document.GetNumber(KeyStore.NativeWidth, 0);
+            var nativeHeight = this.props.Document.GetNumber(KeyStore.NativeHeight, 0);
             var newNativeHeight = nativeWidth * r.entry.height / r.entry.width;
-            if (!nativeHeight && newNativeHeight != nativeHeight && !isNaN(newNativeHeight)) {
-                this.props.doc.SetNumber(KeyStore.Height, newNativeHeight / nativeWidth * this.props.doc.GetNumber(KeyStore.Width, 0));
-                this.props.doc.SetNumber(KeyStore.NativeHeight, newNativeHeight);
+            if (!nativeHeight && newNativeHeight !== nativeHeight && !isNaN(newNativeHeight)) {
+                this.props.Document.SetNumber(KeyStore.Height, newNativeHeight / nativeWidth * this.props.Document.GetNumber(KeyStore.Width, 0));
+                this.props.Document.SetNumber(KeyStore.NativeHeight, newNativeHeight);
             }
         } else {
             this._loaded = true;
@@ -50,15 +50,15 @@ export class VideoBox extends React.Component<FieldViewProps> {
     @action
     setVideoRef = (vref: HTMLVideoElement | null) => {
         if (this.curPage >= 0 && vref) {
-            vref!.currentTime = this.curPage;
-            (vref! as any).AHackBecauseSomethingResetsTheVideoToZero = this.curPage;
+            vref.currentTime = this.curPage;
+            (vref as any).AHackBecauseSomethingResetsTheVideoToZero = this.curPage;
         }
     }
 
     render() {
-        let field = this.props.doc.GetT(this.props.fieldKey, VideoField);
+        let field = this.props.Document.GetT(this.props.fieldKey, VideoField);
         if (!field || field === FieldWaiting) {
-            return <div>Loading</div>
+            return <div>Loading</div>;
         }
         let path = field.Data.href;
         trace();
@@ -66,13 +66,13 @@ export class VideoBox extends React.Component<FieldViewProps> {
             <Measure onResize={this.setScaling}>
                 {({ measureRef }) =>
                     <div style={{ width: "100%", height: "auto" }} ref={measureRef}>
-                        <video className="videobox-cont" onClick={() => { }} ref={this.setVideoRef}>
+                        <video className="videobox-cont" ref={this.setVideoRef}>
                             <source src={path} type="video/mp4" />
                             Not supported.
                         </video>
                     </div>
                 }
             </Measure>
-        )
+        );
     }
 }

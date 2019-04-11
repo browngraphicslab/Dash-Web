@@ -1,4 +1,4 @@
-import { Field, FieldId } from "./Field"
+import { Field, FieldId } from "./Field";
 import { observable, computed, action } from "mobx";
 import { Server } from "../client/Server";
 import { UndoManager } from "../client/util/UndoManager";
@@ -9,7 +9,7 @@ export abstract class BasicField<T> extends Field {
 
         this.data = data;
         if (save) {
-            Server.UpdateField(this)
+            Server.UpdateField(this);
         }
     }
 
@@ -36,7 +36,7 @@ export abstract class BasicField<T> extends Field {
         UndoManager.AddEvent({
             undo: () => this.Data = oldValue,
             redo: () => this.Data = value
-        })
+        });
         Server.UpdateField(this);
     }
 
@@ -46,7 +46,7 @@ export abstract class BasicField<T> extends Field {
 
     @action
     TrySetValue(value: any): boolean {
-        if (typeof value == typeof this.data) {
+        if (typeof value === typeof this.data) {
             this.Data = value;
             return true;
         }

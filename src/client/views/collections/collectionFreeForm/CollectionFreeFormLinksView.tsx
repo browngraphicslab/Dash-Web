@@ -7,7 +7,7 @@ import { ListField } from "../../../../fields/ListField";
 import { Utils } from "../../../../Utils";
 import { DocumentManager } from "../../../util/DocumentManager";
 import { DocumentView } from "../../nodes/DocumentView";
-import { CollectionViewProps } from "../CollectionViewBase";
+import { CollectionViewProps } from "../CollectionSubView";
 import "./CollectionFreeFormLinksView.scss";
 import { CollectionFreeFormLinkView } from "./CollectionFreeFormLinkView";
 import React = require("react");
@@ -17,7 +17,7 @@ export class CollectionFreeFormLinksView extends React.Component<CollectionViewP
 
     HackToAvoidReactionFiringUnnecessarily?: Document = undefined;
     componentDidMount() {
-        this.HackToAvoidReactionFiringUnnecessarily = this.props.Document
+        this.HackToAvoidReactionFiringUnnecessarily = this.props.Document;
         reaction(() =>
             DocumentManager.Instance.getAllDocumentViews(this.HackToAvoidReactionFiringUnnecessarily!).
                 map(dv => dv.props.Document.GetNumber(KeyStore.X, 0)),
@@ -31,17 +31,18 @@ export class CollectionFreeFormLinksView extends React.Component<CollectionViewP
                         let x1w = srcDoc.GetNumber(KeyStore.Width, -1);
                         let x2 = dstDoc.GetNumber(KeyStore.X, 0);
                         let x2w = dstDoc.GetNumber(KeyStore.Width, -1);
-                        if (x1w < 0 || x2w < 0 || i == j)
+                        if (x1w < 0 || x2w < 0 || i === j) {
                             continue;
+                        }
                         let dstTarg = dstDoc;
                         let srcTarg = srcDoc;
                         let findBrush = (field: ListField<Document>) => field.Data.findIndex(brush => {
                             let bdocs = brush ? brush.GetList(KeyStore.BrushingDocs, [] as Document[]) : [];
-                            return (bdocs.length && ((bdocs[0] == dstTarg && bdocs[1] == srcTarg)) ? true : false)
+                            return (bdocs.length && ((bdocs[0] === dstTarg && bdocs[1] === srcTarg)) ? true : false);
                         });
                         let brushAction = (field: ListField<Document>) => {
                             let found = findBrush(field);
-                            if (found != -1) {
+                            if (found !== -1) {
                                 console.log("REMOVE BRUSH " + srcTarg.Title + " " + dstTarg.Title);
                                 field.Data.splice(found, 1);
                             }
@@ -53,9 +54,9 @@ export class CollectionFreeFormLinksView extends React.Component<CollectionViewP
                             linkDoc.SetData(KeyStore.BrushingDocs, [dstTarg, srcTarg], ListField);
 
                             brushAction = brushAction = (field: ListField<Document>) => {
-                                if (findBrush(field) == -1) {
+                                if (findBrush(field) === -1) {
                                     console.log("ADD BRUSH " + srcTarg.Title + " " + dstTarg.Title);
-                                    (findBrush(field) == -1) && field.Data.push(linkDoc);
+                                    (findBrush(field) === -1) && field.Data.push(linkDoc);
                                 }
                             };
                         }
@@ -64,15 +65,15 @@ export class CollectionFreeFormLinksView extends React.Component<CollectionViewP
 
                     }
                 }
-            })
+            });
     }
     documentAnchors(view: DocumentView) {
         let equalViews = [view];
         let containerDoc = view.props.Document.GetT(KeyStore.AnnotationOn, Document);
-        if (containerDoc && containerDoc != FieldWaiting && containerDoc instanceof Document) {
-            equalViews = DocumentManager.Instance.getDocumentViews(containerDoc.GetPrototype() as Document)
+        if (containerDoc && containerDoc instanceof Document) {
+            equalViews = DocumentManager.Instance.getDocumentViews(containerDoc.GetPrototype()!);
         }
-        return equalViews.filter(sv => sv.props.ContainingCollectionView && sv.props.ContainingCollectionView.props.Document == this.props.Document);
+        return equalViews.filter(sv => sv.props.ContainingCollectionView && sv.props.ContainingCollectionView.props.Document === this.props.Document);
     }
 
     @computed
@@ -84,17 +85,18 @@ export class CollectionFreeFormLinksView extends React.Component<CollectionViewP
             srcViews.map(sv => targetViews.map(tv => possiblePairs.push({ a: sv.props.Document, b: tv.props.Document })));
             possiblePairs.map(possiblePair => {
                 if (!drawnPairs.reduce((found, drawnPair) => {
-                    let match = (possiblePair.a == drawnPair.a && possiblePair.b == drawnPair.b);
+                    let match = (possiblePair.a === drawnPair.a && possiblePair.b === drawnPair.b);
                     if (match) {
-                        if (!drawnPair.l.reduce((found, link) => found || link.Id == connection.l.Id, false))
+                        if (!drawnPair.l.reduce((found, link) => found || link.Id === connection.l.Id, false)) {
                             drawnPair.l.push(connection.l);
+                        }
                     }
                     return match || found;
                 }, false)) {
-                    drawnPairs.push({ a: possiblePair.a, b: possiblePair.b, l: [connection.l] as Document[] });
+                    drawnPairs.push({ a: possiblePair.a, b: possiblePair.b, l: [connection.l] });
                 }
-            })
-            return drawnPairs
+            });
+            return drawnPairs;
         }, [] as { a: Document, b: Document, l: Document[] }[]);
         return connections.map(c => <CollectionFreeFormLinkView key={Utils.GenerateGuid()} A={c.a} B={c.b} LinkDocs={c.l} />);
     }

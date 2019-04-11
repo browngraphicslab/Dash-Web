@@ -2,8 +2,8 @@ import { observable, computed, action } from "mobx";
 import React = require("react");
 import { SelectionManager } from "../../util/SelectionManager";
 import { observer } from "mobx-react";
-import './LinkBox.scss'
-import { KeyStore } from '../../../fields/KeyStore'
+import './LinkBox.scss';
+import { KeyStore } from '../../../fields/KeyStore';
 import { props } from "bluebird";
 import { DocumentView } from "./DocumentView";
 import { Document } from "../../../fields/Document";
@@ -30,7 +30,7 @@ interface Props {
     linkName: String;
     pairedDoc: Document;
     type: String;
-    showEditor: () => void
+    showEditor: () => void;
 }
 
 @observer
@@ -49,15 +49,16 @@ export class LinkBox extends React.Component<Props> {
                 } else if (contextDoc instanceof Document) {
                     this.props.pairedDoc.GetTAsync(KeyStore.Page, NumberField).then((pfield: any) => {
                         contextDoc.GetTAsync(KeyStore.CurPage, NumberField).then((cfield: any) => {
-                            if (pfield != cfield)
+                            if (pfield !== cfield) {
                                 contextDoc.SetNumber(KeyStore.CurPage, pfield.Data);
+                            }
                             let contextView = DocumentManager.Instance.getDocumentView(contextDoc);
                             if (contextView) {
                                 contextView.props.focus(contextDoc);
                             } else {
                                 CollectionDockingView.Instance.AddRightSplit(contextDoc);
                             }
-                        })
+                        });
                     });
                 }
             });
@@ -80,7 +81,7 @@ export class LinkBox extends React.Component<Props> {
                     if (field) {
                         field.Data.splice(field.Data.indexOf(this.props.linkDoc));
                     }
-                })
+                });
             }
         });
         this.props.linkDoc.GetTAsync(KeyStore.LinkedToDocs, Document, field => {
@@ -89,7 +90,7 @@ export class LinkBox extends React.Component<Props> {
                     if (field) {
                         field.Data.splice(field.Data.indexOf(this.props.linkDoc));
                     }
-                })
+                });
             }
         });
     }
@@ -117,6 +118,6 @@ export class LinkBox extends React.Component<Props> {
                         <FontAwesomeIcon className="fa-icon-delete" icon="times" size="sm" /></div>
                 </div>
             </div>
-        )
+        );
     }
 }

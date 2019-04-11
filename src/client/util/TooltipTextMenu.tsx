@@ -10,14 +10,16 @@ import { Schema, NodeType, MarkType } from "prosemirror-model";
 import React = require("react");
 import "./TooltipTextMenu.scss";
 const { toggleMark, setBlockType, wrapIn } = require("prosemirror-commands");
-import { library } from '@fortawesome/fontawesome-svg-core'
-import { wrapInList, bulletList, liftListItem, listItem } from 'prosemirror-schema-list'
+import { library } from '@fortawesome/fontawesome-svg-core';
+import { wrapInList, bulletList, liftListItem, listItem } from 'prosemirror-schema-list';
 import {
     faListUl,
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { FieldViewProps } from "../views/nodes/FieldView";
+import { throwStatement } from "babel-types";
 
-const SVG = "http://www.w3.org/2000/svg"
+const SVG = "http://www.w3.org/2000/svg";
 
 //appears above a selection of text in a RichTextBox to give user options such as Bold, Italics, etc.
 export class TooltipTextMenu {
@@ -27,9 +29,11 @@ export class TooltipTextMenu {
     private view: EditorView;
     private fontStyles: MarkType[];
     private fontSizes: MarkType[];
+    private editorProps: FieldViewProps;
 
-    constructor(view: EditorView) {
+    constructor(view: EditorView, editorProps: FieldViewProps) {
         this.view = view;
+        this.editorProps = editorProps;
         this.tooltip = document.createElement("div");
         this.tooltip.className = "tooltipMenu";
 
@@ -48,7 +52,7 @@ export class TooltipTextMenu {
             { command: toggleMark(schema.marks.subscript), dom: this.icon("s", "subscript") },
             { command: wrapInList(schema.nodes.bullet_list), dom: this.icon(":", "bullets") },
             { command: lift, dom: this.icon("<", "lift") },
-        ]
+        ];
         //add menu items
         items.forEach(({ dom, command }) => {
             this.tooltip.appendChild(dom);
@@ -58,7 +62,7 @@ export class TooltipTextMenu {
                 e.preventDefault();
                 view.focus();
                 command(view.state, view.dispatch, view);
-            })
+            });
 
         });
 
@@ -71,7 +75,7 @@ export class TooltipTextMenu {
             schema.marks.comicSans,
             schema.marks.tahoma,
             schema.marks.impact,
-        ]
+        ];
         this.fontSizes = [
             schema.marks.p10,
             schema.marks.p12,
@@ -80,7 +84,7 @@ export class TooltipTextMenu {
             schema.marks.p32,
             schema.marks.p48,
             schema.marks.p72,
-        ]
+        ];
         this.addFontDropdowns();
 
         this.update(view, undefined);
@@ -97,7 +101,7 @@ export class TooltipTextMenu {
             this.dropdownBtn("ComicSans", "font-family: Comic Sans MS, cursive, sans-serif; width: 120px;", schema.marks.comicSans, this.view, this.changeToMarkInGroup, this.fontStyles),
             this.dropdownBtn("Tahoma", "font-family: Tahoma, Geneva, sans-serif; width: 120px;", schema.marks.tahoma, this.view, this.changeToMarkInGroup, this.fontStyles),
             this.dropdownBtn("Impact", "font-family: Impact, Charcoal, sans-serif; width: 120px;", schema.marks.impact, this.view, this.changeToMarkInGroup, this.fontStyles),
-        ]
+        ];
 
         let fontSizeBtns = [
             this.dropdownBtn("10", "width: 50px;", schema.marks.p10, this.view, this.changeToMarkInGroup, this.fontSizes),
@@ -107,7 +111,7 @@ export class TooltipTextMenu {
             this.dropdownBtn("32", "width: 50px;", schema.marks.p32, this.view, this.changeToMarkInGroup, this.fontSizes),
             this.dropdownBtn("48", "width: 50px;", schema.marks.p48, this.view, this.changeToMarkInGroup, this.fontSizes),
             this.dropdownBtn("72", "width: 50px;", schema.marks.p72, this.view, this.changeToMarkInGroup, this.fontSizes),
-        ]
+        ];
 
         //dropdown to hold font btns
         let dd_fontStyle = new Dropdown(cut(fontBtns), { label: "Font Style", css: "color:white;" }) as MenuItem;
@@ -130,13 +134,13 @@ export class TooltipTextMenu {
                         dispatch(state.tr.removeStoredMark(type));
                     }
                 } else {
-                    let has = false, tr = state.tr
+                    let has = false, tr = state.tr;
                     for (let i = 0; !has && i < ranges.length; i++) {
-                        let { $from, $to } = ranges[i]
-                        has = state.doc.rangeHasMark($from.pos, $to.pos, type)
+                        let { $from, $to } = ranges[i];
+                        has = state.doc.rangeHasMark($from.pos, $to.pos, type);
                     }
-                    for (let i = 0; i < ranges.length; i++) {
-                        let { $from, $to } = ranges[i]
+                    for (let i of ranges) {
+                        let { $from, $to } = i;
                         if (has) {
                             toggleMark(type)(view.state, view.dispatch, view);
                         }
@@ -174,12 +178,12 @@ export class TooltipTextMenu {
 
     //method for checking whether node can be inserted
     canInsert(state: EditorState, nodeType: NodeType<Schema<string, string>>) {
-        let $from = state.selection.$from
+        let $from = state.selection.$from;
         for (let d = $from.depth; d >= 0; d--) {
-            let index = $from.index(d)
-            if ($from.node(d).canReplaceWith(index, index, nodeType)) return true
+            let index = $from.index(d);
+            if ($from.node(d).canReplaceWith(index, index, nodeType)) return true;
         }
-        return false
+        return false;
     }
 
 
@@ -206,38 +210,38 @@ export class TooltipTextMenu {
         return {
             command: setBlockType(schema.nodes.heading, { level }),
             dom: this.icon("H" + level, "heading")
-        }
+        };
     }
 
     //updates the tooltip menu when the selection changes
     update(view: EditorView, lastState: EditorState | undefined) {
-        let state = view.state
+        let state = view.state;
         // Don't do anything if the document/selection didn't change
         if (lastState && lastState.doc.eq(state.doc) &&
-            lastState.selection.eq(state.selection)) return
+            lastState.selection.eq(state.selection)) return;
 
         // Hide the tooltip if the selection is empty
         if (state.selection.empty) {
-            this.tooltip.style.display = "none"
-            return
+            this.tooltip.style.display = "none";
+            return;
         }
 
         // Otherwise, reposition it and update its content
-        this.tooltip.style.display = ""
-        let { from, to } = state.selection
-        let start = view.coordsAtPos(from), end = view.coordsAtPos(to)
+        this.tooltip.style.display = "";
+        let { from, to } = state.selection;
+        let start = view.coordsAtPos(from), end = view.coordsAtPos(to);
         // The box in which the tooltip is positioned, to use as base
-        let box = this.tooltip.offsetParent!.getBoundingClientRect()
+        let box = this.tooltip.offsetParent!.getBoundingClientRect();
         // Find a center-ish x position from the selection endpoints (when
         // crossing lines, end may be more to the left)
-        let left = Math.max((start.left + end.left) / 2, start.left + 3)
-        this.tooltip.style.left = (left - box.left) + "px"
-        //let width = Math.abs(start.left - end.left) / 2;
-        let width = 220;
+        let left = Math.max((start.left + end.left) / 2, start.left + 3);
+        this.tooltip.style.left = (left - box.left) * this.editorProps.ScreenToLocalTransform().Scale + "px";
+        let width = Math.abs(start.left - end.left) / 2 * this.editorProps.ScreenToLocalTransform().Scale;
         let mid = Math.min(start.left, end.left) + width;
-        this.tooltip.style.width = width + "px";
-        this.tooltip.style.bottom = (box.bottom - start.top) + "px";
+
+        this.tooltip.style.width = 220 + "px";
+        this.tooltip.style.bottom = (box.bottom - start.top) * this.editorProps.ScreenToLocalTransform().Scale + "px";
     }
 
-    destroy() { this.tooltip.remove() }
+    destroy() { this.tooltip.remove(); }
 }
