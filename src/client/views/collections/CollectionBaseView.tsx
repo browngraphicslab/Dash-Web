@@ -8,6 +8,8 @@ import { ListField } from '../../../fields/ListField';
 import { NumberField } from '../../../fields/NumberField';
 import { ContextMenu } from '../ContextMenu';
 import { FieldViewProps } from '../nodes/FieldView';
+import { CompileScript } from '../../util/Scripting';
+import { ScriptField } from '../../../fields/ScriptField';
 
 export enum CollectionViewType {
     Invalid,
@@ -107,15 +109,18 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
                 const field = new ListField([doc]);
                 // const script = CompileScript(`
                 //     if(added) {
-                //         console.log("added " + field.Title);
+                //         console.log("added " + field.Title + " " + doc.Title);
                 //     } else {
-                //         console.log("removed " + field.Title);
+                //         console.log("removed " + field.Title + " " + doc.Title);
                 //     }
                 // `, {
                 //         addReturn: false,
                 //         params: {
                 //             field: Document.name,
                 //             added: "boolean"
+                //         },
+                //         capturedVariables: {
+                //             doc: this.props.Document
                 //         }
                 //     });
                 // if (script.compiled) {
