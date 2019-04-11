@@ -75,12 +75,21 @@ export class CollectionSubView extends React.Component<SubCollectionViewProps> {
             }
             let added = false;
             if (de.data.aliasOnDrop || de.data.copyOnDrop) {
-                added = de.data.droppedDocuments.reduce((added: boolean, d) => added || this.props.addDocument(d), false);
+                added = de.data.droppedDocuments.reduce((added: boolean, d) => {
+                    let moved = this.props.addDocument(d);
+                    return moved || added;
+                }, false);
             } else if (de.data.moveDocument) {
                 const move = de.data.moveDocument;
-                added = de.data.droppedDocuments.reduce((added: boolean, d) => added || move(d, this.props.Document, this.props.addDocument), false);
+                added = de.data.droppedDocuments.reduce((added: boolean, d) => {
+                    let moved = move(d, this.props.Document, this.props.addDocument);
+                    return moved || added;
+                }, false);
             } else {
-                added = de.data.droppedDocuments.reduce((added: boolean, d) => added || this.props.addDocument(d), false);
+                added = de.data.droppedDocuments.reduce((added: boolean, d) => {
+                    let moved = this.props.addDocument(d);
+                    return moved || added;
+                }, false);
             }
             e.stopPropagation();
             return added;
