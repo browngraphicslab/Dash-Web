@@ -186,7 +186,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         document.removeEventListener("pointerup", this.onPointerUp);
         e.stopPropagation();
         if (!SelectionManager.IsSelected(this) &&
-            e.button != 2 &&
+            e.button !== 2 &&
             Math.abs(e.clientX - this._downX) < 4 &&
             Math.abs(e.clientY - this._downY) < 4
         ) {

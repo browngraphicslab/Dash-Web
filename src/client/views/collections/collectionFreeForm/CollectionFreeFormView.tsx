@@ -304,10 +304,12 @@ export class CollectionFreeFormView extends CollectionSubView {
     childViews = () => this.views;
 
     render() {
-        let [dx, dy] = [this.centeringShiftX, this.centeringShiftY];
-
+        const [dx, dy] = [this.centeringShiftX, this.centeringShiftY];
         const panx: number = -this.props.Document.GetNumber(KeyStore.PanX, 0);
         const pany: number = -this.props.Document.GetNumber(KeyStore.PanY, 0);
+        const zoom: number = this.zoomScaling;
+        const blay = this.backgroundView;
+        const olay = this.overlayView;
 
         return (
             <Measure onResize={(r: any) => runInAction(() => { this._pwidth = r.entry.width; this._pheight = r.entry.height; })}>
@@ -323,8 +325,8 @@ export class CollectionFreeFormView extends CollectionSubView {
                                 <PreviewCursor container={this} addLiveTextDocument={this.addLiveTextBox}
                                     getContainerTransform={this.getContainerTransform} getTransform={this.getTransform} >
                                     <div className="collectionfreeformview" ref={this._canvasRef}
-                                        style={{ transform: `translate(${dx}px, ${dy}px) scale(${this.zoomScaling}, ${this.zoomScaling}) translate(${panx}px, ${pany}px)` }}>
-                                        {this.backgroundView}
+                                        style={{ transform: `translate(${dx}px, ${dy}px) scale(${zoom}, ${zoom}) translate(${panx}px, ${pany}px)` }}>
+                                        {blay}
                                         <CollectionFreeFormLinksView {...this.props}>
                                             <InkingCanvas getScreenTransform={this.getTransform} Document={this.props.Document} >
                                                 {this.childViews}
@@ -332,7 +334,7 @@ export class CollectionFreeFormView extends CollectionSubView {
                                         </CollectionFreeFormLinksView>
                                         <CollectionFreeFormRemoteCursors {...this.props} />
                                     </div>
-                                    {this.overlayView}
+                                    {olay}
                                 </PreviewCursor>
                             </MarqueeView>
                         </div>

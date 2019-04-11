@@ -96,11 +96,7 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
             );
         } else {
             this._proxyReactionDisposer = reaction(() => this.props.isSelected(),
-                () => {
-                    if (this.props.isSelected())
-                        Main.Instance.SetTextDoc(this.props.Document, this._ref.current!, this.props.ScreenToLocalTransform());
-                }
-            );
+                () => this.props.isSelected() && Main.Instance.SetTextDoc(this.props.Document, this._ref.current!, this.props.ScreenToLocalTransform()));
         }
 
         this._reactionDisposer = reaction(
@@ -169,8 +165,9 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
         if (e.button === 1 && this.props.isSelected() && !e.altKey && !e.ctrlKey && !e.metaKey) {
             e.stopPropagation();
         }
-        if (e.button === 2)
+        if (e.button === 2) {
             e.preventDefault();
+        }
     }
     onPointerUp = (e: React.PointerEvent): void => {
         if (e.buttons === 1 && this.props.isSelected() && !e.altKey) {

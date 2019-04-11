@@ -213,8 +213,9 @@ export class Main extends React.Component {
     _textProxyDiv: React.RefObject<HTMLDivElement>;
     @action
     SetTextDoc(textDoc?: Document, div?: HTMLDivElement, tx?: Transform) {
-        if (this._textTargetDiv)
+        if (this._textTargetDiv) {
             this._textTargetDiv.style.color = this._textColor;
+        }
 
         this._textDoc = undefined;
         this._textDoc = textDoc;
@@ -231,12 +232,12 @@ export class Main extends React.Component {
     @action
     textScroll = (e: React.UIEvent) => {
         if (this._textProxyDiv.current && this._textTargetDiv) {
-            this._textTargetDiv.scrollTop = this._textScroll = this._textProxyDiv.current.children[0].scrollTop
+            this._textTargetDiv.scrollTop = this._textScroll = this._textProxyDiv.current.children[0].scrollTop;
         }
     }
 
     textBoxDown = (e: React.PointerEvent) => {
-        if (e.button != 0 || e.metaKey || e.altKey) {
+        if (e.button !== 0 || e.metaKey || e.altKey) {
             document.addEventListener("pointermove", this.textBoxMove);
             document.addEventListener('pointerup', this.textBoxUp);
         }
