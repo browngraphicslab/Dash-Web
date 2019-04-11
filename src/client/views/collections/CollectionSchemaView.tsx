@@ -254,7 +254,7 @@ export class CollectionSchemaView extends CollectionSubView {
     focusDocument = (doc: Document) => { };
 
     onPointerDown = (e: React.PointerEvent): void => {
-        if (this.props.isSelected()) {
+        if (e.button === 1 && this.props.isSelected() && !e.altKey && !e.ctrlKey && !e.metaKey) {
             e.stopPropagation();
         }
     }
