@@ -5,8 +5,8 @@ import { CollectionDockingView } from "../views/collections/CollectionDockingVie
 import { DocumentDecorations } from "../views/DocumentDecorations";
 import { Main } from "../views/Main";
 import { DocumentView } from "../views/nodes/DocumentView";
-import globalStyles from "../views/_global_variables";
-// import globalStyleVariables from "../views/_global_variables.scss"; // bcz: why doesn't this work?
+// import globalStyles from "../views/_global_variables";
+import * as globalStyles from "../views/_global_variables.scss"; // bcz: why doesn't this work?
 
 export function setupDrag(_reference: React.RefObject<HTMLDivElement>, docFunc: () => Document, moveFunc?: DragManager.MoveFunction, copyOnDrop: boolean = false) {
     let onRowMove = action((e: PointerEvent): void => {

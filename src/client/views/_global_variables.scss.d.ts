@@ -1,7 +1,7 @@
 
-export interface I_globalScss {
+interface IGlobalScss {
     contextMenuZindex: string;  // context menu shows up over everything
 }
-export const globalStyleVariables: I_globalScss;
+declare const globalStyleVariables: IGlobalScss;
 
-export default globalStyleVariables;
+export = globalStyleVariables;
