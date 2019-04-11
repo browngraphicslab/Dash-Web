@@ -176,6 +176,7 @@ button:hover {
     overflow: visible;
     top: 0;
     left: 0;
+    z-index: 1000;
     .formattedTextBox-cont {
         background-color: rgba(248, 6, 6, 0.001);
         width: 100%;

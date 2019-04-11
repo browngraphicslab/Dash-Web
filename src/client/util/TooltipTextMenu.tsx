@@ -12,19 +12,23 @@ const { toggleMark, setBlockType, wrapIn } = require("prosemirror-commands");
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { wrapInList, bulletList } from 'prosemirror-schema-list';
 import { faListUl } from '@fortawesome/free-solid-svg-icons';
+import { FieldViewProps } from "../views/nodes/FieldView";
+import { throwStatement } from "babel-types";
 
 
 //appears above a selection of text in a RichTextBox to give user options such as Bold, Italics, etc.
 export class TooltipTextMenu {
 
     private tooltip: HTMLElement;
+    private editorProps: FieldViewProps;
 
-    constructor(view: EditorView) {
+    constructor(view: EditorView, editorProps: FieldViewProps) {
+        this.editorProps = editorProps;
         this.tooltip = document.createElement("div");
         this.tooltip.className = "tooltipMenu";
 
         //add the div which is the tooltip
-        view.dom.parentNode!.appendChild(this.tooltip);
+        view.dom.parentNode!.parentNode!.appendChild(this.tooltip);
 
         //add additional icons
         library.add(faListUl);
@@ -124,13 +128,13 @@ export class TooltipTextMenu {
         // Find a center-ish x position from the selection endpoints (when
         // crossing lines, end may be more to the left)
         let left = Math.max((start.left + end.left) / 2, start.left + 3);
-        this.tooltip.style.left = (left - box.left) + "px";
-        let width = Math.abs(start.left - end.left) / 2;
+        this.tooltip.style.left = (left - box.left) * this.editorProps.ScreenToLocalTransform().Scale + "px";
+        let width = Math.abs(start.left - end.left) / 2 * this.editorProps.ScreenToLocalTransform().Scale;
         let mid = Math.min(start.left, end.left) + width;
 
         //THIS WIDTH IS 15 * NUMBER OF ICONS + 15
         this.tooltip.style.width = 122 + "px";
-        this.tooltip.style.bottom = (box.bottom - start.top) + "px";
+        this.tooltip.style.bottom = (box.bottom - start.top) * this.editorProps.ScreenToLocalTransform().Scale + "px";
     }
 
     destroy() { this.tooltip.remove(); }

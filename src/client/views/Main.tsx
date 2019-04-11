@@ -28,7 +28,7 @@ import '../northstar/model/ModelExtensions';
 import { HistogramOperation } from '../northstar/operations/HistogramOperation';
 import '../northstar/utils/Extensions';
 import { Server } from '../Server';
-import { setupDrag } from '../util/DragManager';
+import { setupDrag, DragManager } from '../util/DragManager';
 import { Transform } from '../util/Transform';
 import { UndoManager } from '../util/UndoManager';
 import { CollectionDockingView } from './collections/CollectionDockingView';
@@ -38,6 +38,7 @@ import { InkingControl } from './InkingControl';
 import "./Main.scss";
 import { DocumentView } from './nodes/DocumentView';
 import { FormattedTextBox } from './nodes/FormattedTextBox';
+import { REPLCommand } from 'repl';
 
 @observer
 export class Main extends React.Component {
@@ -228,6 +229,21 @@ export class Main extends React.Component {
         }
     }
 
+    textBoxDown = (e: React.PointerEvent) => {
+        let dragData = new DragManager.DocumentDragData([this._textDoc!]);
+        const [left, top] = this._textXf
+            .inverse()
+            .transformPoint(0, 0);
+        dragData.xOffset = e.clientX - left;
+        dragData.yOffset = e.clientY - top;
+        DragManager.StartDocumentDrag([this._textTargetDiv!], dragData, e.clientX, e.clientY, {
+            handlers: {
+                dragComplete: action(emptyFunction),
+            },
+            hideSource: false
+        });
+    }
+
     @computed
     get activeTextBox() {
         if (this._textDoc) {
@@ -239,9 +255,8 @@ export class Main extends React.Component {
             let s = this._textXf.transformPoint(1, 0);
             s[0] = Math.sqrt((s[0] - t[0]) * (s[0] - t[0]) + (s[1] - t[1]) * (s[1] - t[1]));
             return <div className="mainDiv-textInput" style={{ transform: `translate(${x}px, ${y}px) scale(${1 / s[0]},${1 / s[0]})`, width: "auto", height: "auto" }} >
-                <div className="mainDiv-textInput" ref={this._textProxyDiv} onScroll={this.textScroll} style={{ transform: `scale(${1}, ${1})`, width: `${w * s[0]}px`, height: `${h * s[0]}px` }}>
-                    <FormattedTextBox fieldKey={KeyStore.Archives} Document={this._textDoc} isSelected={returnTrue} select={emptyFunction} isTopMost={true} selectOnLoad={true} onActiveChanged={emptyFunction} active={returnTrue} ScreenToLocalTransform={Transform.Identity} focus={(doc) => { }} />
-
+                <div className="mainDiv-textInput" onPointerDown={this.textBoxDown} ref={this._textProxyDiv} onScroll={this.textScroll} style={{ transform: `scale(${1}, ${1})`, width: `${w * s[0]}px`, height: `${h * s[0]}px` }}>
+                    <FormattedTextBox fieldKey={KeyStore.Archives} Document={this._textDoc} isSelected={returnTrue} select={emptyFunction} isTopMost={true} selectOnLoad={true} onActiveChanged={emptyFunction} active={returnTrue} ScreenToLocalTransform={() => this._textXf} focus={(doc) => { }} />
                 </div>
             </ div>;
         }

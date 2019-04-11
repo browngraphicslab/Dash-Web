@@ -70,12 +70,16 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
         const config = {
             schema,
             inpRules, //these currently don't do anything, but could eventually be helpful
-            plugins: [
+            plugins: this.props.fieldKey === KeyStore.Archives ? [
                 history(),
                 keymap({ "Mod-z": undo, "Mod-y": redo }),
                 keymap(baseKeymap),
                 this.tooltipMenuPlugin()
-            ]
+            ] : [
+                    history(),
+                    keymap({ "Mod-z": undo, "Mod-y": redo }),
+                    keymap(baseKeymap),
+                ]
         };
 
         if (this.props.fieldKey === KeyStore.Archives) {
@@ -150,7 +154,7 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
         // doc.SetData(fieldKey, e.target.value, RichTextField);
     }
     onPointerDown = (e: React.PointerEvent): void => {
-        if (e.buttons === 1 && this.props.isSelected() && !e.altKey) {
+        if (e.buttons === 1 && this.props.isSelected() && !e.altKey && !e.ctrlKey && !e.metaKey) {
             e.stopPropagation();
         }
     }
@@ -202,9 +206,10 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
     }
 
     tooltipMenuPlugin() {
+        let myprops = this.props;
         return new Plugin({
             view(_editorView) {
-                return new TooltipTextMenu(_editorView);
+                return new TooltipTextMenu(_editorView, myprops);
             }
         });
     }
