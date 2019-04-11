@@ -236,18 +236,32 @@ export class Main extends React.Component {
     }
 
     textBoxDown = (e: React.PointerEvent) => {
-        let dragData = new DragManager.DocumentDragData([this._textDoc!]);
-        const [left, top] = this._textXf
-            .inverse()
-            .transformPoint(0, 0);
-        dragData.xOffset = e.clientX - left;
-        dragData.yOffset = e.clientY - top;
-        DragManager.StartDocumentDrag([this._textTargetDiv!], dragData, e.clientX, e.clientY, {
-            handlers: {
-                dragComplete: action(emptyFunction),
-            },
-            hideSource: false
-        });
+        if (e.button != 0 || e.metaKey || e.altKey) {
+            document.addEventListener("pointermove", this.textBoxMove);
+            document.addEventListener('pointerup', this.textBoxUp);
+        }
+    }
+    textBoxMove = (e: PointerEvent) => {
+        if (e.movementX > 1 || e.movementY > 1) {
+            document.removeEventListener("pointermove", this.textBoxMove);
+            document.removeEventListener('pointerup', this.textBoxUp);
+            let dragData = new DragManager.DocumentDragData([this._textDoc!]);
+            const [left, top] = this._textXf
+                .inverse()
+                .transformPoint(0, 0);
+            dragData.xOffset = e.clientX - left;
+            dragData.yOffset = e.clientY - top;
+            DragManager.StartDocumentDrag([this._textTargetDiv!], dragData, e.clientX, e.clientY, {
+                handlers: {
+                    dragComplete: action(emptyFunction),
+                },
+                hideSource: false
+            });
+        }
+    }
+    textBoxUp = (e: PointerEvent) => {
+        document.removeEventListener("pointermove", this.textBoxMove);
+        document.removeEventListener('pointerup', this.textBoxUp);
     }
 
     @computed
