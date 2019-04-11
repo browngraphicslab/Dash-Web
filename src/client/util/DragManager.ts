@@ -6,6 +6,7 @@ import { DocumentDecorations } from "../views/DocumentDecorations";
 import { DocumentView } from "../views/nodes/DocumentView";
 import { returnFalse, emptyFunction } from "../../Utils";
 import { Main } from "../views/Main";
+import globalStyles from '../views/_global_variables.scss';
 
 export function setupDrag(_reference: React.RefObject<HTMLDivElement>, docFunc: () => Document, moveFunc?: DragManager.MoveFunction, copyOnDrop: boolean = false) {
     let onRowMove = action((e: PointerEvent): void => {
@@ -177,7 +178,7 @@ export namespace DragManager {
             dragElement.style.bottom = "";
             dragElement.style.left = "0";
             dragElement.style.transformOrigin = "0 0";
-            dragElement.style.zIndex = "1000";
+            dragElement.style.zIndex = "1000";// globalStyles.contextMenuZindex.toString();
             dragElement.style.transform = `translate(${x}px, ${y}px) scale(${scaleX}, ${scaleY})`;
             dragElement.style.width = `${rect.width / scaleX}px`;
             dragElement.style.height = `${rect.height / scaleY}px`;
