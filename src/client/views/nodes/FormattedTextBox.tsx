@@ -74,7 +74,12 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
                 history(),
                 keymap({ "Mod-z": undo, "Mod-y": redo }),
                 keymap(baseKeymap),
-                this.tooltipMenuPlugin()
+                this.tooltipMenuPlugin(),
+                new Plugin({
+                    props: {
+                        attributes: { class: "ProseMirror-example-setup-style" }
+                    }
+                })
             ]
         };
 
