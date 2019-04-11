@@ -5,7 +5,6 @@ import { keymap } from "prosemirror-keymap";
 import { EditorState, Plugin, Transaction } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { FieldWaiting, Opt } from "../../../fields/Field";
-import { KeyStore } from "../../../fields/KeyStore";
 import { RichTextField } from "../../../fields/RichTextField";
 import { inpRules } from "../../util/RichTextRules";
 import { schema } from "../../util/RichTextSchema";
@@ -14,7 +13,6 @@ import { ContextMenu } from "../../views/ContextMenu";
 import { Main } from "../Main";
 import { FieldView, FieldViewProps } from "./FieldView";
 import "./FormattedTextBox.scss";
-import { emptyFunction } from '../../../Utils';
 import React = require("react");
 const { buildMenuItems } = require("prosemirror-example-setup");
 const { menuBar } = require("prosemirror-menu");
@@ -35,7 +33,12 @@ const { menuBar } = require("prosemirror-menu");
 //  specified Key and assigns it to an HTML input node.  When changes are made to this node,
 //  this will edit the document and assign the new value to that field.
 //]
-export class FormattedTextBox extends React.Component<FieldViewProps> {
+
+export interface FormattedTextBoxOverlay {
+    isOverlay?: boolean;
+}
+
+export class FormattedTextBox extends React.Component<(FieldViewProps & FormattedTextBoxOverlay)> {
     public static LayoutString(fieldStr: string = "DataKey") {
         return FieldView.LayoutString(FormattedTextBox, fieldStr);
     }
@@ -56,8 +59,8 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
         if (this._editorView) {
             const state = this._editorView.state.apply(tx);
             this._editorView.updateState(state);
-            this.FieldDoc.SetDataOnPrototype(
-                this.FieldKey,
+            this.props.Document.SetDataOnPrototype(
+                this.props.fieldKey,
                 JSON.stringify(state.toJSON()),
                 RichTextField
             );
@@ -65,14 +68,11 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
         }
     }
 
-    get FieldDoc() { return this.props.fieldKey === KeyStore.Archives ? Main.Instance._textDoc! : this.props.Document; }
-    get FieldKey() { return this.props.fieldKey === KeyStore.Archives ? KeyStore.Data : this.props.fieldKey; }
-
     componentDidMount() {
         const config = {
             schema,
             inpRules, //these currently don't do anything, but could eventually be helpful
-            plugins: this.props.fieldKey === KeyStore.Archives ? [
+            plugins: this.props.isOverlay ? [
                 history(),
                 keymap({ "Mod-z": undo, "Mod-y": redo }),
                 keymap(baseKeymap),
@@ -84,7 +84,7 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
                 ]
         };
 
-        if (this.props.fieldKey === KeyStore.Archives) {
+        if (this.props.isOverlay) {
             this._inputReactionDisposer = reaction(() => Main.Instance._textDoc && Main.Instance._textDoc.Id,
                 () => {
                     if (this._editorView) {
@@ -96,12 +96,12 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
             );
         } else {
             this._proxyReactionDisposer = reaction(() => this.props.isSelected(),
-                () => this.props.isSelected() && Main.Instance.SetTextDoc(this.props.Document, this._ref.current!, this.props.ScreenToLocalTransform()));
+                () => this.props.isSelected() && Main.Instance.SetTextDoc(this.props.Document, this.props.fieldKey, this._ref.current!, this.props.ScreenToLocalTransform()));
         }
 
         this._reactionDisposer = reaction(
             () => {
-                const field = this.FieldDoc ? this.FieldDoc.GetT(this.FieldKey, RichTextField) : undefined;
+                const field = this.props.Document ? this.props.Document.GetT(this.props.fieldKey, RichTextField) : undefined;
                 return field && field !== FieldWaiting ? field.Data : undefined;
             },
             field => {
@@ -117,7 +117,7 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
 
     private setupEditor(config: any) {
         let state: EditorState;
-        let field = this.FieldDoc ? this.FieldDoc.GetT(this.FieldKey, RichTextField) : undefined;
+        let field = this.props.Document ? this.props.Document.GetT(this.props.fieldKey, RichTextField) : undefined;
         if (field && field !== FieldWaiting && field.Data) {
             state = EditorState.fromJSON(config, JSON.parse(field.Data));
         } else {
@@ -176,8 +176,8 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
     }
 
     onFocused = (e: React.FocusEvent): void => {
-        if (this.props.fieldKey !== KeyStore.Archives) {
-            Main.Instance.SetTextDoc(this.props.Document, this._ref.current!, this.props.ScreenToLocalTransform());
+        if (!this.props.isOverlay) {
+            Main.Instance.SetTextDoc(this.props.Document, this.props.fieldKey, this._ref.current!, this.props.ScreenToLocalTransform());
         } else {
             if (this._ref.current) {
                 this._ref.current.scrollTop = Main.Instance._textScroll;
@@ -232,6 +232,7 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
                 className={`formattedTextBox-cont`}
                 onKeyDown={this.onKeyPress}
                 onKeyPress={this.onKeyPress}
+                onFocus={this.onFocused}
                 onPointerUp={this.onPointerUp}
                 onPointerDown={this.onPointerDown}
                 onContextMenu={this.specificContextMenu}

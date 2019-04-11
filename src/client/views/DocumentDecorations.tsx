@@ -322,7 +322,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 break;
         }
 
-        Main.Instance.SetTextDoc(undefined, undefined, undefined);
+        Main.Instance.SetTextDoc();
         SelectionManager.SelectedDocuments().forEach(element => {
             const rect = element.screenRect();
             if (rect.width !== 0) {

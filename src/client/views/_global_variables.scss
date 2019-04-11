@@ -24,5 +24,5 @@ $docDecorations-zindex: 998; // then doc decorations appear over everything else
 $remoteCursors-zindex: 997; // ... not sure what level the remote cursors should go -- is this right?
 
 :export  {
-    contextMenuZindex: $contextMenu-zindex
+    contextMenuZindex: $contextMenu-zindex;
 }

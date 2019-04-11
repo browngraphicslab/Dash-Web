@@ -25,7 +25,7 @@ export namespace SelectionManager {
         DeselectAll(): void {
             manager.SelectedDocuments.map(dv => dv.props.onActiveChanged(false));
             manager.SelectedDocuments = [];
-            Main.Instance.SetTextDoc(undefined, undefined, undefined);
+            Main.Instance.SetTextDoc();
         }
     }
 
