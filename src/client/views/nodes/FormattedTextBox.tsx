@@ -42,6 +42,7 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
     private _editorView: Opt<EditorView>;
     private _reactionDisposer: Opt<IReactionDisposer>;
     private _inputReactionDisposer: Opt<IReactionDisposer>;
+    private _proxyReactionDisposer: Opt<IReactionDisposer>;
 
     constructor(props: FieldViewProps) {
         super(props);
@@ -92,6 +93,11 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
                     this.setupEditor(config);
                 }
             );
+        } else {
+            this._proxyReactionDisposer = reaction(() => this.props.isSelected(),
+                () =>
+                    this.props.isSelected() && Main.Instance.SetTextDoc(this.props.Document, this._ref.current!, this.props.ScreenToLocalTransform())
+            );
         }
 
         this._reactionDisposer = reaction(
@@ -141,6 +147,9 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
         if (this._inputReactionDisposer) {
             this._inputReactionDisposer();
         }
+        if (this._proxyReactionDisposer) {
+            this._proxyReactionDisposer();
+        }
     }
 
     shouldComponentUpdate() {
@@ -154,17 +163,13 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
         // doc.SetData(fieldKey, e.target.value, RichTextField);
     }
     onPointerDown = (e: React.PointerEvent): void => {
-        if (e.buttons === 1 && this.props.isSelected() && !e.altKey && !e.ctrlKey && !e.metaKey) {
+        if (e.button === 1 && this.props.isSelected() && !e.altKey && !e.ctrlKey && !e.metaKey) {
             e.stopPropagation();
         }
     }
     onPointerUp = (e: React.PointerEvent): void => {
         if (e.buttons === 1 && this.props.isSelected() && !e.altKey) {
             e.stopPropagation();
-        }
-        if (this.props.fieldKey !== KeyStore.Archives) {
-            e.preventDefault();
-            Main.Instance.SetTextDoc(this.props.Document, this._ref.current!, this.props.ScreenToLocalTransform());
         }
     }
 
