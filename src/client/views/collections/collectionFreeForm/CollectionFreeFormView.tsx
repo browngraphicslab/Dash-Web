@@ -12,7 +12,7 @@ import { DragManager } from "../../../util/DragManager";
 import { SelectionManager } from "../../../util/SelectionManager";
 import { Transform } from "../../../util/Transform";
 import { undoBatch } from "../../../util/UndoManager";
-import * as globalCssVariables from "../../../views/globalCssVariables.scss";
+import { COLLECTION_BORDER_WIDTH } from "../../../views/globalCssVariables.scss";
 import { InkingCanvas } from "../../InkingCanvas";
 import { Main } from "../../Main";
 import { CollectionFreeFormDocumentView } from "../../nodes/CollectionFreeFormDocumentView";
@@ -299,7 +299,7 @@ export class CollectionFreeFormView extends CollectionSubView {
 
     @computed
     get borderWidth() {
-        return this.isAnnotationOverlay ? 0 : globalCssVariables.COLLECTION_BORDER_WIDTH;
+        return this.isAnnotationOverlay ? 0 : COLLECTION_BORDER_WIDTH;
     }
     getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-this.borderWidth, -this.borderWidth).translate(-this.centeringShiftX, -this.centeringShiftY).transform(this.getLocalTransform());
     getContainerTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-this.borderWidth, -this.borderWidth);

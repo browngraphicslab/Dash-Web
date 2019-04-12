@@ -2,16 +2,17 @@ import React = require("react");
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faCog, faPlus } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { action, computed, observable, trace, untracked } from "mobx";
+import { action, computed, observable, untracked } from "mobx";
 import { observer } from "mobx-react";
 import Measure from "react-measure";
 import ReactTable, { CellInfo, ComponentPropsGetterR, ReactTableDefaults } from "react-table";
 import "react-table/react-table.css";
 import { Document } from "../../../fields/Document";
-import { Field, Opt, FieldWaiting } from "../../../fields/Field";
+import { Field, Opt } from "../../../fields/Field";
 import { Key } from "../../../fields/Key";
 import { KeyStore } from "../../../fields/KeyStore";
 import { ListField } from "../../../fields/ListField";
+import { emptyDocFunction, emptyFunction, returnFalse } from "../../../Utils";
 import { Server } from "../../Server";
 import { SetupDrag } from "../../util/DragManager";
 import { CompileScript, ToField } from "../../util/Scripting";
@@ -22,11 +23,8 @@ import { EditableView } from "../EditableView";
 import { DocumentView } from "../nodes/DocumentView";
 import { FieldView, FieldViewProps } from "../nodes/FieldView";
 import "./CollectionSchemaView.scss";
-import { CollectionView } from "./CollectionView";
 import { CollectionSubView } from "./CollectionSubView";
-import { TextField } from "../../../fields/TextField";
-import * as globalCssVariables from "../../views/globalCssVariables.scss";
-import { emptyFunction, returnFalse, emptyDocFunction } from "../../../Utils";
+import { COLLECTION_BORDER_WIDTH } from "../../views/globalCssVariables.scss";
 
 
 // bcz: need to add drag and drop of rows and columns.  This seems like it might work for rows: https://codesandbox.io/s/l94mn1q657
@@ -246,7 +244,7 @@ export class CollectionSchemaView extends CollectionSubView {
     }
 
     @computed
-    get borderWidth() { return globalCssVariables.COLLECTION_BORDER_WIDTH; }
+    get borderWidth() { return COLLECTION_BORDER_WIDTH; }
     getContentScaling = (): number => this._contentScaling;
     getPanelWidth = (): number => this._panelWidth;
     getPanelHeight = (): number => this._panelHeight;
