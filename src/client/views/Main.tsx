@@ -40,7 +40,43 @@ import { DocumentView } from './nodes/DocumentView';
 import { FormattedTextBox } from './nodes/FormattedTextBox';
 import { REPLCommand } from 'repl';
 import { Key } from '../../fields/Key';
+import { truncate } from 'fs';
 
+
+export interface PromptProps {
+}
+
+@observer
+export class PreviewCursorPrompt extends React.Component<PromptProps> {
+    private _prompt = React.createRef<HTMLDivElement>();
+    //when focus is lost, this will remove the preview cursor
+    @action onBlur = (): void => {
+        PreviewCursorPrompt.Visible = false;
+        PreviewCursorPrompt.hide();
+    }
+
+    @observable static clickPoint = [0, 0];
+    @observable public static Visible = false;
+    @observable public static hide = () => { };
+    @action
+    public static Show(hide: any, x: number, y: number) {
+        this.clickPoint = [x, y];
+        this.hide = hide;
+        setTimeout(action(() => this.Visible = true), (1));
+    }
+    render() {
+        if (!PreviewCursorPrompt.clickPoint)
+            return (null);
+        if (PreviewCursorPrompt.Visible && this._prompt.current) {
+            this._prompt.current.focus();
+        }
+        let p = PreviewCursorPrompt.clickPoint;
+        return <div className="previewCursor" id="previewCursor" onBlur={this.onBlur} tabIndex={0} ref={this._prompt}
+            style={{ transform: `translate(${p[0]}px, ${p[1]}px)`, opacity: PreviewCursorPrompt.Visible ? 1 : 0 }}>
+            I
+        </div >;
+    }
+}
 @observer
 export class Main extends React.Component {
     // dummy initializations keep the compiler happy
@@ -392,6 +428,7 @@ export class Main extends React.Component {
                         {({ measureRef }) =>
                             <div ref={measureRef} id="mainContent-div">
                                 {this.mainContent}
+                                <PreviewCursorPrompt />
                             </div>
                         }
                     </Measure>

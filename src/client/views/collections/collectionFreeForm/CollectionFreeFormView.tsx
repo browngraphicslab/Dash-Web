@@ -325,8 +325,7 @@ export class CollectionFreeFormView extends CollectionSubView {
                             <MarqueeView container={this} activeDocuments={this.getActiveDocuments} selectDocuments={this.selectDocuments}
                                 addDocument={this.addDocument} removeDocument={this.props.removeDocument}
                                 getContainerTransform={this.getContainerTransform} getTransform={this.getTransform}>
-                                <PreviewCursor container={this} addLiveTextDocument={this.addLiveTextBox}
-                                    getContainerTransform={this.getContainerTransform} getTransform={this.getTransform} >
+                                <PreviewCursor container={this} addLiveTextDocument={this.addLiveTextBox} getTransform={this.getTransform} >
                                     <div className="collectionfreeformview" ref={this._canvasRef}
                                         style={{ transform: `translate(${dx}px, ${dy}px) scale(${zoom}, ${zoom}) translate(${panx}px, ${pany}px)` }}>
                                         {blay}
