@@ -28,11 +28,7 @@ export class DocumentManager {
     }
 
     public getAllDocumentViews(collection: Document) {
-        return this.DocumentViews.filter(dv => {
-            console.log((dv.props.ContainingCollectionView && dv.props.ContainingCollectionView.props.Document ?
-                dv.props.ContainingCollectionView.props.Document.Title : "--") + " = " + collection.Title);
-            return dv.props.ContainingCollectionView && dv.props.ContainingCollectionView.props.Document === collection;
-        });
+        return this.DocumentViews.filter(dv => dv.props.ContainingCollectionView && dv.props.ContainingCollectionView.props.Document === collection);
     }
 
     public getDocumentView(toFind: Document): DocumentView | null {
