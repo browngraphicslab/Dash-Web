@@ -28,7 +28,7 @@ import '../northstar/model/ModelExtensions';
 import { HistogramOperation } from '../northstar/operations/HistogramOperation';
 import '../northstar/utils/Extensions';
 import { Server } from '../Server';
-import { setupDrag, DragManager } from '../util/DragManager';
+import { SetupDrag, DragManager } from '../util/DragManager';
 import { Transform } from '../util/Transform';
 import { UndoManager } from '../util/UndoManager';
 import { CollectionDockingView } from './collections/CollectionDockingView';
@@ -344,7 +344,7 @@ export class Main extends React.Component {
                 <ul id="add-options-list">
                     {btns.map(btn =>
                         <li key={btn[1]} ><div ref={btn[0]}>
-                            <button className="round-button add-button" title={btn[2]} onPointerDown={setupDrag(btn[0], btn[3])}>
+                            <button className="round-button add-button" title={btn[2]} onPointerDown={SetupDrag(btn[0], btn[3])}>
                                 <FontAwesomeIcon icon={btn[1]} size="sm" />
                             </button>
                         </div></li>)}

@@ -7,7 +7,7 @@ import { Document } from "../../../fields/Document";
 import { FieldWaiting } from "../../../fields/Field";
 import { KeyStore } from "../../../fields/KeyStore";
 import { ListField } from "../../../fields/ListField";
-import { setupDrag, DragManager } from "../../util/DragManager";
+import { SetupDrag, DragManager } from "../../util/DragManager";
 import { EditableView } from "../EditableView";
 import "./CollectionTreeView.scss";
 import { CollectionView } from "./CollectionView";
@@ -77,7 +77,7 @@ class TreeView extends React.Component<TreeViewProps> {
      */
     renderTitle() {
         let reference = React.createRef<HTMLDivElement>();
-        let onItemDown = setupDrag(reference, () => this.props.document, this.props.moveDocument, this.props.copyOnDrag);
+        let onItemDown = SetupDrag(reference, () => this.props.document, this.props.moveDocument, this.props.copyOnDrag);
         let editableView = (titleString: string) =>
             (<EditableView
                 display={"inline"}

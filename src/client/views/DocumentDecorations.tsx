@@ -7,7 +7,7 @@ import { ListField } from "../../fields/ListField";
 import { NumberField } from "../../fields/NumberField";
 import { Document } from "../../fields/Document";
 import { TextField } from "../../fields/TextField";
-import { DragManager } from "../util/DragManager";
+import { DragManager, DragLinksAsDocuments } from "../util/DragManager";
 import { SelectionManager } from "../util/SelectionManager";
 import { CollectionView } from "./collections/CollectionView";
 import './DocumentDecorations.scss';
@@ -246,33 +246,10 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             document.removeEventListener("pointermove", this.onLinkButtonMoved);
             document.removeEventListener("pointerup", this.onLinkButtonUp);
 
-            let sourceDoc = SelectionManager.SelectedDocuments()[0].props.Document;
-            let srcTarg = sourceDoc.GetT(KeyStore.Prototype, Document);
-            let draggedDocs = (srcTarg && srcTarg !== FieldWaiting) ?
-                srcTarg.GetList(KeyStore.LinkedToDocs, [] as Document[]).map(linkDoc =>
-                    (linkDoc.GetT(KeyStore.LinkedToDocs, Document)) as Document) : [];
-            let draggedFromDocs = (srcTarg && srcTarg !== FieldWaiting) ?
-                srcTarg.GetList(KeyStore.LinkedFromDocs, [] as Document[]).map(linkDoc =>
-                    (linkDoc.GetT(KeyStore.LinkedFromDocs, Document)) as Document) : [];
-            draggedDocs.push(...draggedFromDocs);
-            if (draggedDocs.length) {
-                let moddrag = [] as Document[];
-                for (const draggedDoc of draggedDocs) {
-                    let doc = await draggedDoc.GetTAsync(KeyStore.AnnotationOn, Document);
-                    if (doc) moddrag.push(doc);
-                }
-                let dragData = new DragManager.DocumentDragData(moddrag.length ? moddrag : draggedDocs);
-                DragManager.StartDocumentDrag([this._linkButton.current], dragData, e.x, e.y, {
-                    handlers: {
-                        dragComplete: action(emptyFunction),
-                    },
-                    hideSource: false
-                });
-            }
+            DragLinksAsDocuments(this._linkButton.current, e.x, e.y, SelectionManager.SelectedDocuments()[0].props.Document);
         }
         e.stopPropagation();
     }
-
 
     onPointerMove = (e: PointerEvent): void => {
         e.stopPropagation();

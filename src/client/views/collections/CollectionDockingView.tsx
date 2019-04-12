@@ -16,7 +16,7 @@ import "./CollectionDockingView.scss";
 import React = require("react");
 import { SubCollectionViewProps } from "./CollectionSubView";
 import { ServerUtils } from "../../../server/ServerUtil";
-import { DragManager } from "../../util/DragManager";
+import { DragManager, DragLinksAsDocuments } from "../../util/DragManager";
 import { TextField } from "../../../fields/TextField";
 import { ListField } from "../../../fields/ListField";
 
@@ -201,32 +201,8 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             let y = e.clientY;
             let docid = (e.target as any).DashDocId;
             let tab = (e.target as any).parentElement as HTMLElement;
-            Server.GetField(docid, action(async (sourceDoc: Opt<Field>) => {
-                if (sourceDoc instanceof Document) {
-                    let srcTarg = sourceDoc.GetT(KeyStore.Prototype, Document);
-                    let draggedDocs = (srcTarg && srcTarg !== FieldWaiting) ?
-                        srcTarg.GetList(KeyStore.LinkedToDocs, [] as Document[]).map(linkDoc =>
-                            (linkDoc.GetT(KeyStore.LinkedToDocs, Document)) as Document) : [];
-                    let draggedFromDocs = (srcTarg && srcTarg !== FieldWaiting) ?
-                        srcTarg.GetList(KeyStore.LinkedFromDocs, [] as Document[]).map(linkDoc =>
-                            (linkDoc.GetT(KeyStore.LinkedFromDocs, Document)) as Document) : [];
-                    draggedDocs.push(...draggedFromDocs);
-                    if (draggedDocs.length) {
-                        let moddrag = [] as Document[];
-                        for (const draggedDoc of draggedDocs) {
-                            let doc = await draggedDoc.GetTAsync(KeyStore.AnnotationOn, Document);
-                            if (doc) moddrag.push(doc);
-                        }
-                        let dragData = new DragManager.DocumentDragData(moddrag.length ? moddrag : draggedDocs);
-                        DragManager.StartDocumentDrag([tab], dragData, x, y, {
-                            handlers: {
-                                dragComplete: action(emptyFunction),
-                            },
-                            hideSource: false
-                        });
-                    }
-                }
-            }));
+            Server.GetField(docid, action(async (sourceDoc: Opt<Field>) =>
+                (sourceDoc instanceof Document) && DragLinksAsDocuments(tab, x, y, sourceDoc)));
         } else
             if ((className === "lm_title" || className === "lm_tab lm_active") && !e.shiftKey) {
                 e.stopPropagation();

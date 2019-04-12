@@ -13,7 +13,7 @@ import { Key } from "../../../fields/Key";
 import { KeyStore } from "../../../fields/KeyStore";
 import { ListField } from "../../../fields/ListField";
 import { Server } from "../../Server";
-import { setupDrag } from "../../util/DragManager";
+import { SetupDrag } from "../../util/DragManager";
 import { CompileScript, ToField } from "../../util/Scripting";
 import { Transform } from "../../util/Transform";
 import { anchorPoints, Flyout } from "../DocumentDecorations";
@@ -90,7 +90,7 @@ export class CollectionSchemaView extends CollectionSubView {
             <FieldView {...props} />
         );
         let reference = React.createRef<HTMLDivElement>();
-        let onItemDown = setupDrag(reference, () => props.Document, this.props.moveDocument);
+        let onItemDown = SetupDrag(reference, () => props.Document, this.props.moveDocument);
         let applyToDoc = (doc: Document, run: (args?: { [name: string]: any }) => any) => {
             const res = run({ this: doc });
             if (!res.success) return false;

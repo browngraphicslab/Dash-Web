@@ -243,9 +243,6 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         if (de.data instanceof DragManager.LinkDragData) {
             let sourceDoc: Document = de.data.linkSourceDocument;
             let destDoc: Document = this.props.Document;
-            if (this.props.isTopMost) {
-                return;
-            }
             let linkDoc: Document = new Document();
 
             destDoc.GetTAsync(KeyStore.Prototype, Document).then(protoDest =>
