@@ -241,7 +241,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
         if (de.data instanceof DragManager.LinkDragData) {
-            let sourceDoc: Document = de.data.linkSourceDocumentView.props.Document;
+            let sourceDoc: Document = de.data.linkSourceDocument;
             let destDoc: Document = this.props.Document;
             if (this.props.isTopMost) {
                 return;

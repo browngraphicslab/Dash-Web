@@ -130,11 +130,11 @@ export namespace DragManager {
     }
 
     export class LinkDragData {
-        constructor(linkSourceDoc: DocumentView) {
-            this.linkSourceDocumentView = linkSourceDoc;
+        constructor(linkSourceDoc: Document) {
+            this.linkSourceDocument = linkSourceDoc;
         }
         droppedDocuments: Document[] = [];
-        linkSourceDocumentView: DocumentView;
+        linkSourceDocument: Document;
         [id: string]: any;
     }
 
