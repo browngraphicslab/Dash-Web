@@ -11,9 +11,9 @@ import { setupDrag, DragManager } from "../../util/DragManager";
 import { EditableView } from "../EditableView";
 import "./CollectionTreeView.scss";
 import { CollectionView } from "./CollectionView";
+import * as globalCssVariables from "../../views/globalCssVariables.scss";
 import { CollectionSubView } from "./CollectionSubView";
 import React = require("react");
-import { COLLECTION_BORDER_WIDTH } from './CollectionBaseView';
 import { props } from 'bluebird';
 
 
@@ -139,7 +139,7 @@ export class CollectionTreeView extends CollectionSubView {
             );
 
         return (
-            <div id="body" className="collectionTreeView-dropTarget" onWheel={(e: React.WheelEvent) => e.stopPropagation()} onDrop={(e: React.DragEvent) => this.onDrop(e, {})} ref={this.createDropTarget} style={{ borderWidth: `${COLLECTION_BORDER_WIDTH}px` }}>
+            <div id="body" className="collectionTreeView-dropTarget" onWheel={(e: React.WheelEvent) => e.stopPropagation()} onDrop={(e: React.DragEvent) => this.onDrop(e, {})} ref={this.createDropTarget}>
                 <div className="coll-title">
                     <EditableView
                         contents={this.props.Document.Title}

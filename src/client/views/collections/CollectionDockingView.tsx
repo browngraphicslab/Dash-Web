@@ -13,7 +13,6 @@ import { Server } from "../../Server";
 import { undoBatch } from "../../util/UndoManager";
 import { DocumentView } from "../nodes/DocumentView";
 import "./CollectionDockingView.scss";
-import { COLLECTION_BORDER_WIDTH } from "./CollectionBaseView";
 import React = require("react");
 import { SubCollectionViewProps } from "./CollectionSubView";
 import { ServerUtils } from "../../../server/ServerUtil";
@@ -271,13 +270,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     render() {
         return (
             <div className="collectiondockingview-container" id="menuContainer"
-                onPointerDown={this.onPointerDown} onPointerUp={this.onPointerUp} ref={this._containerRef}
-                style={{
-                    width: "100%",
-                    height: "100%",
-                    borderStyle: "solid",
-                    borderWidth: `${COLLECTION_BORDER_WIDTH}px`,
-                }} />
+                onPointerDown={this.onPointerDown} onPointerUp={this.onPointerUp} ref={this._containerRef} />
         );
     }
 }

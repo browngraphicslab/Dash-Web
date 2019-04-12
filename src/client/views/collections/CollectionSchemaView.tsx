@@ -25,7 +25,7 @@ import "./CollectionSchemaView.scss";
 import { CollectionView } from "./CollectionView";
 import { CollectionSubView } from "./CollectionSubView";
 import { TextField } from "../../../fields/TextField";
-import { COLLECTION_BORDER_WIDTH } from "./CollectionBaseView";
+import * as globalCssVariables from "../../views/globalCssVariables.scss";
 import { emptyFunction, returnFalse } from "../../../Utils";
 
 
@@ -245,11 +245,13 @@ export class CollectionSchemaView extends CollectionSubView {
         this._contentScaling = r.entry.width / selected!.GetNumber(KeyStore.NativeWidth, r.entry.width);
     }
 
+    @computed
+    get borderWidth() { return globalCssVariables.COLLECTION_BORDER_WIDTH; }
     getContentScaling = (): number => this._contentScaling;
     getPanelWidth = (): number => this._panelWidth;
     getPanelHeight = (): number => this._panelHeight;
-    getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(- COLLECTION_BORDER_WIDTH - this.DIVIDER_WIDTH - this._dividerX, - COLLECTION_BORDER_WIDTH).scale(1 / this._contentScaling);
-    getPreviewTransform = (): Transform => this.props.ScreenToLocalTransform().translate(- COLLECTION_BORDER_WIDTH - this.DIVIDER_WIDTH - this._dividerX - this._tableWidth, - COLLECTION_BORDER_WIDTH).scale(1 / this._contentScaling);
+    getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(- this.borderWidth - this.DIVIDER_WIDTH - this._dividerX, - this.borderWidth).scale(1 / this._contentScaling);
+    getPreviewTransform = (): Transform => this.props.ScreenToLocalTransform().translate(- this.borderWidth - this.DIVIDER_WIDTH - this._dividerX - this._tableWidth, - this.borderWidth).scale(1 / this._contentScaling);
 
     focusDocument = (doc: Document) => { };
 
@@ -349,7 +351,7 @@ export class CollectionSchemaView extends CollectionSubView {
         </Flyout>);
 
         return (
-            <div className="collectionSchemaView-container" onPointerDown={this.onPointerDown} onWheel={this.onWheel} ref={this._mainCont} style={{ borderWidth: `${COLLECTION_BORDER_WIDTH}px` }} >
+            <div className="collectionSchemaView-container" onPointerDown={this.onPointerDown} onWheel={this.onWheel} ref={this._mainCont}>
                 <div className="collectionSchemaView-dropTarget" onDrop={(e: React.DragEvent) => this.onDrop(e, {})} ref={this.createDropTarget}>
                     <Measure onResize={this.setTableDimensions}>
                         {({ measureRef }) =>

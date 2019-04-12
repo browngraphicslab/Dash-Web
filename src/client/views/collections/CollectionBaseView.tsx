@@ -34,7 +34,6 @@ export interface CollectionViewProps extends FieldViewProps {
     contentRef?: React.Ref<HTMLDivElement>;
 }
 
-export const COLLECTION_BORDER_WIDTH = 1;
 
 @observer
 export class CollectionBaseView extends React.Component<CollectionViewProps> {

@@ -22,7 +22,8 @@ $contextMenu-zindex: 1000;  // context menu shows up over everything
 $mainTextInput-zindex: 999; // then text input overlay so that it's context menu will appear over decorations, etc
 $docDecorations-zindex: 998; // then doc decorations appear over everything else
 $remoteCursors-zindex: 997; // ... not sure what level the remote cursors should go -- is this right?
-
+$COLLECTION_BORDER_WIDTH: 1;
 :export  {
     contextMenuZindex: $contextMenu-zindex;
+    COLLECTION_BORDER_WIDTH: $COLLECTION_BORDER_WIDTH;
 }

@@ -5,8 +5,7 @@ import { CollectionDockingView } from "../views/collections/CollectionDockingVie
 import { DocumentDecorations } from "../views/DocumentDecorations";
 import { Main } from "../views/Main";
 import { DocumentView } from "../views/nodes/DocumentView";
-// import globalStyles from "../views/_global_variables";
-import * as globalStyles from "../views/_global_variables.scss"; // bcz: why doesn't this work?
+import * as globalCssVariables from "../views/globalCssVariables.scss";
 
 export function setupDrag(_reference: React.RefObject<HTMLDivElement>, docFunc: () => Document, moveFunc?: DragManager.MoveFunction, copyOnDrop: boolean = false) {
     let onRowMove = action((e: PointerEvent): void => {
@@ -178,7 +177,7 @@ export namespace DragManager {
             dragElement.style.bottom = "";
             dragElement.style.left = "0";
             dragElement.style.transformOrigin = "0 0";
-            dragElement.style.zIndex = globalStyles.contextMenuZindex;// "1000";
+            dragElement.style.zIndex = globalCssVariables.contextMenuZindex;// "1000";
             dragElement.style.transform = `translate(${x}px, ${y}px) scale(${scaleX}, ${scaleY})`;
             dragElement.style.width = `${rect.width / scaleX}px`;
             dragElement.style.height = `${rect.height / scaleY}px`;
