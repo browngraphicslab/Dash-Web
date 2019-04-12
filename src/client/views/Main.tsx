@@ -448,11 +448,11 @@ export class Main extends React.Component {
     @action AddToNorthstarCatalog(ctlog: Catalog) {
         CurrentUserUtils.NorthstarDBCatalog = CurrentUserUtils.NorthstarDBCatalog ? CurrentUserUtils.NorthstarDBCatalog : ctlog;
         if (ctlog && ctlog.schemas) {
-            this._northstarSchemas.push(...ctlog.schemas.map(schema => {
-                let schemaDoc = Documents.TreeDocument([], { width: 50, height: 100, title: schema.displayName! });
-                let schemaDocuments = schemaDoc.GetList(KeyStore.Data, [] as Document[]);
+            ctlog.schemas.map(schema => {
+                let promises: Promise<void>[] = [];
+                let schemaDocuments: Document[] = [];
                 CurrentUserUtils.GetAllNorthstarColumnAttributes(schema).map(attr => {
-                    Server.GetField(attr.displayName! + ".alias", action((field: Opt<Field>) => {
+                    let prom = Server.GetField(attr.displayName! + ".alias").then(action((field: Opt<Field>) => {
                         if (field instanceof Document) {
                             schemaDocuments.push(field);
                         } else {
@@ -464,9 +464,13 @@ export class Main extends React.Component {
                             schemaDocuments.push(Documents.HistogramDocument(histoOp, { width: 200, height: 200, title: attr.displayName! }, undefined, attr.displayName! + ".alias"));
                         }
                     }));
+                    promises.push(prom);
                 });
-                return schemaDoc;
-            }));
+                Promise.all(promises).finally(() => {
+                    let schemaDoc = Documents.TreeDocument(schemaDocuments, { width: 50, height: 100, title: schema.displayName! });
+                    this._northstarSchemas.push(schemaDoc);
+                })
+            })
         }
     }
     async initializeNorthstar(): Promise<void> {

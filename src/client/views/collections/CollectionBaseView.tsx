@@ -8,8 +8,6 @@ import { ListField } from '../../../fields/ListField';
 import { NumberField } from '../../../fields/NumberField';
 import { ContextMenu } from '../ContextMenu';
 import { FieldViewProps } from '../nodes/FieldView';
-import { CompileScript } from '../../util/Scripting';
-import { ScriptField } from '../../../fields/ScriptField';
 
 export enum CollectionViewType {
     Invalid,
@@ -37,15 +35,15 @@ export interface CollectionViewProps extends FieldViewProps {
 
 @observer
 export class CollectionBaseView extends React.Component<CollectionViewProps> {
-    get collectionViewType(): CollectionViewType {
+    get collectionViewType(): CollectionViewType | undefined {
         let Document = this.props.Document;
         let viewField = Document.GetT(KeyStore.ViewType, NumberField);
         if (viewField === FieldWaiting) {
-            return CollectionViewType.Invalid;
+            return undefined;
         } else if (viewField) {
             return viewField.Data;
         } else {
-            return CollectionViewType.Freeform;
+            return CollectionViewType.Invalid;
         }
     }
 
@@ -181,9 +179,10 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
             active: this.active,
             onActiveChanged: this.onActiveChanged,
         };
+        const viewtype = this.collectionViewType;
         return (
             <div className={this.props.className || "collectionView-cont"} onContextMenu={this.props.onContextMenu} ref={this.props.contentRef}>
-                {this.props.children(this.collectionViewType, props)}
+                {viewtype !== undefined ? this.props.children(viewtype, props) : (null)}
             </div>
         );
     }

@@ -315,6 +315,7 @@ export class CollectionFreeFormView extends CollectionSubView {
         const blay = this.backgroundView;
         const olay = this.overlayView;
 
+        console.log("tv = " + this.props.Document.Title);
         return (
             <Measure onResize={(r: any) => runInAction(() => { this._pwidth = r.entry.width; this._pheight = r.entry.height; })}>
                 {({ measureRef }) => (

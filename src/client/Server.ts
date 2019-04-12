@@ -123,6 +123,9 @@ export class Server {
                             callback(fieldfromserver);
                         }
                     }
+                    if (!fieldfromserver && callback) {
+                        console.log("Why didn't we get a field?")
+                    }
                 }));
         }
     }

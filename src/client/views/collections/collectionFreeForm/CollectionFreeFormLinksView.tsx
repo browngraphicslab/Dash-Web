@@ -1,4 +1,4 @@
-import { computed, reaction } from "mobx";
+import { computed, reaction, trace, IReactionDisposer } from "mobx";
 import { observer } from "mobx-react";
 import { Document } from "../../../../fields/Document";
 import { FieldWaiting } from "../../../../fields/Field";
@@ -15,18 +15,19 @@ import React = require("react");
 @observer
 export class CollectionFreeFormLinksView extends React.Component<CollectionViewProps> {
 
-    HackToAvoidReactionFiringUnnecessarily?: Document = undefined;
+    _brushReactionDisposer?: IReactionDisposer;
     componentDidMount() {
-        this.HackToAvoidReactionFiringUnnecessarily = this.props.Document;
-        reaction(() =>
-            DocumentManager.Instance.getAllDocumentViews(this.HackToAvoidReactionFiringUnnecessarily!).
-                map(dv => dv.props.Document.GetNumber(KeyStore.X, 0)),
+        this._brushReactionDisposer = reaction(() => {
+            // trace();
+            return this.props.Document.GetList<Document>(this.props.fieldKey, []).map(doc => doc.GetNumber(KeyStore.X, 0));
+        },
             () => {
-                let views = DocumentManager.Instance.getAllDocumentViews(this.props.Document);
+                console.log("title = " + this.props.Document.Title);
+                let views = this.props.Document.GetList<Document>(this.props.fieldKey, []);
                 for (let i = 0; i < views.length; i++) {
                     for (let j = 0; j < views.length; j++) {
-                        let srcDoc = views[j].props.Document;
-                        let dstDoc = views[i].props.Document;
+                        let srcDoc = views[j];
+                        let dstDoc = views[i];
                         let x1 = srcDoc.GetNumber(KeyStore.X, 0);
                         let x1w = srcDoc.GetNumber(KeyStore.Width, -1);
                         let x2 = dstDoc.GetNumber(KeyStore.X, 0);
@@ -53,7 +54,7 @@ export class CollectionFreeFormLinksView extends React.Component<CollectionViewP
                             linkDoc.SetText(KeyStore.LinkDescription, "Brush between " + srcTarg.Title + " and " + dstTarg.Title);
                             linkDoc.SetData(KeyStore.BrushingDocs, [dstTarg, srcTarg], ListField);
 
-                            brushAction = brushAction = (field: ListField<Document>) => {
+                            brushAction = (field: ListField<Document>) => {
                                 if (findBrush(field) === -1) {
                                     console.log("ADD BRUSH " + srcTarg.Title + " " + dstTarg.Title);
                                     (findBrush(field) === -1) && field.Data.push(linkDoc);
@@ -66,6 +67,11 @@ export class CollectionFreeFormLinksView extends React.Component<CollectionViewP
                     }
                 }
             });
+    }
+    componentWillUnmount() {
+        if (this._brushReactionDisposer) {
+            this._brushReactionDisposer();
+        }
     }
     documentAnchors(view: DocumentView) {
         let equalViews = [view];
