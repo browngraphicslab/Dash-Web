@@ -108,7 +108,9 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         document.addEventListener("pointerup", this.onBackgroundUp);
         this._lastDrag = [e.clientX, e.clientY];
         e.stopPropagation();
-        e.preventDefault();
+        if (e.currentTarget.localName !== "input") {
+            e.preventDefault();
+        }
     }
 
     @action
@@ -404,7 +406,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 opacity: this._opacity
             }}>
                 <div className="documentDecorations-minimizeButton" onPointerDown={this.onMinimizeDown}>...</div>
-                <input ref={this.keyinput} className="title" type="text" name="dynbox" value={this.getValue()} onChange={this.handleChange} onPointerDown={this.onPointerDown} onKeyPress={this.enterPressed} />
+                <input ref={this.keyinput} className="title" type="text" name="dynbox" value={this.getValue()} onChange={this.handleChange} onPointerDown={this.onBackgroundDown} onKeyPress={this.enterPressed} />
                 <div className="documentDecorations-closeButton" onPointerDown={this.onCloseDown}>X</div>
                 <div id="documentDecorations-topLeftResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-topResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
