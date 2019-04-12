@@ -15,7 +15,7 @@ import { ListField } from '../../fields/ListField';
 import { WorkspacesMenu } from '../../server/authentication/controllers/WorkspacesMenu';
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
 import { MessageStore } from '../../server/Message';
-import { Utils, returnTrue, emptyFunction } from '../../Utils';
+import { Utils, returnTrue, emptyFunction, emptyDocFunction } from '../../Utils';
 import * as rp from 'request-promise';
 import { RouteStore } from '../../server/RouteStore';
 import { ServerUtils } from '../../server/ServerUtil';
@@ -202,7 +202,6 @@ export class Main extends React.Component {
 
     pwidthFunc = () => this.pwidth;
     pheightFunc = () => this.pheight;
-    focusDocument = (doc: Document) => { };
     noScaling = () => 1;
 
     @observable _textDoc?: Document = undefined;
@@ -280,7 +279,8 @@ export class Main extends React.Component {
             s[0] = Math.sqrt((s[0] - t[0]) * (s[0] - t[0]) + (s[1] - t[1]) * (s[1] - t[1]));
             return <div className="mainDiv-textInput" style={{ pointerEvents: "none", transform: `translate(${x}px, ${y}px) scale(${1 / s[0]},${1 / s[0]})`, width: "auto", height: "auto" }} >
                 <div className="mainDiv-textInput" onPointerDown={this.textBoxDown} ref={this._textProxyDiv} onScroll={this.textScroll} style={{ pointerEvents: "none", transform: `scale(${1}, ${1})`, width: `${w * s[0]}px`, height: `${h * s[0]}px` }}>
-                    <FormattedTextBox fieldKey={this._textFieldKey!} isOverlay={true} Document={this._textDoc} isSelected={returnTrue} select={emptyFunction} isTopMost={true} selectOnLoad={true} onActiveChanged={emptyFunction} active={returnTrue} ScreenToLocalTransform={() => this._textXf} focus={(doc) => { }} />
+                    <FormattedTextBox fieldKey={this._textFieldKey!} isOverlay={true} Document={this._textDoc} isSelected={returnTrue} select={emptyFunction} isTopMost={true}
+                        selectOnLoad={true} onActiveChanged={emptyFunction} active={returnTrue} ScreenToLocalTransform={() => this._textXf} focus={emptyDocFunction} />
                 </div>
             </ div>;
         }
@@ -299,7 +299,7 @@ export class Main extends React.Component {
                 PanelHeight={this.pheightFunc}
                 isTopMost={true}
                 selectOnLoad={false}
-                focus={this.focusDocument}
+                focus={emptyDocFunction}
                 parentActive={returnTrue}
                 onActiveChanged={emptyFunction}
                 ContainingCollectionView={undefined} />;

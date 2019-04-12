@@ -12,7 +12,7 @@ import { Server } from "../../Server";
 import { EditableView } from "../EditableView";
 import { CompileScript, ToField } from "../../util/Scripting";
 import { Transform } from '../../util/Transform';
-import { returnFalse, emptyFunction } from '../../../Utils';
+import { returnFalse, emptyFunction, emptyDocFunction } from '../../../Utils';
 
 // Represents one row in a key value plane
 
@@ -54,7 +54,7 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
             active: returnFalse,
             onActiveChanged: emptyFunction,
             ScreenToLocalTransform: Transform.Identity,
-            focus: emptyFunction,
+            focus: emptyDocFunction,
         };
         let contents = (
             <FieldView {...props} />

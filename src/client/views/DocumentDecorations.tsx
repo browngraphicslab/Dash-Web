@@ -244,7 +244,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     }
 
     onLinkButtonMoved = async (e: PointerEvent) => {
-        if (this._linkButton.current !== null) {
+        if (this._linkButton.current !== null && (e.movementX > 1 || e.movementY > 1)) {
             document.removeEventListener("pointermove", this.onLinkButtonMoved);
             document.removeEventListener("pointerup", this.onLinkButtonUp);
 

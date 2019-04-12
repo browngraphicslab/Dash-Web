@@ -26,7 +26,7 @@ import { CollectionView } from "./CollectionView";
 import { CollectionSubView } from "./CollectionSubView";
 import { TextField } from "../../../fields/TextField";
 import * as globalCssVariables from "../../views/globalCssVariables.scss";
-import { emptyFunction, returnFalse } from "../../../Utils";
+import { emptyFunction, returnFalse, emptyDocFunction } from "../../../Utils";
 
 
 // bcz: need to add drag and drop of rows and columns.  This seems like it might work for rows: https://codesandbox.io/s/l94mn1q657
@@ -82,7 +82,7 @@ export class CollectionSchemaView extends CollectionSubView {
             isTopMost: false,
             selectOnLoad: false,
             ScreenToLocalTransform: Transform.Identity,
-            focus: emptyFunction,
+            focus: emptyDocFunction,
             active: returnFalse,
             onActiveChanged: emptyFunction,
         };
@@ -253,8 +253,6 @@ export class CollectionSchemaView extends CollectionSubView {
     getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(- this.borderWidth - this.DIVIDER_WIDTH - this._dividerX, - this.borderWidth).scale(1 / this._contentScaling);
     getPreviewTransform = (): Transform => this.props.ScreenToLocalTransform().translate(- this.borderWidth - this.DIVIDER_WIDTH - this._dividerX - this._tableWidth, - this.borderWidth).scale(1 / this._contentScaling);
 
-    focusDocument = (doc: Document) => { };
-
     onPointerDown = (e: React.PointerEvent): void => {
         if (e.button === 1 && this.props.isSelected() && !e.altKey && !e.ctrlKey && !e.metaKey) {
             e.stopPropagation();
@@ -317,7 +315,7 @@ export class CollectionSchemaView extends CollectionSubView {
                                 PanelWidth={this.getPanelWidth}
                                 PanelHeight={this.getPanelHeight}
                                 ContainingCollectionView={undefined}
-                                focus={this.focusDocument}
+                                focus={emptyDocFunction}
                                 parentActive={this.props.active}
                                 onActiveChanged={this.props.onActiveChanged} /> : null}
                         <input value={this.previewScript} onChange={this.onPreviewScriptChange}
