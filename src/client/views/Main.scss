@@ -1,4 +1,4 @@
-@import "global_variables";
+@import "globalCssVariables";
 @import "nodeModuleOverrides";
 html,
 body {
@@ -184,7 +184,7 @@ button:hover {
         position:absolute;
         top: 0;
         left: 0;
-}
+    }
 }
 #mainContent-div {
     width:100%;

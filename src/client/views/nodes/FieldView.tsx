@@ -19,7 +19,7 @@ import { ListField } from "../../../fields/ListField";
 import { DocumentContentsView } from "./DocumentContentsView";
 import { Transform } from "../../util/Transform";
 import { KeyStore } from "../../../fields/KeyStore";
-import { returnFalse, emptyFunction } from "../../../Utils";
+import { returnFalse, emptyDocFunction } from "../../../Utils";
 
 
 //
@@ -85,7 +85,7 @@ export class FieldView extends React.Component<FieldViewProps> {
                     PanelHeight={() => 100}
                     isTopMost={true} //TODO Why is this top most?
                     selectOnLoad={false}
-                    focus={emptyFunction}
+                    focus={emptyDocFunction}
                     isSelected={returnFalse}
                     select={returnFalse}
                     layoutKey={KeyStore.Layout}

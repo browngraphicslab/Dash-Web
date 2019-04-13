@@ -15,7 +15,7 @@ import { ListField } from '../../fields/ListField';
 import { WorkspacesMenu } from '../../server/authentication/controllers/WorkspacesMenu';
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
 import { MessageStore } from '../../server/Message';
-import { Utils, returnTrue, emptyFunction } from '../../Utils';
+import { Utils, returnTrue, emptyFunction, emptyDocFunction } from '../../Utils';
 import * as rp from 'request-promise';
 import { RouteStore } from '../../server/RouteStore';
 import { ServerUtils } from '../../server/ServerUtil';
@@ -28,7 +28,7 @@ import '../northstar/model/ModelExtensions';
 import { HistogramOperation } from '../northstar/operations/HistogramOperation';
 import '../northstar/utils/Extensions';
 import { Server } from '../Server';
-import { setupDrag, DragManager } from '../util/DragManager';
+import { SetupDrag, DragManager } from '../util/DragManager';
 import { Transform } from '../util/Transform';
 import { UndoManager } from '../util/UndoManager';
 import { CollectionDockingView } from './collections/CollectionDockingView';
@@ -40,6 +40,8 @@ import { DocumentView } from './nodes/DocumentView';
 import { FormattedTextBox } from './nodes/FormattedTextBox';
 import { REPLCommand } from 'repl';
 import { Key } from '../../fields/Key';
+import { PreviewCursor } from './PreviewCursor';
+
 
 @observer
 export class Main extends React.Component {
@@ -202,7 +204,6 @@ export class Main extends React.Component {
 
     pwidthFunc = () => this.pwidth;
     pheightFunc = () => this.pheight;
-    focusDocument = (doc: Document) => { };
     noScaling = () => 1;
 
     @observable _textDoc?: Document = undefined;
@@ -280,7 +281,8 @@ export class Main extends React.Component {
             s[0] = Math.sqrt((s[0] - t[0]) * (s[0] - t[0]) + (s[1] - t[1]) * (s[1] - t[1]));
             return <div className="mainDiv-textInput" style={{ pointerEvents: "none", transform: `translate(${x}px, ${y}px) scale(${1 / s[0]},${1 / s[0]})`, width: "auto", height: "auto" }} >
                 <div className="mainDiv-textInput" onPointerDown={this.textBoxDown} ref={this._textProxyDiv} onScroll={this.textScroll} style={{ pointerEvents: "none", transform: `scale(${1}, ${1})`, width: `${w * s[0]}px`, height: `${h * s[0]}px` }}>
-                    <FormattedTextBox fieldKey={this._textFieldKey!} isOverlay={true} Document={this._textDoc} isSelected={returnTrue} select={emptyFunction} isTopMost={true} selectOnLoad={true} onActiveChanged={emptyFunction} active={returnTrue} ScreenToLocalTransform={() => this._textXf} focus={(doc) => { }} />
+                    <FormattedTextBox fieldKey={this._textFieldKey!} isOverlay={true} Document={this._textDoc} isSelected={returnTrue} select={emptyFunction} isTopMost={true}
+                        selectOnLoad={true} onActiveChanged={emptyFunction} active={returnTrue} ScreenToLocalTransform={() => this._textXf} focus={emptyDocFunction} />
                 </div>
             </ div>;
         }
@@ -299,7 +301,7 @@ export class Main extends React.Component {
                 PanelHeight={this.pheightFunc}
                 isTopMost={true}
                 selectOnLoad={false}
-                focus={this.focusDocument}
+                focus={emptyDocFunction}
                 parentActive={returnTrue}
                 onActiveChanged={emptyFunction}
                 ContainingCollectionView={undefined} />;
@@ -344,7 +346,7 @@ export class Main extends React.Component {
                 <ul id="add-options-list">
                     {btns.map(btn =>
                         <li key={btn[1]} ><div ref={btn[0]}>
-                            <button className="round-button add-button" title={btn[2]} onPointerDown={setupDrag(btn[0], btn[3])}>
+                            <button className="round-button add-button" title={btn[2]} onPointerDown={SetupDrag(btn[0], btn[3])}>
                                 <FontAwesomeIcon icon={btn[1]} size="sm" />
                             </button>
                         </div></li>)}
@@ -392,6 +394,7 @@ export class Main extends React.Component {
                         {({ measureRef }) =>
                             <div ref={measureRef} id="mainContent-div">
                                 {this.mainContent}
+                                <PreviewCursor />
                             </div>
                         }
                     </Measure>
@@ -411,11 +414,11 @@ export class Main extends React.Component {
     @action AddToNorthstarCatalog(ctlog: Catalog) {
         CurrentUserUtils.NorthstarDBCatalog = CurrentUserUtils.NorthstarDBCatalog ? CurrentUserUtils.NorthstarDBCatalog : ctlog;
         if (ctlog && ctlog.schemas) {
-            this._northstarSchemas.push(...ctlog.schemas.map(schema => {
-                let schemaDoc = Documents.TreeDocument([], { width: 50, height: 100, title: schema.displayName! });
-                let schemaDocuments = schemaDoc.GetList(KeyStore.Data, [] as Document[]);
+            ctlog.schemas.map(schema => {
+                let promises: Promise<void>[] = [];
+                let schemaDocuments: Document[] = [];
                 CurrentUserUtils.GetAllNorthstarColumnAttributes(schema).map(attr => {
-                    Server.GetField(attr.displayName! + ".alias", action((field: Opt<Field>) => {
+                    let prom = Server.GetField(attr.displayName! + ".alias").then(action((field: Opt<Field>) => {
                         if (field instanceof Document) {
                             schemaDocuments.push(field);
                         } else {
@@ -427,9 +430,13 @@ export class Main extends React.Component {
                             schemaDocuments.push(Documents.HistogramDocument(histoOp, { width: 200, height: 200, title: attr.displayName! }, undefined, attr.displayName! + ".alias"));
                         }
                     }));
+                    promises.push(prom);
                 });
-                return schemaDoc;
-            }));
+                Promise.all(promises).finally(() => {
+                    let schemaDoc = Documents.TreeDocument(schemaDocuments, { width: 50, height: 100, title: schema.displayName! });
+                    this._northstarSchemas.push(schemaDoc);
+                });
+            });
         }
     }
     async initializeNorthstar(): Promise<void> {

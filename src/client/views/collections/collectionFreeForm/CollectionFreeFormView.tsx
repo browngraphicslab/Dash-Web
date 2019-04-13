@@ -1,31 +1,30 @@
-import { action, computed, observable, trace, ObservableSet, runInAction } from "mobx";
+import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
+import Measure from "react-measure";
 import { Document } from "../../../../fields/Document";
 import { FieldWaiting } from "../../../../fields/Field";
 import { KeyStore } from "../../../../fields/KeyStore";
+import { NumberField } from "../../../../fields/NumberField";
 import { TextField } from "../../../../fields/TextField";
+import { emptyFunction, returnFalse } from "../../../../Utils";
+import { DocumentManager } from "../../../util/DocumentManager";
 import { DragManager } from "../../../util/DragManager";
+import { SelectionManager } from "../../../util/SelectionManager";
 import { Transform } from "../../../util/Transform";
 import { undoBatch } from "../../../util/UndoManager";
+import { COLLECTION_BORDER_WIDTH } from "../../../views/globalCssVariables.scss";
 import { InkingCanvas } from "../../InkingCanvas";
+import { Main } from "../../Main";
 import { CollectionFreeFormDocumentView } from "../../nodes/CollectionFreeFormDocumentView";
 import { DocumentContentsView } from "../../nodes/DocumentContentsView";
 import { DocumentViewProps } from "../../nodes/DocumentView";
-import { COLLECTION_BORDER_WIDTH } from "../CollectionBaseView";
 import { CollectionSubView } from "../CollectionSubView";
 import { CollectionFreeFormLinksView } from "./CollectionFreeFormLinksView";
+import { CollectionFreeFormRemoteCursors } from "./CollectionFreeFormRemoteCursors";
 import "./CollectionFreeFormView.scss";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
 import v5 = require("uuid/v5");
-import { CollectionFreeFormRemoteCursors } from "./CollectionFreeFormRemoteCursors";
-import { PreviewCursor } from "./PreviewCursor";
-import { DocumentManager } from "../../../util/DocumentManager";
-import { SelectionManager } from "../../../util/SelectionManager";
-import { NumberField } from "../../../../fields/NumberField";
-import { Main } from "../../Main";
-import Measure from "react-measure";
-import { returnFalse, emptyFunction } from "../../../../Utils";
 
 @observer
 export class CollectionFreeFormView extends CollectionSubView {
@@ -297,8 +296,12 @@ export class CollectionFreeFormView extends CollectionSubView {
                 layoutKey={KeyStore.OverlayLayout} isTopMost={this.props.isTopMost} isSelected={returnFalse} select={emptyFunction} />);
     }
 
-    getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-COLLECTION_BORDER_WIDTH, -COLLECTION_BORDER_WIDTH).translate(-this.centeringShiftX, -this.centeringShiftY).transform(this.getLocalTransform());
-    getContainerTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-COLLECTION_BORDER_WIDTH, -COLLECTION_BORDER_WIDTH);
+    @computed
+    get borderWidth() {
+        return this.isAnnotationOverlay ? 0 : COLLECTION_BORDER_WIDTH;
+    }
+    getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-this.borderWidth, -this.borderWidth).translate(-this.centeringShiftX, -this.centeringShiftY).transform(this.getLocalTransform());
+    getContainerTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-this.borderWidth, -this.borderWidth);
     getLocalTransform = (): Transform => Transform.Identity().scale(1 / this.scale).translate(this.panX, this.panY);
     noScaling = () => 1;
     childViews = () => this.views;
@@ -307,9 +310,9 @@ export class CollectionFreeFormView extends CollectionSubView {
         const [dx, dy] = [this.centeringShiftX, this.centeringShiftY];
         const panx: number = -this.props.Document.GetNumber(KeyStore.PanX, 0);
         const pany: number = -this.props.Document.GetNumber(KeyStore.PanY, 0);
-        const zoom: number = this.zoomScaling;
-        const blay = this.backgroundView;
-        const olay = this.overlayView;
+        const zoom: number = this.zoomScaling;// needs to be a variable outside of the <Measure> otherwise, reactions won't fire
+        const backgroundView = this.backgroundView; // needs to be a variable outside of the <Measure> otherwise, reactions won't fire
+        const overlayView = this.overlayView;// needs to be a variable outside of the <Measure> otherwise, reactions won't fire
 
         return (
             <Measure onResize={(r: any) => runInAction(() => { this._pwidth = r.entry.width; this._pheight = r.entry.height; })}>
@@ -317,25 +320,21 @@ export class CollectionFreeFormView extends CollectionSubView {
                     <div className={`collectionfreeformview-measure`} ref={measureRef}>
                         <div className={`collectionfreeformview${this.isAnnotationOverlay ? "-overlay" : "-container"}`}
                             onPointerDown={this.onPointerDown} onPointerMove={(e) => super.setCursorPosition(this.getTransform().transformPoint(e.clientX, e.clientY))}
-                            onDrop={this.onDrop.bind(this)} onDragOver={this.onDragOver} onWheel={this.onPointerWheel}
-                            style={{ borderWidth: `${COLLECTION_BORDER_WIDTH}px` }} ref={this.createDropTarget}>
+                            onDrop={this.onDrop.bind(this)} onDragOver={this.onDragOver} onWheel={this.onPointerWheel} ref={this.createDropTarget}>
                             <MarqueeView container={this} activeDocuments={this.getActiveDocuments} selectDocuments={this.selectDocuments}
-                                addDocument={this.addDocument} removeDocument={this.props.removeDocument}
+                                addDocument={this.addDocument} removeDocument={this.props.removeDocument} addLiveTextDocument={this.addLiveTextBox}
                                 getContainerTransform={this.getContainerTransform} getTransform={this.getTransform}>
-                                <PreviewCursor container={this} addLiveTextDocument={this.addLiveTextBox}
-                                    getContainerTransform={this.getContainerTransform} getTransform={this.getTransform} >
-                                    <div className="collectionfreeformview" ref={this._canvasRef}
-                                        style={{ transform: `translate(${dx}px, ${dy}px) scale(${zoom}, ${zoom}) translate(${panx}px, ${pany}px)` }}>
-                                        {blay}
-                                        <CollectionFreeFormLinksView {...this.props}>
-                                            <InkingCanvas getScreenTransform={this.getTransform} Document={this.props.Document} >
-                                                {this.childViews}
-                                            </InkingCanvas>
-                                        </CollectionFreeFormLinksView>
-                                        <CollectionFreeFormRemoteCursors {...this.props} />
-                                    </div>
-                                    {olay}
-                                </PreviewCursor>
+                                <div className="collectionfreeformview" ref={this._canvasRef}
+                                    style={{ transform: `translate(${dx}px, ${dy}px) scale(${zoom}, ${zoom}) translate(${panx}px, ${pany}px)` }}>
+                                    {backgroundView}
+                                    <CollectionFreeFormLinksView {...this.props}>
+                                        <InkingCanvas getScreenTransform={this.getTransform} Document={this.props.Document} >
+                                            {this.childViews}
+                                        </InkingCanvas>
+                                    </CollectionFreeFormLinksView>
+                                    <CollectionFreeFormRemoteCursors {...this.props} />
+                                </div>
+                                {overlayView}
                             </MarqueeView>
                         </div>
                     </div>)}

@@ -17,6 +17,8 @@ import "./FormattedTextBox.scss";
 import React = require("react");
 import { undoItem } from "prosemirror-menu";
 import buildKeymap from "../../util/ProsemirrorKeymap";
+import { TextField } from "../../../fields/TextField";
+import { KeyStore } from "../../../fields/KeyStore";
 const { buildMenuItems } = require("prosemirror-example-setup");
 const { menuBar } = require("prosemirror-menu");
 
@@ -58,15 +60,20 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
         this.onChange = this.onChange.bind(this);
     }
 
+    _applyingChange: boolean = false;
+
     dispatchTransaction = (tx: Transaction) => {
         if (this._editorView) {
             const state = this._editorView.state.apply(tx);
             this._editorView.updateState(state);
+            this._applyingChange = true;
             this.props.Document.SetDataOnPrototype(
                 this.props.fieldKey,
                 JSON.stringify(state.toJSON()),
                 RichTextField
             );
+            this.props.Document.SetDataOnPrototype(KeyStore.DocumentText, state.doc.textBetween(0, state.doc.content.size, "\n\n"), TextField);
+            this._applyingChange = false;
             // doc.SetData(fieldKey, JSON.stringify(state.toJSON()), RichTextField);
         }
     }
@@ -113,7 +120,7 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
                 return field && field !== FieldWaiting ? field.Data : undefined;
             },
             field => {
-                if (field && this._editorView) {
+                if (field && this._editorView && !this._applyingChange) {
                     this._editorView.updateState(
                         EditorState.fromJSON(config, JSON.parse(field))
                     );

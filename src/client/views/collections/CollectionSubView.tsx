@@ -166,22 +166,16 @@ export class CollectionSubView extends React.Component<SubCollectionViewProps> {
             let item = e.dataTransfer.items[i];
             if (item.kind === "string" && item.type.indexOf("uri") !== -1) {
                 let str: string;
-                let prom = new Promise<string>(res =>
-                    e.dataTransfer.items[i].getAsString(res)).then(action((s: string) => {
-                        str = s;
-                        return rp.head(ServerUtils.prepend(RouteStore.corsProxy + "/" + s));
-                    })).then(res => {
-                        let type = res.headers["content-type"];
+                let prom = new Promise<string>(resolve => e.dataTransfer.items[i].getAsString(resolve))
+                    .then(action((s: string) => rp.head(ServerUtils.prepend(RouteStore.corsProxy + "/" + (str = s)))))
+                    .then(result => {
+                        let type = result.headers["content-type"];
                         if (type) {
-                            this.getDocumentFromType(type, str, { ...options, width: 300, nativeWidth: 300 }).then(doc => {
-                                if (doc) {
-                                    this.props.addDocument(doc, false);
-                                }
-                            });
+                            this.getDocumentFromType(type, str, { ...options, width: 300, nativeWidth: 300 })
+                                .then(doc => doc && this.props.addDocument(doc, false));
                         }
                     });
                 promises.push(prom);
-                // this.props.addDocument(Documents.WebDocument(s, { ...options, width: 300, height: 300 }), false)
             }
             let type = item.type;
             if (item.kind === "file") {
@@ -197,33 +191,30 @@ export class CollectionSubView extends React.Component<SubCollectionViewProps> {
                     method: 'POST',
                     body: formData
                 }).then(async (res: Response) => {
-                    const json = await res.json();
-                    json.map((file: any) => {
+                    (await res.json()).map(action((file: any) => {
                         let path = window.location.origin + file;
-                        runInAction(() => {
-                            let docPromise = this.getDocumentFromType(type, path, { ...options, nativeWidth: 300, width: 300, title: dropFileName });
+                        let docPromise = this.getDocumentFromType(type, path, { ...options, nativeWidth: 300, width: 300, title: dropFileName });
 
-                            docPromise.then(doc => runInAction(() => {
-                                let docs = this.props.Document.GetT(KeyStore.Data, ListField);
-                                if (docs !== FieldWaiting) {
-                                    if (!docs) {
-                                        docs = new ListField<Document>();
-                                        this.props.Document.Set(KeyStore.Data, docs);
-                                    }
-                                    if (doc) {
-                                        docs.Data.push(doc);
-                                    }
+                        docPromise.then(action((doc?: Document) => {
+                            let docs = this.props.Document.GetT(KeyStore.Data, ListField);
+                            if (docs !== FieldWaiting) {
+                                if (!docs) {
+                                    docs = new ListField<Document>();
+                                    this.props.Document.Set(KeyStore.Data, docs);
                                 }
-                            }));
-                        });
-                    });
+                                if (doc) {
+                                    docs.Data.push(doc);
+                                }
+                            }
+                        }));
+                    }));
                 });
                 promises.push(prom);
             }
         }
 
         if (promises.length) {
-            Promise.all(promises).catch(emptyFunction).then(() => batch.end());
+            Promise.all(promises).finally(() => batch.end());
         } else {
             batch.end();
         }

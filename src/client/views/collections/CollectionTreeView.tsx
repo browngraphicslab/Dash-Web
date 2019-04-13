@@ -7,13 +7,13 @@ import { Document } from "../../../fields/Document";
 import { FieldWaiting } from "../../../fields/Field";
 import { KeyStore } from "../../../fields/KeyStore";
 import { ListField } from "../../../fields/ListField";
-import { setupDrag, DragManager } from "../../util/DragManager";
+import { SetupDrag, DragManager } from "../../util/DragManager";
 import { EditableView } from "../EditableView";
 import "./CollectionTreeView.scss";
 import { CollectionView } from "./CollectionView";
+import * as globalCssVariables from "../../views/globalCssVariables.scss";
 import { CollectionSubView } from "./CollectionSubView";
 import React = require("react");
-import { COLLECTION_BORDER_WIDTH } from './CollectionBaseView';
 import { props } from 'bluebird';
 
 
@@ -77,7 +77,7 @@ class TreeView extends React.Component<TreeViewProps> {
      */
     renderTitle() {
         let reference = React.createRef<HTMLDivElement>();
-        let onItemDown = setupDrag(reference, () => this.props.document, this.props.moveDocument, this.props.copyOnDrag);
+        let onItemDown = SetupDrag(reference, () => this.props.document, this.props.moveDocument, this.props.copyOnDrag);
         let editableView = (titleString: string) =>
             (<EditableView
                 display={"inline"}
@@ -139,7 +139,7 @@ export class CollectionTreeView extends CollectionSubView {
             );
 
         return (
-            <div id="body" className="collectionTreeView-dropTarget" onWheel={(e: React.WheelEvent) => e.stopPropagation()} onDrop={(e: React.DragEvent) => this.onDrop(e, {})} ref={this.createDropTarget} style={{ borderWidth: `${COLLECTION_BORDER_WIDTH}px` }}>
+            <div id="body" className="collectionTreeView-dropTarget" onWheel={(e: React.WheelEvent) => e.stopPropagation()} onDrop={(e: React.DragEvent) => this.onDrop(e, {})} ref={this.createDropTarget}>
                 <div className="coll-title">
                     <EditableView
                         contents={this.props.Document.Title}

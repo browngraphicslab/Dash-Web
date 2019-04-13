@@ -1,4 +1,4 @@
-import * as globalStyleVariables from "../views/_global_variables.scss"
+import * as globalStyleVariables from "../views/globalCssVariables.scss"
 
 export interface I_globalScss {
     contextMenuZindex: string;  // context menu shows up over everything
