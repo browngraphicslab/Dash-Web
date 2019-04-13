@@ -16,8 +16,9 @@ export class Database {
         if (this.db) {
             let collection = this.db.collection(collectionName);
             const prom = this.currentWrites[id];
+            let newProm: Promise<void>;
             const run = (): Promise<void> => {
-                let newProm = new Promise<void>(resolve => {
+                return new Promise<void>(resolve => {
                     collection.updateOne({ _id: id }, { $set: value }, { upsert: true }
                         , (err, res) => {
                             if (err) {
@@ -34,9 +35,9 @@ export class Database {
                             callback();
                         });
                 });
-                return newProm;
             };
-            this.currentWrites[id] = prom ? prom.then(run) : run();
+            newProm = prom ? prom.then(run) : run();
+            this.currentWrites[id] = newProm;
         }
     }
 

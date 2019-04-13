@@ -14,6 +14,8 @@ import { Main } from "../Main";
 import { FieldView, FieldViewProps } from "./FieldView";
 import "./FormattedTextBox.scss";
 import React = require("react");
+import { TextField } from "../../../fields/TextField";
+import { KeyStore } from "../../../fields/KeyStore";
 const { buildMenuItems } = require("prosemirror-example-setup");
 const { menuBar } = require("prosemirror-menu");
 
@@ -64,6 +66,7 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
                 JSON.stringify(state.toJSON()),
                 RichTextField
             );
+            this.props.Document.SetDataOnPrototype(KeyStore.DocumentText, state.doc.textBetween(0, state.doc.content.size, "\n\n"), TextField);
             // doc.SetData(fieldKey, JSON.stringify(state.toJSON()), RichTextField);
         }
     }
