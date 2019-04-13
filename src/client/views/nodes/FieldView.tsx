@@ -19,7 +19,7 @@ import { ListField } from "../../../fields/ListField";
 import { DocumentContentsView } from "./DocumentContentsView";
 import { Transform } from "../../util/Transform";
 import { KeyStore } from "../../../fields/KeyStore";
-import { returnFalse } from "../../../Utils";
+import { returnFalse, emptyDocFunction } from "../../../Utils";
 
 
 //
@@ -85,9 +85,9 @@ export class FieldView extends React.Component<FieldViewProps> {
                     PanelHeight={() => 100}
                     isTopMost={true} //TODO Why is this top most?
                     selectOnLoad={false}
-                    focus={() => { }}
-                    isSelected={() => false}
-                    select={() => false}
+                    focus={emptyDocFunction}
+                    isSelected={returnFalse}
+                    select={returnFalse}
                     layoutKey={KeyStore.Layout}
                     ContainingCollectionView={undefined}
                     parentActive={this.props.active}
@@ -111,7 +111,7 @@ export class FieldView extends React.Component<FieldViewProps> {
         }
         else {
             return <p> {"Waiting for server..."} </p>;
- }
+        }
     }
 
 }

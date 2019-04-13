@@ -15,7 +15,7 @@ import { ListField } from '../../fields/ListField';
 import { WorkspacesMenu } from '../../server/authentication/controllers/WorkspacesMenu';
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
 import { MessageStore } from '../../server/Message';
-import { Utils, returnTrue, emptyFunction } from '../../Utils';
+import { Utils, returnTrue, emptyFunction, emptyDocFunction } from '../../Utils';
 import * as rp from 'request-promise';
 import { RouteStore } from '../../server/RouteStore';
 import { ServerUtils } from '../../server/ServerUtil';
@@ -23,12 +23,12 @@ import { Documents } from '../documents/Documents';
 import { ColumnAttributeModel } from '../northstar/core/attribute/AttributeModel';
 import { AttributeTransformationModel } from '../northstar/core/attribute/AttributeTransformationModel';
 import { Gateway, Settings } from '../northstar/manager/Gateway';
-import { AggregateFunction, Catalog } from '../northstar/model/idea/idea';
+import { AggregateFunction, Catalog, Point } from '../northstar/model/idea/idea';
 import '../northstar/model/ModelExtensions';
 import { HistogramOperation } from '../northstar/operations/HistogramOperation';
 import '../northstar/utils/Extensions';
 import { Server } from '../Server';
-import { setupDrag } from '../util/DragManager';
+import { SetupDrag, DragManager } from '../util/DragManager';
 import { Transform } from '../util/Transform';
 import { UndoManager } from '../util/UndoManager';
 import { CollectionDockingView } from './collections/CollectionDockingView';
@@ -38,6 +38,10 @@ import { InkingControl } from './InkingControl';
 import "./Main.scss";
 import { DocumentView } from './nodes/DocumentView';
 import { FormattedTextBox } from './nodes/FormattedTextBox';
+import { REPLCommand } from 'repl';
+import { Key } from '../../fields/Key';
+import { PreviewCursor } from './PreviewCursor';
+
 
 @observer
 export class Main extends React.Component {
@@ -66,6 +70,7 @@ export class Main extends React.Component {
 
     constructor(props: Readonly<{}>) {
         super(props);
+        this._textProxyDiv = React.createRef();
         Main.Instance = this;
         // causes errors to be generated when modifying an observable outside of an action
         configure({ enforceActions: "observed" });
@@ -199,18 +204,69 @@ export class Main extends React.Component {
 
     pwidthFunc = () => this.pwidth;
     pheightFunc = () => this.pheight;
-    focusDocument = (doc: Document) => { };
     noScaling = () => 1;
 
     @observable _textDoc?: Document = undefined;
     _textRect: any;
+    _textXf: Transform = Transform.Identity();
+    _textScroll: number = 0;
+    _textFieldKey: Key = KeyStore.Data;
+    _textColor: string | null = null;
+    _textTargetDiv: HTMLDivElement | undefined;
+    _textProxyDiv: React.RefObject<HTMLDivElement>;
     @action
-    SetTextDoc(textDoc?: Document, div?: HTMLDivElement) {
+    SetTextDoc(textDoc?: Document, textFieldKey?: Key, div?: HTMLDivElement, tx?: Transform) {
+        if (this._textTargetDiv) {
+            this._textTargetDiv.style.color = this._textColor;
+        }
+
         this._textDoc = undefined;
         this._textDoc = textDoc;
+        this._textFieldKey = textFieldKey!;
+        this._textXf = tx ? tx : Transform.Identity();
+        this._textTargetDiv = div;
         if (div) {
+            this._textColor = div.style.color;
+            div.style.color = "transparent";
             this._textRect = div.getBoundingClientRect();
+            this._textScroll = div.scrollTop;
         }
+    }
+
+    @action
+    textScroll = (e: React.UIEvent) => {
+        if (this._textProxyDiv.current && this._textTargetDiv) {
+            this._textTargetDiv.scrollTop = this._textScroll = this._textProxyDiv.current.children[0].scrollTop;
+        }
+    }
+
+    textBoxDown = (e: React.PointerEvent) => {
+        if (e.button !== 0 || e.metaKey || e.altKey) {
+            document.addEventListener("pointermove", this.textBoxMove);
+            document.addEventListener('pointerup', this.textBoxUp);
+        }
+    }
+    textBoxMove = (e: PointerEvent) => {
+        if (e.movementX > 1 || e.movementY > 1) {
+            document.removeEventListener("pointermove", this.textBoxMove);
+            document.removeEventListener('pointerup', this.textBoxUp);
+            let dragData = new DragManager.DocumentDragData([this._textDoc!]);
+            const [left, top] = this._textXf
+                .inverse()
+                .transformPoint(0, 0);
+            dragData.xOffset = e.clientX - left;
+            dragData.yOffset = e.clientY - top;
+            DragManager.StartDocumentDrag([this._textTargetDiv!], dragData, e.clientX, e.clientY, {
+                handlers: {
+                    dragComplete: action(emptyFunction),
+                },
+                hideSource: false
+            });
+        }
+    }
+    textBoxUp = (e: PointerEvent) => {
+        document.removeEventListener("pointermove", this.textBoxMove);
+        document.removeEventListener('pointerup', this.textBoxUp);
     }
 
     @computed
@@ -220,8 +276,14 @@ export class Main extends React.Component {
             let y: number = this._textRect.y;
             let w: number = this._textRect.width;
             let h: number = this._textRect.height;
-            return <div className="mainDiv-textInput" style={{ transform: `translate(${x}px, ${y}px)`, width: `${w}px`, height: `${h}px` }} >
-                <FormattedTextBox fieldKey={KeyStore.Archives} Document={this._textDoc} isSelected={returnTrue} select={emptyFunction} isTopMost={true} selectOnLoad={true} onActiveChanged={emptyFunction} active={returnTrue} ScreenToLocalTransform={Transform.Identity} focus={(doc) => { }} />
+            let t = this._textXf.transformPoint(0, 0);
+            let s = this._textXf.transformPoint(1, 0);
+            s[0] = Math.sqrt((s[0] - t[0]) * (s[0] - t[0]) + (s[1] - t[1]) * (s[1] - t[1]));
+            return <div className="mainDiv-textInput" style={{ pointerEvents: "none", transform: `translate(${x}px, ${y}px) scale(${1 / s[0]},${1 / s[0]})`, width: "auto", height: "auto" }} >
+                <div className="mainDiv-textInput" onPointerDown={this.textBoxDown} ref={this._textProxyDiv} onScroll={this.textScroll} style={{ pointerEvents: "none", transform: `scale(${1}, ${1})`, width: `${w * s[0]}px`, height: `${h * s[0]}px` }}>
+                    <FormattedTextBox fieldKey={this._textFieldKey!} isOverlay={true} Document={this._textDoc} isSelected={returnTrue} select={emptyFunction} isTopMost={true}
+                        selectOnLoad={true} onActiveChanged={emptyFunction} active={returnTrue} ScreenToLocalTransform={() => this._textXf} focus={emptyDocFunction} />
+                </div>
             </ div>;
         }
         else return (null);
@@ -239,7 +301,7 @@ export class Main extends React.Component {
                 PanelHeight={this.pheightFunc}
                 isTopMost={true}
                 selectOnLoad={false}
-                focus={this.focusDocument}
+                focus={emptyDocFunction}
                 parentActive={returnTrue}
                 onActiveChanged={emptyFunction}
                 ContainingCollectionView={undefined} />;
@@ -284,7 +346,7 @@ export class Main extends React.Component {
                 <ul id="add-options-list">
                     {btns.map(btn =>
                         <li key={btn[1]} ><div ref={btn[0]}>
-                            <button className="round-button add-button" title={btn[2]} onPointerDown={setupDrag(btn[0], btn[3])}>
+                            <button className="round-button add-button" title={btn[2]} onPointerDown={SetupDrag(btn[0], btn[3])}>
                                 <FontAwesomeIcon icon={btn[1]} size="sm" />
                             </button>
                         </div></li>)}
@@ -310,7 +372,7 @@ export class Main extends React.Component {
             <div className="main-buttonDiv" key="workspaces" style={{ top: '34px', left: '2px', position: 'absolute' }} ref={workspacesRef}>
                 <button onClick={this.toggleWorkspaces}>Workspaces</button></div>,
             <div className="main-buttonDiv" key="logout" style={{ top: '34px', right: '1px', position: 'absolute' }} ref={logoutRef}>
-                <button onClick={() => request.get(ServerUtils.prepend(RouteStore.logout), () => { })}>Log Out</button></div>
+                <button onClick={() => request.get(ServerUtils.prepend(RouteStore.logout), emptyFunction)}>Log Out</button></div>
         ];
     }
 
@@ -332,6 +394,7 @@ export class Main extends React.Component {
                         {({ measureRef }) =>
                             <div ref={measureRef} id="mainContent-div">
                                 {this.mainContent}
+                                <PreviewCursor />
                             </div>
                         }
                     </Measure>
@@ -351,11 +414,11 @@ export class Main extends React.Component {
     @action AddToNorthstarCatalog(ctlog: Catalog) {
         CurrentUserUtils.NorthstarDBCatalog = CurrentUserUtils.NorthstarDBCatalog ? CurrentUserUtils.NorthstarDBCatalog : ctlog;
         if (ctlog && ctlog.schemas) {
-            this._northstarSchemas.push(...ctlog.schemas.map(schema => {
-                let schemaDoc = Documents.TreeDocument([], { width: 50, height: 100, title: schema.displayName! });
-                let schemaDocuments = schemaDoc.GetList(KeyStore.Data, [] as Document[]);
+            ctlog.schemas.map(schema => {
+                let promises: Promise<void>[] = [];
+                let schemaDocuments: Document[] = [];
                 CurrentUserUtils.GetAllNorthstarColumnAttributes(schema).map(attr => {
-                    Server.GetField(attr.displayName! + ".alias", action((field: Opt<Field>) => {
+                    let prom = Server.GetField(attr.displayName! + ".alias").then(action((field: Opt<Field>) => {
                         if (field instanceof Document) {
                             schemaDocuments.push(field);
                         } else {
@@ -367,9 +430,13 @@ export class Main extends React.Component {
                             schemaDocuments.push(Documents.HistogramDocument(histoOp, { width: 200, height: 200, title: attr.displayName! }, undefined, attr.displayName! + ".alias"));
                         }
                     }));
+                    promises.push(prom);
                 });
-                return schemaDoc;
-            }));
+                Promise.all(promises).finally(() => {
+                    let schemaDoc = Documents.TreeDocument(schemaDocuments, { width: 50, height: 100, title: schema.displayName! });
+                    this._northstarSchemas.push(schemaDoc);
+                });
+            });
         }
     }
     async initializeNorthstar(): Promise<void> {
@@ -384,8 +451,8 @@ export class Main extends React.Component {
         let cat = Gateway.Instance.ClearCatalog();
         cat.then(async () => {
             this.AddToNorthstarCatalog(await Gateway.Instance.GetCatalog());
-            if (!CurrentUserUtils.GetNorthstarSchema("Book1"))
-                this.AddToNorthstarCatalog(await Gateway.Instance.GetSchema("http://www.cs.brown.edu/~bcz/Book1.csv"));
+            // if (!CurrentUserUtils.GetNorthstarSchema("Book1"))
+            //     this.AddToNorthstarCatalog(await Gateway.Instance.GetSchema("http://www.cs.brown.edu/~bcz/Book1.csv", "Book1"));
         });
 
     }

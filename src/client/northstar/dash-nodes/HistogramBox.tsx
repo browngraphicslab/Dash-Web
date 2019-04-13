@@ -47,10 +47,6 @@ export class HistogramBox extends React.Component<FieldViewProps> {
             this.BinRanges[1] instanceof AggregateBinRange ? ChartType.VerticalBar : ChartType.HeatMap;
     }
 
-    constructor(props: FieldViewProps) {
-        super(props);
-    }
-
     @action
     dropX = (e: Event, de: DragManager.DropEvent) => {
         if (de.data instanceof DragManager.DocumentDragData) {

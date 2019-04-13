@@ -2,31 +2,29 @@ import React = require("react");
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faCog, faPlus } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { action, computed, observable, trace, untracked } from "mobx";
+import { action, computed, observable, untracked } from "mobx";
 import { observer } from "mobx-react";
 import Measure from "react-measure";
 import ReactTable, { CellInfo, ComponentPropsGetterR, ReactTableDefaults } from "react-table";
 import "react-table/react-table.css";
 import { Document } from "../../../fields/Document";
-import { Field, Opt, FieldWaiting } from "../../../fields/Field";
+import { Field, Opt } from "../../../fields/Field";
 import { Key } from "../../../fields/Key";
 import { KeyStore } from "../../../fields/KeyStore";
 import { ListField } from "../../../fields/ListField";
+import { emptyDocFunction, emptyFunction, returnFalse } from "../../../Utils";
 import { Server } from "../../Server";
-import { setupDrag } from "../../util/DragManager";
+import { SetupDrag } from "../../util/DragManager";
 import { CompileScript, ToField } from "../../util/Scripting";
 import { Transform } from "../../util/Transform";
+import { COLLECTION_BORDER_WIDTH } from "../../views/globalCssVariables.scss";
 import { anchorPoints, Flyout } from "../DocumentDecorations";
 import '../DocumentDecorations.scss';
 import { EditableView } from "../EditableView";
 import { DocumentView } from "../nodes/DocumentView";
 import { FieldView, FieldViewProps } from "../nodes/FieldView";
 import "./CollectionSchemaView.scss";
-import { CollectionView } from "./CollectionView";
 import { CollectionSubView } from "./CollectionSubView";
-import { TextField } from "../../../fields/TextField";
-import { COLLECTION_BORDER_WIDTH } from "./CollectionBaseView";
-import { emptyFunction, returnFalse } from "../../../Utils";
 
 
 // bcz: need to add drag and drop of rows and columns.  This seems like it might work for rows: https://codesandbox.io/s/l94mn1q657
@@ -77,12 +75,12 @@ export class CollectionSchemaView extends CollectionSubView {
         let props: FieldViewProps = {
             Document: rowProps.value[0],
             fieldKey: rowProps.value[1],
-            isSelected: () => false,
-            select: () => { },
+            isSelected: returnFalse,
+            select: emptyFunction,
             isTopMost: false,
             selectOnLoad: false,
             ScreenToLocalTransform: Transform.Identity,
-            focus: emptyFunction,
+            focus: emptyDocFunction,
             active: returnFalse,
             onActiveChanged: emptyFunction,
         };
@@ -90,7 +88,7 @@ export class CollectionSchemaView extends CollectionSubView {
             <FieldView {...props} />
         );
         let reference = React.createRef<HTMLDivElement>();
-        let onItemDown = setupDrag(reference, () => props.Document, this.props.moveDocument);
+        let onItemDown = SetupDrag(reference, () => props.Document, this.props.moveDocument);
         let applyToDoc = (doc: Document, run: (args?: { [name: string]: any }) => any) => {
             const res = run({ this: doc });
             if (!res.success) return false;
@@ -245,16 +243,16 @@ export class CollectionSchemaView extends CollectionSubView {
         this._contentScaling = r.entry.width / selected!.GetNumber(KeyStore.NativeWidth, r.entry.width);
     }
 
+    @computed
+    get borderWidth() { return COLLECTION_BORDER_WIDTH; }
     getContentScaling = (): number => this._contentScaling;
     getPanelWidth = (): number => this._panelWidth;
     getPanelHeight = (): number => this._panelHeight;
-    getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(- COLLECTION_BORDER_WIDTH - this.DIVIDER_WIDTH - this._dividerX, - COLLECTION_BORDER_WIDTH).scale(1 / this._contentScaling);
-    getPreviewTransform = (): Transform => this.props.ScreenToLocalTransform().translate(- COLLECTION_BORDER_WIDTH - this.DIVIDER_WIDTH - this._dividerX - this._tableWidth, - COLLECTION_BORDER_WIDTH).scale(1 / this._contentScaling);
-
-    focusDocument = (doc: Document) => { };
+    getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(- this.borderWidth - this.DIVIDER_WIDTH - this._dividerX, - this.borderWidth).scale(1 / this._contentScaling);
+    getPreviewTransform = (): Transform => this.props.ScreenToLocalTransform().translate(- this.borderWidth - this.DIVIDER_WIDTH - this._dividerX - this._tableWidth, - this.borderWidth).scale(1 / this._contentScaling);
 
     onPointerDown = (e: React.PointerEvent): void => {
-        if (this.props.isSelected()) {
+        if (e.button === 1 && this.props.isSelected() && !e.altKey && !e.ctrlKey && !e.metaKey) {
             e.stopPropagation();
         }
     }
@@ -315,7 +313,7 @@ export class CollectionSchemaView extends CollectionSubView {
                                 PanelWidth={this.getPanelWidth}
                                 PanelHeight={this.getPanelHeight}
                                 ContainingCollectionView={undefined}
-                                focus={this.focusDocument}
+                                focus={emptyDocFunction}
                                 parentActive={this.props.active}
                                 onActiveChanged={this.props.onActiveChanged} /> : null}
                         <input value={this.previewScript} onChange={this.onPreviewScriptChange}
@@ -349,7 +347,7 @@ export class CollectionSchemaView extends CollectionSubView {
         </Flyout>);
 
         return (
-            <div className="collectionSchemaView-container" onPointerDown={this.onPointerDown} onWheel={this.onWheel} ref={this._mainCont} style={{ borderWidth: `${COLLECTION_BORDER_WIDTH}px` }} >
+            <div className="collectionSchemaView-container" onPointerDown={this.onPointerDown} onWheel={this.onWheel} ref={this._mainCont}>
                 <div className="collectionSchemaView-dropTarget" onDrop={(e: React.DragEvent) => this.onDrop(e, {})} ref={this.createDropTarget}>
                     <Measure onResize={this.setTableDimensions}>
                         {({ measureRef }) =>

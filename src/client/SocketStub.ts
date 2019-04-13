@@ -62,10 +62,13 @@ export class SocketStub {
     public static SEND_FIELDS_REQUEST(fieldIds: FieldId[], callback: (fields: FieldMap) => any) {
         Utils.EmitCallback(Server.Socket, MessageStore.GetFields, fieldIds, (fields: any[]) => {
             let fieldMap: any = {};
+            let proms: Promise<any>[] = [];
             for (let field of fields) {
-                fieldMap[field._id] = ServerUtils.FromJson(field);
+                let f = ServerUtils.FromJson(field);
+                fieldMap[field._id] = f;
+                proms.push(new Promise(res => f.init(res)));
             }
-            callback(fieldMap);
+            Promise.all(proms).then(() => callback(fieldMap));
         });
     }
 

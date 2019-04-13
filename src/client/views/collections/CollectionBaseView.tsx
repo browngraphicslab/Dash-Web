@@ -32,19 +32,18 @@ export interface CollectionViewProps extends FieldViewProps {
     contentRef?: React.Ref<HTMLDivElement>;
 }
 
-export const COLLECTION_BORDER_WIDTH = 1;
 
 @observer
 export class CollectionBaseView extends React.Component<CollectionViewProps> {
-    get collectionViewType(): CollectionViewType {
+    get collectionViewType(): CollectionViewType | undefined {
         let Document = this.props.Document;
         let viewField = Document.GetT(KeyStore.ViewType, NumberField);
         if (viewField === FieldWaiting) {
-            return CollectionViewType.Invalid;
+            return undefined;
         } else if (viewField) {
             return viewField.Data;
         } else {
-            return CollectionViewType.Freeform;
+            return CollectionViewType.Invalid;
         }
     }
 
@@ -107,15 +106,18 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
                 const field = new ListField([doc]);
                 // const script = CompileScript(`
                 //     if(added) {
-                //         console.log("added " + field.Title);
+                //         console.log("added " + field.Title + " " + doc.Title);
                 //     } else {
-                //         console.log("removed " + field.Title);
+                //         console.log("removed " + field.Title + " " + doc.Title);
                 //     }
                 // `, {
                 //         addReturn: false,
                 //         params: {
                 //             field: Document.name,
                 //             added: "boolean"
+                //         },
+                //         capturedVariables: {
+                //             doc: this.props.Document
                 //         }
                 //     });
                 // if (script.compiled) {
@@ -177,9 +179,10 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
             active: this.active,
             onActiveChanged: this.onActiveChanged,
         };
+        const viewtype = this.collectionViewType;
         return (
             <div className={this.props.className || "collectionView-cont"} onContextMenu={this.props.onContextMenu} ref={this.props.contentRef}>
-                {this.props.children(this.collectionViewType, props)}
+                {viewtype !== undefined ? this.props.children(viewtype, props) : (null)}
             </div>
         );
     }
