@@ -97,6 +97,9 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     onPointerDown = (e: React.PointerEvent): void => {
         this._downX = e.clientX;
         this._downY = e.clientY;
+        if (e.button === 2 && !this.isSelected()) {
+            return;
+        }
         if (e.shiftKey && e.buttons === 2) {
             if (this.props.isTopMost) {
                 this.startDragging(e.pageX, e.pageY, e.altKey || e.ctrlKey);
