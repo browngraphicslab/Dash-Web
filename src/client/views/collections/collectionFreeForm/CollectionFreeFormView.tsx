@@ -23,7 +23,6 @@ import { CollectionFreeFormLinksView } from "./CollectionFreeFormLinksView";
 import { CollectionFreeFormRemoteCursors } from "./CollectionFreeFormRemoteCursors";
 import "./CollectionFreeFormView.scss";
 import { MarqueeView } from "./MarqueeView";
-import { PreviewCursor } from "./PreviewCursor";
 import React = require("react");
 import v5 = require("uuid/v5");
 
@@ -311,9 +310,9 @@ export class CollectionFreeFormView extends CollectionSubView {
         const [dx, dy] = [this.centeringShiftX, this.centeringShiftY];
         const panx: number = -this.props.Document.GetNumber(KeyStore.PanX, 0);
         const pany: number = -this.props.Document.GetNumber(KeyStore.PanY, 0);
-        const zoom: number = this.zoomScaling;
-        const blay = this.backgroundView;
-        const olay = this.overlayView;
+        const zoom: number = this.zoomScaling;// needs to be a variable outside of the <Measure> otherwise, reactions won't fire
+        const backgroundView = this.backgroundView; // needs to be a variable outside of the <Measure> otherwise, reactions won't fire
+        const overlayView = this.overlayView;// needs to be a variable outside of the <Measure> otherwise, reactions won't fire
 
         return (
             <Measure onResize={(r: any) => runInAction(() => { this._pwidth = r.entry.width; this._pheight = r.entry.height; })}>
@@ -323,21 +322,19 @@ export class CollectionFreeFormView extends CollectionSubView {
                             onPointerDown={this.onPointerDown} onPointerMove={(e) => super.setCursorPosition(this.getTransform().transformPoint(e.clientX, e.clientY))}
                             onDrop={this.onDrop.bind(this)} onDragOver={this.onDragOver} onWheel={this.onPointerWheel} ref={this.createDropTarget}>
                             <MarqueeView container={this} activeDocuments={this.getActiveDocuments} selectDocuments={this.selectDocuments}
-                                addDocument={this.addDocument} removeDocument={this.props.removeDocument}
+                                addDocument={this.addDocument} removeDocument={this.props.removeDocument} addLiveTextDocument={this.addLiveTextBox}
                                 getContainerTransform={this.getContainerTransform} getTransform={this.getTransform}>
-                                <PreviewCursor container={this} addLiveTextDocument={this.addLiveTextBox} getTransform={this.getTransform} >
-                                    <div className="collectionfreeformview" ref={this._canvasRef}
-                                        style={{ transform: `translate(${dx}px, ${dy}px) scale(${zoom}, ${zoom}) translate(${panx}px, ${pany}px)` }}>
-                                        {blay}
-                                        <CollectionFreeFormLinksView {...this.props}>
-                                            <InkingCanvas getScreenTransform={this.getTransform} Document={this.props.Document} >
-                                                {this.childViews}
-                                            </InkingCanvas>
-                                        </CollectionFreeFormLinksView>
-                                        <CollectionFreeFormRemoteCursors {...this.props} />
-                                    </div>
-                                    {olay}
-                                </PreviewCursor>
+                                <div className="collectionfreeformview" ref={this._canvasRef}
+                                    style={{ transform: `translate(${dx}px, ${dy}px) scale(${zoom}, ${zoom}) translate(${panx}px, ${pany}px)` }}>
+                                    {backgroundView}
+                                    <CollectionFreeFormLinksView {...this.props}>
+                                        <InkingCanvas getScreenTransform={this.getTransform} Document={this.props.Document} >
+                                            {this.childViews}
+                                        </InkingCanvas>
+                                    </CollectionFreeFormLinksView>
+                                    <CollectionFreeFormRemoteCursors {...this.props} />
+                                </div>
+                                {overlayView}
                             </MarqueeView>
                         </div>
                     </div>)}

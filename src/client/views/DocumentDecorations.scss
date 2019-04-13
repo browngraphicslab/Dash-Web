@@ -78,6 +78,7 @@
     grid-column-end: 6;
     pointer-events: all;
     text-align: center;
+    cursor: pointer;
 }
 .documentDecorations-minimizeButton {
     background:$alt-accent;
@@ -86,6 +87,7 @@
     grid-column-end: 3;
     pointer-events: all;
     text-align: center;
+    cursor: pointer;
 }
 .documentDecorations-background {
     background: lightblue;
