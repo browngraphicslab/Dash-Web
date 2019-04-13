@@ -65,8 +65,9 @@ export class PreviewCursorPrompt extends React.Component<PromptProps> {
         setTimeout(action(() => this.Visible = true), (1));
     }
     render() {
-        if (!PreviewCursorPrompt.clickPoint)
+        if (!PreviewCursorPrompt.clickPoint) {
             return (null);
+        }
         if (PreviewCursorPrompt.Visible && this._prompt.current) {
             this._prompt.current.focus();
         }
@@ -469,8 +470,8 @@ export class Main extends React.Component {
                 Promise.all(promises).finally(() => {
                     let schemaDoc = Documents.TreeDocument(schemaDocuments, { width: 50, height: 100, title: schema.displayName! });
                     this._northstarSchemas.push(schemaDoc);
-                })
-            })
+                });
+            });
         }
     }
     async initializeNorthstar(): Promise<void> {

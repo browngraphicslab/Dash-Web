@@ -276,8 +276,9 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         }
         tab.closeElement.off('click') //unbind the current click handler
             .click(function () {
-                if (tab.reactionDisposer)
+                if (tab.reactionDisposer) {
                     tab.reactionDisposer();
+                }
                 tab.contentItem.remove();
             });
     }

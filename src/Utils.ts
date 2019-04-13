@@ -97,6 +97,6 @@ export function returnFalse() {
 
 export function emptyFunction() { }
 
-export function emptyDocFunction(doc: Document) { console.log("focus " + doc.Title) }
+export function emptyDocFunction(doc: Document) { console.log("focus " + doc.Title); }
 
 export type Without<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;
