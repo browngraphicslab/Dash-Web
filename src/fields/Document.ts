@@ -41,14 +41,14 @@ export class Document extends Field {
     @computed
     public get Title(): string {
         let title = this.Get(KeyStore.Title, true);
-        if (title) {
+        if (title || title === FieldWaiting) {
             if (title !== FieldWaiting && title instanceof TextField) {
                 return title.Data;
             }
             else return "-waiting-";
         }
         let parTitle = this.GetT(KeyStore.Title, TextField);
-        if (parTitle) {
+        if (parTitle || parTitle === FieldWaiting) {
             if (parTitle !== FieldWaiting) return parTitle.Data + ".alias";
             else return "-waiting-.alias";
         }

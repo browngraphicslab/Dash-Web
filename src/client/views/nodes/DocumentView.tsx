@@ -20,6 +20,7 @@ import { ContextMenu } from "../ContextMenu";
 import { DocumentContentsView } from "./DocumentContentsView";
 import "./DocumentView.scss";
 import React = require("react");
+import { undoBatch, UndoManager } from "../../util/UndoManager";
 
 
 export interface DocumentViewProps {
@@ -238,19 +239,18 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         SelectionManager.DeselectAll();
     }
 
+    @undoBatch
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
         if (de.data instanceof DragManager.LinkDragData) {
-            let sourceDoc: Document = de.data.linkSourceDocumentView.props.Document;
+            let sourceDoc: Document = de.data.linkSourceDocument;
             let destDoc: Document = this.props.Document;
-            if (this.props.isTopMost) {
-                return;
-            }
             let linkDoc: Document = new Document();
 
             destDoc.GetTAsync(KeyStore.Prototype, Document).then(protoDest =>
                 sourceDoc.GetTAsync(KeyStore.Prototype, Document).then(protoSrc =>
                     runInAction(() => {
+                        let batch = UndoManager.StartBatch("document view drop");
                         linkDoc.Set(KeyStore.Title, new TextField("New Link"));
                         linkDoc.Set(KeyStore.LinkDescription, new TextField(""));
                         linkDoc.Set(KeyStore.LinkTags, new TextField("Default"));
@@ -259,20 +259,23 @@ export class DocumentView extends React.Component<DocumentViewProps> {
                         let srcTarg = protoSrc ? protoSrc : sourceDoc;
                         linkDoc.Set(KeyStore.LinkedToDocs, dstTarg);
                         linkDoc.Set(KeyStore.LinkedFromDocs, srcTarg);
-                        dstTarg.GetOrCreateAsync(
+                        const prom1 = new Promise(resolve => dstTarg.GetOrCreateAsync(
                             KeyStore.LinkedFromDocs,
                             ListField,
                             field => {
                                 (field as ListField<Document>).Data.push(linkDoc);
+                                resolve();
                             }
-                        );
-                        srcTarg.GetOrCreateAsync(
+                        ));
+                        const prom2 = new Promise(resolve => srcTarg.GetOrCreateAsync(
                             KeyStore.LinkedToDocs,
                             ListField,
                             field => {
                                 (field as ListField<Document>).Data.push(linkDoc);
+                                resolve();
                             }
-                        );
+                        ));
+                        Promise.all([prom1, prom2]).finally(() => batch.end());
                     })
                 )
             );

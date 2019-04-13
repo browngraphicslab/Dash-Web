@@ -5,10 +5,11 @@ import { CollectionDockingView } from "../views/collections/CollectionDockingVie
 import { DocumentDecorations } from "../views/DocumentDecorations";
 import { Main } from "../views/Main";
 import { DocumentView } from "../views/nodes/DocumentView";
-// import globalStyles from "../views/_global_variables";
-import * as globalStyles from "../views/_global_variables.scss"; // bcz: why doesn't this work?
+import * as globalCssVariables from "../views/globalCssVariables.scss";
+import { KeyStore } from "../../fields/KeyStore";
+import { FieldWaiting } from "../../fields/Field";
 
-export function setupDrag(_reference: React.RefObject<HTMLDivElement>, docFunc: () => Document, moveFunc?: DragManager.MoveFunction, copyOnDrop: boolean = false) {
+export function SetupDrag(_reference: React.RefObject<HTMLDivElement>, docFunc: () => Document, moveFunc?: DragManager.MoveFunction, copyOnDrop: boolean = false) {
     let onRowMove = action((e: PointerEvent): void => {
         e.stopPropagation();
         e.preventDefault();
@@ -38,6 +39,31 @@ export function setupDrag(_reference: React.RefObject<HTMLDivElement>, docFunc: 
         //}
     };
     return onItemDown;
+}
+
+export async function DragLinksAsDocuments(dragEle: HTMLElement, x: number, y: number, sourceDoc: Document) {
+    let srcTarg = sourceDoc.GetT(KeyStore.Prototype, Document);
+    let draggedDocs = (srcTarg && srcTarg !== FieldWaiting) ?
+        srcTarg.GetList(KeyStore.LinkedToDocs, [] as Document[]).map(linkDoc =>
+            (linkDoc.GetT(KeyStore.LinkedToDocs, Document)) as Document) : [];
+    let draggedFromDocs = (srcTarg && srcTarg !== FieldWaiting) ?
+        srcTarg.GetList(KeyStore.LinkedFromDocs, [] as Document[]).map(linkDoc =>
+            (linkDoc.GetT(KeyStore.LinkedFromDocs, Document)) as Document) : [];
+    draggedDocs.push(...draggedFromDocs);
+    if (draggedDocs.length) {
+        let moddrag = [] as Document[];
+        for (const draggedDoc of draggedDocs) {
+            let doc = await draggedDoc.GetTAsync(KeyStore.AnnotationOn, Document);
+            if (doc) moddrag.push(doc);
+        }
+        let dragData = new DragManager.DocumentDragData(moddrag.length ? moddrag : draggedDocs);
+        DragManager.StartDocumentDrag([dragEle], dragData, x, y, {
+            handlers: {
+                dragComplete: action(emptyFunction),
+            },
+            hideSource: false
+        });
+    }
 }
 
 export namespace DragManager {
@@ -131,11 +157,11 @@ export namespace DragManager {
     }
 
     export class LinkDragData {
-        constructor(linkSourceDoc: DocumentView) {
-            this.linkSourceDocumentView = linkSourceDoc;
+        constructor(linkSourceDoc: Document) {
+            this.linkSourceDocument = linkSourceDoc;
         }
         droppedDocuments: Document[] = [];
-        linkSourceDocumentView: DocumentView;
+        linkSourceDocument: Document;
         [id: string]: any;
     }
 
@@ -178,7 +204,7 @@ export namespace DragManager {
             dragElement.style.bottom = "";
             dragElement.style.left = "0";
             dragElement.style.transformOrigin = "0 0";
-            dragElement.style.zIndex = globalStyles.contextMenuZindex;// "1000";
+            dragElement.style.zIndex = globalCssVariables.contextMenuZindex;// "1000";
             dragElement.style.transform = `translate(${x}px, ${y}px) scale(${scaleX}, ${scaleY})`;
             dragElement.style.width = `${rect.width / scaleX}px`;
             dragElement.style.height = `${rect.height / scaleY}px`;

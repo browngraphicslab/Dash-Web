@@ -2,6 +2,7 @@ import v4 = require('uuid/v4');
 import v5 = require("uuid/v5");
 import { Socket } from 'socket.io';
 import { Message, Types } from './server/Message';
+import { Document } from './fields/Document';
 
 export class Utils {
 
@@ -95,5 +96,7 @@ export function returnFalse() {
 }
 
 export function emptyFunction() { }
+
+export function emptyDocFunction(doc: Document) { console.log("focus " + doc.Title); }
 
 export type Without<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;

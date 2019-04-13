@@ -1,4 +1,4 @@
-@import "../global_variables";
+@import "../globalCssVariables";
 
 //options menu styling
 #schemaOptionsMenuBtn {
@@ -53,7 +53,9 @@
   
 
 .collectionSchemaView-container {
-    border: 1px solid $intermediate-color;
+    border-width: $COLLECTION_BORDER_WIDTH;
+    border-color : $intermediate-color;
+    border-style: solid;
     border-radius: $border-radius;
     box-sizing: border-box;
     position: absolute;
