@@ -224,10 +224,97 @@ export const marks: { [index: string]: MarkSpec } = {
     },
 
 
+    /* FONTS */
     timesNewRoman: {
         parseDOM: [{ style: 'font-family: "Times New Roman", Times, serif;' }],
         toDOM: () => ['span', {
             style: 'font-family: "Times New Roman", Times, serif;'
+        }]
+    },
+
+    arial: {
+        parseDOM: [{ style: 'font-family: Arial, Helvetica, sans-serif;' }],
+        toDOM: () => ['span', {
+            style: 'font-family: Arial, Helvetica, sans-serif;'
+        }]
+    },
+
+    georgia: {
+        parseDOM: [{ style: 'font-family: Georgia, serif;' }],
+        toDOM: () => ['span', {
+            style: 'font-family: Georgia, serif;'
+        }]
+    },
+
+    comicSans: {
+        parseDOM: [{ style: 'font-family: "Comic Sans MS", cursive, sans-serif;' }],
+        toDOM: () => ['span', {
+            style: 'font-family: "Comic Sans MS", cursive, sans-serif;'
+        }]
+    },
+
+    tahoma: {
+        parseDOM: [{ style: 'font-family: Tahoma, Geneva, sans-serif;' }],
+        toDOM: () => ['span', {
+            style: 'font-family: Tahoma, Geneva, sans-serif;'
+        }]
+    },
+
+    impact: {
+        parseDOM: [{ style: 'font-family: Impact, Charcoal, sans-serif;' }],
+        toDOM: () => ['span', {
+            style: 'font-family: Impact, Charcoal, sans-serif;'
+        }]
+    },
+
+    /** FONT SIZES */
+
+    p10: {
+        parseDOM: [{ style: 'font-size: 10px;' }],
+        toDOM: () => ['span', {
+            style: 'font-size: 10px;'
+        }]
+    },
+
+    p12: {
+        parseDOM: [{ style: 'font-size: 12px;' }],
+        toDOM: () => ['span', {
+            style: 'font-size: 12px;'
+        }]
+    },
+
+    p16: {
+        parseDOM: [{ style: 'font-size: 16px;' }],
+        toDOM: () => ['span', {
+            style: 'font-size: 16px;'
+        }]
+    },
+
+    p24: {
+        parseDOM: [{ style: 'font-size: 24px;' }],
+        toDOM: () => ['span', {
+            style: 'font-size: 24px;'
+        }]
+    },
+
+    p32: {
+        parseDOM: [{ style: 'font-size: 32px;' }],
+        toDOM: () => ['span', {
+            style: 'font-size: 32px;'
+        }]
+    },
+
+    p48: {
+        parseDOM: [{ style: 'font-size: 48px;' }],
+        toDOM: () => ['span', {
+            style: 'font-size: 48px;'
+        }]
+    },
+
+    p72: {
+        parseDOM: [{ style: 'font-size: 72px;' }],
+        toDOM: () => ['span', {
+            style: 'font-size: 72px;'
         }]
     },
 };

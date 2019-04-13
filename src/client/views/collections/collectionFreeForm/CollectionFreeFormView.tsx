@@ -25,6 +25,7 @@ import { SelectionManager } from "../../../util/SelectionManager";
 import { NumberField } from "../../../../fields/NumberField";
 import { Main } from "../../Main";
 import Measure from "react-measure";
+import { returnFalse, emptyFunction } from "../../../../Utils";
 
 @observer
 export class CollectionFreeFormView extends CollectionSubView {
@@ -134,9 +135,6 @@ export class CollectionFreeFormView extends CollectionSubView {
             document.addEventListener("pointerup", this.onPointerUp);
             this._lastX = this.DownX = e.pageX;
             this._lastY = this.DownY = e.pageY;
-            if (this.props.isSelected()) {
-                e.stopPropagation();
-            }
         }
     }
 
@@ -200,7 +198,7 @@ export class CollectionFreeFormView extends CollectionSubView {
 
     @action
     private SetPan(panX: number, panY: number) {
-        Main.Instance.SetTextDoc(undefined, undefined);
+        Main.Instance.SetTextDoc();
         var x1 = this.getLocalTransform().inverse().Scale;
         const newPanX = Math.min((1 - 1 / x1) * this.nativeWidth, Math.max(0, panX));
         const newPanY = Math.min((1 - 1 / x1) * this.nativeHeight, Math.max(0, panY));
@@ -290,13 +288,13 @@ export class CollectionFreeFormView extends CollectionSubView {
     get backgroundView() {
         return !this.backgroundLayout ? (null) :
             (<DocumentContentsView {...this.getDocumentViewProps(this.props.Document)}
-                layoutKey={KeyStore.BackgroundLayout} isTopMost={this.props.isTopMost} isSelected={() => false} select={() => { }} />);
+                layoutKey={KeyStore.BackgroundLayout} isTopMost={this.props.isTopMost} isSelected={returnFalse} select={emptyFunction} />);
     }
     @computed
     get overlayView() {
         return !this.overlayLayout ? (null) :
             (<DocumentContentsView {...this.getDocumentViewProps(this.props.Document)}
-                layoutKey={KeyStore.OverlayLayout} isTopMost={this.props.isTopMost} isSelected={() => false} select={() => { }} />);
+                layoutKey={KeyStore.OverlayLayout} isTopMost={this.props.isTopMost} isSelected={returnFalse} select={emptyFunction} />);
     }
 
     getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-COLLECTION_BORDER_WIDTH, -COLLECTION_BORDER_WIDTH).translate(-this.centeringShiftX, -this.centeringShiftY).transform(this.getLocalTransform());
@@ -306,10 +304,12 @@ export class CollectionFreeFormView extends CollectionSubView {
     childViews = () => this.views;
 
     render() {
-        let [dx, dy] = [this.centeringShiftX, this.centeringShiftY];
-
+        const [dx, dy] = [this.centeringShiftX, this.centeringShiftY];
         const panx: number = -this.props.Document.GetNumber(KeyStore.PanX, 0);
         const pany: number = -this.props.Document.GetNumber(KeyStore.PanY, 0);
+        const zoom: number = this.zoomScaling;
+        const blay = this.backgroundView;
+        const olay = this.overlayView;
 
         return (
             <Measure onResize={(r: any) => runInAction(() => { this._pwidth = r.entry.width; this._pheight = r.entry.height; })}>
@@ -325,8 +325,8 @@ export class CollectionFreeFormView extends CollectionSubView {
                                 <PreviewCursor container={this} addLiveTextDocument={this.addLiveTextBox}
                                     getContainerTransform={this.getContainerTransform} getTransform={this.getTransform} >
                                     <div className="collectionfreeformview" ref={this._canvasRef}
-                                        style={{ transform: `translate(${dx}px, ${dy}px) scale(${this.zoomScaling}, ${this.zoomScaling}) translate(${panx}px, ${pany}px)` }}>
-                                        {this.backgroundView}
+                                        style={{ transform: `translate(${dx}px, ${dy}px) scale(${zoom}, ${zoom}) translate(${panx}px, ${pany}px)` }}>
+                                        {blay}
                                         <CollectionFreeFormLinksView {...this.props}>
                                             <InkingCanvas getScreenTransform={this.getTransform} Document={this.props.Document} >
                                                 {this.childViews}
@@ -334,7 +334,7 @@ export class CollectionFreeFormView extends CollectionSubView {
                                         </CollectionFreeFormLinksView>
                                         <CollectionFreeFormRemoteCursors {...this.props} />
                                     </div>
-                                    {this.overlayView}
+                                    {olay}
                                 </PreviewCursor>
                             </MarqueeView>
                         </div>

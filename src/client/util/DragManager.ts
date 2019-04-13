@@ -1,10 +1,12 @@
 import { action } from "mobx";
 import { Document } from "../../fields/Document";
+import { emptyFunction } from "../../Utils";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
-import { CollectionView } from "../views/collections/CollectionView";
 import { DocumentDecorations } from "../views/DocumentDecorations";
+import { Main } from "../views/Main";
 import { DocumentView } from "../views/nodes/DocumentView";
-import { returnFalse } from "../../Utils";
+import globalStyles from "../views/_global_variables";
+// import globalStyleVariables from "../views/_global_variables.scss"; // bcz: why doesn't this work?
 
 export function setupDrag(_reference: React.RefObject<HTMLDivElement>, docFunc: () => Document, moveFunc?: DragManager.MoveFunction, copyOnDrop: boolean = false) {
     let onRowMove = action((e: PointerEvent): void => {
@@ -147,6 +149,7 @@ export namespace DragManager {
             dragDiv.className = "dragManager-dragDiv";
             DragManager.Root().appendChild(dragDiv);
         }
+        Main.Instance.SetTextDoc();
 
         let scaleXs: number[] = [];
         let scaleYs: number[] = [];
@@ -175,7 +178,7 @@ export namespace DragManager {
             dragElement.style.bottom = "";
             dragElement.style.left = "0";
             dragElement.style.transformOrigin = "0 0";
-            dragElement.style.zIndex = "1000";
+            dragElement.style.zIndex = globalStyles.contextMenuZindex;// "1000";
             dragElement.style.transform = `translate(${x}px, ${y}px) scale(${scaleX}, ${scaleY})`;
             dragElement.style.width = `${rect.width / scaleX}px`;
             dragElement.style.height = `${rect.height / scaleY}px`;
@@ -224,7 +227,7 @@ export namespace DragManager {
                 CollectionDockingView.Instance.StartOtherDrag(docs, {
                     pageX: e.pageX,
                     pageY: e.pageY,
-                    preventDefault: () => { },
+                    preventDefault: emptyFunction,
                     button: 0
                 });
             }

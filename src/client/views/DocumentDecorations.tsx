@@ -15,6 +15,8 @@ import { DocumentView } from "./nodes/DocumentView";
 import { LinkMenu } from "./nodes/LinkMenu";
 import React = require("react");
 import { FieldWaiting } from "../../fields/Field";
+import { emptyFunction } from "../../Utils";
+import { Main } from "./Main";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -217,7 +219,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             let dragData = new DragManager.LinkDragData(SelectionManager.SelectedDocuments()[0]);
             DragManager.StartLinkDrag(this._linkerButton.current, dragData, e.pageX, e.pageY, {
                 handlers: {
-                    dragComplete: action(() => { }),
+                    dragComplete: action(emptyFunction),
                 },
                 hideSource: false
             });
@@ -262,7 +264,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 let dragData = new DragManager.DocumentDragData(moddrag.length ? moddrag : draggedDocs);
                 DragManager.StartDocumentDrag([this._linkButton.current], dragData, e.x, e.y, {
                     handlers: {
-                        dragComplete: action(() => { }),
+                        dragComplete: action(emptyFunction),
                     },
                     hideSource: false
                 });
@@ -320,6 +322,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 break;
         }
 
+        Main.Instance.SetTextDoc();
         SelectionManager.SelectedDocuments().forEach(element => {
             const rect = element.screenRect();
             if (rect.width !== 0) {

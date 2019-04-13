@@ -2,7 +2,7 @@
 .contextMenu-cont {
   position: absolute;
   display: flex;
-  z-index: 1000;
+  z-index: $contextMenu-zindex;
   box-shadow: $intermediate-color 0.2vw 0.2vw 0.4vw;
   flex-direction: column;
 }
