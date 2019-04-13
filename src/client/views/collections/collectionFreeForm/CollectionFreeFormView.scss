@@ -1,13 +1,13 @@
 @import "../../globalCssVariables";
 .collectionfreeformview-measure {
-    position: absolute;
+    position: inherit;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
   }
 .collectionfreeformview {
-  position: absolute;
+  position: inherit;
   top: 0;
   left: 0;
   width: 100%;
@@ -16,7 +16,7 @@
 }
 .collectionfreeformview-container {
   .collectionfreeformview > .jsx-parser {
-    position: absolute;
+    position: inherit;
     height: 100%;
     width: 100%;
   }
@@ -43,7 +43,7 @@
 }
 .collectionfreeformview-overlay {
   .collectionfreeformview > .jsx-parser {
-    position: absolute;
+    position: inherit;
     height: 100%;
   }
   .formattedTextBox-cont {
@@ -56,7 +56,7 @@
   border-style: solid; 
   border-radius: $border-radius;
   box-sizing: border-box;
-  position:absolute;
+  position: absolute;
   overflow: hidden;
   top: 0;
   left: 0;

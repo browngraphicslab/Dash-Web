@@ -1,12 +1,30 @@
 @import "../globalCssVariables";
 
 .container{
+    width:100%;
+    height:100%;
     display: flex;                 
     flex-direction: row;           
     flex-wrap: nowrap;              
     justify-content: space-between; 
 }
 
+.keyValuePair-td-key {
+    display:inline-block;
+    width: 50%;
+}
+.keyValuePair-td-value {
+    display:inline-block;
+    width: 50%;
+}
+.keyValuePair-keyField {
+    width:100%;
+    text-align: center;
+    position: relative;
+    overflow: auto;
+}
 .delete{
-    color: red;
+    position: relative;
+    background-color: transparent;
+    color:red;
 }

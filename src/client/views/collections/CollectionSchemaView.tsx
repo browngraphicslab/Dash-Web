@@ -17,6 +17,7 @@ import { Server } from "../../Server";
 import { SetupDrag } from "../../util/DragManager";
 import { CompileScript, ToField } from "../../util/Scripting";
 import { Transform } from "../../util/Transform";
+import { COLLECTION_BORDER_WIDTH } from "../../views/globalCssVariables.scss";
 import { anchorPoints, Flyout } from "../DocumentDecorations";
 import '../DocumentDecorations.scss';
 import { EditableView } from "../EditableView";
@@ -24,7 +25,6 @@ import { DocumentView } from "../nodes/DocumentView";
 import { FieldView, FieldViewProps } from "../nodes/FieldView";
 import "./CollectionSchemaView.scss";
 import { CollectionSubView } from "./CollectionSubView";
-import { COLLECTION_BORDER_WIDTH } from "../../views/globalCssVariables.scss";
 
 
 // bcz: need to add drag and drop of rows and columns.  This seems like it might work for rows: https://codesandbox.io/s/l94mn1q657

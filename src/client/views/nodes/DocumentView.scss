@@ -1,7 +1,7 @@
 @import "../globalCssVariables";
 
 .documentView-node {
-  position: absolute;
+  position: inherit;
   top: 0;
   left:0;
   background: $light-color; //overflow: hidden;
