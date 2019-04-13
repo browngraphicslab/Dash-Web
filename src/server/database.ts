@@ -7,9 +7,7 @@ export class Database {
     private db?: mongodb.Db;
 
     constructor() {
-        this.MongoClient.connect(this.url, (err, client) => {
-            this.db = client.db();
-        });
+        this.MongoClient.connect(this.url, (err, client) => this.db = client.db());
     }
 
     private currentWrites: { [_id: string]: Promise<void> } = {};
@@ -21,14 +19,11 @@ export class Database {
             const run = (promise: Promise<void>, resolve?: () => void) => {
                 collection.updateOne({ _id: id }, { $set: value }, {
                     upsert: true
-                }, (err, res) => {
+                }, (err, result) => {
                     if (err) {
                         console.log(err.message);
                         console.log(err.errmsg);
                     }
-                    // if (res) {
-                    //     console.log(JSON.stringify(res.result));
-                    // }
                     if (this.currentWrites[id] === promise) {
                         delete this.currentWrites[id];
                     }
@@ -38,70 +33,43 @@ export class Database {
                     callback();
                 });
             };
-            if (prom) {
-                const newProm: Promise<void> = prom.then(() => run(newProm));
-                this.currentWrites[id] = newProm;
-            } else {
-                const newProm: Promise<void> = new Promise<void>(res => run(newProm, res));
-                this.currentWrites[id] = newProm;
-            }
+
+            let newProm: Promise<void> = new Promise<void>(resolve => run(newProm, resolve));
+            this.currentWrites[id] = newProm;
+            if (prom)
+                prom.then(() => newProm);
+            else newProm;
         }
     }
 
     public delete(id: string) {
-        if (this.db) {
-            let collection = this.db.collection('documents');
-            collection.remove({ _id: id });
-        }
+        this.db && this.db.collection('documents').remove({ _id: id });
     }
 
     public deleteAll(collectionName: string = 'documents'): Promise<any> {
-        return new Promise(res => {
-            if (this.db) {
-                let collection = this.db.collection(collectionName);
-                collection.deleteMany({}, res);
-            }
-        });
+        return new Promise(res =>
+            this.db && this.db.collection(collectionName).deleteMany({}, res));
     }
 
     public insert(kvpairs: any) {
-        if (this.db) {
-            let collection = this.db.collection('documents');
-            collection.insertOne(kvpairs, (err: any, res: any) => {
-                if (err) {
-                    // console.log(err)
-                    return;
-                }
-            });
-        }
+        this.db && this.db.collection('documents').insertOne(kvpairs, (err: any, res: any) =>
+            err // &&  console.log(err)
+        );
     }
 
     public getDocument(id: string, fn: (res: any) => void) {
-        var result: JSON;
-        if (this.db) {
-            let collection = this.db.collection('documents');
-            collection.findOne({ _id: id }, (err: any, res: any) => {
-                result = res;
-                if (!result) {
-                    fn(undefined);
-                }
-                fn(result);
-            });
-        }
+        this.db && this.db.collection('documents').findOne({ _id: id }, (err: any, result: any) =>
+            fn(result ? result : undefined));
     }
 
     public getDocuments(ids: string[], fn: (res: any) => void) {
-        if (this.db) {
-            let collection = this.db.collection('documents');
-            let cursor = collection.find({ _id: { "$in": ids } });
-            cursor.toArray((err, docs) => {
-                if (err) {
-                    console.log(err.message);
-                    console.log(err.errmsg);
-                }
-                fn(docs);
-            });
-        }
+        this.db && this.db.collection('documents').find({ _id: { "$in": ids } }).toArray((err, docs) => {
+            if (err) {
+                console.log(err.message);
+                console.log(err.errmsg);
+            }
+            fn(docs);
+        });
     }
 
     public print() {

@@ -7,13 +7,12 @@ import { KeyStore } from "../../../../fields/KeyStore";
 import { Documents } from "../../../documents/Documents";
 import { SelectionManager } from "../../../util/SelectionManager";
 import { Transform } from "../../../util/Transform";
+import { undoBatch } from "../../../util/UndoManager";
 import { InkingCanvas } from "../../InkingCanvas";
 import { PreviewCursor } from "../../PreviewCursor";
 import { CollectionFreeFormView } from "./CollectionFreeFormView";
 import "./MarqueeView.scss";
 import React = require("react");
-import { undo } from "prosemirror-history";
-import { undoBatch } from "../../../util/UndoManager";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;
