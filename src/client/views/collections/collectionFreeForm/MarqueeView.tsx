@@ -12,6 +12,8 @@ import { PreviewCursor } from "../../PreviewCursor";
 import { CollectionFreeFormView } from "./CollectionFreeFormView";
 import "./MarqueeView.scss";
 import React = require("react");
+import { undo } from "prosemirror-history";
+import { undoBatch } from "../../../util/UndoManager";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;
@@ -128,6 +130,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         return { left: topLeft[0], top: topLeft[1], width: Math.abs(size[0]), height: Math.abs(size[1]) };
     }
 
+    @undoBatch
     @action
     marqueeCommand = (e: KeyboardEvent) => {
         if (e.key === "Backspace" || e.key === "Delete") {

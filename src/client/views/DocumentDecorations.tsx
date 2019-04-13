@@ -17,6 +17,8 @@ import React = require("react");
 import { FieldWaiting } from "../../fields/Field";
 import { emptyFunction } from "../../Utils";
 import { Main } from "./Main";
+import { undo } from "prosemirror-history";
+import { undoBatch } from "../util/UndoManager";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -156,6 +158,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         if (e.button === 0) {
         }
     }
+    @undoBatch
     @action
     onCloseUp = (e: PointerEvent): void => {
         e.stopPropagation();
