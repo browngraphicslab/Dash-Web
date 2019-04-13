@@ -20,31 +20,25 @@ export class Database {
             let newProm: Promise<void>;
             const run = (): Promise<void> => {
                 return new Promise<void>(resolve => {
-                    collection.updateOne({ _id: id }, { $set: value }, {
-                        upsert: true
-                    }, (err, res) => {
-                        if (err) {
-                            console.log(err.message);
-                            console.log(err.errmsg);
-                        }
-                        // if (res) {
-                        //     console.log(JSON.stringify(res.result));
-                        // }
-                        if (this.currentWrites[id] === newProm) {
-                            delete this.currentWrites[id];
-                        }
-                        resolve();
-                        callback();
-                    });
+                    collection.updateOne({ _id: id }, { $set: value }, { upsert: true }
+                        , (err, res) => {
+                            if (err) {
+                                console.log(err.message);
+                                console.log(err.errmsg);
+                            }
+                            // if (res) {
+                            //     console.log(JSON.stringify(res.result));
+                            // }
+                            if (this.currentWrites[id] === newProm) {
+                                delete this.currentWrites[id];
+                            }
+                            resolve();
+                            callback();
+                        });
                 });
             };
-            if (prom) {
-                newProm = prom.then(run);
-                this.currentWrites[id] = newProm;
-            } else {
-                newProm = run();
-                this.currentWrites[id] = newProm;
-            }
+            newProm = prom ? prom.then(run) : run();
+            this.currentWrites[id] = newProm;
         }
     }
 
