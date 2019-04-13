@@ -18,31 +18,32 @@ export class Database {
         if (this.db) {
             let collection = this.db.collection('documents');
             const prom = this.currentWrites[id];
-            const run = (promise: Promise<void>, resolve?: () => void) => {
-                collection.updateOne({ _id: id }, { $set: value }, {
-                    upsert: true
-                }, (err, res) => {
-                    if (err) {
-                        console.log(err.message);
-                        console.log(err.errmsg);
-                    }
-                    // if (res) {
-                    //     console.log(JSON.stringify(res.result));
-                    // }
-                    if (this.currentWrites[id] === promise) {
-                        delete this.currentWrites[id];
-                    }
-                    if (resolve) {
+            let newProm: Promise<void>;
+            const run = (): Promise<void> => {
+                return new Promise<void>(resolve => {
+                    collection.updateOne({ _id: id }, { $set: value }, {
+                        upsert: true
+                    }, (err, res) => {
+                        if (err) {
+                            console.log(err.message);
+                            console.log(err.errmsg);
+                        }
+                        // if (res) {
+                        //     console.log(JSON.stringify(res.result));
+                        // }
+                        if (this.currentWrites[id] === newProm) {
+                            delete this.currentWrites[id];
+                        }
                         resolve();
-                    }
-                    callback();
+                        callback();
+                    });
                 });
             };
             if (prom) {
-                const newProm: Promise<void> = prom.then(() => run(newProm));
+                newProm = prom.then(run);
                 this.currentWrites[id] = newProm;
             } else {
-                const newProm: Promise<void> = new Promise<void>(res => run(newProm, res));
+                newProm = run();
                 this.currentWrites[id] = newProm;
             }
         }
