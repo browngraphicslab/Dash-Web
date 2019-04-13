@@ -16,29 +16,27 @@ export class Database {
         if (this.db) {
             let collection = this.db.collection('documents');
             const prom = this.currentWrites[id];
-            const run = (promise: Promise<void>, resolve?: () => void) => {
-                collection.updateOne({ _id: id }, { $set: value }, {
-                    upsert: true
-                }, (err, result) => {
-                    if (err) {
-                        console.log(err.message);
-                        console.log(err.errmsg);
-                    }
-                    if (this.currentWrites[id] === promise) {
-                        delete this.currentWrites[id];
-                    }
-                    if (resolve) {
-                        resolve();
-                    }
-                    callback();
+            const run = (): Promise<void> => {
+                let newProm = new Promise<void>(resolve => {
+                    collection.updateOne({ _id: id }, { $set: value }, { upsert: true }
+                        , (err, res) => {
+                            if (err) {
+                                console.log(err.message);
+                                console.log(err.errmsg);
+                            }
+                            // if (res) {
+                            //     console.log(JSON.stringify(res.result));
+                            // }
+                            if (this.currentWrites[id] === newProm) {
+                                delete this.currentWrites[id];
+                            }
+                            resolve();
+                            callback();
+                        });
                 });
+                return newProm;
             };
-
-            let newProm: Promise<void> = new Promise<void>(resolve => run(newProm, resolve));
-            this.currentWrites[id] = newProm;
-            if (prom)
-                prom.then(() => newProm);
-            else newProm;
+            this.currentWrites[id] = prom ? prom.then(run) : run();
         }
     }
 
