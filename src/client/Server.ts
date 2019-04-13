@@ -12,7 +12,6 @@ export class Server {
     static Socket: SocketIOClient.Socket = OpenSocket(`${window.location.protocol}//${window.location.hostname}:4321`);
     static GUID: string = Utils.GenerateGuid();
 
-
     // Retrieves the cached value of the field and sends a request to the server for the real value (if it's not cached).
     // Call this is from within a reaction and test whether the return value is FieldWaiting.
     public static GetField(fieldid: FieldId): Promise<Opt<Field>>;
@@ -127,13 +126,6 @@ export class Server {
         }
     }
 
-    public static AddDocument(document: Document) {
-        SocketStub.SEND_ADD_DOCUMENT(document);
-    }
-    public static AddDocumentField(doc: Document, key: Key, value: Field) {
-        console.log("Add doc field " + doc.Title + " " + key.Name + " fid " + value.Id + " " + value);
-        SocketStub.SEND_ADD_DOCUMENT_FIELD(doc, key, value);
-    }
     public static DeleteDocumentField(doc: Document, key: Key) {
         SocketStub.SEND_DELETE_DOCUMENT_FIELD(doc, key);
     }
@@ -161,18 +153,18 @@ export class Server {
     }
 
     @action
-    static updateField(field: { _id: string, data: any, type: Types }) {
-        if (Server.ClientFieldsCached.has(field._id)) {
-            var f = Server.ClientFieldsCached.get(field._id);
+    static updateField(field: { id: string, data: any, type: Types }) {
+        if (Server.ClientFieldsCached.has(field.id)) {
+            var f = Server.ClientFieldsCached.get(field.id);
             if (f) {
-                // console.log("Applying        : " + field._id);
+                // console.log("Applying        : " + field.id);
                 f.UpdateFromServer(field.data);
                 f.init(emptyFunction);
             } else {
-                // console.log("Not applying wa : " + field._id);
+                // console.log("Not applying wa : " + field.id);
             }
         } else {
-            // console.log("Not applying mi : " + field._id);
+            // console.log("Not applying mi : " + field.id);
         }
     }
 }

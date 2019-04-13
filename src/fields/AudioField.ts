@@ -20,11 +20,11 @@ export class AudioField extends BasicField<URL> {
         return new AudioField(this.Data);
     }
 
-    ToJson(): { type: Types, data: string, _id: string } {
+    ToJson() {
         return {
             type: Types.Audio,
             data: this.Data.href,
-            _id: this.Id
+            id: this.Id
         };
     }
 
