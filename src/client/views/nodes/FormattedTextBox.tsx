@@ -16,6 +16,8 @@ import { Main } from "../Main";
 import { FieldView, FieldViewProps } from "./FieldView";
 import "./FormattedTextBox.scss";
 import React = require("react");
+import { undoItem } from "prosemirror-menu";
+import buildKeymap from "../../util/ProsemirrorKeymap";
 const { buildMenuItems } = require("prosemirror-example-setup");
 const { menuBar } = require("prosemirror-menu");
 
@@ -64,12 +66,6 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
         }
     }
 
-    undo = <S extends Schema = any>(state: EditorState<S>, dispatch?: (tr: Transaction<S>) => void): boolean => {
-        console.log(state);
-        console.log(dispatch);
-        return true;
-    }
-
     get FieldDoc() { return this.props.fieldKey === KeyStore.Archives ? Main.Instance._textDoc! : this.props.Document; }
     get FieldKey() { return this.props.fieldKey === KeyStore.Archives ? KeyStore.Data : this.props.fieldKey; }
 
@@ -79,7 +75,7 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
             inpRules, //these currently don't do anything, but could eventually be helpful
             plugins: [
                 history(),
-                keymap({ "Mod-z": this.undo, "Mod-y": redo }),
+                keymap(buildKeymap(schema)),
                 keymap(baseKeymap),
                 this.tooltipMenuPlugin()
             ]
@@ -213,7 +209,8 @@ export class FormattedTextBox extends React.Component<FieldViewProps> {
         });
     }
     onKeyPress(e: React.KeyboardEvent) {
-        e.stopPropagation();
+        console.log(e.keyCode)
+        // e.stopPropagation();
         // stop propagation doesn't seem to stop propagation of native keyboard events.
         // so we set a flag on the native event that marks that the event's been handled.
         // (e.nativeEvent as any).DASHFormattedTextBoxHandled = true;
