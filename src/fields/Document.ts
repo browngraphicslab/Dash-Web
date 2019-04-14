@@ -410,11 +410,11 @@ export class Document extends Field {
         return copy;
     }
 
-    ToJson(): { type: Types; data: [string, string][]; _id: string } {
-        let fields: [string, string][] = [];
+    ToJson(): { type: Types; data: { key: string, field: string }[]; _id: string } {
+        let fields: { key: string, field: string }[] = [];
         this._proxies.forEach((field, key) => {
             if (field) {
-                fields.push([key, field]);
+                fields.push({ key, field });
             }
         });
 

@@ -71,6 +71,18 @@ export class Database {
         });
     }
 
+    public searchQuery(ids: string[], collectionName = Database.DocumentsCollection): Promise<any> {
+        return new Promise<any>(resolve => {
+            this.db && this.db.collection(collectionName).find({ "data.field": { "$in": ids } }).toArray((err, docs) => {
+                if (err) {
+                    console.log(err.message);
+                    console.log(err.errmsg);
+                }
+                resolve(docs);
+            });
+        });
+    }
+
     public print() {
         console.log("db says hi!");
     }

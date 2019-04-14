@@ -73,9 +73,9 @@ export class ServerUtils {
                 return InkField.FromJson(id, data);
             case Types.Document:
                 let doc: Document = new Document(id, false);
-                let fields: [string, string][] = data as [string, string][];
+                let fields: { key: string, field: string }[] = data as { key: string, field: string }[];
                 fields.forEach(element => {
-                    doc._proxies.set(element[0], element[1]);
+                    doc._proxies.set(element.key, element.field);
                 });
                 return doc;
             default:

@@ -22,7 +22,7 @@ import { getForgot, getLogin, getLogout, getReset, getSignup, postForgot, postLo
 import { DashUserModel } from './authentication/models/user_model';
 import { Client } from './Client';
 import { Database } from './database';
-import { MessageStore, Transferable } from "./Message";
+import { MessageStore, Transferable, Types } from "./Message";
 import { RouteStore } from './RouteStore';
 const app = express();
 const config = require('../../webpack.config');
@@ -32,6 +32,7 @@ const serverPort = 4321;
 import expressFlash = require('express-flash');
 import flash = require('connect-flash');
 import c = require("crypto");
+import { Search } from './Search';
 const MongoStore = require('connect-mongo')(session);
 const mongoose = require('mongoose');
 
@@ -117,6 +118,12 @@ app.get("/pull", (req, res) =>
     }));
 
 // GETTERS
+
+app.get("/search", async (req, res) => {
+    let query = req.query.query || "hello";
+    let results = await Search.Instance.search(query);
+    res.send(results);
+});
 
 // anyone attempting to navigate to localhost at this port will
 // first have to login
@@ -258,6 +265,9 @@ function getFields([ids, callback]: [string[], (result: any) => void]) {
 function setField(socket: Socket, newValue: Transferable) {
     Database.Instance.update(newValue._id, newValue, () =>
         socket.broadcast.emit(MessageStore.SetField.Message, newValue));
+    if (newValue.type === Types.Text) {
+        Search.Instance.updateDocument({ id: newValue._id, data: (newValue as any).data });
+    }
 }
 
 server.listen(serverPort);
