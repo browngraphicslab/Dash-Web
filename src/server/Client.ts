@@ -8,5 +8,4 @@ export class Client {
     }
 
     @computed public get GUID(): string { return this._guid; }
-
 }

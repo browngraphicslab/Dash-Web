@@ -87,9 +87,11 @@ function addSecureRoute(method: Method,
     ...subscribers: string[]
 ) {
     let abstracted = (req: express.Request, res: express.Response) => {
-        const dashUser: DashUserModel = req.user;
-        if (!dashUser) return onRejection(res);
-        handler(dashUser, res, req);
+        if (req.user) {
+            handler(req.user, res, req);
+        } else {
+            onRejection(res);
+        }
     };
     subscribers.forEach(route => {
         switch (method) {
