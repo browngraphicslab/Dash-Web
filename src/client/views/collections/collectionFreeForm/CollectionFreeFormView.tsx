@@ -274,7 +274,7 @@ export class CollectionFreeFormView extends CollectionSubView {
             PanelWidth: document.Width,
             PanelHeight: document.Height,
             ContentScaling: this.noScaling,
-            ContainingCollectionView: undefined,
+            ContainingCollectionView: this.props.CollectionView,
             focus: this.focusDocument,
             parentActive: this.props.active,
             onActiveChanged: this.props.active,

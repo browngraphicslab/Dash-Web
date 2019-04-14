@@ -209,10 +209,11 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         let selRect = this.Bounds;
         let selection: Document[] = [];
         this.props.activeDocuments().map(doc => {
+            var z = doc.GetNumber(KeyStore.Zoom, 1);
             var x = doc.GetNumber(KeyStore.X, 0);
             var y = doc.GetNumber(KeyStore.Y, 0);
-            var w = doc.GetNumber(KeyStore.Width, 0);
-            var h = doc.GetNumber(KeyStore.Height, 0);
+            var w = doc.GetNumber(KeyStore.Width, 0) / z;
+            var h = doc.GetNumber(KeyStore.Height, 0) / z;
             if (this.intersectRect({ left: x, top: y, width: w, height: h }, selRect)) {
                 selection.push(doc);
             }

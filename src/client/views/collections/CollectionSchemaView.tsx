@@ -75,6 +75,8 @@ export class CollectionSchemaView extends CollectionSubView {
         let props: FieldViewProps = {
             Document: rowProps.value[0],
             fieldKey: rowProps.value[1],
+            CollectionView: this.props.CollectionView,
+            ContainingCollectionView: this.props.CollectionView,
             isSelected: returnFalse,
             select: emptyFunction,
             isTopMost: false,
@@ -313,7 +315,7 @@ export class CollectionSchemaView extends CollectionSubView {
                                 ContentScaling={this.getContentScaling}
                                 PanelWidth={this.getPanelWidth}
                                 PanelHeight={this.getPanelHeight}
-                                ContainingCollectionView={undefined}
+                                ContainingCollectionView={this.props.CollectionView}
                                 focus={emptyDocFunction}
                                 parentActive={this.props.active}
                                 onActiveChanged={this.props.onActiveChanged} /> : null}

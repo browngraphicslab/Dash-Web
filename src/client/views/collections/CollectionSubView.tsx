@@ -16,6 +16,7 @@ import { Server } from "../../Server";
 import { FieldViewProps } from "../nodes/FieldView";
 import * as rp from 'request-promise';
 import { emptyFunction } from "../../../Utils";
+import { CollectionView } from "./CollectionView";
 
 export interface CollectionViewProps extends FieldViewProps {
     addDocument: (document: Document, allowDuplicates?: boolean) => boolean;
@@ -24,6 +25,7 @@ export interface CollectionViewProps extends FieldViewProps {
 }
 
 export interface SubCollectionViewProps extends CollectionViewProps {
+    CollectionView: Opt<CollectionView>;
 }
 
 export type CursorEntry = TupleField<[string, string], [number, number]>;

@@ -47,6 +47,8 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
         }
         let props: FieldViewProps = {
             Document: this.props.doc,
+            CollectionView: undefined,
+            ContainingCollectionView: undefined,
             fieldKey: this.key,
             isSelected: returnFalse,
             select: emptyFunction,
