@@ -48,7 +48,7 @@ export class Utils {
         if (this.logFilter !== undefined && this.logFilter !== message.type) {
             return;
         }
-        let idString = (message.id || message.id || "").padStart(36, ' ');
+        let idString = (message.id || "").padStart(36, ' ');
         prefix = prefix.padEnd(16, ' ');
         console.log(`${prefix}: ${idString}, ${receiving ? 'receiving' : 'sending'} ${messageName} with data ${JSON.stringify(message)}`);
     }

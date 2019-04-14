@@ -216,7 +216,9 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
     }
 
     onPointerWheel = (e: React.WheelEvent): void => {
-        e.stopPropagation();
+        if (this.props.isSelected()) {
+            e.stopPropagation();
+        }
     }
 
     tooltipMenuPlugin() {
@@ -236,6 +238,7 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
     render() {
         return (
             <div
+                style={{ overflowY: this.props.isSelected() || this.props.isOverlay ? "scroll" : "hidden" }}
                 className={`formattedTextBox-cont`}
                 onKeyDown={this.onKeyPress}
                 onKeyPress={this.onKeyPress}

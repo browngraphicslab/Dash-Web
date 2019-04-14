@@ -38,7 +38,7 @@ export class CollectionFreeFormView extends CollectionSubView {
     }
 
     public addDocument = (newBox: Document, allowDuplicates: boolean) =>
-        this.props.addDocument(this.bringToFront(newBox), false);
+        this.props.addDocument(this.bringToFront(newBox), false)
 
     public selectDocuments = (docs: Document[]) => {
         SelectionManager.DeselectAll;
@@ -161,7 +161,9 @@ export class CollectionFreeFormView extends CollectionSubView {
 
     @action
     onPointerWheel = (e: React.WheelEvent): void => {
-        this.props.select(false);
+        if (!this.props.active()) {
+            return;
+        }
         e.stopPropagation();
         let coefficient = 1000;
 
@@ -191,6 +193,8 @@ export class CollectionFreeFormView extends CollectionSubView {
 
             this.props.Document.SetNumber(KeyStore.Scale, localTransform.Scale);
             this.SetPan(-localTransform.TranslateX / localTransform.Scale, -localTransform.TranslateY / localTransform.Scale);
+            e.stopPropagation();
+            e.preventDefault();
         }
     }
 
