@@ -24,6 +24,7 @@ import "./CollectionFreeFormView.scss";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
 import v5 = require("uuid/v5");
+import { MainOverlayTextBox } from "../../MainOverlayTextBox";
 
 @observer
 export class CollectionFreeFormView extends CollectionSubView {
@@ -205,7 +206,7 @@ export class CollectionFreeFormView extends CollectionSubView {
 
     @action
     private SetPan(panX: number, panY: number) {
-        Main.Instance.SetTextDoc();
+        MainOverlayTextBox.Instance.SetTextDoc();
         var x1 = this.getLocalTransform().inverse().Scale;
         const newPanX = Math.min((1 - 1 / x1) * this.nativeWidth, Math.max(0, panX));
         const newPanY = Math.min((1 - 1 / x1) * this.nativeHeight, Math.max(0, panY));

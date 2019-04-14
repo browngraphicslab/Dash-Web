@@ -49,7 +49,7 @@ export namespace KeyStore {
     export const CopyDraggedItems = new Key("CopyDraggedItems");
 
     export const KeyList: Key[] = [Prototype, X, Y, Page, Title, Author, PanX, PanY, Scale, NativeWidth, NativeHeight,
-        Width, Height, ZIndex, Data, Annotations, ViewType, Layout, BackgroundColor, BackgroundLayout, OverlayLayout, LayoutKeys,
+        Width, Height, ZIndex, Zoom, Data, Annotations, ViewType, Layout, BackgroundColor, BackgroundLayout, OverlayLayout, LayoutKeys,
         LayoutFields, ColumnsKey, SchemaSplitPercentage, Caption, ActiveWorkspace, DocumentText, BrushingDocs, LinkedToDocs, LinkedFromDocs,
         LinkDescription, LinkTags, Thumbnail, ThumbnailPage, CurPage, AnnotationOn, NumPages, Ink, Cursors, OptionalRightCollection,
         Archives, Workspaces, Minimized, CopyDraggedItems

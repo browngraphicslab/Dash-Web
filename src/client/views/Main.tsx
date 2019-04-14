@@ -15,20 +15,19 @@ import { ListField } from '../../fields/ListField';
 import { WorkspacesMenu } from '../../server/authentication/controllers/WorkspacesMenu';
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
 import { MessageStore } from '../../server/Message';
-import { Utils, returnTrue, emptyFunction, emptyDocFunction } from '../../Utils';
-import * as rp from 'request-promise';
 import { RouteStore } from '../../server/RouteStore';
 import { ServerUtils } from '../../server/ServerUtil';
+import { emptyDocFunction, emptyFunction, returnTrue, Utils } from '../../Utils';
 import { Documents } from '../documents/Documents';
 import { ColumnAttributeModel } from '../northstar/core/attribute/AttributeModel';
 import { AttributeTransformationModel } from '../northstar/core/attribute/AttributeTransformationModel';
-import { Gateway, Settings } from '../northstar/manager/Gateway';
-import { AggregateFunction, Catalog, Point } from '../northstar/model/idea/idea';
+import { Gateway, NorthstarSettings } from '../northstar/manager/Gateway';
+import { AggregateFunction, Catalog } from '../northstar/model/idea/idea';
 import '../northstar/model/ModelExtensions';
 import { HistogramOperation } from '../northstar/operations/HistogramOperation';
 import '../northstar/utils/Extensions';
 import { Server } from '../Server';
-import { SetupDrag, DragManager } from '../util/DragManager';
+import { SetupDrag } from '../util/DragManager';
 import { Transform } from '../util/Transform';
 import { UndoManager } from '../util/UndoManager';
 import { CollectionDockingView } from './collections/CollectionDockingView';
@@ -36,41 +35,28 @@ import { ContextMenu } from './ContextMenu';
 import { DocumentDecorations } from './DocumentDecorations';
 import { InkingControl } from './InkingControl';
 import "./Main.scss";
+import { MainOverlayTextBox } from './MainOverlayTextBox';
 import { DocumentView } from './nodes/DocumentView';
-import { FormattedTextBox } from './nodes/FormattedTextBox';
-import { REPLCommand } from 'repl';
-import { Key } from '../../fields/Key';
 import { PreviewCursor } from './PreviewCursor';
 
 
 @observer
 export class Main extends React.Component {
-    // dummy initializations keep the compiler happy
-    @observable private mainfreeform?: Document;
+    public static Instance: Main;
+    @observable private _workspacesShown: boolean = false;
     @observable public pwidth: number = 0;
     @observable public pheight: number = 0;
-    private _northstarSchemas: Document[] = [];
 
     @computed private get mainContainer(): Document | undefined {
-        let doc = this.userDocument.GetT(KeyStore.ActiveWorkspace, Document);
+        let doc = CurrentUserUtils.UserDocument.GetT(KeyStore.ActiveWorkspace, Document);
         return doc === FieldWaiting ? undefined : doc;
     }
-
     private set mainContainer(doc: Document | undefined) {
-        if (doc) {
-            this.userDocument.Set(KeyStore.ActiveWorkspace, doc);
-        }
+        doc && CurrentUserUtils.UserDocument.Set(KeyStore.ActiveWorkspace, doc);
     }
-
-    private get userDocument(): Document {
-        return CurrentUserUtils.UserDocument;
-    }
-
-    public static Instance: Main;
 
     constructor(props: Readonly<{}>) {
         super(props);
-        this._textProxyDiv = React.createRef();
         Main.Instance = this;
         // causes errors to be generated when modifying an observable outside of an action
         configure({ enforceActions: "observed" });
@@ -102,6 +88,10 @@ export class Main extends React.Component {
         this.initializeNorthstar();
     }
 
+    componentDidMount() { window.onpopstate = this.onHistory; }
+
+    componentWillUnmount() { window.onpopstate = null; }
+
     onHistory = () => {
         if (window.location.pathname !== RouteStore.home) {
             let pathname = window.location.pathname.split("/");
@@ -112,14 +102,6 @@ export class Main extends React.Component {
                 }
             }));
         }
-    }
-
-    componentDidMount() {
-        window.onpopstate = this.onHistory;
-    }
-
-    componentWillUnmount() {
-        window.onpopstate = null;
     }
 
     initEventListeners = () => {
@@ -137,7 +119,7 @@ export class Main extends React.Component {
     initAuthenticationRouters = () => {
         // Load the user's active workspace, or create a new one if initial session after signup
         if (!CurrentUserUtils.MainDocId) {
-            this.userDocument.GetTAsync(KeyStore.ActiveWorkspace, Document).then(doc => {
+            CurrentUserUtils.UserDocument.GetTAsync(KeyStore.ActiveWorkspace, Document).then(doc => {
                 if (doc) {
                     CurrentUserUtils.MainDocId = doc.Id;
                     this.openWorkspace(doc);
@@ -158,7 +140,7 @@ export class Main extends React.Component {
 
     @action
     createNewWorkspace = (id?: string): void => {
-        this.userDocument.GetTAsync<ListField<Document>>(KeyStore.Workspaces, ListField).then(action((list: Opt<ListField<Document>>) => {
+        CurrentUserUtils.UserDocument.GetTAsync<ListField<Document>>(KeyStore.Workspaces, ListField).then(action((list: Opt<ListField<Document>>) => {
             if (list) {
                 let freeformDoc = Documents.FreeformDocument([], { x: 0, y: 400, title: "mini collection" });
                 var dockingLayout = { content: [{ type: 'row', content: [CollectionDockingView.makeDocumentConfig(freeformDoc)] }] };
@@ -179,7 +161,7 @@ export class Main extends React.Component {
     openWorkspace = (doc: Document, fromHistory = false): void => {
         this.mainContainer = doc;
         fromHistory || window.history.pushState(null, doc.Title, "/doc/" + doc.Id);
-        this.userDocument.GetTAsync(KeyStore.OptionalRightCollection, Document).then(col => {
+        CurrentUserUtils.UserDocument.GetTAsync(KeyStore.OptionalRightCollection, Document).then(col => {
             // if there is a pending doc, and it has new data, show it (syip: we use a timeout to prevent collection docking view from being uninitialized)
             setTimeout(() => {
                 if (col) {
@@ -193,119 +175,33 @@ export class Main extends React.Component {
         });
     }
 
-    @observable
-    workspacesShown: boolean = false;
-
-    areWorkspacesShown = () => this.workspacesShown;
-    @action
-    toggleWorkspaces = () => {
-        this.workspacesShown = !this.workspacesShown;
-    }
-
-    pwidthFunc = () => this.pwidth;
-    pheightFunc = () => this.pheight;
-    noScaling = () => 1;
-
-    @observable _textDoc?: Document = undefined;
-    _textRect: any;
-    _textXf: Transform = Transform.Identity();
-    _textScroll: number = 0;
-    _textFieldKey: Key = KeyStore.Data;
-    _textColor: string | null = null;
-    _textTargetDiv: HTMLDivElement | undefined;
-    _textProxyDiv: React.RefObject<HTMLDivElement>;
-    @action
-    SetTextDoc(textDoc?: Document, textFieldKey?: Key, div?: HTMLDivElement, tx?: Transform) {
-        if (this._textTargetDiv) {
-            this._textTargetDiv.style.color = this._textColor;
-        }
-
-        this._textDoc = undefined;
-        this._textDoc = textDoc;
-        this._textFieldKey = textFieldKey!;
-        this._textXf = tx ? tx : Transform.Identity();
-        this._textTargetDiv = div;
-        if (div) {
-            this._textColor = div.style.color;
-            div.style.color = "transparent";
-            this._textRect = div.getBoundingClientRect();
-            this._textScroll = div.scrollTop;
-        }
-    }
-
-    @action
-    textScroll = (e: React.UIEvent) => {
-        if (this._textProxyDiv.current && this._textTargetDiv) {
-            this._textTargetDiv.scrollTop = this._textScroll = this._textProxyDiv.current.children[0].scrollTop;
-        }
-    }
-
-    textBoxDown = (e: React.PointerEvent) => {
-        if (e.button !== 0 || e.metaKey || e.altKey) {
-            document.addEventListener("pointermove", this.textBoxMove);
-            document.addEventListener('pointerup', this.textBoxUp);
-        }
-    }
-    textBoxMove = (e: PointerEvent) => {
-        if (e.movementX > 1 || e.movementY > 1) {
-            document.removeEventListener("pointermove", this.textBoxMove);
-            document.removeEventListener('pointerup', this.textBoxUp);
-            let dragData = new DragManager.DocumentDragData([this._textDoc!]);
-            const [left, top] = this._textXf
-                .inverse()
-                .transformPoint(0, 0);
-            dragData.xOffset = e.clientX - left;
-            dragData.yOffset = e.clientY - top;
-            DragManager.StartDocumentDrag([this._textTargetDiv!], dragData, e.clientX, e.clientY, {
-                handlers: {
-                    dragComplete: action(emptyFunction),
-                },
-                hideSource: false
-            });
-        }
-    }
-    textBoxUp = (e: PointerEvent) => {
-        document.removeEventListener("pointermove", this.textBoxMove);
-        document.removeEventListener('pointerup', this.textBoxUp);
-    }
-
-    @computed
-    get activeTextBox() {
-        if (this._textDoc) {
-            let x: number = this._textRect.x;
-            let y: number = this._textRect.y;
-            let w: number = this._textRect.width;
-            let h: number = this._textRect.height;
-            let t = this._textXf.transformPoint(0, 0);
-            let s = this._textXf.transformPoint(1, 0);
-            s[0] = Math.sqrt((s[0] - t[0]) * (s[0] - t[0]) + (s[1] - t[1]) * (s[1] - t[1]));
-            return <div className="mainDiv-textInput" style={{ pointerEvents: "none", transform: `translate(${x}px, ${y}px) scale(${1 / s[0]},${1 / s[0]})`, width: "auto", height: "auto" }} >
-                <div className="mainDiv-textInput" onPointerDown={this.textBoxDown} ref={this._textProxyDiv} onScroll={this.textScroll} style={{ pointerEvents: "none", transform: `scale(${1}, ${1})`, width: `${w * s[0]}px`, height: `${h * s[0]}px` }}>
-                    <FormattedTextBox fieldKey={this._textFieldKey!} isOverlay={true} Document={this._textDoc} isSelected={returnTrue} select={emptyFunction} isTopMost={true}
-                        selectOnLoad={true} ContainingCollectionView={undefined} onActiveChanged={emptyFunction} active={returnTrue} ScreenToLocalTransform={() => this._textXf} focus={emptyDocFunction} />
-                </div>
-            </ div>;
-        }
-        else return (null);
-    }
-
     @computed
     get mainContent() {
-        return !this.mainContainer ? (null) :
-            <DocumentView Document={this.mainContainer}
-                addDocument={undefined}
-                removeDocument={undefined}
-                opacity={1}
-                ScreenToLocalTransform={Transform.Identity}
-                ContentScaling={this.noScaling}
-                PanelWidth={this.pwidthFunc}
-                PanelHeight={this.pheightFunc}
-                isTopMost={true}
-                selectOnLoad={false}
-                focus={emptyDocFunction}
-                parentActive={returnTrue}
-                onActiveChanged={emptyFunction}
-                ContainingCollectionView={undefined} />;
+        trace();
+        let pwidthFunc = () => this.pwidth;
+        let pheightFunc = () => this.pheight;
+        let noScaling = () => 1;
+        return <Measure onResize={action((r: any) => { this.pwidth = r.entry.width; this.pheight = r.entry.height; })}>
+            {({ measureRef }) =>
+                <div ref={measureRef} id="mainContent-div">
+                    {!this.mainContainer ? (null) :
+                        <DocumentView Document={this.mainContainer}
+                            addDocument={undefined}
+                            removeDocument={undefined}
+                            opacity={1}
+                            ScreenToLocalTransform={Transform.Identity}
+                            ContentScaling={noScaling}
+                            PanelWidth={pwidthFunc}
+                            PanelHeight={pheightFunc}
+                            isTopMost={true}
+                            selectOnLoad={false}
+                            focus={emptyDocFunction}
+                            parentActive={returnTrue}
+                            onActiveChanged={emptyFunction}
+                            ContainingCollectionView={undefined} />}
+                </div>
+            }
+        </Measure>;
     }
 
     /* for the expandable add nodes menu. Not included with the miscbuttons because once it expands it expands the whole div with it, making canvas interactions limited. */
@@ -361,6 +257,7 @@ export class Main extends React.Component {
     get miscButtons() {
         let workspacesRef = React.createRef<HTMLDivElement>();
         let logoutRef = React.createRef<HTMLDivElement>();
+        let toggleWorkspaces = () => runInAction(() => { this._workspacesShown = !this._workspacesShown; });
 
         let clearDatabase = action(() => Utils.Emit(Server.Socket, MessageStore.DeleteAll, {}));
         return [
@@ -371,55 +268,50 @@ export class Main extends React.Component {
                 <button className="toolbar-button round-button" title="Ink" onClick={() => InkingControl.Instance.toggleDisplay()}><FontAwesomeIcon icon="pen-nib" size="sm" /></button>
             </div >,
             <div className="main-buttonDiv" key="workspaces" style={{ top: '34px', left: '2px', position: 'absolute' }} ref={workspacesRef}>
-                <button onClick={this.toggleWorkspaces}>Workspaces</button></div>,
+                <button onClick={toggleWorkspaces}>Workspaces</button></div>,
             <div className="main-buttonDiv" key="logout" style={{ top: '34px', right: '1px', position: 'absolute' }} ref={logoutRef}>
                 <button onClick={() => request.get(ServerUtils.prepend(RouteStore.logout), emptyFunction)}>Log Out</button></div>
         ];
     }
 
+    @computed
+    get workspaceMenu() {
+        let areWorkspacesShown = () => this._workspacesShown;
+        let toggleWorkspaces = () => runInAction(() => { this._workspacesShown = !this._workspacesShown; });
+        let workspaces = CurrentUserUtils.UserDocument.GetT<ListField<Document>>(KeyStore.Workspaces, ListField);
+        return (!workspaces || workspaces === FieldWaiting) ? (null) :
+            <WorkspacesMenu active={this.mainContainer} open={this.openWorkspace}
+                new={this.createNewWorkspace} allWorkspaces={workspaces.Data}
+                isShown={areWorkspacesShown} toggle={toggleWorkspaces} />;
+    }
+
     render() {
-        let workspaceMenu: any = null;
-        let workspaces = this.userDocument.GetT<ListField<Document>>(KeyStore.Workspaces, ListField);
-        if (workspaces && workspaces !== FieldWaiting) {
-            workspaceMenu = <WorkspacesMenu active={this.mainContainer} open={this.openWorkspace} new={this.createNewWorkspace} allWorkspaces={workspaces.Data}
-                isShown={this.areWorkspacesShown} toggle={this.toggleWorkspaces} />;
-        }
         return (
-            <>
-                <div id="main-div">
-                    <DocumentDecorations />
-                    <Measure onResize={(r: any) => runInAction(() => {
-                        this.pwidth = r.entry.width;
-                        this.pheight = r.entry.height;
-                    })}>
-                        {({ measureRef }) =>
-                            <div ref={measureRef} id="mainContent-div">
-                                {this.mainContent}
-                                <PreviewCursor />
-                            </div>
-                        }
-                    </Measure>
-                    <ContextMenu />
-                    {this.nodesMenu}
-                    {this.miscButtons}
-                    {workspaceMenu}
-                    <InkingControl />
-                </div>
-                {this.activeTextBox}
-            </>
+            <div id="main-div">
+                <DocumentDecorations />
+                {this.mainContent}
+                <PreviewCursor />
+                <ContextMenu />
+                {this.nodesMenu}
+                {this.miscButtons}
+                {this.workspaceMenu}
+                <InkingControl />
+                <MainOverlayTextBox />
+            </div>
         );
     }
 
     // --------------- Northstar hooks ------------- /
+    private _northstarSchemas: Document[] = [];
 
-    @action AddToNorthstarCatalog(ctlog: Catalog) {
-        CurrentUserUtils.NorthstarDBCatalog = CurrentUserUtils.NorthstarDBCatalog ? CurrentUserUtils.NorthstarDBCatalog : ctlog;
+    @action SetNorthstarCatalog(ctlog: Catalog) {
+        CurrentUserUtils.NorthstarDBCatalog = ctlog;
         if (ctlog && ctlog.schemas) {
             ctlog.schemas.map(schema => {
-                let promises: Promise<void>[] = [];
                 let schemaDocuments: Document[] = [];
-                CurrentUserUtils.GetAllNorthstarColumnAttributes(schema).map(attr => {
-                    let prom = Server.GetField(attr.displayName! + ".alias").then(action((field: Opt<Field>) => {
+                let attributesToBecomeDocs = CurrentUserUtils.GetAllNorthstarColumnAttributes(schema);
+                Promise.all(attributesToBecomeDocs.reduce((promises, attr) => {
+                    promises.push(Server.GetField(attr.displayName! + ".alias").then(action((field: Opt<Field>) => {
                         if (field instanceof Document) {
                             schemaDocuments.push(field);
                         } else {
@@ -430,32 +322,17 @@ export class Main extends React.Component {
                                 new AttributeTransformationModel(atmod, AggregateFunction.Count));
                             schemaDocuments.push(Documents.HistogramDocument(histoOp, { width: 200, height: 200, title: attr.displayName! }, undefined, attr.displayName! + ".alias"));
                         }
-                    }));
-                    promises.push(prom);
-                });
-                Promise.all(promises).finally(() => {
-                    let schemaDoc = Documents.TreeDocument(schemaDocuments, { width: 50, height: 100, title: schema.displayName! });
-                    this._northstarSchemas.push(schemaDoc);
-                });
+                    })));
+                    return promises;
+                }, [] as Promise<void>[])).finally(() =>
+                    this._northstarSchemas.push(Documents.TreeDocument(schemaDocuments, { width: 50, height: 100, title: schema.displayName! })));
             });
         }
     }
     async initializeNorthstar(): Promise<void> {
-        let envPath = "/assets/env.json";
-        const response = await fetch(envPath, {
-            redirect: "follow",
-            method: "GET",
-            credentials: "include"
-        });
-        const env = await response.json();
-        Settings.Instance.Update(env);
-        let cat = Gateway.Instance.ClearCatalog();
-        cat.then(async () => {
-            this.AddToNorthstarCatalog(await Gateway.Instance.GetCatalog());
-            // if (!CurrentUserUtils.GetNorthstarSchema("Book1"))
-            //     this.AddToNorthstarCatalog(await Gateway.Instance.GetSchema("http://www.cs.brown.edu/~bcz/Book1.csv", "Book1"));
-        });
-
+        const getEnvironment = await fetch("/assets/env.json", { redirect: "follow", method: "GET", credentials: "include" });
+        NorthstarSettings.Instance.UpdateEnvironment(await getEnvironment.json());
+        Gateway.Instance.ClearCatalog().then(async () => this.SetNorthstarCatalog(await Gateway.Instance.GetCatalog()));
     }
 }
 

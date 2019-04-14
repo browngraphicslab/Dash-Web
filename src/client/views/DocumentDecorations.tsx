@@ -1,24 +1,20 @@
-import { action, computed, observable, trace, runInAction } from "mobx";
+import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import { Key } from "../../fields/Key";
 //import ContentEditable from 'react-contenteditable'
 import { KeyStore } from "../../fields/KeyStore";
 import { ListField } from "../../fields/ListField";
 import { NumberField } from "../../fields/NumberField";
-import { Document } from "../../fields/Document";
 import { TextField } from "../../fields/TextField";
-import { DragManager, DragLinksAsDocuments } from "../util/DragManager";
+import { emptyFunction } from "../../Utils";
+import { DragLinksAsDocuments, DragManager } from "../util/DragManager";
 import { SelectionManager } from "../util/SelectionManager";
-import { CollectionView } from "./collections/CollectionView";
+import { undoBatch } from "../util/UndoManager";
 import './DocumentDecorations.scss';
+import { MainOverlayTextBox } from "./MainOverlayTextBox";
 import { DocumentView } from "./nodes/DocumentView";
 import { LinkMenu } from "./nodes/LinkMenu";
 import React = require("react");
-import { FieldWaiting } from "../../fields/Field";
-import { emptyFunction } from "../../Utils";
-import { Main } from "./Main";
-import { undo } from "prosemirror-history";
-import { undoBatch } from "../util/UndoManager";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -304,7 +300,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 break;
         }
 
-        Main.Instance.SetTextDoc();
+        MainOverlayTextBox.Instance.SetTextDoc();
         SelectionManager.SelectedDocuments().forEach(element => {
             const rect = element.screenRect();
             if (rect.width !== 0) {

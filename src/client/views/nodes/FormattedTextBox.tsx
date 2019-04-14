@@ -16,6 +16,7 @@ import "./FormattedTextBox.scss";
 import React = require("react");
 import { TextField } from "../../../fields/TextField";
 import { KeyStore } from "../../../fields/KeyStore";
+import { MainOverlayTextBox } from "../MainOverlayTextBox";
 const { buildMenuItems } = require("prosemirror-example-setup");
 const { menuBar } = require("prosemirror-menu");
 
@@ -92,7 +93,7 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
         };
 
         if (this.props.isOverlay) {
-            this._inputReactionDisposer = reaction(() => Main.Instance._textDoc && Main.Instance._textDoc.Id,
+            this._inputReactionDisposer = reaction(() => MainOverlayTextBox.Instance.TextDoc && MainOverlayTextBox.Instance.TextDoc.Id,
                 () => {
                     if (this._editorView) {
                         this._editorView.destroy();
@@ -103,7 +104,7 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
             );
         } else {
             this._proxyReactionDisposer = reaction(() => this.props.isSelected(),
-                () => this.props.isSelected() && Main.Instance.SetTextDoc(this.props.Document, this.props.fieldKey, this._ref.current!, this.props.ScreenToLocalTransform()));
+                () => this.props.isSelected() && MainOverlayTextBox.Instance.SetTextDoc(this.props.Document, this.props.fieldKey, this._ref.current!, this.props.ScreenToLocalTransform()));
         }
 
         this._reactionDisposer = reaction(
@@ -184,10 +185,10 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
 
     onFocused = (e: React.FocusEvent): void => {
         if (!this.props.isOverlay) {
-            Main.Instance.SetTextDoc(this.props.Document, this.props.fieldKey, this._ref.current!, this.props.ScreenToLocalTransform());
+            MainOverlayTextBox.Instance.SetTextDoc(this.props.Document, this.props.fieldKey, this._ref.current!, this.props.ScreenToLocalTransform());
         } else {
             if (this._ref.current) {
-                this._ref.current.scrollTop = Main.Instance._textScroll;
+                this._ref.current.scrollTop = MainOverlayTextBox.Instance.TextScroll;
             }
         }
     }
