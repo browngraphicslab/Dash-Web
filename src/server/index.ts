@@ -11,6 +11,7 @@ import { ObservableMap } from 'mobx';
 import * as passport from 'passport';
 import * as path from 'path';
 import * as request from 'request';
+import * as rp from 'request-promise';
 import * as io from 'socket.io';
 import { Socket } from 'socket.io';
 import * as webpack from 'webpack';
@@ -241,14 +242,16 @@ server.on("connection", function (socket: Socket) {
     Utils.AddServerHandler(socket, MessageStore.DeleteAll, deleteFields);
 });
 
-function deleteFields() {
-    return Database.Instance.deleteAll();
+async function deleteFields() {
+    await Database.Instance.deleteAll();
+    await Search.Instance.clear();
 }
 
 async function deleteAll() {
     await Database.Instance.deleteAll();
     await Database.Instance.deleteAll('sessions');
     await Database.Instance.deleteAll('users');
+    await Search.Instance.clear();
 }
 
 function barReceived(guid: String) {

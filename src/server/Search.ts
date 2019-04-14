@@ -24,4 +24,15 @@ export class Search {
         const docIds = docs.map((doc: any) => doc._id);
         return docIds;
     }
+
+    public async clear() {
+        return rp.post(this.url + "dash/update", {
+            body: {
+                delete: {
+                    query: "*:*"
+                }
+            },
+            json: true
+        });
+    }
 }
