@@ -21,6 +21,8 @@ import { Transform } from "../../util/Transform";
 import { KeyStore } from "../../../fields/KeyStore";
 import { returnFalse, emptyDocFunction } from "../../../Utils";
 import { CollectionView } from "../collections/CollectionView";
+import { CollectionPDFView } from "../collections/CollectionPDFView";
+import { CollectionVideoView } from "../collections/CollectionVideoView";
 
 
 //
@@ -30,8 +32,7 @@ import { CollectionView } from "../collections/CollectionView";
 //
 export interface FieldViewProps {
     fieldKey: Key;
-    ContainingCollectionView: Opt<CollectionView>;
-    CollectionView: Opt<CollectionView>;
+    ContainingCollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
     Document: Document;
     isSelected: () => boolean;
     select: (isCtrlPressed: boolean) => void;

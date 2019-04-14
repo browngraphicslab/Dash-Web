@@ -65,7 +65,6 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
                 isTopMost,
                 selectOnLoad,
                 ScreenToLocalTransform,
-                CollectionView: undefined,
                 ContainingCollectionView,
                 active,
                 onActiveChanged,
