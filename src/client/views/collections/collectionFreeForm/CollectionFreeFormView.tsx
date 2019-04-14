@@ -4,7 +4,6 @@ import Measure from "react-measure";
 import { Document } from "../../../../fields/Document";
 import { FieldWaiting } from "../../../../fields/Field";
 import { KeyStore } from "../../../../fields/KeyStore";
-import { NumberField } from "../../../../fields/NumberField";
 import { TextField } from "../../../../fields/TextField";
 import { emptyFunction, returnFalse } from "../../../../Utils";
 import { DocumentManager } from "../../../util/DocumentManager";
@@ -18,7 +17,7 @@ import { Main } from "../../Main";
 import { CollectionFreeFormDocumentView } from "../../nodes/CollectionFreeFormDocumentView";
 import { DocumentContentsView } from "../../nodes/DocumentContentsView";
 import { DocumentViewProps } from "../../nodes/DocumentView";
-import { CollectionSubView } from "../CollectionSubView";
+import { CollectionSubView, SubCollectionViewProps } from "../CollectionSubView";
 import { CollectionFreeFormLinksView } from "./CollectionFreeFormLinksView";
 import { CollectionFreeFormRemoteCursors } from "./CollectionFreeFormRemoteCursors";
 import "./CollectionFreeFormView.scss";
@@ -294,7 +293,11 @@ export class CollectionFreeFormView extends CollectionSubView {
             }
             return prev;
         }, [] as JSX.Element[]);
-        untracked(() => this._selectOnLoaded = "");
+
+        setTimeout(() => { // bcz: surely there must be a better way ....
+            this._selectOnLoaded = "";
+        }, 600);
+
         return docviews;
     }
 

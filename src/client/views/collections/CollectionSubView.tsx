@@ -197,7 +197,7 @@ export class CollectionSubView extends React.Component<SubCollectionViewProps> {
                 }).then(async (res: Response) => {
                     (await res.json()).map(action((file: any) => {
                         let path = window.location.origin + file;
-                        let docPromise = this.getDocumentFromType(type, path, { ...options, nativeWidth: 300, width: 300, title: dropFileName });
+                        let docPromise = this.getDocumentFromType(type, path, { ...options, nativeWidth: 600, width: 300, title: dropFileName });
 
                         docPromise.then(action((doc?: Document) => {
                             let docs = this.props.Document.GetT(KeyStore.Data, ListField);
