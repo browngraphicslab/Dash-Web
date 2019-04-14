@@ -26,6 +26,7 @@ import { undoBatch, UndoManager } from "../../util/UndoManager";
 export interface DocumentViewProps {
     ContainingCollectionView: Opt<CollectionView>;
     Document: Document;
+    opacity: number;
     addDocument?: (doc: Document, allowDuplicates?: boolean) => boolean;
     removeDocument?: (doc: Document) => boolean;
     moveDocument?: (doc: Document, targetCollection: Document, addDocument: (document: Document) => boolean) => boolean;

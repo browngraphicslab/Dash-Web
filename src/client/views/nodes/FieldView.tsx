@@ -79,6 +79,7 @@ export class FieldView extends React.Component<FieldViewProps> {
                 <DocumentContentsView Document={field}
                     addDocument={undefined}
                     removeDocument={undefined}
+                    opacity={1}
                     ScreenToLocalTransform={Transform.Identity}
                     ContentScaling={() => 1}
                     PanelWidth={() => 100}

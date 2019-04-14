@@ -15,6 +15,7 @@ export namespace KeyStore {
     export const Width = new Key("Width");
     export const Height = new Key("Height");
     export const ZIndex = new Key("ZIndex");
+    export const Zoom = new Key("Zoom");
     export const Data = new Key("Data");
     export const Annotations = new Key("Annotations");
     export const ViewType = new Key("ViewType");

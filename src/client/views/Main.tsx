@@ -295,6 +295,7 @@ export class Main extends React.Component {
             <DocumentView Document={this.mainContainer}
                 addDocument={undefined}
                 removeDocument={undefined}
+                opacity={1}
                 ScreenToLocalTransform={Transform.Identity}
                 ContentScaling={this.noScaling}
                 PanelWidth={this.pwidthFunc}

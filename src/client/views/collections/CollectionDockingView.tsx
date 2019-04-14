@@ -343,6 +343,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
                 <DocumentView key={this._document.Id} Document={this._document}
                     addDocument={undefined}
                     removeDocument={undefined}
+                    opacity={1}
                     ContentScaling={this._contentScaling}
                     PanelWidth={this._nativeWidth}
                     PanelHeight={this._nativeHeight}

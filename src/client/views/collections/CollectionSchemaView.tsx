@@ -307,6 +307,7 @@ export class CollectionSchemaView extends CollectionSubView {
                             <DocumentView Document={doc}
                                 addDocument={this.props.addDocument} removeDocument={this.props.removeDocument}
                                 isTopMost={false}
+                                opacity={1}
                                 selectOnLoad={false}
                                 ScreenToLocalTransform={this.getPreviewTransform}
                                 ContentScaling={this.getContentScaling}
