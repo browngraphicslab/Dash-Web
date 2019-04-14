@@ -1,83 +1,56 @@
-import { Field } from "./../fields/Field";
-import { TextField } from "./../fields/TextField";
-import { NumberField } from "./../fields/NumberField";
-import { RichTextField } from "./../fields/RichTextField";
-import { Key } from "./../fields/Key";
-import { ImageField } from "./../fields/ImageField";
-import { ListField } from "./../fields/ListField";
-import { Document } from "./../fields/Document";
-import { Server } from "./../client/Server";
-import { Types } from "./Message";
-import { Utils } from "../Utils";
-import { HtmlField } from "../fields/HtmlField";
-import { WebField } from "../fields/WebField";
+import { HistogramField } from "../client/northstar/dash-fields/HistogramField";
 import { AudioField } from "../fields/AudioField";
-import { VideoField } from "../fields/VideoField";
+import { BooleanField } from "../fields/BooleanField";
+import { HtmlField } from "../fields/HtmlField";
 import { InkField } from "../fields/InkField";
 import { PDFField } from "../fields/PDFField";
-import { TupleField } from "../fields/TupleField";
-import { BooleanField } from "../fields/BooleanField";
-import { HistogramField } from "../client/northstar/dash-fields/HistogramField";
 import { ScriptField } from "../fields/ScriptField";
+import { TupleField } from "../fields/TupleField";
+import { VideoField } from "../fields/VideoField";
+import { WebField } from "../fields/WebField";
+import { Utils } from "../Utils";
+import { Document } from "./../fields/Document";
+import { Field } from "./../fields/Field";
+import { ImageField } from "./../fields/ImageField";
+import { Key } from "./../fields/Key";
+import { ListField } from "./../fields/ListField";
+import { NumberField } from "./../fields/NumberField";
+import { RichTextField } from "./../fields/RichTextField";
+import { TextField } from "./../fields/TextField";
+import { Transferable, Types } from "./Message";
 
 export class ServerUtils {
     public static prepend(extension: string): string {
         return window.location.origin + extension;
     }
 
-    public static FromJson(json: any): Field {
-        let obj = json;
-        let data: any = obj.data;
-        let id: string = obj._id;
-        let type: Types = obj.type;
+    public static FromJson(json: Transferable): Field {
 
-        if (!(data !== undefined && id && type !== undefined)) {
+        if (!(json.data !== undefined && json.id && json.type !== undefined)) {
             console.log(
                 "how did you manage to get an object that doesn't have a data or an id?"
             );
             return new TextField("Something to fill the space", Utils.GenerateGuid());
         }
 
-        switch (type) {
-            case Types.Boolean:
-                return new BooleanField(data, id, false);
-            case Types.Number:
-                return new NumberField(data, id, false);
-            case Types.Text:
-                return new TextField(data, id, false);
-            case Types.Html:
-                return new HtmlField(data, id, false);
-            case Types.Web:
-                return new WebField(new URL(data), id, false);
-            case Types.RichText:
-                return new RichTextField(data, id, false);
-            case Types.Key:
-                return new Key(data, id, false);
-            case Types.Image:
-                return new ImageField(new URL(data), id, false);
-            case Types.HistogramOp:
-                return HistogramField.FromJson(id, data);
-            case Types.PDF:
-                return new PDFField(new URL(data), id, false);
-            case Types.List:
-                return ListField.FromJson(id, data);
-            case Types.Script:
-                return ScriptField.FromJson(id, data);
-            case Types.Audio:
-                return new AudioField(new URL(data), id, false);
-            case Types.Video:
-                return new VideoField(new URL(data), id, false);
-            case Types.Tuple:
-                return new TupleField(data, id, false);
-            case Types.Ink:
-                return InkField.FromJson(id, data);
-            case Types.Document:
-                let doc: Document = new Document(id, false);
-                let fields: { key: string, field: string }[] = data as { key: string, field: string }[];
-                fields.forEach(element => {
-                    doc._proxies.set(element.key, element.field);
-                });
-                return doc;
+        switch (json.type) {
+            case Types.Boolean: return new BooleanField(json.data, json.id, false);
+            case Types.Number: return new NumberField(json.data, json.id, false);
+            case Types.Text: return new TextField(json.data, json.id, false);
+            case Types.Html: return new HtmlField(json.data, json.id, false);
+            case Types.Web: return new WebField(new URL(json.data), json.id, false);
+            case Types.RichText: return new RichTextField(json.data, json.id, false);
+            case Types.Key: return new Key(json.data, json.id, false);
+            case Types.Image: return new ImageField(new URL(json.data), json.id, false);
+            case Types.HistogramOp: return HistogramField.FromJson(json.id, json.data);
+            case Types.PDF: return new PDFField(new URL(json.data), json.id, false);
+            case Types.List: return ListField.FromJson(json.id, json.data);
+            case Types.Script: return ScriptField.FromJson(json.id, json.data);
+            case Types.Audio: return new AudioField(new URL(json.data), json.id, false);
+            case Types.Video: return new VideoField(new URL(json.data), json.id, false);
+            case Types.Tuple: return new TupleField(json.data, json.id, false);
+            case Types.Ink: return InkField.FromJson(json.id, json.data);
+            case Types.Document: return Document.FromJson(json.data, json.id, false);
             default:
                 throw Error(
                     "Error, unrecognized field type received from server. If you just created a new field type, be sure to add it here"

@@ -140,11 +140,13 @@ export namespace DragManager {
         constructor(dragDoc: Document[]) {
             this.draggedDocuments = dragDoc;
             this.droppedDocuments = dragDoc;
+            this.xOffset = 0;
+            this.yOffset = 0;
         }
         draggedDocuments: Document[];
         droppedDocuments: Document[];
-        xOffset?: number;
-        yOffset?: number;
+        xOffset: number;
+        yOffset: number;
         aliasOnDrop?: boolean;
         copyOnDrop?: boolean;
         moveDocument?: MoveFunction;

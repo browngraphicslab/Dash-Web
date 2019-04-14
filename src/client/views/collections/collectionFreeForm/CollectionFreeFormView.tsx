@@ -37,20 +37,13 @@ export class CollectionFreeFormView extends CollectionSubView {
         this.addDocument(newBox, false);
     }
 
-    public addDocument = (newBox: Document, allowDuplicates: boolean) => {
-        let added = this.props.addDocument(newBox, false);
-        this.bringToFront(newBox);
-        return added;
-    }
+    public addDocument = (newBox: Document, allowDuplicates: boolean) =>
+        this.props.addDocument(this.bringToFront(newBox), false)
 
     public selectDocuments = (docs: Document[]) => {
         SelectionManager.DeselectAll;
-        docs.map(doc => {
-            const dv = DocumentManager.Instance.getDocumentView(doc);
-            if (dv) {
-                SelectionManager.SelectDoc(dv, true);
-            }
-        });
+        docs.map(doc => DocumentManager.Instance.getDocumentView(doc)).filter(dv => dv).map(dv =>
+            SelectionManager.SelectDoc(dv!, true));
     }
 
     public getActiveDocuments = () => {
@@ -84,40 +77,27 @@ export class CollectionFreeFormView extends CollectionSubView {
     @undoBatch
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
-        if (super.drop(e, de)) {
-            if (de.data instanceof DragManager.DocumentDragData) {
-                let droppedDocs = de.data.droppedDocuments;
-                let xoff = de.data.xOffset as number || 0;
-                let yoff = de.data.yOffset as number || 0;
-                if (droppedDocs.length) {
-                    let screenX = de.x - xoff;
-                    let screenY = de.y - yoff;
-                    const [x, y] = this.getTransform().transformPoint(screenX, screenY);
-                    let dragDoc = droppedDocs[0];
-                    let dragX = dragDoc.GetNumber(KeyStore.X, 0);
-                    let dragY = dragDoc.GetNumber(KeyStore.Y, 0);
-                    droppedDocs.map(async d => {
-                        let docX = d.GetNumber(KeyStore.X, 0);
-                        let docY = d.GetNumber(KeyStore.Y, 0);
-                        d.SetNumber(KeyStore.X, x + (docX - dragX));
-                        d.SetNumber(KeyStore.Y, y + (docY - dragY));
-                        let docW = await d.GetTAsync(KeyStore.Width, NumberField);
-                        let docH = await d.GetTAsync(KeyStore.Height, NumberField);
-                        if (!docW) {
-                            d.SetNumber(KeyStore.Width, 300);
-                        }
-                        if (!docH) {
-                            d.SetNumber(KeyStore.Height, 300);
-                        }
-                        this.bringToFront(d);
-                    });
-                }
+        if (super.drop(e, de) && de.data instanceof DragManager.DocumentDragData) {
+            const [x, y] = this.getTransform().transformPoint(de.x - de.data.xOffset, de.y - de.data.yOffset);
+            if (de.data.droppedDocuments.length) {
+                let dropX = de.data.droppedDocuments[0].GetNumber(KeyStore.X, 0);
+                let dropY = de.data.droppedDocuments[0].GetNumber(KeyStore.Y, 0);
+                de.data.droppedDocuments.map(d => {
+                    d.SetNumber(KeyStore.X, x + (d.GetNumber(KeyStore.X, 0) - dropX));
+                    d.SetNumber(KeyStore.Y, y + (d.GetNumber(KeyStore.Y, 0) - dropY));
+                    if (!d.GetNumber(KeyStore.Width, 0)) {
+                        d.SetNumber(KeyStore.Width, 300);
+                    }
+                    if (!d.GetNumber(KeyStore.Height, 0)) {
+                        d.SetNumber(KeyStore.Height, 300);
+                    }
+                    this.bringToFront(d);
+                });
             }
             return true;
         }
         return false;
     }
-
 
     @action
     cleanupInteractions = () => {
@@ -150,7 +130,26 @@ export class CollectionFreeFormView extends CollectionSubView {
             if ((!this.isAnnotationOverlay || this.zoomScaling !== 1) && !e.shiftKey) {
                 let x = this.props.Document.GetNumber(KeyStore.PanX, 0);
                 let y = this.props.Document.GetNumber(KeyStore.PanY, 0);
+                let docs = this.props.Document.GetList(this.props.fieldKey, [] as Document[]);
+                let minx = docs.length ? docs[0].GetNumber(KeyStore.X, 0) : 0;
+                let maxx = docs.length ? docs[0].GetNumber(KeyStore.Width, 0) + minx : minx;
+                let miny = docs.length ? docs[0].GetNumber(KeyStore.Y, 0) : 0;
+                let maxy = docs.length ? docs[0].GetNumber(KeyStore.Height, 0) + miny : miny;
+                let ranges = docs.filter(doc => doc).reduce((range, doc) => {
+                    let x = doc.GetNumber(KeyStore.X, 0);
+                    let xe = x + doc.GetNumber(KeyStore.Width, 0);
+                    let y = doc.GetNumber(KeyStore.Y, 0);
+                    let ye = y + doc.GetNumber(KeyStore.Height, 0);
+                    return [[range[0][0] > x ? x : range[0][0], range[0][1] < xe ? xe : range[0][1]],
+                    [range[1][0] > y ? y : range[1][0], range[1][1] < ye ? ye : range[1][1]]];
+                }, [[minx, maxx], [miny, maxy]]);
+                let panelwidth = this._pwidth / this.scale / 2;
+                let panelheight = this._pheight / this.scale / 2;
                 let [dx, dy] = this.getTransform().transformDirection(e.clientX - this._lastX, e.clientY - this._lastY);
+                if (x - dx < ranges[0][0] - panelwidth) x = ranges[0][1] + panelwidth + dx;
+                if (x - dx > ranges[0][1] + panelwidth) x = ranges[0][0] - panelwidth + dx;
+                if (y - dy < ranges[1][0] - panelheight) y = ranges[1][1] + panelheight + dy;
+                if (y - dy > ranges[1][1] + panelheight) y = ranges[1][0] - panelheight + dy;
                 this.SetPan(x - dx, y - dy);
                 this._lastX = e.pageX;
                 this._lastY = e.pageY;
@@ -227,9 +226,9 @@ export class CollectionFreeFormView extends CollectionSubView {
                 return -1;
             }
             return doc1.GetNumber(KeyStore.ZIndex, 0) - doc2.GetNumber(KeyStore.ZIndex, 0);
-        }).map((doc, index) => {
-            doc.SetNumber(KeyStore.ZIndex, index + 1);
-        });
+        }).map((doc, index) =>
+            doc.SetNumber(KeyStore.ZIndex, index + 1));
+        return doc;
     }
 
     @computed get backgroundLayout(): string | undefined {

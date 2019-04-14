@@ -19,11 +19,11 @@ export class VideoField extends BasicField<URL> {
         return new VideoField(this.Data);
     }
 
-    ToJson(): { type: Types, data: string, _id: string } {
+    ToJson() {
         return {
             type: Types.Video,
             data: this.Data.href,
-            _id: this.Id
+            id: this.Id
         };
     }
 

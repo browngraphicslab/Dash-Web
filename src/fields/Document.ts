@@ -26,11 +26,16 @@ export class Document extends Field {
             Server.UpdateField(this);
         }
     }
+    static FromJson(data: any, id: string, save: boolean): Document {
+        let doc = new Document(id, save);
+        let fields = data as { key: string, field: string }[];
+        fields.forEach(pair => doc._proxies.set(pair.key, pair.field));
+        return doc;
+    }
 
-    UpdateFromServer(data: [string, string][]) {
-        for (const key in data) {
-            const element = data[key];
-            this._proxies.set(element[0], element[1]);
+    UpdateFromServer(data: { key: string, field: string }[]) {
+        for (const kv of data) {
+            this._proxies.set(kv.key, kv.field);
         }
     }
 
@@ -410,18 +415,15 @@ export class Document extends Field {
         return copy;
     }
 
-    ToJson(): { type: Types; data: { key: string, field: string }[]; _id: string } {
+    ToJson() {
         let fields: { key: string, field: string }[] = [];
-        this._proxies.forEach((field, key) => {
-            if (field) {
-                fields.push({ key, field });
-            }
-        });
+        this._proxies.forEach((field, key) =>
+            field && fields.push({ key, field }));
 
         return {
             type: Types.Document,
             data: fields,
-            _id: this.Id
+            id: this.Id
         };
     }
 }

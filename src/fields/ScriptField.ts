@@ -73,7 +73,7 @@ export class ScriptField extends Field {
         });
     }
 
-    ToJson(): { _id: string, type: Types, data: ScriptData } {
+    ToJson() {
         const { options, originalScript } = this.script;
         let capturedIds: { [id: string]: string } = {};
         for (const capt in options.capturedVariables) {
@@ -85,7 +85,7 @@ export class ScriptField extends Field {
         };
         delete (opts as any).capturedVariables;
         return {
-            _id: this.Id,
+            id: this.Id,
             type: Types.Script,
             data: {
                 script: originalScript,
