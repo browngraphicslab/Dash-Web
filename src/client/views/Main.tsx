@@ -9,7 +9,7 @@ import * as ReactDOM from 'react-dom';
 import Measure from 'react-measure';
 import * as request from 'request';
 import { Document } from '../../fields/Document';
-import { Field, FieldWaiting, Opt } from '../../fields/Field';
+import { Field, FieldWaiting, Opt, FIELD_WAITING } from '../../fields/Field';
 import { KeyStore } from '../../fields/KeyStore';
 import { ListField } from '../../fields/ListField';
 import { WorkspacesMenu } from '../../server/authentication/controllers/WorkspacesMenu';
@@ -47,11 +47,10 @@ export class Main extends React.Component {
     @observable public pwidth: number = 0;
     @observable public pheight: number = 0;
 
-    @computed private get mainContainer(): Document | undefined {
-        let doc = CurrentUserUtils.UserDocument.GetT(KeyStore.ActiveWorkspace, Document);
-        return doc === FieldWaiting ? undefined : doc;
+    @computed private get mainContainer(): Document | undefined | FIELD_WAITING {
+        return CurrentUserUtils.UserDocument.GetT(KeyStore.ActiveWorkspace, Document);
     }
-    private set mainContainer(doc: Document | undefined) {
+    private set mainContainer(doc: Document | undefined | FIELD_WAITING) {
         doc && CurrentUserUtils.UserDocument.Set(KeyStore.ActiveWorkspace, doc);
     }
 
@@ -270,7 +269,7 @@ export class Main extends React.Component {
         let areWorkspacesShown = () => this._workspacesShown;
         let toggleWorkspaces = () => runInAction(() => this._workspacesShown = !this._workspacesShown);
         let workspaces = CurrentUserUtils.UserDocument.GetT<ListField<Document>>(KeyStore.Workspaces, ListField);
-        return (!workspaces || workspaces === FieldWaiting) ? (null) :
+        return (!workspaces || workspaces === FieldWaiting || this.mainContainer == FieldWaiting) ? (null) :
             <WorkspacesMenu active={this.mainContainer} open={this.openWorkspace}
                 new={this.createNewWorkspace} allWorkspaces={workspaces.Data}
                 isShown={areWorkspacesShown} toggle={toggleWorkspaces} />;

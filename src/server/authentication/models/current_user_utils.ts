@@ -40,14 +40,14 @@ export class CurrentUserUtils {
                 throw new Error("There should be a user! Why does Dash think there isn't one?");
             }
         });
-        let userDocPromise = rp.get(ServerUtils.prepend(RouteStore.getUserDocumentId)).then(id => runInAction(() => {
+        let userDocPromise = rp.get(ServerUtils.prepend(RouteStore.getUserDocumentId)).then(id => {
             if (id) {
                 return Server.GetField(id).then(field =>
-                    this.user_document = field instanceof Document ? field : this.createUserDocument(id));
+                    runInAction(() => this.user_document = field instanceof Document ? field : this.createUserDocument(id)));
             } else {
                 throw new Error("There should be a user id! Why does Dash think there isn't one?");
             }
-        }));
+        });
         return Promise.all([userPromise, userDocPromise]);
     }
 

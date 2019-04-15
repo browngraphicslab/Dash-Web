@@ -172,7 +172,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         } catch (e) {
 
         }
-        this._goldenLayout.destroy();
+        if (this._goldenLayout) this._goldenLayout.destroy();
         this._goldenLayout = null;
         window.removeEventListener('resize', this.onResize);
     }
