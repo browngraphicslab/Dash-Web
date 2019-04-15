@@ -50,10 +50,10 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: 
     }
 
     if (type = schema.nodes.bullet_list) {
-        bind("Shift-Ctrl-8", wrapInList(type));
+        bind("Ctrl-b", wrapInList(type));
     }
     if (type = schema.nodes.ordered_list) {
-        bind("Shift-Ctrl-9", wrapInList(type));
+        bind("Ctrl-n", wrapInList(type));
     }
     if (type = schema.nodes.blockquote) {
         bind("Ctrl->", wrapIn(type));
@@ -74,8 +74,8 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: 
     }
     if (type = schema.nodes.list_item) {
         bind("Enter", splitListItem(type));
-        bind("Mod-[", liftListItem(type));
-        bind("Mod-]", sinkListItem(type));
+        bind("Shift-Tab", liftListItem(type));
+        bind("Tab", sinkListItem(type));
     }
     if (type = schema.nodes.paragraph) {
         bind("Shift-Ctrl-0", setBlockType(type));
