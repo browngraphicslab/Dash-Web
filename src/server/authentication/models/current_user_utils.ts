@@ -1,4 +1,4 @@
-import { computed, observable, action } from "mobx";
+import { computed, observable, action, runInAction } from "mobx";
 import * as rp from 'request-promise';
 import { Documents } from "../../../client/documents/Documents";
 import { Attribute, AttributeGroup, Catalog, Schema } from "../../../client/northstar/model/idea/idea";
@@ -13,13 +13,13 @@ import { ServerUtils } from "../../ServerUtil";
 export class CurrentUserUtils {
     private static curr_email: string;
     private static curr_id: string;
-    private static user_document: Document;
+    @observable private static user_document: Document;
     //TODO tfs: these should be temporary...
     private static mainDocId: string | undefined;
 
     public static get email() { return this.curr_email; }
     public static get id() { return this.curr_id; }
-    public static get UserDocument() { return this.user_document; }
+    @computed public static get UserDocument() { return this.user_document; }
     public static get MainDocId() { return this.mainDocId; }
     public static set MainDocId(id: string | undefined) { this.mainDocId = id; }
 
@@ -40,14 +40,14 @@ export class CurrentUserUtils {
                 throw new Error("There should be a user! Why does Dash think there isn't one?");
             }
         });
-        let userDocPromise = rp.get(ServerUtils.prepend(RouteStore.getUserDocumentId)).then(id => {
+        let userDocPromise = rp.get(ServerUtils.prepend(RouteStore.getUserDocumentId)).then(id => runInAction(() => {
             if (id) {
                 return Server.GetField(id).then(field =>
                     this.user_document = field instanceof Document ? field : this.createUserDocument(id));
             } else {
                 throw new Error("There should be a user id! Why does Dash think there isn't one?");
             }
-        });
+        }));
         return Promise.all([userPromise, userDocPromise]);
     }
 

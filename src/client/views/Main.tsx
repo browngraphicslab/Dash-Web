@@ -1,7 +1,7 @@
 import { IconName, library } from '@fortawesome/fontawesome-svg-core';
 import { faFilePdf, faFilm, faFont, faGlobeAsia, faImage, faMusic, faObjectGroup, faPenNib, faRedoAlt, faTable, faTree, faUndoAlt } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { action, computed, configure, observable, runInAction, trace } from 'mobx';
+import { action, computed, configure, observable, runInAction } from 'mobx';
 import { observer } from 'mobx-react';
 import "normalize.css";
 import * as React from 'react';
@@ -128,13 +128,9 @@ export class Main extends React.Component {
                 }
             });
         } else {
-            Server.GetField(CurrentUserUtils.MainDocId).then(field => {
-                if (field instanceof Document) {
-                    this.openWorkspace(field);
-                } else {
-                    this.createNewWorkspace(CurrentUserUtils.MainDocId);
-                }
-            });
+            Server.GetField(CurrentUserUtils.MainDocId).then(field =>
+                field instanceof Document ? this.openWorkspace(field) :
+                    this.createNewWorkspace(CurrentUserUtils.MainDocId));
         }
     }
 
@@ -161,31 +157,26 @@ export class Main extends React.Component {
     openWorkspace = (doc: Document, fromHistory = false): void => {
         this.mainContainer = doc;
         fromHistory || window.history.pushState(null, doc.Title, "/doc/" + doc.Id);
-        CurrentUserUtils.UserDocument.GetTAsync(KeyStore.OptionalRightCollection, Document).then(col => {
+        CurrentUserUtils.UserDocument.GetTAsync(KeyStore.OptionalRightCollection, Document).then(col =>
             // if there is a pending doc, and it has new data, show it (syip: we use a timeout to prevent collection docking view from being uninitialized)
-            setTimeout(() => {
-                if (col) {
-                    col.GetTAsync<ListField<Document>>(KeyStore.Data, ListField, (f: Opt<ListField<Document>>) => {
-                        if (f && f.Data.length > 0) {
-                            CollectionDockingView.Instance.AddRightSplit(col);
-                        }
-                    });
-                }
-            }, 100);
-        });
+            setTimeout(() =>
+                col && col.GetTAsync<ListField<Document>>(KeyStore.Data, ListField, (f: Opt<ListField<Document>>) =>
+                    f && f.Data.length > 0 && CollectionDockingView.Instance.AddRightSplit(col))
+                , 100)
+        );
     }
 
     @computed
     get mainContent() {
-        trace();
         let pwidthFunc = () => this.pwidth;
         let pheightFunc = () => this.pheight;
         let noScaling = () => 1;
+        let mainCont = this.mainContainer;
         return <Measure onResize={action((r: any) => { this.pwidth = r.entry.width; this.pheight = r.entry.height; })}>
             {({ measureRef }) =>
                 <div ref={measureRef} id="mainContent-div">
-                    {!this.mainContainer ? (null) :
-                        <DocumentView Document={this.mainContainer}
+                    {!mainCont ? (null) :
+                        <DocumentView Document={mainCont}
                             addDocument={undefined}
                             removeDocument={undefined}
                             opacity={1}
@@ -257,7 +248,7 @@ export class Main extends React.Component {
     get miscButtons() {
         let workspacesRef = React.createRef<HTMLDivElement>();
         let logoutRef = React.createRef<HTMLDivElement>();
-        let toggleWorkspaces = () => runInAction(() => { this._workspacesShown = !this._workspacesShown; });
+        let toggleWorkspaces = () => runInAction(() => this._workspacesShown = !this._workspacesShown);
 
         let clearDatabase = action(() => Utils.Emit(Server.Socket, MessageStore.DeleteAll, {}));
         return [
@@ -277,7 +268,7 @@ export class Main extends React.Component {
     @computed
     get workspaceMenu() {
         let areWorkspacesShown = () => this._workspacesShown;
-        let toggleWorkspaces = () => runInAction(() => { this._workspacesShown = !this._workspacesShown; });
+        let toggleWorkspaces = () => runInAction(() => this._workspacesShown = !this._workspacesShown);
         let workspaces = CurrentUserUtils.UserDocument.GetT<ListField<Document>>(KeyStore.Workspaces, ListField);
         return (!workspaces || workspaces === FieldWaiting) ? (null) :
             <WorkspacesMenu active={this.mainContainer} open={this.openWorkspace}
