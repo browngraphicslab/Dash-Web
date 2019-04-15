@@ -38,7 +38,7 @@ export class TooltipTextMenu {
         this.tooltip.className = "tooltipMenu";
 
         //add the div which is the tooltip
-        view.dom.parentNode!.appendChild(this.tooltip);
+        view.dom.parentNode!.parentNode!.appendChild(this.tooltip);
 
         //add additional icons
         library.add(faListUl);

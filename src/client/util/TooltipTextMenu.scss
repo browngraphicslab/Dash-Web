@@ -58,7 +58,7 @@
     position: absolute;
     background: $dark-color;
     color:white;
-    border: 1px solid #aaa;
+    border: 1px solid rgb(223, 223, 223);
     padding: 2px;
   }
   
@@ -246,6 +246,7 @@
     margin-bottom: 7px;
     -webkit-transform: translateX(-50%);
     transform: translateX(-50%);
+    pointer-events: all;
 }
 
 .tooltipMenu:before {
