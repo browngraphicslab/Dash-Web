@@ -1,17 +1,32 @@
-import { action, configure, observable, runInAction, trace, computed, reaction } from 'mobx';
+import { IconName, library } from '@fortawesome/fontawesome-svg-core';
+import { faFilePdf, faFilm, faFont, faGlobeAsia, faImage, faMusic, faObjectGroup, faPenNib, faRedoAlt, faTable, faTree, faUndoAlt } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { action, computed, configure, observable, runInAction } from 'mobx';
+import { observer } from 'mobx-react';
 import "normalize.css";
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
+import Measure from 'react-measure';
+import * as request from 'request';
 import { Document } from '../../fields/Document';
+import { Field, FieldWaiting, Opt, FIELD_WAITING } from '../../fields/Field';
 import { KeyStore } from '../../fields/KeyStore';
-import "./Main.scss";
+import { ListField } from '../../fields/ListField';
+import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
 import { MessageStore } from '../../server/Message';
-import { Utils } from '../../Utils';
-import * as request from 'request'
-import * as rp from 'request-promise'
+import { RouteStore } from '../../server/RouteStore';
+import { ServerUtils } from '../../server/ServerUtil';
+import { emptyDocFunction, emptyFunction, returnTrue, Utils } from '../../Utils';
 import { Documents } from '../documents/Documents';
+import { ColumnAttributeModel } from '../northstar/core/attribute/AttributeModel';
+import { AttributeTransformationModel } from '../northstar/core/attribute/AttributeTransformationModel';
+import { Gateway, NorthstarSettings } from '../northstar/manager/Gateway';
+import { AggregateFunction, Catalog } from '../northstar/model/idea/idea';
+import '../northstar/model/ModelExtensions';
+import { HistogramOperation } from '../northstar/operations/HistogramOperation';
+import '../northstar/utils/Extensions';
 import { Server } from '../Server';
-import { setupDrag } from '../util/DragManager';
+import { SetupDrag } from '../util/DragManager';
 import { Transform } from '../util/Transform';
 import { UndoManager } from '../util/UndoManager';
 import { PresentationView } from './PresentationView';
@@ -19,64 +34,29 @@ import { WorkspacesMenu } from '../../server/authentication/controllers/Workspac
 import { CollectionDockingView } from './collections/CollectionDockingView';
 import { ContextMenu } from './ContextMenu';
 import { DocumentDecorations } from './DocumentDecorations';
-import { DocumentView } from './nodes/DocumentView';
-import "./Main.scss";
-import { observer } from 'mobx-react';
 import { InkingControl } from './InkingControl';
-import { RouteStore } from '../../server/RouteStore';
-import { library, IconName } from '@fortawesome/fontawesome-svg-core';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faFont } from '@fortawesome/free-solid-svg-icons';
-import { faImage } from '@fortawesome/free-solid-svg-icons';
-import { faFilePdf } from '@fortawesome/free-solid-svg-icons';
-import { faObjectGroup } from '@fortawesome/free-solid-svg-icons';
-import { faTable } from '@fortawesome/free-solid-svg-icons';
-import { faGlobeAsia } from '@fortawesome/free-solid-svg-icons';
-import { faUndoAlt } from '@fortawesome/free-solid-svg-icons';
-import { faRedoAlt } from '@fortawesome/free-solid-svg-icons';
-import { faPenNib } from '@fortawesome/free-solid-svg-icons';
-import { faFilm } from '@fortawesome/free-solid-svg-icons';
-import { faMusic } from '@fortawesome/free-solid-svg-icons';
-import { faTree } from '@fortawesome/free-solid-svg-icons';
-import Measure from 'react-measure';
-import { DashUserModel } from '../../server/authentication/models/user_model';
-import { ServerUtils } from '../../server/ServerUtil';
-import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
-import { Field, Opt, FieldWaiting } from '../../fields/Field';
-import { ListField } from '../../fields/ListField';
-import { Gateway, Settings } from '../northstar/manager/Gateway';
-import { Catalog, Schema, Attribute, AttributeGroup, AggregateFunction } from '../northstar/model/idea/idea';
-import { ArrayUtil } from '../northstar/utils/ArrayUtil';
-import '../northstar/model/ModelExtensions'
-import '../northstar/utils/Extensions'
-import { HistogramOperation } from '../northstar/operations/HistogramOperation';
-import { AttributeTransformationModel } from '../northstar/core/attribute/AttributeTransformationModel';
-import { ColumnAttributeModel } from '../northstar/core/attribute/AttributeModel';
+import "./Main.scss";
+import { MainOverlayTextBox } from './MainOverlayTextBox';
+import { DocumentView } from './nodes/DocumentView';
+import { PreviewCursor } from './PreviewCursor';
+
 
 @observer
 export class Main extends React.Component {
-    // dummy initializations keep the compiler happy
-    @observable private mainfreeform?: Document;
+    public static Instance: Main;
+    @observable private _workspacesShown: boolean = false;
     @observable public pwidth: number = 0;
     @observable public pheight: number = 0;
-    private _northstarSchemas: Document[] = [];
 
-    @computed private get mainContainer(): Document | undefined {
-        let doc = this.userDocument.GetT(KeyStore.ActiveWorkspace, Document);
-        return doc == FieldWaiting ? undefined : doc;
+    @computed private get mainContainer(): Document | undefined | FIELD_WAITING {
+        return CurrentUserUtils.UserDocument.GetT(KeyStore.ActiveWorkspace, Document);
     }
-
-    private set mainContainer(doc: Document | undefined) {
+    private set mainContainer(doc: Document | undefined | FIELD_WAITING) {
         if (doc) {
-            this.userDocument.Set(KeyStore.ActiveWorkspace, doc);
+            doc.GetOrCreateAsync(KeyStore.PresentationView, Document, doc => { });
+            CurrentUserUtils.UserDocument.Set(KeyStore.ActiveWorkspace, doc);
         }
     }
-
-    private get userDocument(): Document {
-        return CurrentUserUtils.UserDocument;
-    }
-
-    public static Instance: Main;
 
     constructor(props: Readonly<{}>) {
         super(props);
@@ -85,10 +65,10 @@ export class Main extends React.Component {
         configure({ enforceActions: "observed" });
         if (window.location.pathname !== RouteStore.home) {
             let pathname = window.location.pathname.split("/");
-            if (pathname.length > 1 && pathname[pathname.length - 2] == 'doc') {
+            if (pathname.length > 1 && pathname[pathname.length - 2] === 'doc') {
                 CurrentUserUtils.MainDocId = pathname[pathname.length - 1];
             }
-        };
+        }
 
         CurrentUserUtils.loadCurrentUser();
 
@@ -111,6 +91,10 @@ export class Main extends React.Component {
         this.initializeNorthstar();
     }
 
+    componentDidMount() { window.onpopstate = this.onHistory; }
+
+    componentWillUnmount() { window.onpopstate = null; }
+
     onHistory = () => {
         if (window.location.pathname !== RouteStore.home) {
             let pathname = window.location.pathname.split("/");
@@ -123,18 +107,10 @@ export class Main extends React.Component {
         }
     }
 
-    componentDidMount() {
-        window.onpopstate = this.onHistory;
-    }
-
-    componentWillUnmount() {
-        window.onpopstate = null;
-    }
-
     initEventListeners = () => {
         // window.addEventListener("pointermove", (e) => this.reportLocation(e))
-        window.addEventListener("drop", (e) => e.preventDefault(), false) // drop event handler
-        window.addEventListener("dragover", (e) => e.preventDefault(), false) // drag event handler
+        window.addEventListener("drop", (e) => e.preventDefault(), false); // drop event handler
+        window.addEventListener("dragover", (e) => e.preventDefault(), false); // drag event handler
         // click interactions for the context menu
         document.addEventListener("pointerdown", action(function (e: PointerEvent) {
             if (!ContextMenu.Instance.intersects(e.pageX, e.pageY)) {
@@ -146,28 +122,24 @@ export class Main extends React.Component {
     initAuthenticationRouters = () => {
         // Load the user's active workspace, or create a new one if initial session after signup
         if (!CurrentUserUtils.MainDocId) {
-            this.userDocument.GetTAsync(KeyStore.ActiveWorkspace, Document).then(doc => {
+            CurrentUserUtils.UserDocument.GetTAsync(KeyStore.ActiveWorkspace, Document).then(doc => {
                 if (doc) {
                     CurrentUserUtils.MainDocId = doc.Id;
                     this.openWorkspace(doc);
                 } else {
                     this.createNewWorkspace();
                 }
-            })
+            });
         } else {
-            Server.GetField(CurrentUserUtils.MainDocId).then(field => {
-                if (field instanceof Document) {
-                    this.openWorkspace(field)
-                } else {
-                    this.createNewWorkspace(CurrentUserUtils.MainDocId);
-                }
-            })
+            Server.GetField(CurrentUserUtils.MainDocId).then(field =>
+                field instanceof Document ? this.openWorkspace(field) :
+                    this.createNewWorkspace(CurrentUserUtils.MainDocId));
         }
     }
 
     @action
     createNewWorkspace = (id?: string): void => {
-        this.userDocument.GetTAsync<ListField<Document>>(KeyStore.Workspaces, ListField).then(action((list: Opt<ListField<Document>>) => {
+        CurrentUserUtils.UserDocument.GetTAsync<ListField<Document>>(KeyStore.Workspaces, ListField).then(action((list: Opt<ListField<Document>>) => {
             if (list) {
                 let freeformDoc = Documents.FreeformDocument([], { x: 0, y: 400, title: "mini collection" });
                 var dockingLayout = { content: [{ type: 'row', content: [CollectionDockingView.makeDocumentConfig(freeformDoc)] }] };
@@ -177,7 +149,7 @@ export class Main extends React.Component {
                 // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
                 setTimeout(() => {
                     this.openWorkspace(mainDoc);
-                    let pendingDocument = Documents.SchemaDocument([], { title: "New Mobile Uploads" })
+                    let pendingDocument = Documents.SchemaDocument([], { title: "New Mobile Uploads" });
                     mainDoc.Set(KeyStore.OptionalRightCollection, pendingDocument);
                 }, 0);
             }
@@ -188,77 +160,78 @@ export class Main extends React.Component {
     openWorkspace = (doc: Document, fromHistory = false): void => {
         this.mainContainer = doc;
         fromHistory || window.history.pushState(null, doc.Title, "/doc/" + doc.Id);
-        this.userDocument.GetTAsync(KeyStore.OptionalRightCollection, Document).then(col => {
+        CurrentUserUtils.UserDocument.GetTAsync(KeyStore.OptionalRightCollection, Document).then(col =>
             // if there is a pending doc, and it has new data, show it (syip: we use a timeout to prevent collection docking view from being uninitialized)
-            setTimeout(() => {
-                if (col) {
-                    col.GetTAsync<ListField<Document>>(KeyStore.Data, ListField, (f: Opt<ListField<Document>>) => {
-                        if (f && f.Data.length > 0) {
-                            CollectionDockingView.Instance.AddRightSplit(col);
-                        }
-                    })
-                }
-            }, 100);
-        });
+            setTimeout(() =>
+                col && col.GetTAsync<ListField<Document>>(KeyStore.Data, ListField, (f: Opt<ListField<Document>>) =>
+                    f && f.Data.length > 0 && CollectionDockingView.Instance.AddRightSplit(col))
+                , 100)
+        );
     }
 
-    @observable
-    workspacesShown: boolean = false;
-
-    areWorkspacesShown = () => {
-        return this.workspacesShown;
+    @computed
+    get presentationView() {
+        if (this.mainContainer) {
+            let presentation = this.mainContainer.GetT(KeyStore.PresentationView, Document);
+            return presentation ? <PresentationView Document={presentation} key="presentation" /> : (null);
+        }
+        return (null);
     }
-    @action
-    toggleWorkspaces = () => {
-        this.workspacesShown = !this.workspacesShown;
-    }
-
-    screenToLocalTransform = () => Transform.Identity
-    pwidthFunc = () => this.pwidth;
-    pheightFunc = () => this.pheight;
-    focusDocument = (doc: Document) => { }
-    noScaling = () => 1;
 
     @computed
     get mainContent() {
-        if (!this.mainContainer)
-            return (null);
-        this.mainContainer.GetOrCreateAsync(KeyStore.PresentationView, Document, doc => { });
-        let presentation = this.mainContainer.GetT(KeyStore.PresentationView, Document);
-        let pcontent = presentation && presentation != FieldWaiting ? <PresentationView Document={presentation} /> : (null);
-        return [
-            pcontent,
-            <DocumentView Document={this.mainContainer}
-                AddDocument={undefined}
-                RemoveDocument={undefined}
-                ScreenToLocalTransform={this.screenToLocalTransform}
-                ContentScaling={this.noScaling}
-                PanelWidth={this.pwidthFunc}
-                PanelHeight={this.pheightFunc}
-                isTopMost={true}
-                SelectOnLoad={false}
-                focus={this.focusDocument}
-                ContainingCollectionView={undefined} />]
+        let pwidthFunc = () => this.pwidth;
+        let pheightFunc = () => this.pheight;
+        let noScaling = () => 1;
+        let mainCont = this.mainContainer;
+        let pcontent = this.presentationView;
+        return <Measure onResize={action((r: any) => { this.pwidth = r.entry.width; this.pheight = r.entry.height; })}>
+            {({ measureRef }) =>
+                <div ref={measureRef} id="mainContent-div">
+                    {!mainCont ? (null) :
+                        <div style={{ width: "100%", height: "100%", position: "absolute", }}>
+                            {pcontent}
+                            <DocumentView
+                                key="documentView"
+                                Document={mainCont}
+                                addDocument={undefined}
+                                removeDocument={undefined}
+                                opacity={1}
+                                ScreenToLocalTransform={Transform.Identity}
+                                ContentScaling={noScaling}
+                                PanelWidth={pwidthFunc}
+                                PanelHeight={pheightFunc}
+                                isTopMost={true}
+                                selectOnLoad={false}
+                                focus={emptyDocFunction}
+                                parentActive={returnTrue}
+                                onActiveChanged={emptyFunction}
+                                ContainingCollectionView={undefined} />
+                        </div>
+                    }
+                </div>
+            }
+        </Measure>;
     }
 
     /* for the expandable add nodes menu. Not included with the miscbuttons because once it expands it expands the whole div with it, making canvas interactions limited. */
     @computed
     get nodesMenu() {
         let imgurl = "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg";
-        let pdfurl = "http://www.adobe.com/support/products/enterprise/knowledgecenter/media/c4611_sample_explain.pdf"
+        let pdfurl = "http://www.adobe.com/support/products/enterprise/knowledgecenter/media/c27211_sample_explain.pdf";
         let weburl = "https://cs.brown.edu/courses/cs166/";
         let audiourl = "http://techslides.com/demos/samples/sample.mp3";
         let videourl = "http://techslides.com/demos/sample-videos/small.mp4";
 
-        let addTextNode = action(() => Documents.TextDocument({ width: 200, height: 200, title: "a text note" }))
+        let addTextNode = action(() => Documents.TextDocument({ width: 200, height: 200, title: "a text note" }));
         let addColNode = action(() => Documents.FreeformDocument([], { width: 200, height: 200, title: "a freeform collection" }));
         let addSchemaNode = action(() => Documents.SchemaDocument([], { width: 200, height: 200, title: "a schema collection" }));
-        let addTreeNode = action(() => Documents.TreeDocument(this._northstarSchemas, { width: 250, height: 400, title: "northstar schemas" }));
+        let addTreeNode = action(() => Documents.TreeDocument(this._northstarSchemas, { width: 250, height: 400, title: "northstar schemas", copyDraggedItems: true }));
         let addVideoNode = action(() => Documents.VideoDocument(videourl, { width: 200, height: 200, title: "video node" }));
         let addPDFNode = action(() => Documents.PdfDocument(pdfurl, { width: 200, height: 200, title: "a schema collection" }));
         let addImageNode = action(() => Documents.ImageDocument(imgurl, { width: 200, height: 200, title: "an image of a cat" }));
         let addWebNode = action(() => Documents.WebDocument(weburl, { width: 200, height: 200, title: "a sample web page" }));
-        let addAudioNode = action(() => Documents.AudioDocument(audiourl, { width: 200, height: 200, title: "audio node" }))
+        let addAudioNode = action(() => Documents.AudioDocument(audiourl, { width: 200, height: 200, title: "audio node" }));
 
         let btns: [React.RefObject<HTMLDivElement>, IconName, string, () => Document][] = [
             [React.createRef<HTMLDivElement>(), "font", "Add Textbox", addTextNode],
@@ -270,7 +243,7 @@ export class Main extends React.Component {
             [React.createRef<HTMLDivElement>(), "object-group", "Add Collection", addColNode],
             [React.createRef<HTMLDivElement>(), "tree", "Add Tree", addTreeNode],
             [React.createRef<HTMLDivElement>(), "table", "Add Schema", addSchemaNode],
-        ]
+        ];
 
         return < div id="add-nodes-menu" >
             <input type="checkbox" id="add-menu-toggle" />
@@ -280,13 +253,13 @@ export class Main extends React.Component {
                 <ul id="add-options-list">
                     {btns.map(btn =>
                         <li key={btn[1]} ><div ref={btn[0]}>
-                            <button className="round-button add-button" title={btn[2]} onPointerDown={setupDrag(btn[0], btn[3])}>
+                            <button className="round-button add-button" title={btn[2]} onPointerDown={SetupDrag(btn[0], btn[3])}>
                                 <FontAwesomeIcon icon={btn[1]} size="sm" />
                             </button>
                         </div></li>)}
                 </ul>
             </div>
-        </div >
+        </div >;
     }
 
     /* @TODO this should really be moved into a moveable toolbar component, but for now let's put it here to meet the deadline */
@@ -294,8 +267,9 @@ export class Main extends React.Component {
     get miscButtons() {
         let workspacesRef = React.createRef<HTMLDivElement>();
         let logoutRef = React.createRef<HTMLDivElement>();
+        let toggleWorkspaces = () => runInAction(() => this._workspacesShown = !this._workspacesShown);
 
-        let clearDatabase = action(() => Utils.Emit(Server.Socket, MessageStore.DeleteAll, {}))
+        let clearDatabase = action(() => Utils.Emit(Server.Socket, MessageStore.DeleteAll, {}));
         return [
             <button className="clear-db-button" key="clear-db" onClick={clearDatabase}>Clear Database</button>,
             <div id="toolbar" key="toolbar">
@@ -304,83 +278,76 @@ export class Main extends React.Component {
                 <button className="toolbar-button round-button" title="Ink" onClick={() => InkingControl.Instance.toggleDisplay()}><FontAwesomeIcon icon="pen-nib" size="sm" /></button>
             </div >,
             <div className="main-buttonDiv" key="workspaces" style={{ top: '34px', left: '2px', position: 'absolute' }} ref={workspacesRef}>
-                <button onClick={this.toggleWorkspaces}>Workspaces</button></div>,
+                <button onClick={toggleWorkspaces}>Workspaces</button></div>,
             <div className="main-buttonDiv" key="logout" style={{ top: '34px', right: '1px', position: 'absolute' }} ref={logoutRef}>
-                <button onClick={() => request.get(ServerUtils.prepend(RouteStore.logout), () => { })}>Log Out</button></div>
-        ]
+                <button onClick={() => request.get(ServerUtils.prepend(RouteStore.logout), emptyFunction)}>Log Out</button></div>
+        ];
+    }
+
+    @computed
+    get workspaceMenu() {
+        let areWorkspacesShown = () => this._workspacesShown;
+        let toggleWorkspaces = () => runInAction(() => this._workspacesShown = !this._workspacesShown);
+        let workspaces = CurrentUserUtils.UserDocument.GetT<ListField<Document>>(KeyStore.Workspaces, ListField);
+        return (!workspaces || workspaces === FieldWaiting || this.mainContainer === FieldWaiting) ? (null) :
+            <WorkspacesMenu active={this.mainContainer} open={this.openWorkspace}
+                new={this.createNewWorkspace} allWorkspaces={workspaces.Data}
+                isShown={areWorkspacesShown} toggle={toggleWorkspaces} />;
     }
 
     render() {
-        let workspaceMenu: any = null;
-        let workspaces = this.userDocument.GetT<ListField<Document>>(KeyStore.Workspaces, ListField);
-        if (workspaces && workspaces !== FieldWaiting) {
-            workspaceMenu = <WorkspacesMenu active={this.mainContainer} open={this.openWorkspace} new={this.createNewWorkspace} allWorkspaces={workspaces.Data}
-                isShown={this.areWorkspacesShown} toggle={this.toggleWorkspaces} />
-        }
         return (
             <div id="main-div">
                 <DocumentDecorations />
-                <Measure onResize={(r: any) => runInAction(() => {
-                    this.pwidth = r.entry.width;
-                    this.pheight = r.entry.height;
-                })}>
-                    {({ measureRef }) =>
-                        <div ref={measureRef} id="mainContent-div">
-                            {this.mainContent}
-                        </div>
-                    }
-                </Measure>
+                {this.mainContent}
+                <PreviewCursor />
                 <ContextMenu />
                 {this.nodesMenu}
                 {this.miscButtons}
-                {workspaceMenu}
+                {this.workspaceMenu}
                 <InkingControl />
+                <MainOverlayTextBox />
             </div>
         );
     }
 
     // --------------- Northstar hooks ------------- /
+    private _northstarSchemas: Document[] = [];
 
     @action SetNorthstarCatalog(ctlog: Catalog) {
         CurrentUserUtils.NorthstarDBCatalog = ctlog;
         if (ctlog && ctlog.schemas) {
-            this._northstarSchemas = ctlog.schemas.map(schema => {
-                let schemaDoc = Documents.TreeDocument([], { width: 50, height: 100, title: schema.displayName! });
-                let schemaDocuments = schemaDoc.GetList(KeyStore.Data, [] as Document[]);
-                CurrentUserUtils.GetAllNorthstarColumnAttributes(schema).map(attr => {
-                    Server.GetField(attr.displayName! + ".alias", action((field: Opt<Field>) => {
+            ctlog.schemas.map(schema => {
+                let schemaDocuments: Document[] = [];
+                let attributesToBecomeDocs = CurrentUserUtils.GetAllNorthstarColumnAttributes(schema);
+                Promise.all(attributesToBecomeDocs.reduce((promises, attr) => {
+                    promises.push(Server.GetField(attr.displayName! + ".alias").then(action((field: Opt<Field>) => {
                         if (field instanceof Document) {
                             schemaDocuments.push(field);
                         } else {
                             var atmod = new ColumnAttributeModel(attr);
-                            let histoOp = new HistogramOperation(schema!.displayName!,
+                            let histoOp = new HistogramOperation(schema.displayName!,
                                 new AttributeTransformationModel(atmod, AggregateFunction.None),
                                 new AttributeTransformationModel(atmod, AggregateFunction.Count),
                                 new AttributeTransformationModel(atmod, AggregateFunction.Count));
                             schemaDocuments.push(Documents.HistogramDocument(histoOp, { width: 200, height: 200, title: attr.displayName! }, undefined, attr.displayName! + ".alias"));
                         }
-                    }));
-                });
-                return schemaDoc;
-            })
+                    })));
+                    return promises;
+                }, [] as Promise<void>[])).finally(() =>
+                    this._northstarSchemas.push(Documents.TreeDocument(schemaDocuments, { width: 50, height: 100, title: schema.displayName! })));
+            });
         }
     }
     async initializeNorthstar(): Promise<void> {
-        let envPath = "/assets/env.json";
-        const response = await fetch(envPath, {
-            redirect: "follow",
-            method: "GET",
-            credentials: "include"
-        });
-        const env = await response.json();
-        Settings.Instance.Update(env);
-        let cat = Gateway.Instance.ClearCatalog();
-        cat.then(async () => this.SetNorthstarCatalog(await Gateway.Instance.GetCatalog()));
+        const getEnvironment = await fetch("/assets/env.json", { redirect: "follow", method: "GET", credentials: "include" });
+        NorthstarSettings.Instance.UpdateEnvironment(await getEnvironment.json());
+        Gateway.Instance.ClearCatalog().then(async () => this.SetNorthstarCatalog(await Gateway.Instance.GetCatalog()));
     }
 }
 
-Documents.initProtos().then(() => {
-    return CurrentUserUtils.loadCurrentUser()
-}).then(() => {
+(async () => {
+    await Documents.initProtos();
+    await CurrentUserUtils.loadCurrentUser();
     ReactDOM.render(<Main />, document.getElementById('root'));
-});
+})();

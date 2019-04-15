@@ -1,76 +1,103 @@
-@import "global_variables";
+@import "globalCssVariables";
+
+.documentDecorations {
+    position: absolute;
+}
 #documentDecorations-container {
     position: absolute;
+    top: 0;
+    left:0;
     display: grid;
-    z-index: 1000;
-    grid-template-rows: 8px 1fr 8px 30px;
-    grid-template-columns: 8px 1fr 8px;
+    z-index: $docDecorations-zindex;
+    grid-template-rows: 20px 8px 1fr 8px;
+    grid-template-columns: 8px 8px 1fr 8px 8px;
     pointer-events: none;
+
     #documentDecorations-centerCont {
+        grid-column:3;
         background: none;
     }
+
     .documentDecorations-resizer {
         pointer-events: auto;
         background: $alt-accent;
         opacity: 0.8;
     }
+
+    #documentDecorations-topLeftResizer,
+    #documentDecorations-leftResizer,
+    #documentDecorations-bottomLeftResizer {
+        grid-column: 1
+    }
+
+    #documentDecorations-topResizer,
+    #documentDecorations-bottomResizer {
+        grid-column-start: 2;
+        grid-column-end: 5;
+    }
+
+    #documentDecorations-bottomRightResizer,
+    #documentDecorations-topRightResizer,
+    #documentDecorations-rightResizer {
+        grid-column-start:5;
+        grid-column-end:7;
+    }
+
     #documentDecorations-topLeftResizer,
     #documentDecorations-bottomRightResizer {
         cursor: nwse-resize;
     }
+
     #documentDecorations-topRightResizer,
     #documentDecorations-bottomLeftResizer {
         cursor: nesw-resize;
     }
+
     #documentDecorations-topResizer,
     #documentDecorations-bottomResizer {
         cursor: ns-resize;
     }
+
     #documentDecorations-leftResizer,
     #documentDecorations-rightResizer {
         cursor: ew-resize;
     }
+    .title{
+        width:100%;
+        background: lightblue;
+        grid-column-start:3;
+        grid-column-end: 4;
+        pointer-events: auto;
+    }
 }
 
+.documentDecorations-closeButton {
+    background:$alt-accent;
+    opacity: 0.8;
+    grid-column-start: 4;
+    grid-column-end: 6;
+    pointer-events: all;
+    text-align: center;
+    cursor: pointer;
+}
+.documentDecorations-minimizeButton {
+    background:$alt-accent;
+    opacity: 0.8;
+    grid-column-start: 1;
+    grid-column-end: 3;
+    pointer-events: all;
+    text-align: center;
+    cursor: pointer;
+}
 .documentDecorations-background {
-    background:lightblue;
+    background: lightblue;
     position: absolute;
     opacity: 0.1;
 }
 
-//     position: absolute;
-//     display: grid;
-//     z-index: 1000;
-//     grid-template-rows: 20px 1fr 20px 0px;
-//     grid-template-columns: 20px 1fr 20px;
-//     pointer-events: none;
-//     #documentDecorations-centerCont {
-//         background: none;
-//     }
-//     .documentDecorations-resizer {
-//         pointer-events: auto;
-//         background: lightblue;
-//         opacity: 0.4;
-//     }
-//     #documentDecorations-topLeftResizer,
-//     #documentDecorations-bottomRightResizer {
-//         cursor: nwse-resize;
-//     }
-//     #documentDecorations-topRightResizer,
-//     #documentDecorations-bottomLeftResizer {
-//         cursor: nesw-resize;
-//     }
-//     #documentDecorations-topResizer,
-//     #documentDecorations-bottomResizer {
-//         cursor: ns-resize;
-//     }
-//     #documentDecorations-leftResizer,
-//     #documentDecorations-rightResizer {
-//         cursor: ew-resize;
-//     }
-// }
 .linkFlyout {
-    grid-column: 1/4
+    grid-column: 1/4;
+    margin-left: 25px;
 }
 
 .linkButton-empty:hover {
@@ -85,6 +112,31 @@
     cursor: pointer;
 }
 
+.linkButton-linker {
+    position:absolute;
+    bottom:0px;
+    left: 0px;
+    height: 20px;
+    width: 20px;
+    margin-top: 10px;
+    margin-right: 5px;
+    border-radius: 50%;
+    opacity: 0.9;
+    pointer-events: auto;
+    color: $dark-color;
+    border: $dark-color 1px solid;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-size: 75%;
+    transition: transform 0.2s;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.linkButton-tray {
+    grid-column: 1/4;
+}
 .linkButton-empty {
     height: 20px;
     width: 20px;

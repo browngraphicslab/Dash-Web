@@ -2,11 +2,11 @@ import React = require("react");
 import { ContextMenuItem, ContextMenuProps } from "./ContextMenuItem";
 import { observable, action } from "mobx";
 import { observer } from "mobx-react";
-import "./ContextMenu.scss"
+import "./ContextMenu.scss";
 
 @observer
 export class ContextMenu extends React.Component {
-    static Instance: ContextMenu
+    static Instance: ContextMenu;
 
     @observable private _items: Array<ContextMenuProps> = [{ description: "test", event: (e: React.MouseEvent) => e.preventDefault() }];
     @observable private _pageX: number = 0;
@@ -22,15 +22,15 @@ export class ContextMenu extends React.Component {
     constructor(props: Readonly<{}>) {
         super(props);
 
-        this.ref = React.createRef()
+        this.ref = React.createRef();
 
         ContextMenu.Instance = this;
     }
 
     @action
     clearItems() {
-        this._items = []
-        this._display = "none"
+        this._items = [];
+        this._display = "none";
     }
 
     @action
@@ -56,7 +56,7 @@ export class ContextMenu extends React.Component {
 
         this._searchString = "";
 
-        this._display = "flex"
+        this._display = "flex";
     }
 
     intersects = (x: number, y: number): boolean => {
@@ -86,7 +86,7 @@ export class ContextMenu extends React.Component {
                 {this._items.filter(prop => prop.description.toLowerCase().indexOf(this._searchString.toLowerCase()) !== -1).
                     map(prop => <ContextMenuItem {...prop} key={prop.description} />)}
             </div>
-        )
+        );
     }
 
     @action

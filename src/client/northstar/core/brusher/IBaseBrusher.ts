@@ -1,4 +1,4 @@
-import { PIXIPoint } from '../../utils/MathUtil'
+import { PIXIPoint } from '../../utils/MathUtil';
 import { IEquatable } from '../../utils/IEquatable';
 
 

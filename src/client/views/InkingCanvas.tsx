@@ -10,6 +10,7 @@ import "./InkingCanvas.scss";
 import { InkingControl } from "./InkingControl";
 import { InkingStroke } from "./InkingStroke";
 import React = require("react");
+import { undoBatch, UndoManager } from "../util/UndoManager";
 
 interface InkCanvasProps {
     getScreenTransform: () => Transform;
@@ -22,6 +23,7 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
     maxCanvasDim = 8192 / 2; // 1/2 of the maximum canvas dimension for Chrome
     @observable inkMidX: number = 0;
     @observable inkMidY: number = 0;
+    private previousState?: StrokeMap;
     private _currentStrokeId: string = "";
     public static IntersectStrokeRect(stroke: StrokeData, selRect: { left: number, top: number, width: number, height: number }): boolean {
         return stroke.pathData.reduce((inside: boolean, val) => inside ||
@@ -56,24 +58,29 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
 
     @action
     onPointerDown = (e: React.PointerEvent): void => {
-        if (e.button != 0 || e.altKey || e.ctrlKey || InkingControl.Instance.selectedTool === InkTool.None) {
+        if (e.button !== 0 || e.altKey || e.ctrlKey || InkingControl.Instance.selectedTool === InkTool.None) {
             return;
         }
+
         document.addEventListener("pointermove", this.onPointerMove, true);
         document.addEventListener("pointerup", this.onPointerUp, true);
         e.stopPropagation();
         e.preventDefault();
 
-        if (InkingControl.Instance.selectedTool != InkTool.Eraser) {
+        this.previousState = this.inkData;
+
+        if (InkingControl.Instance.selectedTool !== InkTool.Eraser) {
             // start the new line, saves a uuid to represent the field of the stroke
             this._currentStrokeId = Utils.GenerateGuid();
-            this.inkData.set(this._currentStrokeId, {
+            const data = this.inkData;
+            data.set(this._currentStrokeId, {
                 pathData: [this.relativeCoordinatesForEvent(e.clientX, e.clientY)],
                 color: InkingControl.Instance.selectedColor,
                 width: InkingControl.Instance.selectedWidth,
                 tool: InkingControl.Instance.selectedTool,
                 page: this.props.Document.GetNumber(KeyStore.CurPage, -1)
             });
+            this.inkData = data;
         }
     }
 
@@ -88,13 +95,23 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
         }
         e.stopPropagation();
         e.preventDefault();
+
+        const batch = UndoManager.StartBatch("One ink stroke");
+        const oldState = this.previousState || new Map;
+        this.previousState = undefined;
+        const newState = this.inkData;
+        UndoManager.AddEvent({
+            undo: () => this.inkData = oldState,
+            redo: () => this.inkData = newState,
+        });
+        batch.end();
     }
 
     @action
     onPointerMove = (e: PointerEvent): void => {
-        e.stopPropagation()
+        e.stopPropagation();
         e.preventDefault();
-        if (InkingControl.Instance.selectedTool != InkTool.Eraser) {
+        if (InkingControl.Instance.selectedTool !== InkTool.Eraser) {
             let data = this.inkData;  // add points to new line as it is being drawn
             let strokeData = data.get(this._currentStrokeId);
             if (strokeData) {
@@ -110,6 +127,7 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
         return { x, y };
     }
 
+    @undoBatch
     @action
     removeLine = (id: string): void => {
         let data = this.inkData;
@@ -119,34 +137,35 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
 
     @computed
     get drawnPaths() {
-        let curPage = this.props.Document.GetNumber(KeyStore.CurPage, -1)
+        let curPage = this.props.Document.GetNumber(KeyStore.CurPage, -1);
         let paths = Array.from(this.inkData).reduce((paths, [id, strokeData]) => {
-            if (strokeData.page == -1 || strokeData.page == curPage)
+            if (strokeData.page === -1 || strokeData.page === curPage) {
                 paths.push(<InkingStroke key={id} id={id} line={strokeData.pathData}
                     offsetX={this.maxCanvasDim - this.inkMidX}
                     offsetY={this.maxCanvasDim - this.inkMidY}
                     color={strokeData.color} width={strokeData.width}
-                    tool={strokeData.tool} deleteCallback={this.removeLine} />)
+                    tool={strokeData.tool} deleteCallback={this.removeLine} />);
+            }
             return paths;
         }, [] as JSX.Element[]);
         return [<svg className={`inkingCanvas-paths-markers`} key="Markers"
             style={{ left: `${this.inkMidX - this.maxCanvasDim}px`, top: `${this.inkMidY - this.maxCanvasDim}px` }} >
-            {paths.filter(path => path.props.tool == InkTool.Highlighter)}
+            {paths.filter(path => path.props.tool === InkTool.Highlighter)}
         </svg>,
         <svg className={`inkingCanvas-paths-ink`} key="Pens"
-            style={{ left: `-${this.inkMidX - this.maxCanvasDim}px`, top: `-${this.inkMidY - this.maxCanvasDim}px` }}>
-            {paths.filter(path => path.props.tool != InkTool.Highlighter)}
+            style={{ left: `${this.inkMidX - this.maxCanvasDim}px`, top: `${this.inkMidY - this.maxCanvasDim}px` }}>
+            {paths.filter(path => path.props.tool !== InkTool.Highlighter)}
         </svg>];
     }
 
     render() {
-        let svgCanvasStyle = InkingControl.Instance.selectedTool != InkTool.None ? "canSelect" : "noSelect";
+        let svgCanvasStyle = InkingControl.Instance.selectedTool !== InkTool.None ? "canSelect" : "noSelect";
         return (
             <div className="inkingCanvas" >
                 <div className={`inkingCanvas-${svgCanvasStyle}`} onPointerDown={this.onPointerDown} />
                 {this.props.children()}
                 {this.drawnPaths}
             </div >
-        )
+        );
     }
 }

@@ -1,4 +1,4 @@
-import React = require("react")
+import React = require("react");
 import { action, computed, reaction } from "mobx";
 import { observer } from "mobx-react";
 import { Utils as DashUtils } from '../../../Utils';
@@ -13,7 +13,7 @@ import { HistogramPrimitivesProps } from "./HistogramBoxPrimitives";
 export class HistogramLabelPrimitives extends React.Component<HistogramPrimitivesProps> {
     componentDidMount() {
         reaction(() => [this.props.HistoBox.PanelWidth, this.props.HistoBox.SizeConverter.LeftOffset, this.props.HistoBox.VisualBinRanges.length],
-            (fields) => HistogramLabelPrimitives.computeLabelAngle(fields[0] as number, fields[1] as number, this.props.HistoBox), { fireImmediately: true });
+            (fields) => HistogramLabelPrimitives.computeLabelAngle(fields[0], fields[1], this.props.HistoBox), { fireImmediately: true });
     }
 
     @action
@@ -32,9 +32,10 @@ export class HistogramLabelPrimitives extends React.Component<HistogramPrimitive
     private renderGridLinesAndLabels(axis: number) {
         let sc = this.props.HistoBox.SizeConverter;
         let vb = this.props.HistoBox.VisualBinRanges;
-        if (!vb.length || !sc.Initialized)
+        if (!vb.length || !sc.Initialized) {
             return (null);
-        let dim = (axis == 0 ? this.props.HistoBox.PanelWidth : this.props.HistoBox.PanelHeight) / ((axis == 0 && vb[axis] instanceof NominalVisualBinRange) ?
+        }
+        let dim = (axis === 0 ? this.props.HistoBox.PanelWidth : this.props.HistoBox.PanelHeight) / ((axis === 0 && vb[axis] instanceof NominalVisualBinRange) ?
             (12 + 5) : //  (<number>FontStyles.AxisLabel.fontSize + 5)));
             sc.MaxLabelSizes[axis].coords[axis] + 5);
 
@@ -47,21 +48,21 @@ export class HistogramLabelPrimitives extends React.Component<HistogramPrimitive
                 let xStart = (axis === 0 ? r.xFrom + (r.xTo - r.xFrom) / 2.0 : r.xFrom - 10 - textWidth);
                 let yStart = (axis === 1 ? r.yFrom - textHeight / 2 : r.yFrom);
 
-                if (axis == 0 && vb[axis] instanceof NominalVisualBinRange) {
+                if (axis === 0 && vb[axis] instanceof NominalVisualBinRange) {
                     let space = (r.xTo - r.xFrom) / sc.RenderDimension * this.props.HistoBox.PanelWidth;
                     xStart += Math.max(textWidth / 2, (1 - textWidth / space) * textWidth / 2) - textHeight / 2;
                 }
 
-                let xPercent = axis == 1 ? `${xStart}px` : `${xStart / sc.RenderDimension * 100}%`
-                let yPercent = axis == 0 ? `${this.props.HistoBox.PanelHeight - sc.BottomOffset - textHeight}px` : `${yStart / sc.RenderDimension * 100}%`
+                let xPercent = axis === 1 ? `${xStart}px` : `${xStart / sc.RenderDimension * 100}%`;
+                let yPercent = axis === 0 ? `${this.props.HistoBox.PanelHeight - sc.BottomOffset - textHeight}px` : `${yStart / sc.RenderDimension * 100}%`;
 
                 prims.push(
                     <div className="histogramLabelPrimitives-placer" key={DashUtils.GenerateGuid()} style={{ transform: `translate(${xPercent}, ${yPercent})` }}>
-                        <div className="histogramLabelPrimitives-gridlabel" style={{ transform: `rotate(${axis == 0 ? sc.LabelAngle : 0}rad)` }}>
+                        <div className="histogramLabelPrimitives-gridlabel" style={{ transform: `rotate(${axis === 0 ? sc.LabelAngle : 0}rad)` }}>
                             {label}
                         </div>
                     </div>
-                )
+                );
             }
             return prims;
         }, [] as JSX.Element[]);
@@ -73,7 +74,7 @@ export class HistogramLabelPrimitives extends React.Component<HistogramPrimitive
         return <div className="histogramLabelPrimitives-container">
             {xaxislines}
             {yaxislines}
-        </div>
+        </div>;
     }
 
 }

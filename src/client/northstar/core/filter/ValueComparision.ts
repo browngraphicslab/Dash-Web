@@ -1,5 +1,5 @@
-import { Predicate } from '../../model/idea/idea'
-import { Utils } from '../../utils/Utils'
+import { Predicate } from '../../model/idea/idea';
+import { Utils } from '../../utils/Utils';
 import { AttributeModel } from '../attribute/AttributeModel';
 
 export class ValueComparison {
@@ -15,15 +15,19 @@ export class ValueComparison {
     }
 
     public Equals(other: Object): boolean {
-        if (!Utils.EqualityHelper(this, other))
+        if (!Utils.EqualityHelper(this, other)) {
             return false;
-        if (this.Predicate !== (other as ValueComparison).Predicate)
+        }
+        if (this.Predicate !== (other as ValueComparison).Predicate) {
             return false;
+        }
         let isComplex = (typeof this.Value === "object");
-        if (!isComplex && this.Value != (other as ValueComparison).Value)
+        if (!isComplex && this.Value !== (other as ValueComparison).Value) {
             return false;
-        if (isComplex && !this.Value.Equals((other as ValueComparison).Value))
+        }
+        if (isComplex && !this.Value.Equals((other as ValueComparison).Value)) {
             return false;
+        }
         return true;
     }
 
@@ -58,13 +62,13 @@ export class ValueComparison {
         var rawName = this.attributeModel.CodeName;
         switch (this.Predicate) {
             case Predicate.STARTS_WITH:
-                ret += rawName + " != null && " + rawName + ".StartsWith(" + val + ") ";
+                ret += rawName + " !== null && " + rawName + ".StartsWith(" + val + ") ";
                 return ret;
             case Predicate.ENDS_WITH:
-                ret += rawName + " != null && " + rawName + ".EndsWith(" + val + ") ";
+                ret += rawName + " !== null && " + rawName + ".EndsWith(" + val + ") ";
                 return ret;
             case Predicate.CONTAINS:
-                ret += rawName + " != null && " + rawName + ".Contains(" + val + ") ";
+                ret += rawName + " !== null && " + rawName + ".Contains(" + val + ") ";
                 return ret;
             default:
                 ret += rawName + " " + op + " " + val + " ";

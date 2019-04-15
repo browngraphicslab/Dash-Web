@@ -42,6 +42,10 @@ export class HistogramOperation extends BaseOperation implements IBaseFilterCons
         this.SchemaName = schemaName;
     }
 
+    Copy(): HistogramOperation {
+        return new HistogramOperation(this.SchemaName, this.X, this.Y, this.V, this.Normalization);
+    }
+
     Equals(other: Object): boolean {
         throw new Error("Method not implemented.");
     }
@@ -58,7 +62,7 @@ export class HistogramOperation extends BaseOperation implements IBaseFilterCons
     @computed
     public get FilterString(): string {
         let filterModels: FilterModel[] = [];
-        return FilterModel.GetFilterModelsRecursive(this, new Set<IBaseFilterProvider>(), filterModels, true)
+        return FilterModel.GetFilterModelsRecursive(this, new Set<IBaseFilterProvider>(), filterModels, true);
     }
 
     @computed
@@ -67,7 +71,7 @@ export class HistogramOperation extends BaseOperation implements IBaseFilterCons
         let brushes: string[] = [];
         this.BrushLinks.map(brushLink => {
             let brushHistogram = brushLink.b.GetT(KeyStore.Data, HistogramField);
-            if (brushHistogram && brushHistogram != FieldWaiting) {
+            if (brushHistogram && brushHistogram !== FieldWaiting) {
                 let filterModels: FilterModel[] = [];
                 brushes.push(FilterModel.GetFilterModelsRecursive(brushHistogram.Data, new Set<IBaseFilterProvider>(), filterModels, false));
             }

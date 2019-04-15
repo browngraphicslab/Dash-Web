@@ -1,13 +1,13 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { Schema, NodeSpec, MarkSpec, DOMOutputSpecArray, NodeType } from "prosemirror-model"
-import { joinUp, lift, setBlockType, toggleMark, wrapIn } from 'prosemirror-commands'
-import { redo, undo } from 'prosemirror-history'
-import { orderedList, bulletList, listItem, } from 'prosemirror-schema-list'
+import { Schema, NodeSpec, MarkSpec, DOMOutputSpecArray, NodeType } from "prosemirror-model";
+import { joinUp, lift, setBlockType, toggleMark, wrapIn } from 'prosemirror-commands';
+import { redo, undo } from 'prosemirror-history';
+import { orderedList, bulletList, listItem, } from 'prosemirror-schema-list';
 import { EditorState, Transaction, NodeSelection, } from "prosemirror-state";
 import { EditorView, } from "prosemirror-view";
 
 const pDOM: DOMOutputSpecArray = ["p", 0], blockquoteDOM: DOMOutputSpecArray = ["blockquote", 0], hrDOM: DOMOutputSpecArray = ["hr"],
-  preDOM: DOMOutputSpecArray = ["pre", ["code", 0]], brDOM: DOMOutputSpecArray = ["br"], ulDOM: DOMOutputSpecArray = ["ul", 0]
+  preDOM: DOMOutputSpecArray = ["pre", ["code", 0]], brDOM: DOMOutputSpecArray = ["br"], ulDOM: DOMOutputSpecArray = ["ul", 0];
 
 
 // :: Object
@@ -24,7 +24,7 @@ export const nodes: { [index: string]: NodeSpec } = {
     content: "inline*",
     group: "block",
     parseDOM: [{ tag: "p" }],
-    toDOM() { return pDOM }
+    toDOM() { return pDOM; }
   },
 
   // :: NodeSpec A blockquote (`<blockquote>`) wrapping one or more blocks.
@@ -33,14 +33,14 @@ export const nodes: { [index: string]: NodeSpec } = {
     group: "block",
     defining: true,
     parseDOM: [{ tag: "blockquote" }],
-    toDOM() { return blockquoteDOM }
+    toDOM() { return blockquoteDOM; }
   },
 
   // :: NodeSpec A horizontal rule (`<hr>`).
   horizontal_rule: {
     group: "block",
     parseDOM: [{ tag: "hr" }],
-    toDOM() { return hrDOM }
+    toDOM() { return hrDOM; }
   },
 
   // :: NodeSpec A heading textblock, with a `level` attribute that
@@ -57,7 +57,7 @@ export const nodes: { [index: string]: NodeSpec } = {
     { tag: "h4", attrs: { level: 4 } },
     { tag: "h5", attrs: { level: 5 } },
     { tag: "h6", attrs: { level: 6 } }],
-    toDOM(node: any) { return ["h" + node.attrs.level, 0] }
+    toDOM(node: any) { return ["h" + node.attrs.level, 0]; }
   },
 
   // :: NodeSpec A code listing. Disallows marks or non-text inline
@@ -70,7 +70,7 @@ export const nodes: { [index: string]: NodeSpec } = {
     code: true,
     defining: true,
     parseDOM: [{ tag: "pre", preserveWhitespace: "full" }],
-    toDOM() { return preDOM }
+    toDOM() { return preDOM; }
   },
 
   // :: NodeSpec The text node.
@@ -96,10 +96,10 @@ export const nodes: { [index: string]: NodeSpec } = {
           src: dom.getAttribute("src"),
           title: dom.getAttribute("title"),
           alt: dom.getAttribute("alt")
-        }
+        };
       }
     }],
-    toDOM(node: any) { return ["img", node.attrs] }
+    toDOM(node: any) { return ["img", node.attrs]; }
   },
 
   // :: NodeSpec A hard line break, represented in the DOM as `<br>`.
@@ -108,7 +108,7 @@ export const nodes: { [index: string]: NodeSpec } = {
     group: "inline",
     selectable: false,
     parseDOM: [{ tag: "br" }],
-    toDOM() { return brDOM }
+    toDOM() { return brDOM; }
   },
 
   ordered_list: {
@@ -136,7 +136,7 @@ export const nodes: { [index: string]: NodeSpec } = {
     ...listItem,
     content: 'paragraph block*'
   }
-}
+};
 
 const emDOM: DOMOutputSpecArray = ["em", 0];
 const strongDOM: DOMOutputSpecArray = ["strong", 0];
@@ -156,17 +156,17 @@ export const marks: { [index: string]: MarkSpec } = {
     inclusive: false,
     parseDOM: [{
       tag: "a[href]", getAttrs(dom: any) {
-        return { href: dom.getAttribute("href"), title: dom.getAttribute("title") }
+        return { href: dom.getAttribute("href"), title: dom.getAttribute("title") };
       }
     }],
-    toDOM(node: any) { return ["a", node.attrs, 0] }
+    toDOM(node: any) { return ["a", node.attrs, 0]; }
   },
 
   // :: MarkSpec An emphasis mark. Rendered as an `<em>` element.
   // Has parse rules that also match `<i>` and `font-style: italic`.
   em: {
     parseDOM: [{ tag: "i" }, { tag: "em" }, { style: "font-style=italic" }],
-    toDOM() { return emDOM }
+    toDOM() { return emDOM; }
   },
 
   // :: MarkSpec A strong mark. Rendered as `<strong>`, parse rules
@@ -175,7 +175,7 @@ export const marks: { [index: string]: MarkSpec } = {
     parseDOM: [{ tag: "strong" },
     { tag: "b" },
     { style: "font-weight" }],
-    toDOM() { return strongDOM }
+    toDOM() { return strongDOM; }
   },
 
   underline: {
@@ -221,9 +221,9 @@ export const marks: { [index: string]: MarkSpec } = {
   // :: MarkSpec Code font mark. Represented as a `<code>` element.
   code: {
     parseDOM: [{ tag: "code" }],
-    toDOM() { return codeDOM }
+    toDOM() { return codeDOM; }
   }
-}
+};
 
 // :: Schema
 // This schema rougly corresponds to the document schema used by
@@ -233,4 +233,4 @@ export const marks: { [index: string]: MarkSpec } = {
 //
 // To reuse elements from this schema, extend or read from its
 // `spec.nodes` and `spec.marks` [properties](#model.Schema.spec).
-export const schema = new Schema({ nodes, marks })
+export const schema = new Schema({ nodes, marks });

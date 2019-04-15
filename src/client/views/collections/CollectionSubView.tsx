@@ -4,43 +4,35 @@ import { ListField } from "../../../fields/ListField";
 import React = require("react");
 import { KeyStore } from "../../../fields/KeyStore";
 import { FieldWaiting, Opt } from "../../../fields/Field";
-import { undoBatch } from "../../util/UndoManager";
+import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { DragManager } from "../../util/DragManager";
 import { Documents, DocumentOptions } from "../../documents/Documents";
-import { Key } from "../../../fields/Key";
-import { Transform } from "../../util/Transform";
-import { CollectionView } from "./CollectionView";
 import { RouteStore } from "../../../server/RouteStore";
 import { TupleField } from "../../../fields/TupleField";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { NumberField } from "../../../fields/NumberField";
-import request = require("request");
 import { ServerUtils } from "../../../server/ServerUtil";
 import { Server } from "../../Server";
+import { FieldViewProps } from "../nodes/FieldView";
+import * as rp from 'request-promise';
+import { emptyFunction } from "../../../Utils";
+import { CollectionView } from "./CollectionView";
+import { CollectionPDFView } from "./CollectionPDFView";
+import { CollectionVideoView } from "./CollectionVideoView";
 
-export interface CollectionViewProps {
-    fieldKey: Key;
-    Document: Document;
-    ScreenToLocalTransform: () => Transform;
-    isSelected: () => boolean;
-    isTopMost: boolean;
-    select: (ctrlPressed: boolean) => void;
-    bindings: any;
-    panelWidth: () => number;
-    panelHeight: () => number;
-    focus: (doc: Document) => void;
+export interface CollectionViewProps extends FieldViewProps {
+    addDocument: (document: Document, allowDuplicates?: boolean) => boolean;
+    removeDocument: (document: Document) => boolean;
+    moveDocument: (document: Document, targetCollection: Document, addDocument: (document: Document) => boolean) => boolean;
 }
 
 export interface SubCollectionViewProps extends CollectionViewProps {
-    active: () => boolean;
-    addDocument: (doc: Document, allowDuplicates: boolean) => boolean;
-    removeDocument: (doc: Document) => boolean;
-    CollectionView: CollectionView;
+    CollectionView: CollectionView | CollectionPDFView | CollectionVideoView;
 }
 
 export type CursorEntry = TupleField<[string, string], [number, number]>;
 
-export class CollectionViewBase extends React.Component<SubCollectionViewProps> {
+export class CollectionSubView extends React.Component<SubCollectionViewProps> {
     private dropDisposer?: DragManager.DragDropDisposer;
     protected createDropTarget = (ele: HTMLDivElement) => {
         if (this.dropDisposer) {
@@ -71,8 +63,8 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
                         let entry = new TupleField<[string, string], [number, number]>([textInfo, position]);
                         cursors.push(entry);
                     }
-                }))
-            })
+                }));
+            });
         }
     }
 
@@ -80,13 +72,28 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
     @action
     protected drop(e: Event, de: DragManager.DropEvent): boolean {
         if (de.data instanceof DragManager.DocumentDragData) {
-            if (de.data.aliasOnDrop) {
+            if (de.data.aliasOnDrop || de.data.copyOnDrop) {
                 [KeyStore.Width, KeyStore.Height, KeyStore.CurPage].map(key =>
-                    de.data.draggedDocuments.GetTAsync(key, NumberField, (f: Opt<NumberField>) => f ? de.data.droppedDocument.SetNumber(key, f.Data) : null));
+                    de.data.draggedDocuments.map((draggedDocument: Document, i: number) =>
+                        draggedDocument.GetTAsync(key, NumberField, (f: Opt<NumberField>) => f ? de.data.droppedDocuments[i].SetNumber(key, f.Data) : null)));
             }
-            let added = de.data.droppedDocuments.reduce((added, d) => this.props.addDocument(d, false), true);
-            if (added && de.data.removeDocument && !de.data.aliasOnDrop) {
-                de.data.removeDocument(this.props.CollectionView);
+            let added = false;
+            if (de.data.aliasOnDrop || de.data.copyOnDrop) {
+                added = de.data.droppedDocuments.reduce((added: boolean, d) => {
+                    let moved = this.props.addDocument(d);
+                    return moved || added;
+                }, false);
+            } else if (de.data.moveDocument) {
+                const move = de.data.moveDocument;
+                added = de.data.droppedDocuments.reduce((added: boolean, d) => {
+                    let moved = move(d, this.props.Document, this.props.addDocument);
+                    return moved || added;
+                }, false);
+            } else {
+                added = de.data.droppedDocuments.reduce((added: boolean, d) => {
+                    let moved = this.props.addDocument(d);
+                    return moved || added;
+                }, false);
             }
             e.stopPropagation();
             return added;
@@ -94,8 +101,8 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
         return false;
     }
 
-    protected getDocumentFromType(type: string, path: string, options: DocumentOptions): Opt<Document> {
-        let ctor: ((path: string, options: DocumentOptions) => Document) | undefined;
+    protected async getDocumentFromType(type: string, path: string, options: DocumentOptions): Promise<Opt<Document>> {
+        let ctor: ((path: string, options: DocumentOptions) => (Document | Promise<Document | undefined>)) | undefined = undefined;
         if (type.indexOf("image") !== -1) {
             ctor = Documents.ImageDocument;
         }
@@ -107,6 +114,11 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
         }
         if (type.indexOf("pdf") !== -1) {
             ctor = Documents.PdfDocument;
+            options.nativeWidth = 1200;
+        }
+        if (type.indexOf("excel") !== -1) {
+            ctor = Documents.DBDocument;
+            options.copyDraggedItems = true;
         }
         if (type.indexOf("html") !== -1) {
             if (path.includes('localhost')) {
@@ -121,7 +133,7 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
                         alias.SetNumber(KeyStore.Height, options.height || options.width || 300);
                         this.props.addDocument(alias, false);
                     }
-                })
+                });
                 return undefined;
             }
             ctor = Documents.WebDocument;
@@ -130,20 +142,19 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
         return ctor ? ctor(path, options) : undefined;
     }
 
+    @undoBatch
     @action
     protected onDrop(e: React.DragEvent, options: DocumentOptions): void {
-        let that = this;
-
         let html = e.dataTransfer.getData("text/html");
         let text = e.dataTransfer.getData("text/plain");
 
         if (text && text.startsWith("<div")) {
             return;
         }
-        e.stopPropagation()
-        e.preventDefault()
+        e.stopPropagation();
+        e.preventDefault();
 
-        if (html && html.indexOf("<img") != 0 && !html.startsWith("<a")) {
+        if (html && html.indexOf("<img") !== 0 && !html.startsWith("<a")) {
             console.log("not good");
             let htmlDoc = Documents.HtmlDocument(html, { ...options, width: 300, height: 300 });
             htmlDoc.SetText(KeyStore.DocumentText, text);
@@ -151,58 +162,65 @@ export class CollectionViewBase extends React.Component<SubCollectionViewProps> 
             return;
         }
 
+        let batch = UndoManager.StartBatch("collection view drop");
+        let promises: Promise<void>[] = [];
+        // tslint:disable-next-line:prefer-for-of
         for (let i = 0; i < e.dataTransfer.items.length; i++) {
             const upload = window.location.origin + RouteStore.upload;
             let item = e.dataTransfer.items[i];
-            if (item.kind === "string" && item.type.indexOf("uri") != -1) {
-                e.dataTransfer.items[i].getAsString(action((s: string) => {
-                    let document: Document;
-                    request.head(ServerUtils.prepend(RouteStore.corsProxy + "/" + s), (err, res, body) => {
-                        let type = res.headers["content-type"];
+            if (item.kind === "string" && item.type.indexOf("uri") !== -1) {
+                let str: string;
+                let prom = new Promise<string>(resolve => e.dataTransfer.items[i].getAsString(resolve))
+                    .then(action((s: string) => rp.head(ServerUtils.prepend(RouteStore.corsProxy + "/" + (str = s)))))
+                    .then(result => {
+                        let type = result.headers["content-type"];
                         if (type) {
-                            let doc = this.getDocumentFromType(type, s, { ...options, width: 300, nativeWidth: 300 })
-                            if (doc) {
-                                this.props.addDocument(doc, false);
-                            }
+                            this.getDocumentFromType(type, str, { ...options, width: 300, nativeWidth: 300 })
+                                .then(doc => doc && this.props.addDocument(doc, false));
                         }
                     });
-                    // this.props.addDocument(Documents.WebDocument(s, { ...options, width: 300, height: 300 }), false)
-                }))
+                promises.push(prom);
             }
-            let type = item.type
-            if (item.kind == "file") {
+            let type = item.type;
+            if (item.kind === "file") {
                 let file = item.getAsFile();
-                let formData = new FormData()
+                let formData = new FormData();
 
                 if (file) {
-                    formData.append('file', file)
+                    formData.append('file', file);
                 }
+                let dropFileName = file ? file.name : "-empty-";
 
-                fetch(upload, {
+                let prom = fetch(upload, {
                     method: 'POST',
                     body: formData
-                }).then((res: Response) => {
-                    return res.json()
-                }).then(json => {
-                    json.map((file: any) => {
-                        let path = window.location.origin + file
-                        runInAction(() => {
-                            let doc = this.getDocumentFromType(type, path, { ...options, nativeWidth: 300, width: 300 })
+                }).then(async (res: Response) => {
+                    (await res.json()).map(action((file: any) => {
+                        let path = window.location.origin + file;
+                        let docPromise = this.getDocumentFromType(type, path, { ...options, nativeWidth: 600, width: 300, title: dropFileName });
 
-                            let docs = that.props.Document.GetT(KeyStore.Data, ListField);
-                            if (docs != FieldWaiting) {
+                        docPromise.then(action((doc?: Document) => {
+                            let docs = this.props.Document.GetT(KeyStore.Data, ListField);
+                            if (docs !== FieldWaiting) {
                                 if (!docs) {
                                     docs = new ListField<Document>();
-                                    that.props.Document.Set(KeyStore.Data, docs)
+                                    this.props.Document.Set(KeyStore.Data, docs);
                                 }
                                 if (doc) {
                                     docs.Data.push(doc);
                                 }
                             }
-                        })
-                    })
-                })
+                        }));
+                    }));
+                });
+                promises.push(prom);
             }
+        }
+
+        if (promises.length) {
+            Promise.all(promises).finally(() => batch.end());
+        } else {
+            batch.end();
         }
     }
 }

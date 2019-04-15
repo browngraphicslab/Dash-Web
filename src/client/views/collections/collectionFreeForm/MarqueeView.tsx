@@ -1,4 +1,4 @@
-import { action, computed, observable, trace } from "mobx";
+import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import { Document } from "../../../../fields/Document";
 import { FieldWaiting } from "../../../../fields/Field";
@@ -7,10 +7,11 @@ import { KeyStore } from "../../../../fields/KeyStore";
 import { Documents } from "../../../documents/Documents";
 import { SelectionManager } from "../../../util/SelectionManager";
 import { Transform } from "../../../util/Transform";
+import { undoBatch } from "../../../util/UndoManager";
 import { InkingCanvas } from "../../InkingCanvas";
+import { PreviewCursor } from "../../PreviewCursor";
 import { CollectionFreeFormView } from "./CollectionFreeFormView";
 import "./MarqueeView.scss";
-import { PreviewCursor } from "./PreviewCursor";
 import React = require("react");
 
 interface MarqueeViewProps {
@@ -21,6 +22,7 @@ interface MarqueeViewProps {
     activeDocuments: () => Document[];
     selectDocuments: (docs: Document[]) => void;
     removeDocument: (doc: Document) => boolean;
+    addLiveTextDocument: (doc: Document) => void;
 }
 
 @observer
@@ -32,12 +34,13 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     @observable _downY: number = 0;
     @observable _used: boolean = false;
     @observable _visible: boolean = false;
+    _showOnUp: boolean = false;
     static DRAG_THRESHOLD = 4;
 
     @action
     cleanupInteractions = (all: boolean = false) => {
         if (all) {
-            document.removeEventListener("pointermove", this.onPointerMove, true)
+            document.removeEventListener("pointermove", this.onPointerMove, true);
             document.removeEventListener("pointerup", this.onPointerUp, true);
         } else {
             this._used = true;
@@ -47,12 +50,32 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     }
 
     @action
+    onKeyPress = (e: KeyboardEvent) => {
+        // Mixing events between React and Native is finicky.  In FormattedTextBox, we set the
+        // DASHFormattedTextBoxHandled flag when a text box consumes a key press so that we can ignore
+        // the keyPress here.
+        //if not these keys, make a textbox if preview cursor is active!
+        if (!e.ctrlKey && !e.altKey && !e.defaultPrevented && !(e as any).DASHFormattedTextBoxHandled) {
+            //make textbox and add it to this collection
+            let [x, y] = this.props.getTransform().transformPoint(this._downX, this._downY);
+            let newBox = Documents.TextDocument({ width: 200, height: 100, x: x, y: y, title: "typed text" });
+            this.props.addLiveTextDocument(newBox);
+            PreviewCursor.Visible = false;
+            e.stopPropagation();
+        }
+    }
+    hideCursor = () => {
+        document.removeEventListener("keypress", this.onKeyPress, false);
+    }
+    @action
     onPointerDown = (e: React.PointerEvent): void => {
-        if (e.buttons == 1 && !e.altKey && !e.metaKey && this.props.container.props.active()) {
+        if (e.buttons === 1 && !e.altKey && !e.metaKey && this.props.container.props.active()) {
             this._downX = this._lastX = e.pageX;
             this._downY = this._lastY = e.pageY;
             this._used = false;
-            document.addEventListener("pointermove", this.onPointerMove, true)
+            this._showOnUp = true;
+            document.removeEventListener("keypress", this.onKeyPress, false);
+            document.addEventListener("pointermove", this.onPointerMove, true);
             document.addEventListener("pointerup", this.onPointerUp, true);
             document.addEventListener("keydown", this.marqueeCommand, true);
         }
@@ -63,7 +86,11 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         this._lastX = e.pageX;
         this._lastY = e.pageY;
         if (!e.cancelBubble) {
-            if (!this._used && e.buttons == 1 && !e.altKey && !e.metaKey &&
+            if (Math.abs(this._downX - e.clientX) > 4 || Math.abs(this._downY - e.clientY) > 4) {
+                this._showOnUp = false;
+                PreviewCursor.Visible = false;
+            }
+            if (!this._used && e.buttons === 1 && !e.altKey && !e.metaKey &&
                 (Math.abs(this._lastX - this._downX) > MarqueeView.DRAG_THRESHOLD || Math.abs(this._lastY - this._downY) > MarqueeView.DRAG_THRESHOLD)) {
                 this._visible = true;
             }
@@ -76,11 +103,16 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     onPointerUp = (e: PointerEvent): void => {
         this.cleanupInteractions(true);
         this._visible = false;
-        let mselect = this.marqueeSelect();
-        if (!e.shiftKey) {
-            SelectionManager.DeselectAll(mselect.length ? undefined : this.props.container.props.Document);
+        if (this._showOnUp) {
+            PreviewCursor.Show(this.hideCursor, this._downX, this._downY);
+            document.addEventListener("keypress", this.onKeyPress, false);
+        } else {
+            let mselect = this.marqueeSelect();
+            if (!e.shiftKey) {
+                SelectionManager.DeselectAll(mselect.length ? undefined : this.props.container.props.Document);
+            }
+            this.props.selectDocuments(mselect.length ? mselect : [this.props.container.props.Document]);
         }
-        this.props.selectDocuments(mselect.length ? mselect : [this.props.container.props.Document]);
     }
 
     intersectRect(r1: { left: number, top: number, width: number, height: number },
@@ -94,20 +126,21 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         let top = this._downY < this._lastY ? this._downY : this._lastY;
         let topLeft = this.props.getTransform().transformPoint(left, top);
         let size = this.props.getTransform().transformDirection(this._lastX - this._downX, this._lastY - this._downY);
-        return { left: topLeft[0], top: topLeft[1], width: Math.abs(size[0]), height: Math.abs(size[1]) }
+        return { left: topLeft[0], top: topLeft[1], width: Math.abs(size[0]), height: Math.abs(size[1]) };
     }
 
+    @undoBatch
     @action
     marqueeCommand = (e: KeyboardEvent) => {
-        if (e.key == "Backspace" || e.key == "Delete") {
+        if (e.key === "Backspace" || e.key === "Delete") {
             this.marqueeSelect().map(d => this.props.removeDocument(d));
             let ink = this.props.container.props.Document.GetT(KeyStore.Ink, InkField);
-            if (ink && ink != FieldWaiting) {
+            if (ink && ink !== FieldWaiting) {
                 this.marqueeInkDelete(ink.Data);
             }
             this.cleanupInteractions();
         }
-        if (e.key == "c") {
+        if (e.key === "c") {
             let bounds = this.Bounds;
             let selected = this.marqueeSelect().map(d => {
                 this.props.removeDocument(d);
@@ -118,7 +151,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 return d;
             });
             let ink = this.props.container.props.Document.GetT(KeyStore.Ink, InkField);
-            let inkData = ink && ink != FieldWaiting ? ink.Data : undefined;
+            let inkData = ink && ink !== FieldWaiting ? ink.Data : undefined;
             //setTimeout(() => {
             let newCollection = Documents.FreeformDocument(selected, {
                 x: bounds.left,
@@ -135,6 +168,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             this.marqueeInkDelete(inkData);
             // }, 100);
             this.cleanupInteractions();
+            SelectionManager.DeselectAll();
         }
     }
     @action
@@ -146,7 +180,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             if (InkingCanvas.IntersectStrokeRect(value, this.Bounds)) {
                 idata.set(key,
                     {
-                        pathData: value.pathData.map(val => { return { x: val.x + centerShiftX, y: val.y + centerShiftY } }),
+                        pathData: value.pathData.map(val => ({ x: val.x + centerShiftX, y: val.y + centerShiftY })),
                         color: value.color,
                         width: value.width,
                         tool: value.tool,
@@ -175,13 +209,15 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         let selRect = this.Bounds;
         let selection: Document[] = [];
         this.props.activeDocuments().map(doc => {
+            var z = doc.GetNumber(KeyStore.Zoom, 1);
             var x = doc.GetNumber(KeyStore.X, 0);
             var y = doc.GetNumber(KeyStore.Y, 0);
-            var w = doc.GetNumber(KeyStore.Width, 0);
-            var h = doc.GetNumber(KeyStore.Height, 0);
-            if (this.intersectRect({ left: x, top: y, width: w, height: h }, selRect))
-                selection.push(doc)
-        })
+            var w = doc.GetNumber(KeyStore.Width, 0) / z;
+            var h = doc.GetNumber(KeyStore.Height, 0) / z;
+            if (this.intersectRect({ left: x, top: y, width: w, height: h }, selRect)) {
+                selection.push(doc);
+            }
+        });
         return selection;
     }
 
@@ -189,7 +225,9 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     get marqueeDiv() {
         let p = this.props.getContainerTransform().transformPoint(this._downX < this._lastX ? this._downX : this._lastX, this._downY < this._lastY ? this._downY : this._lastY);
         let v = this.props.getContainerTransform().transformDirection(this._lastX - this._downX, this._lastY - this._downY);
-        return <div className="marquee" style={{ transform: `translate(${p[0]}px, ${p[1]}px)`, width: `${Math.abs(v[0])}`, height: `${Math.abs(v[1])}` }} />
+        return <div className="marquee" style={{ transform: `translate(${p[0]}px, ${p[1]}px)`, width: `${Math.abs(v[0])}`, height: `${Math.abs(v[1])}` }} >
+            <span className="marquee-legend" />
+        </div>;
     }
 
     render() {

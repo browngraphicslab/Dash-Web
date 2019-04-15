@@ -5,11 +5,12 @@ import { ListField } from "../../fields/ListField";
 import React = require("react")
 import { TextField } from "../../fields/TextField";
 import { observable, action } from "mobx";
-import { Field } from "../../fields/Field";
+import { Field, FieldWaiting } from "../../fields/Field";
 import "./PresentationView.scss"
 import { NumberField } from "../../fields/NumberField";
 import "./Main.tsx";
 import { DocumentManager } from "../util/DocumentManager";
+import { Utils } from "../../Utils";
 
 export interface PresViewProps {
     Document: Document;
@@ -27,7 +28,7 @@ class PresentationViewItem extends React.Component<PresViewProps> {
     openDoc = (doc: Document) => {
         let docView = DocumentManager.Instance.getDocumentView(doc);
         if (docView) {
-            docView.focus();
+            docView.props.focus(docView.props.Document);
         }
     }
 
@@ -39,7 +40,7 @@ class PresentationViewItem extends React.Component<PresViewProps> {
         const value = this.props.Document.GetData(KeyStore.Data, ListField, new Array<Document>())
         let index = -1;
         for (let i = 0; i < value.length; i++) {
-            if (value[i].Id == doc.Id) {
+            if (value[i].Id === doc.Id) {
                 index = i;
                 break;
             }
@@ -54,29 +55,29 @@ class PresentationViewItem extends React.Component<PresViewProps> {
      * @param document The document to render.
      */
     renderChild(document: Document) {
-        let title = document.GetT<TextField>(KeyStore.Title, TextField);
+        let title = document.Title;
 
         //to get currently selected presentation doc
         let selected = this.props.Document.GetNumber(KeyStore.SelectedDoc, 0);
 
         // if the title hasn't loaded, immediately return the div
-        if (!title || title === "<Waiting>") {
+        if (!title) {
             return <div className="presentationView-item" key={document.Id}></div>;
         }
         // finally, if it's a normal document, then render it as such.
         else {
             const children = this.props.Document.GetT<ListField<Document>>(KeyStore.Data, ListField);
-            if (children && children !== "<Waiting>" && children.Data[selected] == document) {
+            if (children && children.Data[selected] === document) {
                 //this doc is selected
                 const styles = {
                     background: "gray"
                 }
-                return <li className="presentationView-item" style={styles} key={document.Id}>
-                    <div className="presentationView-header" onClick={() => this.openDoc(document)}>{title.Data}</div>
+                return <li className="presentationView-item" style={styles} key={Utils.GenerateGuid()}>
+                    <div className="presentationView-header" onClick={() => this.openDoc(document)}>{title}</div>
                     <div className="presentation-icon" onClick={() => this.RemoveDoc(document)}>X</div></li>;
             } else {
-                return <li className="presentationView-item" key={document.Id} >
-                    <div className="presentationView-header" onClick={() => this.openDoc(document)}>{title.Data}</div>
+                return <li className="presentationView-item" key={Utils.GenerateGuid()} >
+                    <div className="presentationView-header" onClick={() => this.openDoc(document)}>{title}</div>
                     <div className="presentation-icon" onClick={() => this.RemoveDoc(document)}>X</div></li>;
             }
 
@@ -86,7 +87,7 @@ class PresentationViewItem extends React.Component<PresViewProps> {
     render() {
         const children = this.props.Document.GetT<ListField<Document>>(KeyStore.Data, ListField);
 
-        if (children && children !== "<Waiting>") {
+        if (children) {
             return (<div>
                 {children.Data.map(value => this.renderChild(value))}
             </div>)
@@ -108,13 +109,13 @@ export class PresentationView extends React.Component<PresViewProps>  {
     next = () => {
         const current = this.props.Document.GetNumber(KeyStore.SelectedDoc, 0);
         const allDocs = this.props.Document.GetT<ListField<Document>>(KeyStore.Data, ListField);
-        if (allDocs && allDocs !== "<Waiting>" && current < allDocs.Data.length + 1) {
+        if (allDocs && current < allDocs.Data.length + 1) {
             //can move forwards
             this.props.Document.SetNumber(KeyStore.SelectedDoc, current + 1);
             const doc = allDocs.Data[current + 1];
             let docView = DocumentManager.Instance.getDocumentView(doc);
             if (docView) {
-                docView.focus();
+                docView.props.focus(docView.props.Document);
             }
         }
 
@@ -122,13 +123,13 @@ export class PresentationView extends React.Component<PresViewProps>  {
     back = () => {
         const current = this.props.Document.GetNumber(KeyStore.SelectedDoc, 0);
         const allDocs = this.props.Document.GetT<ListField<Document>>(KeyStore.Data, ListField);
-        if (allDocs && allDocs !== "<Waiting>" && current - 1 >= 0) {
+        if (allDocs && current - 1 >= 0) {
             //can move forwards
             this.props.Document.SetNumber(KeyStore.SelectedDoc, current - 1);
             const doc = allDocs.Data[current - 1];
             let docView = DocumentManager.Instance.getDocumentView(doc);
             if (docView) {
-                docView.focus();
+                docView.props.focus(docView.props.Document);
             }
         }
 
@@ -160,16 +161,12 @@ export class PresentationView extends React.Component<PresViewProps>  {
     }
 
     render() {
-        let titleStr = "Title";
-        let title = this.props.Document.GetT<TextField>(KeyStore.Title, TextField);
-        if (title && title !== "<Waiting>") {
-            titleStr = title.Data;
-        }
+        let titleStr = this.props.Document.Title;
         let width = this.props.Document.GetNumber(KeyStore.Width, 0);
 
         //TODO: next and back should be icons
         return (
-            <div className="presentationView-cont" style={{ width: width }}>
+            <div className="presentationView-cont" style={{ width: width, overflow: "hidden" }}>
                 <div className="presentationView-heading">
                     <div className="presentationView-title">{titleStr}</div>
                     <div className='presentation-icon' onClick={this.closePresentation}>X</div></div>

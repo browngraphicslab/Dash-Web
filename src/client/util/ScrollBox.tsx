@@ -1,4 +1,4 @@
-import React = require("react")
+import React = require("react");
 
 export class ScrollBox extends React.Component {
     onWheel = (e: React.WheelEvent) => {
@@ -16,6 +16,6 @@ export class ScrollBox extends React.Component {
             }} onWheel={this.onWheel}>
                 {this.props.children}
             </div>
-        )
+        );
     }
 }

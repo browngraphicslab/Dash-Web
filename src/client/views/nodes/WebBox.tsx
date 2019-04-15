@@ -1,9 +1,9 @@
 import "./WebBox.scss";
-import React = require("react")
+import React = require("react");
 import { WebField } from '../../../fields/WebField';
 import { FieldViewProps, FieldView } from './FieldView';
 import { FieldWaiting } from '../../../fields/Field';
-import { observer } from "mobx-react"
+import { observer } from "mobx-react";
 import { computed } from 'mobx';
 import { KeyStore } from '../../../fields/KeyStore';
 
@@ -16,11 +16,11 @@ export class WebBox extends React.Component<FieldViewProps> {
         super(props);
     }
 
-    @computed get html(): string { return this.props.doc.GetHtml(KeyStore.Data, ""); }
+    @computed get html(): string { return this.props.Document.GetHtml(KeyStore.Data, ""); }
 
     render() {
-        let field = this.props.doc.Get(this.props.fieldKey);
-        let path = field == FieldWaiting ? "https://image.flaticon.com/icons/svg/66/66163.svg" :
+        let field = this.props.Document.Get(this.props.fieldKey);
+        let path = field === FieldWaiting ? "https://image.flaticon.com/icons/svg/66/66163.svg" :
             field instanceof WebField ? field.Data.href : "https://crossorigin.me/" + "https://cs.brown.edu";
 
         let content = this.html ?
@@ -33,6 +33,6 @@ export class WebBox extends React.Component<FieldViewProps> {
         return (
             <div className="webBox-cont"  >
                 {content}
-            </div>)
+            </div>);
     }
 }
