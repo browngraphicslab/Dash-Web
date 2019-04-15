@@ -1,7 +1,6 @@
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import { Key } from "../../fields/Key";
-//import ContentEditable from 'react-contenteditable'
 import { KeyStore } from "../../fields/KeyStore";
 import { ListField } from "../../fields/ListField";
 import { NumberField } from "../../fields/NumberField";
@@ -70,7 +69,18 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 // TODO: Change field with switch statement
             }
             else {
-                this._title = "changed";
+                if (this._documents.length > 0) {
+                    let field = this._documents[0].props.Document.Get(this._fieldKey);
+                    if (field instanceof TextField) {
+                        this._documents.forEach(d =>
+                            d.props.Document.Set(this._fieldKey, new TextField(this._title)));
+                    }
+                    else if (field instanceof NumberField) {
+                        this._documents.forEach(d =>
+                            d.props.Document.Set(this._fieldKey, new NumberField(+this._title)));
+                    }
+                    this._title = "changed";
+                }
             }
             e.target.blur();
         }
