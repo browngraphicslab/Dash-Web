@@ -109,7 +109,7 @@ export class CollectionVideoView extends React.Component<FieldViewProps> {
         let props = { ...this.props, ...renderProps };
         return (
             <>
-                <CollectionFreeFormView {...props} />
+                <CollectionFreeFormView {...props} CollectionView={this} />
                 {this.props.isSelected() ? this.uIButtons : (null)}
             </>
         );

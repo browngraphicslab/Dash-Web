@@ -15,11 +15,11 @@ export class BooleanField extends BasicField<boolean> {
         return new BooleanField(this.Data);
     }
 
-    ToJson(): { type: Types; data: boolean; _id: string } {
+    ToJson() {
         return {
             type: Types.Boolean,
             data: this.Data,
-            _id: this.Id
+            id: this.Id
         };
     }
 }

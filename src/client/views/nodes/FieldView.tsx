@@ -1,7 +1,7 @@
 import React = require("react");
 import { observer } from "mobx-react";
 import { computed } from "mobx";
-import { Field, FieldWaiting, FieldValue } from "../../../fields/Field";
+import { Field, FieldWaiting, FieldValue, Opt } from "../../../fields/Field";
 import { Document } from "../../../fields/Document";
 import { TextField } from "../../../fields/TextField";
 import { NumberField } from "../../../fields/NumberField";
@@ -20,6 +20,9 @@ import { DocumentContentsView } from "./DocumentContentsView";
 import { Transform } from "../../util/Transform";
 import { KeyStore } from "../../../fields/KeyStore";
 import { returnFalse, emptyDocFunction } from "../../../Utils";
+import { CollectionView } from "../collections/CollectionView";
+import { CollectionPDFView } from "../collections/CollectionPDFView";
+import { CollectionVideoView } from "../collections/CollectionVideoView";
 
 
 //
@@ -29,6 +32,7 @@ import { returnFalse, emptyDocFunction } from "../../../Utils";
 //
 export interface FieldViewProps {
     fieldKey: Key;
+    ContainingCollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
     Document: Document;
     isSelected: () => boolean;
     select: (isCtrlPressed: boolean) => void;
@@ -79,6 +83,7 @@ export class FieldView extends React.Component<FieldViewProps> {
                 <DocumentContentsView Document={field}
                     addDocument={undefined}
                     removeDocument={undefined}
+                    opacity={1}
                     ScreenToLocalTransform={Transform.Identity}
                     ContentScaling={() => 1}
                     PanelWidth={() => 100}
@@ -89,7 +94,7 @@ export class FieldView extends React.Component<FieldViewProps> {
                     isSelected={returnFalse}
                     select={returnFalse}
                     layoutKey={KeyStore.Layout}
-                    ContainingCollectionView={undefined}
+                    ContainingCollectionView={this.props.ContainingCollectionView}
                     parentActive={this.props.active}
                     onActiveChanged={this.props.onActiveChanged} />
             );

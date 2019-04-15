@@ -35,12 +35,11 @@ export class HistogramField extends BasicField<HistogramOperation> {
     }
 
 
-    ToJson(): { type: Types, data: string, _id: string } {
+    ToJson() {
         return {
             type: Types.HistogramOp,
-
             data: this.toString(),
-            _id: this.Id
+            id: this.Id
         };
     }
 
