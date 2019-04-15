@@ -15,6 +15,10 @@ import { ServerUtils } from "../../../server/ServerUtil";
 import { Server } from "../../Server";
 import { FieldViewProps } from "../nodes/FieldView";
 import * as rp from 'request-promise';
+import { emptyFunction } from "../../../Utils";
+import { CollectionView } from "./CollectionView";
+import { CollectionPDFView } from "./CollectionPDFView";
+import { CollectionVideoView } from "./CollectionVideoView";
 
 export interface CollectionViewProps extends FieldViewProps {
     addDocument: (document: Document, allowDuplicates?: boolean) => boolean;
@@ -23,6 +27,7 @@ export interface CollectionViewProps extends FieldViewProps {
 }
 
 export interface SubCollectionViewProps extends CollectionViewProps {
+    CollectionView: CollectionView | CollectionPDFView | CollectionVideoView;
 }
 
 export type CursorEntry = TupleField<[string, string], [number, number]>;
@@ -74,12 +79,21 @@ export class CollectionSubView extends React.Component<SubCollectionViewProps> {
             }
             let added = false;
             if (de.data.aliasOnDrop || de.data.copyOnDrop) {
-                added = de.data.droppedDocuments.reduce((added: boolean, d) => added || this.props.addDocument(d), false);
+                added = de.data.droppedDocuments.reduce((added: boolean, d) => {
+                    let moved = this.props.addDocument(d);
+                    return moved || added;
+                }, false);
             } else if (de.data.moveDocument) {
                 const move = de.data.moveDocument;
-                added = de.data.droppedDocuments.reduce((added: boolean, d) => added || move(d, this.props.Document, this.props.addDocument), false);
+                added = de.data.droppedDocuments.reduce((added: boolean, d) => {
+                    let moved = move(d, this.props.Document, this.props.addDocument);
+                    return moved || added;
+                }, false);
             } else {
-                added = de.data.droppedDocuments.reduce((added: boolean, d) => added || this.props.addDocument(d), false);
+                added = de.data.droppedDocuments.reduce((added: boolean, d) => {
+                    let moved = this.props.addDocument(d);
+                    return moved || added;
+                }, false);
             }
             e.stopPropagation();
             return added;
@@ -87,8 +101,8 @@ export class CollectionSubView extends React.Component<SubCollectionViewProps> {
         return false;
     }
 
-    protected getDocumentFromType(type: string, path: string, options: DocumentOptions): Opt<Document> {
-        let ctor: ((path: string, options: DocumentOptions) => Document) | undefined;
+    protected async getDocumentFromType(type: string, path: string, options: DocumentOptions): Promise<Opt<Document>> {
+        let ctor: ((path: string, options: DocumentOptions) => (Document | Promise<Document | undefined>)) | undefined = undefined;
         if (type.indexOf("image") !== -1) {
             ctor = Documents.ImageDocument;
         }
@@ -101,6 +115,10 @@ export class CollectionSubView extends React.Component<SubCollectionViewProps> {
         if (type.indexOf("pdf") !== -1) {
             ctor = Documents.PdfDocument;
             options.nativeWidth = 1200;
+        }
+        if (type.indexOf("excel") !== -1) {
+            ctor = Documents.DBDocument;
+            options.copyDraggedItems = true;
         }
         if (type.indexOf("html") !== -1) {
             if (path.includes('localhost')) {
@@ -152,21 +170,16 @@ export class CollectionSubView extends React.Component<SubCollectionViewProps> {
             let item = e.dataTransfer.items[i];
             if (item.kind === "string" && item.type.indexOf("uri") !== -1) {
                 let str: string;
-                let prom = new Promise<string>(res =>
-                    e.dataTransfer.items[i].getAsString(res)).then(action((s: string) => {
-                        str = s;
-                        return rp.head(ServerUtils.prepend(RouteStore.corsProxy + "/" + s));
-                    })).then(res => {
-                        let type = res.headers["content-type"];
+                let prom = new Promise<string>(resolve => e.dataTransfer.items[i].getAsString(resolve))
+                    .then(action((s: string) => rp.head(ServerUtils.prepend(RouteStore.corsProxy + "/" + (str = s)))))
+                    .then(result => {
+                        let type = result.headers["content-type"];
                         if (type) {
-                            let doc = this.getDocumentFromType(type, str, { ...options, width: 300, nativeWidth: 300 });
-                            if (doc) {
-                                this.props.addDocument(doc, false);
-                            }
+                            this.getDocumentFromType(type, str, { ...options, width: 300, nativeWidth: 300 })
+                                .then(doc => doc && this.props.addDocument(doc, false));
                         }
                     });
                 promises.push(prom);
-                // this.props.addDocument(Documents.WebDocument(s, { ...options, width: 300, height: 300 }), false)
             }
             let type = item.type;
             if (item.kind === "file") {
@@ -176,17 +189,17 @@ export class CollectionSubView extends React.Component<SubCollectionViewProps> {
                 if (file) {
                     formData.append('file', file);
                 }
+                let dropFileName = file ? file.name : "-empty-";
 
                 let prom = fetch(upload, {
                     method: 'POST',
                     body: formData
                 }).then(async (res: Response) => {
-                    const json = await res.json();
-                    json.map((file: any) => {
+                    (await res.json()).map(action((file: any) => {
                         let path = window.location.origin + file;
-                        runInAction(() => {
-                            let doc = this.getDocumentFromType(type, path, { ...options, nativeWidth: 300, width: 300 });
+                        let docPromise = this.getDocumentFromType(type, path, { ...options, nativeWidth: 600, width: 300, title: dropFileName });
 
+                        docPromise.then(action((doc?: Document) => {
                             let docs = this.props.Document.GetT(KeyStore.Data, ListField);
                             if (docs !== FieldWaiting) {
                                 if (!docs) {
@@ -197,15 +210,15 @@ export class CollectionSubView extends React.Component<SubCollectionViewProps> {
                                     docs.Data.push(doc);
                                 }
                             }
-                        });
-                    });
+                        }));
+                    }));
                 });
                 promises.push(prom);
             }
         }
 
         if (promises.length) {
-            Promise.all(promises).catch(() => { }).then(() => batch.end());
+            Promise.all(promises).finally(() => batch.end());
         } else {
             batch.end();
         }

@@ -44,19 +44,19 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
 
 
     CreateBindings(): JsxBindings {
-        let
-            {
-                Document,
-                isSelected,
-                select,
-                isTopMost,
-                selectOnLoad,
-                ScreenToLocalTransform,
-                addDocument,
-                removeDocument,
-                onActiveChanged,
-                parentActive: active,
-            } = this.props;
+        let {
+            Document,
+            isSelected,
+            select,
+            isTopMost,
+            selectOnLoad,
+            ScreenToLocalTransform,
+            ContainingCollectionView,
+            addDocument,
+            removeDocument,
+            onActiveChanged,
+            parentActive: active,
+        } = this.props;
         let bindings: JsxBindings = {
             props: {
                 Document,
@@ -65,6 +65,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
                 isTopMost,
                 selectOnLoad,
                 ScreenToLocalTransform,
+                ContainingCollectionView,
                 active,
                 onActiveChanged,
                 addDocument,

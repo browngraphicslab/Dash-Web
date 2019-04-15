@@ -1,11 +1,9 @@
-import React = require('react');
-import { observer } from 'mobx-react';
-import { observable, action, computed } from 'mobx';
+import { computed, observable } from 'mobx';
 import { Document } from "../../fields/Document";
-import { DocumentView } from '../views/nodes/DocumentView';
-import { KeyStore } from '../../fields/KeyStore';
 import { FieldWaiting } from '../../fields/Field';
+import { KeyStore } from '../../fields/KeyStore';
 import { ListField } from '../../fields/ListField';
+import { DocumentView } from '../views/nodes/DocumentView';
 
 
 export class DocumentManager {
@@ -27,11 +25,6 @@ export class DocumentManager {
         // this.DocumentViews = new Array<DocumentView>();
     }
 
-    public getAllDocumentViews(collection: Document) {
-        return this.DocumentViews.filter(dv =>
-            dv.props.ContainingCollectionView && dv.props.ContainingCollectionView.props.Document === collection);
-    }
-
     public getDocumentView(toFind: Document): DocumentView | null {
 
         let toReturn: DocumentView | null;
@@ -40,7 +33,6 @@ export class DocumentManager {
         //gets document view that is in a freeform canvas collection
         DocumentManager.Instance.DocumentViews.map(view => {
             let doc = view.props.Document;
-            // if (view.props.ContainingCollectionView instanceof CollectionFreeFormView) {
 
             if (doc === toFind) {
                 toReturn = view;
@@ -52,7 +44,7 @@ export class DocumentManager {
             }
         });
 
-        return (toReturn);
+        return toReturn;
     }
     public getDocumentViews(toFind: Document): DocumentView[] {
 
@@ -73,7 +65,7 @@ export class DocumentManager {
             }
         });
 
-        return (toReturn);
+        return toReturn;
     }
 
     @computed
@@ -85,9 +77,8 @@ export class DocumentManager {
                     if (link instanceof Document) {
                         let linkToDoc = link.GetT(KeyStore.LinkedToDocs, Document);
                         if (linkToDoc && linkToDoc !== FieldWaiting) {
-                            DocumentManager.Instance.getDocumentViews(linkToDoc).map(docView1 => {
-                                pairs.push({ a: dv, b: docView1, l: link });
-                            });
+                            DocumentManager.Instance.getDocumentViews(linkToDoc).map(docView1 =>
+                                pairs.push({ a: dv, b: docView1, l: link }));
                         }
                     }
                     return pairs;

@@ -1,4 +1,4 @@
-@import "../global_variables";
+@import "../globalCssVariables";
 .ProseMirror {
   width: 100%;
   height: auto;
@@ -22,6 +22,7 @@
   overflow-x: hidden;
   color: initial;
   height: 100%;
+  pointer-events: all;
 }
 
 .menuicon {

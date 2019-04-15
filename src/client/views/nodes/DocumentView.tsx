@@ -1,20 +1,23 @@
-import { action, computed, IReactionDisposer, reaction, runInAction } from "mobx";
+import { action, computed, runInAction } from "mobx";
 import { observer } from "mobx-react";
+import { BooleanField } from "../../../fields/BooleanField";
 import { Document } from "../../../fields/Document";
 import { Field, FieldWaiting, Opt } from "../../../fields/Field";
 import { Key } from "../../../fields/Key";
 import { KeyStore } from "../../../fields/KeyStore";
 import { ListField } from "../../../fields/ListField";
-import { BooleanField } from "../../../fields/BooleanField";
 import { TextField } from "../../../fields/TextField";
 import { ServerUtils } from "../../../server/ServerUtil";
-import { Utils } from "../../../Utils";
+import { emptyFunction, Utils } from "../../../Utils";
 import { Documents } from "../../documents/Documents";
 import { DocumentManager } from "../../util/DocumentManager";
 import { DragManager } from "../../util/DragManager";
 import { SelectionManager } from "../../util/SelectionManager";
 import { Transform } from "../../util/Transform";
+import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
+import { CollectionPDFView } from "../collections/CollectionPDFView";
+import { CollectionVideoView } from "../collections/CollectionVideoView";
 import { CollectionView } from "../collections/CollectionView";
 import { ContextMenu } from "../ContextMenu";
 import { DocumentContentsView } from "./DocumentContentsView";
@@ -23,8 +26,9 @@ import React = require("react");
 
 
 export interface DocumentViewProps {
-    ContainingCollectionView: Opt<CollectionView>;
+    ContainingCollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
     Document: Document;
+    opacity: number;
     addDocument?: (doc: Document, allowDuplicates?: boolean) => boolean;
     removeDocument?: (doc: Document) => boolean;
     moveDocument?: (doc: Document, targetCollection: Document, addDocument: (document: Document) => boolean) => boolean;
@@ -62,12 +66,12 @@ export function FakeJsxArgs(keys: string[], fields: string[] = []): JsxArgs {
     let Keys: { [name: string]: any } = {};
     let Fields: { [name: string]: any } = {};
     for (const key of keys) {
-        let fn = () => { };
+        let fn = emptyFunction;
         Object.defineProperty(fn, "name", { value: key + "Key" });
         Keys[key] = fn;
     }
     for (const field of fields) {
-        let fn = () => { };
+        let fn = emptyFunction;
         Object.defineProperty(fn, "name", { value: field });
         Fields[field] = fn;
     }
@@ -105,7 +109,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             }
             e.stopPropagation();
         } else {
-            if (this.active && !e.isDefaultPrevented()) {
+            if (this.active) {
                 e.stopPropagation();
                 document.removeEventListener("pointermove", this.onPointerMove);
                 document.addEventListener("pointermove", this.onPointerMove);
@@ -166,7 +170,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             dragData.moveDocument = this.props.moveDocument;
             DragManager.StartDocumentDrag([this._mainCont.current], dragData, x, y, {
                 handlers: {
-                    dragComplete: action(() => { })
+                    dragComplete: action(emptyFunction)
                 },
                 hideSource: !dropAliasOfDraggedDoc
             });
@@ -195,6 +199,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         document.removeEventListener("pointerup", this.onPointerUp);
         e.stopPropagation();
         if (!SelectionManager.IsSelected(this) &&
+            e.button !== 2 &&
             Math.abs(e.clientX - this._downX) < 4 &&
             Math.abs(e.clientY - this._downY) < 4
         ) {
@@ -246,19 +251,18 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         SelectionManager.DeselectAll();
     }
 
+    @undoBatch
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
         if (de.data instanceof DragManager.LinkDragData) {
-            let sourceDoc: Document = de.data.linkSourceDocumentView.props.Document;
+            let sourceDoc: Document = de.data.linkSourceDocument;
             let destDoc: Document = this.props.Document;
-            if (this.props.isTopMost) {
-                return;
-            }
             let linkDoc: Document = new Document();
 
             destDoc.GetTAsync(KeyStore.Prototype, Document).then(protoDest =>
                 sourceDoc.GetTAsync(KeyStore.Prototype, Document).then(protoSrc =>
                     runInAction(() => {
+                        let batch = UndoManager.StartBatch("document view drop");
                         linkDoc.Set(KeyStore.Title, new TextField("New Link"));
                         linkDoc.Set(KeyStore.LinkDescription, new TextField(""));
                         linkDoc.Set(KeyStore.LinkTags, new TextField("Default"));
@@ -267,20 +271,23 @@ export class DocumentView extends React.Component<DocumentViewProps> {
                         let srcTarg = protoSrc ? protoSrc : sourceDoc;
                         linkDoc.Set(KeyStore.LinkedToDocs, dstTarg);
                         linkDoc.Set(KeyStore.LinkedFromDocs, srcTarg);
-                        dstTarg.GetOrCreateAsync(
+                        const prom1 = new Promise(resolve => dstTarg.GetOrCreateAsync(
                             KeyStore.LinkedFromDocs,
                             ListField,
                             field => {
                                 (field as ListField<Document>).Data.push(linkDoc);
+                                resolve();
                             }
-                        );
-                        srcTarg.GetOrCreateAsync(
+                        ));
+                        const prom2 = new Promise(resolve => srcTarg.GetOrCreateAsync(
                             KeyStore.LinkedToDocs,
                             ListField,
                             field => {
                                 (field as ListField<Document>).Data.push(linkDoc);
+                                resolve();
                             }
-                        );
+                        ));
+                        Promise.all([prom1, prom2]).finally(() => batch.end());
                     })
                 )
             );
@@ -386,14 +393,26 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         SelectionManager.SelectDoc(this, ctrlPressed);
     }
 
+    @computed get nativeWidth(): number { return this.props.Document.GetNumber(KeyStore.NativeWidth, 0); }
+    @computed get nativeHeight(): number { return this.props.Document.GetNumber(KeyStore.NativeHeight, 0); }
+    @computed
+    get contents() {
+        return (<DocumentContentsView
+            {...this.props}
+            isSelected={this.isSelected}
+            select={this.select}
+            layoutKey={KeyStore.Layout}
+        />);
+    }
+
     render() {
         if (!this.props.Document) {
             return null;
         }
 
         var scaling = this.props.ContentScaling();
-        var nativeWidth = this.props.Document.GetNumber(KeyStore.NativeWidth, 0);
-        var nativeHeight = this.props.Document.GetNumber(KeyStore.NativeHeight, 0);
+        var nativeWidth = this.nativeWidth;
+        var nativeHeight = this.nativeHeight;
 
         if (this.isMinimized()) {
             return (
@@ -431,12 +450,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
                     onPointerDown={this.onPointerDown}
                     onTouchStart={this.onTouch}
                 >
-                    <DocumentContentsView
-                        {...this.props}
-                        isSelected={this.isSelected}
-                        select={this.select}
-                        layoutKey={KeyStore.Layout}
-                    />
+                    {this.contents}
                 </div>
             );
         }

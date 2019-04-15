@@ -1,20 +1,20 @@
-import { action, computed, observable, trace, runInAction } from "mobx";
+import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import { Key } from "../../fields/Key";
 //import ContentEditable from 'react-contenteditable'
 import { KeyStore } from "../../fields/KeyStore";
 import { ListField } from "../../fields/ListField";
 import { NumberField } from "../../fields/NumberField";
-import { Document } from "../../fields/Document";
 import { TextField } from "../../fields/TextField";
-import { DragManager } from "../util/DragManager";
+import { emptyFunction } from "../../Utils";
+import { DragLinksAsDocuments, DragManager } from "../util/DragManager";
 import { SelectionManager } from "../util/SelectionManager";
-import { CollectionView } from "./collections/CollectionView";
+import { undoBatch } from "../util/UndoManager";
 import './DocumentDecorations.scss';
+import { MainOverlayTextBox } from "./MainOverlayTextBox";
 import { DocumentView } from "./nodes/DocumentView";
 import { LinkMenu } from "./nodes/LinkMenu";
 import React = require("react");
-import { FieldWaiting } from "../../fields/Field";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -106,7 +106,9 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         document.addEventListener("pointerup", this.onBackgroundUp);
         this._lastDrag = [e.clientX, e.clientY];
         e.stopPropagation();
-        e.preventDefault();
+        if (e.currentTarget.localName !== "input") {
+            e.preventDefault();
+        }
     }
 
     @action
@@ -152,6 +154,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         if (e.button === 0) {
         }
     }
+    @undoBatch
     @action
     onCloseUp = (e: PointerEvent): void => {
         e.stopPropagation();
@@ -214,10 +217,10 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         if (this._linkerButton.current !== null) {
             document.removeEventListener("pointermove", this.onLinkerButtonMoved);
             document.removeEventListener("pointerup", this.onLinkerButtonUp);
-            let dragData = new DragManager.LinkDragData(SelectionManager.SelectedDocuments()[0]);
+            let dragData = new DragManager.LinkDragData(SelectionManager.SelectedDocuments()[0].props.Document);
             DragManager.StartLinkDrag(this._linkerButton.current, dragData, e.pageX, e.pageY, {
                 handlers: {
-                    dragComplete: action(() => { }),
+                    dragComplete: action(emptyFunction),
                 },
                 hideSource: false
             });
@@ -240,37 +243,14 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     }
 
     onLinkButtonMoved = async (e: PointerEvent) => {
-        if (this._linkButton.current !== null) {
+        if (this._linkButton.current !== null && (e.movementX > 1 || e.movementY > 1)) {
             document.removeEventListener("pointermove", this.onLinkButtonMoved);
             document.removeEventListener("pointerup", this.onLinkButtonUp);
 
-            let sourceDoc = SelectionManager.SelectedDocuments()[0].props.Document;
-            let srcTarg = sourceDoc.GetT(KeyStore.Prototype, Document);
-            let draggedDocs = (srcTarg && srcTarg !== FieldWaiting) ?
-                srcTarg.GetList(KeyStore.LinkedToDocs, [] as Document[]).map(linkDoc =>
-                    (linkDoc.GetT(KeyStore.LinkedToDocs, Document)) as Document) : [];
-            let draggedFromDocs = (srcTarg && srcTarg !== FieldWaiting) ?
-                srcTarg.GetList(KeyStore.LinkedFromDocs, [] as Document[]).map(linkDoc =>
-                    (linkDoc.GetT(KeyStore.LinkedFromDocs, Document)) as Document) : [];
-            draggedDocs.push(...draggedFromDocs);
-            if (draggedDocs.length) {
-                let moddrag = [] as Document[];
-                for (const draggedDoc of draggedDocs) {
-                    let doc = await draggedDoc.GetTAsync(KeyStore.AnnotationOn, Document);
-                    if (doc) moddrag.push(doc);
-                }
-                let dragData = new DragManager.DocumentDragData(moddrag.length ? moddrag : draggedDocs);
-                DragManager.StartDocumentDrag([this._linkButton.current], dragData, e.x, e.y, {
-                    handlers: {
-                        dragComplete: action(() => { }),
-                    },
-                    hideSource: false
-                });
-            }
+            DragLinksAsDocuments(this._linkButton.current, e.x, e.y, SelectionManager.SelectedDocuments()[0].props.Document);
         }
         e.stopPropagation();
     }
-
 
     onPointerMove = (e: PointerEvent): void => {
         e.stopPropagation();
@@ -320,6 +300,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 break;
         }
 
+        MainOverlayTextBox.Instance.SetTextDoc();
         SelectionManager.SelectedDocuments().forEach(element => {
             const rect = element.screenRect();
             if (rect.width !== 0) {
@@ -424,7 +405,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 opacity: this._opacity
             }}>
                 <div className="documentDecorations-minimizeButton" onPointerDown={this.onMinimizeDown}>...</div>
-                <input ref={this.keyinput} className="title" type="text" name="dynbox" value={this.getValue()} onChange={this.handleChange} onPointerDown={this.onPointerDown} onKeyPress={this.enterPressed} />
+                <input ref={this.keyinput} className="title" type="text" name="dynbox" value={this.getValue()} onChange={this.handleChange} onPointerDown={this.onBackgroundDown} onKeyPress={this.enterPressed} />
                 <div className="documentDecorations-closeButton" onPointerDown={this.onCloseDown}>X</div>
                 <div id="documentDecorations-topLeftResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-topResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>

@@ -6,7 +6,6 @@ import { Transform } from "../../util/Transform";
 import { DocumentView, DocumentViewProps } from "./DocumentView";
 import "./DocumentView.scss";
 import React = require("react");
-import { thisExpression } from "babel-types";
 
 
 @observer
@@ -16,18 +15,13 @@ export class CollectionFreeFormDocumentView extends React.Component<DocumentView
     constructor(props: DocumentViewProps) {
         super(props);
     }
-    get screenRect(): ClientRect | DOMRect {
-        if (this._mainCont.current) {
-            return this._mainCont.current.getBoundingClientRect();
-        }
-        return new DOMRect();
-    }
 
     @computed
     get transform(): string {
-        return `scale(${this.props.ContentScaling()}, ${this.props.ContentScaling()}) translate(${this.props.Document.GetNumber(KeyStore.X, 0)}px, ${this.props.Document.GetNumber(KeyStore.Y, 0)}px)`;
+        return `scale(${this.props.ContentScaling()}, ${this.props.ContentScaling()}) translate(${this.props.Document.GetNumber(KeyStore.X, 0)}px, ${this.props.Document.GetNumber(KeyStore.Y, 0)}px) scale(${this.zoom}, ${this.zoom}) `;
     }
 
+    @computed get zoom(): number { return 1 / this.props.Document.GetNumber(KeyStore.Zoom, 1); }
     @computed get zIndex(): number { return this.props.Document.GetNumber(KeyStore.ZIndex, 0); }
     @computed get width(): number { return this.props.Document.Width(); }
     @computed get height(): number { return this.props.Document.Height(); }
@@ -57,7 +51,7 @@ export class CollectionFreeFormDocumentView extends React.Component<DocumentView
     getTransform = (): Transform =>
         this.props.ScreenToLocalTransform()
             .translate(-this.props.Document.GetNumber(KeyStore.X, 0), -this.props.Document.GetNumber(KeyStore.Y, 0))
-            .scale(1 / this.contentScaling())
+            .scale(1 / this.contentScaling()).scale(1 / this.zoom)
 
     @computed
     get docView() {
@@ -74,6 +68,7 @@ export class CollectionFreeFormDocumentView extends React.Component<DocumentView
     render() {
         return (
             <div className="collectionFreeFormDocumentView-container" ref={this._mainCont} style={{
+                opacity: this.props.opacity,
                 transformOrigin: "left top",
                 transform: this.transform,
                 pointerEvents: "all",

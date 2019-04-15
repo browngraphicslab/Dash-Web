@@ -23,9 +23,9 @@ export class Gateway {
         }
     }
 
-    public async GetSchema(dbName: string): Promise<Catalog> {
+    public async GetSchema(pathname: string, schemaname: string): Promise<Catalog> {
         try {
-            const json = await this.MakeGetRequest("schema", undefined, dbName);
+            const json = await this.MakeGetRequest("schema", undefined, { path: pathname, schema: schemaname });
             const cat = Catalog.fromJS(json);
             return cat;
         }
@@ -36,7 +36,7 @@ export class Gateway {
 
     public async ClearCatalog(): Promise<void> {
         try {
-            const json = await this.MakePostJsonRequest("Datamart/ClearAllAugmentations", {});
+            await this.MakePostJsonRequest("Datamart/ClearAllAugmentations", {});
         }
         catch (error) {
             throw new Error("can not reach northstar's backend");
@@ -144,13 +144,13 @@ export class Gateway {
             });
     }
 
-    public async MakeGetRequest(endpoint: string, signal?: AbortSignal, data?: any): Promise<any> {
-        let url = !data ? Gateway.ConstructUrl(endpoint) :
+    public async MakeGetRequest(endpoint: string, signal?: AbortSignal, params?: any): Promise<any> {
+        let url = !params ? Gateway.ConstructUrl(endpoint) :
             (() => {
                 let newUrl = new URL(Gateway.ConstructUrl(endpoint));
-                newUrl.searchParams.append("data", data);
+                Object.getOwnPropertyNames(params).map(prop =>
+                    newUrl.searchParams.append(prop, params[prop]));
                 return Gateway.ConstructUrl(endpoint) + newUrl.search;
-                return newUrl as any;
             })();
 
         const response = await fetch(url,
@@ -180,18 +180,18 @@ export class Gateway {
 
 
     public static ConstructUrl(appendix: string): string {
-        let base = Settings.Instance.ServerUrl;
+        let base = NorthstarSettings.Instance.ServerUrl;
         if (base.slice(-1) === "/") {
             base = base.slice(0, -1);
         }
-        let url = base + "/" + Settings.Instance.ServerApiPath + "/" + appendix;
+        let url = base + "/" + NorthstarSettings.Instance.ServerApiPath + "/" + appendix;
         return url;
     }
 }
 
 declare var ENV: any;
 
-export class Settings {
+export class NorthstarSettings {
     private _environment: any;
 
     @observable
@@ -248,10 +248,10 @@ export class Settings {
         return window.location.origin + "/";
     }
 
-    private static _instance: Settings;
+    private static _instance: NorthstarSettings;
 
     @action
-    public Update(environment: any): void {
+    public UpdateEnvironment(environment: any): void {
         /*let serverParam = new URL(document.URL).searchParams.get("serverUrl");
         if (serverParam) {
             if (serverParam === "debug") {
@@ -278,9 +278,9 @@ export class Settings {
         this.DegreeOfParallelism = environment.DEGREE_OF_PARALLISM;
     }
 
-    public static get Instance(): Settings {
+    public static get Instance(): NorthstarSettings {
         if (!this._instance) {
-            this._instance = new Settings();
+            this._instance = new NorthstarSettings();
         }
         return this._instance;
     }

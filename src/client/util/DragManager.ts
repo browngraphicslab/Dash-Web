@@ -1,12 +1,14 @@
 import { action } from "mobx";
 import { Document } from "../../fields/Document";
+import { FieldWaiting } from "../../fields/Field";
+import { KeyStore } from "../../fields/KeyStore";
+import { emptyFunction } from "../../Utils";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
-import { CollectionView } from "../views/collections/CollectionView";
 import { DocumentDecorations } from "../views/DocumentDecorations";
-import { DocumentView } from "../views/nodes/DocumentView";
-import { returnFalse } from "../../Utils";
+import * as globalCssVariables from "../views/globalCssVariables.scss";
+import { MainOverlayTextBox } from "../views/MainOverlayTextBox";
 
-export function setupDrag(_reference: React.RefObject<HTMLDivElement>, docFunc: () => Document, moveFunc?: DragManager.MoveFunction, copyOnDrop: boolean = false) {
+export function SetupDrag(_reference: React.RefObject<HTMLDivElement>, docFunc: () => Document, moveFunc?: DragManager.MoveFunction, copyOnDrop: boolean = false) {
     let onRowMove = action((e: PointerEvent): void => {
         e.stopPropagation();
         e.preventDefault();
@@ -36,6 +38,31 @@ export function setupDrag(_reference: React.RefObject<HTMLDivElement>, docFunc: 
         //}
     };
     return onItemDown;
+}
+
+export async function DragLinksAsDocuments(dragEle: HTMLElement, x: number, y: number, sourceDoc: Document) {
+    let srcTarg = sourceDoc.GetT(KeyStore.Prototype, Document);
+    let draggedDocs = (srcTarg && srcTarg !== FieldWaiting) ?
+        srcTarg.GetList(KeyStore.LinkedToDocs, [] as Document[]).map(linkDoc =>
+            (linkDoc.GetT(KeyStore.LinkedToDocs, Document)) as Document) : [];
+    let draggedFromDocs = (srcTarg && srcTarg !== FieldWaiting) ?
+        srcTarg.GetList(KeyStore.LinkedFromDocs, [] as Document[]).map(linkDoc =>
+            (linkDoc.GetT(KeyStore.LinkedFromDocs, Document)) as Document) : [];
+    draggedDocs.push(...draggedFromDocs);
+    if (draggedDocs.length) {
+        let moddrag = [] as Document[];
+        for (const draggedDoc of draggedDocs) {
+            let doc = await draggedDoc.GetTAsync(KeyStore.AnnotationOn, Document);
+            if (doc) moddrag.push(doc);
+        }
+        let dragData = new DragManager.DocumentDragData(moddrag.length ? moddrag : draggedDocs);
+        DragManager.StartDocumentDrag([dragEle], dragData, x, y, {
+            handlers: {
+                dragComplete: action(emptyFunction),
+            },
+            hideSource: false
+        });
+    }
 }
 
 export namespace DragManager {
@@ -112,11 +139,13 @@ export namespace DragManager {
         constructor(dragDoc: Document[]) {
             this.draggedDocuments = dragDoc;
             this.droppedDocuments = dragDoc;
+            this.xOffset = 0;
+            this.yOffset = 0;
         }
         draggedDocuments: Document[];
         droppedDocuments: Document[];
-        xOffset?: number;
-        yOffset?: number;
+        xOffset: number;
+        yOffset: number;
         aliasOnDrop?: boolean;
         copyOnDrop?: boolean;
         moveDocument?: MoveFunction;
@@ -129,11 +158,11 @@ export namespace DragManager {
     }
 
     export class LinkDragData {
-        constructor(linkSourceDoc: DocumentView) {
-            this.linkSourceDocumentView = linkSourceDoc;
+        constructor(linkSourceDoc: Document) {
+            this.linkSourceDocument = linkSourceDoc;
         }
         droppedDocuments: Document[] = [];
-        linkSourceDocumentView: DocumentView;
+        linkSourceDocument: Document;
         [id: string]: any;
     }
 
@@ -147,6 +176,7 @@ export namespace DragManager {
             dragDiv.className = "dragManager-dragDiv";
             DragManager.Root().appendChild(dragDiv);
         }
+        MainOverlayTextBox.Instance.SetTextDoc();
 
         let scaleXs: number[] = [];
         let scaleYs: number[] = [];
@@ -175,7 +205,7 @@ export namespace DragManager {
             dragElement.style.bottom = "";
             dragElement.style.left = "0";
             dragElement.style.transformOrigin = "0 0";
-            dragElement.style.zIndex = "1000";
+            dragElement.style.zIndex = globalCssVariables.contextMenuZindex;// "1000";
             dragElement.style.transform = `translate(${x}px, ${y}px) scale(${scaleX}, ${scaleY})`;
             dragElement.style.width = `${rect.width / scaleX}px`;
             dragElement.style.height = `${rect.height / scaleY}px`;
@@ -224,7 +254,7 @@ export namespace DragManager {
                 CollectionDockingView.Instance.StartOtherDrag(docs, {
                     pageX: e.pageX,
                     pageY: e.pageY,
-                    preventDefault: () => { },
+                    preventDefault: emptyFunction,
                     button: 0
                 });
             }
