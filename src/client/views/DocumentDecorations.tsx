@@ -9,10 +9,25 @@ import { props } from "bluebird";
 import { DragManager } from "../util/DragManager";
 import { LinkMenu } from "./nodes/LinkMenu";
 import { ListField } from "../../fields/ListField";
-import { Templates, Template } from "./Templates";
+import { TemplateEditButton } from "./TemplateEditButton";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
+
+// @observer
+// class TemplateToggle extends React.Component<{ template: Template, checked: boolean, toggle: (event: React.ChangeEvent<HTMLInputElement>, template: Template) => void }> {
+//     render() {
+//         if (this.props.template) {
+//             return (
+//                 <li>
+//                     <input type="checkbox" checked={this.props.checked} onChange={(event) => this.props.toggle(event, this.props.template)} />
+//                     {this.props.template.Name}
+//                 </li>
+//             )
+//         }
+//         return (null);
+//     }
+// }
 
 @observer
 export class DocumentDecorations extends React.Component {
@@ -23,8 +38,6 @@ export class DocumentDecorations extends React.Component {
     private _resizeBorderWidth = 16;
     private _linkButton = React.createRef<HTMLDivElement>();
     @observable private _hidden = false;
-    @observable private _templatesActive: boolean = false;
-    @observable private _showBase: boolean = true;
 
     constructor(props: Readonly<{}>) {
         super(props)
@@ -195,26 +208,6 @@ export class DocumentDecorations extends React.Component {
     //     e.stopPropagation();
     // }
 
-    toggleTemplate = (event: React.ChangeEvent<HTMLInputElement>, template: Template): void => {
-        let view = SelectionManager.SelectedDocuments()[0];
-        if (event.target.checked) {
-            view.addTemplate(template);
-        } else {
-            view.removeTemplate(template);
-        }
-    }
-
-    @action
-    toggleBase = (event: React.ChangeEvent<HTMLInputElement>): void => {
-        let view = SelectionManager.SelectedDocuments()[0];
-        view.toggleBase(event.target.checked);
-        this._showBase = !this._showBase;
-    }
-
-    @action
-    toggleTemplateActivity = (): void => {
-        this._templatesActive = !this._templatesActive;
-    }
 
     render() {
         var bounds = this.Bounds;
@@ -242,19 +235,6 @@ export class DocumentDecorations extends React.Component {
             </Flyout>);
         }
 
-        let templateMenu = !this._templatesActive ? (null) : (
-            <ul id="template-list">
-                <li><input type="checkbox" onChange={(event) => this.toggleBase(event)} checked={this._showBase} />Base layout</li>
-                {Array.from(Object.values(Templates)).map(template => {
-                    return (
-                        <li>
-                            <input type="checkbox" onChange={(event) => this.toggleTemplate(event, template)} />
-                            {template.Name}
-                        </li>
-                    )
-                })}
-            </ul>
-        )
         return (
             <div id="documentDecorations">
                 <div id="documentDecorations-container" style={{
@@ -281,11 +261,7 @@ export class DocumentDecorations extends React.Component {
                 }}>
                     <div title="View Links" className="linkFlyout documentDecorations-ex-wrapper" ref={this._linkButton}>{linkButton}</div>
 
-                    <div className="templating-button-wrapper documentDecorations-ex-wrapper">
-                        <div className="templating-button documentDecorations-ex"
-                            onClick={() => this.toggleTemplateActivity()}>T</div>
-                        {templateMenu}
-                    </div>
+                    <TemplateEditButton Document={SelectionManager.SelectedDocuments()[0]} />
                 </div>
             </div>
         )

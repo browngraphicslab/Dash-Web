@@ -1,4 +1,4 @@
-import { action, computed, IReactionDisposer, reaction, runInAction } from "mobx";
+import { action, computed, IReactionDisposer, reaction, runInAction, observable } from "mobx";
 import { observer } from "mobx-react";
 import { Document } from "../../../fields/Document";
 import { Field, Opt, FieldWaiting } from "../../../fields/Field";
@@ -94,7 +94,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     private _downX: number = 0;
     private _downY: number = 0;
     private _reactionDisposer: Opt<IReactionDisposer>;
-    private _templates: Set<Template> = new Set<Template>();
+    @observable private _templates: Set<Template> = new Set<Template>();
     private _useBase: boolean = true;
     private _baseLayout: string = this.props.Document.GetText(KeyStore.Layout, "<p>Error loading layout data</p>");
     @computed get active(): boolean { return SelectionManager.IsSelected(this) || !this.props.ContainingCollectionView || this.props.ContainingCollectionView.active(); }
@@ -301,9 +301,15 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         this.updateLayout();
     }
 
-    @action removeTemplate = (template: Template) => {
+    @action
+    removeTemplate = (template: Template) => {
         this._templates.delete(template);
         this.updateLayout();
+    }
+
+    @action
+    hasTemplate = (template: Template) => {
+        return this._templates.has(template);
     }
 
     @action

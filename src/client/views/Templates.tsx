@@ -46,5 +46,17 @@ export namespace Templates {
         </div>
     </div>       
             `);
+
+    export const Title = new Template("Title",
+        `
+    <div>
+        <div style="margin:auto; height:calc(100% - 50px); width:100%;">
+            {layout}
+        </div>
+        <div style="height:50px; width:100%; position:absolute">
+            <FormattedTextBox doc={Document} DocumentViewForField={DocumentView} bindings={bindings} fieldKey={"TitleKey"} isSelected={isSelected} select={select} selectOnLoad={SelectOnLoad} isTopMost={isTopMost}/>
+        </div>
+    </div>       
+            `);
 }
 
