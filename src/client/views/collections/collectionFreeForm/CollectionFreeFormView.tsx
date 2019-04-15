@@ -111,7 +111,11 @@ export class CollectionFreeFormView extends CollectionSubView {
 
     @action
     onPointerDown = (e: React.PointerEvent): void => {
-        if (((e.button === 2 && (!this.isAnnotationOverlay || this.zoomScaling !== 1)) || e.button === 0) && this.props.active()) {
+        let childSelected = this.props.Document.GetList(this.props.fieldKey, [] as Document[]).filter(doc => doc).reduce((childSelected, doc) => {
+            var dv = DocumentManager.Instance.getDocumentView(doc);
+            return childSelected || (dv && SelectionManager.IsSelected(dv) ? true : false);
+        }, false);
+        if (((e.button === 2 && (!this.isAnnotationOverlay || this.zoomScaling !== 1)) || (e.button === 0 && e.altKey)) && (childSelected || this.props.active())) {
             document.removeEventListener("pointermove", this.onPointerMove);
             document.addEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
@@ -130,38 +134,36 @@ export class CollectionFreeFormView extends CollectionSubView {
 
     @action
     onPointerMove = (e: PointerEvent): void => {
-        if (!e.cancelBubble && this.props.active()) {
-            if ((!this.isAnnotationOverlay || this.zoomScaling !== 1) && !e.shiftKey) {
-                let x = this.props.Document.GetNumber(KeyStore.PanX, 0);
-                let y = this.props.Document.GetNumber(KeyStore.PanY, 0);
-                let docs = this.props.Document.GetList(this.props.fieldKey, [] as Document[]);
-                let [dx, dy] = this.getTransform().transformDirection(e.clientX - this._lastX, e.clientY - this._lastY);
-                if (!this.isAnnotationOverlay) {
-                    let minx = docs.length ? docs[0].GetNumber(KeyStore.X, 0) : 0;
-                    let maxx = docs.length ? docs[0].GetNumber(KeyStore.Width, 0) + minx : minx;
-                    let miny = docs.length ? docs[0].GetNumber(KeyStore.Y, 0) : 0;
-                    let maxy = docs.length ? docs[0].GetNumber(KeyStore.Height, 0) + miny : miny;
-                    let ranges = docs.filter(doc => doc).reduce((range, doc) => {
-                        let x = doc.GetNumber(KeyStore.X, 0);
-                        let xe = x + doc.GetNumber(KeyStore.Width, 0);
-                        let y = doc.GetNumber(KeyStore.Y, 0);
-                        let ye = y + doc.GetNumber(KeyStore.Height, 0);
-                        return [[range[0][0] > x ? x : range[0][0], range[0][1] < xe ? xe : range[0][1]],
-                        [range[1][0] > y ? y : range[1][0], range[1][1] < ye ? ye : range[1][1]]];
-                    }, [[minx, maxx], [miny, maxy]]);
-                    let panelwidth = this._pwidth / this.scale / 2;
-                    let panelheight = this._pheight / this.scale / 2;
-                    if (x - dx < ranges[0][0] - panelwidth) x = ranges[0][1] + panelwidth + dx;
-                    if (x - dx > ranges[0][1] + panelwidth) x = ranges[0][0] - panelwidth + dx;
-                    if (y - dy < ranges[1][0] - panelheight) y = ranges[1][1] + panelheight + dy;
-                    if (y - dy > ranges[1][1] + panelheight) y = ranges[1][0] - panelheight + dy;
-                }
-                this.SetPan(x - dx, y - dy);
-                this._lastX = e.pageX;
-                this._lastY = e.pageY;
-                e.stopPropagation();
-                e.preventDefault();
+        if (!e.cancelBubble) {
+            let x = this.props.Document.GetNumber(KeyStore.PanX, 0);
+            let y = this.props.Document.GetNumber(KeyStore.PanY, 0);
+            let docs = this.props.Document.GetList(this.props.fieldKey, [] as Document[]);
+            let [dx, dy] = this.getTransform().transformDirection(e.clientX - this._lastX, e.clientY - this._lastY);
+            if (!this.isAnnotationOverlay) {
+                let minx = docs.length ? docs[0].GetNumber(KeyStore.X, 0) : 0;
+                let maxx = docs.length ? docs[0].GetNumber(KeyStore.Width, 0) + minx : minx;
+                let miny = docs.length ? docs[0].GetNumber(KeyStore.Y, 0) : 0;
+                let maxy = docs.length ? docs[0].GetNumber(KeyStore.Height, 0) + miny : miny;
+                let ranges = docs.filter(doc => doc).reduce((range, doc) => {
+                    let x = doc.GetNumber(KeyStore.X, 0);
+                    let xe = x + doc.GetNumber(KeyStore.Width, 0);
+                    let y = doc.GetNumber(KeyStore.Y, 0);
+                    let ye = y + doc.GetNumber(KeyStore.Height, 0);
+                    return [[range[0][0] > x ? x : range[0][0], range[0][1] < xe ? xe : range[0][1]],
+                    [range[1][0] > y ? y : range[1][0], range[1][1] < ye ? ye : range[1][1]]];
+                }, [[minx, maxx], [miny, maxy]]);
+                let panelwidth = this._pwidth / this.scale / 2;
+                let panelheight = this._pheight / this.scale / 2;
+                if (x - dx < ranges[0][0] - panelwidth) x = ranges[0][1] + panelwidth + dx;
+                if (x - dx > ranges[0][1] + panelwidth) x = ranges[0][0] - panelwidth + dx;
+                if (y - dy < ranges[1][0] - panelheight) y = ranges[1][1] + panelheight + dy;
+                if (y - dy > ranges[1][1] + panelheight) y = ranges[1][0] - panelheight + dy;
             }
+            this.SetPan(x - dx, y - dy);
+            this._lastX = e.pageX;
+            this._lastY = e.pageY;
+            e.stopPropagation();
+            e.preventDefault();
         }
     }
 
@@ -170,6 +172,13 @@ export class CollectionFreeFormView extends CollectionSubView {
         // if (!this.props.active()) {
         //     return;
         // }
+        let childSelected = this.props.Document.GetList(this.props.fieldKey, [] as Document[]).filter(doc => doc).reduce((childSelected, doc) => {
+            var dv = DocumentManager.Instance.getDocumentView(doc);
+            return childSelected || (dv && SelectionManager.IsSelected(dv) ? true : false);
+        }, false);
+        if (!this.props.isSelected() && !childSelected && !this.props.isTopMost) {
+            return;
+        }
         e.stopPropagation();
         let coefficient = 1000;
 
@@ -281,13 +290,23 @@ export class CollectionFreeFormView extends CollectionSubView {
 
     @computed
     get views() {
+        let pw = this.props.CollectionView.props
         var curPage = this.props.Document.GetNumber(KeyStore.CurPage, -1);
         let docviews = this.props.Document.GetList(this.props.fieldKey, [] as Document[]).filter(doc => doc).reduce((prev, doc) => {
             var page = doc.GetNumber(KeyStore.Page, -1);
             var zoom = doc.GetNumber(KeyStore.Zoom, 1);
-            var dv = DocumentManager.Instance.getDocumentView(doc);
-            let zoomFade = !this.isAnnotationOverlay || (dv && SelectionManager.IsSelected(dv)) ? 1 :
-                Math.max(0, 2 - (zoom < this.scale ? this.scale / zoom : zoom / this.scale));
+            let zoomFade = 1;
+            var documentView = DocumentManager.Instance.getDocumentView(doc);
+            if (documentView) {
+                let transform = (documentView.props.ScreenToLocalTransform().scale(documentView.props.ContentScaling())).inverse();
+                var [sptX, sptY] = transform.transformPoint(0, 0);
+                let [bptX, bptY] = transform.transformPoint(documentView.props.PanelWidth(), documentView.props.PanelHeight());
+                let w = bptX - sptX;
+                //zoomFade = area < 100 || area > 800 ? Math.max(0, Math.min(1, 2 - 5 * (zoom < this.scale ? this.scale / zoom : zoom / this.scale))) : 1;
+                let fadeUp = .75 * 1800;
+                let fadeDown = .075 * 1800;
+                zoomFade = w < fadeDown || w > fadeUp ? Math.max(0, Math.min(1, 2 - (w < fadeDown ? fadeDown / w : w / fadeUp))) : 1;
+            }
             if (page === curPage || page === -1) {
                 prev.push(<CollectionFreeFormDocumentView key={doc.Id} {...this.getDocumentViewProps(doc)} zoomFade={zoomFade} />);
             }

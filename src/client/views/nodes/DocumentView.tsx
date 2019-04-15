@@ -212,7 +212,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         }
     }
     fullScreenClicked = (e: React.MouseEvent): void => {
-        CollectionDockingView.Instance.OpenFullScreen(this.props.Document);
+        CollectionDockingView.Instance.OpenFullScreen((this.props.Document.GetPrototype() as Document).MakeDelegate());
         ContextMenu.Instance.clearItems();
         ContextMenu.Instance.addItem({
             description: "Close Full Screen",
@@ -425,7 +425,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             );
             return (
                 <div
-                    className="documentView-node"
+                    className={`documentView-node${this.props.isTopMost ? "-topmost" : ""}`}
                     ref={this._mainCont}
                     style={{
                         background: backgroundcolor,

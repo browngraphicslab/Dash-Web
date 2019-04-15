@@ -160,7 +160,6 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 pany: 0,
                 width: bounds.width,
                 height: bounds.height,
-                backgroundColor: "Transparent",
                 ink: inkData ? this.marqueeInkSelect(inkData) : undefined,
                 title: "a nested collection"
             });

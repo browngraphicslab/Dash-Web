@@ -42,7 +42,6 @@ export interface FormattedTextBoxOverlay {
     isOverlay?: boolean;
 }
 
-@observer
 export class FormattedTextBox extends React.Component<(FieldViewProps & FormattedTextBoxOverlay)> {
     public static LayoutString(fieldStr: string = "DataKey") {
         return FieldView.LayoutString(FormattedTextBox, fieldStr);

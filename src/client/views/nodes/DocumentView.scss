@@ -1,6 +1,6 @@
 @import "../globalCssVariables";
 
-.documentView-node {
+.documentView-node .documentView-node-topMost {
   position: inherit;
   top: 0;
   left:0;
@@ -27,6 +27,9 @@
     overflow-y: scroll;
     height: calc(100% - 20px);
   }
+}
+.documentView-node-topMost {
+    background: white;
 }
 
 .minimized-box {

@@ -84,7 +84,11 @@ export class Main extends React.Component {
         this.initEventListeners();
         this.initAuthenticationRouters();
 
-        this.initializeNorthstar();
+        try {
+            this.initializeNorthstar();
+        } catch (e) {
+
+        }
     }
 
     componentDidMount() { window.onpopstate = this.onHistory; }
