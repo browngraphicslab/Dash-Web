@@ -1,112 +1,117 @@
-import { action, computed, observable } from "mobx";
+import { action, computed, observable, runInAction, untracked } from "mobx";
 import { observer } from "mobx-react";
+import Measure from "react-measure";
 import { Document } from "../../../../fields/Document";
 import { FieldWaiting } from "../../../../fields/Field";
 import { KeyStore } from "../../../../fields/KeyStore";
-import { ListField } from "../../../../fields/ListField";
 import { TextField } from "../../../../fields/TextField";
+import { emptyFunction, returnFalse, returnOne } from "../../../../Utils";
+import { DocumentManager } from "../../../util/DocumentManager";
 import { DragManager } from "../../../util/DragManager";
+import { SelectionManager } from "../../../util/SelectionManager";
 import { Transform } from "../../../util/Transform";
 import { undoBatch } from "../../../util/UndoManager";
+import { COLLECTION_BORDER_WIDTH } from "../../../views/globalCssVariables.scss";
 import { InkingCanvas } from "../../InkingCanvas";
-import { CollectionFreeFormDocumentView } from "../../nodes/CollectionFreeFormDocumentView";
+import { Main } from "../../Main";
+import { CollectionFreeFormDocumentView, CollectionFreeFormDocumentViewProps } from "../../nodes/CollectionFreeFormDocumentView";
 import { DocumentContentsView } from "../../nodes/DocumentContentsView";
 import { DocumentViewProps } from "../../nodes/DocumentView";
-import { COLLECTION_BORDER_WIDTH } from "../CollectionView";
-import { CollectionViewBase } from "../CollectionViewBase";
-import { MarqueeView } from "./MarqueeView";
-import { PreviewCursor } from "./PreviewCursor";
+import { CollectionSubView, SubCollectionViewProps } from "../CollectionSubView";
 import { CollectionFreeFormLinksView } from "./CollectionFreeFormLinksView";
+import { CollectionFreeFormRemoteCursors } from "./CollectionFreeFormRemoteCursors";
 import "./CollectionFreeFormView.scss";
+import { MarqueeView } from "./MarqueeView";
 import React = require("react");
 import v5 = require("uuid/v5");
+import { MainOverlayTextBox } from "../../MainOverlayTextBox";
 
 @observer
-export class CollectionFreeFormView extends CollectionViewBase {
+export class CollectionFreeFormView extends CollectionSubView {
     public _canvasRef = React.createRef<HTMLDivElement>();
     private _selectOnLoaded: string = ""; // id of document that should be selected once it's loaded (used for click-to-type)
 
     public addLiveTextBox = (newBox: Document) => {
-        // mark this collection so that when the text box is created we can send it the SelectOnLoad prop to focus itself
+        // mark this collection so that when the text box is created we can send it the SelectOnLoad prop to focus itself and receive text input
         this._selectOnLoaded = newBox.Id;
-        //set text to be the typed key and get focus on text box
-        this.props.addDocument(newBox, false);
-        //remove cursor from screen
-        this.PreviewCursorVisible = false;
+        this.addDocument(newBox, false);
+    }
+
+    public addDocument = (newBox: Document, allowDuplicates: boolean) => {
+        if (this.isAnnotationOverlay) {
+            newBox.SetNumber(KeyStore.Zoom, this.props.Document.GetNumber(KeyStore.Scale, 1));
+        }
+        return this.props.addDocument(this.bringToFront(newBox), false);
     }
 
     public selectDocuments = (docs: Document[]) => {
-        this.props.CollectionView.SelectedDocs.length = 0;
-        docs.map(d => this.props.CollectionView.SelectedDocs.push(d.Id));
+        SelectionManager.DeselectAll;
+        docs.map(doc => DocumentManager.Instance.getDocumentView(doc)).filter(dv => dv).map(dv =>
+            SelectionManager.SelectDoc(dv!, true));
     }
 
     public getActiveDocuments = () => {
         var curPage = this.props.Document.GetNumber(KeyStore.CurPage, -1);
-        const lvalue = this.props.Document.GetT<ListField<Document>>(this.props.fieldKey, ListField);
-        let active: Document[] = [];
-        if (lvalue && lvalue != FieldWaiting) {
-            lvalue.Data.map(doc => {
-                var page = doc.GetNumber(KeyStore.Page, -1);
-                if (page == curPage || page == -1) {
-                    active.push(doc);
-                }
-            })
-        }
-
-        return active;
+        return this.props.Document.GetList(this.props.fieldKey, [] as Document[]).reduce((active, doc) => {
+            var page = doc.GetNumber(KeyStore.Page, -1);
+            if (page === curPage || page === -1) {
+                active.push(doc);
+            }
+            return active;
+        }, [] as Document[]);
     }
 
-    //determines whether the blinking cursor for indicating whether a text will be made on key down is visible
-    @observable public PreviewCursorVisible: boolean = false;
-    @observable public MarqueeVisible = false;
     @observable public DownX: number = 0;
     @observable public DownY: number = 0;
     @observable private _lastX: number = 0;
     @observable private _lastY: number = 0;
+    @observable private _pwidth: number = 0;
+    @observable private _pheight: number = 0;
 
-    @computed get panX(): number { return this.props.Document.GetNumber(KeyStore.PanX, 0) }
-    @computed get panY(): number { return this.props.Document.GetNumber(KeyStore.PanY, 0) }
+    @computed get panX(): number { return this.props.Document.GetNumber(KeyStore.PanX, 0); }
+    @computed get panY(): number { return this.props.Document.GetNumber(KeyStore.PanY, 0); }
     @computed get scale(): number { return this.props.Document.GetNumber(KeyStore.Scale, 1); }
-    @computed get isAnnotationOverlay() { return this.props.fieldKey.Id === KeyStore.Annotations.Id; } // bcz: ? Why do we need to compare Id's?
+    @computed get isAnnotationOverlay() { return this.props.fieldKey && this.props.fieldKey.Id === KeyStore.Annotations.Id; } // bcz: ? Why do we need to compare Id's?
     @computed get nativeWidth() { return this.props.Document.GetNumber(KeyStore.NativeWidth, 0); }
     @computed get nativeHeight() { return this.props.Document.GetNumber(KeyStore.NativeHeight, 0); }
     @computed get zoomScaling() { return this.props.Document.GetNumber(KeyStore.Scale, 1); }
-    @computed get centeringShiftX() { return !this.props.Document.GetNumber(KeyStore.NativeWidth, 0) ? this.props.panelWidth() / 2 : 0; }  // shift so pan position is at center of window for non-overlay collections
-    @computed get centeringShiftY() { return !this.props.Document.GetNumber(KeyStore.NativeHeight, 0) ? this.props.panelHeight() / 2 : 0; }// shift so pan position is at center of window for non-overlay collections
+    @computed get centeringShiftX() { return !this.props.Document.GetNumber(KeyStore.NativeWidth, 0) ? this._pwidth / 2 : 0; }  // shift so pan position is at center of window for non-overlay collections
+    @computed get centeringShiftY() { return !this.props.Document.GetNumber(KeyStore.NativeHeight, 0) ? this._pheight / 2 : 0; }// shift so pan position is at center of window for non-overlay collections
 
     @undoBatch
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
-        if (super.drop(e, de)) {
-            if (de.data instanceof DragManager.DocumentDragData) {
-                let screenX = de.x - (de.data.xOffset as number || 0);
-                let screenY = de.y - (de.data.yOffset as number || 0);
-                const [x, y] = this.getTransform().transformPoint(screenX, screenY);
-                de.data.droppedDocument.SetNumber(KeyStore.X, x);
-                de.data.droppedDocument.SetNumber(KeyStore.Y, y);
-                if (!de.data.droppedDocument.GetNumber(KeyStore.Width, 0)) {
-                    de.data.droppedDocument.SetNumber(KeyStore.Width, 300);
-                    de.data.droppedDocument.SetNumber(KeyStore.Height, 300);
-                }
-                this.bringToFront(de.data.droppedDocument);
+        if (super.drop(e, de) && de.data instanceof DragManager.DocumentDragData) {
+            const [x, y] = this.getTransform().transformPoint(de.x - de.data.xOffset, de.y - de.data.yOffset);
+            if (de.data.droppedDocuments.length) {
+                let dropX = de.data.droppedDocuments[0].GetNumber(KeyStore.X, 0);
+                let dropY = de.data.droppedDocuments[0].GetNumber(KeyStore.Y, 0);
+                de.data.droppedDocuments.map(d => {
+                    d.SetNumber(KeyStore.X, x + (d.GetNumber(KeyStore.X, 0) - dropX));
+                    d.SetNumber(KeyStore.Y, y + (d.GetNumber(KeyStore.Y, 0) - dropY));
+                    if (!d.GetNumber(KeyStore.Width, 0)) {
+                        d.SetNumber(KeyStore.Width, 300);
+                    }
+                    if (!d.GetNumber(KeyStore.Height, 0)) {
+                        d.SetNumber(KeyStore.Height, 300);
+                    }
+                    this.bringToFront(d);
+                });
             }
             return true;
         }
         return false;
     }
 
-
     @action
     cleanupInteractions = () => {
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
-        this.MarqueeVisible = false;
     }
 
     @action
     onPointerDown = (e: React.PointerEvent): void => {
-        this.PreviewCursorVisible = false;
-        if ((e.button === 2 && this.props.active() && (!this.isAnnotationOverlay || this.zoomScaling != 1)) || e.button == 0) {
+        if (((e.button === 2 && (!this.isAnnotationOverlay || this.zoomScaling !== 1)) || e.button === 0) && this.props.active()) {
             document.removeEventListener("pointermove", this.onPointerMove);
             document.addEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
@@ -120,31 +125,37 @@ export class CollectionFreeFormView extends CollectionViewBase {
     onPointerUp = (e: PointerEvent): void => {
         e.stopPropagation();
 
-        if (Math.abs(this.DownX - e.clientX) < 4 && Math.abs(this.DownY - e.clientY) < 4) {
-            //show preview text cursor on tap
-            this.PreviewCursorVisible = true;
-            //select is not already selected
-            if (!this.props.isSelected()) {
-                this.props.select(false);
-            }
-        }
         this.cleanupInteractions();
     }
 
     @action
     onPointerMove = (e: PointerEvent): void => {
         if (!e.cancelBubble && this.props.active()) {
-            if (e.buttons == 1 && !e.altKey && !e.metaKey) {
-                this.MarqueeVisible = true;
-            }
-            if (this.MarqueeVisible) {
-                e.stopPropagation();
-                e.preventDefault();
-            }
-            else if ((!this.isAnnotationOverlay || this.zoomScaling != 1) && !e.shiftKey) {
+            if ((!this.isAnnotationOverlay || this.zoomScaling !== 1) && !e.shiftKey) {
                 let x = this.props.Document.GetNumber(KeyStore.PanX, 0);
                 let y = this.props.Document.GetNumber(KeyStore.PanY, 0);
+                let docs = this.props.Document.GetList(this.props.fieldKey, [] as Document[]);
                 let [dx, dy] = this.getTransform().transformDirection(e.clientX - this._lastX, e.clientY - this._lastY);
+                if (!this.isAnnotationOverlay) {
+                    let minx = docs.length ? docs[0].GetNumber(KeyStore.X, 0) : 0;
+                    let maxx = docs.length ? docs[0].GetNumber(KeyStore.Width, 0) + minx : minx;
+                    let miny = docs.length ? docs[0].GetNumber(KeyStore.Y, 0) : 0;
+                    let maxy = docs.length ? docs[0].GetNumber(KeyStore.Height, 0) + miny : miny;
+                    let ranges = docs.filter(doc => doc).reduce((range, doc) => {
+                        let x = doc.GetNumber(KeyStore.X, 0);
+                        let xe = x + doc.GetNumber(KeyStore.Width, 0);
+                        let y = doc.GetNumber(KeyStore.Y, 0);
+                        let ye = y + doc.GetNumber(KeyStore.Height, 0);
+                        return [[range[0][0] > x ? x : range[0][0], range[0][1] < xe ? xe : range[0][1]],
+                        [range[1][0] > y ? y : range[1][0], range[1][1] < ye ? ye : range[1][1]]];
+                    }, [[minx, maxx], [miny, maxy]]);
+                    let panelwidth = this._pwidth / this.scale / 2;
+                    let panelheight = this._pheight / this.scale / 2;
+                    if (x - dx < ranges[0][0] - panelwidth) x = ranges[0][1] + panelwidth + dx;
+                    if (x - dx > ranges[0][1] + panelwidth) x = ranges[0][0] - panelwidth + dx;
+                    if (y - dy < ranges[1][0] - panelheight) y = ranges[1][1] + panelheight + dy;
+                    if (y - dy > ranges[1][1] + panelheight) y = ranges[1][0] - panelheight + dy;
+                }
                 this.SetPan(x - dx, y - dy);
                 this._lastX = e.pageX;
                 this._lastY = e.pageY;
@@ -156,9 +167,10 @@ export class CollectionFreeFormView extends CollectionViewBase {
 
     @action
     onPointerWheel = (e: React.WheelEvent): void => {
-        this.props.select(false);
+        // if (!this.props.active()) {
+        //     return;
+        // }
         e.stopPropagation();
-        e.preventDefault();
         let coefficient = 1000;
 
         if (e.ctrlKey) {
@@ -171,26 +183,29 @@ export class CollectionFreeFormView extends CollectionViewBase {
             e.stopPropagation();
             e.preventDefault();
         } else {
-            // if (modes[e.deltaMode] == 'pixels') coefficient = 50;
-            // else if (modes[e.deltaMode] == 'lines') coefficient = 1000; // This should correspond to line-height??
+            // if (modes[e.deltaMode] === 'pixels') coefficient = 50;
+            // else if (modes[e.deltaMode] === 'lines') coefficient = 1000; // This should correspond to line-height??
             let transform = this.getTransform();
 
             let deltaScale = (1 - (e.deltaY / coefficient));
-            if (deltaScale * this.zoomScaling < 1 && this.isAnnotationOverlay)
+            if (deltaScale * this.zoomScaling < 1 && this.isAnnotationOverlay) {
                 deltaScale = 1 / this.zoomScaling;
+            }
             let [x, y] = transform.transformPoint(e.clientX, e.clientY);
 
-            let localTransform = this.getLocalTransform()
-            localTransform = localTransform.inverse().scaleAbout(deltaScale, x, y)
+            let localTransform = this.getLocalTransform();
+            localTransform = localTransform.inverse().scaleAbout(deltaScale, x, y);
             // console.log(localTransform)
 
             this.props.Document.SetNumber(KeyStore.Scale, localTransform.Scale);
             this.SetPan(-localTransform.TranslateX / localTransform.Scale, -localTransform.TranslateY / localTransform.Scale);
+            e.stopPropagation();
         }
     }
 
     @action
     private SetPan(panX: number, panY: number) {
+        MainOverlayTextBox.Instance.SetTextDoc();
         var x1 = this.getLocalTransform().inverse().Scale;
         const newPanX = Math.min((1 - 1 / x1) * this.nativeWidth, Math.max(0, panX));
         const newPanY = Math.min((1 - 1 / x1) * this.nativeHeight, Math.max(0, panY));
@@ -220,9 +235,9 @@ export class CollectionFreeFormView extends CollectionViewBase {
                 return -1;
             }
             return doc1.GetNumber(KeyStore.ZIndex, 0) - doc2.GetNumber(KeyStore.ZIndex, 0);
-        }).map((doc, index) => {
-            doc.SetNumber(KeyStore.ZIndex, index + 1)
-        });
+        }).map((doc, index) =>
+            doc.SetNumber(KeyStore.ZIndex, index + 1));
+        return doc;
     }
 
     @computed get backgroundLayout(): string | undefined {
@@ -248,169 +263,100 @@ export class CollectionFreeFormView extends CollectionViewBase {
     getDocumentViewProps(document: Document): DocumentViewProps {
         return {
             Document: document,
-            AddDocument: this.props.addDocument,
-            RemoveDocument: this.props.removeDocument,
+            addDocument: this.props.addDocument,
+            removeDocument: this.props.removeDocument,
+            moveDocument: this.props.moveDocument,
             ScreenToLocalTransform: this.getTransform,
             isTopMost: false,
-            SelectOnLoad: document.Id == this._selectOnLoaded,
+            selectOnLoad: document.Id === this._selectOnLoaded,
             PanelWidth: document.Width,
             PanelHeight: document.Height,
             ContentScaling: this.noScaling,
             ContainingCollectionView: this.props.CollectionView,
-            focus: this.focusDocument
-        }
+            focus: this.focusDocument,
+            parentActive: this.props.active,
+            onActiveChanged: this.props.active,
+        };
     }
 
     @computed
     get views() {
         var curPage = this.props.Document.GetNumber(KeyStore.CurPage, -1);
-        const lvalue = this.props.Document.GetT<ListField<Document>>(this.props.fieldKey, ListField);
-        if (lvalue && lvalue != FieldWaiting) {
-            return lvalue.Data.map(doc => {
-                if (!doc) return null;
-                var page = doc.GetNumber(KeyStore.Page, 0);
-                return (page != curPage && page != 0) ? (null) :
-                    (<CollectionFreeFormDocumentView key={doc.Id} {...this.getDocumentViewProps(doc)} />);
-            })
-        }
-        return null;
+        let docviews = this.props.Document.GetList(this.props.fieldKey, [] as Document[]).filter(doc => doc).reduce((prev, doc) => {
+            var page = doc.GetNumber(KeyStore.Page, -1);
+            var zoom = doc.GetNumber(KeyStore.Zoom, 1);
+            var dv = DocumentManager.Instance.getDocumentView(doc);
+            let zoomFade = !this.isAnnotationOverlay || (dv && SelectionManager.IsSelected(dv)) ? 1 :
+                Math.max(0, 2 - (zoom < this.scale ? this.scale / zoom : zoom / this.scale));
+            if (page === curPage || page === -1) {
+                prev.push(<CollectionFreeFormDocumentView key={doc.Id} {...this.getDocumentViewProps(doc)} zoomFade={zoomFade} />);
+            }
+            return prev;
+        }, [] as JSX.Element[]);
+
+        setTimeout(() => { // bcz: surely there must be a better way ....
+            this._selectOnLoaded = "";
+        }, 600);
+
+        return docviews;
     }
 
     @computed
     get backgroundView() {
         return !this.backgroundLayout ? (null) :
             (<DocumentContentsView {...this.getDocumentViewProps(this.props.Document)}
-                layoutKey={KeyStore.BackgroundLayout} isTopMost={this.props.isTopMost} isSelected={() => false} select={() => { }} />);
+                layoutKey={KeyStore.BackgroundLayout} isTopMost={this.props.isTopMost} isSelected={returnFalse} select={emptyFunction} />);
     }
     @computed
     get overlayView() {
         return !this.overlayLayout ? (null) :
             (<DocumentContentsView {...this.getDocumentViewProps(this.props.Document)}
-                layoutKey={KeyStore.OverlayLayout} isTopMost={this.props.isTopMost} isSelected={() => false} select={() => { }} />);
+                layoutKey={KeyStore.OverlayLayout} isTopMost={this.props.isTopMost} isSelected={returnFalse} select={emptyFunction} />);
     }
 
-    getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-COLLECTION_BORDER_WIDTH, -COLLECTION_BORDER_WIDTH).translate(-this.centeringShiftX, -this.centeringShiftY).transform(this.getLocalTransform())
-    getMarqueeTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-COLLECTION_BORDER_WIDTH, -COLLECTION_BORDER_WIDTH)
-    getLocalTransform = (): Transform => Transform.Identity.scale(1 / this.scale).translate(this.panX, this.panY);
+    @computed
+    get borderWidth() {
+        return this.isAnnotationOverlay ? 0 : COLLECTION_BORDER_WIDTH;
+    }
+    getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-this.borderWidth, -this.borderWidth).translate(-this.centeringShiftX, -this.centeringShiftY).transform(this.getLocalTransform());
+    getContainerTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-this.borderWidth, -this.borderWidth);
+    getLocalTransform = (): Transform => Transform.Identity().scale(1 / this.scale).translate(this.panX, this.panY);
     noScaling = () => 1;
-
-    //when focus is lost, this will remove the preview cursor
-    @action
-    onBlur = (): void => {
-        this.PreviewCursorVisible = false;
-    }
-
-    private crosshairs?: HTMLCanvasElement;
-    drawCrosshairs = (backgroundColor: string) => {
-        if (this.crosshairs) {
-            let c = this.crosshairs;
-            let ctx = c.getContext('2d');
-            if (ctx) {
-                ctx.fillStyle = backgroundColor;
-                ctx.fillRect(0, 0, 20, 20);
-
-                ctx.fillStyle = "black";
-                ctx.lineWidth = 0.5;
-
-                ctx.beginPath();
-
-                ctx.moveTo(10, 0);
-                ctx.lineTo(10, 8);
-
-                ctx.moveTo(10, 20);
-                ctx.lineTo(10, 12);
-
-                ctx.moveTo(0, 10);
-                ctx.lineTo(8, 10);
-
-                ctx.moveTo(20, 10);
-                ctx.lineTo(12, 10);
-
-                ctx.stroke();
-
-                // ctx.font = "10px Arial";
-                // ctx.fillText(CurrentUserUtils.email[0].toUpperCase(), 10, 10);
-            }
-        }
-    }
+    childViews = () => this.views;
 
     render() {
-        let [dx, dy] = [this.centeringShiftX, this.centeringShiftY];
-
+        const [dx, dy] = [this.centeringShiftX, this.centeringShiftY];
         const panx: number = -this.props.Document.GetNumber(KeyStore.PanX, 0);
         const pany: number = -this.props.Document.GetNumber(KeyStore.PanY, 0);
-        // const panx: number = this.props.Document.GetNumber(KeyStore.PanX, 0) + this.centeringShiftX;
-        // const pany: number = this.props.Document.GetNumber(KeyStore.PanY, 0) + this.centeringShiftY;
-        // console.log("center:", this.getLocalTransform().transformPoint(this.centeringShiftX, this.centeringShiftY));
+        const zoom: number = this.zoomScaling;// needs to be a variable outside of the <Measure> otherwise, reactions won't fire
+        const backgroundView = this.backgroundView; // needs to be a variable outside of the <Measure> otherwise, reactions won't fire
+        const overlayView = this.overlayView;// needs to be a variable outside of the <Measure> otherwise, reactions won't fire
 
         return (
-            <div className={`collectionfreeformview${this.isAnnotationOverlay ? "-overlay" : "-container"}`}
-                onPointerDown={this.onPointerDown}
-                onPointerMove={(e) => super.setCursorPosition(this.getTransform().transformPoint(e.clientX, e.clientY))}
-                onWheel={this.onPointerWheel}
-                onDrop={this.onDrop.bind(this)}
-                onDragOver={this.onDragOver}
-                onBlur={this.onBlur}
-                style={{ borderWidth: `${COLLECTION_BORDER_WIDTH}px` }}// , zIndex: !this.props.isTopMost ? -1 : undefined }}
-                tabIndex={0}
-                ref={this.createDropTarget}>
-                <div className="collectionfreeformview"
-                    style={{ transformOrigin: "left top", transform: `translate(${dx}px, ${dy}px) scale(${this.zoomScaling}, ${this.zoomScaling}) translate(${panx}px, ${pany}px)` }}
-                    ref={this._canvasRef}>
-                    {this.backgroundView}
-                    <InkingCanvas getScreenTransform={this.getTransform} Document={this.props.Document} />
-                    <PreviewCursor container={this} addLiveTextDocument={this.addLiveTextBox} getTransform={this.getTransform} />
-                    {this.views}
-                    <CollectionFreeFormLinksView {...this.props} />
-                    {super.getCursors().map(entry => {
-                        if (entry.Data.length > 0) {
-                            let id = entry.Data[0][0];
-                            let email = entry.Data[0][1];
-                            let point = entry.Data[1];
-                            this.drawCrosshairs("#" + v5(id, v5.URL).substring(0, 6).toUpperCase() + "22")
-                            return (
-                                <div
-                                    key={id}
-                                    style={{
-                                        position: "absolute",
-                                        transform: `translate(${point[0] - 10}px, ${point[1] - 10}px)`,
-                                        zIndex: 10000,
-                                        transformOrigin: 'center center',
-                                    }}
-                                >
-                                    <canvas
-                                        ref={(el) => { if (el) this.crosshairs = el }}
-                                        width={20}
-                                        height={20}
-                                        style={{
-                                            position: 'absolute',
-                                            width: "20px",
-                                            height: "20px",
-                                            opacity: 0.5,
-                                            borderRadius: "50%",
-                                            border: "2px solid black"
-                                        }}
-                                    />
-                                    <p
-                                        style={{
-                                            fontSize: 14,
-                                            color: "black",
-                                            // fontStyle: "italic",
-                                            marginLeft: -12,
-                                            marginTop: 4
-                                        }}
-                                    >{email[0].toUpperCase()}</p>
+            <Measure onResize={(r: any) => runInAction(() => { this._pwidth = r.entry.width; this._pheight = r.entry.height; })}>
+                {({ measureRef }) => (
+                    <div className={`collectionfreeformview-measure`} ref={measureRef}>
+                        <div className={`collectionfreeformview${this.isAnnotationOverlay ? "-overlay" : "-container"}`}
+                            onPointerDown={this.onPointerDown} onPointerMove={(e) => super.setCursorPosition(this.getTransform().transformPoint(e.clientX, e.clientY))}
+                            onDrop={this.onDrop.bind(this)} onDragOver={this.onDragOver} onWheel={this.onPointerWheel} ref={this.createDropTarget}>
+                            <MarqueeView container={this} activeDocuments={this.getActiveDocuments} selectDocuments={this.selectDocuments}
+                                addDocument={this.addDocument} removeDocument={this.props.removeDocument} addLiveTextDocument={this.addLiveTextBox}
+                                getContainerTransform={this.getContainerTransform} getTransform={this.getTransform}>
+                                <div className="collectionfreeformview" ref={this._canvasRef}
+                                    style={{ transform: `translate(${dx}px, ${dy}px) scale(${zoom}, ${zoom}) translate(${panx}px, ${pany}px)` }}>
+                                    {backgroundView}
+                                    <CollectionFreeFormLinksView {...this.props}>
+                                        <InkingCanvas getScreenTransform={this.getTransform} Document={this.props.Document} >
+                                            {this.childViews}
+                                        </InkingCanvas>
+                                    </CollectionFreeFormLinksView>
+                                    <CollectionFreeFormRemoteCursors {...this.props} />
                                 </div>
-                            );
-                        }
-                    })}
-                </div>
-                <MarqueeView container={this} activeDocuments={this.getActiveDocuments} selectDocuments={this.selectDocuments}
-                    addDocument={this.props.addDocument} removeDocument={this.props.removeDocument}
-                    getMarqueeTransform={this.getMarqueeTransform} getTransform={this.getTransform} />
-                {this.overlayView}
-
-            </div>
+                                {overlayView}
+                            </MarqueeView>
+                        </div>
+                    </div>)}
+            </Measure>
         );
     }
 }

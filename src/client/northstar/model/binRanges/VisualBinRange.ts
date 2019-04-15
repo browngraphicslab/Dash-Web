@@ -1,10 +1,6 @@
-import { BinLabel } from '../../model/idea/idea'
+import { BinLabel } from '../../model/idea/idea';
 
 export abstract class VisualBinRange {
-
-    constructor() {
-
-    }
 
     public abstract AddStep(value: number): number;
 

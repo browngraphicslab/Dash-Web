@@ -47,11 +47,11 @@ export class DocumentReference extends Field {
         return "";
     }
 
-    ToJson(): { type: Types, data: FieldId, _id: string } {
+    ToJson() {
         return {
             type: Types.DocumentReference,
             data: this.document.Id,
-            _id: this.Id
-        }
+            id: this.Id
+        };
     }
 }

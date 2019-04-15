@@ -1,49 +1,45 @@
-import * as express from 'express'
-const app = express()
-import * as webpack from 'webpack'
+import * as bodyParser from 'body-parser';
+import { exec } from 'child_process';
+import * as cookieParser from 'cookie-parser';
+import * as express from 'express';
+import * as session from 'express-session';
+import * as expressValidator from 'express-validator';
+import * as formidable from 'formidable';
+import * as fs from 'fs';
+import * as mobileDetect from 'mobile-detect';
+import { ObservableMap } from 'mobx';
+import * as passport from 'passport';
+import * as path from 'path';
+import * as request from 'request';
+import * as io from 'socket.io';
+import { Socket } from 'socket.io';
+import * as webpack from 'webpack';
 import * as wdm from 'webpack-dev-middleware';
 import * as whm from 'webpack-hot-middleware';
-import * as path from 'path'
-import * as formidable from 'formidable'
-import * as passport from 'passport';
-import { MessageStore, Transferable } from "./Message";
-import { Client } from './Client';
-import { Socket } from 'socket.io';
+import { Field, FieldId } from '../fields/Field';
 import { Utils } from '../Utils';
-import { ObservableMap } from 'mobx';
-import { FieldId, Field } from '../fields/Field';
+import { getForgot, getLogin, getLogout, getReset, getSignup, postForgot, postLogin, postReset, postSignup } from './authentication/controllers/user_controller';
+import { DashUserModel } from './authentication/models/user_model';
+import { Client } from './Client';
 import { Database } from './database';
-import * as io from 'socket.io'
-import { getLogin, postLogin, getSignup, postSignup, getLogout, postReset, getForgot, postForgot, getReset } from './authentication/controllers/user_controller';
+import { MessageStore, Transferable } from "./Message";
+import { RouteStore } from './RouteStore';
+const app = express();
 const config = require('../../webpack.config');
 const compiler = webpack(config);
 const port = 1050; // default port to listen
 const serverPort = 4321;
-import * as expressValidator from 'express-validator';
 import expressFlash = require('express-flash');
 import flash = require('connect-flash');
-import * as bodyParser from 'body-parser';
-import * as session from 'express-session';
-import * as cookieParser from 'cookie-parser';
-import * as mobileDetect from 'mobile-detect';
 import c = require("crypto");
 const MongoStore = require('connect-mongo')(session);
 const mongoose = require('mongoose');
-import { DashUserModel } from './authentication/models/user_model';
-import * as fs from 'fs';
-import * as request from 'request'
-import { RouteStore } from './RouteStore';
-import { exec } from 'child_process'
 
-const download = (url: string, dest: fs.PathLike) => {
-    request.get(url).pipe(fs.createWriteStream(dest));
-}
+const download = (url: string, dest: fs.PathLike) => request.get(url).pipe(fs.createWriteStream(dest));;
 
 const mongoUrl = 'mongodb://localhost:27017/Dash';
-mongoose.connect(mongoUrl)
-mongoose.connection.on('connected', function () {
-    console.log("connected");
-})
+mongoose.connect(mongoUrl);
+mongoose.connection.on('connected', () => console.log("connected"));
 
 // SESSION MANAGEMENT AND AUTHENTICATION MIDDLEWARE
 // ORDER OF IMPORTS MATTERS
@@ -54,9 +50,7 @@ app.use(session({
     resave: true,
     cookie: { maxAge: 7 * 24 * 60 * 60 * 1000 },
     saveUninitialized: true,
-    store: new MongoStore({
-        url: 'mongodb://localhost:27017/Dash'
-    })
+    store: new MongoStore({ url: 'mongodb://localhost:27017/Dash' })
 }));
 
 app.use(flash());
@@ -71,9 +65,7 @@ app.use((req, res, next) => {
     next();
 });
 
-app.get("/hello", (req, res) => {
-    res.send("<p>Hello</p>");
-})
+app.get("/hello", (req, res) => res.send("<p>Hello</p>"));
 
 enum Method {
     GET,
@@ -95,10 +87,12 @@ function addSecureRoute(method: Method,
     ...subscribers: string[]
 ) {
     let abstracted = (req: express.Request, res: express.Response) => {
-        const dashUser: DashUserModel = req.user;
-        if (!dashUser) return onRejection(res);
-        handler(dashUser, res, req);
-    }
+        if (req.user) {
+            handler(req.user, res, req);
+        } else {
+            onRejection(res);
+        }
+    };
     subscribers.forEach(route => {
         switch (method) {
             case Method.GET:
@@ -112,21 +106,17 @@ function addSecureRoute(method: Method,
 }
 
 // STATIC FILE SERVING
-
-let FieldStore: ObservableMap<FieldId, Field> = new ObservableMap();
-
 app.use(express.static(__dirname + RouteStore.public));
-app.use(RouteStore.images, express.static(__dirname + RouteStore.public))
+app.use(RouteStore.images, express.static(__dirname + RouteStore.public));
 
-app.get("/pull", (req, res) => {
+app.get("/pull", (req, res) =>
     exec('"C:\\Program Files\\Git\\git-bash.exe" -c "git pull"', (err, stdout, stderr) => {
         if (err) {
             res.send(err.message);
             return;
         }
         res.redirect("/");
-    })
-});
+    }));
 
 // GETTERS
 
@@ -143,11 +133,8 @@ addSecureRoute(
     Method.GET,
     (user, res, req) => {
         let detector = new mobileDetect(req.headers['user-agent'] || "");
-        if (detector.mobile() != null) {
-            res.sendFile(path.join(__dirname, '../../deploy/mobile/image.html'));
-        } else {
-            res.sendFile(path.join(__dirname, '../../deploy/index.html'));
-        }
+        let filename = detector.mobile() !== null ? 'mobile/image.html' : 'index.html';
+        res.sendFile(path.join(__dirname, '../../deploy/' + filename));
     },
     undefined,
     RouteStore.home,
@@ -163,12 +150,7 @@ addSecureRoute(
 
 addSecureRoute(
     Method.GET,
-    (user, res) => {
-        res.send(JSON.stringify({
-            id: user.id,
-            email: user.email
-        }));
-    },
+    (user, res) => res.send(JSON.stringify({ id: user.id, email: user.email })),
     undefined,
     RouteStore.getCurrUser
 );
@@ -178,17 +160,16 @@ addSecureRoute(
 addSecureRoute(
     Method.POST,
     (user, res, req) => {
-        let form = new formidable.IncomingForm()
-        form.uploadDir = __dirname + "/public/files/"
-        form.keepExtensions = true
+        let form = new formidable.IncomingForm();
+        form.uploadDir = __dirname + "/public/files/";
+        form.keepExtensions = true;
         // let path = req.body.path;
-        console.log("upload")
+        console.log("upload");
         form.parse(req, (err, fields, files) => {
-            console.log("parsing")
-            let names: any[] = [];
+            console.log("parsing");
+            let names: string[] = [];
             for (const name in files) {
-                let file = files[name];
-                names.push(`/files/` + path.basename(file.path));
+                names.push(`/files/` + path.basename(files[name].path));
             }
             res.send(names);
         });
@@ -211,89 +192,74 @@ app.post(RouteStore.login, postLogin);
 app.get(RouteStore.logout, getLogout);
 
 // FORGOT PASSWORD EMAIL HANDLING
-app.get(RouteStore.forgot, getForgot)
-app.post(RouteStore.forgot, postForgot)
+app.get(RouteStore.forgot, getForgot);
+app.post(RouteStore.forgot, postForgot);
 
 // RESET PASSWORD EMAIL HANDLING
 app.get(RouteStore.reset, getReset);
 app.post(RouteStore.reset, postReset);
 
-app.use(RouteStore.corsProxy, (req, res) => {
-    req.pipe(request(req.url.substring(1))).pipe(res);
-});
+app.use(RouteStore.corsProxy, (req, res) =>
+    req.pipe(request(req.url.substring(1))).pipe(res));
 
-app.get(RouteStore.delete, (req, res) => {
-    deleteFields().then(() => res.redirect(RouteStore.home));
-});
+app.get(RouteStore.delete, (req, res) =>
+    deleteFields().then(() => res.redirect(RouteStore.home)));
 
-app.get(RouteStore.deleteAll, (req, res) => {
-    deleteAll().then(() => res.redirect(RouteStore.home));
-});
+app.get(RouteStore.deleteAll, (req, res) =>
+    deleteAll().then(() => res.redirect(RouteStore.home)));
 
-app.use(wdm(compiler, {
-    publicPath: config.output.publicPath
-}))
+app.use(wdm(compiler, { publicPath: config.output.publicPath }));
 
-app.use(whm(compiler))
+app.use(whm(compiler));
 
 // start the Express server
-app.listen(port, () => {
-    console.log(`server started at http://localhost:${port}`);
-})
+app.listen(port, () =>
+    console.log(`server started at http://localhost:${port}`));
 
 const server = io();
 interface Map {
     [key: string]: Client;
 }
-let clients: Map = {}
+let clients: Map = {};
 
 server.on("connection", function (socket: Socket) {
-    console.log("a user has connected")
+    console.log("a user has connected");
 
-    Utils.Emit(socket, MessageStore.Foo, "handshooken")
+    Utils.Emit(socket, MessageStore.Foo, "handshooken");
 
-    Utils.AddServerHandler(socket, MessageStore.Bar, barReceived)
-    Utils.AddServerHandler(socket, MessageStore.SetField, (args) => setField(socket, args))
-    Utils.AddServerHandlerCallback(socket, MessageStore.GetField, getField)
-    Utils.AddServerHandlerCallback(socket, MessageStore.GetFields, getFields)
-    Utils.AddServerHandler(socket, MessageStore.DeleteAll, deleteFields)
-})
+    Utils.AddServerHandler(socket, MessageStore.Bar, barReceived);
+    Utils.AddServerHandler(socket, MessageStore.SetField, (args) => setField(socket, args));
+    Utils.AddServerHandlerCallback(socket, MessageStore.GetField, getField);
+    Utils.AddServerHandlerCallback(socket, MessageStore.GetFields, getFields);
+    Utils.AddServerHandler(socket, MessageStore.DeleteAll, deleteFields);
+});
 
 function deleteFields() {
     return Database.Instance.deleteAll();
 }
 
-function deleteAll() {
-    return Database.Instance.deleteAll().then(() => {
-        return Database.Instance.deleteAll('sessions')
-    }).then(() => {
-        return Database.Instance.deleteAll('users')
-    });
+async function deleteAll() {
+    await Database.Instance.deleteAll();
+    await Database.Instance.deleteAll('sessions');
+    await Database.Instance.deleteAll('users');
 }
 
 function barReceived(guid: String) {
     clients[guid.toString()] = new Client(guid.toString());
 }
 
-function getField([id, callback]: [string, (result: any) => void]) {
-    Database.Instance.getDocument(id, (result: any) => {
-        if (result) {
-            callback(result)
-        }
-        else {
-            callback(undefined)
-        }
-    })
+function getField([id, callback]: [string, (result?: Transferable) => void]) {
+    Database.Instance.getDocument(id, (result?: Transferable) =>
+        callback(result ? result : undefined));
 }
 
-function getFields([ids, callback]: [string[], (result: any) => void]) {
+function getFields([ids, callback]: [string[], (result: Transferable[]) => void]) {
     Database.Instance.getDocuments(ids, callback);
 }
 
 function setField(socket: Socket, newValue: Transferable) {
-    Database.Instance.update(newValue._id, newValue, () => {
-        socket.broadcast.emit(MessageStore.SetField.Message, newValue);
-    })
+    Database.Instance.update(newValue.id, newValue, () =>
+        socket.broadcast.emit(MessageStore.SetField.Message, newValue));
 }
 
 server.listen(serverPort);

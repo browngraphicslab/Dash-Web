@@ -1,7 +1,12 @@
 .collectionfreeformlinksview-svgCanvas{
     transform: translate(-10000px,-10000px);
     position: absolute;
+    top: 0;
+    left: 0;
     width: 20000px; 
     height: 20000px;
+    pointer-events: none;
+  }
+  .collectionfreeformlinksview-container {
     pointer-events: none;
   }

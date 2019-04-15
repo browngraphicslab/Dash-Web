@@ -1,23 +1,25 @@
 
+import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import 'react-image-lightbox/style.css'; // This only needs to be imported once in your app
 import { Document } from '../../../fields/Document';
-import { FieldWaiting, Field } from '../../../fields/Field';
+import { Field, FieldWaiting } from '../../../fields/Field';
+import { Key } from '../../../fields/Key';
 import { KeyStore } from '../../../fields/KeyStore';
+import { CompileScript, ToField } from "../../util/Scripting";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./KeyValueBox.scss";
 import { KeyValuePair } from "./KeyValuePair";
-import React = require("react")
-import { CompileScript, ToField } from "../../util/Scripting";
-import { Key } from '../../../fields/Key';
-import { observable, action } from "mobx";
+import React = require("react");
 
 @observer
 export class KeyValueBox extends React.Component<FieldViewProps> {
+    private _mainCont = React.createRef<HTMLDivElement>();
 
-    public static LayoutString(fieldStr: string = "DataKey") { return FieldView.LayoutString(KeyValueBox, fieldStr) }
+    public static LayoutString(fieldStr: string = "DataKey") { return FieldView.LayoutString(KeyValueBox, fieldStr); }
     @observable private _keyInput: string = "";
     @observable private _valueInput: string = "";
+    @computed get splitPercentage() { return this.props.Document.GetNumber(KeyStore.SchemaSplitPercentage, 50); }
 
 
     constructor(props: FieldViewProps) {
@@ -32,19 +34,21 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
 
     @action
     onEnterKey = (e: React.KeyboardEvent): void => {
-        if (e.key == 'Enter') {
+        if (e.key === 'Enter') {
             if (this._keyInput && this._valueInput) {
-                let doc = this.props.doc.GetT(KeyStore.Data, Document);
-                if (!doc || doc == FieldWaiting) {
-                    return
+                let doc = this.props.Document.GetT(KeyStore.Data, Document);
+                if (!doc || doc === FieldWaiting) {
+                    return;
                 }
                 let realDoc = doc;
 
-                let script = CompileScript(this._valueInput, undefined, true);
+                let script = CompileScript(this._valueInput, { addReturn: true });
                 if (!script.compiled) {
                     return;
                 }
-                let field = script();
+                let res = script.run();
+                if (!res.success) return;
+                const field = res.result;
                 if (field instanceof Field) {
                     realDoc.Set(new Key(this._keyInput), field);
                 } else {
@@ -53,8 +57,8 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
                         realDoc.Set(new Key(this._keyInput), dataField);
                     }
                 }
-                this._keyInput = ""
-                this._valueInput = ""
+                this._keyInput = "";
+                this._valueInput = "";
             }
         }
     }
@@ -69,9 +73,9 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
     }
 
     createTable = () => {
-        let doc = this.props.doc.GetT(KeyStore.Data, Document);
-        if (!doc || doc == FieldWaiting) {
-            return <tr><td>Loading...</td></tr>
+        let doc = this.props.Document.GetT(KeyStore.Data, Document);
+        if (!doc || doc === FieldWaiting) {
+            return <tr><td>Loading...</td></tr>;
         }
         let realDoc = doc;
 
@@ -82,13 +86,13 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
                 if (!(key in ids)) {
                     ids[key] = key;
                 }
-            })
+            });
         }
 
         let rows: JSX.Element[] = [];
         let i = 0;
         for (let key in ids) {
-            rows.push(<KeyValuePair doc={realDoc} rowStyle={"keyValueBox-" + (i++ % 2 ? "oddRow" : "evenRow")} fieldId={key} key={key} />)
+            rows.push(<KeyValuePair doc={realDoc} keyWidth={100 - this.splitPercentage} rowStyle={"keyValueBox-" + (i++ % 2 ? "oddRow" : "evenRow")} fieldId={key} key={key} />);
         }
         return rows;
     }
@@ -103,27 +107,53 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
         this._valueInput = e.currentTarget.value;
     }
 
-    newKeyValue = () => {
-        return (
-            <tr>
-                <td><input type="text" value={this._keyInput} placeholder="Key" onChange={this.keyChanged} /></td>
-                <td><input type="text" value={this._valueInput} placeholder="Value" onChange={this.valueChanged} onKeyPress={this.onEnterKey} /></td>
+    newKeyValue = () =>
+        (
+            <tr className="keyValueBox-valueRow">
+                <td className="keyValueBox-td-key" style={{ width: `${100 - this.splitPercentage}%` }}>
+                    <input style={{ width: "100%" }} type="text" value={this._keyInput} placeholder="Key" onChange={this.keyChanged} />
+                </td>
+                <td className="keyValueBox-td-value" style={{ width: `${this.splitPercentage}%` }}>
+                    <input style={{ width: "100%" }} type="text" value={this._valueInput} placeholder="Value" onChange={this.valueChanged} onKeyPress={this.onEnterKey} />
+                </td>
             </tr>
         )
+
+    @action
+    onDividerMove = (e: PointerEvent): void => {
+        let nativeWidth = this._mainCont.current!.getBoundingClientRect();
+        this.props.Document.SetNumber(KeyStore.SchemaSplitPercentage, Math.max(0, 100 - Math.round((e.clientX - nativeWidth.left) / nativeWidth.width * 100)));
+    }
+    @action
+    onDividerUp = (e: PointerEvent): void => {
+        document.removeEventListener("pointermove", this.onDividerMove);
+        document.removeEventListener('pointerup', this.onDividerUp);
+    }
+    onDividerDown = (e: React.PointerEvent) => {
+        e.stopPropagation();
+        e.preventDefault();
+        document.addEventListener("pointermove", this.onDividerMove);
+        document.addEventListener('pointerup', this.onDividerUp);
     }
 
     render() {
-        return (<div className="keyValueBox-cont" onWheel={this.onPointerWheel}>
+        let dividerDragger = this.splitPercentage === 0 ? (null) :
+            <div className="keyValueBox-dividerDragger" style={{ transform: `translate(calc(${100 - this.splitPercentage}% - 5px), 0px)` }}>
+                <div className="keyValueBox-dividerDraggerThumb" onPointerDown={this.onDividerDown} />
+            </div>;
+
+        return (<div className="keyValueBox-cont" onWheel={this.onPointerWheel} ref={this._mainCont}>
             <table className="keyValueBox-table">
-                <tbody>
+                <tbody className="keyValueBox-tbody">
                     <tr className="keyValueBox-header">
-                        <th>Key</th>
-                        <th>Fields</th>
+                        <th className="keyValueBox-key" style={{ width: `${100 - this.splitPercentage}%` }}>Key</th>
+                        <th className="keyValueBox-fields" style={{ width: `${this.splitPercentage}%` }}>Fields</th>
                     </tr>
                     {this.createTable()}
                     {this.newKeyValue()}
                 </tbody>
             </table>
-        </div>)
+            {dividerDragger}
+        </div>);
     }
 }

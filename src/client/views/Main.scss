@@ -1,12 +1,15 @@
-@import "global_variables";
+@import "globalCssVariables";
 @import "nodeModuleOverrides";
 html,
 body {
     width: 100%;
     height: 100%;
-    overflow: hidden;
+    overflow: auto;
     font-family: $sans-serif;
     margin: 0;
+    position:absolute;
+    top: 0;
+    left:0;
 }
 
 #dash-title {
@@ -154,15 +157,23 @@ button:hover {
         cursor: pointer;
     }
 }
+#root {
+    overflow: visible;
+}
 #main-div {
     width:100%;
     height:100%;
     position:absolute;
+    top: 0;
+    left:0;
+    overflow: scroll;
 }
 #mainContent-div {
     width:100%;
     height:100%;
     position:absolute;
+    top: 0;
+    left:0;
 }
 #add-options-content {
     display: table;

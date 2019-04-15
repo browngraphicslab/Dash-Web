@@ -21,7 +21,7 @@ export class TupleField<T, U> extends BasicField<[T, U]> {
                 UndoManager.AddEvent({
                     undo: () => this.Data[change.index] = change.oldValue,
                     redo: () => this.Data[change.index] = change.newValue
-                })
+                });
                 Server.UpdateField(this);
             } else {
                 throw new Error("Why are you messing with the length of a tuple, huh?");
@@ -31,7 +31,7 @@ export class TupleField<T, U> extends BasicField<[T, U]> {
 
     protected setData(value: [T, U]) {
         if (this.observeDisposer) {
-            this.observeDisposer()
+            this.observeDisposer();
         }
         this.data = observable(value) as (T | U)[] as [T, U];
         this.observeTuple();
@@ -49,11 +49,11 @@ export class TupleField<T, U> extends BasicField<[T, U]> {
         return new TupleField<T, U>(this.Data);
     }
 
-    ToJson(): { type: Types, data: [T, U], _id: string } {
+    ToJson() {
         return {
             type: Types.Tuple,
             data: this.Data,
-            _id: this.Id
-        }
+            id: this.Id
+        };
     }
 }

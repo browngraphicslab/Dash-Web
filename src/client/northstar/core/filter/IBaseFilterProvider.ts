@@ -1,4 +1,4 @@
-import { FilterModel } from '../filter/FilterModel'
+import { FilterModel } from '../filter/FilterModel';
 
 export interface IBaseFilterProvider {
     FilterModels: Array<FilterModel>;

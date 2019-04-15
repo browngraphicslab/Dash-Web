@@ -1,4 +1,4 @@
-import { BasicField } from "./BasicField"
+import { BasicField } from "./BasicField";
 import { Types } from "../server/Message";
 import { FieldId } from "./Field";
 
@@ -8,18 +8,18 @@ export class NumberField extends BasicField<number> {
     }
 
     ToScriptString(): string {
-        return "new NumberField(this.Data)";
+        return `new NumberField(${this.Data})`;
     }
 
     Copy() {
         return new NumberField(this.Data);
     }
 
-    ToJson(): { _id: string, type: Types, data: number } {
+    ToJson() {
         return {
-            _id: this.Id,
+            id: this.Id,
             type: Types.Number,
             data: this.Data
-        }
+        };
     }
 }

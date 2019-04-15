@@ -1,5 +1,5 @@
-import { AlphabeticBinRange, BinLabel } from '../../model/idea/idea'
-import { VisualBinRange } from './VisualBinRange'
+import { AlphabeticBinRange, BinLabel } from '../../model/idea/idea';
+import { VisualBinRange } from './VisualBinRange';
 
 export class AlphabeticVisualBinRange extends VisualBinRange {
     public DataBinRange: AlphabeticBinRange;

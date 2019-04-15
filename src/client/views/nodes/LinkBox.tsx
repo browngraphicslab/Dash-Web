@@ -1,24 +1,16 @@
-import { observable, computed, action } from "mobx";
-import React = require("react");
-import { SelectionManager } from "../../util/SelectionManager";
-import { observer } from "mobx-react";
-import './LinkBox.scss'
-import { KeyStore } from '../../../fields/KeyStore'
-import { props } from "bluebird";
-import { DocumentView } from "./DocumentView";
-import { Document } from "../../../fields/Document";
-import { ListField } from "../../../fields/ListField";
-import { DocumentManager } from "../../util/DocumentManager";
-import { LinkEditor } from "./LinkEditor";
-import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { library } from '@fortawesome/fontawesome-svg-core';
+import { faEdit, faEye, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEye } from '@fortawesome/free-solid-svg-icons';
-import { faEdit } from '@fortawesome/free-solid-svg-icons';
-import { faTimes } from '@fortawesome/free-solid-svg-icons';
-import { undoBatch } from "../../util/UndoManager";
-import { FieldWaiting } from "../../../fields/Field";
+import { observer } from "mobx-react";
+import { Document } from "../../../fields/Document";
+import { KeyStore } from '../../../fields/KeyStore';
+import { ListField } from "../../../fields/ListField";
 import { NumberField } from "../../../fields/NumberField";
+import { DocumentManager } from "../../util/DocumentManager";
+import { undoBatch } from "../../util/UndoManager";
+import { CollectionDockingView } from "../collections/CollectionDockingView";
+import './LinkBox.scss';
+import React = require("react");
 
 
 library.add(faEye);
@@ -30,7 +22,7 @@ interface Props {
     linkName: String;
     pairedDoc: Document;
     type: String;
-    showEditor: () => void
+    showEditor: () => void;
 }
 
 @observer
@@ -49,15 +41,16 @@ export class LinkBox extends React.Component<Props> {
                 } else if (contextDoc instanceof Document) {
                     this.props.pairedDoc.GetTAsync(KeyStore.Page, NumberField).then((pfield: any) => {
                         contextDoc.GetTAsync(KeyStore.CurPage, NumberField).then((cfield: any) => {
-                            if (pfield != cfield)
+                            if (pfield !== cfield) {
                                 contextDoc.SetNumber(KeyStore.CurPage, pfield.Data);
+                            }
                             let contextView = DocumentManager.Instance.getDocumentView(contextDoc);
                             if (contextView) {
                                 contextView.props.focus(contextDoc);
                             } else {
                                 CollectionDockingView.Instance.AddRightSplit(contextDoc);
                             }
-                        })
+                        });
                     });
                 }
             });
@@ -80,7 +73,7 @@ export class LinkBox extends React.Component<Props> {
                     if (field) {
                         field.Data.splice(field.Data.indexOf(this.props.linkDoc));
                     }
-                })
+                });
             }
         });
         this.props.linkDoc.GetTAsync(KeyStore.LinkedToDocs, Document, field => {
@@ -89,7 +82,7 @@ export class LinkBox extends React.Component<Props> {
                     if (field) {
                         field.Data.splice(field.Data.indexOf(this.props.linkDoc));
                     }
-                })
+                });
             }
         });
     }
@@ -117,6 +110,6 @@ export class LinkBox extends React.Component<Props> {
                         <FontAwesomeIcon className="fa-icon-delete" icon="times" size="sm" /></div>
                 </div>
             </div>
-        )
+        );
     }
 }
