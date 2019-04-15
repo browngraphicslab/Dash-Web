@@ -8,7 +8,7 @@ import { Document } from "../../../fields/Document";
 import { KeyStore } from "../../../fields/KeyStore";
 import Measure from "react-measure";
 import { FieldId, Opt, Field, FieldWaiting } from "../../../fields/Field";
-import { Utils, returnTrue, emptyFunction, emptyDocFunction } from "../../../Utils";
+import { Utils, returnTrue, emptyFunction, emptyDocFunction, returnOne } from "../../../Utils";
 import { Server } from "../../Server";
 import { undoBatch } from "../../util/UndoManager";
 import { DocumentView } from "../nodes/DocumentView";
@@ -343,7 +343,6 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
                 <DocumentView key={this._document.Id} Document={this._document}
                     addDocument={undefined}
                     removeDocument={undefined}
-                    opacity={1}
                     ContentScaling={this._contentScaling}
                     PanelWidth={this._nativeWidth}
                     PanelHeight={this._nativeHeight}

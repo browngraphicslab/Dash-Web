@@ -1,4 +1,4 @@
-import { computed } from "mobx";
+import { computed, trace } from "mobx";
 import { observer } from "mobx-react";
 import { KeyStore } from "../../../fields/KeyStore";
 import { NumberField } from "../../../fields/NumberField";
@@ -6,13 +6,17 @@ import { Transform } from "../../util/Transform";
 import { DocumentView, DocumentViewProps } from "./DocumentView";
 import "./DocumentView.scss";
 import React = require("react");
+import { OmitKeys } from "../../../Utils";
 
+export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
+    zoomFade: number;
+}
 
 @observer
-export class CollectionFreeFormDocumentView extends React.Component<DocumentViewProps> {
+export class CollectionFreeFormDocumentView extends React.Component<CollectionFreeFormDocumentViewProps> {
     private _mainCont = React.createRef<HTMLDivElement>();
 
-    constructor(props: DocumentViewProps) {
+    constructor(props: CollectionFreeFormDocumentViewProps) {
         super(props);
     }
 
@@ -55,12 +59,16 @@ export class CollectionFreeFormDocumentView extends React.Component<DocumentView
 
     @computed
     get docView() {
-        return <DocumentView {...this.props}
+        return <DocumentView {...this.docViewProps}
             ContentScaling={this.contentScaling}
             ScreenToLocalTransform={this.getTransform}
             PanelWidth={this.panelWidth}
             PanelHeight={this.panelHeight}
         />;
+    }
+    @computed
+    get docViewProps(): DocumentViewProps {
+        return (OmitKeys(this.props, ['zoomFade']));
     }
     panelWidth = () => this.props.Document.GetBoolean(KeyStore.Minimized, false) ? 10 : this.props.PanelWidth();
     panelHeight = () => this.props.Document.GetBoolean(KeyStore.Minimized, false) ? 10 : this.props.PanelHeight();
@@ -68,7 +76,7 @@ export class CollectionFreeFormDocumentView extends React.Component<DocumentView
     render() {
         return (
             <div className="collectionFreeFormDocumentView-container" ref={this._mainCont} style={{
-                opacity: this.props.opacity,
+                opacity: this.props.zoomFade,
                 transformOrigin: "left top",
                 transform: this.transform,
                 pointerEvents: "all",

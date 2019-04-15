@@ -5,7 +5,7 @@ import { Document } from "../../../../fields/Document";
 import { FieldWaiting } from "../../../../fields/Field";
 import { KeyStore } from "../../../../fields/KeyStore";
 import { TextField } from "../../../../fields/TextField";
-import { emptyFunction, returnFalse } from "../../../../Utils";
+import { emptyFunction, returnFalse, returnOne } from "../../../../Utils";
 import { DocumentManager } from "../../../util/DocumentManager";
 import { DragManager } from "../../../util/DragManager";
 import { SelectionManager } from "../../../util/SelectionManager";
@@ -14,7 +14,7 @@ import { undoBatch } from "../../../util/UndoManager";
 import { COLLECTION_BORDER_WIDTH } from "../../../views/globalCssVariables.scss";
 import { InkingCanvas } from "../../InkingCanvas";
 import { Main } from "../../Main";
-import { CollectionFreeFormDocumentView } from "../../nodes/CollectionFreeFormDocumentView";
+import { CollectionFreeFormDocumentView, CollectionFreeFormDocumentViewProps } from "../../nodes/CollectionFreeFormDocumentView";
 import { DocumentContentsView } from "../../nodes/DocumentContentsView";
 import { DocumentViewProps } from "../../nodes/DocumentView";
 import { CollectionSubView, SubCollectionViewProps } from "../CollectionSubView";
@@ -200,7 +200,6 @@ export class CollectionFreeFormView extends CollectionSubView {
             this.props.Document.SetNumber(KeyStore.Scale, localTransform.Scale);
             this.SetPan(-localTransform.TranslateX / localTransform.Scale, -localTransform.TranslateY / localTransform.Scale);
             e.stopPropagation();
-            e.preventDefault();
         }
     }
 
@@ -261,10 +260,9 @@ export class CollectionFreeFormView extends CollectionSubView {
         this.props.focus(this.props.Document);
     }
 
-    getDocumentViewProps(document: Document, opacity: number): DocumentViewProps {
+    getDocumentViewProps(document: Document): DocumentViewProps {
         return {
             Document: document,
-            opacity: opacity,
             addDocument: this.props.addDocument,
             removeDocument: this.props.removeDocument,
             moveDocument: this.props.moveDocument,
@@ -288,9 +286,10 @@ export class CollectionFreeFormView extends CollectionSubView {
             var page = doc.GetNumber(KeyStore.Page, -1);
             var zoom = doc.GetNumber(KeyStore.Zoom, 1);
             var dv = DocumentManager.Instance.getDocumentView(doc);
-            let opacity = this.isAnnotationOverlay && (!dv || !SelectionManager.IsSelected(dv)) ? 1 - Math.abs(zoom - this.scale) : 1;
-            if ((page === curPage || page === -1)) {
-                prev.push(<CollectionFreeFormDocumentView key={doc.Id} {...this.getDocumentViewProps(doc, opacity)} />);
+            let zoomFade = !this.isAnnotationOverlay || (dv && SelectionManager.IsSelected(dv)) ? 1 :
+                Math.max(0, 2 - (zoom < this.scale ? this.scale / zoom : zoom / this.scale));
+            if (page === curPage || page === -1) {
+                prev.push(<CollectionFreeFormDocumentView key={doc.Id} {...this.getDocumentViewProps(doc)} zoomFade={zoomFade} />);
             }
             return prev;
         }, [] as JSX.Element[]);
@@ -305,13 +304,13 @@ export class CollectionFreeFormView extends CollectionSubView {
     @computed
     get backgroundView() {
         return !this.backgroundLayout ? (null) :
-            (<DocumentContentsView {...this.getDocumentViewProps(this.props.Document, 1)}
+            (<DocumentContentsView {...this.getDocumentViewProps(this.props.Document)}
                 layoutKey={KeyStore.BackgroundLayout} isTopMost={this.props.isTopMost} isSelected={returnFalse} select={emptyFunction} />);
     }
     @computed
     get overlayView() {
         return !this.overlayLayout ? (null) :
-            (<DocumentContentsView {...this.getDocumentViewProps(this.props.Document, 1)}
+            (<DocumentContentsView {...this.getDocumentViewProps(this.props.Document)}
                 layoutKey={KeyStore.OverlayLayout} isTopMost={this.props.isTopMost} isSelected={returnFalse} select={emptyFunction} />);
     }
 

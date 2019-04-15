@@ -1,4 +1,4 @@
-import { action, IReactionDisposer, reaction } from "mobx";
+import { action, IReactionDisposer, reaction, trace, computed } from "mobx";
 import { baseKeymap } from "prosemirror-commands";
 import { history, redo, undo } from "prosemirror-history";
 import { keymap } from "prosemirror-keymap";
@@ -17,6 +17,7 @@ import React = require("react");
 import { TextField } from "../../../fields/TextField";
 import { KeyStore } from "../../../fields/KeyStore";
 import { MainOverlayTextBox } from "../MainOverlayTextBox";
+import { observer } from "mobx-react";
 const { buildMenuItems } = require("prosemirror-example-setup");
 const { menuBar } = require("prosemirror-menu");
 
@@ -41,6 +42,7 @@ export interface FormattedTextBoxOverlay {
     isOverlay?: boolean;
 }
 
+@observer
 export class FormattedTextBox extends React.Component<(FieldViewProps & FormattedTextBoxOverlay)> {
     public static LayoutString(fieldStr: string = "DataKey") {
         return FieldView.LayoutString(FormattedTextBox, fieldStr);

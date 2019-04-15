@@ -17,7 +17,7 @@ import { CurrentUserUtils } from '../../server/authentication/models/current_use
 import { MessageStore } from '../../server/Message';
 import { RouteStore } from '../../server/RouteStore';
 import { ServerUtils } from '../../server/ServerUtil';
-import { emptyDocFunction, emptyFunction, returnTrue, Utils } from '../../Utils';
+import { emptyDocFunction, emptyFunction, returnTrue, Utils, returnOne } from '../../Utils';
 import { Documents } from '../documents/Documents';
 import { ColumnAttributeModel } from '../northstar/core/attribute/AttributeModel';
 import { AttributeTransformationModel } from '../northstar/core/attribute/AttributeTransformationModel';
@@ -178,7 +178,6 @@ export class Main extends React.Component {
                         <DocumentView Document={mainCont}
                             addDocument={undefined}
                             removeDocument={undefined}
-                            opacity={1}
                             ScreenToLocalTransform={Transform.Identity}
                             ContentScaling={noScaling}
                             PanelWidth={pwidthFunc}

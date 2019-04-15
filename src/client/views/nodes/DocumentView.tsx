@@ -28,7 +28,6 @@ import React = require("react");
 export interface DocumentViewProps {
     ContainingCollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
     Document: Document;
-    opacity: number;
     addDocument?: (doc: Document, allowDuplicates?: boolean) => boolean;
     removeDocument?: (doc: Document) => boolean;
     moveDocument?: (doc: Document, targetCollection: Document, addDocument: (document: Document) => boolean) => boolean;

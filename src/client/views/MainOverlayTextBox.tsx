@@ -56,7 +56,8 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
     @action
     textScroll = (e: React.UIEvent) => {
         if (this._textProxyDiv.current && this._textTargetDiv) {
-            this._textTargetDiv.scrollTop = this.TextScroll = this._textProxyDiv.current.children[0].scrollTop;
+            this.TextScroll = (e as any)._targetInst.stateNode.scrollTop;//  this._textProxyDiv.current.children[0].scrollTop;
+            this._textTargetDiv.scrollTop = this.TextScroll;
         }
     }
 
