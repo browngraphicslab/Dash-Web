@@ -198,7 +198,7 @@ export class Main extends React.Component {
     @computed
     get nodesMenu() {
         let imgurl = "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg";
-        let pdfurl = "http://www.adobe.com/support/products/enterprise/knowledgecenter/media/c4611_sample_explain.pdf";
+        let pdfurl = "http://www.adobe.com/support/products/enterprise/knowledgecenter/media/c27211_sample_explain.pdf";
         let weburl = "https://cs.brown.edu/courses/cs166/";
         let audiourl = "http://techslides.com/demos/samples/sample.mp3";
         let videourl = "http://techslides.com/demos/sample-videos/small.mp4";
@@ -269,7 +269,7 @@ export class Main extends React.Component {
         let areWorkspacesShown = () => this._workspacesShown;
         let toggleWorkspaces = () => runInAction(() => this._workspacesShown = !this._workspacesShown);
         let workspaces = CurrentUserUtils.UserDocument.GetT<ListField<Document>>(KeyStore.Workspaces, ListField);
-        return (!workspaces || workspaces === FieldWaiting || this.mainContainer == FieldWaiting) ? (null) :
+        return (!workspaces || workspaces === FieldWaiting || this.mainContainer === FieldWaiting) ? (null) :
             <WorkspacesMenu active={this.mainContainer} open={this.openWorkspace}
                 new={this.createNewWorkspace} allWorkspaces={workspaces.Data}
                 isShown={areWorkspacesShown} toggle={toggleWorkspaces} />;
