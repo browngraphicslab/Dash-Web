@@ -34,6 +34,9 @@ export class TooltipTextMenu {
     private fontSizeToNum: Map<MarkType, number>;
     private fontStylesToName: Map<MarkType, string>;
     private fontSizeIndicator: HTMLSpanElement = document.createElement("span");
+    //dropdown doms
+    private fontSizeDom: Node;
+    private fontStyleDom: Node;
 
     constructor(view: EditorView, editorProps: FieldViewProps) {
         this.view = view;
@@ -76,7 +79,7 @@ export class TooltipTextMenu {
         this.fontStylesToName.set(schema.marks.timesNewRoman, "Times New Roman");
         this.fontStylesToName.set(schema.marks.arial, "Arial");
         this.fontStylesToName.set(schema.marks.georgia, "Georgia");
-        this.fontStylesToName.set(schema.marks.comicSans, "Comic Sans");
+        this.fontStylesToName.set(schema.marks.comicSans, "Comic Sans MS");
         this.fontStylesToName.set(schema.marks.tahoma, "Tahoma");
         this.fontStylesToName.set(schema.marks.impact, "Impact");
         this.fontStylesToName.set(schema.marks.crimson, "Crimson Text");
@@ -93,23 +96,15 @@ export class TooltipTextMenu {
         this.fontSizeToNum.set(schema.marks.p72, 72);
         this.fontSizes = Array.from(this.fontSizeToNum.keys());
 
-        this.addFontDropdowns();
+        //this.addFontDropdowns();
 
         this.update(view, undefined);
     }
 
-    //adds font size and font style dropdowns
-    addFontDropdowns() {
+    //label of dropdown will change to given label
+    updateFontSizeDropdown(label: string) {
         //filtering function - might be unecessary
         let cut = (arr: MenuItem[]) => arr.filter(x => x);
-        //font STYLES
-        let fontBtns: MenuItem[] = [];
-        this.fontStylesToName.forEach((name, mark) => {
-            fontBtns.push(this.dropdownBtn(name, "font-family: " + name + ", sans-serif; width: 120px;", mark, this.view, this.changeToMarkInGroup, this.fontStyles));
-        });
-
-        //font size indicator
-        this.fontSizeIndicator = this.icon("12", "font-size-indicator");
 
         //font SIZES
         let fontSizeBtns: MenuItem[] = [];
@@ -117,14 +112,32 @@ export class TooltipTextMenu {
             fontSizeBtns.push(this.dropdownBtn(String(number), "width: 50px;", mark, this.view, this.changeToMarkInGroup, this.fontSizes));
         });
 
-        //dropdown to hold font btns
-        let dd_fontStyle = new Dropdown(cut(fontBtns), { label: "Font Style", css: "color:white;" }) as MenuItem;
-        let dd_fontSize = new Dropdown(cut(fontSizeBtns), { label: "Font Size", css: "color:white; margin-left: -6px;" }) as MenuItem;
-        this.tooltip.appendChild(dd_fontStyle.render(this.view).dom);
-        this.tooltip.appendChild(this.fontSizeIndicator);
-        this.tooltip.appendChild(dd_fontSize.render(this.view).dom);
-        dd_fontStyle.render(this.view).dom.nodeValue = "TEST";
-        console.log(dd_fontStyle.render(this.view).dom.nodeValue);
+        if (this.fontSizeDom) { this.tooltip.removeChild(this.fontSizeDom); }
+        this.fontSizeDom = (new Dropdown(cut(fontSizeBtns), {
+            label: label,
+            css: "color:white; min-width: 60px; padding-left: 5px; margin-right: 0;"
+        }) as MenuItem).render(this.view).dom;
+        this.tooltip.appendChild(this.fontSizeDom);
+    }
+
+    //label of dropdown will change to given label
+    updateFontStyleDropdown(label: string) {
+        //filtering function - might be unecessary
+        let cut = (arr: MenuItem[]) => arr.filter(x => x);
+
+        //font STYLES
+        let fontBtns: MenuItem[] = [];
+        this.fontStylesToName.forEach((name, mark) => {
+            fontBtns.push(this.dropdownBtn(name, "font-family: " + name + ", sans-serif; width: 125px;", mark, this.view, this.changeToMarkInGroup, this.fontStyles));
+        });
+
+        if (this.fontStyleDom) { this.tooltip.removeChild(this.fontStyleDom); }
+        this.fontStyleDom = (new Dropdown(cut(fontBtns), {
+            label: label,
+            css: "color:white; width: 125px; margin-left: -3px; padding-left: 2px;"
+        }) as MenuItem).render(this.view).dom;
+
+        this.tooltip.appendChild(this.fontStyleDom);
     }
 
     //for a specific grouping of marks (passed in), remove all and apply the passed-in one to the selected text
@@ -246,30 +259,32 @@ export class TooltipTextMenu {
         let width = Math.abs(start.left - end.left) / 2 * this.editorProps.ScreenToLocalTransform().Scale;
         let mid = Math.min(start.left, end.left) + width;
 
-        this.tooltip.style.width = 220 + "px";
+        this.tooltip.style.width = 225 + "px";
         this.tooltip.style.bottom = (box.bottom - start.top) * this.editorProps.ScreenToLocalTransform().Scale + "px";
 
+        //UPDATE FONT STYLE DROPDOWN
         let activeStyles = this.activeMarksOnSelection(this.fontStyles);
         if (activeStyles.length === 1) {
             // if we want to update something somewhere with active font name
             let fontName = this.fontStylesToName.get(activeStyles[0]);
+            if (fontName) { this.updateFontStyleDropdown(fontName); }
         } else if (activeStyles.length === 0) {
             //crimson on default
+            this.updateFontStyleDropdown("Crimson Text");
+        } else {
+            this.updateFontStyleDropdown("Various");
         }
 
-        //update font size indicator
+        //UPDATE FONT SIZE DROPDOWN
         let activeSizes = this.activeMarksOnSelection(this.fontSizes);
         if (activeSizes.length === 1) { //if there's only one active font size
             let size = this.fontSizeToNum.get(activeSizes[0]);
-            if (size) {
-                this.fontSizeIndicator.innerHTML = String(size);
-            }
-            //should be 14 on default
+            if (size) { this.updateFontSizeDropdown(String(size) + " pt"); }
         } else if (activeSizes.length === 0) {
-            this.fontSizeIndicator.innerHTML = "14";
-            //multiple font sizes selected
-        } else {
-            this.fontSizeIndicator.innerHTML = "";
+            //should be 14 on default  
+            this.updateFontSizeDropdown("14 pt");
+        } else { //multiple font sizes selected
+            this.updateFontSizeDropdown("Various");
         }
     }
 
