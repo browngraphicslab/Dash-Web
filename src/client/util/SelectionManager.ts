@@ -2,6 +2,7 @@ import { observable, action } from "mobx";
 import { DocumentView } from "../views/nodes/DocumentView";
 import { Document } from "../../fields/Document";
 import { Main } from "../views/Main";
+import { MainOverlayTextBox } from "../views/MainOverlayTextBox";
 
 export namespace SelectionManager {
     class Manager {
@@ -25,7 +26,7 @@ export namespace SelectionManager {
         DeselectAll(): void {
             manager.SelectedDocuments.map(dv => dv.props.onActiveChanged(false));
             manager.SelectedDocuments = [];
-            Main.Instance.SetTextDoc();
+            MainOverlayTextBox.Instance.SetTextDoc();
         }
     }
 

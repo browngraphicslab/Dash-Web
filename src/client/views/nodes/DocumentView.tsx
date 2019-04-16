@@ -1,30 +1,32 @@
-import { action, computed, IReactionDisposer, reaction, runInAction, trace } from "mobx";
+import { action, computed, runInAction } from "mobx";
 import { observer } from "mobx-react";
+import { BooleanField } from "../../../fields/BooleanField";
 import { Document } from "../../../fields/Document";
 import { Field, FieldWaiting, Opt } from "../../../fields/Field";
 import { Key } from "../../../fields/Key";
 import { KeyStore } from "../../../fields/KeyStore";
 import { ListField } from "../../../fields/ListField";
-import { BooleanField } from "../../../fields/BooleanField";
 import { TextField } from "../../../fields/TextField";
 import { ServerUtils } from "../../../server/ServerUtil";
-import { Utils, emptyFunction } from "../../../Utils";
+import { emptyFunction, Utils } from "../../../Utils";
 import { Documents } from "../../documents/Documents";
 import { DocumentManager } from "../../util/DocumentManager";
 import { DragManager } from "../../util/DragManager";
 import { SelectionManager } from "../../util/SelectionManager";
 import { Transform } from "../../util/Transform";
+import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
+import { CollectionPDFView } from "../collections/CollectionPDFView";
+import { CollectionVideoView } from "../collections/CollectionVideoView";
 import { CollectionView } from "../collections/CollectionView";
 import { ContextMenu } from "../ContextMenu";
 import { DocumentContentsView } from "./DocumentContentsView";
 import "./DocumentView.scss";
 import React = require("react");
-import { undoBatch, UndoManager } from "../../util/UndoManager";
 
 
 export interface DocumentViewProps {
-    ContainingCollectionView: Opt<CollectionView>;
+    ContainingCollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
     Document: Document;
     addDocument?: (doc: Document, allowDuplicates?: boolean) => boolean;
     removeDocument?: (doc: Document) => boolean;
@@ -210,7 +212,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         }
     }
     fullScreenClicked = (e: React.MouseEvent): void => {
-        CollectionDockingView.Instance.OpenFullScreen(this.props.Document);
+        CollectionDockingView.Instance.OpenFullScreen((this.props.Document.GetPrototype() as Document).MakeDelegate());
         ContextMenu.Instance.clearItems();
         ContextMenu.Instance.addItem({
             description: "Close Full Screen",
@@ -423,7 +425,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             );
             return (
                 <div
-                    className="documentView-node"
+                    className={`documentView-node${this.props.isTopMost ? "-topmost" : ""}`}
                     ref={this._mainCont}
                     style={{
                         background: backgroundcolor,

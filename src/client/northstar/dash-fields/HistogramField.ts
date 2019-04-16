@@ -6,6 +6,7 @@ import { BasicField } from "../../../fields/BasicField";
 import { Field, FieldId } from "../../../fields/Field";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { Types } from "../../../server/Message";
+import { OmitKeys } from "../../../Utils";
 
 
 export class HistogramField extends BasicField<HistogramOperation> {
@@ -13,17 +14,8 @@ export class HistogramField extends BasicField<HistogramOperation> {
         super(data ? data : HistogramOperation.Empty, save, id);
     }
 
-    omitKeys(obj: any, keys: any) {
-        var dup: any = {};
-        for (var key in obj) {
-            if (keys.indexOf(key) === -1) {
-                dup[key] = obj[key];
-            }
-        }
-        return dup;
-    }
     toString(): string {
-        return JSON.stringify(this.omitKeys(this.Data, ['Links', 'BrushLinks', 'Result', 'BrushColors', 'FilterModels', 'FilterOperand']));
+        return JSON.stringify(OmitKeys(this.Data, ['Links', 'BrushLinks', 'Result', 'BrushColors', 'FilterModels', 'FilterOperand']));
     }
 
     Copy(): Field {
@@ -35,12 +27,11 @@ export class HistogramField extends BasicField<HistogramOperation> {
     }
 
 
-    ToJson(): { type: Types, data: string, _id: string } {
+    ToJson() {
         return {
             type: Types.HistogramOp,
-
             data: this.toString(),
-            _id: this.Id
+            id: this.Id
         };
     }
 

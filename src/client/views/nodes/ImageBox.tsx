@@ -11,23 +11,27 @@ import { FieldView, FieldViewProps } from './FieldView';
 import "./ImageBox.scss";
 import React = require("react");
 import { Utils } from '../../../Utils';
+import { ListField } from '../../../fields/ListField';
+import { DragManager } from '../../util/DragManager';
+import { undoBatch } from '../../util/UndoManager';
+import { TextField } from '../../../fields/TextField';
+import { Document } from '../../../fields/Document';
 
 @observer
 export class ImageBox extends React.Component<FieldViewProps> {
 
     public static LayoutString() { return FieldView.LayoutString(ImageBox); }
-    private _ref: React.RefObject<HTMLDivElement>;
     private _imgRef: React.RefObject<HTMLImageElement>;
     private _downX: number = 0;
     private _downY: number = 0;
     private _lastTap: number = 0;
     @observable private _photoIndex: number = 0;
     @observable private _isOpen: boolean = false;
+    private dropDisposer?: DragManager.DragDropDisposer;
 
     constructor(props: FieldViewProps) {
         super(props);
 
-        this._ref = React.createRef();
         this._imgRef = React.createRef();
         this.state = {
             photoIndex: 0,
@@ -45,7 +49,41 @@ export class ImageBox extends React.Component<FieldViewProps> {
     componentDidMount() {
     }
 
+    protected createDropTarget = (ele: HTMLDivElement) => {
+        if (this.dropDisposer) {
+            this.dropDisposer();
+        }
+        if (ele) {
+            this.dropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.drop.bind(this) } });
+        }
+    }
+
     componentWillUnmount() {
+    }
+
+
+    @undoBatch
+    drop = (e: Event, de: DragManager.DropEvent) => {
+        if (de.data instanceof DragManager.DocumentDragData) {
+            de.data.droppedDocuments.map(action((drop: Document) => {
+                let layout = drop.GetText(KeyStore.BackgroundLayout, "");
+                if (layout.indexOf(ImageBox.name) !== -1) {
+                    let imgData = this.props.Document.Get(KeyStore.Data);
+                    if (imgData instanceof ImageField && imgData) {
+                        this.props.Document.Set(KeyStore.Data, new ListField([imgData]));
+                    }
+                    let imgList = this.props.Document.GetList(KeyStore.Data, [] as any[]);
+                    if (imgList) {
+                        let field = drop.Get(KeyStore.Data);
+                        if (field === FieldWaiting) { }
+                        else if (field instanceof ImageField) imgList.push(field);
+                        else if (field instanceof ListField) imgList.push(field.Data);
+                    }
+                    e.stopPropagation();
+                }
+            }))
+            // de.data.removeDocument()  bcz: need to implement
+        }
     }
 
     onPointerDown = (e: React.PointerEvent): void => {
@@ -70,8 +108,7 @@ export class ImageBox extends React.Component<FieldViewProps> {
         e.stopPropagation();
     }
 
-    lightbox = (path: string) => {
-        const images = [path];
+    lightbox = (images: string[]) => {
         if (this._isOpen) {
             return (<Lightbox
                 mainSrc={images[this._photoIndex]}
@@ -104,13 +141,15 @@ export class ImageBox extends React.Component<FieldViewProps> {
 
     render() {
         let field = this.props.Document.Get(this.props.fieldKey);
-        let path = field === FieldWaiting ? "https://image.flaticon.com/icons/svg/66/66163.svg" :
-            field instanceof ImageField ? field.Data.href : "http://www.cs.brown.edu/~bcz/face.gif";
+        let paths: string[] = ["http://www.cs.brown.edu/~bcz/face.gif"];
+        if (field === FieldWaiting) paths = ["https://image.flaticon.com/icons/svg/66/66163.svg"];
+        else if (field instanceof ImageField) paths = [field.Data.href];
+        else if (field instanceof ListField) paths = field.Data.filter(val => val as ImageField).map(p => (p as ImageField).Data.href);
         let nativeWidth = this.props.Document.GetNumber(KeyStore.NativeWidth, 1);
         return (
-            <div className="imageBox-cont" onPointerDown={this.onPointerDown} ref={this._ref} onContextMenu={this.specificContextMenu}>
-                <img src={path} width={nativeWidth} alt="Image not found" ref={this._imgRef} onLoad={this.onLoad} />
-                {this.lightbox(path)}
+            <div className="imageBox-cont" onPointerDown={this.onPointerDown} ref={this.createDropTarget} onContextMenu={this.specificContextMenu}>
+                <img src={paths[0]} width={nativeWidth} alt="Image not found" ref={this._imgRef} onLoad={this.onLoad} />
+                {this.lightbox(paths)}
             </div>);
     }
 }

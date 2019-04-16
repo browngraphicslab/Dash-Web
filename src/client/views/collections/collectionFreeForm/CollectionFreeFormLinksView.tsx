@@ -1,7 +1,6 @@
-import { computed, reaction, trace, IReactionDisposer } from "mobx";
+import { computed, IReactionDisposer, reaction } from "mobx";
 import { observer } from "mobx-react";
 import { Document } from "../../../../fields/Document";
-import { FieldWaiting } from "../../../../fields/Field";
 import { KeyStore } from "../../../../fields/KeyStore";
 import { ListField } from "../../../../fields/ListField";
 import { Utils } from "../../../../Utils";
@@ -85,19 +84,17 @@ export class CollectionFreeFormLinksView extends React.Component<CollectionViewP
             let targetViews = this.documentAnchors(connection.b);
             let possiblePairs: { a: Document, b: Document, }[] = [];
             srcViews.map(sv => targetViews.map(tv => possiblePairs.push({ a: sv.props.Document, b: tv.props.Document })));
-            possiblePairs.map(possiblePair => {
-                if (!drawnPairs.reduce((found, drawnPair) => {
+            possiblePairs.map(possiblePair =>
+                drawnPairs.reduce((found, drawnPair) => {
                     let match = (possiblePair.a === drawnPair.a && possiblePair.b === drawnPair.b);
-                    if (match) {
-                        if (!drawnPair.l.reduce((found, link) => found || link.Id === connection.l.Id, false)) {
-                            drawnPair.l.push(connection.l);
-                        }
+                    if (match && !drawnPair.l.reduce((found, link) => found || link.Id === connection.l.Id, false)) {
+                        drawnPair.l.push(connection.l);
                     }
                     return match || found;
-                }, false)) {
-                    drawnPairs.push({ a: possiblePair.a, b: possiblePair.b, l: [connection.l] });
-                }
-            });
+                }, false)
+                ||
+                drawnPairs.push({ a: possiblePair.a, b: possiblePair.b, l: [connection.l] })
+            );
             return drawnPairs;
         }, [] as { a: Document, b: Document, l: Document[] }[]);
         return connections.map(c => <CollectionFreeFormLinkView key={Utils.GenerateGuid()} A={c.a} B={c.b} LinkDocs={c.l} />);

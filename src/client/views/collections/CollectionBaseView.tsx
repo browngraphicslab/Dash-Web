@@ -1,4 +1,4 @@
-import { action } from 'mobx';
+import { action, computed } from 'mobx';
 import { observer } from 'mobx-react';
 import * as React from 'react';
 import { Document } from '../../../fields/Document';
@@ -80,12 +80,16 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         }
         return false;
     }
+    @computed get isAnnotationOverlay() { return this.props.fieldKey && this.props.fieldKey.Id === KeyStore.Annotations.Id; } // bcz: ? Why do we need to compare Id's?
 
     @action.bound
     addDocument(doc: Document, allowDuplicates: boolean = false): boolean {
         let props = this.props;
         var curPage = props.Document.GetNumber(KeyStore.CurPage, -1);
         doc.SetOnPrototype(KeyStore.Page, new NumberField(curPage));
+        if (this.isAnnotationOverlay) {
+            doc.SetNumber(KeyStore.Zoom, this.props.Document.GetNumber(KeyStore.Scale, 1));
+        }
         if (curPage >= 0) {
             doc.SetOnPrototype(KeyStore.AnnotationOn, props.Document);
         }

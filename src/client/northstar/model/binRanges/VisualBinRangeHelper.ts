@@ -4,7 +4,7 @@ import { NominalVisualBinRange } from "./NominalVisualBinRange";
 import { QuantitativeVisualBinRange } from "./QuantitativeVisualBinRange";
 import { AlphabeticVisualBinRange } from "./AlphabeticVisualBinRange";
 import { DateTimeVisualBinRange } from "./DateTimeVisualBinRange";
-import { Settings } from "../../manager/Gateway";
+import { NorthstarSettings } from "../../manager/Gateway";
 import { ModelHelpers } from "../ModelHelpers";
 import { AttributeTransformationModel } from "../../core/attribute/AttributeTransformationModel";
 

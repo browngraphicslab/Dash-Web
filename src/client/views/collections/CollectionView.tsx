@@ -18,12 +18,12 @@ export class CollectionView extends React.Component<FieldViewProps> {
     private SubView = (type: CollectionViewType, renderProps: CollectionRenderProps) => {
         let props = { ...this.props, ...renderProps };
         switch (type) {
-            case CollectionViewType.Schema: return (<CollectionSchemaView {...props} />);
-            case CollectionViewType.Docking: return (<CollectionDockingView {...props} />);
-            case CollectionViewType.Tree: return (<CollectionTreeView {...props} />);
+            case CollectionViewType.Schema: return (<CollectionSchemaView {...props} CollectionView={this} />);
+            case CollectionViewType.Docking: return (<CollectionDockingView {...props} CollectionView={this} />);
+            case CollectionViewType.Tree: return (<CollectionTreeView {...props} CollectionView={this} />);
             case CollectionViewType.Freeform:
             default:
-                return (<CollectionFreeFormView {...props} />);
+                return (<CollectionFreeFormView {...props} CollectionView={this} />);
         }
         return (null);
     }

@@ -87,9 +87,11 @@ function addSecureRoute(method: Method,
     ...subscribers: string[]
 ) {
     let abstracted = (req: express.Request, res: express.Response) => {
-        const dashUser: DashUserModel = req.user;
-        if (!dashUser) return onRejection(res);
-        handler(dashUser, res, req);
+        if (req.user) {
+            handler(req.user, res, req);
+        } else {
+            onRejection(res);
+        }
     };
     subscribers.forEach(route => {
         switch (method) {
@@ -246,17 +248,17 @@ function barReceived(guid: String) {
     clients[guid.toString()] = new Client(guid.toString());
 }
 
-function getField([id, callback]: [string, (result: any) => void]) {
-    Database.Instance.getDocument(id, (result: any) =>
+function getField([id, callback]: [string, (result?: Transferable) => void]) {
+    Database.Instance.getDocument(id, (result?: Transferable) =>
         callback(result ? result : undefined));
 }
 
-function getFields([ids, callback]: [string[], (result: any) => void]) {
+function getFields([ids, callback]: [string[], (result: Transferable[]) => void]) {
     Database.Instance.getDocuments(ids, callback);
 }
 
 function setField(socket: Socket, newValue: Transferable) {
-    Database.Instance.update(newValue._id, newValue, () =>
+    Database.Instance.update(newValue.id, newValue, () =>
         socket.broadcast.emit(MessageStore.SetField.Message, newValue));
 }
 

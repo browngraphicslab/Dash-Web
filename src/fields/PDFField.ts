@@ -22,11 +22,11 @@ export class PDFField extends BasicField<URL> {
         return `new PDFField("${this.Data}")`;
     }
 
-    ToJson(): { type: Types, data: string, _id: string } {
+    ToJson() {
         return {
             type: Types.PDF,
             data: this.Data.href,
-            _id: this.Id
+            id: this.Id
         };
     }
 

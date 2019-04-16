@@ -160,7 +160,6 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 pany: 0,
                 width: bounds.width,
                 height: bounds.height,
-                backgroundColor: "Transparent",
                 ink: inkData ? this.marqueeInkSelect(inkData) : undefined,
                 title: "a nested collection"
             });
@@ -209,10 +208,11 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         let selRect = this.Bounds;
         let selection: Document[] = [];
         this.props.activeDocuments().map(doc => {
+            var z = doc.GetNumber(KeyStore.Zoom, 1);
             var x = doc.GetNumber(KeyStore.X, 0);
             var y = doc.GetNumber(KeyStore.Y, 0);
-            var w = doc.GetNumber(KeyStore.Width, 0);
-            var h = doc.GetNumber(KeyStore.Height, 0);
+            var w = doc.GetNumber(KeyStore.Width, 0) / z;
+            var h = doc.GetNumber(KeyStore.Height, 0) / z;
             if (this.intersectRect({ left: x, top: y, width: w, height: h }, selRect)) {
                 selection.push(doc);
             }
@@ -224,7 +224,9 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     get marqueeDiv() {
         let p = this.props.getContainerTransform().transformPoint(this._downX < this._lastX ? this._downX : this._lastX, this._downY < this._lastY ? this._downY : this._lastY);
         let v = this.props.getContainerTransform().transformDirection(this._lastX - this._downX, this._lastY - this._downY);
-        return <div className="marquee" style={{ transform: `translate(${p[0]}px, ${p[1]}px)`, width: `${Math.abs(v[0])}`, height: `${Math.abs(v[1])}` }} />;
+        return <div className="marquee" style={{ transform: `translate(${p[0]}px, ${p[1]}px)`, width: `${Math.abs(v[0])}`, height: `${Math.abs(v[1])}` }} >
+            <span className="marquee-legend" />
+        </div>;
     }
 
     render() {

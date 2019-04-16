@@ -18,8 +18,8 @@ mongoose.connection.on('disconnected', function () {
 export type DashUserModel = mongoose.Document & {
     email: string,
     password: string,
-    passwordResetToken: string | undefined,
-    passwordResetExpires: Date | undefined,
+    passwordResetToken?: string,
+    passwordResetExpires?: Date,
 
     userDocumentId: string;
 
@@ -67,11 +67,17 @@ const userSchema = new mongoose.Schema({
  */
 userSchema.pre("save", function save(next) {
     const user = this as DashUserModel;
-    if (!user.isModified("password")) { return next(); }
+    if (!user.isModified("password")) {
+        return next();
+    }
     bcrypt.genSalt(10, (err, salt) => {
-        if (err) { return next(err); }
+        if (err) {
+            return next(err);
+        }
         bcrypt.hash(user.password, salt, () => void {}, (err: mongoose.Error, hash) => {
-            if (err) { return next(err); }
+            if (err) {
+                return next(err);
+            }
             user.password = hash;
             next();
         });
@@ -79,9 +85,8 @@ userSchema.pre("save", function save(next) {
 });
 
 const comparePassword: comparePasswordFunction = function (this: DashUserModel, candidatePassword, cb) {
-    bcrypt.compare(candidatePassword, this.password, (err: mongoose.Error, isMatch: boolean) => {
-        cb(err, isMatch);
-    });
+    bcrypt.compare(candidatePassword, this.password, (err: mongoose.Error, isMatch: boolean) =>
+        cb(err, isMatch));
 };
 
 userSchema.methods.comparePassword = comparePassword;

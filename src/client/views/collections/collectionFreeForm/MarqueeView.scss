@@ -13,4 +13,14 @@
     border-width: 1px;
     border-color: black;
     pointer-events: none;
+    .marquee-legend {
+        bottom:-18px;
+        left:0;
+        position: absolute;
+        font-size: 9;
+        white-space:nowrap;
+    }
+    .marquee-legend::after {
+        content: "Press: C (collection), or Delete"
+    }
 }

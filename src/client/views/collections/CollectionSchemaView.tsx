@@ -12,7 +12,7 @@ import { Field, Opt } from "../../../fields/Field";
 import { Key } from "../../../fields/Key";
 import { KeyStore } from "../../../fields/KeyStore";
 import { ListField } from "../../../fields/ListField";
-import { emptyDocFunction, emptyFunction, returnFalse } from "../../../Utils";
+import { emptyDocFunction, emptyFunction, returnFalse, returnOne } from "../../../Utils";
 import { Server } from "../../Server";
 import { SetupDrag } from "../../util/DragManager";
 import { CompileScript, ToField } from "../../util/Scripting";
@@ -75,6 +75,7 @@ export class CollectionSchemaView extends CollectionSubView {
         let props: FieldViewProps = {
             Document: rowProps.value[0],
             fieldKey: rowProps.value[1],
+            ContainingCollectionView: this.props.CollectionView,
             isSelected: returnFalse,
             select: emptyFunction,
             isTopMost: false,
@@ -312,7 +313,7 @@ export class CollectionSchemaView extends CollectionSubView {
                                 ContentScaling={this.getContentScaling}
                                 PanelWidth={this.getPanelWidth}
                                 PanelHeight={this.getPanelHeight}
-                                ContainingCollectionView={undefined}
+                                ContainingCollectionView={this.props.CollectionView}
                                 focus={emptyDocFunction}
                                 parentActive={this.props.active}
                                 onActiveChanged={this.props.onActiveChanged} /> : null}

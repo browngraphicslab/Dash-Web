@@ -8,7 +8,7 @@ import { Document } from "../../../fields/Document";
 import { KeyStore } from "../../../fields/KeyStore";
 import Measure from "react-measure";
 import { FieldId, Opt, Field, FieldWaiting } from "../../../fields/Field";
-import { Utils, returnTrue, emptyFunction, emptyDocFunction } from "../../../Utils";
+import { Utils, returnTrue, emptyFunction, emptyDocFunction, returnOne } from "../../../Utils";
 import { Server } from "../../Server";
 import { undoBatch } from "../../util/UndoManager";
 import { DocumentView } from "../nodes/DocumentView";
@@ -172,7 +172,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         } catch (e) {
 
         }
-        this._goldenLayout.destroy();
+        if (this._goldenLayout) this._goldenLayout.destroy();
         this._goldenLayout = null;
         window.removeEventListener('resize', this.onResize);
     }
