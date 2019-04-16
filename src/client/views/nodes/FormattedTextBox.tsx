@@ -19,6 +19,7 @@ import { undoItem } from "prosemirror-menu";
 import buildKeymap from "../../util/ProsemirrorKeymap";
 import { TextField } from "../../../fields/TextField";
 import { KeyStore } from "../../../fields/KeyStore";
+import { TooltipLinkingMenu } from "../../util/TooltipLinkingMenu";
 const { buildMenuItems } = require("prosemirror-example-setup");
 const { menuBar } = require("prosemirror-menu");
 
@@ -86,7 +87,8 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
                 history(),
                 keymap(buildKeymap(schema)),
                 keymap(baseKeymap),
-                this.tooltipMenuPlugin(),
+                this.tooltipTextMenuPlugin(),
+                // this.tooltipLinkingMenuPlugin(),
                 new Plugin({
                     props: {
                         attributes: { class: "ProseMirror-example-setup-style" }
@@ -94,7 +96,7 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
                 })
             ] : [
                     history(),
-                    keymap({ "Mod-z": undo, "Mod-y": redo }),
+                    keymap(buildKeymap(schema)),
                     keymap(baseKeymap),
                 ]
         };
@@ -230,7 +232,7 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
         e.stopPropagation();
     }
 
-    tooltipMenuPlugin() {
+    tooltipTextMenuPlugin() {
         let myprops = this.props;
         return new Plugin({
             view(_editorView) {
@@ -238,8 +240,19 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
             }
         });
     }
+
+    tooltipLinkingMenuPlugin() {
+        let myprops = this.props;
+        return new Plugin({
+            view(_editorView) {
+                return new TooltipLinkingMenu(_editorView, myprops);
+            }
+        });
+    }
+
     onKeyPress(e: React.KeyboardEvent) {
         e.stopPropagation();
+        if (e.keyCode === 9) e.preventDefault();
         // stop propagation doesn't seem to stop propagation of native keyboard events.
         // so we set a flag on the native event that marks that the event's been handled.
         // (e.nativeEvent as any).DASHFormattedTextBoxHandled = true;
