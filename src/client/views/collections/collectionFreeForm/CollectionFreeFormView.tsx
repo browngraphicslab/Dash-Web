@@ -1,10 +1,8 @@
-import { action, computed, observable, runInAction, trace, untracked } from "mobx";
+import { action, computed, observable, trace } from "mobx";
 import { observer } from "mobx-react";
 import Measure from "react-measure";
 import { Document } from "../../../../fields/Document";
-import { FieldWaiting } from "../../../../fields/Field";
 import { KeyStore } from "../../../../fields/KeyStore";
-import { TextField } from "../../../../fields/TextField";
 import { emptyFunction, returnFalse, returnOne } from "../../../../Utils";
 import { DocumentManager } from "../../../util/DocumentManager";
 import { DragManager } from "../../../util/DragManager";
@@ -17,14 +15,13 @@ import { MainOverlayTextBox } from "../../MainOverlayTextBox";
 import { CollectionFreeFormDocumentView } from "../../nodes/CollectionFreeFormDocumentView";
 import { DocumentContentsView } from "../../nodes/DocumentContentsView";
 import { DocumentViewProps } from "../../nodes/DocumentView";
-import { CollectionSubView, SubCollectionViewProps } from "../CollectionSubView";
+import { CollectionSubView } from "../CollectionSubView";
 import { CollectionFreeFormLinksView } from "./CollectionFreeFormLinksView";
 import { CollectionFreeFormRemoteCursors } from "./CollectionFreeFormRemoteCursors";
 import "./CollectionFreeFormView.scss";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
 import v5 = require("uuid/v5");
-import { CollectionFreeFormLinkView } from "./CollectionFreeFormLinkView";
 
 @observer
 export class CollectionFreeFormView extends CollectionSubView {
@@ -34,25 +31,34 @@ export class CollectionFreeFormView extends CollectionSubView {
     @observable private _pwidth: number = 0;
     @observable private _pheight: number = 0;
 
-    public addLiveTextBox = (newBox: Document) => {
-        // mark this collection so that when the text box is created we can send it the SelectOnLoad prop to focus itself and receive text input
-        this._selectOnLoaded = newBox.Id;
+    @computed get nativeWidth() { return this.props.Document.GetNumber(KeyStore.NativeWidth, 0); }
+    @computed get nativeHeight() { return this.props.Document.GetNumber(KeyStore.NativeHeight, 0); }
+    private get borderWidth() { return this.isAnnotationOverlay ? 0 : COLLECTION_BORDER_WIDTH; }
+    private get isAnnotationOverlay() { return this.props.fieldKey && this.props.fieldKey.Id === KeyStore.Annotations.Id; } // bcz: ? Why do we need to compare Id's?
+    private childViews = () => this.views;
+    private panX = () => this.props.Document.GetNumber(KeyStore.PanX, 0);
+    private panY = () => this.props.Document.GetNumber(KeyStore.PanY, 0);
+    private zoomScaling = () => this.props.Document.GetNumber(KeyStore.Scale, 1);
+    private centeringShiftX = () => !this.nativeWidth ? this._pwidth / 2 : 0;  // shift so pan position is at center of window for non-overlay collections
+    private centeringShiftY = () => !this.nativeHeight ? this._pheight / 2 : 0;// shift so pan position is at center of window for non-overlay collections
+    private getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-this.borderWidth, -this.borderWidth).translate(-this.centeringShiftX(), -this.centeringShiftY()).transform(this.getLocalTransform());
+    private getContainerTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-this.borderWidth, -this.borderWidth);
+    private getLocalTransform = (): Transform => Transform.Identity().scale(1 / this.zoomScaling()).translate(this.panX(), this.panY());
+    private addLiveTextBox = (newBox: Document) => {
+        this._selectOnLoaded = newBox.Id;// track the new text box so we can give it a prop that tells it to focus itself when it's displayed
         this.addDocument(newBox, false);
     }
-
-    public addDocument = (newBox: Document, allowDuplicates: boolean) => {
+    private addDocument = (newBox: Document, allowDuplicates: boolean) => {
         if (this.isAnnotationOverlay) {
             newBox.SetNumber(KeyStore.Zoom, this.props.Document.GetNumber(KeyStore.Scale, 1));
         }
         return this.props.addDocument(this.bringToFront(newBox), false);
     }
-
-    public selectDocuments = (docs: Document[]) => {
+    private selectDocuments = (docs: Document[]) => {
         SelectionManager.DeselectAll;
         docs.map(doc => DocumentManager.Instance.getDocumentView(doc)).filter(dv => dv).map(dv =>
             SelectionManager.SelectDoc(dv!, true));
     }
-
     public getActiveDocuments = () => {
         var curPage = this.props.Document.GetNumber(KeyStore.CurPage, -1);
         return this.props.Document.GetList(this.props.fieldKey, [] as Document[]).reduce((active, doc) => {
@@ -63,16 +69,6 @@ export class CollectionFreeFormView extends CollectionSubView {
             return active;
         }, [] as Document[]);
     }
-
-    get borderWidth() { return this.isAnnotationOverlay ? 0 : COLLECTION_BORDER_WIDTH; }
-    get isAnnotationOverlay() { return this.props.fieldKey && this.props.fieldKey.Id === KeyStore.Annotations.Id; } // bcz: ? Why do we need to compare Id's?
-    @computed get nativeWidth() { return this.props.Document.GetNumber(KeyStore.NativeWidth, 0); }
-    @computed get nativeHeight() { return this.props.Document.GetNumber(KeyStore.NativeHeight, 0); }
-    panX = () => this.props.Document.GetNumber(KeyStore.PanX, 0);
-    panY = () => this.props.Document.GetNumber(KeyStore.PanY, 0);
-    zoomScaling = () => this.props.Document.GetNumber(KeyStore.Scale, 1);
-    centeringShiftX = () => !this.nativeWidth ? this._pwidth / 2 : 0;  // shift so pan position is at center of window for non-overlay collections
-    centeringShiftY = () => !this.nativeHeight ? this._pheight / 2 : 0;// shift so pan position is at center of window for non-overlay collections
 
     @undoBatch
     @action
@@ -156,7 +152,7 @@ export class CollectionFreeFormView extends CollectionSubView {
                 if (y - dy < ranges[1][0] - panelheight) y = ranges[1][1] + panelheight + dy;
                 if (y - dy > ranges[1][1] + panelheight) y = ranges[1][0] - panelheight + dy;
             }
-            this.SetPan(x - dx, y - dy);
+            this.setPan(x - dx, y - dy);
             this._lastX = e.pageX;
             this._lastY = e.pageY;
             e.stopPropagation();
@@ -196,13 +192,13 @@ export class CollectionFreeFormView extends CollectionSubView {
             let localTransform = this.getLocalTransform().inverse().scaleAbout(deltaScale, x, y);
 
             this.props.Document.SetNumber(KeyStore.Scale, localTransform.Scale);
-            this.SetPan(-localTransform.TranslateX / localTransform.Scale, -localTransform.TranslateY / localTransform.Scale);
+            this.setPan(-localTransform.TranslateX / localTransform.Scale, -localTransform.TranslateY / localTransform.Scale);
             e.stopPropagation();
         }
     }
 
     @action
-    private SetPan(panX: number, panY: number) {
+    setPan(panX: number, panY: number) {
         MainOverlayTextBox.Instance.SetTextDoc();
         var scale = this.getLocalTransform().inverse().Scale;
         const newPanX = Math.min((1 - 1 / scale) * this.nativeWidth, Math.max(0, panX));
@@ -231,7 +227,7 @@ export class CollectionFreeFormView extends CollectionSubView {
     }
 
     focusDocument = (doc: Document) => {
-        this.SetPan(
+        this.setPan(
             doc.GetNumber(KeyStore.X, 0) + doc.Width() / 2,
             doc.GetNumber(KeyStore.Y, 0) + doc.Height() / 2);
         this.props.focus(this.props.Document);
@@ -248,7 +244,7 @@ export class CollectionFreeFormView extends CollectionSubView {
             selectOnLoad: document.Id === this._selectOnLoaded,
             PanelWidth: document.Width,
             PanelHeight: document.Height,
-            ContentScaling: this.noScaling,
+            ContentScaling: returnOne,
             ContainingCollectionView: this.props.CollectionView,
             focus: this.focusDocument,
             parentActive: this.props.active,
@@ -282,11 +278,6 @@ export class CollectionFreeFormView extends CollectionSubView {
     onCursorMove = (e: React.PointerEvent) => {
         super.setCursorPosition(this.getTransform().transformPoint(e.clientX, e.clientY));
     }
-    getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-this.borderWidth, -this.borderWidth).translate(-this.centeringShiftX(), -this.centeringShiftY()).transform(this.getLocalTransform());
-    getContainerTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-this.borderWidth, -this.borderWidth);
-    getLocalTransform = (): Transform => Transform.Identity().scale(1 / this.zoomScaling()).translate(this.panX(), this.panY());
-    noScaling = returnOne;
-    childViews = () => this.views;
 
     render() {
         trace();
@@ -318,7 +309,6 @@ export class CollectionFreeFormView extends CollectionSubView {
         );
     }
 }
-
 
 @observer
 class CollectionFreeFormOverlayView extends React.Component<DocumentViewProps> {
