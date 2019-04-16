@@ -1,7 +1,6 @@
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import { Key } from "../../fields/Key";
-//import ContentEditable from 'react-contenteditable'
 import { KeyStore } from "../../fields/KeyStore";
 import { ListField } from "../../fields/ListField";
 import { NumberField } from "../../fields/NumberField";
@@ -70,7 +69,18 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 // TODO: Change field with switch statement
             }
             else {
-                this._title = "changed";
+                if (this._documents.length > 0) {
+                    let field = this._documents[0].props.Document.Get(this._fieldKey);
+                    if (field instanceof TextField) {
+                        this._documents.forEach(d =>
+                            d.props.Document.Set(this._fieldKey, new TextField(this._title)));
+                    }
+                    else if (field instanceof NumberField) {
+                        this._documents.forEach(d =>
+                            d.props.Document.Set(this._fieldKey, new NumberField(+this._title)));
+                    }
+                    this._title = "changed";
+                }
             }
             e.target.blur();
         }
@@ -124,7 +134,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         this._dragging = true;
         document.removeEventListener("pointermove", this.onBackgroundMove);
         document.removeEventListener("pointerup", this.onBackgroundUp);
-        DragManager.StartDocumentDrag(SelectionManager.SelectedDocuments().map(docView => docView.ContentRef.current!), dragData, e.x, e.y, {
+        DragManager.StartDocumentDrag(SelectionManager.SelectedDocuments().map(docView => docView.ContentDiv!), dragData, e.x, e.y, {
             handlers: {
                 dragComplete: action(() => this._dragging = false),
             },
@@ -176,8 +186,6 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     }
     onMinimizeMove = (e: PointerEvent): void => {
         e.stopPropagation();
-        if (e.button === 0) {
-        }
     }
     onMinimizeUp = (e: PointerEvent): void => {
         e.stopPropagation();
@@ -302,7 +310,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
 
         MainOverlayTextBox.Instance.SetTextDoc();
         SelectionManager.SelectedDocuments().forEach(element => {
-            const rect = element.screenRect();
+            const rect = element.ContentDiv ? element.ContentDiv.getBoundingClientRect() : new DOMRect();
+
             if (rect.width !== 0) {
                 let doc = element.props.Document;
                 let width = doc.GetNumber(KeyStore.Width, 0);
