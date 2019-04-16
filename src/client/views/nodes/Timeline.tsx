@@ -12,16 +12,28 @@ export class Timeline extends React.Component {
     @observable private _inner = React.createRef<HTMLDivElement>();
     @observable private _isRecording: Boolean = false;
     @observable private _currentBar: any = null;
+    @observable private _newBar: any = null;
 
     @action
     onRecord = (e: React.MouseEvent) => {
         this._isRecording = true;
-        console.log("hello");
+        // console.log("hello");
     }
 
     @action
     onStop = (e: React.MouseEvent) => {
         this._isRecording = false;
+        if (this._inner.current) {
+            this._newBar = document.createElement("div");
+            this._newBar.style.height = "100%";
+            this._newBar.style.width = "5px";
+            this._newBar.style.left = this._currentBar.style.left;
+            this._newBar.style.backgroundColor = "yellow";
+            this._newBar.style.transform = this._currentBar.style.transform;
+            this._inner.current.appendChild(this._newBar);
+        }
+        this._currentBar.remove();
+        this._currentBar = null;
     }
 
     @action
@@ -41,9 +53,8 @@ export class Timeline extends React.Component {
                 } else {
                     this._currentBar.remove();
                     this._currentBar = null;
-                    this.onInnerPointerDown(e); 
+                    this.onInnerPointerDown(e);
                 }
-
             }
         }
     }
@@ -73,8 +84,8 @@ export class Timeline extends React.Component {
                         <div className="inner" ref={this._inner} onPointerDown={this.onInnerPointerDown}>
                         </div>
                     </div>
-                    <button onClick = {this.onRecord}>Record</button>
-                    <button onClick = {this.onStop}> Stop </button>
+                    <button onClick={this.onRecord}>Record</button>
+                    <button onClick={this.onStop}>Stop</button>
                     <input placeholder="Time"></input>
                 </div>
             </div>
