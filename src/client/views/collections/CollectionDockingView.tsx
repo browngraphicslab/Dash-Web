@@ -263,7 +263,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                             let counter: any = this.htmlToElement(`<div class="messageCounter">${count}</div>`);
                             tab.element.append(counter);
                             counter.DashDocId = tab.contentItem.config.props.documentId;
-                            (tab as any).reactionDisposer = reaction(() => [f.GetT(KeyStore.LinkedFromDocs, ListField), f.GetT(KeyStore.LinkedToDocs, ListField)],
+                            tab.reactionDisposer = reaction(() => [f.GetT(KeyStore.LinkedFromDocs, ListField), f.GetT(KeyStore.LinkedToDocs, ListField)],
                                 (lists) => {
                                     let count = (lists.length > 0 && lists[0] && lists[0]!.Data ? lists[0]!.Data.length : 0) +
                                         (lists.length > 1 && lists[1] && lists[1]!.Data ? lists[1]!.Data.length : 0);
