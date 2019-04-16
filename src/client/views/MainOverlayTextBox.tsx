@@ -40,7 +40,6 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
             this._textTargetDiv.style.color = this._textColor;
         }
 
-        this.TextDoc = undefined;
         this.TextDoc = textDoc;
         this._textFieldKey = textFieldKey!;
         this._textXf = tx ? tx : Transform.Identity();
@@ -56,7 +55,8 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
     @action
     textScroll = (e: React.UIEvent) => {
         if (this._textProxyDiv.current && this._textTargetDiv) {
-            this._textTargetDiv.scrollTop = this.TextScroll = this._textProxyDiv.current.children[0].scrollTop;
+            this.TextScroll = (e as any)._targetInst.stateNode.scrollTop;//  this._textProxyDiv.current.children[0].scrollTop;
+            this._textTargetDiv.scrollTop = this.TextScroll;
         }
     }
 
@@ -100,7 +100,7 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
             s[0] = Math.sqrt((s[0] - t[0]) * (s[0] - t[0]) + (s[1] - t[1]) * (s[1] - t[1]));
             return <div className="mainOverlayTextBox-textInput" style={{ pointerEvents: "none", transform: `translate(${x}px, ${y}px) scale(${1 / s[0]},${1 / s[0]})`, width: "auto", height: "auto" }} >
                 <div className="mainOverlayTextBox-textInput" onPointerDown={this.textBoxDown} ref={this._textProxyDiv} onScroll={this.textScroll} style={{ pointerEvents: "none", transform: `scale(${1}, ${1})`, width: `${w * s[0]}px`, height: `${h * s[0]}px` }}>
-                    <FormattedTextBox fieldKey={this._textFieldKey!} isOverlay={true} Document={this.TextDoc} isSelected={returnTrue} select={emptyFunction} isTopMost={true}
+                    <FormattedTextBox fieldKey={this._textFieldKey} isOverlay={true} Document={this.TextDoc} isSelected={returnTrue} select={emptyFunction} isTopMost={true}
                         selectOnLoad={true} ContainingCollectionView={undefined} onActiveChanged={emptyFunction} active={returnTrue} ScreenToLocalTransform={() => this._textXf} focus={emptyDocFunction} />
                 </div>
             </ div>;

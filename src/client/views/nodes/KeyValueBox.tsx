@@ -26,12 +26,6 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
         super(props);
     }
 
-
-
-    shouldComponentUpdate() {
-        return false;
-    }
-
     @action
     onEnterKey = (e: React.KeyboardEvent): void => {
         if (e.key === 'Enter') {

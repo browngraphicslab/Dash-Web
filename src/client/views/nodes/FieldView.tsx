@@ -19,7 +19,7 @@ import { ListField } from "../../../fields/ListField";
 import { DocumentContentsView } from "./DocumentContentsView";
 import { Transform } from "../../util/Transform";
 import { KeyStore } from "../../../fields/KeyStore";
-import { returnFalse, emptyDocFunction } from "../../../Utils";
+import { returnFalse, emptyDocFunction, emptyFunction, returnOne } from "../../../Utils";
 import { CollectionView } from "../collections/CollectionView";
 import { CollectionPDFView } from "../collections/CollectionPDFView";
 import { CollectionVideoView } from "../collections/CollectionVideoView";
@@ -83,7 +83,6 @@ export class FieldView extends React.Component<FieldViewProps> {
                 <DocumentContentsView Document={field}
                     addDocument={undefined}
                     removeDocument={undefined}
-                    opacity={1}
                     ScreenToLocalTransform={Transform.Identity}
                     ContentScaling={() => 1}
                     PanelWidth={() => 100}

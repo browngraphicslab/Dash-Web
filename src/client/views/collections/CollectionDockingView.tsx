@@ -8,7 +8,7 @@ import { Document } from "../../../fields/Document";
 import { KeyStore } from "../../../fields/KeyStore";
 import Measure from "react-measure";
 import { FieldId, Opt, Field, FieldWaiting } from "../../../fields/Field";
-import { Utils, returnTrue, emptyFunction, emptyDocFunction } from "../../../Utils";
+import { Utils, returnTrue, emptyFunction, emptyDocFunction, returnOne } from "../../../Utils";
 import { Server } from "../../Server";
 import { undoBatch } from "../../util/UndoManager";
 import { DocumentView } from "../nodes/DocumentView";
@@ -263,7 +263,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                             let counter: any = this.htmlToElement(`<div class="messageCounter">${count}</div>`);
                             tab.element.append(counter);
                             counter.DashDocId = tab.contentItem.config.props.documentId;
-                            (tab as any).reactionDisposer = reaction(() => [f.GetT(KeyStore.LinkedFromDocs, ListField), f.GetT(KeyStore.LinkedToDocs, ListField)],
+                            tab.reactionDisposer = reaction(() => [f.GetT(KeyStore.LinkedFromDocs, ListField), f.GetT(KeyStore.LinkedToDocs, ListField)],
                                 (lists) => {
                                     let count = (lists.length > 0 && lists[0] && lists[0]!.Data ? lists[0]!.Data.length : 0) +
                                         (lists.length > 1 && lists[1] && lists[1]!.Data ? lists[1]!.Data.length : 0);
@@ -343,7 +343,6 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
                 <DocumentView key={this._document.Id} Document={this._document}
                     addDocument={undefined}
                     removeDocument={undefined}
-                    opacity={1}
                     ContentScaling={this._contentScaling}
                     PanelWidth={this._nativeWidth}
                     PanelHeight={this._nativeHeight}

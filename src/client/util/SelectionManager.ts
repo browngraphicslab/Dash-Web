@@ -28,6 +28,16 @@ export namespace SelectionManager {
             manager.SelectedDocuments = [];
             MainOverlayTextBox.Instance.SetTextDoc();
         }
+        @action
+        ReselectAll() {
+            let sdocs = manager.SelectedDocuments.map(d => d);
+            manager.SelectedDocuments = [];
+            return sdocs;
+        }
+        @action
+        ReselectAll2(sdocs: DocumentView[]) {
+            sdocs.map(s => SelectionManager.SelectDoc(s, false));
+        }
     }
 
     const manager = new Manager();
@@ -52,6 +62,10 @@ export namespace SelectionManager {
         if (found) manager.SelectDoc(found, false);
     }
 
+    export function ReselectAll() {
+        let sdocs = manager.ReselectAll();
+        manager.ReselectAll2(sdocs);
+    }
     export function SelectedDocuments(): Array<DocumentView> {
         return manager.SelectedDocuments;
     }

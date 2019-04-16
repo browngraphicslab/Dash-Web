@@ -1,10 +1,11 @@
 @import "../globalCssVariables";
 
-.documentView-node {
+.documentView-node, .documentView-node-topMost {
   position: inherit;
   top: 0;
   left:0;
   background: $light-color; //overflow: hidden;
+  transform-origin: left top;
 
   &.minimized {
     width: 30px;
@@ -28,12 +29,16 @@
     height: calc(100% - 20px);
   }
 }
+.documentView-node-topMost {
+    background: white;
+}
 
 .minimized-box {
   height: 10px;
   width: 10px;
   border-radius: 2px;
-  background: $dark-color
+  background: $dark-color;
+  transform-origin: left top;
 }
 
 .minimized-box:hover {

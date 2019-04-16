@@ -12,7 +12,7 @@ import { Field, Opt } from "../../../fields/Field";
 import { Key } from "../../../fields/Key";
 import { KeyStore } from "../../../fields/KeyStore";
 import { ListField } from "../../../fields/ListField";
-import { emptyDocFunction, emptyFunction, returnFalse } from "../../../Utils";
+import { emptyDocFunction, emptyFunction, returnFalse, returnOne } from "../../../Utils";
 import { Server } from "../../Server";
 import { SetupDrag } from "../../util/DragManager";
 import { CompileScript, ToField } from "../../util/Scripting";
@@ -308,7 +308,6 @@ export class CollectionSchemaView extends CollectionSubView {
                             <DocumentView Document={doc}
                                 addDocument={this.props.addDocument} removeDocument={this.props.removeDocument}
                                 isTopMost={false}
-                                opacity={1}
                                 selectOnLoad={false}
                                 ScreenToLocalTransform={this.getPreviewTransform}
                                 ContentScaling={this.getContentScaling}
