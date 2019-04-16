@@ -1,27 +1,24 @@
-import { action, IReactionDisposer, reaction, trace, computed } from "mobx";
+import { action, IReactionDisposer, reaction } from "mobx";
 import { baseKeymap } from "prosemirror-commands";
-import { history, redo, undo } from "prosemirror-history";
+import { history } from "prosemirror-history";
 import { keymap } from "prosemirror-keymap";
 import { EditorState, Plugin, Transaction } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { FieldWaiting, Opt } from "../../../fields/Field";
+import { KeyStore } from "../../../fields/KeyStore";
 import { RichTextField } from "../../../fields/RichTextField";
+import { TextField } from "../../../fields/TextField";
+import { Document } from "../../../fields/Document";
+import buildKeymap from "../../util/ProsemirrorKeymap";
 import { inpRules } from "../../util/RichTextRules";
-import { Schema } from "prosemirror-model";
 import { schema } from "../../util/RichTextSchema";
+import { TooltipLinkingMenu } from "../../util/TooltipLinkingMenu";
 import { TooltipTextMenu } from "../../util/TooltipTextMenu";
 import { ContextMenu } from "../../views/ContextMenu";
-import { Main } from "../Main";
+import { MainOverlayTextBox } from "../MainOverlayTextBox";
 import { FieldView, FieldViewProps } from "./FieldView";
 import "./FormattedTextBox.scss";
 import React = require("react");
-import { undoItem } from "prosemirror-menu";
-import buildKeymap from "../../util/ProsemirrorKeymap";
-import { TextField } from "../../../fields/TextField";
-import { KeyStore } from "../../../fields/KeyStore";
-import { TooltipLinkingMenu } from "../../util/TooltipLinkingMenu";
-import { MainOverlayTextBox } from "../MainOverlayTextBox";
-import { observer } from "mobx-react";
 const { buildMenuItems } = require("prosemirror-example-setup");
 const { menuBar } = require("prosemirror-menu");
 
@@ -52,6 +49,7 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
     }
     private _ref: React.RefObject<HTMLDivElement>;
     private _editorView: Opt<EditorView>;
+    private _gotDown: boolean = false;
     private _reactionDisposer: Opt<IReactionDisposer>;
     private _inputReactionDisposer: Opt<IReactionDisposer>;
     private _proxyReactionDisposer: Opt<IReactionDisposer>;
@@ -109,8 +107,7 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
                     if (this._editorView) {
                         this._editorView.destroy();
                     }
-
-                    this.setupEditor(config);
+                    this.setupEditor(config, MainOverlayTextBox.Instance.TextDoc); // bcz: not sure why, but the order of events is such that this.props.Document hasn't updated yet, so without forcing the editor to the MainOverlayTextBox, it will display the previously focused textbox
                 }
             );
         } else {
@@ -131,20 +128,18 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
                 }
             }
         );
-        this.setupEditor(config);
+        this.setupEditor(config, this.props.Document);
     }
 
-    private setupEditor(config: any) {
-        let state: EditorState;
-        let field = this.props.Document ? this.props.Document.GetT(this.props.fieldKey, RichTextField) : undefined;
-        if (field && field !== FieldWaiting && field.Data) {
-            state = EditorState.fromJSON(config, JSON.parse(field.Data));
-        } else {
-            state = EditorState.create(config);
-        }
+    shouldComponentUpdate() {
+        return false;
+    }
+
+    private setupEditor(config: any, doc?: Document) {
+        let field = doc ? doc.GetT(this.props.fieldKey, RichTextField) : undefined;
         if (this._ref.current) {
             this._editorView = new EditorView(this._ref.current, {
-                state,
+                state: field && field.Data ? EditorState.fromJSON(config, JSON.parse(field.Data)) : EditorState.create(config),
                 dispatchTransaction: this.dispatchTransaction
             });
         }
@@ -170,10 +165,6 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
         }
     }
 
-    shouldComponentUpdate() {
-        return false;
-    }
-
     @action
     onChange(e: React.ChangeEvent<HTMLInputElement>) {
         const { fieldKey, Document } = this.props;
@@ -186,6 +177,7 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
             e.stopPropagation();
         }
         if (e.button === 2) {
+            this._gotDown = true;
             console.log("second");
             e.preventDefault();
         }
@@ -211,6 +203,10 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
     textCapability = (e: React.MouseEvent): void => { };
 
     specificContextMenu = (e: React.MouseEvent): void => {
+        if (!this._gotDown) {
+            e.preventDefault();
+            return;
+        }
         ContextMenu.Instance.addItem({
             description: "Text Capability",
             event: this.textCapability
@@ -262,10 +258,9 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
         // (e.nativeEvent as any).DASHFormattedTextBoxHandled = true;
     }
     render() {
+        let style = this.props.isSelected() || this.props.isOverlay ? "scroll" : "hidden";
         return (
-            <div
-                style={{ overflowY: this.props.isSelected() || this.props.isOverlay ? "scroll" : "hidden" }}
-                className={`formattedTextBox-cont`}
+            <div className={`formattedTextBox-cont-${style}`}
                 onKeyDown={this.onKeyPress}
                 onKeyPress={this.onKeyPress}
                 onFocus={this.onFocused}

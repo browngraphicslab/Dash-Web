@@ -40,7 +40,6 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
             this._textTargetDiv.style.color = this._textColor;
         }
 
-        this.TextDoc = undefined;
         this.TextDoc = textDoc;
         this._textFieldKey = textFieldKey!;
         this._textXf = tx ? tx : Transform.Identity();

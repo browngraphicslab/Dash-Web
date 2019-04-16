@@ -277,11 +277,12 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     @action
     onContextMenu = (e: React.MouseEvent): void => {
         e.stopPropagation();
-        e.preventDefault();
         if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3 ||
             e.isDefaultPrevented()) {
+            e.preventDefault();
             return;
         }
+        e.preventDefault();
 
         !this.isMinimized() && ContextMenu.Instance.addItem({ description: "Minimize", event: this.minimize });
         ContextMenu.Instance.addItem({ description: "Full Screen", event: this.fullScreenClicked });

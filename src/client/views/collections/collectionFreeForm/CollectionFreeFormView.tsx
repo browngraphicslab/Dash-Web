@@ -81,7 +81,6 @@ export class CollectionFreeFormView extends CollectionSubView {
                 de.data.droppedDocuments.map(d => {
                     d.SetNumber(KeyStore.X, x + (d.GetNumber(KeyStore.X, 0) - dropX));
                     d.SetNumber(KeyStore.Y, y + (d.GetNumber(KeyStore.Y, 0) - dropY));
-                    console.log("x = " + d.GetNumber(KeyStore.X, 0) + " y = " + d.GetNumber(KeyStore.X, 0));
                     if (!d.GetNumber(KeyStore.Width, 0)) {
                         d.SetNumber(KeyStore.Width, 300);
                     }
@@ -90,6 +89,7 @@ export class CollectionFreeFormView extends CollectionSubView {
                     }
                     this.bringToFront(d);
                 });
+                SelectionManager.ReselectAll();
             }
             return true;
         }
