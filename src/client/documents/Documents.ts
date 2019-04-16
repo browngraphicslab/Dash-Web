@@ -130,6 +130,7 @@ export namespace Documents {
             { x: 0, y: 0, nativeWidth: 600, width: 300, layoutKeys: [KeyStore.Data, KeyStore.Annotations, KeyStore.Caption] });
         imageProto.SetText(KeyStore.BackgroundLayout, ImageBox.LayoutString());
         imageProto.SetNumber(KeyStore.CurPage, 0);
+        imageProto.SetData(KeyStore.LayoutFields, [KeyStore.Title], ListField);
         return imageProto;
     }
 

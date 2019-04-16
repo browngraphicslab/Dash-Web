@@ -14,8 +14,9 @@ import './DocumentDecorations.scss';
 import { MainOverlayTextBox } from "./MainOverlayTextBox";
 import { DocumentView } from "./nodes/DocumentView";
 import { LinkMenu } from "./nodes/LinkMenu";
-import { TemplateEditButton } from "./TemplateEditButton";
+import { TemplateMenu } from "./TemplateMenu";
 import React = require("react");
+import { Template, Templates } from "./Templates";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -404,6 +405,13 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 <div className={"linkButton-" + (selFirst.props.Document.GetData(KeyStore.LinkedToDocs, ListField, []).length ? "nonempty" : "empty")} onPointerDown={this.onLinkButtonDown} >{linkCount}</div>
             </Flyout>);
         }
+
+        let templates: Map<Template, boolean> = new Map();
+        let doc = SelectionManager.SelectedDocuments()[0];
+        Array.from(Object.values(Templates)).map(template => {
+            templates.set(template, doc.hasTemplate(template));
+        });
+
         return (<div className="documentDecorations">
             <div className="documentDecorations-background" style={{
                 width: (bounds.r - bounds.x + this._resizeBorderWidth) + "px",
@@ -436,7 +444,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
 
                 <div title="View Links" className="linkFlyout" ref={this._linkButton}> {linkButton}  </div>
                 <div className="linkButton-linker" ref={this._linkerButton} onPointerDown={this.onLinkerButtonDown}>∞</div>
-                <TemplateEditButton Document={SelectionManager.SelectedDocuments()[0]} />
+                <TemplateMenu doc={doc} templates={templates} />
             </div >
         </div>
         );

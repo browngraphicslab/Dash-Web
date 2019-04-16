@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-import { action, computed, IReactionDisposer, reaction, runInAction, observable } from "mobx";
-=======
-import { action, computed, runInAction } from "mobx";
->>>>>>> 6c0b421db6aa3204bbc6e42139d240f503000b5d
+import { action, computed, runInAction, observable } from "mobx";
 import { observer } from "mobx-react";
 import { BooleanField } from "../../../fields/BooleanField";
 import { Document } from "../../../fields/Document";
@@ -25,7 +21,7 @@ import { CollectionVideoView } from "../collections/CollectionVideoView";
 import { CollectionView } from "../collections/CollectionView";
 import { ContextMenu } from "../ContextMenu";
 import { DocumentContentsView } from "./DocumentContentsView";
-import { Template } from "./../Templates"
+import { Template } from "./../Templates";
 import "./DocumentView.scss";
 import React = require("react");
 

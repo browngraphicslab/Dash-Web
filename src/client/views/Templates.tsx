@@ -54,7 +54,7 @@ export namespace Templates {
             {layout}
         </div>
         <div style="height:50px; width:100%; position:absolute">
-            <FormattedTextBox doc={Document} DocumentViewForField={DocumentView} bindings={bindings} fieldKey={"TitleKey"} isSelected={isSelected} select={select} selectOnLoad={SelectOnLoad} isTopMost={isTopMost}/>
+            {Title}
         </div>
     </div>       
             `);

@@ -105,7 +105,7 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
                 }
             );
         } else {
-            this._proxyReactionDisposer = reaction(() => this.props.isSelected(),
+            this._proxyReactionDisposer = reaction(() => { }/*this.props.isSelected()*/,
                 () => this.props.isSelected() && MainOverlayTextBox.Instance.SetTextDoc(this.props.Document, this.props.fieldKey, this._ref.current!, this.props.ScreenToLocalTransform()));
         }
 
@@ -241,7 +241,7 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
     render() {
         return (
             <div
-                style={{ overflowY: this.props.isSelected() || this.props.isOverlay ? "scroll" : "hidden" }}
+                style={{ overflowY: /*this.props.isSelected() ||*/ this.props.isOverlay ? "scroll" : "hidden" }}
                 className={`formattedTextBox-cont`}
                 onKeyDown={this.onKeyPress}
                 onKeyPress={this.onKeyPress}
