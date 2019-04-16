@@ -10,6 +10,7 @@ import { CurrentUserUtils } from '../../../server/authentication/models/current_
 import { KeyStore } from '../../../fields/KeyStore';
 import { observer } from 'mobx-react';
 import { undoBatch } from '../../util/UndoManager';
+import { CollectionStackingView } from './CollectionStackingView';
 
 @observer
 export class CollectionView extends React.Component<FieldViewProps> {
@@ -21,6 +22,7 @@ export class CollectionView extends React.Component<FieldViewProps> {
             case CollectionViewType.Schema: return (<CollectionSchemaView {...props} CollectionView={this} />);
             case CollectionViewType.Docking: return (<CollectionDockingView {...props} CollectionView={this} />);
             case CollectionViewType.Tree: return (<CollectionTreeView {...props} CollectionView={this} />);
+            case CollectionViewType.Stacking: return (<CollectionStackingView {...props} CollectionView={this} />);
             case CollectionViewType.Freeform:
             default:
                 return (<CollectionFreeFormView {...props} CollectionView={this} />);
@@ -33,6 +35,7 @@ export class CollectionView extends React.Component<FieldViewProps> {
             ContextMenu.Instance.addItem({ description: "Freeform", event: undoBatch(() => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Freeform)) });
             ContextMenu.Instance.addItem({ description: "Schema", event: undoBatch(() => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Schema)) });
             ContextMenu.Instance.addItem({ description: "Treeview", event: undoBatch(() => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Tree)) });
+            ContextMenu.Instance.addItem({ description: "Stacking", event: undoBatch(() => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Stacking)) });
         }
     }
 

@@ -1,9 +1,9 @@
 import * as ReactDOM from 'react-dom';
 import * as rp from 'request-promise';
+import { KeyStore } from '../fields/KeyStore';
 import { Documents } from '../client/documents/Documents';
 import { Server } from '../client/Server';
 import { Document } from '../fields/Document';
-import { KeyStore } from '../fields/KeyStore';
 import { ListField } from '../fields/ListField';
 import { RouteStore } from '../server/RouteStore';
 import { ServerUtils } from '../server/ServerUtil';
@@ -63,12 +63,26 @@ const onFileLoad = async (file: any) => {
     }
 };
 
-ReactDOM.render((
-    <div className="imgupload_cont">
-        {/* <button className = "button_file"  = {onPointerDown}> Open Image </button> */}
-        <input type="file" accept="image/*" onChange={onFileLoad} className="input_file" id="input_image_file"></input>
-        <img id="img_preview" src=""></img>
-        <div id="message" />
-    </div>),
-    document.getElementById('root')
-);
+(async () => {
+    await Documents.initProtos();
+    ReactDOM.render((
+        <div className="imgupload_cont">
+            {/* <button className = "button_file"  = {onPointerDown}> Open Image </button> */}
+            <input type="file" accept="image/*" onChange={onFileLoad} className="input_file" id="input_image_file"></input>
+            <img id="img_preview" src=""></img>
+            <div id="message" />
+        </div>),
+        document.getElementById('root')
+    );
+})();
+
+
+// ReactDOM.render((
+//     <div className="imgupload_cont">
+//         {/* <button className = "button_file"  = {onPointerDown}> Open Image </button> */}
+//         <input type="file" accept="image/*" onChange={onFileLoad} className="input_file" id="input_image_file"></input>
+//         <img id="img_preview" src=""></img>
+//         <div id="message" />
+//     </div>),
+//     document.getElementById('root')
+// );

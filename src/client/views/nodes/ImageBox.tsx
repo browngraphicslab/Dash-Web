@@ -81,7 +81,7 @@ export class ImageBox extends React.Component<FieldViewProps> {
                     }
                     e.stopPropagation();
                 }
-            }))
+            }));
             // de.data.removeDocument()  bcz: need to implement
         }
     }

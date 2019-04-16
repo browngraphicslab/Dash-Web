@@ -149,7 +149,7 @@ export class Main extends React.Component {
                 // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
                 setTimeout(() => {
                     this.openWorkspace(mainDoc);
-                    let pendingDocument = Documents.SchemaDocument([], { title: "New Mobile Uploads" });
+                    let pendingDocument = Documents.StackingDocument([], { title: "New Mobile Uploads" });
                     mainDoc.Set(KeyStore.OptionalRightCollection, pendingDocument);
                 }, 0);
             }

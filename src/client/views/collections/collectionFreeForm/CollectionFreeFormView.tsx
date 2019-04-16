@@ -290,7 +290,7 @@ export class CollectionFreeFormView extends CollectionSubView {
 
     @computed
     get views() {
-        let pw = this.props.CollectionView.props
+        let pw = this.props.CollectionView.props;
         var curPage = this.props.Document.GetNumber(KeyStore.CurPage, -1);
         let docviews = this.props.Document.GetList(this.props.fieldKey, [] as Document[]).filter(doc => doc).reduce((prev, doc) => {
             var page = doc.GetNumber(KeyStore.Page, -1);

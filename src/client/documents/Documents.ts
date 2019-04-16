@@ -256,6 +256,10 @@ export namespace Documents {
         return assignToDelegate(SetInstanceOptions(collProto, { ...options, viewType: CollectionViewType.Docking }, [config, TextField], id), options);
     }
 
+    export function StackingDocument(documents: Array<Document>, options: DocumentOptions, id?: string) {
+        return assignToDelegate(SetInstanceOptions(collProto, { ...options, viewType: CollectionViewType.Stacking }, [documents, ListField], id), options);
+    }
+
     export function CaptionDocument(doc: Document) {
         const captionDoc = doc.CreateAlias();
         captionDoc.SetText(KeyStore.OverlayLayout, FixedCaption());
