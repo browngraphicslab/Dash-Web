@@ -267,6 +267,13 @@ export const marks: { [index: string]: MarkSpec } = {
         }]
     },
 
+    crimson: {
+        parseDOM: [{ style: 'font-family: "Crimson Text", sans-serif;' }],
+        toDOM: () => ['span', {
+            style: 'font-family: "Crimson Text", sans-serif;'
+        }]
+    },
+
     /** FONT SIZES */
 
     p10: {

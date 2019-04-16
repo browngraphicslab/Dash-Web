@@ -30,9 +30,14 @@ export class TooltipTextMenu {
     private fontStyles: MarkType[];
     private fontSizes: MarkType[];
     private editorProps: FieldViewProps;
+    private state: EditorState;
+    private fontSizeToNum: Map<MarkType, number>;
+    private fontStylesToName: Map<MarkType, string>;
+    private fontSizeIndicator: HTMLSpanElement = document.createElement("span");
 
     constructor(view: EditorView, editorProps: FieldViewProps) {
         this.view = view;
+        this.state = view.state;
         this.editorProps = editorProps;
         this.tooltip = document.createElement("div");
         this.tooltip.className = "tooltipMenu";
@@ -66,25 +71,28 @@ export class TooltipTextMenu {
 
         });
 
-        //dropdowns
-        //list of font btns to add
-        this.fontStyles = [
-            schema.marks.timesNewRoman,
-            schema.marks.arial,
-            schema.marks.georgia,
-            schema.marks.comicSans,
-            schema.marks.tahoma,
-            schema.marks.impact,
-        ];
-        this.fontSizes = [
-            schema.marks.p10,
-            schema.marks.p12,
-            schema.marks.p16,
-            schema.marks.p24,
-            schema.marks.p32,
-            schema.marks.p48,
-            schema.marks.p72,
-        ];
+        //list of font styles
+        this.fontStylesToName = new Map();
+        this.fontStylesToName.set(schema.marks.timesNewRoman, "Times New Roman");
+        this.fontStylesToName.set(schema.marks.arial, "Arial");
+        this.fontStylesToName.set(schema.marks.georgia, "Georgia");
+        this.fontStylesToName.set(schema.marks.comicSans, "Comic Sans");
+        this.fontStylesToName.set(schema.marks.tahoma, "Tahoma");
+        this.fontStylesToName.set(schema.marks.impact, "Impact");
+        this.fontStylesToName.set(schema.marks.crimson, "Crimson Text");
+        this.fontStyles = Array.from(this.fontStylesToName.keys());
+
+        //font sizes
+        this.fontSizeToNum = new Map();
+        this.fontSizeToNum.set(schema.marks.p10, 10);
+        this.fontSizeToNum.set(schema.marks.p12, 12);
+        this.fontSizeToNum.set(schema.marks.p16, 16);
+        this.fontSizeToNum.set(schema.marks.p24, 24);
+        this.fontSizeToNum.set(schema.marks.p32, 32);
+        this.fontSizeToNum.set(schema.marks.p48, 48);
+        this.fontSizeToNum.set(schema.marks.p72, 72);
+        this.fontSizes = Array.from(this.fontSizeToNum.keys());
+
         this.addFontDropdowns();
 
         this.update(view, undefined);
@@ -94,30 +102,29 @@ export class TooltipTextMenu {
     addFontDropdowns() {
         //filtering function - might be unecessary
         let cut = (arr: MenuItem[]) => arr.filter(x => x);
-        let fontBtns = [
-            this.dropdownBtn("Times New Roman", "font-family: Times New Roman, Times, serif; width: 120px;", schema.marks.timesNewRoman, this.view, this.changeToMarkInGroup, this.fontStyles),
-            this.dropdownBtn("Arial", "font-family: Arial, Helvetica, sans-serif; width: 120px;", schema.marks.arial, this.view, this.changeToMarkInGroup, this.fontStyles),
-            this.dropdownBtn("Georgia", "font-family: Georgia, serif; width: 120px; width: 120px;", schema.marks.georgia, this.view, this.changeToMarkInGroup, this.fontStyles),
-            this.dropdownBtn("ComicSans", "font-family: Comic Sans MS, cursive, sans-serif; width: 120px;", schema.marks.comicSans, this.view, this.changeToMarkInGroup, this.fontStyles),
-            this.dropdownBtn("Tahoma", "font-family: Tahoma, Geneva, sans-serif; width: 120px;", schema.marks.tahoma, this.view, this.changeToMarkInGroup, this.fontStyles),
-            this.dropdownBtn("Impact", "font-family: Impact, Charcoal, sans-serif; width: 120px;", schema.marks.impact, this.view, this.changeToMarkInGroup, this.fontStyles),
-        ];
+        //font STYLES
+        let fontBtns: MenuItem[] = [];
+        this.fontStylesToName.forEach((name, mark) => {
+            fontBtns.push(this.dropdownBtn(name, "font-family: " + name + ", sans-serif; width: 120px;", mark, this.view, this.changeToMarkInGroup, this.fontStyles));
+        });
 
-        let fontSizeBtns = [
-            this.dropdownBtn("10", "width: 50px;", schema.marks.p10, this.view, this.changeToMarkInGroup, this.fontSizes),
-            this.dropdownBtn("12", "width: 50px;", schema.marks.p12, this.view, this.changeToMarkInGroup, this.fontSizes),
-            this.dropdownBtn("16", "width: 50px;", schema.marks.p16, this.view, this.changeToMarkInGroup, this.fontSizes),
-            this.dropdownBtn("24", "width: 50px;", schema.marks.p24, this.view, this.changeToMarkInGroup, this.fontSizes),
-            this.dropdownBtn("32", "width: 50px;", schema.marks.p32, this.view, this.changeToMarkInGroup, this.fontSizes),
-            this.dropdownBtn("48", "width: 50px;", schema.marks.p48, this.view, this.changeToMarkInGroup, this.fontSizes),
-            this.dropdownBtn("72", "width: 50px;", schema.marks.p72, this.view, this.changeToMarkInGroup, this.fontSizes),
-        ];
+        //font size indicator
+        this.fontSizeIndicator = this.icon("12", "font-size-indicator");
+
+        //font SIZES
+        let fontSizeBtns: MenuItem[] = [];
+        this.fontSizeToNum.forEach((number, mark) => {
+            fontSizeBtns.push(this.dropdownBtn(String(number), "width: 50px;", mark, this.view, this.changeToMarkInGroup, this.fontSizes));
+        });
 
         //dropdown to hold font btns
         let dd_fontStyle = new Dropdown(cut(fontBtns), { label: "Font Style", css: "color:white;" }) as MenuItem;
-        let dd_fontSize = new Dropdown(cut(fontSizeBtns), { label: "Font Size", css: "color:white;" }) as MenuItem;
+        let dd_fontSize = new Dropdown(cut(fontSizeBtns), { label: "Font Size", css: "color:white; margin-left: -6px;" }) as MenuItem;
         this.tooltip.appendChild(dd_fontStyle.render(this.view).dom);
+        this.tooltip.appendChild(this.fontSizeIndicator);
         this.tooltip.appendChild(dd_fontSize.render(this.view).dom);
+        dd_fontStyle.render(this.view).dom.nodeValue = "TEST";
+        console.log(dd_fontStyle.render(this.view).dom.nodeValue);
     }
 
     //for a specific grouping of marks (passed in), remove all and apply the passed-in one to the selected text
@@ -169,7 +176,7 @@ export class TooltipTextMenu {
     // Helper function to create menu icons
     icon(text: string, name: string) {
         let span = document.createElement("span");
-        span.className = "menuicon " + name;
+        span.className = name + " menuicon";
         span.title = name;
         span.textContent = text;
         span.style.color = "white";
@@ -241,6 +248,49 @@ export class TooltipTextMenu {
 
         this.tooltip.style.width = 220 + "px";
         this.tooltip.style.bottom = (box.bottom - start.top) * this.editorProps.ScreenToLocalTransform().Scale + "px";
+
+        let activeStyles = this.activeMarksOnSelection(this.fontStyles);
+        if (activeStyles.length === 1) {
+            // if we want to update something somewhere with active font name
+            let fontName = this.fontStylesToName.get(activeStyles[0]);
+        } else if (activeStyles.length === 0) {
+            //crimson on default
+        }
+
+        //update font size indicator
+        let activeSizes = this.activeMarksOnSelection(this.fontSizes);
+        if (activeSizes.length === 1) { //if there's only one active font size
+            let size = this.fontSizeToNum.get(activeSizes[0]);
+            if (size) {
+                this.fontSizeIndicator.innerHTML = String(size);
+            }
+            //should be 14 on default
+        } else if (activeSizes.length === 0) {
+            this.fontSizeIndicator.innerHTML = "14";
+            //multiple font sizes selected
+        } else {
+            this.fontSizeIndicator.innerHTML = "";
+        }
+    }
+
+    //finds all active marks on selection
+    activeMarksOnSelection(markGroup: MarkType[]) {
+        //current selection
+        let { empty, $cursor, ranges } = this.view.state.selection as TextSelection;
+        let state = this.view.state;
+        let dispatch = this.view.dispatch;
+
+        let activeMarks = markGroup.filter(mark => {
+            if (dispatch) {
+                let has = false, tr = state.tr;
+                for (let i = 0; !has && i < ranges.length; i++) {
+                    let { $from, $to } = ranges[i];
+                    return state.doc.rangeHasMark($from.pos, $to.pos, mark);
+                }
+            }
+            return false;
+        });
+        return activeMarks;
     }
 
     destroy() { this.tooltip.remove(); }
