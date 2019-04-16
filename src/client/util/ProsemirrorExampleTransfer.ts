@@ -7,6 +7,7 @@ import { wrapInList, splitListItem, liftListItem, sinkListItem } from "prosemirr
 import { undo, redo } from "prosemirror-history";
 import { undoInputRule } from "prosemirror-inputrules";
 import { Transaction, EditorState } from "prosemirror-state";
+import { MenuItem } from "prosemirror-menu";
 
 const mac = typeof navigator !== "undefined" ? /Mac/.test(navigator.platform) : false;
 

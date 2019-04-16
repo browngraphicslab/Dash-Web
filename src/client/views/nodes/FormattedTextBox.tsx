@@ -9,7 +9,7 @@ import { KeyStore } from "../../../fields/KeyStore";
 import { RichTextField } from "../../../fields/RichTextField";
 import { TextField } from "../../../fields/TextField";
 import { Document } from "../../../fields/Document";
-import buildKeymap from "../../util/ProsemirrorKeymap";
+import buildKeymap from "../../util/ProsemirrorExampleTransfer";
 import { inpRules } from "../../util/RichTextRules";
 import { schema } from "../../util/RichTextSchema";
 import { TooltipLinkingMenu } from "../../util/TooltipLinkingMenu";

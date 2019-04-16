@@ -18,6 +18,7 @@ import {
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { FieldViewProps } from "../views/nodes/FieldView";
 import { throwStatement } from "babel-types";
+const { openPrompt, TextField } = require("./ProsemirrorCopy/prompt.js");
 
 const SVG = "http://www.w3.org/2000/svg";
 
@@ -123,6 +124,9 @@ export class TooltipTextMenu {
         this.tooltip.appendChild(dd_fontStyle.render(this.view).dom);
         this.tooltip.appendChild(this.fontSizeIndicator);
         this.tooltip.appendChild(dd_fontSize.render(this.view).dom);
+
+        this.tooltip.appendChild(this.createLink().render(this.view).dom);
+
         dd_fontStyle.render(this.view).dom.nodeValue = "TEST";
         console.log(dd_fontStyle.render(this.view).dom.nodeValue);
     }
@@ -173,6 +177,48 @@ export class TooltipTextMenu {
             }
         });
     }
+
+    createLink() {
+        let markType = schema.marks.link;
+        return new MenuItem({
+            title: "Add or remove link",
+            label: "Add or remove link",
+            execEvent: "",
+            icon: icons.link,
+            css: "color:white;",
+            class: "menuicon",
+            enable(state) { return !state.selection.empty },
+            run: (state, dispatch, view) => {
+                // to remove link
+                if (this.markActive(state, markType)) {
+                    toggleMark(markType)(state, dispatch);
+                    return true;
+                }
+                // to create link
+                openPrompt({
+                    title: "Create a link",
+                    fields: {
+                        href: new TextField({
+                            label: "Link target",
+                            required: true
+                        }),
+                        title: new TextField({ label: "Title" })
+                    },
+                    callback(attrs: any) {
+                        toggleMark(markType, attrs)(view.state, view.dispatch);
+                        view.focus();
+                    }
+                });
+            }
+        });
+    }
+
+    markActive = function (state: EditorState<any>, type: MarkType<Schema<string, string>>) {
+        let { from, $from, to, empty } = state.selection
+        if (empty) return type.isInSet(state.storedMarks || $from.marks())
+        else return state.doc.rangeHasMark(from, to, type)
+    }
+
     // Helper function to create menu icons
     icon(text: string, name: string) {
         let span = document.createElement("span");
