@@ -124,7 +124,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         this._dragging = true;
         document.removeEventListener("pointermove", this.onBackgroundMove);
         document.removeEventListener("pointerup", this.onBackgroundUp);
-        DragManager.StartDocumentDrag(SelectionManager.SelectedDocuments().map(docView => docView.ContentRef.current!), dragData, e.x, e.y, {
+        DragManager.StartDocumentDrag(SelectionManager.SelectedDocuments().map(docView => docView.ContentDiv!), dragData, e.x, e.y, {
             handlers: {
                 dragComplete: action(() => this._dragging = false),
             },
@@ -176,8 +176,6 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     }
     onMinimizeMove = (e: PointerEvent): void => {
         e.stopPropagation();
-        if (e.button === 0) {
-        }
     }
     onMinimizeUp = (e: PointerEvent): void => {
         e.stopPropagation();
@@ -302,7 +300,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
 
         MainOverlayTextBox.Instance.SetTextDoc();
         SelectionManager.SelectedDocuments().forEach(element => {
-            const rect = element.screenRect();
+            const rect = element.ContentDiv ? element.ContentDiv.getBoundingClientRect() : new DOMRect();
+
             if (rect.width !== 0) {
                 let doc = element.props.Document;
                 let width = doc.GetNumber(KeyStore.Width, 0);

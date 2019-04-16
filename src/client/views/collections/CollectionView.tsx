@@ -10,6 +10,7 @@ import { CurrentUserUtils } from '../../../server/authentication/models/current_
 import { KeyStore } from '../../../fields/KeyStore';
 import { observer } from 'mobx-react';
 import { undoBatch } from '../../util/UndoManager';
+import { trace } from 'mobx';
 
 @observer
 export class CollectionView extends React.Component<FieldViewProps> {
