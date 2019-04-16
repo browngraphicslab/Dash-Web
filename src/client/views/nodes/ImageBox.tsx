@@ -13,9 +13,12 @@ import React = require("react");
 import { Utils } from '../../../Utils';
 import { ListField } from '../../../fields/ListField';
 import { DragManager } from '../../util/DragManager';
-import { undoBatch } from '../../util/UndoManager';
+import { undoBatch, UndoManager } from '../../util/UndoManager';
 import { TextField } from '../../../fields/TextField';
 import { Document } from '../../../fields/Document';
+import { RouteStore } from '../../../server/RouteStore';
+import { ServerUtils } from '../../../server/ServerUtil';
+import { CollectionSubView } from '../collections/CollectionSubView';
 
 @observer
 export class ImageBox extends React.Component<FieldViewProps> {
@@ -43,7 +46,7 @@ export class ImageBox extends React.Component<FieldViewProps> {
     onLoad = (target: any) => {
         var h = this._imgRef.current!.naturalHeight;
         var w = this._imgRef.current!.naturalWidth;
-        this.props.Document.SetNumber(KeyStore.NativeHeight, this.props.Document.GetNumber(KeyStore.NativeWidth, 0) * h / w);
+        if (this._photoIndex == 0) this.props.Document.SetNumber(KeyStore.NativeHeight, this.props.Document.GetNumber(KeyStore.NativeWidth, 0) * h / w);
     }
 
     componentDidMount() {
@@ -59,6 +62,12 @@ export class ImageBox extends React.Component<FieldViewProps> {
     }
 
     componentWillUnmount() {
+    }
+
+    onDrop = (e: React.DragEvent) => {
+        e.stopPropagation();
+        e.preventDefault();
+        console.log("IMPLEMENT ME PLEASE")
     }
 
 
@@ -139,6 +148,22 @@ export class ImageBox extends React.Component<FieldViewProps> {
         }
     }
 
+    @action
+    onDotDown(index: number) {
+        this._photoIndex = index;
+    }
+
+    dots(paths: string[]) {
+        let nativeWidth = this.props.Document.GetNumber(KeyStore.NativeWidth, 1);
+        let dist = Math.min(nativeWidth / paths.length, 40);
+        let left = (nativeWidth - paths.length * dist) / 2;
+        return paths.map((p, i) =>
+            <div className="imageBox-placer"  >
+                <div className="imageBox-dot" style={{ transform: `translate(${i * dist + left}px, 0px)` }} key={`i`} onPointerDown={(e: React.PointerEvent) => { e.stopPropagation(); this.onDotDown(i); }} />
+            </div>
+        )
+    }
+
     render() {
         let field = this.props.Document.Get(this.props.fieldKey);
         let paths: string[] = ["http://www.cs.brown.edu/~bcz/face.gif"];
@@ -147,8 +172,9 @@ export class ImageBox extends React.Component<FieldViewProps> {
         else if (field instanceof ListField) paths = field.Data.filter(val => val as ImageField).map(p => (p as ImageField).Data.href);
         let nativeWidth = this.props.Document.GetNumber(KeyStore.NativeWidth, 1);
         return (
-            <div className="imageBox-cont" onPointerDown={this.onPointerDown} ref={this.createDropTarget} onContextMenu={this.specificContextMenu}>
-                <img src={paths[0]} width={nativeWidth} alt="Image not found" ref={this._imgRef} onLoad={this.onLoad} />
+            <div className="imageBox-cont" onPointerDown={this.onPointerDown} onDrop={this.onDrop} ref={this.createDropTarget} onContextMenu={this.specificContextMenu}>
+                <img src={paths[Math.min(paths.length, this._photoIndex)]} style={{ objectFit: (this._photoIndex == 0 ? undefined : "contain") }} width={nativeWidth} alt="Image not found" ref={this._imgRef} onLoad={this.onLoad} />
+                {this.dots(paths)}
                 {this.lightbox(paths)}
             </div>);
     }

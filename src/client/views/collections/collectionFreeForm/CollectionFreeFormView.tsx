@@ -254,7 +254,6 @@ export class CollectionFreeFormView extends CollectionSubView {
 
     @computed
     get views() {
-        trace();
         var curPage = this.props.Document.GetNumber(KeyStore.CurPage, -1);
         let docviews = this.props.Document.GetList(this.props.fieldKey, [] as Document[]).filter(doc => doc).reduce((prev, doc) => {
             var page = doc.GetNumber(KeyStore.Page, -1);
@@ -280,7 +279,6 @@ export class CollectionFreeFormView extends CollectionSubView {
     }
 
     render() {
-        trace();
         const containerName = `collectionfreeformview${this.isAnnotationOverlay ? "-overlay" : "-container"}`;
         return (
             <Measure onResize={this.onResize}>
