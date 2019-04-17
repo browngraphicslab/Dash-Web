@@ -24,6 +24,14 @@ export interface Transferable {
     readonly data?: any;
 }
 
+export interface Reference {
+    readonly id: string;
+}
+
+export interface Diff extends Reference {
+    readonly diff: any;
+}
+
 export namespace MessageStore {
     export const Foo = new Message<string>("Foo");
     export const Bar = new Message<string>("Bar");
@@ -32,4 +40,8 @@ export namespace MessageStore {
     export const GetFields = new Message<string[]>("Get Fields"); // send string[] of 'id' get Transferable[] back
     export const GetDocument = new Message<string>("Get Document");
     export const DeleteAll = new Message<any>("Delete All");
+
+    export const GetRefField = new Message<string>("Get Ref Field");
+    export const UpdateField = new Message<Diff>("Update Ref Field");
+    export const CreateField = new Message<Reference>("Create Ref Field");
 }

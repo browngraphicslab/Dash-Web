@@ -13,14 +13,14 @@ export class Database {
         this.MongoClient.connect(this.url, (err, client) => this.db = client.db());
     }
 
-    public update(id: string, value: any, callback: () => void) {
+    public update(id: string, value: any, callback: () => void, upsert = true, collectionName = Database.DocumentsCollection) {
         if (this.db) {
-            let collection = this.db.collection('documents');
+            let collection = this.db.collection(collectionName);
             const prom = this.currentWrites[id];
             let newProm: Promise<void>;
             const run = (): Promise<void> => {
                 return new Promise<void>(resolve => {
-                    collection.updateOne({ _id: id }, { $set: value }, { upsert: true }
+                    collection.updateOne({ _id: id }, { $set: value }, { upsert }
                         , (err, res) => {
                             if (err) {
                                 console.log(err.message);
@@ -51,10 +51,12 @@ export class Database {
             this.db && this.db.collection(collectionName).deleteMany({}, res));
     }
 
-    public insert(kvpairs: any, collectionName = Database.DocumentsCollection) {
-        this.db && this.db.collection(collectionName).insertOne(kvpairs, (err, res) =>
-            err // &&  console.log(err)
-        );
+    public insert(value: any, collectionName = Database.DocumentsCollection) {
+        if ("id" in value) {
+            value._id = value.id;
+            delete value.id;
+        }
+        this.db && this.db.collection(collectionName).insertOne(value);
     }
 
     public getDocument(id: string, fn: (result?: Transferable) => void, collectionName = Database.DocumentsCollection) {

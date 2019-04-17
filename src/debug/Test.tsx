@@ -7,8 +7,8 @@ import { SerializationHelper } from '../client/util/SerializationHelper';
 class Test extends React.Component {
     onClick = () => {
         const url = new URLField(new URL("http://google.com"));
-        const doc = new Doc("a");
-        const doc2 = new Doc("b");
+        const doc = new Doc();
+        const doc2 = new Doc();
         doc.hello = 5;
         doc.fields = "test";
         doc.test = "hello doc";
@@ -16,7 +16,7 @@ class Test extends React.Component {
         doc.testDoc = doc2;
 
         console.log("doc", doc);
-        const cereal = Doc.Serialize(doc);
+        const cereal = SerializationHelper.Serialize(doc);
         console.log("cereal", cereal);
         console.log("doc again", SerializationHelper.Deserialize(cereal));
     }

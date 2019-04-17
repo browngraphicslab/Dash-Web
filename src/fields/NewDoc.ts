@@ -1,16 +1,24 @@
 import { observable, action } from "mobx";
 import { Server } from "../client/Server";
 import { UndoManager } from "../client/util/UndoManager";
-import { serialize, deserialize, serializable, primitive, map, alias } from "serializr";
+import { serializable, primitive, map, alias } from "serializr";
 import { autoObject, SerializationHelper, Deserializable } from "../client/util/SerializationHelper";
+import { Utils } from "../Utils";
+import { DocServer } from "../client/DocServer";
 
+export const HandleUpdate = Symbol("HandleUpdate");
+const Id = Symbol("Id");
 export abstract class RefField {
     @serializable(alias("id", primitive()))
-    readonly __id: string;
+    private __id: string;
+    readonly [Id]: string;
 
-    constructor(id: string) {
-        this.__id = id;
+    constructor(id?: string) {
+        this.__id = id || Utils.GenerateGuid();
+        this[Id] = this.__id;
     }
+
+    protected [HandleUpdate]?(diff: any): void;
 }
 
 const Update = Symbol("Update");
@@ -31,10 +39,10 @@ function url() {
     };
 }
 
-@Deserializable
+@Deserializable("url")
 export class URLField extends ObjectField {
     @serializable(url())
-    url: URL;
+    readonly url: URL;
 
     constructor(url: URL) {
         super();
@@ -42,7 +50,7 @@ export class URLField extends ObjectField {
     }
 }
 
-@Deserializable
+@Deserializable("proxy")
 export class ProxyField<T extends RefField> extends ObjectField {
     constructor();
     constructor(value: T);
@@ -50,7 +58,7 @@ export class ProxyField<T extends RefField> extends ObjectField {
         super();
         if (value) {
             this.cache = value;
-            this.fieldId = value.__id;
+            this.fieldId = value[Id];
         }
     }
 
@@ -94,19 +102,26 @@ export class ProxyField<T extends RefField> extends ObjectField {
 }
 
 export type Field = number | string | boolean | ObjectField | RefField;
+export type Opt<T> = T | undefined;
+export type FieldWaiting = null;
+export const FieldWaiting: FieldWaiting = null;
 
 const Self = Symbol("Self");
 
-@Deserializable
+@Deserializable("doc").withFields(["id"])
 export class Doc extends RefField {
 
     private static setter(target: any, prop: string | symbol | number, value: any, receiver: any): boolean {
-        if (prop === "__id" || prop === "__fields") {
+        if (SerializationHelper.IsSerializing()) {
+            target[prop] = value;
+            return true;
+        }
+        if (typeof prop === "symbol") {
             target[prop] = value;
             return true;
         }
         const curValue = target.__fields[prop];
-        if (curValue === value || (curValue instanceof ProxyField && value instanceof RefField && curValue.fieldId === value.__id)) {
+        if (curValue === value || (curValue instanceof ProxyField && value instanceof RefField && curValue.fieldId === value[Id])) {
             // TODO This kind of checks correctly in the case that curValue is a ProxyField and value is a RefField, but technically
             // curValue should get filled in with value if it isn't already filled in, in case we fetched the referenced field some other way
             return true;
@@ -120,7 +135,7 @@ export class Doc extends RefField {
             }
             value[Parent] = target;
             value[Update] = (diff?: any) => {
-                if (!diff) diff = serialize(value);
+                if (!diff) diff = SerializationHelper.Serialize(value);
                 target[Update]({ [prop]: diff });
             };
         }
@@ -129,7 +144,7 @@ export class Doc extends RefField {
             delete curValue[Update];
         }
         target.__fields[prop] = value;
-        target[Update]({ [prop]: typeof value === "object" ? serialize(value) : value });
+        target[Update]({ ["fields." + prop]: value instanceof ObjectField ? SerializationHelper.Serialize(value) : (value === undefined ? null : value) });
         UndoManager.AddEvent({
             redo: () => receiver[prop] = value,
             undo: () => receiver[prop] = curValue
@@ -141,7 +156,7 @@ export class Doc extends RefField {
         if (typeof prop === "symbol") {
             return target[prop];
         }
-        if (prop === "__id" || prop === "__fields") {
+        if (SerializationHelper.IsSerializing()) {
             return target[prop];
         }
         return Doc.getField(target, prop, receiver);
@@ -174,7 +189,7 @@ export class Doc extends RefField {
         return SerializationHelper.Serialize(doc[Self]);
     }
 
-    constructor(id: string) {
+    constructor(id?: string, forceSave?: boolean) {
         super(id);
         const doc = new Proxy<this>(this, {
             set: Doc.setter,
@@ -182,6 +197,9 @@ export class Doc extends RefField {
             deleteProperty: () => { throw new Error("Currently properties can't be deleted from documents, assign to undefined instead"); },
             defineProperty: () => { throw new Error("Currently properties can't be defined on documents using Object.defineProperty"); },
         });
+        if (!id || forceSave) {
+            DocServer.CreateField(SerializationHelper.Serialize(doc));
+        }
         return doc;
     }
 
@@ -191,8 +209,8 @@ export class Doc extends RefField {
     @observable
     private __fields: { [key: string]: Field | null | undefined } = {};
 
-    private [Update] = (diff?: any) => {
-        console.log(JSON.stringify(diff || this));
+    private [Update] = (diff: any) => {
+        DocServer.UpdateField(this[Id], diff);
     }
 
     private [Self] = this;
