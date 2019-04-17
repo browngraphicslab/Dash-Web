@@ -190,7 +190,7 @@ export class Main extends React.Component {
                             selectOnLoad={false}
                             focus={emptyDocFunction}
                             parentActive={returnTrue}
-                            onActiveChanged={emptyFunction}
+                            whenActiveChanged={emptyFunction}
                             ContainingCollectionView={undefined} />}
                 </div>
             }

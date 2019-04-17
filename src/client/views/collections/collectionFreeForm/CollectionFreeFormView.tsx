@@ -248,7 +248,7 @@ export class CollectionFreeFormView extends CollectionSubView {
             ContainingCollectionView: this.props.CollectionView,
             focus: this.focusDocument,
             parentActive: this.props.active,
-            onActiveChanged: this.props.active,
+            whenActiveChanged: this.props.active,
         };
     }
 

@@ -24,7 +24,7 @@ import { EditableView } from "../EditableView";
 import { DocumentView } from "../nodes/DocumentView";
 import { FieldView, FieldViewProps } from "../nodes/FieldView";
 import "./CollectionSchemaView.scss";
-import { CollectionSubView } from "./CollectionSubView";
+import { CollectionSubView, SubCollectionViewProps } from "./CollectionSubView";
 
 
 // bcz: need to add drag and drop of rows and columns.  This seems like it might work for rows: https://codesandbox.io/s/l94mn1q657
@@ -70,7 +70,6 @@ export class CollectionSchemaView extends CollectionSubView {
 
     @computed get splitPercentage() { return this.props.Document.GetNumber(KeyStore.SchemaSplitPercentage, 0); }
 
-
     renderCell = (rowProps: CellInfo) => {
         let props: FieldViewProps = {
             Document: rowProps.value[0],
@@ -83,7 +82,7 @@ export class CollectionSchemaView extends CollectionSubView {
             ScreenToLocalTransform: Transform.Identity,
             focus: emptyDocFunction,
             active: returnFalse,
-            onActiveChanged: emptyFunction,
+            whenActiveChanged: emptyFunction,
         };
         let contents = (
             <FieldView {...props} />
@@ -285,7 +284,7 @@ export class CollectionSchemaView extends CollectionSubView {
         this._optionsActivated++;
     }
 
-    @observable previewScript: string = "this";
+    @observable previewScript: string = "";
     @action
     onPreviewScriptChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         this.previewScript = e.currentTarget.value;
@@ -299,7 +298,7 @@ export class CollectionSchemaView extends CollectionSubView {
         const selected = children.length > this._selectedIndex ? children[this._selectedIndex] : undefined;
         //all the keys/columns that will be displayed in the schema
         const allKeys = this.findAllDocumentKeys;
-        let doc: any = selected ? selected.Get(new Key(this.previewScript)) : undefined;
+        let doc: any = selected ? (this.previewScript ? selected.Get(new Key(this.previewScript)) : selected) : undefined;
 
         // let doc = CompileScript(this.previewScript, { this: selected }, true)();
         let content = this._selectedIndex === -1 || !selected ? (null) : (
@@ -318,7 +317,7 @@ export class CollectionSchemaView extends CollectionSubView {
                                 ContainingCollectionView={this.props.CollectionView}
                                 focus={emptyDocFunction}
                                 parentActive={this.props.active}
-                                onActiveChanged={this.props.onActiveChanged} /> : null}
+                                whenActiveChanged={this.props.whenActiveChanged} /> : null}
                         <input value={this.previewScript} onChange={this.onPreviewScriptChange}
                             style={{ position: 'absolute', bottom: '0px' }} />
                     </div>

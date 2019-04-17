@@ -43,7 +43,7 @@ export interface FieldViewProps {
     moveDocument?: (document: Document, targetCollection: Document, addDocument: (document: Document) => boolean) => boolean;
     ScreenToLocalTransform: () => Transform;
     active: () => boolean;
-    onActiveChanged: (isActive: boolean) => void;
+    whenActiveChanged: (isActive: boolean) => void;
     focus: (doc: Document) => void;
 }
 
@@ -95,7 +95,7 @@ export class FieldView extends React.Component<FieldViewProps> {
                     layoutKey={KeyStore.Layout}
                     ContainingCollectionView={this.props.ContainingCollectionView}
                     parentActive={this.props.active}
-                    onActiveChanged={this.props.onActiveChanged} />
+                    whenActiveChanged={this.props.whenActiveChanged} />
             );
         }
         else if (field instanceof ListField) {

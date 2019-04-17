@@ -39,7 +39,7 @@ export interface DocumentViewProps {
     focus: (doc: Document) => void;
     selectOnLoad: boolean;
     parentActive: () => boolean;
-    onActiveChanged: (isActive: boolean) => void;
+    whenActiveChanged: (isActive: boolean) => void;
 }
 export interface JsxArgs extends DocumentViewProps {
     Keys: { [name: string]: Key };

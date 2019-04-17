@@ -18,13 +18,13 @@ export namespace SelectionManager {
 
             if (manager.SelectedDocuments.indexOf(doc) === -1) {
                 manager.SelectedDocuments.push(doc);
-                doc.props.onActiveChanged(true);
+                doc.props.whenActiveChanged(true);
             }
         }
 
         @action
         DeselectAll(): void {
-            manager.SelectedDocuments.map(dv => dv.props.onActiveChanged(false));
+            manager.SelectedDocuments.map(dv => dv.props.whenActiveChanged(false));
             manager.SelectedDocuments = [];
             MainOverlayTextBox.Instance.SetTextDoc();
         }
