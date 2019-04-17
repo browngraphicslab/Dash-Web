@@ -1,29 +1,32 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
-import JsxParser from 'react-jsx-parser';
-
-class Hello extends React.Component<{ firstName: string, lastName: string }> {
-    render() {
-        return <div>Hello {this.props.firstName} {this.props.lastName}</div>;
-    }
-}
+import { serialize, deserialize, map } from 'serializr';
+import { URLField, Doc } from '../fields/NewDoc';
 
 class Test extends React.Component {
+    onClick = () => {
+        const url = new URLField(new URL("http://google.com"));
+        const doc = new Doc("a");
+        const doc2 = new Doc("b");
+        doc.hello = 5;
+        doc.fields = "test";
+        doc.test = "hello doc";
+        doc.url = url;
+        doc.testDoc = doc2;
+
+        console.log(doc.hello);
+        console.log(doc.fields);
+        console.log(doc.test);
+        console.log(doc.url);
+        console.log(doc.testDoc);
+    }
+
     render() {
-        let jsx = "<Hello {...props}/>";
-        let bindings = {
-            props: {
-                firstName: "First",
-                lastName: "Last"
-            }
-        };
-        return <JsxParser jsx={jsx} bindings={bindings} components={{ Hello }}></JsxParser>;
+        return <button onClick={this.onClick}>Click me</button>;
     }
 }
 
-ReactDOM.render((
-    <div style={{ position: "absolute", width: "100%", height: "100%" }}>
-        <Test />
-    </div>),
+ReactDOM.render(
+    <Test />,
     document.getElementById('root')
 );
