@@ -12,7 +12,7 @@ import { Field, Opt } from "../../../fields/Field";
 import { Key } from "../../../fields/Key";
 import { KeyStore } from "../../../fields/KeyStore";
 import { ListField } from "../../../fields/ListField";
-import { emptyDocFunction, emptyFunction, returnFalse, returnOne } from "../../../Utils";
+import { emptyDocFunction, emptyFunction, returnFalse, returnOne, Utils } from "../../../Utils";
 import { Server } from "../../Server";
 import { SetupDrag } from "../../util/DragManager";
 import { CompileScript, ToField } from "../../util/Scripting";
@@ -25,6 +25,7 @@ import { DocumentView } from "../nodes/DocumentView";
 import { FieldView, FieldViewProps } from "../nodes/FieldView";
 import "./CollectionSchemaView.scss";
 import { CollectionSubView, SubCollectionViewProps } from "./CollectionSubView";
+import { CollectionDockingView } from "./CollectionDockingView";
 
 
 // bcz: need to add drag and drop of rows and columns.  This seems like it might work for rows: https://codesandbox.io/s/l94mn1q657
@@ -60,7 +61,6 @@ export class CollectionSchemaView extends CollectionSubView {
     private DIVIDER_WIDTH = 4;
 
     @observable _columns: Array<Key> = [KeyStore.Title, KeyStore.Data, KeyStore.Author];
-    @observable _contentScaling = 1; // used to transfer the dimensions of the content pane in the DOM to the ContentScaling prop of the DocumentView
     @observable _dividerX = 0;
     @observable _panelWidth = 0;
     @observable _panelHeight = 0;
@@ -234,22 +234,9 @@ export class CollectionSchemaView extends CollectionSubView {
     setTableDimensions = (r: any) => {
         this._tableWidth = r.entry.width;
     }
-    @action
-    setScaling = (r: any) => {
-        const children = this.props.Document.GetList(this.props.fieldKey, [] as Document[]);
-        const selected = children.length > this._selectedIndex ? children[this._selectedIndex] : undefined;
-        this._panelWidth = r.entry.width;
-        this._panelHeight = r.entry.height ? r.entry.height : this._panelHeight;
-        this._contentScaling = r.entry.width / selected!.GetNumber(KeyStore.NativeWidth, r.entry.width);
-    }
 
     @computed
     get borderWidth() { return COLLECTION_BORDER_WIDTH; }
-    getContentScaling = (): number => this._contentScaling;
-    getPanelWidth = (): number => this._panelWidth;
-    getPanelHeight = (): number => this._panelHeight;
-    getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(- this.borderWidth - this.DIVIDER_WIDTH - this._dividerX, - this.borderWidth).scale(1 / this._contentScaling);
-    getPreviewTransform = (): Transform => this.props.ScreenToLocalTransform().translate(- this.borderWidth - this.DIVIDER_WIDTH - this._dividerX - this._tableWidth, - this.borderWidth).scale(1 / this._contentScaling);
 
     onPointerDown = (e: React.PointerEvent): void => {
         if (e.button === 0 && !e.altKey && !e.ctrlKey && !e.metaKey) {
@@ -289,37 +276,63 @@ export class CollectionSchemaView extends CollectionSubView {
     onPreviewScriptChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         this.previewScript = e.currentTarget.value;
     }
+    private get _document(): Document | undefined {
+        const children = this.props.Document.GetList(this.props.fieldKey, [] as Document[]);
+        const selected = children.length > this._selectedIndex ? children[this._selectedIndex] : undefined;
+        return selected ? (this.previewScript ? selected.Get(new Key(this.previewScript)) as Document : selected) : undefined;
+    }
 
+    private nativeWidth = () => this._document!.GetNumber(KeyStore.NativeWidth, this._panelWidth);
+    private nativeHeight = () => this._document!.GetNumber(KeyStore.NativeHeight, this._panelHeight);
+    private panelWidth = () => this.nativeWidth() * this._contentScaling();
+    private panelHeight = () => this.nativeHeight() * this._contentScaling();
+    private _contentScaling = () => {
+        let wscale = this._panelWidth / (this.nativeWidth() ? this.nativeWidth() : this._panelWidth);
+        if (wscale * this.nativeHeight() > this._panelHeight)
+            return this._panelHeight / (this.nativeHeight() ? this.nativeHeight() : this._panelHeight);
+        return wscale;
+    }
+    getPreviewTransform = (): Transform => this.props.ScreenToLocalTransform().translate(- this.borderWidth - this.DIVIDER_WIDTH - this._dividerX - this._tableWidth - this.offset(), - this.borderWidth).scale(1 / this._contentScaling());
+    getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(- this.borderWidth - this.DIVIDER_WIDTH - this._dividerX, - this.borderWidth).scale(1 / this._contentScaling());
+
+    offset = () => ((this.props as any).PanelWidth() * this.splitPercentage / 100 - this.nativeWidth() * this._contentScaling()) / 2;
+    @action
+    setScaling = (r: any) => {
+        this._panelWidth = r.entry.width;
+        this._panelHeight = r.entry.height ? r.entry.height : this._panelHeight;
+    }
     render() {
         library.add(faCog);
         library.add(faPlus);
+        if (!this._document)
+            return (null);
         const columns = this.columns;
-        const children = this.props.Document.GetList(this.props.fieldKey, [] as Document[]);
-        const selected = children.length > this._selectedIndex ? children[this._selectedIndex] : undefined;
-        //all the keys/columns that will be displayed in the schema
+        let doc = this._document;
+        const childs = this.props.Document.GetList(this.props.fieldKey, [] as Document[]);
         const allKeys = this.findAllDocumentKeys;
-        let doc: any = selected ? (this.previewScript ? selected.Get(new Key(this.previewScript)) : selected) : undefined;
-
         // let doc = CompileScript(this.previewScript, { this: selected }, true)();
-        let content = this._selectedIndex === -1 || !selected ? (null) : (
+        let offset = this.offset();
+        let content = !doc ? (null) : (
             <Measure onResize={this.setScaling}>
                 {({ measureRef }) =>
                     <div className="collectionSchemaView-content" ref={measureRef}>
-                        {doc instanceof Document ?
-                            <DocumentView Document={doc}
-                                addDocument={this.props.addDocument} removeDocument={this.props.removeDocument}
-                                isTopMost={false}
-                                selectOnLoad={false}
-                                ScreenToLocalTransform={this.getPreviewTransform}
-                                ContentScaling={this.getContentScaling}
-                                PanelWidth={this.getPanelWidth}
-                                PanelHeight={this.getPanelHeight}
-                                ContainingCollectionView={this.props.CollectionView}
-                                focus={emptyDocFunction}
-                                parentActive={this.props.active}
-                                whenActiveChanged={this.props.whenActiveChanged} /> : null}
-                        <input value={this.previewScript} onChange={this.onPreviewScriptChange}
-                            style={{ position: 'absolute', bottom: '0px' }} />
+                        <div style={{ transform: `translate(${offset}px, 0px)`, height: "100%", position: "absolute" }}>
+                            {doc instanceof Document ?
+                                <DocumentView Document={doc}
+                                    addDocument={this.props.addDocument} removeDocument={this.props.removeDocument}
+                                    isTopMost={false}
+                                    selectOnLoad={false}
+                                    ScreenToLocalTransform={this.getPreviewTransform}
+                                    ContentScaling={this._contentScaling}
+                                    PanelWidth={this.panelWidth}
+                                    PanelHeight={this.panelHeight}
+                                    ContainingCollectionView={this.props.CollectionView}
+                                    focus={emptyDocFunction}
+                                    parentActive={this.props.active}
+                                    whenActiveChanged={this.props.whenActiveChanged} /> : null}
+                            <input value={this.previewScript} onChange={this.onPreviewScriptChange}
+                                style={{ position: 'absolute', bottom: '0px', left: "0px" }} />
+                        </div>
                     </div>
                 }
             </Measure>
@@ -355,8 +368,8 @@ export class CollectionSchemaView extends CollectionSubView {
                         {({ measureRef }) =>
                             <div className="collectionSchemaView-tableContainer" ref={measureRef} style={{ width: `calc(100% - ${this.splitPercentage}%)` }}>
                                 <ReactTable
-                                    data={children}
-                                    pageSize={children.length}
+                                    data={childs}
+                                    pageSize={childs.length}
                                     page={0}
                                     showPagination={false}
                                     columns={columns.map(col => ({

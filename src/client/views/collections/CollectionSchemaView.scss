@@ -71,7 +71,10 @@ ul {
         position: absolute;
         height: 100%;
         width: 100%;
-        overflow: auto;
+        .documentView-node:first-child {
+            position: relative;
+            background: $light-color;
+        }
     }
     .collectionSchemaView-previewRegion {
         position: relative;
@@ -192,6 +195,11 @@ ul {
         border-bottom: $intermediate-color;
         border-bottom-style: solid;
         border-bottom-width: 1;
+    }
+    .documentView-node-topmost {
+        text-align:left;
+        transform-origin: center top;
+        display: inline-block;
     }
     .documentView-node:first-child {
         background: $light-color;
