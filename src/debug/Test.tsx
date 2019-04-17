@@ -2,6 +2,7 @@ import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import { serialize, deserialize, map } from 'serializr';
 import { URLField, Doc } from '../fields/NewDoc';
+import { SerializationHelper } from '../client/util/SerializationHelper';
 
 class Test extends React.Component {
     onClick = () => {
@@ -14,11 +15,10 @@ class Test extends React.Component {
         doc.url = url;
         doc.testDoc = doc2;
 
-        console.log(doc.hello);
-        console.log(doc.fields);
-        console.log(doc.test);
-        console.log(doc.url);
-        console.log(doc.testDoc);
+        console.log("doc", doc);
+        const cereal = Doc.Serialize(doc);
+        console.log("cereal", cereal);
+        console.log("doc again", SerializationHelper.Deserialize(cereal));
     }
 
     render() {

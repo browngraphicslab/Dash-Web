@@ -1,16 +1,15 @@
 import { observable, action } from "mobx";
 import { Server } from "../client/Server";
 import { UndoManager } from "../client/util/UndoManager";
-import { serialize, deserialize, serializable, primitive } from "serializr";
+import { serialize, deserialize, serializable, primitive, map, alias } from "serializr";
+import { autoObject, SerializationHelper, Deserializable } from "../client/util/SerializationHelper";
 
-const Type = Symbol("type");
-
-const Id = Symbol("id");
 export abstract class RefField {
-    readonly [Id]: string;
+    @serializable(alias("id", primitive()))
+    readonly __id: string;
 
     constructor(id: string) {
-        this[Id] = id;
+        this.__id = id;
     }
 }
 
@@ -31,6 +30,8 @@ function url() {
         }
     };
 }
+
+@Deserializable
 export class URLField extends ObjectField {
     @serializable(url())
     url: URL;
@@ -41,6 +42,7 @@ export class URLField extends ObjectField {
     }
 }
 
+@Deserializable
 export class ProxyField<T extends RefField> extends ObjectField {
     constructor();
     constructor(value: T);
@@ -48,7 +50,7 @@ export class ProxyField<T extends RefField> extends ObjectField {
         super();
         if (value) {
             this.cache = value;
-            this.fieldId = value[Id];
+            this.fieldId = value.__id;
         }
     }
 
@@ -94,11 +96,17 @@ export class ProxyField<T extends RefField> extends ObjectField {
 export type Field = number | string | boolean | ObjectField | RefField;
 
 const Self = Symbol("Self");
+
+@Deserializable
 export class Doc extends RefField {
 
     private static setter(target: any, prop: string | symbol | number, value: any, receiver: any): boolean {
+        if (prop === "__id" || prop === "__fields") {
+            target[prop] = value;
+            return true;
+        }
         const curValue = target.__fields[prop];
-        if (curValue === value || (curValue instanceof ProxyField && value instanceof RefField && curValue.fieldId === value[Id])) {
+        if (curValue === value || (curValue instanceof ProxyField && value instanceof RefField && curValue.fieldId === value.__id)) {
             // TODO This kind of checks correctly in the case that curValue is a ProxyField and value is a RefField, but technically
             // curValue should get filled in with value if it isn't already filled in, in case we fetched the referenced field some other way
             return true;
@@ -130,16 +138,16 @@ export class Doc extends RefField {
     }
 
     private static getter(target: any, prop: string | symbol | number, receiver: any): any {
-        if (typeof prop !== "string") {
-            return undefined;
+        if (typeof prop === "symbol") {
+            return target[prop];
+        }
+        if (prop === "__id" || prop === "__fields") {
+            return target[prop];
         }
         return Doc.getField(target, prop, receiver);
     }
 
-    private static getField(target: any, prop: string, ignoreProto: boolean = false, callback?: (field: Field | undefined) => void): any {
-        if (typeof prop === "symbol") {
-            return target.__fields[prop];
-        }
+    private static getField(target: any, prop: string | number, ignoreProto: boolean = false, callback?: (field: Field | undefined) => void): any {
         const field = target.__fields[prop];
         if (field instanceof ProxyField) {
             return field.value(callback);
@@ -162,6 +170,10 @@ export class Doc extends RefField {
         return new Promise(res => Doc.getField(self, key, ignoreProto, res));
     }
 
+    static Serialize(doc: Doc) {
+        return SerializationHelper.Serialize(doc[Self]);
+    }
+
     constructor(id: string) {
         super(id);
         const doc = new Proxy<this>(this, {
@@ -175,6 +187,7 @@ export class Doc extends RefField {
 
     [key: string]: Field | null | undefined;
 
+    @serializable(alias("fields", map(autoObject())))
     @observable
     private __fields: { [key: string]: Field | null | undefined } = {};
 
@@ -188,3 +201,5 @@ export class Doc extends RefField {
 export namespace Doc {
     export const Prototype = Symbol("Prototype");
 }
+
+export const GetAsync = Doc.GetAsync;
