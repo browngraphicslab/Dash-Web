@@ -61,9 +61,6 @@ export class CollectionSchemaView extends CollectionSubView {
     private DIVIDER_WIDTH = 4;
 
     @observable _columns: Array<Key> = [KeyStore.Title, KeyStore.Data, KeyStore.Author];
-    @observable _dividerX = 0;
-    @observable _panelWidth = 0;
-    @observable _panelHeight = 0;
     @observable _selectedIndex = 0;
     @observable _columnsPercentage = 0;
     @observable _keys: Key[] = [];
@@ -229,11 +226,6 @@ export class CollectionSchemaView extends CollectionSubView {
         document.addEventListener('pointerup', this.onDividerUp);
     }
 
-    @observable _tableWidth = 0;
-    @action
-    setTableDimensions = (r: any) => {
-        this._tableWidth = r.entry.width;
-    }
 
     @computed
     get borderWidth() { return COLLECTION_BORDER_WIDTH; }
@@ -276,72 +268,65 @@ export class CollectionSchemaView extends CollectionSubView {
     onPreviewScriptChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         this.previewScript = e.currentTarget.value;
     }
-    private get _document(): Document | undefined {
+    private get previewDocument(): Document | undefined {
         const children = this.props.Document.GetList(this.props.fieldKey, [] as Document[]);
         const selected = children.length > this._selectedIndex ? children[this._selectedIndex] : undefined;
         return selected ? (this.previewScript ? selected.Get(new Key(this.previewScript)) as Document : selected) : undefined;
     }
 
-    private nativeWidth = () => this._document!.GetNumber(KeyStore.NativeWidth, this._panelWidth);
-    private nativeHeight = () => this._document!.GetNumber(KeyStore.NativeHeight, this._panelHeight);
-    private panelWidth = () => this.nativeWidth() * this._contentScaling();
-    private panelHeight = () => this.nativeHeight() * this._contentScaling();
-    private _contentScaling = () => {
-        let wscale = this._panelWidth / (this.nativeWidth() ? this.nativeWidth() : this._panelWidth);
-        if (wscale * this.nativeHeight() > this._panelHeight)
-            return this._panelHeight / (this.nativeHeight() ? this.nativeHeight() : this._panelHeight);
+    getPreviewTransform = (): Transform => this.props.ScreenToLocalTransform().translate(
+        - this.borderWidth - this.DIVIDER_WIDTH - this.tableWidth - this.previewPanelCenteringOffset,
+        - this.borderWidth).scale(1 / this.previewContentScaling());
+    getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(- this.borderWidth - this.DIVIDER_WIDTH, - this.borderWidth).scale(1 / this.previewContentScaling());
+
+    get tableWidth() { return (this.props as any).PanelWidth() * (1 - this.splitPercentage / 100); }
+    get previewRegionHeight() { return (this.props as any).PanelHeight(); }
+    get previewRegionWidth() { return (this.props as any).PanelWidth() * this.splitPercentage / 100 - this.DIVIDER_WIDTH; }
+
+    get previewPanelCenteringOffset() { return (this.previewRegionWidth - this.previewDocNativeWidth() * this.previewContentScaling()) / 2; }
+    private previewPanelWidth = () => this.previewDocNativeWidth() * this.previewContentScaling();
+    private previewPanelHeight = () => this.previewDocNativeHeight() * this.previewContentScaling();
+    private previewContentScaling = () => {
+        let wscale = this.previewRegionWidth / (this.previewDocNativeWidth() ? this.previewDocNativeWidth() : this.previewRegionWidth);
+        if (wscale * this.previewDocNativeHeight() > this.previewRegionHeight)
+            return this.previewRegionHeight / (this.previewDocNativeHeight() ? this.previewDocNativeHeight() : this.previewRegionHeight);
         return wscale;
     }
-    getPreviewTransform = (): Transform => this.props.ScreenToLocalTransform().translate(- this.borderWidth - this.DIVIDER_WIDTH - this._dividerX - this._tableWidth - this.offset(), - this.borderWidth).scale(1 / this._contentScaling());
-    getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(- this.borderWidth - this.DIVIDER_WIDTH - this._dividerX, - this.borderWidth).scale(1 / this._contentScaling());
+    private previewDocNativeWidth = () => this.previewDocument!.GetNumber(KeyStore.NativeWidth, this.previewRegionWidth);
+    private previewDocNativeHeight = () => this.previewDocument!.GetNumber(KeyStore.NativeHeight, this.previewRegionHeight);
 
-    offset = () => ((this.props as any).PanelWidth() * this.splitPercentage / 100 - this.nativeWidth() * this._contentScaling()) / 2;
-    @action
-    setScaling = (r: any) => {
-        this._panelWidth = r.entry.width;
-        this._panelHeight = r.entry.height ? r.entry.height : this._panelHeight;
-    }
-    render() {
-        library.add(faCog);
-        library.add(faPlus);
-        if (!this._document)
-            return (null);
-        const columns = this.columns;
-        let doc = this._document;
-        const childs = this.props.Document.GetList(this.props.fieldKey, [] as Document[]);
-        const allKeys = this.findAllDocumentKeys;
+    @computed
+    get previewPanel() {
+        let doc = this.previewDocument;
         // let doc = CompileScript(this.previewScript, { this: selected }, true)();
-        let offset = this.offset();
-        let content = !doc ? (null) : (
-            <Measure onResize={this.setScaling}>
-                {({ measureRef }) =>
-                    <div className="collectionSchemaView-content" ref={measureRef}>
-                        <div style={{ transform: `translate(${offset}px, 0px)`, height: "100%", position: "absolute" }}>
-                            {doc instanceof Document ?
-                                <DocumentView Document={doc}
-                                    addDocument={this.props.addDocument} removeDocument={this.props.removeDocument}
-                                    isTopMost={false}
-                                    selectOnLoad={false}
-                                    ScreenToLocalTransform={this.getPreviewTransform}
-                                    ContentScaling={this._contentScaling}
-                                    PanelWidth={this.panelWidth}
-                                    PanelHeight={this.panelHeight}
-                                    ContainingCollectionView={this.props.CollectionView}
-                                    focus={emptyDocFunction}
-                                    parentActive={this.props.active}
-                                    whenActiveChanged={this.props.whenActiveChanged} /> : null}
-                            <input value={this.previewScript} onChange={this.onPreviewScriptChange}
-                                style={{ position: 'absolute', bottom: '0px', left: "0px" }} />
-                        </div>
+        let inputPanelWidth = Math.min(75, this.previewPanelWidth() / 2);
+        return !doc ? (null) : (
+            <div className="collectionSchemaView-previewRegion" style={{ width: `calc(${this.props.Document.GetNumber(KeyStore.SchemaSplitPercentage, 0)}% - ${this.DIVIDER_WIDTH}px)` }}>
+                <div className="collectionSchemaView-content" >
+                    <div className="collectionSchemaView-previewDoc" style={{ transform: `translate(${this.previewPanelCenteringOffset}px, 0px)` }}>
+                        {doc instanceof Document ?
+                            <DocumentView Document={doc} isTopMost={false} selectOnLoad={false}
+                                addDocument={this.props.addDocument} removeDocument={this.props.removeDocument}
+                                ScreenToLocalTransform={this.getPreviewTransform}
+                                ContentScaling={this.previewContentScaling}
+                                PanelWidth={this.previewPanelWidth} PanelHeight={this.previewPanelHeight}
+                                ContainingCollectionView={this.props.CollectionView}
+                                focus={emptyDocFunction}
+                                parentActive={this.props.active}
+                                whenActiveChanged={this.props.whenActiveChanged}
+                            /> :
+                            null}
                     </div>
-                }
-            </Measure>
+                    <input className="collectionSchemaView-input" value={this.previewScript} onChange={this.onPreviewScriptChange}
+                        style={{ left: `calc(50% - ${inputPanelWidth}px)` }} />
+                </div>
+            </div>
         );
-        let dividerDragger = this.splitPercentage === 0 ? (null) :
-            <div className="collectionSchemaView-dividerDragger" onPointerDown={this.onDividerDown} style={{ width: `${this.DIVIDER_WIDTH}px` }} />;
-
-        //options button and menu
-        let optionsMenu = !this.props.active() ? (null) : (<Flyout
+    }
+    @computed
+    get tableOptionsPanel() {
+        const allKeys = this.findAllDocumentKeys;
+        return !this.props.active() ? (null) : (<Flyout
             anchorPoint={anchorPoints.LEFT_TOP}
             content={<div>
                 <div id="schema-options-header"><h5><b>Options</b></h5></div>
@@ -360,37 +345,38 @@ export class CollectionSchemaView extends CollectionSubView {
             }>
             <button id="schemaOptionsMenuBtn" onPointerDown={this.OptionsMenuDown}><FontAwesomeIcon style={{ color: "white" }} icon="cog" size="sm" /></button>
         </Flyout>);
+    }
 
+    @computed
+    get dividerDragger() {
+        return this.splitPercentage === 0 ? (null) :
+            <div className="collectionSchemaView-dividerDragger" onPointerDown={this.onDividerDown} style={{ width: `${this.DIVIDER_WIDTH}px` }} />;
+    }
+
+    render() {
+        library.add(faCog);
+        library.add(faPlus);
+        if (!this.previewDocument)
+            return (null);
+
+        const children = this.props.Document.GetList(this.props.fieldKey, [] as Document[]);
         return (
             <div className="collectionSchemaView-container" onPointerDown={this.onPointerDown} onWheel={this.onWheel} ref={this._mainCont}>
                 <div className="collectionSchemaView-dropTarget" onDrop={(e: React.DragEvent) => this.onDrop(e, {})} ref={this.createDropTarget}>
-                    <Measure onResize={this.setTableDimensions}>
-                        {({ measureRef }) =>
-                            <div className="collectionSchemaView-tableContainer" ref={measureRef} style={{ width: `calc(100% - ${this.splitPercentage}%)` }}>
-                                <ReactTable
-                                    data={childs}
-                                    pageSize={childs.length}
-                                    page={0}
-                                    showPagination={false}
-                                    columns={columns.map(col => ({
-                                        Header: col.Name,
-                                        accessor: (doc: Document) => [doc, col],
-                                        id: col.Id
-                                    }))}
-                                    column={{
-                                        ...ReactTableDefaults.column,
-                                        Cell: this.renderCell,
-
-                                    }}
-                                    getTrProps={this.getTrProps}
-                                />
-                            </div>}
-                    </Measure>
-                    {dividerDragger}
-                    <div className="collectionSchemaView-previewRegion" style={{ width: `calc(${this.props.Document.GetNumber(KeyStore.SchemaSplitPercentage, 0)}% - ${this.DIVIDER_WIDTH}px)` }}>
-                        {content}
+                    <div className="collectionSchemaView-tableContainer" style={{ width: `calc(100% - ${this.splitPercentage}%)` }}>
+                        <ReactTable data={children} page={0} pageSize={children.length} showPagination={false}
+                            columns={this.columns.map(col => ({
+                                Header: col.Name,
+                                accessor: (doc: Document) => [doc, col],
+                                id: col.Id
+                            }))}
+                            column={{ ...ReactTableDefaults.column, Cell: this.renderCell, }}
+                            getTrProps={this.getTrProps}
+                        />
                     </div>
-                    {optionsMenu}
+                    {this.dividerDragger}
+                    {this.previewPanel}
+                    {this.tableOptionsPanel}
                 </div>
             </div >
         );
