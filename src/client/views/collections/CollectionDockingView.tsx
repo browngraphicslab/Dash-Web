@@ -19,6 +19,7 @@ import { ServerUtils } from "../../../server/ServerUtil";
 import { DragManager, DragLinksAsDocuments } from "../../util/DragManager";
 import { TextField } from "../../../fields/TextField";
 import { ListField } from "../../../fields/ListField";
+import { thisExpression } from "babel-types";
 
 @observer
 export class CollectionDockingView extends React.Component<SubCollectionViewProps> {
@@ -335,16 +336,23 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     }
 
     ScreenToLocalTransform = () => {
-        let { scale, translateX, translateY } = Utils.GetScreenTransform(this._mainCont.current!);
-        return CollectionDockingView.Instance.props.ScreenToLocalTransform().translate(-translateX, -translateY).scale(scale / this._contentScaling());
+        let { scale, translateX, translateY } = Utils.GetScreenTransform(this._mainCont.current!.children[0].firstChild as HTMLElement);
+        let scaling = scale;
+        {
+            let { scale, translateX, translateY } = Utils.GetScreenTransform(this._mainCont.current!);
+            scaling = scale;
+        }
+        return CollectionDockingView.Instance.props.ScreenToLocalTransform().translate(-translateX, -translateY).scale(scaling / this._contentScaling());
     }
 
     render() {
         if (!this._document) {
             return (null);
         }
+        let wscale = this._panelWidth / (this._nativeWidth() ? this._nativeWidth() : this._panelWidth);
+        let name = (wscale * this._nativeHeight() > this._panelHeight) ? "" : "-height";
         var content =
-            <div className="collectionDockingView-content" ref={this._mainCont}>
+            <div className={`collectionDockingView-content${name}`} ref={this._mainCont}>
                 <DocumentView key={this._document.Id} Document={this._document}
                     addDocument={undefined}
                     removeDocument={undefined}
