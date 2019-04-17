@@ -2,6 +2,11 @@
 
 .collectiondockingview-content {
     height: 100%;
+    text-align:center;
+    .documentView-node-topmost {
+        transform-origin: center top;
+        display: inline-block;
+    }
 }
 .lm_active .messageCounter{
     color:white;

@@ -327,7 +327,12 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
 
     private _nativeWidth = () => this._document!.GetNumber(KeyStore.NativeWidth, this._panelWidth);
     private _nativeHeight = () => this._document!.GetNumber(KeyStore.NativeHeight, this._panelHeight);
-    private _contentScaling = () => this._panelWidth / (this._nativeWidth() ? this._nativeWidth() : this._panelWidth);
+    private _contentScaling = () => {
+        let wscale = this._panelWidth / (this._nativeWidth() ? this._nativeWidth() : this._panelWidth);
+        if (wscale * this._nativeHeight() > this._panelHeight)
+            return this._panelHeight / (this._nativeHeight() ? this._nativeHeight() : this._panelHeight);
+        return wscale;
+    }
 
     ScreenToLocalTransform = () => {
         let { scale, translateX, translateY } = Utils.GetScreenTransform(this._mainCont.current!);

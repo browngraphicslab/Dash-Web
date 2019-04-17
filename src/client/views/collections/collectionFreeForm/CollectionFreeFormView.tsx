@@ -218,7 +218,7 @@ export class CollectionFreeFormView extends CollectionSubView {
 
     @action
     bringToFront(doc: Document) {
-        this.props.Document.GetList<Document>(this.props.fieldKey, []).slice().sort((doc1, doc2) => {
+        this.props.Document.GetList(this.props.fieldKey, [] as Document[]).slice().sort((doc1, doc2) => {
             if (doc1 === doc) return 1;
             if (doc2 === doc) return -1;
             return doc1.GetNumber(KeyStore.ZIndex, 0) - doc2.GetNumber(KeyStore.ZIndex, 0);
