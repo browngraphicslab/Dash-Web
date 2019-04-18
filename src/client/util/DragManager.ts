@@ -272,7 +272,7 @@ export namespace DragManager {
         AbortDrag = () => {
             document.removeEventListener("pointermove", moveHandler, true);
             document.removeEventListener("pointerup", upHandler);
-            dragElements.map(dragElement => dragDiv.removeChild(dragElement));
+            dragElements.map(dragElement => { if (dragElement.parentNode == dragDiv) dragDiv.removeChild(dragElement); });
             eles.map(ele => (ele.hidden = false));
         };
         const upHandler = (e: PointerEvent) => {
