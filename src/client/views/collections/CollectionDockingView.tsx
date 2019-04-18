@@ -337,13 +337,11 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
 
     ScreenToLocalTransform = () => {
         let { scale, translateX, translateY } = Utils.GetScreenTransform(this._mainCont.current!.children[0].firstChild as HTMLElement);
-        let scaling = scale;
-        {
-            let { scale, translateX, translateY } = Utils.GetScreenTransform(this._mainCont.current!);
-            scaling = scale;
-        }
-        return CollectionDockingView.Instance.props.ScreenToLocalTransform().translate(-translateX, -translateY).scale(scaling / this._contentScaling());
+        scale = Utils.GetScreenTransform(this._mainCont.current!).scale;
+        return CollectionDockingView.Instance.props.ScreenToLocalTransform().translate(-translateX, -translateY).scale(scale / this._contentScaling());
     }
+    get previewPanelCenteringOffset() { return (this._panelWidth - this._nativeWidth() * this._contentScaling()) / 2; }
+
 
     render() {
         if (!this._document) {
@@ -352,7 +350,8 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         let wscale = this._panelWidth / (this._nativeWidth() ? this._nativeWidth() : this._panelWidth);
         let name = (wscale * this._nativeHeight() > this._panelHeight) ? "" : "-height";
         var content =
-            <div className={`collectionDockingView-content${name}`} ref={this._mainCont}>
+            <div className={`collectionDockingView-content${name}`} ref={this._mainCont}
+                style={{ transform: `translate(${this.previewPanelCenteringOffset}px, 0px)` }}>
                 <DocumentView key={this._document.Id} Document={this._document}
                     addDocument={undefined}
                     removeDocument={undefined}
