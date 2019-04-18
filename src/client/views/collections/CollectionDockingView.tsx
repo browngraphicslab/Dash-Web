@@ -19,7 +19,7 @@ import { ServerUtils } from "../../../server/ServerUtil";
 import { DragManager, DragLinksAsDocuments } from "../../util/DragManager";
 import { TextField } from "../../../fields/TextField";
 import { ListField } from "../../../fields/ListField";
-import { thisExpression } from "babel-types";
+import { Transform } from '../../util/Transform'
 
 @observer
 export class CollectionDockingView extends React.Component<SubCollectionViewProps> {
@@ -336,9 +336,12 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     }
 
     ScreenToLocalTransform = () => {
-        let { scale, translateX, translateY } = Utils.GetScreenTransform(this._mainCont.current!.children[0].firstChild as HTMLElement);
-        scale = Utils.GetScreenTransform(this._mainCont.current!).scale;
-        return CollectionDockingView.Instance.props.ScreenToLocalTransform().translate(-translateX, -translateY).scale(scale / this.contentScaling());
+        if (this._mainCont.current && this._mainCont.current.children) {
+            let { scale, translateX, translateY } = Utils.GetScreenTransform(this._mainCont.current!.children[0].firstChild as HTMLElement);
+            scale = Utils.GetScreenTransform(this._mainCont.current!).scale;
+            return CollectionDockingView.Instance.props.ScreenToLocalTransform().translate(-translateX, -translateY).scale(scale / this.contentScaling());
+        }
+        return Transform.Identity();
     }
     get previewPanelCenteringOffset() { return (this._panelWidth - this.nativeWidth() * this.contentScaling()) / 2; }
 

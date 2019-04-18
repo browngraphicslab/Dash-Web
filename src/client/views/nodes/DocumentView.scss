@@ -13,7 +13,6 @@
   }
 
   .top {
-    background: #232323;
     height: 20px;
     cursor: pointer;
   }
@@ -32,13 +31,13 @@
 .documentView-node-topmost {
     background: white;
 }
-
 .minimized-box {
-  height: 10px;
-  width: 10px;
-  border-radius: 2px;
-  background: $dark-color;
-  transform-origin: left top;
+    position: absolute;
+    left:0;
+    top:0;
+    width:$MINIMIZED_ICON_SIZE;
+    height:$MINIMIZED_ICON_SIZE;
+    transform-origin: left top;
 }
 
 .minimized-box:hover {

@@ -1,12 +1,13 @@
+import { IconProp, library } from '@fortawesome/fontawesome-svg-core';
+import { faCaretUp, faObjectGroup, faStickyNote, faFilePdf, faFilm, faImage } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { BooleanField } from "../../../fields/BooleanField";
 import { Document } from "../../../fields/Document";
-import { Field, FieldWaiting, Opt } from "../../../fields/Field";
+import { Field, Opt } from "../../../fields/Field";
 import { Key } from "../../../fields/Key";
 import { KeyStore } from "../../../fields/KeyStore";
 import { ListField } from "../../../fields/ListField";
-import { TextField } from "../../../fields/TextField";
 import { ServerUtils } from "../../../server/ServerUtil";
 import { emptyFunction, Utils } from "../../../Utils";
 import { Documents } from "../../documents/Documents";
@@ -19,11 +20,18 @@ import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { CollectionPDFView } from "../collections/CollectionPDFView";
 import { CollectionVideoView } from "../collections/CollectionVideoView";
 import { CollectionView } from "../collections/CollectionView";
+import { MINIMIZED_ICON_SIZE } from "../../views/globalCssVariables.scss";
 import { ContextMenu } from "../ContextMenu";
 import { DocumentContentsView } from "./DocumentContentsView";
 import "./DocumentView.scss";
 import React = require("react");
 
+
+library.add(faCaretUp);
+library.add(faObjectGroup);
+library.add(faStickyNote);
+library.add(faFilePdf);
+library.add(faFilm);
 
 export interface DocumentViewProps {
     ContainingCollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
@@ -216,6 +224,8 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     @action
     public minimize = (): void => {
         this.props.Document.SetBoolean(KeyStore.Minimized, true);
+        this.props.Document.SetNumber(KeyStore.MinimizedX, 0);
+        this.props.Document.SetNumber(KeyStore.MinimizedY, 0);
         SelectionManager.DeselectAll();
     }
 
@@ -314,8 +324,14 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         var nativeWidth = this.nativeWidth > 0 ? this.nativeWidth.toString() + "px" : "100%";
 
         if (this.isMinimized()) {
-            return <div className="minimized-box" ref={this._mainCont} onClick={this.expand} onDrop={this.onDrop}
-                style={{ transform: `scale(${scaling} , ${scaling})` }} onPointerDown={this.onPointerDown} />;
+            let button = this.layout.indexOf("PDFBox") !== -1 ? faFilePdf :
+                this.layout.indexOf("ImageBox") !== -1 ? faImage :
+                    this.layout.indexOf("Formatted") !== -1 ? faStickyNote :
+                        this.layout.indexOf("Collection") !== -1 ? faObjectGroup :
+                            faCaretUp;
+            return <div className="minimized-box" ref={this._mainCont} onClick={this.expand} onDrop={this.onDrop} onPointerDown={this.onPointerDown} >
+                <FontAwesomeIcon icon={button} style={{ width: MINIMIZED_ICON_SIZE, height: MINIMIZED_ICON_SIZE }} className="documentView-minimizedIcon" />
+            </div>
         }
         return (
             <div className={`documentView-node${this.props.isTopMost ? "-topmost" : ""}`}

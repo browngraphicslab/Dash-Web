@@ -250,7 +250,7 @@ export namespace DragManager {
                 dragData.aliasOnDrop = e.ctrlKey || e.altKey;
             }
             if (e.shiftKey) {
-                abortDrag();
+                AbortDrag();
                 CollectionDockingView.Instance.StartOtherDrag(docs, {
                     pageX: e.pageX,
                     pageY: e.pageY,

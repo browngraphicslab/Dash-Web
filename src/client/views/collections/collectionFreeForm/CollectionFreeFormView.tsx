@@ -71,20 +71,25 @@ export class CollectionFreeFormView extends CollectionSubView {
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
         if (super.drop(e, de) && de.data instanceof DragManager.DocumentDragData) {
+            console.log("DROP Aat " + de.x + " off " + de.data.xOffset);
             const [x, y] = this.getTransform().transformPoint(de.x - de.data.xOffset, de.y - de.data.yOffset);
             if (de.data.droppedDocuments.length) {
-                let dropX = de.data.droppedDocuments[0].GetNumber(KeyStore.X, 0);
-                let dropY = de.data.droppedDocuments[0].GetNumber(KeyStore.Y, 0);
+                let dragDoc = de.data.droppedDocuments[0];
+                let dropX = dragDoc.GetNumber(KeyStore.X, 0);
+                let dropY = dragDoc.GetNumber(KeyStore.Y, 0);
                 de.data.droppedDocuments.map(d => {
+                    let minimized = d.GetBoolean(KeyStore.Minimized, false);
                     d.SetNumber(KeyStore.X, x + (d.GetNumber(KeyStore.X, 0) - dropX));
                     d.SetNumber(KeyStore.Y, y + (d.GetNumber(KeyStore.Y, 0) - dropY));
-                    if (!d.GetNumber(KeyStore.Width, 0)) {
-                        d.SetNumber(KeyStore.Width, 300);
-                    }
-                    if (!d.GetNumber(KeyStore.Height, 0)) {
-                        let nw = d.GetNumber(KeyStore.NativeWidth, 0);
-                        let nh = d.GetNumber(KeyStore.NativeHeight, 0);
-                        d.SetNumber(KeyStore.Height, nw && nh ? nh / nw * d.Width() : 300);
+                    if (!minimized) {
+                        if (!d.GetNumber(KeyStore.Width, 0)) {
+                            d.SetNumber(KeyStore.Width, 300);
+                        }
+                        if (!d.GetNumber(KeyStore.Height, 0)) {
+                            let nw = d.GetNumber(KeyStore.NativeWidth, 0);
+                            let nh = d.GetNumber(KeyStore.NativeHeight, 0);
+                            d.SetNumber(KeyStore.Height, nw && nh ? nh / nw * d.Width() : 300);
+                        }
                     }
                     this.bringToFront(d);
                 });

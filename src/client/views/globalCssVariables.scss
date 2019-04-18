@@ -23,7 +23,9 @@ $mainTextInput-zindex: 999; // then text input overlay so that it's context menu
 $docDecorations-zindex: 998; // then doc decorations appear over everything else
 $remoteCursors-zindex: 997; // ... not sure what level the remote cursors should go -- is this right?
 $COLLECTION_BORDER_WIDTH: 1;
+$MINIMIZED_ICON_SIZE:25;
 :export  {
     contextMenuZindex: $contextMenu-zindex;
     COLLECTION_BORDER_WIDTH: $COLLECTION_BORDER_WIDTH;
+    MINIMIZED_ICON_SIZE: $MINIMIZED_ICON_SIZE;
 }
