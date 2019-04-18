@@ -37,11 +37,11 @@
     top:0;
     width:$MINIMIZED_ICON_SIZE;
     height:$MINIMIZED_ICON_SIZE;
-    transform-origin: left top;
+    transform:translate(-50%, -50%);
 }
 
 .minimized-box:hover {
   background: $main-accent;
-  transform: scale(1.15);
+  transform:translate(-50%, -50%) scale(1.15);;
   cursor: pointer;
 }

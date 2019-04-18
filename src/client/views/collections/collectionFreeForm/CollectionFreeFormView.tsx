@@ -79,8 +79,8 @@ export class CollectionFreeFormView extends CollectionSubView {
                 let dropY = dragDoc.GetNumber(KeyStore.Y, 0);
                 de.data.droppedDocuments.map(d => {
                     let minimized = d.GetBoolean(KeyStore.Minimized, false);
-                    d.SetNumber(KeyStore.X, x + (d.GetNumber(KeyStore.X, 0) - dropX));
-                    d.SetNumber(KeyStore.Y, y + (d.GetNumber(KeyStore.Y, 0) - dropY));
+                    d.SetNumber(KeyStore.X, x + (d.GetNumber(KeyStore.X, 0) - (minimized ? d.GetNumber(KeyStore.MinimizedX, 0) : 0)) - dropX);
+                    d.SetNumber(KeyStore.Y, y + (d.GetNumber(KeyStore.Y, 0) - (minimized ? d.GetNumber(KeyStore.MinimizedY, 0) : 0)) - dropY);
                     if (!minimized) {
                         if (!d.GetNumber(KeyStore.Width, 0)) {
                             d.SetNumber(KeyStore.Width, 300);

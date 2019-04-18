@@ -11,6 +11,7 @@ import { SelectionManager } from "../util/SelectionManager";
 import { undoBatch } from "../util/UndoManager";
 import './DocumentDecorations.scss';
 import { MainOverlayTextBox } from "./MainOverlayTextBox";
+import { MINIMIZED_ICON_SIZE } from "../views/globalCssVariables.scss";
 import { DocumentView } from "./nodes/DocumentView";
 import { LinkMenu } from "./nodes/LinkMenu";
 import React = require("react");
@@ -36,6 +37,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     @observable private _hidden = false;
     @observable private _opacity = 1;
     @observable private _dragging = false;
+    @observable private _iconifying: number[] = [];
 
 
     constructor(props: Readonly<{}>) {
@@ -175,25 +177,46 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             document.removeEventListener("pointerup", this.onCloseUp);
         }
     }
+    _minimizeDownX = 0;
+    _minimizeDownY = 0;
+    _minimizeDownOffX = 0;
+    _minimizeDownOffY = 0;
     onMinimizeDown = (e: React.PointerEvent): void => {
         e.stopPropagation();
         if (e.button === 0) {
+            this._minimizeDownX = e.clientX;
+            this._minimizeDownY = e.clientY;
+            let xf = SelectionManager.SelectedDocuments()[0].props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
+            this._minimizeDownOffX = xf[0] - e.clientX;
+            this._minimizeDownOffY = xf[1] - e.clientY;
             document.removeEventListener("pointermove", this.onMinimizeMove);
             document.addEventListener("pointermove", this.onMinimizeMove);
             document.removeEventListener("pointerup", this.onMinimizeUp);
             document.addEventListener("pointerup", this.onMinimizeUp);
         }
     }
+    @action
     onMinimizeMove = (e: PointerEvent): void => {
         e.stopPropagation();
+        let dx = e.clientX - this._minimizeDownX;
+        let dy = e.clientY - this._minimizeDownY;
+        if (Math.abs(dx) > 4 || Math.abs(dy) > 4)
+            this._iconifying = [e.pageX - Number(MINIMIZED_ICON_SIZE) / 2 + 7, e.pageY - Number(MINIMIZED_ICON_SIZE) / 2 + 4];
     }
+    @action
     onMinimizeUp = (e: PointerEvent): void => {
         e.stopPropagation();
         if (e.button === 0) {
-            SelectionManager.SelectedDocuments().map(dv => dv.minimize());
+            let dx = e.clientX - this._minimizeDownX - this._minimizeDownOffX;
+            let dy = e.clientY - this._minimizeDownY - this._minimizeDownOffY;
+            if (Math.abs(dx + this._minimizeDownOffX) < 4 && Math.abs(dy + this._minimizeDownOffY) < 4 && this._iconifying.length == 0)
+                dx = dy = 0;
+            SelectionManager.SelectedDocuments().map(dv => dv.minimize((dv.props.ScreenToLocalTransform()).scale(dv.props.ContentScaling()).transformDirection(dx, dy)));
             document.removeEventListener("pointermove", this.onMinimizeMove);
             document.removeEventListener("pointerup", this.onMinimizeUp);
+            SelectionManager.DeselectAll();
         }
+        this._iconifying = [];
     }
 
     onPointerDown = (e: React.PointerEvent): void => {
@@ -373,6 +396,16 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         if (bounds.x === Number.MAX_VALUE) {
             return (null);
         }
+        let xf = this._iconifying.length ? `translate(${this._iconifying[0]}px, ${this._iconifying[1]}px)` : "translate(0,0)";
+        let minimizeIcon = (
+            <div className="documentDecorations-minimizeButton" onPointerDown={this.onMinimizeDown} style={{ transform: xf }}>
+                <div style={{ position: "absolute", left: "-7px", top: "-4px", width: `${MINIMIZED_ICON_SIZE}`, height: `${MINIMIZED_ICON_SIZE}` }}>
+                    {SelectionManager.SelectedDocuments().length == 1 ? SelectionManager.SelectedDocuments()[0].minimizedIcon : "..."}
+                </div>
+            </div>);
+        if (this._iconifying.length) {
+            return <div className="documentDecorations-container">{minimizeIcon}</div>;
+        }
         // console.log(this._documents.length)
         // let test = this._documents[0].props.Document.Title;
         if (this.Hidden) {
@@ -382,6 +415,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             console.log("DocumentDecorations: Bounds Error");
             return (null);
         }
+
 
         let linkButton = null;
         if (SelectionManager.SelectedDocuments().length > 0) {
@@ -406,14 +440,15 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 zIndex: SelectionManager.SelectedDocuments().length > 1 ? 1000 : 0,
             }} onPointerDown={this.onBackgroundDown} onContextMenu={(e: React.MouseEvent) => { e.preventDefault(); e.stopPropagation(); }} >
             </div>
-            <div id="documentDecorations-container" style={{
+            <div className="documentDecorations-container" style={{
                 width: (bounds.r - bounds.x + this._resizeBorderWidth) + "px",
                 height: (bounds.b - bounds.y + this._resizeBorderWidth + this._linkBoxHeight + this._titleHeight) + "px",
                 left: bounds.x - this._resizeBorderWidth / 2,
                 top: bounds.y - this._resizeBorderWidth / 2 - this._titleHeight,
                 opacity: this._opacity
             }}>
-                <div className="documentDecorations-minimizeButton" onPointerDown={this.onMinimizeDown}>...</div>
+                {minimizeIcon}
+
                 <input ref={this.keyinput} className="title" type="text" name="dynbox" value={this.getValue()} onChange={this.handleChange} onPointerDown={this.onBackgroundDown} onKeyPress={this.enterPressed} />
                 <div className="documentDecorations-closeButton" onPointerDown={this.onCloseDown}>X</div>
                 <div id="documentDecorations-topLeftResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>

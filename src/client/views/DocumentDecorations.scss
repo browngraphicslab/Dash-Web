@@ -3,12 +3,12 @@
 .documentDecorations {
     position: absolute;
 }
-#documentDecorations-container {
+.documentDecorations-container {
+    z-index: $docDecorations-zindex;
     position: absolute;
     top: 0;
     left:0;
     display: grid;
-    z-index: $docDecorations-zindex;
     grid-template-rows: 20px 8px 1fr 8px;
     grid-template-columns: 8px 8px 1fr 8px 8px;
     pointer-events: none;
