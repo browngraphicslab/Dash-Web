@@ -66,22 +66,22 @@ export class CollectionFreeFormDocumentView extends React.Component<CollectionFr
 
     render() {
         let zoomFade = 1;
-        // //var zoom = doc.GetNumber(KeyStore.Zoom, 1);
-        // let transform = (this.props.ScreenToLocalTransform().scale(this.props.ContentScaling())).inverse();
-        // var [sptX, sptY] = transform.transformPoint(0, 0);
-        // let [bptX, bptY] = transform.transformPoint(this.props.PanelWidth(), this.props.PanelHeight());
-        // let w = bptX - sptX;
-        // //zoomFade = area < 100 || area > 800 ? Math.max(0, Math.min(1, 2 - 5 * (zoom < this.scale ? this.scale / zoom : zoom / this.scale))) : 1;
-        // let fadeUp = .75 * 1800;
-        // let fadeDown = .075 * 1800;
-        // zoomFade = w < fadeDown || w > fadeUp ? Math.max(0, Math.min(1, 2 - (w < fadeDown ? fadeDown / w : w / fadeUp))) : 1;
+        //var zoom = doc.GetNumber(KeyStore.Zoom, 1);
+        let transform = this.getTransform().scale(this.contentScaling()).inverse();
+        var [sptX, sptY] = transform.transformPoint(0, 0);
+        let [bptX, bptY] = transform.transformPoint(this.props.PanelWidth(), this.props.PanelHeight());
+        let w = bptX - sptX;
+        //zoomFade = area < 100 || area > 800 ? Math.max(0, Math.min(1, 2 - 5 * (zoom < this.scale ? this.scale / zoom : zoom / this.scale))) : 1;
+        let fadeUp = .75 * 1800;
+        let fadeDown = .075 * 1800;
+        zoomFade = w < fadeDown  /* || w > fadeUp */ ? Math.max(0, Math.min(1, 2 - (w < fadeDown ? fadeDown / w : w / fadeUp))) : 1;
 
         return (
             <div className="collectionFreeFormDocumentView-container" ref={this._mainCont} style={{
                 opacity: zoomFade,
                 transformOrigin: "left top",
                 transform: this.transform,
-                pointerEvents: "all",
+                pointerEvents: (zoomFade < 0.09 ? "none" : "all"),
                 width: this.width,
                 height: this.height,
                 position: "absolute",

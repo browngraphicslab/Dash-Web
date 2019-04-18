@@ -3,6 +3,7 @@ import { DocumentView } from "../views/nodes/DocumentView";
 import { Document } from "../../fields/Document";
 import { Main } from "../views/Main";
 import { MainOverlayTextBox } from "../views/MainOverlayTextBox";
+import { DragManager } from "./DragManager";
 
 export namespace SelectionManager {
     class Manager {

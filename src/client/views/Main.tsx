@@ -27,7 +27,7 @@ import '../northstar/model/ModelExtensions';
 import { HistogramOperation } from '../northstar/operations/HistogramOperation';
 import '../northstar/utils/Extensions';
 import { Server } from '../Server';
-import { SetupDrag } from '../util/DragManager';
+import { SetupDrag, DragManager } from '../util/DragManager';
 import { Transform } from '../util/Transform';
 import { UndoManager } from '../util/UndoManager';
 import { CollectionDockingView } from './collections/CollectionDockingView';
@@ -38,6 +38,7 @@ import "./Main.scss";
 import { MainOverlayTextBox } from './MainOverlayTextBox';
 import { DocumentView } from './nodes/DocumentView';
 import { PreviewCursor } from './PreviewCursor';
+import { SelectionManager } from '../util/SelectionManager';
 
 
 @observer
@@ -84,11 +85,11 @@ export class Main extends React.Component {
         this.initEventListeners();
         this.initAuthenticationRouters();
 
-        try {
-            this.initializeNorthstar();
-        } catch (e) {
+        // try {
+        //     this.initializeNorthstar();
+        // } catch (e) {
 
-        }
+        // }
     }
 
     componentDidMount() { window.onpopstate = this.onHistory; }
@@ -111,6 +112,12 @@ export class Main extends React.Component {
         // window.addEventListener("pointermove", (e) => this.reportLocation(e))
         window.addEventListener("drop", (e) => e.preventDefault(), false); // drop event handler
         window.addEventListener("dragover", (e) => e.preventDefault(), false); // drag event handler
+        window.addEventListener("keydown", (e) => {
+            if (e.key == "Escape") {
+                DragManager.AbortDrag();
+                SelectionManager.DeselectAll()
+            }
+        }, false); // drag event handler
         // click interactions for the context menu
         document.addEventListener("pointerdown", action(function (e: PointerEvent) {
             if (!ContextMenu.Instance.intersects(e.pageX, e.pageY)) {

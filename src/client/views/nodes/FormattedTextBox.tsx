@@ -19,6 +19,7 @@ import { MainOverlayTextBox } from "../MainOverlayTextBox";
 import { FieldView, FieldViewProps } from "./FieldView";
 import "./FormattedTextBox.scss";
 import React = require("react");
+import { SelectionManager } from "../../util/SelectionManager";
 const { buildMenuItems } = require("prosemirror-example-setup");
 const { menuBar } = require("prosemirror-menu");
 
@@ -251,6 +252,9 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
     }
 
     onKeyPress(e: React.KeyboardEvent) {
+        if (e.key == "Escape") {
+            SelectionManager.DeselectAll();
+        }
         e.stopPropagation();
         if (e.keyCode === 9) e.preventDefault();
         // stop propagation doesn't seem to stop propagation of native keyboard events.

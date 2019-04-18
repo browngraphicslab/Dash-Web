@@ -90,7 +90,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         let props = this.props;
         var curPage = props.Document.GetNumber(KeyStore.CurPage, -1);
         doc.SetOnPrototype(KeyStore.Page, new NumberField(curPage));
-        if (this.isAnnotationOverlay) {
+        if (true || this.isAnnotationOverlay) {
             doc.SetNumber(KeyStore.Zoom, this.props.Document.GetNumber(KeyStore.Scale, 1));
         }
         if (curPage >= 0) {

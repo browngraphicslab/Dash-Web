@@ -1,6 +1,5 @@
 import { action, computed, observable, trace } from "mobx";
 import { observer } from "mobx-react";
-import Measure from "react-measure";
 import { Document } from "../../../../fields/Document";
 import { KeyStore } from "../../../../fields/KeyStore";
 import { emptyFunction, returnFalse, returnOne } from "../../../../Utils";
@@ -49,9 +48,7 @@ export class CollectionFreeFormView extends CollectionSubView {
         this.addDocument(newBox, false);
     }
     private addDocument = (newBox: Document, allowDuplicates: boolean) => {
-        if (this.isAnnotationOverlay) {
-            newBox.SetNumber(KeyStore.Zoom, this.props.Document.GetNumber(KeyStore.Scale, 1));
-        }
+        newBox.SetNumber(KeyStore.Zoom, this.props.Document.GetNumber(KeyStore.Scale, 1));
         return this.props.addDocument(this.bringToFront(newBox), false);
     }
     private selectDocuments = (docs: Document[]) => {
@@ -187,14 +184,16 @@ export class CollectionFreeFormView extends CollectionSubView {
             // if (modes[e.deltaMode] === 'pixels') coefficient = 50;
             // else if (modes[e.deltaMode] === 'lines') coefficient = 1000; // This should correspond to line-height??
             let deltaScale = (1 - (e.deltaY / coefficient));
+            if (deltaScale < 0) deltaScale = -deltaScale;
             if (deltaScale * this.zoomScaling() < 1 && this.isAnnotationOverlay) {
                 deltaScale = 1 / this.zoomScaling();
             }
             let [x, y] = this.getTransform().transformPoint(e.clientX, e.clientY);
             let localTransform = this.getLocalTransform().inverse().scaleAbout(deltaScale, x, y);
 
-            this.props.Document.SetNumber(KeyStore.Scale, localTransform.Scale);
-            this.setPan(-localTransform.TranslateX / localTransform.Scale, -localTransform.TranslateY / localTransform.Scale);
+            let safeScale = Math.abs(localTransform.Scale);
+            this.props.Document.SetNumber(KeyStore.Scale, Math.abs(safeScale));
+            this.setPan(-localTransform.TranslateX / safeScale, -localTransform.TranslateY / safeScale);
             e.stopPropagation();
         }
     }
