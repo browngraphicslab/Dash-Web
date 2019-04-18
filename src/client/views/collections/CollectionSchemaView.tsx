@@ -33,22 +33,17 @@ import { CollectionSubView } from "./CollectionSubView";
 class KeyToggle extends React.Component<{ keyId: string, checked: boolean, toggle: (key: Key) => void }> {
     @observable key: Key | undefined;
 
-    componentWillReceiveProps() {
-        Server.GetField(this.props.keyId, action((field: Opt<Field>) => {
-            if (field instanceof Key) {
-                this.key = field;
-            }
-        }));
+    constructor(props: any) {
+        super(props);
+        Server.GetField(this.props.keyId, action((field: Opt<Field>) => field instanceof Key && (this.key = field)));
     }
 
     render() {
-        if (this.key) {
-            return (<div key={this.key.Id}>
+        return !this.key ? (null) :
+            (<div key={this.key.Id}>
                 <input type="checkbox" checked={this.props.checked} onChange={() => this.key && this.props.toggle(this.key)} />
                 {this.key.Name}
             </div>);
-        }
-        return (null);
     }
 }
 
@@ -62,8 +57,11 @@ export class CollectionSchemaView extends CollectionSubView {
     @observable _selectedIndex = 0;
     @observable _columnsPercentage = 0;
     @observable _keys: Key[] = [];
+    @observable _newKeyName: string = "";
 
     @computed get splitPercentage() { return this.props.Document.GetNumber(KeyStore.SchemaSplitPercentage, 0); }
+    @computed get columns() { return this.props.Document.GetList(KeyStore.ColumnsKey, [] as Key[]); }
+    @computed get borderWidth() { return COLLECTION_BORDER_WIDTH; }
 
     renderCell = (rowProps: CellInfo) => {
         let props: FieldViewProps = {
@@ -159,9 +157,9 @@ export class CollectionSchemaView extends CollectionSubView {
         };
     }
 
-    @computed
-    get columns() {
-        return this.props.Document.GetList(KeyStore.ColumnsKey, [] as Key[]);
+    private createTarget = (ele: HTMLDivElement) => {
+        this._mainCont = ele;
+        super.CreateDropTarget(ele);
     }
 
     @action
@@ -181,26 +179,7 @@ export class CollectionSchemaView extends CollectionSubView {
     //toggles preview side-panel of schema
     @action
     toggleExpander = (event: React.ChangeEvent<HTMLInputElement>) => {
-        this._startSplitPercent = this.splitPercentage;
-        if (this._startSplitPercent === this.splitPercentage) {
-            this.props.Document.SetNumber(KeyStore.SchemaSplitPercentage, this.splitPercentage === 0 ? 33 : 0);
-        }
-    }
-
-    @computed
-    get findAllDocumentKeys(): { [id: string]: boolean } {
-        const docs = this.props.Document.GetList(this.props.fieldKey, [] as Document[]);
-        let keys: { [id: string]: boolean } = {};
-        if (this._optionsActivated > -1) {
-            // bcz: ugh.  this is untracked since otherwise a large collection of documents will blast the server for all their fields.
-            //  then as each document's fields come back, we update the documents _proxies.  Each time we do this, the whole schema will be
-            //  invalidated and re-rendered.   This workaround will inquire all of the document fields before the options button is clicked.
-            //  then by the time the options button is clicked, all of the fields should be in place.  If a new field is added while this menu
-            //  is displayed (unlikely) it won't show up until something else changes.
-            untracked(() => docs.map(doc => doc.GetAllPrototypes().map(proto => proto._proxies.forEach((val: any, key: string) => keys[key] = false))));
-        }
-        this.columns.forEach(key => keys[key.Id] = true);
-        return keys;
+        this.props.Document.SetNumber(KeyStore.SchemaSplitPercentage, this.splitPercentage === 0 ? 33 : 0);
     }
 
     @action
@@ -224,10 +203,6 @@ export class CollectionSchemaView extends CollectionSubView {
         document.addEventListener('pointerup', this.onDividerUp);
     }
 
-
-    @computed
-    get borderWidth() { return COLLECTION_BORDER_WIDTH; }
-
     onPointerDown = (e: React.PointerEvent): void => {
         if (e.button === 0 && !e.altKey && !e.ctrlKey && !e.metaKey) {
             if (this.props.isSelected())
@@ -236,29 +211,21 @@ export class CollectionSchemaView extends CollectionSubView {
         }
     }
 
-    @action
-    addColumn = () => {
-        this.columns.push(new Key(this.newKeyName));
-        this.newKeyName = "";
-    }
-
-    @observable
-    newKeyName: string = "";
-
-    @action
-    newKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        this.newKeyName = e.currentTarget.value;
-    }
     onWheel = (e: React.WheelEvent): void => {
         if (this.props.active()) {
             e.stopPropagation();
         }
     }
 
-    @observable _optionsActivated: number = 0;
     @action
-    OptionsMenuDown = (e: React.PointerEvent) => {
-        this._optionsActivated++;
+    addColumn = () => {
+        this.columns.push(new Key(this._newKeyName));
+        this._newKeyName = "";
+    }
+
+    @action
+    newKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        this._newKeyName = e.currentTarget.value;
     }
 
     @observable previewScript: string = "";
@@ -266,17 +233,12 @@ export class CollectionSchemaView extends CollectionSubView {
     onPreviewScriptChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         this.previewScript = e.currentTarget.value;
     }
-    private get previewDocument(): Document | undefined {
+
+    get previewDocument(): Document | undefined {
         const children = this.props.Document.GetList(this.props.fieldKey, [] as Document[]);
         const selected = children.length > this._selectedIndex ? children[this._selectedIndex] : undefined;
         return selected ? (this.previewScript ? selected.Get(new Key(this.previewScript)) as Document : selected) : undefined;
     }
-
-    getPreviewTransform = (): Transform => this.props.ScreenToLocalTransform().translate(
-        - this.borderWidth - this.DIVIDER_WIDTH - this.tableWidth - this.previewPanelCenteringOffset,
-        - this.borderWidth).scale(1 / this.previewContentScaling());
-    getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(- this.borderWidth - this.DIVIDER_WIDTH, - this.borderWidth).scale(1 / this.previewContentScaling());
-
     get tableWidth() { return this.props.PanelWidth() * (1 - this.splitPercentage / 100); }
     get previewRegionHeight() { return this.props.PanelHeight(); }
     get previewRegionWidth() { return this.props.PanelWidth() * this.splitPercentage / 100 - this.DIVIDER_WIDTH; }
@@ -292,6 +254,9 @@ export class CollectionSchemaView extends CollectionSubView {
     private previewPanelWidth = () => this.previewDocNativeWidth() * this.previewContentScaling();
     private previewPanelHeight = () => this.previewDocNativeHeight() * this.previewContentScaling();
     get previewPanelCenteringOffset() { return (this.previewRegionWidth - this.previewDocNativeWidth() * this.previewContentScaling()) / 2; }
+    getPreviewTransform = (): Transform => this.props.ScreenToLocalTransform().translate(
+        - this.borderWidth - this.DIVIDER_WIDTH - this.tableWidth - this.previewPanelCenteringOffset,
+        - this.borderWidth).scale(1 / this.previewContentScaling());
 
     @computed
     get previewPanel() {
@@ -315,39 +280,48 @@ export class CollectionSchemaView extends CollectionSubView {
             </div>
         );
     }
-    @computed
+
+    get documentKeysCheckList() {
+        const docs = this.props.Document.GetList(this.props.fieldKey, [] as Document[]);
+        let keys: { [id: string]: boolean } = {};
+        // bcz: ugh.  this is untracked since otherwise a large collection of documents will blast the server for all their fields.
+        //  then as each document's fields come back, we update the documents _proxies.  Each time we do this, the whole schema will be
+        //  invalidated and re-rendered.   This workaround will inquire all of the document fields before the options button is clicked.
+        //  then by the time the options button is clicked, all of the fields should be in place.  If a new field is added while this menu
+        //  is displayed (unlikely) it won't show up until something else changes.
+        untracked(() => docs.map(doc => doc.GetAllPrototypes().map(proto => proto._proxies.forEach((val: any, key: string) => keys[key] = false))));
+
+        this.columns.forEach(key => keys[key.Id] = true);
+        return Array.from(Object.keys(keys)).map(item =>
+            (<KeyToggle checked={keys[item]} key={item} keyId={item} toggle={this.toggleKey} />));
+    }
+
     get tableOptionsPanel() {
-        const allKeys = this.findAllDocumentKeys;
-        return !this.props.active() ? (null) : (<Flyout
-            anchorPoint={anchorPoints.LEFT_TOP}
-            content={<div>
-                <div id="schema-options-header"><h5><b>Options</b></h5></div>
-                <div id="options-flyout-div">
-                    <h6 className="schema-options-subHeader">Preview Window</h6>
-                    <div id="preview-schema-checkbox-div"><input type="checkbox" key={"Show Preview"} checked={this.splitPercentage !== 0} onChange={this.toggleExpander} />  Show Preview </div>
-                    <h6 className="schema-options-subHeader" >Displayed Columns</h6>
-                    <ul id="schema-col-checklist" >
-                        {Array.from(Object.keys(allKeys)).map(item =>
-                            (<KeyToggle checked={allKeys[item]} key={item} keyId={item} toggle={this.toggleKey} />))}
-                    </ul>
-                    <input value={this.newKeyName} onChange={this.newKeyChange} />
-                    <button onClick={this.addColumn}><FontAwesomeIcon style={{ color: "white" }} icon="plus" size="lg" /></button>
+        return !this.props.active() ? (null) :
+            (<Flyout
+                anchorPoint={anchorPoints.LEFT_TOP}
+                content={<div>
+                    <div id="schema-options-header"><h5><b>Options</b></h5></div>
+                    <div id="options-flyout-div">
+                        <h6 className="schema-options-subHeader">Preview Window</h6>
+                        <div id="preview-schema-checkbox-div"><input type="checkbox" key={"Show Preview"} checked={this.splitPercentage !== 0} onChange={this.toggleExpander} />  Show Preview </div>
+                        <h6 className="schema-options-subHeader" >Displayed Columns</h6>
+                        <ul id="schema-col-checklist" >
+                            {this.documentKeysCheckList}
+                        </ul>
+                        <input value={this._newKeyName} onChange={this.newKeyChange} />
+                        <button onClick={this.addColumn}><FontAwesomeIcon style={{ color: "white" }} icon="plus" size="lg" /></button>
+                    </div>
                 </div>
-            </div>
-            }>
-            <button id="schemaOptionsMenuBtn" onPointerDown={this.OptionsMenuDown}><FontAwesomeIcon style={{ color: "white" }} icon="cog" size="sm" /></button>
-        </Flyout>);
+                }>
+                <button id="schemaOptionsMenuBtn" ><FontAwesomeIcon style={{ color: "white" }} icon="cog" size="sm" /></button>
+            </Flyout>);
     }
 
     @computed
     get dividerDragger() {
         return this.splitPercentage === 0 ? (null) :
             <div className="collectionSchemaView-dividerDragger" onPointerDown={this.onDividerDown} style={{ width: `${this.DIVIDER_WIDTH}px` }} />;
-    }
-
-    createTarget = (ele: HTMLDivElement) => {
-        this._mainCont = ele;
-        super.CreateDropTarget(ele);
     }
 
     render() {
