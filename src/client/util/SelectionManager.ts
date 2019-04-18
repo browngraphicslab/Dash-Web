@@ -37,7 +37,7 @@ export namespace SelectionManager {
         }
         @action
         ReselectAll2(sdocs: DocumentView[]) {
-            sdocs.map(s => SelectionManager.SelectDoc(s, false));
+            sdocs.map(s => SelectionManager.SelectDoc(s, true));
         }
     }
 
