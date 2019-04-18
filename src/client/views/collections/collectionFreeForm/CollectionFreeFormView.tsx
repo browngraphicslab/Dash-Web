@@ -85,7 +85,9 @@ export class CollectionFreeFormView extends CollectionSubView {
                         d.SetNumber(KeyStore.Width, 300);
                     }
                     if (!d.GetNumber(KeyStore.Height, 0)) {
-                        d.SetNumber(KeyStore.Height, 300);
+                        let nw = d.GetNumber(KeyStore.NativeWidth, 0);
+                        let nh = d.GetNumber(KeyStore.NativeHeight, 0);
+                        d.SetNumber(KeyStore.Height, nw && nh ? nh / nw * d.Width() : 300);
                     }
                     this.bringToFront(d);
                 });
