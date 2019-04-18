@@ -28,8 +28,8 @@ export class CollectionFreeFormView extends CollectionSubView {
     private _selectOnLoaded: string = ""; // id of document that should be selected once it's loaded (used for click-to-type)
     private _lastX: number = 0;
     private _lastY: number = 0;
-    @observable private _pwidth: number = 0;
-    @observable private _pheight: number = 0;
+    private get _pwidth() { return this.props.PanelWidth(); }
+    private get _pheight() { return this.props.PanelHeight(); }
 
     @computed get nativeWidth() { return this.props.Document.GetNumber(KeyStore.NativeWidth, 0); }
     @computed get nativeHeight() { return this.props.Document.GetNumber(KeyStore.NativeHeight, 0); }
@@ -269,11 +269,6 @@ export class CollectionFreeFormView extends CollectionSubView {
     }
 
     @action
-    onResize = (r: any) => {
-        this._pwidth = r.entry.width;
-        this._pheight = r.entry.height;
-    }
-    @action
     onCursorMove = (e: React.PointerEvent) => {
         super.setCursorPosition(this.getTransform().transformPoint(e.clientX, e.clientY));
     }
@@ -281,29 +276,24 @@ export class CollectionFreeFormView extends CollectionSubView {
     render() {
         const containerName = `collectionfreeformview${this.isAnnotationOverlay ? "-overlay" : "-container"}`;
         return (
-            <Measure onResize={this.onResize}>
-                {({ measureRef }) => (
-                    <div className="collectionfreeformview-measure" ref={measureRef}>
-                        <div className={containerName} ref={this.createDropTarget} onWheel={this.onPointerWheel}
-                            onPointerDown={this.onPointerDown} onPointerMove={this.onCursorMove} onDrop={this.onDrop.bind(this)} onDragOver={this.onDragOver} >
-                            <MarqueeView container={this} activeDocuments={this.getActiveDocuments} selectDocuments={this.selectDocuments}
-                                addDocument={this.addDocument} removeDocument={this.props.removeDocument} addLiveTextDocument={this.addLiveTextBox}
-                                getContainerTransform={this.getContainerTransform} getTransform={this.getTransform}>
-                                <CollectionFreeFormViewPannableContents centeringShiftX={this.centeringShiftX} centeringShiftY={this.centeringShiftY}
-                                    zoomScaling={this.zoomScaling} panX={this.panX} panY={this.panY}>
-                                    <CollectionFreeFormBackgroundView {...this.getDocumentViewProps(this.props.Document)} />
-                                    <CollectionFreeFormLinksView {...this.props} key="freeformLinks">
-                                        <InkingCanvas getScreenTransform={this.getTransform} Document={this.props.Document} >
-                                            {this.childViews}
-                                        </InkingCanvas>
-                                    </CollectionFreeFormLinksView>
-                                    <CollectionFreeFormRemoteCursors {...this.props} key="remoteCursors" />
-                                </CollectionFreeFormViewPannableContents>
-                                <CollectionFreeFormOverlayView {...this.getDocumentViewProps(this.props.Document)} />
-                            </MarqueeView>
-                        </div>
-                    </div>)}
-            </Measure>
+            <div className={containerName} ref={this.createDropTarget} onWheel={this.onPointerWheel}
+                onPointerDown={this.onPointerDown} onPointerMove={this.onCursorMove} onDrop={this.onDrop.bind(this)} onDragOver={this.onDragOver} >
+                <MarqueeView container={this} activeDocuments={this.getActiveDocuments} selectDocuments={this.selectDocuments}
+                    addDocument={this.addDocument} removeDocument={this.props.removeDocument} addLiveTextDocument={this.addLiveTextBox}
+                    getContainerTransform={this.getContainerTransform} getTransform={this.getTransform}>
+                    <CollectionFreeFormViewPannableContents centeringShiftX={this.centeringShiftX} centeringShiftY={this.centeringShiftY}
+                        zoomScaling={this.zoomScaling} panX={this.panX} panY={this.panY}>
+                        <CollectionFreeFormBackgroundView {...this.getDocumentViewProps(this.props.Document)} />
+                        <CollectionFreeFormLinksView {...this.props} key="freeformLinks">
+                            <InkingCanvas getScreenTransform={this.getTransform} Document={this.props.Document} >
+                                {this.childViews}
+                            </InkingCanvas>
+                        </CollectionFreeFormLinksView>
+                        <CollectionFreeFormRemoteCursors {...this.props} key="remoteCursors" />
+                    </CollectionFreeFormViewPannableContents>
+                    <CollectionFreeFormOverlayView {...this.getDocumentViewProps(this.props.Document)} />
+                </MarqueeView>
+            </div>
         );
     }
 }
