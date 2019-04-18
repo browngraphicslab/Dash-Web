@@ -38,7 +38,10 @@ export class ImageBox extends React.Component<FieldViewProps> {
     onLoad = (target: any) => {
         var h = this._imgRef.current!.naturalHeight;
         var w = this._imgRef.current!.naturalWidth;
-        if (this._photoIndex == 0) this.props.Document.SetNumber(KeyStore.NativeHeight, this.props.Document.GetNumber(KeyStore.NativeWidth, 0) * h / w);
+        if (this._photoIndex === 0) {
+            this.props.Document.SetNumber(KeyStore.NativeHeight, this.props.Document.GetNumber(KeyStore.NativeWidth, 0) * h / w);
+            this.props.Document.SetNumber(KeyStore.Height, this.props.Document.Width() * h / w);
+        }
     }
 
 
@@ -53,7 +56,7 @@ export class ImageBox extends React.Component<FieldViewProps> {
     onDrop = (e: React.DragEvent) => {
         e.stopPropagation();
         e.preventDefault();
-        console.log("IMPLEMENT ME PLEASE")
+        console.log("IMPLEMENT ME PLEASE");
     }
 
 
@@ -65,7 +68,7 @@ export class ImageBox extends React.Component<FieldViewProps> {
                 if (layout.indexOf(ImageBox.name) !== -1) {
                     let imgData = this.props.Document.Get(KeyStore.Data);
                     if (imgData instanceof ImageField && imgData) {
-                        this.props.Document.Set(KeyStore.Data, new ListField([imgData]));
+                        this.props.Document.SetOnPrototype(KeyStore.Data, new ListField([imgData]));
                     }
                     let imgList = this.props.Document.GetList(KeyStore.Data, [] as any[]);
                     if (imgList) {
@@ -137,6 +140,7 @@ export class ImageBox extends React.Component<FieldViewProps> {
     @action
     onDotDown(index: number) {
         this._photoIndex = index;
+        this.props.Document.SetNumber(KeyStore.CurPage, index);
     }
 
     dots(paths: string[]) {
@@ -147,7 +151,7 @@ export class ImageBox extends React.Component<FieldViewProps> {
             <div className="imageBox-placer" key={i} >
                 <div className="imageBox-dot" style={{ background: (i == this._photoIndex ? "black" : "gray"), transform: `translate(${i * dist + left}px, 0px)` }} onPointerDown={(e: React.PointerEvent) => { e.stopPropagation(); this.onDotDown(i); }} />
             </div>
-        )
+        );
     }
 
     render() {
@@ -159,7 +163,7 @@ export class ImageBox extends React.Component<FieldViewProps> {
         let nativeWidth = this.props.Document.GetNumber(KeyStore.NativeWidth, 1);
         return (
             <div className="imageBox-cont" onPointerDown={this.onPointerDown} onDrop={this.onDrop} ref={this.createDropTarget} onContextMenu={this.specificContextMenu}>
-                <img src={paths[Math.min(paths.length, this._photoIndex)]} style={{ objectFit: (this._photoIndex == 0 ? undefined : "contain") }} width={nativeWidth} alt="Image not found" ref={this._imgRef} onLoad={this.onLoad} />
+                <img src={paths[Math.min(paths.length, this._photoIndex)]} style={{ objectFit: (this._photoIndex === 0 ? undefined : "contain") }} width={nativeWidth} alt="Image not found" ref={this._imgRef} onLoad={this.onLoad} />
                 {paths.length > 1 ? this.dots(paths) : (null)}
                 {this.lightbox(paths)}
             </div>);
