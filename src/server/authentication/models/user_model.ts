@@ -85,8 +85,7 @@ userSchema.pre("save", function save(next) {
 });
 
 const comparePassword: comparePasswordFunction = function (this: DashUserModel, candidatePassword, cb) {
-    bcrypt.compare(candidatePassword, this.password, (err: mongoose.Error, isMatch: boolean) =>
-        cb(err, isMatch));
+    bcrypt.compare(candidatePassword, this.password, cb);
 };
 
 userSchema.methods.comparePassword = comparePassword;

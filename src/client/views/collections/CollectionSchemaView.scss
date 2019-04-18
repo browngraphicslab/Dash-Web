@@ -1,56 +1,5 @@
 @import "../globalCssVariables";
 
-//options menu styling
-#schemaOptionsMenuBtn {
-    position: absolute;
-    height: 20px;
-    width: 20px;
-    border-radius: 50%;
-    z-index: 21; 
-    right: 4px;
-    top: 4px; 
-    pointer-events: auto;
-    background-color:black;
-    display:inline-block;
-    padding: 0px;
-    font-size: 100%;
-}
-#schema-options-header {
-    text-align: center;
-    padding: 0px;
-    margin: 0px;
-}
-.schema-options-subHeader {
-    color: $intermediate-color;
-    margin-bottom: 5px;
-}
-#schemaOptionsMenuBtn:hover {
-    transform: scale(1.15);
-}
-
-#preview-schema-checkbox-div {
-    margin-left: 20px;
-    font-size: 12px;
-}
-
-  #options-flyout-div {
-    text-align: left;
-    padding:0px;
-    z-index: 100;
-    font-family: $sans-serif;
-    padding-left: 5px;
-  }
-
-  #schema-col-checklist {
-    overflow: scroll;
-    text-align: left;
-    //background-color: $light-color-secondary;
-    line-height: 25px;
-    max-height: 175px;
-    font-family: $sans-serif;
-    font-size: 12px;
-  }
-  
 
 .collectionSchemaView-container {
     border-width: $COLLECTION_BORDER_WIDTH;
@@ -62,17 +11,26 @@
     width: 100%;
     height: 100%;
     
-    .collectionSchemaView-content {
-        position: absolute;
-        height: 100%;
-        width: 100%;
-        overflow: auto;
-    }
     .collectionSchemaView-previewRegion {
         position: relative;
         background: $light-color;
         float: left;
         height: 100%;
+        .collectionSchemaView-previewDoc {
+            height: 100%;
+            width: 100%; 
+            position: absolute;
+        }
+        .collectionSchemaView-input {
+            position: absolute;
+            max-width: 150px;
+            width: 100%;
+            bottom: 0px;
+        }
+        .documentView-node:first-child {
+            position: relative;
+            background: $light-color;
+        }
     }
     .collectionSchemaView-previewHandle {
         position: absolute;
@@ -188,6 +146,11 @@
         border-bottom-style: solid;
         border-bottom-width: 1;
     }
+    .documentView-node-topmost {
+        text-align:left;
+        transform-origin: center top;
+        display: inline-block;
+    }
     .documentView-node:first-child {
         background: $light-color;
         .imageBox-cont img {
@@ -195,6 +158,62 @@
         }
     }
 }
+//options menu styling
+#schemaOptionsMenuBtn {
+    position: absolute;
+    height: 20px;
+    width: 20px;
+    border-radius: 50%;
+    z-index: 21; 
+    right: 4px;
+    top: 4px; 
+    pointer-events: auto;
+    background-color:black;
+    display:inline-block;
+    padding: 0px;
+    font-size: 100%;
+}
+
+ul {
+    list-style-type: disc;
+}
+
+#schema-options-header {
+    text-align: center;
+    padding: 0px;
+    margin: 0px;
+}
+.schema-options-subHeader {
+    color: $intermediate-color;
+    margin-bottom: 5px;
+}
+#schemaOptionsMenuBtn:hover {
+    transform: scale(1.15);
+}
+
+#preview-schema-checkbox-div {
+    margin-left: 20px;
+    font-size: 12px;
+}
+
+  #options-flyout-div {
+    text-align: left;
+    padding:0px;
+    z-index: 100;
+    font-family: $sans-serif;
+    padding-left: 5px;
+  }
+
+  #schema-col-checklist {
+    overflow: scroll;
+    text-align: left;
+    //background-color: $light-color-secondary;
+    line-height: 25px;
+    max-height: 175px;
+    font-family: $sans-serif;
+    font-size: 12px;
+  }
+  
 
 .Resizer {
     box-sizing: border-box;

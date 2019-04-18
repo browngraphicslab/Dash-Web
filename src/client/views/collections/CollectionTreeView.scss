@@ -50,15 +50,15 @@
     .docContainer:hover {
         .delete-button {
             display: inline;
-            width: auto;
+            // width: auto;
         }
     }
 
     .delete-button {
         color: $intermediate-color;
-        float: right;
+        // float: right;
         margin-left: 15px;
-        margin-top: 3px;
+        // margin-top: 3px;
         display: inline;
     }
 }

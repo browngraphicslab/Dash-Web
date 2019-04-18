@@ -26,34 +26,13 @@ interface MarqueeViewProps {
 @observer
 export class MarqueeView extends React.Component<MarqueeViewProps>
 {
-    private _reactionDisposer: Opt<IReactionDisposer>;
 
     @observable _lastX: number = 0;
     @observable _lastY: number = 0;
     @observable _downX: number = 0;
     @observable _downY: number = 0;
 
-    componentDidMount() {
-        this._reactionDisposer = reaction(
-            () => this.props.container.MarqueeVisible,
-            (visible: boolean) => this.onPointerDown(visible, this.props.container.DownX, this.props.container.DownY));
-        this._reactionDisposer = reaction(
-            () => this.props.container.Marquee,
-            (visible: boolean) => this.createMarquee(visible, this.props.container.FirstX, this.props.container.FirstY, this.props.container.SecondX, this.props.container.SecondY, this.props.container.ShiftKey)
-        );
-        this._reactionDisposer = reaction(
-            () => this.props.container.Collection,
-            (params: { left: number, top: number, width: number, height: number, create: boolean }) => {
-                if (params.create) {
-                    this.createCollection(params);
-                }
-            }
-        );
-    }
     componentWillUnmount() {
-        if (this._reactionDisposer) {
-            this._reactionDisposer();
-        }
         this.cleanupInteractions();
     }
 
@@ -95,8 +74,6 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 SelectionManager.DeselectAll();
             }
             this.props.selectDocuments(this.marqueeSelect());
-            this.props.container.ShiftKey = false;
-            this.props.container.Marquee = false;
         }
     }
 
