@@ -48,7 +48,7 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
             isTopMost: false,
             selectOnLoad: false,
             active: returnFalse,
-            onActiveChanged: emptyFunction,
+            whenActiveChanged: emptyFunction,
             ScreenToLocalTransform: Transform.Identity,
             focus: emptyDocFunction,
         };

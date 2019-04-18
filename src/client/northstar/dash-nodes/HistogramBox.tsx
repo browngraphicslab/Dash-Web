@@ -118,7 +118,7 @@ export class HistogramBox extends React.Component<FieldViewProps> {
             this.props.Document.GetTAsync(this.props.fieldKey, HistogramField).then((histoOp: Opt<HistogramField>) => runInAction(() => {
                 this.HistoOp = histoOp ? histoOp.Data : HistogramOperation.Empty;
                 if (this.HistoOp !== HistogramOperation.Empty) {
-                    reaction(() => this.props.Document.GetList(KeyStore.LinkedFromDocs, []), (docs: Document[]) => this.HistoOp.Links.splice(0, this.HistoOp.Links.length, ...docs), { fireImmediately: true });
+                    reaction(() => this.props.Document.GetList(KeyStore.LinkedFromDocs, [] as Document[]), (docs) => this.HistoOp.Links.splice(0, this.HistoOp.Links.length, ...docs), { fireImmediately: true });
                     reaction(() => this.props.Document.GetList(KeyStore.BrushingDocs, []).length,
                         () => {
                             let brushingDocs = this.props.Document.GetList(KeyStore.BrushingDocs, [] as Document[]);

@@ -19,6 +19,7 @@ import { ServerUtils } from "../../../server/ServerUtil";
 import { DragManager, DragLinksAsDocuments } from "../../util/DragManager";
 import { TextField } from "../../../fields/TextField";
 import { ListField } from "../../../fields/ListField";
+import { thisExpression } from "babel-types";
 
 @observer
 export class CollectionDockingView extends React.Component<SubCollectionViewProps> {
@@ -315,7 +316,7 @@ interface DockedFrameProps {
 @observer
 export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
 
-    private _mainCont = React.createRef<HTMLDivElement>();
+    _mainCont = React.createRef<HTMLDivElement>();
     @observable private _panelWidth = 0;
     @observable private _panelHeight = 0;
     @observable private _document: Opt<Document>;
@@ -325,38 +326,46 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         Server.GetField(this.props.documentId, action((f: Opt<Field>) => this._document = f as Document));
     }
 
-    private _nativeWidth = () => this._document!.GetNumber(KeyStore.NativeWidth, this._panelWidth);
-    private _nativeHeight = () => this._document!.GetNumber(KeyStore.NativeHeight, this._panelHeight);
-    private _contentScaling = () => this._panelWidth / (this._nativeWidth() ? this._nativeWidth() : this._panelWidth);
-
-    ScreenToLocalTransform = () => {
-        let { scale, translateX, translateY } = Utils.GetScreenTransform(this._mainCont.current!);
-        return CollectionDockingView.Instance.props.ScreenToLocalTransform().translate(-translateX, -translateY).scale(scale / this._contentScaling());
+    nativeWidth = () => this._document!.GetNumber(KeyStore.NativeWidth, this._panelWidth);
+    nativeHeight = () => this._document!.GetNumber(KeyStore.NativeHeight, this._panelHeight);
+    contentScaling = () => {
+        let wscale = this._panelWidth / (this.nativeWidth() ? this.nativeWidth() : this._panelWidth);
+        if (wscale * this.nativeHeight() > this._panelHeight)
+            return this._panelHeight / (this.nativeHeight() ? this.nativeHeight() : this._panelHeight);
+        return wscale;
     }
 
-    render() {
-        if (!this._document) {
-            return (null);
-        }
-        var content =
-            <div className="collectionDockingView-content" ref={this._mainCont}>
-                <DocumentView key={this._document.Id} Document={this._document}
+    ScreenToLocalTransform = () => {
+        let { scale, translateX, translateY } = Utils.GetScreenTransform(this._mainCont.current!.children[0].firstChild as HTMLElement);
+        scale = Utils.GetScreenTransform(this._mainCont.current!).scale;
+        return CollectionDockingView.Instance.props.ScreenToLocalTransform().translate(-translateX, -translateY).scale(scale / this.contentScaling());
+    }
+    get previewPanelCenteringOffset() { return (this._panelWidth - this.nativeWidth() * this.contentScaling()) / 2; }
+
+    get content() {
+        return (
+            <div className="collectionDockingView-content" ref={this._mainCont}
+                style={{ transform: `translate(${this.previewPanelCenteringOffset}px, 0px)` }}>
+                <DocumentView key={this._document!.Id} Document={this._document!}
                     addDocument={undefined}
                     removeDocument={undefined}
-                    ContentScaling={this._contentScaling}
-                    PanelWidth={this._nativeWidth}
-                    PanelHeight={this._nativeHeight}
+                    ContentScaling={this.contentScaling}
+                    PanelWidth={this.nativeWidth}
+                    PanelHeight={this.nativeHeight}
                     ScreenToLocalTransform={this.ScreenToLocalTransform}
                     isTopMost={true}
                     selectOnLoad={false}
                     parentActive={returnTrue}
-                    onActiveChanged={emptyFunction}
+                    whenActiveChanged={emptyFunction}
                     focus={emptyDocFunction}
                     ContainingCollectionView={undefined} />
-            </div>;
+            </div>);
+    }
 
-        return <Measure onResize={action((r: any) => { this._panelWidth = r.entry.width; this._panelHeight = r.entry.height; })}>
-            {({ measureRef }) => <div ref={measureRef}>  {content} </div>}
-        </Measure>;
+    render() {
+        return !this._document ? (null) :
+            <Measure onResize={action((r: any) => { this._panelWidth = r.entry.width; this._panelHeight = r.entry.height; })}>
+                {({ measureRef }) => <div ref={measureRef}>  {this.content} </div>}
+            </Measure>;
     }
 }
