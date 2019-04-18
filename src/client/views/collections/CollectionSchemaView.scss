@@ -153,9 +153,6 @@
     }
     .documentView-node:first-child {
         background: $light-color;
-        .imageBox-cont img {
-            object-fit: contain;
-        }
     }
 }
 //options menu styling

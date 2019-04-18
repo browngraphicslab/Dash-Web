@@ -239,9 +239,9 @@ export class CollectionSchemaView extends CollectionSubView {
         const selected = children.length > this._selectedIndex ? children[this._selectedIndex] : undefined;
         return selected ? (this.previewScript ? selected.Get(new Key(this.previewScript)) as Document : selected) : undefined;
     }
-    get tableWidth() { return this.props.PanelWidth() * (1 - this.splitPercentage / 100); }
-    get previewRegionHeight() { return this.props.PanelHeight(); }
-    get previewRegionWidth() { return this.props.PanelWidth() * this.splitPercentage / 100 - this.DIVIDER_WIDTH; }
+    get tableWidth() { return (this.props.PanelWidth() - 2 * this.borderWidth - this.DIVIDER_WIDTH) * (1 - this.splitPercentage / 100); }
+    get previewRegionHeight() { return this.props.PanelHeight() - 2 * this.borderWidth; }
+    get previewRegionWidth() { return (this.props.PanelWidth() - 2 * this.borderWidth - this.DIVIDER_WIDTH) * this.splitPercentage / 100; }
 
     private previewDocNativeWidth = () => this.previewDocument!.GetNumber(KeyStore.NativeWidth, this.previewRegionWidth);
     private previewDocNativeHeight = () => this.previewDocument!.GetNumber(KeyStore.NativeHeight, this.previewRegionHeight);
@@ -262,7 +262,7 @@ export class CollectionSchemaView extends CollectionSubView {
     get previewPanel() {
         // let doc = CompileScript(this.previewScript, { this: selected }, true)();
         return !this.previewDocument ? (null) : (
-            <div className="collectionSchemaView-previewRegion" style={{ width: `calc(${this.props.Document.GetNumber(KeyStore.SchemaSplitPercentage, 0)}% - ${this.DIVIDER_WIDTH}px)` }}>
+            <div className="collectionSchemaView-previewRegion" style={{ width: `${this.previewRegionWidth}px` }}>
                 <div className="collectionSchemaView-previewDoc" style={{ transform: `translate(${this.previewPanelCenteringOffset}px, 0px)` }}>
                     <DocumentView Document={this.previewDocument} isTopMost={false} selectOnLoad={false}
                         addDocument={this.props.addDocument} removeDocument={this.props.removeDocument}
@@ -327,14 +327,11 @@ export class CollectionSchemaView extends CollectionSubView {
     render() {
         library.add(faCog);
         library.add(faPlus);
-        if (!this.previewDocument)
-            return (null);
-
         const children = this.props.Document.GetList(this.props.fieldKey, [] as Document[]);
         return (
             <div className="collectionSchemaView-container" onPointerDown={this.onPointerDown} onWheel={this.onWheel}
                 onDrop={(e: React.DragEvent) => this.onDrop(e, {})} ref={this.createTarget}>
-                <div className="collectionSchemaView-tableContainer" style={{ width: `calc(100% - ${this.splitPercentage}%)` }}>
+                <div className="collectionSchemaView-tableContainer" style={{ width: `${this.tableWidth}px` }}>
                     <ReactTable data={children} page={0} pageSize={children.length} showPagination={false}
                         columns={this.columns.map(col => ({
                             Header: col.Name,
