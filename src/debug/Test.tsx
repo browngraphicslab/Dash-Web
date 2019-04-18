@@ -1,8 +1,34 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import { serialize, deserialize, map } from 'serializr';
-import { URLField, Doc } from '../fields/NewDoc';
+import { URLField, Doc, createSchema, makeInterface, makeStrictInterface } from '../fields/NewDoc';
 import { SerializationHelper } from '../client/util/SerializationHelper';
+
+const schema1 = createSchema({
+    hello: "number",
+    test: "string",
+    fields: "boolean",
+    url: URLField,
+    testDoc: Doc
+});
+
+const TestDoc = makeInterface(schema1);
+type TestDoc = makeInterface<typeof schema1>;
+
+const schema2 = createSchema({
+    hello: URLField,
+    test: "boolean",
+    fields: "string",
+    url: "number",
+    testDoc: URLField
+});
+
+const Test2Doc = makeStrictInterface(schema2);
+type Test2Doc = makeStrictInterface<typeof schema2>;
+
+const assert = (bool: boolean) => {
+    if (!bool) throw new Error();
+};
 
 class Test extends React.Component {
     onClick = () => {
@@ -15,10 +41,24 @@ class Test extends React.Component {
         doc.url = url;
         doc.testDoc = doc2;
 
-        console.log("doc", doc);
-        const cereal = SerializationHelper.Serialize(doc);
-        console.log("cereal", cereal);
-        console.log("doc again", SerializationHelper.Deserialize(cereal));
+
+        const test1: TestDoc = TestDoc(doc);
+        const test2: Test2Doc = Test2Doc(doc);
+        assert(test1.hello === 5);
+        assert(test1.fields === undefined);
+        assert(test1.test === "hello doc");
+        assert(test1.url === url);
+        assert(test1.testDoc === doc2);
+        test1.myField = 20;
+        assert(test1.myField === 20);
+
+        assert(test2.hello === undefined);
+        assert(test2.fields === "test");
+        assert(test2.test === undefined);
+        assert(test2.url === undefined);
+        assert(test2.testDoc === undefined);
+        test2.url = 35;
+        assert(test2.url === 35);
     }
 
     render() {

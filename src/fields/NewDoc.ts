@@ -1,5 +1,4 @@
 import { observable, action } from "mobx";
-import { Server } from "../client/Server";
 import { UndoManager } from "../client/util/UndoManager";
 import { serializable, primitive, map, alias } from "serializr";
 import { autoObject, SerializationHelper, Deserializable } from "../client/util/SerializationHelper";
@@ -185,10 +184,6 @@ export class Doc extends RefField {
         return new Promise(res => Doc.getField(self, key, ignoreProto, res));
     }
 
-    static Serialize(doc: Doc) {
-        return SerializationHelper.Serialize(doc[Self]);
-    }
-
     constructor(id?: string, forceSave?: boolean) {
         super(id);
         const doc = new Proxy<this>(this, {
@@ -221,3 +216,86 @@ export namespace Doc {
 }
 
 export const GetAsync = Doc.GetAsync;
+
+interface IDoc {
+    [key: string]: Field | null | undefined;
+}
+
+interface ImageDocument extends IDoc {
+    data: URLField;
+    test: number;
+}
+
+export type ToType<T> =
+    T extends "string" ? string :
+    T extends "number" ? number :
+    T extends "boolean" ? boolean :
+    T extends { new(...args: any[]): infer R } ? R : undefined;
+
+export type ToInterface<T> = {
+    [P in keyof T]: ToType<T[P]>;
+};
+
+interface Interface {
+    [key: string]: { new(...args: any[]): (ObjectField | RefField) } | "number" | "boolean" | "string";
+}
+
+type FieldCtor<T extends Field> = { new(): T } | "number" | "string" | "boolean";
+
+function Cast<T extends Field>(field: Field | undefined, ctor: FieldCtor<T>): T | undefined {
+    if (field !== undefined) {
+        if (typeof ctor === "string") {
+            if (typeof field === ctor) {
+                return field as T;
+            }
+        } else if (field instanceof ctor) {
+            return field;
+        }
+    }
+    return undefined;
+}
+
+export type makeInterface<T extends Interface> = Partial<ToInterface<T>> & Doc;
+export function makeInterface<T extends Interface>(schema: T): (doc: Doc) => makeInterface<T> {
+    return function (doc: any) {
+        return new Proxy(doc, {
+            get(target, prop) {
+                const field = target[prop];
+                if (prop in schema) {
+                    return Cast(field, (schema as any)[prop]);
+                }
+                return field;
+            }
+        });
+    };
+}
+
+export type makeStrictInterface<T extends Interface> = Partial<ToInterface<T>>;
+export function makeStrictInterface<T extends Interface>(schema: T): (doc: Doc) => makeStrictInterface<T> {
+    const proto = {};
+    for (const key in schema) {
+        const type = schema[key];
+        Object.defineProperty(proto, key, {
+            get() {
+                return Cast(this.__doc[key], type);
+            },
+            set(value) {
+                value = Cast(value, type);
+                if (value !== undefined) {
+                    this.__doc[key] = value;
+                    return;
+                }
+                throw new TypeError("Expected type " + type);
+            }
+        });
+    }
+    return function (doc: any) {
+        const obj = Object.create(proto);
+        obj.__doc = doc;
+        return obj;
+    };
+}
+
+export function createSchema<T extends Interface>(schema: T): T {
+    return schema;
+}
