@@ -8,7 +8,7 @@ import { KeyStore } from "../../../fields/KeyStore";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { ChartType, VisualBinRange } from '../../northstar/model/binRanges/VisualBinRange';
 import { VisualBinRangeHelper } from "../../northstar/model/binRanges/VisualBinRangeHelper";
-import { AggregateBinRange, AggregateFunction, BinRange, Catalog, DoubleValueAggregateResult, HistogramResult, Result } from "../../northstar/model/idea/idea";
+import { AggregateBinRange, AggregateFunction, BinRange, Catalog, DoubleValueAggregateResult, HistogramResult } from "../../northstar/model/idea/idea";
 import { ModelHelpers } from "../../northstar/model/ModelHelpers";
 import { HistogramOperation } from "../../northstar/operations/HistogramOperation";
 import { SizeConverter } from "../../northstar/utils/SizeConverter";
@@ -118,7 +118,7 @@ export class HistogramBox extends React.Component<FieldViewProps> {
             this.props.Document.GetTAsync(this.props.fieldKey, HistogramField).then((histoOp: Opt<HistogramField>) => runInAction(() => {
                 this.HistoOp = histoOp ? histoOp.Data : HistogramOperation.Empty;
                 if (this.HistoOp !== HistogramOperation.Empty) {
-                    reaction(() => this.props.Document.GetList(KeyStore.LinkedFromDocs, []), (docs: Document[]) => this.HistoOp.Links.splice(0, this.HistoOp.Links.length, ...docs), { fireImmediately: true });
+                    reaction(() => this.props.Document.GetList(KeyStore.LinkedFromDocs, [] as Document[]), (docs) => this.HistoOp.Links.splice(0, this.HistoOp.Links.length, ...docs), { fireImmediately: true });
                     reaction(() => this.props.Document.GetList(KeyStore.BrushingDocs, []).length,
                         () => {
                             let brushingDocs = this.props.Document.GetList(KeyStore.BrushingDocs, [] as Document[]);

@@ -16,6 +16,9 @@ import { Server } from "../../Server";
 import { FieldViewProps } from "../nodes/FieldView";
 import * as rp from 'request-promise';
 import { emptyFunction } from "../../../Utils";
+import { CollectionView } from "./CollectionView";
+import { CollectionPDFView } from "./CollectionPDFView";
+import { CollectionVideoView } from "./CollectionVideoView";
 
 export interface CollectionViewProps extends FieldViewProps {
     addDocument: (document: Document, allowDuplicates?: boolean) => boolean;
@@ -24,6 +27,7 @@ export interface CollectionViewProps extends FieldViewProps {
 }
 
 export interface SubCollectionViewProps extends CollectionViewProps {
+    CollectionView: CollectionView | CollectionPDFView | CollectionVideoView;
 }
 
 export type CursorEntry = TupleField<[string, string], [number, number]>;
@@ -193,7 +197,7 @@ export class CollectionSubView extends React.Component<SubCollectionViewProps> {
                 }).then(async (res: Response) => {
                     (await res.json()).map(action((file: any) => {
                         let path = window.location.origin + file;
-                        let docPromise = this.getDocumentFromType(type, path, { ...options, nativeWidth: 300, width: 300, title: dropFileName });
+                        let docPromise = this.getDocumentFromType(type, path, { ...options, nativeWidth: 600, width: 300, title: dropFileName });
 
                         docPromise.then(action((doc?: Document) => {
                             let docs = this.props.Document.GetT(KeyStore.Data, ListField);

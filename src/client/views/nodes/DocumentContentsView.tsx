@@ -23,7 +23,7 @@ import { HistogramBox } from "../../northstar/dash-nodes/HistogramBox";
 import React = require("react");
 import { Document } from "../../../fields/Document";
 import { FieldViewProps } from "./FieldView";
-import { Without } from "../../../Utils";
+import { Without, OmitKeys } from "../../../Utils";
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 type BindingProps = Without<FieldViewProps, 'fieldKey'>;
@@ -44,34 +44,8 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
 
 
     CreateBindings(): JsxBindings {
-        let
-            {
-                Document,
-                isSelected,
-                select,
-                isTopMost,
-                selectOnLoad,
-                ScreenToLocalTransform,
-                addDocument,
-                removeDocument,
-                onActiveChanged,
-                parentActive: active,
-            } = this.props;
-        let bindings: JsxBindings = {
-            props: {
-                Document,
-                isSelected,
-                select,
-                isTopMost,
-                selectOnLoad,
-                ScreenToLocalTransform,
-                active,
-                onActiveChanged,
-                addDocument,
-                removeDocument,
-                focus,
-            }
-        };
+        let bindings: JsxBindings = { props: OmitKeys(this.props, ['parentActive'], (obj: any) => obj.active = this.props.parentActive) };
+
         for (const key of this.layoutKeys) {
             bindings[key.Name + "Key"] = key; // this maps string values of the form <keyname>Key to an actual key Kestore.keyname  e.g,   "DataKey" => KeyStore.Data
         }

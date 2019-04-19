@@ -8,7 +8,7 @@ import { Document } from "../../../fields/Document";
 import { KeyStore } from "../../../fields/KeyStore";
 import Measure from "react-measure";
 import { FieldId, Opt, Field, FieldWaiting } from "../../../fields/Field";
-import { Utils, returnTrue, emptyFunction, emptyDocFunction } from "../../../Utils";
+import { Utils, returnTrue, emptyFunction, emptyDocFunction, returnOne } from "../../../Utils";
 import { Server } from "../../Server";
 import { undoBatch } from "../../util/UndoManager";
 import { DocumentView } from "../nodes/DocumentView";
@@ -19,6 +19,7 @@ import { ServerUtils } from "../../../server/ServerUtil";
 import { DragManager, DragLinksAsDocuments } from "../../util/DragManager";
 import { TextField } from "../../../fields/TextField";
 import { ListField } from "../../../fields/ListField";
+import { thisExpression } from "babel-types";
 
 @observer
 export class CollectionDockingView extends React.Component<SubCollectionViewProps> {
@@ -172,7 +173,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         } catch (e) {
 
         }
-        this._goldenLayout.destroy();
+        if (this._goldenLayout) this._goldenLayout.destroy();
         this._goldenLayout = null;
         window.removeEventListener('resize', this.onResize);
     }
@@ -263,7 +264,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                             let counter: any = this.htmlToElement(`<div class="messageCounter">${count}</div>`);
                             tab.element.append(counter);
                             counter.DashDocId = tab.contentItem.config.props.documentId;
-                            (tab as any).reactionDisposer = reaction(() => [f.GetT(KeyStore.LinkedFromDocs, ListField), f.GetT(KeyStore.LinkedToDocs, ListField)],
+                            tab.reactionDisposer = reaction(() => [f.GetT(KeyStore.LinkedFromDocs, ListField), f.GetT(KeyStore.LinkedToDocs, ListField)],
                                 (lists) => {
                                     let count = (lists.length > 0 && lists[0] && lists[0]!.Data ? lists[0]!.Data.length : 0) +
                                         (lists.length > 1 && lists[1] && lists[1]!.Data ? lists[1]!.Data.length : 0);
@@ -327,19 +328,31 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
 
     private _nativeWidth = () => this._document!.GetNumber(KeyStore.NativeWidth, this._panelWidth);
     private _nativeHeight = () => this._document!.GetNumber(KeyStore.NativeHeight, this._panelHeight);
-    private _contentScaling = () => this._panelWidth / (this._nativeWidth() ? this._nativeWidth() : this._panelWidth);
+    private _contentScaling = () => {
+        let wscale = this._panelWidth / (this._nativeWidth() ? this._nativeWidth() : this._panelWidth);
+        if (wscale * this._nativeHeight() > this._panelHeight)
+            return this._panelHeight / (this._nativeHeight() ? this._nativeHeight() : this._panelHeight);
+        return wscale;
+    }
 
     ScreenToLocalTransform = () => {
-        let { scale, translateX, translateY } = Utils.GetScreenTransform(this._mainCont.current!);
-        return CollectionDockingView.Instance.props.ScreenToLocalTransform().translate(-translateX, -translateY).scale(scale / this._contentScaling());
+        let { scale, translateX, translateY } = Utils.GetScreenTransform(this._mainCont.current!.children[0].firstChild as HTMLElement);
+        let scaling = scale;
+        {
+            let { scale, translateX, translateY } = Utils.GetScreenTransform(this._mainCont.current!);
+            scaling = scale;
+        }
+        return CollectionDockingView.Instance.props.ScreenToLocalTransform().translate(-translateX, -translateY).scale(scaling / this._contentScaling());
     }
 
     render() {
         if (!this._document) {
             return (null);
         }
+        let wscale = this._panelWidth / (this._nativeWidth() ? this._nativeWidth() : this._panelWidth);
+        let name = (wscale * this._nativeHeight() > this._panelHeight) ? "" : "-height";
         var content =
-            <div className="collectionDockingView-content" ref={this._mainCont}>
+            <div className={`collectionDockingView-content${name}`} ref={this._mainCont}>
                 <DocumentView key={this._document.Id} Document={this._document}
                     addDocument={undefined}
                     removeDocument={undefined}

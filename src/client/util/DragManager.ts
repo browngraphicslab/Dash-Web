@@ -1,13 +1,12 @@
 import { action } from "mobx";
 import { Document } from "../../fields/Document";
+import { FieldWaiting } from "../../fields/Field";
+import { KeyStore } from "../../fields/KeyStore";
 import { emptyFunction } from "../../Utils";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import { DocumentDecorations } from "../views/DocumentDecorations";
-import { Main } from "../views/Main";
-import { DocumentView } from "../views/nodes/DocumentView";
 import * as globalCssVariables from "../views/globalCssVariables.scss";
-import { KeyStore } from "../../fields/KeyStore";
-import { FieldWaiting } from "../../fields/Field";
+import { MainOverlayTextBox } from "../views/MainOverlayTextBox";
 
 export function SetupDrag(_reference: React.RefObject<HTMLDivElement>, docFunc: () => Document, moveFunc?: DragManager.MoveFunction, copyOnDrop: boolean = false) {
     let onRowMove = action((e: PointerEvent): void => {
@@ -177,7 +176,7 @@ export namespace DragManager {
             dragDiv.className = "dragManager-dragDiv";
             DragManager.Root().appendChild(dragDiv);
         }
-        Main.Instance.SetTextDoc();
+        MainOverlayTextBox.Instance.SetTextDoc();
 
         let scaleXs: number[] = [];
         let scaleYs: number[] = [];

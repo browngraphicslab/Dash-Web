@@ -1,4 +1,4 @@
-import { action, computed, observable } from "mobx";
+import { action } from "mobx";
 import { observer } from "mobx-react";
 import { KeyStore } from "../../../fields/KeyStore";
 import { ContextMenu } from "../ContextMenu";
@@ -42,7 +42,7 @@ export class CollectionPDFView extends React.Component<FieldViewProps> {
         let props = { ...this.props, ...renderProps };
         return (
             <>
-                <CollectionFreeFormView {...props} />
+                <CollectionFreeFormView {...props} CollectionView={this} />
                 {this.props.isSelected() ? this.uIButtons : (null)}
             </>
         );

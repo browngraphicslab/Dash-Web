@@ -87,9 +87,24 @@ export class Utils {
     }
 }
 
+export function OmitKeys(obj: any, keys: any, addKeyFunc?: (dup: any) => void) {
+    var dup: any = {};
+    for (var key in obj) {
+        if (keys.indexOf(key) === -1) {
+            dup[key] = obj[key];
+        }
+    }
+    addKeyFunc && addKeyFunc(dup);
+    return dup;
+}
+
 export function returnTrue() { return true; }
 
 export function returnFalse() { return false; }
+
+export function returnOne() { return 1; }
+
+export function returnZero() { return 0; }
 
 export function emptyFunction() { }
 

@@ -12,7 +12,7 @@ import { Field, Opt } from "../../../fields/Field";
 import { Key } from "../../../fields/Key";
 import { KeyStore } from "../../../fields/KeyStore";
 import { ListField } from "../../../fields/ListField";
-import { emptyDocFunction, emptyFunction, returnFalse } from "../../../Utils";
+import { emptyDocFunction, emptyFunction, returnFalse, returnOne } from "../../../Utils";
 import { Server } from "../../Server";
 import { SetupDrag } from "../../util/DragManager";
 import { CompileScript, ToField } from "../../util/Scripting";
@@ -75,6 +75,7 @@ export class CollectionSchemaView extends CollectionSubView {
         let props: FieldViewProps = {
             Document: rowProps.value[0],
             fieldKey: rowProps.value[1],
+            ContainingCollectionView: this.props.CollectionView,
             isSelected: returnFalse,
             select: emptyFunction,
             isTopMost: false,
@@ -166,7 +167,7 @@ export class CollectionSchemaView extends CollectionSubView {
 
     @computed
     get columns() {
-        return this.props.Document.GetList<Key>(KeyStore.ColumnsKey, []);
+        return this.props.Document.GetList(KeyStore.ColumnsKey, [] as Key[]);
     }
 
     @action
@@ -194,7 +195,7 @@ export class CollectionSchemaView extends CollectionSubView {
 
     @computed
     get findAllDocumentKeys(): { [id: string]: boolean } {
-        const docs = this.props.Document.GetList<Document>(this.props.fieldKey, []);
+        const docs = this.props.Document.GetList(this.props.fieldKey, [] as Document[]);
         let keys: { [id: string]: boolean } = {};
         if (this._optionsActivated > -1) {
             // bcz: ugh.  this is untracked since otherwise a large collection of documents will blast the server for all their fields.
@@ -236,7 +237,7 @@ export class CollectionSchemaView extends CollectionSubView {
     }
     @action
     setScaling = (r: any) => {
-        const children = this.props.Document.GetList<Document>(this.props.fieldKey, []);
+        const children = this.props.Document.GetList(this.props.fieldKey, [] as Document[]);
         const selected = children.length > this._selectedIndex ? children[this._selectedIndex] : undefined;
         this._panelWidth = r.entry.width;
         this._panelHeight = r.entry.height ? r.entry.height : this._panelHeight;
@@ -252,8 +253,10 @@ export class CollectionSchemaView extends CollectionSubView {
     getPreviewTransform = (): Transform => this.props.ScreenToLocalTransform().translate(- this.borderWidth - this.DIVIDER_WIDTH - this._dividerX - this._tableWidth, - this.borderWidth).scale(1 / this._contentScaling);
 
     onPointerDown = (e: React.PointerEvent): void => {
-        if (e.button === 1 && this.props.isSelected() && !e.altKey && !e.ctrlKey && !e.metaKey) {
-            e.stopPropagation();
+        if (e.button === 0 && !e.altKey && !e.ctrlKey && !e.metaKey) {
+            if (this.props.isSelected())
+                e.stopPropagation();
+            else e.preventDefault();
         }
     }
 
@@ -292,7 +295,7 @@ export class CollectionSchemaView extends CollectionSubView {
         library.add(faCog);
         library.add(faPlus);
         const columns = this.columns;
-        const children = this.props.Document.GetList<Document>(this.props.fieldKey, []);
+        const children = this.props.Document.GetList(this.props.fieldKey, [] as Document[]);
         const selected = children.length > this._selectedIndex ? children[this._selectedIndex] : undefined;
         //all the keys/columns that will be displayed in the schema
         const allKeys = this.findAllDocumentKeys;
@@ -312,7 +315,7 @@ export class CollectionSchemaView extends CollectionSubView {
                                 ContentScaling={this.getContentScaling}
                                 PanelWidth={this.getPanelWidth}
                                 PanelHeight={this.getPanelHeight}
-                                ContainingCollectionView={undefined}
+                                ContainingCollectionView={this.props.CollectionView}
                                 focus={emptyDocFunction}
                                 parentActive={this.props.active}
                                 onActiveChanged={this.props.onActiveChanged} /> : null}

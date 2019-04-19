@@ -52,5 +52,6 @@
         //     }
         // ],
         // "ordered-imports": true
-    }
+    },
+    "defaultSeverity": "warning"
 }
