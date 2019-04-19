@@ -23,6 +23,8 @@ import { returnFalse, emptyDocFunction, emptyFunction, returnOne } from "../../.
 import { CollectionView } from "../collections/CollectionView";
 import { CollectionPDFView } from "../collections/CollectionPDFView";
 import { CollectionVideoView } from "../collections/CollectionVideoView";
+import { IconField } from "../../../fields/IconFIeld";
+import { IconBox } from "./IconBox";
 
 
 //
@@ -71,6 +73,9 @@ export class FieldView extends React.Component<FieldViewProps> {
         }
         else if (field instanceof ImageField) {
             return <ImageBox {...this.props} />;
+        }
+        else if (field instanceof IconField) {
+            return <IconBox {...this.props} />;
         }
         else if (field instanceof VideoField) {
             return <VideoBox {...this.props} />;

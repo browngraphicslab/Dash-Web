@@ -5,17 +5,18 @@ import { KeyStore } from "../../fields/KeyStore";
 import { ListField } from "../../fields/ListField";
 import { NumberField } from "../../fields/NumberField";
 import { TextField } from "../../fields/TextField";
+import { Document } from "../../fields/Document";
 import { emptyFunction } from "../../Utils";
 import { DragLinksAsDocuments, DragManager } from "../util/DragManager";
 import { SelectionManager } from "../util/SelectionManager";
 import { undoBatch } from "../util/UndoManager";
 import './DocumentDecorations.scss';
 import { MainOverlayTextBox } from "./MainOverlayTextBox";
-import { MINIMIZED_ICON_SIZE } from "../views/globalCssVariables.scss";
 import { DocumentView } from "./nodes/DocumentView";
 import { LinkMenu } from "./nodes/LinkMenu";
 import React = require("react");
 import { CompileScript } from "../util/Scripting";
+import { IconBox } from "./nodes/IconBox";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -191,6 +192,9 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             document.addEventListener("pointerup", this.onMinimizeUp);
         }
     }
+
+    @observable _minimizedX = 0;
+    @observable _minimizedY = 0;
     @action
     onMinimizeMove = (e: PointerEvent): void => {
         e.stopPropagation();
@@ -201,12 +205,20 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             let xf = SelectionManager.SelectedDocuments()[0].props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
             let dx = e.pageX - xf[0];
             let dy = e.pageY - xf[1];
-            if (Math.abs(dx) < 20 && Math.abs(dy) < 20)
-                dx = dy = 0;
+            this._minimizedX = e.clientX;
+            this._minimizedY = e.clientY;
+            if (Math.abs(dx) < 20 && Math.abs(dy) < 20) {
+                this._minimizedX = xf[0];
+                this._minimizedY = xf[1];
+            }
             SelectionManager.SelectedDocuments().map(dv => {
-                let where = (dv.props.ScreenToLocalTransform()).scale(dv.props.ContentScaling()).transformDirection(dx, dy);
-                dv.props.Document.SetNumber(KeyStore.MinimizedX, where[0]);
-                dv.props.Document.SetNumber(KeyStore.MinimizedY, where[1]);
+                let minDoc = dv.props.Document.Get(KeyStore.MinimizedDoc);
+                if (minDoc instanceof Document) {
+                    let where = (dv.props.ScreenToLocalTransform()).scale(dv.props.ContentScaling()).transformPoint(this._minimizedX, this._minimizedY);
+                    let minDocument = minDoc as Document;
+                    minDocument.SetNumber(KeyStore.X, where[0] + dv.props.Document.GetNumber(KeyStore.X, 0));
+                    minDocument.SetNumber(KeyStore.Y, where[1] + dv.props.Document.GetNumber(KeyStore.Y, 0));
+                }
             });
         }
     }
@@ -219,6 +231,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             if (Math.abs(dx) < 4 && Math.abs(dy) < 4 && !this._iconifying) {
                 SelectionManager.SelectedDocuments().map(dv => dv.minimize());
                 SelectionManager.DeselectAll();
+            } else {
+                this._minimizedX = this._minimizedY = 0;
             }
             document.removeEventListener("pointermove", this.onMinimizeMove);
             document.removeEventListener("pointerup", this.onMinimizeUp);
@@ -404,24 +418,18 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         if (bounds.x === Number.MAX_VALUE || !seldoc) {
             return (null);
         }
-        let minvec = [seldoc.props.Document.GetNumber(KeyStore.MinimizedX, 0), seldoc.props.Document.GetNumber(KeyStore.MinimizedY, 0)];
-        minvec = seldoc.props.ScreenToLocalTransform().scale(seldoc.props.ContentScaling()).inverse().transformDirection(minvec[0], minvec[1]);
-        let selpos = minvec[0] !== 0 || minvec[1] !== 0 ?
-            [minvec[0] - 12 + (!this._iconifying ? 8 : 0), minvec[1] - 12 + (!this._iconifying ? 28 : 0)] :
+        let selpos = this._minimizedX !== 0 || this._minimizedY !== 0 ?
+            [this._minimizedX - 12 + (!this._iconifying ? 8 : 0), this._minimizedY - 12 + (!this._iconifying ? 28 : 0)] :
             [0, this._iconifying ? -18 : 0];
         let minimizeIcon = (
             <div className="documentDecorations-minimizeButton" onPointerDown={this.onMinimizeDown}
                 style={{ transform: `translate(${selpos[0]}px,${selpos[1]}px)`, }}>
-                {SelectionManager.SelectedDocuments().length == 1 ? SelectionManager.SelectedDocuments()[0].minimizedIcon : "..."}
+                {SelectionManager.SelectedDocuments().length == 1 ? IconBox.DocumentIcon(SelectionManager.SelectedDocuments()[0].props.Document.GetText(KeyStore.Layout, "...")) : "..."}
             </div>);
         if (this._iconifying) {
-            let xfpt = seldoc.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
-            return (<div className="documentDecorations-container" style={{ transform: `translate(${xfpt[0]}px,${xfpt[1]}px` }}>
-                {minimizeIcon}
-            </div>);
+            return (<div className="documentDecorations-container" > {minimizeIcon} </div>);
         }
-        // console.log(this._documents.length)
-        // let test = this._documents[0].props.Document.Title;
+
         if (this.Hidden) {
             return (null);
         }

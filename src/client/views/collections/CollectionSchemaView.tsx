@@ -5,6 +5,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable, untracked } from "mobx";
 import { observer } from "mobx-react";
 import ReactTable, { CellInfo, ComponentPropsGetterR, ReactTableDefaults } from "react-table";
+import { MAX_ROW_HEIGHT } from '../../views/globalCssVariables.scss'
 import "react-table/react-table.css";
 import { Document } from "../../../fields/Document";
 import { Field, Opt } from "../../../fields/Field";
@@ -99,11 +100,11 @@ export class CollectionSchemaView extends CollectionSubView {
             return false;
         };
         return (
-            <div className="collectionSchemaView-cellContents" onPointerDown={onItemDown} style={{ height: "56px" }} key={props.Document.Id} ref={reference}>
+            <div className="collectionSchemaView-cellContents" onPointerDown={onItemDown} key={props.Document.Id} ref={reference}>
                 <EditableView
                     display={"inline"}
                     contents={contents}
-                    height={56}
+                    height={Number(MAX_ROW_HEIGHT)}
                     GetValue={() => {
                         let field = props.Document.Get(props.fieldKey);
                         if (field && field instanceof Field) {

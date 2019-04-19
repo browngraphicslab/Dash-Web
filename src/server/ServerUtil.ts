@@ -18,6 +18,7 @@ import { NumberField } from "./../fields/NumberField";
 import { RichTextField } from "./../fields/RichTextField";
 import { TextField } from "./../fields/TextField";
 import { Transferable, Types } from "./Message";
+import { IconField } from "../fields/IconFIeld";
 
 export class ServerUtils {
     public static prepend(extension: string): string {
@@ -37,6 +38,7 @@ export class ServerUtils {
             case Types.Boolean: return new BooleanField(json.data, json.id, false);
             case Types.Number: return new NumberField(json.data, json.id, false);
             case Types.Text: return new TextField(json.data, json.id, false);
+            case Types.Icon: return new IconField(json.data, json.id, false);
             case Types.Html: return new HtmlField(json.data, json.id, false);
             case Types.Web: return new WebField(new URL(json.data), json.id, false);
             case Types.RichText: return new RichTextField(json.data, json.id, false);

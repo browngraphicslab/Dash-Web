@@ -4,8 +4,6 @@ export namespace KeyStore {
     export const Prototype = new Key("Prototype");
     export const X = new Key("X");
     export const Y = new Key("Y");
-    export const MinimizedX = new Key("MinimizedX");
-    export const MinimizedY = new Key("MinimizedY");
     export const Page = new Key("Page");
     export const Title = new Key("Title");
     export const Author = new Key("Author");
@@ -47,14 +45,16 @@ export namespace KeyStore {
     export const OptionalRightCollection = new Key("OptionalRightCollection");
     export const Archives = new Key("Archives");
     export const Workspaces = new Key("Workspaces");
-    export const Minimized = new Key("Minimized");
+    export const IsMinimized = new Key("IsMinimized");
+    export const MinimizedDoc = new Key("MinimizedDoc");
+    export const MaximizedDoc = new Key("MaximizedDoc");
     export const CopyDraggedItems = new Key("CopyDraggedItems");
 
-    export const KeyList: Key[] = [Prototype, X, Y, MinimizedX, MinimizedY, Page, Title, Author, PanX, PanY, Scale, NativeWidth, NativeHeight,
+    export const KeyList: Key[] = [Prototype, X, Y, Page, Title, Author, PanX, PanY, Scale, NativeWidth, NativeHeight,
         Width, Height, ZIndex, Zoom, Data, Annotations, ViewType, Layout, BackgroundColor, BackgroundLayout, OverlayLayout, LayoutKeys,
         LayoutFields, ColumnsKey, SchemaSplitPercentage, Caption, ActiveWorkspace, DocumentText, BrushingDocs, LinkedToDocs, LinkedFromDocs,
         LinkDescription, LinkTags, Thumbnail, ThumbnailPage, CurPage, AnnotationOn, NumPages, Ink, Cursors, OptionalRightCollection,
-        Archives, Workspaces, Minimized, CopyDraggedItems
+        Archives, Workspaces, IsMinimized, MinimizedDoc, MaximizedDoc, CopyDraggedItems
     ];
     export function KeyLookup(keyid: string) {
         for (const key of KeyList) {
