@@ -241,6 +241,20 @@ export namespace Doc {
         const self = doc[Self];
         return new Promise(res => getField(self, key, ignoreProto, res));
     }
+    export function GetTAsync<T extends Field>(doc: Doc, key: string, ctor: FieldCtor<T>, ignoreProto: boolean = false): Promise<T | undefined> {
+        const self = doc[Self];
+        return new Promise(async res => {
+            const field = await GetAsync(doc, key, ignoreProto);
+            return Cast(field, ctor);
+        });
+    }
+    export function Get(doc: Doc, key: string, ignoreProto: boolean = false): Field | null | undefined {
+        const self = doc[Self];
+        return getField(self, key, ignoreProto);
+    }
+    export function GetT<T extends Field>(doc: Doc, key: string, ctor: FieldCtor<T>, ignoreProto: boolean = false): Field | null | undefined {
+        return Cast(Get(doc, key, ignoreProto), ctor);
+    }
     export const Prototype = Symbol("Prototype");
 }
 
@@ -279,8 +293,8 @@ interface Interface {
 
 type FieldCtor<T extends Field> = ToConstructor<T> | ListSpec<T>;
 
-function Cast<T extends FieldCtor<Field>>(field: Field | undefined, ctor: T): ToType<T> | undefined {
-    if (field !== undefined) {
+function Cast<T extends FieldCtor<Field>>(field: Field | null | undefined, ctor: T): ToType<T> | null | undefined {
+    if (field !== undefined && field !== null) {
         if (typeof ctor === "string") {
             if (typeof field === ctor) {
                 return field as ToType<T>;
@@ -292,6 +306,8 @@ function Cast<T extends FieldCtor<Field>>(field: Field | undefined, ctor: T): To
         } else if (field instanceof (ctor as any)) {
             return field as ToType<T>;
         }
+    } else {
+        return field;
     }
     return undefined;
 }
