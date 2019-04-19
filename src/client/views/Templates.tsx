@@ -31,7 +31,7 @@ export namespace Templates {
             {layout}
         </div>
         <div style="height:(100% + 25px); width:100%; position:absolute">
-            <FormattedTextBox doc={Document} DocumentViewForField={DocumentView} bindings={bindings} fieldKey={"CaptionKey"} isSelected={isSelected} select={select} selectOnLoad={SelectOnLoad} isTopMost={isTopMost}/>
+            <FormattedTextBox doc={Document} DocumentViewForField={DocumentView} bindings={bindings} fieldKey={CaptionKey} isSelected={isSelected} select={select} selectOnLoad={SelectOnLoad} isTopMost={isTopMost}/>
         </div>
     </div>       
             `);
@@ -42,7 +42,7 @@ export namespace Templates {
             {layout}
         </div>
         <div style="height:25px; width:100%; position:absolute">
-            <FormattedTextBox doc={Document} DocumentViewForField={DocumentView} bindings={bindings} fieldKey={"CaptionKey"} isSelected={isSelected} select={select} selectOnLoad={SelectOnLoad} isTopMost={isTopMost}/>
+            <FormattedTextBox doc={Document} DocumentViewForField={DocumentView} bindings={bindings} fieldKey={CaptionKey} isSelected={isSelected} select={select} selectOnLoad={SelectOnLoad} isTopMost={isTopMost}/>
         </div>
     </div>       
             `);

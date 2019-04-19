@@ -409,7 +409,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         let templates: Map<Template, boolean> = new Map();
         let doc = SelectionManager.SelectedDocuments()[0];
         Array.from(Object.values(Templates)).map(template => {
-            templates.set(template, doc.hasTemplate(template));
+            templates.set(template, doc.Template === template);
         });
 
         return (<div className="documentDecorations">

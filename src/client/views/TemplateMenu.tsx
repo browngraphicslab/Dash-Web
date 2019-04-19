@@ -1,9 +1,8 @@
 import { observable, computed, action } from "mobx";
 import React = require("react");
-import { SelectionManager } from "../util/SelectionManager";
 import { observer } from "mobx-react";
 import './DocumentDecorations.scss';
-import { Templates, Template } from "./Templates";
+import { Template } from "./Templates";
 import { DocumentView } from "./nodes/DocumentView";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
@@ -34,19 +33,19 @@ export interface TemplateMenuProps {
 export class TemplateMenu extends React.Component<TemplateMenuProps> {
 
     @observable private _hidden: boolean = true;
-    @observable private _showBase: boolean = true;
+    @observable private _useBase: boolean = true;
     @observable private _templates: Map<Template, boolean> = this.props.templates;
 
 
     @action
     toggleTemplate = (event: React.ChangeEvent<HTMLInputElement>, template: Template): void => {
-        if (event.target.checked) {
-            this.props.doc.addTemplate(template);
-            this._templates.set(template, true);
-        } else {
-            this.props.doc.removeTemplate(template);
-            this._templates.set(template, false);
-        }
+        this._useBase = false;
+        this.props.doc.toggleBase(false);
+        this.props.doc.changeTemplate(template);
+        this._templates.forEach((checked, temp) => {
+            this._templates.set(temp, false);
+        });
+        this._templates.set(template, true);
 
         // const docs = view.props.ContainingCollectionView;
         // const docs = view.props.Document.GetList<Document>(view.props.fieldKey, []);
@@ -59,9 +58,12 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
     }
 
     @action
-    toggleBase = (event: React.ChangeEvent<HTMLInputElement>): void => {
-        this.props.doc.toggleBase(event.target.checked);
-        this._showBase = !this._showBase;
+    toggleBase = (event: React.MouseEvent): void => {
+        this._useBase = true;
+        this.props.doc.toggleBase(true);
+        this._templates.forEach((checked, temp) => {
+            this._templates.set(temp, false);
+        });
     }
 
     @action
@@ -79,7 +81,7 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
             <div className="templating-menu" >
                 <div className="templating-button" onClick={() => this.toggleTemplateActivity()}>T</div>
                 <ul id="template-list" style={{ display: this._hidden ? "none" : "block" }}>
-                    <li><input type="checkbox" onChange={(event) => this.toggleBase(event)} defaultChecked={true} />Base layout</li>
+                    <li><input type="checkbox" onClick={(event) => this.toggleBase(event)} checked={this._useBase} />Base layout</li>
                     {templateMenu}
                 </ul>
             </div>

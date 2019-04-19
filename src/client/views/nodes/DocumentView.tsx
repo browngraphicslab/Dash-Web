@@ -92,9 +92,8 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     }
     private _downX: number = 0;
     private _downY: number = 0;
-    @observable private _templates: Set<Template> = new Set<Template>();
-    private _useBase: boolean = true;
-    private _baseLayout: string = this.props.Document.GetText(KeyStore.Layout, "<p>Error loading layout data</p>");
+    private _base: string = this.props.Document.GetText(KeyStore.Layout, "<p>Error loading layout data</p>");
+    @observable private _template: Template = new Template("", "");
     @computed get active(): boolean { return SelectionManager.IsSelected(this) || this.props.parentActive(); }
     @computed get topMost(): boolean { return this.props.isTopMost; }
     @computed get layout(): string { return this.props.Document.GetText(KeyStore.Layout, "<p>Error loading layout data</p>"); }
@@ -304,39 +303,31 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     }
 
     updateLayout = (): void => {
-        let base = this._useBase ? this._baseLayout : "<div style='margin: auto; width: 100%; height: 100%; border: 1px solid black'></div>";
-        // this.props.Document.SetText(KeyStore.Layout, base);
-        this._templates.forEach(temp => {
-            let text = temp.Layout;
-            base = text.replace("{layout}", base);
-            // let oldLayout = this.props.Document.GetText(KeyStore.Layout, "");
-            // let layout = text.replace("{layout}", oldLayout);
-            // this.props.Document.SetText(KeyStore.Layout, layout);
-        });
-        this.props.Document.SetText(KeyStore.Layout, base);
+        if (this._template.Name === "") {
+            this.props.Document.SetText(KeyStore.Layout, this._base);
+        } else {
+            let temp = this._template.Layout;
+            let layout = temp.replace("{layout}", this._base);
+            this.props.Document.SetText(KeyStore.Layout, layout);
+        }
     }
 
     @action
     toggleBase = (useBase: boolean) => {
-        this._useBase = useBase;
+        if (useBase) {
+            this._template = new Template("", "");
+        }
         this.updateLayout();
     }
 
     @action
-    addTemplate = (template: Template) => {
-        this._templates.add(template);
+    changeTemplate = (template: Template) => {
+        this._template = template;
         this.updateLayout();
     }
 
-    @action
-    removeTemplate = (template: Template) => {
-        this._templates.delete(template);
-        this.updateLayout();
-    }
-
-    @action
-    hasTemplate = (template: Template) => {
-        return this._templates.has(template);
+    get Template() {
+        return this._template;
     }
 
     @action
