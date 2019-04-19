@@ -107,6 +107,10 @@ export const FieldWaiting: FieldWaiting = null;
 
 const Self = Symbol("Self");
 
+export class List<T extends Field> extends ObjectField {
+    [index: number]: T;
+}
+
 @Deserializable("doc").withFields(["id"])
 export class Doc extends RefField {
 
@@ -230,26 +234,47 @@ export type ToType<T> =
     T extends "string" ? string :
     T extends "number" ? number :
     T extends "boolean" ? boolean :
-    T extends { new(...args: any[]): infer R } ? R : undefined;
+    T extends ListSpec<infer U> ? List<U> :
+    T extends { new(...args: any[]): infer R } ? R : never;
+
+export type ToConstructor<T> =
+    T extends string ? "string" :
+    T extends number ? "number" :
+    T extends boolean ? "boolean" : { new(...args: any[]): T };
 
 export type ToInterface<T> = {
     [P in keyof T]: ToType<T[P]>;
 };
 
+// type ListSpec<T extends Field[]> = { List: FieldCtor<Head<T>> | ListSpec<Tail<T>> };
+export type ListSpec<T> = { List: FieldCtor<T> };
+
+// type ListType<U extends Field[]> = { 0: List<ListType<Tail<U>>>, 1: ToType<Head<U>> }[HasTail<U> extends true ? 0 : 1];
+
+type Head<T extends any[]> = T extends [any, ...any[]] ? T[0] : never;
+type Tail<T extends any[]> =
+    ((...t: T) => any) extends ((_: any, ...tail: infer TT) => any) ? TT : [];
+type HasTail<T extends any[]> = T extends ([] | [any]) ? false : true;
+
 interface Interface {
-    [key: string]: { new(...args: any[]): (ObjectField | RefField) } | "number" | "boolean" | "string";
+    [key: string]: ToConstructor<Field> | ListSpec<Field>;
+    // [key: string]: ToConstructor<Field> | ListSpec<Field[]>;
 }
 
-type FieldCtor<T extends Field> = { new(): T } | "number" | "string" | "boolean";
+type FieldCtor<T extends Field> = ToConstructor<T> | ListSpec<Field>;
 
-function Cast<T extends Field>(field: Field | undefined, ctor: FieldCtor<T>): T | undefined {
+function Cast<T extends Field>(field: Field | undefined, ctor: FieldCtor<T>): ToType<typeof ctor> | undefined {
     if (field !== undefined) {
         if (typeof ctor === "string") {
             if (typeof field === ctor) {
-                return field as T;
+                return field as ToType<typeof ctor>;
             }
-        } else if (field instanceof ctor) {
-            return field;
+        } else if (typeof ctor === "object") {
+            if (field instanceof List) {
+                return field as ToType<typeof ctor>;
+            }
+        } else if (field instanceof (ctor as any)) {
+            return field as ToType<typeof ctor>;
         }
     }
     return undefined;
@@ -277,10 +302,10 @@ export function makeStrictInterface<T extends Interface>(schema: T): (doc: Doc) 
         const type = schema[key];
         Object.defineProperty(proto, key, {
             get() {
-                return Cast(this.__doc[key], type);
+                return Cast(this.__doc[key], type as any);
             },
             set(value) {
-                value = Cast(value, type);
+                value = Cast(value, type as any);
                 if (value !== undefined) {
                     this.__doc[key] = value;
                     return;

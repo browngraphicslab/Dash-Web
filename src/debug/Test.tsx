@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import { serialize, deserialize, map } from 'serializr';
-import { URLField, Doc, createSchema, makeInterface, makeStrictInterface } from '../fields/NewDoc';
+import { URLField, Doc, createSchema, makeInterface, makeStrictInterface, List, ListSpec } from '../fields/NewDoc';
 import { SerializationHelper } from '../client/util/SerializationHelper';
 
 const schema1 = createSchema({
@@ -18,13 +18,20 @@ type TestDoc = makeInterface<typeof schema1>;
 const schema2 = createSchema({
     hello: URLField,
     test: "boolean",
-    fields: "string",
+    fields: { List: "number" } as ListSpec<number>,
     url: "number",
     testDoc: URLField
 });
 
 const Test2Doc = makeStrictInterface(schema2);
 type Test2Doc = makeStrictInterface<typeof schema2>;
+
+const schema3 = createSchema({
+    test: "boolean",
+});
+
+const Test3Doc = makeStrictInterface(schema3);
+type Test3Doc = makeStrictInterface<typeof schema3>;
 
 const assert = (bool: boolean) => {
     if (!bool) throw new Error();
@@ -53,7 +60,7 @@ class Test extends React.Component {
         assert(test1.myField === 20);
 
         assert(test2.hello === undefined);
-        assert(test2.fields === "test");
+        // assert(test2.fields === "test");
         assert(test2.test === undefined);
         assert(test2.url === undefined);
         assert(test2.testDoc === undefined);
