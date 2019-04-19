@@ -272,7 +272,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             this.animateTransition(
                 [minim.GetNumber(KeyStore.X, 0), minim.GetNumber(KeyStore.Y, 0)],
                 [maximized.GetNumber(KeyStore.X, 0), maximized.GetNumber(KeyStore.Y, 0)],
-                maximized.GetNumber(KeyStore.Width, 0), maximized.GetNumber(KeyStore.Width, 0),
+                maximized.GetNumber(KeyStore.Width, 0), maximized.GetNumber(KeyStore.Height, 0),
                 Date.now(), maximized, minimized);
         }
     }
