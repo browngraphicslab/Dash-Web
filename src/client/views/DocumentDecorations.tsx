@@ -17,24 +17,10 @@ import { LinkMenu } from "./nodes/LinkMenu";
 import { TemplateMenu } from "./TemplateMenu";
 import React = require("react");
 import { Template, Templates } from "./Templates";
+import { TemplateField } from "../../fields/TemplateField";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
-
-// @observer
-// class TemplateToggle extends React.Component<{ template: Template, checked: boolean, toggle: (event: React.ChangeEvent<HTMLInputElement>, template: Template) => void }> {
-//     render() {
-//         if (this.props.template) {
-//             return (
-//                 <li>
-//                     <input type="checkbox" checked={this.props.checked} onChange={(event) => this.props.toggle(event, this.props.template)} />
-//                     {this.props.template.Name}
-//                 </li>
-//             )
-//         }
-//         return (null);
-//     }
-// }
 
 @observer
 export class DocumentDecorations extends React.Component<{}, { value: string }> {
@@ -409,8 +395,10 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         let templates: Map<Template, boolean> = new Map();
         let doc = SelectionManager.SelectedDocuments()[0];
         Array.from(Object.values(Templates)).map(template => {
-            templates.set(template, doc.Template === template);
+            templates.set(template, doc.template.Name === template.Name);
         });
+        // let docSrc = doc.props.Document.GetT(KeyStore.Prototype, TemplateField);
+        // console.log(docSrc);
 
         return (<div className="documentDecorations">
             <div className="documentDecorations-background" style={{

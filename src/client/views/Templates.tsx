@@ -24,39 +24,34 @@ export class Template {
 }
 
 export namespace Templates {
+    export const BasicLayout = new Template("Basic layout", "{layout}");
+
     export const OuterCaption = new Template("Outer caption",
-        `
-    <div>
-        <div style="margin:auto; height:calc(100%); width:100%;">
-            {layout}
-        </div>
-        <div style="height:(100% + 25px); width:100%; position:absolute">
-            <FormattedTextBox doc={Document} DocumentViewForField={DocumentView} bindings={bindings} fieldKey={CaptionKey} isSelected={isSelected} select={select} selectOnLoad={SelectOnLoad} isTopMost={isTopMost}/>
-        </div>
-    </div>       
-            `);
+        `<div><div style="margin:auto; height:calc(100%); width:100%;">{layout}</div><div style="height:(100% + 50px); width:100%; position:absolute"><FormattedTextBox doc={Document} DocumentViewForField={DocumentView} bindings={bindings} fieldKey={CaptionKey} isSelected={isSelected} select={select} selectOnLoad={SelectOnLoad} isTopMost={isTopMost}/></div></div>`
+    );
+
     export const InnerCaption = new Template("Inner caption",
-        `
-    <div>
-        <div style="margin:auto; height:calc(100% - 25px); width:100%;">
-            {layout}
-        </div>
-        <div style="height:25px; width:100%; position:absolute">
-            <FormattedTextBox doc={Document} DocumentViewForField={DocumentView} bindings={bindings} fieldKey={CaptionKey} isSelected={isSelected} select={select} selectOnLoad={SelectOnLoad} isTopMost={isTopMost}/>
-        </div>
-    </div>       
-            `);
+        `<div>
+            <div style="margin:auto; height:calc(100% - 50px); width:100%;">
+                {layout}
+            </div>
+            <div style="height:50px; width:100%; position:absolute">
+                <FormattedTextBox doc={Document} DocumentViewForField={DocumentView} bindings={bindings} fieldKey={CaptionKey} isSelected={isSelected} select={select} selectOnLoad={SelectOnLoad} isTopMost={isTopMost}/>
+            </div>
+        </div>`
+    );
 
     export const Title = new Template("Title",
-        `
-    <div>
-        <div style="margin:auto; height:calc(100% - 50px); width:100%;">
-            {layout}
-        </div>
-        <div style="height:50px; width:100%; position:absolute">
-            {Title}
-        </div>
-    </div>       
-            `);
+        `<div>
+            <div style="margin:auto; height:calc(100% - 50px); width:100%;">
+                {layout}
+            </div>
+            <div style="height:50px; width:100%; position:absolute; background-color: rgba(0, 0, 0, .6); color: white; padding:12px">
+                {Title}
+            </div>
+        </div>`
+    );
+
+
 }
 

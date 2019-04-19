@@ -21,9 +21,10 @@ import { CollectionVideoView } from "../collections/CollectionVideoView";
 import { CollectionView } from "../collections/CollectionView";
 import { ContextMenu } from "../ContextMenu";
 import { DocumentContentsView } from "./DocumentContentsView";
-import { Template } from "./../Templates";
+import { Template, Templates } from "./../Templates";
 import "./DocumentView.scss";
 import React = require("react");
+import { TemplateField } from "../../../fields/TemplateField";
 
 
 export interface DocumentViewProps {
@@ -92,13 +93,19 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     }
     private _downX: number = 0;
     private _downY: number = 0;
-    private _base: string = this.props.Document.GetText(KeyStore.Layout, "<p>Error loading layout data</p>");
-    @observable private _template: Template = new Template("", "");
+    @computed get base(): string { return this.props.Document.GetText(KeyStore.BaseLayout, "<p>Error loading base layout data</p>"); }
     @computed get active(): boolean { return SelectionManager.IsSelected(this) || this.props.parentActive(); }
     @computed get topMost(): boolean { return this.props.isTopMost; }
     @computed get layout(): string { return this.props.Document.GetText(KeyStore.Layout, "<p>Error loading layout data</p>"); }
     @computed get layoutKeys(): Key[] { return this.props.Document.GetData(KeyStore.LayoutKeys, ListField, new Array<Key>()); }
     @computed get layoutFields(): Key[] { return this.props.Document.GetData(KeyStore.LayoutFields, ListField, new Array<Key>()); }
+    @computed get template(): Template {
+        let field = this.props.Document.GetT(KeyStore.Template, TemplateField);
+        return !field || field === FieldWaiting ? Templates.BasicLayout : field.Data;
+    }
+    set template(template: Template) {
+        this.props.Document.SetData(KeyStore.Template, template, TemplateField);
+    }
     screenRect = (): ClientRect | DOMRect => this._mainCont.current ? this._mainCont.current.getBoundingClientRect() : new DOMRect();
     onPointerDown = (e: React.PointerEvent): void => {
         this._downX = e.clientX;
@@ -303,31 +310,15 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     }
 
     updateLayout = (): void => {
-        if (this._template.Name === "") {
-            this.props.Document.SetText(KeyStore.Layout, this._base);
-        } else {
-            let temp = this._template.Layout;
-            let layout = temp.replace("{layout}", this._base);
-            this.props.Document.SetText(KeyStore.Layout, layout);
-        }
-    }
-
-    @action
-    toggleBase = (useBase: boolean) => {
-        if (useBase) {
-            this._template = new Template("", "");
-        }
-        this.updateLayout();
+        let temp = this.template.Layout;
+        let layout = temp.replace("{layout}", this.base);
+        this.props.Document.SetText(KeyStore.Layout, layout);
     }
 
     @action
     changeTemplate = (template: Template) => {
-        this._template = template;
+        this.template = template;
         this.updateLayout();
-    }
-
-    get Template() {
-        return this._template;
     }
 
     @action

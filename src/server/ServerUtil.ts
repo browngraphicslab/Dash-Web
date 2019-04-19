@@ -18,6 +18,8 @@ import { NumberField } from "./../fields/NumberField";
 import { RichTextField } from "./../fields/RichTextField";
 import { TextField } from "./../fields/TextField";
 import { Transferable, Types } from "./Message";
+import { Template } from "../client/views/Templates";
+import { TemplateField } from "../fields/TemplateField";
 
 export class ServerUtils {
     public static prepend(extension: string): string {
@@ -50,6 +52,7 @@ export class ServerUtils {
             case Types.Video: return new VideoField(new URL(json.data), json.id, false);
             case Types.Tuple: return new TupleField(json.data, json.id, false);
             case Types.Ink: return InkField.FromJson(json.id, json.data);
+            case Types.Template: return TemplateField.FromJson(json.id, json.data);
             case Types.Document: return Document.FromJson(json.data, json.id, false);
             default:
                 throw Error(

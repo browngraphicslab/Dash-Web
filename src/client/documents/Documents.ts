@@ -32,6 +32,8 @@ import { action } from "mobx";
 import { ColumnAttributeModel } from "../northstar/core/attribute/AttributeModel";
 import { AttributeTransformationModel } from "../northstar/core/attribute/AttributeTransformationModel";
 import { AggregateFunction } from "../northstar/model/idea/idea";
+import { Template } from "../views/Templates";
+import { TemplateField } from "../../fields/TemplateField";
 
 export interface DocumentOptions {
     x?: number;
@@ -46,7 +48,9 @@ export interface DocumentOptions {
     pany?: number;
     page?: number;
     scale?: number;
+    baseLayout?: string;
     layout?: string;
+    template?: Template;
     layoutKeys?: Key[];
     viewType?: number;
     backgroundColor?: string;
@@ -95,7 +99,9 @@ export namespace Documents {
         if (options.viewType !== undefined) { doc.SetNumber(KeyStore.ViewType, options.viewType); }
         if (options.backgroundColor !== undefined) { doc.SetText(KeyStore.BackgroundColor, options.backgroundColor); }
         if (options.ink !== undefined) { doc.Set(KeyStore.Ink, new InkField(options.ink)); }
+        if (options.baseLayout !== undefined) { doc.SetText(KeyStore.BaseLayout, options.baseLayout); }
         if (options.layout !== undefined) { doc.SetText(KeyStore.Layout, options.layout); }
+        if (options.template !== undefined) { doc.Set(KeyStore.Template, new TemplateField(options.template)); }
         if (options.layoutKeys !== undefined) { doc.Set(KeyStore.LayoutKeys, new ListField(options.layoutKeys)); }
         if (options.copyDraggedItems !== undefined) { doc.SetBoolean(KeyStore.CopyDraggedItems, options.copyDraggedItems); }
         return doc;
@@ -112,7 +118,7 @@ export namespace Documents {
     }
 
     function setupPrototypeOptions(protoId: string, title: string, layout: string, options: DocumentOptions): Document {
-        return assignOptions(new Document(protoId), { ...options, title: title, layout: layout });
+        return assignOptions(new Document(protoId), { ...options, title: title, layout: layout , baseLayout: layout});
     }
     function SetInstanceOptions<T, U extends Field & { Data: T }>(doc: Document, options: DocumentOptions, value: [T, { new(): U }] | Document, id?: string) {
         var deleg = doc.MakeDelegate(id);
