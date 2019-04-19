@@ -66,6 +66,14 @@ class Test extends React.Component {
         assert(test2.testDoc === undefined);
         test2.url = 35;
         assert(test2.url === 35);
+        const l = new List<number>();
+        //TODO push, and other array functions don't go through the proxy
+        l.push(1);
+        //TODO currently length, and any other string fields will get serialized
+        l.length = 3;
+        l[2] = 5;
+        console.log(l.slice());
+        console.log(SerializationHelper.Serialize(l));
     }
 
     render() {
