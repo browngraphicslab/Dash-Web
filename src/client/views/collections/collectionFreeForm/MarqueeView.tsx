@@ -216,12 +216,11 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         let selRect = this.Bounds;
         let selection: Document[] = [];
         this.props.activeDocuments().map(doc => {
-            let minimized = doc.GetBoolean(KeyStore.Minimized, false);
             var z = doc.GetNumber(KeyStore.Zoom, 1);
-            var x = doc.GetNumber(KeyStore.X, 0) + (minimized ? doc.GetNumber(KeyStore.MinimizedX, 0) : 0);
-            var y = doc.GetNumber(KeyStore.Y, 0) + (minimized ? doc.GetNumber(KeyStore.MinimizedY, 0) : 0);
-            var w = minimized ? MINIMIZED_ICON_SIZE : doc.Width() / z;
-            var h = minimized ? MINIMIZED_ICON_SIZE : doc.Height() / z;
+            var x = doc.GetNumber(KeyStore.X, 0);
+            var y = doc.GetNumber(KeyStore.Y, 0);
+            var w = doc.Width() / z;
+            var h = doc.Height() / z;
             if (this.intersectRect({ left: x, top: y, width: w, height: h }, selRect)) {
                 selection.push(doc);
             }

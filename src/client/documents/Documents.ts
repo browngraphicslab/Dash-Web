@@ -32,6 +32,9 @@ import { action } from "mobx";
 import { ColumnAttributeModel } from "../northstar/core/attribute/AttributeModel";
 import { AttributeTransformationModel } from "../northstar/core/attribute/AttributeTransformationModel";
 import { AggregateFunction } from "../northstar/model/idea/idea";
+import { MINIMIZED_ICON_SIZE } from "../views/globalCssVariables.scss";
+import { IconBox } from "../views/nodes/IconBox";
+import { IconField } from "../../fields/IconFIeld";
 
 export interface DocumentOptions {
     x?: number;
@@ -63,6 +66,7 @@ export namespace Documents {
     let videoProto: Document;
     let audioProto: Document;
     let pdfProto: Document;
+    let iconProto: Document;
     const textProtoId = "textProto";
     const histoProtoId = "histoProto";
     const pdfProtoId = "pdfProto";
@@ -72,6 +76,7 @@ export namespace Documents {
     const kvpProtoId = "kvpProto";
     const videoProtoId = "videoProto";
     const audioProtoId = "audioProto";
+    const iconProtoId = "iconProto";
 
     export function initProtos(): Promise<void> {
         return Server.GetFields([textProtoId, histoProtoId, collProtoId, pdfProtoId, imageProtoId, videoProtoId, audioProtoId, webProtoId, kvpProtoId]).then(fields => {
@@ -84,6 +89,7 @@ export namespace Documents {
             videoProto = fields[videoProtoId] as Document || CreateVideoPrototype();
             audioProto = fields[audioProtoId] as Document || CreateAudioPrototype();
             pdfProto = fields[pdfProtoId] as Document || CreatePdfPrototype();
+            iconProto = fields[iconProtoId] as Document || CreateIconPrototype();
         });
     }
     function assignOptions(doc: Document, options: DocumentOptions): Document {
@@ -92,6 +98,8 @@ export namespace Documents {
         if (options.title !== undefined) { doc.SetText(KeyStore.Title, options.title); }
         if (options.page !== undefined) { doc.SetNumber(KeyStore.Page, options.page); }
         if (options.scale !== undefined) { doc.SetNumber(KeyStore.Scale, options.scale); }
+        if (options.width !== undefined) { doc.SetNumber(KeyStore.Width, options.width); }
+        if (options.height !== undefined) { doc.SetNumber(KeyStore.Height, options.height); }
         if (options.viewType !== undefined) { doc.SetNumber(KeyStore.ViewType, options.viewType); }
         if (options.backgroundColor !== undefined) { doc.SetText(KeyStore.BackgroundColor, options.backgroundColor); }
         if (options.ink !== undefined) { doc.Set(KeyStore.Ink, new InkField(options.ink)); }
@@ -138,6 +146,11 @@ export namespace Documents {
             { x: 0, y: 0, width: 300, height: 300, backgroundColor: "black", layoutKeys: [KeyStore.Data, KeyStore.Annotations, KeyStore.Caption] });
         histoProto.SetText(KeyStore.BackgroundLayout, HistogramBox.LayoutString());
         return histoProto;
+    }
+    function CreateIconPrototype(): Document {
+        let iconProto = setupPrototypeOptions(iconProtoId, "ICON_PROTO", IconBox.LayoutString(),
+            { x: 0, y: 0, width: Number(MINIMIZED_ICON_SIZE), height: Number(MINIMIZED_ICON_SIZE), layoutKeys: [KeyStore.Data] });
+        return iconProto;
     }
     function CreateTextPrototype(): Document {
         let textProto = setupPrototypeOptions(textProtoId, "TEXT_PROTO", FormattedTextBox.LayoutString(),
@@ -202,6 +215,9 @@ export namespace Documents {
     }
     export function TextDocument(options: DocumentOptions = {}) {
         return assignToDelegate(SetInstanceOptions(textProto, options, ["", TextField]).MakeDelegate(), options);
+    }
+    export function IconDocument(icon: string, options: DocumentOptions = {}) {
+        return assignToDelegate(SetInstanceOptions(iconProto, { width: Number(MINIMIZED_ICON_SIZE), height: Number(MINIMIZED_ICON_SIZE), layoutKeys: [KeyStore.Data], layout: IconBox.LayoutString(), ...options }, [icon, IconField]), options);
     }
     export function PdfDocument(url: string, options: DocumentOptions = {}) {
         return assignToDelegate(SetInstanceOptions(pdfProto, options, [new URL(url), PDFField]).MakeDelegate(), options);

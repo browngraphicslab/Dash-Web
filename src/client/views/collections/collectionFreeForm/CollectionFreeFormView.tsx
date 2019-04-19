@@ -21,6 +21,7 @@ import "./CollectionFreeFormView.scss";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
 import v5 = require("uuid/v5");
+import { BooleanField } from "../../../../fields/BooleanField";
 
 @observer
 export class CollectionFreeFormView extends CollectionSubView {
@@ -71,17 +72,15 @@ export class CollectionFreeFormView extends CollectionSubView {
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
         if (super.drop(e, de) && de.data instanceof DragManager.DocumentDragData) {
-            console.log("DROP Aat " + de.x + " off " + de.data.xOffset);
             const [x, y] = this.getTransform().transformPoint(de.x - de.data.xOffset, de.y - de.data.yOffset);
             if (de.data.droppedDocuments.length) {
                 let dragDoc = de.data.droppedDocuments[0];
                 let dropX = dragDoc.GetNumber(KeyStore.X, 0);
                 let dropY = dragDoc.GetNumber(KeyStore.Y, 0);
                 de.data.droppedDocuments.map(d => {
-                    let minimized = d.GetBoolean(KeyStore.Minimized, false);
-                    d.SetNumber(KeyStore.X, x + (d.GetNumber(KeyStore.X, 0) - (minimized ? d.GetNumber(KeyStore.MinimizedX, 0) : 0)) - dropX);
-                    d.SetNumber(KeyStore.Y, y + (d.GetNumber(KeyStore.Y, 0) - (minimized ? d.GetNumber(KeyStore.MinimizedY, 0) : 0)) - dropY);
-                    if (!minimized) {
+                    d.SetNumber(KeyStore.X, x + (d.GetNumber(KeyStore.X, 0)) - dropX);
+                    d.SetNumber(KeyStore.Y, y + (d.GetNumber(KeyStore.Y, 0)) - dropY);
+                    if (!d.GetBoolean(KeyStore.IsMinimized, false)) {
                         if (!d.GetNumber(KeyStore.Width, 0)) {
                             d.SetNumber(KeyStore.Width, 300);
                         }
@@ -264,7 +263,9 @@ export class CollectionFreeFormView extends CollectionSubView {
         let docviews = this.props.Document.GetList(this.props.fieldKey, [] as Document[]).filter(doc => doc).reduce((prev, doc) => {
             var page = doc.GetNumber(KeyStore.Page, -1);
             if (page === curPage || page === -1) {
-                prev.push(<CollectionFreeFormDocumentView key={doc.Id} {...this.getDocumentViewProps(doc)} />);
+                let minim = doc.GetT(KeyStore.IsMinimized, BooleanField);
+                if (minim === undefined || (minim && !minim.Data))
+                    prev.push(<CollectionFreeFormDocumentView key={doc.Id} {...this.getDocumentViewProps(doc)} />);
             }
             return prev;
         }, [] as JSX.Element[]);

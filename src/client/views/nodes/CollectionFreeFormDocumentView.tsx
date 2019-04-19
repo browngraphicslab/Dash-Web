@@ -46,10 +46,10 @@ export class CollectionFreeFormDocumentView extends React.Component<CollectionFr
     }
 
     get X() {
-        return this.props.Document.GetNumber(KeyStore.X, 0) + (this.isMinimized ? this.props.Document.GetNumber(KeyStore.MinimizedX, 0) : 0);
+        return this.props.Document.GetNumber(KeyStore.X, 0);
     }
     get Y() {
-        return this.props.Document.GetNumber(KeyStore.Y, 0) + (this.isMinimized ? this.props.Document.GetNumber(KeyStore.MinimizedY, 0) : 0);
+        return this.props.Document.GetNumber(KeyStore.Y, 0);
     }
     getTransform = (): Transform =>
         this.props.ScreenToLocalTransform()
@@ -57,8 +57,8 @@ export class CollectionFreeFormDocumentView extends React.Component<CollectionFr
             .scale(1 / this.contentScaling()).scale(1 / this.zoom)
 
     contentScaling = () => this.nativeWidth > 0 ? this.width / this.nativeWidth : 1;
-    panelWidth = () => this.isMinimized ? 10 : this.props.PanelWidth();
-    panelHeight = () => this.isMinimized ? 10 : this.props.PanelHeight();
+    panelWidth = () => this.props.PanelWidth();
+    panelHeight = () => this.props.PanelHeight();
 
     @computed
     get docView() {
@@ -70,19 +70,17 @@ export class CollectionFreeFormDocumentView extends React.Component<CollectionFr
         />;
     }
 
-    get isMinimized() { return this.props.Document.GetBoolean(KeyStore.Minimized, false); }
-
     render() {
         let zoomFade = 1;
         //var zoom = doc.GetNumber(KeyStore.Zoom, 1);
-        let transform = this.getTransform().scale(this.contentScaling()).inverse();
-        var [sptX, sptY] = transform.transformPoint(0, 0);
-        let [bptX, bptY] = transform.transformPoint(this.props.PanelWidth(), this.props.PanelHeight());
-        let w = bptX - sptX;
-        //zoomFade = area < 100 || area > 800 ? Math.max(0, Math.min(1, 2 - 5 * (zoom < this.scale ? this.scale / zoom : zoom / this.scale))) : 1;
-        let fadeUp = .75 * 1800;
-        let fadeDown = .075 * 1800;
-        zoomFade = w < fadeDown  /* || w > fadeUp */ ? Math.max(0, Math.min(1, 2 - (w < fadeDown ? fadeDown / w : w / fadeUp))) : 1;
+        // let transform = this.getTransform().scale(this.contentScaling()).inverse();
+        // var [sptX, sptY] = transform.transformPoint(0, 0);
+        // let [bptX, bptY] = transform.transformPoint(this.props.PanelWidth(), this.props.PanelHeight());
+        // let w = bptX - sptX;
+        // //zoomFade = area < 100 || area > 800 ? Math.max(0, Math.min(1, 2 - 5 * (zoom < this.scale ? this.scale / zoom : zoom / this.scale))) : 1;
+        // let fadeUp = .75 * 1800;
+        // let fadeDown = .075 * 1800;
+        // zoomFade = w < fadeDown  /* || w > fadeUp */ ? Math.max(0, Math.min(1, 2 - (w < fadeDown ? fadeDown / w : w / fadeUp))) : 1;
 
         return (
             <div className="collectionFreeFormDocumentView-container" ref={this._mainCont} style={{

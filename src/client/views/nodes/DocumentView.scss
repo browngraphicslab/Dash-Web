@@ -4,7 +4,7 @@
   position: inherit;
   top: 0;
   left:0;
-  background: $light-color; //overflow: hidden;
+ // background: $light-color; //overflow: hidden;
   transform-origin: left top;
 
   &.minimized {
@@ -30,18 +30,4 @@
 }
 .documentView-node-topmost {
     background: white;
-}
-.minimized-box {
-    position: absolute;
-    left:0;
-    top:0;
-    width:$MINIMIZED_ICON_SIZE;
-    height:$MINIMIZED_ICON_SIZE;
-    transform:translate(-50%, -50%);
-}
-
-.minimized-box:hover {
-  background: $main-accent;
-  transform:translate(-50%, -50%) scale(1.15);;
-  cursor: pointer;
 }

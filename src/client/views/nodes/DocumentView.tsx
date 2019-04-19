@@ -1,6 +1,3 @@
-import { IconProp, library } from '@fortawesome/fontawesome-svg-core';
-import { faCaretUp, faObjectGroup, faStickyNote, faFilePdf, faFilm, faImage } from '@fortawesome/free-solid-svg-icons';
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { Document } from "../../../fields/Document";
@@ -20,18 +17,11 @@ import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { CollectionPDFView } from "../collections/CollectionPDFView";
 import { CollectionVideoView } from "../collections/CollectionVideoView";
 import { CollectionView } from "../collections/CollectionView";
-import { MINIMIZED_ICON_SIZE } from "../../views/globalCssVariables.scss";
 import { ContextMenu } from "../ContextMenu";
 import { DocumentContentsView } from "./DocumentContentsView";
 import "./DocumentView.scss";
 import React = require("react");
-
-
-library.add(faCaretUp);
-library.add(faObjectGroup);
-library.add(faStickyNote);
-library.add(faFilePdf);
-library.add(faFilm);
+import { TextField } from "../../../fields/TextField";
 
 export interface DocumentViewProps {
     ContainingCollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
@@ -189,10 +179,10 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
         e.stopPropagation();
-        if (!SelectionManager.IsSelected(this) && e.button !== 2 &&
-            Math.abs(e.clientX - this._downX) < 4 && Math.abs(e.clientY - this._downY) < 4) {
-            SelectionManager.SelectDoc(this, e.ctrlKey);
-        }
+        if (!SelectionManager.IsSelected(this) && e.button !== 2)
+            if (Math.abs(e.clientX - this._downX) < 4 && Math.abs(e.clientY - this._downY) < 4) {
+                SelectionManager.SelectDoc(this, e.ctrlKey);
+            }
     }
     stopPropagation = (e: React.SyntheticEvent) => {
         e.stopPropagation();
@@ -221,9 +211,33 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15);
     }
 
+    @action createIcon = (layoutString: string): void => {
+        let iconDoc = Documents.IconDocument(layoutString);
+        iconDoc.SetBoolean(KeyStore.IsMinimized, false);
+        iconDoc.SetNumber(KeyStore.NativeWidth, 0);
+        iconDoc.SetNumber(KeyStore.NativeHeight, 0);
+        iconDoc.Set(KeyStore.Prototype, this.props.Document);
+        iconDoc.Set(KeyStore.MaximizedDoc, this.props.Document);
+        this.props.Document.Set(KeyStore.MinimizedDoc, iconDoc);
+        this.props.addDocument && this.props.addDocument(iconDoc, false);
+    }
+
     @action
     public minimize = (): void => {
-        this.props.Document.SetBoolean(KeyStore.Minimized, true);
+        this.props.Document.SetBoolean(KeyStore.IsMinimized, true);
+        this.props.Document.GetAsync(KeyStore.MinimizedDoc, mindoc => {
+            if (mindoc === undefined) {
+                this.props.Document.GetAsync(KeyStore.BackgroundLayout, field => {
+                    if (field instanceof TextField) this.createIcon(field.Data);
+                    else this.props.Document.GetAsync(KeyStore.Layout, field => {
+                        if (field instanceof TextField) this.createIcon(field.Data);
+                    });
+                });
+            }
+            else if (mindoc instanceof Document) {
+                this.props.addDocument && this.props.addDocument(mindoc, false);
+            }
+        });
     }
 
     @undoBatch
@@ -291,7 +305,6 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         }
         e.preventDefault();
 
-        !this.isMinimized() && ContextMenu.Instance.addItem({ description: "Minimize", event: () => this.minimize([0, 0]) });
         ContextMenu.Instance.addItem({ description: "Full Screen", event: this.fullScreenClicked });
         ContextMenu.Instance.addItem({ description: "Fields", event: this.fieldsClicked });
         ContextMenu.Instance.addItem({ description: "Center", event: () => this.props.focus(this.props.Document) });
@@ -305,9 +318,6 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             SelectionManager.SelectDoc(this, false);
     }
 
-    @action
-    expand = (e: React.MouseEvent) => { this.props.Document.SetBoolean(KeyStore.Minimized, false); SelectionManager.SelectDoc(this, e.ctrlKey); }
-    isMinimized = () => this.props.Document.GetBoolean(KeyStore.Minimized, false);
     isSelected = () => SelectionManager.IsSelected(this);
     select = (ctrlPressed: boolean) => SelectionManager.SelectDoc(this, ctrlPressed);
 
@@ -315,27 +325,12 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     @computed get nativeHeight() { return this.props.Document.GetNumber(KeyStore.NativeHeight, 0); }
     @computed get contents() { return (<DocumentContentsView {...this.props} isSelected={this.isSelected} select={this.select} layoutKey={KeyStore.Layout} />); }
 
-    @computed get minimizedIcon() {
-        let button = this.layout.indexOf("PDFBox") !== -1 ? faFilePdf :
-            this.layout.indexOf("ImageBox") !== -1 ? faImage :
-                this.layout.indexOf("Formatted") !== -1 ? faStickyNote :
-                    this.layout.indexOf("Video") !== -1 ? faFilm :
-                        this.layout.indexOf("Collection") !== -1 ? faObjectGroup :
-                            faCaretUp;
-        return <FontAwesomeIcon icon={button} style={{ width: MINIMIZED_ICON_SIZE, height: MINIMIZED_ICON_SIZE }} className="documentView-minimizedIcon" />
-    }
 
     render() {
         var scaling = this.props.ContentScaling();
         var nativeHeight = this.nativeHeight > 0 ? this.nativeHeight.toString() + "px" : "100%";
         var nativeWidth = this.nativeWidth > 0 ? this.nativeWidth.toString() + "px" : "100%";
 
-        if (this.isMinimized()) {
-            return (
-                <div className="minimized-box" ref={this._mainCont} onClick={this.expand} onDrop={this.onDrop} onPointerDown={this.onPointerDown} >
-                    {this.minimizedIcon}
-                </div>);
-        }
         return (
             <div className={`documentView-node${this.props.isTopMost ? "-topmost" : ""}`}
                 ref={this._mainCont}
