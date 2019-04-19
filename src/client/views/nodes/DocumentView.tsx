@@ -181,7 +181,16 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         e.stopPropagation();
         if (!SelectionManager.IsSelected(this) && e.button !== 2)
             if (Math.abs(e.clientX - this._downX) < 4 && Math.abs(e.clientY - this._downY) < 4) {
-                SelectionManager.SelectDoc(this, e.ctrlKey);
+                if (this.props.Document.Get(KeyStore.MaximizedDoc) instanceof Document) {
+                    this.props.Document.GetAsync(KeyStore.MaximizedDoc, maxdoc => {
+                        if (maxdoc instanceof Document) {
+                            this.props.addDocument && this.props.addDocument(maxdoc, false);
+                            this.toggleMinimize(maxdoc, this.props.Document);
+                        }
+                    });
+                } else {
+                    SelectionManager.SelectDoc(this, e.ctrlKey);
+                }
             }
     }
     stopPropagation = (e: React.SyntheticEvent) => {
@@ -211,7 +220,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15);
     }
 
-    @action createIcon = (layoutString: string): void => {
+    @action createIcon = (layoutString: string): Document => {
         let iconDoc = Documents.IconDocument(layoutString);
         iconDoc.SetBoolean(KeyStore.IsMinimized, false);
         iconDoc.SetNumber(KeyStore.NativeWidth, 0);
@@ -220,22 +229,73 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         iconDoc.Set(KeyStore.MaximizedDoc, this.props.Document);
         this.props.Document.Set(KeyStore.MinimizedDoc, iconDoc);
         this.props.addDocument && this.props.addDocument(iconDoc, false);
+        return iconDoc;
+    }
+
+    animateTransition(icon: number[], targ: number[], width: number, height: number, stime: number, target: Document, maximizing: boolean) {
+        setTimeout(() => {
+            let now = Date.now();
+            let progress = Math.min(1, (now - stime) / 200);
+            let pval = maximizing ?
+                [icon[0] + (targ[0] - icon[0]) * progress, icon[1] + (targ[1] - icon[1]) * progress] :
+                [targ[0] + (icon[0] - targ[0]) * progress, targ[1] + (icon[1] - targ[1]) * progress];
+            target.SetNumber(KeyStore.Width, maximizing ? 25 + (width - 25) * progress : width + (25 - width) * progress);
+            target.SetNumber(KeyStore.Height, maximizing ? 25 + (height - 25) * progress : height + (25 - height) * progress);
+            target.SetNumber(KeyStore.X, pval[0]);
+            target.SetNumber(KeyStore.Y, pval[1]);
+            if (now < stime + 200) {
+                this.animateTransition(icon, targ, width, height, stime, target, maximizing);
+            }
+            else {
+                if (!maximizing) {
+                    target.SetBoolean(KeyStore.IsMinimized, true);
+                    target.SetNumber(KeyStore.X, targ[0]);
+                    target.SetNumber(KeyStore.Y, targ[1]);
+                    target.SetNumber(KeyStore.Width, width);
+                    target.SetNumber(KeyStore.Height, height);
+                }
+                this._completed = true;
+            }
+        },
+            2);
+    }
+
+    _completed = true;
+
+    @action
+    public toggleMinimize = (maximized: Document, minim: Document): void => {
+        SelectionManager.DeselectAll();
+        if (maximized instanceof Document && this._completed) {
+            this._completed = false;
+            let minimized = maximized.GetBoolean(KeyStore.IsMinimized, false);
+            maximized.SetBoolean(KeyStore.IsMinimized, false);
+            this.animateTransition(
+                [minim.GetNumber(KeyStore.X, 0), minim.GetNumber(KeyStore.Y, 0)],
+                [maximized.GetNumber(KeyStore.X, 0), maximized.GetNumber(KeyStore.Y, 0)],
+                maximized.GetNumber(KeyStore.Width, 0), maximized.GetNumber(KeyStore.Width, 0),
+                Date.now(), maximized, minimized);
+        }
     }
 
     @action
     public minimize = (): void => {
-        this.props.Document.SetBoolean(KeyStore.IsMinimized, true);
         this.props.Document.GetAsync(KeyStore.MinimizedDoc, mindoc => {
             if (mindoc === undefined) {
                 this.props.Document.GetAsync(KeyStore.BackgroundLayout, field => {
-                    if (field instanceof TextField) this.createIcon(field.Data);
+                    if (field instanceof TextField) {
+                        this.toggleMinimize(this.props.Document, this.createIcon(field.Data));
+                    }
                     else this.props.Document.GetAsync(KeyStore.Layout, field => {
-                        if (field instanceof TextField) this.createIcon(field.Data);
+                        if (field instanceof TextField) {
+                            this.createIcon(field.Data);
+                            this.toggleMinimize(this.props.Document, this.createIcon(field.Data));
+                        }
                     });
                 });
             }
             else if (mindoc instanceof Document) {
                 this.props.addDocument && this.props.addDocument(mindoc, false);
+                this.toggleMinimize(this.props.Document, mindoc);
             }
         });
     }

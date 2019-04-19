@@ -202,7 +202,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         let dy = e.pageY - this._downY;
         if (Math.abs(dx) > 4 || Math.abs(dy) > 4) {
             this._iconifying = true;
-            let xf = SelectionManager.SelectedDocuments()[0].props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
+            let xf = SelectionManager.SelectedDocuments()[0].props.ScreenToLocalTransform().scale(SelectionManager.SelectedDocuments()[0].props.ContentScaling()).inverse().transformPoint(0, 0);
             let dx = e.pageX - xf[0];
             let dy = e.pageY - xf[1];
             this._minimizedX = e.clientX;
