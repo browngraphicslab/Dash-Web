@@ -70,7 +70,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     }
     @action
     onPointerDown = (e: React.PointerEvent): void => {
-        if (!e.metaKey && this.props.container.props.active()) {
+        if (!e.metaKey && (e.altKey || this.props.container.props.active())) {
             this._downX = this._lastX = e.pageX;
             this._downY = this._lastY = e.pageY;
             this._used = false;
@@ -82,6 +82,8 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             if (e.button == 2 || e.altKey)
                 e.stopPropagation();
         }
+        if (e.altKey)
+            e.preventDefault();
     }
 
     @action
@@ -100,6 +102,8 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 e.preventDefault();
             }
         }
+        if (e.altKey)
+            e.preventDefault();
     }
 
     @action
@@ -116,6 +120,8 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             }
             this.props.selectDocuments(mselect.length ? mselect : [this.props.container.props.Document]);
         }
+        if (e.altKey)
+            e.preventDefault();
     }
 
     intersectRect(r1: { left: number, top: number, width: number, height: number },

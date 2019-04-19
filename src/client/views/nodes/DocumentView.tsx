@@ -178,7 +178,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3) {
             document.removeEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
-            if (!this.topMost || e.buttons === 2 || e.altKey) {
+            if (!e.altKey && (!this.topMost || e.buttons === 2)) {
                 this.startDragging(this._downX, this._downY, e.ctrlKey || e.altKey);
             }
         }
@@ -222,12 +222,8 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     }
 
     @action
-    public minimize = (where: number[]): void => {
+    public minimize = (): void => {
         this.props.Document.SetBoolean(KeyStore.Minimized, true);
-        if (where[0] !== 0 || where[1] !== 0)
-            this.props.Document.SetNumber(KeyStore.MinimizedX, where[0]);
-        if (where[1] !== 0 || where[0] !== 0)
-            this.props.Document.SetNumber(KeyStore.MinimizedY, where[1]);
     }
 
     @undoBatch
