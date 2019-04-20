@@ -23,11 +23,10 @@ export class Timeline extends React.Component {
     @action
     onStop = (e: React.MouseEvent) => {
         this._isRecording = false;
-        if (this._inner.current) {
+        if (this._inner.current) { //if you comment this section out it works as before...
             this._newBar = document.createElement("div");
             this._newBar.style.height = "100%";
             this._newBar.style.width = "5px";
-            this._newBar.style.left = this._currentBar.style.left;
             this._newBar.style.backgroundColor = "yellow";
             this._newBar.style.transform = this._currentBar.style.transform;
             this._inner.current.appendChild(this._newBar);
@@ -46,7 +45,6 @@ export class Timeline extends React.Component {
                     this._currentBar = document.createElement("div");
                     this._currentBar.style.height = "100%";
                     this._currentBar.style.width = "5px";
-                    this._currentBar.style.left = "mouse.offsetX";
                     this._currentBar.style.backgroundColor = "white";
                     this._currentBar.style.transform = `translate(${mouse.offsetX}px)`;
                     this._inner.current.appendChild(this._currentBar);
@@ -59,10 +57,14 @@ export class Timeline extends React.Component {
         }
     }
 
+    createMark = (width: number) => {
+
+    }
 
     private _keyFrames: KeyFrame[] = [];
 
     componentDidMount() {
+
         // let doc: Document;
         // let keyFrame = new KeyFrame(); 
         // this._keyFrames.push(keyFrame); 
