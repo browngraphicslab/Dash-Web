@@ -6,14 +6,11 @@ import "./Timeline.scss";
 import { KeyStore } from "../../../fields/KeyStore";
 import { Document } from "../../../fields/Document";
 import { KeyFrame } from "./KeyFrame";
-<<<<<<< HEAD
 import { CollectionViewProps } from "../collections/CollectionBaseView";
-import { CollectionSubView } from "../collections/CollectionSubView"; 
+import { CollectionSubView } from "../collections/CollectionSubView";
 import { DocumentViewProps } from "./DocumentView";
 
-=======
 import { Opt } from '../../../fields/Field';
->>>>>>> 6304e03f953b2cc66dcc1a0900855376ff739015
 
 @observer
 export class Timeline extends React.Component<DocumentViewProps> {
@@ -31,10 +28,6 @@ export class Timeline extends React.Component<DocumentViewProps> {
     @action
     onStop = (e: React.MouseEvent) => {
         this._isRecording = false;
-<<<<<<< HEAD
-        if (this._inner.current) {
-            
-=======
         if (this._inner.current) { //if you comment this section out it works as before...
             this._newBar = document.createElement("div");
             this._newBar.style.height = "100%";
@@ -42,7 +35,6 @@ export class Timeline extends React.Component<DocumentViewProps> {
             this._newBar.style.backgroundColor = "yellow";
             this._newBar.style.transform = this._currentBar.style.transform;
             this._inner.current.appendChild(this._newBar);
->>>>>>> 6304e03f953b2cc66dcc1a0900855376ff739015
         }
     }
 
@@ -77,30 +69,17 @@ export class Timeline extends React.Component<DocumentViewProps> {
 
     componentDidMount() {
         this.createBar(5);
-<<<<<<< HEAD
-        let doc: Document = this.props.Document;
-        console.log(doc.Get(KeyStore.BackgroundColor)); 
-        let keyFrame = new KeyFrame(); 
-        this._keyFrames.push(keyFrame); 
-        let keys = [KeyStore.X, KeyStore.Y];
-        reaction(() => {       
-=======
         let doc: Document;
         let keyFrame = new KeyFrame();
         this._keyFrames.push(keyFrame);
         let keys = [KeyStore.X, KeyStore.Y];
         this._reactionDisposer = reaction(() => {
->>>>>>> 6304e03f953b2cc66dcc1a0900855376ff739015
             return keys.map(key => doc.GetNumber(key, 0));
         }, data => {
             keys.forEach((key, index) => {
                 keyFrame.document().SetNumber(key, data[index]);
             });
         });
-<<<<<<< HEAD
-
-        console.log(keyFrame.document +  "Document"); 
-=======
     }
 
     componentWillUnmount() {
@@ -108,7 +87,6 @@ export class Timeline extends React.Component<DocumentViewProps> {
             this._reactionDisposer();
             this._reactionDisposer = undefined;
         }
->>>>>>> 6304e03f953b2cc66dcc1a0900855376ff739015
     }
 
     render() {

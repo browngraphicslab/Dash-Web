@@ -113,9 +113,9 @@ export class Main extends React.Component {
         window.addEventListener("drop", (e) => e.preventDefault(), false); // drop event handler
         window.addEventListener("dragover", (e) => e.preventDefault(), false); // drag event handler
         window.addEventListener("keydown", (e) => {
-            if (e.key == "Escape") {
+            if (e.key === "Escape") {
                 DragManager.AbortDrag();
-                SelectionManager.DeselectAll()
+                SelectionManager.DeselectAll();
             }
         }, false); // drag event handler
         // click interactions for the context menu
@@ -274,8 +274,6 @@ export class Main extends React.Component {
         ];
     }
 
-<<<<<<< HEAD
-=======
     @computed
     get workspaceMenu() {
         let areWorkspacesShown = () => this._workspacesShown;
@@ -286,7 +284,6 @@ export class Main extends React.Component {
                 new={this.createNewWorkspace} allWorkspaces={workspaces.Data}
                 isShown={areWorkspacesShown} toggle={toggleWorkspaces} />;
     }
->>>>>>> e47656cdc18aa1fd801a3853fa0f819140a68646
 
     render() {
         return (
@@ -333,28 +330,9 @@ export class Main extends React.Component {
         }
     }
     async initializeNorthstar(): Promise<void> {
-<<<<<<< HEAD
-        let envPath = "/assets/env.json";
-        const response = await fetch(envPath, {
-            redirect: "follow",
-            method: "GET",
-            credentials: "include"
-        });
-        const env = await response.json();
-        Settings.Instance.Update(env);
-        let cat = Gateway.Instance.ClearCatalog();
-        cat.then(async () => {
-            this.AddToNorthstarCatalog(await Gateway.Instance.GetCatalog());
-            if (!CurrentUserUtils.GetNorthstarSchema("Book1")) {
-                this.AddToNorthstarCatalog(await Gateway.Instance.GetSchema("http://www.cs.brown.edu/~bcz/Book1.csv"));
-            }
-        });
-
-=======
         const getEnvironment = await fetch("/assets/env.json", { redirect: "follow", method: "GET", credentials: "include" });
         NorthstarSettings.Instance.UpdateEnvironment(await getEnvironment.json());
         Gateway.Instance.ClearCatalog().then(async () => this.SetNorthstarCatalog(await Gateway.Instance.GetCatalog()));
->>>>>>> e47656cdc18aa1fd801a3853fa0f819140a68646
     }
 }
 
