@@ -1,8 +1,26 @@
-import { Interface, ToInterface, Cast, FieldCtor, ToConstructor } from "./Types";
+import { Interface, ToInterface, Cast, FieldCtor, ToConstructor, HasTail, Head, Tail } from "./Types";
 import { Doc } from "./Doc";
 
-export type makeInterface<T extends Interface, U extends Doc = Doc> = Partial<ToInterface<T>> & U;
-export function makeInterface<T extends Interface, U extends Doc>(schema: T): (doc: U) => makeInterface<T, U> {
+type All<T extends any[], U extends Doc> = {
+    1: makeInterface<Head<T>, U> & All<Tail<T>, U>,
+    0: makeInterface<Head<T>, U>
+}[HasTail<T> extends true ? 1 : 0];
+
+type AllToInterface<T extends any[]> = {
+    1: ToInterface<Head<T>> & AllToInterface<Tail<T>>,
+    0: ToInterface<Head<T>>
+}[HasTail<T> extends true ? 1 : 0];
+
+export type makeInterface<T extends Interface[], U extends Doc = Doc> = Partial<AllToInterface<T>> & U;
+// export function makeInterface<T extends Interface[], U extends Doc>(schemas: T): (doc: U) => All<T, U>;
+// export function makeInterface<T extends Interface, U extends Doc>(schema: T): (doc: U) => makeInterface<T, U>; 
+export function makeInterface<T extends Interface[], U extends Doc>(schemas: T): (doc: U) => All<T, U> {
+    let schema: Interface = {};
+    for (const s of schemas) {
+        for (const key in s) {
+            schema[key] = s[key];
+        }
+    }
     return function (doc: any) {
         return new Proxy(doc, {
             get(target, prop) {

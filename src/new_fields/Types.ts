@@ -27,14 +27,17 @@ export type Tail<T extends any[]> =
     ((...t: T) => any) extends ((_: any, ...tail: infer TT) => any) ? TT : [];
 export type HasTail<T extends any[]> = T extends ([] | [any]) ? false : true;
 
+//TODO Allow you to optionally specify default values for schemas, which should then make that field not be partial
 export interface Interface {
     [key: string]: ToConstructor<Field> | ListSpec<Field>;
     // [key: string]: ToConstructor<Field> | ListSpec<Field[]>;
 }
 
-export type FieldCtor<T extends Field> = ToConstructor<T> | ListSpec<T>;
+export type FieldCtor<T extends Field> = T extends List<infer R> ? ListSpec<R> : ToConstructor<T>;
 
-export function Cast<T extends FieldCtor<Field>>(field: Field | null | undefined, ctor: T): ToType<T> | null | undefined {
+export function Cast<T extends FieldCtor<Field>>(field: Field | null | undefined, ctor: T): ToType<T> | null | undefined;
+export function Cast<T extends FieldCtor<Field>>(field: Field | null | undefined, ctor: T, defaultVal: ToType<T>): ToType<T>;
+export function Cast<T extends FieldCtor<Field>>(field: Field | null | undefined, ctor: T, defaultVal?: ToType<T>): ToType<T> | null | undefined {
     if (field !== undefined && field !== null) {
         if (typeof ctor === "string") {
             if (typeof field === ctor) {
@@ -42,17 +45,19 @@ export function Cast<T extends FieldCtor<Field>>(field: Field | null | undefined
             }
         } else if (typeof ctor === "object") {
             if (field instanceof List) {
-                return field as ToType<T>;
+                return field as any;
             }
         } else if (field instanceof (ctor as any)) {
             return field as ToType<T>;
         }
     } else {
-        return field;
+        return defaultVal;
     }
-    return undefined;
+    return defaultVal;
 }
 
-export function FieldValue<T extends Field>(field: Opt<T> | Promise<Opt<T>>): Opt<T> {
-    return field instanceof Promise ? undefined : field;
+export function FieldValue<T extends Field, U extends T>(field: Opt<T> | Promise<Opt<T>>, defaultValue: U): T;
+export function FieldValue<T extends Field>(field: Opt<T> | Promise<Opt<T>>): Opt<T>;
+export function FieldValue<T extends Field>(field: Opt<T> | Promise<Opt<T>>, defaultValue?: T): Opt<T> {
+    return field instanceof Promise ? defaultValue : field;
 }

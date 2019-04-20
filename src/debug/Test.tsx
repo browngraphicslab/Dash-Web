@@ -16,8 +16,8 @@ const schema1 = createSchema({
     testDoc: Doc
 });
 
-const TestDoc = makeInterface(schema1);
-type TestDoc = makeInterface<typeof schema1>;
+const TestDoc = makeInterface([schema1]);
+type TestDoc = makeInterface<[typeof schema1]>;
 
 const schema2 = createSchema({
     hello: URLField,

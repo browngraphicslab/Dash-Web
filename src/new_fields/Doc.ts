@@ -33,6 +33,7 @@ export type Field = number | string | boolean | ObjectField | RefField;
 export type Opt<T> = T | undefined;
 export type FieldWaiting = null;
 export const FieldWaiting: FieldWaiting = null;
+export type FieldValue<T extends Field = Field> = Opt<T> | FieldWaiting;
 
 export const Self = Symbol("Self");
 
@@ -81,8 +82,8 @@ export namespace Doc {
         const self = doc[Self];
         return getField(self, key, ignoreProto);
     }
-    export function GetT<T extends Field>(doc: Doc, key: string, ctor: FieldCtor<T>, ignoreProto: boolean = false): Field | null | undefined {
-        return Cast(Get(doc, key, ignoreProto), ctor);
+    export function GetT<T extends Field>(doc: Doc, key: string, ctor: FieldCtor<T>, ignoreProto: boolean = false): T | null | undefined {
+        return Cast(Get(doc, key, ignoreProto), ctor) as T | null | undefined;
     }
     export function MakeDelegate(doc: Opt<Doc>): Opt<Doc> {
         if (!doc) {

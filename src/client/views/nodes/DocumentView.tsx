@@ -46,8 +46,17 @@ const schema = createSchema({
     backgroundColor: "string"
 });
 
-type Document = makeInterface<typeof schema>;
-const Document = makeInterface(schema);
+export const positionSchema = createSchema({
+    nativeWidth: "number",
+    nativeHeight: "number",
+    width: "number",
+    height: "number",
+    x: "number",
+    y: "number",
+});
+
+type Document = makeInterface<[typeof schema]>;
+const Document = makeInterface([schema]);
 
 @observer
 export class DocumentView extends DocComponent<DocumentViewProps, Document>(Document) {
@@ -146,7 +155,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
         e.stopPropagation();
-        if (!SelectionManager.IsSelected(this) && e.button !== 2)
+        if (!SelectionManager.IsSelected(this) && e.button !== 2) {
             if (Math.abs(e.clientX - this._downX) < 4 && Math.abs(e.clientY - this._downY) < 4) {
                 if (this.props.Document.Get(KeyStore.MaximizedDoc) instanceof Document) {
                     this.props.Document.GetAsync(KeyStore.MaximizedDoc, maxdoc => {
@@ -159,6 +168,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     SelectionManager.SelectDoc(this, e.ctrlKey);
                 }
             }
+        }
     }
     stopPropagation = (e: React.SyntheticEvent) => {
         e.stopPropagation();

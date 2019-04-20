@@ -3,7 +3,7 @@ import { serializable, primitive } from "serializr";
 import { ObjectField } from "./Doc";
 
 @Deserializable("html")
-export class URLField extends ObjectField {
+export class HtmlField extends ObjectField {
     @serializable(primitive())
     readonly html: string;
 
