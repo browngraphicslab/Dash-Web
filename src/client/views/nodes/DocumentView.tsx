@@ -179,19 +179,16 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
         e.stopPropagation();
-        if (!SelectionManager.IsSelected(this) && e.button !== 2)
-            if (Math.abs(e.clientX - this._downX) < 4 && Math.abs(e.clientY - this._downY) < 4) {
-                if (this.props.Document.Get(KeyStore.MaximizedDoc) instanceof Document) {
-                    this.props.Document.GetAsync(KeyStore.MaximizedDoc, maxdoc => {
-                        if (maxdoc instanceof Document) {
-                            this.props.addDocument && this.props.addDocument(maxdoc, false);
-                            this.toggleMinimize(maxdoc, this.props.Document);
-                        }
-                    });
-                } else {
+        if (!SelectionManager.IsSelected(this) && e.button !== 2 &&
+            Math.abs(e.clientX - this._downX) < 4 && Math.abs(e.clientY - this._downY) < 4) {
+            this.props.Document.GetTAsync(KeyStore.MaximizedDoc, Document).then(maxdoc => {
+                if (maxdoc instanceof Document) {
+                    this.props.addDocument && this.props.addDocument(maxdoc, false);
+                    this.toggleMinimize(maxdoc, this.props.Document);
+                } else
                     SelectionManager.SelectDoc(this, e.ctrlKey);
-                }
-            }
+            });
+        }
     }
     stopPropagation = (e: React.SyntheticEvent) => {
         e.stopPropagation();
@@ -278,26 +275,19 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     }
 
     @action
-    public minimize = (): void => {
-        this.props.Document.GetAsync(KeyStore.MinimizedDoc, mindoc => {
-            if (mindoc === undefined) {
-                this.props.Document.GetAsync(KeyStore.BackgroundLayout, field => {
-                    if (field instanceof TextField) {
-                        this.toggleMinimize(this.props.Document, this.createIcon(field.Data));
-                    }
-                    else this.props.Document.GetAsync(KeyStore.Layout, field => {
-                        if (field instanceof TextField) {
-                            this.createIcon(field.Data);
-                            this.toggleMinimize(this.props.Document, this.createIcon(field.Data));
-                        }
-                    });
-                });
-            }
-            else if (mindoc instanceof Document) {
-                this.props.addDocument && this.props.addDocument(mindoc, false);
-                this.toggleMinimize(this.props.Document, mindoc);
-            }
-        });
+    public minimize = async (): Promise<Document | undefined> => {
+        let mindoc = await this.props.Document.GetTAsync(KeyStore.MinimizedDoc, Document).then(async mindoc =>
+            mindoc ? mindoc :
+                await this.props.Document.GetTAsync(KeyStore.BackgroundLayout, TextField).then(async field =>
+                    (field instanceof TextField) ? this.createIcon(field.Data) :
+                        await this.props.Document.GetTAsync(KeyStore.Layout, TextField).then(field =>
+                            (field instanceof TextField) ? this.createIcon(field.Data) : undefined)));
+
+        if (mindoc instanceof Document) {
+            this.props.addDocument && this.props.addDocument(mindoc, false);
+            this.toggleMinimize(this.props.Document, mindoc);
+        }
+        return mindoc;
     }
 
     @undoBatch

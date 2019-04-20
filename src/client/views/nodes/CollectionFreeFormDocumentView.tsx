@@ -56,7 +56,7 @@ export class CollectionFreeFormDocumentView extends React.Component<CollectionFr
             .translate(-this.X, -this.Y)
             .scale(1 / this.contentScaling()).scale(1 / this.zoom)
 
-    contentScaling = () => this.nativeWidth > 0 ? this.width / this.nativeWidth : 1;
+    contentScaling = () => (this.nativeWidth > 0 ? this.width / this.nativeWidth : 1);
     panelWidth = () => this.props.PanelWidth();
     panelHeight = () => this.props.PanelHeight();
 

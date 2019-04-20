@@ -90,9 +90,6 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         let props = this.props;
         var curPage = props.Document.GetNumber(KeyStore.CurPage, -1);
         doc.SetOnPrototype(KeyStore.Page, new NumberField(curPage));
-        if (true || this.isAnnotationOverlay) {
-            doc.SetNumber(KeyStore.Zoom, this.props.Document.GetNumber(KeyStore.Scale, 1));
-        }
         if (curPage >= 0) {
             doc.SetOnPrototype(KeyStore.AnnotationOn, props.Document);
         }
@@ -103,6 +100,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
                 if (!value.some(v => v.Id === doc.Id) || allowDuplicates) {
                     value.push(doc);
                 }
+                return true;
             }
             else {
                 return false;
@@ -135,6 +133,9 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
             else {
                 return false;
             }
+        }
+        if (true || this.isAnnotationOverlay) {
+            doc.SetNumber(KeyStore.Zoom, this.props.Document.GetNumber(KeyStore.Scale, 1));
         }
         return true;
     }

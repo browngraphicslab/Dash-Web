@@ -198,28 +198,15 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     @action
     onMinimizeMove = (e: PointerEvent): void => {
         e.stopPropagation();
-        let dx = e.pageX - this._downX;
-        let dy = e.pageY - this._downY;
-        if (Math.abs(dx) > 4 || Math.abs(dy) > 4) {
+        let moved = Math.abs(e.pageX - this._downX) > 4 || Math.abs(e.pageY - this._downY) > 4;
+        if (moved) {
             this._iconifying = true;
-            let xf = SelectionManager.SelectedDocuments()[0].props.ScreenToLocalTransform().scale(SelectionManager.SelectedDocuments()[0].props.ContentScaling()).inverse().transformPoint(0, 0);
-            let dx = e.pageX - xf[0];
-            let dy = e.pageY - xf[1];
-            this._minimizedX = e.clientX;
-            this._minimizedY = e.clientY;
-            if (Math.abs(dx) < 20 && Math.abs(dy) < 20) {
-                this._minimizedX = xf[0];
-                this._minimizedY = xf[1];
-            }
-            SelectionManager.SelectedDocuments().map(dv => {
-                let minDoc = dv.props.Document.Get(KeyStore.MinimizedDoc);
-                if (minDoc instanceof Document) {
-                    let where = (dv.props.ScreenToLocalTransform()).scale(dv.props.ContentScaling()).transformPoint(this._minimizedX, this._minimizedY);
-                    let minDocument = minDoc as Document;
-                    minDocument.SetNumber(KeyStore.X, where[0] + dv.props.Document.GetNumber(KeyStore.X, 0));
-                    minDocument.SetNumber(KeyStore.Y, where[1] + dv.props.Document.GetNumber(KeyStore.Y, 0));
-                }
-            });
+            let selDoc = SelectionManager.SelectedDocuments()[0];
+            let xf = selDoc.props.ScreenToLocalTransform().scale(selDoc.props.ContentScaling()).inverse().transformPoint(0, 0);
+            let snapped = Math.abs(e.pageX - xf[0]) < 20 && Math.abs(e.pageY - xf[1]) < 20;
+            this._minimizedX = snapped ? xf[0] + 12 : e.clientX;
+            this._minimizedY = snapped ? xf[1] + 12 : e.clientY;
+            this.moveMinDocs();
         }
     }
     @action
@@ -228,16 +215,27 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         if (e.button === 0) {
             let dx = e.clientX - this._downX;
             let dy = e.clientY - this._downY;
-            if (Math.abs(dx) < 4 && Math.abs(dy) < 4 && !this._iconifying) {
-                SelectionManager.SelectedDocuments().map(dv => dv.minimize());
-                SelectionManager.DeselectAll();
-            } else {
-                this._minimizedX = this._minimizedY = 0;
-            }
+            let tapped = Math.abs(dx) < 4 && Math.abs(dy) < 4 && !this._iconifying;
             document.removeEventListener("pointermove", this.onMinimizeMove);
             document.removeEventListener("pointerup", this.onMinimizeUp);
+            Promise.all(SelectionManager.SelectedDocuments().map(async selDoc => await selDoc.minimize())).then(() => {
+                !tapped && this.moveMinDocs();
+                this._minimizedX = this._minimizedY = 0;
+            });
+            this._iconifying = false;
         }
-        this._iconifying = false;
+    }
+    moveMinDocs() {
+        SelectionManager.SelectedDocuments().map(selDoc => {
+            let minDoc = selDoc.props.Document.Get(KeyStore.MinimizedDoc);
+            if (minDoc instanceof Document) {
+                let zoom = selDoc.props.Document.GetNumber(KeyStore.Zoom, 1);
+                let where = (selDoc.props.ScreenToLocalTransform()).scale(selDoc.props.ContentScaling()).scale(1 / zoom).
+                    transformPoint(this._minimizedX - 12, this._minimizedY - 12);
+                minDoc.SetNumber(KeyStore.X, where[0] + selDoc.props.Document.GetNumber(KeyStore.X, 0));
+                minDoc.SetNumber(KeyStore.Y, where[1] + selDoc.props.Document.GetNumber(KeyStore.Y, 0));
+            }
+        });
     }
 
     onPointerDown = (e: React.PointerEvent): void => {
