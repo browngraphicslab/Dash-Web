@@ -1,11 +1,12 @@
 import * as React from "react";
 import * as ReactDOM from "react-dom";
 import { observer } from "mobx-react";
-import { observable, reaction, action } from "mobx";
+import { observable, reaction, action, IReactionDisposer } from "mobx";
 import "./Timeline.scss";
 import { KeyStore } from "../../../fields/KeyStore";
 import { Document } from "../../../fields/Document";
 import { KeyFrame } from "./KeyFrame";
+import { Opt } from '../../../fields/Field';
 
 @observer
 export class Timeline extends React.Component {
@@ -13,6 +14,7 @@ export class Timeline extends React.Component {
     @observable private _isRecording: Boolean = false;
     @observable private _currentBar: any = null;
     @observable private _newBar: any = null;
+    private _reactionDisposer: Opt<IReactionDisposer>;
 
     @action
     onRecord = (e: React.MouseEvent) => {
@@ -65,17 +67,24 @@ export class Timeline extends React.Component {
 
     componentDidMount() {
         this.createBar(5);
-        // let doc: Document;
-        // let keyFrame = new KeyFrame(); 
-        // this._keyFrames.push(keyFrame); 
-        // let keys = [KeyStore.X, KeyStore.Y];
-        // reaction(() => {
-        //     return keys.map(key => doc.GetNumber(key, 0));
-        // }, data => {
-        //     keys.forEach((key, index) => {
-        //         keyFrame.document().SetNumber(key, data[index]);
-        //     });
-        // });
+        let doc: Document;
+        let keyFrame = new KeyFrame();
+        this._keyFrames.push(keyFrame);
+        let keys = [KeyStore.X, KeyStore.Y];
+        this._reactionDisposer = reaction(() => {
+            return keys.map(key => doc.GetNumber(key, 0));
+        }, data => {
+            keys.forEach((key, index) => {
+                keyFrame.document().SetNumber(key, data[index]);
+            });
+        });
+    }
+
+    componentWillUnmount() {
+        if (this._reactionDisposer) {
+            this._reactionDisposer();
+            this._reactionDisposer = undefined;
+        }
     }
 
     render() {
