@@ -108,6 +108,7 @@ export class PDFBox extends React.Component<FieldViewProps> {
     componentWillUnmount() {
         if (this._reactionDisposer) {
             this._reactionDisposer();
+            this._reactionDisposer = undefined;
         }
     }
 
