@@ -17,7 +17,6 @@ export class Timeline extends React.Component {
     @action
     onRecord = (e: React.MouseEvent) => {
         this._isRecording = true;
-        // console.log("hello");
     }
 
     @action
@@ -39,20 +38,8 @@ export class Timeline extends React.Component {
     onInnerPointerDown = (e: React.PointerEvent) => {
         if (this._isRecording) {
             if (this._inner.current) {
-                if (this._currentBar === null) {
-                    console.log("rr");
-                    let mouse = e.nativeEvent;
-                    this._currentBar = document.createElement("div");
-                    this._currentBar.style.height = "100%";
-                    this._currentBar.style.width = "5px";
-                    this._currentBar.style.backgroundColor = "white";
-                    this._currentBar.style.transform = `translate(${mouse.offsetX}px)`;
-                    this._inner.current.appendChild(this._currentBar);
-                } else {
-                    this._currentBar.remove();
-                    this._currentBar = null;
-                    this.onInnerPointerDown(e);
-                }
+                let mouse = e.nativeEvent;
+                this._currentBar.style.transform = `translate(${mouse.offsetX}px)`;
             }
         }
     }
@@ -63,8 +50,21 @@ export class Timeline extends React.Component {
 
     private _keyFrames: KeyFrame[] = [];
 
-    componentDidMount() {
+    createBar = (width: number) => {
+        if (this._inner.current) {
+            this._currentBar = document.createElement("div");
+            this._currentBar.style.height = "100%";
+            this._currentBar.style.width = `${width}px`;
+            this._currentBar.style.left = "mouse.offsetX";
+            this._currentBar.style.backgroundColor = "green";
+            this._currentBar.style.transform = `translate(${0}px)`;
+            this._inner.current.appendChild(this._currentBar);
+        }
 
+    }
+
+    componentDidMount() {
+        this.createBar(5);
         // let doc: Document;
         // let keyFrame = new KeyFrame(); 
         // this._keyFrames.push(keyFrame); 
