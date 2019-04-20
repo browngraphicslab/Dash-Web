@@ -115,7 +115,7 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
             );
         } else {
             this._proxyReactionDisposer = reaction(() => this.props.isSelected(),
-                () => this.props.isSelected() && MainOverlayTextBox.Instance.SetTextDoc(this.props.Document, this.props.fieldKey, this._ref.current!, this.props.ScreenToLocalTransform()));
+                () => this.props.isSelected() && MainOverlayTextBox.Instance.SetTextDoc(this.props.Document, this.props.fieldKey, this._ref.current!, this.props.ScreenToLocalTransform));
         }
 
 
@@ -186,7 +186,9 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
 
     onFocused = (e: React.FocusEvent): void => {
         if (!this.props.isOverlay) {
-            MainOverlayTextBox.Instance.SetTextDoc(this.props.Document, this.props.fieldKey, this._ref.current!, this.props.ScreenToLocalTransform());
+            if (MainOverlayTextBox.Instance.TextDoc != this.props.Document) {
+                MainOverlayTextBox.Instance.SetTextDoc(this.props.Document, this.props.fieldKey, this._ref.current!, this.props.ScreenToLocalTransform);
+            }
         } else {
             if (this._ref.current) {
                 this._ref.current.scrollTop = MainOverlayTextBox.Instance.TextScroll;

@@ -204,7 +204,6 @@ export class CollectionFreeFormView extends CollectionSubView {
 
     @action
     setPan(panX: number, panY: number) {
-        MainOverlayTextBox.Instance.SetTextDoc();
         var scale = this.getLocalTransform().inverse().Scale;
         const newPanX = Math.min((1 - 1 / scale) * this.nativeWidth, Math.max(0, panX));
         const newPanY = Math.min((1 - 1 / scale) * this.nativeHeight, Math.max(0, panY));
