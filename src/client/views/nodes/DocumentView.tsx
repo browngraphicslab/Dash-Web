@@ -22,6 +22,8 @@ import { DocumentContentsView } from "./DocumentContentsView";
 import "./DocumentView.scss";
 import React = require("react");
 import { TextField } from "../../../fields/TextField";
+import { string } from "prop-types";
+import { NumberField } from "../../../fields/NumberField";
 
 export interface DocumentViewProps {
     ContainingCollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
@@ -81,6 +83,7 @@ export function FakeJsxArgs(keys: string[], fields: string[] = []): JsxArgs {
 
 @observer
 export class DocumentView extends React.Component<DocumentViewProps> {
+    static _incompleteAnimations: Map<string, boolean> = new Map<string, boolean>();
     private _downX: number = 0;
     private _downY: number = 0;
     private _mainCont = React.createRef<HTMLDivElement>();
@@ -184,7 +187,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             this.props.Document.GetTAsync(KeyStore.MaximizedDoc, Document).then(maxdoc => {
                 if (maxdoc instanceof Document) {
                     this.props.addDocument && this.props.addDocument(maxdoc, false);
-                    this.toggleMinimize(maxdoc, this.props.Document);
+                    this.toggleIcon();
                 } else
                     SelectionManager.SelectDoc(this, e.ctrlKey);
             });
@@ -219,9 +222,12 @@ export class DocumentView extends React.Component<DocumentViewProps> {
 
     @action createIcon = (layoutString: string): Document => {
         let iconDoc = Documents.IconDocument(layoutString);
+        iconDoc.SetText(KeyStore.Title, "ICON" + this.props.Document.Title)
         iconDoc.SetBoolean(KeyStore.IsMinimized, false);
         iconDoc.SetNumber(KeyStore.NativeWidth, 0);
         iconDoc.SetNumber(KeyStore.NativeHeight, 0);
+        iconDoc.SetNumber(KeyStore.X, this.props.Document.GetNumber(KeyStore.X, 0));
+        iconDoc.SetNumber(KeyStore.Y, this.props.Document.GetNumber(KeyStore.Y, 0) - 24);
         iconDoc.Set(KeyStore.Prototype, this.props.Document);
         iconDoc.Set(KeyStore.MaximizedDoc, this.props.Document);
         this.props.Document.Set(KeyStore.MinimizedDoc, iconDoc);
@@ -229,7 +235,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         return iconDoc;
     }
 
-    animateTransition(icon: number[], targ: number[], width: number, height: number, stime: number, target: Document, maximizing: boolean) {
+    animateBetweenIcon(icon: number[], targ: number[], width: number, height: number, stime: number, target: Document, maximizing: boolean) {
         setTimeout(() => {
             let now = Date.now();
             let progress = Math.min(1, (now - stime) / 200);
@@ -241,7 +247,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             target.SetNumber(KeyStore.X, pval[0]);
             target.SetNumber(KeyStore.Y, pval[1]);
             if (now < stime + 200) {
-                this.animateTransition(icon, targ, width, height, stime, target, maximizing);
+                this.animateBetweenIcon(icon, targ, width, height, stime, target, maximizing);
             }
             else {
                 if (!maximizing) {
@@ -251,43 +257,53 @@ export class DocumentView extends React.Component<DocumentViewProps> {
                     target.SetNumber(KeyStore.Width, width);
                     target.SetNumber(KeyStore.Height, height);
                 }
-                this._completed = true;
+                DocumentView._incompleteAnimations.set(target.Id, false);
             }
         },
             2);
     }
 
-    _completed = true;
-
     @action
-    public toggleMinimize = (maximized: Document, minim: Document): void => {
+    public toggleIcon = async (): Promise<void> => {
         SelectionManager.DeselectAll();
-        if (maximized instanceof Document && this._completed) {
-            this._completed = false;
-            let minimized = maximized.GetBoolean(KeyStore.IsMinimized, false);
-            maximized.SetBoolean(KeyStore.IsMinimized, false);
-            this.animateTransition(
-                [minim.GetNumber(KeyStore.X, 0), minim.GetNumber(KeyStore.Y, 0)],
-                [maximized.GetNumber(KeyStore.X, 0), maximized.GetNumber(KeyStore.Y, 0)],
-                maximized.GetNumber(KeyStore.Width, 0), maximized.GetNumber(KeyStore.Height, 0),
-                Date.now(), maximized, minimized);
-        }
+        let isMinimized: boolean | undefined;
+        let minDoc = await this.props.Document.GetTAsync(KeyStore.MinimizedDoc, Document);
+        if (!minDoc) return;
+        let minimizedDocSet = await minDoc.GetTAsync(KeyStore.LinkTags, ListField);
+        if (!minimizedDocSet) return;
+        minimizedDocSet.Data.map(async minimizedDoc => {
+            if (minimizedDoc instanceof Document) {
+                this.props.addDocument && this.props.addDocument(minimizedDoc, false);
+                let maximizedDoc = await minimizedDoc.GetTAsync(KeyStore.MaximizedDoc, Document);
+                if (maximizedDoc instanceof Document && !DocumentView._incompleteAnimations.get(maximizedDoc.Id)) {
+                    DocumentView._incompleteAnimations.set(maximizedDoc.Id, true);
+                    isMinimized = isMinimized === undefined ? maximizedDoc.GetBoolean(KeyStore.IsMinimized, false) : isMinimized;
+                    maximizedDoc.SetBoolean(KeyStore.IsMinimized, false);
+                    let minx = await minimizedDoc.GetTAsync(KeyStore.X, NumberField);
+                    let miny = await minimizedDoc.GetTAsync(KeyStore.Y, NumberField);
+                    let maxx = await maximizedDoc.GetTAsync(KeyStore.X, NumberField);
+                    let maxy = await maximizedDoc.GetTAsync(KeyStore.Y, NumberField);
+                    let maxw = await maximizedDoc.GetTAsync(KeyStore.Width, NumberField);
+                    let maxh = await maximizedDoc.GetTAsync(KeyStore.Height, NumberField);
+                    if (minx !== undefined && miny !== undefined && maxx !== undefined && maxy !== undefined &&
+                        maxw !== undefined && maxh !== undefined)
+                        this.animateBetweenIcon(
+                            [minx.Data, miny.Data], [maxx.Data, maxy.Data], maxw.Data, maxh.Data,
+                            Date.now(), maximizedDoc, isMinimized);
+                }
+
+            }
+        })
     }
 
     @action
-    public minimize = async (): Promise<Document | undefined> => {
-        let mindoc = await this.props.Document.GetTAsync(KeyStore.MinimizedDoc, Document).then(async mindoc =>
+    public getIconDoc = async (): Promise<Document | undefined> => {
+        return await this.props.Document.GetTAsync(KeyStore.MinimizedDoc, Document).then(async mindoc =>
             mindoc ? mindoc :
                 await this.props.Document.GetTAsync(KeyStore.BackgroundLayout, TextField).then(async field =>
                     (field instanceof TextField) ? this.createIcon(field.Data) :
                         await this.props.Document.GetTAsync(KeyStore.Layout, TextField).then(field =>
                             (field instanceof TextField) ? this.createIcon(field.Data) : undefined)));
-
-        if (mindoc instanceof Document) {
-            this.props.addDocument && this.props.addDocument(mindoc, false);
-            this.toggleMinimize(this.props.Document, mindoc);
-        }
-        return mindoc;
     }
 
     @undoBatch
