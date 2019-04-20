@@ -9,7 +9,7 @@ class ListImpl<T extends Field> extends ObjectField {
     constructor() {
         super();
         const list = new Proxy<this>(this, {
-            set: function (a, b, c, d) { return setter(a, b, c, d); },
+            set: setter,
             get: getter,
             deleteProperty: () => { throw new Error("Currently properties can't be deleted from documents, assign to undefined instead"); },
             defineProperty: () => { throw new Error("Currently properties can't be defined on documents using Object.defineProperty"); },

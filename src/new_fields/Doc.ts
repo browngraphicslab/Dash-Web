@@ -6,14 +6,15 @@ import { DocServer } from "../client/DocServer";
 import { setter, getter, getField } from "./util";
 import { Cast, FieldCtor } from "./Types";
 
+export type FieldId = string;
 export const HandleUpdate = Symbol("HandleUpdate");
 export const Id = Symbol("Id");
 export abstract class RefField {
     @serializable(alias("id", primitive()))
-    private __id: string;
-    readonly [Id]: string;
+    private __id: FieldId;
+    readonly [Id]: FieldId;
 
-    constructor(id?: string) {
+    constructor(id?: FieldId) {
         this.__id = id || Utils.GenerateGuid();
         this[Id] = this.__id;
     }
@@ -39,7 +40,7 @@ export const Self = Symbol("Self");
 
 @Deserializable("doc").withFields(["id"])
 export class Doc extends RefField {
-    constructor(id?: string, forceSave?: boolean) {
+    constructor(id?: FieldId, forceSave?: boolean) {
         super(id);
         const doc = new Proxy<this>(this, {
             set: setter,
@@ -53,7 +54,7 @@ export class Doc extends RefField {
         return doc;
     }
 
-    [key: string]: Field | null | undefined;
+    [key: string]: Field | FieldWaiting | undefined;
 
     @serializable(alias("fields", map(autoObject())))
     @observable
@@ -72,7 +73,6 @@ export namespace Doc {
         return new Promise(res => getField(self, key, ignoreProto, res));
     }
     export function GetTAsync<T extends Field>(doc: Doc, key: string, ctor: FieldCtor<T>, ignoreProto: boolean = false): Promise<T | undefined> {
-        const self = doc[Self];
         return new Promise(async res => {
             const field = await GetAsync(doc, key, ignoreProto);
             return Cast(field, ctor);
@@ -90,6 +90,7 @@ export namespace Doc {
             return undefined;
         }
         const delegate = new Doc();
+        //TODO Does this need to be doc[Self]?
         delegate.prototype = doc;
         return delegate;
     }

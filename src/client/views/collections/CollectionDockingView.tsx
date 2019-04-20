@@ -4,11 +4,8 @@ import 'golden-layout/src/css/goldenlayout-dark-theme.css';
 import { action, observable, reaction, trace } from "mobx";
 import { observer } from "mobx-react";
 import * as ReactDOM from 'react-dom';
-import { Document } from "../../../fields/Document";
-import { KeyStore } from "../../../fields/KeyStore";
 import Measure from "react-measure";
-import { FieldId, Opt, Field, FieldWaiting } from "../../../fields/Field";
-import { Utils, returnTrue, emptyFunction, emptyDocFunction, returnOne } from "../../../Utils";
+import { Utils, returnTrue, emptyFunction, returnOne } from "../../../Utils";
 import { Server } from "../../Server";
 import { undoBatch } from "../../util/UndoManager";
 import { DocumentView } from "../nodes/DocumentView";
@@ -17,20 +14,22 @@ import React = require("react");
 import { SubCollectionViewProps } from "./CollectionSubView";
 import { ServerUtils } from "../../../server/ServerUtil";
 import { DragManager, DragLinksAsDocuments } from "../../util/DragManager";
-import { TextField } from "../../../fields/TextField";
-import { ListField } from "../../../fields/ListField";
-import { Transform } from '../../util/Transform'
+import { Transform } from '../../util/Transform';
+import { Doc, Id, Opt, Field, FieldId } from "../../../new_fields/Doc";
+import { Cast, FieldValue } from "../../../new_fields/Types";
+import { List } from "../../../new_fields/List";
+import { DocServer } from "../../DocServer";
 
 @observer
 export class CollectionDockingView extends React.Component<SubCollectionViewProps> {
     public static Instance: CollectionDockingView;
-    public static makeDocumentConfig(document: Document) {
+    public static makeDocumentConfig(document: Doc) {
         return {
             type: 'react-component',
             component: 'DocumentFrameRenderer',
-            title: document.Title,
+            title: document.title,
             props: {
-                documentId: document.Id,
+                documentId: document[Id],
                 //collectionDockingView: CollectionDockingView.Instance
             }
         };
@@ -48,14 +47,14 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         (window as any).React = React;
         (window as any).ReactDOM = ReactDOM;
     }
-    public StartOtherDrag(dragDocs: Document[], e: any) {
+    public StartOtherDrag(dragDocs: Doc[], e: any) {
         dragDocs.map(dragDoc =>
             this.AddRightSplit(dragDoc, true).contentItems[0].tab._dragListener.
                 onMouseDown({ pageX: e.pageX, pageY: e.pageY, preventDefault: emptyFunction, button: 0 }));
     }
 
     @action
-    public OpenFullScreen(document: Document) {
+    public OpenFullScreen(document: Doc) {
         let newItemStackConfig = {
             type: 'stack',
             content: [CollectionDockingView.makeDocumentConfig(document)]
@@ -83,7 +82,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     //  Creates a vertical split on the right side of the docking view, and then adds the Document to that split
     //
     @action
-    public AddRightSplit(document: Document, minimize: boolean = false) {
+    public AddRightSplit(document: Doc, minimize: boolean = false) {
         let newItemStackConfig = {
             type: 'stack',
             content: [CollectionDockingView.makeDocumentConfig(document)]
@@ -119,7 +118,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     }
 
     setupGoldenLayout() {
-        var config = this.props.Document.GetText(KeyStore.Data, "");
+        var config = Cast(this.props.Document.data, "string", "");
         if (config) {
             if (!this._goldenLayout) {
                 this._goldenLayout = new GoldenLayout(JSON.parse(config));
@@ -154,7 +153,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     componentDidMount: () => void = () => {
         if (this._containerRef.current) {
             reaction(
-                () => this.props.Document.GetText(KeyStore.Data, ""),
+                () => Cast(this.props.Document.data, "string", ""),
                 () => {
                     if (!this._goldenLayout || this._ignoreStateChange !== JSON.stringify(this._goldenLayout.toConfig())) {
                         setTimeout(() => this.setupGoldenLayout(), 1);
@@ -203,7 +202,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             let docid = (e.target as any).DashDocId;
             let tab = (e.target as any).parentElement as HTMLElement;
             Server.GetField(docid, action(async (sourceDoc: Opt<Field>) =>
-                (sourceDoc instanceof Document) && DragLinksAsDocuments(tab, x, y, sourceDoc)));
+                (sourceDoc instanceof Doc) && DragLinksAsDocuments(tab, x, y, sourceDoc)));
         } else
             if ((className === "lm_title" || className === "lm_tab lm_active") && !e.shiftKey) {
                 e.stopPropagation();
@@ -213,11 +212,11 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                 let docid = (e.target as any).DashDocId;
                 let tab = (e.target as any).parentElement as HTMLElement;
                 Server.GetField(docid, action((f: Opt<Field>) => {
-                    if (f instanceof Document) {
+                    if (f instanceof Doc) {
                         DragManager.StartDocumentDrag([tab], new DragManager.DocumentDragData([f]), x, y,
                             {
                                 handlers: {
-                                    dragComplete: action(emptyFunction),
+                                    dragComplete: emptyFunction,
                                 },
                                 hideSource: false
                             });
@@ -235,7 +234,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     @undoBatch
     stateChanged = () => {
         var json = JSON.stringify(this._goldenLayout.toConfig());
-        this.props.Document.SetText(KeyStore.Data, json);
+        this.props.Document.data = json;
     }
 
     itemDropped = () => {
@@ -264,10 +263,9 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                             let counter: any = this.htmlToElement(`<div class="messageCounter">${count}</div>`);
                             tab.element.append(counter);
                             counter.DashDocId = tab.contentItem.config.props.documentId;
-                            tab.reactionDisposer = reaction(() => [f.GetT(KeyStore.LinkedFromDocs, ListField), f.GetT(KeyStore.LinkedToDocs, ListField)],
-                                (lists) => {
-                                    let count = (lists.length > 0 && lists[0] && lists[0]!.Data ? lists[0]!.Data.length : 0) +
-                                        (lists.length > 1 && lists[1] && lists[1]!.Data ? lists[1]!.Data.length : 0);
+                            tab.reactionDisposer = reaction((): [List<Field> | null | undefined, List<Field> | null | undefined] => [Cast(f.linkedFromDocs, List), Cast(f.linkedToDocs, List)],
+                                ([linkedFrom, linkedTo]) => {
+                                    let count = (linkedFrom ? linkedFrom.length : 0) + (linkedTo ? linkedTo.length : 0);
                                     counter.innerHTML = count;
                                 });
                         }));
@@ -319,19 +317,22 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     _mainCont = React.createRef<HTMLDivElement>();
     @observable private _panelWidth = 0;
     @observable private _panelHeight = 0;
-    @observable private _document: Opt<Document>;
+    @observable private _document: Opt<Doc>;
 
     constructor(props: any) {
         super(props);
-        Server.GetField(this.props.documentId, action((f: Opt<Field>) => this._document = f as Document));
+        DocServer.GetRefField(this.props.documentId).then(action((f: Opt<Field>) => this._document = f as Doc));
     }
 
-    nativeWidth = () => this._document!.GetNumber(KeyStore.NativeWidth, this._panelWidth);
-    nativeHeight = () => this._document!.GetNumber(KeyStore.NativeHeight, this._panelHeight);
+    nativeWidth = () => Cast(this._document!.nativeWidth, "number", this._panelWidth);
+    nativeHeight = () => Cast(this._document!.nativeHeight, "number", this._panelHeight);
     contentScaling = () => {
-        let wscale = this._panelWidth / (this.nativeWidth() ? this.nativeWidth() : this._panelWidth);
-        if (wscale * this.nativeHeight() > this._panelHeight)
-            return this._panelHeight / (this.nativeHeight() ? this.nativeHeight() : this._panelHeight);
+        const nativeH = this.nativeHeight();
+        const nativeW = this.nativeWidth();
+        let wscale = this._panelWidth / nativeW;
+        if (wscale * nativeH > this._panelHeight) {
+            return this._panelHeight / nativeH;
+        }
         return wscale;
     }
 
@@ -349,7 +350,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         return (
             <div className="collectionDockingView-content" ref={this._mainCont}
                 style={{ transform: `translate(${this.previewPanelCenteringOffset}px, 0px)` }}>
-                <DocumentView key={this._document!.Id} Document={this._document!}
+                <DocumentView key={this._document![Id]} Document={this._document!}
                     addDocument={undefined}
                     removeDocument={undefined}
                     ContentScaling={this.contentScaling}
@@ -360,7 +361,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
                     selectOnLoad={false}
                     parentActive={returnTrue}
                     whenActiveChanged={emptyFunction}
-                    focus={emptyDocFunction}
+                    focus={emptyFunction}
                     ContainingCollectionView={undefined} />
             </div>);
     }

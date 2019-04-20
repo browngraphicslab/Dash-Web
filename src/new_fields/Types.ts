@@ -50,8 +50,6 @@ export function Cast<T extends FieldCtor<Field>>(field: Field | null | undefined
         } else if (field instanceof (ctor as any)) {
             return field as ToType<T>;
         }
-    } else {
-        return defaultVal;
     }
     return defaultVal;
 }

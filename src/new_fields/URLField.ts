@@ -1,16 +1,16 @@
 import { Deserializable } from "../client/util/SerializationHelper";
-import { serializable } from "serializr";
+import { serializable, custom } from "serializr";
 import { ObjectField } from "./Doc";
 
 function url() {
-    return {
-        serializer: function (value: URL) {
+    return custom(
+        function (value: URL) {
             return value.href;
         },
-        deserializer: function (jsonValue: string, done: (err: any, val: any) => void) {
-            done(undefined, new URL(jsonValue));
+        function (jsonValue: string) {
+            return new URL(jsonValue);
         }
-    };
+    );
 }
 
 @Deserializable("url")

@@ -22,6 +22,7 @@ export function setter(target: any, prop: string | symbol | number, value: any, 
         value = new ProxyField(value);
     }
     if (value instanceof ObjectField) {
+        //TODO Instead of target, maybe use target[Self]
         if (value[Parent] && value[Parent] !== target) {
             throw new Error("Can't put the same object in multiple documents at the same time");
         }
@@ -51,7 +52,7 @@ export function getter(target: any, prop: string | symbol | number, receiver: an
     if (SerializationHelper.IsSerializing()) {
         return target[prop];
     }
-    return getField(target, prop, receiver);
+    return getField(target, prop);
 }
 
 export function getField(target: any, prop: string | number, ignoreProto: boolean = false, callback?: (field: Field | undefined) => void): any {
@@ -69,5 +70,4 @@ export function getField(target: any, prop: string | number, ignoreProto: boolea
     }
     callback && callback(field);
     return field;
-
 }
