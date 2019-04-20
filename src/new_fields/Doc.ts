@@ -84,6 +84,14 @@ export namespace Doc {
     export function GetT<T extends Field>(doc: Doc, key: string, ctor: FieldCtor<T>, ignoreProto: boolean = false): Field | null | undefined {
         return Cast(Get(doc, key, ignoreProto), ctor);
     }
+    export function MakeDelegate(doc: Opt<Doc>): Opt<Doc> {
+        if (!doc) {
+            return undefined;
+        }
+        const delegate = new Doc();
+        delegate.prototype = doc;
+        return delegate;
+    }
     export const Prototype = Symbol("Prototype");
 }
 

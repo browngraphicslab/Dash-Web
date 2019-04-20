@@ -1,12 +1,5 @@
 import { action, computed, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { BooleanField } from "../../../fields/BooleanField";
-import { Document } from "../../../fields/Document";
-import { Field, FieldWaiting, Opt } from "../../../fields/Field";
-import { Key } from "../../../fields/Key";
-import { KeyStore } from "../../../fields/KeyStore";
-import { ListField } from "../../../fields/ListField";
-import { TextField } from "../../../fields/TextField";
 import { ServerUtils } from "../../../server/ServerUtil";
 import { emptyFunction, Utils } from "../../../Utils";
 import { Documents } from "../../documents/Documents";
@@ -23,11 +16,15 @@ import { ContextMenu } from "../ContextMenu";
 import { DocumentContentsView } from "./DocumentContentsView";
 import "./DocumentView.scss";
 import React = require("react");
+import { Field, Opt, Doc, Id } from "../../../new_fields/Doc";
+import { DocComponent } from "../DocComponent";
+import { createSchema, makeInterface } from "../../../new_fields/Schema";
+import { FieldValue } from "../../../new_fields/Types";
 
 
 export interface DocumentViewProps {
     ContainingCollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
-    Document: Document;
+    Document: Doc;
     addDocument?: (doc: Document, allowDuplicates?: boolean) => boolean;
     removeDocument?: (doc: Document) => boolean;
     moveDocument?: (doc: Document, targetCollection: Document, addDocument: (document: Document) => boolean) => boolean;
@@ -41,48 +38,20 @@ export interface DocumentViewProps {
     parentActive: () => boolean;
     onActiveChanged: (isActive: boolean) => void;
 }
-export interface JsxArgs extends DocumentViewProps {
-    Keys: { [name: string]: Key };
-    Fields: { [name: string]: Field };
-}
 
-/*
-This function is pretty much a hack that lets us fill out the fields in JsxArgs with something that
-jsx-to-string can recover the jsx from
-Example usage of this function:
-    public static LayoutString() {
-        let args = FakeJsxArgs(["Data"]);
-        return jsxToString(
-            <CollectionFreeFormView
-                doc={args.Document}
-                fieldKey={args.Keys.Data}
-                DocumentViewForField={args.DocumentView} />,
-            { useFunctionCode: true, functionNameOnly: true }
-        )
-    }
-*/
-export function FakeJsxArgs(keys: string[], fields: string[] = []): JsxArgs {
-    let Keys: { [name: string]: any } = {};
-    let Fields: { [name: string]: any } = {};
-    for (const key of keys) {
-        Object.defineProperty(emptyFunction, "name", { value: key + "Key" });
-        Keys[key] = emptyFunction;
-    }
-    for (const field of fields) {
-        Object.defineProperty(emptyFunction, "name", { value: field });
-        Fields[field] = emptyFunction;
-    }
-    let args: JsxArgs = {
-        Document: function Document() { },
-        DocumentView: function DocumentView() { },
-        Keys,
-        Fields
-    } as any;
-    return args;
-}
+const schema = createSchema({
+    layout: "string",
+    minimized: "boolean",
+    nativeWidth: "number",
+    nativeHeight: "number",
+    backgroundColor: "string"
+});
+
+type Document = makeInterface<typeof schema>;
+const Document = makeInterface(schema);
 
 @observer
-export class DocumentView extends React.Component<DocumentViewProps> {
+export class DocumentView extends DocComponent<DocumentViewProps, Document>(Document) {
     private _downX: number = 0;
     private _downY: number = 0;
     private _mainCont = React.createRef<HTMLDivElement>();
@@ -91,9 +60,6 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     public get ContentDiv() { return this._mainCont.current; }
     @computed get active(): boolean { return SelectionManager.IsSelected(this) || this.props.parentActive(); }
     @computed get topMost(): boolean { return this.props.isTopMost; }
-    @computed get layout(): string { return this.props.Document.GetText(KeyStore.Layout, "<p>Error loading layout data</p>"); }
-    @computed get layoutKeys(): Key[] { return this.props.Document.GetData(KeyStore.LayoutKeys, ListField, new Array<Key>()); }
-    @computed get layoutFields(): Key[] { return this.props.Document.GetData(KeyStore.LayoutFields, ListField, new Array<Key>()); }
 
     onPointerDown = (e: React.PointerEvent): void => {
         this._downX = e.clientX;
@@ -200,7 +166,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         }
     }
     fullScreenClicked = (e: React.MouseEvent): void => {
-        CollectionDockingView.Instance.OpenFullScreen((this.props.Document.GetPrototype() as Document).MakeDelegate());
+        CollectionDockingView.Instance.OpenFullScreen(Doc.MakeDelegate(this.Document.prototype));
         ContextMenu.Instance.clearItems();
         ContextMenu.Instance.addItem({ description: "Close Full Screen", event: this.closeFullScreenClicked });
         ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15);
@@ -266,9 +232,9 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     onDrop = (e: React.DragEvent) => {
         let text = e.dataTransfer.getData("text/plain");
         if (!e.isDefaultPrevented() && text && text.startsWith("<div")) {
-            let oldLayout = this.props.Document.GetText(KeyStore.Layout, "");
+            let oldLayout = FieldValue(this.Document.layout) || "";
             let layout = text.replace("{layout}", oldLayout);
-            this.props.Document.SetText(KeyStore.Layout, layout);
+            this.Document.layout = layout;
             e.stopPropagation();
             e.preventDefault();
         }
@@ -290,22 +256,23 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         ContextMenu.Instance.addItem({ description: "Center", event: () => this.props.focus(this.props.Document) });
         ContextMenu.Instance.addItem({ description: "Open Right", event: () => CollectionDockingView.Instance.AddRightSplit(this.props.Document) });
         ContextMenu.Instance.addItem({ description: "Copy URL", event: () => Utils.CopyText(ServerUtils.prepend("/doc/" + this.props.Document.Id)) });
-        ContextMenu.Instance.addItem({ description: "Copy ID", event: () => Utils.CopyText(this.props.Document.Id) });
+        ContextMenu.Instance.addItem({ description: "Copy ID", event: () => Utils.CopyText(this.props.Document[Id]) });
         //ContextMenu.Instance.addItem({ description: "Docking", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Docking) })
         ContextMenu.Instance.addItem({ description: "Delete", event: this.deleteClicked });
         ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15);
-        if (!SelectionManager.IsSelected(this))
+        if (!SelectionManager.IsSelected(this)) {
             SelectionManager.SelectDoc(this, false);
+        }
     }
 
     @action
-    expand = () => this.props.Document.SetBoolean(KeyStore.Minimized, false)
-    isMinimized = () => this.props.Document.GetBoolean(KeyStore.Minimized, false);
+    expand = () => this.Document.minimized = false
+    isMinimized = () => FieldValue(this.Document.minimized) || false;
     isSelected = () => SelectionManager.IsSelected(this);
     select = (ctrlPressed: boolean) => SelectionManager.SelectDoc(this, ctrlPressed);
 
-    @computed get nativeWidth() { return this.props.Document.GetNumber(KeyStore.NativeWidth, 0); }
-    @computed get nativeHeight() { return this.props.Document.GetNumber(KeyStore.NativeHeight, 0); }
+    @computed get nativeWidth() { return FieldValue(this.Document.nativeWidth) || 0; }
+    @computed get nativeHeight() { return FieldValue(this.Document.nativeHeight) || 0; }
     @computed get contents() { return (<DocumentContentsView {...this.props} isSelected={this.isSelected} select={this.select} layoutKey={KeyStore.Layout} />); }
 
     render() {
@@ -321,7 +288,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             <div className={`documentView-node${this.props.isTopMost ? "-topmost" : ""}`}
                 ref={this._mainCont}
                 style={{
-                    background: this.props.Document.GetText(KeyStore.BackgroundColor, ""),
+                    background: FieldValue(this.Document.backgroundColor) || "",
                     width: nativeWidth, height: nativeHeight,
                     transform: `scale(${scaling}, ${scaling})`
                 }}

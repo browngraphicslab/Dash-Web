@@ -53,6 +53,6 @@ export function Cast<T extends FieldCtor<Field>>(field: Field | null | undefined
     return undefined;
 }
 
-export function FieldValue<T extends Field>(field: Opt<Field> | Promise<Opt<Field>>): Opt<Field> {
+export function FieldValue<T extends Field>(field: Opt<T> | Promise<Opt<T>>): Opt<T> {
     return field instanceof Promise ? undefined : field;
 }

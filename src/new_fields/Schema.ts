@@ -1,4 +1,4 @@
-import { Interface, ToInterface, Cast } from "./Types";
+import { Interface, ToInterface, Cast, FieldCtor, ToConstructor } from "./Types";
 import { Doc } from "./Doc";
 
 export type makeInterface<T extends Interface> = Partial<ToInterface<T>> & Doc;
@@ -42,6 +42,7 @@ export function makeStrictInterface<T extends Interface>(schema: T): (doc: Doc) 
     };
 }
 
-export function createSchema<T extends Interface>(schema: T): T {
-    return schema;
+export function createSchema<T extends Interface>(schema: T): T & { prototype: ToConstructor<Doc> } {
+    schema.prototype = Doc;
+    return schema as any;
 }
