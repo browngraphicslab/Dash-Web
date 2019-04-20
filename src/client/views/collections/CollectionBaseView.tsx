@@ -22,7 +22,7 @@ export interface CollectionRenderProps {
     removeDocument: (document: Document) => boolean;
     moveDocument: (document: Document, targetCollection: Document, addDocument: (document: Document) => boolean) => boolean;
     active: () => boolean;
-    onActiveChanged: (isActive: boolean) => void;
+    whenActiveChanged: (isActive: boolean) => void;
 }
 
 export interface CollectionViewProps extends FieldViewProps {
@@ -55,9 +55,9 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
 
     //TODO should this be observable?
     private _isChildActive = false;
-    onActiveChanged = (isActive: boolean) => {
+    whenActiveChanged = (isActive: boolean) => {
         this._isChildActive = isActive;
-        this.props.onActiveChanged(isActive);
+        this.props.whenActiveChanged(isActive);
     }
 
     createsCycle(documentToAdd: Document, containerDocument: Document): boolean {
@@ -90,7 +90,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         let props = this.props;
         var curPage = props.Document.GetNumber(KeyStore.CurPage, -1);
         doc.SetOnPrototype(KeyStore.Page, new NumberField(curPage));
-        if (this.isAnnotationOverlay) {
+        if (true || this.isAnnotationOverlay) {
             doc.SetNumber(KeyStore.Zoom, this.props.Document.GetNumber(KeyStore.Scale, 1));
         }
         if (curPage >= 0) {
@@ -184,7 +184,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
             removeDocument: this.removeDocument,
             moveDocument: this.moveDocument,
             active: this.active,
-            onActiveChanged: this.onActiveChanged,
+            whenActiveChanged: this.whenActiveChanged,
         };
         const viewtype = this.collectionViewType;
         return (

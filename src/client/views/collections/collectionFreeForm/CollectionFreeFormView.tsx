@@ -1,6 +1,5 @@
 import { action, computed, observable, trace } from "mobx";
 import { observer } from "mobx-react";
-import Measure from "react-measure";
 import { Document } from "../../../../fields/Document";
 import { KeyStore } from "../../../../fields/KeyStore";
 import { emptyFunction, returnFalse, returnOne } from "../../../../Utils";
@@ -22,14 +21,15 @@ import "./CollectionFreeFormView.scss";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
 import v5 = require("uuid/v5");
+import { BooleanField } from "../../../../fields/BooleanField";
 
 @observer
 export class CollectionFreeFormView extends CollectionSubView {
     private _selectOnLoaded: string = ""; // id of document that should be selected once it's loaded (used for click-to-type)
     private _lastX: number = 0;
     private _lastY: number = 0;
-    @observable private _pwidth: number = 0;
-    @observable private _pheight: number = 0;
+    private get _pwidth() { return this.props.PanelWidth(); }
+    private get _pheight() { return this.props.PanelHeight(); }
 
     @computed get nativeWidth() { return this.props.Document.GetNumber(KeyStore.NativeWidth, 0); }
     @computed get nativeHeight() { return this.props.Document.GetNumber(KeyStore.NativeHeight, 0); }
@@ -49,9 +49,7 @@ export class CollectionFreeFormView extends CollectionSubView {
         this.addDocument(newBox, false);
     }
     private addDocument = (newBox: Document, allowDuplicates: boolean) => {
-        if (this.isAnnotationOverlay) {
-            newBox.SetNumber(KeyStore.Zoom, this.props.Document.GetNumber(KeyStore.Scale, 1));
-        }
+        newBox.SetNumber(KeyStore.Zoom, this.props.Document.GetNumber(KeyStore.Scale, 1));
         return this.props.addDocument(this.bringToFront(newBox), false);
     }
     private selectDocuments = (docs: Document[]) => {
@@ -76,16 +74,21 @@ export class CollectionFreeFormView extends CollectionSubView {
         if (super.drop(e, de) && de.data instanceof DragManager.DocumentDragData) {
             const [x, y] = this.getTransform().transformPoint(de.x - de.data.xOffset, de.y - de.data.yOffset);
             if (de.data.droppedDocuments.length) {
-                let dropX = de.data.droppedDocuments[0].GetNumber(KeyStore.X, 0);
-                let dropY = de.data.droppedDocuments[0].GetNumber(KeyStore.Y, 0);
+                let dragDoc = de.data.droppedDocuments[0];
+                let dropX = dragDoc.GetNumber(KeyStore.X, 0);
+                let dropY = dragDoc.GetNumber(KeyStore.Y, 0);
                 de.data.droppedDocuments.map(d => {
-                    d.SetNumber(KeyStore.X, x + (d.GetNumber(KeyStore.X, 0) - dropX));
-                    d.SetNumber(KeyStore.Y, y + (d.GetNumber(KeyStore.Y, 0) - dropY));
-                    if (!d.GetNumber(KeyStore.Width, 0)) {
-                        d.SetNumber(KeyStore.Width, 300);
-                    }
-                    if (!d.GetNumber(KeyStore.Height, 0)) {
-                        d.SetNumber(KeyStore.Height, 300);
+                    d.SetNumber(KeyStore.X, x + (d.GetNumber(KeyStore.X, 0)) - dropX);
+                    d.SetNumber(KeyStore.Y, y + (d.GetNumber(KeyStore.Y, 0)) - dropY);
+                    if (!d.GetBoolean(KeyStore.IsMinimized, false)) {
+                        if (!d.GetNumber(KeyStore.Width, 0)) {
+                            d.SetNumber(KeyStore.Width, 300);
+                        }
+                        if (!d.GetNumber(KeyStore.Height, 0)) {
+                            let nw = d.GetNumber(KeyStore.NativeWidth, 0);
+                            let nh = d.GetNumber(KeyStore.NativeHeight, 0);
+                            d.SetNumber(KeyStore.Height, nw && nh ? nh / nw * d.Width() : 300);
+                        }
                     }
                     this.bringToFront(d);
                 });
@@ -185,14 +188,16 @@ export class CollectionFreeFormView extends CollectionSubView {
             // if (modes[e.deltaMode] === 'pixels') coefficient = 50;
             // else if (modes[e.deltaMode] === 'lines') coefficient = 1000; // This should correspond to line-height??
             let deltaScale = (1 - (e.deltaY / coefficient));
+            if (deltaScale < 0) deltaScale = -deltaScale;
             if (deltaScale * this.zoomScaling() < 1 && this.isAnnotationOverlay) {
                 deltaScale = 1 / this.zoomScaling();
             }
             let [x, y] = this.getTransform().transformPoint(e.clientX, e.clientY);
             let localTransform = this.getLocalTransform().inverse().scaleAbout(deltaScale, x, y);
 
-            this.props.Document.SetNumber(KeyStore.Scale, localTransform.Scale);
-            this.setPan(-localTransform.TranslateX / localTransform.Scale, -localTransform.TranslateY / localTransform.Scale);
+            let safeScale = Math.abs(localTransform.Scale);
+            this.props.Document.SetNumber(KeyStore.Scale, Math.abs(safeScale));
+            this.setPan(-localTransform.TranslateX / safeScale, -localTransform.TranslateY / safeScale);
             e.stopPropagation();
         }
     }
@@ -248,7 +253,7 @@ export class CollectionFreeFormView extends CollectionSubView {
             ContainingCollectionView: this.props.CollectionView,
             focus: this.focusDocument,
             parentActive: this.props.active,
-            onActiveChanged: this.props.active,
+            whenActiveChanged: this.props.active,
         };
     }
 
@@ -258,7 +263,9 @@ export class CollectionFreeFormView extends CollectionSubView {
         let docviews = this.props.Document.GetList(this.props.fieldKey, [] as Document[]).filter(doc => doc).reduce((prev, doc) => {
             var page = doc.GetNumber(KeyStore.Page, -1);
             if (page === curPage || page === -1) {
-                prev.push(<CollectionFreeFormDocumentView key={doc.Id} {...this.getDocumentViewProps(doc)} />);
+                let minim = doc.GetT(KeyStore.IsMinimized, BooleanField);
+                if (minim === undefined || (minim && !minim.Data))
+                    prev.push(<CollectionFreeFormDocumentView key={doc.Id} {...this.getDocumentViewProps(doc)} />);
             }
             return prev;
         }, [] as JSX.Element[]);
@@ -269,11 +276,6 @@ export class CollectionFreeFormView extends CollectionSubView {
     }
 
     @action
-    onResize = (r: any) => {
-        this._pwidth = r.entry.width;
-        this._pheight = r.entry.height;
-    }
-    @action
     onCursorMove = (e: React.PointerEvent) => {
         super.setCursorPosition(this.getTransform().transformPoint(e.clientX, e.clientY));
     }
@@ -281,29 +283,24 @@ export class CollectionFreeFormView extends CollectionSubView {
     render() {
         const containerName = `collectionfreeformview${this.isAnnotationOverlay ? "-overlay" : "-container"}`;
         return (
-            <Measure onResize={this.onResize}>
-                {({ measureRef }) => (
-                    <div className="collectionfreeformview-measure" ref={measureRef}>
-                        <div className={containerName} ref={this.createDropTarget} onWheel={this.onPointerWheel}
-                            onPointerDown={this.onPointerDown} onPointerMove={this.onCursorMove} onDrop={this.onDrop.bind(this)} onDragOver={this.onDragOver} >
-                            <MarqueeView container={this} activeDocuments={this.getActiveDocuments} selectDocuments={this.selectDocuments}
-                                addDocument={this.addDocument} removeDocument={this.props.removeDocument} addLiveTextDocument={this.addLiveTextBox}
-                                getContainerTransform={this.getContainerTransform} getTransform={this.getTransform}>
-                                <CollectionFreeFormViewPannableContents centeringShiftX={this.centeringShiftX} centeringShiftY={this.centeringShiftY}
-                                    zoomScaling={this.zoomScaling} panX={this.panX} panY={this.panY}>
-                                    <CollectionFreeFormBackgroundView {...this.getDocumentViewProps(this.props.Document)} />
-                                    <CollectionFreeFormLinksView {...this.props} key="freeformLinks">
-                                        <InkingCanvas getScreenTransform={this.getTransform} Document={this.props.Document} >
-                                            {this.childViews}
-                                        </InkingCanvas>
-                                    </CollectionFreeFormLinksView>
-                                    <CollectionFreeFormRemoteCursors {...this.props} key="remoteCursors" />
-                                </CollectionFreeFormViewPannableContents>
-                                <CollectionFreeFormOverlayView {...this.getDocumentViewProps(this.props.Document)} />
-                            </MarqueeView>
-                        </div>
-                    </div>)}
-            </Measure>
+            <div className={containerName} ref={this.createDropTarget} onWheel={this.onPointerWheel}
+                onPointerDown={this.onPointerDown} onPointerMove={this.onCursorMove} onDrop={this.onDrop.bind(this)} onDragOver={this.onDragOver} >
+                <MarqueeView container={this} activeDocuments={this.getActiveDocuments} selectDocuments={this.selectDocuments}
+                    addDocument={this.addDocument} removeDocument={this.props.removeDocument} addLiveTextDocument={this.addLiveTextBox}
+                    getContainerTransform={this.getContainerTransform} getTransform={this.getTransform}>
+                    <CollectionFreeFormViewPannableContents centeringShiftX={this.centeringShiftX} centeringShiftY={this.centeringShiftY}
+                        zoomScaling={this.zoomScaling} panX={this.panX} panY={this.panY}>
+                        <CollectionFreeFormBackgroundView {...this.getDocumentViewProps(this.props.Document)} />
+                        <CollectionFreeFormLinksView {...this.props} key="freeformLinks">
+                            <InkingCanvas getScreenTransform={this.getTransform} Document={this.props.Document} >
+                                {this.childViews}
+                            </InkingCanvas>
+                        </CollectionFreeFormLinksView>
+                        <CollectionFreeFormRemoteCursors {...this.props} key="remoteCursors" />
+                    </CollectionFreeFormViewPannableContents>
+                    <CollectionFreeFormOverlayView {...this.getDocumentViewProps(this.props.Document)} />
+                </MarqueeView>
+            </div>
         );
     }
 }

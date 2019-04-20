@@ -3,6 +3,7 @@ import { DocumentView } from "../views/nodes/DocumentView";
 import { Document } from "../../fields/Document";
 import { Main } from "../views/Main";
 import { MainOverlayTextBox } from "../views/MainOverlayTextBox";
+import { DragManager } from "./DragManager";
 
 export namespace SelectionManager {
     class Manager {
@@ -18,13 +19,13 @@ export namespace SelectionManager {
 
             if (manager.SelectedDocuments.indexOf(doc) === -1) {
                 manager.SelectedDocuments.push(doc);
-                doc.props.onActiveChanged(true);
+                doc.props.whenActiveChanged(true);
             }
         }
 
         @action
         DeselectAll(): void {
-            manager.SelectedDocuments.map(dv => dv.props.onActiveChanged(false));
+            manager.SelectedDocuments.map(dv => dv.props.whenActiveChanged(false));
             manager.SelectedDocuments = [];
             MainOverlayTextBox.Instance.SetTextDoc();
         }
@@ -36,7 +37,7 @@ export namespace SelectionManager {
         }
         @action
         ReselectAll2(sdocs: DocumentView[]) {
-            sdocs.map(s => SelectionManager.SelectDoc(s, false));
+            sdocs.map(s => SelectionManager.SelectDoc(s, true));
         }
     }
 

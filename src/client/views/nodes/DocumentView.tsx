@@ -36,12 +36,11 @@ export interface DocumentViewProps {
     focus: (doc: Document) => void;
     selectOnLoad: boolean;
     parentActive: () => boolean;
-    onActiveChanged: (isActive: boolean) => void;
+    whenActiveChanged: (isActive: boolean) => void;
 }
 
 const schema = createSchema({
     layout: "string",
-    minimized: "boolean",
     nativeWidth: "number",
     nativeHeight: "number",
     backgroundColor: "string"
@@ -136,7 +135,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3) {
             document.removeEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
-            if (!this.topMost || e.buttons === 2 || e.altKey) {
+            if (!e.altKey && (!this.topMost || e.buttons === 2)) {
                 this.startDragging(this._downX, this._downY, e.ctrlKey || e.altKey);
             }
         }
@@ -147,10 +146,19 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
         e.stopPropagation();
-        if (!SelectionManager.IsSelected(this) && e.button !== 2 &&
-            Math.abs(e.clientX - this._downX) < 4 && Math.abs(e.clientY - this._downY) < 4) {
-            SelectionManager.SelectDoc(this, e.ctrlKey);
-        }
+        if (!SelectionManager.IsSelected(this) && e.button !== 2)
+            if (Math.abs(e.clientX - this._downX) < 4 && Math.abs(e.clientY - this._downY) < 4) {
+                if (this.props.Document.Get(KeyStore.MaximizedDoc) instanceof Document) {
+                    this.props.Document.GetAsync(KeyStore.MaximizedDoc, maxdoc => {
+                        if (maxdoc instanceof Document) {
+                            this.props.addDocument && this.props.addDocument(maxdoc, false);
+                            this.toggleMinimize(maxdoc, this.props.Document);
+                        }
+                    });
+                } else {
+                    SelectionManager.SelectDoc(this, e.ctrlKey);
+                }
+            }
     }
     stopPropagation = (e: React.SyntheticEvent) => {
         e.stopPropagation();
@@ -179,10 +187,84 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15);
     }
 
+    @action createIcon = (layoutString: string): Document => {
+        let iconDoc = Documents.IconDocument(layoutString);
+        iconDoc.SetBoolean(KeyStore.IsMinimized, false);
+        iconDoc.SetNumber(KeyStore.NativeWidth, 0);
+        iconDoc.SetNumber(KeyStore.NativeHeight, 0);
+        iconDoc.Set(KeyStore.Prototype, this.props.Document);
+        iconDoc.Set(KeyStore.MaximizedDoc, this.props.Document);
+        this.props.Document.Set(KeyStore.MinimizedDoc, iconDoc);
+        this.props.addDocument && this.props.addDocument(iconDoc, false);
+        return iconDoc;
+    }
+
+    animateTransition(icon: number[], targ: number[], width: number, height: number, stime: number, target: Document, maximizing: boolean) {
+        setTimeout(() => {
+            let now = Date.now();
+            let progress = Math.min(1, (now - stime) / 200);
+            let pval = maximizing ?
+                [icon[0] + (targ[0] - icon[0]) * progress, icon[1] + (targ[1] - icon[1]) * progress] :
+                [targ[0] + (icon[0] - targ[0]) * progress, targ[1] + (icon[1] - targ[1]) * progress];
+            target.SetNumber(KeyStore.Width, maximizing ? 25 + (width - 25) * progress : width + (25 - width) * progress);
+            target.SetNumber(KeyStore.Height, maximizing ? 25 + (height - 25) * progress : height + (25 - height) * progress);
+            target.SetNumber(KeyStore.X, pval[0]);
+            target.SetNumber(KeyStore.Y, pval[1]);
+            if (now < stime + 200) {
+                this.animateTransition(icon, targ, width, height, stime, target, maximizing);
+            }
+            else {
+                if (!maximizing) {
+                    target.SetBoolean(KeyStore.IsMinimized, true);
+                    target.SetNumber(KeyStore.X, targ[0]);
+                    target.SetNumber(KeyStore.Y, targ[1]);
+                    target.SetNumber(KeyStore.Width, width);
+                    target.SetNumber(KeyStore.Height, height);
+                }
+                this._completed = true;
+            }
+        },
+            2);
+    }
+
+    _completed = true;
+
+    @action
+    public toggleMinimize = (maximized: Document, minim: Document): void => {
+        SelectionManager.DeselectAll();
+        if (maximized instanceof Document && this._completed) {
+            this._completed = false;
+            let minimized = maximized.GetBoolean(KeyStore.IsMinimized, false);
+            maximized.SetBoolean(KeyStore.IsMinimized, false);
+            this.animateTransition(
+                [minim.GetNumber(KeyStore.X, 0), minim.GetNumber(KeyStore.Y, 0)],
+                [maximized.GetNumber(KeyStore.X, 0), maximized.GetNumber(KeyStore.Y, 0)],
+                maximized.GetNumber(KeyStore.Width, 0), maximized.GetNumber(KeyStore.Height, 0),
+                Date.now(), maximized, minimized);
+        }
+    }
+
     @action
     public minimize = (): void => {
-        this.props.Document.SetBoolean(KeyStore.Minimized, true);
-        SelectionManager.DeselectAll();
+        this.props.Document.GetAsync(KeyStore.MinimizedDoc, mindoc => {
+            if (mindoc === undefined) {
+                this.props.Document.GetAsync(KeyStore.BackgroundLayout, field => {
+                    if (field instanceof TextField) {
+                        this.toggleMinimize(this.props.Document, this.createIcon(field.Data));
+                    }
+                    else this.props.Document.GetAsync(KeyStore.Layout, field => {
+                        if (field instanceof TextField) {
+                            this.createIcon(field.Data);
+                            this.toggleMinimize(this.props.Document, this.createIcon(field.Data));
+                        }
+                    });
+                });
+            }
+            else if (mindoc instanceof Document) {
+                this.props.addDocument && this.props.addDocument(mindoc, false);
+                this.toggleMinimize(this.props.Document, mindoc);
+            }
+        });
     }
 
     @undoBatch
@@ -250,7 +332,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
         e.preventDefault();
 
-        !this.isMinimized() && ContextMenu.Instance.addItem({ description: "Minimize", event: this.minimize });
         ContextMenu.Instance.addItem({ description: "Full Screen", event: this.fullScreenClicked });
         ContextMenu.Instance.addItem({ description: "Fields", event: this.fieldsClicked });
         ContextMenu.Instance.addItem({ description: "Center", event: () => this.props.focus(this.props.Document) });
@@ -265,9 +346,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
     }
 
-    @action
-    expand = () => this.Document.minimized = false
-    isMinimized = () => FieldValue(this.Document.minimized) || false;
     isSelected = () => SelectionManager.IsSelected(this);
     select = (ctrlPressed: boolean) => SelectionManager.SelectDoc(this, ctrlPressed);
 
@@ -275,15 +353,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @computed get nativeHeight() { return FieldValue(this.Document.nativeHeight) || 0; }
     @computed get contents() { return (<DocumentContentsView {...this.props} isSelected={this.isSelected} select={this.select} layoutKey={KeyStore.Layout} />); }
 
+
     render() {
         var scaling = this.props.ContentScaling();
         var nativeHeight = this.nativeHeight > 0 ? this.nativeHeight.toString() + "px" : "100%";
         var nativeWidth = this.nativeWidth > 0 ? this.nativeWidth.toString() + "px" : "100%";
 
-        if (this.isMinimized()) {
-            return <div className="minimized-box" ref={this._mainCont} onClick={this.expand} onDrop={this.onDrop}
-                style={{ transform: `scale(${scaling} , ${scaling})` }} onPointerDown={this.onPointerDown} />;
-        }
         return (
             <div className={`documentView-node${this.props.isTopMost ? "-topmost" : ""}`}
                 ref={this._mainCont}

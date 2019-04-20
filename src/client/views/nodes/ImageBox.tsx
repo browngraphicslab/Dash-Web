@@ -38,7 +38,10 @@ export class ImageBox extends React.Component<FieldViewProps> {
     onLoad = (target: any) => {
         var h = this._imgRef.current!.naturalHeight;
         var w = this._imgRef.current!.naturalWidth;
-        if (this._photoIndex === 0) this.props.Document.SetNumber(KeyStore.NativeHeight, this.props.Document.GetNumber(KeyStore.NativeWidth, 0) * h / w);
+        if (this._photoIndex === 0) {
+            this.props.Document.SetNumber(KeyStore.NativeHeight, this.props.Document.GetNumber(KeyStore.NativeWidth, 0) * h / w);
+            this.props.Document.SetNumber(KeyStore.Height, this.props.Document.Width() * h / w);
+        }
     }
 
 
@@ -65,7 +68,7 @@ export class ImageBox extends React.Component<FieldViewProps> {
                 if (layout.indexOf(ImageBox.name) !== -1) {
                     let imgData = this.props.Document.Get(KeyStore.Data);
                     if (imgData instanceof ImageField && imgData) {
-                        this.props.Document.Set(KeyStore.Data, new ListField([imgData]));
+                        this.props.Document.SetOnPrototype(KeyStore.Data, new ListField([imgData]));
                     }
                     let imgList = this.props.Document.GetList(KeyStore.Data, [] as any[]);
                     if (imgList) {
@@ -137,6 +140,7 @@ export class ImageBox extends React.Component<FieldViewProps> {
     @action
     onDotDown(index: number) {
         this._photoIndex = index;
+        this.props.Document.SetNumber(KeyStore.CurPage, index);
     }
 
     dots(paths: string[]) {

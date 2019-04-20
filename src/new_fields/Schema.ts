@@ -1,8 +1,8 @@
 import { Interface, ToInterface, Cast, FieldCtor, ToConstructor } from "./Types";
 import { Doc } from "./Doc";
 
-export type makeInterface<T extends Interface> = Partial<ToInterface<T>> & Doc;
-export function makeInterface<T extends Interface>(schema: T): (doc: Doc) => makeInterface<T> {
+export type makeInterface<T extends Interface, U extends Doc = Doc> = Partial<ToInterface<T>> & U;
+export function makeInterface<T extends Interface, U extends Doc>(schema: T): (doc: U) => makeInterface<T, U> {
     return function (doc: any) {
         return new Proxy(doc, {
             get(target, prop) {

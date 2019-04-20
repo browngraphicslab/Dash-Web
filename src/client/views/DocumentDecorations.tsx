@@ -5,6 +5,7 @@ import { KeyStore } from "../../fields/KeyStore";
 import { ListField } from "../../fields/ListField";
 import { NumberField } from "../../fields/NumberField";
 import { TextField } from "../../fields/TextField";
+import { Document } from "../../fields/Document";
 import { emptyFunction } from "../../Utils";
 import { DragLinksAsDocuments, DragManager } from "../util/DragManager";
 import { SelectionManager } from "../util/SelectionManager";
@@ -14,6 +15,8 @@ import { MainOverlayTextBox } from "./MainOverlayTextBox";
 import { DocumentView } from "./nodes/DocumentView";
 import { LinkMenu } from "./nodes/LinkMenu";
 import React = require("react");
+import { CompileScript } from "../util/Scripting";
+import { IconBox } from "./nodes/IconBox";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -36,6 +39,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     @observable private _hidden = false;
     @observable private _opacity = 1;
     @observable private _dragging = false;
+    @observable private _iconifying = false;
 
 
     constructor(props: Readonly<{}>) {
@@ -175,25 +179,65 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             document.removeEventListener("pointerup", this.onCloseUp);
         }
     }
+    _downX = 0;
+    _downY = 0;
     onMinimizeDown = (e: React.PointerEvent): void => {
         e.stopPropagation();
         if (e.button === 0) {
+            this._downX = e.pageX;
+            this._downY = e.pageY;
             document.removeEventListener("pointermove", this.onMinimizeMove);
             document.addEventListener("pointermove", this.onMinimizeMove);
             document.removeEventListener("pointerup", this.onMinimizeUp);
             document.addEventListener("pointerup", this.onMinimizeUp);
         }
     }
+
+    @observable _minimizedX = 0;
+    @observable _minimizedY = 0;
+    @action
     onMinimizeMove = (e: PointerEvent): void => {
         e.stopPropagation();
+        let dx = e.pageX - this._downX;
+        let dy = e.pageY - this._downY;
+        if (Math.abs(dx) > 4 || Math.abs(dy) > 4) {
+            this._iconifying = true;
+            let xf = SelectionManager.SelectedDocuments()[0].props.ScreenToLocalTransform().scale(SelectionManager.SelectedDocuments()[0].props.ContentScaling()).inverse().transformPoint(0, 0);
+            let dx = e.pageX - xf[0];
+            let dy = e.pageY - xf[1];
+            this._minimizedX = e.clientX;
+            this._minimizedY = e.clientY;
+            if (Math.abs(dx) < 20 && Math.abs(dy) < 20) {
+                this._minimizedX = xf[0];
+                this._minimizedY = xf[1];
+            }
+            SelectionManager.SelectedDocuments().map(dv => {
+                let minDoc = dv.props.Document.Get(KeyStore.MinimizedDoc);
+                if (minDoc instanceof Document) {
+                    let where = (dv.props.ScreenToLocalTransform()).scale(dv.props.ContentScaling()).transformPoint(this._minimizedX, this._minimizedY);
+                    let minDocument = minDoc as Document;
+                    minDocument.SetNumber(KeyStore.X, where[0] + dv.props.Document.GetNumber(KeyStore.X, 0));
+                    minDocument.SetNumber(KeyStore.Y, where[1] + dv.props.Document.GetNumber(KeyStore.Y, 0));
+                }
+            });
+        }
     }
+    @action
     onMinimizeUp = (e: PointerEvent): void => {
         e.stopPropagation();
         if (e.button === 0) {
-            SelectionManager.SelectedDocuments().map(dv => dv.minimize());
+            let dx = e.clientX - this._downX;
+            let dy = e.clientY - this._downY;
+            if (Math.abs(dx) < 4 && Math.abs(dy) < 4 && !this._iconifying) {
+                SelectionManager.SelectedDocuments().map(dv => dv.minimize());
+                SelectionManager.DeselectAll();
+            } else {
+                this._minimizedX = this._minimizedY = 0;
+            }
             document.removeEventListener("pointermove", this.onMinimizeMove);
             document.removeEventListener("pointerup", this.onMinimizeUp);
         }
+        this._iconifying = false;
     }
 
     onPointerDown = (e: React.PointerEvent): void => {
@@ -370,11 +414,22 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     // }
     render() {
         var bounds = this.Bounds;
-        if (bounds.x === Number.MAX_VALUE) {
+        let seldoc = SelectionManager.SelectedDocuments().length ? SelectionManager.SelectedDocuments()[0] : undefined;
+        if (bounds.x === Number.MAX_VALUE || !seldoc) {
             return (null);
         }
-        // console.log(this._documents.length)
-        // let test = this._documents[0].props.Document.Title;
+        let selpos = this._minimizedX !== 0 || this._minimizedY !== 0 ?
+            [this._minimizedX - 12 + (!this._iconifying ? 8 : 0), this._minimizedY - 12 + (!this._iconifying ? 28 : 0)] :
+            [0, this._iconifying ? -18 : 0];
+        let minimizeIcon = (
+            <div className="documentDecorations-minimizeButton" onPointerDown={this.onMinimizeDown}
+                style={{ transform: `translate(${selpos[0]}px,${selpos[1]}px)`, }}>
+                {SelectionManager.SelectedDocuments().length == 1 ? IconBox.DocumentIcon(SelectionManager.SelectedDocuments()[0].props.Document.GetText(KeyStore.Layout, "...")) : "..."}
+            </div>);
+        if (this._iconifying) {
+            return (<div className="documentDecorations-container" > {minimizeIcon} </div>);
+        }
+
         if (this.Hidden) {
             return (null);
         }
@@ -406,14 +461,15 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 zIndex: SelectionManager.SelectedDocuments().length > 1 ? 1000 : 0,
             }} onPointerDown={this.onBackgroundDown} onContextMenu={(e: React.MouseEvent) => { e.preventDefault(); e.stopPropagation(); }} >
             </div>
-            <div id="documentDecorations-container" style={{
+            <div className="documentDecorations-container" style={{
                 width: (bounds.r - bounds.x + this._resizeBorderWidth) + "px",
                 height: (bounds.b - bounds.y + this._resizeBorderWidth + this._linkBoxHeight + this._titleHeight) + "px",
                 left: bounds.x - this._resizeBorderWidth / 2,
                 top: bounds.y - this._resizeBorderWidth / 2 - this._titleHeight,
                 opacity: this._opacity
             }}>
-                <div className="documentDecorations-minimizeButton" onPointerDown={this.onMinimizeDown}>...</div>
+                {minimizeIcon}
+
                 <input ref={this.keyinput} className="title" type="text" name="dynbox" value={this.getValue()} onChange={this.handleChange} onPointerDown={this.onBackgroundDown} onKeyPress={this.enterPressed} />
                 <div className="documentDecorations-closeButton" onPointerDown={this.onCloseDown}>X</div>
                 <div id="documentDecorations-topLeftResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>

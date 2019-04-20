@@ -11,6 +11,7 @@ import { undoBatch } from "../../../util/UndoManager";
 import { InkingCanvas } from "../../InkingCanvas";
 import { PreviewCursor } from "../../PreviewCursor";
 import { CollectionFreeFormView } from "./CollectionFreeFormView";
+import { MINIMIZED_ICON_SIZE } from '../../../views/globalCssVariables.scss'
 import "./MarqueeView.scss";
 import React = require("react");
 

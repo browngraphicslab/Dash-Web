@@ -15,7 +15,6 @@ import { ServerUtils } from "../../../server/ServerUtil";
 import { Server } from "../../Server";
 import { FieldViewProps } from "../nodes/FieldView";
 import * as rp from 'request-promise';
-import { emptyFunction } from "../../../Utils";
 import { CollectionView } from "./CollectionView";
 import { CollectionPDFView } from "./CollectionPDFView";
 import { CollectionVideoView } from "./CollectionVideoView";
@@ -24,6 +23,8 @@ export interface CollectionViewProps extends FieldViewProps {
     addDocument: (document: Document, allowDuplicates?: boolean) => boolean;
     removeDocument: (document: Document) => boolean;
     moveDocument: (document: Document, targetCollection: Document, addDocument: (document: Document) => boolean) => boolean;
+    PanelWidth: () => number;
+    PanelHeight: () => number;
 }
 
 export interface SubCollectionViewProps extends CollectionViewProps {
@@ -41,6 +42,9 @@ export class CollectionSubView extends React.Component<SubCollectionViewProps> {
         if (ele) {
             this.dropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.drop.bind(this) } });
         }
+    }
+    protected CreateDropTarget(ele: HTMLDivElement) {
+        this.createDropTarget(ele);
     }
 
     @action
