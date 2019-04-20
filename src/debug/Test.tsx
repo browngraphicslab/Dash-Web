@@ -1,8 +1,12 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
-import { serialize, deserialize, map } from 'serializr';
-import { URLField, Doc, createSchema, makeInterface, makeStrictInterface, List, ListSpec } from '../fields/NewDoc';
 import { SerializationHelper } from '../client/util/SerializationHelper';
+import { createSchema, makeInterface, makeStrictInterface } from '../new_fields/Schema';
+import { URLField } from '../new_fields/URLField';
+import { Doc } from '../new_fields/Doc';
+import { ListSpec } from '../new_fields/Types';
+import { List } from '../new_fields/List';
+const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 const schema1 = createSchema({
     hello: "number",

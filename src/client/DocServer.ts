@@ -1,6 +1,6 @@
 import * as OpenSocket from 'socket.io-client';
 import { MessageStore, Types } from "./../server/Message";
-import { Opt, FieldWaiting, RefField, HandleUpdate } from '../fields/NewDoc';
+import { Opt, FieldWaiting, RefField, HandleUpdate } from '../new_fields/Doc';
 import { Utils } from '../Utils';
 import { SerializationHelper } from './util/SerializationHelper';
 

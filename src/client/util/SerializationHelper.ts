@@ -1,5 +1,5 @@
 import { PropSchema, serialize, deserialize, custom, setDefaultModelSchema, getDefaultModelSchema, primitive, SKIP } from "serializr";
-import { Field } from "../../fields/NewDoc";
+import { Field } from "../../new_fields/Doc";
 
 export namespace SerializationHelper {
     let serializing: number = 0;
