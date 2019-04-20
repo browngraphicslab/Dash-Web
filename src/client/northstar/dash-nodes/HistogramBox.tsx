@@ -8,7 +8,7 @@ import { KeyStore } from "../../../fields/KeyStore";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { ChartType, VisualBinRange } from '../../northstar/model/binRanges/VisualBinRange';
 import { VisualBinRangeHelper } from "../../northstar/model/binRanges/VisualBinRangeHelper";
-import { AggregateBinRange, AggregateFunction, BinRange, Catalog, DoubleValueAggregateResult, HistogramResult, Result } from "../../northstar/model/idea/idea";
+import { AggregateBinRange, AggregateFunction, BinRange, Catalog, DoubleValueAggregateResult, HistogramResult } from "../../northstar/model/idea/idea";
 import { ModelHelpers } from "../../northstar/model/ModelHelpers";
 import { HistogramOperation } from "../../northstar/operations/HistogramOperation";
 import { SizeConverter } from "../../northstar/utils/SizeConverter";
@@ -45,10 +45,6 @@ export class HistogramBox extends React.Component<FieldViewProps> {
         return !this.BinRanges ? ChartType.SinglePoint : this.BinRanges[0] instanceof AggregateBinRange ?
             (this.BinRanges[1] instanceof AggregateBinRange ? ChartType.SinglePoint : ChartType.HorizontalBar) :
             this.BinRanges[1] instanceof AggregateBinRange ? ChartType.VerticalBar : ChartType.HeatMap;
-    }
-
-    constructor(props: FieldViewProps) {
-        super(props);
     }
 
     @action
@@ -122,7 +118,7 @@ export class HistogramBox extends React.Component<FieldViewProps> {
             this.props.Document.GetTAsync(this.props.fieldKey, HistogramField).then((histoOp: Opt<HistogramField>) => runInAction(() => {
                 this.HistoOp = histoOp ? histoOp.Data : HistogramOperation.Empty;
                 if (this.HistoOp !== HistogramOperation.Empty) {
-                    reaction(() => this.props.Document.GetList(KeyStore.LinkedFromDocs, []), (docs: Document[]) => this.HistoOp.Links.splice(0, this.HistoOp.Links.length, ...docs), { fireImmediately: true });
+                    reaction(() => this.props.Document.GetList(KeyStore.LinkedFromDocs, [] as Document[]), (docs) => this.HistoOp.Links.splice(0, this.HistoOp.Links.length, ...docs), { fireImmediately: true });
                     reaction(() => this.props.Document.GetList(KeyStore.BrushingDocs, []).length,
                         () => {
                             let brushingDocs = this.props.Document.GetList(KeyStore.BrushingDocs, [] as Document[]);
@@ -150,7 +146,7 @@ export class HistogramBox extends React.Component<FieldViewProps> {
         return (
             <Measure onResize={(r: any) => runInAction(() => { this.PanelWidth = r.entry.width; this.PanelHeight = r.entry.height; })}>
                 {({ measureRef }) =>
-                    <div className="histogrambox-container" ref={measureRef} style={{ transform: `translate(-50%, -50%)` }}>
+                    <div className="histogrambox-container" ref={measureRef}>
                         <div className="histogrambox-yaxislabel" onPointerDown={this.yLabelPointerDown} ref={this._dropYRef} >
                             <span className="histogrambox-yaxislabel-text">
                                 {labelY}

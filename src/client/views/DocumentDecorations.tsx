@@ -1,20 +1,23 @@
-import { action, computed, observable, trace, runInAction } from "mobx";
+import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { Key } from "../../fields/Key";
-//import ContentEditable from 'react-contenteditable'
 import { KeyStore } from "../../fields/KeyStore";
 import { ListField } from "../../fields/ListField";
 import { NumberField } from "../../fields/NumberField";
-import { Document } from "../../fields/Document";
 import { TextField } from "../../fields/TextField";
-import { DragManager } from "../util/DragManager";
+import { Document } from "../../fields/Document";
+import { emptyFunction } from "../../Utils";
+import { DragLinksAsDocuments, DragManager } from "../util/DragManager";
 import { SelectionManager } from "../util/SelectionManager";
-import { CollectionView } from "./collections/CollectionView";
+import { undoBatch } from "../util/UndoManager";
 import './DocumentDecorations.scss';
+import { MainOverlayTextBox } from "./MainOverlayTextBox";
 import { DocumentView } from "./nodes/DocumentView";
 import { LinkMenu } from "./nodes/LinkMenu";
 import React = require("react");
-import { FieldWaiting } from "../../fields/Field";
+import { CompileScript } from "../util/Scripting";
+import { IconBox } from "./nodes/IconBox";
+import { FieldValue, Field } from "../../fields/Field";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -31,12 +34,17 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     private _titleHeight = 20;
     private _linkButton = React.createRef<HTMLDivElement>();
     private _linkerButton = React.createRef<HTMLDivElement>();
+    private _downX = 0;
+    private _downY = 0;
+    @observable private _minimizedX = 0;
+    @observable private _minimizedY = 0;
     //@observable private _title: string = this._documents[0].props.Document.Title;
     @observable private _title: string = this._documents.length > 0 ? this._documents[0].props.Document.Title : "";
     @observable private _fieldKey: Key = KeyStore.Title;
     @observable private _hidden = false;
     @observable private _opacity = 1;
     @observable private _dragging = false;
+    @observable private _iconifying = false;
 
 
     constructor(props: Readonly<{}>) {
@@ -70,7 +78,18 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 // TODO: Change field with switch statement
             }
             else {
-                this._title = "changed";
+                if (this._documents.length > 0) {
+                    let field = this._documents[0].props.Document.Get(this._fieldKey);
+                    if (field instanceof TextField) {
+                        this._documents.forEach(d =>
+                            d.props.Document.Set(this._fieldKey, new TextField(this._title)));
+                    }
+                    else if (field instanceof NumberField) {
+                        this._documents.forEach(d =>
+                            d.props.Document.Set(this._fieldKey, new NumberField(+this._title)));
+                    }
+                    this._title = "changed";
+                }
             }
             e.target.blur();
         }
@@ -106,7 +125,9 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         document.addEventListener("pointerup", this.onBackgroundUp);
         this._lastDrag = [e.clientX, e.clientY];
         e.stopPropagation();
-        e.preventDefault();
+        if (e.currentTarget.localName !== "input") {
+            e.preventDefault();
+        }
     }
 
     @action
@@ -122,7 +143,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         this._dragging = true;
         document.removeEventListener("pointermove", this.onBackgroundMove);
         document.removeEventListener("pointerup", this.onBackgroundUp);
-        DragManager.StartDocumentDrag(SelectionManager.SelectedDocuments().map(docView => docView.ContentRef.current!), dragData, e.x, e.y, {
+        DragManager.StartDocumentDrag(SelectionManager.SelectedDocuments().map(docView => docView.ContentDiv!), dragData, e.x, e.y, {
             handlers: {
                 dragComplete: action(() => this._dragging = false),
             },
@@ -152,6 +173,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         if (e.button === 0) {
         }
     }
+    @undoBatch
     @action
     onCloseUp = (e: PointerEvent): void => {
         e.stopPropagation();
@@ -162,27 +184,75 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             document.removeEventListener("pointerup", this.onCloseUp);
         }
     }
+    @action
     onMinimizeDown = (e: React.PointerEvent): void => {
         e.stopPropagation();
         if (e.button === 0) {
+            this._downX = e.pageX;
+            this._downY = e.pageY;
+            let selDoc = SelectionManager.SelectedDocuments()[0];
+            let selDocPos = selDoc.props.ScreenToLocalTransform().scale(selDoc.props.ContentScaling()).inverse().transformPoint(0, 0);
+            this._minimizedX = selDocPos[0] + 12;
+            this._minimizedY = selDocPos[1] + 12;
             document.removeEventListener("pointermove", this.onMinimizeMove);
             document.addEventListener("pointermove", this.onMinimizeMove);
             document.removeEventListener("pointerup", this.onMinimizeUp);
             document.addEventListener("pointerup", this.onMinimizeUp);
         }
     }
+
+    @action
     onMinimizeMove = (e: PointerEvent): void => {
         e.stopPropagation();
-        if (e.button === 0) {
+        let moved = Math.abs(e.pageX - this._downX) > 4 || Math.abs(e.pageY - this._downY) > 4;
+        if (moved) {
+            let selDoc = SelectionManager.SelectedDocuments()[0];
+            let selDocPos = selDoc.props.ScreenToLocalTransform().scale(selDoc.props.ContentScaling()).inverse().transformPoint(0, 0);
+            let snapped = Math.abs(e.pageX - selDocPos[0]) < 20 && Math.abs(e.pageY - selDocPos[1]) < 20;
+            this._minimizedX = snapped ? selDocPos[0] + 4 : e.clientX;
+            this._minimizedY = snapped ? selDocPos[1] - 18 : e.clientY;
+            let selectedDocs = SelectionManager.SelectedDocuments().map(sd => sd);
+            Promise.all(selectedDocs.map(async selDoc => await selDoc.getIconDoc())).then(minDocSet =>
+                this.moveIconDocs(SelectionManager.SelectedDocuments())
+            );
+            this._iconifying = snapped;
         }
     }
+    @action
     onMinimizeUp = (e: PointerEvent): void => {
         e.stopPropagation();
         if (e.button === 0) {
-            SelectionManager.SelectedDocuments().map(dv => dv.minimize());
             document.removeEventListener("pointermove", this.onMinimizeMove);
             document.removeEventListener("pointerup", this.onMinimizeUp);
+            let selectedDocs = SelectionManager.SelectedDocuments().map(sd => sd);
+            Promise.all(selectedDocs.map(async selDoc => await selDoc.getIconDoc())).then(minDocSet => {
+                let minDocs = minDocSet.filter(minDoc => minDoc instanceof Document).map(minDoc => minDoc as Document);
+                minDocs.map(minDoc => {
+                    minDoc.SetNumber(KeyStore.X, minDocs[0].GetNumber(KeyStore.X, 0));
+                    minDoc.SetNumber(KeyStore.Y, minDocs[0].GetNumber(KeyStore.Y, 0));
+                    minDoc.SetData(KeyStore.LinkTags, minDocs, ListField);
+                    if (this._iconifying && selectedDocs[0].props.removeDocument) {
+                        selectedDocs[0].props.removeDocument(minDoc);
+                        (minDoc.Get(KeyStore.MaximizedDoc, false) as Document)!.Set(KeyStore.MinimizedDoc, undefined);
+                    }
+                });
+                runInAction(() => this._minimizedX = this._minimizedY = 0);
+                if (!this._iconifying) selectedDocs[0].toggleIcon();
+                this._iconifying = false;
+            });
         }
+    }
+    moveIconDocs(selViews: DocumentView[], minDocSet?: FieldValue<Field>[]) {
+        selViews.map(selDoc => {
+            let minDoc = selDoc.props.Document.Get(KeyStore.MinimizedDoc);
+            if (minDoc instanceof Document) {
+                let zoom = selDoc.props.Document.GetNumber(KeyStore.Zoom, 1);
+                let where = (selDoc.props.ScreenToLocalTransform()).scale(selDoc.props.ContentScaling()).scale(1 / zoom).
+                    transformPoint(this._minimizedX - 12, this._minimizedY - 12);
+                minDoc.SetNumber(KeyStore.X, where[0] + selDoc.props.Document.GetNumber(KeyStore.X, 0));
+                minDoc.SetNumber(KeyStore.Y, where[1] + selDoc.props.Document.GetNumber(KeyStore.Y, 0));
+            }
+        });
     }
 
     onPointerDown = (e: React.PointerEvent): void => {
@@ -214,10 +284,10 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         if (this._linkerButton.current !== null) {
             document.removeEventListener("pointermove", this.onLinkerButtonMoved);
             document.removeEventListener("pointerup", this.onLinkerButtonUp);
-            let dragData = new DragManager.LinkDragData(SelectionManager.SelectedDocuments()[0]);
+            let dragData = new DragManager.LinkDragData(SelectionManager.SelectedDocuments()[0].props.Document);
             DragManager.StartLinkDrag(this._linkerButton.current, dragData, e.pageX, e.pageY, {
                 handlers: {
-                    dragComplete: action(() => { }),
+                    dragComplete: action(emptyFunction),
                 },
                 hideSource: false
             });
@@ -240,37 +310,14 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     }
 
     onLinkButtonMoved = async (e: PointerEvent) => {
-        if (this._linkButton.current !== null) {
+        if (this._linkButton.current !== null && (e.movementX > 1 || e.movementY > 1)) {
             document.removeEventListener("pointermove", this.onLinkButtonMoved);
             document.removeEventListener("pointerup", this.onLinkButtonUp);
 
-            let sourceDoc = SelectionManager.SelectedDocuments()[0].props.Document;
-            let srcTarg = sourceDoc.GetT(KeyStore.Prototype, Document);
-            let draggedDocs = (srcTarg && srcTarg !== FieldWaiting) ?
-                srcTarg.GetList(KeyStore.LinkedToDocs, [] as Document[]).map(linkDoc =>
-                    (linkDoc.GetT(KeyStore.LinkedToDocs, Document)) as Document) : [];
-            let draggedFromDocs = (srcTarg && srcTarg !== FieldWaiting) ?
-                srcTarg.GetList(KeyStore.LinkedFromDocs, [] as Document[]).map(linkDoc =>
-                    (linkDoc.GetT(KeyStore.LinkedFromDocs, Document)) as Document) : [];
-            draggedDocs.push(...draggedFromDocs);
-            if (draggedDocs.length) {
-                let moddrag = [] as Document[];
-                for (const draggedDoc of draggedDocs) {
-                    let doc = await draggedDoc.GetTAsync(KeyStore.AnnotationOn, Document);
-                    if (doc) moddrag.push(doc);
-                }
-                let dragData = new DragManager.DocumentDragData(moddrag.length ? moddrag : draggedDocs);
-                DragManager.StartDocumentDrag([this._linkButton.current], dragData, e.x, e.y, {
-                    handlers: {
-                        dragComplete: action(() => { }),
-                    },
-                    hideSource: false
-                });
-            }
+            DragLinksAsDocuments(this._linkButton.current, e.x, e.y, SelectionManager.SelectedDocuments()[0].props.Document);
         }
         e.stopPropagation();
     }
-
 
     onPointerMove = (e: PointerEvent): void => {
         e.stopPropagation();
@@ -320,8 +367,10 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 break;
         }
 
+        MainOverlayTextBox.Instance.SetTextDoc();
         SelectionManager.SelectedDocuments().forEach(element => {
-            const rect = element.screenRect();
+            const rect = element.ContentDiv ? element.ContentDiv.getBoundingClientRect() : new DOMRect();
+
             if (rect.width !== 0) {
                 let doc = element.props.Document;
                 let width = doc.GetNumber(KeyStore.Width, 0);
@@ -380,11 +429,15 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     // }
     render() {
         var bounds = this.Bounds;
-        if (bounds.x === Number.MAX_VALUE) {
+        let seldoc = SelectionManager.SelectedDocuments().length ? SelectionManager.SelectedDocuments()[0] : undefined;
+        if (bounds.x === Number.MAX_VALUE || !seldoc) {
             return (null);
         }
-        // console.log(this._documents.length)
-        // let test = this._documents[0].props.Document.Title;
+        let minimizeIcon = (
+            <div className="documentDecorations-minimizeButton" onPointerDown={this.onMinimizeDown}>
+                {SelectionManager.SelectedDocuments().length == 1 ? IconBox.DocumentIcon(SelectionManager.SelectedDocuments()[0].props.Document.GetText(KeyStore.Layout, "...")) : "..."}
+            </div>);
+
         if (this.Hidden) {
             return (null);
         }
@@ -416,15 +469,16 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 zIndex: SelectionManager.SelectedDocuments().length > 1 ? 1000 : 0,
             }} onPointerDown={this.onBackgroundDown} onContextMenu={(e: React.MouseEvent) => { e.preventDefault(); e.stopPropagation(); }} >
             </div>
-            <div id="documentDecorations-container" style={{
+            <div className="documentDecorations-container" style={{
                 width: (bounds.r - bounds.x + this._resizeBorderWidth) + "px",
                 height: (bounds.b - bounds.y + this._resizeBorderWidth + this._linkBoxHeight + this._titleHeight) + "px",
                 left: bounds.x - this._resizeBorderWidth / 2,
                 top: bounds.y - this._resizeBorderWidth / 2 - this._titleHeight,
                 opacity: this._opacity
             }}>
-                <div className="documentDecorations-minimizeButton" onPointerDown={this.onMinimizeDown}>...</div>
-                <input ref={this.keyinput} className="title" type="text" name="dynbox" value={this.getValue()} onChange={this.handleChange} onPointerDown={this.onPointerDown} onKeyPress={this.enterPressed} />
+                {minimizeIcon}
+
+                <input ref={this.keyinput} className="title" type="text" name="dynbox" value={this.getValue()} onChange={this.handleChange} onPointerDown={this.onBackgroundDown} onKeyPress={this.enterPressed} />
                 <div className="documentDecorations-closeButton" onPointerDown={this.onCloseDown}>X</div>
                 <div id="documentDecorations-topLeftResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-topResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>

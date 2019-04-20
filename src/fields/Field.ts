@@ -1,6 +1,6 @@
 
 import { Utils } from "../Utils";
-import { Types } from "../server/Message";
+import { Types, Transferable } from "../server/Message";
 import { computed } from "mobx";
 
 export function Cast<T extends Field>(field: FieldValue<Field>, ctor: { new(): T }): Opt<T> {
@@ -65,5 +65,5 @@ export abstract class Field {
 
     abstract Copy(): Field;
 
-    abstract ToJson(): { _id: string, type: Types, data: any };
+    abstract ToJson(): Transferable;
 }

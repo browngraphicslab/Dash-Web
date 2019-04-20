@@ -12,7 +12,7 @@ export class CollectionFreeFormRemoteCursors extends React.Component<CollectionV
     protected getCursors(): CursorEntry[] {
         let doc = this.props.Document;
         let id = CurrentUserUtils.id;
-        let cursors = doc.GetList<CursorEntry>(KeyStore.Cursors, []);
+        let cursors = doc.GetList(KeyStore.Cursors, [] as CursorEntry[]);
         let notMe = cursors.filter(entry => entry.Data[0][0] !== id);
         return id ? notMe : [];
     }
@@ -59,37 +59,17 @@ export class CollectionFreeFormRemoteCursors extends React.Component<CollectionV
                 let point = entry.Data[1];
                 this.drawCrosshairs("#" + v5(id, v5.URL).substring(0, 6).toUpperCase() + "22");
                 return (
-                    <div
-                        key={id}
-                        style={{
-                            position: "absolute",
-                            transform: `translate(${point[0] - 10}px, ${point[1] - 10}px)`,
-                            zIndex: 10000,
-                            transformOrigin: 'center center',
-                        }}
+                    <div key={id} className="collectionFreeFormRemoteCursors-cont"
+                        style={{ transform: `translate(${point[0] - 10}px, ${point[1] - 10}px)` }}
                     >
-                        <canvas
+                        <canvas className="collectionFreeFormRemoteCursors-canvas"
                             ref={(el) => { if (el) this.crosshairs = el; }}
                             width={20}
                             height={20}
-                            style={{
-                                position: 'absolute',
-                                width: "20px",
-                                height: "20px",
-                                opacity: 0.5,
-                                borderRadius: "50%",
-                                border: "2px solid black"
-                            }}
                         />
-                        <p
-                            style={{
-                                fontSize: 14,
-                                color: "black",
-                                // fontStyle: "italic",
-                                marginLeft: -12,
-                                marginTop: 4
-                            }}
-                        >{email[0].toUpperCase()}</p>
+                        <p className="collectionFreeFormRemoteCursors-symbol">
+                            {email[0].toUpperCase()}
+                        </p>
                     </div>
                 );
             }

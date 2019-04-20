@@ -1,13 +1,16 @@
-@import "global_variables";
+@import "globalCssVariables";
 
-#documentDecorations-container {
+.documentDecorations {
+    position: absolute;
+}
+.documentDecorations-container {
+    z-index: $docDecorations-zindex;
     position: absolute;
     top: 0;
     left:0;
     display: grid;
-    z-index: 1000;
     grid-template-rows: 20px 8px 1fr 8px;
-    grid-template-columns: 8px 8px 1fr 8px 8px;
+    grid-template-columns: 8px 16px 1fr 8px 8px;
     pointer-events: none;
 
     #documentDecorations-centerCont {
@@ -75,6 +78,7 @@
     grid-column-end: 6;
     pointer-events: all;
     text-align: center;
+    cursor: pointer;
 }
 .documentDecorations-minimizeButton {
     background:$alt-accent;
@@ -83,6 +87,12 @@
     grid-column-end: 3;
     pointer-events: all;
     text-align: center;
+    cursor: pointer;
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    width: $MINIMIZED_ICON_SIZE;
+    height: $MINIMIZED_ICON_SIZE;
 }
 .documentDecorations-background {
     background: lightblue;
@@ -90,37 +100,6 @@
     opacity: 0.1;
 }
 
-//     position: absolute;
-//     display: grid;
-//     z-index: 1000;
-//     grid-template-rows: 20px 1fr 20px 0px;
-//     grid-template-columns: 20px 1fr 20px;
-//     pointer-events: none;
-//     #documentDecorations-centerCont {
-//         background: none;
-//     }
-//     .documentDecorations-resizer {
-//         pointer-events: auto;
-//         background: lightblue;
-//         opacity: 0.4;
-//     }
-//     #documentDecorations-topLeftResizer,
-//     #documentDecorations-bottomRightResizer {
-//         cursor: nwse-resize;
-//     }
-//     #documentDecorations-topRightResizer,
-//     #documentDecorations-bottomLeftResizer {
-//         cursor: nesw-resize;
-//     }
-//     #documentDecorations-topResizer,
-//     #documentDecorations-bottomResizer {
-//         cursor: ns-resize;
-//     }
-//     #documentDecorations-leftResizer,
-//     #documentDecorations-rightResizer {
-//         cursor: ew-resize;
-//     }
-// }
 .linkFlyout {
     grid-column: 1/4;
     margin-left: 25px;

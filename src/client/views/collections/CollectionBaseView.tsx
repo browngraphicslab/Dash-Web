@@ -1,4 +1,4 @@
-import { action } from 'mobx';
+import { action, computed } from 'mobx';
 import { observer } from 'mobx-react';
 import * as React from 'react';
 import { Document } from '../../../fields/Document';
@@ -22,7 +22,7 @@ export interface CollectionRenderProps {
     removeDocument: (document: Document) => boolean;
     moveDocument: (document: Document, targetCollection: Document, addDocument: (document: Document) => boolean) => boolean;
     active: () => boolean;
-    onActiveChanged: (isActive: boolean) => void;
+    whenActiveChanged: (isActive: boolean) => void;
 }
 
 export interface CollectionViewProps extends FieldViewProps {
@@ -32,19 +32,18 @@ export interface CollectionViewProps extends FieldViewProps {
     contentRef?: React.Ref<HTMLDivElement>;
 }
 
-export const COLLECTION_BORDER_WIDTH = 1;
 
 @observer
 export class CollectionBaseView extends React.Component<CollectionViewProps> {
-    get collectionViewType(): CollectionViewType {
+    get collectionViewType(): CollectionViewType | undefined {
         let Document = this.props.Document;
         let viewField = Document.GetT(KeyStore.ViewType, NumberField);
         if (viewField === FieldWaiting) {
-            return CollectionViewType.Invalid;
+            return undefined;
         } else if (viewField) {
             return viewField.Data;
         } else {
-            return CollectionViewType.Freeform;
+            return CollectionViewType.Invalid;
         }
     }
 
@@ -56,19 +55,22 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
 
     //TODO should this be observable?
     private _isChildActive = false;
-    onActiveChanged = (isActive: boolean) => {
+    whenActiveChanged = (isActive: boolean) => {
         this._isChildActive = isActive;
-        this.props.onActiveChanged(isActive);
+        this.props.whenActiveChanged(isActive);
     }
 
     createsCycle(documentToAdd: Document, containerDocument: Document): boolean {
-        let data = documentToAdd.GetList<Document>(KeyStore.Data, []);
-        for (const doc of data) {
+        if (!(documentToAdd instanceof Document)) {
+            return false;
+        }
+        let data = documentToAdd.GetList(KeyStore.Data, [] as Document[]);
+        for (const doc of data.filter(d => d instanceof Document)) {
             if (this.createsCycle(doc, containerDocument)) {
                 return true;
             }
         }
-        let annots = documentToAdd.GetList<Document>(KeyStore.Annotations, []);
+        let annots = documentToAdd.GetList(KeyStore.Annotations, [] as Document[]);
         for (const annot of annots) {
             if (this.createsCycle(annot, containerDocument)) {
                 return true;
@@ -81,6 +83,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         }
         return false;
     }
+    @computed get isAnnotationOverlay() { return this.props.fieldKey && this.props.fieldKey.Id === KeyStore.Annotations.Id; } // bcz: ? Why do we need to compare Id's?
 
     @action.bound
     addDocument(doc: Document, allowDuplicates: boolean = false): boolean {
@@ -97,6 +100,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
                 if (!value.some(v => v.Id === doc.Id) || allowDuplicates) {
                     value.push(doc);
                 }
+                return true;
             }
             else {
                 return false;
@@ -107,15 +111,18 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
                 const field = new ListField([doc]);
                 // const script = CompileScript(`
                 //     if(added) {
-                //         console.log("added " + field.Title);
+                //         console.log("added " + field.Title + " " + doc.Title);
                 //     } else {
-                //         console.log("removed " + field.Title);
+                //         console.log("removed " + field.Title + " " + doc.Title);
                 //     }
                 // `, {
                 //         addReturn: false,
                 //         params: {
                 //             field: Document.name,
                 //             added: "boolean"
+                //         },
+                //         capturedVariables: {
+                //             doc: this.props.Document
                 //         }
                 //     });
                 // if (script.compiled) {
@@ -126,6 +133,9 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
             else {
                 return false;
             }
+        }
+        if (true || this.isAnnotationOverlay) {
+            doc.SetNumber(KeyStore.Zoom, this.props.Document.GetNumber(KeyStore.Scale, 1));
         }
         return true;
     }
@@ -175,11 +185,12 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
             removeDocument: this.removeDocument,
             moveDocument: this.moveDocument,
             active: this.active,
-            onActiveChanged: this.onActiveChanged,
+            whenActiveChanged: this.whenActiveChanged,
         };
+        const viewtype = this.collectionViewType;
         return (
             <div className={this.props.className || "collectionView-cont"} onContextMenu={this.props.onContextMenu} ref={this.props.contentRef}>
-                {this.props.children(this.collectionViewType, props)}
+                {viewtype !== undefined ? this.props.children(viewtype, props) : (null)}
             </div>
         );
     }

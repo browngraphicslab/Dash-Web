@@ -1,4 +1,4 @@
-@import "global_variables";
+@import "globalCssVariables";
 @import "nodeModuleOverrides";
 html,
 body {
@@ -167,23 +167,6 @@ button:hover {
     top: 0;
     left:0;
     overflow: scroll;
-}
-.mainDiv-textInput {
-    background:pink;
-        width: 200px;
-        height: 200px;
-        position:absolute;
-        overflow: visible;
-        top: 0;
-        left: 0;
-        .formattedTextBox-cont {
-            background:pink;
-            width: 100%;
-            height: 100%;
-            position:absolute;
-            top: 0;
-            left: 0;
-    }
 }
 #mainContent-div {
     width:100%;

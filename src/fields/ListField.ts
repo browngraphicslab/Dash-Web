@@ -176,14 +176,14 @@ export class ListField<T extends Field> extends BasicField<T[]> {
         this._proxies = data.fields;
         this._scriptIds = data.scripts;
     }
-    ToJson(): { type: Types, data: { fields: string[], scripts: string[] }, _id: string } {
+    ToJson() {
         return {
             type: Types.List,
             data: {
                 fields: this._proxies,
                 scripts: this._scriptIds,
             },
-            _id: this.Id
+            id: this.Id
         };
     }
 
