@@ -3,11 +3,13 @@ export class KeyFrame{
     constructor(){
         this._document = new Document(); 
         
+        
     }
 
-
     get document(){
+        console.log(this._document); 
         return this._document; 
+        
     }
 
 }

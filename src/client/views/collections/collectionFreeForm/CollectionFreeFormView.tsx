@@ -20,7 +20,7 @@ import React = require("react");
 import v5 = require("uuid/v5");
 import { CollectionFreeFormRemoteCursors } from "./CollectionFreeFormRemoteCursors";
 import { PreviewCursor } from "./PreviewCursor";
-import { Timeline } from "../../nodes/Timeline"
+import { Timeline } from "../../nodes/Timeline";
 import { DocumentManager } from "../../../util/DocumentManager";
 import { SelectionManager } from "../../../util/SelectionManager";
 import { NumberField } from "../../../../fields/NumberField";
@@ -285,6 +285,7 @@ export class CollectionFreeFormView extends CollectionSubView {
             }
             return prev;
         }, [] as JSX.Element[]);
+      
     }
 
     @computed
@@ -313,7 +314,7 @@ export class CollectionFreeFormView extends CollectionSubView {
         const pany: number = -this.props.Document.GetNumber(KeyStore.PanY, 0);
 
         return (
-            <Measure onResize={(r: any) => runInAction(() => { this._pwidth = r.entry.width; this._pheight = r.entry.height })}>
+            <Measure onResize={(r: any) => runInAction(() => { this._pwidth = r.entry.width; this._pheight = r.entry.height; })}>
                 {({ measureRef }) => (
                     <div className={`collectionfreeformview-measure`} ref={measureRef}>
                         <div className={`collectionfreeformview${this.isAnnotationOverlay ? "-overlay" : "-container"}`}
@@ -337,7 +338,8 @@ export class CollectionFreeFormView extends CollectionSubView {
                                     </div>
                                     {this.overlayView}
                                 </PreviewCursor>
-                                <Timeline />
+                                
+                                <Timeline {...this.getDocumentViewProps(this.props.Document)} />
                             </MarqueeView>
                         </div>
                     </div>)}

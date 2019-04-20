@@ -6,9 +6,13 @@ import "./Timeline.scss";
 import { KeyStore } from "../../../fields/KeyStore";
 import { Document } from "../../../fields/Document";
 import { KeyFrame } from "./KeyFrame";
+import { CollectionViewProps } from "../collections/CollectionBaseView";
+import { CollectionSubView } from "../collections/CollectionSubView"; 
+import { DocumentViewProps } from "./DocumentView";
+
 
 @observer
-export class Timeline extends React.Component {
+export class Timeline extends React.Component<DocumentViewProps> {
     @observable private _inner = React.createRef<HTMLDivElement>();
     @observable private _isRecording: Boolean = false;
     @observable private _currentBar: any = null;
@@ -23,16 +27,8 @@ export class Timeline extends React.Component {
     onStop = (e: React.MouseEvent) => {
         this._isRecording = false;
         if (this._inner.current) {
-            this._newBar = document.createElement("div");
-            this._newBar.style.height = "100%";
-            this._newBar.style.width = "5px";
-            this._newBar.style.left = this._currentBar.style.left;
-            this._newBar.style.backgroundColor = "yellow";
-            this._newBar.style.transform = this._currentBar.style.transform;
-            this._inner.current.appendChild(this._newBar);
+            
         }
-        this._currentBar.remove();
-        this._currentBar = null;
     }
 
     @action
@@ -62,17 +58,20 @@ export class Timeline extends React.Component {
     }
     componentDidMount() {
         this.createBar(5);
-        // let doc: Document;
-        // let keyFrame = new KeyFrame(); 
-        // this._keyFrames.push(keyFrame); 
-        // let keys = [KeyStore.X, KeyStore.Y];
-        // reaction(() => {
-        //     return keys.map(key => doc.GetNumber(key, 0));
-        // }, data => {
-        //     keys.forEach((key, index) => {
-        //         keyFrame.document().SetNumber(key, data[index]);
-        //     });
-        // });
+        let doc: Document = this.props.Document;
+        console.log(doc.Get(KeyStore.BackgroundColor)); 
+        let keyFrame = new KeyFrame(); 
+        this._keyFrames.push(keyFrame); 
+        let keys = [KeyStore.X, KeyStore.Y];
+        reaction(() => {       
+            return keys.map(key => doc.GetNumber(key, 0));
+        }, data => {
+            keys.forEach((key, index) => {
+                keyFrame.document().SetNumber(key, data[index]);
+            });
+        });
+
+        console.log(keyFrame.document +  "Document"); 
     }
 
     render() {
