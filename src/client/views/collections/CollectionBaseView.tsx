@@ -8,6 +8,7 @@ import { ListField } from '../../../fields/ListField';
 import { NumberField } from '../../../fields/NumberField';
 import { ContextMenu } from '../ContextMenu';
 import { FieldViewProps } from '../nodes/FieldView';
+import { TextField } from '../../../fields/TextField';
 
 export enum CollectionViewType {
     Invalid,
@@ -87,56 +88,50 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
 
     @action.bound
     addDocument(doc: Document, allowDuplicates: boolean = false): boolean {
-        let props = this.props;
-        var curPage = props.Document.GetNumber(KeyStore.CurPage, -1);
+        var curPage = this.props.Document.GetNumber(KeyStore.CurPage, -1);
         doc.SetOnPrototype(KeyStore.Page, new NumberField(curPage));
-        if (true || this.isAnnotationOverlay) {
-            doc.SetNumber(KeyStore.Zoom, this.props.Document.GetNumber(KeyStore.Scale, 1));
-        }
         if (curPage >= 0) {
-            doc.SetOnPrototype(KeyStore.AnnotationOn, props.Document);
+            doc.SetOnPrototype(KeyStore.AnnotationOn, this.props.Document);
         }
-        if (props.Document.Get(props.fieldKey) instanceof Field) {
-            //TODO This won't create the field if it doesn't already exist
-            const value = props.Document.GetData(props.fieldKey, ListField, new Array<Document>());
-            if (!this.createsCycle(doc, props.Document)) {
+        if (this.props.Document.Get(this.props.fieldKey) instanceof Field) {
+            const value = this.props.Document.GetList(this.props.fieldKey, [] as Document[]);
+            if (!this.createsCycle(doc, this.props.Document)) {
                 if (!value.some(v => v.Id === doc.Id) || allowDuplicates) {
                     value.push(doc);
+                    doc.SetNumber(KeyStore.ZoomBasis, this.props.Document.GetNumber(KeyStore.Scale, 1));
                 }
-            }
-            else {
-                return false;
-            }
-        } else {
-            let proto = props.Document.GetPrototype();
-            if (!proto || proto === FieldWaiting || !this.createsCycle(proto, doc)) {
-                const field = new ListField([doc]);
-                // const script = CompileScript(`
-                //     if(added) {
-                //         console.log("added " + field.Title + " " + doc.Title);
-                //     } else {
-                //         console.log("removed " + field.Title + " " + doc.Title);
-                //     }
-                // `, {
-                //         addReturn: false,
-                //         params: {
-                //             field: Document.name,
-                //             added: "boolean"
-                //         },
-                //         capturedVariables: {
-                //             doc: this.props.Document
-                //         }
-                //     });
-                // if (script.compiled) {
-                //     field.addScript(new ScriptField(script));
-                // }
-                props.Document.SetOnPrototype(props.fieldKey, field);
-            }
-            else {
-                return false;
+                return true;
             }
         }
-        return true;
+        // bcz: What is this code trying to do?
+        // else {
+        //     let proto = props.Document.GetPrototype();
+        //     if (!proto || proto === FieldWaiting || !this.createsCycle(proto, doc)) {
+        //         const field = new ListField([doc]);
+        //         // const script = CompileScript(`
+        //         //     if(added) {
+        //         //         console.log("added " + field.Title + " " + doc.Title);
+        //         //     } else {
+        //         //         console.log("removed " + field.Title + " " + doc.Title);
+        //         //     }
+        //         // `, {
+        //         //         addReturn: false,
+        //         //         params: {
+        //         //             field: Document.name,
+        //         //             added: "boolean"
+        //         //         },
+        //         //         capturedVariables: {
+        //         //             doc: this.props.Document
+        //         //         }
+        //         //     });
+        //         // if (script.compiled) {
+        //         //     field.addScript(new ScriptField(script));
+        //         // }
+        //         props.Document.SetOnPrototype(props.fieldKey, field);
+        //         return true;
+        //     }
+        // }
+        return false;
     }
 
     @action.bound

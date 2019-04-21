@@ -1,4 +1,4 @@
-import { action, IReactionDisposer, reaction } from "mobx";
+import { action, IReactionDisposer, reaction, trace, computed } from "mobx";
 import { baseKeymap } from "prosemirror-commands";
 import { history } from "prosemirror-history";
 import { keymap } from "prosemirror-keymap";
@@ -20,6 +20,7 @@ import { FieldView, FieldViewProps } from "./FieldView";
 import "./FormattedTextBox.scss";
 import React = require("react");
 import { SelectionManager } from "../../util/SelectionManager";
+import { observer } from "mobx-react";
 const { buildMenuItems } = require("prosemirror-example-setup");
 const { menuBar } = require("prosemirror-menu");
 
@@ -44,6 +45,7 @@ export interface FormattedTextBoxOverlay {
     isOverlay?: boolean;
 }
 
+@observer
 export class FormattedTextBox extends React.Component<(FieldViewProps & FormattedTextBoxOverlay)> {
     public static LayoutString(fieldStr: string = "DataKey") {
         return FieldView.LayoutString(FormattedTextBox, fieldStr);
@@ -108,32 +110,24 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
                     if (this._editorView) {
                         this._editorView.destroy();
                     }
-                    this.setupEditor(config, MainOverlayTextBox.Instance.TextDoc); // bcz: not sure why, but the order of events is such that this.props.Document hasn't updated yet, so without forcing the editor to the MainOverlayTextBox, it will display the previously focused textbox
+                    this.setupEditor(config, this.props.Document);// MainOverlayTextBox.Instance.TextDoc); // bcz: not sure why, but the order of events is such that this.props.Document hasn't updated yet, so without forcing the editor to the MainOverlayTextBox, it will display the previously focused textbox
                 }
             );
         } else {
             this._proxyReactionDisposer = reaction(() => this.props.isSelected(),
-                () => this.props.isSelected() && MainOverlayTextBox.Instance.SetTextDoc(this.props.Document, this.props.fieldKey, this._ref.current!, this.props.ScreenToLocalTransform()));
+                () => this.props.isSelected() && MainOverlayTextBox.Instance.SetTextDoc(this.props.Document, this.props.fieldKey, this._ref.current!, this.props.ScreenToLocalTransform));
         }
+
 
         this._reactionDisposer = reaction(
             () => {
                 const field = this.props.Document ? this.props.Document.GetT(this.props.fieldKey, RichTextField) : undefined;
                 return field && field !== FieldWaiting ? field.Data : undefined;
             },
-            field => {
-                if (field && this._editorView && !this._applyingChange) {
-                    this._editorView.updateState(
-                        EditorState.fromJSON(config, JSON.parse(field))
-                    );
-                }
-            }
+            field => field && this._editorView && !this._applyingChange &&
+                this._editorView.updateState(EditorState.fromJSON(config, JSON.parse(field)))
         );
         this.setupEditor(config, this.props.Document);
-    }
-
-    shouldComponentUpdate() {
-        return false;
     }
 
     private setupEditor(config: any, doc?: Document) {
@@ -192,7 +186,9 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
 
     onFocused = (e: React.FocusEvent): void => {
         if (!this.props.isOverlay) {
-            MainOverlayTextBox.Instance.SetTextDoc(this.props.Document, this.props.fieldKey, this._ref.current!, this.props.ScreenToLocalTransform());
+            if (MainOverlayTextBox.Instance.TextDoc != this.props.Document) {
+                MainOverlayTextBox.Instance.SetTextDoc(this.props.Document, this.props.fieldKey, this._ref.current!, this.props.ScreenToLocalTransform);
+            }
         } else {
             if (this._ref.current) {
                 this._ref.current.scrollTop = MainOverlayTextBox.Instance.TextScroll;
@@ -262,7 +258,7 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
         // (e.nativeEvent as any).DASHFormattedTextBoxHandled = true;
     }
     render() {
-        let style = this.props.isSelected() || this.props.isOverlay ? "scroll" : "hidden";
+        let style = this.props.isOverlay ? "scroll" : "hidden";
         return (
             <div className={`formattedTextBox-cont-${style}`}
                 onKeyDown={this.onKeyPress}
@@ -273,8 +269,7 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
                 onContextMenu={this.specificContextMenu}
                 // tfs: do we need this event handler
                 onWheel={this.onPointerWheel}
-                ref={this._ref}
-            />
+                ref={this._ref} />
         );
     }
 }

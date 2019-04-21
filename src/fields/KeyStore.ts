@@ -15,7 +15,7 @@ export namespace KeyStore {
     export const Width = new Key("Width");
     export const Height = new Key("Height");
     export const ZIndex = new Key("ZIndex");
-    export const Zoom = new Key("Zoom");
+    export const ZoomBasis = new Key("ZoomBasis");
     export const Data = new Key("Data");
     export const Annotations = new Key("Annotations");
     export const ViewType = new Key("ViewType");
@@ -51,7 +51,7 @@ export namespace KeyStore {
     export const CopyDraggedItems = new Key("CopyDraggedItems");
 
     export const KeyList: Key[] = [Prototype, X, Y, Page, Title, Author, PanX, PanY, Scale, NativeWidth, NativeHeight,
-        Width, Height, ZIndex, Zoom, Data, Annotations, ViewType, Layout, BackgroundColor, BackgroundLayout, OverlayLayout, LayoutKeys,
+        Width, Height, ZIndex, ZoomBasis, Data, Annotations, ViewType, Layout, BackgroundColor, BackgroundLayout, OverlayLayout, LayoutKeys,
         LayoutFields, ColumnsKey, SchemaSplitPercentage, Caption, ActiveWorkspace, DocumentText, BrushingDocs, LinkedToDocs, LinkedFromDocs,
         LinkDescription, LinkTags, Thumbnail, ThumbnailPage, CurPage, AnnotationOn, NumPages, Ink, Cursors, OptionalRightCollection,
         Archives, Workspaces, IsMinimized, MinimizedDoc, MaximizedDoc, CopyDraggedItems

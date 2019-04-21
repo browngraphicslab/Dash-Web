@@ -160,20 +160,20 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             });
             let ink = this.props.container.props.Document.GetT(KeyStore.Ink, InkField);
             let inkData = ink && ink !== FieldWaiting ? ink.Data : undefined;
-            //setTimeout(() => {
+            let zoomBasis = this.props.container.props.Document.GetNumber(KeyStore.Scale, 1);
             let newCollection = Documents.FreeformDocument(selected, {
                 x: bounds.left,
                 y: bounds.top,
                 panx: 0,
                 pany: 0,
-                width: bounds.width,
-                height: bounds.height,
+                scale: zoomBasis,
+                width: bounds.width * zoomBasis,
+                height: bounds.height * zoomBasis,
                 ink: inkData ? this.marqueeInkSelect(inkData) : undefined,
                 title: "a nested collection"
             });
             this.props.addDocument(newCollection, false);
             this.marqueeInkDelete(inkData);
-            // }, 100);
             this.cleanupInteractions();
             SelectionManager.DeselectAll();
         }
@@ -216,7 +216,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         let selRect = this.Bounds;
         let selection: Document[] = [];
         this.props.activeDocuments().map(doc => {
-            var z = doc.GetNumber(KeyStore.Zoom, 1);
+            var z = doc.GetNumber(KeyStore.ZoomBasis, 1);
             var x = doc.GetNumber(KeyStore.X, 0);
             var y = doc.GetNumber(KeyStore.Y, 0);
             var w = doc.Width() / z;

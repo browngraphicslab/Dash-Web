@@ -20,7 +20,7 @@ export class CollectionFreeFormDocumentView extends React.Component<CollectionFr
         return `scale(${this.props.ContentScaling()}, ${this.props.ContentScaling()}) translate(${this.X}px, ${this.Y}px) scale(${this.zoom}, ${this.zoom}) `;
     }
 
-    @computed get zoom(): number { return 1 / this.props.Document.GetNumber(KeyStore.Zoom, 1); }
+    @computed get zoom(): number { return 1 / this.props.Document.GetNumber(KeyStore.ZoomBasis, 1); }
     @computed get zIndex(): number { return this.props.Document.GetNumber(KeyStore.ZIndex, 0); }
     @computed get width(): number { return this.props.Document.Width(); }
     @computed get height(): number { return this.props.Document.Height(); }
@@ -56,7 +56,7 @@ export class CollectionFreeFormDocumentView extends React.Component<CollectionFr
             .translate(-this.X, -this.Y)
             .scale(1 / this.contentScaling()).scale(1 / this.zoom)
 
-    contentScaling = () => this.nativeWidth > 0 ? this.width / this.nativeWidth : 1;
+    contentScaling = () => (this.nativeWidth > 0 ? this.width / this.nativeWidth : 1);
     panelWidth = () => this.props.PanelWidth();
     panelHeight = () => this.props.PanelHeight();
 

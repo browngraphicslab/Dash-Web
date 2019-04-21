@@ -49,7 +49,6 @@ export class CollectionFreeFormView extends CollectionSubView {
         this.addDocument(newBox, false);
     }
     private addDocument = (newBox: Document, allowDuplicates: boolean) => {
-        newBox.SetNumber(KeyStore.Zoom, this.props.Document.GetNumber(KeyStore.Scale, 1));
         return this.props.addDocument(this.bringToFront(newBox), false);
     }
     private selectDocuments = (docs: Document[]) => {
@@ -72,9 +71,13 @@ export class CollectionFreeFormView extends CollectionSubView {
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
         if (super.drop(e, de) && de.data instanceof DragManager.DocumentDragData) {
-            const [x, y] = this.getTransform().transformPoint(de.x - de.data.xOffset, de.y - de.data.yOffset);
             if (de.data.droppedDocuments.length) {
                 let dragDoc = de.data.droppedDocuments[0];
+                let zoom = dragDoc.GetNumber(KeyStore.ZoomBasis, 1);
+                let [xp, yp] = this.getTransform().transformPoint(de.x, de.y);
+                let x = xp - de.data.xOffset / zoom;
+                let y = yp - de.data.yOffset / zoom;
+
                 let dropX = dragDoc.GetNumber(KeyStore.X, 0);
                 let dropY = dragDoc.GetNumber(KeyStore.Y, 0);
                 de.data.droppedDocuments.map(d => {
@@ -204,7 +207,6 @@ export class CollectionFreeFormView extends CollectionSubView {
 
     @action
     setPan(panX: number, panY: number) {
-        MainOverlayTextBox.Instance.SetTextDoc();
         var scale = this.getLocalTransform().inverse().Scale;
         const newPanX = Math.min((1 - 1 / scale) * this.nativeWidth, Math.max(0, panX));
         const newPanY = Math.min((1 - 1 / scale) * this.nativeHeight, Math.max(0, panY));
