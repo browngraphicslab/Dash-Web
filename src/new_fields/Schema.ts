@@ -16,6 +16,7 @@ export const emptySchema = createSchema({});
 export const Document = makeInterface(emptySchema);
 export type Document = makeInterface<[typeof emptySchema]>;
 
+const DocSymbol = Symbol("Doc");
 export type makeInterface<T extends Interface[], U extends Doc = Doc> = Partial<AllToInterface<T>> & U;
 // export function makeInterface<T extends Interface[], U extends Doc>(schemas: T): (doc: U) => All<T, U>;
 // export function makeInterface<T extends Interface, U extends Doc>(schema: T): (doc: U) => makeInterface<T, U>; 
@@ -26,16 +27,29 @@ export function makeInterface<T extends Interface[], U extends Doc>(...schemas: 
             schema[key] = s[key];
         }
     }
-    return function (doc: any) {
-        return new Proxy(doc, {
-            get(target, prop) {
-                const field = target[prop];
-                if (prop in schema) {
-                    return Cast(field, (schema as any)[prop]);
-                }
-                return field;
+    const proto = new Proxy({}, {
+        get(target: any, prop) {
+            if (prop === DocSymbol) {
+                return target[prop];
             }
-        });
+            const field = target[DocSymbol][prop];
+            if (prop in schema) {
+                return Cast(field, (schema as any)[prop]);
+            }
+            return field;
+        },
+        set(target: any, prop, value) {
+            if (prop === DocSymbol) {
+                target[prop] = value;
+            }
+            target[DocSymbol][prop] = value;
+            return true;
+        }
+    });
+    return function (doc: any) {
+        const obj = Object.create(proto);
+        obj.__doc = doc;
+        return obj;
     };
 }
 
