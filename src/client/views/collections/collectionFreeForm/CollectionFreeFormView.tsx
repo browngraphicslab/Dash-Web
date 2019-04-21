@@ -1,7 +1,5 @@
 import { action, computed, observable, trace } from "mobx";
 import { observer } from "mobx-react";
-import { Document } from "../../../../fields/Document";
-import { KeyStore } from "../../../../fields/KeyStore";
 import { emptyFunction, returnFalse, returnOne } from "../../../../Utils";
 import { DocumentManager } from "../../../util/DocumentManager";
 import { DragManager } from "../../../util/DragManager";
@@ -13,7 +11,7 @@ import { InkingCanvas } from "../../InkingCanvas";
 import { MainOverlayTextBox } from "../../MainOverlayTextBox";
 import { CollectionFreeFormDocumentView } from "../../nodes/CollectionFreeFormDocumentView";
 import { DocumentContentsView } from "../../nodes/DocumentContentsView";
-import { DocumentViewProps } from "../../nodes/DocumentView";
+import { DocumentViewProps, positionSchema } from "../../nodes/DocumentView";
 import { CollectionSubView } from "../CollectionSubView";
 import { CollectionFreeFormLinksView } from "./CollectionFreeFormLinksView";
 import { CollectionFreeFormRemoteCursors } from "./CollectionFreeFormRemoteCursors";
@@ -21,17 +19,28 @@ import "./CollectionFreeFormView.scss";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
 import v5 = require("uuid/v5");
-import { BooleanField } from "../../../../fields/BooleanField";
+import { createSchema, makeInterface } from "../../../../new_fields/Schema";
+import { Doc } from "../../../../new_fields/Doc";
+import { FieldValue } from "../../../../new_fields/Types";
+
+export const panZoomSchema = createSchema({
+    panX: "number",
+    panY: "number",
+    zoom: "number"
+});
+
+type PanZoomDocument = makeInterface<[typeof panZoomSchema, typeof positionSchema]>;
+const PanZoomDocument: (doc: Doc) => PanZoomDocument = makeInterface(panZoomSchema, positionSchema);
 
 @observer
-export class CollectionFreeFormView extends CollectionSubView {
+export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     private _selectOnLoaded: string = ""; // id of document that should be selected once it's loaded (used for click-to-type)
     private _lastX: number = 0;
     private _lastY: number = 0;
     private get _pwidth() { return this.props.PanelWidth(); }
     private get _pheight() { return this.props.PanelHeight(); }
 
-    @computed get nativeWidth() { return this.props.Document.GetNumber(KeyStore.NativeWidth, 0); }
+    @computed get nativeWidth() { return FieldValue(this.Document.nativeWidth, 0); }
     @computed get nativeHeight() { return this.props.Document.GetNumber(KeyStore.NativeHeight, 0); }
     private get borderWidth() { return this.isAnnotationOverlay ? 0 : COLLECTION_BORDER_WIDTH; }
     private get isAnnotationOverlay() { return this.props.fieldKey && this.props.fieldKey.Id === KeyStore.Annotations.Id; } // bcz: ? Why do we need to compare Id's?

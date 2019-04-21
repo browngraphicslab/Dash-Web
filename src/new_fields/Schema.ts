@@ -1,9 +1,10 @@
 import { Interface, ToInterface, Cast, FieldCtor, ToConstructor, HasTail, Head, Tail } from "./Types";
-import { Doc } from "./Doc";
+import { Doc, Field, ObjectField } from "./Doc";
+import { URLField } from "./URLField";
 
-type All<T extends any[], U extends Doc> = {
-    1: makeInterface<Head<T>, U> & All<Tail<T>, U>,
-    0: makeInterface<Head<T>, U>
+type All<T extends Interface[], U extends Doc> = {
+    1: makeInterface<[Head<T>], U> & All<Tail<T>, U>,
+    0: makeInterface<[Head<T>], U>
 }[HasTail<T> extends true ? 1 : 0];
 
 type AllToInterface<T extends any[]> = {
@@ -11,10 +12,14 @@ type AllToInterface<T extends any[]> = {
     0: ToInterface<Head<T>>
 }[HasTail<T> extends true ? 1 : 0];
 
+export const emptySchema = createSchema({});
+export const Document = makeInterface(emptySchema);
+export type Document = makeInterface<[typeof emptySchema]>;
+
 export type makeInterface<T extends Interface[], U extends Doc = Doc> = Partial<AllToInterface<T>> & U;
 // export function makeInterface<T extends Interface[], U extends Doc>(schemas: T): (doc: U) => All<T, U>;
 // export function makeInterface<T extends Interface, U extends Doc>(schema: T): (doc: U) => makeInterface<T, U>; 
-export function makeInterface<T extends Interface[], U extends Doc>(schemas: T): (doc: U) => All<T, U> {
+export function makeInterface<T extends Interface[], U extends Doc>(...schemas: T): (doc: U) => makeInterface<T, U> {
     let schema: Interface = {};
     for (const s of schemas) {
         for (const key in s) {

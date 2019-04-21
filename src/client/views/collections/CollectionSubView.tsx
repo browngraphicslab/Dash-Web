@@ -18,11 +18,13 @@ import * as rp from 'request-promise';
 import { CollectionView } from "./CollectionView";
 import { CollectionPDFView } from "./CollectionPDFView";
 import { CollectionVideoView } from "./CollectionVideoView";
+import { Doc } from "../../../new_fields/Doc";
+import { DocComponent } from "../DocComponent";
 
 export interface CollectionViewProps extends FieldViewProps {
-    addDocument: (document: Document, allowDuplicates?: boolean) => boolean;
-    removeDocument: (document: Document) => boolean;
-    moveDocument: (document: Document, targetCollection: Document, addDocument: (document: Document) => boolean) => boolean;
+    addDocument: (document: Doc, allowDuplicates?: boolean) => boolean;
+    removeDocument: (document: Doc) => boolean;
+    moveDocument: (document: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
     PanelWidth: () => number;
     PanelHeight: () => number;
 }
@@ -33,198 +35,202 @@ export interface SubCollectionViewProps extends CollectionViewProps {
 
 export type CursorEntry = TupleField<[string, string], [number, number]>;
 
-export class CollectionSubView extends React.Component<SubCollectionViewProps> {
-    private dropDisposer?: DragManager.DragDropDisposer;
-    protected createDropTarget = (ele: HTMLDivElement) => {
-        if (this.dropDisposer) {
-            this.dropDisposer();
+export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
+    class CollectionSubView extends DocComponent<SubCollectionViewProps, T>(schemaCtor) {
+        private dropDisposer?: DragManager.DragDropDisposer;
+        protected createDropTarget = (ele: HTMLDivElement) => {
+            if (this.dropDisposer) {
+                this.dropDisposer();
+            }
+            if (ele) {
+                this.dropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.drop.bind(this) } });
+            }
         }
-        if (ele) {
-            this.dropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.drop.bind(this) } });
+        protected CreateDropTarget(ele: HTMLDivElement) {
+            this.createDropTarget(ele);
         }
-    }
-    protected CreateDropTarget(ele: HTMLDivElement) {
-        this.createDropTarget(ele);
-    }
 
-    @action
-    protected setCursorPosition(position: [number, number]) {
-        let ind;
-        let doc = this.props.Document;
-        let id = CurrentUserUtils.id;
-        let email = CurrentUserUtils.email;
-        if (id && email) {
-            let textInfo: [string, string] = [id, email];
-            doc.GetTAsync(KeyStore.Prototype, Document).then(proto => {
-                if (!proto) {
-                    return;
-                }
-                proto.GetOrCreateAsync<ListField<CursorEntry>>(KeyStore.Cursors, ListField, action((field: ListField<CursorEntry>) => {
-                    let cursors = field.Data;
-                    if (cursors.length > 0 && (ind = cursors.findIndex(entry => entry.Data[0][0] === id)) > -1) {
-                        cursors[ind].Data[1] = position;
-                    } else {
-                        let entry = new TupleField<[string, string], [number, number]>([textInfo, position]);
-                        cursors.push(entry);
+        @action
+        protected setCursorPosition(position: [number, number]) {
+            let ind;
+            let doc = this.props.Document;
+            let id = CurrentUserUtils.id;
+            let email = CurrentUserUtils.email;
+            if (id && email) {
+                let textInfo: [string, string] = [id, email];
+                doc.GetTAsync(KeyStore.Prototype, Document).then(proto => {
+                    if (!proto) {
+                        return;
                     }
-                }));
-            });
-        }
-    }
-
-    @undoBatch
-    @action
-    protected drop(e: Event, de: DragManager.DropEvent): boolean {
-        if (de.data instanceof DragManager.DocumentDragData) {
-            if (de.data.aliasOnDrop || de.data.copyOnDrop) {
-                [KeyStore.Width, KeyStore.Height, KeyStore.CurPage].map(key =>
-                    de.data.draggedDocuments.map((draggedDocument: Document, i: number) =>
-                        draggedDocument.GetTAsync(key, NumberField, (f: Opt<NumberField>) => f ? de.data.droppedDocuments[i].SetNumber(key, f.Data) : null)));
-            }
-            let added = false;
-            if (de.data.aliasOnDrop || de.data.copyOnDrop) {
-                added = de.data.droppedDocuments.reduce((added: boolean, d) => {
-                    let moved = this.props.addDocument(d);
-                    return moved || added;
-                }, false);
-            } else if (de.data.moveDocument) {
-                const move = de.data.moveDocument;
-                added = de.data.droppedDocuments.reduce((added: boolean, d) => {
-                    let moved = move(d, this.props.Document, this.props.addDocument);
-                    return moved || added;
-                }, false);
-            } else {
-                added = de.data.droppedDocuments.reduce((added: boolean, d) => {
-                    let moved = this.props.addDocument(d);
-                    return moved || added;
-                }, false);
-            }
-            e.stopPropagation();
-            return added;
-        }
-        return false;
-    }
-
-    protected async getDocumentFromType(type: string, path: string, options: DocumentOptions): Promise<Opt<Document>> {
-        let ctor: ((path: string, options: DocumentOptions) => (Document | Promise<Document | undefined>)) | undefined = undefined;
-        if (type.indexOf("image") !== -1) {
-            ctor = Documents.ImageDocument;
-        }
-        if (type.indexOf("video") !== -1) {
-            ctor = Documents.VideoDocument;
-        }
-        if (type.indexOf("audio") !== -1) {
-            ctor = Documents.AudioDocument;
-        }
-        if (type.indexOf("pdf") !== -1) {
-            ctor = Documents.PdfDocument;
-            options.nativeWidth = 1200;
-        }
-        if (type.indexOf("excel") !== -1) {
-            ctor = Documents.DBDocument;
-            options.copyDraggedItems = true;
-        }
-        if (type.indexOf("html") !== -1) {
-            if (path.includes('localhost')) {
-                let s = path.split('/');
-                let id = s[s.length - 1];
-                Server.GetField(id).then(field => {
-                    if (field instanceof Document) {
-                        let alias = field.CreateAlias();
-                        alias.SetNumber(KeyStore.X, options.x || 0);
-                        alias.SetNumber(KeyStore.Y, options.y || 0);
-                        alias.SetNumber(KeyStore.Width, options.width || 300);
-                        alias.SetNumber(KeyStore.Height, options.height || options.width || 300);
-                        this.props.addDocument(alias, false);
-                    }
-                });
-                return undefined;
-            }
-            ctor = Documents.WebDocument;
-            options = { height: options.width, ...options, title: path };
-        }
-        return ctor ? ctor(path, options) : undefined;
-    }
-
-    @undoBatch
-    @action
-    protected onDrop(e: React.DragEvent, options: DocumentOptions): void {
-        let html = e.dataTransfer.getData("text/html");
-        let text = e.dataTransfer.getData("text/plain");
-
-        if (text && text.startsWith("<div")) {
-            return;
-        }
-        e.stopPropagation();
-        e.preventDefault();
-
-        if (html && html.indexOf("<img") !== 0 && !html.startsWith("<a")) {
-            console.log("not good");
-            let htmlDoc = Documents.HtmlDocument(html, { ...options, width: 300, height: 300 });
-            htmlDoc.SetText(KeyStore.DocumentText, text);
-            this.props.addDocument(htmlDoc, false);
-            return;
-        }
-
-        let batch = UndoManager.StartBatch("collection view drop");
-        let promises: Promise<void>[] = [];
-        // tslint:disable-next-line:prefer-for-of
-        for (let i = 0; i < e.dataTransfer.items.length; i++) {
-            const upload = window.location.origin + RouteStore.upload;
-            let item = e.dataTransfer.items[i];
-            if (item.kind === "string" && item.type.indexOf("uri") !== -1) {
-                let str: string;
-                let prom = new Promise<string>(resolve => e.dataTransfer.items[i].getAsString(resolve))
-                    .then(action((s: string) => rp.head(ServerUtils.prepend(RouteStore.corsProxy + "/" + (str = s)))))
-                    .then(result => {
-                        let type = result.headers["content-type"];
-                        if (type) {
-                            this.getDocumentFromType(type, str, { ...options, width: 300, nativeWidth: 300 })
-                                .then(doc => doc && this.props.addDocument(doc, false));
+                    proto.GetOrCreateAsync<ListField<CursorEntry>>(KeyStore.Cursors, ListField, action((field: ListField<CursorEntry>) => {
+                        let cursors = field.Data;
+                        if (cursors.length > 0 && (ind = cursors.findIndex(entry => entry.Data[0][0] === id)) > -1) {
+                            cursors[ind].Data[1] = position;
+                        } else {
+                            let entry = new TupleField<[string, string], [number, number]>([textInfo, position]);
+                            cursors.push(entry);
                         }
-                    });
-                promises.push(prom);
-            }
-            let type = item.type;
-            if (item.kind === "file") {
-                let file = item.getAsFile();
-                let formData = new FormData();
-
-                if (file) {
-                    formData.append('file', file);
-                }
-                let dropFileName = file ? file.name : "-empty-";
-
-                let prom = fetch(upload, {
-                    method: 'POST',
-                    body: formData
-                }).then(async (res: Response) => {
-                    (await res.json()).map(action((file: any) => {
-                        let path = window.location.origin + file;
-                        let docPromise = this.getDocumentFromType(type, path, { ...options, nativeWidth: 600, width: 300, title: dropFileName });
-
-                        docPromise.then(action((doc?: Document) => {
-                            let docs = this.props.Document.GetT(KeyStore.Data, ListField);
-                            if (docs !== FieldWaiting) {
-                                if (!docs) {
-                                    docs = new ListField<Document>();
-                                    this.props.Document.Set(KeyStore.Data, docs);
-                                }
-                                if (doc) {
-                                    docs.Data.push(doc);
-                                }
-                            }
-                        }));
                     }));
                 });
-                promises.push(prom);
             }
         }
 
-        if (promises.length) {
-            Promise.all(promises).finally(() => batch.end());
-        } else {
-            batch.end();
+        @undoBatch
+        @action
+        protected drop(e: Event, de: DragManager.DropEvent): boolean {
+            if (de.data instanceof DragManager.DocumentDragData) {
+                if (de.data.aliasOnDrop || de.data.copyOnDrop) {
+                    [KeyStore.Width, KeyStore.Height, KeyStore.CurPage].map(key =>
+                        de.data.draggedDocuments.map((draggedDocument: Document, i: number) =>
+                            draggedDocument.GetTAsync(key, NumberField, (f: Opt<NumberField>) => f ? de.data.droppedDocuments[i].SetNumber(key, f.Data) : null)));
+                }
+                let added = false;
+                if (de.data.aliasOnDrop || de.data.copyOnDrop) {
+                    added = de.data.droppedDocuments.reduce((added: boolean, d) => {
+                        let moved = this.props.addDocument(d);
+                        return moved || added;
+                    }, false);
+                } else if (de.data.moveDocument) {
+                    const move = de.data.moveDocument;
+                    added = de.data.droppedDocuments.reduce((added: boolean, d) => {
+                        let moved = move(d, this.props.Document, this.props.addDocument);
+                        return moved || added;
+                    }, false);
+                } else {
+                    added = de.data.droppedDocuments.reduce((added: boolean, d) => {
+                        let moved = this.props.addDocument(d);
+                        return moved || added;
+                    }, false);
+                }
+                e.stopPropagation();
+                return added;
+            }
+            return false;
+        }
+
+        protected async getDocumentFromType(type: string, path: string, options: DocumentOptions): Promise<Opt<Document>> {
+            let ctor: ((path: string, options: DocumentOptions) => (Document | Promise<Document | undefined>)) | undefined = undefined;
+            if (type.indexOf("image") !== -1) {
+                ctor = Documents.ImageDocument;
+            }
+            if (type.indexOf("video") !== -1) {
+                ctor = Documents.VideoDocument;
+            }
+            if (type.indexOf("audio") !== -1) {
+                ctor = Documents.AudioDocument;
+            }
+            if (type.indexOf("pdf") !== -1) {
+                ctor = Documents.PdfDocument;
+                options.nativeWidth = 1200;
+            }
+            if (type.indexOf("excel") !== -1) {
+                ctor = Documents.DBDocument;
+                options.copyDraggedItems = true;
+            }
+            if (type.indexOf("html") !== -1) {
+                if (path.includes('localhost')) {
+                    let s = path.split('/');
+                    let id = s[s.length - 1];
+                    Server.GetField(id).then(field => {
+                        if (field instanceof Document) {
+                            let alias = field.CreateAlias();
+                            alias.SetNumber(KeyStore.X, options.x || 0);
+                            alias.SetNumber(KeyStore.Y, options.y || 0);
+                            alias.SetNumber(KeyStore.Width, options.width || 300);
+                            alias.SetNumber(KeyStore.Height, options.height || options.width || 300);
+                            this.props.addDocument(alias, false);
+                        }
+                    });
+                    return undefined;
+                }
+                ctor = Documents.WebDocument;
+                options = { height: options.width, ...options, title: path };
+            }
+            return ctor ? ctor(path, options) : undefined;
+        }
+
+        @undoBatch
+        @action
+        protected onDrop(e: React.DragEvent, options: DocumentOptions): void {
+            let html = e.dataTransfer.getData("text/html");
+            let text = e.dataTransfer.getData("text/plain");
+
+            if (text && text.startsWith("<div")) {
+                return;
+            }
+            e.stopPropagation();
+            e.preventDefault();
+
+            if (html && html.indexOf("<img") !== 0 && !html.startsWith("<a")) {
+                console.log("not good");
+                let htmlDoc = Documents.HtmlDocument(html, { ...options, width: 300, height: 300 });
+                htmlDoc.SetText(KeyStore.DocumentText, text);
+                this.props.addDocument(htmlDoc, false);
+                return;
+            }
+
+            let batch = UndoManager.StartBatch("collection view drop");
+            let promises: Promise<void>[] = [];
+            // tslint:disable-next-line:prefer-for-of
+            for (let i = 0; i < e.dataTransfer.items.length; i++) {
+                const upload = window.location.origin + RouteStore.upload;
+                let item = e.dataTransfer.items[i];
+                if (item.kind === "string" && item.type.indexOf("uri") !== -1) {
+                    let str: string;
+                    let prom = new Promise<string>(resolve => e.dataTransfer.items[i].getAsString(resolve))
+                        .then(action((s: string) => rp.head(ServerUtils.prepend(RouteStore.corsProxy + "/" + (str = s)))))
+                        .then(result => {
+                            let type = result.headers["content-type"];
+                            if (type) {
+                                this.getDocumentFromType(type, str, { ...options, width: 300, nativeWidth: 300 })
+                                    .then(doc => doc && this.props.addDocument(doc, false));
+                            }
+                        });
+                    promises.push(prom);
+                }
+                let type = item.type;
+                if (item.kind === "file") {
+                    let file = item.getAsFile();
+                    let formData = new FormData();
+
+                    if (file) {
+                        formData.append('file', file);
+                    }
+                    let dropFileName = file ? file.name : "-empty-";
+
+                    let prom = fetch(upload, {
+                        method: 'POST',
+                        body: formData
+                    }).then(async (res: Response) => {
+                        (await res.json()).map(action((file: any) => {
+                            let path = window.location.origin + file;
+                            let docPromise = this.getDocumentFromType(type, path, { ...options, nativeWidth: 600, width: 300, title: dropFileName });
+
+                            docPromise.then(action((doc?: Document) => {
+                                let docs = this.props.Document.GetT(KeyStore.Data, ListField);
+                                if (docs !== FieldWaiting) {
+                                    if (!docs) {
+                                        docs = new ListField<Document>();
+                                        this.props.Document.Set(KeyStore.Data, docs);
+                                    }
+                                    if (doc) {
+                                        docs.Data.push(doc);
+                                    }
+                                }
+                            }));
+                        }));
+                    });
+                    promises.push(prom);
+                }
+            }
+
+            if (promises.length) {
+                Promise.all(promises).finally(() => batch.end());
+            } else {
+                batch.end();
+            }
         }
     }
+    return CollectionSubView;
 }
+

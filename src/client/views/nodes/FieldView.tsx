@@ -31,13 +31,13 @@ export interface FieldViewProps {
     select: (isCtrlPressed: boolean) => void;
     isTopMost: boolean;
     selectOnLoad: boolean;
-    addDocument?: (document: Document, allowDuplicates?: boolean) => boolean;
-    removeDocument?: (document: Document) => boolean;
-    moveDocument?: (document: Document, targetCollection: Document, addDocument: (document: Document) => boolean) => boolean;
+    addDocument?: (document: Doc, allowDuplicates?: boolean) => boolean;
+    removeDocument?: (document: Doc) => boolean;
+    moveDocument?: (document: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
     ScreenToLocalTransform: () => Transform;
     active: () => boolean;
     whenActiveChanged: (isActive: boolean) => void;
-    focus: (doc: Document) => void;
+    focus: (doc: Doc) => void;
 }
 
 @observer

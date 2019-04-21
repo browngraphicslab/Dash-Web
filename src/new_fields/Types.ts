@@ -11,7 +11,7 @@ export type ToType<T> =
 export type ToConstructor<T> =
     T extends string ? "string" :
     T extends number ? "number" :
-    T extends boolean ? "boolean" : { new(...args: any[]): T };
+    T extends boolean ? "boolean" : new (...args: any[]) => T;
 
 export type ToInterface<T> = {
     [P in keyof T]: ToType<T[P]>;
