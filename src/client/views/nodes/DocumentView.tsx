@@ -110,7 +110,10 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             }
             e.stopPropagation();
         } else {
-            if (this.active) {
+            let maxdoc = this.props.Document.GetT(KeyStore.MaximizedDoc, Document);
+            if (this.active ||
+                maxdoc instanceof Document // bcz: need a better way of allowing a document to handle pointer events when its not active (ie. be a top-level widget)
+            ) {
                 e.stopPropagation();
                 document.removeEventListener("pointermove", this.onPointerMove);
                 document.addEventListener("pointermove", this.onPointerMove);
@@ -149,11 +152,12 @@ export class DocumentView extends React.Component<DocumentViewProps> {
 
     startDragging(x: number, y: number, dropAliasOfDraggedDoc: boolean) {
         if (this._mainCont.current) {
-            const [left, top] = this.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
+            const [left, top] = this.props.ScreenToLocalTransform().scale(this.props.ContentScaling()).inverse().transformPoint(0, 0);
             let dragData = new DragManager.DocumentDragData([this.props.Document]);
+            const [xoff, yoff] = this.props.ScreenToLocalTransform().scale(this.props.ContentScaling()).transformDirection(x - left, y - top);
             dragData.aliasOnDrop = dropAliasOfDraggedDoc;
-            dragData.xOffset = x - left;
-            dragData.yOffset = y - top;
+            dragData.xOffset = xoff;
+            dragData.yOffset = yoff;
             dragData.moveDocument = this.props.moveDocument;
             DragManager.StartDocumentDrag([this._mainCont.current], dragData, x, y, {
                 handlers: {
@@ -185,7 +189,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         if (!SelectionManager.IsSelected(this) && e.button !== 2 &&
             Math.abs(e.clientX - this._downX) < 4 && Math.abs(e.clientY - this._downY) < 4) {
             this.props.Document.GetTAsync(KeyStore.MaximizedDoc, Document).then(maxdoc => {
-                if (maxdoc instanceof Document) {
+                if (maxdoc instanceof Document) {   // bcz: need a better way to associate behaviors with click events on widget-documents
                     this.props.addDocument && this.props.addDocument(maxdoc, false);
                     this.toggleIcon();
                 } else
@@ -202,9 +206,8 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     }
 
     fieldsClicked = (e: React.MouseEvent): void => {
-        if (this.props.addDocument) {
-            this.props.addDocument(Documents.KVPDocument(this.props.Document, { width: 300, height: 300 }), false);
-        }
+        let kvp = Documents.KVPDocument(this.props.Document, { width: 300, height: 300 });
+        CollectionDockingView.Instance.AddRightSplit(kvp);
     }
     fullScreenClicked = (e: React.MouseEvent): void => {
         CollectionDockingView.Instance.OpenFullScreen((this.props.Document.GetPrototype() as Document).MakeDelegate());

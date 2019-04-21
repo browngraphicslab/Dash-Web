@@ -20,7 +20,7 @@ export class CollectionFreeFormDocumentView extends React.Component<CollectionFr
         return `scale(${this.props.ContentScaling()}, ${this.props.ContentScaling()}) translate(${this.X}px, ${this.Y}px) scale(${this.zoom}, ${this.zoom}) `;
     }
 
-    @computed get zoom(): number { return 1 / this.props.Document.GetNumber(KeyStore.Zoom, 1); }
+    @computed get zoom(): number { return 1 / this.props.Document.GetNumber(KeyStore.ZoomBasis, 1); }
     @computed get zIndex(): number { return this.props.Document.GetNumber(KeyStore.ZIndex, 0); }
     @computed get width(): number { return this.props.Document.Width(); }
     @computed get height(): number { return this.props.Document.Height(); }

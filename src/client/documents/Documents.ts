@@ -54,6 +54,7 @@ export interface DocumentOptions {
     viewType?: number;
     backgroundColor?: string;
     copyDraggedItems?: boolean;
+    documentText?: string;
 }
 
 export namespace Documents {
@@ -97,6 +98,7 @@ export namespace Documents {
         if (options.nativeHeight !== undefined) { doc.SetNumber(KeyStore.NativeHeight, options.nativeHeight); }
         if (options.title !== undefined) { doc.SetText(KeyStore.Title, options.title); }
         if (options.page !== undefined) { doc.SetNumber(KeyStore.Page, options.page); }
+        if (options.documentText !== undefined) { doc.SetText(KeyStore.DocumentText, options.documentText); }
         if (options.scale !== undefined) { doc.SetNumber(KeyStore.Scale, options.scale); }
         if (options.width !== undefined) { doc.SetNumber(KeyStore.Width, options.width); }
         if (options.height !== undefined) { doc.SetNumber(KeyStore.Height, options.height); }

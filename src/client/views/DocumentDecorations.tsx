@@ -246,7 +246,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         selViews.map(selDoc => {
             let minDoc = selDoc.props.Document.Get(KeyStore.MinimizedDoc);
             if (minDoc instanceof Document) {
-                let zoom = selDoc.props.Document.GetNumber(KeyStore.Zoom, 1);
+                let zoom = selDoc.props.Document.GetNumber(KeyStore.ZoomBasis, 1);
                 let where = (selDoc.props.ScreenToLocalTransform()).scale(selDoc.props.ContentScaling()).scale(1 / zoom).
                     transformPoint(this._minimizedX - 12, this._minimizedY - 12);
                 minDoc.SetNumber(KeyStore.X, where[0] + selDoc.props.Document.GetNumber(KeyStore.X, 0));

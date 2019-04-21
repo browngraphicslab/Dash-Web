@@ -159,10 +159,7 @@ export class CollectionSubView extends React.Component<SubCollectionViewProps> {
         e.preventDefault();
 
         if (html && html.indexOf("<img") !== 0 && !html.startsWith("<a")) {
-            console.log("not good");
-            let htmlDoc = Documents.HtmlDocument(html, { ...options, width: 300, height: 300 });
-            htmlDoc.SetText(KeyStore.DocumentText, text);
-            this.props.addDocument(htmlDoc, false);
+            this.props.addDocument(Documents.HtmlDocument(html, { ...options, width: 300, height: 300, documentText: text }), false);
             return;
         }
 
@@ -188,36 +185,17 @@ export class CollectionSubView extends React.Component<SubCollectionViewProps> {
             let type = item.type;
             if (item.kind === "file") {
                 let file = item.getAsFile();
-                let formData = new FormData();
-
-                if (file) {
-                    formData.append('file', file);
-                }
                 let dropFileName = file ? file.name : "-empty-";
+                let formData = new FormData();
+                if (file) formData.append('file', file);
 
-                let prom = fetch(upload, {
+                promises.push(fetch(upload, {
                     method: 'POST',
                     body: formData
-                }).then(async (res: Response) => {
-                    (await res.json()).map(action((file: any) => {
-                        let path = window.location.origin + file;
-                        let docPromise = this.getDocumentFromType(type, path, { ...options, nativeWidth: 600, width: 300, title: dropFileName });
-
-                        docPromise.then(action((doc?: Document) => {
-                            let docs = this.props.Document.GetT(KeyStore.Data, ListField);
-                            if (docs !== FieldWaiting) {
-                                if (!docs) {
-                                    docs = new ListField<Document>();
-                                    this.props.Document.Set(KeyStore.Data, docs);
-                                }
-                                if (doc) {
-                                    docs.Data.push(doc);
-                                }
-                            }
-                        }));
-                    }));
-                });
-                promises.push(prom);
+                }).then(async (res: Response) =>
+                    (await res.json()).map(action((file: any) =>
+                        this.getDocumentFromType(type, window.location.origin + file, { ...options, nativeWidth: 600, width: 300, title: dropFileName }).
+                            then(doc => doc && this.props.addDocument(doc, false))))));
             }
         }
 
