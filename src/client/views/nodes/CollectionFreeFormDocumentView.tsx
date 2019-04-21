@@ -1,18 +1,27 @@
 import { computed, trace } from "mobx";
 import { observer } from "mobx-react";
-import { KeyStore } from "../../../fields/KeyStore";
-import { NumberField } from "../../../fields/NumberField";
 import { Transform } from "../../util/Transform";
-import { DocumentView, DocumentViewProps } from "./DocumentView";
+import { DocumentView, DocumentViewProps, positionSchema } from "./DocumentView";
 import "./DocumentView.scss";
 import React = require("react");
 import { OmitKeys } from "../../../Utils";
+import { DocComponent } from "../DocComponent";
+import { createSchema, makeInterface } from "../../../new_fields/Schema";
+import { FieldValue } from "../../../new_fields/Types";
 
 export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
 }
 
+const schema = createSchema({
+    zoom: "number",
+    zIndex: "number"
+});
+
+type FreeformDocument = makeInterface<[typeof schema, typeof positionSchema]>;
+const FreeformDocument = makeInterface([schema, positionSchema]);
+
 @observer
-export class CollectionFreeFormDocumentView extends React.Component<CollectionFreeFormDocumentViewProps> {
+export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeFormDocumentViewProps, FreeformDocument>(FreeformDocument) {
     private _mainCont = React.createRef<HTMLDivElement>();
 
     @computed
@@ -20,36 +29,36 @@ export class CollectionFreeFormDocumentView extends React.Component<CollectionFr
         return `scale(${this.props.ContentScaling()}, ${this.props.ContentScaling()}) translate(${this.X}px, ${this.Y}px) scale(${this.zoom}, ${this.zoom}) `;
     }
 
-    @computed get zoom(): number { return 1 / this.props.Document.GetNumber(KeyStore.Zoom, 1); }
-    @computed get zIndex(): number { return this.props.Document.GetNumber(KeyStore.ZIndex, 0); }
-    @computed get width(): number { return this.props.Document.Width(); }
-    @computed get height(): number { return this.props.Document.Height(); }
-    @computed get nativeWidth(): number { return this.props.Document.GetNumber(KeyStore.NativeWidth, 0); }
-    @computed get nativeHeight(): number { return this.props.Document.GetNumber(KeyStore.NativeHeight, 0); }
+    @computed get zoom(): number { return 1 / FieldValue(this.Document.zoom, 1); }
+    @computed get zIndex(): number { return FieldValue(this.Document.zIndex, 0); }
+    @computed get width(): number { return FieldValue(this.Document.width, 0); }
+    @computed get height(): number { return FieldValue(this.Document.height, 0); }
+    @computed get nativeWidth(): number { return FieldValue(this.Document.nativeWidth, 0); }
+    @computed get nativeHeight(): number { return FieldValue(this.Document.nativeHeight, 0); }
 
     set width(w: number) {
-        this.props.Document.SetData(KeyStore.Width, w, NumberField);
+        this.Document.width = w;
         if (this.nativeWidth && this.nativeHeight) {
-            this.props.Document.SetNumber(KeyStore.Height, this.nativeHeight / this.nativeWidth * w);
+            this.Document.height = this.nativeHeight / this.nativeWidth * w;
         }
     }
 
     set height(h: number) {
-        this.props.Document.SetData(KeyStore.Height, h, NumberField);
+        this.Document.height = h;
         if (this.nativeWidth && this.nativeHeight) {
-            this.props.Document.SetNumber(KeyStore.Width, this.nativeWidth / this.nativeHeight * h);
+            this.Document.width = this.nativeWidth / this.nativeHeight * h;
         }
     }
 
     set zIndex(h: number) {
-        this.props.Document.SetData(KeyStore.ZIndex, h, NumberField);
+        this.Document.zIndex = h;
     }
 
     get X() {
-        return this.props.Document.GetNumber(KeyStore.X, 0);
+        return FieldValue(this.Document.x, 0);
     }
     get Y() {
-        return this.props.Document.GetNumber(KeyStore.Y, 0);
+        return FieldValue(this.Document.y, 0);
     }
     getTransform = (): Transform =>
         this.props.ScreenToLocalTransform()

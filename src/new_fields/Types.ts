@@ -1,4 +1,4 @@
-import { Field, Opt } from "./Doc";
+import { Field, Opt, FieldWaiting, FieldValue } from "./Doc";
 import { List } from "./List";
 
 export type ToType<T> =
@@ -6,7 +6,7 @@ export type ToType<T> =
     T extends "number" ? number :
     T extends "boolean" ? boolean :
     T extends ListSpec<infer U> ? List<U> :
-    T extends { new(...args: any[]): infer R } ? R : never;
+    T extends { new(...args: any[]): infer R } ? (R | Promise<R>) : never;
 
 export type ToConstructor<T> =
     T extends string ? "string" :
@@ -35,10 +35,13 @@ export interface Interface {
 
 export type FieldCtor<T extends Field> = T extends List<infer R> ? ListSpec<R> : ToConstructor<T>;
 
-export function Cast<T extends FieldCtor<Field>>(field: Field | null | undefined, ctor: T): ToType<T> | null | undefined;
-export function Cast<T extends FieldCtor<Field>>(field: Field | null | undefined, ctor: T, defaultVal: ToType<T>): ToType<T>;
-export function Cast<T extends FieldCtor<Field>>(field: Field | null | undefined, ctor: T, defaultVal?: ToType<T>): ToType<T> | null | undefined {
-    if (field !== undefined && field !== null) {
+export function Cast<T extends FieldCtor<Field>>(field: Field | FieldWaiting | undefined, ctor: T): FieldValue<ToType<T>>;
+export function Cast<T extends FieldCtor<Field>>(field: Field | FieldWaiting | undefined, ctor: T, defaultVal: ToType<T>): ToType<T>;
+export function Cast<T extends FieldCtor<Field>>(field: Field | FieldWaiting | undefined, ctor: T, defaultVal?: ToType<T>): FieldValue<ToType<T>> | undefined {
+    if (field instanceof Promise) {
+        return defaultVal === undefined ? field.then(f => Cast(f, ctor) as any) : defaultVal;
+    }
+    if (field !== undefined && !(field instanceof Promise)) {
         if (typeof ctor === "string") {
             if (typeof field === ctor) {
                 return field as ToType<T>;
@@ -58,4 +61,11 @@ export function FieldValue<T extends Field, U extends T>(field: Opt<T> | Promise
 export function FieldValue<T extends Field>(field: Opt<T> | Promise<Opt<T>>): Opt<T>;
 export function FieldValue<T extends Field>(field: Opt<T> | Promise<Opt<T>>, defaultValue?: T): Opt<T> {
     return field instanceof Promise ? defaultValue : field;
+}
+
+export interface PromiseLike<T> {
+    then(callback: (field: Opt<T> | PromiseLike<T>) => void): void;
+}
+export function PromiseValue<T extends Field>(field: FieldValue<T>): PromiseLike<Opt<T>> {
+    return field instanceof Promise ? field : { then(cb: ((field: Opt<T>) => void)) { return cb(field); } };
 }

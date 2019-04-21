@@ -250,28 +250,26 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
 
     tabCreated = (tab: any) => {
         if (tab.hasOwnProperty("contentItem") && tab.contentItem.config.type !== "stack") {
-            Server.GetField(tab.contentItem.config.props.documentId, action((f: Opt<Field>) => {
-                if (f !== undefined && f instanceof Document) {
-                    f.GetTAsync(KeyStore.Title, TextField, (tfield) => {
-                        if (tfield !== undefined) {
-                            tab.titleElement[0].textContent = f.Title;
-                        }
-                    });
-                    f.GetTAsync(KeyStore.LinkedFromDocs, ListField).then(lf =>
-                        f.GetTAsync(KeyStore.LinkedToDocs, ListField).then(lt => {
-                            let count = (lf ? lf.Data.length : 0) + (lt ? lt.Data.length : 0);
-                            let counter: any = this.htmlToElement(`<div class="messageCounter">${count}</div>`);
-                            tab.element.append(counter);
-                            counter.DashDocId = tab.contentItem.config.props.documentId;
-                            tab.reactionDisposer = reaction((): [List<Field> | null | undefined, List<Field> | null | undefined] => [Cast(f.linkedFromDocs, List), Cast(f.linkedToDocs, List)],
-                                ([linkedFrom, linkedTo]) => {
-                                    let count = (linkedFrom ? linkedFrom.length : 0) + (linkedTo ? linkedTo.length : 0);
-                                    counter.innerHTML = count;
-                                });
-                        }));
+            DocServer.GetRefField(tab.contentItem.config.props.documentId).then(async f => {
+                if (f instanceof Doc) {
+                    const tfield = await Cast(f.title, "string");
+                    if (tfield !== undefined) {
+                        tab.titleElement[0].textContent = f.Title;
+                    }
+                    const lf = await Cast(f.linkedFromDocs, List);
+                    const lt = await Cast(f.linkedToDocs, List);
+                    let count = (lf ? lf.length : 0) + (lt ? lt.length : 0);
+                    let counter: any = this.htmlToElement(`<div class="messageCounter">${count}</div>`);
+                    tab.element.append(counter);
+                    counter.DashDocId = tab.contentItem.config.props.documentId;
+                    tab.reactionDisposer = reaction((): [List<Field> | null | undefined, List<Field> | null | undefined] => [lf, lt],
+                        ([linkedFrom, linkedTo]) => {
+                            let count = (linkedFrom ? linkedFrom.length : 0) + (linkedTo ? linkedTo.length : 0);
+                            counter.innerHTML = count;
+                        });
                     tab.titleElement[0].DashDocId = tab.contentItem.config.props.documentId;
                 }
-            }));
+            });
         }
         tab.closeElement.off('click') //unbind the current click handler
             .click(function () {

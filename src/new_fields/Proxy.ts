@@ -50,6 +50,6 @@ export class ProxyField<T extends RefField> extends ObjectField {
             }));
         }
         callback && this.promise.then(callback);
-        return null;
+        return this.promise;
     }
 }

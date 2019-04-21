@@ -32,9 +32,8 @@ export class ObjectField {
 
 export type Field = number | string | boolean | ObjectField | RefField;
 export type Opt<T> = T | undefined;
-export type FieldWaiting = null;
-export const FieldWaiting: FieldWaiting = null;
-export type FieldValue<T extends Field = Field> = Opt<T> | FieldWaiting;
+export type FieldWaiting<T extends Field = Field> = Promise<T | undefined>;
+export type FieldValue<T extends Field = Field> = Opt<T> | FieldWaiting<T>;
 
 export const Self = Symbol("Self");
 
@@ -58,7 +57,7 @@ export class Doc extends RefField {
 
     @serializable(alias("fields", map(autoObject())))
     @observable
-    private __fields: { [key: string]: Field | null | undefined } = {};
+    private __fields: { [key: string]: Field | FieldWaiting | undefined } = {};
 
     private [Update] = (diff: any) => {
         DocServer.UpdateField(this[Id], diff);
@@ -78,7 +77,7 @@ export namespace Doc {
             return Cast(field, ctor);
         });
     }
-    export function Get(doc: Doc, key: string, ignoreProto: boolean = false): Field | null | undefined {
+    export function Get(doc: Doc, key: string, ignoreProto: boolean = false): FieldValue {
         const self = doc[Self];
         return getField(self, key, ignoreProto);
     }
