@@ -114,6 +114,7 @@ export class CollectionFreeFormView extends CollectionSubView {
             var dv = DocumentManager.Instance.getDocumentView(doc);
             return childSelected || (dv && SelectionManager.IsSelected(dv) ? true : false);
         }, false);
+        // bcz:RightBtnDrag
         //if (((e.button === 2 && (!this.isAnnotationOverlay || this.zoomScaling() !== 1)) || (e.button === 0 && e.altKey)) && (childSelected || this.props.active())) {
         if ((e.button === 0 && !e.altKey && (!this.isAnnotationOverlay || this.zoomScaling() !== 1)) && (childSelected || this.props.active())) {
             document.removeEventListener("pointermove", this.onPointerMove);
