@@ -6,18 +6,20 @@ import { keymap } from "prosemirror-keymap";
 import { EditorState, Transaction, NodeSelection, TextSelection } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { schema } from "./RichTextSchema";
-import { Schema, NodeType, MarkType } from "prosemirror-model";
+import { Schema, NodeType, MarkType, Mark } from "prosemirror-model";
 import React = require("react");
 import "./TooltipTextMenu.scss";
 const { toggleMark, setBlockType, wrapIn } = require("prosemirror-commands");
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { wrapInList, bulletList, liftListItem, listItem } from 'prosemirror-schema-list';
 import {
-    faListUl,
+    faListUl, faGrinTongueSquint,
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { FieldViewProps } from "../views/nodes/FieldView";
 import { throwStatement } from "babel-types";
+import { KeyStore } from "../../fields/KeyStore";
+import { NumberField } from "../../fields/NumberField";
 const { openPrompt, TextField } = require("./ProsemirrorCopy/prompt.js");
 
 const SVG = "http://www.w3.org/2000/svg";
@@ -35,6 +37,7 @@ export class TooltipTextMenu {
     private fontSizeToNum: Map<MarkType, number>;
     private fontStylesToName: Map<MarkType, string>;
     private fontSizeIndicator: HTMLSpanElement = document.createElement("span");
+    private link: HTMLAnchorElement;
 
     constructor(view: EditorView, editorProps: FieldViewProps) {
         this.view = view;
@@ -95,6 +98,15 @@ export class TooltipTextMenu {
         this.fontSizes = Array.from(this.fontSizeToNum.keys());
 
         this.addFontDropdowns();
+
+        let target = "https://www.google.com";
+
+        this.link = document.createElement("a");
+        this.link.href = target;
+        this.link.textContent = target;
+        this.link.target = "_blank";
+        this.link.style.color = "white";
+        this.tooltip.appendChild(this.link);
 
         this.update(view, undefined);
     }
@@ -207,7 +219,9 @@ export class TooltipTextMenu {
                     callback(attrs: any) {
                         toggleMark(markType, attrs)(view.state, view.dispatch);
                         view.focus();
-                    }
+                    },
+                    flyout_top: 0,
+                    flyout_left: 0
                 });
             }
         });
@@ -266,6 +280,20 @@ export class TooltipTextMenu {
         };
     }
 
+    getMarksInSelection(state: EditorState<any>, targets: MarkType<any>[]) {
+        let found: Mark<any>[] = [];
+        let { from, to } = state.selection as TextSelection;
+        state.doc.nodesBetween(from, to, (node) => {
+            let marks = node.marks;
+            if (marks) {
+                marks.forEach(m => {
+                    if (targets.includes(m.type)) found.push(m);
+                });
+            }
+        });
+        return found;
+    }
+
     //updates the tooltip menu when the selection changes
     update(view: EditorView, lastState: EditorState | undefined) {
         let state = view.state;
@@ -278,6 +306,14 @@ export class TooltipTextMenu {
             this.tooltip.style.display = "none";
             return;
         }
+
+        let linksInSelection = this.activeMarksOnSelection([schema.marks.link]);
+        if (linksInSelection.length > 0) {
+            let attributes = this.getMarksInSelection(this.view.state, [schema.marks.link])[0].attrs;
+            this.link.href = attributes.href;
+            this.link.textContent = attributes.title;
+            this.link.style.visibility = "visible"
+        } else this.link.style.visibility = "hidden"
 
         // Otherwise, reposition it and update its content
         this.tooltip.style.display = "";

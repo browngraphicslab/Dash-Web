@@ -3,6 +3,9 @@ const prefix = "ProseMirror-prompt"
 export function openPrompt(options) {
     let wrapper = document.body.appendChild(document.createElement("div"))
     wrapper.className = prefix
+    wrapper.style.zIndex = 1000;
+    wrapper.style.width = 250;
+    wrapper.style.textAlign = "center";
 
     let mouseOutside = e => { if (!wrapper.contains(e.target)) close() }
     setTimeout(() => window.addEventListener("mousedown", mouseOutside), 50)
@@ -25,19 +28,24 @@ export function openPrompt(options) {
     cancelButton.addEventListener("click", close)
 
     let form = wrapper.appendChild(document.createElement("form"))
-    if (options.title) form.appendChild(document.createElement("h5")).textContent = options.title
+    let title = document.createElement("h5")
+    title.style.marginBottom = 15
+    title.style.marginTop = 10
+    if (options.title) form.appendChild(title).textContent = options.title
     domFields.forEach(field => {
         form.appendChild(document.createElement("div")).appendChild(field)
     })
-    let buttons = form.appendChild(document.createElement("div"))
-    buttons.className = prefix + "-buttons"
+    let b = document.createElement("div");
+    b.style.marginTop = 15;
+    let buttons = form.appendChild(b)
+    // buttons.className = prefix + "-buttons"
     buttons.appendChild(submitButton)
     buttons.appendChild(document.createTextNode(" "))
     buttons.appendChild(cancelButton)
 
     let box = wrapper.getBoundingClientRect()
-    wrapper.style.top = ((window.innerHeight - box.height) / 2) + "px"
-    wrapper.style.left = ((window.innerWidth - box.width) / 2) + "px"
+    wrapper.style.top = options.flyout_top + "px"
+    wrapper.style.left = options.flyout_left + "px"
 
     let submit = () => {
         let params = getValues(options.fields, domFields)
@@ -145,6 +153,9 @@ export class TextField extends Field {
         input.placeholder = this.options.label
         input.value = this.options.value || ""
         input.autocomplete = "off"
+        input.style.marginBottom = 4
+        input.style.border = "1px solid black"
+        input.style.padding = "4px 4px"
         return input
     }
 }
