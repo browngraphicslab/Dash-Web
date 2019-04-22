@@ -43,7 +43,7 @@ export class WebBox extends React.Component<FieldViewProps> {
                     <iframe src={path} style={{ position: "absolute", width: "100%", height: "100%" }} />}
             </div>;
 
-        let frozen = !this.props.isSelected() || DocumentDecorations.Instance._resizer;
+        let frozen = !this.props.isSelected() || DocumentDecorations.Instance.Resizing;
 
         return (
             <>
