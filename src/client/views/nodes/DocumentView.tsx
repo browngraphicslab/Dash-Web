@@ -1,10 +1,13 @@
-import { action, computed, runInAction, observable } from "mobx";
+import { action, computed, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { Document } from "../../../fields/Document";
-import { Field, Opt, FieldWaiting } from "../../../fields/Field";
+import { Field, FieldWaiting, Opt } from "../../../fields/Field";
 import { Key } from "../../../fields/Key";
 import { KeyStore } from "../../../fields/KeyStore";
 import { ListField } from "../../../fields/ListField";
+import { NumberField } from "../../../fields/NumberField";
+import { TemplateField } from "../../../fields/TemplateField";
+import { TextField } from "../../../fields/TextField";
 import { ServerUtils } from "../../../server/ServerUtil";
 import { emptyFunction, Utils } from "../../../Utils";
 import { Documents } from "../../documents/Documents";
@@ -18,14 +21,10 @@ import { CollectionPDFView } from "../collections/CollectionPDFView";
 import { CollectionVideoView } from "../collections/CollectionVideoView";
 import { CollectionView } from "../collections/CollectionView";
 import { ContextMenu } from "../ContextMenu";
-import { DocumentContentsView } from "./DocumentContentsView";
 import { Template, Templates } from "./../Templates";
+import { DocumentContentsView } from "./DocumentContentsView";
 import "./DocumentView.scss";
 import React = require("react");
-import { TextField } from "../../../fields/TextField";
-import { string } from "prop-types";
-import { NumberField } from "../../../fields/NumberField";
-import { TemplateField } from "../../../fields/TemplateField";
 
 export interface DocumentViewProps {
     ContainingCollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;

@@ -27,8 +27,8 @@ export const Flyout = higflyout.default;
 @observer
 export class DocumentDecorations extends React.Component<{}, { value: string }> {
     static Instance: DocumentDecorations;
-    private _resizer = "";
     private _isPointerDown = false;
+    private _resizing = "";
     private keyinput: React.RefObject<HTMLInputElement>;
     private _documents: DocumentView[] = SelectionManager.SelectedDocuments();
     private _resizeBorderWidth = 16;
@@ -47,6 +47,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     @observable private _opacity = 1;
     @observable private _dragging = false;
     @observable private _iconifying = false;
+    @observable public Interacting = false;
 
 
     constructor(props: Readonly<{}>) {
@@ -142,12 +143,12 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         dragData.yOffset = e.y - top;
         let move = SelectionManager.SelectedDocuments()[0].props.moveDocument;
         dragData.moveDocument = move;
-        this._dragging = true;
+        this.Interacting = this._dragging = true;
         document.removeEventListener("pointermove", this.onBackgroundMove);
         document.removeEventListener("pointerup", this.onBackgroundUp);
         DragManager.StartDocumentDrag(SelectionManager.SelectedDocuments().map(docView => docView.ContentDiv!), dragData, e.x, e.y, {
             handlers: {
-                dragComplete: action(() => this._dragging = false),
+                dragComplete: action(() => this.Interacting = this._dragging = false),
             },
             hideSource: true
         });
@@ -257,11 +258,13 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         });
     }
 
+    @action
     onPointerDown = (e: React.PointerEvent): void => {
         e.stopPropagation();
         if (e.button === 0) {
             this._isPointerDown = true;
-            this._resizer = e.currentTarget.id;
+            this._resizing = e.currentTarget.id;
+            this.Interacting = true;
             document.removeEventListener("pointermove", this.onPointerMove);
             document.addEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
@@ -330,7 +333,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
 
         let dX = 0, dY = 0, dW = 0, dH = 0;
 
-        switch (this._resizer) {
+        switch (this._resizing) {
             case "":
                 break;
             case "documentDecorations-topLeftResizer":
@@ -400,8 +403,11 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         });
     }
 
+    @action
     onPointerUp = (e: PointerEvent): void => {
         e.stopPropagation();
+        this._resizing = "";
+        this.Interacting = false;
         if (e.button === 0) {
             e.preventDefault();
             this._isPointerDown = false;
