@@ -18,11 +18,8 @@ import { NumberField } from "./../fields/NumberField";
 import { RichTextField } from "./../fields/RichTextField";
 import { TextField } from "./../fields/TextField";
 import { Transferable, Types } from "./Message";
-<<<<<<< HEAD
 import { TemplateField } from "../fields/TemplateField";
-=======
 import { IconField } from "../fields/IconFIeld";
->>>>>>> b63bcb791013766d5d16e4f38964499268f904c4
 
 export class ServerUtils {
     public static prepend(extension: string): string {
