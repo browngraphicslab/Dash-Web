@@ -6,6 +6,7 @@ export class Search {
     private url = 'http://localhost:8983/solr/';
 
     public updateDocument(document: any): rp.RequestPromise {
+        console.log(JSON.stringify(document));
         return rp.post(this.url + "dash/update/json/docs", {
             headers: { 'content-type': 'application/json' },
             body: JSON.stringify(document)

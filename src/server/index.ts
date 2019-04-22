@@ -34,6 +34,7 @@ import expressFlash = require('express-flash');
 import flash = require('connect-flash');
 import c = require("crypto");
 import { Search } from './Search';
+import { debug } from 'util';
 const MongoStore = require('connect-mongo')(session);
 const mongoose = require('mongoose');
 
@@ -276,6 +277,7 @@ function setField(socket: Socket, newValue: Transferable) {
         socket.broadcast.emit(MessageStore.SetField.Message, newValue));
     if (newValue.type === Types.Text) {
         Search.Instance.updateDocument({ id: newValue.id, data: (newValue as any).data });
+        console.log("set field");
     }
 }
 
@@ -286,10 +288,17 @@ function GetRefField([id, callback]: [string, (result?: Transferable) => void]) 
 function UpdateField(socket: Socket, diff: Diff) {
     Database.Instance.update(diff.id, diff.diff,
         () => socket.broadcast.emit(MessageStore.UpdateField.Message, diff), false, "newDocuments");
+    //if (diff.diff === Types.Text) {
+    Search.Instance.updateDocument({ name: "john", burns: "true" });
+    Search.Instance.updateDocument({ id: diff.id, data: diff.diff.data });
+    //console.log("set field");
+    //}
+    console.log("updated field", diff.diff);
 }
 
 function CreateField(newValue: any) {
     Database.Instance.insert(newValue, "newDocuments");
+    console.log("created field");
 }
 
 server.listen(serverPort);
