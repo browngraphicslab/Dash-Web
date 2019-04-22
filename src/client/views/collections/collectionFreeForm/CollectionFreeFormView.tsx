@@ -21,18 +21,8 @@ import "./CollectionFreeFormView.scss";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
 import v5 = require("uuid/v5");
-<<<<<<< HEAD
-import { CollectionFreeFormRemoteCursors } from "./CollectionFreeFormRemoteCursors";
-import { PreviewCursor } from "./PreviewCursor";
-import { Timeline } from "../../nodes/Timeline";
-import { DocumentManager } from "../../../util/DocumentManager";
-import { SelectionManager } from "../../../util/SelectionManager";
-import { NumberField } from "../../../../fields/NumberField";
-import { Main } from "../../Main";
-import Measure from "react-measure";
-=======
 import { BooleanField } from "../../../../fields/BooleanField";
->>>>>>> e47656cdc18aa1fd801a3853fa0f819140a68646
+import { Timeline } from "../../nodes/Timeline";
 
 @observer
 export class CollectionFreeFormView extends CollectionSubView {
@@ -275,19 +265,16 @@ export class CollectionFreeFormView extends CollectionSubView {
             var page = doc.GetNumber(KeyStore.Page, -1);
             if (page === curPage || page === -1) {
                 let minim = doc.GetT(KeyStore.IsMinimized, BooleanField);
-                if (minim === undefined || (minim && !minim.Data))
+                if (minim === undefined || (minim && !minim.Data)){
                     prev.push(<CollectionFreeFormDocumentView key={doc.Id} {...this.getDocumentViewProps(doc)} />);
+                }
             }
             return prev;
         }, [] as JSX.Element[]);
-<<<<<<< HEAD
-      
-=======
 
         setTimeout(() => this._selectOnLoaded = "", 600);// bcz: surely there must be a better way ....
 
         return docviews;
->>>>>>> e47656cdc18aa1fd801a3853fa0f819140a68646
     }
 
     @action
@@ -310,11 +297,14 @@ export class CollectionFreeFormView extends CollectionSubView {
                             <InkingCanvas getScreenTransform={this.getTransform} Document={this.props.Document} >
                                 {this.childViews}
                             </InkingCanvas>
+                          
                         </CollectionFreeFormLinksView>
                         <CollectionFreeFormRemoteCursors {...this.props} key="remoteCursors" />
-                    </CollectionFreeFormViewPannableContents>
-                    <CollectionFreeFormOverlayView {...this.getDocumentViewProps(this.props.Document)} />
+                    </CollectionFreeFormViewPannableContents>  
+                    <CollectionFreeFormOverlayView {...this.getDocumentViewProps(this.props.Document)} />     
+                    
                 </MarqueeView>
+                <Timeline {...this.getDocumentViewProps(this.props.Document)}/>
             </div>
         );
     }
@@ -354,40 +344,6 @@ interface CollectionFreeFormViewPannableContentsProps {
     zoomScaling: () => number;
 }
 
-<<<<<<< HEAD
-        return (
-            <Measure onResize={(r: any) => runInAction(() => { this._pwidth = r.entry.width; this._pheight = r.entry.height; })}>
-                {({ measureRef }) => (
-                    <div className={`collectionfreeformview-measure`} ref={measureRef}>
-                        <div className={`collectionfreeformview${this.isAnnotationOverlay ? "-overlay" : "-container"}`}
-                            onPointerDown={this.onPointerDown} onPointerMove={(e) => super.setCursorPosition(this.getTransform().transformPoint(e.clientX, e.clientY))}
-                            onDrop={this.onDrop.bind(this)} onDragOver={this.onDragOver} onWheel={this.onPointerWheel}
-                            style={{ borderWidth: `${COLLECTION_BORDER_WIDTH}px` }} ref={this.createDropTarget}>
-                            <MarqueeView container={this} activeDocuments={this.getActiveDocuments} selectDocuments={this.selectDocuments}
-                                addDocument={this.addDocument} removeDocument={this.props.removeDocument}
-                                getContainerTransform={this.getContainerTransform} getTransform={this.getTransform}>
-                                <PreviewCursor container={this} addLiveTextDocument={this.addLiveTextBox}
-                                    getContainerTransform={this.getContainerTransform} getTransform={this.getTransform} >
-                                    <div className="collectionfreeformview" ref={this._canvasRef}
-                                        style={{ transform: `translate(${dx}px, ${dy}px) scale(${this.zoomScaling}, ${this.zoomScaling}) translate(${panx}px, ${pany}px)` }}>
-                                        {this.backgroundView}
-                                        <CollectionFreeFormLinksView {...this.props}>
-                                            <InkingCanvas getScreenTransform={this.getTransform} Document={this.props.Document} >
-                                                {this.childViews}
-                                            </InkingCanvas>
-                                        </CollectionFreeFormLinksView>
-                                        <CollectionFreeFormRemoteCursors {...this.props} />
-                                    </div>
-                                    {this.overlayView}
-                                </PreviewCursor>
-                                
-                                <Timeline {...this.getDocumentViewProps(this.props.Document)} />
-                            </MarqueeView>
-                        </div>
-                    </div>)}
-            </Measure>
-        );
-=======
 @observer
 class CollectionFreeFormViewPannableContents extends React.Component<CollectionFreeFormViewPannableContentsProps>{
     render() {
@@ -399,6 +355,5 @@ class CollectionFreeFormViewPannableContents extends React.Component<CollectionF
         return <div className="collectionfreeformview" style={{ transform: `translate(${cenx}px, ${ceny}px) scale(${zoom}, ${zoom}) translate(${panx}px, ${pany}px)` }}>
             {this.props.children}
         </div>;
->>>>>>> e47656cdc18aa1fd801a3853fa0f819140a68646
     }
 }
