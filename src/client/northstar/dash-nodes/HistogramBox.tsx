@@ -118,7 +118,7 @@ export class HistogramBox extends React.Component<FieldViewProps> {
             this.props.Document.GetTAsync(this.props.fieldKey, HistogramField).then((histoOp: Opt<HistogramField>) => runInAction(() => {
                 this.HistoOp = histoOp ? histoOp.Data : HistogramOperation.Empty;
                 if (this.HistoOp !== HistogramOperation.Empty) {
-                    reaction(() => this.props.Document.GetList(KeyStore.LinkedFromDocs, []), (docs: Document[]) => this.HistoOp.Links.splice(0, this.HistoOp.Links.length, ...docs), { fireImmediately: true });
+                    reaction(() => this.props.Document.GetList(KeyStore.LinkedFromDocs, [] as Document[]), (docs) => this.HistoOp.Links.splice(0, this.HistoOp.Links.length, ...docs), { fireImmediately: true });
                     reaction(() => this.props.Document.GetList(KeyStore.BrushingDocs, []).length,
                         () => {
                             let brushingDocs = this.props.Document.GetList(KeyStore.BrushingDocs, [] as Document[]);
@@ -146,7 +146,7 @@ export class HistogramBox extends React.Component<FieldViewProps> {
         return (
             <Measure onResize={(r: any) => runInAction(() => { this.PanelWidth = r.entry.width; this.PanelHeight = r.entry.height; })}>
                 {({ measureRef }) =>
-                    <div className="histogrambox-container" ref={measureRef} style={{ transform: `translate(-50%, -50%)` }}>
+                    <div className="histogrambox-container" ref={measureRef}>
                         <div className="histogrambox-yaxislabel" onPointerDown={this.yLabelPointerDown} ref={this._dropYRef} >
                             <span className="histogrambox-yaxislabel-text">
                                 {labelY}

@@ -59,7 +59,7 @@ export class Database {
 
     public getDocument(id: string, fn: (result?: Transferable) => void, collectionName = Database.DocumentsCollection) {
         this.db && this.db.collection(collectionName).findOne({ id: id }, (err, result) =>
-            fn(result ? ({ id: result._id, type: result.type, data: result.data }) : undefined))
+            fn(result ? ({ id: result._id, type: result.type, data: result.data }) : undefined));
     }
 
     public getDocuments(ids: string[], fn: (result: Transferable[]) => void, collectionName = Database.DocumentsCollection) {
