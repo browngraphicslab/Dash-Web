@@ -33,7 +33,7 @@ export class ObjectField {
 export type Field = number | string | boolean | ObjectField | RefField;
 export type Opt<T> = T | undefined;
 export type FieldWaiting<T extends Field = Field> = Promise<T | undefined>;
-export type FieldValue<T extends Field = Field> = Opt<T> | FieldWaiting<T>;
+export type FieldResult<T extends Field = Field> = Opt<T> | FieldWaiting<T>;
 
 export const Self = Symbol("Self");
 
@@ -77,7 +77,7 @@ export namespace Doc {
             return Cast(field, ctor);
         });
     }
-    export function Get(doc: Doc, key: string, ignoreProto: boolean = false): FieldValue {
+    export function Get(doc: Doc, key: string, ignoreProto: boolean = false): FieldResult {
         const self = doc[Self];
         return getField(self, key, ignoreProto);
     }

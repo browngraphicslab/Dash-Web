@@ -56,7 +56,7 @@ export const positionSchema = createSchema({
 });
 
 type Document = makeInterface<[typeof schema]>;
-const Document = makeInterface([schema]);
+const Document = makeInterface(schema);
 
 @observer
 export class DocumentView extends DocComponent<DocumentViewProps, Document>(Document) {

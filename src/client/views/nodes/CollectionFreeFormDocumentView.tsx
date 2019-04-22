@@ -18,7 +18,7 @@ const schema = createSchema({
 });
 
 type FreeformDocument = makeInterface<[typeof schema, typeof positionSchema]>;
-const FreeformDocument = makeInterface([schema, positionSchema]);
+const FreeformDocument = makeInterface(schema, positionSchema);
 
 @observer
 export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeFormDocumentViewProps, FreeformDocument>(FreeformDocument) {

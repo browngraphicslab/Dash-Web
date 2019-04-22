@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import { SerializationHelper } from '../client/util/SerializationHelper';
 import { createSchema, makeInterface, makeStrictInterface } from '../new_fields/Schema';
-import { URLField } from '../new_fields/URLField';
+import { ImageField } from '../new_fields/URLField';
 import { Doc } from '../new_fields/Doc';
 import { ListSpec } from '../new_fields/Types';
 import { List } from '../new_fields/List';
@@ -12,19 +12,19 @@ const schema1 = createSchema({
     hello: "number",
     test: "string",
     fields: "boolean",
-    url: URLField,
+    url: ImageField,
     testDoc: Doc
 });
 
-const TestDoc = makeInterface([schema1]);
+const TestDoc = makeInterface(schema1);
 type TestDoc = makeInterface<[typeof schema1]>;
 
 const schema2 = createSchema({
-    hello: URLField,
+    hello: ImageField,
     test: "boolean",
     fields: { List: "number" } as ListSpec<number>,
     url: "number",
-    testDoc: URLField
+    testDoc: ImageField
 });
 
 const Test2Doc = makeStrictInterface(schema2);
@@ -43,7 +43,7 @@ const assert = (bool: boolean) => {
 
 class Test extends React.Component {
     onClick = () => {
-        const url = new URLField(new URL("http://google.com"));
+        const url = new ImageField(new URL("http://google.com"));
         const doc = new Doc();
         const doc2 = new Doc();
         doc.hello = 5;

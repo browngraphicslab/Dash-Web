@@ -4,7 +4,7 @@ import { FieldViewProps, FieldView } from './FieldView';
 import { observer } from "mobx-react";
 import { computed } from 'mobx';
 import { HtmlField } from "../../../new_fields/HtmlField";
-import { URLField } from "../../../new_fields/URLField";
+import { WebField } from "../../../new_fields/URLField";
 
 @observer
 export class WebBox extends React.Component<FieldViewProps> {
@@ -37,7 +37,7 @@ export class WebBox extends React.Component<FieldViewProps> {
         let view;
         if (field instanceof HtmlField) {
             view = <span id="webBox-htmlSpan" dangerouslySetInnerHTML={{ __html: field.html }} />
-        } else if (field instanceof URLField) {
+        } else if (field instanceof WebField) {
             view = <iframe src={field.url.href} style={{ position: "absolute", width: "100%", height: "100%" }} />
         } else {
             view = <iframe src={"https://crossorigin.me/https://cs.brown.edu"} style={{ position: "absolute", width: "100%", height: "100%" }} />

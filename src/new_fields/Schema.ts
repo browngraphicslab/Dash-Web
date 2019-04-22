@@ -1,13 +1,7 @@
 import { Interface, ToInterface, Cast, FieldCtor, ToConstructor, HasTail, Head, Tail } from "./Types";
 import { Doc, Field, ObjectField } from "./Doc";
-import { URLField } from "./URLField";
 
-type All<T extends Interface[], U extends Doc> = {
-    1: makeInterface<[Head<T>], U> & All<Tail<T>, U>,
-    0: makeInterface<[Head<T>], U>
-}[HasTail<T> extends true ? 1 : 0];
-
-type AllToInterface<T extends any[]> = {
+type AllToInterface<T extends Interface[]> = {
     1: ToInterface<Head<T>> & AllToInterface<Tail<T>>,
     0: ToInterface<Head<T>>
 }[HasTail<T> extends true ? 1 : 0];
@@ -16,7 +10,6 @@ export const emptySchema = createSchema({});
 export const Document = makeInterface(emptySchema);
 export type Document = makeInterface<[typeof emptySchema]>;
 
-const DocSymbol = Symbol("Doc");
 export type makeInterface<T extends Interface[], U extends Doc = Doc> = Partial<AllToInterface<T>> & U;
 // export function makeInterface<T extends Interface[], U extends Doc>(schemas: T): (doc: U) => All<T, U>;
 // export function makeInterface<T extends Interface, U extends Doc>(schema: T): (doc: U) => makeInterface<T, U>; 
@@ -29,26 +22,19 @@ export function makeInterface<T extends Interface[], U extends Doc>(...schemas: 
     }
     const proto = new Proxy({}, {
         get(target: any, prop) {
-            if (prop === DocSymbol) {
-                return target[prop];
-            }
-            const field = target[DocSymbol][prop];
+            const field = target.doc[prop];
             if (prop in schema) {
                 return Cast(field, (schema as any)[prop]);
             }
             return field;
         },
         set(target: any, prop, value) {
-            if (prop === DocSymbol) {
-                target[prop] = value;
-            }
-            target[DocSymbol][prop] = value;
+            target.doc[prop] = value;
             return true;
         }
     });
     return function (doc: any) {
-        const obj = Object.create(proto);
-        obj.__doc = doc;
+        const obj = Object.create(proto, { doc: { value: doc, writable: false } });
         return obj;
     };
 }

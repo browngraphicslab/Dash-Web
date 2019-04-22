@@ -16,7 +16,7 @@ import { ServerUtils } from "../../../server/ServerUtil";
 import { DragManager, DragLinksAsDocuments } from "../../util/DragManager";
 import { Transform } from '../../util/Transform';
 import { Doc, Id, Opt, Field, FieldId } from "../../../new_fields/Doc";
-import { Cast, FieldValue } from "../../../new_fields/Types";
+import { Cast } from "../../../new_fields/Types";
 import { List } from "../../../new_fields/List";
 import { DocServer } from "../../DocServer";
 
@@ -336,8 +336,8 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
 
     ScreenToLocalTransform = () => {
         if (this._mainCont.current && this._mainCont.current.children) {
-            let { scale, translateX, translateY } = Utils.GetScreenTransform(this._mainCont.current!.children[0].firstChild as HTMLElement);
-            scale = Utils.GetScreenTransform(this._mainCont.current!).scale;
+            let { scale, translateX, translateY } = Utils.GetScreenTransform(this._mainCont.current.children[0].firstChild as HTMLElement);
+            scale = Utils.GetScreenTransform(this._mainCont.current).scale;
             return CollectionDockingView.Instance.props.ScreenToLocalTransform().translate(-translateX, -translateY).scale(scale / this.contentScaling());
         }
         return Transform.Identity();

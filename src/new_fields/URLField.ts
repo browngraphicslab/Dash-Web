@@ -13,7 +13,6 @@ function url() {
     );
 }
 
-@Deserializable("url")
 export class URLField extends ObjectField {
     @serializable(url())
     readonly url: URL;
@@ -23,3 +22,9 @@ export class URLField extends ObjectField {
         this.url = url;
     }
 }
+
+@Deserializable("audio") export class AudioField extends URLField { }
+@Deserializable("image") export class ImageField extends URLField { }
+@Deserializable("video") export class VideoField extends URLField { }
+@Deserializable("pdf") export class PdfField extends URLField { }
+@Deserializable("web") export class WebField extends URLField { }

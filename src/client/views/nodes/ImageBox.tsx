@@ -14,16 +14,15 @@ import { createSchema, makeInterface } from '../../../new_fields/Schema';
 import { DocComponent } from '../DocComponent';
 import { positionSchema } from './DocumentView';
 import { FieldValue, Cast } from '../../../new_fields/Types';
-import { URLField } from '../../../new_fields/URLField';
-import { Doc, FieldWaiting } from '../../../new_fields/Doc';
+import { ImageField } from '../../../new_fields/URLField';
 import { List } from '../../../new_fields/List';
 
-const schema = createSchema({
+export const pageSchema = createSchema({
     curPage: "number"
 });
 
-type ImageDocument = makeInterface<[typeof schema, typeof positionSchema]>;
-const ImageDocument = makeInterface([schema, positionSchema]);
+type ImageDocument = makeInterface<[typeof pageSchema, typeof positionSchema]>;
+const ImageDocument = makeInterface(pageSchema, positionSchema);
 
 @observer
 export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageDocument) {
@@ -135,7 +134,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
     }
 
     specificContextMenu = (e: React.MouseEvent): void => {
-        let field = Cast(this.Document[this.props.fieldKey], URLField);
+        let field = Cast(this.Document[this.props.fieldKey], ImageField);
         if (field && field !== FieldWaiting) {
             let url = field.url.href;
             ContextMenu.Instance.addItem({
@@ -167,8 +166,8 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         let field = this.Document[this.props.fieldKey];
         let paths: string[] = ["http://www.cs.brown.edu/~bcz/face.gif"];
         if (field === FieldWaiting) paths = ["https://image.flaticon.com/icons/svg/66/66163.svg"];
-        else if (field instanceof URLField) paths = [field.url.href];
-        else if (field instanceof List) paths = field.filter(val => val instanceof URLField).map(p => (p as URLField).url.href);
+        else if (field instanceof ImageField) paths = [field.url.href];
+        else if (field instanceof List) paths = field.filter(val => val instanceof ImageField).map(p => (p as ImageField).url.href);
         let nativeWidth = FieldValue(this.Document.nativeWidth, 1);
         return (
             <div className="imageBox-cont" onPointerDown={this.onPointerDown} onDrop={this.onDrop} ref={this.createDropTarget} onContextMenu={this.specificContextMenu}>
