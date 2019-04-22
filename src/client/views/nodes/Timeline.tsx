@@ -1,7 +1,7 @@
 import * as React from "react";
 import * as ReactDOM from "react-dom";
 import { observer } from "mobx-react";
-import { observable, reaction, action, IReactionDisposer } from "mobx";
+import { observable, reaction, action, IReactionDisposer, observe, IObservableArray } from "mobx";
 import "./Timeline.scss";
 import { KeyStore } from "../../../fields/KeyStore";
 import { Document } from "../../../fields/Document";
@@ -19,7 +19,8 @@ export class Timeline extends React.Component<SubCollectionViewProps> {
     @observable private _isRecording: Boolean = false;
     @observable private _currentBar: any = null;
     @observable private _newBar: any = null;
-    private _reactionDisposer: Opt<IReactionDisposer>;
+    private _reactionDisposers: IReactionDisposer[] = [];
+    private _keyFrames: KeyFrame[] = [];
 
     @action
     onRecord = (e: React.MouseEvent) => {
@@ -34,6 +35,7 @@ export class Timeline extends React.Component<SubCollectionViewProps> {
             this._newBar.style.height = "100%";
             this._newBar.style.width = "5px";
             this._newBar.style.backgroundColor = "yellow";
+            this._newBar.style.position = "absolute";
             this._newBar.style.transform = this._currentBar.style.transform;
             this._inner.current.appendChild(this._newBar);
         }
@@ -53,8 +55,6 @@ export class Timeline extends React.Component<SubCollectionViewProps> {
 
     }
 
-    private _keyFrames: KeyFrame[] = [];
-
     createBar = (width: number) => {
         if (this._inner.current) {
             this._currentBar = document.createElement("div");
@@ -63,6 +63,7 @@ export class Timeline extends React.Component<SubCollectionViewProps> {
             this._currentBar.style.left = "mouse.offsetX";
             this._currentBar.style.backgroundColor = "green";
             this._currentBar.style.transform = `translate(${0}px)`;
+            this._currentBar.style.position = "absolute";
             this._inner.current.appendChild(this._currentBar);
         }
 
@@ -71,27 +72,35 @@ export class Timeline extends React.Component<SubCollectionViewProps> {
     componentDidMount() {
         this.createBar(5);
         let doc: Document = this.props.Document;
-        let childrenList = this.props.Document.GetList(this.props.fieldKey, [] as Document[]); 
+        let childrenList = this.props.Document.GetList(this.props.fieldKey, [] as Document[]);
         let keyFrame = new KeyFrame();
         this._keyFrames.push(keyFrame);
         let keys = [KeyStore.X, KeyStore.Y];
-        this._reactionDisposer = reaction(() => {
-            childrenList.forEach( (element:Document) => {
-                 return keys.map(key => element.GetNumber(key, 0));
-            });   
-        }, data => {
-            keys.forEach((key, index) => {
-                console.log("moved!"); 
-                //keyFrame.document().SetNumber(key, data[index]);
+        const addReaction = (element: Document) => {
+            return reaction(() => {
+                return keys.map(key => element.GetNumber(key, 0));
+            }, data => {
+                keys.forEach((key, index) => {
+                    console.log("moved!"); //now need to store key frames -> create a way to do this (data structure??)
+                    this._keyFrames.push(); //change thisss
+                    //keyFrame.document().SetNumber(key, data[index]);
+                });
             });
-        });
+        };
+        observe(childrenList as IObservableArray<Document>, change => {
+            if (change.type === "update") {
+                this._reactionDisposers[change.index]();
+                this._reactionDisposers[change.index] = addReaction(change.newValue);
+            } else {
+                let removed = this._reactionDisposers.splice(change.index, change.removedCount, ...change.added.map(addReaction));
+                removed.forEach(disp => disp());
+            }
+        }, true);
     }
 
     componentWillUnmount() {
-        if (this._reactionDisposer) {
-            this._reactionDisposer();
-            this._reactionDisposer = undefined;
-        }
+        this._reactionDisposers.forEach(disp => disp());
+        this._reactionDisposers = [];
     }
 
     render() {
