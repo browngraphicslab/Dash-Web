@@ -9,6 +9,7 @@ import { KeyStore } from "../../../fields/KeyStore";
 import { ListField } from "../../../fields/ListField";
 import { RouteStore } from "../../RouteStore";
 import { ServerUtils } from "../../ServerUtil";
+import { TextField } from "../../../fields/TextField";
 
 export class CurrentUserUtils {
     private static curr_email: string;
@@ -26,7 +27,9 @@ export class CurrentUserUtils {
     private static createUserDocument(id: string): Document {
         let doc = new Document(id);
         doc.Set(KeyStore.Workspaces, new ListField<Document>());
-        doc.Set(KeyStore.OptionalRightCollection, Documents.SchemaDocument([], { title: "Pending documents" }));
+        let pendingDoc = Documents.StackingDocument([], { title: "Pending documents" });
+        pendingDoc.Set(KeyStore.DocumentText, new TextField("New Mobile Uploads From: "));
+        doc.Set(KeyStore.OptionalRightCollection, pendingDoc);
         return doc;
     }
 

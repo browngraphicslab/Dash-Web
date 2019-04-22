@@ -1,5 +1,5 @@
 import { IconName, library } from '@fortawesome/fontawesome-svg-core';
-import { faFilePdf, faFilm, faFont, faGlobeAsia, faImage, faMusic, faObjectGroup, faPenNib, faRedoAlt, faTable, faTree, faUndoAlt } from '@fortawesome/free-solid-svg-icons';
+import { faFilePdf, faFilm, faFont, faGlobeAsia, faImage, faMusic, faObjectGroup, faPenNib, faRedoAlt, faTable, faTree, faUndoAlt, faBell } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, configure, observable, runInAction } from 'mobx';
 import { observer } from 'mobx-react';
@@ -156,6 +156,8 @@ export class Main extends React.Component {
         }));
     }
 
+    @observable _notifsCol: Opt<Document>;
+
     @action
     openWorkspace = (doc: Document, fromHistory = false): void => {
         this.mainContainer = doc;
@@ -163,10 +165,29 @@ export class Main extends React.Component {
         CurrentUserUtils.UserDocument.GetTAsync(KeyStore.OptionalRightCollection, Document).then(col =>
             // if there is a pending doc, and it has new data, show it (syip: we use a timeout to prevent collection docking view from being uninitialized)
             setTimeout(() =>
-                col && col.GetTAsync<ListField<Document>>(KeyStore.Data, ListField, (f: Opt<ListField<Document>>) =>
-                    f && f.Data.length > 0 && CollectionDockingView.Instance.AddRightSplit(col))
+                col && col.GetTAsync<ListField<Document>>(KeyStore.Data, ListField, (f: Opt<ListField<Document>>) => {
+                    // doc.GetTAsync<ListField<Document>>(KeyStore.Data, ListField, (d: Opt<ListField<Document>>) => {
+                    //     console.log(d);
+                    //     if (d) {
+                    //         col.SetNumber(KeyStore.X, doc.GetNumber(KeyStore.PanX, 0));
+                    //         col.SetNumber(KeyStore.Y, doc.GetNumber(KeyStore.PanY, 0));
+                    //         d.Data.push(col);
+                    //         console.log(d.Data);
+                    //     }
+                    // });
+                    runInAction(() => {
+                        this._notifsCol = col;
+                    });
+                    // CollectionDockingView.Instance.AddRightSplit(col);
+                })
                 , 100)
         );
+    }
+
+    openNotifsCol = (): void => {
+        if (this._notifsCol) {
+            CollectionDockingView.Instance.AddRightSplit(this._notifsCol);
+        }
     }
 
     @computed
@@ -248,6 +269,15 @@ export class Main extends React.Component {
     /* @TODO this should really be moved into a moveable toolbar component, but for now let's put it here to meet the deadline */
     @computed
     get miscButtons() {
+        let length: number = this._notifsCol ? this._notifsCol.GetList<Document>(KeyStore.Data, []).length : 0;
+        let notifsRef = React.createRef<HTMLDivElement>();
+        let dragNotifs = action(() => {
+            // @TODO this should eventually make a copy of the notification collection and clear it so that it doesn't keep popping up. This is fine for now -syip2
+            // let copy = this._notifsCol!.Copy(true) as Document;
+            // this._notifsCol!.GetList(KeyStore.Data, new Array<Document>()).splice(0, length);
+            return this._notifsCol!;
+        });
+
         let workspacesRef = React.createRef<HTMLDivElement>();
         let logoutRef = React.createRef<HTMLDivElement>();
         let toggleWorkspaces = () => runInAction(() => this._workspacesShown = !this._workspacesShown);
@@ -256,10 +286,20 @@ export class Main extends React.Component {
         return [
             <button className="clear-db-button" key="clear-db" onClick={clearDatabase}>Clear Database</button>,
             <div id="toolbar" key="toolbar">
+                <div>
+                    <div ref={notifsRef}>
+                        <button className="toolbar-button round-button" title="Notifs" onClick={() => this.openNotifsCol()} onPointerDown={this._notifsCol ? SetupDrag(notifsRef, dragNotifs) : () => { }}>
+                            <FontAwesomeIcon icon={faBell} size="sm" />
+                        </button>
+                        <div className="main-notifs-badge" style={length > 0 ? { "display": "initial" } : { "display": "none" }}>
+                            {length}
+                        </div>
+                    </div>
+                </div>
                 <button className="toolbar-button round-button" title="Undo" onClick={() => UndoManager.Undo()}><FontAwesomeIcon icon="undo-alt" size="sm" /></button>
                 <button className="toolbar-button round-button" title="Redo" onClick={() => UndoManager.Redo()}><FontAwesomeIcon icon="redo-alt" size="sm" /></button>
                 <button className="toolbar-button round-button" title="Ink" onClick={() => InkingControl.Instance.toggleDisplay()}><FontAwesomeIcon icon="pen-nib" size="sm" /></button>
-            </div >,
+            </div>,
             <div className="main-buttonDiv" key="workspaces" style={{ top: '34px', left: '2px', position: 'absolute' }} ref={workspacesRef}>
                 <button onClick={toggleWorkspaces}>Workspaces</button></div>,
             <div className="main-buttonDiv" key="logout" style={{ top: '34px', right: '1px', position: 'absolute' }} ref={logoutRef}>

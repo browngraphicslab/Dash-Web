@@ -9,14 +9,36 @@
     height: 100%;
     position: absolute;
     overflow-y: scroll;
-    border-width: $COLLECTION_BORDER_WIDTH;
+    min-width: 250px;
+    border-width: 0;
     box-shadow: $intermediate-color 0.2vw 0.2vw 0.8vw;
     border-color: $light-color-secondary;
     border-style: solid;
-    border-radius: $border-radius;
+    border-radius: 0 0 $border-radius $border-radius;
     box-sizing: border-box;
 
     .collectionStackingView-docView-container {
+        width: 45%;
+        margin: 5% 2.5%;
+        padding-left: 2.5%;
+        height: auto;
+    }
+
+    .collectionStackingView-flexCont {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .collectionStackingView-description {
+        font-size: 100%;
+        margin-bottom: 1vw;
+        padding: 10px;
+        height: 2vw;
         width: 100%;
+        font-family: $sans-serif;
+        background: $dark-color;
+        color: $light-color;
     }
 }
