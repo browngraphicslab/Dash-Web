@@ -17,7 +17,6 @@ import { LinkMenu } from "./nodes/LinkMenu";
 import { TemplateMenu } from "./TemplateMenu";
 import React = require("react");
 import { Template, Templates } from "./Templates";
-import { TemplateField } from "../../fields/TemplateField";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -394,11 +393,16 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
 
         let templates: Map<Template, boolean> = new Map();
         let doc = SelectionManager.SelectedDocuments()[0];
-        Array.from(Object.values(Templates)).map(template => {
-            templates.set(template, doc.template.Name === template.Name);
+        Array.from(Object.values(Templates.TemplateList)).map(template => {
+            let docTemps = doc.templates;
+            let checked = false;
+            docTemps.forEach(temp => {
+                if (template.Name === temp.Name) {
+                    checked = true;
+                }
+            });
+            templates.set(template, checked);
         });
-        // let docSrc = doc.props.Document.GetT(KeyStore.Prototype, TemplateField);
-        // console.log(docSrc);
 
         return (<div className="documentDecorations">
             <div className="documentDecorations-background" style={{

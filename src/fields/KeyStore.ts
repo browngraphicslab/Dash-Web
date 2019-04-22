@@ -21,7 +21,7 @@ export namespace KeyStore {
     export const ViewType = new Key("ViewType");
     export const BaseLayout = new Key("BaseLayout");
     export const Layout = new Key("Layout");
-    export const Template = new Key("Template");
+    export const Templates = new Key("Templates");
     export const BackgroundColor = new Key("BackgroundColor");
     export const BackgroundLayout = new Key("BackgroundLayout");
     export const OverlayLayout = new Key("OverlayLayout");

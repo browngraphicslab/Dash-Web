@@ -38,15 +38,13 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
 
     @action
     toggleTemplate = (event: React.ChangeEvent<HTMLInputElement>, template: Template): void => {
-        this.props.doc.changeTemplate(template);
-        this._templates.forEach((checked, temp) => {
-            this._templates.set(temp, false);
-        });
-        this._templates.set(template, true);
-
-        // const docs = view.props.ContainingCollectionView;
-        // const docs = view.props.Document.GetList<Document>(view.props.fieldKey, []);
-
+        if (event.target.checked) {
+            this.props.doc.addTemplate(template);
+            this._templates.set(template, true);
+        } else {
+            this.props.doc.removeTemplate(template);
+            this._templates.set(template, false);
+        }
     }
 
     @action
@@ -67,7 +65,7 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
 
         return (
             <div className="templating-menu" >
-                <div className="templating-button" onClick={() => this.toggleTemplateActivity()}>T</div>
+                <div className="templating-button" onClick={() => this.toggleTemplateActivity()}>+</div>
                 <ul id="template-list" style={{ display: this._hidden ? "none" : "block" }}>
                     {templateMenu}
                 </ul>

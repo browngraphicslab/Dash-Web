@@ -50,7 +50,7 @@ export interface DocumentOptions {
     scale?: number;
     baseLayout?: string;
     layout?: string;
-    template?: Template;
+    templates?: Array<Template>;
     layoutKeys?: Key[];
     viewType?: number;
     backgroundColor?: string;
@@ -101,7 +101,7 @@ export namespace Documents {
         if (options.ink !== undefined) { doc.Set(KeyStore.Ink, new InkField(options.ink)); }
         if (options.baseLayout !== undefined) { doc.SetText(KeyStore.BaseLayout, options.baseLayout); }
         if (options.layout !== undefined) { doc.SetText(KeyStore.Layout, options.layout); }
-        if (options.template !== undefined) { doc.Set(KeyStore.Template, new TemplateField(options.template)); }
+        if (options.templates !== undefined) { doc.Set(KeyStore.Templates, new TemplateField(options.templates)); }
         if (options.layoutKeys !== undefined) { doc.Set(KeyStore.LayoutKeys, new ListField(options.layoutKeys)); }
         if (options.copyDraggedItems !== undefined) { doc.SetBoolean(KeyStore.CopyDraggedItems, options.copyDraggedItems); }
         return doc;
@@ -118,7 +118,7 @@ export namespace Documents {
     }
 
     function setupPrototypeOptions(protoId: string, title: string, layout: string, options: DocumentOptions): Document {
-        return assignOptions(new Document(protoId), { ...options, title: title, layout: layout , baseLayout: layout});
+        return assignOptions(new Document(protoId), { ...options, title: title, layout: layout, baseLayout: layout });
     }
     function SetInstanceOptions<T, U extends Field & { Data: T }>(doc: Document, options: DocumentOptions, value: [T, { new(): U }] | Document, id?: string) {
         var deleg = doc.MakeDelegate(id);

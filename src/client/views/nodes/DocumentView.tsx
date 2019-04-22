@@ -99,13 +99,11 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     @computed get layout(): string { return this.props.Document.GetText(KeyStore.Layout, "<p>Error loading layout data</p>"); }
     @computed get layoutKeys(): Key[] { return this.props.Document.GetData(KeyStore.LayoutKeys, ListField, new Array<Key>()); }
     @computed get layoutFields(): Key[] { return this.props.Document.GetData(KeyStore.LayoutFields, ListField, new Array<Key>()); }
-    @computed get template(): Template {
-        let field = this.props.Document.GetT(KeyStore.Template, TemplateField);
-        return !field || field === FieldWaiting ? Templates.BasicLayout : field.Data;
+    @computed get templates(): Array<Template> {
+        let field = this.props.Document.GetT(KeyStore.Templates, TemplateField);
+        return !field || field === FieldWaiting ? [] : field.Data;
     }
-    set template(template: Template) {
-        this.props.Document.SetData(KeyStore.Template, template, TemplateField);
-    }
+    set templates(templates: Array<Template>) { this.props.Document.SetData(KeyStore.Templates, templates, TemplateField); }
     screenRect = (): ClientRect | DOMRect => this._mainCont.current ? this._mainCont.current.getBoundingClientRect() : new DOMRect();
     onPointerDown = (e: React.PointerEvent): void => {
         this._downX = e.clientX;
@@ -310,14 +308,39 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     }
 
     updateLayout = (): void => {
-        let temp = this.template.Layout;
-        let layout = temp.replace("{layout}", this.base);
+        let base = this.base;
+        let layout = this.base;
+
+        this.templates.forEach(template => {
+            let temp = template.Layout;
+            layout = temp.replace("{layout}", base);
+            base = layout;
+        });
+
         this.props.Document.SetText(KeyStore.Layout, layout);
     }
 
     @action
-    changeTemplate = (template: Template) => {
-        this.template = template;
+    addTemplate = (template: Template) => {
+        let templates = this.templates;
+        templates.push(template);
+        templates = templates.splice(0, templates.length).sort(Templates.sortTemplates);
+        this.templates = templates;
+        this.updateLayout();
+    }
+
+    @action
+    removeTemplate = (template: Template) => {
+        let templates = this.templates;
+        for (let i = 0; i < templates.length; i++) {
+            let temp = templates[i];
+            if (temp.Name === template.Name) {
+                templates.splice(i, 1);
+                break;
+            }
+        }
+        templates = templates.splice(0, templates.length).sort(Templates.sortTemplates);
+        this.templates = templates;
         this.updateLayout();
     }
 

@@ -1,11 +1,11 @@
 import { BasicField } from "./BasicField";
 import { Types } from "../server/Message";
 import { FieldId } from "./Field";
-import { Template, Templates } from "../client/views/Templates";
+import { Template, TemplatePosition } from "../client/views/Templates";
 
 
-export class TemplateField extends BasicField<Template> {
-    constructor(data: Template = Templates.BasicLayout, id?: FieldId, save: boolean = true) {
+export class TemplateField extends BasicField<Array<Template>> {
+    constructor(data: Array<Template> = [], id?: FieldId, save: boolean = true) {
         super(data, save, id);
     }
 
@@ -18,18 +18,26 @@ export class TemplateField extends BasicField<Template> {
     }
 
     ToJson() {
+        let templates: Array<{ name: string, position: TemplatePosition, layout: string }> = [];
+        this.Data.forEach(template => {
+            templates.push({ name: template.Name, layout: template.Layout, position: template.Position });
+        });
         return {
-            type: Types.Template,
-            data: this.Data,
+            type: Types.Templates,
+            data: templates,
             id: this.Id,
         };
     }
 
     UpdateFromServer(data: any) {
-        this.data = new Template(data.Name, data.layout);
+        this.data = new Array(data);
     }
 
     static FromJson(id: string, data: any): TemplateField {
-        return new TemplateField(new Template(data._name, data._layout), id, false);
+        let templates: Array<Template> = [];
+        data.forEach((template: { name: string, position: number, layout: string }) => {
+            templates.push(new Template(template.name, template.position, template.layout));
+        });
+        return new TemplateField(templates, id, false);
     }
 }
