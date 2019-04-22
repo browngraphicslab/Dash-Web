@@ -1,5 +1,7 @@
-import { Interface, ToInterface, Cast, FieldCtor, ToConstructor, HasTail, Head, Tail } from "./Types";
+import { Interface, ToInterface, Cast, ToConstructor, HasTail, Head, Tail, ListSpec, ToType } from "./Types";
 import { Doc, Field, ObjectField } from "./Doc";
+import { URLField } from "./URLField";
+import { List } from "./List";
 
 type AllToInterface<T extends Interface[]> = {
     1: ToInterface<Head<T>> & AllToInterface<Tail<T>>,
@@ -10,10 +12,10 @@ export const emptySchema = createSchema({});
 export const Document = makeInterface(emptySchema);
 export type Document = makeInterface<[typeof emptySchema]>;
 
-export type makeInterface<T extends Interface[], U extends Doc = Doc> = Partial<AllToInterface<T>> & U;
+export type makeInterface<T extends Interface[]> = Partial<AllToInterface<T>> & Doc;
 // export function makeInterface<T extends Interface[], U extends Doc>(schemas: T): (doc: U) => All<T, U>;
 // export function makeInterface<T extends Interface, U extends Doc>(schema: T): (doc: U) => makeInterface<T, U>; 
-export function makeInterface<T extends Interface[], U extends Doc>(...schemas: T): (doc: U) => makeInterface<T, U> {
+export function makeInterface<T extends Interface[]>(...schemas: T): (doc: Doc) => makeInterface<T> {
     let schema: Interface = {};
     for (const s of schemas) {
         for (const key in s) {
@@ -33,7 +35,10 @@ export function makeInterface<T extends Interface[], U extends Doc>(...schemas: 
             return true;
         }
     });
-    return function (doc: any) {
+    return function (doc: Doc) {
+        if (!(doc instanceof Doc)) {
+            throw new Error("Currently wrapping a schema in another schema isn't supported");
+        }
         const obj = Object.create(proto, { doc: { value: doc, writable: false } });
         return obj;
     };
@@ -59,6 +64,9 @@ export function makeStrictInterface<T extends Interface>(schema: T): (doc: Doc) 
         });
     }
     return function (doc: any) {
+        if (!(doc instanceof Doc)) {
+            throw new Error("Currently wrapping a schema in another schema isn't supported");
+        }
         const obj = Object.create(proto);
         obj.__doc = doc;
         return obj;
@@ -68,4 +76,8 @@ export function makeStrictInterface<T extends Interface>(schema: T): (doc: Doc) 
 export function createSchema<T extends Interface>(schema: T): T & { prototype: ToConstructor<Doc> } {
     schema.prototype = Doc;
     return schema as any;
+}
+
+export function listSpec<U extends ToConstructor<Field>>(type: U): ListSpec<ToType<U>> {
+    return { List: type as any };//TODO Types
 }

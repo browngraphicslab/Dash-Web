@@ -6,8 +6,9 @@ import { observable } from "mobx";
 
 @Deserializable("list")
 class ListImpl<T extends Field> extends ObjectField {
-    constructor() {
+    constructor(fields: T[] = []) {
         super();
+        this.__fields = fields;
         const list = new Proxy<this>(this, {
             set: setter,
             get: getter,
@@ -21,7 +22,7 @@ class ListImpl<T extends Field> extends ObjectField {
 
     @serializable(alias("fields", list(autoObject())))
     @observable
-    private __fields: (T | null | undefined)[] = [];
+    private __fields: (T | null | undefined)[];
 
     private [Update] = (diff: any) => {
         console.log(diff);

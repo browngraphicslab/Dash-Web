@@ -1,12 +1,10 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import { SerializationHelper } from '../client/util/SerializationHelper';
-import { createSchema, makeInterface, makeStrictInterface } from '../new_fields/Schema';
+import { createSchema, makeInterface, makeStrictInterface, listSpec } from '../new_fields/Schema';
 import { ImageField } from '../new_fields/URLField';
 import { Doc } from '../new_fields/Doc';
-import { ListSpec } from '../new_fields/Types';
 import { List } from '../new_fields/List';
-const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 const schema1 = createSchema({
     hello: "number",
@@ -22,20 +20,13 @@ type TestDoc = makeInterface<[typeof schema1]>;
 const schema2 = createSchema({
     hello: ImageField,
     test: "boolean",
-    fields: { List: "number" } as ListSpec<number>,
+    fields: listSpec("number"),
     url: "number",
     testDoc: ImageField
 });
 
 const Test2Doc = makeStrictInterface(schema2);
 type Test2Doc = makeStrictInterface<typeof schema2>;
-
-const schema3 = createSchema({
-    test: "boolean",
-});
-
-const Test3Doc = makeStrictInterface(schema3);
-type Test3Doc = makeStrictInterface<typeof schema3>;
 
 const assert = (bool: boolean) => {
     if (!bool) throw new Error();

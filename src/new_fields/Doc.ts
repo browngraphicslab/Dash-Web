@@ -4,7 +4,7 @@ import { autoObject, SerializationHelper, Deserializable } from "../client/util/
 import { Utils } from "../Utils";
 import { DocServer } from "../client/DocServer";
 import { setter, getter, getField } from "./util";
-import { Cast, FieldCtor } from "./Types";
+import { Cast, ToConstructor } from "./Types";
 
 export type FieldId = string;
 export const HandleUpdate = Symbol("HandleUpdate");
@@ -28,6 +28,7 @@ export const Parent = Symbol("Parent");
 export class ObjectField {
     protected [OnUpdate]?: (diff?: any) => void;
     private [Parent]?: Doc;
+    readonly [Id] = "";
 }
 
 export type Field = number | string | boolean | ObjectField | RefField;
@@ -71,7 +72,7 @@ export namespace Doc {
         const self = doc[Self];
         return new Promise(res => getField(self, key, ignoreProto, res));
     }
-    export function GetTAsync<T extends Field>(doc: Doc, key: string, ctor: FieldCtor<T>, ignoreProto: boolean = false): Promise<T | undefined> {
+    export function GetTAsync<T extends Field>(doc: Doc, key: string, ctor: ToConstructor<T>, ignoreProto: boolean = false): Promise<T | undefined> {
         return new Promise(async res => {
             const field = await GetAsync(doc, key, ignoreProto);
             return Cast(field, ctor);
@@ -81,8 +82,14 @@ export namespace Doc {
         const self = doc[Self];
         return getField(self, key, ignoreProto);
     }
-    export function GetT<T extends Field>(doc: Doc, key: string, ctor: FieldCtor<T>, ignoreProto: boolean = false): T | null | undefined {
+    export function GetT<T extends Field>(doc: Doc, key: string, ctor: ToConstructor<T>, ignoreProto: boolean = false): T | null | undefined {
         return Cast(Get(doc, key, ignoreProto), ctor) as T | null | undefined;
+    }
+    export async function SetOnPrototype(doc: Doc, key: string, value: Field) {
+        const proto = await Cast(doc.prototype, Doc);
+        if (proto) {
+            proto[key] = value;
+        }
     }
     export function MakeDelegate(doc: Opt<Doc>): Opt<Doc> {
         if (!doc) {

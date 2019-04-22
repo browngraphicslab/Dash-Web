@@ -20,6 +20,8 @@ import { CollectionPDFView } from "./CollectionPDFView";
 import { CollectionVideoView } from "./CollectionVideoView";
 import { Doc } from "../../../new_fields/Doc";
 import { DocComponent } from "../DocComponent";
+import { listSpec } from "../../../new_fields/Schema";
+import { Cast } from "../../../new_fields/Types";
 
 export interface CollectionViewProps extends FieldViewProps {
     addDocument: (document: Doc, allowDuplicates?: boolean) => boolean;
@@ -48,6 +50,10 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
         }
         protected CreateDropTarget(ele: HTMLDivElement) {
             this.createDropTarget(ele);
+        }
+
+        get children() {
+            return Cast(this.props.Document[this.props.fieldKey], listSpec(Doc));
         }
 
         @action

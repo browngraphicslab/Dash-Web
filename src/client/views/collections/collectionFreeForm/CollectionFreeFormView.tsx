@@ -20,17 +20,19 @@ import { MarqueeView } from "./MarqueeView";
 import React = require("react");
 import v5 = require("uuid/v5");
 import { createSchema, makeInterface } from "../../../../new_fields/Schema";
-import { Doc } from "../../../../new_fields/Doc";
-import { FieldValue } from "../../../../new_fields/Types";
+import { Doc, Id } from "../../../../new_fields/Doc";
+import { FieldValue, Cast } from "../../../../new_fields/Types";
+import { pageSchema } from "../../nodes/ImageBox";
+import { List } from "../../../../new_fields/List";
 
 export const panZoomSchema = createSchema({
     panX: "number",
     panY: "number",
-    zoom: "number"
+    scale: "number"
 });
 
-type PanZoomDocument = makeInterface<[typeof panZoomSchema, typeof positionSchema]>;
-const PanZoomDocument: (doc: Doc) => PanZoomDocument = makeInterface(panZoomSchema, positionSchema);
+type PanZoomDocument = makeInterface<[typeof panZoomSchema, typeof positionSchema, typeof pageSchema]>;
+const PanZoomDocument = makeInterface(panZoomSchema, positionSchema, pageSchema);
 
 @observer
 export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
@@ -41,24 +43,24 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     private get _pheight() { return this.props.PanelHeight(); }
 
     @computed get nativeWidth() { return FieldValue(this.Document.nativeWidth, 0); }
-    @computed get nativeHeight() { return this.props.Document.GetNumber(KeyStore.NativeHeight, 0); }
+    @computed get nativeHeight() { return FieldValue(this.Document.nativeHeight, 0); }
     private get borderWidth() { return this.isAnnotationOverlay ? 0 : COLLECTION_BORDER_WIDTH; }
-    private get isAnnotationOverlay() { return this.props.fieldKey && this.props.fieldKey.Id === KeyStore.Annotations.Id; } // bcz: ? Why do we need to compare Id's?
+    private get isAnnotationOverlay() { return this.props.fieldKey && this.props.fieldKey === "annotations"; }
     private childViews = () => this.views;
-    private panX = () => this.props.Document.GetNumber(KeyStore.PanX, 0);
-    private panY = () => this.props.Document.GetNumber(KeyStore.PanY, 0);
-    private zoomScaling = () => this.props.Document.GetNumber(KeyStore.Scale, 1);
+    private panX = () => FieldValue(this.Document.panX, 0);
+    private panY = () => FieldValue(this.Document.panY, 0);
+    private zoomScaling = () => FieldValue(this.Document.scale, 1);
     private centeringShiftX = () => !this.nativeWidth ? this._pwidth / 2 : 0;  // shift so pan position is at center of window for non-overlay collections
     private centeringShiftY = () => !this.nativeHeight ? this._pheight / 2 : 0;// shift so pan position is at center of window for non-overlay collections
     private getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-this.borderWidth, -this.borderWidth).translate(-this.centeringShiftX(), -this.centeringShiftY()).transform(this.getLocalTransform());
     private getContainerTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-this.borderWidth, -this.borderWidth);
     private getLocalTransform = (): Transform => Transform.Identity().scale(1 / this.zoomScaling()).translate(this.panX(), this.panY());
-    private addLiveTextBox = (newBox: Document) => {
-        this._selectOnLoaded = newBox.Id;// track the new text box so we can give it a prop that tells it to focus itself when it's displayed
+    private addLiveTextBox = (newBox: Doc) => {
+        this._selectOnLoaded = newBox[Id];// track the new text box so we can give it a prop that tells it to focus itself when it's displayed
         this.addDocument(newBox, false);
     }
-    private addDocument = (newBox: Document, allowDuplicates: boolean) => {
-        newBox.SetNumber(KeyStore.Zoom, this.props.Document.GetNumber(KeyStore.Scale, 1));
+    private addDocument = (newBox: Doc, allowDuplicates: boolean) => {
+        newBox.zoom = FieldValue(this.Document.scale, 1);
         return this.props.addDocument(this.bringToFront(newBox), false);
     }
     private selectDocuments = (docs: Document[]) => {
@@ -67,14 +69,11 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             SelectionManager.SelectDoc(dv!, true));
     }
     public getActiveDocuments = () => {
-        var curPage = this.props.Document.GetNumber(KeyStore.CurPage, -1);
-        return this.props.Document.GetList(this.props.fieldKey, [] as Document[]).reduce((active, doc) => {
-            var page = doc.GetNumber(KeyStore.Page, -1);
-            if (page === curPage || page === -1) {
-                active.push(doc);
-            }
-            return active;
-        }, [] as Document[]);
+        const curPage = FieldValue(this.Document.curPage, -1);
+        return FieldValue(this.children, [] as Doc[]).filter(doc => {
+            var page = Cast(doc.page, "number", -1);
+            return page === curPage || page === -1;
+        });
     }
 
     @undoBatch

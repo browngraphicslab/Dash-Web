@@ -71,7 +71,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
     @undoBatch
     drop = (e: Event, de: DragManager.DropEvent) => {
         if (de.data instanceof DragManager.DocumentDragData) {
-            de.data.droppedDocuments.map(action((drop: Document) => {
+            de.data.droppedDocuments.forEach(action((drop: Document) => {
                 let layout = drop.GetText(KeyStore.BackgroundLayout, "");
                 if (layout.indexOf(ImageBox.name) !== -1) {
                     let imgData = this.props.Document.Get(KeyStore.Data);
