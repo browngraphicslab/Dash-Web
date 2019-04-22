@@ -5,7 +5,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable, untracked } from "mobx";
 import { observer } from "mobx-react";
 import ReactTable, { CellInfo, ComponentPropsGetterR, ReactTableDefaults } from "react-table";
-import { MAX_ROW_HEIGHT } from '../../views/globalCssVariables.scss'
+import { MAX_ROW_HEIGHT } from '../../views/globalCssVariables.scss';
 import "react-table/react-table.css";
 import { Document } from "../../../fields/Document";
 import { Field, Opt } from "../../../fields/Field";
@@ -241,9 +241,9 @@ export class CollectionSchemaView extends CollectionSubView {
         const selected = children.length > this._selectedIndex ? children[this._selectedIndex] : undefined;
         return selected ? (this.previewScript ? selected.Get(new Key(this.previewScript)) as Document : selected) : undefined;
     }
-    get tableWidth() { return (this.props.PanelWidth() - 2 * this.borderWidth - this.DIVIDER_WIDTH) * (1 - this.splitPercentage / 100); }
-    get previewRegionHeight() { return this.props.PanelHeight() - 2 * this.borderWidth; }
-    get previewRegionWidth() { return (this.props.PanelWidth() - 2 * this.borderWidth - this.DIVIDER_WIDTH) * this.splitPercentage / 100; }
+    get tableWidth() { return (this.props.PanelWidth() - 2 * parseInt(this.borderWidth) - this.DIVIDER_WIDTH) * (1 - this.splitPercentage / 100); }
+    get previewRegionHeight() { return this.props.PanelHeight() - 2 * parseInt(this.borderWidth); }
+    get previewRegionWidth() { return (this.props.PanelWidth() - 2 * parseInt(this.borderWidth) - this.DIVIDER_WIDTH) * this.splitPercentage / 100; }
 
     private previewDocNativeWidth = () => this.previewDocument!.GetNumber(KeyStore.NativeWidth, this.previewRegionWidth);
     private previewDocNativeHeight = () => this.previewDocument!.GetNumber(KeyStore.NativeHeight, this.previewRegionHeight);
@@ -259,7 +259,7 @@ export class CollectionSchemaView extends CollectionSubView {
     get previewPanelCenteringOffset() { return (this.previewRegionWidth - this.previewDocNativeWidth() * this.previewContentScaling()) / 2; }
     getPreviewTransform = (): Transform => this.props.ScreenToLocalTransform().translate(
         - this.borderWidth - this.DIVIDER_WIDTH - this.tableWidth - this.previewPanelCenteringOffset,
-        - this.borderWidth).scale(1 / this.previewContentScaling());
+        - this.borderWidth).scale(1 / this.previewContentScaling())
 
     @computed
     get previewPanel() {

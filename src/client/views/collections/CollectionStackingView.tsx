@@ -57,7 +57,7 @@ export class CollectionStackingView extends CollectionSubView {
                                         PanelHeight={this.getPanelHeight}
                                         selectOnLoad={false}
                                         parentActive={this.props.active}
-                                        onActiveChanged={this.props.active} />
+                                        whenActiveChanged={this.props.active} />
                                 </div>);
                             })}
                         </div>

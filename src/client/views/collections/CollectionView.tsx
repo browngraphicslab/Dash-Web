@@ -10,14 +10,12 @@ import { CurrentUserUtils } from '../../../server/authentication/models/current_
 import { KeyStore } from '../../../fields/KeyStore';
 import { observer } from 'mobx-react';
 import { undoBatch } from '../../util/UndoManager';
-<<<<<<< HEAD
 import { CollectionStackingView } from './CollectionStackingView';
-=======
 import { trace } from 'mobx';
->>>>>>> 92c3bd4102e40f2f4bfd93e10d0a4a57316614c1
+import { CollectionViewProps } from './CollectionSubView';
 
 @observer
-export class CollectionView extends React.Component<FieldViewProps> {
+export class CollectionView extends React.Component<CollectionViewProps> {
     public static LayoutString(fieldStr: string = "DataKey") { return FieldView.LayoutString(CollectionView, fieldStr); }
 
     private SubView = (type: CollectionViewType, renderProps: CollectionRenderProps) => {
