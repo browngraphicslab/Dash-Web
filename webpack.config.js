@@ -1,6 +1,7 @@
 var path = require('path');
 var webpack = require('webpack');
 const CopyWebpackPlugin = require("copy-webpack-plugin");
+const ForkTsCheckerWebpackPlugin = require("fork-ts-checker-webpack-plugin");
 
 module.exports = {
     mode: 'development',
@@ -10,6 +11,9 @@ module.exports = {
         test: ["./src/debug/Test.tsx", 'webpack-hot-middleware/client?reload=true'],
         inkControls: ["./src/mobile/InkControls.tsx", 'webpack-hot-middleware/client?reload=true'],
         imageUpload: ["./src/mobile/ImageUpload.tsx", 'webpack-hot-middleware/client?reload=true'],
+    },
+    optimization: {
+        noEmitOnErrors: true
     },
     devtool: "source-map",
     node: {
@@ -30,17 +34,10 @@ module.exports = {
     module: {
         rules: [
             {
-                test: [/\.tsx?$/, /\.ts?$/,],
-                enforce: 'pre',
+                test: [/\.tsx?$/],
                 use: [
-                    {
-                        loader: "tslint-loader",
-                    }
+                    { loader: 'ts-loader', options: { transpileOnly: true } }
                 ]
-            }, {
-                test: [/\.tsx?$/, /\.ts?$/,],
-                loader: "awesome-typescript-loader",
-                include: path.join(__dirname, 'src')
             },
             {
                 test: /\.scss|css$/,
@@ -78,9 +75,11 @@ module.exports = {
     },
     plugins: [
         new CopyWebpackPlugin([{ from: "deploy", to: path.join(__dirname, "build") }]),
+        new ForkTsCheckerWebpackPlugin({
+            tslint: true, useTypescriptIncrementalApi: true
+        }),
         new webpack.optimize.OccurrenceOrderPlugin(),
         new webpack.HotModuleReplacementPlugin(),
-        new webpack.NoEmitOnErrorsPlugin()
     ],
     devServer: {
         compress: false,

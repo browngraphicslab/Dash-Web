@@ -11,6 +11,7 @@ import { undoBatch } from "../../../util/UndoManager";
 import { InkingCanvas } from "../../InkingCanvas";
 import { PreviewCursor } from "../../PreviewCursor";
 import { CollectionFreeFormView } from "./CollectionFreeFormView";
+import { MINIMIZED_ICON_SIZE } from '../../../views/globalCssVariables.scss'
 import "./MarqueeView.scss";
 import React = require("react");
 
@@ -147,26 +148,24 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 d.SetNumber(KeyStore.X, d.GetNumber(KeyStore.X, 0) - bounds.left - bounds.width / 2);
                 d.SetNumber(KeyStore.Y, d.GetNumber(KeyStore.Y, 0) - bounds.top - bounds.height / 2);
                 d.SetNumber(KeyStore.Page, -1);
-                d.SetText(KeyStore.Title, "" + d.GetNumber(KeyStore.Width, 0) + " " + d.GetNumber(KeyStore.Height, 0));
                 return d;
             });
             let ink = this.props.container.props.Document.GetT(KeyStore.Ink, InkField);
             let inkData = ink && ink !== FieldWaiting ? ink.Data : undefined;
-            //setTimeout(() => {
+            let zoomBasis = this.props.container.props.Document.GetNumber(KeyStore.Scale, 1);
             let newCollection = Documents.FreeformDocument(selected, {
                 x: bounds.left,
                 y: bounds.top,
                 panx: 0,
                 pany: 0,
-                width: bounds.width,
-                height: bounds.height,
-                backgroundColor: "Transparent",
+                scale: zoomBasis,
+                width: bounds.width * zoomBasis,
+                height: bounds.height * zoomBasis,
                 ink: inkData ? this.marqueeInkSelect(inkData) : undefined,
                 title: "a nested collection"
             });
             this.props.addDocument(newCollection, false);
             this.marqueeInkDelete(inkData);
-            // }, 100);
             this.cleanupInteractions();
             SelectionManager.DeselectAll();
         }
@@ -209,11 +208,11 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         let selRect = this.Bounds;
         let selection: Document[] = [];
         this.props.activeDocuments().map(doc => {
-            var z = doc.GetNumber(KeyStore.Zoom, 1);
+            var z = doc.GetNumber(KeyStore.ZoomBasis, 1);
             var x = doc.GetNumber(KeyStore.X, 0);
             var y = doc.GetNumber(KeyStore.Y, 0);
-            var w = doc.GetNumber(KeyStore.Width, 0) / z;
-            var h = doc.GetNumber(KeyStore.Height, 0) / z;
+            var w = doc.Width() / z;
+            var h = doc.Height() / z;
             if (this.intersectRect({ left: x, top: y, width: w, height: h }, selRect)) {
                 selection.push(doc);
             }

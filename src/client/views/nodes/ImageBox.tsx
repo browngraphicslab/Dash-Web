@@ -1,51 +1,87 @@
 
-import { action, observable, trace } from 'mobx';
+import { action, observable } from 'mobx';
 import { observer } from "mobx-react";
 import Lightbox from 'react-image-lightbox';
 import 'react-image-lightbox/style.css'; // This only needs to be imported once in your app
+import { Document } from '../../../fields/Document';
 import { FieldWaiting } from '../../../fields/Field';
 import { ImageField } from '../../../fields/ImageField';
 import { KeyStore } from '../../../fields/KeyStore';
+import { ListField } from '../../../fields/ListField';
+import { Utils } from '../../../Utils';
+import { DragManager } from '../../util/DragManager';
+import { undoBatch } from '../../util/UndoManager';
 import { ContextMenu } from "../../views/ContextMenu";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./ImageBox.scss";
 import React = require("react");
-import { Utils } from '../../../Utils';
 
 @observer
 export class ImageBox extends React.Component<FieldViewProps> {
 
     public static LayoutString() { return FieldView.LayoutString(ImageBox); }
-    private _ref: React.RefObject<HTMLDivElement>;
     private _imgRef: React.RefObject<HTMLImageElement>;
     private _downX: number = 0;
     private _downY: number = 0;
     private _lastTap: number = 0;
     @observable private _photoIndex: number = 0;
     @observable private _isOpen: boolean = false;
+    private dropDisposer?: DragManager.DragDropDisposer;
 
     constructor(props: FieldViewProps) {
         super(props);
 
-        this._ref = React.createRef();
         this._imgRef = React.createRef();
-        this.state = {
-            photoIndex: 0,
-            isOpen: false,
-        };
     }
 
     @action
     onLoad = (target: any) => {
         var h = this._imgRef.current!.naturalHeight;
         var w = this._imgRef.current!.naturalWidth;
-        this.props.Document.SetNumber(KeyStore.NativeHeight, this.props.Document.GetNumber(KeyStore.NativeWidth, 0) * h / w);
+        if (this._photoIndex === 0) {
+            this.props.Document.SetNumber(KeyStore.NativeHeight, this.props.Document.GetNumber(KeyStore.NativeWidth, 0) * h / w);
+            this.props.Document.SetNumber(KeyStore.Height, this.props.Document.Width() * h / w);
+        }
     }
 
-    componentDidMount() {
+
+    protected createDropTarget = (ele: HTMLDivElement) => {
+        if (this.dropDisposer) {
+            this.dropDisposer();
+        }
+        if (ele) {
+            this.dropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.drop.bind(this) } });
+        }
+    }
+    onDrop = (e: React.DragEvent) => {
+        e.stopPropagation();
+        e.preventDefault();
+        console.log("IMPLEMENT ME PLEASE");
     }
 
-    componentWillUnmount() {
+
+    @undoBatch
+    drop = (e: Event, de: DragManager.DropEvent) => {
+        if (de.data instanceof DragManager.DocumentDragData) {
+            de.data.droppedDocuments.map(action((drop: Document) => {
+                let layout = drop.GetText(KeyStore.BackgroundLayout, "");
+                if (layout.indexOf(ImageBox.name) !== -1) {
+                    let imgData = this.props.Document.Get(KeyStore.Data);
+                    if (imgData instanceof ImageField && imgData) {
+                        this.props.Document.SetOnPrototype(KeyStore.Data, new ListField([imgData]));
+                    }
+                    let imgList = this.props.Document.GetList(KeyStore.Data, [] as any[]);
+                    if (imgList) {
+                        let field = drop.Get(KeyStore.Data);
+                        if (field === FieldWaiting) { }
+                        else if (field instanceof ImageField) imgList.push(field);
+                        else if (field instanceof ListField) imgList.push(field.Data);
+                    }
+                    e.stopPropagation();
+                }
+            }));
+            // de.data.removeDocument()  bcz: need to implement
+        }
     }
 
     onPointerDown = (e: React.PointerEvent): void => {
@@ -70,8 +106,7 @@ export class ImageBox extends React.Component<FieldViewProps> {
         e.stopPropagation();
     }
 
-    lightbox = (path: string) => {
-        const images = [path];
+    lightbox = (images: string[]) => {
         if (this._isOpen) {
             return (<Lightbox
                 mainSrc={images[this._photoIndex]}
@@ -102,15 +137,35 @@ export class ImageBox extends React.Component<FieldViewProps> {
         }
     }
 
+    @action
+    onDotDown(index: number) {
+        this._photoIndex = index;
+        this.props.Document.SetNumber(KeyStore.CurPage, index);
+    }
+
+    dots(paths: string[]) {
+        let nativeWidth = this.props.Document.GetNumber(KeyStore.NativeWidth, 1);
+        let dist = Math.min(nativeWidth / paths.length, 40);
+        let left = (nativeWidth - paths.length * dist) / 2;
+        return paths.map((p, i) =>
+            <div className="imageBox-placer" key={i} >
+                <div className="imageBox-dot" style={{ background: (i == this._photoIndex ? "black" : "gray"), transform: `translate(${i * dist + left}px, 0px)` }} onPointerDown={(e: React.PointerEvent) => { e.stopPropagation(); this.onDotDown(i); }} />
+            </div>
+        );
+    }
+
     render() {
         let field = this.props.Document.Get(this.props.fieldKey);
-        let path = field === FieldWaiting ? "https://image.flaticon.com/icons/svg/66/66163.svg" :
-            field instanceof ImageField ? field.Data.href : "http://www.cs.brown.edu/~bcz/face.gif";
+        let paths: string[] = ["http://www.cs.brown.edu/~bcz/face.gif"];
+        if (field === FieldWaiting) paths = ["https://image.flaticon.com/icons/svg/66/66163.svg"];
+        else if (field instanceof ImageField) paths = [field.Data.href];
+        else if (field instanceof ListField) paths = field.Data.filter(val => val as ImageField).map(p => (p as ImageField).Data.href);
         let nativeWidth = this.props.Document.GetNumber(KeyStore.NativeWidth, 1);
         return (
-            <div className="imageBox-cont" onPointerDown={this.onPointerDown} ref={this._ref} onContextMenu={this.specificContextMenu}>
-                <img src={path} width={nativeWidth} alt="Image not found" ref={this._imgRef} onLoad={this.onLoad} />
-                {this.lightbox(path)}
+            <div className="imageBox-cont" onPointerDown={this.onPointerDown} onDrop={this.onDrop} ref={this.createDropTarget} onContextMenu={this.specificContextMenu}>
+                <img src={paths[Math.min(paths.length, this._photoIndex)]} style={{ objectFit: (this._photoIndex === 0 ? undefined : "contain") }} width={nativeWidth} alt="Image not found" ref={this._imgRef} onLoad={this.onLoad} />
+                {paths.length > 1 ? this.dots(paths) : (null)}
+                {this.lightbox(paths)}
             </div>);
     }
 }

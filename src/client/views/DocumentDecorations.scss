@@ -3,15 +3,19 @@
 .documentDecorations {
     position: absolute;
 }
+<<<<<<< HEAD
 
 #documentDecorations-container {
+=======
+.documentDecorations-container {
+    z-index: $docDecorations-zindex;
+>>>>>>> b63bcb791013766d5d16e4f38964499268f904c4
     position: absolute;
     top: 0;
     left: 0;
     display: grid;
-    z-index: $docDecorations-zindex;
     grid-template-rows: 20px 8px 1fr 8px;
-    grid-template-columns: 8px 8px 1fr 8px 8px;
+    grid-template-columns: 8px 16px 1fr 8px 8px;
     pointer-events: none;
 
     #documentDecorations-centerCont {
@@ -91,6 +95,11 @@
     pointer-events: all;
     text-align: center;
     cursor: pointer;
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    width: $MINIMIZED_ICON_SIZE;
+    height: $MINIMIZED_ICON_SIZE;
 }
 
 .documentDecorations-background {

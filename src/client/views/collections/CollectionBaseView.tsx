@@ -8,6 +8,7 @@ import { ListField } from '../../../fields/ListField';
 import { NumberField } from '../../../fields/NumberField';
 import { ContextMenu } from '../ContextMenu';
 import { FieldViewProps } from '../nodes/FieldView';
+import { TextField } from '../../../fields/TextField';
 
 export enum CollectionViewType {
     Invalid,
@@ -22,7 +23,7 @@ export interface CollectionRenderProps {
     removeDocument: (document: Document) => boolean;
     moveDocument: (document: Document, targetCollection: Document, addDocument: (document: Document) => boolean) => boolean;
     active: () => boolean;
-    onActiveChanged: (isActive: boolean) => void;
+    whenActiveChanged: (isActive: boolean) => void;
 }
 
 export interface CollectionViewProps extends FieldViewProps {
@@ -55,19 +56,22 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
 
     //TODO should this be observable?
     private _isChildActive = false;
-    onActiveChanged = (isActive: boolean) => {
+    whenActiveChanged = (isActive: boolean) => {
         this._isChildActive = isActive;
-        this.props.onActiveChanged(isActive);
+        this.props.whenActiveChanged(isActive);
     }
 
     createsCycle(documentToAdd: Document, containerDocument: Document): boolean {
-        let data = documentToAdd.GetList<Document>(KeyStore.Data, []);
-        for (const doc of data) {
+        if (!(documentToAdd instanceof Document)) {
+            return false;
+        }
+        let data = documentToAdd.GetList(KeyStore.Data, [] as Document[]);
+        for (const doc of data.filter(d => d instanceof Document)) {
             if (this.createsCycle(doc, containerDocument)) {
                 return true;
             }
         }
-        let annots = documentToAdd.GetList<Document>(KeyStore.Annotations, []);
+        let annots = documentToAdd.GetList(KeyStore.Annotations, [] as Document[]);
         for (const annot of annots) {
             if (this.createsCycle(annot, containerDocument)) {
                 return true;
@@ -84,56 +88,50 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
 
     @action.bound
     addDocument(doc: Document, allowDuplicates: boolean = false): boolean {
-        let props = this.props;
-        var curPage = props.Document.GetNumber(KeyStore.CurPage, -1);
+        var curPage = this.props.Document.GetNumber(KeyStore.CurPage, -1);
         doc.SetOnPrototype(KeyStore.Page, new NumberField(curPage));
-        if (this.isAnnotationOverlay) {
-            doc.SetOnPrototype(KeyStore.Zoom, new NumberField(this.props.Document.GetNumber(KeyStore.Scale, 1)));
-        }
         if (curPage >= 0) {
-            doc.SetOnPrototype(KeyStore.AnnotationOn, props.Document);
+            doc.SetOnPrototype(KeyStore.AnnotationOn, this.props.Document);
         }
-        if (props.Document.Get(props.fieldKey) instanceof Field) {
-            //TODO This won't create the field if it doesn't already exist
-            const value = props.Document.GetData(props.fieldKey, ListField, new Array<Document>());
-            if (!this.createsCycle(doc, props.Document)) {
+        if (this.props.Document.Get(this.props.fieldKey) instanceof Field) {
+            const value = this.props.Document.GetList(this.props.fieldKey, [] as Document[]);
+            if (!this.createsCycle(doc, this.props.Document)) {
                 if (!value.some(v => v.Id === doc.Id) || allowDuplicates) {
                     value.push(doc);
+                    doc.SetNumber(KeyStore.ZoomBasis, this.props.Document.GetNumber(KeyStore.Scale, 1));
                 }
-            }
-            else {
-                return false;
-            }
-        } else {
-            let proto = props.Document.GetPrototype();
-            if (!proto || proto === FieldWaiting || !this.createsCycle(proto, doc)) {
-                const field = new ListField([doc]);
-                // const script = CompileScript(`
-                //     if(added) {
-                //         console.log("added " + field.Title + " " + doc.Title);
-                //     } else {
-                //         console.log("removed " + field.Title + " " + doc.Title);
-                //     }
-                // `, {
-                //         addReturn: false,
-                //         params: {
-                //             field: Document.name,
-                //             added: "boolean"
-                //         },
-                //         capturedVariables: {
-                //             doc: this.props.Document
-                //         }
-                //     });
-                // if (script.compiled) {
-                //     field.addScript(new ScriptField(script));
-                // }
-                props.Document.SetOnPrototype(props.fieldKey, field);
-            }
-            else {
-                return false;
+                return true;
             }
         }
-        return true;
+        // bcz: What is this code trying to do?
+        // else {
+        //     let proto = props.Document.GetPrototype();
+        //     if (!proto || proto === FieldWaiting || !this.createsCycle(proto, doc)) {
+        //         const field = new ListField([doc]);
+        //         // const script = CompileScript(`
+        //         //     if(added) {
+        //         //         console.log("added " + field.Title + " " + doc.Title);
+        //         //     } else {
+        //         //         console.log("removed " + field.Title + " " + doc.Title);
+        //         //     }
+        //         // `, {
+        //         //         addReturn: false,
+        //         //         params: {
+        //         //             field: Document.name,
+        //         //             added: "boolean"
+        //         //         },
+        //         //         capturedVariables: {
+        //         //             doc: this.props.Document
+        //         //         }
+        //         //     });
+        //         // if (script.compiled) {
+        //         //     field.addScript(new ScriptField(script));
+        //         // }
+        //         props.Document.SetOnPrototype(props.fieldKey, field);
+        //         return true;
+        //     }
+        // }
+        return false;
     }
 
     @action.bound
@@ -181,7 +179,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
             removeDocument: this.removeDocument,
             moveDocument: this.moveDocument,
             active: this.active,
-            onActiveChanged: this.onActiveChanged,
+            whenActiveChanged: this.whenActiveChanged,
         };
         const viewtype = this.collectionViewType;
         return (

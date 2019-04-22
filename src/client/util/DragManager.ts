@@ -250,7 +250,7 @@ export namespace DragManager {
                 dragData.aliasOnDrop = e.ctrlKey || e.altKey;
             }
             if (e.shiftKey) {
-                abortDrag();
+                AbortDrag();
                 CollectionDockingView.Instance.StartOtherDrag(docs, {
                     pageX: e.pageX,
                     pageY: e.pageY,
@@ -269,19 +269,21 @@ export namespace DragManager {
             );
         };
 
-        const abortDrag = () => {
+        AbortDrag = () => {
             document.removeEventListener("pointermove", moveHandler, true);
             document.removeEventListener("pointerup", upHandler);
-            dragElements.map(dragElement => dragDiv.removeChild(dragElement));
+            dragElements.map(dragElement => { if (dragElement.parentNode == dragDiv) dragDiv.removeChild(dragElement); });
             eles.map(ele => (ele.hidden = false));
         };
         const upHandler = (e: PointerEvent) => {
-            abortDrag();
+            AbortDrag();
             FinishDrag(eles, e, dragData, options, finishDrag);
         };
         document.addEventListener("pointermove", moveHandler, true);
         document.addEventListener("pointerup", upHandler);
     }
+
+    export let AbortDrag: () => void = emptyFunction;
 
     function FinishDrag(dragEles: HTMLElement[], e: PointerEvent, dragData: { [index: string]: any }, options?: DragOptions, finishDrag?: (dragData: { [index: string]: any }) => void) {
         let removed = dragEles.map(dragEle => {
