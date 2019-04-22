@@ -25,7 +25,7 @@ export const Flyout = higflyout.default;
 @observer
 export class DocumentDecorations extends React.Component<{}, { value: string }> {
     static Instance: DocumentDecorations;
-    private _resizer = "";
+    @observable _resizer = "";
     private _isPointerDown = false;
     private keyinput: React.RefObject<HTMLInputElement>;
     private _documents: DocumentView[] = SelectionManager.SelectedDocuments();
@@ -255,6 +255,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         });
     }
 
+    @action
     onPointerDown = (e: React.PointerEvent): void => {
         e.stopPropagation();
         if (e.button === 0) {
@@ -398,8 +399,10 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         });
     }
 
+    @action
     onPointerUp = (e: PointerEvent): void => {
         e.stopPropagation();
+        this._resizer = "";
         if (e.button === 0) {
             e.preventDefault();
             this._isPointerDown = false;
