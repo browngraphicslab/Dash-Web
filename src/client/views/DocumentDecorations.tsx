@@ -25,7 +25,6 @@ export const Flyout = higflyout.default;
 @observer
 export class DocumentDecorations extends React.Component<{}, { value: string }> {
     static Instance: DocumentDecorations;
-    @observable _resizer = "";
     private _isPointerDown = false;
     private keyinput: React.RefObject<HTMLInputElement>;
     private _documents: DocumentView[] = SelectionManager.SelectedDocuments();
@@ -45,6 +44,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     @observable private _opacity = 1;
     @observable private _dragging = false;
     @observable private _iconifying = false;
+
+    @observable public Resizing = "";
 
 
     constructor(props: Readonly<{}>) {
@@ -260,7 +261,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         e.stopPropagation();
         if (e.button === 0) {
             this._isPointerDown = true;
-            this._resizer = e.currentTarget.id;
+            this.Resizing = e.currentTarget.id;
             document.removeEventListener("pointermove", this.onPointerMove);
             document.addEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
@@ -329,7 +330,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
 
         let dX = 0, dY = 0, dW = 0, dH = 0;
 
-        switch (this._resizer) {
+        switch (this.Resizing) {
             case "":
                 break;
             case "documentDecorations-topLeftResizer":
@@ -402,7 +403,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     @action
     onPointerUp = (e: PointerEvent): void => {
         e.stopPropagation();
-        this._resizer = "";
+        this.Resizing = "";
         if (e.button === 0) {
             e.preventDefault();
             this._isPointerDown = false;
