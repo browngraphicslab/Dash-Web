@@ -7,13 +7,14 @@ import { KeyStore } from "../../../fields/KeyStore";
 import { Document } from "../../../fields/Document";
 import { KeyFrame } from "./KeyFrame";
 import { CollectionViewProps } from "../collections/CollectionBaseView";
-import { CollectionSubView } from "../collections/CollectionSubView";
+import { CollectionSubView, SubCollectionViewProps } from "../collections/CollectionSubView";
 import { DocumentViewProps } from "./DocumentView";
 
 import { Opt } from '../../../fields/Field';
+import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
 
 @observer
-export class Timeline extends React.Component<DocumentViewProps> {
+export class Timeline extends React.Component<SubCollectionViewProps> {
     @observable private _inner = React.createRef<HTMLDivElement>();
     @observable private _isRecording: Boolean = false;
     @observable private _currentBar: any = null;
@@ -69,15 +70,19 @@ export class Timeline extends React.Component<DocumentViewProps> {
 
     componentDidMount() {
         this.createBar(5);
-        let doc: Document;
+        let doc: Document = this.props.Document;
+        let childrenList = this.props.Document.GetList(this.props.fieldKey, [] as Document[]); 
         let keyFrame = new KeyFrame();
         this._keyFrames.push(keyFrame);
         let keys = [KeyStore.X, KeyStore.Y];
         this._reactionDisposer = reaction(() => {
-            return keys.map(key => doc.GetNumber(key, 0));
+            childrenList.forEach( (element:Document) => {
+                 return keys.map(key => element.GetNumber(key, 0));
+            });   
         }, data => {
             keys.forEach((key, index) => {
-                keyFrame.document().SetNumber(key, data[index]);
+                console.log("moved!"); 
+                //keyFrame.document().SetNumber(key, data[index]);
             });
         });
     }

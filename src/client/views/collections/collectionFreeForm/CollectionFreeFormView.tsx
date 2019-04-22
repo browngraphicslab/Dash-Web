@@ -297,14 +297,12 @@ export class CollectionFreeFormView extends CollectionSubView {
                             <InkingCanvas getScreenTransform={this.getTransform} Document={this.props.Document} >
                                 {this.childViews}
                             </InkingCanvas>
-                          
                         </CollectionFreeFormLinksView>
                         <CollectionFreeFormRemoteCursors {...this.props} key="remoteCursors" />
                     </CollectionFreeFormViewPannableContents>  
                     <CollectionFreeFormOverlayView {...this.getDocumentViewProps(this.props.Document)} />     
-                    
                 </MarqueeView>
-                <Timeline {...this.getDocumentViewProps(this.props.Document)}/>
+                <Timeline {...this.props}/>
             </div>
         );
     }
