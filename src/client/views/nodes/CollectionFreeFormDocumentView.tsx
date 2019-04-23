@@ -134,7 +134,6 @@ export class CollectionFreeFormDocumentView extends React.Component<CollectionFr
         })
     }
     onPointerDown = (e: React.PointerEvent): void => {
-        e.stopPropagation();
         this._downX = e.clientX;
         this._downY = e.clientY;
         document.removeEventListener("pointerup", this.onPointerUp);

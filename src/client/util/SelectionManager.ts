@@ -1,9 +1,7 @@
-import { observable, action } from "mobx";
-import { DocumentView } from "../views/nodes/DocumentView";
+import { action, observable } from "mobx";
 import { Document } from "../../fields/Document";
-import { Main } from "../views/Main";
 import { MainOverlayTextBox } from "../views/MainOverlayTextBox";
-import { DragManager } from "./DragManager";
+import { DocumentView } from "../views/nodes/DocumentView";
 
 export namespace SelectionManager {
     class Manager {

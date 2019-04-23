@@ -229,6 +229,10 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
         }
     }
 
+    onClick = (e: React.MouseEvent): void => {
+        this._ref.current!.focus();
+    }
+
     tooltipTextMenuPlugin() {
         let myprops = this.props;
         return new Plugin({
@@ -255,7 +259,7 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
         if (e.keyCode === 9) e.preventDefault();
         // stop propagation doesn't seem to stop propagation of native keyboard events.
         // so we set a flag on the native event that marks that the event's been handled.
-        // (e.nativeEvent as any).DASHFormattedTextBoxHandled = true;
+        (e.nativeEvent as any).DASHFormattedTextBoxHandled = true;
     }
     render() {
         let style = this.props.isOverlay ? "scroll" : "hidden";
@@ -264,6 +268,7 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
                 onKeyDown={this.onKeyPress}
                 onKeyPress={this.onKeyPress}
                 onFocus={this.onFocused}
+                onClick={this.onClick}
                 onPointerUp={this.onPointerUp}
                 onPointerDown={this.onPointerDown}
                 onContextMenu={this.specificContextMenu}

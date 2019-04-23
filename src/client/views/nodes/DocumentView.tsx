@@ -22,6 +22,7 @@ import { DocumentContentsView } from "./DocumentContentsView";
 import "./DocumentView.scss";
 import React = require("react");
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
+import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 
 export interface DocumentViewProps {
     ContainingCollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
@@ -144,6 +145,13 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         }
     }
 
+    onClick = (e: React.MouseEvent): void => {
+        console.log("click = " + this.props.Document.Title);
+        if (CurrentUserUtils.MainDocId != this.props.Document.Id) {
+            SelectionManager.SelectDoc(this, e.ctrlKey);
+        }
+        e.stopPropagation();
+    }
     onPointerDown = (e: React.PointerEvent): void => {
         this._downX = e.clientX;
         this._downY = e.clientY;
@@ -180,10 +188,6 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     onPointerUp = (e: PointerEvent): void => {
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
-        if (!SelectionManager.IsSelected(this) && e.button !== 2 &&
-            Math.abs(e.clientX - this._downX) < 4 && Math.abs(e.clientY - this._downY) < 4) {
-            SelectionManager.SelectDoc(this, e.ctrlKey);
-        }
     }
 
     deleteClicked = (): void => {
@@ -304,7 +308,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
                     width: nativeWidth, height: nativeHeight,
                     transform: `scale(${scaling}, ${scaling})`
                 }}
-                onDrop={this.onDrop} onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown}
+                onDrop={this.onDrop} onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown} onClick={this.onClick}
             >
                 {this.contents}
             </div>

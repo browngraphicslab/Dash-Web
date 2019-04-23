@@ -79,6 +79,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             document.addEventListener("pointermove", this.onPointerMove, true);
             document.addEventListener("pointerup", this.onPointerUp, true);
             document.addEventListener("keydown", this.marqueeCommand, true);
+            e.stopPropagation();
         }
         if (e.altKey)
             e.preventDefault();
@@ -110,10 +111,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     onPointerUp = (e: PointerEvent): void => {
         this.cleanupInteractions(true);
         this._visible = false;
-        if (this._showOnUp) {
-            PreviewCursor.Show(this.hideCursor, this._downX, this._downY);
-            document.addEventListener("keypress", this.onKeyPress, false);
-        } else if ((CollectionFreeFormView.RIGHT_BTN_DRAG && e.button === 0 && !e.altKey && !e.metaKey) ||
+        if (!this._showOnUp && (CollectionFreeFormView.RIGHT_BTN_DRAG && e.button === 0 && !e.altKey && !e.metaKey) ||
             (!CollectionFreeFormView.RIGHT_BTN_DRAG && ((e.button === 0 && e.altKey) || e.button === 2))) {
             let mselect = this.marqueeSelect();
             if (!e.shiftKey) {
@@ -123,6 +121,12 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         }
         if (e.altKey)
             e.preventDefault();
+    }
+
+    @action
+    onClick = (e: MouseEvent): void => {
+        PreviewCursor.Show(this.hideCursor, this._downX, this._downY);
+        document.addEventListener("keypress", this.onKeyPress, false);
     }
 
     intersectRect(r1: { left: number, top: number, width: number, height: number },
@@ -149,8 +153,10 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 this.marqueeInkDelete(ink.Data);
             }
             this.cleanupInteractions();
+            e.stopPropagation();
         }
         if (e.key === "c") {
+            e.stopPropagation();
             let bounds = this.Bounds;
             let selected = this.marqueeSelect().map(d => {
                 this.props.removeDocument(d);
@@ -239,7 +245,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     }
 
     render() {
-        return <div className="marqueeView" onPointerDown={this.onPointerDown}>
+        return <div className="marqueeView" onClick={this.onClick} onPointerDown={this.onPointerDown}>
             {this.props.children}
             {!this._visible ? (null) : this.marqueeDiv}
         </div>;
