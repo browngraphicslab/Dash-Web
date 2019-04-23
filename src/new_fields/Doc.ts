@@ -70,16 +70,16 @@ export class Doc extends RefField {
 }
 
 export namespace Doc {
-    export function GetAsync(doc: Doc, key: string, ignoreProto: boolean = false): Promise<Field | undefined> {
-        const self = doc[Self];
-        return new Promise(res => getField(self, key, ignoreProto, res));
-    }
-    export function GetTAsync<T extends Field>(doc: Doc, key: string, ctor: ToConstructor<T>, ignoreProto: boolean = false): Promise<T | undefined> {
-        return new Promise(async res => {
-            const field = await GetAsync(doc, key, ignoreProto);
-            return Cast(field, ctor);
-        });
-    }
+    // export function GetAsync(doc: Doc, key: string, ignoreProto: boolean = false): Promise<Field | undefined> {
+    //     const self = doc[Self];
+    //     return new Promise(res => getField(self, key, ignoreProto, res));
+    // }
+    // export function GetTAsync<T extends Field>(doc: Doc, key: string, ctor: ToConstructor<T>, ignoreProto: boolean = false): Promise<T | undefined> {
+    //     return new Promise(async res => {
+    //         const field = await GetAsync(doc, key, ignoreProto);
+    //         return Cast(field, ctor);
+    //     });
+    // }
     export function Get(doc: Doc, key: string, ignoreProto: boolean = false): FieldResult {
         const self = doc[Self];
         return getField(self, key, ignoreProto);

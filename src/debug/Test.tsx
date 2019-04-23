@@ -14,8 +14,8 @@ const schema1 = createSchema({
     testDoc: Doc
 });
 
-const TestDoc = makeInterface(schema1);
 type TestDoc = makeInterface<[typeof schema1]>;
+const TestDoc: (doc?: Doc) => TestDoc = makeInterface(schema1);
 
 const schema2 = createSchema({
     hello: ImageField,
@@ -45,7 +45,6 @@ class Test extends React.Component {
 
 
         const test1: TestDoc = TestDoc(doc);
-        const test2: Test2Doc = Test2Doc(doc);
         assert(test1.hello === 5);
         assert(test1.fields === undefined);
         assert(test1.test === "hello doc");
@@ -54,6 +53,7 @@ class Test extends React.Component {
         test1.myField = 20;
         assert(test1.myField === 20);
 
+        const test2: Test2Doc = Test2Doc(doc);
         assert(test2.hello === undefined);
         // assert(test2.fields === "test");
         assert(test2.test === undefined);

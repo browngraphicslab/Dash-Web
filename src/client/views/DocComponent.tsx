@@ -6,7 +6,7 @@ export function DocComponent<P extends { Document: Doc }, T>(schemaCtor: (doc: D
     class Component extends React.Component<P> {
         //TODO This might be pretty inefficient if doc isn't observed, because computed doesn't cache then
         @computed
-        get Document() {
+        get Document(): T {
             return schemaCtor(this.props.Document);
         }
     }

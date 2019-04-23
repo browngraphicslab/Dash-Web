@@ -1,12 +1,8 @@
 import { action, runInAction } from "mobx";
-import { Document } from "../../../fields/Document";
-import { ListField } from "../../../fields/ListField";
 import React = require("react");
-import { KeyStore } from "../../../fields/KeyStore";
-import { FieldWaiting, Opt } from "../../../fields/Field";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { DragManager } from "../../util/DragManager";
-import { Documents, DocumentOptions } from "../../documents/Documents";
+import { Docs, DocumentOptions } from "../../documents/Documents";
 import { RouteStore } from "../../../server/RouteStore";
 import { TupleField } from "../../../fields/TupleField";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
@@ -18,10 +14,12 @@ import * as rp from 'request-promise';
 import { CollectionView } from "./CollectionView";
 import { CollectionPDFView } from "./CollectionPDFView";
 import { CollectionVideoView } from "./CollectionVideoView";
-import { Doc } from "../../../new_fields/Doc";
+import { Doc, ObjectField, Opt } from "../../../new_fields/Doc";
 import { DocComponent } from "../DocComponent";
 import { listSpec } from "../../../new_fields/Schema";
-import { Cast } from "../../../new_fields/Types";
+import { Cast, PromiseValue } from "../../../new_fields/Types";
+import { List } from "../../../new_fields/List";
+import { DocServer } from "../../DocServer";
 
 export interface CollectionViewProps extends FieldViewProps {
     addDocument: (document: Doc, allowDuplicates?: boolean) => boolean;
@@ -57,27 +55,27 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
         }
 
         @action
-        protected setCursorPosition(position: [number, number]) {
+        protected async setCursorPosition(position: [number, number]) {
             let ind;
             let doc = this.props.Document;
             let id = CurrentUserUtils.id;
             let email = CurrentUserUtils.email;
             if (id && email) {
                 let textInfo: [string, string] = [id, email];
-                doc.GetTAsync(KeyStore.Prototype, Document).then(proto => {
-                    if (!proto) {
-                        return;
-                    }
-                    proto.GetOrCreateAsync<ListField<CursorEntry>>(KeyStore.Cursors, ListField, action((field: ListField<CursorEntry>) => {
-                        let cursors = field.Data;
-                        if (cursors.length > 0 && (ind = cursors.findIndex(entry => entry.Data[0][0] === id)) > -1) {
-                            cursors[ind].Data[1] = position;
-                        } else {
-                            let entry = new TupleField<[string, string], [number, number]>([textInfo, position]);
-                            cursors.push(entry);
-                        }
-                    }));
-                });
+                const proto = await doc.proto;
+                if (!proto) {
+                    return;
+                }
+                let cursors = await Cast(proto.cursors, listSpec(ObjectField));
+                if (!cursors) {
+                    proto.cursors = cursors = new List<ObjectField>();
+                }
+                if (cursors.length > 0 && (ind = cursors.findIndex(entry => entry.Data[0][0] === id)) > -1) {
+                    cursors[ind].Data[1] = position;
+                } else {
+                    let entry = new TupleField<[string, string], [number, number]>([textInfo, position]);
+                    cursors.push(entry);
+                }
             }
         }
 
@@ -86,9 +84,9 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
         protected drop(e: Event, de: DragManager.DropEvent): boolean {
             if (de.data instanceof DragManager.DocumentDragData) {
                 if (de.data.aliasOnDrop || de.data.copyOnDrop) {
-                    [KeyStore.Width, KeyStore.Height, KeyStore.CurPage].map(key =>
+                    ["width", "height", "curPage"].map(key =>
                         de.data.draggedDocuments.map((draggedDocument: Document, i: number) =>
-                            draggedDocument.GetTAsync(key, NumberField, (f: Opt<NumberField>) => f ? de.data.droppedDocuments[i].SetNumber(key, f.Data) : null)));
+                            PromiseValue(Cast(draggedDocument[key], "number")).then(f => f && (de.data.droppedDocuments[i][key] = f))));
                 }
                 let added = false;
                 if (de.data.aliasOnDrop || de.data.copyOnDrop) {
@@ -114,42 +112,42 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             return false;
         }
 
-        protected async getDocumentFromType(type: string, path: string, options: DocumentOptions): Promise<Opt<Document>> {
-            let ctor: ((path: string, options: DocumentOptions) => (Document | Promise<Document | undefined>)) | undefined = undefined;
+        protected async getDocumentFromType(type: string, path: string, options: DocumentOptions): Promise<Opt<Doc>> {
+            let ctor: ((path: string, options: DocumentOptions) => (Doc | Promise<Doc | undefined>)) | undefined = undefined;
             if (type.indexOf("image") !== -1) {
-                ctor = Documents.ImageDocument;
+                ctor = Docs.ImageDocument;
             }
             if (type.indexOf("video") !== -1) {
-                ctor = Documents.VideoDocument;
+                ctor = Docs.VideoDocument;
             }
             if (type.indexOf("audio") !== -1) {
-                ctor = Documents.AudioDocument;
+                ctor = Docs.AudioDocument;
             }
             if (type.indexOf("pdf") !== -1) {
-                ctor = Documents.PdfDocument;
+                ctor = Docs.PdfDocument;
                 options.nativeWidth = 1200;
             }
             if (type.indexOf("excel") !== -1) {
-                ctor = Documents.DBDocument;
+                ctor = Docs.DBDocument;
                 options.copyDraggedItems = true;
             }
             if (type.indexOf("html") !== -1) {
                 if (path.includes('localhost')) {
                     let s = path.split('/');
                     let id = s[s.length - 1];
-                    Server.GetField(id).then(field => {
-                        if (field instanceof Document) {
-                            let alias = field.CreateAlias();
-                            alias.SetNumber(KeyStore.X, options.x || 0);
-                            alias.SetNumber(KeyStore.Y, options.y || 0);
-                            alias.SetNumber(KeyStore.Width, options.width || 300);
-                            alias.SetNumber(KeyStore.Height, options.height || options.width || 300);
+                    DocServer.GetRefField(id).then(field => {
+                        if (field instanceof Doc) {
+                            let alias = Doc.MakeAlias(field);
+                            alias.x = options.x || 0;
+                            alias.y = options.y || 0;
+                            alias.width = options.width || 300;
+                            alias.height = options.height || options.width || 300;
                             this.props.addDocument(alias, false);
                         }
                     });
                     return undefined;
                 }
-                ctor = Documents.WebDocument;
+                ctor = Docs.WebDocument;
                 options = { height: options.width, ...options, title: path };
             }
             return ctor ? ctor(path, options) : undefined;
@@ -169,8 +167,8 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
 
             if (html && html.indexOf("<img") !== 0 && !html.startsWith("<a")) {
                 console.log("not good");
-                let htmlDoc = Documents.HtmlDocument(html, { ...options, width: 300, height: 300 });
-                htmlDoc.SetText(KeyStore.DocumentText, text);
+                let htmlDoc = Docs.HtmlDocument(html, { ...options, width: 300, height: 300 });
+                htmlDoc.documentText = text;
                 this.props.addDocument(htmlDoc, false);
                 return;
             }
@@ -212,18 +210,15 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                             let path = window.location.origin + file;
                             let docPromise = this.getDocumentFromType(type, path, { ...options, nativeWidth: 600, width: 300, title: dropFileName });
 
-                            docPromise.then(action((doc?: Document) => {
-                                let docs = this.props.Document.GetT(KeyStore.Data, ListField);
-                                if (docs !== FieldWaiting) {
-                                    if (!docs) {
-                                        docs = new ListField<Document>();
-                                        this.props.Document.Set(KeyStore.Data, docs);
-                                    }
-                                    if (doc) {
-                                        docs.Data.push(doc);
-                                    }
+                            docPromise.then(async doc => {
+                                let docs = await Cast(this.props.Document[this.props.fieldKey], listSpec(Doc));
+                                if (!docs) {
+                                    this.props.Document[this.props.fieldKey] = docs = new List();
                                 }
-                            }));
+                                if (doc) {
+                                    docs.push(doc);
+                                }
+                            });
                         }));
                     });
                     promises.push(prom);
