@@ -147,7 +147,6 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 d.SetNumber(KeyStore.X, d.GetNumber(KeyStore.X, 0) - bounds.left - bounds.width / 2);
                 d.SetNumber(KeyStore.Y, d.GetNumber(KeyStore.Y, 0) - bounds.top - bounds.height / 2);
                 d.SetNumber(KeyStore.Page, -1);
-                d.SetText(KeyStore.Title, "" + d.Width() + " " + d.Height());
                 return d;
             });
             let ink = this.props.container.props.Document.GetT(KeyStore.Ink, InkField);

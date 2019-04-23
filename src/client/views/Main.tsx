@@ -190,7 +190,7 @@ export class Main extends React.Component {
                             selectOnLoad={false}
                             focus={emptyDocFunction}
                             parentActive={returnTrue}
-                            onActiveChanged={emptyFunction}
+                            whenActiveChanged={emptyFunction}
                             ContainingCollectionView={undefined} />}
                 </div>
             }
@@ -210,9 +210,9 @@ export class Main extends React.Component {
         let addColNode = action(() => Documents.FreeformDocument([], { width: 200, height: 200, title: "a freeform collection" }));
         let addSchemaNode = action(() => Documents.SchemaDocument([], { width: 200, height: 200, title: "a schema collection" }));
         let addTreeNode = action(() => Documents.TreeDocument(this._northstarSchemas, { width: 250, height: 400, title: "northstar schemas", copyDraggedItems: true }));
-        let addVideoNode = action(() => Documents.VideoDocument(videourl, { width: 200, height: 200, title: "video node" }));
+        let addVideoNode = action(() => Documents.VideoDocument(videourl, { width: 200, title: "video node" }));
         let addPDFNode = action(() => Documents.PdfDocument(pdfurl, { width: 200, height: 200, title: "a pdf doc" }));
-        let addImageNode = action(() => Documents.ImageDocument(imgurl, { width: 200, height: 200, title: "an image of a cat" }));
+        let addImageNode = action(() => Documents.ImageDocument(imgurl, { width: 200, title: "an image of a cat" }));
         let addWebNode = action(() => Documents.WebDocument(weburl, { width: 200, height: 200, title: "a sample web page" }));
         let addAudioNode = action(() => Documents.AudioDocument(audiourl, { width: 200, height: 200, title: "audio node" }));
 

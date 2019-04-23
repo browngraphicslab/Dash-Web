@@ -39,7 +39,7 @@ export interface DocumentViewProps {
     focus: (doc: Document) => void;
     selectOnLoad: boolean;
     parentActive: () => boolean;
-    onActiveChanged: (isActive: boolean) => void;
+    whenActiveChanged: (isActive: boolean) => void;
 }
 export interface JsxArgs extends DocumentViewProps {
     Keys: { [name: string]: Key };
@@ -294,7 +294,8 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         //ContextMenu.Instance.addItem({ description: "Docking", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Docking) })
         ContextMenu.Instance.addItem({ description: "Delete", event: this.deleteClicked });
         ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15);
-        SelectionManager.SelectDoc(this, e.ctrlKey);
+        if (!SelectionManager.IsSelected(this))
+            SelectionManager.SelectDoc(this, false);
     }
 
     @action

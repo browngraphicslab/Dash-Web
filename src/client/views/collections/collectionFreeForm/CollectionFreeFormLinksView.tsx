@@ -16,9 +16,9 @@ export class CollectionFreeFormLinksView extends React.Component<CollectionViewP
 
     _brushReactionDisposer?: IReactionDisposer;
     componentDidMount() {
-        this._brushReactionDisposer = reaction(() => this.props.Document.GetList<Document>(this.props.fieldKey, []).map(doc => doc.GetNumber(KeyStore.X, 0)),
+        this._brushReactionDisposer = reaction(() => this.props.Document.GetList(this.props.fieldKey, [] as Document[]).map(doc => doc.GetNumber(KeyStore.X, 0)),
             () => {
-                let views = this.props.Document.GetList<Document>(this.props.fieldKey, []);
+                let views = this.props.Document.GetList(this.props.fieldKey, [] as Document[]);
                 for (let i = 0; i < views.length; i++) {
                     for (let j = 0; j < views.length; j++) {
                         let srcDoc = views[j];
