@@ -11,7 +11,8 @@ import React = require("react");
 import "./TooltipTextMenu.scss";
 const { toggleMark, setBlockType, wrapIn } = require("prosemirror-commands");
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { wrapInList, bulletList, liftListItem, listItem } from 'prosemirror-schema-list';
+import { wrapInList, bulletList, liftListItem, listItem, } from 'prosemirror-schema-list';
+import { liftTarget } from 'prosemirror-transform';
 import {
     faListUl,
 } from '@fortawesome/free-solid-svg-icons';
@@ -29,14 +30,17 @@ export class TooltipTextMenu {
     private view: EditorView;
     private fontStyles: MarkType[];
     private fontSizes: MarkType[];
+    private listTypes: NodeType[];
     private editorProps: FieldViewProps;
     private state: EditorState;
     private fontSizeToNum: Map<MarkType, number>;
     private fontStylesToName: Map<MarkType, string>;
+    private listTypeToIcon: Map<NodeType, string>;
     private fontSizeIndicator: HTMLSpanElement = document.createElement("span");
     //dropdown doms
     private fontSizeDom: Node;
     private fontStyleDom: Node;
+    private listTypeBtnDom: Node;
 
     constructor(view: EditorView, editorProps: FieldViewProps) {
         this.view = view;
@@ -58,8 +62,9 @@ export class TooltipTextMenu {
             { command: toggleMark(schema.marks.strikethrough), dom: this.icon("S", "strikethrough") },
             { command: toggleMark(schema.marks.superscript), dom: this.icon("s", "superscript") },
             { command: toggleMark(schema.marks.subscript), dom: this.icon("s", "subscript") },
-            { command: wrapInList(schema.nodes.bullet_list), dom: this.icon(":", "bullets") },
-            { command: lift, dom: this.icon("<", "lift") },
+            // { command: wrapInList(schema.nodes.bullet_list), dom: this.icon(":", "bullets") },
+            // { command: wrapInList(schema.nodes.ordered_list), dom: this.icon("1)", "bullets") },
+            // { command: lift, dom: this.icon("<", "lift") },
         ];
         //add menu items
         items.forEach(({ dom, command }) => {
@@ -96,7 +101,11 @@ export class TooltipTextMenu {
         this.fontSizeToNum.set(schema.marks.p72, 72);
         this.fontSizes = Array.from(this.fontSizeToNum.keys());
 
-        //this.addFontDropdowns();
+        //list types
+        this.listTypeToIcon = new Map();
+        this.listTypeToIcon.set(schema.nodes.bullet_list, ":");
+        this.listTypeToIcon.set(schema.nodes.ordered_list, "1)");
+        this.listTypes = Array.from(this.listTypeToIcon.keys());
 
         this.update(view, undefined);
     }
@@ -109,7 +118,7 @@ export class TooltipTextMenu {
         //font SIZES
         let fontSizeBtns: MenuItem[] = [];
         this.fontSizeToNum.forEach((number, mark) => {
-            fontSizeBtns.push(this.dropdownBtn(String(number), "width: 50px;", mark, this.view, this.changeToMarkInGroup, this.fontSizes));
+            fontSizeBtns.push(this.dropdownMarkBtn(String(number), "width: 50px;", mark, this.view, this.changeToMarkInGroup, this.fontSizes));
         });
 
         if (this.fontSizeDom) { this.tooltip.removeChild(this.fontSizeDom); }
@@ -128,7 +137,7 @@ export class TooltipTextMenu {
         //font STYLES
         let fontBtns: MenuItem[] = [];
         this.fontStylesToName.forEach((name, mark) => {
-            fontBtns.push(this.dropdownBtn(name, "font-family: " + name + ", sans-serif; width: 125px;", mark, this.view, this.changeToMarkInGroup, this.fontStyles));
+            fontBtns.push(this.dropdownMarkBtn(name, "font-family: " + name + ", sans-serif; width: 125px;", mark, this.view, this.changeToMarkInGroup, this.fontStyles));
         });
 
         if (this.fontStyleDom) { this.tooltip.removeChild(this.fontStyleDom); }
@@ -138,6 +147,29 @@ export class TooltipTextMenu {
         }) as MenuItem).render(this.view).dom;
 
         this.tooltip.appendChild(this.fontStyleDom);
+    }
+
+    //will display a remove-list-type button if selection is in list, otherwise will show list type dropdown
+    updateListItemDropdown(label: string, listTypeBtn: Node) {
+        //remove old btn
+        if (listTypeBtn) { this.tooltip.removeChild(listTypeBtn); }
+
+        //Make a dropdown of all list types
+        let toAdd: MenuItem[] = [];
+        this.listTypeToIcon.forEach((icon, type) => {
+            toAdd.push(this.dropdownNodeBtn(icon, "width: 40px;", type, this.view, this.listTypes, this.changeToNodeType));
+        });
+        //option to remove the list formatting
+        toAdd.push(this.dropdownNodeBtn("X", "width: 40px;", undefined, this.view, this.listTypes, this.changeToNodeType));
+
+        listTypeBtn = (new Dropdown(toAdd, {
+            label: label,
+            css: "color:white; width: 40px;"
+        }) as MenuItem).render(this.view).dom;
+
+        //add this new button and return it
+        this.tooltip.appendChild(listTypeBtn);
+        return listTypeBtn;
     }
 
     //for a specific grouping of marks (passed in), remove all and apply the passed-in one to the selected text
@@ -171,9 +203,18 @@ export class TooltipTextMenu {
         return toggleMark(markType)(view.state, view.dispatch, view);
     }
 
-    //makes a button for the drop down
+    //remove all node typeand apply the passed-in one to the selected text
+    changeToNodeType(nodeType: NodeType | undefined, view: EditorView, allNodes: NodeType[]) {
+        //remove old
+        liftListItem(schema.nodes.list_item)(view.state, view.dispatch);
+        if (nodeType) { //add new
+            wrapInList(nodeType)(view.state, view.dispatch);
+        }
+    }
+
+    //makes a button for the drop down FOR MARKS
     //css is the style you want applied to the button
-    dropdownBtn(label: string, css: string, markType: MarkType, view: EditorView, changeToMarkInGroup: (markType: MarkType<any>, view: EditorView, groupMarks: MarkType[]) => any, groupMarks: MarkType[]) {
+    dropdownMarkBtn(label: string, css: string, markType: MarkType, view: EditorView, changeToMarkInGroup: (markType: MarkType<any>, view: EditorView, groupMarks: MarkType[]) => any, groupMarks: MarkType[]) {
         return new MenuItem({
             title: "",
             label: label,
@@ -186,6 +227,23 @@ export class TooltipTextMenu {
             }
         });
     }
+
+    //makes a button for the drop down FOR NODE TYPES
+    //css is the style you want applied to the button
+    dropdownNodeBtn(label: string, css: string, nodeType: NodeType | undefined, view: EditorView, groupNodes: NodeType[], changeToNodeInGroup: (nodeType: NodeType<any> | undefined, view: EditorView, groupNodes: NodeType[]) => any) {
+        return new MenuItem({
+            title: "",
+            label: label,
+            execEvent: "",
+            class: "menuicon",
+            css: css,
+            enable(state) { return true; },
+            run() {
+                changeToNodeInGroup(nodeType, view, groupNodes);
+            }
+        });
+    }
+
     // Helper function to create menu icons
     icon(text: string, name: string) {
         let span = document.createElement("span");
@@ -262,6 +320,9 @@ export class TooltipTextMenu {
         this.tooltip.style.width = 225 + "px";
         this.tooltip.style.bottom = (box.bottom - start.top) * this.editorProps.ScreenToLocalTransform().Scale + "px";
 
+        //UPDATE LIST ITEM DROPDOWN
+        this.listTypeBtnDom = this.updateListItemDropdown(":", this.listTypeBtnDom);
+
         //UPDATE FONT STYLE DROPDOWN
         let activeStyles = this.activeMarksOnSelection(this.fontStyles);
         if (activeStyles.length === 1) {
@@ -288,7 +349,7 @@ export class TooltipTextMenu {
         }
     }
 
-    //finds all active marks on selection
+    //finds all active marks on selection in given group
     activeMarksOnSelection(markGroup: MarkType[]) {
         //current selection
         let { empty, $cursor, ranges } = this.view.state.selection as TextSelection;
