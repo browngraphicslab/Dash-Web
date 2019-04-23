@@ -37,7 +37,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
     @computed get layout(): string { return Cast(this.props.Document[this.props.layoutKey], "string", "<p>Error loading layout data</p>"); }
 
     CreateBindings(): JsxBindings {
-        let bindings: JsxBindings = { props: OmitKeys(this.props, ['parentActive'], (obj: any) => obj.active = this.props.parentActive) };
+        let bindings: JsxBindings = { props: OmitKeys(this.props, ['parentActive'], (obj: any) => obj.active = this.props.parentActive).omit };
         return bindings;
     }
 

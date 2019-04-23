@@ -71,7 +71,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
 
     @computed
     get docView() {
-        return <DocumentView {...OmitKeys(this.props, ['zoomFade'])}
+        return <DocumentView {...OmitKeys(this.props, ['zoomFade']).omit}
             ContentScaling={this.contentScaling}
             ScreenToLocalTransform={this.getTransform}
             PanelWidth={this.panelWidth}

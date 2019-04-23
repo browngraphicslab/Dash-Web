@@ -86,13 +86,20 @@ export class Utils {
     }
 }
 
-export function OmitKeys(obj: any, keys: any, addKeyFunc?: (dup: any) => void) {
+export function OmitKeys(obj: any, keys: string[], addKeyFunc?: (dup: any) => void): { omit: any, extract: any } {
+    const omit: any = { ...obj };
+    const extract: any = {};
+    keys.forEach(key => {
+        extract[key] = omit[key];
+        delete omit[key];
+    });
+    addKeyFunc && addKeyFunc(omit);
+    return { omit, extract };
+}
+
+export function WithKeys(obj: any, keys: string[], addKeyFunc?: (dup: any) => void) {
     var dup: any = {};
-    for (var key in obj) {
-        if (keys.indexOf(key) === -1) {
-            dup[key] = obj[key];
-        }
-    }
+    keys.forEach(key => dup[key] = obj[key]);
     addKeyFunc && addKeyFunc(dup);
     return dup;
 }

@@ -33,4 +33,4 @@ class ListImpl<T extends Field> extends ObjectField {
     private [Self] = this;
 }
 export type List<T extends Field> = ListImpl<T> & T[];
-export const List: { new <T extends Field>(): List<T> } = ListImpl as any;
+export const List: { new <T extends Field>(fields?: T[]): List<T> } = ListImpl as any;

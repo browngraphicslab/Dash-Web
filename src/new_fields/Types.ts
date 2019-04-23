@@ -68,7 +68,7 @@ export function FieldValue<T extends Field>(field: Opt<T> | Promise<Opt<T>>, def
 }
 
 export interface PromiseLike<T> {
-    then(callback: (field: Opt<T> | PromiseLike<T>) => void): void;
+    then(callback: (field: Opt<T>) => void): void;
 }
 export function PromiseValue<T extends Field>(field: FieldResult<T>): PromiseLike<Opt<T>> {
     return field instanceof Promise ? field : { then(cb: ((field: Opt<T>) => void)) { return cb(field); } };

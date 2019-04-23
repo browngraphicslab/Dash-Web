@@ -4,7 +4,7 @@ import { autoObject, SerializationHelper, Deserializable } from "../client/util/
 import { Utils } from "../Utils";
 import { DocServer } from "../client/DocServer";
 import { setter, getter, getField } from "./util";
-import { Cast, ToConstructor } from "./Types";
+import { Cast, ToConstructor, PromiseValue } from "./Types";
 
 export type FieldId = string;
 export const HandleUpdate = Symbol("HandleUpdate");
@@ -54,7 +54,8 @@ export class Doc extends RefField {
         return doc;
     }
 
-    [key: string]: Field | FieldWaiting | undefined;
+    proto: FieldResult<Doc>;
+    [key: string]: FieldResult;
 
     @serializable(alias("fields", map(autoObject())))
     @observable
@@ -92,6 +93,32 @@ export namespace Doc {
             proto[key] = value;
         }
     }
+    export function assign<K extends string>(doc: Doc, fields: Partial<Record<K, Opt<Field>>>) {
+        for (const key in fields) {
+            if (fields.hasOwnProperty(key)) {
+                const value = fields[key];
+                if (value !== undefined) {
+                    doc[key] = value;
+                }
+            }
+        }
+        return doc;
+    }
+
+    export function MakeAlias(doc: Doc) {
+        const alias = new Doc;
+
+        PromiseValue(Cast(doc.proto, Doc)).then(proto => {
+            if (proto) {
+                alias.proto = proto;
+            }
+        });
+
+        return alias;
+    }
+
+    export function MakeDelegate(doc: Doc): Doc;
+    export function MakeDelegate(doc: Opt<Doc>): Opt<Doc>;
     export function MakeDelegate(doc: Opt<Doc>): Opt<Doc> {
         if (!doc) {
             return undefined;

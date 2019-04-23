@@ -2,6 +2,7 @@ import { UndoManager } from "../client/util/UndoManager";
 import { Update, OnUpdate, Parent, ObjectField, RefField, Doc, Id, Field } from "./Doc";
 import { SerializationHelper } from "../client/util/SerializationHelper";
 import { ProxyField } from "./Proxy";
+import { FieldValue } from "./Types";
 
 export function setter(target: any, prop: string | symbol | number, value: any, receiver: any): boolean {
     if (SerializationHelper.IsSerializing()) {
@@ -61,11 +62,16 @@ export function getField(target: any, prop: string | number, ignoreProto: boolea
         return field.value(callback);
     }
     if (field === undefined && !ignoreProto) {
-        const proto = getField(target, "prototype", true);
+        const proto = getField(target, "proto", true);
         if (proto instanceof Doc) {
             let field = proto[prop];
-            callback && callback(field === null ? undefined : field);
-            return field;
+            if (field instanceof Promise) {
+                callback && field.then(callback);
+                return undefined;
+            } else {
+                callback && callback(field);
+                return field;
+            }
         }
     }
     callback && callback(field);
