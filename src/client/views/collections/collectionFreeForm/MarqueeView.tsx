@@ -69,7 +69,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     }
     @action
     onPointerDown = (e: React.PointerEvent): void => {
-        if ((e.button === 0 && !e.altKey && !e.metaKey && this.props.container.props.active()) ||
+        if ((CollectionFreeFormView.RIGHT_BTN_DRAG && e.button === 0 && !e.altKey && !e.metaKey && this.props.container.props.active()) ||
             (!CollectionFreeFormView.RIGHT_BTN_DRAG && (e.button === 2 || (e.button === 0 && e.altKey)) && this.props.container.props.active())) {
             this._downX = this._lastX = e.pageX;
             this._downY = this._lastY = e.pageY;
