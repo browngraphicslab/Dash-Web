@@ -94,7 +94,6 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
             doc.SetOnPrototype(KeyStore.AnnotationOn, this.props.Document);
         }
         if (!this.createsCycle(doc, this.props.Document)) {
-            doc.SetNumber(KeyStore.ZoomBasis, this.props.Document.GetNumber(KeyStore.Scale, 1));
             let value = this.props.Document.Get(this.props.fieldKey) as ListField<Document>;
             if (value) {
                 if (!value.Data.some(v => v.Id === doc.Id) || allowDuplicates) {
@@ -103,6 +102,9 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
             } else {
                 this.props.Document.Set(this.props.fieldKey, new ListField([doc]));
             }
+            // set the ZoomBasis only if hasn't already been set -- bcz: maybe set/resetting the ZoomBasis should be a parameter to addDocument?
+            doc.GetTAsync(KeyStore.ZoomBasis, NumberField, field => !field &&
+                doc.SetNumber(KeyStore.ZoomBasis, this.props.Document.GetNumber(KeyStore.Scale, 1)));
         }
         return true;
         // bcz: What is this code trying to do?

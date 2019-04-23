@@ -18,6 +18,7 @@ import React = require("react");
 import { CompileScript } from "../util/Scripting";
 import { IconBox } from "./nodes/IconBox";
 import { FieldValue, Field } from "../../fields/Field";
+import { Documents } from "../documents/Documents";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -134,11 +135,12 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     @action
     onBackgroundMove = (e: PointerEvent): void => {
         let dragDocView = SelectionManager.SelectedDocuments()[0];
-        const [left, top] = dragDocView.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
+        const [left, top] = dragDocView.props.ScreenToLocalTransform().scale(dragDocView.props.ContentScaling()).inverse().transformPoint(0, 0);
         let dragData = new DragManager.DocumentDragData(SelectionManager.SelectedDocuments().map(dv => dv.props.Document));
+        const [xoff, yoff] = dragDocView.props.ScreenToLocalTransform().scale(dragDocView.props.ContentScaling()).transformDirection(e.x - left, e.y - top);
+        dragData.xOffset = xoff;
+        dragData.yOffset = yoff;
         dragData.aliasOnDrop = false;
-        dragData.xOffset = e.x - left;
-        dragData.yOffset = e.y - top;
         let move = SelectionManager.SelectedDocuments()[0].props.moveDocument;
         dragData.moveDocument = move;
         this.Interacting = this._dragging = true;
@@ -213,11 +215,38 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             this._minimizedX = snapped ? selDocPos[0] + 4 : e.clientX;
             this._minimizedY = snapped ? selDocPos[1] - 18 : e.clientY;
             let selectedDocs = SelectionManager.SelectedDocuments().map(sd => sd);
-            Promise.all(selectedDocs.map(async selDoc => await selDoc.getIconDoc())).then(minDocSet =>
+            Promise.all(selectedDocs.map(async selDoc => await this.getIconDoc(selDoc))).then(minDocSet =>
                 this.moveIconDocs(SelectionManager.SelectedDocuments())
             );
             this._iconifying = snapped;
         }
+    }
+
+
+    @action createIcon = (docView: DocumentView, layoutString: string): Document => {
+        let doc = docView.props.Document;
+        let iconDoc = Documents.IconDocument(layoutString);
+        iconDoc.SetText(KeyStore.Title, "ICON" + doc.Title)
+        iconDoc.SetBoolean(KeyStore.IsMinimized, false);
+        iconDoc.SetNumber(KeyStore.NativeWidth, 0);
+        iconDoc.SetNumber(KeyStore.NativeHeight, 0);
+        iconDoc.SetNumber(KeyStore.X, doc.GetNumber(KeyStore.X, 0));
+        iconDoc.SetNumber(KeyStore.Y, doc.GetNumber(KeyStore.Y, 0) - 24);
+        iconDoc.Set(KeyStore.Prototype, doc);
+        iconDoc.Set(KeyStore.MaximizedDoc, doc);
+        doc.Set(KeyStore.MinimizedDoc, iconDoc);
+        docView.props.addDocument && docView.props.addDocument(iconDoc, false);
+        return iconDoc;
+    }
+    @action
+    public getIconDoc = async (docView: DocumentView): Promise<Document | undefined> => {
+        let doc = docView.props.Document;
+        return await doc.GetTAsync(KeyStore.MinimizedDoc, Document).then(async mindoc =>
+            mindoc ? mindoc :
+                await doc.GetTAsync(KeyStore.BackgroundLayout, TextField).then(async field =>
+                    (field instanceof TextField) ? this.createIcon(docView, field.Data) :
+                        await doc.GetTAsync(KeyStore.Layout, TextField).then(field =>
+                            (field instanceof TextField) ? this.createIcon(docView, field.Data) : undefined)));
     }
     @action
     onMinimizeUp = (e: PointerEvent): void => {
@@ -226,7 +255,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             document.removeEventListener("pointermove", this.onMinimizeMove);
             document.removeEventListener("pointerup", this.onMinimizeUp);
             let selectedDocs = SelectionManager.SelectedDocuments().map(sd => sd);
-            Promise.all(selectedDocs.map(async selDoc => await selDoc.getIconDoc())).then(minDocSet => {
+            Promise.all(selectedDocs.map(async selDoc => await this.getIconDoc(selDoc))).then(minDocSet => {
                 let minDocs = minDocSet.filter(minDoc => minDoc instanceof Document).map(minDoc => minDoc as Document);
                 minDocs.map(minDoc => {
                     minDoc.SetNumber(KeyStore.X, minDocs[0].GetNumber(KeyStore.X, 0));
@@ -238,7 +267,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     }
                 });
                 runInAction(() => this._minimizedX = this._minimizedY = 0);
-                if (!this._iconifying) selectedDocs[0].toggleIcon();
+                if (!this._iconifying) selectedDocs[0].props.toggleMinimized();
                 this._iconifying = false;
             });
         }

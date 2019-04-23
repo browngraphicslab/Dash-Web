@@ -5,8 +5,6 @@ import { Field, Opt } from "../../../fields/Field";
 import { Key } from "../../../fields/Key";
 import { KeyStore } from "../../../fields/KeyStore";
 import { ListField } from "../../../fields/ListField";
-import { NumberField } from "../../../fields/NumberField";
-import { TextField } from "../../../fields/TextField";
 import { ServerUtils } from "../../../server/ServerUtil";
 import { emptyFunction, Utils } from "../../../Utils";
 import { Documents } from "../../documents/Documents";
@@ -40,6 +38,7 @@ export interface DocumentViewProps {
     selectOnLoad: boolean;
     parentActive: () => boolean;
     whenActiveChanged: (isActive: boolean) => void;
+    toggleMinimized: () => void;
 }
 export interface JsxArgs extends DocumentViewProps {
     Keys: { [name: string]: Key };
@@ -83,7 +82,6 @@ export function FakeJsxArgs(keys: string[], fields: string[] = []): JsxArgs {
 
 @observer
 export class DocumentView extends React.Component<DocumentViewProps> {
-    static _incompleteAnimations: Map<string, boolean> = new Map<string, boolean>();
     private _downX: number = 0;
     private _downY: number = 0;
     private _mainCont = React.createRef<HTMLDivElement>();
@@ -96,42 +94,16 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     @computed get layoutKeys(): Key[] { return this.props.Document.GetData(KeyStore.LayoutKeys, ListField, new Array<Key>()); }
     @computed get layoutFields(): Key[] { return this.props.Document.GetData(KeyStore.LayoutFields, ListField, new Array<Key>()); }
 
-    onPointerDown = (e: React.PointerEvent): void => {
-        this._downX = e.clientX;
-        this._downY = e.clientY;
-        if (CollectionFreeFormView.RIGHT_BTN_DRAG && (e.button === 2 || (e.button === 0 && e.altKey)) && !this.isSelected()) {
-            return;
-        }
-        if (e.shiftKey && e.buttons === 2) {
-            if (this.props.isTopMost) {
-                this.startDragging(e.pageX, e.pageY, e.altKey || e.ctrlKey);
-            } else {
-                CollectionDockingView.Instance.StartOtherDrag([this.props.Document], e);
-            }
-            e.stopPropagation();
-        } else {
-            let maxdoc = this.props.Document.GetT(KeyStore.MaximizedDoc, Document);
-            if (this.active ||
-                maxdoc instanceof Document // bcz: need a better way of allowing a document to handle pointer events when its not active (ie. be a top-level widget)
-            ) {
-                e.stopPropagation();
-                document.removeEventListener("pointermove", this.onPointerMove);
-                document.addEventListener("pointermove", this.onPointerMove);
-                document.removeEventListener("pointerup", this.onPointerUp);
-                document.addEventListener("pointerup", this.onPointerUp);
-            }
-        }
-    }
-
+    @action
     componentDidMount() {
         if (this._mainCont.current) {
             this._dropDisposer = DragManager.MakeDropTarget(this._mainCont.current, {
                 handlers: { drop: this.drop.bind(this) }
             });
         }
-        runInAction(() => DocumentManager.Instance.DocumentViews.push(this));
+        DocumentManager.Instance.DocumentViews.push(this);
     }
-
+    @action
     componentDidUpdate() {
         if (this._dropDisposer) {
             this._dropDisposer();
@@ -142,12 +114,16 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             });
         }
     }
-
+    @action
     componentWillUnmount() {
         if (this._dropDisposer) {
             this._dropDisposer();
         }
-        runInAction(() => DocumentManager.Instance.DocumentViews.splice(DocumentManager.Instance.DocumentViews.indexOf(this), 1));
+        DocumentManager.Instance.DocumentViews.splice(DocumentManager.Instance.DocumentViews.indexOf(this), 1);
+    }
+
+    stopPropagation = (e: React.SyntheticEvent) => {
+        e.stopPropagation();
     }
 
     startDragging(x: number, y: number, dropAliasOfDraggedDoc: boolean) {
@@ -168,43 +144,51 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         }
     }
 
-    onPointerMove = (e: PointerEvent): void => {
-        if (e.cancelBubble) {
+    onPointerDown = (e: React.PointerEvent): void => {
+        this._downX = e.clientX;
+        this._downY = e.clientY;
+        if (CollectionFreeFormView.RIGHT_BTN_DRAG && (e.button === 2 || (e.button === 0 && e.altKey)) && !this.isSelected()) {
             return;
         }
-        if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3) {
-            document.removeEventListener("pointermove", this.onPointerMove);
-            document.removeEventListener("pointerup", this.onPointerUp);
-            if (!e.altKey && (!this.topMost || e.buttons === 2)) {
-                this.startDragging(this._downX, this._downY, e.ctrlKey || e.altKey);
+        if (e.shiftKey && e.buttons === 2) {
+            if (this.props.isTopMost) {
+                this.startDragging(e.pageX, e.pageY, e.altKey || e.ctrlKey);
+            } else {
+                CollectionDockingView.Instance.StartOtherDrag([this.props.Document], e);
             }
+            e.stopPropagation();
+        } else if (this.active) {
+            document.removeEventListener("pointermove", this.onPointerMove);
+            document.addEventListener("pointermove", this.onPointerMove);
+            document.removeEventListener("pointerup", this.onPointerUp);
+            document.addEventListener("pointerup", this.onPointerUp);
         }
-        e.stopPropagation();
-        e.preventDefault();
+    }
+    onPointerMove = (e: PointerEvent): void => {
+        if (!e.cancelBubble) {
+            if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3) {
+                document.removeEventListener("pointermove", this.onPointerMove);
+                document.removeEventListener("pointerup", this.onPointerUp);
+                if (!e.altKey && (!this.topMost || e.buttons === 2)) {
+                    this.startDragging(this._downX, this._downY, e.ctrlKey || e.altKey);
+                }
+            }
+            e.stopPropagation();
+            e.preventDefault();
+        }
     }
     onPointerUp = (e: PointerEvent): void => {
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
-        e.stopPropagation();
         if (!SelectionManager.IsSelected(this) && e.button !== 2 &&
             Math.abs(e.clientX - this._downX) < 4 && Math.abs(e.clientY - this._downY) < 4) {
-            this.props.Document.GetTAsync(KeyStore.MaximizedDoc, Document).then(maxdoc => {
-                if (maxdoc instanceof Document) {   // bcz: need a better way to associate behaviors with click events on widget-documents
-                    this.props.addDocument && this.props.addDocument(maxdoc, false);
-                    this.toggleIcon();
-                } else
-                    SelectionManager.SelectDoc(this, e.ctrlKey);
-            });
+            SelectionManager.SelectDoc(this, e.ctrlKey);
         }
-    }
-    stopPropagation = (e: React.SyntheticEvent) => {
-        e.stopPropagation();
     }
 
     deleteClicked = (): void => {
         this.props.removeDocument && this.props.removeDocument(this.props.Document);
     }
-
     fieldsClicked = (e: React.MouseEvent): void => {
         let kvp = Documents.KVPDocument(this.props.Document, { width: 300, height: 300 });
         CollectionDockingView.Instance.AddRightSplit(kvp);
@@ -215,98 +199,11 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         ContextMenu.Instance.addItem({ description: "Close Full Screen", event: this.closeFullScreenClicked });
         ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15);
     }
-
     closeFullScreenClicked = (e: React.MouseEvent): void => {
         CollectionDockingView.Instance.CloseFullScreen();
         ContextMenu.Instance.clearItems();
         ContextMenu.Instance.addItem({ description: "Full Screen", event: this.fullScreenClicked });
         ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15);
-    }
-
-    @action createIcon = (layoutString: string): Document => {
-        let iconDoc = Documents.IconDocument(layoutString);
-        iconDoc.SetText(KeyStore.Title, "ICON" + this.props.Document.Title)
-        iconDoc.SetBoolean(KeyStore.IsMinimized, false);
-        iconDoc.SetNumber(KeyStore.NativeWidth, 0);
-        iconDoc.SetNumber(KeyStore.NativeHeight, 0);
-        iconDoc.SetNumber(KeyStore.X, this.props.Document.GetNumber(KeyStore.X, 0));
-        iconDoc.SetNumber(KeyStore.Y, this.props.Document.GetNumber(KeyStore.Y, 0) - 24);
-        iconDoc.Set(KeyStore.Prototype, this.props.Document);
-        iconDoc.Set(KeyStore.MaximizedDoc, this.props.Document);
-        this.props.Document.Set(KeyStore.MinimizedDoc, iconDoc);
-        this.props.addDocument && this.props.addDocument(iconDoc, false);
-        return iconDoc;
-    }
-
-    animateBetweenIcon(icon: number[], targ: number[], width: number, height: number, stime: number, target: Document, maximizing: boolean) {
-        setTimeout(() => {
-            let now = Date.now();
-            let progress = Math.min(1, (now - stime) / 200);
-            let pval = maximizing ?
-                [icon[0] + (targ[0] - icon[0]) * progress, icon[1] + (targ[1] - icon[1]) * progress] :
-                [targ[0] + (icon[0] - targ[0]) * progress, targ[1] + (icon[1] - targ[1]) * progress];
-            target.SetNumber(KeyStore.Width, maximizing ? 25 + (width - 25) * progress : width + (25 - width) * progress);
-            target.SetNumber(KeyStore.Height, maximizing ? 25 + (height - 25) * progress : height + (25 - height) * progress);
-            target.SetNumber(KeyStore.X, pval[0]);
-            target.SetNumber(KeyStore.Y, pval[1]);
-            if (now < stime + 200) {
-                this.animateBetweenIcon(icon, targ, width, height, stime, target, maximizing);
-            }
-            else {
-                if (!maximizing) {
-                    target.SetBoolean(KeyStore.IsMinimized, true);
-                    target.SetNumber(KeyStore.X, targ[0]);
-                    target.SetNumber(KeyStore.Y, targ[1]);
-                    target.SetNumber(KeyStore.Width, width);
-                    target.SetNumber(KeyStore.Height, height);
-                }
-                DocumentView._incompleteAnimations.set(target.Id, false);
-            }
-        },
-            2);
-    }
-
-    @action
-    public toggleIcon = async (): Promise<void> => {
-        SelectionManager.DeselectAll();
-        let isMinimized: boolean | undefined;
-        let minDoc = await this.props.Document.GetTAsync(KeyStore.MinimizedDoc, Document);
-        if (!minDoc) return;
-        let minimizedDocSet = await minDoc.GetTAsync(KeyStore.LinkTags, ListField);
-        if (!minimizedDocSet) return;
-        minimizedDocSet.Data.map(async minimizedDoc => {
-            if (minimizedDoc instanceof Document) {
-                this.props.addDocument && this.props.addDocument(minimizedDoc, false);
-                let maximizedDoc = await minimizedDoc.GetTAsync(KeyStore.MaximizedDoc, Document);
-                if (maximizedDoc instanceof Document && !DocumentView._incompleteAnimations.get(maximizedDoc.Id)) {
-                    DocumentView._incompleteAnimations.set(maximizedDoc.Id, true);
-                    isMinimized = isMinimized === undefined ? maximizedDoc.GetBoolean(KeyStore.IsMinimized, false) : isMinimized;
-                    maximizedDoc.SetBoolean(KeyStore.IsMinimized, false);
-                    let minx = await minimizedDoc.GetTAsync(KeyStore.X, NumberField);
-                    let miny = await minimizedDoc.GetTAsync(KeyStore.Y, NumberField);
-                    let maxx = await maximizedDoc.GetTAsync(KeyStore.X, NumberField);
-                    let maxy = await maximizedDoc.GetTAsync(KeyStore.Y, NumberField);
-                    let maxw = await maximizedDoc.GetTAsync(KeyStore.Width, NumberField);
-                    let maxh = await maximizedDoc.GetTAsync(KeyStore.Height, NumberField);
-                    if (minx !== undefined && miny !== undefined && maxx !== undefined && maxy !== undefined &&
-                        maxw !== undefined && maxh !== undefined)
-                        this.animateBetweenIcon(
-                            [minx.Data, miny.Data], [maxx.Data, maxy.Data], maxw.Data, maxh.Data,
-                            Date.now(), maximizedDoc, isMinimized);
-                }
-
-            }
-        })
-    }
-
-    @action
-    public getIconDoc = async (): Promise<Document | undefined> => {
-        return await this.props.Document.GetTAsync(KeyStore.MinimizedDoc, Document).then(async mindoc =>
-            mindoc ? mindoc :
-                await this.props.Document.GetTAsync(KeyStore.BackgroundLayout, TextField).then(async field =>
-                    (field instanceof TextField) ? this.createIcon(field.Data) :
-                        await this.props.Document.GetTAsync(KeyStore.Layout, TextField).then(field =>
-                            (field instanceof TextField) ? this.createIcon(field.Data) : undefined)));
     }
 
     @undoBatch
@@ -353,6 +250,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         }
     }
 
+    @action
     onDrop = (e: React.DragEvent) => {
         let text = e.dataTransfer.getData("text/plain");
         if (!e.isDefaultPrevented() && text && text.startsWith("<div")) {
@@ -389,11 +287,9 @@ export class DocumentView extends React.Component<DocumentViewProps> {
 
     isSelected = () => SelectionManager.IsSelected(this);
     select = (ctrlPressed: boolean) => SelectionManager.SelectDoc(this, ctrlPressed);
-
     @computed get nativeWidth() { return this.props.Document.GetNumber(KeyStore.NativeWidth, 0); }
     @computed get nativeHeight() { return this.props.Document.GetNumber(KeyStore.NativeHeight, 0); }
     @computed get contents() { return (<DocumentContentsView {...this.props} isSelected={this.isSelected} select={this.select} layoutKey={KeyStore.Layout} />); }
-
 
     render() {
         var scaling = this.props.ContentScaling();

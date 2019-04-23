@@ -187,6 +187,7 @@ export class Main extends React.Component {
                 <div ref={measureRef} id="mainContent-div">
                     {!mainCont ? (null) :
                         <DocumentView Document={mainCont}
+                            toggleMinimized={emptyFunction}
                             addDocument={undefined}
                             removeDocument={undefined}
                             ScreenToLocalTransform={Transform.Identity}

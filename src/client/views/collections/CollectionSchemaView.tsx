@@ -62,7 +62,7 @@ export class CollectionSchemaView extends CollectionSubView {
 
     @computed get splitPercentage() { return this.props.Document.GetNumber(KeyStore.SchemaSplitPercentage, 0); }
     @computed get columns() { return this.props.Document.GetList(KeyStore.ColumnsKey, [] as Key[]); }
-    @computed get borderWidth() { return COLLECTION_BORDER_WIDTH; }
+    @computed get borderWidth() { return Number(COLLECTION_BORDER_WIDTH); }
 
     renderCell = (rowProps: CellInfo) => {
         let props: FieldViewProps = {
@@ -266,6 +266,7 @@ export class CollectionSchemaView extends CollectionSubView {
             <div className="collectionSchemaView-previewRegion" style={{ width: `${this.previewRegionWidth}px` }}>
                 <div className="collectionSchemaView-previewDoc" style={{ transform: `translate(${this.previewPanelCenteringOffset}px, 0px)` }}>
                     <DocumentView Document={this.previewDocument} isTopMost={false} selectOnLoad={false}
+                        toggleMinimized={emptyFunction}
                         addDocument={this.props.addDocument} removeDocument={this.props.removeDocument}
                         ScreenToLocalTransform={this.getPreviewTransform}
                         ContentScaling={this.previewContentScaling}

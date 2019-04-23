@@ -247,6 +247,7 @@ export class CollectionFreeFormView extends CollectionSubView {
     getDocumentViewProps(document: Document): DocumentViewProps {
         return {
             Document: document,
+            toggleMinimized: emptyFunction,
             addDocument: this.props.addDocument,
             removeDocument: this.props.removeDocument,
             moveDocument: this.props.moveDocument,

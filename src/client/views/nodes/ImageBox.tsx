@@ -16,7 +16,7 @@ import { FieldView, FieldViewProps } from './FieldView';
 import "./ImageBox.scss";
 import React = require("react");
 import { InkingControl } from '../InkingControl';
-import { InkTool } from '../../../fields/InkField';
+import { NumberField } from '../../../fields/NumberField';
 
 @observer
 export class ImageBox extends React.Component<FieldViewProps> {
@@ -42,7 +42,8 @@ export class ImageBox extends React.Component<FieldViewProps> {
         var w = this._imgRef.current!.naturalWidth;
         if (this._photoIndex === 0) {
             this.props.Document.SetNumber(KeyStore.NativeHeight, this.props.Document.GetNumber(KeyStore.NativeWidth, 0) * h / w);
-            this.props.Document.SetNumber(KeyStore.Height, this.props.Document.Width() * h / w);
+            this.props.Document.GetTAsync(KeyStore.Width, NumberField, field =>
+                field && this.props.Document.SetNumber(KeyStore.Height, field.Data * h / w));
         }
     }
 
