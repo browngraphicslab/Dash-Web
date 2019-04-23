@@ -99,11 +99,7 @@ export class TooltipTextMenu {
 
         this.addFontDropdowns();
 
-        let target = "https://www.google.com";
-
         this.link = document.createElement("a");
-        this.link.href = target;
-        this.link.textContent = target;
         this.link.target = "_blank";
         this.link.style.color = "white";
         this.tooltip.appendChild(this.link);
