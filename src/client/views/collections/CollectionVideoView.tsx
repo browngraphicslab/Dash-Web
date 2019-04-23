@@ -37,10 +37,13 @@ export class CollectionVideoView extends React.Component<FieldViewProps> {
         ]);
     }
 
+    _ele: HTMLDivElement | null = null;
     @action
     mainCont = (ele: HTMLDivElement | null) => {
+        this._ele = ele;
         if (ele) {
             this._player = ele.getElementsByTagName("video")[0];
+            console.log(this._player);
             if (this.props.Document.GetNumber(KeyStore.CurPage, -1) >= 0) {
                 this._currentTimecode = this.props.Document.GetNumber(KeyStore.CurPage, -1);
             }
@@ -57,9 +60,12 @@ export class CollectionVideoView extends React.Component<FieldViewProps> {
 
     @action
     updateTimecode = () => {
+        this._player = this._player ? this._player : this._ele ? this._ele.getElementsByTagName("video")[0] : undefined;
         if (this._player) {
-            if ((this._player as any).AHackBecauseSomethingResetsTheVideoToZero !== -1) {
-                this._player.currentTime = (this._player as any).AHackBecauseSomethingResetsTheVideoToZero;
+            let timecode = (this._player as any).hasOwnProperty("AHackBecauseSomethingResetsTheVideoToZero") ?
+                (this._player as any).AHackBecauseSomethingResetsTheVideoToZero : -1;
+            if (timecode !== -1 && Object) {
+                this._player.currentTime = timecode;
                 (this._player as any).AHackBecauseSomethingResetsTheVideoToZero = -1;
             } else {
                 this._currentTimecode = this._player.currentTime;
