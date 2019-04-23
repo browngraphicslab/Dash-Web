@@ -33,8 +33,8 @@ export class ObjectField {
 
 export type Field = number | string | boolean | ObjectField | RefField;
 export type Opt<T> = T | undefined;
-export type FieldWaiting<T extends Field = Field> = Promise<T | undefined>;
-export type FieldResult<T extends Field = Field> = Opt<T> | FieldWaiting<T>;
+export type FieldWaiting<T extends RefField = RefField> = T extends undefined ? never : Promise<T | undefined>;
+export type FieldResult<T extends Field = Field> = Opt<T> | FieldWaiting<Extract<T, RefField>>;
 
 export const Self = Symbol("Self");
 
@@ -58,7 +58,8 @@ export class Doc extends RefField {
 
     @serializable(alias("fields", map(autoObject())))
     @observable
-    private __fields: { [key: string]: Field | FieldWaiting | undefined } = {};
+    //{ [key: string]: Field | FieldWaiting | undefined }
+    private __fields: any = {};
 
     private [Update] = (diff: any) => {
         DocServer.UpdateField(this[Id], diff);
@@ -86,7 +87,7 @@ export namespace Doc {
         return Cast(Get(doc, key, ignoreProto), ctor) as T | null | undefined;
     }
     export async function SetOnPrototype(doc: Doc, key: string, value: Field) {
-        const proto = await Cast(doc.prototype, Doc);
+        const proto = await Cast(doc.proto, Doc);
         if (proto) {
             proto[key] = value;
         }
@@ -97,7 +98,7 @@ export namespace Doc {
         }
         const delegate = new Doc();
         //TODO Does this need to be doc[Self]?
-        delegate.prototype = doc;
+        delegate.proto = doc;
         return delegate;
     }
     export const Prototype = Symbol("Prototype");

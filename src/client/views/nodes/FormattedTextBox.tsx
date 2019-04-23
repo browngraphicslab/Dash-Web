@@ -4,11 +4,6 @@ import { history } from "prosemirror-history";
 import { keymap } from "prosemirror-keymap";
 import { EditorState, Plugin, Transaction } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
-import { FieldWaiting, Opt } from "../../../fields/Field";
-import { KeyStore } from "../../../fields/KeyStore";
-import { RichTextField } from "../../../fields/RichTextField";
-import { TextField } from "../../../fields/TextField";
-import { Document } from "../../../fields/Document";
 import buildKeymap from "../../util/ProsemirrorKeymap";
 import { inpRules } from "../../util/RichTextRules";
 import { schema } from "../../util/RichTextSchema";
@@ -20,6 +15,9 @@ import { FieldView, FieldViewProps } from "./FieldView";
 import "./FormattedTextBox.scss";
 import React = require("react");
 import { SelectionManager } from "../../util/SelectionManager";
+import { DocComponent } from "../DocComponent";
+import { createSchema, makeInterface } from "../../../new_fields/Schema";
+import { Opt, Doc } from "../../../new_fields/Doc";
 const { buildMenuItems } = require("prosemirror-example-setup");
 const { menuBar } = require("prosemirror-menu");
 
@@ -44,7 +42,14 @@ export interface FormattedTextBoxOverlay {
     isOverlay?: boolean;
 }
 
-export class FormattedTextBox extends React.Component<(FieldViewProps & FormattedTextBoxOverlay)> {
+const richTextSchema = createSchema({
+    documentText: "string"
+});
+
+type RichTextDocument = makeInterface<[typeof richTextSchema]>;
+const RichTextDocument = makeInterface(richTextSchema);
+
+export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTextBoxOverlay), RichTextDocument>(RichTextDocument) {
     public static LayoutString(fieldStr: string = "DataKey") {
         return FieldView.LayoutString(FormattedTextBox, fieldStr);
     }
@@ -59,7 +64,6 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
         super(props);
 
         this._ref = React.createRef();
-        this.onChange = this.onChange.bind(this);
     }
 
     _applyingChange: boolean = false;
@@ -74,7 +78,7 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
                 JSON.stringify(state.toJSON()),
                 RichTextField
             );
-            this.props.Document.SetDataOnPrototype(KeyStore.DocumentText, state.doc.textBetween(0, state.doc.content.size, "\n\n"), TextField);
+            Doc.SetOnPrototype(this.props.Document, "documentText", state.doc.textBetween(0, state.doc.content.size, "\n\n"));
             this._applyingChange = false;
             // doc.SetData(fieldKey, JSON.stringify(state.toJSON()), RichTextField);
         }
@@ -166,12 +170,6 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
         }
     }
 
-    @action
-    onChange(e: React.ChangeEvent<HTMLInputElement>) {
-        const { fieldKey, Document } = this.props;
-        Document.SetOnPrototype(fieldKey, new RichTextField(e.target.value));
-        // doc.SetData(fieldKey, e.target.value, RichTextField);
-    }
     onPointerDown = (e: React.PointerEvent): void => {
         if (e.button === 1 && this.props.isSelected() && !e.altKey && !e.ctrlKey && !e.metaKey) {
             console.log("first");
@@ -252,7 +250,7 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
     }
 
     onKeyPress(e: React.KeyboardEvent) {
-        if (e.key == "Escape") {
+        if (e.key === "Escape") {
             SelectionManager.DeselectAll();
         }
         e.stopPropagation();

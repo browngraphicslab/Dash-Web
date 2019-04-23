@@ -18,9 +18,20 @@ import "./DocumentView.scss";
 import React = require("react");
 import { Field, Opt, Doc, Id } from "../../../new_fields/Doc";
 import { DocComponent } from "../DocComponent";
-import { createSchema, makeInterface } from "../../../new_fields/Schema";
-import { FieldValue } from "../../../new_fields/Types";
+import { createSchema, makeInterface, listSpec } from "../../../new_fields/Schema";
+import { FieldValue, Cast, PromiseValue } from "../../../new_fields/Types";
+import { List } from "../../../new_fields/List";
 
+const linkSchema = createSchema({
+    title: "string",
+    linkDescription: "string",
+    linkTags: "string",
+    linkedTo: Doc,
+    linkedFrom: Doc
+});
+
+type LinkDoc = makeInterface<[typeof linkSchema]>;
+const LinkDoc = makeInterface(linkSchema);
 
 export interface DocumentViewProps {
     ContainingCollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
@@ -157,16 +168,14 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         e.stopPropagation();
         if (!SelectionManager.IsSelected(this) && e.button !== 2) {
             if (Math.abs(e.clientX - this._downX) < 4 && Math.abs(e.clientY - this._downY) < 4) {
-                if (this.props.Document.Get(KeyStore.MaximizedDoc) instanceof Document) {
-                    this.props.Document.GetAsync(KeyStore.MaximizedDoc, maxdoc => {
-                        if (maxdoc instanceof Document) {
-                            this.props.addDocument && this.props.addDocument(maxdoc, false);
-                            this.toggleMinimize(maxdoc, this.props.Document);
-                        }
-                    });
-                } else {
-                    SelectionManager.SelectDoc(this, e.ctrlKey);
-                }
+                PromiseValue(Cast(this.props.Document.maximizedDoc, Doc)).then(maxdoc => {
+                    if (maxdoc instanceof Doc) {
+                        this.props.addDocument && this.props.addDocument(maxdoc, false);
+                        this.toggleMinimize(maxdoc, this.props.Document);
+                    } else {
+                        SelectionManager.SelectDoc(this, e.ctrlKey);
+                    }
+                });
             }
         }
     }
@@ -184,7 +193,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
     }
     fullScreenClicked = (e: React.MouseEvent): void => {
-        CollectionDockingView.Instance.OpenFullScreen(Doc.MakeDelegate(this.Document.prototype));
+        const doc = Doc.MakeDelegate(FieldValue(this.Document.proto));
+        if (doc) {
+            CollectionDockingView.Instance.OpenFullScreen(doc);
+        }
         ContextMenu.Instance.clearItems();
         ContextMenu.Instance.addItem({ description: "Close Full Screen", event: this.closeFullScreenClicked });
         ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15);
@@ -197,39 +209,39 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15);
     }
 
-    @action createIcon = (layoutString: string): Document => {
-        let iconDoc = Documents.IconDocument(layoutString);
-        iconDoc.SetBoolean(KeyStore.IsMinimized, false);
-        iconDoc.SetNumber(KeyStore.NativeWidth, 0);
-        iconDoc.SetNumber(KeyStore.NativeHeight, 0);
-        iconDoc.Set(KeyStore.Prototype, this.props.Document);
-        iconDoc.Set(KeyStore.MaximizedDoc, this.props.Document);
-        this.props.Document.Set(KeyStore.MinimizedDoc, iconDoc);
+    @action createIcon = (layoutString: string): Doc => {
+        let iconDoc: Doc = Documents.IconDocument(layoutString);
+        iconDoc.isMinimized = false;
+        iconDoc.nativeWidth = 0;
+        iconDoc.nativeHeight = 0;
+        iconDoc.proto = this.props.Document;
+        iconDoc.maximizedDoc = this.props.Document;
+        this.Document.minimizedDoc = iconDoc;
         this.props.addDocument && this.props.addDocument(iconDoc, false);
         return iconDoc;
     }
 
-    animateTransition(icon: number[], targ: number[], width: number, height: number, stime: number, target: Document, maximizing: boolean) {
+    animateTransition(icon: number[], targ: number[], width: number, height: number, stime: number, target: Doc, maximizing: boolean) {
         setTimeout(() => {
             let now = Date.now();
             let progress = Math.min(1, (now - stime) / 200);
             let pval = maximizing ?
                 [icon[0] + (targ[0] - icon[0]) * progress, icon[1] + (targ[1] - icon[1]) * progress] :
                 [targ[0] + (icon[0] - targ[0]) * progress, targ[1] + (icon[1] - targ[1]) * progress];
-            target.SetNumber(KeyStore.Width, maximizing ? 25 + (width - 25) * progress : width + (25 - width) * progress);
-            target.SetNumber(KeyStore.Height, maximizing ? 25 + (height - 25) * progress : height + (25 - height) * progress);
-            target.SetNumber(KeyStore.X, pval[0]);
-            target.SetNumber(KeyStore.Y, pval[1]);
+            target.width = maximizing ? 25 + (width - 25) * progress : width + (25 - width) * progress;
+            target.height = maximizing ? 25 + (height - 25) * progress : height + (25 - height) * progress;
+            target.x = pval[0];
+            target.y = pval[1];
             if (now < stime + 200) {
                 this.animateTransition(icon, targ, width, height, stime, target, maximizing);
             }
             else {
                 if (!maximizing) {
-                    target.SetBoolean(KeyStore.IsMinimized, true);
-                    target.SetNumber(KeyStore.X, targ[0]);
-                    target.SetNumber(KeyStore.Y, targ[1]);
-                    target.SetNumber(KeyStore.Width, width);
-                    target.SetNumber(KeyStore.Height, height);
+                    target.isMinimized = true;
+                    target.x = targ[0];
+                    target.y = targ[1];
+                    target.width = width;
+                    target.height = height;
                 }
                 this._completed = true;
             }
@@ -240,83 +252,71 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     _completed = true;
 
     @action
-    public toggleMinimize = (maximized: Document, minim: Document): void => {
+    public toggleMinimize = (maximized: Doc, minim: Doc): void => {
         SelectionManager.DeselectAll();
-        if (maximized instanceof Document && this._completed) {
+        if (this._completed) {
             this._completed = false;
-            let minimized = maximized.GetBoolean(KeyStore.IsMinimized, false);
-            maximized.SetBoolean(KeyStore.IsMinimized, false);
+            let minimized = Cast(maximized.isMinimized, "boolean", false);
+            maximized.isMinimized = false;
             this.animateTransition(
-                [minim.GetNumber(KeyStore.X, 0), minim.GetNumber(KeyStore.Y, 0)],
-                [maximized.GetNumber(KeyStore.X, 0), maximized.GetNumber(KeyStore.Y, 0)],
-                maximized.GetNumber(KeyStore.Width, 0), maximized.GetNumber(KeyStore.Height, 0),
+                [Cast(minim.x, "number", 0), Cast(minim.y, "number", 0)],
+                [Cast(maximized.x, "number", 0), Cast(maximized.y, "number", 0)],
+                Cast(maximized.width, "number", 0), Cast(maximized.width, "number", 0),
                 Date.now(), maximized, minimized);
         }
     }
 
     @action
-    public minimize = (): void => {
-        this.props.Document.GetAsync(KeyStore.MinimizedDoc, mindoc => {
-            if (mindoc === undefined) {
-                this.props.Document.GetAsync(KeyStore.BackgroundLayout, field => {
-                    if (field instanceof TextField) {
-                        this.toggleMinimize(this.props.Document, this.createIcon(field.Data));
-                    }
-                    else this.props.Document.GetAsync(KeyStore.Layout, field => {
-                        if (field instanceof TextField) {
-                            this.createIcon(field.Data);
-                            this.toggleMinimize(this.props.Document, this.createIcon(field.Data));
-                        }
-                    });
-                });
+    public minimize = async (): Promise<void> => {
+        const mindoc = await Cast(this.props.Document.minimizedDoc, Doc);
+        if (mindoc === undefined) {
+            const background = await Cast(this.props.Document.backgroundLayout, "string");
+            if (background === undefined) {
+                const layout = await Cast(this.props.Document.layout, "string");
+                if (layout) {
+                    this.createIcon(layout);
+                    this.toggleMinimize(this.props.Document, this.createIcon(layout));
+                }
+            } else {
+                this.toggleMinimize(this.props.Document, this.createIcon(background));
             }
-            else if (mindoc instanceof Document) {
-                this.props.addDocument && this.props.addDocument(mindoc, false);
-                this.toggleMinimize(this.props.Document, mindoc);
-            }
-        });
+        } else {
+            this.props.addDocument && this.props.addDocument(mindoc, false);
+            this.toggleMinimize(this.props.Document, mindoc);
+        }
     }
 
     @undoBatch
     @action
-    drop = (e: Event, de: DragManager.DropEvent) => {
+    drop = async (e: Event, de: DragManager.DropEvent) => {
         if (de.data instanceof DragManager.LinkDragData) {
-            let sourceDoc: Document = de.data.linkSourceDocument;
-            let destDoc: Document = this.props.Document;
-            let linkDoc: Document = new Document();
+            let sourceDoc: Doc = de.data.linkSourceDocument;
+            let destDoc: Doc = this.props.Document;
+            let linkDoc = LinkDoc();
 
-            destDoc.GetTAsync(KeyStore.Prototype, Document).then(protoDest =>
-                sourceDoc.GetTAsync(KeyStore.Prototype, Document).then(protoSrc =>
-                    runInAction(() => {
-                        let batch = UndoManager.StartBatch("document view drop");
-                        linkDoc.SetText(KeyStore.Title, "New Link");
-                        linkDoc.SetText(KeyStore.LinkDescription, "");
-                        linkDoc.SetText(KeyStore.LinkTags, "Default");
+            const protoDest = await Cast(destDoc.proto, Doc);
+            const protoSrc = await Cast(sourceDoc.proto, Doc);
+            UndoManager.RunInBatch(() => {
+                linkDoc.title = "New Link";
+                linkDoc.linkDescription = "";
+                linkDoc.linkTags = "Default";
 
-                        let dstTarg = protoDest ? protoDest : destDoc;
-                        let srcTarg = protoSrc ? protoSrc : sourceDoc;
-                        linkDoc.Set(KeyStore.LinkedToDocs, dstTarg);
-                        linkDoc.Set(KeyStore.LinkedFromDocs, srcTarg);
-                        const prom1 = new Promise(resolve => dstTarg.GetOrCreateAsync(
-                            KeyStore.LinkedFromDocs,
-                            ListField,
-                            field => {
-                                (field as ListField<Document>).Data.push(linkDoc);
-                                resolve();
-                            }
-                        ));
-                        const prom2 = new Promise(resolve => srcTarg.GetOrCreateAsync(
-                            KeyStore.LinkedToDocs,
-                            ListField,
-                            field => {
-                                (field as ListField<Document>).Data.push(linkDoc);
-                                resolve();
-                            }
-                        ));
-                        Promise.all([prom1, prom2]).finally(() => batch.end());
-                    })
-                )
-            );
+                let dstTarg = protoDest ? protoDest : destDoc;
+                let srcTarg = protoSrc ? protoSrc : sourceDoc;
+                linkDoc.linkedTo = dstTarg;
+                linkDoc.linkedFrom = srcTarg;
+                let linkedFrom = Cast(dstTarg.linkedFrom, listSpec(Doc));
+                if (!linkedFrom) {
+                    dstTarg.linkedFrom = linkedFrom = new List<Doc>();
+                }
+                linkedFrom.push(linkDoc);
+
+                let linkedTo = Cast(srcTarg.linkedTo, listSpec(Doc));
+                if (!linkedTo) {
+                    srcTarg.linkedTo = linkedTo = new List<Doc>();
+                }
+                linkedTo.push(linkDoc);
+            }, "document view drop");
             e.stopPropagation();
         }
     }
@@ -361,7 +361,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     @computed get nativeWidth() { return FieldValue(this.Document.nativeWidth) || 0; }
     @computed get nativeHeight() { return FieldValue(this.Document.nativeHeight) || 0; }
-    @computed get contents() { return (<DocumentContentsView {...this.props} isSelected={this.isSelected} select={this.select} layoutKey={KeyStore.Layout} />); }
+    @computed get contents() { return (<DocumentContentsView {...this.props} isSelected={this.isSelected} select={this.select} layoutKey={"layout"} />); }
 
 
     render() {

@@ -1,4 +1,4 @@
-import { Field, Opt, FieldWaiting, FieldResult } from "./Doc";
+import { Field, Opt, FieldWaiting, FieldResult, RefField } from "./Doc";
 import { List } from "./List";
 
 export type ToType<T extends ToConstructor<Field> | ListSpec<Field>> =
@@ -18,7 +18,7 @@ export type ToConstructor<T extends Field> =
     new (...args: any[]) => T;
 
 export type ToInterface<T extends Interface> = {
-    [P in keyof T]: ToType<T[P]>;
+    [P in keyof T]: FieldResult<ToType<T[P]>>;
 };
 
 // type ListSpec<T extends Field[]> = { List: ToContructor<Head<T>> | ListSpec<Tail<T>> };
@@ -37,11 +37,11 @@ export interface Interface {
     // [key: string]: ToConstructor<Field> | ListSpec<Field[]>;
 }
 
-export function Cast<T extends ToConstructor<Field> | ListSpec<Field>>(field: Field | FieldWaiting | undefined, ctor: T): FieldResult<ToType<T>>;
-export function Cast<T extends ToConstructor<Field> | ListSpec<Field>>(field: Field | FieldWaiting | undefined, ctor: T, defaultVal: ToType<T>): ToType<T>;
-export function Cast<T extends ToConstructor<Field> | ListSpec<Field>>(field: Field | FieldWaiting | undefined, ctor: T, defaultVal?: ToType<T>): FieldResult<ToType<T>> | undefined {
+export function Cast<T extends ToConstructor<Field> | ListSpec<Field>>(field: FieldResult, ctor: T): FieldResult<ToType<T>>;
+export function Cast<T extends ToConstructor<Field> | ListSpec<Field>>(field: FieldResult, ctor: T, defaultVal: ToType<T>): ToType<T>;
+export function Cast<T extends ToConstructor<Field> | ListSpec<Field>>(field: FieldResult, ctor: T, defaultVal?: ToType<T>): FieldResult<ToType<T>> | undefined {
     if (field instanceof Promise) {
-        return defaultVal === undefined ? field.then(f => Cast(f, ctor) as any) : defaultVal;
+        return defaultVal === undefined ? field.then(f => Cast(f, ctor) as any) as any : defaultVal;
     }
     if (field !== undefined && !(field instanceof Promise)) {
         if (typeof ctor === "string") {
