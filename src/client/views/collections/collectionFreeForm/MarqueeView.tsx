@@ -11,7 +11,6 @@ import { undoBatch } from "../../../util/UndoManager";
 import { InkingCanvas } from "../../InkingCanvas";
 import { PreviewCursor } from "../../PreviewCursor";
 import { CollectionFreeFormView } from "./CollectionFreeFormView";
-import { MINIMIZED_ICON_SIZE } from '../../../views/globalCssVariables.scss'
 import "./MarqueeView.scss";
 import React = require("react");
 
@@ -70,9 +69,8 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     }
     @action
     onPointerDown = (e: React.PointerEvent): void => {
-        // bcz:RightBtnDrag
-        //if (e.buttons === 1 && !e.altKey && !e.metaKey && this.props.container.props.active()) {
-        if (!e.metaKey && (e.altKey || this.props.container.props.active())) {
+        if ((CollectionFreeFormView.RIGHT_BTN_DRAG && (e.buttons === 1 && !e.altKey && !e.metaKey && this.props.container.props.active())) ||
+            (!CollectionFreeFormView.RIGHT_BTN_DRAG && (!e.metaKey && (e.altKey || this.props.container.props.active())))) {
             this._downX = this._lastX = e.pageX;
             this._downY = this._lastY = e.pageY;
             this._used = false;
@@ -97,13 +95,13 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 this._showOnUp = false;
                 PreviewCursor.Visible = false;
             }
-            //bcz:RightBtnDrag
-            //if (!this._used && e.buttons === 1 && !e.altKey && !e.metaKey &&
-            if (!this._used && (e.buttons === 2 || e.altKey) && !e.metaKey &&
-                (Math.abs(this._lastX - this._downX) > MarqueeView.DRAG_THRESHOLD || Math.abs(this._lastY - this._downY) > MarqueeView.DRAG_THRESHOLD)) {
-                this._visible = true;
-                e.stopPropagation();
-                e.preventDefault();
+            if ((CollectionFreeFormView.RIGHT_BTN_DRAG && (!this._used && e.buttons === 1 && !e.altKey && !e.metaKey)) ||
+                (!CollectionFreeFormView.RIGHT_BTN_DRAG && (!this._used && (e.buttons === 2 || e.altKey) && !e.metaKey))) {
+                if ((Math.abs(this._lastX - this._downX) > MarqueeView.DRAG_THRESHOLD || Math.abs(this._lastY - this._downY) > MarqueeView.DRAG_THRESHOLD)) {
+                    this._visible = true;
+                    e.stopPropagation();
+                    e.preventDefault();
+                }
             }
         }
         if (e.altKey)
@@ -117,9 +115,8 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         if (this._showOnUp) {
             PreviewCursor.Show(this.hideCursor, this._downX, this._downY);
             document.addEventListener("keypress", this.onKeyPress, false);
-            //bcz:RightBtnDrag
-            // } else {
-        } else if (e.button === 2 || e.altKey) {
+        } else if (CollectionFreeFormView.RIGHT_BTN_DRAG ||
+            (!CollectionFreeFormView.RIGHT_BTN_DRAG && (e.button === 2 || e.altKey))) {
             let mselect = this.marqueeSelect();
             if (!e.shiftKey) {
                 SelectionManager.DeselectAll(mselect.length ? undefined : this.props.container.props.Document);

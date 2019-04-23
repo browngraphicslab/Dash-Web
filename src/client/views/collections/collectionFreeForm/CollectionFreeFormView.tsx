@@ -24,6 +24,7 @@ import { BooleanField } from "../../../../fields/BooleanField";
 
 @observer
 export class CollectionFreeFormView extends CollectionSubView {
+    public static RIGHT_BTN_DRAG = false;
     private _selectOnLoaded: string = ""; // id of document that should be selected once it's loaded (used for click-to-type)
     private _lastX: number = 0;
     private _lastY: number = 0;
@@ -112,16 +113,17 @@ export class CollectionFreeFormView extends CollectionSubView {
             var dv = DocumentManager.Instance.getDocumentView(doc);
             return childSelected || (dv && SelectionManager.IsSelected(dv) ? true : false);
         }, false);
-        // bcz:RightBtnDrag
-        //if (((e.button === 2 && (!this.isAnnotationOverlay || this.zoomScaling() !== 1)) || (e.button === 0 && e.altKey)) && (childSelected || this.props.active())) {
-        if ((e.button === 0 && !e.altKey && (!this.isAnnotationOverlay || this.zoomScaling() !== 1)) && (childSelected || this.props.active())) {
+        if ((CollectionFreeFormView.RIGHT_BTN_DRAG &&
+            (((e.button === 2 && (!this.isAnnotationOverlay || this.zoomScaling() !== 1)) ||
+                (e.button === 0 && e.altKey)) && (childSelected || this.props.active()))) ||
+            (!CollectionFreeFormView.RIGHT_BTN_DRAG &&
+                ((e.button === 0 && !e.altKey && (!this.isAnnotationOverlay || this.zoomScaling() !== 1)) && (childSelected || this.props.active())))) {
             document.removeEventListener("pointermove", this.onPointerMove);
             document.addEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
             document.addEventListener("pointerup", this.onPointerUp);
             this._lastX = e.pageX;
             this._lastY = e.pageY;
-            e.stopPropagation();
         }
     }
 
