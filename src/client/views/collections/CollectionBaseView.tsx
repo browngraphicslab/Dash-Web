@@ -102,6 +102,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
                 return true;
             }
         });
+        return true;
         // bcz: What is this code trying to do?
         // else {
         //     let proto = props.Document.GetPrototype();
