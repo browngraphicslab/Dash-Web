@@ -174,6 +174,7 @@ export namespace DragManager {
         if (!dragDiv) {
             dragDiv = document.createElement("div");
             dragDiv.className = "dragManager-dragDiv";
+            dragDiv.style.pointerEvents = "none";
             DragManager.Root().appendChild(dragDiv);
         }
         MainOverlayTextBox.Instance.SetTextDoc();

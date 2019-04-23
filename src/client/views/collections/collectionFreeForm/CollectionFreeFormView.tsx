@@ -1,6 +1,5 @@
-import { action, computed, observable, trace } from "mobx";
+import { action, computed } from "mobx";
 import { observer } from "mobx-react";
-import Measure from "react-measure";
 import { Document } from "../../../../fields/Document";
 import { KeyStore } from "../../../../fields/KeyStore";
 import { emptyFunction, returnFalse, returnOne } from "../../../../Utils";
@@ -11,7 +10,6 @@ import { Transform } from "../../../util/Transform";
 import { undoBatch } from "../../../util/UndoManager";
 import { COLLECTION_BORDER_WIDTH } from "../../../views/globalCssVariables.scss";
 import { InkingCanvas } from "../../InkingCanvas";
-import { MainOverlayTextBox } from "../../MainOverlayTextBox";
 import { CollectionFreeFormDocumentView } from "../../nodes/CollectionFreeFormDocumentView";
 import { DocumentContentsView } from "../../nodes/DocumentContentsView";
 import { DocumentViewProps } from "../../nodes/DocumentView";
