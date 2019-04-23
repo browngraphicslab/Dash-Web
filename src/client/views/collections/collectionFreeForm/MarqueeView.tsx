@@ -125,7 +125,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
 
     @action
     onClick = (e: MouseEvent): void => {
-        PreviewCursor.Show(this.hideCursor, this._downX, this._downY);
+        PreviewCursor.Show(this.hideCursor, e.clientX, e.clientY);
         document.addEventListener("keypress", this.onKeyPress, false);
     }
 
