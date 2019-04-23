@@ -35,6 +35,7 @@ import flash = require('connect-flash');
 import c = require("crypto");
 import { Search } from './Search';
 import { debug } from 'util';
+import _ = require('lodash');
 const MongoStore = require('connect-mongo')(session);
 const mongoose = require('mongoose');
 
@@ -289,11 +290,32 @@ function UpdateField(socket: Socket, diff: Diff) {
     Database.Instance.update(diff.id, diff.diff,
         () => socket.broadcast.emit(MessageStore.UpdateField.Message, diff), false, "newDocuments");
     //if (diff.diff === Types.Text) {
-    Search.Instance.updateDocument({ name: "john", burns: "true" });
-    Search.Instance.updateDocument({ id: diff.id, data: diff.diff.data });
+    //Search.Instance.updateDocument({ name: "john", burns: "true" });
+    //Search.Instance.updateDocument({ id: diff.id, data: diff.diff.data });
     //console.log("set field");
     //}
-    console.log("updated field", diff.diff);
+    const docid = { id: diff.id };
+    const docfield = diff.diff;
+    console.log("FIELD: ", docfield);
+    var dynfield = false;
+    for (var key in docfield) {
+        const val = docfield[key];
+        if (typeof val === 'number') {
+            key = key + "_n";
+            dynfield = true;
+        }
+        else if (typeof val === 'string') {
+            key = key + "_t";
+            dynfield = true;
+        }
+        console.log(key);
+    }
+    var merged = {};
+    _.extend(merged, docid, docfield);
+    if (dynfield) {
+        console.log("dynamic field detected!");
+        Search.Instance.updateDocument(merged);
+    }
 }
 
 function CreateField(newValue: any) {
