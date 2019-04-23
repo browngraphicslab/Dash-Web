@@ -99,7 +99,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     onPointerDown = (e: React.PointerEvent): void => {
         this._downX = e.clientX;
         this._downY = e.clientY;
-        if (CollectionFreeFormView.RIGHT_BTN_DRAG && (e.button === 2 || (e.altKey && e.button === 0)) && !this.isSelected()) {
+        if (CollectionFreeFormView.RIGHT_BTN_DRAG && (e.button === 2 || (e.button === 0 && e.altKey)) && !this.isSelected()) {
             return;
         }
         if (e.shiftKey && e.buttons === 2) {

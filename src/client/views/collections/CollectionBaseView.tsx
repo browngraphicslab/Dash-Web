@@ -93,15 +93,17 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         if (curPage >= 0) {
             doc.SetOnPrototype(KeyStore.AnnotationOn, this.props.Document);
         }
-        this.props.Document.GetOrCreateAsync(this.props.fieldKey, ListField, (value: ListField<Document>) => {
-            if (value && !this.createsCycle(doc, this.props.Document)) {
+        if (!this.createsCycle(doc, this.props.Document)) {
+            doc.SetNumber(KeyStore.ZoomBasis, this.props.Document.GetNumber(KeyStore.Scale, 1));
+            let value = this.props.Document.Get(this.props.fieldKey) as ListField<Document>;
+            if (value) {
                 if (!value.Data.some(v => v.Id === doc.Id) || allowDuplicates) {
                     value.Data.push(doc);
-                    doc.SetNumber(KeyStore.ZoomBasis, this.props.Document.GetNumber(KeyStore.Scale, 1));
                 }
-                return true;
+            } else {
+                this.props.Document.Set(this.props.fieldKey, new ListField([doc]));
             }
-        });
+        }
         return true;
         // bcz: What is this code trying to do?
         // else {

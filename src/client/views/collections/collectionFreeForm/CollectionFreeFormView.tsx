@@ -297,7 +297,6 @@ export class CollectionFreeFormView extends CollectionSubView {
                     getContainerTransform={this.getContainerTransform} getTransform={this.getTransform}>
                     <CollectionFreeFormViewPannableContents centeringShiftX={this.centeringShiftX} centeringShiftY={this.centeringShiftY}
                         zoomScaling={this.zoomScaling} panX={this.panX} panY={this.panY}>
-
                         <CollectionFreeFormLinksView {...this.props} key="freeformLinks">
                             <InkingCanvas getScreenTransform={this.getTransform} Document={this.props.Document} >
                                 {this.childViews}
