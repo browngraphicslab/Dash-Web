@@ -71,7 +71,7 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
             document.removeEventListener("pointermove", this.textBoxMove);
             document.removeEventListener('pointerup', this.textBoxUp);
             let dragData = new DragManager.DocumentDragData([this.TextDoc!]);
-            const [left, top] = this._textXf.inverse().transformPoint(0, 0);
+            const [left, top] = this._textXf().inverse().transformPoint(0, 0);
             dragData.xOffset = e.clientX - left;
             dragData.yOffset = e.clientY - top;
             DragManager.StartDocumentDrag([this._textTargetDiv!], dragData, e.clientX, e.clientY, {

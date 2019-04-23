@@ -23,6 +23,7 @@ import { ContextMenu } from "../ContextMenu";
 import { DocumentContentsView } from "./DocumentContentsView";
 import "./DocumentView.scss";
 import React = require("react");
+import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
 
 export interface DocumentViewProps {
     ContainingCollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
@@ -98,7 +99,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     onPointerDown = (e: React.PointerEvent): void => {
         this._downX = e.clientX;
         this._downY = e.clientY;
-        if (e.button === 2 && !this.isSelected()) {
+        if (CollectionFreeFormView.RIGHT_BTN_DRAG && (e.button === 2 || (e.button === 0 && e.altKey)) && !this.isSelected()) {
             return;
         }
         if (e.shiftKey && e.buttons === 2) {
