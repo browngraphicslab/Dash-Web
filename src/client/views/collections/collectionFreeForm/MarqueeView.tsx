@@ -69,7 +69,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         document.removeEventListener("keypress", this.onKeyPress, false);
     }
     @action
-    onPointerDown = (e: React.PointerEvent): void => { // bcz:RightBtnDrag
+    onPointerDown = (e: React.PointerEvent): void => {
         if (e.buttons === 1 && !e.altKey && !e.metaKey && this.props.container.props.active()) {
             this._downX = this._lastX = e.pageX;
             this._downY = this._lastY = e.pageY;
