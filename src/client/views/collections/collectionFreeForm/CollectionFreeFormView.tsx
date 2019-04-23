@@ -1,5 +1,6 @@
 import { action, computed, observable, trace } from "mobx";
 import { observer } from "mobx-react";
+import Measure from "react-measure";
 import { Document } from "../../../../fields/Document";
 import { KeyStore } from "../../../../fields/KeyStore";
 import { emptyFunction, returnFalse, returnOne } from "../../../../Utils";
@@ -21,7 +22,6 @@ import "./CollectionFreeFormView.scss";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
 import v5 = require("uuid/v5");
-import { BooleanField } from "../../../../fields/BooleanField";
 
 @observer
 export class CollectionFreeFormView extends CollectionSubView {
@@ -48,7 +48,11 @@ export class CollectionFreeFormView extends CollectionSubView {
         this._selectOnLoaded = newBox.Id;// track the new text box so we can give it a prop that tells it to focus itself when it's displayed
         this.addDocument(newBox, false);
     }
+    @action
     private addDocument = (newBox: Document, allowDuplicates: boolean) => {
+        if (this.isAnnotationOverlay) {
+            newBox.SetNumber(KeyStore.ZoomBasis, this.props.Document.GetNumber(KeyStore.Scale, 1));
+        }
         return this.props.addDocument(this.bringToFront(newBox), false);
     }
     private selectDocuments = (docs: Document[]) => {
@@ -71,27 +75,20 @@ export class CollectionFreeFormView extends CollectionSubView {
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
         if (super.drop(e, de) && de.data instanceof DragManager.DocumentDragData) {
+            const [x, y] = this.getTransform().transformPoint(de.x - de.data.xOffset, de.y - de.data.yOffset);
             if (de.data.droppedDocuments.length) {
-                let dragDoc = de.data.droppedDocuments[0];
-                let zoom = dragDoc.GetNumber(KeyStore.ZoomBasis, 1);
-                let [xp, yp] = this.getTransform().transformPoint(de.x, de.y);
-                let x = xp - de.data.xOffset / zoom;
-                let y = yp - de.data.yOffset / zoom;
-
-                let dropX = dragDoc.GetNumber(KeyStore.X, 0);
-                let dropY = dragDoc.GetNumber(KeyStore.Y, 0);
+                let dropX = de.data.droppedDocuments[0].GetNumber(KeyStore.X, 0);
+                let dropY = de.data.droppedDocuments[0].GetNumber(KeyStore.Y, 0);
                 de.data.droppedDocuments.map(d => {
-                    d.SetNumber(KeyStore.X, x + (d.GetNumber(KeyStore.X, 0)) - dropX);
-                    d.SetNumber(KeyStore.Y, y + (d.GetNumber(KeyStore.Y, 0)) - dropY);
-                    if (!d.GetBoolean(KeyStore.IsMinimized, false)) {
-                        if (!d.GetNumber(KeyStore.Width, 0)) {
-                            d.SetNumber(KeyStore.Width, 300);
-                        }
-                        if (!d.GetNumber(KeyStore.Height, 0)) {
-                            let nw = d.GetNumber(KeyStore.NativeWidth, 0);
-                            let nh = d.GetNumber(KeyStore.NativeHeight, 0);
-                            d.SetNumber(KeyStore.Height, nw && nh ? nh / nw * d.Width() : 300);
-                        }
+                    d.SetNumber(KeyStore.X, x + (d.GetNumber(KeyStore.X, 0) - dropX));
+                    d.SetNumber(KeyStore.Y, y + (d.GetNumber(KeyStore.Y, 0) - dropY));
+                    if (!d.GetNumber(KeyStore.Width, 0)) {
+                        d.SetNumber(KeyStore.Width, 300);
+                    }
+                    if (!d.GetNumber(KeyStore.Height, 0)) {
+                        let nw = d.GetNumber(KeyStore.NativeWidth, 0);
+                        let nh = d.GetNumber(KeyStore.NativeHeight, 0);
+                        d.SetNumber(KeyStore.Height, nw && nh ? nh / nw * d.Width() : 300);
                     }
                     this.bringToFront(d);
                 });
@@ -114,7 +111,7 @@ export class CollectionFreeFormView extends CollectionSubView {
             var dv = DocumentManager.Instance.getDocumentView(doc);
             return childSelected || (dv && SelectionManager.IsSelected(dv) ? true : false);
         }, false);
-        if ((e.button === 0 && !e.altKey && (!this.isAnnotationOverlay || this.zoomScaling() !== 1)) && (childSelected || this.props.active())) {
+        if (((e.button === 2 && (!this.isAnnotationOverlay || this.zoomScaling() !== 1)) || (e.button === 0 && e.altKey)) && (childSelected || this.props.active())) {
             document.removeEventListener("pointermove", this.onPointerMove);
             document.addEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
@@ -191,22 +188,21 @@ export class CollectionFreeFormView extends CollectionSubView {
             // if (modes[e.deltaMode] === 'pixels') coefficient = 50;
             // else if (modes[e.deltaMode] === 'lines') coefficient = 1000; // This should correspond to line-height??
             let deltaScale = (1 - (e.deltaY / coefficient));
-            if (deltaScale < 0) deltaScale = -deltaScale;
             if (deltaScale * this.zoomScaling() < 1 && this.isAnnotationOverlay) {
                 deltaScale = 1 / this.zoomScaling();
             }
             let [x, y] = this.getTransform().transformPoint(e.clientX, e.clientY);
             let localTransform = this.getLocalTransform().inverse().scaleAbout(deltaScale, x, y);
 
-            let safeScale = Math.abs(localTransform.Scale);
-            this.props.Document.SetNumber(KeyStore.Scale, Math.abs(safeScale));
-            this.setPan(-localTransform.TranslateX / safeScale, -localTransform.TranslateY / safeScale);
+            this.props.Document.SetNumber(KeyStore.Scale, localTransform.Scale);
+            this.setPan(-localTransform.TranslateX / localTransform.Scale, -localTransform.TranslateY / localTransform.Scale);
             e.stopPropagation();
         }
     }
 
     @action
     setPan(panX: number, panY: number) {
+        MainOverlayTextBox.Instance.SetTextDoc();
         var scale = this.getLocalTransform().inverse().Scale;
         const newPanX = Math.min((1 - 1 / scale) * this.nativeWidth, Math.max(0, panX));
         const newPanY = Math.min((1 - 1 / scale) * this.nativeHeight, Math.max(0, panY));
@@ -265,9 +261,7 @@ export class CollectionFreeFormView extends CollectionSubView {
         let docviews = this.props.Document.GetList(this.props.fieldKey, [] as Document[]).filter(doc => doc).reduce((prev, doc) => {
             var page = doc.GetNumber(KeyStore.Page, -1);
             if (page === curPage || page === -1) {
-                let minim = doc.GetT(KeyStore.IsMinimized, BooleanField);
-                if (minim === undefined || (minim && !minim.Data))
-                    prev.push(<CollectionFreeFormDocumentView key={doc.Id} {...this.getDocumentViewProps(doc)} />);
+                prev.push(<CollectionFreeFormDocumentView key={doc.Id} {...this.getDocumentViewProps(doc)} />);
             }
             return prev;
         }, [] as JSX.Element[]);

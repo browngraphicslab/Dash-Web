@@ -72,7 +72,7 @@ export class CollectionFreeFormDocumentView extends React.Component<CollectionFr
 
     render() {
         let zoomFade = 1;
-        //var zoom = doc.GetNumber(KeyStore.Zoom, 1);
+        //var zoom = doc.GetNumber(KeyStore.ZoomBasis, 1);
         // let transform = this.getTransform().scale(this.contentScaling()).inverse();
         // var [sptX, sptY] = transform.transformPoint(0, 0);
         // let [bptX, bptY] = transform.transformPoint(this.props.PanelWidth(), this.props.PanelHeight());
