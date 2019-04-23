@@ -1,4 +1,4 @@
-import { action, computed, observable, trace } from "mobx";
+import { action, computed } from "mobx";
 import { observer } from "mobx-react";
 import { Document } from "../../../../fields/Document";
 import { KeyStore } from "../../../../fields/KeyStore";
@@ -10,7 +10,6 @@ import { Transform } from "../../../util/Transform";
 import { undoBatch } from "../../../util/UndoManager";
 import { COLLECTION_BORDER_WIDTH } from "../../../views/globalCssVariables.scss";
 import { InkingCanvas } from "../../InkingCanvas";
-import { MainOverlayTextBox } from "../../MainOverlayTextBox";
 import { CollectionFreeFormDocumentView } from "../../nodes/CollectionFreeFormDocumentView";
 import { DocumentContentsView } from "../../nodes/DocumentContentsView";
 import { DocumentViewProps } from "../../nodes/DocumentView";
@@ -21,7 +20,7 @@ import "./CollectionFreeFormView.scss";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
 import v5 = require("uuid/v5");
-import { BooleanField } from "../../../../fields/BooleanField";
+import { MainOverlayTextBox } from "../../MainOverlayTextBox";
 
 @observer
 export class CollectionFreeFormView extends CollectionSubView {
@@ -35,7 +34,6 @@ export class CollectionFreeFormView extends CollectionSubView {
     @computed get nativeHeight() { return this.props.Document.GetNumber(KeyStore.NativeHeight, 0); }
     private get borderWidth() { return this.isAnnotationOverlay ? 0 : COLLECTION_BORDER_WIDTH; }
     private get isAnnotationOverlay() { return this.props.fieldKey && this.props.fieldKey.Id === KeyStore.Annotations.Id; } // bcz: ? Why do we need to compare Id's?
-    private childViews = () => this.views;
     private panX = () => this.props.Document.GetNumber(KeyStore.PanX, 0);
     private panY = () => this.props.Document.GetNumber(KeyStore.PanY, 0);
     private zoomScaling = () => this.props.Document.GetNumber(KeyStore.Scale, 1);
@@ -48,8 +46,14 @@ export class CollectionFreeFormView extends CollectionSubView {
         this._selectOnLoaded = newBox.Id;// track the new text box so we can give it a prop that tells it to focus itself when it's displayed
         this.addDocument(newBox, false);
     }
+    @action
     private addDocument = (newBox: Document, allowDuplicates: boolean) => {
-        return this.props.addDocument(this.bringToFront(newBox), false);
+        if (this.isAnnotationOverlay) {
+            newBox.SetNumber(KeyStore.ZoomBasis, this.props.Document.GetNumber(KeyStore.Scale, 1));
+        }
+        this.props.addDocument(newBox, false);
+        this.bringToFront(newBox);
+        return newBox;
     }
     private selectDocuments = (docs: Document[]) => {
         SelectionManager.DeselectAll;
@@ -71,27 +75,20 @@ export class CollectionFreeFormView extends CollectionSubView {
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
         if (super.drop(e, de) && de.data instanceof DragManager.DocumentDragData) {
+            const [x, y] = this.getTransform().transformPoint(de.x - de.data.xOffset, de.y - de.data.yOffset);
             if (de.data.droppedDocuments.length) {
-                let dragDoc = de.data.droppedDocuments[0];
-                let zoom = dragDoc.GetNumber(KeyStore.ZoomBasis, 1);
-                let [xp, yp] = this.getTransform().transformPoint(de.x, de.y);
-                let x = xp - de.data.xOffset / zoom;
-                let y = yp - de.data.yOffset / zoom;
-
-                let dropX = dragDoc.GetNumber(KeyStore.X, 0);
-                let dropY = dragDoc.GetNumber(KeyStore.Y, 0);
+                let dropX = de.data.droppedDocuments[0].GetNumber(KeyStore.X, 0);
+                let dropY = de.data.droppedDocuments[0].GetNumber(KeyStore.Y, 0);
                 de.data.droppedDocuments.map(d => {
-                    d.SetNumber(KeyStore.X, x + (d.GetNumber(KeyStore.X, 0)) - dropX);
-                    d.SetNumber(KeyStore.Y, y + (d.GetNumber(KeyStore.Y, 0)) - dropY);
-                    if (!d.GetBoolean(KeyStore.IsMinimized, false)) {
-                        if (!d.GetNumber(KeyStore.Width, 0)) {
-                            d.SetNumber(KeyStore.Width, 300);
-                        }
-                        if (!d.GetNumber(KeyStore.Height, 0)) {
-                            let nw = d.GetNumber(KeyStore.NativeWidth, 0);
-                            let nh = d.GetNumber(KeyStore.NativeHeight, 0);
-                            d.SetNumber(KeyStore.Height, nw && nh ? nh / nw * d.Width() : 300);
-                        }
+                    d.SetNumber(KeyStore.X, x + (d.GetNumber(KeyStore.X, 0) - dropX));
+                    d.SetNumber(KeyStore.Y, y + (d.GetNumber(KeyStore.Y, 0) - dropY));
+                    if (!d.GetNumber(KeyStore.Width, 0)) {
+                        d.SetNumber(KeyStore.Width, 300);
+                    }
+                    if (!d.GetNumber(KeyStore.Height, 0)) {
+                        let nw = d.GetNumber(KeyStore.NativeWidth, 0);
+                        let nh = d.GetNumber(KeyStore.NativeHeight, 0);
+                        d.SetNumber(KeyStore.Height, nw && nh ? nh / nw * d.Width() : 300);
                     }
                     this.bringToFront(d);
                 });
@@ -123,6 +120,7 @@ export class CollectionFreeFormView extends CollectionSubView {
             document.addEventListener("pointerup", this.onPointerUp);
             this._lastX = e.pageX;
             this._lastY = e.pageY;
+            e.stopPropagation();
         }
     }
 
@@ -193,22 +191,21 @@ export class CollectionFreeFormView extends CollectionSubView {
             // if (modes[e.deltaMode] === 'pixels') coefficient = 50;
             // else if (modes[e.deltaMode] === 'lines') coefficient = 1000; // This should correspond to line-height??
             let deltaScale = (1 - (e.deltaY / coefficient));
-            if (deltaScale < 0) deltaScale = -deltaScale;
             if (deltaScale * this.zoomScaling() < 1 && this.isAnnotationOverlay) {
                 deltaScale = 1 / this.zoomScaling();
             }
             let [x, y] = this.getTransform().transformPoint(e.clientX, e.clientY);
             let localTransform = this.getLocalTransform().inverse().scaleAbout(deltaScale, x, y);
 
-            let safeScale = Math.abs(localTransform.Scale);
-            this.props.Document.SetNumber(KeyStore.Scale, Math.abs(safeScale));
-            this.setPan(-localTransform.TranslateX / safeScale, -localTransform.TranslateY / safeScale);
+            this.props.Document.SetNumber(KeyStore.Scale, localTransform.Scale);
+            this.setPan(-localTransform.TranslateX / localTransform.Scale, -localTransform.TranslateY / localTransform.Scale);
             e.stopPropagation();
         }
     }
 
     @action
     setPan(panX: number, panY: number) {
+        MainOverlayTextBox.Instance.SetTextDoc();
         var scale = this.getLocalTransform().inverse().Scale;
         const newPanX = Math.min((1 - 1 / scale) * this.nativeWidth, Math.max(0, panX));
         const newPanY = Math.min((1 - 1 / scale) * this.nativeHeight, Math.max(0, panY));
@@ -227,12 +224,13 @@ export class CollectionFreeFormView extends CollectionSubView {
 
     @action
     bringToFront(doc: Document) {
-        this.props.Document.GetList(this.props.fieldKey, [] as Document[]).slice().sort((doc1, doc2) => {
+        let docs = this.props.Document.GetList(this.props.fieldKey, [] as Document[]).slice();
+        docs.sort((doc1, doc2) => {
             if (doc1 === doc) return 1;
             if (doc2 === doc) return -1;
             return doc1.GetNumber(KeyStore.ZIndex, 0) - doc2.GetNumber(KeyStore.ZIndex, 0);
         }).map((doc, index) => doc.SetNumber(KeyStore.ZIndex, index + 1));
-        return doc;
+        doc.SetNumber(KeyStore.ZIndex, docs.length + 1);
     }
 
     focusDocument = (doc: Document) => {
@@ -267,9 +265,7 @@ export class CollectionFreeFormView extends CollectionSubView {
         let docviews = this.props.Document.GetList(this.props.fieldKey, [] as Document[]).filter(doc => doc).reduce((prev, doc) => {
             var page = doc.GetNumber(KeyStore.Page, -1);
             if (page === curPage || page === -1) {
-                let minim = doc.GetT(KeyStore.IsMinimized, BooleanField);
-                if (minim === undefined || (minim && !minim.Data))
-                    prev.push(<CollectionFreeFormDocumentView key={doc.Id} {...this.getDocumentViewProps(doc)} />);
+                prev.push(<CollectionFreeFormDocumentView key={doc.Id} {...this.getDocumentViewProps(doc)} />);
             }
             return prev;
         }, [] as JSX.Element[]);
@@ -284,6 +280,7 @@ export class CollectionFreeFormView extends CollectionSubView {
         super.setCursorPosition(this.getTransform().transformPoint(e.clientX, e.clientY));
     }
 
+    private childViews = () => [...this.views, <CollectionFreeFormBackgroundView key="backgroundView" {...this.getDocumentViewProps(this.props.Document)} />];
     render() {
         const containerName = `collectionfreeformview${this.isAnnotationOverlay ? "-overlay" : "-container"}`;
         return (
@@ -294,7 +291,6 @@ export class CollectionFreeFormView extends CollectionSubView {
                     getContainerTransform={this.getContainerTransform} getTransform={this.getTransform}>
                     <CollectionFreeFormViewPannableContents centeringShiftX={this.centeringShiftX} centeringShiftY={this.centeringShiftY}
                         zoomScaling={this.zoomScaling} panX={this.panX} panY={this.panY}>
-                        <CollectionFreeFormBackgroundView {...this.getDocumentViewProps(this.props.Document)} />
                         <CollectionFreeFormLinksView {...this.props} key="freeformLinks">
                             <InkingCanvas getScreenTransform={this.getTransform} Document={this.props.Document} >
                                 {this.childViews}

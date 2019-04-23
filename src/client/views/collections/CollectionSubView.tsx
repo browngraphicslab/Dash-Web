@@ -141,7 +141,7 @@ export class CollectionSubView extends React.Component<SubCollectionViewProps> {
                 return undefined;
             }
             ctor = Documents.WebDocument;
-            options = { height: options.width, ...options, title: path };
+            options = { height: options.width, ...options, title: path, nativeWidth: undefined };
         }
         return ctor ? ctor(path, options) : undefined;
     }
@@ -174,7 +174,7 @@ export class CollectionSubView extends React.Component<SubCollectionViewProps> {
                 let prom = new Promise<string>(resolve => e.dataTransfer.items[i].getAsString(resolve))
                     .then(action((s: string) => rp.head(ServerUtils.prepend(RouteStore.corsProxy + "/" + (str = s)))))
                     .then(result => {
-                        let type = result.headers["content-type"];
+                        let type = result["content-type"];
                         if (type) {
                             this.getDocumentFromType(type, str, { ...options, width: 300, nativeWidth: 300 })
                                 .then(doc => doc && this.props.addDocument(doc, false));

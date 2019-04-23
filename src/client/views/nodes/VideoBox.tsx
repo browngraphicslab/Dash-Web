@@ -1,13 +1,12 @@
 import React = require("react");
+import { action, computed, IReactionDisposer, trace } from "mobx";
 import { observer } from "mobx-react";
+import Measure from "react-measure";
 import { FieldWaiting, Opt } from '../../../fields/Field';
+import { KeyStore } from "../../../fields/KeyStore";
 import { VideoField } from '../../../fields/VideoField';
 import { FieldView, FieldViewProps } from './FieldView';
 import "./VideoBox.scss";
-import Measure from "react-measure";
-import { action, trace, observable, IReactionDisposer, computed, reaction } from "mobx";
-import { KeyStore } from "../../../fields/KeyStore";
-import { number } from "prop-types";
 
 @observer
 export class VideoBox extends React.Component<FieldViewProps> {
