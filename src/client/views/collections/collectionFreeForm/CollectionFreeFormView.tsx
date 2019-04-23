@@ -33,7 +33,6 @@ export class CollectionFreeFormView extends CollectionSubView {
     @computed get nativeHeight() { return this.props.Document.GetNumber(KeyStore.NativeHeight, 0); }
     private get borderWidth() { return this.isAnnotationOverlay ? 0 : COLLECTION_BORDER_WIDTH; }
     private get isAnnotationOverlay() { return this.props.fieldKey && this.props.fieldKey.Id === KeyStore.Annotations.Id; } // bcz: ? Why do we need to compare Id's?
-    private childViews = () => this.views;
     private panX = () => this.props.Document.GetNumber(KeyStore.PanX, 0);
     private panY = () => this.props.Document.GetNumber(KeyStore.PanY, 0);
     private zoomScaling = () => this.props.Document.GetNumber(KeyStore.Scale, 1);
@@ -51,7 +50,9 @@ export class CollectionFreeFormView extends CollectionSubView {
         if (this.isAnnotationOverlay) {
             newBox.SetNumber(KeyStore.ZoomBasis, this.props.Document.GetNumber(KeyStore.Scale, 1));
         }
-        return this.props.addDocument(this.bringToFront(newBox), false);
+        this.props.addDocument(newBox, false);
+        this.bringToFront(newBox);
+        return newBox;
     }
     private selectDocuments = (docs: Document[]) => {
         SelectionManager.DeselectAll;
@@ -219,12 +220,13 @@ export class CollectionFreeFormView extends CollectionSubView {
 
     @action
     bringToFront(doc: Document) {
-        this.props.Document.GetList(this.props.fieldKey, [] as Document[]).slice().sort((doc1, doc2) => {
+        let docs = this.props.Document.GetList(this.props.fieldKey, [] as Document[]).slice();
+        docs.sort((doc1, doc2) => {
             if (doc1 === doc) return 1;
             if (doc2 === doc) return -1;
             return doc1.GetNumber(KeyStore.ZIndex, 0) - doc2.GetNumber(KeyStore.ZIndex, 0);
         }).map((doc, index) => doc.SetNumber(KeyStore.ZIndex, index + 1));
-        return doc;
+        doc.SetNumber(KeyStore.ZIndex, docs.length + 1);
     }
 
     focusDocument = (doc: Document) => {
@@ -274,6 +276,7 @@ export class CollectionFreeFormView extends CollectionSubView {
         super.setCursorPosition(this.getTransform().transformPoint(e.clientX, e.clientY));
     }
 
+    private childViews = () => [...this.views, <CollectionFreeFormBackgroundView key="backgroundView" {...this.getDocumentViewProps(this.props.Document)} />];
     render() {
         const containerName = `collectionfreeformview${this.isAnnotationOverlay ? "-overlay" : "-container"}`;
         return (
@@ -284,7 +287,6 @@ export class CollectionFreeFormView extends CollectionSubView {
                     getContainerTransform={this.getContainerTransform} getTransform={this.getTransform}>
                     <CollectionFreeFormViewPannableContents centeringShiftX={this.centeringShiftX} centeringShiftY={this.centeringShiftY}
                         zoomScaling={this.zoomScaling} panX={this.panX} panY={this.panY}>
-                        <CollectionFreeFormBackgroundView {...this.getDocumentViewProps(this.props.Document)} />
                         <CollectionFreeFormLinksView {...this.props} key="freeformLinks">
                             <InkingCanvas getScreenTransform={this.getTransform} Document={this.props.Document} >
                                 {this.childViews}
