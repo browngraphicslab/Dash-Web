@@ -95,7 +95,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 this._showOnUp = false;
                 PreviewCursor.Visible = false;
             }
-            if (!this._used && (e.buttons === 2 || e.altKey) && !e.metaKey &&
+            if (!this._used && e.buttons === 1 && !e.metaKey &&
                 (Math.abs(this._lastX - this._downX) > MarqueeView.DRAG_THRESHOLD || Math.abs(this._lastY - this._downY) > MarqueeView.DRAG_THRESHOLD)) {
                 this._visible = true;
                 e.stopPropagation();
@@ -113,7 +113,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         if (this._showOnUp) {
             PreviewCursor.Show(this.hideCursor, this._downX, this._downY);
             document.addEventListener("keypress", this.onKeyPress, false);
-        } else if (e.button === 2 || e.altKey) {
+        } else if (e.button === 0) {
             let mselect = this.marqueeSelect();
             if (!e.shiftKey) {
                 SelectionManager.DeselectAll(mselect.length ? undefined : this.props.container.props.Document);
