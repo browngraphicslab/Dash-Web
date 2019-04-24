@@ -49,7 +49,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     onKeyPress = (e: KeyboardEvent) => {
         //make textbox and add it to this collection
         let [x, y] = this.props.getTransform().transformPoint(this._downX, this._downY);
-        let newBox = Documents.TextDocument({ width: 200, height: 100, x: x, y: y, title: "typed text" });
+        let newBox = Documents.TextDocument({ width: 200, height: 100, x: x, y: y, title: "-typed text-" });
         this.props.addLiveTextDocument(newBox);
         e.stopPropagation();
     }

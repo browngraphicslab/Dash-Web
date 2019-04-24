@@ -444,7 +444,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     }
 
     getValue = (): string => {
-        if (this._title === "changed" && this._documents.length > 0) {
+        if (this._documents.length > 0) {
             let field = this._documents[0].props.Document.Get(this._fieldKey);
             if (field instanceof TextField) {
                 return (field).GetValue();
