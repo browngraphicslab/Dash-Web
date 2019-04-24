@@ -270,8 +270,10 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
     }
     render() {
         let style = this.props.isOverlay ? "scroll" : "hidden";
+        let color = this.props.Document.GetText(KeyStore.BackgroundColor, "");
         return (
             <div className={`formattedTextBox-cont-${style}`}
+                style={{ background: color }}
                 onKeyDown={this.onKeyPress}
                 onKeyPress={this.onKeyPress}
                 onFocus={this.onFocused}

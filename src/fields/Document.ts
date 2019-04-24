@@ -371,6 +371,37 @@ export class Document extends Field {
         return alias;
     }
 
+    @action
+    CreateLink(dstTarg: Document) {
+        let batch = UndoManager.StartBatch("document view drop");
+        let linkDoc: Document = new Document();
+        linkDoc.SetText(KeyStore.Title, "New Link");
+        linkDoc.SetText(KeyStore.LinkDescription, "");
+        linkDoc.SetText(KeyStore.LinkTags, "Default");
+
+        let srcTarg = this;
+        linkDoc.Set(KeyStore.LinkedToDocs, dstTarg);
+        linkDoc.Set(KeyStore.LinkedFromDocs, srcTarg);
+        const prom1 = new Promise(resolve => dstTarg.GetOrCreateAsync(
+            KeyStore.LinkedFromDocs,
+            ListField,
+            field => {
+                (field as ListField<Document>).Data.push(linkDoc);
+                resolve();
+            }
+        ));
+        const prom2 = new Promise(resolve => srcTarg.GetOrCreateAsync(
+            KeyStore.LinkedToDocs,
+            ListField,
+            field => {
+                (field as ListField<Document>).Data.push(linkDoc);
+                resolve();
+            }
+        ));
+        Promise.all([prom1, prom2]).finally(() => batch.end());
+        return linkDoc;
+    }
+
     MakeDelegate(id?: string): Document {
         let delegate = new Document(id);
 

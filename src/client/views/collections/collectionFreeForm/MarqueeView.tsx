@@ -14,6 +14,7 @@ import { CollectionFreeFormView } from "./CollectionFreeFormView";
 import "./MarqueeView.scss";
 import React = require("react");
 import { Utils } from "../../../../Utils";
+import { ListField } from "../../../../fields/ListField";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;
@@ -128,16 +129,16 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     @undoBatch
     @action
     marqueeCommand = (e: KeyboardEvent) => {
-        if (e.key === "Backspace" || e.key === "Delete") {
+        if (e.key === "Backspace" || e.key === "Delete" || e.key == "d") {
             this.marqueeSelect().map(d => this.props.removeDocument(d));
             let ink = this.props.container.props.Document.GetT(KeyStore.Ink, InkField);
             if (ink && ink !== FieldWaiting) {
                 this.marqueeInkDelete(ink.Data);
             }
-            this.cleanupInteractions();
+            this.cleanupInteractions(true);
             e.stopPropagation();
         }
-        if (e.key === "c") {
+        if (e.key === "c" || e.key === "r") {
             e.stopPropagation();
             let bounds = this.Bounds;
             let selected = this.marqueeSelect().map(d => {
@@ -155,16 +156,38 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 y: bounds.top,
                 panx: 0,
                 pany: 0,
+                backgroundColor: selected.length ? "white" : "",
                 scale: zoomBasis,
                 width: bounds.width * zoomBasis,
                 height: bounds.height * zoomBasis,
                 ink: inkData ? this.marqueeInkSelect(inkData) : undefined,
                 title: "a nested collection"
             });
-            this.props.addDocument(newCollection, false);
+
             this.marqueeInkDelete(inkData);
-            this.cleanupInteractions();
             SelectionManager.DeselectAll();
+            if (e.key === "r") {
+                let summary = Documents.TextDocument({ x: bounds.left, y: bounds.top, width: 300, height: 100, backgroundColor: "yellow", title: "-summary-" });
+                summary.GetPrototype()!.CreateLink(newCollection.GetPrototype()!);
+                this.props.addLiveTextDocument(summary);
+                e.preventDefault();
+            }
+            else {
+                this.props.addDocument(newCollection, false);
+            }
+            this.cleanupInteractions(true);
+        }
+        if (e.key === "s") {
+            e.stopPropagation();
+            e.preventDefault();
+            let bounds = this.Bounds;
+            let selected = this.marqueeSelect();
+            SelectionManager.DeselectAll();
+            let summary = Documents.TextDocument({ x: bounds.left + bounds.width + 25, y: bounds.top, width: 300, height: 100, backgroundColor: "yellow", title: "-summary-" });
+            this.props.addLiveTextDocument(summary);
+            selected.map(select => summary.GetPrototype()!.CreateLink(select.GetPrototype()!));
+
+            this.cleanupInteractions(true);
         }
     }
     @action

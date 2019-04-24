@@ -152,7 +152,6 @@ export class DocumentView extends React.Component<DocumentViewProps> {
                 Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD)) {
             SelectionManager.SelectDoc(this, e.ctrlKey);
         }
-        e.stopPropagation();
     }
     onPointerDown = (e: React.PointerEvent): void => {
         this._downX = e.clientX;
@@ -217,43 +216,12 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
         if (de.data instanceof DragManager.LinkDragData) {
-            let sourceDoc: Document = de.data.linkSourceDocument;
-            let destDoc: Document = this.props.Document;
-            let linkDoc: Document = new Document();
+            let sourceDoc = de.data.linkSourceDocument;
+            let destDoc = this.props.Document;
 
             destDoc.GetTAsync(KeyStore.Prototype, Document).then(protoDest =>
                 sourceDoc.GetTAsync(KeyStore.Prototype, Document).then(protoSrc =>
-                    runInAction(() => {
-                        let batch = UndoManager.StartBatch("document view drop");
-                        linkDoc.SetText(KeyStore.Title, "New Link");
-                        linkDoc.SetText(KeyStore.LinkDescription, "");
-                        linkDoc.SetText(KeyStore.LinkTags, "Default");
-
-                        let dstTarg = protoDest ? protoDest : destDoc;
-                        let srcTarg = protoSrc ? protoSrc : sourceDoc;
-                        if ((de.data as DragManager.LinkDragData).blacklist.indexOf(dstTarg) === -1) {
-                            linkDoc.Set(KeyStore.LinkedToDocs, dstTarg);
-                            linkDoc.Set(KeyStore.LinkedFromDocs, srcTarg);
-                            const prom1 = new Promise(resolve => dstTarg.GetOrCreateAsync(
-                                KeyStore.LinkedFromDocs,
-                                ListField,
-                                field => {
-                                    (field as ListField<Document>).Data.push(linkDoc);
-                                    resolve();
-                                }
-                            ));
-                            const prom2 = new Promise(resolve => srcTarg.GetOrCreateAsync(
-                                KeyStore.LinkedToDocs,
-                                ListField,
-                                field => {
-                                    (field as ListField<Document>).Data.push(linkDoc);
-                                    resolve();
-                                }
-                            ));
-                            Promise.all([prom1, prom2]).finally(() => batch.end());
-                        }
-                    })
-                )
+                    (protoSrc ? protoSrc : sourceDoc).CreateLink(protoDest ? protoDest : destDoc))
             );
             e.stopPropagation();
         }

@@ -17,7 +17,7 @@ export class PreviewCursor extends React.Component<{}> {
 
     constructor(props: any) {
         super(props);
-        document.addEventListener("keypress", this.onKeyPress)
+        document.addEventListener("keydown", this.onKeyPress)
     }
 
     @action
@@ -28,8 +28,12 @@ export class PreviewCursor extends React.Component<{}> {
         //if not these keys, make a textbox if preview cursor is active!
         if (!e.ctrlKey && !e.altKey && !e.defaultPrevented && !(e as any).DASHFormattedTextBoxHandled) {
             PreviewCursor.Visible && PreviewCursor._onKeyPress && PreviewCursor._onKeyPress(e);
+            PreviewCursor.Visible = false;
+        } else if (e.ctrlKey) {
+            if (e.key == "v") {
+                PreviewCursor.Visible && PreviewCursor._onKeyPress && PreviewCursor._onKeyPress(e);
+            }
         }
-        PreviewCursor.Visible = false;
     }
     @action
     public static Show(x: number, y: number, onKeyPress: (e: KeyboardEvent) => void) {

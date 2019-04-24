@@ -7,7 +7,7 @@ import { Transform } from "../../util/Transform";
 import { DocumentView, DocumentViewProps } from "./DocumentView";
 import "./DocumentView.scss";
 import React = require("react");
-import { OmitKeys } from "../../../Utils";
+import { OmitKeys, Utils } from "../../../Utils";
 import { SelectionManager } from "../../util/SelectionManager";
 import { ListField } from "../../../fields/ListField";
 import { BooleanField } from "../../../fields/BooleanField";
@@ -102,9 +102,7 @@ export class CollectionFreeFormDocumentView extends React.Component<CollectionFr
     public toggleIcon = async (): Promise<void> => {
         SelectionManager.DeselectAll();
         let isMinimized: boolean | undefined;
-        let minDoc = await this.props.Document.GetTAsync(KeyStore.MinimizedDoc, Document);
-        if (!minDoc) return;
-        let minimizedDocSet = await minDoc.GetTAsync(KeyStore.LinkTags, ListField);
+        let minimizedDocSet = await this.props.Document.GetTAsync(KeyStore.LinkTags, ListField);
         if (!minimizedDocSet) return;
         minimizedDocSet.Data.map(async minimizedDoc => {
             if (minimizedDoc instanceof Document) {
@@ -136,16 +134,13 @@ export class CollectionFreeFormDocumentView extends React.Component<CollectionFr
     onPointerDown = (e: React.PointerEvent): void => {
         this._downX = e.clientX;
         this._downY = e.clientY;
-        document.removeEventListener("pointerup", this.onPointerUp);
-        document.addEventListener("pointerup", this.onPointerUp);
     }
-    onPointerUp = (e: PointerEvent): void => {
-        document.removeEventListener("pointerup", this.onPointerUp);
+    onClick = (e: React.MouseEvent): void => {
         e.stopPropagation();
-        if (Math.abs(e.clientX - this._downX) < 4 && Math.abs(e.clientY - this._downY) < 4) {
+        if (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD &&
+            Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD) {
             this.props.Document.GetTAsync(KeyStore.MaximizedDoc, Document).then(maxdoc => {
                 if (maxdoc instanceof Document) {   // bcz: need a better way to associate behaviors with click events on widget-documents
-                    SelectionManager.DeselectAll();
                     this.props.addDocument && this.props.addDocument(maxdoc, false);
                     this.toggleIcon();
                 }
@@ -170,6 +165,7 @@ export class CollectionFreeFormDocumentView extends React.Component<CollectionFr
         return (
             <div className="collectionFreeFormDocumentView-container" ref={this._mainCont}
                 onPointerDown={this.onPointerDown}
+                onClick={this.onClick}
                 style={{
                     opacity: zoomFade,
                     transformOrigin: "left top",
