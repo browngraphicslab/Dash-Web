@@ -26,6 +26,9 @@ import { ImageField, VideoField, AudioField, PdfField, WebField } from "../../ne
 import { HtmlField } from "../../new_fields/HtmlField";
 import { List } from "../../new_fields/List";
 import { Cast } from "../../new_fields/Types";
+import { IconField } from "../../new_fields/IconField";
+import { listSpec } from "../../new_fields/Schema";
+import { DocServer } from "../DocServer";
 
 export interface DocumentOptions {
     x?: number;
@@ -73,17 +76,17 @@ export namespace Docs {
     const iconProtoId = "iconProto";
 
     export function initProtos(): Promise<void> {
-        return Server.GetFields([textProtoId, histoProtoId, collProtoId, pdfProtoId, imageProtoId, videoProtoId, audioProtoId, webProtoId, kvpProtoId]).then(fields => {
-            textProto = fields[textProtoId] as Document || CreateTextPrototype();
-            histoProto = fields[histoProtoId] as Document || CreateHistogramPrototype();
-            collProto = fields[collProtoId] as Document || CreateCollectionPrototype();
-            imageProto = fields[imageProtoId] as Document || CreateImagePrototype();
-            webProto = fields[webProtoId] as Document || CreateWebPrototype();
-            kvpProto = fields[kvpProtoId] as Document || CreateKVPPrototype();
-            videoProto = fields[videoProtoId] as Document || CreateVideoPrototype();
-            audioProto = fields[audioProtoId] as Document || CreateAudioPrototype();
-            pdfProto = fields[pdfProtoId] as Document || CreatePdfPrototype();
-            iconProto = fields[iconProtoId] as Document || CreateIconPrototype();
+        return DocServer.GetRefFields([textProtoId, histoProtoId, collProtoId, pdfProtoId, imageProtoId, videoProtoId, audioProtoId, webProtoId, kvpProtoId]).then(fields => {
+            textProto = fields[textProtoId] as Doc || CreateTextPrototype();
+            histoProto = fields[histoProtoId] as Doc || CreateHistogramPrototype();
+            collProto = fields[collProtoId] as Doc || CreateCollectionPrototype();
+            imageProto = fields[imageProtoId] as Doc || CreateImagePrototype();
+            webProto = fields[webProtoId] as Doc || CreateWebPrototype();
+            kvpProto = fields[kvpProtoId] as Doc || CreateKVPPrototype();
+            videoProto = fields[videoProtoId] as Doc || CreateVideoPrototype();
+            audioProto = fields[audioProtoId] as Doc || CreateAudioPrototype();
+            pdfProto = fields[pdfProtoId] as Doc || CreatePdfPrototype();
+            iconProto = fields[iconProtoId] as Doc || CreateIconPrototype();
         });
     }
 
@@ -191,25 +194,29 @@ export namespace Docs {
         let ctlog = await Gateway.Instance.GetSchema(url, schemaName);
         if (ctlog && ctlog.schemas) {
             let schema = ctlog.schemas[0];
-            let schemaDoc = Documents.TreeDocument([], { ...options, nativeWidth: undefined, nativeHeight: undefined, width: 150, height: 100, title: schema.displayName! });
-            let schemaDocuments = schemaDoc.GetList(KeyStore.Data, [] as Document[]);
+            let schemaDoc = Docs.TreeDocument([], { ...options, nativeWidth: undefined, nativeHeight: undefined, width: 150, height: 100, title: schema.displayName! });
+            let schemaDocuments = Cast(schemaDoc.data, listSpec(Doc));
+            if (!schemaDocuments) {
+                return;
+            }
+            const docs = schemaDocuments;
             CurrentUserUtils.GetAllNorthstarColumnAttributes(schema).map(attr => {
-                Server.GetField(attr.displayName! + ".alias", action((field: Opt<Field>) => {
-                    if (field instanceof Document) {
-                        schemaDocuments.push(field);
+                DocServer.GetRefField(attr.displayName! + ".alias").then(action((field: Opt<Field>) => {
+                    if (field instanceof Doc) {
+                        docs.push(field);
                     } else {
                         var atmod = new ColumnAttributeModel(attr);
                         let histoOp = new HistogramOperation(schema.displayName!,
                             new AttributeTransformationModel(atmod, AggregateFunction.None),
                             new AttributeTransformationModel(atmod, AggregateFunction.Count),
                             new AttributeTransformationModel(atmod, AggregateFunction.Count));
-                        schemaDocuments.push(Documents.HistogramDocument(histoOp, { width: 200, height: 200, title: attr.displayName! }, undefined, attr.displayName! + ".alias"));
+                        docs.push(Docs.HistogramDocument(histoOp, { width: 200, height: 200, title: attr.displayName! }, undefined, attr.displayName! + ".alias"));
                     }
                 }));
             });
             return schemaDoc;
         }
-        return Documents.TreeDocument([], { width: 50, height: 100, title: schemaName });
+        return Docs.TreeDocument([], { width: 50, height: 100, title: schemaName });
     }
     export function WebDocument(url: string, options: DocumentOptions = {}) {
         return CreateInstance(webProto, new WebField(new URL(url)), options);

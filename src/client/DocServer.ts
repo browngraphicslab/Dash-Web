@@ -30,6 +30,31 @@ export namespace DocServer {
         }
     }
 
+    export async function GetRefFields(ids: string[]): Promise<{ [id: string]: Opt<RefField> }> {
+        const requestedIds: string[] = [];
+        const waitingIds: string[] = [];
+        const promises: Promise<Opt<RefField>>[] = [];
+        const map: { [id: string]: Opt<RefField> } = {};
+        for (const id of ids) {
+            const cached = _cache[id];
+            if (cached === undefined) {
+                requestedIds.push(id);
+            } else if (cached instanceof Promise) {
+                promises.push(cached);
+                waitingIds.push(id);
+            } else {
+                map[id] = cached;
+            }
+        }
+        const prom = Utils.EmitCallback(_socket, MessageStore.GetFields, requestedIds);
+        requestedIds.map((id, index) => _cache[id] = prom.then((fields: RefField[]) => fields[index]));
+        const fields = await prom;
+        requestedIds.map((id, index) => map[id] = fields[index]);
+        const otherFields = await Promise.all(promises);
+        waitingIds.map((id, index) => map[id] = otherFields[index]);
+        return map;
+    }
+
     export function UpdateField(id: string, diff: any) {
         Utils.Emit(_socket, MessageStore.UpdateField, { id, diff });
     }

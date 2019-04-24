@@ -42,6 +42,7 @@ export namespace MessageStore {
     export const DeleteAll = new Message<any>("Delete All");
 
     export const GetRefField = new Message<string>("Get Ref Field");
+    export const GetRefFields = new Message<string[]>("Get Ref Fields");
     export const UpdateField = new Message<Diff>("Update Ref Field");
     export const CreateField = new Message<Reference>("Create Ref Field");
 }
