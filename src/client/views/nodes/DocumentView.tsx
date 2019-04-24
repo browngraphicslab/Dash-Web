@@ -148,7 +148,8 @@ export class DocumentView extends React.Component<DocumentViewProps> {
 
     onClick = (e: React.MouseEvent): void => {
         if (CurrentUserUtils.MainDocId != this.props.Document.Id &&
-            (Math.abs(e.clientX - this._downX) < MarqueeView.DRAG_THRESHOLD && Math.abs(e.clientY - this._downY) < MarqueeView.DRAG_THRESHOLD)) {
+            (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD &&
+                Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD)) {
             SelectionManager.SelectDoc(this, e.ctrlKey);
         }
         e.stopPropagation();
@@ -230,25 +231,27 @@ export class DocumentView extends React.Component<DocumentViewProps> {
 
                         let dstTarg = protoDest ? protoDest : destDoc;
                         let srcTarg = protoSrc ? protoSrc : sourceDoc;
-                        linkDoc.Set(KeyStore.LinkedToDocs, dstTarg);
-                        linkDoc.Set(KeyStore.LinkedFromDocs, srcTarg);
-                        const prom1 = new Promise(resolve => dstTarg.GetOrCreateAsync(
-                            KeyStore.LinkedFromDocs,
-                            ListField,
-                            field => {
-                                (field as ListField<Document>).Data.push(linkDoc);
-                                resolve();
-                            }
-                        ));
-                        const prom2 = new Promise(resolve => srcTarg.GetOrCreateAsync(
-                            KeyStore.LinkedToDocs,
-                            ListField,
-                            field => {
-                                (field as ListField<Document>).Data.push(linkDoc);
-                                resolve();
-                            }
-                        ));
-                        Promise.all([prom1, prom2]).finally(() => batch.end());
+                        if ((de.data as DragManager.LinkDragData).blacklist.indexOf(dstTarg) === -1) {
+                            linkDoc.Set(KeyStore.LinkedToDocs, dstTarg);
+                            linkDoc.Set(KeyStore.LinkedFromDocs, srcTarg);
+                            const prom1 = new Promise(resolve => dstTarg.GetOrCreateAsync(
+                                KeyStore.LinkedFromDocs,
+                                ListField,
+                                field => {
+                                    (field as ListField<Document>).Data.push(linkDoc);
+                                    resolve();
+                                }
+                            ));
+                            const prom2 = new Promise(resolve => srcTarg.GetOrCreateAsync(
+                                KeyStore.LinkedToDocs,
+                                ListField,
+                                field => {
+                                    (field as ListField<Document>).Data.push(linkDoc);
+                                    resolve();
+                                }
+                            ));
+                            Promise.all([prom1, prom2]).finally(() => batch.end());
+                        }
                     })
                 )
             );

@@ -13,6 +13,7 @@ import { PreviewCursor } from "../../PreviewCursor";
 import { CollectionFreeFormView } from "./CollectionFreeFormView";
 import "./MarqueeView.scss";
 import React = require("react");
+import { Utils } from "../../../../Utils";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;
@@ -33,7 +34,6 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     @observable _downX: number = 0;
     @observable _downY: number = 0;
     @observable _visible: boolean = false;
-    static DRAG_THRESHOLD = 4;
 
     @action
     cleanupInteractions = (all: boolean = false) => {
@@ -74,8 +74,8 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         this._lastX = e.pageX;
         this._lastY = e.pageY;
         if (!e.cancelBubble) {
-            if (Math.abs(this._lastX - this._downX) > MarqueeView.DRAG_THRESHOLD ||
-                Math.abs(this._lastY - this._downY) > MarqueeView.DRAG_THRESHOLD) {
+            if (Math.abs(this._lastX - this._downX) > Utils.DRAG_THRESHOLD ||
+                Math.abs(this._lastY - this._downY) > Utils.DRAG_THRESHOLD) {
                 this._visible = true;
                 e.stopPropagation();
                 e.preventDefault();
@@ -101,8 +101,8 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
 
     @action
     onClick = (e: React.MouseEvent): void => {
-        if (Math.abs(e.clientX - this._downX) < MarqueeView.DRAG_THRESHOLD &&
-            Math.abs(e.clientY - this._downY) < MarqueeView.DRAG_THRESHOLD) {
+        if (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD &&
+            Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD) {
             PreviewCursor.Show(e.clientX, e.clientY, this.onKeyPress);
             // let the DocumentView stopPropagation of this event when it selects this document
         } else {  // why do we get a click event when the cursor have moved a big distance?

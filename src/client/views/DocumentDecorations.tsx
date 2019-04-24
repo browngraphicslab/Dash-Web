@@ -19,6 +19,7 @@ import { CompileScript } from "../util/Scripting";
 import { IconBox } from "./nodes/IconBox";
 import { FieldValue, Field } from "../../fields/Field";
 import { Documents } from "../documents/Documents";
+import { Utils } from "../northstar/utils/Utils";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -207,8 +208,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     @action
     onMinimizeMove = (e: PointerEvent): void => {
         e.stopPropagation();
-        let moved = Math.abs(e.pageX - this._downX) > 4 || Math.abs(e.pageY - this._downY) > 4;
-        if (moved) {
+        if (Math.abs(e.pageX - this._downX) > Utils.DRAG_THRESHOLD ||
+            Math.abs(e.pageY - this._downY) > Utils.DRAG_THRESHOLD) {
             let selDoc = SelectionManager.SelectedDocuments()[0];
             let selDocPos = selDoc.props.ScreenToLocalTransform().scale(selDoc.props.ContentScaling()).inverse().transformPoint(0, 0);
             let snapped = Math.abs(e.pageX - selDocPos[0]) < 20 && Math.abs(e.pageY - selDocPos[1]) < 20;
@@ -316,7 +317,9 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         if (this._linkerButton.current !== null) {
             document.removeEventListener("pointermove", this.onLinkerButtonMoved);
             document.removeEventListener("pointerup", this.onLinkerButtonUp);
-            let dragData = new DragManager.LinkDragData(SelectionManager.SelectedDocuments()[0].props.Document);
+            let selDoc = SelectionManager.SelectedDocuments()[0];
+            let container = selDoc.props.ContainingCollectionView ? selDoc.props.ContainingCollectionView.props.Document.GetPrototype() : undefined;
+            let dragData = new DragManager.LinkDragData(selDoc.props.Document, container ? [container] : []);
             DragManager.StartLinkDrag(this._linkerButton.current, dragData, e.pageX, e.pageY, {
                 handlers: {
                     dragComplete: action(emptyFunction),

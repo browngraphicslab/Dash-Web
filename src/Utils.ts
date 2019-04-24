@@ -6,6 +6,8 @@ import { Document } from './fields/Document';
 
 export class Utils {
 
+    public static DRAG_THRESHOLD = 4;
+
     public static GenerateGuid(): string {
         return v4();
     }

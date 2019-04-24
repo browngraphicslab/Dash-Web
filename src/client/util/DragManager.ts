@@ -158,11 +158,13 @@ export namespace DragManager {
     }
 
     export class LinkDragData {
-        constructor(linkSourceDoc: Document) {
+        constructor(linkSourceDoc: Document, blacklist: Document[] = []) {
             this.linkSourceDocument = linkSourceDoc;
+            this.blacklist = blacklist;
         }
         droppedDocuments: Document[] = [];
         linkSourceDocument: Document;
+        blacklist: Document[];
         [id: string]: any;
     }
 
