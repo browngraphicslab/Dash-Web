@@ -326,8 +326,14 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         Server.GetField(this.props.documentId, action((f: Opt<Field>) => this._document = f as Document));
     }
 
-    nativeWidth = () => this._document!.GetNumber(KeyStore.NativeWidth, this._panelWidth);
-    nativeHeight = () => this._document!.GetNumber(KeyStore.NativeHeight, this._panelHeight);
+    nativeWidth = () => {
+        let pw = this._document!.GetNumber(KeyStore.NativeWidth, 0);
+        return pw ? pw : this._panelWidth;
+    }
+    nativeHeight = () => {
+        let pw = this._document!.GetNumber(KeyStore.NativeHeight, 0);
+        return pw ? pw : this._panelHeight;
+    }
     contentScaling = () => {
         let wscale = this._panelWidth / (this.nativeWidth() ? this.nativeWidth() : this._panelWidth);
         if (wscale * this.nativeHeight() > this._panelHeight)

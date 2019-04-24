@@ -18,6 +18,8 @@ export class PreviewCursor extends React.Component<{}> {
     @observable public static hide = () => { };
     @action
     public static Show(hide: any, x: number, y: number) {
+        if (this.hide)
+            this.hide();
         this.clickPoint = [x, y];
         this.hide = hide;
         setTimeout(action(() => this.Visible = true), (1));

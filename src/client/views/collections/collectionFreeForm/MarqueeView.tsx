@@ -69,13 +69,14 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     }
     @action
     onPointerDown = (e: React.PointerEvent): void => {
+        this._downX = this._lastX = e.pageX;
+        this._downY = this._lastY = e.pageY;
+
+        document.removeEventListener("keypress", this.onKeyPress, false);
         if ((CollectionFreeFormView.RIGHT_BTN_DRAG && e.button === 0 && !e.altKey && !e.metaKey && this.props.container.props.active()) ||
             (!CollectionFreeFormView.RIGHT_BTN_DRAG && (e.button === 2 || (e.button === 0 && e.altKey)) && this.props.container.props.active())) {
-            this._downX = this._lastX = e.pageX;
-            this._downY = this._lastY = e.pageY;
             this._used = false;
             this._showOnUp = true;
-            document.removeEventListener("keypress", this.onKeyPress, false);
             document.addEventListener("pointermove", this.onPointerMove, true);
             document.addEventListener("pointerup", this.onPointerUp, true);
             document.addEventListener("keydown", this.marqueeCommand, true);
@@ -124,7 +125,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     }
 
     @action
-    onClick = (e: MouseEvent): void => {
+    onClick = (e: React.MouseEvent): void => {
         PreviewCursor.Show(this.hideCursor, e.clientX, e.clientY);
         document.addEventListener("keypress", this.onKeyPress, false);
     }
