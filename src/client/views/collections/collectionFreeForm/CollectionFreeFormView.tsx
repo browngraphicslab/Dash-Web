@@ -118,19 +118,15 @@ export class CollectionFreeFormView extends CollectionSubView {
                 (e.button === 0 && e.altKey)) && (childSelected || this.props.active()))) ||
             (!CollectionFreeFormView.RIGHT_BTN_DRAG &&
                 ((e.button === 0 && !e.altKey && (!this.isAnnotationOverlay || this.zoomScaling() !== 1)) && (childSelected || this.props.active())))) {
-            document.removeEventListener("pointermove", this.onPointerMove);
+            this.cleanupInteractions();
             document.addEventListener("pointermove", this.onPointerMove);
-            document.removeEventListener("pointerup", this.onPointerUp);
             document.addEventListener("pointerup", this.onPointerUp);
             this._lastX = e.pageX;
             this._lastY = e.pageY;
         }
     }
 
-    @action
     onPointerUp = (e: PointerEvent): void => {
-        e.stopPropagation();
-
         this.cleanupInteractions();
     }
 
@@ -164,7 +160,7 @@ export class CollectionFreeFormView extends CollectionSubView {
             this.setPan(x - dx, y - dy);
             this._lastX = e.pageX;
             this._lastY = e.pageY;
-            e.stopPropagation();
+            e.stopPropagation(); // doesn't actually stop propagation since all our listeners are listening to events on 'document'  however it does mark the event as cancelBubble=true which we test for in the move event handlers
             e.preventDefault();
         }
     }

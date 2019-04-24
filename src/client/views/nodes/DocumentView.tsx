@@ -23,6 +23,7 @@ import "./DocumentView.scss";
 import React = require("react");
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
+import { MarqueeView } from "../collections/collectionFreeForm/MarqueeView";
 
 export interface DocumentViewProps {
     ContainingCollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
@@ -146,8 +147,8 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     }
 
     onClick = (e: React.MouseEvent): void => {
-        console.log("click = " + this.props.Document.Title);
-        if (CurrentUserUtils.MainDocId != this.props.Document.Id) {
+        if (CurrentUserUtils.MainDocId != this.props.Document.Id &&
+            (Math.abs(e.clientX - this._downX) < MarqueeView.DRAG_THRESHOLD && Math.abs(e.clientY - this._downY) < MarqueeView.DRAG_THRESHOLD)) {
             SelectionManager.SelectDoc(this, e.ctrlKey);
         }
         e.stopPropagation();
@@ -182,7 +183,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
                     this.startDragging(this._downX, this._downY, e.ctrlKey || e.altKey);
                 }
             }
-            e.stopPropagation();
+            e.stopPropagation(); // doesn't actually stop propagation since all our listeners are listening to events on 'document'  however it does mark the event as cancelBubble=true which we test for in the move event handlers
             e.preventDefault();
         }
     }

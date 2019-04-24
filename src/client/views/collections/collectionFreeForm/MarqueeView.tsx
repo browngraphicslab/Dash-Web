@@ -32,9 +32,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     @observable _lastY: number = 0;
     @observable _downX: number = 0;
     @observable _downY: number = 0;
-    @observable _used: boolean = false;
     @observable _visible: boolean = false;
-    _showOnUp: boolean = false;
     static DRAG_THRESHOLD = 4;
 
     @action
@@ -42,8 +40,6 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         if (all) {
             document.removeEventListener("pointermove", this.onPointerMove, true);
             document.removeEventListener("pointerup", this.onPointerUp, true);
-        } else {
-            this._used = true;
         }
         document.removeEventListener("keydown", this.marqueeCommand, true);
         this._visible = false;
@@ -51,32 +47,19 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
 
     @action
     onKeyPress = (e: KeyboardEvent) => {
-        // Mixing events between React and Native is finicky.  In FormattedTextBox, we set the
-        // DASHFormattedTextBoxHandled flag when a text box consumes a key press so that we can ignore
-        // the keyPress here.
-        //if not these keys, make a textbox if preview cursor is active!
-        if (!e.ctrlKey && !e.altKey && !e.defaultPrevented && !(e as any).DASHFormattedTextBoxHandled) {
-            //make textbox and add it to this collection
-            let [x, y] = this.props.getTransform().transformPoint(this._downX, this._downY);
-            let newBox = Documents.TextDocument({ width: 200, height: 100, x: x, y: y, title: "typed text" });
-            this.props.addLiveTextDocument(newBox);
-            PreviewCursor.Visible = false;
-            e.stopPropagation();
-        }
-    }
-    hideCursor = () => {
-        document.removeEventListener("keypress", this.onKeyPress, false);
+        //make textbox and add it to this collection
+        let [x, y] = this.props.getTransform().transformPoint(this._downX, this._downY);
+        let newBox = Documents.TextDocument({ width: 200, height: 100, x: x, y: y, title: "typed text" });
+        this.props.addLiveTextDocument(newBox);
+        e.stopPropagation();
     }
     @action
     onPointerDown = (e: React.PointerEvent): void => {
         this._downX = this._lastX = e.pageX;
         this._downY = this._lastY = e.pageY;
-
-        document.removeEventListener("keypress", this.onKeyPress, false);
+        PreviewCursor.Visible = false;
         if ((CollectionFreeFormView.RIGHT_BTN_DRAG && e.button === 0 && !e.altKey && !e.metaKey && this.props.container.props.active()) ||
             (!CollectionFreeFormView.RIGHT_BTN_DRAG && (e.button === 2 || (e.button === 0 && e.altKey)) && this.props.container.props.active())) {
-            this._used = false;
-            this._showOnUp = true;
             document.addEventListener("pointermove", this.onPointerMove, true);
             document.addEventListener("pointerup", this.onPointerUp, true);
             document.addEventListener("keydown", this.marqueeCommand, true);
@@ -91,14 +74,8 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         this._lastX = e.pageX;
         this._lastY = e.pageY;
         if (!e.cancelBubble) {
-            if (Math.abs(this._downX - e.clientX) > 4 || Math.abs(this._downY - e.clientY) > 4) {
-                this._showOnUp = false;
-                PreviewCursor.Visible = false;
-            }
-            if (!this._used &&
-                (!CollectionFreeFormView.RIGHT_BTN_DRAG && (e.buttons === 2 || (e.buttons == 1 && e.altKey))) ||
-                (CollectionFreeFormView.RIGHT_BTN_DRAG && e.buttons === 1 && !e.altKey && !e.metaKey) &&
-                (Math.abs(this._lastX - this._downX) > MarqueeView.DRAG_THRESHOLD || Math.abs(this._lastY - this._downY) > MarqueeView.DRAG_THRESHOLD)) {
+            if (Math.abs(this._lastX - this._downX) > MarqueeView.DRAG_THRESHOLD ||
+                Math.abs(this._lastY - this._downY) > MarqueeView.DRAG_THRESHOLD) {
                 this._visible = true;
                 e.stopPropagation();
                 e.preventDefault();
@@ -110,24 +87,28 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
 
     @action
     onPointerUp = (e: PointerEvent): void => {
-        this.cleanupInteractions(true);
-        this._visible = false;
-        if (!this._showOnUp && (CollectionFreeFormView.RIGHT_BTN_DRAG && e.button === 0 && !e.altKey && !e.metaKey) ||
-            (!CollectionFreeFormView.RIGHT_BTN_DRAG && ((e.button === 0 && e.altKey) || e.button === 2))) {
+        if (this._visible) {
             let mselect = this.marqueeSelect();
             if (!e.shiftKey) {
                 SelectionManager.DeselectAll(mselect.length ? undefined : this.props.container.props.Document);
             }
             this.props.selectDocuments(mselect.length ? mselect : [this.props.container.props.Document]);
         }
+        this.cleanupInteractions(true);
         if (e.altKey)
             e.preventDefault();
     }
 
     @action
     onClick = (e: React.MouseEvent): void => {
-        PreviewCursor.Show(this.hideCursor, e.clientX, e.clientY);
-        document.addEventListener("keypress", this.onKeyPress, false);
+        if (Math.abs(e.clientX - this._downX) < MarqueeView.DRAG_THRESHOLD &&
+            Math.abs(e.clientY - this._downY) < MarqueeView.DRAG_THRESHOLD) {
+            PreviewCursor.Show(e.clientX, e.clientY, this.onKeyPress);
+            // let the DocumentView stopPropagation of this event when it selects this document
+        } else {  // why do we get a click event when the cursor have moved a big distance?
+            // let's cut it off here so no one else has to deal with it.
+            e.stopPropagation();
+        }
     }
 
     intersectRect(r1: { left: number, top: number, width: number, height: number },
