@@ -6,10 +6,6 @@ import Measure from "react-measure";
 //@ts-ignore
 import { Document, Page } from "react-pdf";
 import 'react-pdf/dist/Page/AnnotationLayer.css';
-import { FieldWaiting, Opt } from '../../../fields/Field';
-import { ImageField } from '../../../fields/ImageField';
-import { KeyStore } from '../../../fields/KeyStore';
-import { PDFField } from '../../../fields/PDFField';
 import { RouteStore } from "../../../server/RouteStore";
 import { Utils } from '../../../Utils';
 import { Annotation } from './Annotation';
@@ -19,6 +15,13 @@ import "./PDFBox.scss";
 import { Sticky } from './Sticky'; //you should look at sticky and annotation, because they are used here
 import React = require("react");
 import { SelectionManager } from "../../util/SelectionManager";
+import { Cast, FieldValue } from "../../../new_fields/Types";
+import { Opt } from "../../../new_fields/Doc";
+import { DocComponent } from "../DocComponent";
+import { makeInterface } from "../../../new_fields/Schema";
+import { positionSchema } from "./DocumentView";
+import { pageSchema } from "./ImageBox";
+import { ImageField, PdfField } from "../../../new_fields/URLField";
 
 /** ALSO LOOK AT: Annotation.tsx, Sticky.tsx
  * This method renders PDF and puts all kinds of functionalities such as annotation, highlighting, 
@@ -51,8 +54,12 @@ import { SelectionManager } from "../../util/SelectionManager";
  * 
  * written by: Andrew Kim 
  */
+
+type PdfDocument = makeInterface<[typeof positionSchema, typeof pageSchema]>;
+const PdfDocument = makeInterface(positionSchema, pageSchema);
+
 @observer
-export class PDFBox extends React.Component<FieldViewProps> {
+export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocument) {
     public static LayoutString() { return FieldView.LayoutString(PDFBox); }
 
     private _mainDiv = React.createRef<HTMLDivElement>();
@@ -89,8 +96,8 @@ export class PDFBox extends React.Component<FieldViewProps> {
     @observable private _interactive: boolean = false;
     @observable private _loaded: boolean = false;
 
-    @computed private get curPage() { return this.props.Document.GetNumber(KeyStore.CurPage, 1); }
-    @computed private get thumbnailPage() { return this.props.Document.GetNumber(KeyStore.ThumbnailPage, -1); }
+    @computed private get curPage() { return FieldValue(this.Document.curPage, 1); }
+    @computed private get thumbnailPage() { return Cast(this.props.Document.thumbnailPage, "number", -1); }
 
     componentDidMount() {
         this._reactionDisposer = reaction(
@@ -380,14 +387,13 @@ export class PDFBox extends React.Component<FieldViewProps> {
     saveThumbnail = () => {
         this._renderAsSvg = false;
         setTimeout(() => {
-            var me = this;
-            let nwidth = me.props.Document.GetNumber(KeyStore.NativeWidth, 0);
-            let nheight = me.props.Document.GetNumber(KeyStore.NativeHeight, 0);
+            let nwidth = FieldValue(this.Document.nativeWidth, 0);
+            let nheight = FieldValue(this.Document.nativeHeight, 0);
             htmlToImage.toPng(this._mainDiv.current!, { width: nwidth, height: nheight, quality: 1 })
                 .then(action((dataUrl: string) => {
-                    me.props.Document.SetData(KeyStore.Thumbnail, new URL(dataUrl), ImageField);
-                    me.props.Document.SetNumber(KeyStore.ThumbnailPage, me.props.Document.GetNumber(KeyStore.CurPage, -1));
-                    me._renderAsSvg = true;
+                    this.props.Document.thumbnail = new ImageField(new URL(dataUrl));
+                    this.props.Document.thumbnailPage = FieldValue(this.Document.curPage, -1);
+                    this._renderAsSvg = true;
                 }))
                 .catch(function (error: any) {
                     console.error('oops, something went wrong!', error);
@@ -414,7 +420,7 @@ export class PDFBox extends React.Component<FieldViewProps> {
         }
 
         // bcz: the number of pages should really be set when the document is imported.
-        this.props.Document.SetNumber(KeyStore.NumPages, page._transport.numPages);
+        this.props.Document.numPages = page._transport.numPages;
         if (this._perPageInfo.length === 0) { //Makes sure it only runs once
             this._perPageInfo = [...Array(page._transport.numPages)];
         }
@@ -426,11 +432,11 @@ export class PDFBox extends React.Component<FieldViewProps> {
         // bcz: the nativeHeight should really be set when the document is imported.
         //      also, the native dimensions could be different for different pages of the PDF
         //      so this design is flawed.
-        var nativeWidth = this.props.Document.GetNumber(KeyStore.NativeWidth, 0);
-        if (!this.props.Document.GetNumber(KeyStore.NativeHeight, 0)) {
+        var nativeWidth = FieldValue(this.Document.nativeWidth, 0);
+        if (!FieldValue(this.Document.nativeHeight, 0)) {
             var nativeHeight = nativeWidth * r.entry.height / r.entry.width;
-            this.props.Document.SetNumber(KeyStore.Height, nativeHeight / nativeWidth * this.props.Document.GetNumber(KeyStore.Width, 0));
-            this.props.Document.SetNumber(KeyStore.NativeHeight, nativeHeight);
+            this.props.Document.height = nativeHeight / nativeWidth * FieldValue(this.Document.width, 0);
+            this.props.Document.nativeHeight = nativeHeight;
         }
     }
 
@@ -438,8 +444,8 @@ export class PDFBox extends React.Component<FieldViewProps> {
     get pdfContent() {
         let page = this.curPage;
         const renderHeight = 2400;
-        let pdfUrl = this.props.Document.GetT(this.props.fieldKey, PDFField);
-        let xf = this.props.Document.GetNumber(KeyStore.NativeHeight, 0) / renderHeight;
+        let pdfUrl = Cast(this.props.Document[this.props.fieldKey], PdfField);
+        let xf = FieldValue(this.Document.nativeHeight, 0) / renderHeight;
         return <div className="pdfBox-contentContainer" key="container" style={{ transform: `scale(${xf}, ${xf})` }}>
             <Document file={window.origin + RouteStore.corsProxy + `/${pdfUrl}`} renderMode={this._renderAsSvg ? "svg" : ""}>
                 <Measure onResize={this.setScaling}>
@@ -456,8 +462,8 @@ export class PDFBox extends React.Component<FieldViewProps> {
     @computed
     get pdfRenderer() {
         let proxy = this._loaded ? (null) : this.imageProxyRenderer;
-        let pdfUrl = this.props.Document.GetT(this.props.fieldKey, PDFField);
-        if ((!this._interactive && proxy) || !pdfUrl || pdfUrl === FieldWaiting) {
+        let pdfUrl = Cast(this.props.Document[this.props.fieldKey], PdfField);
+        if ((!this._interactive && proxy) || !pdfUrl) {
             return proxy;
         }
         return [
@@ -470,10 +476,10 @@ export class PDFBox extends React.Component<FieldViewProps> {
 
     @computed
     get imageProxyRenderer() {
-        let thumbField = this.props.Document.Get(KeyStore.Thumbnail);
+        let thumbField = this.props.Document.thumbnail;
         if (thumbField) {
-            let path = thumbField === FieldWaiting || this.thumbnailPage !== this.curPage ? "https://image.flaticon.com/icons/svg/66/66163.svg" :
-                thumbField instanceof ImageField ? thumbField.Data.href : "http://cs.brown.edu/people/bcz/prairie.jpg";
+            let path = this.thumbnailPage !== this.curPage ? "https://image.flaticon.com/icons/svg/66/66163.svg" :
+                thumbField instanceof ImageField ? thumbField.url.href : "http://cs.brown.edu/people/bcz/prairie.jpg";
             return <img src={path} width="100%" />;
         }
         return (null);
