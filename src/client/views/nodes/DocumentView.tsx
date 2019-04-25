@@ -1,8 +1,7 @@
 import { action, computed, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { ServerUtils } from "../../../server/ServerUtil";
 import { emptyFunction, Utils } from "../../../Utils";
-import { Documents } from "../../documents/Documents";
+import { Docs } from "../../documents/Documents";
 import { DocumentManager } from "../../util/DocumentManager";
 import { DragManager } from "../../util/DragManager";
 import { SelectionManager } from "../../util/SelectionManager";
@@ -21,6 +20,10 @@ import { DocComponent } from "../DocComponent";
 import { createSchema, makeInterface, listSpec } from "../../../new_fields/Schema";
 import { FieldValue, Cast, PromiseValue } from "../../../new_fields/Types";
 import { List } from "../../../new_fields/List";
+import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
+import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
+import { MarqueeView } from "../collections/collectionFreeForm/MarqueeView";
+import { DocServer } from "../../DocServer";
 
 const linkSchema = createSchema({
     title: "string",
@@ -48,6 +51,7 @@ export interface DocumentViewProps {
     selectOnLoad: boolean;
     parentActive: () => boolean;
     whenActiveChanged: (isActive: boolean) => void;
+    toggleMinimized: () => void;
 }
 
 const schema = createSchema({
@@ -83,39 +87,16 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @computed get active(): boolean { return SelectionManager.IsSelected(this) || this.props.parentActive(); }
     @computed get topMost(): boolean { return this.props.isTopMost; }
 
-    onPointerDown = (e: React.PointerEvent): void => {
-        this._downX = e.clientX;
-        this._downY = e.clientY;
-        if (e.button === 2 && !this.isSelected()) {
-            return;
-        }
-        if (e.shiftKey && e.buttons === 2) {
-            if (this.props.isTopMost) {
-                this.startDragging(e.pageX, e.pageY, e.altKey || e.ctrlKey);
-            } else {
-                CollectionDockingView.Instance.StartOtherDrag([this.props.Document], e);
-            }
-            e.stopPropagation();
-        } else {
-            if (this.active) {
-                e.stopPropagation();
-                document.removeEventListener("pointermove", this.onPointerMove);
-                document.addEventListener("pointermove", this.onPointerMove);
-                document.removeEventListener("pointerup", this.onPointerUp);
-                document.addEventListener("pointerup", this.onPointerUp);
-            }
-        }
-    }
-
+    @action
     componentDidMount() {
         if (this._mainCont.current) {
             this._dropDisposer = DragManager.MakeDropTarget(this._mainCont.current, {
                 handlers: { drop: this.drop.bind(this) }
             });
         }
-        runInAction(() => DocumentManager.Instance.DocumentViews.push(this));
+        DocumentManager.Instance.DocumentViews.push(this);
     }
-
+    @action
     componentDidUpdate() {
         if (this._dropDisposer) {
             this._dropDisposer();
@@ -126,21 +107,26 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             });
         }
     }
-
+    @action
     componentWillUnmount() {
         if (this._dropDisposer) {
             this._dropDisposer();
         }
-        runInAction(() => DocumentManager.Instance.DocumentViews.splice(DocumentManager.Instance.DocumentViews.indexOf(this), 1));
+        DocumentManager.Instance.DocumentViews.splice(DocumentManager.Instance.DocumentViews.indexOf(this), 1);
+    }
+
+    stopPropagation = (e: React.SyntheticEvent) => {
+        e.stopPropagation();
     }
 
     startDragging(x: number, y: number, dropAliasOfDraggedDoc: boolean) {
         if (this._mainCont.current) {
-            const [left, top] = this.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
+            const [left, top] = this.props.ScreenToLocalTransform().scale(this.props.ContentScaling()).inverse().transformPoint(0, 0);
             let dragData = new DragManager.DocumentDragData([this.props.Document]);
+            const [xoff, yoff] = this.props.ScreenToLocalTransform().scale(this.props.ContentScaling()).transformDirection(x - left, y - top);
             dragData.aliasOnDrop = dropAliasOfDraggedDoc;
-            dragData.xOffset = x - left;
-            dragData.yOffset = y - top;
+            dragData.xOffset = xoff;
+            dragData.yOffset = yoff;
             dragData.moveDocument = this.props.moveDocument;
             DragManager.StartDocumentDrag([this._mainCont.current], dragData, x, y, {
                 handlers: {
@@ -151,49 +137,58 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
     }
 
-    onPointerMove = (e: PointerEvent): void => {
-        if (e.cancelBubble) {
+    onClick = (e: React.MouseEvent): void => {
+        if (CurrentUserUtils.MainDocId !== this.props.Document.Id &&
+            (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD &&
+                Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD)) {
+            SelectionManager.SelectDoc(this, e.ctrlKey);
+        }
+    }
+    onPointerDown = (e: React.PointerEvent): void => {
+        this._downX = e.clientX;
+        this._downY = e.clientY;
+        if (CollectionFreeFormView.RIGHT_BTN_DRAG && (e.button === 2 || (e.button === 0 && e.altKey)) && !this.isSelected()) {
             return;
         }
-        if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3) {
-            document.removeEventListener("pointermove", this.onPointerMove);
-            document.removeEventListener("pointerup", this.onPointerUp);
-            if (!e.altKey && (!this.topMost || e.buttons === 2)) {
-                this.startDragging(this._downX, this._downY, e.ctrlKey || e.altKey);
+        if (e.shiftKey && e.buttons === 2) {
+            if (this.props.isTopMost) {
+                this.startDragging(e.pageX, e.pageY, e.altKey || e.ctrlKey);
+            } else {
+                CollectionDockingView.Instance.StartOtherDrag([this.props.Document], e);
             }
+            e.stopPropagation();
+        } else if (this.active) {
+            document.removeEventListener("pointermove", this.onPointerMove);
+            document.addEventListener("pointermove", this.onPointerMove);
+            document.removeEventListener("pointerup", this.onPointerUp);
+            document.addEventListener("pointerup", this.onPointerUp);
+            e.preventDefault();
         }
-        e.stopPropagation();
-        e.preventDefault();
+    }
+    onPointerMove = (e: PointerEvent): void => {
+        if (!e.cancelBubble) {
+            if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3) {
+                document.removeEventListener("pointermove", this.onPointerMove);
+                document.removeEventListener("pointerup", this.onPointerUp);
+                if (!e.altKey && !this.topMost && (!CollectionFreeFormView.RIGHT_BTN_DRAG && e.buttons === 1) || (CollectionFreeFormView.RIGHT_BTN_DRAG && e.buttons === 2)) {
+                    this.startDragging(this._downX, this._downY, e.ctrlKey || e.altKey);
+                }
+            }
+            e.stopPropagation(); // doesn't actually stop propagation since all our listeners are listening to events on 'document'  however it does mark the event as cancelBubble=true which we test for in the move event handlers
+            e.preventDefault();
+        }
     }
     onPointerUp = (e: PointerEvent): void => {
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
-        e.stopPropagation();
-        if (!SelectionManager.IsSelected(this) && e.button !== 2) {
-            if (Math.abs(e.clientX - this._downX) < 4 && Math.abs(e.clientY - this._downY) < 4) {
-                PromiseValue(Cast(this.props.Document.maximizedDoc, Doc)).then(maxdoc => {
-                    if (maxdoc instanceof Doc) {
-                        this.props.addDocument && this.props.addDocument(maxdoc, false);
-                        this.toggleMinimize(maxdoc, this.props.Document);
-                    } else {
-                        SelectionManager.SelectDoc(this, e.ctrlKey);
-                    }
-                });
-            }
-        }
-    }
-    stopPropagation = (e: React.SyntheticEvent) => {
-        e.stopPropagation();
     }
 
     deleteClicked = (): void => {
         this.props.removeDocument && this.props.removeDocument(this.props.Document);
     }
-
     fieldsClicked = (e: React.MouseEvent): void => {
-        if (this.props.addDocument) {
-            this.props.addDocument(Documents.KVPDocument(this.props.Document, { width: 300, height: 300 }), false);
-        }
+        let kvp = Docs.KVPDocument(this.props.Document, { width: 300, height: 300 });
+        CollectionDockingView.Instance.AddRightSplit(kvp);
     }
     fullScreenClicked = (e: React.MouseEvent): void => {
         const doc = Doc.MakeDelegate(FieldValue(this.Document.proto));
@@ -204,7 +199,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         ContextMenu.Instance.addItem({ description: "Close Full Screen", event: this.closeFullScreenClicked });
         ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15);
     }
-
     closeFullScreenClicked = (e: React.MouseEvent): void => {
         CollectionDockingView.Instance.CloseFullScreen();
         ContextMenu.Instance.clearItems();
@@ -212,118 +206,21 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15);
     }
 
-    @action createIcon = (layoutString: string): Doc => {
-        let iconDoc: Doc = Documents.IconDocument(layoutString);
-        iconDoc.isMinimized = false;
-        iconDoc.nativeWidth = 0;
-        iconDoc.nativeHeight = 0;
-        iconDoc.proto = this.props.Document;
-        iconDoc.maximizedDoc = this.props.Document;
-        this.Document.minimizedDoc = iconDoc;
-        this.props.addDocument && this.props.addDocument(iconDoc, false);
-        return iconDoc;
-    }
-
-    animateTransition(icon: number[], targ: number[], width: number, height: number, stime: number, target: Doc, maximizing: boolean) {
-        setTimeout(() => {
-            let now = Date.now();
-            let progress = Math.min(1, (now - stime) / 200);
-            let pval = maximizing ?
-                [icon[0] + (targ[0] - icon[0]) * progress, icon[1] + (targ[1] - icon[1]) * progress] :
-                [targ[0] + (icon[0] - targ[0]) * progress, targ[1] + (icon[1] - targ[1]) * progress];
-            target.width = maximizing ? 25 + (width - 25) * progress : width + (25 - width) * progress;
-            target.height = maximizing ? 25 + (height - 25) * progress : height + (25 - height) * progress;
-            target.x = pval[0];
-            target.y = pval[1];
-            if (now < stime + 200) {
-                this.animateTransition(icon, targ, width, height, stime, target, maximizing);
-            }
-            else {
-                if (!maximizing) {
-                    target.isMinimized = true;
-                    target.x = targ[0];
-                    target.y = targ[1];
-                    target.width = width;
-                    target.height = height;
-                }
-                this._completed = true;
-            }
-        },
-            2);
-    }
-
-    _completed = true;
-
-    @action
-    public toggleMinimize = (maximized: Doc, minim: Doc): void => {
-        SelectionManager.DeselectAll();
-        if (this._completed) {
-            this._completed = false;
-            let minimized = Cast(maximized.isMinimized, "boolean", false);
-            maximized.isMinimized = false;
-            this.animateTransition(
-                [Cast(minim.x, "number", 0), Cast(minim.y, "number", 0)],
-                [Cast(maximized.x, "number", 0), Cast(maximized.y, "number", 0)],
-                Cast(maximized.width, "number", 0), Cast(maximized.width, "number", 0),
-                Date.now(), maximized, minimized);
-        }
-    }
-
-    @action
-    public minimize = async (): Promise<void> => {
-        const mindoc = await Cast(this.props.Document.minimizedDoc, Doc);
-        if (mindoc === undefined) {
-            const background = await Cast(this.props.Document.backgroundLayout, "string");
-            if (background === undefined) {
-                const layout = await Cast(this.props.Document.layout, "string");
-                if (layout) {
-                    this.createIcon(layout);
-                    this.toggleMinimize(this.props.Document, this.createIcon(layout));
-                }
-            } else {
-                this.toggleMinimize(this.props.Document, this.createIcon(background));
-            }
-        } else {
-            this.props.addDocument && this.props.addDocument(mindoc, false);
-            this.toggleMinimize(this.props.Document, mindoc);
-        }
-    }
-
     @undoBatch
     @action
     drop = async (e: Event, de: DragManager.DropEvent) => {
         if (de.data instanceof DragManager.LinkDragData) {
-            let sourceDoc: Doc = de.data.linkSourceDocument;
-            let destDoc: Doc = this.props.Document;
-            let linkDoc = LinkDoc();
+            let sourceDoc = de.data.linkSourceDocument;
+            let destDoc = this.props.Document;
 
-            const protoDest = await Cast(destDoc.proto, Doc);
-            const protoSrc = await Cast(sourceDoc.proto, Doc);
-            UndoManager.RunInBatch(() => {
-                linkDoc.title = "New Link";
-                linkDoc.linkDescription = "";
-                linkDoc.linkTags = "Default";
-
-                let dstTarg = protoDest ? protoDest : destDoc;
-                let srcTarg = protoSrc ? protoSrc : sourceDoc;
-                linkDoc.linkedTo = dstTarg;
-                linkDoc.linkedFrom = srcTarg;
-                let linkedFrom = Cast(dstTarg.linkedFrom, listSpec(Doc));
-                if (!linkedFrom) {
-                    dstTarg.linkedFrom = linkedFrom = new List<Doc>();
-                }
-                linkedFrom.push(linkDoc);
-
-                let linkedTo = Cast(srcTarg.linkedTo, listSpec(Doc));
-                if (!linkedTo) {
-                    srcTarg.linkedTo = linkedTo = new List<Doc>();
-                }
-                linkedTo.push(linkDoc);
-            }, "document view drop");
+            const protoDest = destDoc.proto;
+            const protoSrc = sourceDoc.proto;
+            Doc.MakeLink(protoSrc ? protoSrc : sourceDoc, protoDest ? protoDest : destDoc);
             e.stopPropagation();
         }
     }
 
+    @action
     onDrop = (e: React.DragEvent) => {
         let text = e.dataTransfer.getData("text/plain");
         if (!e.isDefaultPrevented() && text && text.startsWith("<div")) {
@@ -349,7 +246,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         ContextMenu.Instance.addItem({ description: "Fields", event: this.fieldsClicked });
         ContextMenu.Instance.addItem({ description: "Center", event: () => this.props.focus(this.props.Document) });
         ContextMenu.Instance.addItem({ description: "Open Right", event: () => CollectionDockingView.Instance.AddRightSplit(this.props.Document) });
-        ContextMenu.Instance.addItem({ description: "Copy URL", event: () => Utils.CopyText(ServerUtils.prepend("/doc/" + this.props.Document.Id)) });
+        ContextMenu.Instance.addItem({ description: "Copy URL", event: () => Utils.CopyText(DocServer.prepend("/doc/" + this.props.Document.Id)) });
         ContextMenu.Instance.addItem({ description: "Copy ID", event: () => Utils.CopyText(this.props.Document[Id]) });
         //ContextMenu.Instance.addItem({ description: "Docking", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Docking) })
         ContextMenu.Instance.addItem({ description: "Delete", event: this.deleteClicked });
@@ -362,10 +259,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     isSelected = () => SelectionManager.IsSelected(this);
     select = (ctrlPressed: boolean) => SelectionManager.SelectDoc(this, ctrlPressed);
 
-    @computed get nativeWidth() { return FieldValue(this.Document.nativeWidth) || 0; }
-    @computed get nativeHeight() { return FieldValue(this.Document.nativeHeight) || 0; }
+    @computed get nativeWidth() { return FieldValue(this.Document.nativeWidth, 0); }
+    @computed get nativeHeight() { return FieldValue(this.Document.nativeHeight, 0); }
     @computed get contents() { return (<DocumentContentsView {...this.props} isSelected={this.isSelected} select={this.select} layoutKey={"layout"} />); }
-
 
     render() {
         var scaling = this.props.ContentScaling();
@@ -376,11 +272,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             <div className={`documentView-node${this.props.isTopMost ? "-topmost" : ""}`}
                 ref={this._mainCont}
                 style={{
+                    borderRadius: "inherit",
                     background: FieldValue(this.Document.backgroundColor) || "",
                     width: nativeWidth, height: nativeHeight,
                     transform: `scale(${scaling}, ${scaling})`
                 }}
-                onDrop={this.onDrop} onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown}
+                onDrop={this.onDrop} onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown} onClick={this.onClick}
             >
                 {this.contents}
             </div>

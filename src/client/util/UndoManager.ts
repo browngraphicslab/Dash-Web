@@ -140,6 +140,7 @@ export namespace UndoManager {
         }
     });
 
+    //TODO Make this return the return value
     export function RunInBatch(fn: () => void, batchName: string) {
         let batch = StartBatch(batchName);
         try {

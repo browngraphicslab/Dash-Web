@@ -7,10 +7,9 @@ import { observer } from "mobx-react";
 import ReactTable, { CellInfo, ComponentPropsGetterR, ReactTableDefaults } from "react-table";
 import { MAX_ROW_HEIGHT } from '../../views/globalCssVariables.scss'
 import "react-table/react-table.css";
-import { emptyFunction, returnFalse } from "../../../Utils";
-import { Server } from "../../Server";
+import { emptyFunction, returnFalse, returnZero } from "../../../Utils";
 import { SetupDrag } from "../../util/DragManager";
-import { CompileScript, ToField } from "../../util/Scripting";
+import { CompileScript } from "../../util/Scripting";
 import { Transform } from "../../util/Transform";
 import { COLLECTION_BORDER_WIDTH } from "../../views/globalCssVariables.scss";
 import { anchorPoints, Flyout } from "../DocumentDecorations";
@@ -21,7 +20,7 @@ import { FieldView, FieldViewProps } from "../nodes/FieldView";
 import "./CollectionSchemaView.scss";
 import { CollectionSubView } from "./CollectionSubView";
 import { Opt, Field, Doc, Id } from "../../../new_fields/Doc";
-import { Cast, FieldValue } from "../../../new_fields/Types";
+import { Cast, FieldValue, NumCast } from "../../../new_fields/Types";
 import { listSpec } from "../../../new_fields/Schema";
 import { List } from "../../../new_fields/List";
 
@@ -57,7 +56,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     @observable _keys: string[] = [];
     @observable _newKeyName: string = "";
 
-    @computed get splitPercentage() { return Cast(this.props.Document.schemaSplitPercentage, "number", 0); }
+    @computed get splitPercentage() { return NumCast(this.props.Document.schemaSplitPercentage); }
     @computed get columns() { return Cast(this.props.Document.columns, listSpec("string"), []); }
     @computed get borderWidth() { return Number(COLLECTION_BORDER_WIDTH); }
 
@@ -74,6 +73,8 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             focus: emptyFunction,
             active: returnFalse,
             whenActiveChanged: emptyFunction,
+            PanelHeight: returnZero,
+            PanelWidth: returnZero,
         };
         let contents = (
             <FieldView {...props} />
@@ -256,6 +257,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             <div className="collectionSchemaView-previewRegion" style={{ width: `${this.previewRegionWidth}px` }}>
                 <div className="collectionSchemaView-previewDoc" style={{ transform: `translate(${this.previewPanelCenteringOffset}px, 0px)` }}>
                     <DocumentView Document={this.previewDocument} isTopMost={false} selectOnLoad={false}
+                        toggleMinimized={emptyFunction}
                         addDocument={this.props.addDocument} removeDocument={this.props.removeDocument}
                         ScreenToLocalTransform={this.getPreviewTransform}
                         ContentScaling={this.previewContentScaling}

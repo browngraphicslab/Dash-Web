@@ -5,6 +5,9 @@ import { Utils } from "../Utils";
 import { DocServer } from "../client/DocServer";
 import { setter, getter, getField } from "./util";
 import { Cast, ToConstructor, PromiseValue, FieldValue } from "./Types";
+import { UndoManager, undoBatch } from "../client/util/UndoManager";
+import { listSpec } from "./Schema";
+import { List } from "./List";
 
 export type FieldId = string;
 export const HandleUpdate = Symbol("HandleUpdate");
@@ -54,7 +57,7 @@ export class Doc extends RefField {
         return doc;
     }
 
-    proto: FieldResult<Doc>;
+    proto: Opt<Doc>;
     [key: string]: FieldResult;
 
     @serializable(alias("fields", map(autoObject())))
@@ -124,6 +127,31 @@ export namespace Doc {
         });
 
         return alias;
+    }
+
+    export function MakeLink(source: Doc, target: Doc): Doc {
+        let linkDoc = new Doc;
+        UndoManager.RunInBatch(() => {
+            linkDoc.title = "New Link";
+            linkDoc.linkDescription = "";
+            linkDoc.linkTags = "Default";
+
+            linkDoc.linkedTo = target;
+            linkDoc.linkedFrom = source;
+
+            let linkedFrom = Cast(target.linkedFromDocs, listSpec(Doc));
+            if (!linkedFrom) {
+                target.linkedFromDocs = linkedFrom = new List<Doc>();
+            }
+            linkedFrom.push(linkDoc);
+
+            let linkedTo = Cast(source.linkedToDocs, listSpec(Doc));
+            if (!linkedTo) {
+                source.linkedToDocs = linkedTo = new List<Doc>();
+            }
+            linkedTo.push(linkDoc);
+        }, "make link");
+        return linkDoc;
     }
 
     export function MakeDelegate(doc: Doc): Doc;

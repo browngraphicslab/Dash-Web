@@ -3,7 +3,7 @@ import { observer } from 'mobx-react';
 import * as React from 'react';
 import { ContextMenu } from '../ContextMenu';
 import { FieldViewProps } from '../nodes/FieldView';
-import { Cast, FieldValue, PromiseValue } from '../../../new_fields/Types';
+import { Cast, FieldValue, PromiseValue, NumCast } from '../../../new_fields/Types';
 import { Doc, FieldResult, Opt, Id } from '../../../new_fields/Doc';
 import { listSpec } from '../../../new_fields/Schema';
 import { List } from '../../../new_fields/List';
@@ -87,51 +87,24 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         let props = this.props;
         var curPage = Cast(props.Document.curPage, "number", -1);
         Doc.SetOnPrototype(doc, "page", curPage);
-        if (true || this.isAnnotationOverlay) {
-            doc.zoom = Cast(this.props.Document.scale, "number", 1);
-        }
         if (curPage >= 0) {
             Doc.SetOnPrototype(doc, "annotationOn", props.Document);
         }
-        const data = props.Document[props.fieldKey];
-        if (data !== undefined) {
+        if (!this.createsCycle(doc, props.Document)) {
             //TODO This won't create the field if it doesn't already exist
-            const value = Cast(data, listSpec(Doc));
-            if (!this.createsCycle(doc, props.Document) && value !== undefined) {
+            const value = Cast(props.Document[props.fieldKey], listSpec(Doc));
+            if (value !== undefined) {
                 if (allowDuplicates || !value.some(v => v.Id === doc.Id)) {
                     value.push(doc);
                 }
+            } else {
+                this.props.Document[this.props.fieldKey] = new List([doc]);
             }
-            else {
-                return false;
-            }
-        } else {
-            let proto = FieldValue(props.Document.proto);
-            if (!proto || !this.createsCycle(proto, doc)) {
-                const field = new List([doc]);
-                // const script = CompileScript(`
-                //     if(added) {
-                //         console.log("added " + field.Title + " " + doc.Title);
-                //     } else {
-                //         console.log("removed " + field.Title + " " + doc.Title);
-                //     }
-                // `, {
-                //         addReturn: false,
-                //         params: {
-                //             field: Document.name,
-                //             added: "boolean"
-                //         },
-                //         capturedVariables: {
-                //             doc: this.props.Document
-                //         }
-                //     });
-                // if (script.compiled) {
-                //     field.addScript(new ScriptField(script));
-                // }
-                Doc.SetOnPrototype(props.Document, props.fieldKey, field);
-            }
-            else {
-                return false;
+            // set the ZoomBasis only if hasn't already been set -- bcz: maybe set/resetting the ZoomBasis should be a parameter to addDocument?
+            if (this.collectionViewType === CollectionViewType.Freeform || this.collectionViewType === CollectionViewType.Invalid) {
+                let zoom = NumCast(this.props.Document.scale, 1);
+                let screen = this.props.ScreenToLocalTransform().inverse().Scale / (this.props as any).ContentScaling() * zoom;
+                doc.zoomBasis = screen;
             }
         }
         return true;
@@ -186,7 +159,9 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         };
         const viewtype = this.collectionViewType;
         return (
-            <div className={this.props.className || "collectionView-cont"} onContextMenu={this.props.onContextMenu} ref={this.props.contentRef}>
+            <div className={this.props.className || "collectionView-cont"}
+                style={{ borderRadius: "inherit", pointerEvents: "all" }}
+                onContextMenu={this.props.onContextMenu} ref={this.props.contentRef}>
                 {viewtype !== undefined ? this.props.children(viewtype, props) : (null)}
             </div>
         );

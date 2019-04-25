@@ -1,6 +1,6 @@
-import { action, computed, observable } from "mobx";
+import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { emptyFunction } from "../../Utils";
+import { emptyFunction, Utils } from "../../Utils";
 import { DragLinksAsDocuments, DragManager } from "../util/DragManager";
 import { SelectionManager } from "../util/SelectionManager";
 import { undoBatch } from "../util/UndoManager";
@@ -11,9 +11,11 @@ import { LinkMenu } from "./nodes/LinkMenu";
 import React = require("react");
 import { CompileScript } from "../util/Scripting";
 import { IconBox } from "./nodes/IconBox";
-import { Cast, FieldValue } from "../../new_fields/Types";
-import { Doc } from "../../new_fields/Doc";
+import { Cast, FieldValue, NumCast, StrCast } from "../../new_fields/Types";
+import { Doc, FieldResult } from "../../new_fields/Doc";
 import { listSpec } from "../../new_fields/Schema";
+import { Docs } from "../documents/Documents";
+import { List } from "../../new_fields/List";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -21,8 +23,8 @@ export const Flyout = higflyout.default;
 @observer
 export class DocumentDecorations extends React.Component<{}, { value: string }> {
     static Instance: DocumentDecorations;
-    private _resizer = "";
     private _isPointerDown = false;
+    private _resizing = "";
     private keyinput: React.RefObject<HTMLInputElement>;
     private _documents: DocumentView[] = SelectionManager.SelectedDocuments();
     private _resizeBorderWidth = 16;
@@ -30,6 +32,10 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     private _titleHeight = 20;
     private _linkButton = React.createRef<HTMLDivElement>();
     private _linkerButton = React.createRef<HTMLDivElement>();
+    private _downX = 0;
+    private _downY = 0;
+    @observable private _minimizedX = 0;
+    @observable private _minimizedY = 0;
     //@observable private _title: string = this._documents[0].props.Document.Title;
     @observable private _title: string = this._documents.length > 0 ? Cast(this._documents[0].props.Document.title, "string", "") : "";
     @observable private _fieldKey: string = "title";
@@ -37,6 +43,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     @observable private _opacity = 1;
     @observable private _dragging = false;
     @observable private _iconifying = false;
+    @observable public Interacting = false;
 
 
     constructor(props: Readonly<{}>) {
@@ -125,19 +132,20 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     @action
     onBackgroundMove = (e: PointerEvent): void => {
         let dragDocView = SelectionManager.SelectedDocuments()[0];
-        const [left, top] = dragDocView.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
+        const [left, top] = dragDocView.props.ScreenToLocalTransform().scale(dragDocView.props.ContentScaling()).inverse().transformPoint(0, 0);
         let dragData = new DragManager.DocumentDragData(SelectionManager.SelectedDocuments().map(dv => dv.props.Document));
+        const [xoff, yoff] = dragDocView.props.ScreenToLocalTransform().scale(dragDocView.props.ContentScaling()).transformDirection(e.x - left, e.y - top);
+        dragData.xOffset = xoff;
+        dragData.yOffset = yoff;
         dragData.aliasOnDrop = false;
-        dragData.xOffset = e.x - left;
-        dragData.yOffset = e.y - top;
         let move = SelectionManager.SelectedDocuments()[0].props.moveDocument;
         dragData.moveDocument = move;
-        this._dragging = true;
+        this.Interacting = this._dragging = true;
         document.removeEventListener("pointermove", this.onBackgroundMove);
         document.removeEventListener("pointerup", this.onBackgroundUp);
         DragManager.StartDocumentDrag(SelectionManager.SelectedDocuments().map(docView => docView.ContentDiv!), dragData, e.x, e.y, {
             handlers: {
-                dragComplete: action(() => this._dragging = false),
+                dragComplete: action(() => this.Interacting = this._dragging = false),
             },
             hideSource: true
         });
@@ -176,13 +184,16 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             document.removeEventListener("pointerup", this.onCloseUp);
         }
     }
-    _downX = 0;
-    _downY = 0;
+    @action
     onMinimizeDown = (e: React.PointerEvent): void => {
         e.stopPropagation();
         if (e.button === 0) {
             this._downX = e.pageX;
             this._downY = e.pageY;
+            let selDoc = SelectionManager.SelectedDocuments()[0];
+            let selDocPos = selDoc.props.ScreenToLocalTransform().scale(selDoc.props.ContentScaling()).inverse().transformPoint(0, 0);
+            this._minimizedX = selDocPos[0] + 12;
+            this._minimizedY = selDocPos[1] + 12;
             document.removeEventListener("pointermove", this.onMinimizeMove);
             document.addEventListener("pointermove", this.onMinimizeMove);
             document.removeEventListener("pointerup", this.onMinimizeUp);
@@ -190,57 +201,99 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         }
     }
 
-    @observable _minimizedX = 0;
-    @observable _minimizedY = 0;
     @action
     onMinimizeMove = (e: PointerEvent): void => {
         e.stopPropagation();
-        let dx = e.pageX - this._downX;
-        let dy = e.pageY - this._downY;
-        if (Math.abs(dx) > 4 || Math.abs(dy) > 4) {
-            this._iconifying = true;
-            let xf = SelectionManager.SelectedDocuments()[0].props.ScreenToLocalTransform().scale(SelectionManager.SelectedDocuments()[0].props.ContentScaling()).inverse().transformPoint(0, 0);
-            let dx = e.pageX - xf[0];
-            let dy = e.pageY - xf[1];
-            this._minimizedX = e.clientX;
-            this._minimizedY = e.clientY;
-            if (Math.abs(dx) < 20 && Math.abs(dy) < 20) {
-                this._minimizedX = xf[0];
-                this._minimizedY = xf[1];
-            }
-            SelectionManager.SelectedDocuments().map(dv => {
-                let minDoc = FieldValue(Cast(dv.props.Document.minimizedDoc, Doc));
-                if (minDoc) {
-                    let where = (dv.props.ScreenToLocalTransform()).scale(dv.props.ContentScaling()).transformPoint(this._minimizedX, this._minimizedY);
-                    minDoc.x = where[0] + Cast(dv.props.Document.x, "number", 0);
-                    minDoc.y = where[1] + Cast(dv.props.Document.y, "number", 0);
-                }
-            });
+        if (Math.abs(e.pageX - this._downX) > Utils.DRAG_THRESHOLD ||
+            Math.abs(e.pageY - this._downY) > Utils.DRAG_THRESHOLD) {
+            let selDoc = SelectionManager.SelectedDocuments()[0];
+            let selDocPos = selDoc.props.ScreenToLocalTransform().scale(selDoc.props.ContentScaling()).inverse().transformPoint(0, 0);
+            let snapped = Math.abs(e.pageX - selDocPos[0]) < 20 && Math.abs(e.pageY - selDocPos[1]) < 20;
+            this._minimizedX = snapped ? selDocPos[0] + 4 : e.clientX;
+            this._minimizedY = snapped ? selDocPos[1] - 18 : e.clientY;
+            let selectedDocs = SelectionManager.SelectedDocuments().map(sd => sd);
+            Promise.all(selectedDocs.map(selDoc => this.getIconDoc(selDoc))).then(minDocSet =>
+                this.moveIconDocs(SelectionManager.SelectedDocuments())
+            );
+            this._iconifying = snapped;
         }
+    }
+
+
+    @action createIcon = (docView: DocumentView, layoutString: string): Doc => {
+        let doc = docView.props.Document;
+        let iconDoc = Docs.IconDocument(layoutString);
+        iconDoc.title = "ICON" + StrCast(doc.title);
+        iconDoc.isMinimized = false;
+        iconDoc.nativeWidth = 0;
+        iconDoc.nativeHeight = 0;
+        iconDoc.x = NumCast(doc.x);
+        iconDoc.y = NumCast(doc.y) - 24;
+        iconDoc.proto = doc;
+        iconDoc.maximizedDoc = doc;
+        doc.minimizedDoc = iconDoc;
+        docView.props.addDocument && docView.props.addDocument(iconDoc, false);
+        return iconDoc;
+    }
+    @action
+    public getIconDoc = async (docView: DocumentView): Promise<Doc | undefined> => {
+        let doc = docView.props.Document;
+
+        const minDoc = await Cast(doc.minimizedDoc, Doc);
+        if (minDoc) return minDoc;
+
+        const field = StrCast(doc.backgroundLayout, undefined);
+        if (field !== undefined) return this.createIcon(docView, field);
+
+        const layout = StrCast(doc.layout, undefined);
+        if (layout !== undefined) return this.createIcon(docView, field);
+
+        return undefined;
     }
     @action
     onMinimizeUp = (e: PointerEvent): void => {
         e.stopPropagation();
         if (e.button === 0) {
-            let dx = e.clientX - this._downX;
-            let dy = e.clientY - this._downY;
-            if (Math.abs(dx) < 4 && Math.abs(dy) < 4 && !this._iconifying) {
-                SelectionManager.SelectedDocuments().map(dv => dv.minimize());
-                SelectionManager.DeselectAll();
-            } else {
-                this._minimizedX = this._minimizedY = 0;
-            }
             document.removeEventListener("pointermove", this.onMinimizeMove);
             document.removeEventListener("pointerup", this.onMinimizeUp);
+            let selectedDocs = SelectionManager.SelectedDocuments().map(sd => sd);
+            Promise.all(selectedDocs.map(selDoc => this.getIconDoc(selDoc))).then(minDocSet => {
+                let minDocs = minDocSet.filter(minDoc => minDoc instanceof Doc).map(minDoc => minDoc as Doc);
+                minDocs.map(minDoc => {
+                    minDoc.x = NumCast(minDocs[0].x);
+                    minDoc.y = NumCast(minDocs[0].y);
+                    minDoc.linkTags = new List(minDocs);
+                    if (this._iconifying && selectedDocs[0].props.removeDocument) {
+                        selectedDocs[0].props.removeDocument(minDoc);
+                        (minDoc.maximizedDoc as Doc).minimizedDoc = undefined;
+                    }
+                });
+                runInAction(() => this._minimizedX = this._minimizedY = 0);
+                if (!this._iconifying) selectedDocs[0].props.toggleMinimized();
+                this._iconifying = false;
+            });
         }
-        this._iconifying = false;
+    }
+    moveIconDocs(selViews: DocumentView[], minDocSet?: FieldResult[]) {
+        selViews.map(selDoc => {
+            let minDoc = selDoc.props.Document.minimizedDoc;
+            if (minDoc instanceof Doc) {
+                let zoom = NumCast(selDoc.props.Document.zoomBasis, 1);
+                let where = (selDoc.props.ScreenToLocalTransform()).scale(selDoc.props.ContentScaling()).scale(1 / zoom).
+                    transformPoint(this._minimizedX - 12, this._minimizedY - 12);
+                minDoc.x = where[0] + NumCast(selDoc.props.Document.x);
+                minDoc.y = where[1] + NumCast(selDoc.props.Document.y);
+            }
+        });
     }
 
+    @action
     onPointerDown = (e: React.PointerEvent): void => {
         e.stopPropagation();
         if (e.button === 0) {
             this._isPointerDown = true;
-            this._resizer = e.currentTarget.id;
+            this._resizing = e.currentTarget.id;
+            this.Interacting = true;
             document.removeEventListener("pointermove", this.onPointerMove);
             document.addEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
@@ -265,7 +318,9 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         if (this._linkerButton.current !== null) {
             document.removeEventListener("pointermove", this.onLinkerButtonMoved);
             document.removeEventListener("pointerup", this.onLinkerButtonUp);
-            let dragData = new DragManager.LinkDragData(SelectionManager.SelectedDocuments()[0].props.Document);
+            let selDoc = SelectionManager.SelectedDocuments()[0];
+            let container = selDoc.props.ContainingCollectionView ? selDoc.props.ContainingCollectionView.props.Document.proto : undefined;
+            let dragData = new DragManager.LinkDragData(selDoc.props.Document, container ? [container] : []);
             DragManager.StartLinkDrag(this._linkerButton.current, dragData, e.pageX, e.pageY, {
                 handlers: {
                     dragComplete: action(emptyFunction),
@@ -309,7 +364,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
 
         let dX = 0, dY = 0, dW = 0, dH = 0;
 
-        switch (this._resizer) {
+        switch (this._resizing) {
             case "":
                 break;
             case "documentDecorations-topLeftResizer":
@@ -381,8 +436,12 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         });
     }
 
+    @action
     onPointerUp = (e: PointerEvent): void => {
         e.stopPropagation();
+        this._resizing = "";
+        this.Interacting = false;
+        SelectionManager.ReselectAll();
         if (e.button === 0) {
             e.preventDefault();
             this._isPointerDown = false;
@@ -392,7 +451,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     }
 
     getValue = (): string => {
-        if (this._title === "changed" && this._documents.length > 0) {
+        if (this._documents.length > 0) {
             let field = this._documents[0].props.Document[this._fieldKey];
             if (typeof field === "string") {
                 return field;
@@ -416,17 +475,10 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         if (bounds.x === Number.MAX_VALUE || !seldoc) {
             return (null);
         }
-        let selpos = this._minimizedX !== 0 || this._minimizedY !== 0 ?
-            [this._minimizedX - 12 + (!this._iconifying ? 8 : 0), this._minimizedY - 12 + (!this._iconifying ? 28 : 0)] :
-            [0, this._iconifying ? -18 : 0];
         let minimizeIcon = (
-            <div className="documentDecorations-minimizeButton" onPointerDown={this.onMinimizeDown}
-                style={{ transform: `translate(${selpos[0]}px,${selpos[1]}px)`, }}>
-                {SelectionManager.SelectedDocuments().length === 1 ? IconBox.DocumentIcon(Cast(SelectionManager.SelectedDocuments()[0].props.Document.layout, "string", "...")) : "..."}
+            <div className="documentDecorations-minimizeButton" onPointerDown={this.onMinimizeDown}>
+                {SelectionManager.SelectedDocuments().length === 1 ? IconBox.DocumentIcon(StrCast(SelectionManager.SelectedDocuments()[0].props.Document.layout, "...")) : "..."}
             </div>);
-        if (this._iconifying) {
-            return (<div className="documentDecorations-container" > {minimizeIcon} </div>);
-        }
 
         if (this.Hidden) {
             return (null);

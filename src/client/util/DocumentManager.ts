@@ -26,22 +26,23 @@ export class DocumentManager {
 
     public getDocumentView(toFind: Doc): DocumentView | null {
 
-        let toReturn: DocumentView | null;
-        toReturn = null;
+        let toReturn: DocumentView | null = null;
 
         //gets document view that is in a freeform canvas collection
         DocumentManager.Instance.DocumentViews.map(view => {
-            let doc = view.props.Document;
-
-            if (doc === toFind) {
+            if (view.props.Document === toFind) {
                 toReturn = view;
                 return;
             }
-            let docSrc = FieldValue(doc.proto);
-            if (docSrc && Object.is(docSrc, toFind)) {
-                toReturn = view;
-            }
         });
+        if (!toReturn) {
+            DocumentManager.Instance.DocumentViews.map(view => {
+                let doc = view.props.Document.proto;
+                if (doc && Object.is(doc, toFind)) {
+                    toReturn = view;
+                }
+            });
+        }
 
         return toReturn;
     }

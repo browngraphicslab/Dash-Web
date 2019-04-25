@@ -10,12 +10,14 @@ import { ContextMenu } from "../../views/ContextMenu";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./ImageBox.scss";
 import React = require("react");
-import { createSchema, makeInterface } from '../../../new_fields/Schema';
+import { createSchema, makeInterface, listSpec } from '../../../new_fields/Schema';
 import { DocComponent } from '../DocComponent';
 import { positionSchema } from './DocumentView';
-import { FieldValue, Cast } from '../../../new_fields/Types';
+import { FieldValue, Cast, StrCast } from '../../../new_fields/Types';
 import { ImageField } from '../../../new_fields/URLField';
 import { List } from '../../../new_fields/List';
+import { InkingControl } from '../InkingControl';
+import { Doc } from '../../../new_fields/Doc';
 
 export const pageSchema = createSchema({
     curPage: "number"
@@ -28,19 +30,13 @@ const ImageDocument = makeInterface(pageSchema, positionSchema);
 export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageDocument) {
 
     public static LayoutString() { return FieldView.LayoutString(ImageBox); }
-    private _imgRef: React.RefObject<HTMLImageElement>;
+    private _imgRef: React.RefObject<HTMLImageElement> = React.createRef();
     private _downX: number = 0;
     private _downY: number = 0;
     private _lastTap: number = 0;
     @observable private _photoIndex: number = 0;
     @observable private _isOpen: boolean = false;
     private dropDisposer?: DragManager.DragDropDisposer;
-
-    constructor(props: FieldViewProps) {
-        super(props);
-
-        this._imgRef = React.createRef();
-    }
 
     @action
     onLoad = (target: any) => {
@@ -71,19 +67,18 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
     @undoBatch
     drop = (e: Event, de: DragManager.DropEvent) => {
         if (de.data instanceof DragManager.DocumentDragData) {
-            de.data.droppedDocuments.forEach(action((drop: Document) => {
-                let layout = drop.GetText(KeyStore.BackgroundLayout, "");
+            de.data.droppedDocuments.forEach(action((drop: Doc) => {
+                let layout = StrCast(drop.backgroundLayout);
                 if (layout.indexOf(ImageBox.name) !== -1) {
-                    let imgData = this.props.Document.Get(KeyStore.Data);
-                    if (imgData instanceof ImageField && imgData) {
-                        this.props.Document.SetOnPrototype(KeyStore.Data, new ListField([imgData]));
+                    let imgData = this.props.Document[this.props.fieldKey];
+                    if (imgData instanceof ImageField) {
+                        Doc.SetOnPrototype(this.props.Document, "data", new List([imgData]));
                     }
-                    let imgList = this.props.Document.GetList(KeyStore.Data, [] as any[]);
+                    let imgList = Cast(this.props.Document[this.props.fieldKey], listSpec(ImageField), [] as any[]);
                     if (imgList) {
-                        let field = drop.Get(KeyStore.Data);
-                        if (field === FieldWaiting) { }
-                        else if (field instanceof ImageField) imgList.push(field);
-                        else if (field instanceof ListField) imgList.push(field.Data);
+                        let field = drop.data;
+                        if (field instanceof ImageField) imgList.push(field);
+                        else if (field instanceof List) imgList.concat(field);
                     }
                     e.stopPropagation();
                 }
@@ -95,7 +90,6 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
     onPointerDown = (e: React.PointerEvent): void => {
         if (Date.now() - this._lastTap < 300) {
             if (e.buttons === 1) {
-                e.stopPropagation();
                 this._downX = e.clientX;
                 this._downY = e.clientY;
                 document.removeEventListener("pointerup", this.onPointerUp);
@@ -135,7 +129,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
 
     specificContextMenu = (e: React.MouseEvent): void => {
         let field = Cast(this.Document[this.props.fieldKey], ImageField);
-        if (field && field !== FieldWaiting) {
+        if (field) {
             let url = field.url.href;
             ContextMenu.Instance.addItem({
                 description: "Copy path", event: () => {
@@ -165,12 +159,12 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
     render() {
         let field = this.Document[this.props.fieldKey];
         let paths: string[] = ["http://www.cs.brown.edu/~bcz/face.gif"];
-        if (field === FieldWaiting) paths = ["https://image.flaticon.com/icons/svg/66/66163.svg"];
-        else if (field instanceof ImageField) paths = [field.url.href];
+        if (field instanceof ImageField) paths = [field.url.href];
         else if (field instanceof List) paths = field.filter(val => val instanceof ImageField).map(p => (p as ImageField).url.href);
         let nativeWidth = FieldValue(this.Document.nativeWidth, 1);
+        let interactive = InkingControl.Instance.selectedTool ? "" : "-interactive";
         return (
-            <div className="imageBox-cont" onPointerDown={this.onPointerDown} onDrop={this.onDrop} ref={this.createDropTarget} onContextMenu={this.specificContextMenu}>
+            <div className={`imageBox-cont${interactive}`} onPointerDown={this.onPointerDown} onDrop={this.onDrop} ref={this.createDropTarget} onContextMenu={this.specificContextMenu}>
                 <img src={paths[Math.min(paths.length, this._photoIndex)]} style={{ objectFit: (this._photoIndex === 0 ? undefined : "contain") }} width={nativeWidth} alt="Image not found" ref={this._imgRef} onLoad={this.onLoad} />
                 {paths.length > 1 ? this.dots(paths) : (null)}
                 {this.lightbox(paths)}

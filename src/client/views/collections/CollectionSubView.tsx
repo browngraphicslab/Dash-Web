@@ -4,11 +4,7 @@ import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { DragManager } from "../../util/DragManager";
 import { Docs, DocumentOptions } from "../../documents/Documents";
 import { RouteStore } from "../../../server/RouteStore";
-import { TupleField } from "../../../fields/TupleField";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
-import { NumberField } from "../../../fields/NumberField";
-import { ServerUtils } from "../../../server/ServerUtil";
-import { Server } from "../../Server";
 import { FieldViewProps } from "../nodes/FieldView";
 import * as rp from 'request-promise';
 import { CollectionView } from "./CollectionView";
@@ -85,7 +81,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             if (de.data instanceof DragManager.DocumentDragData) {
                 if (de.data.aliasOnDrop || de.data.copyOnDrop) {
                     ["width", "height", "curPage"].map(key =>
-                        de.data.draggedDocuments.map((draggedDocument: Document, i: number) =>
+                        de.data.draggedDocuments.map((draggedDocument: Doc, i: number) =>
                             PromiseValue(Cast(draggedDocument[key], "number")).then(f => f && (de.data.droppedDocuments[i][key] = f))));
                 }
                 let added = false;
@@ -148,7 +144,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                     return undefined;
                 }
                 ctor = Docs.WebDocument;
-                options = { height: options.width, ...options, title: path };
+                options = { height: options.width, ...options, title: path, nativeWidth: undefined };
             }
             return ctor ? ctor(path, options) : undefined;
         }
@@ -166,9 +162,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             e.preventDefault();
 
             if (html && html.indexOf("<img") !== 0 && !html.startsWith("<a")) {
-                console.log("not good");
-                let htmlDoc = Docs.HtmlDocument(html, { ...options, width: 300, height: 300 });
-                htmlDoc.documentText = text;
+                let htmlDoc = Docs.HtmlDocument(html, { ...options, width: 300, height: 300, documentText: text });
                 this.props.addDocument(htmlDoc, false);
                 return;
             }
@@ -182,7 +176,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 if (item.kind === "string" && item.type.indexOf("uri") !== -1) {
                     let str: string;
                     let prom = new Promise<string>(resolve => e.dataTransfer.items[i].getAsString(resolve))
-                        .then(action((s: string) => rp.head(ServerUtils.prepend(RouteStore.corsProxy + "/" + (str = s)))))
+                        .then(action((s: string) => rp.head(DocServer.prepend(RouteStore.corsProxy + "/" + (str = s)))))
                         .then(result => {
                             let type = result.headers["content-type"];
                             if (type) {
@@ -210,15 +204,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                             let path = window.location.origin + file;
                             let docPromise = this.getDocumentFromType(type, path, { ...options, nativeWidth: 600, width: 300, title: dropFileName });
 
-                            docPromise.then(async doc => {
-                                let docs = await Cast(this.props.Document[this.props.fieldKey], listSpec(Doc));
-                                if (!docs) {
-                                    this.props.Document[this.props.fieldKey] = docs = new List();
-                                }
-                                if (doc) {
-                                    docs.push(doc);
-                                }
-                            });
+                            docPromise.then(doc => doc && this.props.addDocument(doc));
                         }));
                     });
                     promises.push(prom);

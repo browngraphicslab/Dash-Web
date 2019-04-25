@@ -49,6 +49,8 @@ export interface DocumentOptions {
     copyDraggedItems?: boolean;
     backgroundLayout?: string;
     curPage?: number;
+    documentText?: string;
+    borderRounding?: number;
     // [key: string]: Opt<Field>;
 }
 const delegateKeys = ["x", "y", "width", "height", "panX", "panY"];

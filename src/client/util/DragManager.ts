@@ -41,11 +41,11 @@ export function SetupDrag(_reference: React.RefObject<HTMLDivElement>, docFunc: 
 }
 
 export async function DragLinksAsDocuments(dragEle: HTMLElement, x: number, y: number, sourceDoc: Document) {
-    let srcTarg = sourceDoc.GetT(KeyStore.Prototype, Document);
-    let draggedDocs = (srcTarg && srcTarg !== FieldWaiting) ?
+    let srcTarg = sourceDoc.GetPrototype();
+    let draggedDocs = srcTarg ?
         srcTarg.GetList(KeyStore.LinkedToDocs, [] as Document[]).map(linkDoc =>
             (linkDoc.GetT(KeyStore.LinkedToDocs, Document)) as Document) : [];
-    let draggedFromDocs = (srcTarg && srcTarg !== FieldWaiting) ?
+    let draggedFromDocs = srcTarg ?
         srcTarg.GetList(KeyStore.LinkedFromDocs, [] as Document[]).map(linkDoc =>
             (linkDoc.GetT(KeyStore.LinkedFromDocs, Document)) as Document) : [];
     draggedDocs.push(...draggedFromDocs);
@@ -158,11 +158,13 @@ export namespace DragManager {
     }
 
     export class LinkDragData {
-        constructor(linkSourceDoc: Document) {
+        constructor(linkSourceDoc: Document, blacklist: Document[] = []) {
             this.linkSourceDocument = linkSourceDoc;
+            this.blacklist = blacklist;
         }
         droppedDocuments: Document[] = [];
         linkSourceDocument: Document;
+        blacklist: Document[];
         [id: string]: any;
     }
 
@@ -174,6 +176,7 @@ export namespace DragManager {
         if (!dragDiv) {
             dragDiv = document.createElement("div");
             dragDiv.className = "dragManager-dragDiv";
+            dragDiv.style.pointerEvents = "none";
             DragManager.Root().appendChild(dragDiv);
         }
         MainOverlayTextBox.Instance.SetTextDoc();

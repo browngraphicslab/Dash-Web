@@ -59,6 +59,14 @@ export function Cast<T extends ToConstructor<Field> | ListSpec<Field>>(field: Fi
     return defaultVal;
 }
 
+export function NumCast(field: FieldResult, defaultVal: Opt<number> = 0) {
+    return Cast(field, "number", defaultVal);
+}
+
+export function StrCast(field: FieldResult, defaultVal: Opt<string> = "") {
+    return Cast(field, "string", defaultVal);
+}
+
 type WithoutList<T extends Field> = T extends List<infer R> ? R[] : T;
 
 export function FieldValue<T extends Field, U extends WithoutList<T>>(field: Opt<T> | Promise<Opt<T>>, defaultValue: U): WithoutList<T>;

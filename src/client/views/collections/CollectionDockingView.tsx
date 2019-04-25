@@ -5,7 +5,7 @@ import { action, observable, reaction, trace } from "mobx";
 import { observer } from "mobx-react";
 import * as ReactDOM from 'react-dom';
 import Measure from "react-measure";
-import { Utils, returnTrue, emptyFunction, returnOne } from "../../../Utils";
+import { Utils, returnTrue, emptyFunction, returnOne, returnZero } from "../../../Utils";
 import { Server } from "../../Server";
 import { undoBatch } from "../../util/UndoManager";
 import { DocumentView } from "../nodes/DocumentView";
@@ -16,9 +16,10 @@ import { ServerUtils } from "../../../server/ServerUtil";
 import { DragManager, DragLinksAsDocuments } from "../../util/DragManager";
 import { Transform } from '../../util/Transform';
 import { Doc, Id, Opt, Field, FieldId } from "../../../new_fields/Doc";
-import { Cast } from "../../../new_fields/Types";
+import { Cast, NumCast } from "../../../new_fields/Types";
 import { List } from "../../../new_fields/List";
 import { DocServer } from "../../DocServer";
+import { listSpec } from "../../../new_fields/Schema";
 
 @observer
 export class CollectionDockingView extends React.Component<SubCollectionViewProps> {
@@ -256,8 +257,8 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                     if (tfield !== undefined) {
                         tab.titleElement[0].textContent = f.Title;
                     }
-                    const lf = await Cast(f.linkedFromDocs, List);
-                    const lt = await Cast(f.linkedToDocs, List);
+                    const lf = await Cast(f.linkedFromDocs, listSpec(Doc));
+                    const lt = await Cast(f.linkedToDocs, listSpec(Doc));
                     let count = (lf ? lf.length : 0) + (lt ? lt.length : 0);
                     let counter: any = this.htmlToElement(`<div class="messageCounter">${count}</div>`);
                     tab.element.append(counter);
@@ -322,8 +323,8 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         DocServer.GetRefField(this.props.documentId).then(action((f: Opt<Field>) => this._document = f as Doc));
     }
 
-    nativeWidth = () => Cast(this._document!.nativeWidth, "number", this._panelWidth);
-    nativeHeight = () => Cast(this._document!.nativeHeight, "number", this._panelHeight);
+    nativeWidth = () => NumCast(this._document!.nativeWidth, this._panelWidth);
+    nativeHeight = () => NumCast(this._document!.nativeHeight, this._panelHeight);
     contentScaling = () => {
         const nativeH = this.nativeHeight();
         const nativeW = this.nativeWidth();
@@ -349,6 +350,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
             <div className="collectionDockingView-content" ref={this._mainCont}
                 style={{ transform: `translate(${this.previewPanelCenteringOffset}px, 0px)` }}>
                 <DocumentView key={this._document![Id]} Document={this._document!}
+                    toggleMinimized={emptyFunction}
                     addDocument={undefined}
                     removeDocument={undefined}
                     ContentScaling={this.contentScaling}
@@ -361,7 +363,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
                     whenActiveChanged={emptyFunction}
                     focus={emptyFunction}
                     ContainingCollectionView={undefined} />
-            </div>);
+            </div >);
     }
 
     render() {

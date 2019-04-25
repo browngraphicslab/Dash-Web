@@ -1,9 +1,7 @@
 import { observable, action } from "mobx";
-import { DocumentView } from "../views/nodes/DocumentView";
-import { Main } from "../views/Main";
-import { MainOverlayTextBox } from "../views/MainOverlayTextBox";
-import { DragManager } from "./DragManager";
 import { Doc } from "../../new_fields/Doc";
+import { MainOverlayTextBox } from "../views/MainOverlayTextBox";
+import { DocumentView } from "../views/nodes/DocumentView";
 
 export namespace SelectionManager {
     class Manager {
@@ -65,7 +63,7 @@ export namespace SelectionManager {
 
     export function ReselectAll() {
         let sdocs = manager.ReselectAll();
-        manager.ReselectAll2(sdocs);
+        setTimeout(() => manager.ReselectAll2(sdocs), 0);
     }
     export function SelectedDocuments(): Array<DocumentView> {
         return manager.SelectedDocuments;

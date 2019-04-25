@@ -1,19 +1,16 @@
 import "./WebBox.scss";
 import React = require("react");
 import { FieldViewProps, FieldView } from './FieldView';
-import { observer } from "mobx-react";
-import { computed } from 'mobx';
 import { HtmlField } from "../../../new_fields/HtmlField";
 import { WebField } from "../../../new_fields/URLField";
+import { observer } from "mobx-react";
+import { computed, reaction, IReactionDisposer } from 'mobx';
+import { DocumentDecorations } from "../DocumentDecorations";
 
 @observer
 export class WebBox extends React.Component<FieldViewProps> {
 
     public static LayoutString() { return FieldView.LayoutString(WebBox); }
-
-    constructor(props: FieldViewProps) {
-        super(props);
-    }
 
     _ignore = 0;
     onPreWheel = (e: React.WheelEvent) => {
@@ -36,23 +33,25 @@ export class WebBox extends React.Component<FieldViewProps> {
         let field = this.props.Document[this.props.fieldKey];
         let view;
         if (field instanceof HtmlField) {
-            view = <span id="webBox-htmlSpan" dangerouslySetInnerHTML={{ __html: field.html }} />
+            view = <span id="webBox-htmlSpan" dangerouslySetInnerHTML={{ __html: field.html }} />;
         } else if (field instanceof WebField) {
-            view = <iframe src={field.url.href} style={{ position: "absolute", width: "100%", height: "100%" }} />
+            view = <iframe src={field.url.href} style={{ position: "absolute", width: "100%", height: "100%" }} />;
         } else {
-            view = <iframe src={"https://crossorigin.me/https://cs.brown.edu"} style={{ position: "absolute", width: "100%", height: "100%" }} />
+            view = <iframe src={"https://crossorigin.me/https://cs.brown.edu"} style={{ position: "absolute", width: "100%", height: "100%" }} />;
         }
         let content =
             <div style={{ width: "100%", height: "100%", position: "absolute" }} onWheel={this.onPostWheel} onPointerDown={this.onPostPointer} onPointerMove={this.onPostPointer} onPointerUp={this.onPostPointer}>
                 {view}
             </div>;
 
+        let frozen = !this.props.isSelected() || DocumentDecorations.Instance.Interacting;
+
         return (
             <>
                 <div className="webBox-cont"  >
                     {content}
                 </div>
-                {this.props.isSelected() ? (null) : <div onWheel={this.onPreWheel} onPointerDown={this.onPrePointer} onPointerMove={this.onPrePointer} onPointerUp={this.onPrePointer} style={{ width: "100%", height: "100%", position: "absolute" }} />}
+                {!frozen ? (null) : <div onWheel={this.onPreWheel} onPointerDown={this.onPrePointer} onPointerMove={this.onPrePointer} onPointerUp={this.onPrePointer} style={{ width: "100%", height: "100%", position: "absolute" }} />}
             </>);
     }
 }

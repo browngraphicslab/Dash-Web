@@ -11,11 +11,11 @@ import { returnFalse, emptyFunction } from "../../../Utils";
 import { CollectionView } from "../collections/CollectionView";
 import { CollectionPDFView } from "../collections/CollectionPDFView";
 import { CollectionVideoView } from "../collections/CollectionVideoView";
-import { IconField } from "../../../fields/IconFIeld";
 import { IconBox } from "./IconBox";
 import { Opt, Doc, FieldResult } from "../../../new_fields/Doc";
 import { List } from "../../../new_fields/List";
 import { ImageField, VideoField, AudioField } from "../../../new_fields/URLField";
+import { IconField } from "../../../new_fields/IconField";
 
 
 //
@@ -38,6 +38,8 @@ export interface FieldViewProps {
     active: () => boolean;
     whenActiveChanged: (isActive: boolean) => void;
     focus: (doc: Doc) => void;
+    PanelWidth: () => number;
+    PanelHeight: () => number;
 }
 
 @observer
@@ -91,6 +93,7 @@ export class FieldView extends React.Component<FieldViewProps> {
                     layoutKey={"layout"}
                     ContainingCollectionView={this.props.ContainingCollectionView}
                     parentActive={this.props.active}
+                    toggleMinimized={emptyFunction}
                     whenActiveChanged={this.props.whenActiveChanged} />
             );
         }
@@ -106,7 +109,7 @@ export class FieldView extends React.Component<FieldViewProps> {
         else if (typeof field === "number") {
             return <p>{field}</p>;
         }
-        else if (field !== FieldWaiting) {
+        else if (!(field instanceof Promise)) {
             return <p>{JSON.stringify(field)}</p>;
         }
         else {

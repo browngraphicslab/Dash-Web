@@ -1,4 +1,4 @@
-import { action, IReactionDisposer, reaction } from "mobx";
+import { action, IReactionDisposer, reaction, trace, computed } from "mobx";
 import { baseKeymap } from "prosemirror-commands";
 import { history } from "prosemirror-history";
 import { keymap } from "prosemirror-keymap";
@@ -18,6 +18,9 @@ import { SelectionManager } from "../../util/SelectionManager";
 import { DocComponent } from "../DocComponent";
 import { createSchema, makeInterface } from "../../../new_fields/Schema";
 import { Opt, Doc } from "../../../new_fields/Doc";
+import { observer } from "mobx-react";
+import { InkingControl } from "../InkingControl";
+import { StrCast } from "../../../new_fields/Types";
 const { buildMenuItems } = require("prosemirror-example-setup");
 const { menuBar } = require("prosemirror-menu");
 
@@ -49,6 +52,7 @@ const richTextSchema = createSchema({
 type RichTextDocument = makeInterface<[typeof richTextSchema]>;
 const RichTextDocument = makeInterface(richTextSchema);
 
+@observer
 export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTextBoxOverlay), RichTextDocument>(RichTextDocument) {
     public static LayoutString(fieldStr: string = "DataKey") {
         return FieldView.LayoutString(FormattedTextBox, fieldStr);
@@ -112,32 +116,24 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     if (this._editorView) {
                         this._editorView.destroy();
                     }
-                    this.setupEditor(config, MainOverlayTextBox.Instance.TextDoc); // bcz: not sure why, but the order of events is such that this.props.Document hasn't updated yet, so without forcing the editor to the MainOverlayTextBox, it will display the previously focused textbox
+                    this.setupEditor(config, this.props.Document);// MainOverlayTextBox.Instance.TextDoc); // bcz: not sure why, but the order of events is such that this.props.Document hasn't updated yet, so without forcing the editor to the MainOverlayTextBox, it will display the previously focused textbox
                 }
             );
         } else {
             this._proxyReactionDisposer = reaction(() => this.props.isSelected(),
-                () => this.props.isSelected() && MainOverlayTextBox.Instance.SetTextDoc(this.props.Document, this.props.fieldKey, this._ref.current!, this.props.ScreenToLocalTransform()));
+                () => this.props.isSelected() && MainOverlayTextBox.Instance.SetTextDoc(this.props.Document, this.props.fieldKey, this._ref.current!, this.props.ScreenToLocalTransform));
         }
+
 
         this._reactionDisposer = reaction(
             () => {
                 const field = this.props.Document ? this.props.Document.GetT(this.props.fieldKey, RichTextField) : undefined;
                 return field && field !== FieldWaiting ? field.Data : undefined;
             },
-            field => {
-                if (field && this._editorView && !this._applyingChange) {
-                    this._editorView.updateState(
-                        EditorState.fromJSON(config, JSON.parse(field))
-                    );
-                }
-            }
+            field => field && this._editorView && !this._applyingChange &&
+                this._editorView.updateState(EditorState.fromJSON(config, JSON.parse(field)))
         );
         this.setupEditor(config, this.props.Document);
-    }
-
-    shouldComponentUpdate() {
-        return false;
     }
 
     private setupEditor(config: any, doc?: Document) {
@@ -190,7 +186,9 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
     onFocused = (e: React.FocusEvent): void => {
         if (!this.props.isOverlay) {
-            MainOverlayTextBox.Instance.SetTextDoc(this.props.Document, this.props.fieldKey, this._ref.current!, this.props.ScreenToLocalTransform());
+            if (MainOverlayTextBox.Instance.TextDoc !== this.props.Document) {
+                MainOverlayTextBox.Instance.SetTextDoc(this.props.Document, this.props.fieldKey, this._ref.current!, this.props.ScreenToLocalTransform);
+            }
         } else {
             if (this._ref.current) {
                 this._ref.current.scrollTop = MainOverlayTextBox.Instance.TextScroll;
@@ -231,6 +229,10 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         }
     }
 
+    onClick = (e: React.MouseEvent): void => {
+        this._ref.current!.focus();
+    }
+
     tooltipTextMenuPlugin() {
         let myprops = this.props;
         return new Plugin({
@@ -249,7 +251,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         });
     }
 
-    onKeyPress(e: React.KeyboardEvent) {
+    onKeyPress = (e: React.KeyboardEvent) => {
         if (e.key === "Escape") {
             SelectionManager.DeselectAll();
         }
@@ -257,22 +259,33 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         if (e.keyCode === 9) e.preventDefault();
         // stop propagation doesn't seem to stop propagation of native keyboard events.
         // so we set a flag on the native event that marks that the event's been handled.
-        // (e.nativeEvent as any).DASHFormattedTextBoxHandled = true;
+        (e.nativeEvent as any).DASHFormattedTextBoxHandled = true;
+        if (StrCast(this.props.Document.title).startsWith("-") && this._editorView) {
+            let str = this._editorView.state.doc.textContent;
+            let titlestr = str.substr(0, Math.min(40, str.length));
+            this.props.Document.title = "-" + titlestr + (str.length > 40 ? "..." : "");
+        }
     }
     render() {
-        let style = this.props.isSelected() || this.props.isOverlay ? "scroll" : "hidden";
+        let style = this.props.isOverlay ? "scroll" : "hidden";
+        let color = StrCast(this.props.Document.backgroundColor);
+        let interactive = InkingControl.Instance.selectedTool ? "" : "interactive";
         return (
             <div className={`formattedTextBox-cont-${style}`}
+                style={{
+                    pointerEvents: interactive ? "all" : "none",
+                    background: color,
+                }}
                 onKeyDown={this.onKeyPress}
                 onKeyPress={this.onKeyPress}
                 onFocus={this.onFocused}
+                onClick={this.onClick}
                 onPointerUp={this.onPointerUp}
                 onPointerDown={this.onPointerDown}
                 onContextMenu={this.specificContextMenu}
                 // tfs: do we need this event handler
                 onWheel={this.onPointerWheel}
-                ref={this._ref}
-            />
+                ref={this._ref} />
         );
     }
 }

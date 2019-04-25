@@ -2,7 +2,6 @@ import React = require("react");
 import { observer } from "mobx-react";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./VideoBox.scss";
-import Measure from "react-measure";
 import { action, computed } from "mobx";
 import { DocComponent } from "../DocComponent";
 import { positionSchema } from "./DocumentView";
@@ -10,6 +9,8 @@ import { makeInterface } from "../../../new_fields/Schema";
 import { pageSchema } from "./ImageBox";
 import { Cast, FieldValue } from "../../../new_fields/Types";
 import { VideoField } from "../../../new_fields/URLField";
+import Measure from "react-measure";
+import "./VideoBox.scss";
 
 type VideoDocument = makeInterface<[typeof positionSchema, typeof pageSchema]>;
 const VideoDocument = makeInterface(positionSchema, pageSchema);
