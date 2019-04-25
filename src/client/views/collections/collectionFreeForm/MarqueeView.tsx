@@ -63,7 +63,6 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             document.addEventListener("pointermove", this.onPointerMove, true);
             document.addEventListener("pointerup", this.onPointerUp, true);
             document.addEventListener("keydown", this.marqueeCommand, true);
-            e.stopPropagation();
         }
         if (e.altKey)
             e.preventDefault();

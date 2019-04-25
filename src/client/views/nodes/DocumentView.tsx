@@ -179,7 +179,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3) {
                 document.removeEventListener("pointermove", this.onPointerMove);
                 document.removeEventListener("pointerup", this.onPointerUp);
-                if (!e.altKey && (!this.topMost || e.buttons === 2)) {
+                if (!e.altKey && !this.topMost && (!CollectionFreeFormView.RIGHT_BTN_DRAG && e.buttons === 1) || (CollectionFreeFormView.RIGHT_BTN_DRAG && e.buttons === 2)) {
                     this.startDragging(this._downX, this._downY, e.ctrlKey || e.altKey);
                 }
             }

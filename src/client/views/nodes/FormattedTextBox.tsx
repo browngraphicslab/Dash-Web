@@ -21,6 +21,7 @@ import "./FormattedTextBox.scss";
 import React = require("react");
 import { SelectionManager } from "../../util/SelectionManager";
 import { observer } from "mobx-react";
+import { InkingControl } from "../InkingControl";
 const { buildMenuItems } = require("prosemirror-example-setup");
 const { menuBar } = require("prosemirror-menu");
 
@@ -271,10 +272,11 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
     render() {
         let style = this.props.isOverlay ? "scroll" : "hidden";
         let color = this.props.Document.GetText(KeyStore.BackgroundColor, "");
+        let interactive = InkingControl.Instance.selectedTool ? "" : "interactive";
         return (
             <div className={`formattedTextBox-cont-${style}`}
                 style={{
-                    borderRadius: "inherit",
+                    pointerEvents: interactive ? "all" : "none",
                     background: color,
                 }}
                 onKeyDown={this.onKeyPress}
