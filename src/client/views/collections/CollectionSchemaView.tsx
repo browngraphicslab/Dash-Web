@@ -12,7 +12,7 @@ import { Field, Opt } from "../../../fields/Field";
 import { Key } from "../../../fields/Key";
 import { KeyStore } from "../../../fields/KeyStore";
 import { ListField } from "../../../fields/ListField";
-import { emptyDocFunction, emptyFunction, returnFalse } from "../../../Utils";
+import { emptyDocFunction, emptyFunction, returnFalse, returnZero } from "../../../Utils";
 import { Server } from "../../Server";
 import { SetupDrag } from "../../util/DragManager";
 import { CompileScript, ToField } from "../../util/Scripting";
@@ -77,6 +77,9 @@ export class CollectionSchemaView extends CollectionSubView {
             focus: emptyDocFunction,
             active: returnFalse,
             whenActiveChanged: emptyFunction,
+            borderRounding: this.props.borderRounding,
+            PanelHeight: returnZero,
+            PanelWidth: returnZero,
         };
         let contents = (
             <FieldView {...props} />
@@ -275,6 +278,7 @@ export class CollectionSchemaView extends CollectionSubView {
                         focus={emptyDocFunction}
                         parentActive={this.props.active}
                         whenActiveChanged={this.props.whenActiveChanged}
+                        borderRounding={this.props.borderRounding}
                     />
                 </div>
                 <input className="collectionSchemaView-input" value={this.previewScript} onChange={this.onPreviewScriptChange}

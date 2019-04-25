@@ -25,6 +25,7 @@ export interface CollectionViewProps extends FieldViewProps {
     moveDocument: (document: Document, targetCollection: Document, addDocument: (document: Document) => boolean) => boolean;
     PanelWidth: () => number;
     PanelHeight: () => number;
+    borderRounding: () => number;
 }
 
 export interface SubCollectionViewProps extends CollectionViewProps {

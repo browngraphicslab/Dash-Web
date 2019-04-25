@@ -19,7 +19,7 @@ import { ListField } from "../../../fields/ListField";
 import { DocumentContentsView } from "./DocumentContentsView";
 import { Transform } from "../../util/Transform";
 import { KeyStore } from "../../../fields/KeyStore";
-import { returnFalse, emptyDocFunction, emptyFunction, returnOne } from "../../../Utils";
+import { returnFalse, emptyDocFunction, emptyFunction, returnOne, returnZero } from "../../../Utils";
 import { CollectionView } from "../collections/CollectionView";
 import { CollectionPDFView } from "../collections/CollectionPDFView";
 import { CollectionVideoView } from "../collections/CollectionVideoView";
@@ -47,6 +47,9 @@ export interface FieldViewProps {
     active: () => boolean;
     whenActiveChanged: (isActive: boolean) => void;
     focus: (doc: Document) => void;
+    PanelWidth: () => number;
+    PanelHeight: () => number;
+    borderRounding: () => number;
 }
 
 @observer
@@ -100,6 +103,8 @@ export class FieldView extends React.Component<FieldViewProps> {
                     layoutKey={KeyStore.Layout}
                     ContainingCollectionView={this.props.ContainingCollectionView}
                     parentActive={this.props.active}
+                    borderRounding={returnZero}
+                    toggleMinimized={emptyFunction}
                     whenActiveChanged={this.props.whenActiveChanged} />
             );
         }

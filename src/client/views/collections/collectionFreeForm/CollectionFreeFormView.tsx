@@ -257,6 +257,7 @@ export class CollectionFreeFormView extends CollectionSubView {
             focus: this.focusDocument,
             parentActive: this.props.active,
             whenActiveChanged: this.props.active,
+            borderRounding: this.props.borderRounding,
         };
     }
 
@@ -288,11 +289,17 @@ export class CollectionFreeFormView extends CollectionSubView {
         const containerName = `collectionfreeformview${this.isAnnotationOverlay ? "-overlay" : "-container"}`;
         return (
             <div className={containerName} ref={this.createDropTarget} onWheel={this.onPointerWheel}
+                style={{ borderRadius: `${this.props.borderRounding()}px` }}
                 onPointerDown={this.onPointerDown} onPointerMove={this.onCursorMove} onDrop={this.onDrop.bind(this)} onDragOver={this.onDragOver} >
-                <MarqueeView container={this} activeDocuments={this.getActiveDocuments} selectDocuments={this.selectDocuments}
+                {/* <svg viewBox="0 0 180 18" style={{ top: "50%", opacity: 0.05, position: "absolute" }}>
+                    <text y="15" >
+                        {this.props.Document.Title}
+                    </text>
+                </svg> */}
+                <MarqueeView container={this} borderRadius={this.props.borderRounding} activeDocuments={this.getActiveDocuments} selectDocuments={this.selectDocuments}
                     addDocument={this.addDocument} removeDocument={this.props.removeDocument} addLiveTextDocument={this.addLiveTextBox}
                     getContainerTransform={this.getContainerTransform} getTransform={this.getTransform}>
-                    <CollectionFreeFormViewPannableContents centeringShiftX={this.centeringShiftX} centeringShiftY={this.centeringShiftY}
+                    <CollectionFreeFormViewPannableContents borderRadius={this.props.borderRounding} centeringShiftX={this.centeringShiftX} centeringShiftY={this.centeringShiftY}
                         zoomScaling={this.zoomScaling} panX={this.panX} panY={this.panY}>
                         <CollectionFreeFormLinksView {...this.props} key="freeformLinks">
                             <InkingCanvas getScreenTransform={this.getTransform} Document={this.props.Document} >
@@ -340,6 +347,7 @@ interface CollectionFreeFormViewPannableContentsProps {
     panX: () => number;
     panY: () => number;
     zoomScaling: () => number;
+    borderRadius: () => number;
 }
 
 @observer
@@ -350,7 +358,7 @@ class CollectionFreeFormViewPannableContents extends React.Component<CollectionF
         const panx = -this.props.panX();
         const pany = -this.props.panY();
         const zoom = this.props.zoomScaling();// needs to be a variable outside of the <Measure> otherwise, reactions won't fire
-        return <div className="collectionfreeformview" style={{ transform: `translate(${cenx}px, ${ceny}px) scale(${zoom}, ${zoom}) translate(${panx}px, ${pany}px)` }}>
+        return <div className="collectionfreeformview" style={{ borderRadius: `${this.props.borderRadius()}px`, transform: `translate(${cenx}px, ${ceny}px) scale(${zoom}, ${zoom}) translate(${panx}px, ${pany}px)` }}>
             {this.props.children}
         </div>;
     }

@@ -22,11 +22,10 @@
   overflow-x: hidden;
   color: initial;
   height: 100%;
-  pointer-events: all;
+  pointer-events: none;
 }
 .formattedTextBox-cont-hidden {
     overflow: hidden;
-    pointer-events: none;
 }
 
 .menuicon {

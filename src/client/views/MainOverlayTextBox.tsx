@@ -5,7 +5,7 @@ import * as React from 'react';
 import { Document } from '../../fields/Document';
 import { Key } from '../../fields/Key';
 import { KeyStore } from '../../fields/KeyStore';
-import { emptyDocFunction, emptyFunction, returnTrue } from '../../Utils';
+import { emptyDocFunction, emptyFunction, returnTrue, returnZero } from '../../Utils';
 import '../northstar/model/ModelExtensions';
 import '../northstar/utils/Extensions';
 import { DragManager } from '../util/DragManager';
@@ -97,7 +97,7 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
                     style={{ width: `${this.TextDoc.Width()}px`, height: `${this.TextDoc.Height()}px` }}>
                     <FormattedTextBox fieldKey={this._textFieldKey} isOverlay={true} Document={this.TextDoc} isSelected={returnTrue} select={emptyFunction} isTopMost={true}
                         selectOnLoad={true} ContainingCollectionView={undefined} whenActiveChanged={emptyFunction} active={returnTrue}
-                        ScreenToLocalTransform={this._textXf} focus={emptyDocFunction} />
+                        ScreenToLocalTransform={this._textXf} borderRounding={returnZero} PanelWidth={returnZero} PanelHeight={returnZero} focus={emptyDocFunction} />
                 </div>
             </ div>;
         }

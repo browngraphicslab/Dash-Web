@@ -2,13 +2,12 @@ import { action, computed } from 'mobx';
 import { observer } from 'mobx-react';
 import * as React from 'react';
 import { Document } from '../../../fields/Document';
-import { Field, FieldValue, FieldWaiting } from '../../../fields/Field';
+import { FieldValue, FieldWaiting } from '../../../fields/Field';
 import { KeyStore } from '../../../fields/KeyStore';
 import { ListField } from '../../../fields/ListField';
 import { NumberField } from '../../../fields/NumberField';
 import { ContextMenu } from '../ContextMenu';
 import { FieldViewProps } from '../nodes/FieldView';
-import { TextField } from '../../../fields/TextField';
 
 export enum CollectionViewType {
     Invalid,
@@ -190,7 +189,9 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         };
         const viewtype = this.collectionViewType;
         return (
-            <div className={this.props.className || "collectionView-cont"} onContextMenu={this.props.onContextMenu} ref={this.props.contentRef}>
+            <div className={this.props.className || "collectionView-cont"}
+                style={{ borderRadius: `${this.props.borderRounding()}px`, pointerEvents: "all" }}
+                onContextMenu={this.props.onContextMenu} ref={this.props.contentRef}>
                 {viewtype !== undefined ? this.props.children(viewtype, props) : (null)}
             </div>
         );

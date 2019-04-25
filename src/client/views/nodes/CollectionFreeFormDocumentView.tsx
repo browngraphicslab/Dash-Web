@@ -65,6 +65,7 @@ export class CollectionFreeFormDocumentView extends React.Component<CollectionFr
             ScreenToLocalTransform={this.getTransform}
             PanelWidth={this.panelWidth}
             PanelHeight={this.panelHeight}
+            borderRounding={this.borderRounding}
         />;
     }
 
@@ -148,6 +149,15 @@ export class CollectionFreeFormDocumentView extends React.Component<CollectionFr
         }
     }
 
+    borderRounding = () => {
+        let br = this.props.Document.GetNumber(KeyStore.BorderRounding, 0);
+        return br >= 0 ? br :
+            this.props.Document.GetNumber(KeyStore.NativeWidth, 0) === 0 ?
+                Math.min(this.props.PanelWidth(), this.props.PanelHeight())
+                :
+                Math.min(this.props.Document.GetNumber(KeyStore.NativeWidth, 0), this.props.Document.GetNumber(KeyStore.NativeHeight, 0));
+    }
+
     render() {
         let maximizedDoc = this.props.Document.GetT(KeyStore.MaximizedDoc, Document);
         let zoomFade = 1;
@@ -168,6 +178,7 @@ export class CollectionFreeFormDocumentView extends React.Component<CollectionFr
                 onClick={this.onClick}
                 style={{
                     opacity: zoomFade,
+                    borderRadius: `${this.borderRounding()}px`,
                     transformOrigin: "left top",
                     transform: this.transform,
                     pointerEvents: (zoomFade < 0.09 ? "none" : "all"),

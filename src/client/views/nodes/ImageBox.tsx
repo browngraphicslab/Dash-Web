@@ -165,7 +165,7 @@ export class ImageBox extends React.Component<FieldViewProps> {
         let nativeWidth = this.props.Document.GetNumber(KeyStore.NativeWidth, 1);
         let interactive = InkingControl.Instance.selectedTool ? "" : "interactive"
         return (
-            <div className={`imageBox-cont-${interactive}`} onPointerDown={this.onPointerDown} onDrop={this.onDrop} ref={this.createDropTarget} onContextMenu={this.specificContextMenu}>
+            <div className="imageBox-cont" onPointerDown={this.onPointerDown} onDrop={this.onDrop} ref={this.createDropTarget} onContextMenu={this.specificContextMenu}>
                 <img src={paths[Math.min(paths.length, this._photoIndex)]} style={{ objectFit: (this._photoIndex === 0 ? undefined : "contain") }} width={nativeWidth} alt="Image not found" ref={this._imgRef} onLoad={this.onLoad} />
                 {paths.length > 1 ? this.dots(paths) : (null)}
                 {this.lightbox(paths)}

@@ -8,7 +8,7 @@ import { Document } from "../../../fields/Document";
 import { KeyStore } from "../../../fields/KeyStore";
 import Measure from "react-measure";
 import { FieldId, Opt, Field, FieldWaiting } from "../../../fields/Field";
-import { Utils, returnTrue, emptyFunction, emptyDocFunction, returnOne } from "../../../Utils";
+import { Utils, returnTrue, emptyFunction, emptyDocFunction, returnOne, returnZero } from "../../../Utils";
 import { Server } from "../../Server";
 import { undoBatch } from "../../util/UndoManager";
 import { DocumentView } from "../nodes/DocumentView";
@@ -368,6 +368,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
                     parentActive={returnTrue}
                     whenActiveChanged={emptyFunction}
                     focus={emptyDocFunction}
+                    borderRounding={returnZero}
                     ContainingCollectionView={undefined} />
             </div>);
     }

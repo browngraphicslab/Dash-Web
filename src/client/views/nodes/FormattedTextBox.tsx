@@ -273,7 +273,10 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
         let color = this.props.Document.GetText(KeyStore.BackgroundColor, "");
         return (
             <div className={`formattedTextBox-cont-${style}`}
-                style={{ background: color }}
+                style={{
+                    borderRadius: `${this.props.borderRounding()}px`,
+                    background: color,
+                }}
                 onKeyDown={this.onKeyPress}
                 onKeyPress={this.onKeyPress}
                 onFocus={this.onFocused}

@@ -49,12 +49,13 @@ export namespace KeyStore {
     export const MinimizedDoc = new Key("MinimizedDoc");
     export const MaximizedDoc = new Key("MaximizedDoc");
     export const CopyDraggedItems = new Key("CopyDraggedItems");
+    export const BorderRounding = new Key("BorderRounding");
 
     export const KeyList: Key[] = [Prototype, X, Y, Page, Title, Author, PanX, PanY, Scale, NativeWidth, NativeHeight,
         Width, Height, ZIndex, ZoomBasis, Data, Annotations, ViewType, Layout, BackgroundColor, BackgroundLayout, OverlayLayout, LayoutKeys,
         LayoutFields, ColumnsKey, SchemaSplitPercentage, Caption, ActiveWorkspace, DocumentText, BrushingDocs, LinkedToDocs, LinkedFromDocs,
         LinkDescription, LinkTags, Thumbnail, ThumbnailPage, CurPage, AnnotationOn, NumPages, Ink, Cursors, OptionalRightCollection,
-        Archives, Workspaces, IsMinimized, MinimizedDoc, MaximizedDoc, CopyDraggedItems
+        Archives, Workspaces, IsMinimized, MinimizedDoc, MaximizedDoc, CopyDraggedItems, BorderRounding
     ];
     export function KeyLookup(keyid: string) {
         for (const key of KeyList) {

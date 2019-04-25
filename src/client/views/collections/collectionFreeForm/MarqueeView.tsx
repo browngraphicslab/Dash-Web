@@ -14,7 +14,6 @@ import { CollectionFreeFormView } from "./CollectionFreeFormView";
 import "./MarqueeView.scss";
 import React = require("react");
 import { Utils } from "../../../../Utils";
-import { ListField } from "../../../../fields/ListField";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;
@@ -25,6 +24,7 @@ interface MarqueeViewProps {
     selectDocuments: (docs: Document[]) => void;
     removeDocument: (doc: Document) => boolean;
     addLiveTextDocument: (doc: Document) => void;
+    borderRadius: () => number;
 }
 
 @observer
@@ -138,7 +138,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             this.cleanupInteractions(true);
             e.stopPropagation();
         }
-        if (e.key === "c" || e.key === "r") {
+        if (e.key === "c" || e.key === "r" || e.key === "e") {
             e.stopPropagation();
             let bounds = this.Bounds;
             let selected = this.marqueeSelect().map(d => {
@@ -156,6 +156,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 y: bounds.top,
                 panx: 0,
                 pany: 0,
+                borderRounding: e.key === "e" ? -1 : undefined,
                 backgroundColor: selected.length ? "white" : "",
                 scale: zoomBasis,
                 width: bounds.width * zoomBasis,
@@ -250,7 +251,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     }
 
     render() {
-        return <div className="marqueeView" onClick={this.onClick} onPointerDown={this.onPointerDown}>
+        return <div className="marqueeView" style={{ borderRadius: `${this.props.borderRadius()}px` }} onClick={this.onClick} onPointerDown={this.onPointerDown}>
             {this.props.children}
             {!this._visible ? (null) : this.marqueeDiv}
         </div>;

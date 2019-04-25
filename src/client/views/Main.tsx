@@ -17,7 +17,7 @@ import { CurrentUserUtils } from '../../server/authentication/models/current_use
 import { MessageStore } from '../../server/Message';
 import { RouteStore } from '../../server/RouteStore';
 import { ServerUtils } from '../../server/ServerUtil';
-import { emptyDocFunction, emptyFunction, returnTrue, Utils, returnOne } from '../../Utils';
+import { emptyDocFunction, emptyFunction, returnTrue, Utils, returnOne, returnZero } from '../../Utils';
 import { Documents } from '../documents/Documents';
 import { ColumnAttributeModel } from '../northstar/core/attribute/AttributeModel';
 import { AttributeTransformationModel } from '../northstar/core/attribute/AttributeTransformationModel';
@@ -197,6 +197,7 @@ export class Main extends React.Component {
                             isTopMost={true}
                             selectOnLoad={false}
                             focus={emptyDocFunction}
+                            borderRounding={returnZero}
                             parentActive={returnTrue}
                             whenActiveChanged={emptyFunction}
                             ContainingCollectionView={undefined} />}

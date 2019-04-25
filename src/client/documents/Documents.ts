@@ -55,6 +55,7 @@ export interface DocumentOptions {
     backgroundColor?: string;
     copyDraggedItems?: boolean;
     documentText?: string;
+    borderRounding?: number;
 }
 
 export namespace Documents {
@@ -108,6 +109,7 @@ export namespace Documents {
         if (options.layout !== undefined) { doc.SetText(KeyStore.Layout, options.layout); }
         if (options.layoutKeys !== undefined) { doc.Set(KeyStore.LayoutKeys, new ListField(options.layoutKeys)); }
         if (options.copyDraggedItems !== undefined) { doc.SetBoolean(KeyStore.CopyDraggedItems, options.copyDraggedItems); }
+        if (options.borderRounding !== undefined) { doc.SetNumber(KeyStore.BorderRounding, options.borderRounding); }
         return doc;
     }
 
