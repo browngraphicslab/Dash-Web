@@ -19,7 +19,7 @@ import "./CollectionFreeFormView.scss";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
 import v5 = require("uuid/v5");
-import { createSchema, makeInterface } from "../../../../new_fields/Schema";
+import { createSchema, makeInterface, listSpec } from "../../../../new_fields/Schema";
 import { Doc, Id } from "../../../../new_fields/Doc";
 import { FieldValue, Cast } from "../../../../new_fields/Types";
 import { pageSchema } from "../../nodes/ImageBox";
@@ -83,19 +83,19 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             const [x, y] = this.getTransform().transformPoint(de.x - de.data.xOffset, de.y - de.data.yOffset);
             if (de.data.droppedDocuments.length) {
                 let dragDoc = de.data.droppedDocuments[0];
-                let dropX = dragDoc.GetNumber(KeyStore.X, 0);
-                let dropY = dragDoc.GetNumber(KeyStore.Y, 0);
+                let dropX = Cast(dragDoc.x, "number", 0);
+                let dropY = Cast(dragDoc.y, "number", 0);
                 de.data.droppedDocuments.map(d => {
-                    d.SetNumber(KeyStore.X, x + (d.GetNumber(KeyStore.X, 0)) - dropX);
-                    d.SetNumber(KeyStore.Y, y + (d.GetNumber(KeyStore.Y, 0)) - dropY);
-                    if (!d.GetBoolean(KeyStore.IsMinimized, false)) {
-                        if (!d.GetNumber(KeyStore.Width, 0)) {
-                            d.SetNumber(KeyStore.Width, 300);
+                    d.x = x + Cast(d.x, "number", 0) - dropX;
+                    d.y = y + Cast(d.y, "number", 0) - dropY;
+                    if (!Cast(d.isMinimized, "boolean", false)) {
+                        if (!Cast(d.width, "number", 0)) {
+                            d.width = 300;
                         }
-                        if (!d.GetNumber(KeyStore.Height, 0)) {
-                            let nw = d.GetNumber(KeyStore.NativeWidth, 0);
-                            let nh = d.GetNumber(KeyStore.NativeHeight, 0);
-                            d.SetNumber(KeyStore.Height, nw && nh ? nh / nw * d.Width() : 300);
+                        if (!Cast(d.height, "number", 0)) {
+                            let nw = Cast(d.nativeWidth, "number", 0);
+                            let nh = Cast(d.nativeHeight, "number", 0);
+                            d.height = nw && nh ? nh / nw * Cast(d.width, "number", 0) : 300;
                         }
                     }
                     this.bringToFront(d);
@@ -115,7 +115,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     @action
     onPointerDown = (e: React.PointerEvent): void => {
-        let childSelected = this.props.Document.GetList(this.props.fieldKey, [] as Document[]).filter(doc => doc).reduce((childSelected, doc) => {
+        let childSelected = Cast(this.props.Document[this.props.fieldKey], listSpec(Doc), [] as Doc[]).filter(doc => doc).reduce((childSelected, doc) => {
             var dv = DocumentManager.Instance.getDocumentView(doc);
             return childSelected || (dv && SelectionManager.IsSelected(dv) ? true : false);
         }, false);
@@ -139,20 +139,20 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     @action
     onPointerMove = (e: PointerEvent): void => {
         if (!e.cancelBubble) {
-            let x = this.props.Document.GetNumber(KeyStore.PanX, 0);
-            let y = this.props.Document.GetNumber(KeyStore.PanY, 0);
-            let docs = this.props.Document.GetList(this.props.fieldKey, [] as Document[]);
+            let x = Cast(this.props.Document.panX, "number", 0);
+            let y = Cast(this.props.Document.panY, "number", 0);
+            let docs = this.children || [];
             let [dx, dy] = this.getTransform().transformDirection(e.clientX - this._lastX, e.clientY - this._lastY);
             if (!this.isAnnotationOverlay) {
-                let minx = docs.length ? docs[0].GetNumber(KeyStore.X, 0) : 0;
-                let maxx = docs.length ? docs[0].Width() + minx : minx;
-                let miny = docs.length ? docs[0].GetNumber(KeyStore.Y, 0) : 0;
-                let maxy = docs.length ? docs[0].Height() + miny : miny;
+                let minx = docs.length ? Cast(docs[0].x, "number", 0) : 0;
+                let maxx = docs.length ? Cast(docs[0].width, "number", 0) + minx : minx;
+                let miny = docs.length ? Cast(docs[0].y, "number", 0) : 0;
+                let maxy = docs.length ? Cast(docs[0].height, "number", 0) + miny : miny;
                 let ranges = docs.filter(doc => doc).reduce((range, doc) => {
-                    let x = doc.GetNumber(KeyStore.X, 0);
-                    let xe = x + doc.GetNumber(KeyStore.Width, 0);
-                    let y = doc.GetNumber(KeyStore.Y, 0);
-                    let ye = y + doc.GetNumber(KeyStore.Height, 0);
+                    let x = Cast(doc.x, "number", 0);
+                    let xe = x + Cast(doc.width, "number", 0);
+                    let y = Cast(doc.y, "number", 0);
+                    let ye = y + Cast(doc.height, "number", 0);
                     return [[range[0][0] > x ? x : range[0][0], range[0][1] < xe ? xe : range[0][1]],
                     [range[1][0] > y ? y : range[1][0], range[1][1] < ye ? ye : range[1][1]]];
                 }, [[minx, maxx], [miny, maxy]]);
@@ -176,10 +176,10 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         // if (!this.props.active()) {
         //     return;
         // }
-        let childSelected = this.props.Document.GetList(this.props.fieldKey, [] as Document[]).filter(doc => doc).reduce((childSelected, doc) => {
+        let childSelected = (this.children || []).filter(doc => doc).some(doc => {
             var dv = DocumentManager.Instance.getDocumentView(doc);
-            return childSelected || (dv && SelectionManager.IsSelected(dv) ? true : false);
-        }, false);
+            return dv && SelectionManager.IsSelected(dv) ? true : false;
+        });
         if (!this.props.isSelected() && !childSelected && !this.props.isTopMost) {
             return;
         }
@@ -188,8 +188,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
         if (e.ctrlKey) {
             let deltaScale = (1 - (e.deltaY / coefficient));
-            this.props.Document.SetNumber(KeyStore.NativeWidth, this.nativeWidth * deltaScale);
-            this.props.Document.SetNumber(KeyStore.NativeHeight, this.nativeHeight * deltaScale);
+            this.props.Document.nativeWidth = this.nativeWidth * deltaScale;
+            this.props.Document.nativeHeight = this.nativeHeight * deltaScale;
             e.stopPropagation();
             e.preventDefault();
         } else {
@@ -204,7 +204,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             let localTransform = this.getLocalTransform().inverse().scaleAbout(deltaScale, x, y);
 
             let safeScale = Math.abs(localTransform.Scale);
-            this.props.Document.SetNumber(KeyStore.Scale, Math.abs(safeScale));
+            this.props.Document.scale = Math.abs(safeScale);
             this.setPan(-localTransform.TranslateX / safeScale, -localTransform.TranslateY / safeScale);
             e.stopPropagation();
         }
@@ -216,8 +216,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         var scale = this.getLocalTransform().inverse().Scale;
         const newPanX = Math.min((1 - 1 / scale) * this.nativeWidth, Math.max(0, panX));
         const newPanY = Math.min((1 - 1 / scale) * this.nativeHeight, Math.max(0, panY));
-        this.props.Document.SetNumber(KeyStore.PanX, this.isAnnotationOverlay ? newPanX : panX);
-        this.props.Document.SetNumber(KeyStore.PanY, this.isAnnotationOverlay ? newPanY : panY);
+        this.props.Document.panX = this.isAnnotationOverlay ? newPanX : panX;
+        this.props.Document.panY = this.isAnnotationOverlay ? newPanY : panY;
     }
 
     @action
@@ -230,23 +230,23 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
     @action
-    bringToFront(doc: Document) {
-        this.props.Document.GetList(this.props.fieldKey, [] as Document[]).slice().sort((doc1, doc2) => {
+    bringToFront(doc: Doc) {
+        (this.children || []).slice().sort((doc1, doc2) => {
             if (doc1 === doc) return 1;
             if (doc2 === doc) return -1;
-            return doc1.GetNumber(KeyStore.ZIndex, 0) - doc2.GetNumber(KeyStore.ZIndex, 0);
-        }).map((doc, index) => doc.SetNumber(KeyStore.ZIndex, index + 1));
+            return Cast(doc1.zIndex, "number", 0) - Cast(doc2.zIndex, "number", 0);
+        }).forEach((doc, index) => doc.zIndex = index + 1);
         return doc;
     }
 
-    focusDocument = (doc: Document) => {
+    focusDocument = (doc: Doc) => {
         this.setPan(
-            doc.GetNumber(KeyStore.X, 0) + doc.Width() / 2,
-            doc.GetNumber(KeyStore.Y, 0) + doc.Height() / 2);
+            Cast(doc.x, "number", 0) + Cast(doc.width, "number", 0) / 2,
+            Cast(doc.y, "number", 0) + Cast(doc.height, "number", 0) / 2);
         this.props.focus(this.props.Document);
     }
 
-    getDocumentViewProps(document: Document): DocumentViewProps {
+    getDocumentViewProps(document: Doc): DocumentViewProps {
         return {
             Document: document,
             addDocument: this.props.addDocument,
@@ -255,8 +255,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             ScreenToLocalTransform: this.getTransform,
             isTopMost: false,
             selectOnLoad: document.Id === this._selectOnLoaded,
-            PanelWidth: document.Width,
-            PanelHeight: document.Height,
+            PanelWidth: () => Cast(document.width, "number", 0),//TODO Types These are inline functions
+            PanelHeight: () => Cast(document.height, "number", 0),
             ContentScaling: returnOne,
             ContainingCollectionView: this.props.CollectionView,
             focus: this.focusDocument,
@@ -267,13 +267,14 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     @computed
     get views() {
-        var curPage = this.props.Document.GetNumber(KeyStore.CurPage, -1);
-        let docviews = this.props.Document.GetList(this.props.fieldKey, [] as Document[]).filter(doc => doc).reduce((prev, doc) => {
-            var page = doc.GetNumber(KeyStore.Page, -1);
+        let curPage = FieldValue(this.Document.curPage, -1);
+        let docviews = (this.children || []).filter(doc => doc).reduce((prev, doc) => {
+            var page = Cast(doc.page, "number", -1);
             if (page === curPage || page === -1) {
-                let minim = doc.GetT(KeyStore.IsMinimized, BooleanField);
-                if (minim === undefined || (minim && !minim.Data))
-                    prev.push(<CollectionFreeFormDocumentView key={doc.Id} {...this.getDocumentViewProps(doc)} />);
+                let minim = Cast(doc.isMinimized, "boolean");
+                if (minim === undefined || !minim) {
+                    prev.push(<CollectionFreeFormDocumentView key={doc[Id]} {...this.getDocumentViewProps(doc)} />);
+                }
             }
             return prev;
         }, [] as JSX.Element[]);
@@ -316,9 +317,9 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 @observer
 class CollectionFreeFormOverlayView extends React.Component<DocumentViewProps> {
     @computed get overlayView() {
-        let overlayLayout = this.props.Document.GetText(KeyStore.OverlayLayout, "");
+        let overlayLayout = Cast(this.props.Document.overlayLayout, "string", "");
         return !overlayLayout ? (null) :
-            (<DocumentContentsView {...this.props} layoutKey={KeyStore.OverlayLayout}
+            (<DocumentContentsView {...this.props} layoutKey={"overlayLayout"}
                 isTopMost={this.props.isTopMost} isSelected={returnFalse} select={emptyFunction} />);
     }
     render() {
@@ -329,9 +330,9 @@ class CollectionFreeFormOverlayView extends React.Component<DocumentViewProps> {
 @observer
 class CollectionFreeFormBackgroundView extends React.Component<DocumentViewProps> {
     @computed get backgroundView() {
-        let backgroundLayout = this.props.Document.GetText(KeyStore.BackgroundLayout, "");
+        let backgroundLayout = Cast(this.props.Document.backgroundLayout, "string", "");
         return !backgroundLayout ? (null) :
-            (<DocumentContentsView {...this.props} layoutKey={KeyStore.BackgroundLayout}
+            (<DocumentContentsView {...this.props} layoutKey={"backgroundLayout"}
                 isTopMost={this.props.isTopMost} isSelected={returnFalse} select={emptyFunction} />);
     }
     render() {
