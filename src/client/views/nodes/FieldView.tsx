@@ -49,7 +49,6 @@ export interface FieldViewProps {
     focus: (doc: Document) => void;
     PanelWidth: () => number;
     PanelHeight: () => number;
-    borderRounding: () => number;
 }
 
 @observer
@@ -103,7 +102,6 @@ export class FieldView extends React.Component<FieldViewProps> {
                     layoutKey={KeyStore.Layout}
                     ContainingCollectionView={this.props.ContainingCollectionView}
                     parentActive={this.props.active}
-                    borderRounding={returnZero}
                     toggleMinimized={emptyFunction}
                     whenActiveChanged={this.props.whenActiveChanged} />
             );

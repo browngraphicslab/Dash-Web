@@ -197,7 +197,6 @@ export class Main extends React.Component {
                             isTopMost={true}
                             selectOnLoad={false}
                             focus={emptyDocFunction}
-                            borderRounding={returnZero}
                             parentActive={returnTrue}
                             whenActiveChanged={emptyFunction}
                             ContainingCollectionView={undefined} />}

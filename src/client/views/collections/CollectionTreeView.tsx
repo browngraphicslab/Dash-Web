@@ -137,7 +137,7 @@ export class CollectionTreeView extends CollectionSubView {
 
         return (
             <div id="body" className="collectionTreeView-dropTarget"
-                style={{ borderRadius: `${this.props.borderRounding()}px` }}
+                style={{ borderRadius: "inherit" }}
                 onWheel={(e: React.WheelEvent) => e.stopPropagation()}
                 onDrop={(e: React.DragEvent) => this.onDrop(e, {})} ref={this.createDropTarget}>
                 <div className="coll-title">

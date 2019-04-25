@@ -41,7 +41,6 @@ export interface DocumentViewProps {
     parentActive: () => boolean;
     whenActiveChanged: (isActive: boolean) => void;
     toggleMinimized: () => void;
-    borderRounding: () => number;
 }
 export interface JsxArgs extends DocumentViewProps {
     Keys: { [name: string]: Key };
@@ -278,7 +277,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             <div className={`documentView-node${this.props.isTopMost ? "-topmost" : ""}`}
                 ref={this._mainCont}
                 style={{
-                    borderRadius: `${this.props.borderRounding()}px`,
+                    borderRadius: "inherit",
                     background: this.props.Document.GetText(KeyStore.BackgroundColor, ""),
                     width: nativeWidth, height: nativeHeight,
                     transform: `scale(${scaling}, ${scaling})`

@@ -274,7 +274,7 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
         return (
             <div className={`formattedTextBox-cont-${style}`}
                 style={{
-                    borderRadius: `${this.props.borderRounding()}px`,
+                    borderRadius: "inherit",
                     background: color,
                 }}
                 onKeyDown={this.onKeyPress}

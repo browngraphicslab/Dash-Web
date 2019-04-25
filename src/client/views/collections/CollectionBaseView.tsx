@@ -190,7 +190,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         const viewtype = this.collectionViewType;
         return (
             <div className={this.props.className || "collectionView-cont"}
-                style={{ borderRadius: `${this.props.borderRounding()}px`, pointerEvents: "all" }}
+                style={{ borderRadius: "inherit", pointerEvents: "all" }}
                 onContextMenu={this.props.onContextMenu} ref={this.props.contentRef}>
                 {viewtype !== undefined ? this.props.children(viewtype, props) : (null)}
             </div>

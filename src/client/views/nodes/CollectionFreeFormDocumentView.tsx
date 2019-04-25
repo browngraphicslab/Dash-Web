@@ -65,7 +65,6 @@ export class CollectionFreeFormDocumentView extends React.Component<CollectionFr
             ScreenToLocalTransform={this.getTransform}
             PanelWidth={this.panelWidth}
             PanelHeight={this.panelHeight}
-            borderRounding={this.borderRounding}
         />;
     }
 

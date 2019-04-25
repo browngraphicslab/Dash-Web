@@ -24,7 +24,6 @@ interface MarqueeViewProps {
     selectDocuments: (docs: Document[]) => void;
     removeDocument: (doc: Document) => boolean;
     addLiveTextDocument: (doc: Document) => void;
-    borderRadius: () => number;
 }
 
 @observer
@@ -251,7 +250,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     }
 
     render() {
-        return <div className="marqueeView" style={{ borderRadius: `${this.props.borderRadius()}px` }} onClick={this.onClick} onPointerDown={this.onPointerDown}>
+        return <div className="marqueeView" style={{ borderRadius: "inherit" }} onClick={this.onClick} onPointerDown={this.onPointerDown}>
             {this.props.children}
             {!this._visible ? (null) : this.marqueeDiv}
         </div>;

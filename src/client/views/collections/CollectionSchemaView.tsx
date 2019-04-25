@@ -77,7 +77,6 @@ export class CollectionSchemaView extends CollectionSubView {
             focus: emptyDocFunction,
             active: returnFalse,
             whenActiveChanged: emptyFunction,
-            borderRounding: this.props.borderRounding,
             PanelHeight: returnZero,
             PanelWidth: returnZero,
         };
@@ -278,7 +277,6 @@ export class CollectionSchemaView extends CollectionSubView {
                         focus={emptyDocFunction}
                         parentActive={this.props.active}
                         whenActiveChanged={this.props.whenActiveChanged}
-                        borderRounding={this.props.borderRounding}
                     />
                 </div>
                 <input className="collectionSchemaView-input" value={this.previewScript} onChange={this.onPreviewScriptChange}
