@@ -4,7 +4,7 @@ import { autoObject, SerializationHelper, Deserializable } from "../client/util/
 import { Utils } from "../Utils";
 import { DocServer } from "../client/DocServer";
 import { setter, getter, getField } from "./util";
-import { Cast, ToConstructor, PromiseValue } from "./Types";
+import { Cast, ToConstructor, PromiseValue, FieldValue } from "./Types";
 
 export type FieldId = string;
 export const HandleUpdate = Symbol("HandleUpdate");
@@ -92,6 +92,15 @@ export namespace Doc {
         if (proto) {
             proto[key] = value;
         }
+    }
+    export function GetAllPrototypes(doc: Doc): Doc[] {
+        const protos: Doc[] = [];
+        let d: Opt<Doc> = doc;
+        while (d) {
+            protos.push(d);
+            d = FieldValue(d.proto);
+        }
+        return protos;
     }
     export function assign<K extends string>(doc: Doc, fields: Partial<Record<K, Opt<Field>>>) {
         for (const key in fields) {
