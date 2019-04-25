@@ -66,6 +66,9 @@ export const positionSchema = createSchema({
     y: "number",
 });
 
+export type PositionDocument = makeInterface<[typeof positionSchema]>;
+export const PositionDocument = makeInterface(positionSchema);
+
 type Document = makeInterface<[typeof schema]>;
 const Document = makeInterface(schema);
 

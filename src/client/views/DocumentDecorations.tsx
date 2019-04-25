@@ -1,22 +1,19 @@
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
-import { Key } from "../../fields/Key";
-import { KeyStore } from "../../fields/KeyStore";
-import { ListField } from "../../fields/ListField";
-import { NumberField } from "../../fields/NumberField";
-import { TextField } from "../../fields/TextField";
-import { Document } from "../../fields/Document";
 import { emptyFunction } from "../../Utils";
 import { DragLinksAsDocuments, DragManager } from "../util/DragManager";
 import { SelectionManager } from "../util/SelectionManager";
 import { undoBatch } from "../util/UndoManager";
 import './DocumentDecorations.scss';
 import { MainOverlayTextBox } from "./MainOverlayTextBox";
-import { DocumentView } from "./nodes/DocumentView";
+import { DocumentView, PositionDocument } from "./nodes/DocumentView";
 import { LinkMenu } from "./nodes/LinkMenu";
 import React = require("react");
 import { CompileScript } from "../util/Scripting";
 import { IconBox } from "./nodes/IconBox";
+import { Cast, FieldValue } from "../../new_fields/Types";
+import { Doc } from "../../new_fields/Doc";
+import { listSpec } from "../../new_fields/Schema";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -34,8 +31,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     private _linkButton = React.createRef<HTMLDivElement>();
     private _linkerButton = React.createRef<HTMLDivElement>();
     //@observable private _title: string = this._documents[0].props.Document.Title;
-    @observable private _title: string = this._documents.length > 0 ? this._documents[0].props.Document.Title : "";
-    @observable private _fieldKey: Key = KeyStore.Title;
+    @observable private _title: string = this._documents.length > 0 ? Cast(this._documents[0].props.Document.title, "string", "") : "";
+    @observable private _fieldKey: string = "title";
     @observable private _hidden = false;
     @observable private _opacity = 1;
     @observable private _dragging = false;
@@ -62,7 +59,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             var text = e.target.value;
             if (text[0] === '#') {
                 let command = text.slice(1, text.length);
-                this._fieldKey = new Key(command);
+                this._fieldKey = command;
                 // if (command === "Title" || command === "title") {
                 //     this._fieldKey = KeyStore.Title;
                 // }
@@ -74,14 +71,14 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             }
             else {
                 if (this._documents.length > 0) {
-                    let field = this._documents[0].props.Document.Get(this._fieldKey);
-                    if (field instanceof TextField) {
+                    let field = this._documents[0].props.Document[this._fieldKey];
+                    if (typeof field === "string") {
                         this._documents.forEach(d =>
-                            d.props.Document.Set(this._fieldKey, new TextField(this._title)));
+                            d.props.Document[this._fieldKey] = this._title);
                     }
-                    else if (field instanceof NumberField) {
+                    else if (typeof field === "number") {
                         this._documents.forEach(d =>
-                            d.props.Document.Set(this._fieldKey, new NumberField(+this._title)));
+                            d.props.Document[this._fieldKey] = +this._title);
                     }
                     this._title = "changed";
                 }
@@ -212,12 +209,11 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 this._minimizedY = xf[1];
             }
             SelectionManager.SelectedDocuments().map(dv => {
-                let minDoc = dv.props.Document.Get(KeyStore.MinimizedDoc);
-                if (minDoc instanceof Document) {
+                let minDoc = FieldValue(Cast(dv.props.Document.minimizedDoc, Doc));
+                if (minDoc) {
                     let where = (dv.props.ScreenToLocalTransform()).scale(dv.props.ContentScaling()).transformPoint(this._minimizedX, this._minimizedY);
-                    let minDocument = minDoc as Document;
-                    minDocument.SetNumber(KeyStore.X, where[0] + dv.props.Document.GetNumber(KeyStore.X, 0));
-                    minDocument.SetNumber(KeyStore.Y, where[1] + dv.props.Document.GetNumber(KeyStore.Y, 0));
+                    minDoc.x = where[0] + Cast(dv.props.Document.x, "number", 0);
+                    minDoc.y = where[1] + Cast(dv.props.Document.y, "number", 0);
                 }
             });
         }
@@ -357,28 +353,30 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             const rect = element.ContentDiv ? element.ContentDiv.getBoundingClientRect() : new DOMRect();
 
             if (rect.width !== 0) {
-                let doc = element.props.Document;
-                let width = doc.GetNumber(KeyStore.Width, 0);
-                let nwidth = doc.GetNumber(KeyStore.NativeWidth, 0);
-                let nheight = doc.GetNumber(KeyStore.NativeHeight, 0);
-                let height = doc.GetNumber(KeyStore.Height, nwidth ? nheight / nwidth * width : 0);
-                let x = doc.GetOrCreate(KeyStore.X, NumberField);
-                let y = doc.GetOrCreate(KeyStore.Y, NumberField);
+                let doc = PositionDocument(element.props.Document);
+                let width = FieldValue(doc.width, 0);
+                let nwidth = FieldValue(doc.nativeWidth, 0);
+                let nheight = FieldValue(doc.nativeHeight, 0);
+                let height = FieldValue(doc.height, nwidth ? nheight / nwidth * width : 0);
+                let x = FieldValue(doc.x, 0);
+                let y = FieldValue(doc.y, 0);
                 let scale = width / rect.width;
                 let actualdW = Math.max(width + (dW * scale), 20);
                 let actualdH = Math.max(height + (dH * scale), 20);
-                x.Data += dX * (actualdW - width);
-                y.Data += dY * (actualdH - height);
-                var nativeWidth = doc.GetNumber(KeyStore.NativeWidth, 0);
-                var nativeHeight = doc.GetNumber(KeyStore.NativeHeight, 0);
+                x += dX * (actualdW - width);
+                y += dY * (actualdH - height);
+                doc.x = x;
+                doc.y = y;
+                var nativeWidth = FieldValue(doc.nativeWidth, 0);
+                var nativeHeight = FieldValue(doc.nativeHeight, 0);
                 if (nativeWidth > 0 && nativeHeight > 0) {
                     if (Math.abs(dW) > Math.abs(dH)) {
                         actualdH = nativeHeight / nativeWidth * actualdW;
                     }
                     else actualdW = nativeWidth / nativeHeight * actualdH;
                 }
-                doc.SetNumber(KeyStore.Width, actualdW);
-                doc.SetNumber(KeyStore.Height, actualdH);
+                doc.width = actualdW;
+                doc.height = actualdH;
             }
         });
     }
@@ -395,12 +393,12 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
 
     getValue = (): string => {
         if (this._title === "changed" && this._documents.length > 0) {
-            let field = this._documents[0].props.Document.Get(this._fieldKey);
-            if (field instanceof TextField) {
-                return (field).GetValue();
+            let field = this._documents[0].props.Document[this._fieldKey];
+            if (typeof field === "string") {
+                return field;
             }
-            else if (field instanceof NumberField) {
-                return (field).GetValue().toString();
+            else if (typeof field === "number") {
+                return field.toString();
             }
         }
         return this._title;
@@ -424,7 +422,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         let minimizeIcon = (
             <div className="documentDecorations-minimizeButton" onPointerDown={this.onMinimizeDown}
                 style={{ transform: `translate(${selpos[0]}px,${selpos[1]}px)`, }}>
-                {SelectionManager.SelectedDocuments().length == 1 ? IconBox.DocumentIcon(SelectionManager.SelectedDocuments()[0].props.Document.GetText(KeyStore.Layout, "...")) : "..."}
+                {SelectionManager.SelectedDocuments().length === 1 ? IconBox.DocumentIcon(Cast(SelectionManager.SelectedDocuments()[0].props.Document.layout, "string", "...")) : "..."}
             </div>);
         if (this._iconifying) {
             return (<div className="documentDecorations-container" > {minimizeIcon} </div>);
@@ -441,14 +439,15 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         let linkButton = null;
         if (SelectionManager.SelectedDocuments().length > 0) {
             let selFirst = SelectionManager.SelectedDocuments()[0];
-            let linkToSize = selFirst.props.Document.GetData(KeyStore.LinkedToDocs, ListField, []).length;
-            let linkFromSize = selFirst.props.Document.GetData(KeyStore.LinkedFromDocs, ListField, []).length;
+            let linkToSize = Cast(selFirst.props.Document.linkedToDocs, listSpec(Doc), []).length;
+            let linkFromSize = Cast(selFirst.props.Document.linkedFromDocs, listSpec(Doc), []).length;
             let linkCount = linkToSize + linkFromSize;
             linkButton = (<Flyout
                 anchorPoint={anchorPoints.RIGHT_TOP}
                 content={<LinkMenu docView={selFirst}
                     changeFlyout={this.changeFlyoutContent} />}>
-                <div className={"linkButton-" + (selFirst.props.Document.GetData(KeyStore.LinkedToDocs, ListField, []).length ? "nonempty" : "empty")} onPointerDown={this.onLinkButtonDown} >{linkCount}</div>
+                {/* <div className={"linkButton-" + (selFirst.props.Document.GetData(KeyStore.LinkedToDocs, ListField, []).length ? "nonempty" : "empty")} onPointerDown={this.onLinkButtonDown} >{linkCount}</div> */}
+                <div className={"linkButton-empty"} onPointerDown={this.onLinkButtonDown} >{linkCount}</div>
             </Flyout>);
         }
         return (<div className="documentDecorations">
