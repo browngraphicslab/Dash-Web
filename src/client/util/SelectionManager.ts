@@ -63,7 +63,7 @@ export namespace SelectionManager {
 
     export function ReselectAll() {
         let sdocs = manager.ReselectAll();
-        manager.ReselectAll2(sdocs);
+        setTimeout(() => manager.ReselectAll2(sdocs), 0);
     }
     export function SelectedDocuments(): Array<DocumentView> {
         return manager.SelectedDocuments;
