@@ -9,6 +9,10 @@ export namespace DocServer {
     const _socket = OpenSocket(`${window.location.protocol}//${window.location.hostname}:4321`);
     const GUID: string = Utils.GenerateGuid();
 
+    export function prepend(extension: string): string {
+        return window.location.origin + extension;
+    }
+
     export async function GetRefField(id: string): Promise<Opt<RefField>> {
         let cached = _cache[id];
         if (cached === undefined) {

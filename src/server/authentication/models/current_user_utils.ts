@@ -1,19 +1,17 @@
 import { computed, observable, action, runInAction } from "mobx";
 import * as rp from 'request-promise';
-import { Documents } from "../../../client/documents/Documents";
+import { Docs } from "../../../client/documents/Documents";
 import { Attribute, AttributeGroup, Catalog, Schema } from "../../../client/northstar/model/idea/idea";
 import { ArrayUtil } from "../../../client/northstar/utils/ArrayUtil";
-import { Server } from "../../../client/Server";
-import { Document } from "../../../fields/Document";
-import { KeyStore } from "../../../fields/KeyStore";
-import { ListField } from "../../../fields/ListField";
 import { RouteStore } from "../../RouteStore";
-import { ServerUtils } from "../../ServerUtil";
+import { DocServer } from "../../../client/DocServer";
+import { Doc } from "../../../new_fields/Doc";
+import { List } from "../../../new_fields/List";
 
 export class CurrentUserUtils {
     private static curr_email: string;
     private static curr_id: string;
-    @observable private static user_document: Document;
+    @observable private static user_document: Doc;
     //TODO tfs: these should be temporary...
     private static mainDocId: string | undefined;
 
@@ -23,15 +21,15 @@ export class CurrentUserUtils {
     public static get MainDocId() { return this.mainDocId; }
     public static set MainDocId(id: string | undefined) { this.mainDocId = id; }
 
-    private static createUserDocument(id: string): Document {
-        let doc = new Document(id);
-        doc.Set(KeyStore.Workspaces, new ListField<Document>());
-        doc.Set(KeyStore.OptionalRightCollection, Documents.SchemaDocument([], { title: "Pending documents" }));
+    private static createUserDocument(id: string): Doc {
+        let doc = new Doc(id, true);
+        doc.workspaces = new List<Doc>();
+        doc.optionalRightCollection = Docs.SchemaDocument([], { title: "Pending documents" });
         return doc;
     }
 
     public static loadCurrentUser(): Promise<any> {
-        let userPromise = rp.get(ServerUtils.prepend(RouteStore.getCurrUser)).then(response => {
+        let userPromise = rp.get(DocServer.prepend(RouteStore.getCurrUser)).then(response => {
             if (response) {
                 let obj = JSON.parse(response);
                 CurrentUserUtils.curr_id = obj.id as string;
@@ -40,10 +38,10 @@ export class CurrentUserUtils {
                 throw new Error("There should be a user! Why does Dash think there isn't one?");
             }
         });
-        let userDocPromise = rp.get(ServerUtils.prepend(RouteStore.getUserDocumentId)).then(id => {
+        let userDocPromise = rp.get(DocServer.prepend(RouteStore.getUserDocumentId)).then(id => {
             if (id) {
-                return Server.GetField(id).then(field =>
-                    runInAction(() => this.user_document = field instanceof Document ? field : this.createUserDocument(id)));
+                return DocServer.GetRefField(id).then(field =>
+                    runInAction(() => this.user_document = field instanceof Doc ? field : this.createUserDocument(id)));
             } else {
                 throw new Error("There should be a user id! Why does Dash think there isn't one?");
             }
