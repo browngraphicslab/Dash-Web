@@ -133,7 +133,13 @@ export class CollectionFreeFormView extends CollectionSubView {
 
     @action
     onPointerMove = (e: PointerEvent): void => {
-        if (e.pointerType === "touch") return;
+        if (e.pointerType === "touch") {
+            if (this.props.active()) {
+                e.stopPropagation();
+            }
+            return;
+        }
+
         if (!e.cancelBubble && this.props.active()) {
             if ((!this.isAnnotationOverlay || this.zoomScaling() !== 1) && !e.shiftKey) {
                 this.pan(e);
@@ -393,7 +399,7 @@ export class CollectionFreeFormView extends CollectionSubView {
     render() {
         const containerName = `collectionfreeformview${this.isAnnotationOverlay ? "-overlay" : "-container"}`;
         return (
-            <div className={containerName} ref={this.createDropTarget} onWheel={this.onPointerWheel}
+            <div className={containerName} ref={this.createDropTarget} onWheel={this.onPointerWheel} onTouchStart={this.onTouchStart}
                 onPointerDown={this.onPointerDown} onPointerMove={this.onCursorMove} onDrop={this.onDrop.bind(this)} onDragOver={this.onDragOver} >
                 <MarqueeView container={this} activeDocuments={this.getActiveDocuments} selectDocuments={this.selectDocuments}
                     addDocument={this.addDocument} removeDocument={this.props.removeDocument} addLiveTextDocument={this.addLiveTextBox}
