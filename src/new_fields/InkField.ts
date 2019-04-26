@@ -27,5 +27,10 @@ const strokeDataSchema = createSimpleSchema({
 
 export class InkField extends ObjectField {
     @serializable(map(object(strokeDataSchema)))
-    readonly inkData: Map<string, StrokeData> = new Map;
+    readonly inkData: Map<string, StrokeData>;
+
+    constructor(data?: Map<string, StrokeData>) {
+        super();
+        this.inkData = data || new Map;
+    }
 }

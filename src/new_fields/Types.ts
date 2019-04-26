@@ -67,6 +67,10 @@ export function StrCast(field: FieldResult, defaultVal: Opt<string> = "") {
     return Cast(field, "string", defaultVal);
 }
 
+export function BoolCast(field: FieldResult, defaultVal: Opt<boolean> = undefined) {
+    return Cast(field, "boolean", defaultVal);
+}
+
 type WithoutList<T extends Field> = T extends List<infer R> ? R[] : T;
 
 export function FieldValue<T extends Field, U extends WithoutList<T>>(field: Opt<T> | Promise<Opt<T>>, defaultValue: U): WithoutList<T>;

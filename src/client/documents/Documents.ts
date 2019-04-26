@@ -29,11 +29,12 @@ import { Cast } from "../../new_fields/Types";
 import { IconField } from "../../new_fields/IconField";
 import { listSpec } from "../../new_fields/Schema";
 import { DocServer } from "../DocServer";
+import { StrokeData, InkField } from "../../new_fields/InkField";
 
 export interface DocumentOptions {
     x?: number;
     y?: number;
-    // ink?: Map<string, StrokeData>;
+    ink?: InkField;
     width?: number;
     height?: number;
     nativeWidth?: number;

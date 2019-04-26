@@ -91,7 +91,7 @@ export namespace Doc {
         return Cast(Get(doc, key, ignoreProto), ctor) as T | null | undefined;
     }
     export async function SetOnPrototype(doc: Doc, key: string, value: Field) {
-        const proto = await Cast(doc.proto, Doc);
+        const proto = doc.proto;
         if (proto) {
             proto[key] = value;
         }
