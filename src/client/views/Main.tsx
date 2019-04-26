@@ -214,7 +214,7 @@ export class Main extends React.Component {
         let audiourl = "http://techslides.com/demos/samples/sample.mp3";
         let videourl = "http://techslides.com/demos/sample-videos/small.mp4";
 
-        let addTextNode = action(() => Documents.TextDocument({ width: 200, height: 200, title: "a text note" }));
+        let addTextNode = action(() => Documents.TextDocument({ borderRounding: -1, width: 200, height: 50, title: "a text note" }));
         let addColNode = action(() => Documents.FreeformDocument([], { width: 200, height: 200, title: "a freeform collection" }));
         let addSchemaNode = action(() => Documents.SchemaDocument([], { width: 200, height: 200, title: "a schema collection" }));
         let addTreeNode = action(() => Documents.TreeDocument(this._northstarSchemas, { width: 250, height: 400, title: "northstar schemas", copyDraggedItems: true }));

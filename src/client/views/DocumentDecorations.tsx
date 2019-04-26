@@ -241,12 +241,15 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     @action
     public getIconDoc = async (docView: DocumentView): Promise<Document | undefined> => {
         let doc = docView.props.Document;
-        return await doc.GetTAsync(KeyStore.MinimizedDoc, Document).then(async mindoc =>
+        let iconDoc = await doc.GetTAsync(KeyStore.MinimizedDoc, Document).then(async mindoc =>
             mindoc ? mindoc :
                 await doc.GetTAsync(KeyStore.BackgroundLayout, TextField).then(async field =>
                     (field instanceof TextField) ? this.createIcon(docView, field.Data) :
                         await doc.GetTAsync(KeyStore.Layout, TextField).then(field =>
                             (field instanceof TextField) ? this.createIcon(docView, field.Data) : undefined)));
+        if (SelectionManager.SelectedDocuments()[0].props.addDocument !== undefined)
+            SelectionManager.SelectedDocuments()[0].props.addDocument!(iconDoc!);
+        return iconDoc;
     }
     @action
     onMinimizeUp = (e: PointerEvent): void => {
