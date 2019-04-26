@@ -259,7 +259,7 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
             SelectionManager.DeselectAll();
         }
         e.stopPropagation();
-        if (e.keyCode === 9) e.preventDefault();
+        if (e.key === "Tab") e.preventDefault();
         // stop propagation doesn't seem to stop propagation of native keyboard events.
         // so we set a flag on the native event that marks that the event's been handled.
         (e.nativeEvent as any).DASHFormattedTextBoxHandled = true;

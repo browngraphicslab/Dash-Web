@@ -53,25 +53,26 @@ export class VideoBox extends React.Component<FieldViewProps> {
             (vref as any).AHackBecauseSomethingResetsTheVideoToZero = this.curPage;
         }
     }
+    videoContent(path: string) {
+        return <video className="videobox-cont" ref={this.setVideoRef}>
+            <source src={path} type="video/mp4" />
+            Not supported.
+    </video>;
+    }
 
     render() {
         let field = this.props.Document.GetT(this.props.fieldKey, VideoField);
         if (!field || field === FieldWaiting) {
             return <div>Loading</div>;
         }
-        let path = field.Data.href;
-        trace();
-        return (
+        return (this.props.Document.GetNumber(KeyStore.NativeHeight, 0)) ?
+            this.videoContent(field.data.href) :
             <Measure onResize={this.setScaling}>
                 {({ measureRef }) =>
                     <div style={{ width: "100%", height: "auto" }} ref={measureRef}>
-                        <video className="videobox-cont" ref={this.setVideoRef}>
-                            <source src={path} type="video/mp4" />
-                            Not supported.
-                        </video>
+                        {this.videoContent(field.data.href)}
                     </div>
                 }
-            </Measure>
-        );
+            </Measure>;
     }
 }
