@@ -97,7 +97,7 @@ export class FieldView extends React.Component<FieldViewProps> {
                     isTopMost={true} //TODO Why is this top most?
                     selectOnLoad={false}
                     focus={emptyDocFunction}
-                    isSelected={returnFalse}
+                    isSelected={this.props.isSelected}
                     select={returnFalse}
                     layoutKey={KeyStore.Layout}
                     ContainingCollectionView={this.props.ContainingCollectionView}

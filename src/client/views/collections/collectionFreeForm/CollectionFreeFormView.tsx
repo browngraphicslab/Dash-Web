@@ -283,7 +283,7 @@ export class CollectionFreeFormView extends CollectionSubView {
         super.setCursorPosition(this.getTransform().transformPoint(e.clientX, e.clientY));
     }
 
-    private childViews = () => [...this.views, <CollectionFreeFormBackgroundView key="backgroundView" {...this.getDocumentViewProps(this.props.Document)} />];
+    private childViews = () => [...this.views, <CollectionFreeFormBackgroundView key="backgroundView" {...this.props} {...this.getDocumentViewProps(this.props.Document)} />];
     render() {
         const containerName = `collectionfreeformview${this.isAnnotationOverlay ? "-overlay" : "-container"}`;
         return (
@@ -307,7 +307,7 @@ export class CollectionFreeFormView extends CollectionSubView {
                         </CollectionFreeFormLinksView>
                         <CollectionFreeFormRemoteCursors {...this.props} key="remoteCursors" />
                     </CollectionFreeFormViewPannableContents>
-                    <CollectionFreeFormOverlayView {...this.getDocumentViewProps(this.props.Document)} />
+                    <CollectionFreeFormOverlayView {...this.getDocumentViewProps(this.props.Document)} {...this.props} />
                 </MarqueeView>
             </div>
         );
@@ -328,12 +328,12 @@ class CollectionFreeFormOverlayView extends React.Component<DocumentViewProps> {
 }
 
 @observer
-class CollectionFreeFormBackgroundView extends React.Component<DocumentViewProps> {
+class CollectionFreeFormBackgroundView extends React.Component<DocumentViewProps & { isSelected: () => boolean }> {
     @computed get backgroundView() {
         let backgroundLayout = this.props.Document.GetText(KeyStore.BackgroundLayout, "");
         return !backgroundLayout ? (null) :
             (<DocumentContentsView {...this.props} layoutKey={KeyStore.BackgroundLayout}
-                isTopMost={this.props.isTopMost} isSelected={returnFalse} select={emptyFunction} />);
+                isTopMost={this.props.isTopMost} isSelected={this.props.isSelected} select={emptyFunction} />);
     }
     render() {
         return this.backgroundView;

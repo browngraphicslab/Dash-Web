@@ -12,6 +12,18 @@
     top: 0;
     left:0;
     z-index: 25;
+    pointer-events: all;
+}
+.pdfButton {
+    pointer-events: all;
+    width: 100px;
+    height:100px;
+}
+.pdfBox-cont {
+    pointer-events: none;
+}
+.pdfBox-cont-interactive {
+    pointer-events: all;
 }
 .pdfBox-contentContainer {
     position: absolute;
