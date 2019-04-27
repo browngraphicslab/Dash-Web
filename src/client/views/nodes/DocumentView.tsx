@@ -172,6 +172,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             document.removeEventListener("pointerup", this.onPointerUp);
             document.addEventListener("pointerup", this.onPointerUp);
             e.preventDefault();
+            e.stopPropagation();
         }
     }
     onPointerMove = (e: PointerEvent): void => {

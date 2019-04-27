@@ -270,11 +270,12 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
         };
     }
     render() {
-        let style = this.props.isOverlay ? "scroll" : "hidden";
+        let style = this.props.isOverlay ? "-scroll" : "-hidden";
+        let rounded = this.props.Document.GetNumber(KeyStore.BorderRounding, 0) < 0 ? "-rounded" : "";
         let color = this.props.Document.GetText(KeyStore.BackgroundColor, "");
-        let interactive = InkingControl.Instance.selectedTool ? "" : "interactive";
+        let interactive = InkingControl.Instance.selectedTool ? "" : "-interactive";
         return (
-            <div className={`formattedTextBox-cont-${style}`}
+            <div className={`formattedTextBox-cont${style}`}
                 style={{
                     pointerEvents: interactive ? "all" : "none",
                     background: color,
@@ -288,7 +289,9 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
                 onContextMenu={this.specificContextMenu}
                 // tfs: do we need this event handler
                 onWheel={this.onPointerWheel}
-                ref={this._ref} />
+            >
+                <div className={`formattedTextBox-inner${rounded}`} ref={this._ref} />
+            </div>
         );
     }
 }

@@ -27,7 +27,7 @@ export class PreviewCursor extends React.Component<{}> {
         // the keyPress here.
         //if not these keys, make a textbox if preview cursor is active!
         if (e.key.startsWith("F") && !e.key.endsWith("F")) {
-        } else if (e.key != "Alt" && e.key != "Shift" && e.key != "Meta" && e.key != "Control" && !e.defaultPrevented && !(e as any).DASHFormattedTextBoxHandled) {
+        } else if (e.key != "Escape" && e.key != "Alt" && e.key != "Shift" && e.key != "Meta" && e.key != "Control" && !e.defaultPrevented && !(e as any).DASHFormattedTextBoxHandled) {
             if ((!e.ctrlKey && !e.metaKey) || e.key === "v") {
                 PreviewCursor.Visible && PreviewCursor._onKeyPress && PreviewCursor._onKeyPress(e);
                 PreviewCursor.Visible = false;

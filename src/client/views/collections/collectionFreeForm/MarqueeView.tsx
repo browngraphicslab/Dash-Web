@@ -24,6 +24,7 @@ interface MarqueeViewProps {
     selectDocuments: (docs: Document[]) => void;
     removeDocument: (doc: Document) => boolean;
     addLiveTextDocument: (doc: Document) => void;
+    isSelected: () => boolean;
 }
 
 @observer
@@ -102,7 +103,9 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     onClick = (e: React.MouseEvent): void => {
         if (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD &&
             Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD) {
-            PreviewCursor.Show(e.clientX, e.clientY, this.onKeyPress);
+            if (this.props.isSelected()) {
+                PreviewCursor.Show(e.clientX, e.clientY, this.onKeyPress);
+            }
             // let the DocumentView stopPropagation of this event when it selects this document
         } else {  // why do we get a click event when the cursor have moved a big distance?
             // let's cut it off here so no one else has to deal with it.
@@ -137,6 +140,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             e.stopPropagation();
         }
         if (e.key === "c" || e.key === "r" || e.key === "e") {
+            console.log("DO MARQUEE");
             e.stopPropagation();
             let bounds = this.Bounds;
             let selected = this.marqueeSelect().map(d => {
