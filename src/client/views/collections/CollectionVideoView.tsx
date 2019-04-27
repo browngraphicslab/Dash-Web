@@ -1,6 +1,5 @@
 import { action, observable, trace } from "mobx";
 import { observer } from "mobx-react";
-import { KeyStore } from "../../../fields/KeyStore";
 import { ContextMenu } from "../ContextMenu";
 import { CollectionViewType, CollectionBaseView, CollectionRenderProps } from "./CollectionBaseView";
 import React = require("react");
@@ -8,6 +7,7 @@ import "./CollectionVideoView.scss";
 import { CollectionFreeFormView } from "./collectionFreeForm/CollectionFreeFormView";
 import { FieldView, FieldViewProps } from "../nodes/FieldView";
 import { emptyFunction } from "../../../Utils";
+import { NumCast } from "../../../new_fields/Types";
 
 
 @observer
@@ -44,8 +44,9 @@ export class CollectionVideoView extends React.Component<FieldViewProps> {
         if (ele) {
             this._player = ele.getElementsByTagName("video")[0];
             console.log(this._player);
-            if (this.props.Document.GetNumber(KeyStore.CurPage, -1) >= 0) {
-                this._currentTimecode = this.props.Document.GetNumber(KeyStore.CurPage, -1);
+            const curPage = NumCast(this.props.Document.curPage, -1);
+            if (curPage >= 0) {
+                this._currentTimecode = curPage;
             }
         }
     }
@@ -69,7 +70,7 @@ export class CollectionVideoView extends React.Component<FieldViewProps> {
                 (this._player as any).AHackBecauseSomethingResetsTheVideoToZero = -1;
             } else {
                 this._currentTimecode = this._player.currentTime;
-                this.props.Document.SetNumber(KeyStore.CurPage, Math.round(this._currentTimecode));
+                this.props.Document.curPage = Math.round(this._currentTimecode);
             }
         }
     }

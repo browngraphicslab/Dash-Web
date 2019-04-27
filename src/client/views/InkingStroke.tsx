@@ -1,8 +1,8 @@
 import { observer } from "mobx-react";
 import { observable } from "mobx";
 import { InkingControl } from "./InkingControl";
-import { InkTool } from "../../fields/InkField";
 import React = require("react");
+import { InkTool } from "../../new_fields/InkField";
 
 
 interface StrokeProps {

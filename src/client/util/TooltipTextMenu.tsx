@@ -35,8 +35,8 @@ export class TooltipTextMenu {
     private fontStylesToName: Map<MarkType, string>;
     private fontSizeIndicator: HTMLSpanElement = document.createElement("span");
     //dropdown doms
-    private fontSizeDom: Node;
-    private fontStyleDom: Node;
+    private fontSizeDom?: Node;
+    private fontStyleDom?: Node;
 
     constructor(view: EditorView, editorProps: FieldViewProps) {
         this.view = view;

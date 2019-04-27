@@ -1,5 +1,5 @@
 import * as OpenSocket from 'socket.io-client';
-import { MessageStore, Types } from "./../server/Message";
+import { MessageStore, Types, Message } from "./../server/Message";
 import { Opt, FieldWaiting, RefField, HandleUpdate } from '../new_fields/Doc';
 import { Utils } from '../Utils';
 import { SerializationHelper } from './util/SerializationHelper';
@@ -11,6 +11,10 @@ export namespace DocServer {
 
     export function prepend(extension: string): string {
         return window.location.origin + extension;
+    }
+
+    export function DeleteDatabase() {
+        Utils.Emit(_socket, MessageStore.DeleteAll, {});
     }
 
     export async function GetRefField(id: string): Promise<Opt<RefField>> {

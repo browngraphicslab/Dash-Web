@@ -7,8 +7,9 @@ import { ObjectField } from "../../../new_fields/Doc";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { OmitKeys } from "../../../Utils";
 import { Deserializable } from "../../util/SerializationHelper";
+
 function serialize(field: HistogramField) {
-    return OmitKeys(field.HistoOp, ['Links', 'BrushLinks', 'Result', 'BrushColors', 'FilterModels', 'FilterOperand']).omit
+    return OmitKeys(field.HistoOp, ['Links', 'BrushLinks', 'Result', 'BrushColors', 'FilterModels', 'FilterOperand']).omit;
 }
 
 function deserialize(jp: any) {

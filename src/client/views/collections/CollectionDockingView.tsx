@@ -6,13 +6,11 @@ import { observer } from "mobx-react";
 import * as ReactDOM from 'react-dom';
 import Measure from "react-measure";
 import { Utils, returnTrue, emptyFunction, returnOne, returnZero } from "../../../Utils";
-import { Server } from "../../Server";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { DocumentView } from "../nodes/DocumentView";
 import "./CollectionDockingView.scss";
 import React = require("react");
 import { SubCollectionViewProps } from "./CollectionSubView";
-import { ServerUtils } from "../../../server/ServerUtil";
 import { DragManager, DragLinksAsDocuments } from "../../util/DragManager";
 import { Transform } from '../../util/Transform';
 import { Doc, Id, Opt, Field, FieldId } from "../../../new_fields/Doc";
@@ -206,7 +204,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             let y = e.clientY;
             let docid = (e.target as any).DashDocId;
             let tab = (e.target as any).parentElement as HTMLElement;
-            Server.GetField(docid, action(async (sourceDoc: Opt<Field>) =>
+            DocServer.GetRefField(docid).then(action(async (sourceDoc: Opt<Field>) =>
                 (sourceDoc instanceof Doc) && DragLinksAsDocuments(tab, x, y, sourceDoc)));
         } else
             if ((className === "lm_title" || className === "lm_tab lm_active") && !e.shiftKey) {
@@ -216,7 +214,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                 let y = e.clientY;
                 let docid = (e.target as any).DashDocId;
                 let tab = (e.target as any).parentElement as HTMLElement;
-                Server.GetField(docid, action((f: Opt<Field>) => {
+                DocServer.GetRefField(docid).then(action((f: Opt<Field>) => {
                     if (f instanceof Doc) {
                         DragManager.StartDocumentDrag([tab], new DragManager.DocumentDragData([f]), x, y,
                             {
@@ -301,7 +299,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         stack.header.controlsContainer.find('.lm_popout') //get the close icon
             .off('click') //unbind the current click handler
             .click(action(function () {
-                var url = ServerUtils.prepend("/doc/" + stack.contentItems[0].tab.contentItem.config.props.documentId);
+                var url = DocServer.prepend("/doc/" + stack.contentItems[0].tab.contentItem.config.props.documentId);
                 let win = window.open(url, stack.contentItems[0].tab.title, "width=300,height=400");
             }));
     }

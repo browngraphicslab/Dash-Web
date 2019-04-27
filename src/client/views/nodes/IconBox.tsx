@@ -4,12 +4,12 @@ import { faCaretUp, faFilePdf, faFilm, faImage, faObjectGroup, faStickyNote } fr
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed } from "mobx";
 import { observer } from "mobx-react";
-import { Document } from '../../../fields/Document';
-import { IconField } from "../../../fields/IconFIeld";
-import { KeyStore } from "../../../fields/KeyStore";
 import { SelectionManager } from "../../util/SelectionManager";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./IconBox.scss";
+import { Cast } from "../../../new_fields/Types";
+import { Doc } from "../../../new_fields/Doc";
+import { IconField } from "../../../new_fields/IconField";
 
 
 library.add(faCaretUp);
@@ -22,8 +22,8 @@ library.add(faFilm);
 export class IconBox extends React.Component<FieldViewProps> {
     public static LayoutString() { return FieldView.LayoutString(IconBox); }
 
-    @computed get maximized() { return this.props.Document.GetT(KeyStore.MaximizedDoc, Document); }
-    @computed get layout(): string { return this.props.Document.GetData(this.props.fieldKey, IconField, "<p>Error loading layout data</p>" as string); }
+    @computed get maximized() { return Cast(this.props.Document.maximizedDoc, Doc); }
+    @computed get layout(): string { const field = Cast(this.props.Document[this.props.fieldKey], IconField); return field ? field.layout : "<p>Error loading layout data</p>"; }
     @computed get minimizedIcon() { return IconBox.DocumentIcon(this.layout); }
 
     public static DocumentIcon(layout: string) {
@@ -33,7 +33,7 @@ export class IconBox extends React.Component<FieldViewProps> {
                     layout.indexOf("Video") !== -1 ? faFilm :
                         layout.indexOf("Collection") !== -1 ? faObjectGroup :
                             faCaretUp;
-        return <FontAwesomeIcon icon={button} className="documentView-minimizedIcon" />
+        return <FontAwesomeIcon icon={button} className="documentView-minimizedIcon" />;
     }
 
     render() {

@@ -1,15 +1,15 @@
 import { observer } from "mobx-react";
-import { Document } from "../../../../fields/Document";
-import { KeyStore } from "../../../../fields/KeyStore";
 import { Utils } from "../../../../Utils";
 import "./CollectionFreeFormLinkView.scss";
 import React = require("react");
 import v5 = require("uuid/v5");
+import { StrCast, NumCast, BoolCast } from "../../../../new_fields/Types";
+import { Doc } from "../../../../new_fields/Doc";
 
 export interface CollectionFreeFormLinkViewProps {
-    A: Document;
-    B: Document;
-    LinkDocs: Document[];
+    A: Doc;
+    B: Doc;
+    LinkDocs: Doc[];
 }
 
 @observer
@@ -17,16 +17,16 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
 
     onPointerDown = (e: React.PointerEvent) => {
         this.props.LinkDocs.map(l =>
-            console.log("Link:" + l.Title));
+            console.log("Link:" + StrCast(l.title)));
     }
     render() {
         let l = this.props.LinkDocs;
         let a = this.props.A;
         let b = this.props.B;
-        let x1 = a.GetNumber(KeyStore.X, 0) + (a.GetBoolean(KeyStore.IsMinimized, false) ? 5 : a.Width() / 2);
-        let y1 = a.GetNumber(KeyStore.Y, 0) + (a.GetBoolean(KeyStore.IsMinimized, false) ? 5 : a.Height() / 2);
-        let x2 = b.GetNumber(KeyStore.X, 0) + (b.GetBoolean(KeyStore.IsMinimized, false) ? 5 : b.Width() / 2);
-        let y2 = b.GetNumber(KeyStore.Y, 0) + (b.GetBoolean(KeyStore.IsMinimized, false) ? 5 : b.Height() / 2);
+        let x1 = NumCast(a.x) + (BoolCast(a.isMinimized, false) ? 5 : NumCast(a.width) / 2);
+        let y1 = NumCast(a.y) + (BoolCast(a.isMinimized, false) ? 5 : NumCast(a.height) / 2);
+        let x2 = NumCast(b.x) + (BoolCast(b.isMinimized, false) ? 5 : NumCast(b.width) / 2);
+        let y2 = NumCast(b.y) + (BoolCast(b.isMinimized, false) ? 5 : NumCast(b.height) / 2);
         return (
             <line key={Utils.GenerateGuid()} className="collectionfreeformlinkview-linkLine" onPointerDown={this.onPointerDown}
                 style={{ strokeWidth: `${l.length * 5}` }}

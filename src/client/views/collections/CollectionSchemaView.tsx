@@ -5,7 +5,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable, untracked } from "mobx";
 import { observer } from "mobx-react";
 import ReactTable, { CellInfo, ComponentPropsGetterR, ReactTableDefaults } from "react-table";
-import { MAX_ROW_HEIGHT } from '../../views/globalCssVariables.scss'
+import { MAX_ROW_HEIGHT } from '../../views/globalCssVariables.scss';
 import "react-table/react-table.css";
 import { emptyFunction, returnFalse, returnZero } from "../../../Utils";
 import { SetupDrag } from "../../util/DragManager";
@@ -283,7 +283,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         //  then by the time the options button is clicked, all of the fields should be in place.  If a new field is added while this menu
         //  is displayed (unlikely) it won't show up until something else changes.
         //TODO Types
-        untracked(() => docs.map(doc => Doc.GetAllPrototypes(doc).map(proto => proto._proxies.forEach((val: any, key: string) => keys[key] = false))));
+        untracked(() => docs.map(doc => Doc.GetAllPrototypes(doc).map(proto => Object.keys(proto).forEach(key => keys[key] = false))));
 
         this.columns.forEach(key => keys[key] = true);
         return Array.from(Object.keys(keys)).map(item =>

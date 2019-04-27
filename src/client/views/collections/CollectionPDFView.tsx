@@ -1,6 +1,5 @@
 import { action } from "mobx";
 import { observer } from "mobx-react";
-import { KeyStore } from "../../../fields/KeyStore";
 import { ContextMenu } from "../ContextMenu";
 import "./CollectionPDFView.scss";
 import React = require("react");
@@ -8,6 +7,7 @@ import { CollectionFreeFormView } from "./collectionFreeForm/CollectionFreeFormV
 import { FieldView, FieldViewProps } from "../nodes/FieldView";
 import { CollectionRenderProps, CollectionBaseView, CollectionViewType } from "./CollectionBaseView";
 import { emptyFunction } from "../../../Utils";
+import { NumCast } from "../../../new_fields/Types";
 
 
 @observer
@@ -17,10 +17,10 @@ export class CollectionPDFView extends React.Component<FieldViewProps> {
         return FieldView.LayoutString(CollectionPDFView, fieldKey);
     }
 
-    private get curPage() { return this.props.Document.GetNumber(KeyStore.CurPage, -1); }
-    private get numPages() { return this.props.Document.GetNumber(KeyStore.NumPages, 0); }
-    @action onPageBack = () => this.curPage > 1 ? this.props.Document.SetNumber(KeyStore.CurPage, this.curPage - 1) : -1;
-    @action onPageForward = () => this.curPage < this.numPages ? this.props.Document.SetNumber(KeyStore.CurPage, this.curPage + 1) : -1;
+    private get curPage() { return NumCast(this.props.Document.curPage, -1); }
+    private get numPages() { return NumCast(this.props.Document.numPages); }
+    @action onPageBack = () => this.curPage > 1 ? (this.props.Document.curPage = this.curPage - 1) : -1;
+    @action onPageForward = () => this.curPage < this.numPages ? (this.props.Document.curPage = this.curPage + 1) : -1;
 
     private get uIButtons() {
         let scaling = Math.min(1.8, this.props.ScreenToLocalTransform().Scale);

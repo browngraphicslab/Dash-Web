@@ -8,17 +8,12 @@ import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import Measure from 'react-measure';
 import * as request from 'request';
-import { Document } from '../../fields/Document';
-import { Field, FieldWaiting, Opt, FIELD_WAITING } from '../../fields/Field';
-import { KeyStore } from '../../fields/KeyStore';
-import { ListField } from '../../fields/ListField';
 import { WorkspacesMenu } from '../../server/authentication/controllers/WorkspacesMenu';
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
 import { MessageStore } from '../../server/Message';
 import { RouteStore } from '../../server/RouteStore';
-import { ServerUtils } from '../../server/ServerUtil';
-import { emptyDocFunction, emptyFunction, returnTrue, Utils, returnOne, returnZero } from '../../Utils';
-import { Documents } from '../documents/Documents';
+import { emptyFunction, returnTrue, Utils, returnOne, returnZero } from '../../Utils';
+import { Docs } from '../documents/Documents';
 import { ColumnAttributeModel } from '../northstar/core/attribute/AttributeModel';
 import { AttributeTransformationModel } from '../northstar/core/attribute/AttributeTransformationModel';
 import { Gateway, NorthstarSettings } from '../northstar/manager/Gateway';
@@ -26,7 +21,6 @@ import { AggregateFunction, Catalog } from '../northstar/model/idea/idea';
 import '../northstar/model/ModelExtensions';
 import { HistogramOperation } from '../northstar/operations/HistogramOperation';
 import '../northstar/utils/Extensions';
-import { Server } from '../Server';
 import { SetupDrag, DragManager } from '../util/DragManager';
 import { Transform } from '../util/Transform';
 import { UndoManager } from '../util/UndoManager';
@@ -39,6 +33,10 @@ import { MainOverlayTextBox } from './MainOverlayTextBox';
 import { DocumentView } from './nodes/DocumentView';
 import { PreviewCursor } from './PreviewCursor';
 import { SelectionManager } from '../util/SelectionManager';
+import { FieldResult, Field, Doc, Id, Opt } from '../../new_fields/Doc';
+import { Cast, FieldValue, StrCast } from '../../new_fields/Types';
+import { DocServer } from '../DocServer';
+import { listSpec } from '../../new_fields/Schema';
 
 
 @observer
@@ -48,11 +46,13 @@ export class Main extends React.Component {
     @observable public pwidth: number = 0;
     @observable public pheight: number = 0;
 
-    @computed private get mainContainer(): Document | undefined | FIELD_WAITING {
-        return CurrentUserUtils.UserDocument.GetT(KeyStore.ActiveWorkspace, Document);
+    @computed private get mainContainer(): Opt<Doc> {
+        return FieldValue(Cast(CurrentUserUtils.UserDocument.activeWorkspace, Doc));
     }
-    private set mainContainer(doc: Document | undefined | FIELD_WAITING) {
-        doc && CurrentUserUtils.UserDocument.Set(KeyStore.ActiveWorkspace, doc);
+    private set mainContainer(doc: Opt<Doc>) {
+        if (doc) {
+            CurrentUserUtils.UserDocument.activeWorkspace = doc;
+        }
     }
 
     constructor(props: Readonly<{}>) {
@@ -100,8 +100,8 @@ export class Main extends React.Component {
         if (window.location.pathname !== RouteStore.home) {
             let pathname = window.location.pathname.split("/");
             CurrentUserUtils.MainDocId = pathname[pathname.length - 1];
-            Server.GetField(CurrentUserUtils.MainDocId, action((field: Opt<Field>) => {
-                if (field instanceof Document) {
+            DocServer.GetRefField(CurrentUserUtils.MainDocId).then(action((field: Opt<Field>) => {
+                if (field instanceof Doc) {
                     this.openWorkspace(field, true);
                 }
             }));
@@ -113,9 +113,9 @@ export class Main extends React.Component {
         window.addEventListener("drop", (e) => e.preventDefault(), false); // drop event handler
         window.addEventListener("dragover", (e) => e.preventDefault(), false); // drag event handler
         window.addEventListener("keydown", (e) => {
-            if (e.key == "Escape") {
+            if (e.key === "Escape") {
                 DragManager.AbortDrag();
-                SelectionManager.DeselectAll()
+                SelectionManager.DeselectAll();
             }
         }, false); // drag event handler
         // click interactions for the context menu
@@ -126,54 +126,55 @@ export class Main extends React.Component {
         }), true);
     }
 
-    initAuthenticationRouters = () => {
+    initAuthenticationRouters = async () => {
         // Load the user's active workspace, or create a new one if initial session after signup
         if (!CurrentUserUtils.MainDocId) {
-            CurrentUserUtils.UserDocument.GetTAsync(KeyStore.ActiveWorkspace, Document).then(doc => {
-                if (doc) {
-                    CurrentUserUtils.MainDocId = doc.Id;
-                    this.openWorkspace(doc);
-                } else {
-                    this.createNewWorkspace();
-                }
-            });
+            const doc = await Cast(CurrentUserUtils.UserDocument.activeWorkspace, Doc);
+            if (doc) {
+                CurrentUserUtils.MainDocId = doc[Id];
+                this.openWorkspace(doc);
+            } else {
+                this.createNewWorkspace();
+            }
         } else {
-            Server.GetField(CurrentUserUtils.MainDocId).then(field =>
-                field instanceof Document ? this.openWorkspace(field) :
+            DocServer.GetRefField(CurrentUserUtils.MainDocId).then(field =>
+                field instanceof Doc ? this.openWorkspace(field) :
                     this.createNewWorkspace(CurrentUserUtils.MainDocId));
         }
     }
 
     @action
-    createNewWorkspace = (id?: string): void => {
-        CurrentUserUtils.UserDocument.GetTAsync<ListField<Document>>(KeyStore.Workspaces, ListField).then(action((list: Opt<ListField<Document>>) => {
-            if (list) {
-                let freeformDoc = Documents.FreeformDocument([], { x: 0, y: 400, title: "mini collection" });
-                var dockingLayout = { content: [{ type: 'row', content: [CollectionDockingView.makeDocumentConfig(freeformDoc)] }] };
-                let mainDoc = Documents.DockDocument(JSON.stringify(dockingLayout), { title: `Main Container ${list.Data.length + 1}` }, id);
-                list.Data.push(mainDoc);
-                CurrentUserUtils.MainDocId = mainDoc.Id;
-                // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
-                setTimeout(() => {
-                    this.openWorkspace(mainDoc);
-                    let pendingDocument = Documents.SchemaDocument([], { title: "New Mobile Uploads" });
-                    mainDoc.Set(KeyStore.OptionalRightCollection, pendingDocument);
-                }, 0);
-            }
-        }));
+    createNewWorkspace = async (id?: string) => {
+        const list = Cast(CurrentUserUtils.UserDocument.workspaces, listSpec(Doc));
+        if (list) {
+            let freeformDoc = Docs.FreeformDocument([], { x: 0, y: 400, title: "mini collection" });
+            var dockingLayout = { content: [{ type: 'row', content: [CollectionDockingView.makeDocumentConfig(freeformDoc)] }] };
+            let mainDoc = Docs.DockDocument(JSON.stringify(dockingLayout), { title: `Main Container ${list.length + 1}` }, id);
+            list.push(mainDoc);
+            CurrentUserUtils.MainDocId = mainDoc[Id];
+            // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
+            setTimeout(() => {
+                this.openWorkspace(mainDoc);
+                let pendingDocument = Docs.SchemaDocument([], { title: "New Mobile Uploads" });
+                mainDoc.optionalRightCollection = pendingDocument;
+            }, 0);
+        }
     }
 
     @action
-    openWorkspace = (doc: Document, fromHistory = false): void => {
+    openWorkspace = async (doc: Doc, fromHistory = false) => {
         this.mainContainer = doc;
-        fromHistory || window.history.pushState(null, doc.Title, "/doc/" + doc.Id);
-        CurrentUserUtils.UserDocument.GetTAsync(KeyStore.OptionalRightCollection, Document).then(col =>
-            // if there is a pending doc, and it has new data, show it (syip: we use a timeout to prevent collection docking view from being uninitialized)
-            setTimeout(() =>
-                col && col.GetTAsync<ListField<Document>>(KeyStore.Data, ListField, (f: Opt<ListField<Document>>) =>
-                    f && f.Data.length > 0 && CollectionDockingView.Instance.AddRightSplit(col))
-                , 100)
-        );
+        fromHistory || window.history.pushState(null, StrCast(doc.title), "/doc/" + doc.Id);
+        const col = await Cast(CurrentUserUtils.UserDocument.optionalRightCollection, Doc);
+        // if there is a pending doc, and it has new data, show it (syip: we use a timeout to prevent collection docking view from being uninitialized)
+        setTimeout(async () => {
+            if (col) {
+                const l = Cast(col.data, listSpec(Doc));
+                if (l && l.length > 0) {
+                    CollectionDockingView.Instance.AddRightSplit(col);
+                }
+            }
+        }, 100);
     }
 
     @computed
@@ -196,7 +197,7 @@ export class Main extends React.Component {
                             PanelHeight={pheightFunc}
                             isTopMost={true}
                             selectOnLoad={false}
-                            focus={emptyDocFunction}
+                            focus={emptyFunction}
                             parentActive={returnTrue}
                             whenActiveChanged={emptyFunction}
                             ContainingCollectionView={undefined} />}
@@ -214,17 +215,17 @@ export class Main extends React.Component {
         let audiourl = "http://techslides.com/demos/samples/sample.mp3";
         let videourl = "http://techslides.com/demos/sample-videos/small.mp4";
 
-        let addTextNode = action(() => Documents.TextDocument({ width: 200, height: 200, title: "a text note" }));
-        let addColNode = action(() => Documents.FreeformDocument([], { width: 200, height: 200, title: "a freeform collection" }));
-        let addSchemaNode = action(() => Documents.SchemaDocument([], { width: 200, height: 200, title: "a schema collection" }));
-        let addTreeNode = action(() => Documents.TreeDocument(this._northstarSchemas, { width: 250, height: 400, title: "northstar schemas", copyDraggedItems: true }));
-        let addVideoNode = action(() => Documents.VideoDocument(videourl, { width: 200, title: "video node" }));
-        let addPDFNode = action(() => Documents.PdfDocument(pdfurl, { width: 200, height: 200, title: "a pdf doc" }));
-        let addImageNode = action(() => Documents.ImageDocument(imgurl, { width: 200, title: "an image of a cat" }));
-        let addWebNode = action(() => Documents.WebDocument(weburl, { width: 200, height: 200, title: "a sample web page" }));
-        let addAudioNode = action(() => Documents.AudioDocument(audiourl, { width: 200, height: 200, title: "audio node" }));
+        let addTextNode = action(() => Docs.TextDocument({ width: 200, height: 200, title: "a text note" }));
+        let addColNode = action(() => Docs.FreeformDocument([], { width: 200, height: 200, title: "a freeform collection" }));
+        let addSchemaNode = action(() => Docs.SchemaDocument([], { width: 200, height: 200, title: "a schema collection" }));
+        let addTreeNode = action(() => Docs.TreeDocument(this._northstarSchemas, { width: 250, height: 400, title: "northstar schemas", copyDraggedItems: true }));
+        let addVideoNode = action(() => Docs.VideoDocument(videourl, { width: 200, title: "video node" }));
+        let addPDFNode = action(() => Docs.PdfDocument(pdfurl, { width: 200, height: 200, title: "a pdf doc" }));
+        let addImageNode = action(() => Docs.ImageDocument(imgurl, { width: 200, title: "an image of a cat" }));
+        let addWebNode = action(() => Docs.WebDocument(weburl, { width: 200, height: 200, title: "a sample web page" }));
+        let addAudioNode = action(() => Docs.AudioDocument(audiourl, { width: 200, height: 200, title: "audio node" }));
 
-        let btns: [React.RefObject<HTMLDivElement>, IconName, string, () => Document][] = [
+        let btns: [React.RefObject<HTMLDivElement>, IconName, string, () => Doc][] = [
             [React.createRef<HTMLDivElement>(), "font", "Add Textbox", addTextNode],
             [React.createRef<HTMLDivElement>(), "image", "Add Image", addImageNode],
             [React.createRef<HTMLDivElement>(), "file-pdf", "Add PDF", addPDFNode],
@@ -260,9 +261,8 @@ export class Main extends React.Component {
         let logoutRef = React.createRef<HTMLDivElement>();
         let toggleWorkspaces = () => runInAction(() => this._workspacesShown = !this._workspacesShown);
 
-        let clearDatabase = action(() => Utils.Emit(Server.Socket, MessageStore.DeleteAll, {}));
         return [
-            <button className="clear-db-button" key="clear-db" onClick={clearDatabase}>Clear Database</button>,
+            <button className="clear-db-button" key="clear-db" onClick={DocServer.DeleteDatabase}>Clear Database</button>,
             <div id="toolbar" key="toolbar">
                 <button className="toolbar-button round-button" title="Undo" onClick={() => UndoManager.Undo()}><FontAwesomeIcon icon="undo-alt" size="sm" /></button>
                 <button className="toolbar-button round-button" title="Redo" onClick={() => UndoManager.Redo()}><FontAwesomeIcon icon="redo-alt" size="sm" /></button>
@@ -271,7 +271,7 @@ export class Main extends React.Component {
             <div className="main-buttonDiv" key="workspaces" style={{ top: '34px', left: '2px', position: 'absolute' }} ref={workspacesRef}>
                 <button onClick={toggleWorkspaces}>Workspaces</button></div>,
             <div className="main-buttonDiv" key="logout" style={{ top: '34px', right: '1px', position: 'absolute' }} ref={logoutRef}>
-                <button onClick={() => request.get(ServerUtils.prepend(RouteStore.logout), emptyFunction)}>Log Out</button></div>
+                <button onClick={() => request.get(DocServer.prepend(RouteStore.logout), emptyFunction)}>Log Out</button></div>
         ];
     }
 
@@ -279,10 +279,10 @@ export class Main extends React.Component {
     get workspaceMenu() {
         let areWorkspacesShown = () => this._workspacesShown;
         let toggleWorkspaces = () => runInAction(() => this._workspacesShown = !this._workspacesShown);
-        let workspaces = CurrentUserUtils.UserDocument.GetT<ListField<Document>>(KeyStore.Workspaces, ListField);
-        return (!workspaces || workspaces === FieldWaiting || this.mainContainer === FieldWaiting) ? (null) :
+        let workspaces = Cast(CurrentUserUtils.UserDocument.workspaces, listSpec(Doc));
+        return (!workspaces || !this.mainContainer) ? (null) :
             <WorkspacesMenu active={this.mainContainer} open={this.openWorkspace}
-                new={this.createNewWorkspace} allWorkspaces={workspaces.Data}
+                new={this.createNewWorkspace} allWorkspaces={workspaces}
                 isShown={areWorkspacesShown} toggle={toggleWorkspaces} />;
     }
 
@@ -303,17 +303,17 @@ export class Main extends React.Component {
     }
 
     // --------------- Northstar hooks ------------- /
-    private _northstarSchemas: Document[] = [];
+    private _northstarSchemas: Doc[] = [];
 
     @action SetNorthstarCatalog(ctlog: Catalog) {
         CurrentUserUtils.NorthstarDBCatalog = ctlog;
         if (ctlog && ctlog.schemas) {
             ctlog.schemas.map(schema => {
-                let schemaDocuments: Document[] = [];
+                let schemaDocuments: Doc[] = [];
                 let attributesToBecomeDocs = CurrentUserUtils.GetAllNorthstarColumnAttributes(schema);
                 Promise.all(attributesToBecomeDocs.reduce((promises, attr) => {
-                    promises.push(Server.GetField(attr.displayName! + ".alias").then(action((field: Opt<Field>) => {
-                        if (field instanceof Document) {
+                    promises.push(DocServer.GetRefField(attr.displayName! + ".alias").then(action((field: Opt<Field>) => {
+                        if (field instanceof Doc) {
                             schemaDocuments.push(field);
                         } else {
                             var atmod = new ColumnAttributeModel(attr);
@@ -321,12 +321,12 @@ export class Main extends React.Component {
                                 new AttributeTransformationModel(atmod, AggregateFunction.None),
                                 new AttributeTransformationModel(atmod, AggregateFunction.Count),
                                 new AttributeTransformationModel(atmod, AggregateFunction.Count));
-                            schemaDocuments.push(Documents.HistogramDocument(histoOp, { width: 200, height: 200, title: attr.displayName! }, undefined, attr.displayName! + ".alias"));
+                            schemaDocuments.push(Docs.HistogramDocument(histoOp, { width: 200, height: 200, title: attr.displayName! }));
                         }
                     })));
                     return promises;
                 }, [] as Promise<void>[])).finally(() =>
-                    this._northstarSchemas.push(Documents.TreeDocument(schemaDocuments, { width: 50, height: 100, title: schema.displayName! })));
+                    this._northstarSchemas.push(Docs.TreeDocument(schemaDocuments, { width: 50, height: 100, title: schema.displayName! })));
             });
         }
     }
@@ -338,7 +338,7 @@ export class Main extends React.Component {
 }
 
 (async () => {
-    await Documents.initProtos();
+    await Docs.initProtos();
     await CurrentUserUtils.loadCurrentUser();
     ReactDOM.render(<Main />, document.getElementById('root'));
 })();
