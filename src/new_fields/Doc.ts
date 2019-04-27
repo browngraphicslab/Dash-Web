@@ -34,6 +34,13 @@ export class ObjectField {
     readonly [Id] = "";
 }
 
+export namespace ObjectField {
+    export function MakeCopy(field: ObjectField) {
+        //TODO Types
+        return field;
+    }
+}
+
 export function IsField(field: any): field is Field {
     return (typeof field === "string")
         || (typeof field === "number")
@@ -135,6 +142,27 @@ export namespace Doc {
         });
 
         return alias;
+    }
+
+    export function MakeCopy(doc: Doc, copyProto: boolean = false): Doc {
+        const copy = new Doc;
+        Object.keys(doc).forEach(async key => {
+            const field = await doc[key];
+            if (key === "proto" && copyProto) {
+                if (field instanceof Doc) {
+                    copy[key] = Doc.MakeCopy(field);
+                }
+            } else {
+                if (field instanceof RefField) {
+                    copy[key] = field;
+                } else if (field instanceof ObjectField) {
+                    copy[key] = ObjectField.MakeCopy(field);
+                } else {
+                    copy[key] = field;
+                }
+            }
+        })
+        return copy;
     }
 
     export function MakeLink(source: Doc, target: Doc): Doc {
