@@ -11,7 +11,6 @@ import "./VideoBox.scss";
 @observer
 export class VideoBox extends React.Component<FieldViewProps> {
 
-    private _reactionDisposer: Opt<IReactionDisposer>;
     private _videoRef = React.createRef<HTMLVideoElement>();
     public static LayoutString() { return FieldView.LayoutString(VideoBox); }
 

@@ -17,6 +17,7 @@ import { FieldView, FieldViewProps } from './FieldView';
 import "./PDFBox.scss";
 import React = require("react");
 import { SelectionManager } from "../../util/SelectionManager";
+import { InkingControl } from "../InkingControl";
 
 /** ALSO LOOK AT: Annotation.tsx, Sticky.tsx
  * This method renders PDF and puts all kinds of functionalities such as annotation, highlighting, 
@@ -203,8 +204,10 @@ export class PDFBox extends React.Component<FieldViewProps> {
      * controls the area highlighting (stickies) Kinda temporary
      */
     onPointerDown = (e: React.PointerEvent) => {
-        if (this.props.isSelected()) {
+        if (this.props.isSelected() && !InkingControl.Instance.selectedTool && e.buttons === 1) {
             e.stopPropagation();
+            document.removeEventListener("pointerup", this.onPointerUp);
+            document.addEventListener("pointerup", this.onPointerUp);
         }
     }
 
@@ -212,7 +215,7 @@ export class PDFBox extends React.Component<FieldViewProps> {
      * controls area highlighting and partially highlighting. Kinda temporary
      */
     @action
-    onPointerUp = (e: React.PointerEvent) => {
+    onPointerUp = (e: PointerEvent) => {
         if (this.props.isSelected()) {
             this.highlight("rgba(76, 175, 80, 0.3)"); //highlights to this default color. 
         }
@@ -314,9 +317,9 @@ export class PDFBox extends React.Component<FieldViewProps> {
     }
     render() {
         trace();
-        let classname = "pdfBox-cont" + (this.props.isSelected() ? "-interactive" : "");
+        let classname = "pdfBox-cont" + (this.props.isSelected() && !InkingControl.Instance.selectedTool ? "-interactive" : "");
         return (
-            <div className={classname} ref={this._mainDiv} onPointerDown={this.onPointerDown} onPointerUp={this.onPointerUp} >
+            <div className={classname} ref={this._mainDiv} onPointerDown={this.onPointerDown} >
                 {this.pdfRenderer}
             </div >
         );
