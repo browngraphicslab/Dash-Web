@@ -34,6 +34,13 @@ export class ObjectField {
     readonly [Id] = "";
 }
 
+export function IsField(field: any): field is Field {
+    return (typeof field === "string")
+        || (typeof field === "number")
+        || (typeof field === "boolean")
+        || (field instanceof ObjectField)
+        || (field instanceof RefField);
+}
 export type Field = number | string | boolean | ObjectField | RefField;
 export type Opt<T> = T | undefined;
 export type FieldWaiting<T extends RefField = RefField> = T extends undefined ? never : Promise<T | undefined>;
@@ -48,6 +55,7 @@ export class Doc extends RefField {
         const doc = new Proxy<this>(this, {
             set: setter,
             get: getter,
+            ownKeys: target => Object.keys(target.__fields),
             deleteProperty: () => { throw new Error("Currently properties can't be deleted from documents, assign to undefined instead"); },
             defineProperty: () => { throw new Error("Currently properties can't be defined on documents using Object.defineProperty"); },
         });

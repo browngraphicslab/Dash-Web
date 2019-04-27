@@ -2,15 +2,13 @@
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import 'react-image-lightbox/style.css'; // This only needs to be imported once in your app
-import { Document } from '../../../fields/Document';
-import { Field, FieldWaiting } from '../../../fields/Field';
-import { Key } from '../../../fields/Key';
-import { KeyStore } from '../../../fields/KeyStore';
-import { CompileScript, ToField } from "../../util/Scripting";
+import { CompileScript } from "../../util/Scripting";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./KeyValueBox.scss";
 import { KeyValuePair } from "./KeyValuePair";
 import React = require("react");
+import { NumCast, Cast, FieldValue } from "../../../new_fields/Types";
+import { Doc, IsField } from "../../../new_fields/Doc";
 
 @observer
 export class KeyValueBox extends React.Component<FieldViewProps> {
@@ -19,7 +17,7 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
     public static LayoutString(fieldStr: string = "DataKey") { return FieldView.LayoutString(KeyValueBox, fieldStr); }
     @observable private _keyInput: string = "";
     @observable private _valueInput: string = "";
-    @computed get splitPercentage() { return this.props.Document.GetNumber(KeyStore.SchemaSplitPercentage, 50); }
+    @computed get splitPercentage() { return NumCast(this.props.Document.schemaSplitPercentage, 50); }
 
 
     constructor(props: FieldViewProps) {
@@ -30,8 +28,8 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
     onEnterKey = (e: React.KeyboardEvent): void => {
         if (e.key === 'Enter') {
             if (this._keyInput && this._valueInput) {
-                let doc = this.props.Document.GetT(KeyStore.Data, Document);
-                if (!doc || doc === FieldWaiting) {
+                let doc = FieldValue(Cast(this.props.Document.data, Doc));
+                if (!doc) {
                     return;
                 }
                 let realDoc = doc;
@@ -43,13 +41,8 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
                 let res = script.run();
                 if (!res.success) return;
                 const field = res.result;
-                if (field instanceof Field) {
-                    realDoc.Set(new Key(this._keyInput), field);
-                } else {
-                    let dataField = ToField(field);
-                    if (dataField) {
-                        realDoc.Set(new Key(this._keyInput), dataField);
-                    }
+                if (IsField(field)) {
+                    realDoc[this._keyInput] = field;
                 }
                 this._keyInput = "";
                 this._valueInput = "";
@@ -67,16 +60,16 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
     }
 
     createTable = () => {
-        let doc = this.props.Document.GetT(KeyStore.Data, Document);
-        if (!doc || doc === FieldWaiting) {
+        let doc = FieldValue(Cast(this.props.Document.data, Doc));
+        if (!doc) {
             return <tr><td>Loading...</td></tr>;
         }
         let realDoc = doc;
 
         let ids: { [key: string]: string } = {};
-        let protos = doc.GetAllPrototypes();
+        let protos = Doc.GetAllPrototypes(doc);
         for (const proto of protos) {
-            proto._proxies.forEach((val: any, key: string) => {
+            Object.keys(proto).forEach(key => {
                 if (!(key in ids)) {
                     ids[key] = key;
                 }
@@ -86,7 +79,7 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
         let rows: JSX.Element[] = [];
         let i = 0;
         for (let key in ids) {
-            rows.push(<KeyValuePair doc={realDoc} keyWidth={100 - this.splitPercentage} rowStyle={"keyValueBox-" + (i++ % 2 ? "oddRow" : "evenRow")} fieldId={key} key={key} />);
+            rows.push(<KeyValuePair doc={realDoc} keyWidth={100 - this.splitPercentage} rowStyle={"keyValueBox-" + (i++ % 2 ? "oddRow" : "evenRow")} key={key} keyName={key} />);
         }
         return rows;
     }
@@ -116,7 +109,7 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
     @action
     onDividerMove = (e: PointerEvent): void => {
         let nativeWidth = this._mainCont.current!.getBoundingClientRect();
-        this.props.Document.SetNumber(KeyStore.SchemaSplitPercentage, Math.max(0, 100 - Math.round((e.clientX - nativeWidth.left) / nativeWidth.width * 100)));
+        this.props.Document.schemaSplitPercentage = Math.max(0, 100 - Math.round((e.clientX - nativeWidth.left) / nativeWidth.width * 100));
     }
     @action
     onDividerUp = (e: PointerEvent): void => {
