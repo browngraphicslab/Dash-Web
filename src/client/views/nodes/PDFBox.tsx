@@ -205,7 +205,17 @@ export class PDFBox extends React.Component<FieldViewProps> {
      */
     onPointerDown = (e: React.PointerEvent) => {
         if (this.props.isSelected() && !InkingControl.Instance.selectedTool && e.buttons === 1) {
-            e.stopPropagation();
+            if (e.altKey) {
+                this._alt = true;
+            } else {
+                if (e.metaKey)
+                    e.stopPropagation();
+            }
+            document.removeEventListener("pointerup", this.onPointerUp);
+            document.addEventListener("pointerup", this.onPointerUp);
+        }
+        if (this.props.isSelected() && e.buttons === 2) {
+            this._alt = true;
             document.removeEventListener("pointerup", this.onPointerUp);
             document.addEventListener("pointerup", this.onPointerUp);
         }
@@ -216,6 +226,8 @@ export class PDFBox extends React.Component<FieldViewProps> {
      */
     @action
     onPointerUp = (e: PointerEvent) => {
+        this._alt = false;
+        document.removeEventListener("pointerup", this.onPointerUp);
         if (this.props.isSelected()) {
             this.highlight("rgba(76, 175, 80, 0.3)"); //highlights to this default color. 
         }
@@ -315,11 +327,24 @@ export class PDFBox extends React.Component<FieldViewProps> {
         }
         return (null);
     }
+    @observable _alt = false;
+    @action
+    onKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === "Alt") {
+            this._alt = true;
+        }
+    }
+    @action
+    onKeyUp = (e: React.KeyboardEvent) => {
+        if (e.key === "Alt") {
+            this._alt = false;
+        }
+    }
     render() {
         trace();
-        let classname = "pdfBox-cont" + (this.props.isSelected() && !InkingControl.Instance.selectedTool ? "-interactive" : "");
+        let classname = "pdfBox-cont" + (this.props.isSelected() && !InkingControl.Instance.selectedTool && !this._alt ? "-interactive" : "");
         return (
-            <div className={classname} ref={this._mainDiv} onPointerDown={this.onPointerDown} >
+            <div className={classname} tabIndex={0} ref={this._mainDiv} onPointerDown={this.onPointerDown} onKeyDown={this.onKeyDown} onKeyUp={this.onKeyUp} >
                 {this.pdfRenderer}
             </div >
         );
