@@ -38,10 +38,10 @@ export interface Interface {
 }
 
 export function Cast<T extends ToConstructor<Field> | ListSpec<Field>>(field: FieldResult, ctor: T): FieldResult<ToType<T>>;
-export function Cast<T extends ToConstructor<Field> | ListSpec<Field>>(field: FieldResult, ctor: T, defaultVal: WithoutList<ToType<T>>): WithoutList<ToType<T>>;
-export function Cast<T extends ToConstructor<Field> | ListSpec<Field>>(field: FieldResult, ctor: T, defaultVal?: ToType<T>): FieldResult<ToType<T>> | undefined {
+export function Cast<T extends ToConstructor<Field> | ListSpec<Field>>(field: FieldResult, ctor: T, defaultVal: WithoutList<ToType<T>> | null): WithoutList<ToType<T>>;
+export function Cast<T extends ToConstructor<Field> | ListSpec<Field>>(field: FieldResult, ctor: T, defaultVal?: ToType<T> | null): FieldResult<ToType<T>> | undefined {
     if (field instanceof Promise) {
-        return defaultVal === undefined ? field.then(f => Cast(f, ctor) as any) as any : defaultVal;
+        return defaultVal === undefined ? field.then(f => Cast(f, ctor) as any) as any : defaultVal === null ? undefined : defaultVal;
     }
     if (field !== undefined && !(field instanceof Promise)) {
         if (typeof ctor === "string") {
@@ -56,18 +56,18 @@ export function Cast<T extends ToConstructor<Field> | ListSpec<Field>>(field: Fi
             return field as ToType<T>;
         }
     }
-    return defaultVal;
+    return defaultVal === null ? undefined : defaultVal;
 }
 
-export function NumCast(field: FieldResult, defaultVal: Opt<number> = 0) {
+export function NumCast(field: FieldResult, defaultVal: number | null = 0) {
     return Cast(field, "number", defaultVal);
 }
 
-export function StrCast(field: FieldResult, defaultVal: Opt<string> = "") {
+export function StrCast(field: FieldResult, defaultVal: string | null = "") {
     return Cast(field, "string", defaultVal);
 }
 
-export function BoolCast(field: FieldResult, defaultVal: Opt<boolean> = undefined) {
+export function BoolCast(field: FieldResult, defaultVal: boolean | null = null) {
     return Cast(field, "boolean", defaultVal);
 }
 

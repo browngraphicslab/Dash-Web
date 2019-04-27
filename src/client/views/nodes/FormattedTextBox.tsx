@@ -20,7 +20,8 @@ import { createSchema, makeInterface } from "../../../new_fields/Schema";
 import { Opt, Doc } from "../../../new_fields/Doc";
 import { observer } from "mobx-react";
 import { InkingControl } from "../InkingControl";
-import { StrCast } from "../../../new_fields/Types";
+import { StrCast, Cast } from "../../../new_fields/Types";
+import { RichTextField } from "../../../new_fields/RichTextField";
 const { buildMenuItems } = require("prosemirror-example-setup");
 const { menuBar } = require("prosemirror-menu");
 
@@ -77,11 +78,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             const state = this._editorView.state.apply(tx);
             this._editorView.updateState(state);
             this._applyingChange = true;
-            this.props.Document.SetDataOnPrototype(
-                this.props.fieldKey,
-                JSON.stringify(state.toJSON()),
-                RichTextField
-            );
+            Doc.SetOnPrototype(this.props.Document, this.props.fieldKey, new RichTextField(JSON.stringify(state.toJSON())));
             Doc.SetOnPrototype(this.props.Document, "documentText", state.doc.textBetween(0, state.doc.content.size, "\n\n"));
             this._applyingChange = false;
             // doc.SetData(fieldKey, JSON.stringify(state.toJSON()), RichTextField);
@@ -127,8 +124,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
         this._reactionDisposer = reaction(
             () => {
-                const field = this.props.Document ? this.props.Document.GetT(this.props.fieldKey, RichTextField) : undefined;
-                return field && field !== FieldWaiting ? field.Data : undefined;
+                const field = this.props.Document ? Cast(this.props.Document[this.props.fieldKey], RichTextField) : undefined;
+                return field ? field.Data : undefined;
             },
             field => field && this._editorView && !this._applyingChange &&
                 this._editorView.updateState(EditorState.fromJSON(config, JSON.parse(field)))
@@ -136,8 +133,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         this.setupEditor(config, this.props.Document);
     }
 
-    private setupEditor(config: any, doc?: Document) {
-        let field = doc ? doc.GetT(this.props.fieldKey, RichTextField) : undefined;
+    private setupEditor(config: any, doc?: Doc) {
+        let field = doc ? Cast(doc[this.props.fieldKey], RichTextField) : undefined;
         if (this._ref.current) {
             this._editorView = new EditorView(this._ref.current, {
                 state: field && field.Data ? EditorState.fromJSON(config, JSON.parse(field.Data)) : EditorState.create(config),

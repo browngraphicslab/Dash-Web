@@ -2,16 +2,15 @@ import { action, observable, trace } from 'mobx';
 import { observer } from 'mobx-react';
 import "normalize.css";
 import * as React from 'react';
-import { Document } from '../../fields/Document';
-import { Key } from '../../fields/Key';
-import { KeyStore } from '../../fields/KeyStore';
-import { emptyDocFunction, emptyFunction, returnTrue, returnZero } from '../../Utils';
+import { emptyFunction, returnTrue, returnZero } from '../../Utils';
 import '../northstar/model/ModelExtensions';
 import '../northstar/utils/Extensions';
 import { DragManager } from '../util/DragManager';
 import { Transform } from '../util/Transform';
 import "./MainOverlayTextBox.scss";
 import { FormattedTextBox } from './nodes/FormattedTextBox';
+import { Doc } from '../../new_fields/Doc';
+import { NumCast } from '../../new_fields/Types';
 
 interface MainOverlayTextBoxProps {
 }
@@ -19,11 +18,11 @@ interface MainOverlayTextBoxProps {
 @observer
 export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps> {
     public static Instance: MainOverlayTextBox;
-    @observable public TextDoc?: Document = undefined;
+    @observable public TextDoc?: Doc = undefined;
     public TextScroll: number = 0;
     @observable _textRect: any;
     @observable _textXf: () => Transform = () => Transform.Identity();
-    private _textFieldKey: Key = KeyStore.Data;
+    private _textFieldKey: string = "data";
     private _textColor: string | null = null;
     private _textTargetDiv: HTMLDivElement | undefined;
     private _textProxyDiv: React.RefObject<HTMLDivElement>;
@@ -35,7 +34,7 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
     }
 
     @action
-    SetTextDoc(textDoc?: Document, textFieldKey?: Key, div?: HTMLDivElement, tx?: () => Transform) {
+    SetTextDoc(textDoc?: Doc, textFieldKey?: string, div?: HTMLDivElement, tx?: () => Transform) {
         if (this._textTargetDiv) {
             this._textTargetDiv.style.color = this._textColor;
         }
@@ -94,10 +93,10 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
             let s = 1 / this._textXf().Scale;
             return <div className="mainOverlayTextBox-textInput" style={{ transform: `translate(${pt[0]}px, ${pt[1]}px) scale(${s},${s})`, width: "auto", height: "auto" }} >
                 <div className="mainOverlayTextBox-textInput" onPointerDown={this.textBoxDown} ref={this._textProxyDiv} onScroll={this.textScroll}
-                    style={{ width: `${this.TextDoc.Width()}px`, height: `${this.TextDoc.Height()}px` }}>
+                    style={{ width: `${NumCast(this.TextDoc.width)}px`, height: `${NumCast(this.TextDoc.height)}px` }}>
                     <FormattedTextBox fieldKey={this._textFieldKey} isOverlay={true} Document={this.TextDoc} isSelected={returnTrue} select={emptyFunction} isTopMost={true}
                         selectOnLoad={true} ContainingCollectionView={undefined} whenActiveChanged={emptyFunction} active={returnTrue}
-                        ScreenToLocalTransform={this._textXf} PanelWidth={returnZero} PanelHeight={returnZero} focus={emptyDocFunction} />
+                        ScreenToLocalTransform={this._textXf} PanelWidth={returnZero} PanelHeight={returnZero} focus={emptyFunction} />
                 </div>
             </ div>;
         }

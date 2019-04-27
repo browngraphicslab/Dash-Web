@@ -97,7 +97,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                     if (!NumCast(d.height)) {
                         let nw = NumCast(d.nativeWidth);
                         let nh = NumCast(d.nativeHeight);
-                        d.height = nw && nh ? nh / nw * d.Width() : 300;
+                        d.height = nw && nh ? nh / nw * NumCast(d.Width) : 300;
                     }
                     this.bringToFront(d);
                 });
