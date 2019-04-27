@@ -10,7 +10,7 @@ import Measure from "react-measure";
 import { FieldId, Opt, Field, FieldWaiting } from "../../../fields/Field";
 import { Utils, returnTrue, emptyFunction, emptyDocFunction, returnOne, returnZero } from "../../../Utils";
 import { Server } from "../../Server";
-import { undoBatch } from "../../util/UndoManager";
+import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { DocumentView } from "../nodes/DocumentView";
 import "./CollectionDockingView.scss";
 import React = require("react");
@@ -48,7 +48,11 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         (window as any).React = React;
         (window as any).ReactDOM = ReactDOM;
     }
+    hack: boolean = false;
+    undohack: any = null;
     public StartOtherDrag(dragDocs: Document[], e: any) {
+        this.hack = true;
+        this.undohack = UndoManager.StartBatch("goldenDrag");
         dragDocs.map(dragDoc =>
             this.AddRightSplit(dragDoc, true).contentItems[0].tab._dragListener.
                 onMouseDown({ pageX: e.pageX, pageY: e.pageY, preventDefault: emptyFunction, button: 0 }));
@@ -236,6 +240,11 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     stateChanged = () => {
         var json = JSON.stringify(this._goldenLayout.toConfig());
         this.props.Document.SetText(KeyStore.Data, json);
+        if (this.undohack && !this.hack) {
+            this.undohack.end();
+            this.undohack = undefined;
+        }
+        this.hack = false;
     }
 
     itemDropped = () => {
