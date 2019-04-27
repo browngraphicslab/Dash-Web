@@ -167,5 +167,3 @@ export namespace Doc {
     }
     export const Prototype = Symbol("Prototype");
 }
-
-export const GetAsync = Doc.GetAsync;

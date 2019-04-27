@@ -2,15 +2,15 @@ import * as React from 'react';
 import { observable, action, configure, reaction, computed, ObservableMap, runInAction } from 'mobx';
 import { observer } from "mobx-react";
 import './WorkspacesMenu.css';
-import { Document } from '../../../fields/Document';
 import { EditableView } from '../../../client/views/EditableView';
-import { KeyStore } from '../../../fields/KeyStore';
+import { Doc, Id } from '../../../new_fields/Doc';
+import { StrCast } from '../../../new_fields/Types';
 
 export interface WorkspaceMenuProps {
-    active: Document | undefined;
-    open: (workspace: Document) => void;
+    active: Doc | undefined;
+    open: (workspace: Doc) => void;
     new: () => void;
-    allWorkspaces: Document[];
+    allWorkspaces: Doc[];
     isShown: () => boolean;
     toggle: () => void;
 }
@@ -60,7 +60,7 @@ export class WorkspacesMenu extends React.Component<WorkspaceMenuProps> {
                 />
                 {this.props.allWorkspaces.map((s, i) =>
                     <div
-                        key={s.Id}
+                        key={s[Id]}
                         onContextMenu={(e) => {
                             e.preventDefault();
                             this.props.open(s);
@@ -73,9 +73,9 @@ export class WorkspacesMenu extends React.Component<WorkspaceMenuProps> {
                         <span>{i + 1} - </span>
                         <EditableView
                             display={"inline"}
-                            GetValue={() => s.Title}
+                            GetValue={() => StrCast(s.title)}
                             SetValue={(title: string): boolean => {
-                                s.SetText(KeyStore.Title, title);
+                                s.title = title;
                                 return true;
                             }}
                             contents={s.Title}

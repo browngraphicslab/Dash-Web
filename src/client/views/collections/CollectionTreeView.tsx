@@ -3,20 +3,19 @@ import { faCaretDown, faCaretRight, faTrashAlt } from '@fortawesome/free-solid-s
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, observable } from "mobx";
 import { observer } from "mobx-react";
-import { Document } from "../../../fields/Document";
-import { FieldWaiting } from "../../../fields/Field";
-import { KeyStore } from "../../../fields/KeyStore";
-import { ListField } from "../../../fields/ListField";
 import { DragManager, SetupDrag } from "../../util/DragManager";
 import { EditableView } from "../EditableView";
 import { CollectionSubView } from "./CollectionSubView";
 import "./CollectionTreeView.scss";
 import React = require("react");
+import { Document, listSpec } from '../../../new_fields/Schema';
+import { Cast, StrCast, BoolCast } from '../../../new_fields/Types';
+import { Doc, Id } from '../../../new_fields/Doc';
 
 
 export interface TreeViewProps {
-    document: Document;
-    deleteDoc: (doc: Document) => void;
+    document: Doc;
+    deleteDoc: (doc: Doc) => void;
     moveDocument: DragManager.MoveFunction;
     copyOnDrag: boolean;
 }
@@ -43,9 +42,9 @@ class TreeView extends React.Component<TreeViewProps> {
 
     @action
     remove = (document: Document) => {
-        var children = this.props.document.GetT<ListField<Document>>(KeyStore.Data, ListField);
-        if (children && children !== FieldWaiting) {
-            children.Data.splice(children.Data.indexOf(document), 1);
+        var children = Cast(this.props.document.data, listSpec(Doc));
+        if (children) {
+            children.splice(children.indexOf(document), 1);
         }
     }
 
@@ -80,15 +79,15 @@ class TreeView extends React.Component<TreeViewProps> {
                 display={"inline"}
                 contents={titleString}
                 height={36}
-                GetValue={() => this.props.document.Title}
+                GetValue={() => StrCast(this.props.document.title)}
                 SetValue={(value: string) => {
-                    this.props.document.SetText(KeyStore.Title, value);
+                    this.props.document.title = value;
                     return true;
                 }}
             />);
         return (
             <div className="docContainer" ref={reference} onPointerDown={onItemDown}>
-                {editableView(this.props.document.Title)}
+                {editableView(StrCast(this.props.document.title))}
                 <div className="delete-button" onClick={this.delete}><FontAwesomeIcon icon="trash-alt" size="xs" /></div>
             </div >);
     }
@@ -96,12 +95,12 @@ class TreeView extends React.Component<TreeViewProps> {
     render() {
         let bulletType = BulletType.List;
         let childElements: JSX.Element | undefined = undefined;
-        var children = this.props.document.GetT<ListField<Document>>(KeyStore.Data, ListField);
-        if (children && children !== FieldWaiting) { // add children for a collection
+        var children = Cast(this.props.document.data, listSpec(Doc));
+        if (children) { // add children for a collection
             if (!this._collapsed) {
                 bulletType = BulletType.Collapsible;
                 childElements = <ul>
-                    {children.Data.map(value => <TreeView key={value.Id} document={value} deleteDoc={this.remove} moveDocument={this.move} copyOnDrag={this.props.copyOnDrag} />)}
+                    {children.map(value => <TreeView key={value[Id]} document={value} deleteDoc={this.remove} moveDocument={this.move} copyOnDrag={this.props.copyOnDrag} />)}
                 </ul >;
             }
             else bulletType = BulletType.Collapsed;
@@ -117,22 +116,22 @@ class TreeView extends React.Component<TreeViewProps> {
 }
 
 @observer
-export class CollectionTreeView extends CollectionSubView {
+export class CollectionTreeView extends CollectionSubView(Document) {
 
     @action
     remove = (document: Document) => {
-        var children = this.props.Document.GetT<ListField<Document>>(KeyStore.Data, ListField);
-        if (children && children !== FieldWaiting) {
-            children.Data.splice(children.Data.indexOf(document), 1);
+        const children = this.children;
+        if (children) {
+            children.splice(children.indexOf(document), 1);
         }
     }
 
     render() {
-        let children = this.props.Document.GetT<ListField<Document>>(KeyStore.Data, ListField);
-        let copyOnDrag = this.props.Document.GetBoolean(KeyStore.CopyDraggedItems, false);
-        let childrenElement = !children || children === FieldWaiting ? (null) :
-            (children.Data.map(value =>
-                <TreeView document={value} key={value.Id} deleteDoc={this.remove} moveDocument={this.props.moveDocument} copyOnDrag={copyOnDrag} />)
+        const children = this.children;
+        let copyOnDrag = BoolCast(this.props.Document.copyDraggedItems, false);
+        let childrenElement = !children ? (null) :
+            (children.map(value =>
+                <TreeView document={value} key={value[Id]} deleteDoc={this.remove} moveDocument={this.props.moveDocument} copyOnDrag={copyOnDrag} />)
             );
 
         return (
@@ -145,9 +144,9 @@ export class CollectionTreeView extends CollectionSubView {
                         contents={this.props.Document.Title}
                         display={"inline"}
                         height={72}
-                        GetValue={() => this.props.Document.Title}
+                        GetValue={() => StrCast(this.props.Document.title)}
                         SetValue={(value: string) => {
-                            this.props.Document.SetText(KeyStore.Title, value);
+                            this.props.Document.title = value;
                             return true;
                         }} />
                 </div>
