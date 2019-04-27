@@ -78,7 +78,9 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         if (!e.cancelBubble) {
             if (Math.abs(this._lastX - this._downX) > Utils.DRAG_THRESHOLD ||
                 Math.abs(this._lastY - this._downY) > Utils.DRAG_THRESHOLD) {
-                this._visible = true;
+                if (!this._commandExecuted) {
+                    this._visible = true;
+                }
                 e.stopPropagation();
                 e.preventDefault();
             }
@@ -173,7 +175,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             });
 
             this.marqueeInkDelete(inkData);
-            SelectionManager.DeselectAll();
+            // SelectionManager.DeselectAll();
             if (e.key === "r") {
                 let summary = Documents.TextDocument({ x: bounds.left, y: bounds.top, width: 300, height: 100, backgroundColor: "yellow", title: "-summary-" });
                 summary.GetPrototype()!.CreateLink(newCollection.GetPrototype()!);

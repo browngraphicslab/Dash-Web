@@ -8,6 +8,7 @@ import { ListField } from '../../../fields/ListField';
 import { NumberField } from '../../../fields/NumberField';
 import { ContextMenu } from '../ContextMenu';
 import { FieldViewProps } from '../nodes/FieldView';
+import { SelectionManager } from '../../util/SelectionManager';
 
 export enum CollectionViewType {
     Invalid,
@@ -173,6 +174,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
             return true;
         }
         if (this.removeDocument(doc)) {
+            SelectionManager.DeselectAll();
             return addDocument(doc);
         }
         return false;
