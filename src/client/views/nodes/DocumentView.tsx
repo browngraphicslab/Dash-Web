@@ -159,7 +159,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         if (CollectionFreeFormView.RIGHT_BTN_DRAG && (e.button === 2 || (e.button === 0 && e.altKey)) && !this.isSelected()) {
             return;
         }
-        if (e.shiftKey && e.buttons === 2) {
+        if (e.shiftKey && e.buttons === 1) {
             if (this.props.isTopMost) {
                 this.startDragging(e.pageX, e.pageY, e.altKey || e.ctrlKey);
             } else {
