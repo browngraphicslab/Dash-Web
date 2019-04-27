@@ -146,6 +146,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         this.Interacting = this._dragging = true;
         document.removeEventListener("pointermove", this.onBackgroundMove);
         document.removeEventListener("pointerup", this.onBackgroundUp);
+        this.Hidden = true;
         DragManager.StartDocumentDrag(SelectionManager.SelectedDocuments().map(docView => docView.ContentDiv!), dragData, e.x, e.y, {
             handlers: {
                 dragComplete: action(() => this.Interacting = this._dragging = false),
@@ -156,6 +157,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     }
 
     onBackgroundUp = (e: PointerEvent): void => {
+        this.Hidden = true;
         document.removeEventListener("pointermove", this.onBackgroundMove);
         document.removeEventListener("pointerup", this.onBackgroundUp);
         e.stopPropagation();
