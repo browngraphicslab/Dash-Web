@@ -105,7 +105,8 @@ export class CollectionFreeFormLinksView extends React.Component<CollectionViewP
             );
             return drawnPairs;
         }, [] as { a: Document, b: Document, l: Document[] }[]);
-        return connections.map(c => <CollectionFreeFormLinkView key={Utils.GenerateGuid()} A={c.a} B={c.b} LinkDocs={c.l} />);
+        return connections.map(c => <CollectionFreeFormLinkView key={Utils.GenerateGuid()} A={c.a} B={c.b} LinkDocs={c.l}
+            removeDocument={this.props.removeDocument} addDocument={this.props.addDocument} />);
     }
 
     render() {

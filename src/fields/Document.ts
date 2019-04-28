@@ -13,6 +13,7 @@ import { BooleanField } from "./BooleanField";
 import { allLimit } from "async";
 import { prototype } from "nodemailer/lib/smtp-pool";
 import { HistogramField } from "../client/northstar/dash-fields/HistogramField";
+import { Documents } from "../client/documents/Documents";
 
 export class Document extends Field {
     //TODO tfs: We should probably store FieldWaiting in fields when we request it from the server so that we don't set up multiple server gets for the same document and field
@@ -374,8 +375,7 @@ export class Document extends Field {
     @action
     CreateLink(dstTarg: Document) {
         let batch = UndoManager.StartBatch("document view drop");
-        let linkDoc: Document = new Document();
-        linkDoc.SetText(KeyStore.Title, "New Link");
+        let linkDoc: Document = Documents.TextDocument({ width: 100, height: 25, title: "-link-" });
         linkDoc.SetText(KeyStore.LinkDescription, "");
         linkDoc.SetText(KeyStore.LinkTags, "Default");
 
