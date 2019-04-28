@@ -7,10 +7,11 @@ import { CollectionViewProps } from "../CollectionSubView";
 import "./CollectionFreeFormLinksView.scss";
 import { CollectionFreeFormLinkView } from "./CollectionFreeFormLinkView";
 import React = require("react");
-import { Doc, Id } from "../../../../new_fields/Doc";
+import { Doc } from "../../../../new_fields/Doc";
 import { Cast, FieldValue, NumCast, StrCast } from "../../../../new_fields/Types";
 import { listSpec } from "../../../../new_fields/Schema";
 import { List } from "../../../../new_fields/List";
+import { Id } from "../../../../new_fields/RefField";
 
 @observer
 export class CollectionFreeFormLinksView extends React.Component<CollectionViewProps> {

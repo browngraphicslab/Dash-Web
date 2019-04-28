@@ -1,6 +1,6 @@
 import { Deserializable } from "../client/util/SerializationHelper";
 import { serializable, custom, createSimpleSchema, list, object, map } from "serializr";
-import { ObjectField } from "./Doc";
+import { ObjectField } from "./ObjectField";
 
 export enum InkTool {
     None,

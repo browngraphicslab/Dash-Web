@@ -19,10 +19,11 @@ import { DocumentView } from "../nodes/DocumentView";
 import { FieldView, FieldViewProps } from "../nodes/FieldView";
 import "./CollectionSchemaView.scss";
 import { CollectionSubView } from "./CollectionSubView";
-import { Opt, Field, Doc, Id } from "../../../new_fields/Doc";
+import { Opt, Field, Doc } from "../../../new_fields/Doc";
 import { Cast, FieldValue, NumCast } from "../../../new_fields/Types";
 import { listSpec } from "../../../new_fields/Schema";
 import { List } from "../../../new_fields/List";
+import { Id } from "../../../new_fields/RefField";
 
 
 // bcz: need to add drag and drop of rows and columns.  This seems like it might work for rows: https://codesandbox.io/s/l94mn1q657

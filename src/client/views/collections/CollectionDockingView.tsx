@@ -13,11 +13,12 @@ import React = require("react");
 import { SubCollectionViewProps } from "./CollectionSubView";
 import { DragManager, DragLinksAsDocuments } from "../../util/DragManager";
 import { Transform } from '../../util/Transform';
-import { Doc, Id, Opt, Field, FieldId } from "../../../new_fields/Doc";
+import { Doc, Opt, Field } from "../../../new_fields/Doc";
 import { Cast, NumCast } from "../../../new_fields/Types";
 import { List } from "../../../new_fields/List";
 import { DocServer } from "../../DocServer";
 import { listSpec } from "../../../new_fields/Schema";
+import { Id, FieldId } from "../../../new_fields/RefField";
 
 @observer
 export class CollectionDockingView extends React.Component<SubCollectionViewProps> {

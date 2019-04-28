@@ -3,7 +3,7 @@ import { custom, serializable } from "serializr";
 import { ColumnAttributeModel } from "../../../client/northstar/core/attribute/AttributeModel";
 import { AttributeTransformationModel } from "../../../client/northstar/core/attribute/AttributeTransformationModel";
 import { HistogramOperation } from "../../../client/northstar/operations/HistogramOperation";
-import { ObjectField } from "../../../new_fields/Doc";
+import { ObjectField } from "../../../new_fields/ObjectField";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { OmitKeys } from "../../../Utils";
 import { Deserializable } from "../../util/SerializationHelper";

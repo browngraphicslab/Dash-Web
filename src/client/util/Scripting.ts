@@ -11,6 +11,7 @@ import { Docs } from "../documents/Documents";
 import { Doc, Field } from '../../new_fields/Doc';
 import { ImageField, PdfField, VideoField, AudioField } from '../../new_fields/URLField';
 import { List } from '../../new_fields/List';
+import { RichTextField } from '../../new_fields/RichTextField';
 
 export interface ScriptSucccess {
     success: true;

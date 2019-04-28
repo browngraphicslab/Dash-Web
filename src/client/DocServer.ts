@@ -1,8 +1,9 @@
 import * as OpenSocket from 'socket.io-client';
 import { MessageStore, Types, Message } from "./../server/Message";
-import { Opt, FieldWaiting, RefField, HandleUpdate } from '../new_fields/Doc';
+import { Opt, FieldWaiting } from '../new_fields/Doc';
 import { Utils } from '../Utils';
 import { SerializationHelper } from './util/SerializationHelper';
+import { RefField, HandleUpdate } from '../new_fields/RefField';
 
 export namespace DocServer {
     const _cache: { [id: string]: RefField | Promise<Opt<RefField>> } = {};

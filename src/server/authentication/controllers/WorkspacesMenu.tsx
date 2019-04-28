@@ -3,8 +3,9 @@ import { observable, action, configure, reaction, computed, ObservableMap, runIn
 import { observer } from "mobx-react";
 import './WorkspacesMenu.css';
 import { EditableView } from '../../../client/views/EditableView';
-import { Doc, Id } from '../../../new_fields/Doc';
+import { Doc } from '../../../new_fields/Doc';
 import { StrCast } from '../../../new_fields/Types';
+import { Id } from '../../../new_fields/RefField';
 
 export interface WorkspaceMenuProps {
     active: Doc | undefined;

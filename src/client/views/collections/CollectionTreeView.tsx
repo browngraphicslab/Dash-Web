@@ -10,7 +10,8 @@ import "./CollectionTreeView.scss";
 import React = require("react");
 import { Document, listSpec } from '../../../new_fields/Schema';
 import { Cast, StrCast, BoolCast } from '../../../new_fields/Types';
-import { Doc, Id } from '../../../new_fields/Doc';
+import { Doc } from '../../../new_fields/Doc';
+import { Id } from '../../../new_fields/RefField';
 
 
 export interface TreeViewProps {

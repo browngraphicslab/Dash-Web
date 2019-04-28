@@ -4,9 +4,10 @@ import * as React from 'react';
 import { ContextMenu } from '../ContextMenu';
 import { FieldViewProps } from '../nodes/FieldView';
 import { Cast, FieldValue, PromiseValue, NumCast } from '../../../new_fields/Types';
-import { Doc, FieldResult, Opt, Id } from '../../../new_fields/Doc';
+import { Doc, FieldResult, Opt } from '../../../new_fields/Doc';
 import { listSpec } from '../../../new_fields/Schema';
 import { List } from '../../../new_fields/List';
+import { Id } from '../../../new_fields/RefField';
 
 export enum CollectionViewType {
     Invalid,

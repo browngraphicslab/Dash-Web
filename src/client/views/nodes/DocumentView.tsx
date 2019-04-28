@@ -15,7 +15,7 @@ import { ContextMenu } from "../ContextMenu";
 import { DocumentContentsView } from "./DocumentContentsView";
 import "./DocumentView.scss";
 import React = require("react");
-import { Field, Opt, Doc, Id } from "../../../new_fields/Doc";
+import { Opt, Doc } from "../../../new_fields/Doc";
 import { DocComponent } from "../DocComponent";
 import { createSchema, makeInterface, listSpec } from "../../../new_fields/Schema";
 import { FieldValue, Cast, PromiseValue } from "../../../new_fields/Types";
@@ -24,6 +24,7 @@ import { CollectionFreeFormView } from "../collections/collectionFreeForm/Collec
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { MarqueeView } from "../collections/collectionFreeForm/MarqueeView";
 import { DocServer } from "../../DocServer";
+import { Id } from "../../../new_fields/RefField";
 
 const linkSchema = createSchema({
     title: "string",

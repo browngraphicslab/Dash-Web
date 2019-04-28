@@ -21,15 +21,15 @@ export function makeInterface<T extends Interface[]>(...schemas: T): (doc?: Doc)
         }
     }
     const proto = new Proxy({}, {
-        get(target: any, prop) {
-            const field = target.doc[prop];
+        get(target: any, prop, receiver) {
+            const field = receiver.doc[prop];
             if (prop in schema) {
                 return Cast(field, (schema as any)[prop]);
             }
             return field;
         },
-        set(target: any, prop, value) {
-            target.doc[prop] = value;
+        set(target: any, prop, value, receiver) {
+            receiver.doc[prop] = value;
             return true;
         }
     });

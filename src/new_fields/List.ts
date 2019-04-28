@@ -1,8 +1,9 @@
 import { Deserializable, autoObject } from "../client/util/SerializationHelper";
-import { Field, ObjectField, Update, OnUpdate, Self } from "./Doc";
+import { Field, Update, Self } from "./Doc";
 import { setter, getter } from "./util";
 import { serializable, alias, list } from "serializr";
 import { observable } from "mobx";
+import { ObjectField, OnUpdate } from "./ObjectField";
 
 @Deserializable("list")
 class ListImpl<T extends Field> extends ObjectField {

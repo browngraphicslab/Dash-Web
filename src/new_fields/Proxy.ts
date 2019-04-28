@@ -1,8 +1,10 @@
 import { Deserializable } from "../client/util/SerializationHelper";
-import { RefField, Id, ObjectField, FieldWaiting } from "./Doc";
+import { FieldWaiting } from "./Doc";
 import { primitive, serializable } from "serializr";
 import { observable, action } from "mobx";
 import { DocServer } from "../client/DocServer";
+import { RefField, Id } from "./RefField";
+import { ObjectField } from "./ObjectField";
 
 @Deserializable("proxy")
 export class ProxyField<T extends RefField> extends ObjectField {

@@ -60,11 +60,13 @@ export class Database {
     }
 
     public getDocument(id: string, fn: (result?: Transferable) => void, collectionName = Database.DocumentsCollection) {
+        console.log("getDocument");
         this.db && this.db.collection(collectionName).findOne({ id: id }, (err, result) =>
             fn(result ? ({ id: result._id, type: result.type, data: result.data }) : undefined));
     }
 
     public getDocuments(ids: string[], fn: (result: Transferable[]) => void, collectionName = Database.DocumentsCollection) {
+        console.log("getDocuments");
         this.db && this.db.collection(collectionName).find({ id: { "$in": ids } }).toArray((err, docs) => {
             if (err) {
                 console.log(err.message);

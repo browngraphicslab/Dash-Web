@@ -1,6 +1,6 @@
 import { Deserializable } from "../client/util/SerializationHelper";
 import { serializable, custom } from "serializr";
-import { ObjectField } from "./Doc";
+import { ObjectField } from "./ObjectField";
 
 function url() {
     return custom(

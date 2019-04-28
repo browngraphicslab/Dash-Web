@@ -5,9 +5,10 @@ import { LinkBox } from "./LinkBox";
 import { LinkEditor } from "./LinkEditor";
 import './LinkMenu.scss';
 import React = require("react");
-import { Doc, Id } from "../../../new_fields/Doc";
+import { Doc } from "../../../new_fields/Doc";
 import { Cast, FieldValue } from "../../../new_fields/Types";
 import { listSpec } from "../../../new_fields/Schema";
+import { Id } from "../../../new_fields/RefField";
 
 interface Props {
     docView: DocumentView;

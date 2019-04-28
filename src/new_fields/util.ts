@@ -1,8 +1,10 @@
 import { UndoManager } from "../client/util/UndoManager";
-import { Update, OnUpdate, Parent, ObjectField, RefField, Doc, Id, Field } from "./Doc";
+import { Update, Doc, Field } from "./Doc";
 import { SerializationHelper } from "../client/util/SerializationHelper";
 import { ProxyField } from "./Proxy";
 import { FieldValue } from "./Types";
+import { RefField, Id } from "./RefField";
+import { ObjectField, Parent, OnUpdate } from "./ObjectField";
 
 export function setter(target: any, prop: string | symbol | number, value: any, receiver: any): boolean {
     if (SerializationHelper.IsSerializing()) {

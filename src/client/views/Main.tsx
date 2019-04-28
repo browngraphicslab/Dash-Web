@@ -33,10 +33,11 @@ import { MainOverlayTextBox } from './MainOverlayTextBox';
 import { DocumentView } from './nodes/DocumentView';
 import { PreviewCursor } from './PreviewCursor';
 import { SelectionManager } from '../util/SelectionManager';
-import { FieldResult, Field, Doc, Id, Opt } from '../../new_fields/Doc';
+import { FieldResult, Field, Doc, Opt } from '../../new_fields/Doc';
 import { Cast, FieldValue, StrCast } from '../../new_fields/Types';
 import { DocServer } from '../DocServer';
 import { listSpec } from '../../new_fields/Schema';
+import { Id } from '../../new_fields/RefField';
 
 
 @observer

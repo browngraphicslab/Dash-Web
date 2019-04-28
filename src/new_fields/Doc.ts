@@ -8,38 +8,8 @@ import { Cast, ToConstructor, PromiseValue, FieldValue } from "./Types";
 import { UndoManager, undoBatch } from "../client/util/UndoManager";
 import { listSpec } from "./Schema";
 import { List } from "./List";
-
-export type FieldId = string;
-export const HandleUpdate = Symbol("HandleUpdate");
-export const Id = Symbol("Id");
-export abstract class RefField {
-    @serializable(alias("id", primitive()))
-    private __id: FieldId;
-    readonly [Id]: FieldId;
-
-    constructor(id?: FieldId) {
-        this.__id = id || Utils.GenerateGuid();
-        this[Id] = this.__id;
-    }
-
-    protected [HandleUpdate]?(diff: any): void;
-}
-
-export const Update = Symbol("Update");
-export const OnUpdate = Symbol("OnUpdate");
-export const Parent = Symbol("Parent");
-export class ObjectField {
-    protected [OnUpdate]?: (diff?: any) => void;
-    private [Parent]?: Doc;
-    readonly [Id] = "";
-}
-
-export namespace ObjectField {
-    export function MakeCopy(field: ObjectField) {
-        //TODO Types
-        return field;
-    }
-}
+import { ObjectField } from "./ObjectField";
+import { RefField, FieldId, Id } from "./RefField";
 
 export function IsField(field: any): field is Field {
     return (typeof field === "string")
@@ -53,6 +23,7 @@ export type Opt<T> = T | undefined;
 export type FieldWaiting<T extends RefField = RefField> = T extends undefined ? never : Promise<T | undefined>;
 export type FieldResult<T extends Field = Field> = Opt<T> | FieldWaiting<Extract<T, RefField>>;
 
+export const Update = Symbol("Update");
 export const Self = Symbol("Self");
 
 @Deserializable("doc").withFields(["id"])
@@ -161,7 +132,7 @@ export namespace Doc {
                     copy[key] = field;
                 }
             }
-        })
+        });
         return copy;
     }
 

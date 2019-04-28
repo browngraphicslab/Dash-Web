@@ -1,4 +1,4 @@
-import { ObjectField } from "./Doc";
+import { ObjectField } from "./ObjectField";
 import { serializable } from "serializr";
 
 export class RichTextField extends ObjectField {

@@ -19,10 +19,11 @@ import { MarqueeView } from "./MarqueeView";
 import React = require("react");
 import v5 = require("uuid/v5");
 import { createSchema, makeInterface, listSpec } from "../../../../new_fields/Schema";
-import { Doc, Id } from "../../../../new_fields/Doc";
+import { Doc } from "../../../../new_fields/Doc";
 import { FieldValue, Cast, NumCast } from "../../../../new_fields/Types";
 import { pageSchema } from "../../nodes/ImageBox";
 import { List } from "../../../../new_fields/List";
+import { Id } from "../../../../new_fields/RefField";
 
 export const panZoomSchema = createSchema({
     panX: "number",

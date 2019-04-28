@@ -16,6 +16,7 @@ import { Opt, Doc, FieldResult } from "../../../new_fields/Doc";
 import { List } from "../../../new_fields/List";
 import { ImageField, VideoField, AudioField } from "../../../new_fields/URLField";
 import { IconField } from "../../../new_fields/IconField";
+import { RichTextField } from "../../../new_fields/RichTextField";
 
 
 //

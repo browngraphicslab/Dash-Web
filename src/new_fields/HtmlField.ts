@@ -1,6 +1,6 @@
 import { Deserializable } from "../client/util/SerializationHelper";
 import { serializable, primitive } from "serializr";
-import { ObjectField } from "./Doc";
+import { ObjectField } from "./ObjectField";
 
 @Deserializable("html")
 export class HtmlField extends ObjectField {
