@@ -234,16 +234,18 @@ server.on("connection", function (socket: Socket) {
 
     Utils.AddServerHandler(socket, MessageStore.CreateField, CreateField);
     Utils.AddServerHandler(socket, MessageStore.UpdateField, diff => UpdateField(socket, diff));
-    Utils.AddServerHandler(socket, MessageStore.GetRefField, GetRefField);
-    Utils.AddServerHandler(socket, MessageStore.GetRefFields, GetRefFields);
+    Utils.AddServerHandlerCallback(socket, MessageStore.GetRefField, GetRefField);
+    Utils.AddServerHandlerCallback(socket, MessageStore.GetRefFields, GetRefFields);
 });
 
-function deleteFields() {
-    return Database.Instance.deleteAll();
+async function deleteFields() {
+    await Database.Instance.deleteAll();
+    await Database.Instance.deleteAll('newDocuments');
 }
 
 async function deleteAll() {
     await Database.Instance.deleteAll();
+    await Database.Instance.deleteAll('newDocuments');
     await Database.Instance.deleteAll('sessions');
     await Database.Instance.deleteAll('users');
 }

@@ -18,7 +18,7 @@ export class CollectionVideoView extends React.Component<FieldViewProps> {
     @observable _currentTimecode: number = 0;
     @observable _isPlaying: boolean = false;
 
-    public static LayoutString(fieldKey: string = "DataKey") {
+    public static LayoutString(fieldKey: string = "data") {
         return FieldView.LayoutString(CollectionVideoView, fieldKey);
     }
     private get uIButtons() {

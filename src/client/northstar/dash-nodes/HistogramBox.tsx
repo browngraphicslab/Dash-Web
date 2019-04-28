@@ -26,7 +26,7 @@ import { Id } from "../../../new_fields/RefField";
 
 @observer
 export class HistogramBox extends React.Component<FieldViewProps> {
-    public static LayoutString(fieldStr: string = "DataKey") { return FieldView.LayoutString(HistogramBox, fieldStr); }
+    public static LayoutString(fieldStr: string = "data") { return FieldView.LayoutString(HistogramBox, fieldStr); }
     private _dropXRef = React.createRef<HTMLDivElement>();
     private _dropYRef = React.createRef<HTMLDivElement>();
     private _dropXDisposer?: DragManager.DragDropDisposer;

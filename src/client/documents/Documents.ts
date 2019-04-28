@@ -138,7 +138,7 @@ export namespace Docs {
         return webProto;
     }
     function CreateCollectionPrototype(): Doc {
-        let collProto = setupPrototypeOptions(collProtoId, "COLLECTION_PROTO", CollectionView.LayoutString("DataKey"),
+        let collProto = setupPrototypeOptions(collProtoId, "COLLECTION_PROTO", CollectionView.LayoutString("data"),
             { panX: 0, panY: 0, scale: 1, width: 500, height: 500 });
         return collProto;
     }

@@ -60,19 +60,28 @@ export class Database {
     }
 
     public getDocument(id: string, fn: (result?: Transferable) => void, collectionName = Database.DocumentsCollection) {
-        console.log("getDocument");
-        this.db && this.db.collection(collectionName).findOne({ id: id }, (err, result) =>
-            fn(result ? ({ id: result._id, type: result.type, data: result.data }) : undefined));
+        this.db && this.db.collection(collectionName).findOne({ _id: id }, (err, result) => {
+            if (result) {
+                result.id = result._id;
+                delete result._id;
+                fn(result);
+            } else {
+                fn(undefined);
+            }
+        });
     }
 
     public getDocuments(ids: string[], fn: (result: Transferable[]) => void, collectionName = Database.DocumentsCollection) {
-        console.log("getDocuments");
-        this.db && this.db.collection(collectionName).find({ id: { "$in": ids } }).toArray((err, docs) => {
+        this.db && this.db.collection(collectionName).find({ _id: { "$in": ids } }).toArray((err, docs) => {
             if (err) {
                 console.log(err.message);
                 console.log(err.errmsg);
             }
-            fn(docs.map(doc => ({ id: doc._id, type: doc.type, data: doc.data })));
+            fn(docs.map(doc => {
+                doc.id = doc._id;
+                delete doc._id;
+                return doc;
+            }));
         });
     }
 

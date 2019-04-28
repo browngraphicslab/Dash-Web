@@ -13,7 +13,7 @@ import { trace } from 'mobx';
 
 @observer
 export class CollectionView extends React.Component<FieldViewProps> {
-    public static LayoutString(fieldStr: string = "DataKey") { return FieldView.LayoutString(CollectionView, fieldStr); }
+    public static LayoutString(fieldStr: string = "data") { return FieldView.LayoutString(CollectionView, fieldStr); }
 
     private SubView = (type: CollectionViewType, renderProps: CollectionRenderProps) => {
         let props = { ...this.props, ...renderProps };

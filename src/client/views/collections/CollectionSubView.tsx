@@ -53,6 +53,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
 
         @action
         protected async setCursorPosition(position: [number, number]) {
+            return;
             let ind;
             let doc = this.props.Document;
             let id = CurrentUserUtils.id;

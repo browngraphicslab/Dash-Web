@@ -5,8 +5,9 @@ import { ProxyField } from "./Proxy";
 import { FieldValue } from "./Types";
 import { RefField, Id } from "./RefField";
 import { ObjectField, Parent, OnUpdate } from "./ObjectField";
+import { action } from "mobx";
 
-export function setter(target: any, prop: string | symbol | number, value: any, receiver: any): boolean {
+export const setter = action(function (target: any, prop: string | symbol | number, value: any, receiver: any): boolean {
     if (SerializationHelper.IsSerializing()) {
         target[prop] = value;
         return true;
@@ -46,7 +47,7 @@ export function setter(target: any, prop: string | symbol | number, value: any, 
         undo: () => receiver[prop] = curValue
     });
     return true;
-}
+});
 
 export function getter(target: any, prop: string | symbol | number, receiver: any): any {
     if (typeof prop === "symbol") {

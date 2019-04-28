@@ -13,7 +13,7 @@ import { NumCast } from "../../../new_fields/Types";
 @observer
 export class CollectionPDFView extends React.Component<FieldViewProps> {
 
-    public static LayoutString(fieldKey: string = "DataKey") {
+    public static LayoutString(fieldKey: string = "data") {
         return FieldView.LayoutString(CollectionPDFView, fieldKey);
     }
 

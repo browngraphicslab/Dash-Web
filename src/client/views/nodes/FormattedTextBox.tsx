@@ -55,7 +55,7 @@ const RichTextDocument = makeInterface(richTextSchema);
 
 @observer
 export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTextBoxOverlay), RichTextDocument>(RichTextDocument) {
-    public static LayoutString(fieldStr: string = "DataKey") {
+    public static LayoutString(fieldStr: string = "data") {
         return FieldView.LayoutString(FormattedTextBox, fieldStr);
     }
     private _ref: React.RefObject<HTMLDivElement>;

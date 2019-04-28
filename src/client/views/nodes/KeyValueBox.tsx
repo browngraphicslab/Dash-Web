@@ -14,7 +14,7 @@ import { Doc, IsField } from "../../../new_fields/Doc";
 export class KeyValueBox extends React.Component<FieldViewProps> {
     private _mainCont = React.createRef<HTMLDivElement>();
 
-    public static LayoutString(fieldStr: string = "DataKey") { return FieldView.LayoutString(KeyValueBox, fieldStr); }
+    public static LayoutString(fieldStr: string = "data") { return FieldView.LayoutString(KeyValueBox, fieldStr); }
     @observable private _keyInput: string = "";
     @observable private _valueInput: string = "";
     @computed get splitPercentage() { return NumCast(this.props.Document.schemaSplitPercentage, 50); }

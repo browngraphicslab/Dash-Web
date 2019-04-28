@@ -55,12 +55,28 @@ export namespace DocServer {
                 map[id] = cached;
             }
         }
-        const prom = Utils.EmitCallback(_socket, MessageStore.GetFields, requestedIds);
-        requestedIds.map((id, index) => _cache[id] = prom.then((fields: RefField[]) => fields[index]));
+        const prom = Utils.EmitCallback(_socket, MessageStore.GetRefFields, requestedIds).then(fields => {
+            for (const key in fields) {
+                const field = fields[key];
+                if (field) {
+                    fields[key] = SerializationHelper.Deserialize(field);
+                }
+            }
+            return fields;
+        });
+        requestedIds.forEach((id, index) => _cache[id] = prom.then((fields: RefField[]) => fields[index]));
         const fields = await prom;
-        requestedIds.map((id, index) => map[id] = fields[index]);
+        requestedIds.forEach((id, index) => {
+            const field = fields[index];
+            if (field) {
+                _cache[id] = field;
+            } else {
+                delete _cache[id];
+            }
+            map[id] = field;
+        });
         const otherFields = await Promise.all(promises);
-        waitingIds.map((id, index) => map[id] = otherFields[index]);
+        waitingIds.forEach((id, index) => map[id] = otherFields[index]);
         return map;
     }
 
