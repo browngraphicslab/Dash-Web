@@ -63,11 +63,11 @@
         cursor: ew-resize;
     }
     .title{
-        width:100%;
         background: lightblue;
         grid-column-start:3;
         grid-column-end: 4;
         pointer-events: auto;
+        overflow: hidden;
     }
 }
 
