@@ -1,6 +1,6 @@
 import * as OpenSocket from 'socket.io-client';
-import { MessageStore, Types, Message } from "./../server/Message";
-import { Opt, FieldWaiting } from '../new_fields/Doc';
+import { MessageStore } from "./../server/Message";
+import { Opt } from '../new_fields/Doc';
 import { Utils } from '../Utils';
 import { SerializationHelper } from './util/SerializationHelper';
 import { RefField, HandleUpdate } from '../new_fields/RefField';
@@ -56,18 +56,18 @@ export namespace DocServer {
             }
         }
         const prom = Utils.EmitCallback(_socket, MessageStore.GetRefFields, requestedIds).then(fields => {
-            for (const key in fields) {
-                const field = fields[key];
+            const fieldMap: { [id: string]: RefField } = {};
+            for (const field of fields) {
                 if (field) {
-                    fields[key] = SerializationHelper.Deserialize(field);
+                    fieldMap[field.id] = SerializationHelper.Deserialize(field);
                 }
             }
-            return fields;
+            return fieldMap;
         });
-        requestedIds.forEach((id, index) => _cache[id] = prom.then((fields: RefField[]) => fields[index]));
+        requestedIds.forEach(id => _cache[id] = prom.then(fields => fields[id]));
         const fields = await prom;
-        requestedIds.forEach((id, index) => {
-            const field = fields[index];
+        requestedIds.forEach(id => {
+            const field = fields[id];
             if (field) {
                 _cache[id] = field;
             } else {
@@ -113,7 +113,7 @@ export namespace DocServer {
         }
     }
 
-    function connected(message: string) {
+    function connected() {
         _socket.emit(MessageStore.Bar.Message, GUID);
     }
 
