@@ -172,6 +172,8 @@ export namespace DragManager {
         StartDrag([ele], dragData, downX, downY, options);
     }
 
+    export let AbortDrag: () => void = emptyFunction;
+
     function StartDrag(eles: HTMLElement[], dragData: { [id: string]: any }, downX: number, downY: number, options?: DragOptions, finishDrag?: (dropData: { [id: string]: any }) => void) {
         if (!dragDiv) {
             dragDiv = document.createElement("div");
@@ -272,23 +274,32 @@ export namespace DragManager {
             );
         };
 
-        AbortDrag = () => {
-            document.removeEventListener("pointermove", moveHandler, true);
-            document.removeEventListener("pointerup", upHandler);
-            dragElements.map(dragElement => { if (dragElement.parentNode == dragDiv) dragDiv.removeChild(dragElement); });
+        let hideDragElements = () => {
+            dragElements.map(dragElement => dragElement.parentNode == dragDiv && dragDiv.removeChild(dragElement));
             eles.map(ele => (ele.hidden = false));
         };
+        let endDrag = () => {
+            document.removeEventListener("pointermove", moveHandler, true);
+            document.removeEventListener("pointerup", upHandler);
+            if (options) {
+                options.handlers.dragComplete({});
+            }
+        }
+
+        AbortDrag = () => {
+            hideDragElements();
+            endDrag();
+        };
         const upHandler = (e: PointerEvent) => {
-            AbortDrag();
-            FinishDrag(eles, e, dragData, options, finishDrag);
+            hideDragElements();
+            dispatchDrag(eles, e, dragData, options, finishDrag);
+            endDrag();
         };
         document.addEventListener("pointermove", moveHandler, true);
         document.addEventListener("pointerup", upHandler);
     }
 
-    export let AbortDrag: () => void = emptyFunction;
-
-    function FinishDrag(dragEles: HTMLElement[], e: PointerEvent, dragData: { [index: string]: any }, options?: DragOptions, finishDrag?: (dragData: { [index: string]: any }) => void) {
+    function dispatchDrag(dragEles: HTMLElement[], e: PointerEvent, dragData: { [index: string]: any }, options?: DragOptions, finishDrag?: (dragData: { [index: string]: any }) => void) {
         let removed = dragEles.map(dragEle => {
             let parent = dragEle.parentElement;
             if (parent) parent.removeChild(dragEle);
@@ -313,11 +324,6 @@ export namespace DragManager {
                     }
                 })
             );
-
-            if (options) {
-                options.handlers.dragComplete({});
-            }
         }
-        DocumentDecorations.Instance.Hidden = false;
     }
 }

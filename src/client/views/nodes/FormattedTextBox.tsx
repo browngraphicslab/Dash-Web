@@ -170,12 +170,10 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
     @action
     onPointerDown = (e: React.PointerEvent): void => {
         if (e.button === 1 && this.props.isSelected() && !e.altKey && !e.ctrlKey && !e.metaKey) {
-            console.log("first");
             e.stopPropagation();
         }
-        if (e.button === 2) {
+        if (e.button === 2 || (e.button === 0 && e.ctrlKey)) {
             this._gotDown = true;
-            console.log("second");
             e.preventDefault();
         }
     }
