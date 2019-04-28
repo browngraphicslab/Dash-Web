@@ -76,7 +76,7 @@ type WithoutList<T extends Field> = T extends List<infer R> ? R[] : T;
 export function FieldValue<T extends Field, U extends WithoutList<T>>(field: FieldResult<T>, defaultValue: U): WithoutList<T>;
 export function FieldValue<T extends Field>(field: FieldResult<T>): Opt<T>;
 export function FieldValue<T extends Field>(field: FieldResult<T>, defaultValue?: T): Opt<T> {
-    return field instanceof Promise ? defaultValue : field;
+    return (field instanceof Promise || field === undefined) ? defaultValue : field;
 }
 
 export interface PromiseLike<T> {

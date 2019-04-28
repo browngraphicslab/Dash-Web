@@ -257,7 +257,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             moveDocument: this.props.moveDocument,
             ScreenToLocalTransform: this.getTransform,
             isTopMost: false,
-            selectOnLoad: document.Id === this._selectOnLoaded,
+            selectOnLoad: document[Id] === this._selectOnLoaded,
             PanelWidth: () => Cast(document.width, "number", 0),//TODO Types These are inline functions
             PanelHeight: () => Cast(document.height, "number", 0),
             ContentScaling: returnOne,

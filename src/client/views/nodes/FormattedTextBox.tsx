@@ -22,6 +22,7 @@ import { observer } from "mobx-react";
 import { InkingControl } from "../InkingControl";
 import { StrCast, Cast } from "../../../new_fields/Types";
 import { RichTextField } from "../../../new_fields/RichTextField";
+import { Id } from "../../../new_fields/RefField";
 const { buildMenuItems } = require("prosemirror-example-setup");
 const { menuBar } = require("prosemirror-menu");
 
@@ -108,7 +109,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         };
 
         if (this.props.isOverlay) {
-            this._inputReactionDisposer = reaction(() => MainOverlayTextBox.Instance.TextDoc && MainOverlayTextBox.Instance.TextDoc.Id,
+            this._inputReactionDisposer = reaction(() => MainOverlayTextBox.Instance.TextDoc && MainOverlayTextBox.Instance.TextDoc[Id],
                 () => {
                     if (this._editorView) {
                         this._editorView.destroy();

@@ -20,6 +20,7 @@ const schema = createSchema({
     zIndex: "number"
 });
 
+//TODO Types: The import order is wrong, so positionSchema is undefined
 type FreeformDocument = makeInterface<[typeof schema, typeof positionSchema]>;
 const FreeformDocument = makeInterface(schema, positionSchema);
 

@@ -165,7 +165,7 @@ export class Main extends React.Component {
     @action
     openWorkspace = async (doc: Doc, fromHistory = false) => {
         this.mainContainer = doc;
-        fromHistory || window.history.pushState(null, StrCast(doc.title), "/doc/" + doc.Id);
+        fromHistory || window.history.pushState(null, StrCast(doc.title), "/doc/" + doc[Id]);
         const col = await Cast(CurrentUserUtils.UserDocument.optionalRightCollection, Doc);
         // if there is a pending doc, and it has new data, show it (syip: we use a timeout to prevent collection docking view from being uninitialized)
         setTimeout(async () => {

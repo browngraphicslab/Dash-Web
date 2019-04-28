@@ -95,7 +95,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
             //TODO This won't create the field if it doesn't already exist
             const value = Cast(props.Document[props.fieldKey], listSpec(Doc));
             if (value !== undefined) {
-                if (allowDuplicates || !value.some(v => v.Id === doc.Id)) {
+                if (allowDuplicates || !value.some(v => v[Id] === doc[Id])) {
                     value.push(doc);
                 }
             } else {

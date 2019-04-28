@@ -447,7 +447,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
         let pdfUrl = Cast(this.props.Document[this.props.fieldKey], PdfField);
         let xf = FieldValue(this.Document.nativeHeight, 0) / renderHeight;
         return <div className="pdfBox-contentContainer" key="container" style={{ transform: `scale(${xf}, ${xf})` }}>
-            <Document file={window.origin + RouteStore.corsProxy + `/${pdfUrl}`} renderMode={this._renderAsSvg ? "svg" : ""}>
+            <Document file={window.origin + RouteStore.corsProxy + `/${pdfUrl!.url.href}`} renderMode={this._renderAsSvg ? "svg" : ""}>
                 <Measure onResize={this.setScaling}>
                     {({ measureRef }) =>
                         <div className="pdfBox-page" ref={measureRef}>

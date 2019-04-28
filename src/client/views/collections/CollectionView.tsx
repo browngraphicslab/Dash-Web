@@ -10,6 +10,7 @@ import { CurrentUserUtils } from '../../../server/authentication/models/current_
 import { observer } from 'mobx-react';
 import { undoBatch } from '../../util/UndoManager';
 import { trace } from 'mobx';
+import { Id } from '../../../new_fields/RefField';
 
 @observer
 export class CollectionView extends React.Component<FieldViewProps> {
@@ -31,7 +32,7 @@ export class CollectionView extends React.Component<FieldViewProps> {
     get isAnnotationOverlay() { return this.props.fieldKey && this.props.fieldKey === "annotations"; } // bcz: ? Why do we need to compare Id's?
 
     onContextMenu = (e: React.MouseEvent): void => {
-        if (!this.isAnnotationOverlay && !e.isPropagationStopped() && this.props.Document.Id !== CurrentUserUtils.MainDocId) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
+        if (!this.isAnnotationOverlay && !e.isPropagationStopped() && this.props.Document[Id] !== CurrentUserUtils.MainDocId) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
             ContextMenu.Instance.addItem({ description: "Freeform", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Freeform) });
             ContextMenu.Instance.addItem({ description: "Schema", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Schema) });
             ContextMenu.Instance.addItem({ description: "Treeview", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Tree) });
