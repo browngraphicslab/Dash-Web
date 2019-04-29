@@ -38,6 +38,7 @@ import "./Main.scss";
 import { MainOverlayTextBox } from './MainOverlayTextBox';
 import { DocumentView } from './nodes/DocumentView';
 import { PreviewCursor } from './PreviewCursor';
+import { SearchBox } from './SearchBox';
 
 
 @observer
@@ -263,9 +264,9 @@ export class Main extends React.Component {
             <div className="main-buttonDiv" key="workspaces" style={{ top: '34px', left: '2px', position: 'absolute' }} ref={workspacesRef}>
                 <button onClick={toggleWorkspaces}>Workspaces</button></div>,
 
-            <div className="main-searchDiv" key="search" style={{ top: '34px', right: '100px', position: 'absolute' }} ref={workspacesRef}> <SearchBox/> </div>,
+            <div className="main-searchDiv" key="search" style={{ top: '34px', right: '1px', position: 'absolute' }} ref={workspacesRef}> <SearchBox /> </div>,
 
-            <div className="main-buttonDiv" key="logout" style={{ top: '34px', right: '1px', position: 'absolute' }} ref={logoutRef}>
+            <div className="main-buttonDiv" key="logout" style={{ bottom: '34px', right: '1px', position: 'absolute' }} ref={logoutRef}>
                 <button onClick={() => request.get(ServerUtils.prepend(RouteStore.logout), emptyFunction)}>Log Out</button></div>
         ];
     }
