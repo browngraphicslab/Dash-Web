@@ -188,8 +188,9 @@ export class DocumentView extends React.Component<DocumentViewProps> {
                 if (maxdoc instanceof Document) {
                     this.props.addDocument && this.props.addDocument(maxdoc, false);
                     this.toggleIcon();
-                } else
+                } else {
                     SelectionManager.SelectDoc(this, e.ctrlKey);
+                }
             });
         }
     }
@@ -222,7 +223,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
 
     @action createIcon = (layoutString: string): Document => {
         let iconDoc = Documents.IconDocument(layoutString);
-        iconDoc.SetText(KeyStore.Title, "ICON" + this.props.Document.Title)
+        iconDoc.SetText(KeyStore.Title, "ICON" + this.props.Document.Title);
         iconDoc.SetBoolean(KeyStore.IsMinimized, false);
         iconDoc.SetNumber(KeyStore.NativeWidth, 0);
         iconDoc.SetNumber(KeyStore.NativeHeight, 0);
@@ -286,23 +287,24 @@ export class DocumentView extends React.Component<DocumentViewProps> {
                     let maxw = await maximizedDoc.GetTAsync(KeyStore.Width, NumberField);
                     let maxh = await maximizedDoc.GetTAsync(KeyStore.Height, NumberField);
                     if (minx !== undefined && miny !== undefined && maxx !== undefined && maxy !== undefined &&
-                        maxw !== undefined && maxh !== undefined)
+                        maxw !== undefined && maxh !== undefined) {
                         this.animateBetweenIcon(
                             [minx.Data, miny.Data], [maxx.Data, maxy.Data], maxw.Data, maxh.Data,
                             Date.now(), maximizedDoc, isMinimized);
+                    }
                 }
 
             }
-        })
+        });
     }
 
     @action
     public getIconDoc = async (): Promise<Document | undefined> => {
-        return await this.props.Document.GetTAsync(KeyStore.MinimizedDoc, Document).then(async mindoc =>
+        return this.props.Document.GetTAsync(KeyStore.MinimizedDoc, Document).then(async mindoc =>
             mindoc ? mindoc :
-                await this.props.Document.GetTAsync(KeyStore.BackgroundLayout, TextField).then(async field =>
+                this.props.Document.GetTAsync(KeyStore.BackgroundLayout, TextField).then(async field =>
                     (field instanceof TextField) ? this.createIcon(field.Data) :
-                        await this.props.Document.GetTAsync(KeyStore.Layout, TextField).then(field =>
+                        this.props.Document.GetTAsync(KeyStore.Layout, TextField).then(field =>
                             (field instanceof TextField) ? this.createIcon(field.Data) : undefined)));
     }
 
@@ -380,8 +382,9 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         //ContextMenu.Instance.addItem({ description: "Docking", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Docking) })
         ContextMenu.Instance.addItem({ description: "Delete", event: this.deleteClicked });
         ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15);
-        if (!SelectionManager.IsSelected(this))
+        if (!SelectionManager.IsSelected(this)) {
             SelectionManager.SelectDoc(this, false);
+        }
     }
 
     isSelected = () => SelectionManager.IsSelected(this);
