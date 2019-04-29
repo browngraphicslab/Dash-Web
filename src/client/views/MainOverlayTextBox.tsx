@@ -89,12 +89,10 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
 
     render() {
         if (this.TextDoc) {
-            let toScreenXf = this._textXf().inverse();
-            let pt = toScreenXf.transformPoint(0, 0);
-            let s = 1 / this._textXf().Scale;
-            return <div className="mainOverlayTextBox-textInput" style={{ transform: `translate(${pt[0]}px, ${pt[1]}px) scale(${s},${s})`, width: "auto", height: "auto" }} >
+            let s = this._textXf().Scale;
+            return <div className="mainOverlayTextBox-textInput" style={{ transform: `translate(${this._textRect.x}px, ${this._textRect.y}px) scale(${1 / s},${1 / s})`, width: "auto", height: "auto" }} >
                 <div className="mainOverlayTextBox-textInput" onPointerDown={this.textBoxDown} ref={this._textProxyDiv} onScroll={this.textScroll}
-                    style={{ width: `${this.TextDoc.Width()}px`, height: `${this.TextDoc.Height()}px` }}>
+                    style={{ width: `${this._textRect.width * s}px`, height: `${this._textRect.height * s}px` }}>
                     <FormattedTextBox fieldKey={this._textFieldKey} isOverlay={true} Document={this.TextDoc} isSelected={returnTrue} select={emptyFunction} isTopMost={true}
                         selectOnLoad={true} ContainingCollectionView={undefined} whenActiveChanged={emptyFunction} active={returnTrue}
                         ScreenToLocalTransform={this._textXf} PanelWidth={returnZero} PanelHeight={returnZero} focus={emptyDocFunction} />

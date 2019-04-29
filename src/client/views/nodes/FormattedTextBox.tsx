@@ -50,6 +50,7 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
         return FieldView.LayoutString(FormattedTextBox, fieldStr);
     }
     private _ref: React.RefObject<HTMLDivElement>;
+    private _proseRef: React.RefObject<HTMLDivElement>;
     private _editorView: Opt<EditorView>;
     private _gotDown: boolean = false;
     private _reactionDisposer: Opt<IReactionDisposer>;
@@ -60,6 +61,7 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
         super(props);
 
         this._ref = React.createRef();
+        this._proseRef = React.createRef();
         this.onChange = this.onChange.bind(this);
     }
 
@@ -188,9 +190,7 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
 
     onFocused = (e: React.FocusEvent): void => {
         if (!this.props.isOverlay) {
-            if (MainOverlayTextBox.Instance.TextDoc != this.props.Document) {
-                MainOverlayTextBox.Instance.SetTextDoc(this.props.Document, this.props.fieldKey, this._ref.current!, this.props.ScreenToLocalTransform);
-            }
+            MainOverlayTextBox.Instance.SetTextDoc(this.props.Document, this.props.fieldKey, this._ref.current!, this.props.ScreenToLocalTransform);
         } else {
             if (this._ref.current) {
                 this._ref.current.scrollTop = MainOverlayTextBox.Instance.TextScroll;
@@ -232,7 +232,7 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
     }
 
     onClick = (e: React.MouseEvent): void => {
-        this._ref.current!.focus();
+        this._proseRef.current!.focus();
     }
 
     tooltipTextMenuPlugin() {
@@ -277,7 +277,7 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
         let color = this.props.Document.GetText(KeyStore.BackgroundColor, "");
         let interactive = InkingControl.Instance.selectedTool ? "" : "-interactive";
         return (
-            <div className={`formattedTextBox-cont${style}`}
+            <div className={`formattedTextBox-cont${style}`} ref={this._ref}
                 style={{
                     pointerEvents: interactive ? "all" : "none",
                     background: color,
@@ -292,7 +292,7 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
                 // tfs: do we need this event handler
                 onWheel={this.onPointerWheel}
             >
-                <div className={`formattedTextBox-inner${rounded}`} ref={this._ref} />
+                <div className={`formattedTextBox-inner${rounded}`} ref={this._proseRef} />
             </div>
         );
     }

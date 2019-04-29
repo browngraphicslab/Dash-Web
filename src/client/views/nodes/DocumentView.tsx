@@ -26,6 +26,7 @@ import React = require("react");
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { MarqueeView } from "../collections/collectionFreeForm/MarqueeView";
+import { TextField } from "../../../fields/TextField";
 
 export interface DocumentViewProps {
     ContainingCollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
@@ -88,7 +89,6 @@ export function FakeJsxArgs(keys: string[], fields: string[] = []): JsxArgs {
 export class DocumentView extends React.Component<DocumentViewProps> {
     private _downX: number = 0;
     private _downY: number = 0;
-    @computed get base(): string { return this.props.Document.GetText(KeyStore.BaseLayout, "<p>Error loading base layout data</p>"); }
     private _mainCont = React.createRef<HTMLDivElement>();
     private _dropDisposer?: DragManager.DragDropDisposer;
 
@@ -249,17 +249,20 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         }
     }
 
-    updateLayout = (): void => {
-        let base = this.base;
-        let layout = this.base;
+    updateLayout = async () => {
+        const baseLayout = await this.props.Document.GetTAsync(KeyStore.BaseLayout, TextField);
+        if (baseLayout) {
+            let base = baseLayout.Data;
+            let layout = baseLayout.Data;
 
-        this.templates.forEach(template => {
-            let temp = template.Layout;
-            layout = temp.replace("{layout}", base);
-            base = layout;
-        });
+            this.templates.forEach(template => {
+                let temp = template.Layout;
+                layout = temp.replace("{layout}", base);
+                base = layout;
+            });
 
-        this.props.Document.SetText(KeyStore.Layout, layout);
+            this.props.Document.SetText(KeyStore.Layout, layout);
+        }
     }
 
     @action

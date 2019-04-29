@@ -39,15 +39,15 @@ export namespace Templates {
     // export const BasicLayout = new Template("Basic layout", "{layout}");
 
     export const OuterCaption = new Template("Outer caption", TemplatePosition.OutterBottom,
-        `<div><div style="margin:auto; height:calc(100%); width:100%;">{layout}</div><div style="height:(100% + 50px); width:100%; position:absolute"><FormattedTextBox doc={Document} DocumentViewForField={DocumentView} bindings={bindings} fieldKey={CaptionKey} isSelected={isSelected} select={select} selectOnLoad={SelectOnLoad} isTopMost={isTopMost}/></div></div>`
+        `<div><div style="margin:auto; height:calc(100%); width:100%;">{layout}</div><div style="height:(100% + 50px); width:100%; position:absolute"><FormattedTextBox {...props} fieldKey={CaptionKey} /></div></div>`
     );
 
     export const InnerCaption = new Template("Inner caption", TemplatePosition.InnerBottom,
-        `<div><div style="margin:auto; height:calc(100% - 50px); width:100%;">{layout}</div><div style="height:50px; width:100%; position:absolute"><FormattedTextBox doc={Document} DocumentViewForField={DocumentView} bindings={bindings} fieldKey={CaptionKey} isSelected={isSelected} select={select} selectOnLoad={SelectOnLoad} isTopMost={isTopMost}/></div></div>`
+        `<div><div style="margin:auto; height:calc(100% - 50px); width:100%;">{layout}</div><div style="height:50px; width:100%; position:absolute"><FormattedTextBox {...props} fieldKey={CaptionKey}/></div></div>`
     );
 
     export const SideCaption = new Template("Side caption", TemplatePosition.OutterRight,
-        `<div><div style="margin:auto; height:100%; width:100%;">{layout}</div><div style="height:100%; width:300px; position:absolute; top: 0; right: -300px;"><FormattedTextBox doc={Document} DocumentViewForField={DocumentView} bindings={bindings} fieldKey={CaptionKey} isSelected={isSelected} select={select} selectOnLoad={SelectOnLoad} isTopMost={isTopMost}/></div> </div>`
+        `<div><div style="margin:auto; height:100%; width:100%;">{layout}</div><div style="height:100%; width:300px; position:absolute; top: 0; right: -300px;"><FormattedTextBox {...props} fieldKey={CaptionKey}/></div> </div>`
     );
 
     export const Title = new Template("Title", TemplatePosition.InnerTop,

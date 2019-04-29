@@ -47,7 +47,9 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
     CreateBindings(): JsxBindings {
         let bindings: JsxBindings = { props: OmitKeys(this.props, ['parentActive'], (obj: any) => obj.active = this.props.parentActive) };
 
-        for (const key of this.layoutKeys) {
+        let keys: Key[] = [];
+        keys.push(...this.layoutKeys, KeyStore.Caption) // bcz: hack to get templates to work
+        for (const key of keys) {
             bindings[key.Name + "Key"] = key; // this maps string values of the form <keyname>Key to an actual key Kestore.keyname  e.g,   "DataKey" => KeyStore.Data
         }
         for (const key of this.layoutFields) {
