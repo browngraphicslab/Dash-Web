@@ -21,6 +21,8 @@ export class Timeline extends React.Component<SubCollectionViewProps> {
     @observable private _newBar: any = null;
     private _reactionDisposers: IReactionDisposer[] = [];
     private _keyFrames: HTMLDivElement[] = [];
+    private _actualKeyFrame: KeyFrame[] = [];
+
     private _currentBarX:number = 0; 
     @observable private _onBar: Boolean = false;
 
@@ -86,14 +88,15 @@ export class Timeline extends React.Component<SubCollectionViewProps> {
         // this._keyFrames.push(keyFrame);
         let keys = [KeyStore.X, KeyStore.Y];
         const addReaction = (element: Document) => {
-            let keyFrame = new KeyFrame();
-            if (this._inner.current){
-                this._inner.current.appendChild(this.createBar(5, this._currentBarX, "orange")); 
-            }
+            
             return reaction(() => {
                 return keys.map(key => element.GetNumber(key, 0));
             }, data => {
-                
+                let keyFrame = new KeyFrame();
+                if (this._inner.current){
+                    this._inner.current.appendChild(this.createBar(5, this._currentBarX, "orange")); 
+
+                }
                 keys.forEach((key, index) => {
                     console.log("moved!"); //store key frames -> need to create a way to do this (data structure??)
                     keyFrame.document().SetNumber(key, data[index]); //Tyler working on better Doc.ts functions...(this is currently not comprehensive...)
