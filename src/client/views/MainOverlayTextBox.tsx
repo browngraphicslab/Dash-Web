@@ -21,7 +21,6 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
     public static Instance: MainOverlayTextBox;
     @observable public TextDoc?: Document = undefined;
     public TextScroll: number = 0;
-    @observable _textRect: any;
     @observable _textXf: () => Transform = () => Transform.Identity();
     private _textFieldKey: Key = KeyStore.Data;
     private _textColor: string | null = null;
@@ -47,7 +46,6 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
         if (div) {
             this._textColor = div.style.color;
             div.style.color = "transparent";
-            this._textRect = div.getBoundingClientRect();
             this.TextScroll = div.scrollTop;
         }
     }
@@ -88,11 +86,12 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
     }
 
     render() {
-        if (this.TextDoc) {
+        if (this.TextDoc && this._textTargetDiv) {
+            let textRect = this._textTargetDiv.getBoundingClientRect();
             let s = this._textXf().Scale;
-            return <div className="mainOverlayTextBox-textInput" style={{ transform: `translate(${this._textRect.x}px, ${this._textRect.y}px) scale(${1 / s},${1 / s})`, width: "auto", height: "auto" }} >
+            return <div className="mainOverlayTextBox-textInput" style={{ transform: `translate(${textRect.x}px, ${textRect.y}px) scale(${1 / s},${1 / s})`, width: "auto", height: "auto" }} >
                 <div className="mainOverlayTextBox-textInput" onPointerDown={this.textBoxDown} ref={this._textProxyDiv} onScroll={this.textScroll}
-                    style={{ width: `${this._textRect.width * s}px`, height: `${this._textRect.height * s}px` }}>
+                    style={{ width: `${textRect.width * s}px`, height: `${textRect.height * s}px` }}>
                     <FormattedTextBox fieldKey={this._textFieldKey} isOverlay={true} Document={this.TextDoc} isSelected={returnTrue} select={emptyFunction} isTopMost={true}
                         selectOnLoad={true} ContainingCollectionView={undefined} whenActiveChanged={emptyFunction} active={returnTrue}
                         ScreenToLocalTransform={this._textXf} PanelWidth={returnZero} PanelHeight={returnZero} focus={emptyDocFunction} />

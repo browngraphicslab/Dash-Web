@@ -80,7 +80,11 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
             );
             this.props.Document.SetDataOnPrototype(KeyStore.DocumentText, state.doc.textBetween(0, state.doc.content.size, "\n\n"), TextField);
             this._applyingChange = false;
-            // doc.SetData(fieldKey, JSON.stringify(state.toJSON()), RichTextField);
+            if (this.props.Document.Title.startsWith("-") && this._editorView) {
+                let str = this._editorView.state.doc.textContent;
+                let titlestr = str.substr(0, Math.min(40, str.length));
+                this.props.Document.SetText(KeyStore.Title, "-" + titlestr + (str.length > 40 ? "..." : ""));
+            };
         }
     }
 
@@ -265,11 +269,6 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
         // stop propagation doesn't seem to stop propagation of native keyboard events.
         // so we set a flag on the native event that marks that the event's been handled.
         (e.nativeEvent as any).DASHFormattedTextBoxHandled = true;
-        if (this.props.Document.Title.startsWith("-") && this._editorView) {
-            let str = this._editorView.state.doc.textContent;
-            let titlestr = str.substr(0, Math.min(40, str.length));
-            this.props.Document.SetText(KeyStore.Title, "-" + titlestr + (str.length > 40 ? "..." : ""));
-        };
     }
     render() {
         let style = this.props.isOverlay ? "-scroll" : "-hidden";
