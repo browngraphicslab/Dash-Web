@@ -14,7 +14,9 @@ import './DocumentDecorations.scss';
 import { MainOverlayTextBox } from "./MainOverlayTextBox";
 import { DocumentView } from "./nodes/DocumentView";
 import { LinkMenu } from "./nodes/LinkMenu";
+import { TemplateMenu } from "./TemplateMenu";
 import React = require("react");
+import { Template, Templates } from "./Templates";
 import { CompileScript } from "../util/Scripting";
 import { IconBox } from "./nodes/IconBox";
 import { FieldValue, Field } from "../../fields/Field";
@@ -31,7 +33,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     private keyinput: React.RefObject<HTMLInputElement>;
     private _documents: DocumentView[] = SelectionManager.SelectedDocuments();
     private _resizeBorderWidth = 16;
-    private _linkBoxHeight = 30;
+    private _linkBoxHeight = 20;
     private _titleHeight = 20;
     private _linkButton = React.createRef<HTMLDivElement>();
     private _linkerButton = React.createRef<HTMLDivElement>();
@@ -470,6 +472,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     // buttonOnPointerUp = (e: React.PointerEvent): void => {
     //     e.stopPropagation();
     // }
+
     render() {
         var bounds = this.Bounds;
         let seldoc = SelectionManager.SelectedDocuments().length ? SelectionManager.SelectedDocuments()[0] : undefined;
@@ -498,6 +501,20 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 <div className={"linkButton-" + (selFirst.props.Document.GetData(KeyStore.LinkedToDocs, ListField, []).length ? "nonempty" : "empty")} onPointerDown={this.onLinkButtonDown} >{linkCount}</div>
             </Flyout>);
         }
+
+        let templates: Map<Template, boolean> = new Map();
+        let doc = SelectionManager.SelectedDocuments()[0];
+        Array.from(Object.values(Templates.TemplateList)).map(template => {
+            let docTemps = doc.templates;
+            let checked = false;
+            docTemps.forEach(temp => {
+                if (template.Name === temp.Name) {
+                    checked = true;
+                }
+            });
+            templates.set(template, checked);
+        });
+
         return (<div className="documentDecorations">
             <div className="documentDecorations-background" style={{
                 width: (bounds.r - bounds.x + this._resizeBorderWidth) + "px",
@@ -533,6 +550,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
 
                 <div title="View Links" className="linkFlyout" ref={this._linkButton}> {linkButton}  </div>
                 <div className="linkButton-linker" ref={this._linkerButton} onPointerDown={this.onLinkerButtonDown}>∞</div>
+                <TemplateMenu doc={doc} templates={templates} />
             </div >
         </div>
         );

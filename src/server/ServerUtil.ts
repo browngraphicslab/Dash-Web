@@ -18,6 +18,7 @@ import { NumberField } from "./../fields/NumberField";
 import { RichTextField } from "./../fields/RichTextField";
 import { TextField } from "./../fields/TextField";
 import { Transferable, Types } from "./Message";
+import { TemplateField } from "../fields/TemplateField";
 import { IconField } from "../fields/IconFIeld";
 
 export class ServerUtils {
@@ -52,6 +53,7 @@ export class ServerUtils {
             case Types.Video: return new VideoField(new URL(json.data), json.id, false);
             case Types.Tuple: return new TupleField(json.data, json.id, false);
             case Types.Ink: return InkField.FromJson(json.id, json.data);
+            case Types.Templates: return TemplateField.FromJson(json.id, json.data);
             case Types.Document: return Document.FromJson(json.data, json.id, false);
             default:
                 throw Error(

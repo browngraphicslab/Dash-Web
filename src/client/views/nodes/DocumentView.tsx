@@ -1,10 +1,11 @@
 import { action, computed, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { Document } from "../../../fields/Document";
-import { Field, Opt } from "../../../fields/Field";
+import { Field, FieldWaiting, Opt } from "../../../fields/Field";
 import { Key } from "../../../fields/Key";
 import { KeyStore } from "../../../fields/KeyStore";
 import { ListField } from "../../../fields/ListField";
+import { TemplateField } from "../../../fields/TemplateField";
 import { ServerUtils } from "../../../server/ServerUtil";
 import { emptyFunction, Utils } from "../../../Utils";
 import { Documents } from "../../documents/Documents";
@@ -18,6 +19,7 @@ import { CollectionPDFView } from "../collections/CollectionPDFView";
 import { CollectionVideoView } from "../collections/CollectionVideoView";
 import { CollectionView } from "../collections/CollectionView";
 import { ContextMenu } from "../ContextMenu";
+import { Template, Templates } from "./../Templates";
 import { DocumentContentsView } from "./DocumentContentsView";
 import "./DocumentView.scss";
 import React = require("react");
@@ -86,6 +88,7 @@ export function FakeJsxArgs(keys: string[], fields: string[] = []): JsxArgs {
 export class DocumentView extends React.Component<DocumentViewProps> {
     private _downX: number = 0;
     private _downY: number = 0;
+    @computed get base(): string { return this.props.Document.GetText(KeyStore.BaseLayout, "<p>Error loading base layout data</p>"); }
     private _mainCont = React.createRef<HTMLDivElement>();
     private _dropDisposer?: DragManager.DragDropDisposer;
 
@@ -95,6 +98,12 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     @computed get layout(): string { return this.props.Document.GetText(KeyStore.Layout, "<p>Error loading layout data</p>"); }
     @computed get layoutKeys(): Key[] { return this.props.Document.GetData(KeyStore.LayoutKeys, ListField, new Array<Key>()); }
     @computed get layoutFields(): Key[] { return this.props.Document.GetData(KeyStore.LayoutFields, ListField, new Array<Key>()); }
+    @computed get templates(): Array<Template> {
+        let field = this.props.Document.GetT(KeyStore.Templates, TemplateField);
+        return !field || field === FieldWaiting ? [] : field.Data;
+    }
+    set templates(templates: Array<Template>) { this.props.Document.SetData(KeyStore.Templates, templates, TemplateField); }
+    screenRect = (): ClientRect | DOMRect => this._mainCont.current ? this._mainCont.current.getBoundingClientRect() : new DOMRect();
 
     @action
     componentDidMount() {
@@ -238,6 +247,43 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             e.stopPropagation();
             e.preventDefault();
         }
+    }
+
+    updateLayout = (): void => {
+        let base = this.base;
+        let layout = this.base;
+
+        this.templates.forEach(template => {
+            let temp = template.Layout;
+            layout = temp.replace("{layout}", base);
+            base = layout;
+        });
+
+        this.props.Document.SetText(KeyStore.Layout, layout);
+    }
+
+    @action
+    addTemplate = (template: Template) => {
+        let templates = this.templates;
+        templates.push(template);
+        templates = templates.splice(0, templates.length).sort(Templates.sortTemplates);
+        this.templates = templates;
+        this.updateLayout();
+    }
+
+    @action
+    removeTemplate = (template: Template) => {
+        let templates = this.templates;
+        for (let i = 0; i < templates.length; i++) {
+            let temp = templates[i];
+            if (temp.Name === template.Name) {
+                templates.splice(i, 1);
+                break;
+            }
+        }
+        templates = templates.splice(0, templates.length).sort(Templates.sortTemplates);
+        this.templates = templates;
+        this.updateLayout();
     }
 
     @action

@@ -32,6 +32,8 @@ import { action } from "mobx";
 import { ColumnAttributeModel } from "../northstar/core/attribute/AttributeModel";
 import { AttributeTransformationModel } from "../northstar/core/attribute/AttributeTransformationModel";
 import { AggregateFunction } from "../northstar/model/idea/idea";
+import { Template } from "../views/Templates";
+import { TemplateField } from "../../fields/TemplateField";
 import { MINIMIZED_ICON_SIZE } from "../views/globalCssVariables.scss";
 import { IconBox } from "../views/nodes/IconBox";
 import { IconField } from "../../fields/IconFIeld";
@@ -49,7 +51,9 @@ export interface DocumentOptions {
     pany?: number;
     page?: number;
     scale?: number;
+    baseLayout?: string;
     layout?: string;
+    templates?: Array<Template>;
     layoutKeys?: Key[];
     viewType?: number;
     backgroundColor?: string;
@@ -106,7 +110,9 @@ export namespace Documents {
         if (options.viewType !== undefined) { doc.SetNumber(KeyStore.ViewType, options.viewType); }
         if (options.backgroundColor !== undefined) { doc.SetText(KeyStore.BackgroundColor, options.backgroundColor); }
         if (options.ink !== undefined) { doc.Set(KeyStore.Ink, new InkField(options.ink)); }
+        if (options.baseLayout !== undefined) { doc.SetText(KeyStore.BaseLayout, options.baseLayout); }
         if (options.layout !== undefined) { doc.SetText(KeyStore.Layout, options.layout); }
+        if (options.templates !== undefined) { doc.Set(KeyStore.Templates, new TemplateField(options.templates)); }
         if (options.layoutKeys !== undefined) { doc.Set(KeyStore.LayoutKeys, new ListField(options.layoutKeys)); }
         if (options.copyDraggedItems !== undefined) { doc.SetBoolean(KeyStore.CopyDraggedItems, options.copyDraggedItems); }
         if (options.borderRounding !== undefined) { doc.SetNumber(KeyStore.BorderRounding, options.borderRounding); }
@@ -124,7 +130,7 @@ export namespace Documents {
     }
 
     function setupPrototypeOptions(protoId: string, title: string, layout: string, options: DocumentOptions): Document {
-        return assignOptions(new Document(protoId), { ...options, title: title, layout: layout });
+        return assignOptions(new Document(protoId), { ...options, title: title, layout: layout, baseLayout: layout });
     }
     function SetInstanceOptions<T, U extends Field & { Data: T }>(doc: Document, options: DocumentOptions, value: [T, { new(): U }] | Document, id?: string) {
         var deleg = doc.MakeDelegate(id);
@@ -142,6 +148,7 @@ export namespace Documents {
             { x: 0, y: 0, nativeWidth: 600, width: 300, layoutKeys: [KeyStore.Data, KeyStore.Annotations, KeyStore.Caption] });
         imageProto.SetText(KeyStore.BackgroundLayout, ImageBox.LayoutString());
         imageProto.SetNumber(KeyStore.CurPage, 0);
+        imageProto.SetData(KeyStore.LayoutFields, [KeyStore.Title], ListField);
         return imageProto;
     }
 
