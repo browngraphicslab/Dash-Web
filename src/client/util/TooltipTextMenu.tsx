@@ -24,7 +24,7 @@ const SVG = "http://www.w3.org/2000/svg";
 //appears above a selection of text in a RichTextBox to give user options such as Bold, Italics, etc.
 export class TooltipTextMenu {
 
-    private tooltip: HTMLElement;
+    public tooltip: HTMLElement;
     private num_icons = 0;
     private view: EditorView;
     private fontStyles: MarkType[];

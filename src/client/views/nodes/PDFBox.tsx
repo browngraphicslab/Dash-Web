@@ -115,7 +115,7 @@ export class PDFBox extends React.Component<FieldViewProps> {
                                 child.id = "highlighted";
                                 //@ts-ignore
                                 obj.spans.push(child);
-                                child.addEventListener("mouseover", this.onEnter); //adds mouseover annotation handler
+                                // child.addEventListener("mouseover", this.onEnter); //adds mouseover annotation handler
                             }
                         });
                     }
@@ -138,7 +138,7 @@ export class PDFBox extends React.Component<FieldViewProps> {
                     child.id = "highlighted";
                     //@ts-ignore
                     temp.spans.push(child);
-                    child.addEventListener("mouseover", this.onEnter); //adds mouseover annotation handler
+                    // child.addEventListener("mouseover", this.onEnter); //adds mouseover annotation handler
                 }
             });
 

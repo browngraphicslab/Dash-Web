@@ -1,4 +1,4 @@
-import { action, IReactionDisposer, reaction, trace, computed } from "mobx";
+import { action, IReactionDisposer, reaction, trace, computed, _allowStateChangesInsideComputed } from "mobx";
 import { baseKeymap } from "prosemirror-commands";
 import { history } from "prosemirror-history";
 import { keymap } from "prosemirror-keymap";
@@ -22,8 +22,6 @@ import React = require("react");
 import { SelectionManager } from "../../util/SelectionManager";
 import { observer } from "mobx-react";
 import { InkingControl } from "../InkingControl";
-const { buildMenuItems } = require("prosemirror-example-setup");
-const { menuBar } = require("prosemirror-menu");
 
 // FormattedTextBox: Displays an editable plain text node that maps to a specified Key of a Document
 //
@@ -67,9 +65,10 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
 
     _applyingChange: boolean = false;
 
+    _lastState: any = undefined;
     dispatchTransaction = (tx: Transaction) => {
         if (this._editorView) {
-            const state = this._editorView.state.apply(tx);
+            const state = this._lastState = this._editorView.state.apply(tx);
             this._editorView.updateState(state);
             this._applyingChange = true;
             this.props.Document.SetDataOnPrototype(
@@ -88,10 +87,10 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
             schema,
             inpRules, //these currently don't do anything, but could eventually be helpful
             plugins: this.props.isOverlay ? [
+                this.tooltipTextMenuPlugin(),
                 history(),
                 keymap(buildKeymap(schema)),
                 keymap(baseKeymap),
-                this.tooltipTextMenuPlugin(),
                 // this.tooltipLinkingMenuPlugin(),
                 new Plugin({
                     props: {
@@ -169,8 +168,10 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
     }
     @action
     onPointerDown = (e: React.PointerEvent): void => {
-        if (e.button === 1 && this.props.isSelected() && !e.altKey && !e.ctrlKey && !e.metaKey) {
+        if (e.button === 0 && this.props.isSelected() && !e.altKey && !e.ctrlKey && !e.metaKey) {
             e.stopPropagation();
+            if (this._toolTipTextMenu && this._toolTipTextMenu.tooltip)
+                this._toolTipTextMenu.tooltip.style.opacity = "0";
         }
         if (e.button === 2 || (e.button === 0 && e.ctrlKey)) {
             this._gotDown = true;
@@ -178,7 +179,8 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
         }
     }
     onPointerUp = (e: React.PointerEvent): void => {
-        console.log("pointer up");
+        if (this._toolTipTextMenu && this._toolTipTextMenu.tooltip)
+            this._toolTipTextMenu.tooltip.style.opacity = "1";
         if (e.buttons === 1 && this.props.isSelected() && !e.altKey) {
             e.stopPropagation();
         }
@@ -235,13 +237,15 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
 
     tooltipTextMenuPlugin() {
         let myprops = this.props;
+        let self = this;
         return new Plugin({
             view(_editorView) {
-                return new TooltipTextMenu(_editorView, myprops);
+                return self._toolTipTextMenu = new TooltipTextMenu(_editorView, myprops);
             }
         });
     }
 
+    _toolTipTextMenu: TooltipTextMenu | undefined = undefined;
     tooltipLinkingMenuPlugin() {
         let myprops = this.props;
         return new Plugin({
