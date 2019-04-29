@@ -65,7 +65,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             if (text[0] === '#') {
                 let command = text.slice(1, text.length);
                 this._fieldKey = new Key(command);
-                this._title = this.getTitle;
+                this._title = this.selectionTitle;
             }
             else {
                 if (SelectionManager.SelectedDocuments().length > 0) {
@@ -101,7 +101,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     }
     @action onTitleUp = (e: PointerEvent): void => {
         if (Math.abs(e.clientX - this._downX) < 4 || Math.abs(e.clientY - this._downY) < 4) {
-            this._title = this.getTitle;
+            this._title = this.selectionTitle;
             this._edtingTitle = true;
         }
         document.removeEventListener("pointermove", this.onTitleMove);
@@ -453,7 +453,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     }
 
     @computed
-    get getTitle(): string {
+    get selectionTitle(): string {
         if (SelectionManager.SelectedDocuments().length === 1) {
             let field = SelectionManager.SelectedDocuments()[0].props.Document.Get(this._fieldKey);
             if (field instanceof TextField) {
@@ -534,7 +534,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
 
                 {this._edtingTitle ?
                     <input ref={this.keyinput} className="title" type="text" name="dynbox" value={this._title} onBlur={this.titleBlur} onChange={this.titleChanged} onKeyPress={this.titleEntered} /> :
-                    <div className="title" onPointerDown={this.onTitleDown} ><span>{`${this.getTitle}`}</span></div>}
+                    <div className="title" onPointerDown={this.onTitleDown} ><span>{`${this.selectionTitle}`}</span></div>}
                 <div className="documentDecorations-closeButton" onPointerDown={this.onCloseDown}>X</div>
                 <div id="documentDecorations-topLeftResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-topResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
