@@ -3,12 +3,12 @@ import { serializable, primitive, map, alias, list } from "serializr";
 import { autoObject, SerializationHelper, Deserializable } from "../client/util/SerializationHelper";
 import { Utils } from "../Utils";
 import { DocServer } from "../client/DocServer";
-import { setter, getter, getField } from "./util";
+import { setter, getter, getField, updateFunction } from "./util";
 import { Cast, ToConstructor, PromiseValue, FieldValue } from "./Types";
 import { UndoManager, undoBatch } from "../client/util/UndoManager";
 import { listSpec } from "./Schema";
 import { List } from "./List";
-import { ObjectField } from "./ObjectField";
+import { ObjectField, Parent, OnUpdate } from "./ObjectField";
 import { RefField, FieldId, Id } from "./RefField";
 
 export function IsField(field: any): field is Field {
@@ -47,9 +47,23 @@ export class Doc extends RefField {
     [key: string]: FieldResult;
 
     @serializable(alias("fields", map(autoObject())))
+    private get __fields() {
+        return this.___fields;
+    }
+
+    private set __fields(value) {
+        this.___fields = value;
+        for (const key in value) {
+            const field = value[key];
+            if (!(field instanceof ObjectField)) continue;
+            field[Parent] = this[Self];
+            field[OnUpdate] = updateFunction(this[Self], key, field);
+        }
+    }
+
     @observable
     //{ [key: string]: Field | FieldWaiting | undefined }
-    private __fields: any = {};
+    private ___fields: any = {};
 
     private [Update] = (diff: any) => {
         DocServer.UpdateField(this[Id], diff);

@@ -31,17 +31,14 @@ export const setter = action(function (target: any, prop: string | symbol | numb
             throw new Error("Can't put the same object in multiple documents at the same time");
         }
         value[Parent] = target;
-        value[OnUpdate] = (diff?: any) => {
-            if (!diff) diff = SerializationHelper.Serialize(value);
-            target[Update]({ [prop]: diff });
-        };
+        value[OnUpdate] = updateFunction(target, prop, value);
     }
     if (curValue instanceof ObjectField) {
         delete curValue[Parent];
         delete curValue[OnUpdate];
     }
     target.__fields[prop] = value;
-    target[Update]({ ["fields." + prop]: value instanceof ObjectField ? SerializationHelper.Serialize(value) : (value === undefined ? null : value) });
+    target[Update]({ '$set': { ["fields." + prop]: value instanceof ObjectField ? SerializationHelper.Serialize(value) : (value === undefined ? null : value) } });
     UndoManager.AddEvent({
         redo: () => receiver[prop] = value,
         undo: () => receiver[prop] = curValue
@@ -79,4 +76,11 @@ export function getField(target: any, prop: string | number, ignoreProto: boolea
     }
     callback && callback(field);
     return field;
+}
+
+export function updateFunction(target: any, prop: any, value: any) {
+    return (diff?: any) => {
+        if (!diff) diff = { '$set': { ["fields." + prop]: SerializationHelper.Serialize(value) } };
+        target[Update](diff);
+    };
 }

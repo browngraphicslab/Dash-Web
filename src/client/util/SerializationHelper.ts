@@ -63,6 +63,11 @@ export function Deserializable(name: string): DeserializableOpts;
 export function Deserializable(constructor: Function): void;
 export function Deserializable(constructor: Function | string): DeserializableOpts | void {
     function addToMap(name: string, ctor: Function) {
+        const schema = getDefaultModelSchema(ctor as any) as any;
+        if (schema.targetClass !== ctor) {
+            const newSchema = { ...schema, factory: () => new (ctor as any)() };
+            setDefaultModelSchema(ctor as any, newSchema);
+        }
         if (!(name in serializationTypes)) {
             serializationTypes[name] = ctor;
             reverseMap[ctor.name] = name;

@@ -20,7 +20,7 @@ export class Database {
             let newProm: Promise<void>;
             const run = (): Promise<void> => {
                 return new Promise<void>(resolve => {
-                    collection.updateOne({ _id: id }, { $set: value }, { upsert }
+                    collection.updateOne({ _id: id }, value, { upsert }
                         , (err, res) => {
                             if (err) {
                                 console.log(err.message);

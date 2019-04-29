@@ -2,13 +2,13 @@ import { Deserializable, autoObject } from "../client/util/SerializationHelper";
 import { Field, Update, Self } from "./Doc";
 import { setter, getter } from "./util";
 import { serializable, alias, list } from "serializr";
-import { observable, observe, IArrayChange, IArraySplice, IObservableArray, Lambda } from "mobx";
+import { observable, observe, IArrayChange, IArraySplice, IObservableArray, Lambda, reaction } from "mobx";
 import { ObjectField, OnUpdate } from "./ObjectField";
 
 const listHandlers: any = {
     push(...items: any[]) {
-        console.log("push");
-        console.log(...items);
+        // console.log("push");
+        // console.log(...items);
         return this[Self].__fields.push(...items);
     },
     pop(): any {
@@ -62,7 +62,7 @@ function listObserver<T extends Field>(this: ListImpl<T>, change: IArrayChange<T
 class ListImpl<T extends Field> extends ObjectField {
     constructor(fields: T[] = []) {
         super();
-        this.__fields = fields;
+        this.___fields = fields;
         this[ObserveDisposer] = observe(this.__fields as IObservableArray<T>, listObserver.bind(this));
         const list = new Proxy<this>(this, {
             set: setter,
@@ -76,13 +76,25 @@ class ListImpl<T extends Field> extends ObjectField {
     [key: number]: T | null | undefined;
 
     @serializable(alias("fields", list(autoObject())))
+    private get __fields() {
+        return this.___fields;
+    }
+
+    private set __fields(value) {
+        this.___fields = value;
+        this[ObserveDisposer]();
+        this[ObserveDisposer] = observe(this.__fields as IObservableArray<T>, listObserver.bind(this));
+    }
+
+    // @serializable(alias("fields", list(autoObject())))
     @observable
-    private __fields: (T | null | undefined)[];
+    private ___fields: (T | null | undefined)[];
 
     private [Update] = (diff: any) => {
-        console.log(diff);
+        // console.log(diff);
         const update = this[OnUpdate];
-        update && update(diff);
+        // update && update(diff);
+        update && update();
     }
 
     private [ObserveDisposer]: Lambda;
