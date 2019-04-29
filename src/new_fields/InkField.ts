@@ -25,6 +25,7 @@ const strokeDataSchema = createSimpleSchema({
     "*": true
 });
 
+@Deserializable("ink")
 export class InkField extends ObjectField {
     @serializable(map(object(strokeDataSchema)))
     readonly inkData: Map<string, StrokeData>;
