@@ -1,4 +1,4 @@
-import { action, computed, observable, runInAction } from "mobx";
+import { action, computed, observable, runInAction, untracked, reaction } from "mobx";
 import { observer } from "mobx-react";
 import { Key } from "../../fields/Key";
 import { KeyStore } from "../../fields/KeyStore";
@@ -31,7 +31,6 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     private _isPointerDown = false;
     private _resizing = "";
     private keyinput: React.RefObject<HTMLInputElement>;
-    private _documents: DocumentView[] = SelectionManager.SelectedDocuments();
     private _resizeBorderWidth = 16;
     private _linkBoxHeight = 20;
     private _titleHeight = 20;
@@ -53,6 +52,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         super(props);
         DocumentDecorations.Instance = this;
         this.keyinput = React.createRef();
+        reaction(() => SelectionManager.SelectedDocuments().slice(), (docs) => docs.length === 0 && (this._edtingTitle = false));
     }
 
     @action titleChanged = (event: any) => { this._title = event.target.value; }
@@ -65,16 +65,16 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             if (text[0] === '#') {
                 let command = text.slice(1, text.length);
                 this._fieldKey = new Key(command);
-                this._title = this.getTitle();
+                this._title = this.getTitle;
             }
             else {
-                if (this._documents.length > 0) {
-                    let field = this._documents[0].props.Document.Get(this._fieldKey);
+                if (SelectionManager.SelectedDocuments().length > 0) {
+                    let field = SelectionManager.SelectedDocuments()[0].props.Document.Get(this._fieldKey);
                     if (field instanceof NumberField) {
-                        this._documents.forEach(d =>
+                        SelectionManager.SelectedDocuments().forEach(d =>
                             d.props.Document.SetNumber(this._fieldKey, +this._title));
                     } else if (field instanceof TextField || true) {
-                        this._documents.forEach(d =>
+                        SelectionManager.SelectedDocuments().forEach(d =>
                             d.props.Document.SetText(this._fieldKey, this._title));
                     }
                 }
@@ -101,7 +101,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     }
     @action onTitleUp = (e: PointerEvent): void => {
         if (Math.abs(e.clientX - this._downX) < 4 || Math.abs(e.clientY - this._downY) < 4) {
-            this._title = this.getTitle();
+            this._title = this.getTitle;
             this._edtingTitle = true;
         }
         document.removeEventListener("pointermove", this.onTitleMove);
@@ -111,7 +111,6 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
 
     @computed
     get Bounds(): { x: number, y: number, b: number, r: number } {
-        this._documents = SelectionManager.SelectedDocuments();
         return SelectionManager.SelectedDocuments().reduce((bounds, documentView) => {
             if (documentView.props.isTopMost) {
                 return bounds;
@@ -453,15 +452,18 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         }
     }
 
-    getTitle = (): string => {
-        if (this._documents.length > 0) {
-            let field = this._documents[0].props.Document.Get(this._fieldKey);
+    @computed
+    get getTitle(): string {
+        if (SelectionManager.SelectedDocuments().length === 1) {
+            let field = SelectionManager.SelectedDocuments()[0].props.Document.Get(this._fieldKey);
             if (field instanceof TextField) {
                 return (field).GetValue();
             }
             else if (field instanceof NumberField) {
                 return (field).GetValue().toString();
             }
+        } else if (SelectionManager.SelectedDocuments().length > 1) {
+            return "-multiple-";
         }
         return "-unset-";
     }
@@ -476,11 +478,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     render() {
         var bounds = this.Bounds;
         let seldoc = SelectionManager.SelectedDocuments().length ? SelectionManager.SelectedDocuments()[0] : undefined;
-        if (bounds.x === Number.MAX_VALUE || !seldoc || this._hidden) {
-            return (null);
-        }
-        if (isNaN(bounds.r) || isNaN(bounds.b) || isNaN(bounds.x) || isNaN(bounds.y)) {
-            console.log("DocumentDecorations: Bounds Error");
+        if (bounds.x === Number.MAX_VALUE || !seldoc || this._hidden || isNaN(bounds.r) || isNaN(bounds.b) || isNaN(bounds.x) || isNaN(bounds.y)) {
             return (null);
         }
         let minimizeIcon = (
@@ -536,7 +534,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
 
                 {this._edtingTitle ?
                     <input ref={this.keyinput} className="title" type="text" name="dynbox" value={this._title} onBlur={this.titleBlur} onChange={this.titleChanged} onKeyPress={this.titleEntered} /> :
-                    <div className="title" onPointerDown={this.onTitleDown} ><span>{`${this.getTitle()}`}</span></div>}
+                    <div className="title" onPointerDown={this.onTitleDown} ><span>{`${this.getTitle}`}</span></div>}
                 <div className="documentDecorations-closeButton" onPointerDown={this.onCloseDown}>X</div>
                 <div id="documentDecorations-topLeftResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-topResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
