@@ -8,9 +8,9 @@ import { Document } from "../../../fields/Document";
 import { KeyStore } from "../../../fields/KeyStore";
 import Measure from "react-measure";
 import { FieldId, Opt, Field, FieldWaiting } from "../../../fields/Field";
-import { Utils, returnTrue, emptyFunction, emptyDocFunction, returnOne } from "../../../Utils";
+import { Utils, returnTrue, emptyFunction, emptyDocFunction, returnOne, returnZero } from "../../../Utils";
 import { Server } from "../../Server";
-import { undoBatch } from "../../util/UndoManager";
+import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { DocumentView } from "../nodes/DocumentView";
 import "./CollectionDockingView.scss";
 import React = require("react");
@@ -19,6 +19,7 @@ import { ServerUtils } from "../../../server/ServerUtil";
 import { DragManager, DragLinksAsDocuments } from "../../util/DragManager";
 import { TextField } from "../../../fields/TextField";
 import { ListField } from "../../../fields/ListField";
+import { Transform } from '../../util/Transform'
 
 @observer
 export class CollectionDockingView extends React.Component<SubCollectionViewProps> {
@@ -47,7 +48,11 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         (window as any).React = React;
         (window as any).ReactDOM = ReactDOM;
     }
+    hack: boolean = false;
+    undohack: any = null;
     public StartOtherDrag(dragDocs: Document[], e: any) {
+        this.hack = true;
+        this.undohack = UndoManager.StartBatch("goldenDrag");
         dragDocs.map(dragDoc =>
             this.AddRightSplit(dragDoc, true).contentItems[0].tab._dragListener.
                 onMouseDown({ pageX: e.pageX, pageY: e.pageY, preventDefault: emptyFunction, button: 0 }));
@@ -235,6 +240,11 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     stateChanged = () => {
         var json = JSON.stringify(this._goldenLayout.toConfig());
         this.props.Document.SetText(KeyStore.Data, json);
+        if (this.undohack && !this.hack) {
+            this.undohack.end();
+            this.undohack = undefined;
+        }
+        this.hack = false;
     }
 
     itemDropped = () => {
@@ -315,7 +325,7 @@ interface DockedFrameProps {
 @observer
 export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
 
-    private _mainCont = React.createRef<HTMLDivElement>();
+    _mainCont = React.createRef<HTMLDivElement>();
     @observable private _panelWidth = 0;
     @observable private _panelHeight = 0;
     @observable private _document: Opt<Document>;
@@ -325,38 +335,56 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         Server.GetField(this.props.documentId, action((f: Opt<Field>) => this._document = f as Document));
     }
 
-    private _nativeWidth = () => this._document!.GetNumber(KeyStore.NativeWidth, this._panelWidth);
-    private _nativeHeight = () => this._document!.GetNumber(KeyStore.NativeHeight, this._panelHeight);
-    private _contentScaling = () => this._panelWidth / (this._nativeWidth() ? this._nativeWidth() : this._panelWidth);
-
-    ScreenToLocalTransform = () => {
-        let { scale, translateX, translateY } = Utils.GetScreenTransform(this._mainCont.current!);
-        return CollectionDockingView.Instance.props.ScreenToLocalTransform().translate(-translateX, -translateY).scale(scale / this._contentScaling());
+    nativeWidth = () => {
+        let pw = this._document!.GetNumber(KeyStore.NativeWidth, 0);
+        return pw ? pw : this._panelWidth;
+    }
+    nativeHeight = () => {
+        let pw = this._document!.GetNumber(KeyStore.NativeHeight, 0);
+        return pw ? pw : this._panelHeight;
+    }
+    contentScaling = () => {
+        let wscale = this._panelWidth / (this.nativeWidth() ? this.nativeWidth() : this._panelWidth);
+        if (wscale * this.nativeHeight() > this._panelHeight)
+            return this._panelHeight / (this.nativeHeight() ? this.nativeHeight() : this._panelHeight);
+        return wscale;
     }
 
-    render() {
-        if (!this._document) {
-            return (null);
+    ScreenToLocalTransform = () => {
+        if (this._mainCont.current && this._mainCont.current.children) {
+            let { scale, translateX, translateY } = Utils.GetScreenTransform(this._mainCont.current!.children[0].firstChild as HTMLElement);
+            scale = Utils.GetScreenTransform(this._mainCont.current!).scale;
+            return CollectionDockingView.Instance.props.ScreenToLocalTransform().translate(-translateX, -translateY).scale(scale / this.contentScaling());
         }
-        var content =
-            <div className="collectionDockingView-content" ref={this._mainCont}>
-                <DocumentView key={this._document.Id} Document={this._document}
+        return Transform.Identity();
+    }
+    get previewPanelCenteringOffset() { return (this._panelWidth - this.nativeWidth() * this.contentScaling()) / 2; }
+
+    get content() {
+        return (
+            <div className="collectionDockingView-content" ref={this._mainCont}
+                style={{ transform: `translate(${this.previewPanelCenteringOffset}px, 0px)` }}>
+                <DocumentView key={this._document!.Id} Document={this._document!}
+                    toggleMinimized={emptyFunction}
                     addDocument={undefined}
                     removeDocument={undefined}
-                    ContentScaling={this._contentScaling}
-                    PanelWidth={this._nativeWidth}
-                    PanelHeight={this._nativeHeight}
+                    ContentScaling={this.contentScaling}
+                    PanelWidth={this.nativeWidth}
+                    PanelHeight={this.nativeHeight}
                     ScreenToLocalTransform={this.ScreenToLocalTransform}
                     isTopMost={true}
                     selectOnLoad={false}
                     parentActive={returnTrue}
-                    onActiveChanged={emptyFunction}
+                    whenActiveChanged={emptyFunction}
                     focus={emptyDocFunction}
                     ContainingCollectionView={undefined} />
-            </div>;
+            </div>);
+    }
 
-        return <Measure onResize={action((r: any) => { this._panelWidth = r.entry.width; this._panelHeight = r.entry.height; })}>
-            {({ measureRef }) => <div ref={measureRef}>  {content} </div>}
-        </Measure>;
+    render() {
+        return !this._document ? (null) :
+            <Measure onResize={action((r: any) => { this._panelWidth = r.entry.width; this._panelHeight = r.entry.height; })}>
+                {({ measureRef }) => <div ref={measureRef}>  {this.content} </div>}
+            </Measure>;
     }
 }

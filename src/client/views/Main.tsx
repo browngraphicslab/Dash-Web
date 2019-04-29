@@ -17,7 +17,7 @@ import { CurrentUserUtils } from '../../server/authentication/models/current_use
 import { MessageStore } from '../../server/Message';
 import { RouteStore } from '../../server/RouteStore';
 import { ServerUtils } from '../../server/ServerUtil';
-import { emptyDocFunction, emptyFunction, returnTrue, Utils, returnOne } from '../../Utils';
+import { emptyDocFunction, emptyFunction, returnTrue, Utils, returnOne, returnZero } from '../../Utils';
 import { Documents } from '../documents/Documents';
 import { ColumnAttributeModel } from '../northstar/core/attribute/AttributeModel';
 import { AttributeTransformationModel } from '../northstar/core/attribute/AttributeTransformationModel';
@@ -27,7 +27,7 @@ import '../northstar/model/ModelExtensions';
 import { HistogramOperation } from '../northstar/operations/HistogramOperation';
 import '../northstar/utils/Extensions';
 import { Server } from '../Server';
-import { SetupDrag } from '../util/DragManager';
+import { SetupDrag, DragManager } from '../util/DragManager';
 import { Transform } from '../util/Transform';
 import { UndoManager } from '../util/UndoManager';
 import { CollectionDockingView } from './collections/CollectionDockingView';
@@ -39,7 +39,7 @@ import { MainOverlayTextBox } from './MainOverlayTextBox';
 import { DocumentView } from './nodes/DocumentView';
 import { PreviewCursor } from './PreviewCursor';
 import { SearchBox } from './SearchBox';
-
+import { SelectionManager } from '../util/SelectionManager';
 
 @observer
 export class Main extends React.Component {
@@ -112,6 +112,12 @@ export class Main extends React.Component {
         // window.addEventListener("pointermove", (e) => this.reportLocation(e))
         window.addEventListener("drop", (e) => e.preventDefault(), false); // drop event handler
         window.addEventListener("dragover", (e) => e.preventDefault(), false); // drag event handler
+        window.addEventListener("keydown", (e) => {
+            if (e.key == "Escape") {
+                DragManager.AbortDrag();
+                SelectionManager.DeselectAll()
+            }
+        }, false); // drag event handler
         // click interactions for the context menu
         document.addEventListener("pointerdown", action(function (e: PointerEvent) {
             if (!ContextMenu.Instance.intersects(e.pageX, e.pageY)) {
@@ -181,6 +187,7 @@ export class Main extends React.Component {
                 <div ref={measureRef} id="mainContent-div">
                     {!mainCont ? (null) :
                         <DocumentView Document={mainCont}
+                            toggleMinimized={emptyFunction}
                             addDocument={undefined}
                             removeDocument={undefined}
                             ScreenToLocalTransform={Transform.Identity}
@@ -191,7 +198,7 @@ export class Main extends React.Component {
                             selectOnLoad={false}
                             focus={emptyDocFunction}
                             parentActive={returnTrue}
-                            onActiveChanged={emptyFunction}
+                            whenActiveChanged={emptyFunction}
                             ContainingCollectionView={undefined} />}
                 </div>
             }
@@ -207,13 +214,13 @@ export class Main extends React.Component {
         let audiourl = "http://techslides.com/demos/samples/sample.mp3";
         let videourl = "http://techslides.com/demos/sample-videos/small.mp4";
 
-        let addTextNode = action(() => Documents.TextDocument({ width: 200, height: 200, title: "a text note" }));
+        let addTextNode = action(() => Documents.TextDocument({ borderRounding: -1, width: 200, height: 50, title: "a text note" }));
         let addColNode = action(() => Documents.FreeformDocument([], { width: 200, height: 200, title: "a freeform collection" }));
         let addSchemaNode = action(() => Documents.SchemaDocument([], { width: 200, height: 200, title: "a schema collection" }));
         let addTreeNode = action(() => Documents.TreeDocument(this._northstarSchemas, { width: 250, height: 400, title: "northstar schemas", copyDraggedItems: true }));
-        let addVideoNode = action(() => Documents.VideoDocument(videourl, { width: 200, height: 200, title: "video node" }));
+        let addVideoNode = action(() => Documents.VideoDocument(videourl, { width: 200, title: "video node" }));
         let addPDFNode = action(() => Documents.PdfDocument(pdfurl, { width: 200, height: 200, title: "a pdf doc" }));
-        let addImageNode = action(() => Documents.ImageDocument(imgurl, { width: 200, height: 200, title: "an image of a cat" }));
+        let addImageNode = action(() => Documents.ImageDocument(imgurl, { width: 200, title: "an image of a cat" }));
         let addWebNode = action(() => Documents.WebDocument(weburl, { width: 200, height: 200, title: "a sample web page" }));
         let addAudioNode = action(() => Documents.AudioDocument(audiourl, { width: 200, height: 200, title: "audio node" }));
 

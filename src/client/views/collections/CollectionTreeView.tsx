@@ -1,20 +1,17 @@
 import { IconProp, library } from '@fortawesome/fontawesome-svg-core';
 import { faCaretDown, faCaretRight, faTrashAlt } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { action, observable, trace } from "mobx";
+import { action, observable } from "mobx";
 import { observer } from "mobx-react";
 import { Document } from "../../../fields/Document";
 import { FieldWaiting } from "../../../fields/Field";
 import { KeyStore } from "../../../fields/KeyStore";
 import { ListField } from "../../../fields/ListField";
-import { SetupDrag, DragManager } from "../../util/DragManager";
+import { DragManager, SetupDrag } from "../../util/DragManager";
 import { EditableView } from "../EditableView";
-import "./CollectionTreeView.scss";
-import { CollectionView } from "./CollectionView";
-import * as globalCssVariables from "../../views/globalCssVariables.scss";
 import { CollectionSubView } from "./CollectionSubView";
+import "./CollectionTreeView.scss";
 import React = require("react");
-import { props } from 'bluebird';
 
 
 export interface TreeViewProps {
@@ -139,7 +136,10 @@ export class CollectionTreeView extends CollectionSubView {
             );
 
         return (
-            <div id="body" className="collectionTreeView-dropTarget" onWheel={(e: React.WheelEvent) => e.stopPropagation()} onDrop={(e: React.DragEvent) => this.onDrop(e, {})} ref={this.createDropTarget}>
+            <div id="body" className="collectionTreeView-dropTarget"
+                style={{ borderRadius: "inherit" }}
+                onWheel={(e: React.WheelEvent) => e.stopPropagation()}
+                onDrop={(e: React.DragEvent) => this.onDrop(e, {})} ref={this.createDropTarget}>
                 <div className="coll-title">
                     <EditableView
                         contents={this.props.Document.Title}

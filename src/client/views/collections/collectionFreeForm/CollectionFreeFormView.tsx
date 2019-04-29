@@ -1,6 +1,5 @@
-import { action, computed, observable, trace } from "mobx";
+import { action, computed } from "mobx";
 import { observer } from "mobx-react";
-import Measure from "react-measure";
 import { Document } from "../../../../fields/Document";
 import { KeyStore } from "../../../../fields/KeyStore";
 import { emptyFunction, returnFalse, returnOne } from "../../../../Utils";
@@ -11,7 +10,6 @@ import { Transform } from "../../../util/Transform";
 import { undoBatch } from "../../../util/UndoManager";
 import { COLLECTION_BORDER_WIDTH } from "../../../views/globalCssVariables.scss";
 import { InkingCanvas } from "../../InkingCanvas";
-import { MainOverlayTextBox } from "../../MainOverlayTextBox";
 import { CollectionFreeFormDocumentView } from "../../nodes/CollectionFreeFormDocumentView";
 import { DocumentContentsView } from "../../nodes/DocumentContentsView";
 import { DocumentViewProps } from "../../nodes/DocumentView";
@@ -22,20 +20,21 @@ import "./CollectionFreeFormView.scss";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
 import v5 = require("uuid/v5");
+import { BooleanField } from "../../../../fields/BooleanField";
 
 @observer
 export class CollectionFreeFormView extends CollectionSubView {
+    public static RIGHT_BTN_DRAG = false;
     private _selectOnLoaded: string = ""; // id of document that should be selected once it's loaded (used for click-to-type)
     private _lastX: number = 0;
     private _lastY: number = 0;
-    @observable private _pwidth: number = 0;
-    @observable private _pheight: number = 0;
+    private get _pwidth() { return this.props.PanelWidth(); }
+    private get _pheight() { return this.props.PanelHeight(); }
 
     @computed get nativeWidth() { return this.props.Document.GetNumber(KeyStore.NativeWidth, 0); }
     @computed get nativeHeight() { return this.props.Document.GetNumber(KeyStore.NativeHeight, 0); }
     private get borderWidth() { return this.isAnnotationOverlay ? 0 : COLLECTION_BORDER_WIDTH; }
     private get isAnnotationOverlay() { return this.props.fieldKey && this.props.fieldKey.Id === KeyStore.Annotations.Id; } // bcz: ? Why do we need to compare Id's?
-    private childViews = () => this.views;
     private panX = () => this.props.Document.GetNumber(KeyStore.PanX, 0);
     private panY = () => this.props.Document.GetNumber(KeyStore.PanY, 0);
     private zoomScaling = () => this.props.Document.GetNumber(KeyStore.Scale, 1);
@@ -48,11 +47,11 @@ export class CollectionFreeFormView extends CollectionSubView {
         this._selectOnLoaded = newBox.Id;// track the new text box so we can give it a prop that tells it to focus itself when it's displayed
         this.addDocument(newBox, false);
     }
+    @action
     private addDocument = (newBox: Document, allowDuplicates: boolean) => {
-        if (this.isAnnotationOverlay) {
-            newBox.SetNumber(KeyStore.Zoom, this.props.Document.GetNumber(KeyStore.Scale, 1));
-        }
-        return this.props.addDocument(this.bringToFront(newBox), false);
+        this.props.addDocument(newBox, false);
+        this.bringToFront(newBox);
+        return true;
     }
     private selectDocuments = (docs: Document[]) => {
         SelectionManager.DeselectAll;
@@ -74,8 +73,12 @@ export class CollectionFreeFormView extends CollectionSubView {
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
         if (super.drop(e, de) && de.data instanceof DragManager.DocumentDragData) {
-            const [x, y] = this.getTransform().transformPoint(de.x - de.data.xOffset, de.y - de.data.yOffset);
             if (de.data.droppedDocuments.length) {
+                let dragDoc = de.data.droppedDocuments[0];
+                let zoom = dragDoc.GetNumber(KeyStore.ZoomBasis, 1);
+                let [xp, yp] = this.getTransform().transformPoint(de.x, de.y);
+                let x = xp - de.data.xOffset / zoom;
+                let y = yp - de.data.yOffset / zoom;
                 let dropX = de.data.droppedDocuments[0].GetNumber(KeyStore.X, 0);
                 let dropY = de.data.droppedDocuments[0].GetNumber(KeyStore.Y, 0);
                 de.data.droppedDocuments.map(d => {
@@ -85,7 +88,9 @@ export class CollectionFreeFormView extends CollectionSubView {
                         d.SetNumber(KeyStore.Width, 300);
                     }
                     if (!d.GetNumber(KeyStore.Height, 0)) {
-                        d.SetNumber(KeyStore.Height, 300);
+                        let nw = d.GetNumber(KeyStore.NativeWidth, 0);
+                        let nh = d.GetNumber(KeyStore.NativeHeight, 0);
+                        d.SetNumber(KeyStore.Height, nw && nh ? nh / nw * d.Width() : 300);
                     }
                     this.bringToFront(d);
                 });
@@ -108,20 +113,20 @@ export class CollectionFreeFormView extends CollectionSubView {
             var dv = DocumentManager.Instance.getDocumentView(doc);
             return childSelected || (dv && SelectionManager.IsSelected(dv) ? true : false);
         }, false);
-        if (((e.button === 2 && (!this.isAnnotationOverlay || this.zoomScaling() !== 1)) || (e.button === 0 && e.altKey)) && (childSelected || this.props.active())) {
-            document.removeEventListener("pointermove", this.onPointerMove);
+        if ((CollectionFreeFormView.RIGHT_BTN_DRAG &&
+            (((e.button === 2 && (!this.isAnnotationOverlay || this.zoomScaling() !== 1)) ||
+                (e.button === 0 && e.altKey)) && (childSelected || this.props.active()))) ||
+            (!CollectionFreeFormView.RIGHT_BTN_DRAG &&
+                ((e.button === 0 && !e.altKey && (!this.isAnnotationOverlay || this.zoomScaling() !== 1)) && (childSelected || this.props.active())))) {
+            this.cleanupInteractions();
             document.addEventListener("pointermove", this.onPointerMove);
-            document.removeEventListener("pointerup", this.onPointerUp);
             document.addEventListener("pointerup", this.onPointerUp);
             this._lastX = e.pageX;
             this._lastY = e.pageY;
         }
     }
 
-    @action
     onPointerUp = (e: PointerEvent): void => {
-        e.stopPropagation();
-
         this.cleanupInteractions();
     }
 
@@ -155,7 +160,7 @@ export class CollectionFreeFormView extends CollectionSubView {
             this.setPan(x - dx, y - dy);
             this._lastX = e.pageX;
             this._lastY = e.pageY;
-            e.stopPropagation();
+            e.stopPropagation(); // doesn't actually stop propagation since all our listeners are listening to events on 'document'  however it does mark the event as cancelBubble=true which we test for in the move event handlers
             e.preventDefault();
         }
     }
@@ -188,18 +193,19 @@ export class CollectionFreeFormView extends CollectionSubView {
             if (deltaScale * this.zoomScaling() < 1 && this.isAnnotationOverlay) {
                 deltaScale = 1 / this.zoomScaling();
             }
+            if (deltaScale < 0) deltaScale = -deltaScale;
             let [x, y] = this.getTransform().transformPoint(e.clientX, e.clientY);
             let localTransform = this.getLocalTransform().inverse().scaleAbout(deltaScale, x, y);
 
-            this.props.Document.SetNumber(KeyStore.Scale, localTransform.Scale);
-            this.setPan(-localTransform.TranslateX / localTransform.Scale, -localTransform.TranslateY / localTransform.Scale);
+            let safeScale = Math.abs(localTransform.Scale);
+            this.props.Document.SetNumber(KeyStore.Scale, Math.abs(safeScale));
+            this.setPan(-localTransform.TranslateX / safeScale, -localTransform.TranslateY / safeScale);
             e.stopPropagation();
         }
     }
 
     @action
     setPan(panX: number, panY: number) {
-        MainOverlayTextBox.Instance.SetTextDoc();
         var scale = this.getLocalTransform().inverse().Scale;
         const newPanX = Math.min((1 - 1 / scale) * this.nativeWidth, Math.max(0, panX));
         const newPanY = Math.min((1 - 1 / scale) * this.nativeHeight, Math.max(0, panY));
@@ -218,12 +224,13 @@ export class CollectionFreeFormView extends CollectionSubView {
 
     @action
     bringToFront(doc: Document) {
-        this.props.Document.GetList<Document>(this.props.fieldKey, []).slice().sort((doc1, doc2) => {
+        let docs = this.props.Document.GetList(this.props.fieldKey, [] as Document[]).slice();
+        docs.sort((doc1, doc2) => {
             if (doc1 === doc) return 1;
             if (doc2 === doc) return -1;
             return doc1.GetNumber(KeyStore.ZIndex, 0) - doc2.GetNumber(KeyStore.ZIndex, 0);
         }).map((doc, index) => doc.SetNumber(KeyStore.ZIndex, index + 1));
-        return doc;
+        doc.SetNumber(KeyStore.ZIndex, docs.length + 1);
     }
 
     focusDocument = (doc: Document) => {
@@ -236,6 +243,7 @@ export class CollectionFreeFormView extends CollectionSubView {
     getDocumentViewProps(document: Document): DocumentViewProps {
         return {
             Document: document,
+            toggleMinimized: emptyFunction,
             addDocument: this.props.addDocument,
             removeDocument: this.props.removeDocument,
             moveDocument: this.props.moveDocument,
@@ -248,7 +256,7 @@ export class CollectionFreeFormView extends CollectionSubView {
             ContainingCollectionView: this.props.CollectionView,
             focus: this.focusDocument,
             parentActive: this.props.active,
-            onActiveChanged: this.props.active,
+            whenActiveChanged: this.props.active,
         };
     }
 
@@ -258,7 +266,9 @@ export class CollectionFreeFormView extends CollectionSubView {
         let docviews = this.props.Document.GetList(this.props.fieldKey, [] as Document[]).filter(doc => doc).reduce((prev, doc) => {
             var page = doc.GetNumber(KeyStore.Page, -1);
             if (page === curPage || page === -1) {
-                prev.push(<CollectionFreeFormDocumentView key={doc.Id} {...this.getDocumentViewProps(doc)} />);
+                let minim = doc.GetT(KeyStore.IsMinimized, BooleanField);
+                if (minim === undefined || (minim && !minim.Data))
+                    prev.push(<CollectionFreeFormDocumentView key={doc.Id} {...this.getDocumentViewProps(doc)} />);
             }
             return prev;
         }, [] as JSX.Element[]);
@@ -269,41 +279,37 @@ export class CollectionFreeFormView extends CollectionSubView {
     }
 
     @action
-    onResize = (r: any) => {
-        this._pwidth = r.entry.width;
-        this._pheight = r.entry.height;
-    }
-    @action
     onCursorMove = (e: React.PointerEvent) => {
         super.setCursorPosition(this.getTransform().transformPoint(e.clientX, e.clientY));
     }
 
+    private childViews = () => [...this.views, <CollectionFreeFormBackgroundView key="backgroundView" {...this.props} {...this.getDocumentViewProps(this.props.Document)} />];
     render() {
         const containerName = `collectionfreeformview${this.isAnnotationOverlay ? "-overlay" : "-container"}`;
         return (
-            <Measure onResize={this.onResize}>
-                {({ measureRef }) => (
-                    <div className="collectionfreeformview-measure" ref={measureRef}>
-                        <div className={containerName} ref={this.createDropTarget} onWheel={this.onPointerWheel}
-                            onPointerDown={this.onPointerDown} onPointerMove={this.onCursorMove} onDrop={this.onDrop.bind(this)} onDragOver={this.onDragOver} >
-                            <MarqueeView container={this} activeDocuments={this.getActiveDocuments} selectDocuments={this.selectDocuments}
-                                addDocument={this.addDocument} removeDocument={this.props.removeDocument} addLiveTextDocument={this.addLiveTextBox}
-                                getContainerTransform={this.getContainerTransform} getTransform={this.getTransform}>
-                                <CollectionFreeFormViewPannableContents centeringShiftX={this.centeringShiftX} centeringShiftY={this.centeringShiftY}
-                                    zoomScaling={this.zoomScaling} panX={this.panX} panY={this.panY}>
-                                    <CollectionFreeFormBackgroundView {...this.getDocumentViewProps(this.props.Document)} />
-                                    <CollectionFreeFormLinksView {...this.props} key="freeformLinks">
-                                        <InkingCanvas getScreenTransform={this.getTransform} Document={this.props.Document} >
-                                            {this.childViews}
-                                        </InkingCanvas>
-                                    </CollectionFreeFormLinksView>
-                                    <CollectionFreeFormRemoteCursors {...this.props} key="remoteCursors" />
-                                </CollectionFreeFormViewPannableContents>
-                                <CollectionFreeFormOverlayView {...this.getDocumentViewProps(this.props.Document)} />
-                            </MarqueeView>
-                        </div>
-                    </div>)}
-            </Measure>
+            <div className={containerName} ref={this.createDropTarget} onWheel={this.onPointerWheel}
+                style={{ borderRadius: "inherit" }}
+                onPointerDown={this.onPointerDown} onPointerMove={this.onCursorMove} onDrop={this.onDrop.bind(this)} onDragOver={this.onDragOver} >
+                {/* <svg viewBox="0 0 180 18" style={{ top: "50%", opacity: 0.05, position: "absolute" }}>
+                    <text y="15" >
+                        {this.props.Document.Title}
+                    </text>
+                </svg> */}
+                <MarqueeView container={this} activeDocuments={this.getActiveDocuments} selectDocuments={this.selectDocuments} isSelected={this.props.isSelected}
+                    addDocument={this.addDocument} removeDocument={this.props.removeDocument} addLiveTextDocument={this.addLiveTextBox}
+                    getContainerTransform={this.getContainerTransform} getTransform={this.getTransform}>
+                    <CollectionFreeFormViewPannableContents centeringShiftX={this.centeringShiftX} centeringShiftY={this.centeringShiftY}
+                        zoomScaling={this.zoomScaling} panX={this.panX} panY={this.panY}>
+                        <CollectionFreeFormLinksView {...this.props} key="freeformLinks">
+                            <InkingCanvas getScreenTransform={this.getTransform} Document={this.props.Document} >
+                                {this.childViews}
+                            </InkingCanvas>
+                        </CollectionFreeFormLinksView>
+                        <CollectionFreeFormRemoteCursors {...this.props} key="remoteCursors" />
+                    </CollectionFreeFormViewPannableContents>
+                    <CollectionFreeFormOverlayView {...this.getDocumentViewProps(this.props.Document)} {...this.props} />
+                </MarqueeView>
+            </div>
         );
     }
 }
@@ -322,12 +328,12 @@ class CollectionFreeFormOverlayView extends React.Component<DocumentViewProps> {
 }
 
 @observer
-class CollectionFreeFormBackgroundView extends React.Component<DocumentViewProps> {
+class CollectionFreeFormBackgroundView extends React.Component<DocumentViewProps & { isSelected: () => boolean }> {
     @computed get backgroundView() {
         let backgroundLayout = this.props.Document.GetText(KeyStore.BackgroundLayout, "");
         return !backgroundLayout ? (null) :
             (<DocumentContentsView {...this.props} layoutKey={KeyStore.BackgroundLayout}
-                isTopMost={this.props.isTopMost} isSelected={returnFalse} select={emptyFunction} />);
+                isTopMost={this.props.isTopMost} isSelected={this.props.isSelected} select={emptyFunction} />);
     }
     render() {
         return this.backgroundView;
@@ -350,7 +356,7 @@ class CollectionFreeFormViewPannableContents extends React.Component<CollectionF
         const panx = -this.props.panX();
         const pany = -this.props.panY();
         const zoom = this.props.zoomScaling();// needs to be a variable outside of the <Measure> otherwise, reactions won't fire
-        return <div className="collectionfreeformview" style={{ transform: `translate(${cenx}px, ${ceny}px) scale(${zoom}, ${zoom}) translate(${panx}px, ${pany}px)` }}>
+        return <div className="collectionfreeformview" style={{ borderRadius: "inherit", transform: `translate(${cenx}px, ${ceny}px) scale(${zoom}, ${zoom}) translate(${panx}px, ${pany}px)` }}>
             {this.props.children}
         </div>;
     }

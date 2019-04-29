@@ -1,24 +1,22 @@
 
-import { action, observable, trace } from 'mobx';
+import { action, observable } from 'mobx';
 import { observer } from "mobx-react";
 import Lightbox from 'react-image-lightbox';
 import 'react-image-lightbox/style.css'; // This only needs to be imported once in your app
+import { Document } from '../../../fields/Document';
 import { FieldWaiting } from '../../../fields/Field';
 import { ImageField } from '../../../fields/ImageField';
 import { KeyStore } from '../../../fields/KeyStore';
+import { ListField } from '../../../fields/ListField';
+import { Utils } from '../../../Utils';
+import { DragManager } from '../../util/DragManager';
+import { undoBatch } from '../../util/UndoManager';
 import { ContextMenu } from "../../views/ContextMenu";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./ImageBox.scss";
 import React = require("react");
-import { Utils } from '../../../Utils';
-import { ListField } from '../../../fields/ListField';
-import { DragManager } from '../../util/DragManager';
-import { undoBatch, UndoManager } from '../../util/UndoManager';
-import { TextField } from '../../../fields/TextField';
-import { Document } from '../../../fields/Document';
-import { RouteStore } from '../../../server/RouteStore';
-import { ServerUtils } from '../../../server/ServerUtil';
-import { CollectionSubView } from '../collections/CollectionSubView';
+import { InkingControl } from '../InkingControl';
+import { NumberField } from '../../../fields/NumberField';
 
 @observer
 export class ImageBox extends React.Component<FieldViewProps> {
@@ -36,21 +34,19 @@ export class ImageBox extends React.Component<FieldViewProps> {
         super(props);
 
         this._imgRef = React.createRef();
-        this.state = {
-            photoIndex: 0,
-            isOpen: false,
-        };
     }
 
     @action
     onLoad = (target: any) => {
         var h = this._imgRef.current!.naturalHeight;
         var w = this._imgRef.current!.naturalWidth;
-        if (this._photoIndex == 0) this.props.Document.SetNumber(KeyStore.NativeHeight, this.props.Document.GetNumber(KeyStore.NativeWidth, 0) * h / w);
+        if (this._photoIndex === 0) {
+            this.props.Document.SetNumber(KeyStore.NativeHeight, this.props.Document.GetNumber(KeyStore.NativeWidth, 0) * h / w);
+            this.props.Document.GetTAsync(KeyStore.Width, NumberField, field =>
+                field && this.props.Document.SetNumber(KeyStore.Height, field.Data * h / w));
+        }
     }
 
-    componentDidMount() {
-    }
 
     protected createDropTarget = (ele: HTMLDivElement) => {
         if (this.dropDisposer) {
@@ -60,14 +56,10 @@ export class ImageBox extends React.Component<FieldViewProps> {
             this.dropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.drop.bind(this) } });
         }
     }
-
-    componentWillUnmount() {
-    }
-
     onDrop = (e: React.DragEvent) => {
         e.stopPropagation();
         e.preventDefault();
-        console.log("IMPLEMENT ME PLEASE")
+        console.log("IMPLEMENT ME PLEASE");
     }
 
 
@@ -79,7 +71,7 @@ export class ImageBox extends React.Component<FieldViewProps> {
                 if (layout.indexOf(ImageBox.name) !== -1) {
                     let imgData = this.props.Document.Get(KeyStore.Data);
                     if (imgData instanceof ImageField && imgData) {
-                        this.props.Document.Set(KeyStore.Data, new ListField([imgData]));
+                        this.props.Document.SetOnPrototype(KeyStore.Data, new ListField([imgData]));
                     }
                     let imgList = this.props.Document.GetList(KeyStore.Data, [] as any[]);
                     if (imgList) {
@@ -98,7 +90,6 @@ export class ImageBox extends React.Component<FieldViewProps> {
     onPointerDown = (e: React.PointerEvent): void => {
         if (Date.now() - this._lastTap < 300) {
             if (e.buttons === 1) {
-                e.stopPropagation();
                 this._downX = e.clientX;
                 this._downY = e.clientY;
                 document.removeEventListener("pointerup", this.onPointerUp);
@@ -151,6 +142,7 @@ export class ImageBox extends React.Component<FieldViewProps> {
     @action
     onDotDown(index: number) {
         this._photoIndex = index;
+        this.props.Document.SetNumber(KeyStore.CurPage, index);
     }
 
     dots(paths: string[]) {
@@ -158,10 +150,10 @@ export class ImageBox extends React.Component<FieldViewProps> {
         let dist = Math.min(nativeWidth / paths.length, 40);
         let left = (nativeWidth - paths.length * dist) / 2;
         return paths.map((p, i) =>
-            <div className="imageBox-placer"  >
-                <div className="imageBox-dot" style={{ transform: `translate(${i * dist + left}px, 0px)` }} key={`i`} onPointerDown={(e: React.PointerEvent) => { e.stopPropagation(); this.onDotDown(i); }} />
+            <div className="imageBox-placer" key={i} >
+                <div className="imageBox-dot" style={{ background: (i == this._photoIndex ? "black" : "gray"), transform: `translate(${i * dist + left}px, 0px)` }} onPointerDown={(e: React.PointerEvent) => { e.stopPropagation(); this.onDotDown(i); }} />
             </div>
-        )
+        );
     }
 
     render() {
@@ -171,10 +163,11 @@ export class ImageBox extends React.Component<FieldViewProps> {
         else if (field instanceof ImageField) paths = [field.Data.href];
         else if (field instanceof ListField) paths = field.Data.filter(val => val as ImageField).map(p => (p as ImageField).Data.href);
         let nativeWidth = this.props.Document.GetNumber(KeyStore.NativeWidth, 1);
+        let interactive = InkingControl.Instance.selectedTool ? "" : "-interactive";
         return (
-            <div className="imageBox-cont" onPointerDown={this.onPointerDown} onDrop={this.onDrop} ref={this.createDropTarget} onContextMenu={this.specificContextMenu}>
-                <img src={paths[Math.min(paths.length, this._photoIndex)]} style={{ objectFit: (this._photoIndex == 0 ? undefined : "contain") }} width={nativeWidth} alt="Image not found" ref={this._imgRef} onLoad={this.onLoad} />
-                {this.dots(paths)}
+            <div className={`imageBox-cont${interactive}`} onPointerDown={this.onPointerDown} onDrop={this.onDrop} ref={this.createDropTarget} onContextMenu={this.specificContextMenu}>
+                <img src={paths[Math.min(paths.length, this._photoIndex)]} style={{ objectFit: (this._photoIndex === 0 ? undefined : "contain") }} width={nativeWidth} alt="Image not found" ref={this._imgRef} onLoad={this.onLoad} />
+                {paths.length > 1 ? this.dots(paths) : (null)}
                 {this.lightbox(paths)}
             </div>);
     }

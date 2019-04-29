@@ -13,6 +13,7 @@ import { BooleanField } from "./BooleanField";
 import { allLimit } from "async";
 import { prototype } from "nodemailer/lib/smtp-pool";
 import { HistogramField } from "../client/northstar/dash-fields/HistogramField";
+import { Documents } from "../client/documents/Documents";
 
 export class Document extends Field {
     //TODO tfs: We should probably store FieldWaiting in fields when we request it from the server so that we don't set up multiple server gets for the same document and field
@@ -369,6 +370,36 @@ export class Document extends Field {
         });
 
         return alias;
+    }
+
+    @action
+    CreateLink(dstTarg: Document) {
+        let batch = UndoManager.StartBatch("document view drop");
+        let linkDoc: Document = Documents.TextDocument({ width: 100, height: 25, title: "-link-" });
+        linkDoc.SetText(KeyStore.LinkDescription, "");
+        linkDoc.SetText(KeyStore.LinkTags, "Default");
+
+        let srcTarg = this;
+        linkDoc.Set(KeyStore.LinkedToDocs, dstTarg);
+        linkDoc.Set(KeyStore.LinkedFromDocs, srcTarg);
+        const prom1 = new Promise(resolve => dstTarg.GetOrCreateAsync(
+            KeyStore.LinkedFromDocs,
+            ListField,
+            field => {
+                (field as ListField<Document>).Data.push(linkDoc);
+                resolve();
+            }
+        ));
+        const prom2 = new Promise(resolve => srcTarg.GetOrCreateAsync(
+            KeyStore.LinkedToDocs,
+            ListField,
+            field => {
+                (field as ListField<Document>).Data.push(linkDoc);
+                resolve();
+            }
+        ));
+        Promise.all([prom1, prom2]).finally(() => batch.end());
+        return linkDoc;
     }
 
     MakeDelegate(id?: string): Document {

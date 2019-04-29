@@ -1,4 +1,4 @@
-import { action, IReactionDisposer, reaction } from "mobx";
+import { action, IReactionDisposer, reaction, trace, computed, _allowStateChangesInsideComputed } from "mobx";
 import { baseKeymap } from "prosemirror-commands";
 import { history } from "prosemirror-history";
 import { keymap } from "prosemirror-keymap";
@@ -19,8 +19,9 @@ import { MainOverlayTextBox } from "../MainOverlayTextBox";
 import { FieldView, FieldViewProps } from "./FieldView";
 import "./FormattedTextBox.scss";
 import React = require("react");
-const { buildMenuItems } = require("prosemirror-example-setup");
-const { menuBar } = require("prosemirror-menu");
+import { SelectionManager } from "../../util/SelectionManager";
+import { observer } from "mobx-react";
+import { InkingControl } from "../InkingControl";
 
 // FormattedTextBox: Displays an editable plain text node that maps to a specified Key of a Document
 //
@@ -43,11 +44,13 @@ export interface FormattedTextBoxOverlay {
     isOverlay?: boolean;
 }
 
+@observer
 export class FormattedTextBox extends React.Component<(FieldViewProps & FormattedTextBoxOverlay)> {
     public static LayoutString(fieldStr: string = "DataKey") {
         return FieldView.LayoutString(FormattedTextBox, fieldStr);
     }
     private _ref: React.RefObject<HTMLDivElement>;
+    private _proseRef: React.RefObject<HTMLDivElement>;
     private _editorView: Opt<EditorView>;
     private _gotDown: boolean = false;
     private _reactionDisposer: Opt<IReactionDisposer>;
@@ -58,14 +61,16 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
         super(props);
 
         this._ref = React.createRef();
+        this._proseRef = React.createRef();
         this.onChange = this.onChange.bind(this);
     }
 
     _applyingChange: boolean = false;
 
+    _lastState: any = undefined;
     dispatchTransaction = (tx: Transaction) => {
         if (this._editorView) {
-            const state = this._editorView.state.apply(tx);
+            const state = this._lastState = this._editorView.state.apply(tx);
             this._editorView.updateState(state);
             this._applyingChange = true;
             this.props.Document.SetDataOnPrototype(
@@ -75,7 +80,11 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
             );
             this.props.Document.SetDataOnPrototype(KeyStore.DocumentText, state.doc.textBetween(0, state.doc.content.size, "\n\n"), TextField);
             this._applyingChange = false;
-            // doc.SetData(fieldKey, JSON.stringify(state.toJSON()), RichTextField);
+            if (this.props.Document.Title.startsWith("-") && this._editorView) {
+                let str = this._editorView.state.doc.textContent;
+                let titlestr = str.substr(0, Math.min(40, str.length));
+                this.props.Document.SetText(KeyStore.Title, "-" + titlestr + (str.length > 40 ? "..." : ""));
+            };
         }
     }
 
@@ -84,10 +93,10 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
             schema,
             inpRules, //these currently don't do anything, but could eventually be helpful
             plugins: this.props.isOverlay ? [
+                this.tooltipTextMenuPlugin(),
                 history(),
                 keymap(buildKeymap(schema)),
                 keymap(baseKeymap),
-                this.tooltipTextMenuPlugin(),
                 // this.tooltipLinkingMenuPlugin(),
                 new Plugin({
                     props: {
@@ -107,32 +116,24 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
                     if (this._editorView) {
                         this._editorView.destroy();
                     }
-                    this.setupEditor(config, MainOverlayTextBox.Instance.TextDoc); // bcz: not sure why, but the order of events is such that this.props.Document hasn't updated yet, so without forcing the editor to the MainOverlayTextBox, it will display the previously focused textbox
+                    this.setupEditor(config, this.props.Document);// MainOverlayTextBox.Instance.TextDoc); // bcz: not sure why, but the order of events is such that this.props.Document hasn't updated yet, so without forcing the editor to the MainOverlayTextBox, it will display the previously focused textbox
                 }
             );
         } else {
             this._proxyReactionDisposer = reaction(() => this.props.isSelected(),
-                () => this.props.isSelected() && MainOverlayTextBox.Instance.SetTextDoc(this.props.Document, this.props.fieldKey, this._ref.current!, this.props.ScreenToLocalTransform()));
+                () => this.props.isSelected() && MainOverlayTextBox.Instance.SetTextDoc(this.props.Document, this.props.fieldKey, this._ref.current!, this.props.ScreenToLocalTransform));
         }
+
 
         this._reactionDisposer = reaction(
             () => {
                 const field = this.props.Document ? this.props.Document.GetT(this.props.fieldKey, RichTextField) : undefined;
                 return field && field !== FieldWaiting ? field.Data : undefined;
             },
-            field => {
-                if (field && this._editorView && !this._applyingChange) {
-                    this._editorView.updateState(
-                        EditorState.fromJSON(config, JSON.parse(field))
-                    );
-                }
-            }
+            field => field && this._editorView && !this._applyingChange &&
+                this._editorView.updateState(EditorState.fromJSON(config, JSON.parse(field)))
         );
         this.setupEditor(config, this.props.Document);
-    }
-
-    shouldComponentUpdate() {
-        return false;
     }
 
     private setupEditor(config: any, doc?: Document) {
@@ -171,19 +172,21 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
         Document.SetOnPrototype(fieldKey, new RichTextField(e.target.value));
         // doc.SetData(fieldKey, e.target.value, RichTextField);
     }
+    @action
     onPointerDown = (e: React.PointerEvent): void => {
-        if (e.button === 1 && this.props.isSelected() && !e.altKey && !e.ctrlKey && !e.metaKey) {
-            console.log("first");
+        if (e.button === 0 && this.props.isSelected() && !e.altKey && !e.ctrlKey && !e.metaKey) {
             e.stopPropagation();
+            if (this._toolTipTextMenu && this._toolTipTextMenu.tooltip)
+                this._toolTipTextMenu.tooltip.style.opacity = "0";
         }
-        if (e.button === 2) {
+        if (e.button === 2 || (e.button === 0 && e.ctrlKey)) {
             this._gotDown = true;
-            console.log("second");
             e.preventDefault();
         }
     }
     onPointerUp = (e: React.PointerEvent): void => {
-        console.log("pointer up");
+        if (this._toolTipTextMenu && this._toolTipTextMenu.tooltip)
+            this._toolTipTextMenu.tooltip.style.opacity = "1";
         if (e.buttons === 1 && this.props.isSelected() && !e.altKey) {
             e.stopPropagation();
         }
@@ -191,7 +194,7 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
 
     onFocused = (e: React.FocusEvent): void => {
         if (!this.props.isOverlay) {
-            MainOverlayTextBox.Instance.SetTextDoc(this.props.Document, this.props.fieldKey, this._ref.current!, this.props.ScreenToLocalTransform());
+            MainOverlayTextBox.Instance.SetTextDoc(this.props.Document, this.props.fieldKey, this._ref.current!, this.props.ScreenToLocalTransform);
         } else {
             if (this._ref.current) {
                 this._ref.current.scrollTop = MainOverlayTextBox.Instance.TextScroll;
@@ -232,15 +235,21 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
         }
     }
 
+    onClick = (e: React.MouseEvent): void => {
+        this._proseRef.current!.focus();
+    }
+
     tooltipTextMenuPlugin() {
         let myprops = this.props;
+        let self = this;
         return new Plugin({
             view(_editorView) {
-                return new TooltipTextMenu(_editorView, myprops);
+                return self._toolTipTextMenu = new TooltipTextMenu(_editorView, myprops);
             }
         });
     }
 
+    _toolTipTextMenu: TooltipTextMenu | undefined = undefined;
     tooltipLinkingMenuPlugin() {
         let myprops = this.props;
         return new Plugin({
@@ -250,27 +259,40 @@ export class FormattedTextBox extends React.Component<(FieldViewProps & Formatte
         });
     }
 
-    onKeyPress(e: React.KeyboardEvent) {
+    @action
+    onKeyPress = (e: React.KeyboardEvent) => {
+        if (e.key == "Escape") {
+            SelectionManager.DeselectAll();
+        }
         e.stopPropagation();
-        if (e.keyCode === 9) e.preventDefault();
+        if (e.key === "Tab") e.preventDefault();
         // stop propagation doesn't seem to stop propagation of native keyboard events.
         // so we set a flag on the native event that marks that the event's been handled.
-        // (e.nativeEvent as any).DASHFormattedTextBoxHandled = true;
+        (e.nativeEvent as any).DASHFormattedTextBoxHandled = true;
     }
     render() {
-        let style = this.props.isSelected() || this.props.isOverlay ? "scroll" : "hidden";
+        let style = this.props.isOverlay ? "-scroll" : "-hidden";
+        let rounded = this.props.Document.GetNumber(KeyStore.BorderRounding, 0) < 0 ? "-rounded" : "";
+        let color = this.props.Document.GetText(KeyStore.BackgroundColor, "");
+        let interactive = InkingControl.Instance.selectedTool ? "" : "-interactive";
         return (
-            <div className={`formattedTextBox-cont-${style}`}
+            <div className={`formattedTextBox-cont${style}`} ref={this._ref}
+                style={{
+                    pointerEvents: interactive ? "all" : "none",
+                    background: color,
+                }}
                 onKeyDown={this.onKeyPress}
                 onKeyPress={this.onKeyPress}
                 onFocus={this.onFocused}
+                onClick={this.onClick}
                 onPointerUp={this.onPointerUp}
                 onPointerDown={this.onPointerDown}
                 onContextMenu={this.specificContextMenu}
                 // tfs: do we need this event handler
                 onWheel={this.onPointerWheel}
-                ref={this._ref}
-            />
+            >
+                <div className={`formattedTextBox-inner${rounded}`} ref={this._proseRef} />
+            </div>
         );
     }
 }

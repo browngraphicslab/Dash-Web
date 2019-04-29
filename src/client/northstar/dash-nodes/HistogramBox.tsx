@@ -1,7 +1,6 @@
 import React = require("react");
 import { action, computed, observable, reaction, runInAction, trace } from "mobx";
 import { observer } from "mobx-react";
-import Measure from "react-measure";
 import { FieldWaiting, Opt } from "../../../fields/Field";
 import { Document } from "../../../fields/Document";
 import { KeyStore } from "../../../fields/KeyStore";
@@ -31,8 +30,6 @@ export class HistogramBox extends React.Component<FieldViewProps> {
     private _dropXDisposer?: DragManager.DragDropDisposer;
     private _dropYDisposer?: DragManager.DragDropDisposer;
 
-    @observable public PanelWidth: number = 100;
-    @observable public PanelHeight: number = 100;
     @observable public HistoOp: HistogramOperation = HistogramOperation.Empty;
     @observable public VisualBinRanges: VisualBinRange[] = [];
     @observable public ValueRange: number[] = [];
@@ -88,7 +85,7 @@ export class HistogramBox extends React.Component<FieldViewProps> {
         }
         reaction(() => CurrentUserUtils.NorthstarDBCatalog, (catalog?: Catalog) => this.activateHistogramOperation(catalog), { fireImmediately: true });
         reaction(() => [this.VisualBinRanges && this.VisualBinRanges.slice()], () => this.SizeConverter.SetVisualBinRanges(this.VisualBinRanges));
-        reaction(() => [this.PanelHeight, this.PanelWidth], () => this.SizeConverter.SetIsSmall(this.PanelWidth < 40 && this.PanelHeight < 40));
+        reaction(() => [this.props.PanelWidth(), this.props.PanelHeight()], (size: number[]) => this.SizeConverter.SetIsSmall(size[0] < 40 && size[1] < 40));
         reaction(() => this.HistogramResult ? this.HistogramResult.binRanges : undefined,
             (binRanges: BinRange[] | undefined) => {
                 if (binRanges) {
@@ -118,7 +115,7 @@ export class HistogramBox extends React.Component<FieldViewProps> {
             this.props.Document.GetTAsync(this.props.fieldKey, HistogramField).then((histoOp: Opt<HistogramField>) => runInAction(() => {
                 this.HistoOp = histoOp ? histoOp.Data : HistogramOperation.Empty;
                 if (this.HistoOp !== HistogramOperation.Empty) {
-                    reaction(() => this.props.Document.GetList(KeyStore.LinkedFromDocs, []), (docs: Document[]) => this.HistoOp.Links.splice(0, this.HistoOp.Links.length, ...docs), { fireImmediately: true });
+                    reaction(() => this.props.Document.GetList(KeyStore.LinkedFromDocs, [] as Document[]), (docs) => this.HistoOp.Links.splice(0, this.HistoOp.Links.length, ...docs), { fireImmediately: true });
                     reaction(() => this.props.Document.GetList(KeyStore.BrushingDocs, []).length,
                         () => {
                             let brushingDocs = this.props.Document.GetList(KeyStore.BrushingDocs, [] as Document[]);
@@ -134,38 +131,39 @@ export class HistogramBox extends React.Component<FieldViewProps> {
             }));
         }
     }
+
+    @action
+    private onScrollWheel = (e: React.WheelEvent) => {
+        this.HistoOp.DrillDown(e.deltaY > 0);
+        e.stopPropagation();
+    }
+
     render() {
         let labelY = this.HistoOp && this.HistoOp.Y ? this.HistoOp.Y.PresentedName : "<...>";
         let labelX = this.HistoOp && this.HistoOp.X ? this.HistoOp.X.PresentedName : "<...>";
-        var h = this.props.isTopMost ? this.PanelHeight : this.props.Document.GetNumber(KeyStore.Height, 0);
-        var w = this.props.isTopMost ? this.PanelWidth : this.props.Document.GetNumber(KeyStore.Width, 0);
         let loff = this.SizeConverter.LeftOffset;
         let toff = this.SizeConverter.TopOffset;
         let roff = this.SizeConverter.RightOffset;
         let boff = this.SizeConverter.BottomOffset;
         return (
-            <Measure onResize={(r: any) => runInAction(() => { this.PanelWidth = r.entry.width; this.PanelHeight = r.entry.height; })}>
-                {({ measureRef }) =>
-                    <div className="histogrambox-container" ref={measureRef} style={{ transform: `translate(-50%, -50%)` }}>
-                        <div className="histogrambox-yaxislabel" onPointerDown={this.yLabelPointerDown} ref={this._dropYRef} >
-                            <span className="histogrambox-yaxislabel-text">
-                                {labelY}
-                            </span>
-                        </div>
-                        <div className="histogrambox-primitives" style={{
-                            transform: `translate(${loff + 25}px, ${toff}px)`,
-                            width: `calc(100% - ${loff + roff + 25}px)`,
-                            height: `calc(100% - ${toff + boff}px)`,
-                        }}>
-                            <HistogramLabelPrimitives HistoBox={this} />
-                            <HistogramBoxPrimitives HistoBox={this} />
-                        </div>
-                        <div className="histogrambox-xaxislabel" onPointerDown={this.xLabelPointerDown} ref={this._dropXRef} >
-                            {labelX}
-                        </div>
-                    </div>
-                }
-            </Measure>
+            <div className="histogrambox-container" onWheel={this.onScrollWheel}>
+                <div className="histogrambox-yaxislabel" onPointerDown={this.yLabelPointerDown} ref={this._dropYRef} >
+                    <span className="histogrambox-yaxislabel-text">
+                        {labelY}
+                    </span>
+                </div>
+                <div className="histogrambox-primitives" style={{
+                    transform: `translate(${loff + 25}px, ${toff}px)`,
+                    width: `calc(100% - ${loff + roff + 25}px)`,
+                    height: `calc(100% - ${toff + boff}px)`,
+                }}>
+                    <HistogramLabelPrimitives HistoBox={this} />
+                    <HistogramBoxPrimitives HistoBox={this} />
+                </div>
+                <div className="histogrambox-xaxislabel" onPointerDown={this.xLabelPointerDown} ref={this._dropXRef} >
+                    {labelX}
+                </div>
+            </div>
         );
     }
 }

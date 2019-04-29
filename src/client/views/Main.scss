@@ -13,6 +13,10 @@ body {
     left: 0;
 }
 
+div {
+    user-select: none;
+}
+
 #dash-title {
     position: absolute;
     right: 46.5%;
@@ -43,7 +47,9 @@ h1 {
 }
 
 .jsx-parser {
-    width: 100%
+    width: 100%;
+    pointer-events: none;
+    border-radius: inherit;
 }
 
 p {
@@ -54,7 +60,7 @@ p {
 ::-webkit-scrollbar {
     -webkit-appearance: none;
     height: 5px;
-    width: 5px;
+    width: 10px;
 }
 
 ::-webkit-scrollbar-thumb {

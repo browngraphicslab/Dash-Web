@@ -12,7 +12,7 @@ export class CollectionFreeFormRemoteCursors extends React.Component<CollectionV
     protected getCursors(): CursorEntry[] {
         let doc = this.props.Document;
         let id = CurrentUserUtils.id;
-        let cursors = doc.GetList<CursorEntry>(KeyStore.Cursors, []);
+        let cursors = doc.GetList(KeyStore.Cursors, [] as CursorEntry[]);
         let notMe = cursors.filter(entry => entry.Data[0][0] !== id);
         return id ? notMe : [];
     }
