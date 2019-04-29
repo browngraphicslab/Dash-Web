@@ -51,7 +51,7 @@ export namespace Templates {
     );
 
     export const Title = new Template("Title", TemplatePosition.InnerTop,
-        `<div><div style="margin:auto; height:calc(100% - 50px); width:100%;">{layout}</div><div style="height:50px; width:100%; position:absolute; top: 0; background-color: rgba(0, 0, 0, .6); color: white; padding:12px">{Title}</div></div>`
+        `<div><div style="height:100%; width:100%;position:absolute;">{layout}</div><div style="height:25px; width:100%; position:absolute; top: 0; background-color: rgba(0, 0, 0, .4); color: white; padding:12px">{Title}</div></div>`
     );
 
     export const TemplateList: Template[] = [Title, OuterCaption, InnerCaption, SideCaption];
