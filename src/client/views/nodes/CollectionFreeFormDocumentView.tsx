@@ -134,6 +134,7 @@ export class CollectionFreeFormDocumentView extends React.Component<CollectionFr
     onPointerDown = (e: React.PointerEvent): void => {
         this._downX = e.clientX;
         this._downY = e.clientY;
+        e.stopPropagation();
     }
     onClick = (e: React.MouseEvent): void => {
         e.stopPropagation();
