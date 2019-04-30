@@ -7,7 +7,7 @@ import { DocComponent } from "../DocComponent";
 import { positionSchema } from "./DocumentView";
 import { makeInterface } from "../../../new_fields/Schema";
 import { pageSchema } from "./ImageBox";
-import { Cast, FieldValue } from "../../../new_fields/Types";
+import { Cast, FieldValue, NumCast } from "../../../new_fields/Types";
 import { VideoField } from "../../../new_fields/URLField";
 import Measure from "react-measure";
 import "./VideoBox.scss";
@@ -59,24 +59,27 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
             (vref as any).AHackBecauseSomethingResetsTheVideoToZero = this.curPage;
         }
     }
+    videoContent(path: string) {
+        return <video className="videobox-cont" ref={this.setVideoRef}>
+            <source src={path} type="video/mp4" />
+            Not supported.
+    </video>;
+    }
 
     render() {
         let field = FieldValue(Cast(this.Document[this.props.fieldKey], VideoField));
         if (!field) {
             return <div>Loading</div>;
         }
-        let path = field.url.href;
-        return (
+        let content = this.videoContent(field.url.href);
+        return NumCast(this.props.Document.nativeHeight) ?
+            content :
             <Measure onResize={this.setScaling}>
                 {({ measureRef }) =>
                     <div style={{ width: "100%", height: "auto" }} ref={measureRef}>
-                        <video className="videobox-cont" ref={this.setVideoRef}>
-                            <source src={path} type="video/mp4" />
-                            Not supported.
-                        </video>
+                        {content}
                     </div>
                 }
-            </Measure>
-        );
+            </Measure>;
     }
 }

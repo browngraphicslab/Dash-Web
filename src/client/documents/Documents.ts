@@ -18,6 +18,8 @@ import { action } from "mobx";
 import { ColumnAttributeModel } from "../northstar/core/attribute/AttributeModel";
 import { AttributeTransformationModel } from "../northstar/core/attribute/AttributeTransformationModel";
 import { AggregateFunction } from "../northstar/model/idea/idea";
+import { Template } from "../views/Templates";
+import { TemplateField } from "../../fields/TemplateField";
 import { MINIMIZED_ICON_SIZE } from "../views/globalCssVariables.scss";
 import { IconBox } from "../views/nodes/IconBox";
 import { Field, Doc, Opt } from "../../new_fields/Doc";
@@ -30,7 +32,11 @@ import { IconField } from "../../new_fields/IconField";
 import { listSpec } from "../../new_fields/Schema";
 import { DocServer } from "../DocServer";
 import { StrokeData, InkField } from "../../new_fields/InkField";
+import { KeyStore } from "../../fields/KeyStore";
 
+// export class stringArray implements List<any>  {
+//     public Values: string[] = [];
+// }
 export interface DocumentOptions {
     x?: number;
     y?: number;
@@ -44,7 +50,9 @@ export interface DocumentOptions {
     panY?: number;
     page?: number;
     scale?: number;
+    baseLayout?: string;
     layout?: string;
+    //templates?: Array<Template>;
     viewType?: number;
     backgroundColor?: string;
     copyDraggedItems?: boolean;
@@ -52,6 +60,7 @@ export interface DocumentOptions {
     curPage?: number;
     documentText?: string;
     borderRounding?: number;
+    //schemaColumns?: stringArray;
     // [key: string]: Opt<Field>;
 }
 const delegateKeys = ["x", "y", "width", "height", "panX", "panY"];
@@ -94,7 +103,7 @@ export namespace Docs {
     }
 
     function setupPrototypeOptions(protoId: string, title: string, layout: string, options: DocumentOptions): Doc {
-        return Doc.assign(new Doc(protoId, true), { ...options, title: title, layout: layout });
+        return Doc.assign(new Doc(protoId, true), { ...options, title: title, layout: layout, baseLayout: layout });
     }
     function SetInstanceOptions<U extends Field>(doc: Doc, options: DocumentOptions, value: U) {
         const deleg = Doc.MakeDelegate(doc);
@@ -234,13 +243,13 @@ export namespace Docs {
         if (!makePrototype) {
             return SetInstanceOptions(collProto, { ...options, viewType: CollectionViewType.Freeform }, new List(documents));
         }
-        return CreateInstance(collProto, new List(documents), { ...options, viewType: CollectionViewType.Freeform });
+        return CreateInstance(collProto, new List(documents), { /*schemaColumns: [KeyStore.SchemaColumns],*/...options, viewType: CollectionViewType.Freeform });
     }
     export function SchemaDocument(documents: Array<Doc>, options: DocumentOptions) {
-        return CreateInstance(collProto, new List(documents), { ...options, viewType: CollectionViewType.Schema });
+        return CreateInstance(collProto, new List(documents), { /*schemaColumns: [KeyStore.SchemaColumns], */...options, viewType: CollectionViewType.Schema });
     }
     export function TreeDocument(documents: Array<Doc>, options: DocumentOptions) {
-        return CreateInstance(collProto, new List(documents), { ...options, viewType: CollectionViewType.Tree });
+        return CreateInstance(collProto, new List(documents), { /*schemaColumns: [KeyStore.SchemaColumns], */...options, viewType: CollectionViewType.Tree });
     }
     export function DockDocument(config: string, options: DocumentOptions) {
         return CreateInstance(collProto, config, { ...options, viewType: CollectionViewType.Docking });

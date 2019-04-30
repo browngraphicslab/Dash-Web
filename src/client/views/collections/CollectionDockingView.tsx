@@ -241,6 +241,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         this.props.Document.data = json;
         if (this.undohack && !this.hack) {
             this.undohack.end();
+            this.undohack = undefined;
         }
         this.hack = false;
     }

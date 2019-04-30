@@ -150,7 +150,7 @@ export class Main extends React.Component {
         if (list) {
             let freeformDoc = Docs.FreeformDocument([], { x: 0, y: 400, title: "mini collection" });
             var dockingLayout = { content: [{ type: 'row', content: [CollectionDockingView.makeDocumentConfig(freeformDoc)] }] };
-            let mainDoc = Docs.DockDocument(JSON.stringify(dockingLayout), { title: `Main Container ${list.length + 1}` }, id);
+            let mainDoc = Docs.DockDocument(JSON.stringify(dockingLayout), { title: `Main Container ${list.length + 1}` });
             list.push(mainDoc);
             CurrentUserUtils.MainDocId = mainDoc[Id];
             // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
@@ -216,7 +216,7 @@ export class Main extends React.Component {
         let audiourl = "http://techslides.com/demos/samples/sample.mp3";
         let videourl = "http://techslides.com/demos/sample-videos/small.mp4";
 
-        let addTextNode = action(() => Docs.TextDocument({ width: 200, height: 200, title: "a text note" }));
+        let addTextNode = action(() => Docs.TextDocument({ borderRounding: -1, width: 200, height: 200, title: "a text note" }));
         let addColNode = action(() => Docs.FreeformDocument([], { width: 200, height: 200, title: "a freeform collection" }));
         let addSchemaNode = action(() => Docs.SchemaDocument([], { width: 200, height: 200, title: "a schema collection" }));
         let addTreeNode = action(() => Docs.TreeDocument(this._northstarSchemas, { width: 250, height: 400, title: "northstar schemas", copyDraggedItems: true }));

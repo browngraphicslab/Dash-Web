@@ -24,6 +24,7 @@ import { FieldValue, Cast, NumCast } from "../../../../new_fields/Types";
 import { pageSchema } from "../../nodes/ImageBox";
 import { List } from "../../../../new_fields/List";
 import { Id } from "../../../../new_fields/RefField";
+import { KeyStore } from "../../../../fields/KeyStore";
 
 export const panZoomSchema = createSchema({
     panX: "number",
@@ -295,7 +296,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         super.setCursorPosition(this.getTransform().transformPoint(e.clientX, e.clientY));
     }
 
-    private childViews = () => [...this.views, <CollectionFreeFormBackgroundView key="backgroundView" {...this.getDocumentViewProps(this.props.Document)} />];
+    private childViews = () => [...this.views, <CollectionFreeFormBackgroundView key="backgroundView" {...this.props} {...this.getDocumentViewProps(this.props.Document)} />];
     render() {
         trace();
         const containerName = `collectionfreeformview${this.isAnnotationOverlay ? "-overlay" : "-container"}`;
@@ -308,7 +309,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                         {this.props.Document.Title}
                     </text>
                 </svg> */}
-                <MarqueeView container={this} activeDocuments={this.getActiveDocuments} selectDocuments={this.selectDocuments}
+                <MarqueeView container={this} activeDocuments={this.getActiveDocuments} selectDocuments={this.selectDocuments} isSelected={this.props.isSelected}
                     addDocument={this.addDocument} removeDocument={this.props.removeDocument} addLiveTextDocument={this.addLiveTextBox}
                     getContainerTransform={this.getContainerTransform} getTransform={this.getTransform}>
                     <CollectionFreeFormViewPannableContents centeringShiftX={this.centeringShiftX} centeringShiftY={this.centeringShiftY}
@@ -320,7 +321,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                         </CollectionFreeFormLinksView>
                         {/* <CollectionFreeFormRemoteCursors {...this.props} key="remoteCursors" /> */}
                     </CollectionFreeFormViewPannableContents>
-                    <CollectionFreeFormOverlayView {...this.getDocumentViewProps(this.props.Document)} />
+                    <CollectionFreeFormOverlayView {...this.getDocumentViewProps(this.props.Document)} {...this.props} />
                 </MarqueeView>
             </div>
         );
@@ -332,7 +333,7 @@ class CollectionFreeFormOverlayView extends React.Component<DocumentViewProps> {
     @computed get overlayView() {
         let overlayLayout = Cast(this.props.Document.overlayLayout, "string", "");
         return !overlayLayout ? (null) :
-            (<DocumentContentsView {...this.props} layoutKey={"overlayLayout"}
+            (<DocumentContentsView {...this.props} layoutKey={KeyStore.OverlayLayout}
                 isTopMost={this.props.isTopMost} isSelected={returnFalse} select={emptyFunction} />);
     }
     render() {
@@ -341,12 +342,12 @@ class CollectionFreeFormOverlayView extends React.Component<DocumentViewProps> {
 }
 
 @observer
-class CollectionFreeFormBackgroundView extends React.Component<DocumentViewProps> {
+class CollectionFreeFormBackgroundView extends React.Component<DocumentViewProps & { isSelected: () => boolean }> {
     @computed get backgroundView() {
         let backgroundLayout = Cast(this.props.Document.backgroundLayout, "string", "");
         return !backgroundLayout ? (null) :
-            (<DocumentContentsView {...this.props} layoutKey={"backgroundLayout"}
-                isTopMost={this.props.isTopMost} isSelected={returnFalse} select={emptyFunction} />);
+            (<DocumentContentsView {...this.props} layoutKey={KeyStore.BackgroundLayout}
+                isTopMost={this.props.isTopMost} isSelected={this.props.isSelected} select={emptyFunction} />);
     }
     render() {
         return this.backgroundView;

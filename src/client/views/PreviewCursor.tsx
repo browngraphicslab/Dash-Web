@@ -26,12 +26,11 @@ export class PreviewCursor extends React.Component<{}> {
         // DASHFormattedTextBoxHandled flag when a text box consumes a key press so that we can ignore
         // the keyPress here.
         //if not these keys, make a textbox if preview cursor is active!
-        if (!e.ctrlKey && !e.altKey && !e.defaultPrevented && !(e as any).DASHFormattedTextBoxHandled) {
-            PreviewCursor.Visible && PreviewCursor._onKeyPress && PreviewCursor._onKeyPress(e);
-            PreviewCursor.Visible = false;
-        } else if (e.ctrlKey) {
-            if (e.key == "v") {
+        if (e.key.startsWith("F") && !e.key.endsWith("F")) {
+        } else if (e.key != "Escape" && e.key != "Alt" && e.key != "Shift" && e.key != "Meta" && e.key != "Control" && !e.defaultPrevented && !(e as any).DASHFormattedTextBoxHandled) {
+            if ((!e.ctrlKey && !e.metaKey) || e.key === "v") {
                 PreviewCursor.Visible && PreviewCursor._onKeyPress && PreviewCursor._onKeyPress(e);
+                PreviewCursor.Visible = false;
             }
         }
     }

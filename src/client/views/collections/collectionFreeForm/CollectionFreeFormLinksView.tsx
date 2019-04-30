@@ -84,6 +84,14 @@ export class CollectionFreeFormLinksView extends React.Component<CollectionViewP
         if (containerDoc) {
             equalViews = DocumentManager.Instance.getDocumentViews(containerDoc.proto!);
         }
+        if (view.props.ContainingCollectionView) {
+            let collid = view.props.ContainingCollectionView.props.Document.Id;
+            Cast(this.props.Document[this.props.fieldKey], listSpec(Doc), []).
+                filter(child =>
+                    child.Id === collid).map(view =>
+                        DocumentManager.Instance.getDocumentViews(view).map(view =>
+                            equalViews.push(view)));
+        }
         return equalViews.filter(sv => sv.props.ContainingCollectionView && sv.props.ContainingCollectionView.props.Document === this.props.Document);
     }
 
@@ -107,7 +115,8 @@ export class CollectionFreeFormLinksView extends React.Component<CollectionViewP
             );
             return drawnPairs;
         }, [] as { a: Doc, b: Doc, l: Doc[] }[]);
-        return connections.map(c => <CollectionFreeFormLinkView key={Utils.GenerateGuid()} A={c.a} B={c.b} LinkDocs={c.l} />);
+        return connections.map(c => <CollectionFreeFormLinkView key={Utils.GenerateGuid()} A={c.a} B={c.b} LinkDocs={c.l}
+            removeDocument={this.props.removeDocument} addDocument={this.props.addDocument} />);
     }
 
     render() {

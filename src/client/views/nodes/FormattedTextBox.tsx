@@ -1,4 +1,4 @@
-import { action, IReactionDisposer, reaction, trace, computed } from "mobx";
+import { action, IReactionDisposer, reaction, trace, computed, _allowStateChangesInsideComputed } from "mobx";
 import { baseKeymap } from "prosemirror-commands";
 import { history } from "prosemirror-history";
 import { keymap } from "prosemirror-keymap";
@@ -20,7 +20,7 @@ import { createSchema, makeInterface } from "../../../new_fields/Schema";
 import { Opt, Doc } from "../../../new_fields/Doc";
 import { observer } from "mobx-react";
 import { InkingControl } from "../InkingControl";
-import { StrCast, Cast } from "../../../new_fields/Types";
+import { StrCast, Cast, NumCast } from "../../../new_fields/Types";
 import { RichTextField } from "../../../new_fields/RichTextField";
 import { Id } from "../../../new_fields/RefField";
 const { buildMenuItems } = require("prosemirror-example-setup");
@@ -60,6 +60,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         return FieldView.LayoutString(FormattedTextBox, fieldStr);
     }
     private _ref: React.RefObject<HTMLDivElement>;
+    private _proseRef: React.RefObject<HTMLDivElement>;
     private _editorView: Opt<EditorView>;
     private _gotDown: boolean = false;
     private _reactionDisposer: Opt<IReactionDisposer>;
@@ -70,19 +71,26 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         super(props);
 
         this._ref = React.createRef();
+        this._proseRef = React.createRef();
     }
 
     _applyingChange: boolean = false;
 
+    _lastState: any = undefined;
     dispatchTransaction = (tx: Transaction) => {
         if (this._editorView) {
-            const state = this._editorView.state.apply(tx);
+            const state = this._lastState = this._editorView.state.apply(tx);
             this._editorView.updateState(state);
             this._applyingChange = true;
             Doc.SetOnPrototype(this.props.Document, this.props.fieldKey, new RichTextField(JSON.stringify(state.toJSON())));
             Doc.SetOnPrototype(this.props.Document, "documentText", state.doc.textBetween(0, state.doc.content.size, "\n\n"));
             this._applyingChange = false;
-            // doc.SetData(fieldKey, JSON.stringify(state.toJSON()), RichTextField);
+            let title = StrCast(this.props.Document.title);
+            if (title && title.startsWith("-") && this._editorView) {
+                let str = this._editorView.state.doc.textContent;
+                let titlestr = str.substr(0, Math.min(40, str.length));
+                this.props.Document.title = "-" + titlestr + (str.length > 40 ? "..." : "");
+            };
         }
     }
 
@@ -91,10 +99,10 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             schema,
             inpRules, //these currently don't do anything, but could eventually be helpful
             plugins: this.props.isOverlay ? [
+                this.tooltipTextMenuPlugin(),
                 history(),
                 keymap(buildKeymap(schema)),
                 keymap(baseKeymap),
-                this.tooltipTextMenuPlugin(),
                 // this.tooltipLinkingMenuPlugin(),
                 new Plugin({
                     props: {
@@ -165,18 +173,19 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     }
 
     onPointerDown = (e: React.PointerEvent): void => {
-        if (e.button === 1 && this.props.isSelected() && !e.altKey && !e.ctrlKey && !e.metaKey) {
-            console.log("first");
+        if (e.button === 0 && this.props.isSelected() && !e.altKey && !e.ctrlKey && !e.metaKey) {
             e.stopPropagation();
+            if (this._toolTipTextMenu && this._toolTipTextMenu.tooltip)
+                this._toolTipTextMenu.tooltip.style.opacity = "0";
         }
-        if (e.button === 2) {
+        if (e.button === 2 || (e.button === 0 && e.ctrlKey)) {
             this._gotDown = true;
-            console.log("second");
             e.preventDefault();
         }
     }
     onPointerUp = (e: React.PointerEvent): void => {
-        console.log("pointer up");
+        if (this._toolTipTextMenu && this._toolTipTextMenu.tooltip)
+            this._toolTipTextMenu.tooltip.style.opacity = "1";
         if (e.buttons === 1 && this.props.isSelected() && !e.altKey) {
             e.stopPropagation();
         }
@@ -184,9 +193,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
     onFocused = (e: React.FocusEvent): void => {
         if (!this.props.isOverlay) {
-            if (MainOverlayTextBox.Instance.TextDoc !== this.props.Document) {
-                MainOverlayTextBox.Instance.SetTextDoc(this.props.Document, this.props.fieldKey, this._ref.current!, this.props.ScreenToLocalTransform);
-            }
+            MainOverlayTextBox.Instance.SetTextDoc(this.props.Document, this.props.fieldKey, this._ref.current!, this.props.ScreenToLocalTransform);
         } else {
             if (this._ref.current) {
                 this._ref.current.scrollTop = MainOverlayTextBox.Instance.TextScroll;
@@ -228,18 +235,20 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     }
 
     onClick = (e: React.MouseEvent): void => {
-        this._ref.current!.focus();
+        this._proseRef.current!.focus();
     }
 
     tooltipTextMenuPlugin() {
         let myprops = this.props;
+        let self = this;
         return new Plugin({
             view(_editorView) {
-                return new TooltipTextMenu(_editorView, myprops);
+                return self._toolTipTextMenu = new TooltipTextMenu(_editorView, myprops);
             }
         });
     }
 
+    _toolTipTextMenu: TooltipTextMenu | undefined = undefined;
     tooltipLinkingMenuPlugin() {
         let myprops = this.props;
         return new Plugin({
@@ -254,7 +263,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             SelectionManager.DeselectAll();
         }
         e.stopPropagation();
-        if (e.keyCode === 9) e.preventDefault();
+        if (e.key === "Tab") e.preventDefault();
         // stop propagation doesn't seem to stop propagation of native keyboard events.
         // so we set a flag on the native event that marks that the event's been handled.
         (e.nativeEvent as any).DASHFormattedTextBoxHandled = true;
@@ -266,10 +275,11 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     }
     render() {
         let style = this.props.isOverlay ? "scroll" : "hidden";
+        let rounded = NumCast(this.props.Document.borderRounding) < 0 ? "-rounded" : "";
         let color = StrCast(this.props.Document.backgroundColor);
         let interactive = InkingControl.Instance.selectedTool ? "" : "interactive";
         return (
-            <div className={`formattedTextBox-cont-${style}`}
+            <div className={`formattedTextBox-cont${style}`} ref={this._ref}
                 style={{
                     pointerEvents: interactive ? "all" : "none",
                     background: color,
@@ -283,7 +293,9 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 onContextMenu={this.specificContextMenu}
                 // tfs: do we need this event handler
                 onWheel={this.onPointerWheel}
-                ref={this._ref} />
+            >
+                <div className={`formattedTextBox-inner${rounded}`} ref={this._proseRef} />
+            </div>
         );
     }
 }
