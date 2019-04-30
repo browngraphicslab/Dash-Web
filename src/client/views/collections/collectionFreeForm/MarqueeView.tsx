@@ -143,8 +143,8 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             let bounds = this.Bounds;
             let selected = this.marqueeSelect().map(d => {
                 this.props.removeDocument(d);
-                d.x = NumCast(d.X) - bounds.left - bounds.width / 2;
-                d.y = NumCast(d.Y) - bounds.top - bounds.height / 2;
+                d.x = NumCast(d.x) - bounds.left - bounds.width / 2;
+                d.y = NumCast(d.y) - bounds.top - bounds.height / 2;
                 d.page = -1;
                 return d;
             });
