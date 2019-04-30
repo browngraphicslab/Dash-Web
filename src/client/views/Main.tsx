@@ -214,6 +214,7 @@ export class Main extends React.Component {
                             parentActive={returnTrue}
                             whenActiveChanged={emptyFunction}
                             ContainingCollectionView={undefined} />}
+                    {pcontent}
                 </div>
             }
         </Measure>;
