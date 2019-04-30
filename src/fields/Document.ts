@@ -203,7 +203,7 @@ export class Document extends Field {
         callback: (field: T) => void
     ): void {
         //This currently doesn't deal with prototypes
-        if (this._proxies.has(key.Id)) {
+        if (this._proxies.has(key.Id) || this.fields.has(key.Id)) {
             Server.GetDocumentField(this, key, field => {
                 if (field && field instanceof ctor) {
                     callback(field);

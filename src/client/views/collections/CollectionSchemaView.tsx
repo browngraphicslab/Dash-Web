@@ -2,13 +2,13 @@ import React = require("react");
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faCog, faPlus } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { action, computed, observable, untracked } from "mobx";
+import { action, computed, observable, untracked, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import ReactTable, { CellInfo, ComponentPropsGetterR, ReactTableDefaults } from "react-table";
 import { MAX_ROW_HEIGHT } from '../../views/globalCssVariables.scss'
 import "react-table/react-table.css";
 import { Document } from "../../../fields/Document";
-import { Field, Opt } from "../../../fields/Field";
+import { Field, Opt, FieldWaiting } from "../../../fields/Field";
 import { Key } from "../../../fields/Key";
 import { KeyStore } from "../../../fields/KeyStore";
 import { ListField } from "../../../fields/ListField";
@@ -165,18 +165,22 @@ export class CollectionSchemaView extends CollectionSubView {
         super.CreateDropTarget(ele);
     }
 
-    @action
     toggleKey = (key: Key) => {
-        this.props.Document.GetOrCreateAsync<ListField<Key>>(KeyStore.ColumnsKey, ListField,
-            (field) => {
-                const index = field.Data.indexOf(key);
-                if (index === -1) {
-                    this.columns.push(key);
-                } else {
-                    this.columns.splice(index, 1);
+        this.props.Document.GetTAsync<ListField<Key>>(KeyStore.ColumnsKey, ListField).then(field =>
+            runInAction(() => {
+                if (field !== FieldWaiting) {
+                    if (field) {
+                        const index = field.Data.indexOf(key);
+                        if (index === -1) {
+                            this.columns.push(key);
+                        } else {
+                            this.columns.splice(index, 1);
+                        }
+                    } else {
+                        this.props.Document.SetData(KeyStore.ColumnsKey, [key], ListField);
+                    }
                 }
-
-            });
+            }));
     }
 
     //toggles preview side-panel of schema
