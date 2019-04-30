@@ -272,6 +272,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     get views() {
         let curPage = FieldValue(this.Document.curPage, -1);
         let docviews = (this.children || []).filter(doc => doc).reduce((prev, doc) => {
+            if (!FieldValue(doc)) return prev;
             var page = Cast(doc.page, "number", -1);
             if (page === curPage || page === -1) {
                 let minim = Cast(doc.isMinimized, "boolean");

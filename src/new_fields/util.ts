@@ -78,6 +78,14 @@ export function getField(target: any, prop: string | number, ignoreProto: boolea
     return field;
 }
 
+export function deleteProperty(target: any, prop: string | number | symbol) {
+    if (typeof prop === "symbol") {
+        delete target[prop];
+        return true;
+    }
+    throw new Error("Currently properties can't be deleted from documents, assign to undefined instead");
+}
+
 export function updateFunction(target: any, prop: any, value: any) {
     return (diff?: any) => {
         if (!diff) diff = { '$set': { ["fields." + prop]: SerializationHelper.Serialize(value) } };
