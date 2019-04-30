@@ -22,9 +22,7 @@ import { createSchema, makeInterface, listSpec } from "../../../../new_fields/Sc
 import { Doc, WidthSym, HeightSym } from "../../../../new_fields/Doc";
 import { FieldValue, Cast, NumCast } from "../../../../new_fields/Types";
 import { pageSchema } from "../../nodes/ImageBox";
-import { List } from "../../../../new_fields/List";
 import { Id } from "../../../../new_fields/RefField";
-import { KeyStore } from "../../../../fields/KeyStore";
 
 export const panZoomSchema = createSchema({
     panX: "number",
@@ -272,7 +270,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     @computed.struct
     get views() {
-        trace();
         let curPage = FieldValue(this.Document.curPage, -1);
         let docviews = (this.children || []).filter(doc => doc).reduce((prev, doc) => {
             if (!FieldValue(doc)) return prev;
@@ -298,7 +295,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     private childViews = () => [...this.views, <CollectionFreeFormBackgroundView key="backgroundView" {...this.props} {...this.getDocumentViewProps(this.props.Document)} />];
     render() {
-        trace();
         const containerName = `collectionfreeformview${this.isAnnotationOverlay ? "-overlay" : "-container"}`;
         return (
             <div className={containerName} ref={this.createDropTarget} onWheel={this.onPointerWheel}
@@ -333,7 +329,7 @@ class CollectionFreeFormOverlayView extends React.Component<DocumentViewProps> {
     @computed get overlayView() {
         let overlayLayout = Cast(this.props.Document.overlayLayout, "string", "");
         return !overlayLayout ? (null) :
-            (<DocumentContentsView {...this.props} layoutKey={KeyStore.OverlayLayout}
+            (<DocumentContentsView {...this.props} layoutKey={"overlayLayout"}
                 isTopMost={this.props.isTopMost} isSelected={returnFalse} select={emptyFunction} />);
     }
     render() {
@@ -346,7 +342,7 @@ class CollectionFreeFormBackgroundView extends React.Component<DocumentViewProps
     @computed get backgroundView() {
         let backgroundLayout = Cast(this.props.Document.backgroundLayout, "string", "");
         return !backgroundLayout ? (null) :
-            (<DocumentContentsView {...this.props} layoutKey={KeyStore.BackgroundLayout}
+            (<DocumentContentsView {...this.props} layoutKey={"backgroundLayout"}
                 isTopMost={this.props.isTopMost} isSelected={this.props.isSelected} select={emptyFunction} />);
     }
     render() {

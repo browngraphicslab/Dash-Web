@@ -18,7 +18,6 @@ import { Doc, FieldResult } from "../../new_fields/Doc";
 import { listSpec } from "../../new_fields/Schema";
 import { Docs } from "../documents/Documents";
 import { List } from "../../new_fields/List";
-import { KeyStore } from "../../fields/KeyStore";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -40,7 +39,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     @observable private _minimizedY = 0;
     @observable private _title: string = "";
     @observable private _edtingTitle = false;
-    @observable private _fieldKey = KeyStore.Title;
+    @observable private _fieldKey = "title";
     @observable private _hidden = false;
     @observable private _opacity = 1;
     @observable private _iconifying = false;

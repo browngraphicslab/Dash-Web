@@ -32,11 +32,7 @@ import { IconField } from "../../new_fields/IconField";
 import { listSpec } from "../../new_fields/Schema";
 import { DocServer } from "../DocServer";
 import { StrokeData, InkField } from "../../new_fields/InkField";
-import { KeyStore } from "../../fields/KeyStore";
 
-// export class stringArray implements List<any>  {
-//     public Values: string[] = [];
-// }
 export interface DocumentOptions {
     x?: number;
     y?: number;
@@ -60,7 +56,7 @@ export interface DocumentOptions {
     curPage?: number;
     documentText?: string;
     borderRounding?: number;
-    //schemaColumns?: stringArray;
+    schemaColumns?: List<string>;
     // [key: string]: Opt<Field>;
 }
 const delegateKeys = ["x", "y", "width", "height", "panX", "panY"];
@@ -243,13 +239,13 @@ export namespace Docs {
         if (!makePrototype) {
             return SetInstanceOptions(collProto, { ...options, viewType: CollectionViewType.Freeform }, new List(documents));
         }
-        return CreateInstance(collProto, new List(documents), { /*schemaColumns: [KeyStore.SchemaColumns],*/...options, viewType: CollectionViewType.Freeform });
+        return CreateInstance(collProto, new List(documents), { schemaColumns: new List(["schemaColumns"]), ...options, viewType: CollectionViewType.Freeform });
     }
     export function SchemaDocument(documents: Array<Doc>, options: DocumentOptions) {
-        return CreateInstance(collProto, new List(documents), { /*schemaColumns: [KeyStore.SchemaColumns], */...options, viewType: CollectionViewType.Schema });
+        return CreateInstance(collProto, new List(documents), { schemaColumns: new List(["schemaColumns"]), ...options, viewType: CollectionViewType.Schema });
     }
     export function TreeDocument(documents: Array<Doc>, options: DocumentOptions) {
-        return CreateInstance(collProto, new List(documents), { /*schemaColumns: [KeyStore.SchemaColumns], */...options, viewType: CollectionViewType.Tree });
+        return CreateInstance(collProto, new List(documents), { schemaColumns: new List(["schemaColumns"]), ...options, viewType: CollectionViewType.Tree });
     }
     export function DockDocument(config: string, options: DocumentOptions) {
         return CreateInstance(collProto, config, { ...options, viewType: CollectionViewType.Docking });
