@@ -47,13 +47,10 @@ export class CollectionFreeFormView extends CollectionSubView {
         this._selectOnLoaded = newBox.Id;// track the new text box so we can give it a prop that tells it to focus itself when it's displayed
         this.addDocument(newBox, false);
     }
-    @action
-    private addDocument = (newBox: Document, allowDuplicates: boolean) => {
-        this.props.addDocument(newBox, false);
-        this.bringToFront(newBox);
-        return true;
-    }
-    private selectDocuments = (docs: Document[]) => {
+
+    public addDocument = (newBox: Document, allowDuplicates: boolean) => this.props.addDocument(this.bringToFront(newBox), false);
+
+    public selectDocuments = (docs: Document[]) => {
         SelectionManager.DeselectAll;
         docs.map(doc => DocumentManager.Instance.getDocumentView(doc)).filter(dv => dv).map(dv =>
             SelectionManager.SelectDoc(dv!, true));
