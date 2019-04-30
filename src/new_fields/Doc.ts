@@ -36,6 +36,15 @@ export class Doc extends RefField {
             set: setter,
             get: getter,
             ownKeys: target => Object.keys(target.__fields),
+            getOwnPropertyDescriptor: (target, prop) => {
+                if (prop in target.__fields) {
+                    return {
+                        configurable: true,//TODO Should configurable be true?
+                        enumerable: true,
+                    };
+                }
+                return Reflect.getOwnPropertyDescriptor(target, prop);
+            },
             deleteProperty: deleteProperty,
             defineProperty: () => { throw new Error("Currently properties can't be defined on documents using Object.defineProperty"); },
         });
