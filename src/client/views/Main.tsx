@@ -150,7 +150,7 @@ export class Main extends React.Component {
         if (list) {
             let freeformDoc = Docs.FreeformDocument([], { x: 0, y: 400, title: "mini collection" });
             var dockingLayout = { content: [{ type: 'row', content: [CollectionDockingView.makeDocumentConfig(freeformDoc)] }] };
-            let mainDoc = Docs.DockDocument(JSON.stringify(dockingLayout), { title: `Main Container ${list.length + 1}` }, id);
+            let mainDoc = Docs.DockDocument(JSON.stringify(dockingLayout), { title: `Main Container ${list.length + 1}` });
             list.push(mainDoc);
             CurrentUserUtils.MainDocId = mainDoc[Id];
             // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
