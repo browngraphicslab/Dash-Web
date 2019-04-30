@@ -97,7 +97,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                     if (!NumCast(d.height)) {
                         let nw = NumCast(d.nativeWidth);
                         let nh = NumCast(d.nativeHeight);
-                        d.height = nw && nh ? nh / nw * NumCast(d.Width) : 300;
+                        d.height = nw && nh ? nh / nw * NumCast(d.width) : 300;
                     }
                     this.bringToFront(d);
                 });
@@ -106,12 +106,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             return true;
         }
         return false;
-    }
-
-    @action
-    cleanupInteractions = () => {
-        document.removeEventListener("pointermove", this.onPointerMove);
-        document.removeEventListener("pointerup", this.onPointerUp);
     }
 
     @action
@@ -125,7 +119,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 (e.button === 0 && e.altKey)) && (childSelected || this.props.active()))) ||
             (!CollectionFreeFormView.RIGHT_BTN_DRAG &&
                 ((e.button === 0 && !e.altKey && (!this.isAnnotationOverlay || this.zoomScaling() !== 1)) && (childSelected || this.props.active())))) {
-            this.cleanupInteractions();
+            document.removeEventListener("pointermove", this.onPointerMove);
+            document.removeEventListener("pointerup", this.onPointerUp);
             document.addEventListener("pointermove", this.onPointerMove);
             document.addEventListener("pointerup", this.onPointerUp);
             this._lastX = e.pageX;
@@ -134,7 +129,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
     onPointerUp = (e: PointerEvent): void => {
-        this.cleanupInteractions();
+        document.removeEventListener("pointermove", this.onPointerMove);
+        document.removeEventListener("pointerup", this.onPointerUp);
     }
 
     @action
@@ -300,11 +296,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             <div className={containerName} ref={this.createDropTarget} onWheel={this.onPointerWheel}
                 style={{ borderRadius: "inherit" }}
                 onPointerDown={this.onPointerDown} onPointerMove={this.onCursorMove} onDrop={this.onDrop.bind(this)} onDragOver={this.onDragOver} >
-                {/* <svg viewBox="0 0 180 18" style={{ top: "50%", opacity: 0.05, position: "absolute" }}>
-                    <text y="15" >
-                        {this.props.Document.Title}
-                    </text>
-                </svg> */}
                 <MarqueeView container={this} activeDocuments={this.getActiveDocuments} selectDocuments={this.selectDocuments} isSelected={this.props.isSelected}
                     addDocument={this.addDocument} removeDocument={this.props.removeDocument} addLiveTextDocument={this.addLiveTextBox}
                     getContainerTransform={this.getContainerTransform} getTransform={this.getTransform}>

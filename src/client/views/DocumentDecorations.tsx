@@ -268,7 +268,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 minDocs.map(minDoc => {
                     minDoc.x = NumCast(minDocs[0].x);
                     minDoc.y = NumCast(minDocs[0].y);
-                    minDoc.linkTags = new List(minDocs);
+                    minDoc.linkTags = new List(minDocs.filter(d => d != minDoc));
                     if (this._iconifying && selectedDocs[0].props.removeDocument) {
                         selectedDocs[0].props.removeDocument(minDoc);
                         (minDoc.maximizedDoc as Doc).minimizedDoc = undefined;

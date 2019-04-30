@@ -114,6 +114,8 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         let isMinimized: boolean | undefined;
         let minimizedDocSet = Cast(this.props.Document.linkTags, listSpec(Doc));
         if (!minimizedDocSet) return;
+        let docs = minimizedDocSet.map(d => d);
+        docs.push(this.props.Document);
         minimizedDocSet.map(async minimizedDoc => {
             if (minimizedDoc instanceof Document) {
                 this.props.addDocument && this.props.addDocument(minimizedDoc, false);
