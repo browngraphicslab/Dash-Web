@@ -295,23 +295,29 @@ function UpdateField(socket: Socket, diff: Diff) {
     //console.log("set field");
     //}
     const docid = { id: diff.id };
-    const docfield = diff.diff;
+    var docfield = diff.diff;
+    docfield = JSON.parse(JSON.stringify(docfield).split("fields.").join(""));
     console.log("FIELD: ", docfield);
     var dynfield = false;
     for (var key in docfield) {
         const val = docfield[key];
         if (typeof val === 'number') {
-            key = key + "_n";
+            const new_key: string = key + "_n";
+            docfield = JSON.parse(JSON.stringify(docfield).split(key).join(new_key));
+            //docfield[new_key] = { 'set': val };
             dynfield = true;
         }
         else if (typeof val === 'string') {
-            key = key + "_t";
+            const new_key: string = key + "_t";
+            docfield = JSON.parse(JSON.stringify(docfield).split(key).join(new_key));
+            docfield[new_key] = { 'set': val };
             dynfield = true;
         }
-        console.log(key);
     }
     var merged = {};
     _.extend(merged, docid, docfield);
+    console.log(merged);
+    console.log(docfield);
     if (dynfield) {
         console.log("dynamic field detected!");
         Search.Instance.updateDocument(merged);

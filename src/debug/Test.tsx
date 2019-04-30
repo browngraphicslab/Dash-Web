@@ -46,34 +46,34 @@ class Test extends React.Component {
         doc.fields = "test";
         doc.test = "hello doc";
         doc.url = url;
-        doc.testDoc = doc2;
+        //doc.testDoc = doc2;
 
 
-        const test1: TestDoc = TestDoc(doc);
-        const test2: Test2Doc = Test2Doc(doc);
-        assert(test1.hello === 5);
-        assert(test1.fields === undefined);
-        assert(test1.test === "hello doc");
-        assert(test1.url === url);
-        assert(test1.testDoc === doc2);
-        test1.myField = 20;
-        assert(test1.myField === 20);
+        // const test1: TestDoc = TestDoc(doc);
+        // const test2: Test2Doc = Test2Doc(doc);
+        // assert(test1.hello === 5);
+        // assert(test1.fields === undefined);
+        // assert(test1.test === "hello doc");
+        // assert(test1.url === url);
+        // //assert(test1.testDoc === doc2);
+        // test1.myField = 20;
+        // assert(test1.myField === 20);
 
-        assert(test2.hello === undefined);
-        // assert(test2.fields === "test");
-        assert(test2.test === undefined);
-        assert(test2.url === undefined);
-        assert(test2.testDoc === undefined);
-        test2.url = 35;
-        assert(test2.url === 35);
-        const l = new List<number>();
-        //TODO push, and other array functions don't go through the proxy
-        l.push(1);
-        //TODO currently length, and any other string fields will get serialized
-        l.length = 3;
-        l[2] = 5;
-        console.log(l.slice());
-        console.log(SerializationHelper.Serialize(l));
+        // assert(test2.hello === undefined);
+        // // assert(test2.fields === "test");
+        // assert(test2.test === undefined);
+        // assert(test2.url === undefined);
+        // assert(test2.testDoc === undefined);
+        // test2.url = 35;
+        // assert(test2.url === 35);
+        // const l = new List<number>();
+        // //TODO push, and other array functions don't go through the proxy
+        // l.push(1);
+        // //TODO currently length, and any other string fields will get serialized
+        // l.length = 3;
+        // l[2] = 5;
+        // console.log(l.slice());
+        // console.log(SerializationHelper.Serialize(l));
     }
 
     render() {
