@@ -496,7 +496,9 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 anchorPoint={anchorPoints.RIGHT_TOP}
                 content={<LinkMenu docView={selFirst}
                     changeFlyout={this.changeFlyoutContent} />}>
-                <div className={"linkButton-" + (selFirst.props.Document.GetData(KeyStore.LinkedToDocs, ListField, []).length ? "nonempty" : "empty")} onPointerDown={this.onLinkButtonDown} >{linkCount}</div>
+                <div className={"linkButton-" + (selFirst.props.Document.GetData(KeyStore.LinkedToDocs, ListField, []).length ||
+                    selFirst.props.Document.GetData(KeyStore.LinkedFromDocs, ListField, []).length
+                    ? "nonempty" : "empty")} onPointerDown={this.onLinkButtonDown} >{linkCount}</div>
             </Flyout>);
         }
 
