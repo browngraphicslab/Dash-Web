@@ -30,11 +30,11 @@
     pointer-events: none;
 }
 .formattedTextBox-inner-rounded {
-    height: calc(100% - 40px);
+    height: calc(100% - 25px);
     width: calc(100% - 40px);
     position: absolute;
-    overflow: scroll;
-    top: 20;
+    overflow: auto;
+    top: 15;
     left: 20;
 }
 

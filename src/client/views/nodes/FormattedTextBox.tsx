@@ -144,8 +144,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
     private setupEditor(config: any, doc?: Doc) {
         let field = doc ? Cast(doc[this.props.fieldKey], RichTextField) : undefined;
-        if (this._ref.current) {
-            this._editorView = new EditorView(this._ref.current, {
+        if (this._proseRef.current) {
+            this._editorView = new EditorView(this._proseRef.current, {
                 state: field && field.Data ? EditorState.fromJSON(config, JSON.parse(field.Data)) : EditorState.create(config),
                 dispatchTransaction: this.dispatchTransaction
             });
@@ -195,8 +195,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         if (!this.props.isOverlay) {
             MainOverlayTextBox.Instance.SetTextDoc(this.props.Document, this.props.fieldKey, this._ref.current!, this.props.ScreenToLocalTransform);
         } else {
-            if (this._ref.current) {
-                this._ref.current.scrollTop = MainOverlayTextBox.Instance.TextScroll;
+            if (this._proseRef.current) {
+                this._proseRef.current.scrollTop = MainOverlayTextBox.Instance.TextScroll;
             }
         }
     }
