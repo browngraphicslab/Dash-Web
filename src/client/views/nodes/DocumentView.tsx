@@ -12,13 +12,14 @@ import { CollectionPDFView } from "../collections/CollectionPDFView";
 import { CollectionVideoView } from "../collections/CollectionVideoView";
 import { CollectionView } from "../collections/CollectionView";
 import { ContextMenu } from "../ContextMenu";
+import { Template, Templates } from "./../Templates";
 import { DocumentContentsView } from "./DocumentContentsView";
 import "./DocumentView.scss";
 import React = require("react");
 import { Opt, Doc } from "../../../new_fields/Doc";
 import { DocComponent } from "../DocComponent";
 import { createSchema, makeInterface, listSpec } from "../../../new_fields/Schema";
-import { FieldValue, Cast, PromiseValue } from "../../../new_fields/Types";
+import { FieldValue, Cast, PromiseValue, StrCast } from "../../../new_fields/Types";
 import { List } from "../../../new_fields/List";
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
@@ -87,6 +88,13 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     public get ContentDiv() { return this._mainCont.current; }
     @computed get active(): boolean { return SelectionManager.IsSelected(this) || this.props.parentActive(); }
     @computed get topMost(): boolean { return this.props.isTopMost; }
+    @computed get templates(): Array<Template> {
+        return new Array<Template>();
+        // let field = this.props.Document[KeyStore.Templates];
+        // return !field || field === FieldWaiting ? [] : field.Data;
+    }
+    set templates(templates: Array<Template>) { /* this.props.Document.templates = templates;*/ }
+    screenRect = (): ClientRect | DOMRect => this._mainCont.current ? this._mainCont.current.getBoundingClientRect() : new DOMRect();
 
     @action
     componentDidMount() {
@@ -151,7 +159,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (CollectionFreeFormView.RIGHT_BTN_DRAG && (e.button === 2 || (e.button === 0 && e.altKey)) && !this.isSelected()) {
             return;
         }
-        if (e.shiftKey && e.buttons === 2) {
+        if (e.shiftKey && e.buttons === 1) {
             if (this.props.isTopMost) {
                 this.startDragging(e.pageX, e.pageY, e.altKey || e.ctrlKey);
             } else {
@@ -233,6 +241,46 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
     }
 
+    updateLayout = async () => {
+        const baseLayout = await StrCast(this.props.Document.baseLayout);
+        if (baseLayout) {
+            let base = baseLayout;
+            let layout = baseLayout;
+
+            this.templates.forEach(template => {
+                let temp = template.Layout;
+                layout = temp.replace("{layout}", base);
+                base = layout;
+            });
+
+            this.props.Document.layout = layout;
+        }
+    }
+
+    @action
+    addTemplate = (template: Template) => {
+        let templates = this.templates;
+        templates.push(template);
+        templates = templates.splice(0, templates.length).sort(Templates.sortTemplates);
+        this.templates = templates;
+        this.updateLayout();
+    }
+
+    @action
+    removeTemplate = (template: Template) => {
+        let templates = this.templates;
+        for (let i = 0; i < templates.length; i++) {
+            let temp = templates[i];
+            if (temp.Name === template.Name) {
+                templates.splice(i, 1);
+                break;
+            }
+        }
+        templates = templates.splice(0, templates.length).sort(Templates.sortTemplates);
+        this.templates = templates;
+        this.updateLayout();
+    }
+
     @action
     onContextMenu = (e: React.MouseEvent): void => {
         e.stopPropagation();
@@ -260,8 +308,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     isSelected = () => SelectionManager.IsSelected(this);
     select = (ctrlPressed: boolean) => SelectionManager.SelectDoc(this, ctrlPressed);
 
-    @computed get nativeWidth() { return FieldValue(this.Document.nativeWidth, 0); }
-    @computed get nativeHeight() { return FieldValue(this.Document.nativeHeight, 0); }
+    @computed get nativeWidth() { return this.Document.nativeWidth || 0; }
+    @computed get nativeHeight() { return this.Document.nativeHeight || 0; }
     @computed get contents() { return (<DocumentContentsView {...this.props} isSelected={this.isSelected} select={this.select} layoutKey={"layout"} />); }
 
     render() {
@@ -274,8 +322,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 ref={this._mainCont}
                 style={{
                     borderRadius: "inherit",
-                    background: FieldValue(this.Document.backgroundColor) || "",
-                    width: nativeWidth, height: nativeHeight,
+                    background: this.Document.backgroundColor || "",
+                    width: nativeWidth,
+                    height: nativeHeight,
                     transform: `scale(${scaling}, ${scaling})`
                 }}
                 onDrop={this.onDrop} onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown} onClick={this.onClick}

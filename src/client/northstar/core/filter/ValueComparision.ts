@@ -62,13 +62,13 @@ export class ValueComparison {
         var rawName = this.attributeModel.CodeName;
         switch (this.Predicate) {
             case Predicate.STARTS_WITH:
-                ret += rawName + " !== null && " + rawName + ".StartsWith(" + val + ") ";
+                ret += rawName + " != null && " + rawName + ".StartsWith(" + val + ") ";
                 return ret;
             case Predicate.ENDS_WITH:
-                ret += rawName + " !== null && " + rawName + ".EndsWith(" + val + ") ";
+                ret += rawName + " != null && " + rawName + ".EndsWith(" + val + ") ";
                 return ret;
             case Predicate.CONTAINS:
-                ret += rawName + " !== null && " + rawName + ".Contains(" + val + ") ";
+                ret += rawName + " != null && " + rawName + ".Contains(" + val + ") ";
                 return ret;
             default:
                 ret += rawName + " " + op + " " + val + " ";

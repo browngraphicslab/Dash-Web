@@ -2,7 +2,7 @@ import React = require("react");
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faCog, faPlus } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { action, computed, observable, untracked } from "mobx";
+import { action, computed, observable, untracked, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import ReactTable, { CellInfo, ComponentPropsGetterR, ReactTableDefaults } from "react-table";
 import { MAX_ROW_HEIGHT } from '../../views/globalCssVariables.scss';
@@ -58,7 +58,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     @observable _newKeyName: string = "";
 
     @computed get splitPercentage() { return NumCast(this.props.Document.schemaSplitPercentage); }
-    @computed get columns() { return Cast(this.props.Document.columns, listSpec("string"), []); }
+    @computed get columns() { return Cast(this.props.Document.schemaColumns, listSpec("string"), []); }
     @computed get borderWidth() { return Number(COLLECTION_BORDER_WIDTH); }
 
     renderCell = (rowProps: CellInfo) => {
@@ -156,9 +156,9 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
 
     @action
     toggleKey = (key: string) => {
-        let list = Cast(this.props.Document.columns, listSpec("string"));
+        let list = Cast(this.props.Document.schemaColumns, listSpec("string"));
         if (list === undefined) {
-            this.props.Document.columns = list = new List<string>([key]);
+            this.props.Document.schemaColumns = list = new List<string>([key]);
         } else {
             const index = list.indexOf(key);
             if (index === -1) {

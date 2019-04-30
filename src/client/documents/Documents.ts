@@ -18,6 +18,8 @@ import { action } from "mobx";
 import { ColumnAttributeModel } from "../northstar/core/attribute/AttributeModel";
 import { AttributeTransformationModel } from "../northstar/core/attribute/AttributeTransformationModel";
 import { AggregateFunction } from "../northstar/model/idea/idea";
+import { Template } from "../views/Templates";
+import { TemplateField } from "../../fields/TemplateField";
 import { MINIMIZED_ICON_SIZE } from "../views/globalCssVariables.scss";
 import { IconBox } from "../views/nodes/IconBox";
 import { Field, Doc, Opt } from "../../new_fields/Doc";
@@ -44,7 +46,9 @@ export interface DocumentOptions {
     panY?: number;
     page?: number;
     scale?: number;
+    baseLayout?: string;
     layout?: string;
+    //templates?: Array<Template>;
     viewType?: number;
     backgroundColor?: string;
     copyDraggedItems?: boolean;
@@ -52,6 +56,7 @@ export interface DocumentOptions {
     curPage?: number;
     documentText?: string;
     borderRounding?: number;
+    schemaColumns?: List<string>;
     // [key: string]: Opt<Field>;
 }
 const delegateKeys = ["x", "y", "width", "height", "panX", "panY"];
@@ -94,7 +99,7 @@ export namespace Docs {
     }
 
     function setupPrototypeOptions(protoId: string, title: string, layout: string, options: DocumentOptions): Doc {
-        return Doc.assign(new Doc(protoId, true), { ...options, title: title, layout: layout });
+        return Doc.assign(new Doc(protoId, true), { ...options, title: title, layout: layout, baseLayout: layout });
     }
     function SetInstanceOptions<U extends Field>(doc: Doc, options: DocumentOptions, value: U) {
         const deleg = Doc.MakeDelegate(doc);
@@ -120,6 +125,7 @@ export namespace Docs {
     function CreateIconPrototype(): Doc {
         let iconProto = setupPrototypeOptions(iconProtoId, "ICON_PROTO", IconBox.LayoutString(),
             { x: 0, y: 0, width: Number(MINIMIZED_ICON_SIZE), height: Number(MINIMIZED_ICON_SIZE) });
+        console.log("iconpr" + iconProto.layout)
         return iconProto;
     }
     function CreateTextPrototype(): Doc {
@@ -234,13 +240,13 @@ export namespace Docs {
         if (!makePrototype) {
             return SetInstanceOptions(collProto, { ...options, viewType: CollectionViewType.Freeform }, new List(documents));
         }
-        return CreateInstance(collProto, new List(documents), { ...options, viewType: CollectionViewType.Freeform });
+        return CreateInstance(collProto, new List(documents), { schemaColumns: new List(["schemaColumns"]), ...options, viewType: CollectionViewType.Freeform });
     }
     export function SchemaDocument(documents: Array<Doc>, options: DocumentOptions) {
-        return CreateInstance(collProto, new List(documents), { ...options, viewType: CollectionViewType.Schema });
+        return CreateInstance(collProto, new List(documents), { schemaColumns: new List(["schemaColumns"]), ...options, viewType: CollectionViewType.Schema });
     }
     export function TreeDocument(documents: Array<Doc>, options: DocumentOptions) {
-        return CreateInstance(collProto, new List(documents), { ...options, viewType: CollectionViewType.Tree });
+        return CreateInstance(collProto, new List(documents), { schemaColumns: new List(["schemaColumns"]), ...options, viewType: CollectionViewType.Tree });
     }
     export function DockDocument(config: string, options: DocumentOptions) {
         return CreateInstance(collProto, config, { ...options, viewType: CollectionViewType.Docking });

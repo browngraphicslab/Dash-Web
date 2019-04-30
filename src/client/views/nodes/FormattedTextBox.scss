@@ -10,7 +10,7 @@
   outline: none !important;
 }
 
-.formattedTextBox-cont-scroll, .formattedTextBox-cont-hidden {
+.formattedTextBox-cont-scroll, .formattedTextBox-cont-hidden  {
   background: $light-color-secondary;
   padding: 0;
   border-width: 0px;
@@ -24,9 +24,18 @@
   height: 100%;
   pointer-events: all;
 }
+
 .formattedTextBox-cont-hidden {
     overflow: hidden;
     pointer-events: none;
+}
+.formattedTextBox-inner-rounded {
+    height: calc(100% - 40px);
+    width: calc(100% - 40px);
+    position: absolute;
+    overflow: scroll;
+    top: 20;
+    left: 20;
 }
 
 .menuicon {

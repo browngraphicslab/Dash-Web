@@ -23,6 +23,7 @@ interface MarqueeViewProps {
     selectDocuments: (docs: Doc[]) => void;
     removeDocument: (doc: Doc) => boolean;
     addLiveTextDocument: (doc: Doc) => void;
+    isSelected: () => boolean;
 }
 
 @observer
@@ -33,12 +34,13 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     @observable _downX: number = 0;
     @observable _downY: number = 0;
     @observable _visible: boolean = false;
+    _commandExecuted = false;
 
     @action
     cleanupInteractions = (all: boolean = false) => {
         if (all) {
-            document.removeEventListener("pointermove", this.onPointerMove, true);
             document.removeEventListener("pointerup", this.onPointerUp, true);
+            document.removeEventListener("pointermove", this.onPointerMove, true);
         }
         document.removeEventListener("keydown", this.marqueeCommand, true);
         this._visible = false;
@@ -56,6 +58,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     onPointerDown = (e: React.PointerEvent): void => {
         this._downX = this._lastX = e.pageX;
         this._downY = this._lastY = e.pageY;
+        this._commandExecuted = false;
         PreviewCursor.Visible = false;
         if ((CollectionFreeFormView.RIGHT_BTN_DRAG && e.button === 0 && !e.altKey && !e.metaKey && this.props.container.props.active()) ||
             (!CollectionFreeFormView.RIGHT_BTN_DRAG && (e.button === 2 || (e.button === 0 && e.altKey)) && this.props.container.props.active())) {
@@ -75,7 +78,9 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         if (!e.cancelBubble) {
             if (Math.abs(this._lastX - this._downX) > Utils.DRAG_THRESHOLD ||
                 Math.abs(this._lastY - this._downY) > Utils.DRAG_THRESHOLD) {
-                this._visible = true;
+                if (!this._commandExecuted) {
+                    this._visible = true;
+                }
                 e.stopPropagation();
                 e.preventDefault();
             }
@@ -129,22 +134,27 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     @undoBatch
     @action
     marqueeCommand = (e: KeyboardEvent) => {
-        if (e.key === "Backspace" || e.key === "Delete" || e.key === "d") {
+        if (this._commandExecuted) {
+            return;
+        }
+        if (e.key === "Backspace" || e.key === "Delete" || e.key == "d") {
+            this._commandExecuted = true;
             this.marqueeSelect().map(d => this.props.removeDocument(d));
             let ink = Cast(this.props.container.props.Document.ink, InkField);
             if (ink) {
                 this.marqueeInkDelete(ink.inkData);
             }
-            this.cleanupInteractions(true);
+            this.cleanupInteractions(false);
             e.stopPropagation();
         }
         if (e.key === "c" || e.key === "r" || e.key === "e") {
+            this._commandExecuted = true;
             e.stopPropagation();
             let bounds = this.Bounds;
             let selected = this.marqueeSelect().map(d => {
                 this.props.removeDocument(d);
-                d.x = NumCast(d.X) - bounds.left - bounds.width / 2;
-                d.y = NumCast(d.Y) - bounds.top - bounds.height / 2;
+                d.x = NumCast(d.x) - bounds.left - bounds.width / 2;
+                d.y = NumCast(d.y) - bounds.top - bounds.height / 2;
                 d.page = -1;
                 return d;
             });
@@ -157,7 +167,6 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 panX: 0,
                 panY: 0,
                 borderRounding: e.key === "e" ? -1 : undefined,
-                backgroundColor: selected.length ? "white" : "",
                 scale: zoomBasis,
                 width: bounds.width * zoomBasis,
                 height: bounds.height * zoomBasis,
@@ -166,7 +175,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             });
 
             this.marqueeInkDelete(inkData);
-            SelectionManager.DeselectAll();
+            // SelectionManager.DeselectAll();
             if (e.key === "r") {
                 let summary = Docs.TextDocument({ x: bounds.left, y: bounds.top, width: 300, height: 100, backgroundColor: "yellow", title: "-summary-" });
                 Doc.MakeLink(summary.proto!, newCollection.proto!);
@@ -176,9 +185,10 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             else {
                 this.props.addDocument(newCollection, false);
             }
-            this.cleanupInteractions(true);
+            this.cleanupInteractions(false);
         }
         if (e.key === "s") {
+            this._commandExecuted = true;
             e.stopPropagation();
             e.preventDefault();
             let bounds = this.Bounds;
@@ -188,7 +198,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             this.props.addLiveTextDocument(summary);
             selected.forEach(select => Doc.MakeLink(summary.proto!, select.proto!));
 
-            this.cleanupInteractions(true);
+            this.cleanupInteractions(false);
         }
     }
     @action

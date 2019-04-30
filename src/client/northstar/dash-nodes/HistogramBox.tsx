@@ -1,7 +1,6 @@
 import React = require("react");
 import { action, computed, observable, reaction, runInAction, trace } from "mobx";
 import { observer } from "mobx-react";
-import Measure from "react-measure";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { ChartType, VisualBinRange } from '../../northstar/model/binRanges/VisualBinRange';
 import { VisualBinRangeHelper } from "../../northstar/model/binRanges/VisualBinRangeHelper";
@@ -32,8 +31,6 @@ export class HistogramBox extends React.Component<FieldViewProps> {
     private _dropXDisposer?: DragManager.DragDropDisposer;
     private _dropYDisposer?: DragManager.DragDropDisposer;
 
-    @observable public PanelWidth: number = 100;
-    @observable public PanelHeight: number = 100;
     @observable public HistoOp: HistogramOperation = HistogramOperation.Empty;
     @observable public VisualBinRanges: VisualBinRange[] = [];
     @observable public ValueRange: number[] = [];
@@ -89,7 +86,7 @@ export class HistogramBox extends React.Component<FieldViewProps> {
         }
         reaction(() => CurrentUserUtils.NorthstarDBCatalog, (catalog?: Catalog) => this.activateHistogramOperation(catalog), { fireImmediately: true });
         reaction(() => [this.VisualBinRanges && this.VisualBinRanges.slice()], () => this.SizeConverter.SetVisualBinRanges(this.VisualBinRanges));
-        reaction(() => [this.PanelHeight, this.PanelWidth], () => this.SizeConverter.SetIsSmall(this.PanelWidth < 40 && this.PanelHeight < 40));
+        reaction(() => [this.props.PanelWidth(), this.props.PanelHeight()], (size: number[]) => this.SizeConverter.SetIsSmall(size[0] < 40 && size[1] < 40));
         reaction(() => this.HistogramResult ? this.HistogramResult.binRanges : undefined,
             (binRanges: BinRange[] | undefined) => {
                 if (binRanges) {
@@ -138,38 +135,39 @@ export class HistogramBox extends React.Component<FieldViewProps> {
             });
         }
     }
+
+    @action
+    private onScrollWheel = (e: React.WheelEvent) => {
+        this.HistoOp.DrillDown(e.deltaY > 0);
+        e.stopPropagation();
+    }
+
     render() {
         let labelY = this.HistoOp && this.HistoOp.Y ? this.HistoOp.Y.PresentedName : "<...>";
         let labelX = this.HistoOp && this.HistoOp.X ? this.HistoOp.X.PresentedName : "<...>";
-        var h = this.props.isTopMost ? this.PanelHeight : NumCast(this.props.Document.height);
-        var w = this.props.isTopMost ? this.PanelWidth : NumCast(this.props.Document.width);
         let loff = this.SizeConverter.LeftOffset;
         let toff = this.SizeConverter.TopOffset;
         let roff = this.SizeConverter.RightOffset;
         let boff = this.SizeConverter.BottomOffset;
         return (
-            <Measure onResize={(r: any) => runInAction(() => { this.PanelWidth = r.entry.width; this.PanelHeight = r.entry.height; })}>
-                {({ measureRef }) =>
-                    <div className="histogrambox-container" ref={measureRef}>
-                        <div className="histogrambox-yaxislabel" onPointerDown={this.yLabelPointerDown} ref={this._dropYRef} >
-                            <span className="histogrambox-yaxislabel-text">
-                                {labelY}
-                            </span>
-                        </div>
-                        <div className="histogrambox-primitives" style={{
-                            transform: `translate(${loff + 25}px, ${toff}px)`,
-                            width: `calc(100% - ${loff + roff + 25}px)`,
-                            height: `calc(100% - ${toff + boff}px)`,
-                        }}>
-                            <HistogramLabelPrimitives HistoBox={this} />
-                            <HistogramBoxPrimitives HistoBox={this} />
-                        </div>
-                        <div className="histogrambox-xaxislabel" onPointerDown={this.xLabelPointerDown} ref={this._dropXRef} >
-                            {labelX}
-                        </div>
-                    </div>
-                }
-            </Measure>
+            <div className="histogrambox-container" onWheel={this.onScrollWheel}>
+                <div className="histogrambox-yaxislabel" onPointerDown={this.yLabelPointerDown} ref={this._dropYRef} >
+                    <span className="histogrambox-yaxislabel-text">
+                        {labelY}
+                    </span>
+                </div>
+                <div className="histogrambox-primitives" style={{
+                    transform: `translate(${loff + 25}px, ${toff}px)`,
+                    width: `calc(100% - ${loff + roff + 25}px)`,
+                    height: `calc(100% - ${toff + boff}px)`,
+                }}>
+                    <HistogramLabelPrimitives HistoBox={this} />
+                    <HistogramBoxPrimitives HistoBox={this} />
+                </div>
+                <div className="histogrambox-xaxislabel" onPointerDown={this.xLabelPointerDown} ref={this._dropXRef} >
+                    {labelX}
+                </div>
+            </div>
         );
     }
 }

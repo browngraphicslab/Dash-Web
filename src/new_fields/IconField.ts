@@ -5,10 +5,10 @@ import { ObjectField } from "./ObjectField";
 @Deserializable("icon")
 export class IconField extends ObjectField {
     @serializable(primitive())
-    readonly layout: string;
+    readonly icon: string;
 
-    constructor(layout: string) {
+    constructor(icon: string) {
         super();
-        this.layout = layout;
+        this.icon = icon;
     }
 }

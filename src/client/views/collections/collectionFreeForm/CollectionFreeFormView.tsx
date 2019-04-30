@@ -1,4 +1,4 @@
-import { action, computed } from "mobx";
+import { action, computed, trace } from "mobx";
 import { observer } from "mobx-react";
 import { emptyFunction, returnFalse, returnOne } from "../../../../Utils";
 import { DocumentManager } from "../../../util/DocumentManager";
@@ -19,10 +19,9 @@ import { MarqueeView } from "./MarqueeView";
 import React = require("react");
 import v5 = require("uuid/v5");
 import { createSchema, makeInterface, listSpec } from "../../../../new_fields/Schema";
-import { Doc } from "../../../../new_fields/Doc";
+import { Doc, WidthSym, HeightSym } from "../../../../new_fields/Doc";
 import { FieldValue, Cast, NumCast } from "../../../../new_fields/Types";
 import { pageSchema } from "../../nodes/ImageBox";
-import { List } from "../../../../new_fields/List";
 import { Id } from "../../../../new_fields/RefField";
 
 export const panZoomSchema = createSchema({
@@ -98,7 +97,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                     if (!NumCast(d.height)) {
                         let nw = NumCast(d.nativeWidth);
                         let nh = NumCast(d.nativeHeight);
-                        d.height = nw && nh ? nh / nw * NumCast(d.Width) : 300;
+                        d.height = nw && nh ? nh / nw * NumCast(d.width) : 300;
                     }
                     this.bringToFront(d);
                 });
@@ -107,12 +106,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             return true;
         }
         return false;
-    }
-
-    @action
-    cleanupInteractions = () => {
-        document.removeEventListener("pointermove", this.onPointerMove);
-        document.removeEventListener("pointerup", this.onPointerUp);
     }
 
     @action
@@ -126,7 +119,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 (e.button === 0 && e.altKey)) && (childSelected || this.props.active()))) ||
             (!CollectionFreeFormView.RIGHT_BTN_DRAG &&
                 ((e.button === 0 && !e.altKey && (!this.isAnnotationOverlay || this.zoomScaling() !== 1)) && (childSelected || this.props.active())))) {
-            this.cleanupInteractions();
+            document.removeEventListener("pointermove", this.onPointerMove);
+            document.removeEventListener("pointerup", this.onPointerUp);
             document.addEventListener("pointermove", this.onPointerMove);
             document.addEventListener("pointerup", this.onPointerUp);
             this._lastX = e.pageX;
@@ -135,7 +129,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
     onPointerUp = (e: PointerEvent): void => {
-        this.cleanupInteractions();
+        document.removeEventListener("pointermove", this.onPointerMove);
+        document.removeEventListener("pointerup", this.onPointerUp);
     }
 
     @action
@@ -243,10 +238,11 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     focusDocument = (doc: Doc) => {
         this.setPan(
-            Cast(doc.x, "number", 0) + Cast(doc.width, "number", 0) / 2,
-            Cast(doc.y, "number", 0) + Cast(doc.height, "number", 0) / 2);
+            NumCast(doc.x) + NumCast(doc.width) / 2,
+            NumCast(doc.y) + NumCast(doc.height) / 2);
         this.props.focus(this.props.Document);
     }
+
 
     getDocumentViewProps(document: Doc): DocumentViewProps {
         return {
@@ -258,8 +254,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             ScreenToLocalTransform: this.getTransform,
             isTopMost: false,
             selectOnLoad: document[Id] === this._selectOnLoaded,
-            PanelWidth: () => Cast(document.width, "number", 0),//TODO Types These are inline functions
-            PanelHeight: () => Cast(document.height, "number", 0),
+            PanelWidth: document[WidthSym],
+            PanelHeight: document[HeightSym],
             ContentScaling: returnOne,
             ContainingCollectionView: this.props.CollectionView,
             focus: this.focusDocument,
@@ -268,10 +264,11 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         };
     }
 
-    @computed
+    @computed.struct
     get views() {
         let curPage = FieldValue(this.Document.curPage, -1);
         let docviews = (this.children || []).filter(doc => doc).reduce((prev, doc) => {
+            if (!FieldValue(doc)) return prev;
             var page = Cast(doc.page, "number", -1);
             if (page === curPage || page === -1) {
                 let minim = Cast(doc.isMinimized, "boolean");
@@ -292,19 +289,14 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         super.setCursorPosition(this.getTransform().transformPoint(e.clientX, e.clientY));
     }
 
-    private childViews = () => [...this.views, <CollectionFreeFormBackgroundView key="backgroundView" {...this.getDocumentViewProps(this.props.Document)} />];
+    private childViews = () => [...this.views, <CollectionFreeFormBackgroundView key="backgroundView" {...this.props} {...this.getDocumentViewProps(this.props.Document)} />];
     render() {
         const containerName = `collectionfreeformview${this.isAnnotationOverlay ? "-overlay" : "-container"}`;
         return (
             <div className={containerName} ref={this.createDropTarget} onWheel={this.onPointerWheel}
                 style={{ borderRadius: "inherit" }}
                 onPointerDown={this.onPointerDown} onPointerMove={this.onCursorMove} onDrop={this.onDrop.bind(this)} onDragOver={this.onDragOver} >
-                {/* <svg viewBox="0 0 180 18" style={{ top: "50%", opacity: 0.05, position: "absolute" }}>
-                    <text y="15" >
-                        {this.props.Document.Title}
-                    </text>
-                </svg> */}
-                <MarqueeView container={this} activeDocuments={this.getActiveDocuments} selectDocuments={this.selectDocuments}
+                <MarqueeView container={this} activeDocuments={this.getActiveDocuments} selectDocuments={this.selectDocuments} isSelected={this.props.isSelected}
                     addDocument={this.addDocument} removeDocument={this.props.removeDocument} addLiveTextDocument={this.addLiveTextBox}
                     getContainerTransform={this.getContainerTransform} getTransform={this.getTransform}>
                     <CollectionFreeFormViewPannableContents centeringShiftX={this.centeringShiftX} centeringShiftY={this.centeringShiftY}
@@ -316,7 +308,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                         </CollectionFreeFormLinksView>
                         {/* <CollectionFreeFormRemoteCursors {...this.props} key="remoteCursors" /> */}
                     </CollectionFreeFormViewPannableContents>
-                    <CollectionFreeFormOverlayView {...this.getDocumentViewProps(this.props.Document)} />
+                    <CollectionFreeFormOverlayView {...this.getDocumentViewProps(this.props.Document)} {...this.props} />
                 </MarqueeView>
             </div>
         );
@@ -337,12 +329,12 @@ class CollectionFreeFormOverlayView extends React.Component<DocumentViewProps> {
 }
 
 @observer
-class CollectionFreeFormBackgroundView extends React.Component<DocumentViewProps> {
+class CollectionFreeFormBackgroundView extends React.Component<DocumentViewProps & { isSelected: () => boolean }> {
     @computed get backgroundView() {
         let backgroundLayout = Cast(this.props.Document.backgroundLayout, "string", "");
         return !backgroundLayout ? (null) :
             (<DocumentContentsView {...this.props} layoutKey={"backgroundLayout"}
-                isTopMost={this.props.isTopMost} isSelected={returnFalse} select={emptyFunction} />);
+                isTopMost={this.props.isTopMost} isSelected={this.props.isSelected} select={emptyFunction} />);
     }
     render() {
         return this.backgroundView;

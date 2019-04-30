@@ -22,7 +22,7 @@ export class HistogramOperation extends BaseOperation implements IBaseFilterCons
     @observable public Links: Doc[] = [];
     @observable public BrushLinks: { l: Doc, b: Doc }[] = [];
     @observable public BrushColors: number[] = [];
-    @observable public FilterModels: FilterModel[] = [];
+    @observable public BarFilterModels: FilterModel[] = [];
 
     @observable public Normalization: number = -1;
     @observable public X: AttributeTransformationModel;
@@ -49,17 +49,24 @@ export class HistogramOperation extends BaseOperation implements IBaseFilterCons
         throw new Error("Method not implemented.");
     }
 
+
+    @computed public get FilterModels() {
+        return this.BarFilterModels;
+    }
     @action
     public AddFilterModels(filterModels: FilterModel[]): void {
-        filterModels.filter(f => f !== null).forEach(fm => this.FilterModels.push(fm));
+        filterModels.filter(f => f !== null).forEach(fm => this.BarFilterModels.push(fm));
     }
     @action
     public RemoveFilterModels(filterModels: FilterModel[]): void {
-        ArrayUtil.RemoveMany(this.FilterModels, filterModels);
+        ArrayUtil.RemoveMany(this.BarFilterModels, filterModels);
     }
 
     @computed
     public get FilterString(): string {
+        if (this.OverridingFilters.length > 0) {
+            return "(" + this.OverridingFilters.filter(fm => fm != null).map(fm => fm.ToPythonString()).join(" || ") + ")";
+        }
         let filterModels: FilterModel[] = [];
         return FilterModel.GetFilterModelsRecursive(this, new Set<IBaseFilterProvider>(), filterModels, true);
     }
@@ -76,6 +83,27 @@ export class HistogramOperation extends BaseOperation implements IBaseFilterCons
             }
         });
         return brushes;
+    }
+
+    _stackedFilters: (FilterModel[])[] = [];
+    @action
+    public DrillDown(up: boolean) {
+        if (!up) {
+            if (!this.BarFilterModels.length)
+                return;
+            this._stackedFilters.push(this.BarFilterModels.map(f => f));
+            this.OverridingFilters.length = 0;
+            this.OverridingFilters.push(...this._stackedFilters[this._stackedFilters.length - 1]);
+            this.BarFilterModels.map(fm => fm).map(fm => this.RemoveFilterModels([fm]));
+            //this.updateHistogram();
+        } else {
+            this.OverridingFilters.length = 0;
+            if (this._stackedFilters.length) {
+                this.OverridingFilters.push(...this._stackedFilters.pop()!);
+            }
+            // else 
+            //     this.updateHistogram();
+        }
     }
 
     private getAggregateParameters(histoX: AttributeTransformationModel, histoY: AttributeTransformationModel, histoValue: AttributeTransformationModel) {

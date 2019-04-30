@@ -1,14 +1,16 @@
 import { observer } from "mobx-react";
-import { observable } from "mobx";
+import { observable, trace } from "mobx";
 import { InkingControl } from "./InkingControl";
 import React = require("react");
 import { InkTool } from "../../new_fields/InkField";
+import "./InkingStroke.scss";
 
 
 interface StrokeProps {
     offsetX: number;
     offsetY: number;
     id: string;
+    count: number;
     line: Array<{ x: number, y: number }>;
     color: string;
     width: string;
@@ -48,10 +50,12 @@ export class InkingStroke extends React.Component<StrokeProps> {
     render() {
         let pathStyle = this.createStyle();
         let pathData = this.parseData(this.props.line);
+        let pathlength = this.props.count; // bcz: this is needed to force reactions to the line data changes
+        let marker = this.props.tool === InkTool.Highlighter ? "-marker" : "";
 
         let pointerEvents: any = InkingControl.Instance.selectedTool === InkTool.Eraser ? "all" : "none";
         return (
-            <path d={pathData} style={{ ...pathStyle, pointerEvents: pointerEvents }} strokeLinejoin="round" strokeLinecap="round"
+            <path className={`inkingStroke${marker}`} d={pathData} style={{ ...pathStyle, pointerEvents: pointerEvents }} strokeLinejoin="round" strokeLinecap="round"
                 onPointerOver={this.deleteStroke} onPointerDown={this.deleteStroke} />
         );
     }

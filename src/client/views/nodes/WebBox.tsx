@@ -6,6 +6,7 @@ import { WebField } from "../../../new_fields/URLField";
 import { observer } from "mobx-react";
 import { computed, reaction, IReactionDisposer } from 'mobx';
 import { DocumentDecorations } from "../DocumentDecorations";
+import { InkingControl } from "../InkingControl";
 
 @observer
 export class WebBox extends React.Component<FieldViewProps> {
@@ -46,12 +47,13 @@ export class WebBox extends React.Component<FieldViewProps> {
 
         let frozen = !this.props.isSelected() || DocumentDecorations.Instance.Interacting;
 
+        let classname = "webBox-cont" + (this.props.isSelected() && !InkingControl.Instance.selectedTool && !DocumentDecorations.Instance.Interacting ? "-interactive" : "");
         return (
             <>
-                <div className="webBox-cont"  >
+                <div className={classname}  >
                     {content}
                 </div>
-                {!frozen ? (null) : <div onWheel={this.onPreWheel} onPointerDown={this.onPrePointer} onPointerMove={this.onPrePointer} onPointerUp={this.onPrePointer} style={{ width: "100%", height: "100%", position: "absolute" }} />}
+                {!frozen ? (null) : <div className="webBox-overlay" onWheel={this.onPreWheel} onPointerDown={this.onPrePointer} onPointerMove={this.onPrePointer} onPointerUp={this.onPrePointer} />}
             </>);
     }
 }

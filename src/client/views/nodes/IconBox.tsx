@@ -23,7 +23,7 @@ export class IconBox extends React.Component<FieldViewProps> {
     public static LayoutString() { return FieldView.LayoutString(IconBox); }
 
     @computed get maximized() { return Cast(this.props.Document.maximizedDoc, Doc); }
-    @computed get layout(): string { const field = Cast(this.props.Document[this.props.fieldKey], IconField); return field ? field.layout : "<p>Error loading layout data</p>"; }
+    @computed get layout(): string { const field = Cast(this.props.Document[this.props.fieldKey], IconField); return field ? field.icon : "<p>Error loading icon data</p>"; }
     @computed get minimizedIcon() { return IconBox.DocumentIcon(this.layout); }
 
     public static DocumentIcon(layout: string) {

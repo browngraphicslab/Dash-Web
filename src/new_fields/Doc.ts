@@ -3,8 +3,8 @@ import { serializable, primitive, map, alias, list } from "serializr";
 import { autoObject, SerializationHelper, Deserializable } from "../client/util/SerializationHelper";
 import { Utils } from "../Utils";
 import { DocServer } from "../client/DocServer";
-import { setter, getter, getField, updateFunction } from "./util";
-import { Cast, ToConstructor, PromiseValue, FieldValue } from "./Types";
+import { setter, getter, getField, updateFunction, deleteProperty } from "./util";
+import { Cast, ToConstructor, PromiseValue, FieldValue, NumCast } from "./Types";
 import { UndoManager, undoBatch } from "../client/util/UndoManager";
 import { listSpec } from "./Schema";
 import { List } from "./List";
@@ -25,6 +25,8 @@ export type FieldResult<T extends Field = Field> = Opt<T> | FieldWaiting<Extract
 
 export const Update = Symbol("Update");
 export const Self = Symbol("Self");
+export const WidthSym = Symbol("Width");
+export const HeightSym = Symbol("Height");
 
 @Deserializable("doc").withFields(["id"])
 export class Doc extends RefField {
@@ -34,7 +36,7 @@ export class Doc extends RefField {
             set: setter,
             get: getter,
             ownKeys: target => Object.keys(target.__fields),
-            deleteProperty: () => { throw new Error("Currently properties can't be deleted from documents, assign to undefined instead"); },
+            deleteProperty: deleteProperty,
             defineProperty: () => { throw new Error("Currently properties can't be defined on documents using Object.defineProperty"); },
         });
         if (!id || forceSave) {
@@ -70,6 +72,8 @@ export class Doc extends RefField {
     }
 
     private [Self] = this;
+    public [WidthSym] = () => { return NumCast(this.__fields.width); }  // bcz: is this the right way to access width/height?   it didn't work with : this.width
+    public [HeightSym] = () => { return NumCast(this.__fields.height); }
 }
 
 export namespace Doc {
@@ -151,8 +155,8 @@ export namespace Doc {
     }
 
     export function MakeLink(source: Doc, target: Doc): Doc {
-        let linkDoc = new Doc;
-        UndoManager.RunInBatch(() => {
+        return UndoManager.RunInBatch(() => {
+            let linkDoc = new Doc;
             linkDoc.title = "New Link";
             linkDoc.linkDescription = "";
             linkDoc.linkTags = "Default";
@@ -171,8 +175,8 @@ export namespace Doc {
                 source.linkedToDocs = linkedTo = new List<Doc>();
             }
             linkedTo.push(linkDoc);
+            return linkDoc;
         }, "make link");
-        return linkDoc;
     }
 
     export function MakeDelegate(doc: Doc): Doc;

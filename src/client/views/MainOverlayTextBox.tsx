@@ -20,7 +20,6 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
     public static Instance: MainOverlayTextBox;
     @observable public TextDoc?: Doc = undefined;
     public TextScroll: number = 0;
-    @observable _textRect: any;
     @observable _textXf: () => Transform = () => Transform.Identity();
     private _textFieldKey: string = "data";
     private _textColor: string | null = null;
@@ -46,7 +45,6 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
         if (div) {
             this._textColor = div.style.color;
             div.style.color = "transparent";
-            this._textRect = div.getBoundingClientRect();
             this.TextScroll = div.scrollTop;
         }
     }
@@ -87,13 +85,12 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
     }
 
     render() {
-        if (this.TextDoc) {
-            let toScreenXf = this._textXf().inverse();
-            let pt = toScreenXf.transformPoint(0, 0);
-            let s = 1 / this._textXf().Scale;
-            return <div className="mainOverlayTextBox-textInput" style={{ transform: `translate(${pt[0]}px, ${pt[1]}px) scale(${s},${s})`, width: "auto", height: "auto" }} >
+        if (this.TextDoc && this._textTargetDiv) {
+            let textRect = this._textTargetDiv.getBoundingClientRect();
+            let s = this._textXf().Scale;
+            return <div className="mainOverlayTextBox-textInput" style={{ transform: `translate(${textRect.left}px, ${textRect.top}px) scale(${1 / s},${1 / s})`, width: "auto", height: "auto" }} >
                 <div className="mainOverlayTextBox-textInput" onPointerDown={this.textBoxDown} ref={this._textProxyDiv} onScroll={this.textScroll}
-                    style={{ width: `${NumCast(this.TextDoc.width)}px`, height: `${NumCast(this.TextDoc.height)}px` }}>
+                    style={{ width: `${NumCast(this.TextDoc.width) * s}px`, height: `${NumCast(this.TextDoc.height) * s}px` }}>
                     <FormattedTextBox fieldKey={this._textFieldKey} isOverlay={true} Document={this.TextDoc} isSelected={returnTrue} select={emptyFunction} isTopMost={true}
                         selectOnLoad={true} ContainingCollectionView={undefined} whenActiveChanged={emptyFunction} active={returnTrue}
                         ScreenToLocalTransform={this._textXf} PanelWidth={returnZero} PanelHeight={returnZero} focus={emptyFunction} />

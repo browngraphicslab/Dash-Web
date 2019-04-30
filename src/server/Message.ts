@@ -15,7 +15,7 @@ export class Message<T> {
 
 export enum Types {
     Number, List, Key, Image, Web, Document, Text, Icon, RichText, DocumentReference,
-    Html, Video, Audio, Ink, PDF, Tuple, HistogramOp, Boolean, Script,
+    Html, Video, Audio, Ink, PDF, Tuple, HistogramOp, Boolean, Script, Templates
 }
 
 export interface Transferable {

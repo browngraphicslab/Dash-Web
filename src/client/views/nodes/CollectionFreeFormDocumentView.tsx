@@ -103,7 +103,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                     target.width = width;
                     target.height = height;
                 }
-                (target as any).isIconAnimating = false;
+                target.isIconAnimating = false;
             }
         },
             2);
@@ -114,34 +114,34 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         let isMinimized: boolean | undefined;
         let minimizedDocSet = Cast(this.props.Document.linkTags, listSpec(Doc));
         if (!minimizedDocSet) return;
-        minimizedDocSet.map(async minimizedDoc => {
-            if (minimizedDoc instanceof Document) {
-                this.props.addDocument && this.props.addDocument(minimizedDoc, false);
-                let maximizedDoc = await Cast(minimizedDoc.maximizedDoc, Doc);
-                if (maximizedDoc && !(maximizedDoc as any).isIconAnimating) {
-                    (maximizedDoc as any).isIconAnimating = true;
-                    if (isMinimized === undefined) {
-                        let maximizedDocMinimizedState = Cast(maximizedDoc.isMinimized, "boolean");
-                        isMinimized = (maximizedDocMinimizedState) ? true : false;
-                    }
-                    let minx = NumCast(minimizedDoc.x, undefined);
-                    let miny = NumCast(minimizedDoc.y, undefined);
-                    let maxx = NumCast(maximizedDoc.x, undefined);
-                    let maxy = NumCast(maximizedDoc.y, undefined);
-                    let maxw = NumCast(maximizedDoc.width, undefined);
-                    let maxh = NumCast(maximizedDoc.height, undefined);
-                    if (minx !== undefined && miny !== undefined && maxx !== undefined && maxy !== undefined &&
-                        maxw !== undefined && maxh !== undefined) {
-                        this.animateBetweenIcon(true, [minx, miny], [maxx, maxy], maxw, maxh, Date.now(), maximizedDoc, isMinimized);
-                    }
+        let docs = minimizedDocSet.map(d => d);
+        docs.push(this.props.Document);
+        docs.map(async minimizedDoc => {
+            this.props.addDocument && this.props.addDocument(minimizedDoc, false);
+            let maximizedDoc = await Cast(minimizedDoc.maximizedDoc, Doc);
+            if (maximizedDoc && !maximizedDoc.isIconAnimating) {
+                maximizedDoc.isIconAnimating = true;
+                if (isMinimized === undefined) {
+                    let maximizedDocMinimizedState = Cast(maximizedDoc.isMinimized, "boolean");
+                    isMinimized = (maximizedDocMinimizedState) ? true : false;
                 }
-
+                let minx = NumCast(minimizedDoc.x, undefined);
+                let miny = NumCast(minimizedDoc.y, undefined);
+                let maxx = NumCast(maximizedDoc.x, undefined);
+                let maxy = NumCast(maximizedDoc.y, undefined);
+                let maxw = NumCast(maximizedDoc.width, undefined);
+                let maxh = NumCast(maximizedDoc.height, undefined);
+                if (minx !== undefined && miny !== undefined && maxx !== undefined && maxy !== undefined &&
+                    maxw !== undefined && maxh !== undefined) {
+                    this.animateBetweenIcon(true, [minx, miny], [maxx, maxy], maxw, maxh, Date.now(), maximizedDoc, isMinimized);
+                }
             }
         })
     }
     onPointerDown = (e: React.PointerEvent): void => {
         this._downX = e.clientX;
         this._downY = e.clientY;
+        e.stopPropagation();
     }
     onClick = async (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -175,7 +175,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         const screenWidth = 1800;
         let fadeUp = .75 * screenWidth;
         let fadeDown = (maximizedDoc ? .0075 : .075) * screenWidth;
-        zoomFade = w < fadeDown  /* || w > fadeUp */ ? Math.max(0, Math.min(1, 2 - (w < fadeDown ? fadeDown / w : w / fadeUp))) : 1;
+        zoomFade = w < fadeDown  /* || w > fadeUp */ ? Math.max(0.1, Math.min(1, 2 - (w < fadeDown ? fadeDown / w : w / fadeUp))) : 1;
 
         return (
             <div className="collectionFreeFormDocumentView-container" ref={this._mainCont}

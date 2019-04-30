@@ -8,6 +8,7 @@ import { Doc, FieldResult, Opt } from '../../../new_fields/Doc';
 import { listSpec } from '../../../new_fields/Schema';
 import { List } from '../../../new_fields/List';
 import { Id } from '../../../new_fields/RefField';
+import { SelectionManager } from '../../util/SelectionManager';
 
 export enum CollectionViewType {
     Invalid,
@@ -104,8 +105,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
             // set the ZoomBasis only if hasn't already been set -- bcz: maybe set/resetting the ZoomBasis should be a parameter to addDocument?
             if (this.collectionViewType === CollectionViewType.Freeform || this.collectionViewType === CollectionViewType.Invalid) {
                 let zoom = NumCast(this.props.Document.scale, 1);
-                let screen = this.props.ScreenToLocalTransform().inverse().Scale / (this.props as any).ContentScaling() * zoom;
-                doc.zoomBasis = screen;
+                doc.zoomBasis = zoom;
             }
         }
         return true;
@@ -145,6 +145,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
             return true;
         }
         if (this.removeDocument(doc)) {
+            SelectionManager.DeselectAll();
             return addDocument(doc);
         }
         return false;
