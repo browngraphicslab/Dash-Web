@@ -48,9 +48,13 @@ export class CollectionFreeFormView extends CollectionSubView {
         this.addDocument(newBox, false);
     }
 
-    public addDocument = (newBox: Document, allowDuplicates: boolean) => this.props.addDocument(this.bringToFront(newBox), false);
+    public addDocument = (newBox: Document, allowDuplicates: boolean) => {
+        this.props.addDocument(newBox, false);
+        this.bringToFront(newBox);
+        return true;
+    }
 
-    public selectDocuments = (docs: Document[]) => {
+    private selectDocuments = (docs: Document[]) => {
         SelectionManager.DeselectAll;
         docs.map(doc => DocumentManager.Instance.getDocumentView(doc)).filter(dv => dv).map(dv =>
             SelectionManager.SelectDoc(dv!, true));

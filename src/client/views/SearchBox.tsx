@@ -29,7 +29,7 @@ export class SearchBox extends React.Component {
         Utils.EmitCallback(Server.Socket, MessageStore.SearchFor, this.searchString, (results: string[]) => {
             for (const result of results) {
                 console.log(result);
-                Utils.GetQueryVariable()
+                //Utils.GetQueryVariable();
             }
         });
     }
