@@ -16,9 +16,9 @@ export class CollectionFreeFormLinksView extends React.Component<CollectionViewP
 
     _brushReactionDisposer?: IReactionDisposer;
     componentDidMount() {
-        this._brushReactionDisposer = reaction(() => this.props.Document.GetList<Document>(this.props.fieldKey, []).map(doc => doc.GetNumber(KeyStore.X, 0)),
+        this._brushReactionDisposer = reaction(() => this.props.Document.GetList(this.props.fieldKey, [] as Document[]).map(doc => doc.GetNumber(KeyStore.X, 0)),
             () => {
-                let views = this.props.Document.GetList<Document>(this.props.fieldKey, []);
+                let views = this.props.Document.GetList(this.props.fieldKey, [] as Document[]).filter(doc => doc.GetText(KeyStore.BackgroundLayout, "").indexOf("istogram") !== -1);
                 for (let i = 0; i < views.length; i++) {
                     for (let j = 0; j < views.length; j++) {
                         let srcDoc = views[j];
@@ -72,7 +72,15 @@ export class CollectionFreeFormLinksView extends React.Component<CollectionViewP
         let equalViews = [view];
         let containerDoc = view.props.Document.GetT(KeyStore.AnnotationOn, Document);
         if (containerDoc && containerDoc instanceof Document) {
-            equalViews = DocumentManager.Instance.getDocumentViews(containerDoc.GetPrototype()!);
+            equalViews.push(...DocumentManager.Instance.getDocumentViews(containerDoc.GetPrototype()!));
+        }
+        if (view.props.ContainingCollectionView) {
+            let collid = view.props.ContainingCollectionView.props.Document.Id;
+            this.props.Document.GetList(this.props.fieldKey, [] as Document[]).
+                filter(child =>
+                    child.Id === collid).map(view =>
+                        DocumentManager.Instance.getDocumentViews(view).map(view =>
+                            equalViews.push(view)));
         }
         return equalViews.filter(sv => sv.props.ContainingCollectionView && sv.props.ContainingCollectionView.props.Document === this.props.Document);
     }
@@ -97,7 +105,8 @@ export class CollectionFreeFormLinksView extends React.Component<CollectionViewP
             );
             return drawnPairs;
         }, [] as { a: Document, b: Document, l: Document[] }[]);
-        return connections.map(c => <CollectionFreeFormLinkView key={Utils.GenerateGuid()} A={c.a} B={c.b} LinkDocs={c.l} />);
+        return connections.map(c => <CollectionFreeFormLinkView key={Utils.GenerateGuid()} A={c.a} B={c.b} LinkDocs={c.l}
+            removeDocument={this.props.removeDocument} addDocument={this.props.addDocument} />);
     }
 
     render() {

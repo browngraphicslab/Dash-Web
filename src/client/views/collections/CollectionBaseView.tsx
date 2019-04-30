@@ -2,12 +2,13 @@ import { action, computed } from 'mobx';
 import { observer } from 'mobx-react';
 import * as React from 'react';
 import { Document } from '../../../fields/Document';
-import { Field, FieldValue, FieldWaiting } from '../../../fields/Field';
+import { FieldValue, FieldWaiting } from '../../../fields/Field';
 import { KeyStore } from '../../../fields/KeyStore';
 import { ListField } from '../../../fields/ListField';
 import { NumberField } from '../../../fields/NumberField';
 import { ContextMenu } from '../ContextMenu';
 import { FieldViewProps } from '../nodes/FieldView';
+import { SelectionManager } from '../../util/SelectionManager';
 
 export enum CollectionViewType {
     Invalid,
@@ -22,7 +23,7 @@ export interface CollectionRenderProps {
     removeDocument: (document: Document) => boolean;
     moveDocument: (document: Document, targetCollection: Document, addDocument: (document: Document) => boolean) => boolean;
     active: () => boolean;
-    onActiveChanged: (isActive: boolean) => void;
+    whenActiveChanged: (isActive: boolean) => void;
 }
 
 export interface CollectionViewProps extends FieldViewProps {
@@ -55,19 +56,22 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
 
     //TODO should this be observable?
     private _isChildActive = false;
-    onActiveChanged = (isActive: boolean) => {
+    whenActiveChanged = (isActive: boolean) => {
         this._isChildActive = isActive;
-        this.props.onActiveChanged(isActive);
+        this.props.whenActiveChanged(isActive);
     }
 
     createsCycle(documentToAdd: Document, containerDocument: Document): boolean {
-        let data = documentToAdd.GetList<Document>(KeyStore.Data, []);
-        for (const doc of data) {
+        if (!(documentToAdd instanceof Document)) {
+            return false;
+        }
+        let data = documentToAdd.GetList(KeyStore.Data, [] as Document[]);
+        for (const doc of data.filter(d => d instanceof Document)) {
             if (this.createsCycle(doc, containerDocument)) {
                 return true;
             }
         }
-        let annots = documentToAdd.GetList<Document>(KeyStore.Annotations, []);
+        let annots = documentToAdd.GetList(KeyStore.Annotations, [] as Document[]);
         for (const annot of annots) {
             if (this.createsCycle(annot, containerDocument)) {
                 return true;
@@ -84,56 +88,56 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
 
     @action.bound
     addDocument(doc: Document, allowDuplicates: boolean = false): boolean {
-        let props = this.props;
-        var curPage = props.Document.GetNumber(KeyStore.CurPage, -1);
+        var curPage = this.props.Document.GetNumber(KeyStore.CurPage, -1);
         doc.SetOnPrototype(KeyStore.Page, new NumberField(curPage));
-        if (this.isAnnotationOverlay) {
-            doc.SetNumber(KeyStore.Zoom, this.props.Document.GetNumber(KeyStore.Scale, 1));
-        }
         if (curPage >= 0) {
-            doc.SetOnPrototype(KeyStore.AnnotationOn, props.Document);
+            doc.SetOnPrototype(KeyStore.AnnotationOn, this.props.Document);
         }
-        if (props.Document.Get(props.fieldKey) instanceof Field) {
-            //TODO This won't create the field if it doesn't already exist
-            const value = props.Document.GetData(props.fieldKey, ListField, new Array<Document>());
-            if (!this.createsCycle(doc, props.Document)) {
-                if (!value.some(v => v.Id === doc.Id) || allowDuplicates) {
-                    value.push(doc);
+        if (!this.createsCycle(doc, this.props.Document)) {
+            let value = this.props.Document.Get(this.props.fieldKey) as ListField<Document>;
+            if (value) {
+                if (!value.Data.some(v => v.Id === doc.Id) || allowDuplicates) {
+                    value.Data.push(doc);
                 }
+            } else {
+                this.props.Document.Set(this.props.fieldKey, new ListField([doc]));
             }
-            else {
-                return false;
-            }
-        } else {
-            let proto = props.Document.GetPrototype();
-            if (!proto || proto === FieldWaiting || !this.createsCycle(proto, doc)) {
-                const field = new ListField([doc]);
-                // const script = CompileScript(`
-                //     if(added) {
-                //         console.log("added " + field.Title + " " + doc.Title);
-                //     } else {
-                //         console.log("removed " + field.Title + " " + doc.Title);
-                //     }
-                // `, {
-                //         addReturn: false,
-                //         params: {
-                //             field: Document.name,
-                //             added: "boolean"
-                //         },
-                //         capturedVariables: {
-                //             doc: this.props.Document
-                //         }
-                //     });
-                // if (script.compiled) {
-                //     field.addScript(new ScriptField(script));
-                // }
-                props.Document.SetOnPrototype(props.fieldKey, field);
-            }
-            else {
-                return false;
+            // set the ZoomBasis only if hasn't already been set -- bcz: maybe set/resetting the ZoomBasis should be a parameter to addDocument?
+            if (this.collectionViewType === CollectionViewType.Freeform || this.collectionViewType === CollectionViewType.Invalid) {
+                let zoom = this.props.Document.GetNumber(KeyStore.Scale, 1);
+                doc.SetNumber(KeyStore.ZoomBasis, zoom);
             }
         }
         return true;
+        // bcz: What is this code trying to do?
+        // else {
+        //     let proto = props.Document.GetPrototype();
+        //     if (!proto || proto === FieldWaiting || !this.createsCycle(proto, doc)) {
+        //         const field = new ListField([doc]);
+        //         // const script = CompileScript(`
+        //         //     if(added) {
+        //         //         console.log("added " + field.Title + " " + doc.Title);
+        //         //     } else {
+        //         //         console.log("removed " + field.Title + " " + doc.Title);
+        //         //     }
+        //         // `, {
+        //         //         addReturn: false,
+        //         //         params: {
+        //         //             field: Document.name,
+        //         //             added: "boolean"
+        //         //         },
+        //         //         capturedVariables: {
+        //         //             doc: this.props.Document
+        //         //         }
+        //         //     });
+        //         // if (script.compiled) {
+        //         //     field.addScript(new ScriptField(script));
+        //         // }
+        //         props.Document.SetOnPrototype(props.fieldKey, field);
+        //         return true;
+        //     }
+        // }
+        return false;
     }
 
     @action.bound
@@ -170,6 +174,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
             return true;
         }
         if (this.removeDocument(doc)) {
+            SelectionManager.DeselectAll();
             return addDocument(doc);
         }
         return false;
@@ -181,11 +186,13 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
             removeDocument: this.removeDocument,
             moveDocument: this.moveDocument,
             active: this.active,
-            onActiveChanged: this.onActiveChanged,
+            whenActiveChanged: this.whenActiveChanged,
         };
         const viewtype = this.collectionViewType;
         return (
-            <div className={this.props.className || "collectionView-cont"} onContextMenu={this.props.onContextMenu} ref={this.props.contentRef}>
+            <div className={this.props.className || "collectionView-cont"}
+                style={{ borderRadius: "inherit", pointerEvents: "all" }}
+                onContextMenu={this.props.onContextMenu} ref={this.props.contentRef}>
                 {viewtype !== undefined ? this.props.children(viewtype, props) : (null)}
             </div>
         );

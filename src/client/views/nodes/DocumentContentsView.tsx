@@ -15,6 +15,7 @@ import { DocumentViewProps } from "./DocumentView";
 import "./DocumentView.scss";
 import { FormattedTextBox } from "./FormattedTextBox";
 import { ImageBox } from "./ImageBox";
+import { IconBox } from "./IconBox";
 import { KeyValueBox } from "./KeyValueBox";
 import { PDFBox } from "./PDFBox";
 import { VideoBox } from "./VideoBox";
@@ -46,7 +47,9 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
     CreateBindings(): JsxBindings {
         let bindings: JsxBindings = { props: OmitKeys(this.props, ['parentActive'], (obj: any) => obj.active = this.props.parentActive) };
 
-        for (const key of this.layoutKeys) {
+        let keys: Key[] = [];
+        keys.push(...this.layoutKeys, KeyStore.Caption) // bcz: hack to get templates to work
+        for (const key of keys) {
             bindings[key.Name + "Key"] = key; // this maps string values of the form <keyname>Key to an actual key Kestore.keyname  e.g,   "DataKey" => KeyStore.Data
         }
         for (const key of this.layoutFields) {
@@ -62,7 +65,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
             return <p>Error loading layout keys</p>;
         }
         return <JsxParser
-            components={{ FormattedTextBox, ImageBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, CollectionVideoView, WebBox, KeyValueBox, PDFBox, VideoBox, AudioBox, HistogramBox }}
+            components={{ FormattedTextBox, ImageBox, IconBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, CollectionVideoView, WebBox, KeyValueBox, PDFBox, VideoBox, AudioBox, HistogramBox }}
             bindings={this.CreateBindings()}
             jsx={this.layout}
             showWarnings={true}

@@ -1,10 +1,12 @@
 import v4 = require('uuid/v4');
 import v5 = require("uuid/v5");
 import { Socket } from 'socket.io';
-import { Message, Types, Transferable } from './server/Message';
+import { Message } from './server/Message';
 import { Document } from './fields/Document';
 
 export class Utils {
+
+    public static DRAG_THRESHOLD = 4;
 
     public static GenerateGuid(): string {
         return v4();

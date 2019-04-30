@@ -1,5 +1,5 @@
 import * as htmlToImage from "html-to-image";
-import { action, computed, IReactionDisposer, observable, reaction } from 'mobx';
+import { action, computed, IReactionDisposer, observable, reaction, Reaction, trace } from 'mobx';
 import { observer } from "mobx-react";
 import 'react-image-lightbox/style.css';
 import Measure from "react-measure";
@@ -14,11 +14,10 @@ import { RouteStore } from "../../../server/RouteStore";
 import { Utils } from '../../../Utils';
 import { Annotation } from './Annotation';
 import { FieldView, FieldViewProps } from './FieldView';
-import "./ImageBox.scss";
 import "./PDFBox.scss";
-import { Sticky } from './Sticky'; //you should look at sticky and annotation, because they are used here
 import React = require("react");
 import { SelectionManager } from "../../util/SelectionManager";
+import { InkingControl } from "../InkingControl";
 
 /** ALSO LOOK AT: Annotation.tsx, Sticky.tsx
  * This method renders PDF and puts all kinds of functionalities such as annotation, highlighting, 
@@ -40,15 +39,6 @@ import { SelectionManager } from "../../util/SelectionManager";
  *          4) another method: click on highlight first and then drag on your desired text
  *          5) To make another highlight, you need to reclick on the button 
  * 
- * Draw:
- *          1) click draw and select color. then just draw like there's no tomorrow.
- *          2) once you finish drawing your masterpiece, just reclick on the draw button to end your drawing session. 
- * 
- * Pagination:
- *          1) click on arrows. You'll notice that stickies will stay in those page. But... highlights won't. 
- *          2) to test this out, make few area/stickies and then click on next page then come back. You'll see that they are all saved. 
- *
- * 
  * written by: Andrew Kim 
  */
 @observer
@@ -56,30 +46,9 @@ export class PDFBox extends React.Component<FieldViewProps> {
     public static LayoutString() { return FieldView.LayoutString(PDFBox); }
 
     private _mainDiv = React.createRef<HTMLDivElement>();
-    private _pdf = React.createRef<HTMLCanvasElement>();
 
     @observable private _renderAsSvg = true;
 
-    //very useful for keeping track of X and y position throughout the PDF Canvas
-    private initX: number = 0;
-    private initY: number = 0;
-
-    //checks if tool is on
-    private _toolOn: boolean = false; //checks if tool is on
-    private _pdfContext: any = null; //gets pdf context
-    private bool: Boolean = false; //general boolean debounce
-    private currSpan: any;//keeps track of current span (for highlighting)
-
-    private _currTool: any; //keeps track of current tool button reference
-    private _drawToolOn: boolean = false; //boolean that keeps track of the drawing tool 
-    private _drawTool = React.createRef<HTMLButtonElement>();//drawing tool button reference
-
-    private _colorTool = React.createRef<HTMLButtonElement>(); //color button reference
-    private _currColor: string = "black"; //current color that user selected (for ink/pen)
-
-    private _highlightTool = React.createRef<HTMLButtonElement>(); //highlighter button reference
-    private _highlightToolOn: boolean = false;
-    private _pdfCanvas: any;
     private _reactionDisposer: Opt<IReactionDisposer>;
 
     @observable private _perPageInfo: Object[] = []; //stores pageInfo
@@ -110,43 +79,6 @@ export class PDFBox extends React.Component<FieldViewProps> {
             this._reactionDisposer();
         }
     }
-
-    /**
-     * selection tool used for area highlighting (stickies). Kinda temporary
-     */
-    selectionTool = () => {
-        this._toolOn = true;
-    }
-    /**
-     * when user draws on the canvas. When mouse pointer is down 
-     */
-    drawDown = (e: PointerEvent) => {
-        this.initX = e.offsetX;
-        this.initY = e.offsetY;
-        this._pdfContext.beginPath();
-        this._pdfContext.lineTo(this.initX, this.initY);
-        this._pdfContext.strokeStyle = this._currColor;
-        this._pdfCanvas.addEventListener("pointermove", this.drawMove);
-        this._pdfCanvas.addEventListener("pointerup", this.drawUp);
-
-    }
-    //when user drags 
-    drawMove = (e: PointerEvent): void => {
-        //x and y mouse movement
-        let x = this.initX += e.movementX,
-            y = this.initY += e.movementY;
-        //connects the point 
-        this._pdfContext.lineTo(x, y);
-        this._pdfContext.stroke();
-    }
-
-    drawUp = (e: PointerEvent) => {
-        this._pdfContext.closePath();
-        this._pdfCanvas.removeEventListener("pointermove", this.drawMove);
-        this._pdfCanvas.removeEventListener("pointerdown", this.drawDown);
-        this._pdfCanvas.addEventListener("pointerdown", this.drawDown);
-    }
-
 
     /**
      * highlighting helper function
@@ -183,7 +115,7 @@ export class PDFBox extends React.Component<FieldViewProps> {
                                 child.id = "highlighted";
                                 //@ts-ignore
                                 obj.spans.push(child);
-                                child.addEventListener("mouseover", this.onEnter); //adds mouseover annotation handler
+                                // child.addEventListener("mouseover", this.onEnter); //adds mouseover annotation handler
                             }
                         });
                     }
@@ -206,7 +138,7 @@ export class PDFBox extends React.Component<FieldViewProps> {
                     child.id = "highlighted";
                     //@ts-ignore
                     temp.spans.push(child);
-                    child.addEventListener("mouseover", this.onEnter); //adds mouseover annotation handler
+                    // child.addEventListener("mouseover", this.onEnter); //adds mouseover annotation handler
                 }
             });
 
@@ -272,11 +204,20 @@ export class PDFBox extends React.Component<FieldViewProps> {
      * controls the area highlighting (stickies) Kinda temporary
      */
     onPointerDown = (e: React.PointerEvent) => {
-        if (this._toolOn) {
-            let mouse = e.nativeEvent;
-            this.initX = mouse.offsetX;
-            this.initY = mouse.offsetY;
-
+        if (this.props.isSelected() && !InkingControl.Instance.selectedTool && e.buttons === 1) {
+            if (e.altKey) {
+                this._alt = true;
+            } else {
+                if (e.metaKey)
+                    e.stopPropagation();
+            }
+            document.removeEventListener("pointerup", this.onPointerUp);
+            document.addEventListener("pointerup", this.onPointerUp);
+        }
+        if (this.props.isSelected() && e.buttons === 2) {
+            this._alt = true;
+            document.removeEventListener("pointerup", this.onPointerUp);
+            document.addEventListener("pointerup", this.onPointerUp);
         }
     }
 
@@ -284,96 +225,15 @@ export class PDFBox extends React.Component<FieldViewProps> {
      * controls area highlighting and partially highlighting. Kinda temporary
      */
     @action
-    onPointerUp = (e: React.PointerEvent) => {
-        if (this._highlightToolOn) {
+    onPointerUp = (e: PointerEvent) => {
+        this._alt = false;
+        document.removeEventListener("pointerup", this.onPointerUp);
+        if (this.props.isSelected()) {
             this.highlight("rgba(76, 175, 80, 0.3)"); //highlights to this default color. 
-            this._highlightToolOn = false;
-        }
-        if (this._toolOn) {
-            let mouse = e.nativeEvent;
-            let finalX = mouse.offsetX;
-            let finalY = mouse.offsetY;
-            let width = Math.abs(finalX - this.initX); //width
-            let height = Math.abs(finalY - this.initY); //height
-
-            //these two if statements are bidirectional dragging. You can drag from any point to another point and generate sticky
-            if (finalX < this.initX) {
-                this.initX = finalX;
-            }
-            if (finalY < this.initY) {
-                this.initY = finalY;
-            }
-
-            if (this._mainDiv.current) {
-                let sticky = <Sticky key={Utils.GenerateGuid()} Height={height} Width={width} X={this.initX} Y={this.initY} />;
-                this._pageInfo.area.push(sticky);
-            }
-            this._toolOn = false;
         }
         this._interactive = true;
     }
 
-    /**
-     * starts drawing the line when user presses down. 
-     */
-    onDraw = () => {
-        if (this._currTool !== null) {
-            this._currTool.style.backgroundColor = "grey";
-        }
-
-        if (this._drawTool.current) {
-            this._currTool = this._drawTool.current;
-            if (this._drawToolOn) {
-                this._drawToolOn = false;
-                this._pdfCanvas.removeEventListener("pointerdown", this.drawDown);
-                this._pdfCanvas.removeEventListener("pointerup", this.drawUp);
-                this._pdfCanvas.removeEventListener("pointermove", this.drawMove);
-                this._drawTool.current.style.backgroundColor = "grey";
-            } else {
-                this._drawToolOn = true;
-                this._pdfCanvas.addEventListener("pointerdown", this.drawDown);
-                this._drawTool.current.style.backgroundColor = "cyan";
-            }
-        }
-    }
-
-
-    /**
-     * for changing color (for ink/pen)
-     */
-    onColorChange = (e: React.PointerEvent) => {
-        if (e.currentTarget.innerHTML === "Red") {
-            this._currColor = "red";
-        } else if (e.currentTarget.innerHTML === "Blue") {
-            this._currColor = "blue";
-        } else if (e.currentTarget.innerHTML === "Green") {
-            this._currColor = "green";
-        } else if (e.currentTarget.innerHTML === "Black") {
-            this._currColor = "black";
-        }
-
-    }
-
-
-    /**
-     * For highlighting (text drag highlighting)
-     */
-    onHighlight = () => {
-        this._drawToolOn = false;
-        if (this._currTool !== null) {
-            this._currTool.style.backgroundColor = "grey";
-        }
-        if (this._highlightTool.current) {
-            this._currTool = this._drawTool.current;
-            if (this._highlightToolOn) {
-                this._highlightToolOn = false;
-                this._highlightTool.current.style.backgroundColor = "grey";
-            } else {
-                this._highlightToolOn = true;
-                this._highlightTool.current.style.backgroundColor = "orange";
-            }
-        }
-    }
 
 
     @action
@@ -397,22 +257,6 @@ export class PDFBox extends React.Component<FieldViewProps> {
 
     @action
     onLoaded = (page: any) => {
-        if (this._mainDiv.current) {
-            this._mainDiv.current.childNodes.forEach((element) => {
-                if (element.nodeName === "DIV") {
-                    element.childNodes[0].childNodes.forEach((e) => {
-
-                        if (e instanceof HTMLCanvasElement) {
-                            this._pdfCanvas = e;
-                            this._pdfContext = e.getContext("2d");
-
-                        }
-
-                    });
-                }
-            });
-        }
-
         // bcz: the number of pages should really be set when the document is imported.
         this.props.Document.SetNumber(KeyStore.NumPages, page._transport.numPages);
         if (this._perPageInfo.length === 0) { //Makes sure it only runs once
@@ -424,7 +268,7 @@ export class PDFBox extends React.Component<FieldViewProps> {
     @action
     setScaling = (r: any) => {
         // bcz: the nativeHeight should really be set when the document is imported.
-        //      also, the native dimensions could be different for different pages of the PDF
+        //      also, the native dimensions could be different for different pages of the canvas
         //      so this design is flawed.
         var nativeWidth = this.props.Document.GetNumber(KeyStore.NativeWidth, 0);
         if (!this.props.Document.GetNumber(KeyStore.NativeHeight, 0)) {
@@ -433,22 +277,27 @@ export class PDFBox extends React.Component<FieldViewProps> {
             this.props.Document.SetNumber(KeyStore.NativeHeight, nativeHeight);
         }
     }
-
+    renderHeight = 2400;
+    @computed
+    get pdfPage() {
+        return <Page height={this.renderHeight} pageNumber={this.curPage} onLoadSuccess={this.onLoaded} />
+    }
     @computed
     get pdfContent() {
-        let page = this.curPage;
-        const renderHeight = 2400;
         let pdfUrl = this.props.Document.GetT(this.props.fieldKey, PDFField);
-        let xf = this.props.Document.GetNumber(KeyStore.NativeHeight, 0) / renderHeight;
+        let xf = this.props.Document.GetNumber(KeyStore.NativeHeight, 0) / this.renderHeight;
+        let body = (this.props.Document.GetNumber(KeyStore.NativeHeight, 0)) ?
+            this.pdfPage :
+            <Measure onResize={this.setScaling}>
+                {({ measureRef }) =>
+                    <div className="pdfBox-page" ref={measureRef}>
+                        {this.pdfPage}
+                    </div>
+                }
+            </Measure>;
         return <div className="pdfBox-contentContainer" key="container" style={{ transform: `scale(${xf}, ${xf})` }}>
-            <Document file={window.origin + RouteStore.corsProxy + `/${pdfUrl}`} renderMode={this._renderAsSvg ? "svg" : ""}>
-                <Measure onResize={this.setScaling}>
-                    {({ measureRef }) =>
-                        <div className="pdfBox-page" ref={measureRef}>
-                            <Page height={renderHeight} pageNumber={page} onLoadSuccess={this.onLoaded} />
-                        </div>
-                    }
-                </Measure>
+            <Document file={window.origin + RouteStore.corsProxy + `/${pdfUrl}`} renderMode={this._renderAsSvg ? "svg" : "canvas"}>
+                {body}
             </Document>
         </div >;
     }
@@ -478,10 +327,24 @@ export class PDFBox extends React.Component<FieldViewProps> {
         }
         return (null);
     }
-
+    @observable _alt = false;
+    @action
+    onKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === "Alt") {
+            this._alt = true;
+        }
+    }
+    @action
+    onKeyUp = (e: React.KeyboardEvent) => {
+        if (e.key === "Alt") {
+            this._alt = false;
+        }
+    }
     render() {
+        trace();
+        let classname = "pdfBox-cont" + (this.props.isSelected() && !InkingControl.Instance.selectedTool && !this._alt ? "-interactive" : "");
         return (
-            <div className="pdfBox-cont" ref={this._mainDiv} onPointerDown={this.onPointerDown} onPointerUp={this.onPointerUp} >
+            <div className={classname} tabIndex={0} ref={this._mainDiv} onPointerDown={this.onPointerDown} onKeyDown={this.onKeyDown} onKeyUp={this.onKeyUp} >
                 {this.pdfRenderer}
             </div >
         );

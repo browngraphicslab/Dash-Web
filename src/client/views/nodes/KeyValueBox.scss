@@ -8,6 +8,7 @@
     border-radius: $border-radius;
     box-sizing: border-box;
     display: inline-block;
+    pointer-events: all;
     .imageBox-cont img {
         width: auto;
     }

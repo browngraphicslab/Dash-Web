@@ -15,7 +15,6 @@ import { ServerUtils } from "../../../server/ServerUtil";
 import { Server } from "../../Server";
 import { FieldViewProps } from "../nodes/FieldView";
 import * as rp from 'request-promise';
-import { emptyFunction } from "../../../Utils";
 import { CollectionView } from "./CollectionView";
 import { CollectionPDFView } from "./CollectionPDFView";
 import { CollectionVideoView } from "./CollectionVideoView";
@@ -24,6 +23,8 @@ export interface CollectionViewProps extends FieldViewProps {
     addDocument: (document: Document, allowDuplicates?: boolean) => boolean;
     removeDocument: (document: Document) => boolean;
     moveDocument: (document: Document, targetCollection: Document, addDocument: (document: Document) => boolean) => boolean;
+    PanelWidth: () => number;
+    PanelHeight: () => number;
 }
 
 export interface SubCollectionViewProps extends CollectionViewProps {
@@ -41,6 +42,9 @@ export class CollectionSubView extends React.Component<SubCollectionViewProps> {
         if (ele) {
             this.dropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.drop.bind(this) } });
         }
+    }
+    protected CreateDropTarget(ele: HTMLDivElement) {
+        this.createDropTarget(ele);
     }
 
     @action
@@ -137,7 +141,7 @@ export class CollectionSubView extends React.Component<SubCollectionViewProps> {
                 return undefined;
             }
             ctor = Documents.WebDocument;
-            options = { height: options.width, ...options, title: path };
+            options = { height: options.width, ...options, title: path, nativeWidth: undefined };
         }
         return ctor ? ctor(path, options) : undefined;
     }
@@ -155,10 +159,7 @@ export class CollectionSubView extends React.Component<SubCollectionViewProps> {
         e.preventDefault();
 
         if (html && html.indexOf("<img") !== 0 && !html.startsWith("<a")) {
-            console.log("not good");
-            let htmlDoc = Documents.HtmlDocument(html, { ...options, width: 300, height: 300 });
-            htmlDoc.SetText(KeyStore.DocumentText, text);
-            this.props.addDocument(htmlDoc, false);
+            this.props.addDocument(Documents.HtmlDocument(html, { ...options, width: 300, height: 300, documentText: text }), false);
             return;
         }
 
@@ -173,7 +174,7 @@ export class CollectionSubView extends React.Component<SubCollectionViewProps> {
                 let prom = new Promise<string>(resolve => e.dataTransfer.items[i].getAsString(resolve))
                     .then(action((s: string) => rp.head(ServerUtils.prepend(RouteStore.corsProxy + "/" + (str = s)))))
                     .then(result => {
-                        let type = result.headers["content-type"];
+                        let type = result["content-type"];
                         if (type) {
                             this.getDocumentFromType(type, str, { ...options, width: 300, nativeWidth: 300 })
                                 .then(doc => doc && this.props.addDocument(doc, false));
@@ -184,36 +185,17 @@ export class CollectionSubView extends React.Component<SubCollectionViewProps> {
             let type = item.type;
             if (item.kind === "file") {
                 let file = item.getAsFile();
-                let formData = new FormData();
-
-                if (file) {
-                    formData.append('file', file);
-                }
                 let dropFileName = file ? file.name : "-empty-";
+                let formData = new FormData();
+                if (file) formData.append('file', file);
 
-                let prom = fetch(upload, {
+                promises.push(fetch(upload, {
                     method: 'POST',
                     body: formData
-                }).then(async (res: Response) => {
-                    (await res.json()).map(action((file: any) => {
-                        let path = window.location.origin + file;
-                        let docPromise = this.getDocumentFromType(type, path, { ...options, nativeWidth: 600, width: 300, title: dropFileName });
-
-                        docPromise.then(action((doc?: Document) => {
-                            let docs = this.props.Document.GetT(KeyStore.Data, ListField);
-                            if (docs !== FieldWaiting) {
-                                if (!docs) {
-                                    docs = new ListField<Document>();
-                                    this.props.Document.Set(KeyStore.Data, docs);
-                                }
-                                if (doc) {
-                                    docs.Data.push(doc);
-                                }
-                            }
-                        }));
-                    }));
-                });
-                promises.push(prom);
+                }).then(async (res: Response) =>
+                    (await res.json()).map(action((file: any) =>
+                        this.getDocumentFromType(type, window.location.origin + file, { ...options, nativeWidth: 600, width: 300, title: dropFileName }).
+                            then(doc => doc && this.props.addDocument(doc, false))))));
             }
         }
 

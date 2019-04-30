@@ -1,10 +1,10 @@
 @import "../globalCssVariables";
 
-.documentView-node, .documentView-node-topMost {
+.documentView-node, .documentView-node-topmost {
   position: inherit;
   top: 0;
   left:0;
-  background: $light-color; //overflow: hidden;
+ // background: $light-color; //overflow: hidden;
   transform-origin: left top;
 
   &.minimized {
@@ -13,7 +13,6 @@
   }
 
   .top {
-    background: #232323;
     height: 20px;
     cursor: pointer;
   }
@@ -29,20 +28,6 @@
     height: calc(100% - 20px);
   }
 }
-.documentView-node-topMost {
+.documentView-node-topmost {
     background: white;
-}
-
-.minimized-box {
-  height: 10px;
-  width: 10px;
-  border-radius: 2px;
-  background: $dark-color;
-  transform-origin: left top;
-}
-
-.minimized-box:hover {
-  background: $main-accent;
-  transform: scale(1.15);
-  cursor: pointer;
 }

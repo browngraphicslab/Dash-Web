@@ -38,11 +38,17 @@ export class DocumentManager {
                 toReturn = view;
                 return;
             }
-            let docSrc = doc.GetT(KeyStore.Prototype, Document);
-            if (docSrc && docSrc !== FieldWaiting && Object.is(docSrc, toFind)) {
-                toReturn = view;
-            }
         });
+        if (!toReturn) {
+            DocumentManager.Instance.DocumentViews.map(view => {
+                let doc = view.props.Document;
+
+                let docSrc = doc.GetT(KeyStore.Prototype, Document);
+                if (docSrc && docSrc !== FieldWaiting && Object.is(docSrc, toFind)) {
+                    toReturn = view;
+                }
+            });
+        }
 
         return toReturn;
     }

@@ -41,11 +41,11 @@ export function SetupDrag(_reference: React.RefObject<HTMLDivElement>, docFunc: 
 }
 
 export async function DragLinksAsDocuments(dragEle: HTMLElement, x: number, y: number, sourceDoc: Document) {
-    let srcTarg = sourceDoc.GetT(KeyStore.Prototype, Document);
-    let draggedDocs = (srcTarg && srcTarg !== FieldWaiting) ?
+    let srcTarg = sourceDoc.GetPrototype();
+    let draggedDocs = srcTarg ?
         srcTarg.GetList(KeyStore.LinkedToDocs, [] as Document[]).map(linkDoc =>
             (linkDoc.GetT(KeyStore.LinkedToDocs, Document)) as Document) : [];
-    let draggedFromDocs = (srcTarg && srcTarg !== FieldWaiting) ?
+    let draggedFromDocs = srcTarg ?
         srcTarg.GetList(KeyStore.LinkedFromDocs, [] as Document[]).map(linkDoc =>
             (linkDoc.GetT(KeyStore.LinkedFromDocs, Document)) as Document) : [];
     draggedDocs.push(...draggedFromDocs);
@@ -158,11 +158,13 @@ export namespace DragManager {
     }
 
     export class LinkDragData {
-        constructor(linkSourceDoc: Document) {
+        constructor(linkSourceDoc: Document, blacklist: Document[] = []) {
             this.linkSourceDocument = linkSourceDoc;
+            this.blacklist = blacklist;
         }
         droppedDocuments: Document[] = [];
         linkSourceDocument: Document;
+        blacklist: Document[];
         [id: string]: any;
     }
 
@@ -170,10 +172,13 @@ export namespace DragManager {
         StartDrag([ele], dragData, downX, downY, options);
     }
 
+    export let AbortDrag: () => void = emptyFunction;
+
     function StartDrag(eles: HTMLElement[], dragData: { [id: string]: any }, downX: number, downY: number, options?: DragOptions, finishDrag?: (dropData: { [id: string]: any }) => void) {
         if (!dragDiv) {
             dragDiv = document.createElement("div");
             dragDiv.className = "dragManager-dragDiv";
+            dragDiv.style.pointerEvents = "none";
             DragManager.Root().appendChild(dragDiv);
         }
         MainOverlayTextBox.Instance.SetTextDoc();
@@ -250,7 +255,7 @@ export namespace DragManager {
                 dragData.aliasOnDrop = e.ctrlKey || e.altKey;
             }
             if (e.shiftKey) {
-                abortDrag();
+                AbortDrag();
                 CollectionDockingView.Instance.StartOtherDrag(docs, {
                     pageX: e.pageX,
                     pageY: e.pageY,
@@ -269,21 +274,32 @@ export namespace DragManager {
             );
         };
 
-        const abortDrag = () => {
-            document.removeEventListener("pointermove", moveHandler, true);
-            document.removeEventListener("pointerup", upHandler);
-            dragElements.map(dragElement => dragDiv.removeChild(dragElement));
+        let hideDragElements = () => {
+            dragElements.map(dragElement => dragElement.parentNode == dragDiv && dragDiv.removeChild(dragElement));
             eles.map(ele => (ele.hidden = false));
         };
+        let endDrag = () => {
+            document.removeEventListener("pointermove", moveHandler, true);
+            document.removeEventListener("pointerup", upHandler);
+            if (options) {
+                options.handlers.dragComplete({});
+            }
+        }
+
+        AbortDrag = () => {
+            hideDragElements();
+            endDrag();
+        };
         const upHandler = (e: PointerEvent) => {
-            abortDrag();
-            FinishDrag(eles, e, dragData, options, finishDrag);
+            hideDragElements();
+            dispatchDrag(eles, e, dragData, options, finishDrag);
+            endDrag();
         };
         document.addEventListener("pointermove", moveHandler, true);
         document.addEventListener("pointerup", upHandler);
     }
 
-    function FinishDrag(dragEles: HTMLElement[], e: PointerEvent, dragData: { [index: string]: any }, options?: DragOptions, finishDrag?: (dragData: { [index: string]: any }) => void) {
+    function dispatchDrag(dragEles: HTMLElement[], e: PointerEvent, dragData: { [index: string]: any }, options?: DragOptions, finishDrag?: (dragData: { [index: string]: any }) => void) {
         let removed = dragEles.map(dragEle => {
             let parent = dragEle.parentElement;
             if (parent) parent.removeChild(dragEle);
@@ -308,11 +324,6 @@ export namespace DragManager {
                     }
                 })
             );
-
-            if (options) {
-                options.handlers.dragComplete({});
-            }
         }
-        DocumentDecorations.Instance.Hidden = false;
     }
 }
