@@ -60,6 +60,7 @@ export interface DocumentOptions {
     copyDraggedItems?: boolean;
     documentText?: string;
     borderRounding?: number;
+    columnsKey?: Array<Key>;
 }
 
 export namespace Documents {
@@ -116,6 +117,7 @@ export namespace Documents {
         if (options.layoutKeys !== undefined) { doc.Set(KeyStore.LayoutKeys, new ListField(options.layoutKeys)); }
         if (options.copyDraggedItems !== undefined) { doc.SetBoolean(KeyStore.CopyDraggedItems, options.copyDraggedItems); }
         if (options.borderRounding !== undefined) { doc.SetNumber(KeyStore.BorderRounding, options.borderRounding); }
+        if (options.columnsKey !== undefined) { doc.SetData(KeyStore.ColumnsKey, options.columnsKey, ListField); }
         return doc;
     }
 
@@ -271,13 +273,13 @@ export namespace Documents {
         if (!makePrototype) {
             return SetInstanceOptions(collProto, { ...options, viewType: CollectionViewType.Freeform }, [documents, ListField], id);
         }
-        return assignToDelegate(SetInstanceOptions(collProto, { ...options, viewType: CollectionViewType.Freeform }, [documents, ListField], id).MakeDelegate(), options);
+        return assignToDelegate(SetInstanceOptions(collProto, { columnsKey: [KeyStore.Title], ...options, viewType: CollectionViewType.Freeform }, [documents, ListField], id).MakeDelegate(), options);
     }
     export function SchemaDocument(documents: Array<Document>, options: DocumentOptions, id?: string) {
-        return assignToDelegate(SetInstanceOptions(collProto, { ...options, viewType: CollectionViewType.Schema }, [documents, ListField], id), options);
+        return assignToDelegate(SetInstanceOptions(collProto, { columnsKey: [KeyStore.Title], ...options, viewType: CollectionViewType.Schema }, [documents, ListField], id), options);
     }
     export function TreeDocument(documents: Array<Document>, options: DocumentOptions, id?: string) {
-        return assignToDelegate(SetInstanceOptions(collProto, { ...options, viewType: CollectionViewType.Tree }, [documents, ListField], id), options);
+        return assignToDelegate(SetInstanceOptions(collProto, { columnsKey: [KeyStore.Title], ...options, viewType: CollectionViewType.Tree }, [documents, ListField], id), options);
     }
     export function DockDocument(config: string, options: DocumentOptions, id?: string) {
         return assignToDelegate(SetInstanceOptions(collProto, { ...options, viewType: CollectionViewType.Docking }, [config, TextField], id), options);
