@@ -279,7 +279,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         let color = StrCast(this.props.Document.backgroundColor);
         let interactive = InkingControl.Instance.selectedTool ? "" : "interactive";
         return (
-            <div className={`formattedTextBox-cont${style}`} ref={this._ref}
+            <div className={`formattedTextBox-cont-${style}`} ref={this._ref}
                 style={{
                     pointerEvents: interactive ? "all" : "none",
                     background: color,
