@@ -28,7 +28,7 @@ const { menuBar } = require("prosemirror-menu");
 
 // FormattedTextBox: Displays an editable plain text node that maps to a specified Key of a Document
 //
-//  HTML Markup:  <FormattedTextBox Doc={Document's ID} FieldKey={Key's name + "Key"}
+//  HTML Markup:  <FormattedTextBox Doc={Document's ID} FieldKey={Key's name}
 //
 //  In Code, the node's HTML is specified in the document's parameterized structure as:
 //        document.SetField(KeyStore.Layout,  "<FormattedTextBox doc={doc} fieldKey={<KEYNAME>Key} />");
