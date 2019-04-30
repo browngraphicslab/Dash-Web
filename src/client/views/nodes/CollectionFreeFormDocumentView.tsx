@@ -103,7 +103,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                     target.width = width;
                     target.height = height;
                 }
-                (target as any).isIconAnimating = false;
+                target.isIconAnimating = false;
             }
         },
             2);
@@ -116,28 +116,25 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         if (!minimizedDocSet) return;
         let docs = minimizedDocSet.map(d => d);
         docs.push(this.props.Document);
-        minimizedDocSet.map(async minimizedDoc => {
-            if (minimizedDoc instanceof Document) {
-                this.props.addDocument && this.props.addDocument(minimizedDoc, false);
-                let maximizedDoc = await Cast(minimizedDoc.maximizedDoc, Doc);
-                if (maximizedDoc && !(maximizedDoc as any).isIconAnimating) {
-                    (maximizedDoc as any).isIconAnimating = true;
-                    if (isMinimized === undefined) {
-                        let maximizedDocMinimizedState = Cast(maximizedDoc.isMinimized, "boolean");
-                        isMinimized = (maximizedDocMinimizedState) ? true : false;
-                    }
-                    let minx = NumCast(minimizedDoc.x, undefined);
-                    let miny = NumCast(minimizedDoc.y, undefined);
-                    let maxx = NumCast(maximizedDoc.x, undefined);
-                    let maxy = NumCast(maximizedDoc.y, undefined);
-                    let maxw = NumCast(maximizedDoc.width, undefined);
-                    let maxh = NumCast(maximizedDoc.height, undefined);
-                    if (minx !== undefined && miny !== undefined && maxx !== undefined && maxy !== undefined &&
-                        maxw !== undefined && maxh !== undefined) {
-                        this.animateBetweenIcon(true, [minx, miny], [maxx, maxy], maxw, maxh, Date.now(), maximizedDoc, isMinimized);
-                    }
+        docs.map(async minimizedDoc => {
+            this.props.addDocument && this.props.addDocument(minimizedDoc, false);
+            let maximizedDoc = await Cast(minimizedDoc.maximizedDoc, Doc);
+            if (maximizedDoc && !maximizedDoc.isIconAnimating) {
+                maximizedDoc.isIconAnimating = true;
+                if (isMinimized === undefined) {
+                    let maximizedDocMinimizedState = Cast(maximizedDoc.isMinimized, "boolean");
+                    isMinimized = (maximizedDocMinimizedState) ? true : false;
                 }
-
+                let minx = NumCast(minimizedDoc.x, undefined);
+                let miny = NumCast(minimizedDoc.y, undefined);
+                let maxx = NumCast(maximizedDoc.x, undefined);
+                let maxy = NumCast(maximizedDoc.y, undefined);
+                let maxw = NumCast(maximizedDoc.width, undefined);
+                let maxh = NumCast(maximizedDoc.height, undefined);
+                if (minx !== undefined && miny !== undefined && maxx !== undefined && maxy !== undefined &&
+                    maxw !== undefined && maxh !== undefined) {
+                    this.animateBetweenIcon(true, [minx, miny], [maxx, maxy], maxw, maxh, Date.now(), maximizedDoc, isMinimized);
+                }
             }
         })
     }

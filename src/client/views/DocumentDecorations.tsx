@@ -231,9 +231,9 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         iconDoc.nativeHeight = 0;
         iconDoc.x = NumCast(doc.x);
         iconDoc.y = NumCast(doc.y) - 24;
-        iconDoc.proto = doc;
         iconDoc.maximizedDoc = doc;
         doc.minimizedDoc = iconDoc;
+        console.log("Layout " + iconDoc.layout)
         docView.props.addDocument && docView.props.addDocument(iconDoc, false);
         return iconDoc;
     }
