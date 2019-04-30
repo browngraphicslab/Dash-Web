@@ -29,15 +29,14 @@ export class Document extends Field {
     }
     static FromJson(data: any, id: string, save: boolean): Document {
         let doc = new Document(id, save);
-        let fields = data as [string, string][];
-        fields.forEach(pair => doc._proxies.set(pair[0], pair[1]));
+        let fields = data as { key: string, field: string }[];
+        fields.forEach(pair => doc._proxies.set(pair.key, pair.field));
         return doc;
     }
 
-    UpdateFromServer(data: [string, string][]) {
-        for (const key in data) {
-            const element = data[key];
-            this._proxies.set(element[0], element[1]);
+    UpdateFromServer(data: { key: string, field: string }[]) {
+        for (const kv of data) {
+            this._proxies.set(kv.key, kv.field);
         }
     }
 
@@ -448,9 +447,9 @@ export class Document extends Field {
     }
 
     ToJson() {
-        let fields: [string, string][] = [];
+        let fields: { key: string, field: string }[] = [];
         this._proxies.forEach((field, key) =>
-            field && fields.push([key, field]));
+            field && fields.push({ key, field }));
 
         return {
             type: Types.Document,

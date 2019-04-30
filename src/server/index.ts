@@ -11,6 +11,7 @@ import { ObservableMap } from 'mobx';
 import * as passport from 'passport';
 import * as path from 'path';
 import * as request from 'request';
+import * as rp from 'request-promise';
 import * as io from 'socket.io';
 import { Socket } from 'socket.io';
 import * as webpack from 'webpack';
@@ -22,7 +23,7 @@ import { getForgot, getLogin, getLogout, getReset, getSignup, postForgot, postLo
 import { DashUserModel } from './authentication/models/user_model';
 import { Client } from './Client';
 import { Database } from './database';
-import { MessageStore, Transferable } from "./Message";
+import { MessageStore, Transferable, Types } from "./Message";
 import { RouteStore } from './RouteStore';
 const app = express();
 const config = require('../../webpack.config');
@@ -32,6 +33,7 @@ const serverPort = 4321;
 import expressFlash = require('express-flash');
 import flash = require('connect-flash');
 import c = require("crypto");
+import { Search } from './Search';
 const MongoStore = require('connect-mongo')(session);
 const mongoose = require('mongoose');
 
@@ -119,6 +121,12 @@ app.get("/pull", (req, res) =>
     }));
 
 // GETTERS
+
+app.get("/search", async (req, res) => {
+    let query = req.query.query || "hello";
+    let results = await Search.Instance.search(query);
+    res.send(results);
+});
 
 // anyone attempting to navigate to localhost at this port will
 // first have to login
@@ -234,14 +242,16 @@ server.on("connection", function (socket: Socket) {
     Utils.AddServerHandler(socket, MessageStore.DeleteAll, deleteFields);
 });
 
-function deleteFields() {
-    return Database.Instance.deleteAll();
+async function deleteFields() {
+    await Database.Instance.deleteAll();
+    await Search.Instance.clear();
 }
 
 async function deleteAll() {
     await Database.Instance.deleteAll();
     await Database.Instance.deleteAll('sessions');
     await Database.Instance.deleteAll('users');
+    await Search.Instance.clear();
 }
 
 function barReceived(guid: String) {
@@ -260,6 +270,9 @@ function getFields([ids, callback]: [string[], (result: Transferable[]) => void]
 function setField(socket: Socket, newValue: Transferable) {
     Database.Instance.update(newValue.id, newValue, () =>
         socket.broadcast.emit(MessageStore.SetField.Message, newValue));
+    if (newValue.type === Types.Text) {
+        Search.Instance.updateDocument({ id: newValue.id, data: (newValue as any).data });
+    }
 }
 
 server.listen(serverPort);
