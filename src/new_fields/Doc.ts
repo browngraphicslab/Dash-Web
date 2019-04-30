@@ -4,7 +4,7 @@ import { autoObject, SerializationHelper, Deserializable } from "../client/util/
 import { Utils } from "../Utils";
 import { DocServer } from "../client/DocServer";
 import { setter, getter, getField, updateFunction, deleteProperty } from "./util";
-import { Cast, ToConstructor, PromiseValue, FieldValue } from "./Types";
+import { Cast, ToConstructor, PromiseValue, FieldValue, NumCast } from "./Types";
 import { UndoManager, undoBatch } from "../client/util/UndoManager";
 import { listSpec } from "./Schema";
 import { List } from "./List";
@@ -25,6 +25,8 @@ export type FieldResult<T extends Field = Field> = Opt<T> | FieldWaiting<Extract
 
 export const Update = Symbol("Update");
 export const Self = Symbol("Self");
+export const WidthSym = Symbol("Width");
+export const HeightSym = Symbol("Height");
 
 @Deserializable("doc").withFields(["id"])
 export class Doc extends RefField {
@@ -70,6 +72,8 @@ export class Doc extends RefField {
     }
 
     private [Self] = this;
+    public [WidthSym] = () => { return NumCast(this.__fields.width); }  // bcz: is this the right way to access width/height?   it didn't work with : this.width
+    public [HeightSym] = () => { return NumCast(this.__fields.height); }
 }
 
 export namespace Doc {

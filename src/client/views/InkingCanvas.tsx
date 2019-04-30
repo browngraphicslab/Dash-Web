@@ -139,21 +139,25 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
         let curPage = NumCast(this.props.Document.curPage, -1);
         let paths = Array.from(this.inkData).reduce((paths, [id, strokeData]) => {
             if (strokeData.page === -1 || strokeData.page === curPage) {
-                paths.push(<InkingStroke key={id} id={id} line={strokeData.pathData}
+                paths.push(<InkingStroke key={id} id={id}
+                    line={strokeData.pathData}
+                    count={strokeData.pathData.length}
                     offsetX={this.maxCanvasDim - this.inkMidX}
                     offsetY={this.maxCanvasDim - this.inkMidY}
-                    color={strokeData.color} width={strokeData.width}
-                    tool={strokeData.tool} deleteCallback={this.removeLine} />);
+                    color={strokeData.color}
+                    width={strokeData.width}
+                    tool={strokeData.tool}
+                    deleteCallback={this.removeLine} />);
             }
             return paths;
         }, [] as JSX.Element[]);
-        return [<svg className={`inkingCanvas-paths-markers`} key="Markers"
+        return [<svg className={`inkingCanvas-paths-ink`} key="Pens"
             style={{ left: `${this.inkMidX - this.maxCanvasDim}px`, top: `${this.inkMidY - this.maxCanvasDim}px` }} >
-            {paths.filter(path => path.props.tool === InkTool.Highlighter)}
-        </svg>,
-        <svg className={`inkingCanvas-paths-ink`} key="Pens"
-            style={{ left: `${this.inkMidX - this.maxCanvasDim}px`, top: `${this.inkMidY - this.maxCanvasDim}px` }}>
             {paths.filter(path => path.props.tool !== InkTool.Highlighter)}
+        </svg>,
+        <svg className={`inkingCanvas-paths-markers`} key="Markers"
+            style={{ left: `${this.inkMidX - this.maxCanvasDim}px`, top: `${this.inkMidY - this.maxCanvasDim}px` }}>
+            {paths.filter(path => path.props.tool === InkTool.Highlighter)}
         </svg>];
     }
 
