@@ -11,6 +11,7 @@ import { undoBatch } from "../../util/UndoManager";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
 import './LinkBox.scss';
 import React = require("react");
+import { runInAction } from 'mobx';
 
 
 library.add(faEye);
@@ -70,20 +71,22 @@ export class LinkBox extends React.Component<Props> {
         e.stopPropagation();
         this.props.linkDoc.GetTAsync(KeyStore.LinkedFromDocs, Document, field => {
             if (field) {
-                field.GetTAsync<ListField<Document>>(KeyStore.LinkedToDocs, ListField, field => {
-                    if (field) {
-                        field.Data.splice(field.Data.indexOf(this.props.linkDoc));
-                    }
-                });
+                field.GetTAsync<ListField<Document>>(KeyStore.LinkedToDocs, ListField, field =>
+                    runInAction(() => {
+                        if (field) {
+                            field.Data.splice(field.Data.indexOf(this.props.linkDoc));
+                        }
+                    }));
             }
         });
         this.props.linkDoc.GetTAsync(KeyStore.LinkedToDocs, Document, field => {
             if (field) {
-                field.GetTAsync<ListField<Document>>(KeyStore.LinkedFromDocs, ListField, field => {
-                    if (field) {
-                        field.Data.splice(field.Data.indexOf(this.props.linkDoc));
-                    }
-                });
+                field.GetTAsync<ListField<Document>>(KeyStore.LinkedFromDocs, ListField, field =>
+                    runInAction(() => {
+                        if (field) {
+                            field.Data.splice(field.Data.indexOf(this.props.linkDoc));
+                        }
+                    }));
             }
         });
     }
