@@ -12,7 +12,6 @@ import { Document } from '../../fields/Document';
 import { Field, FieldWaiting, Opt, FIELD_WAITING } from '../../fields/Field';
 import { KeyStore } from '../../fields/KeyStore';
 import { ListField } from '../../fields/ListField';
-import { WorkspacesMenu } from '../../server/authentication/controllers/WorkspacesMenu';
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
 import { MessageStore } from '../../server/Message';
 import { RouteStore } from '../../server/RouteStore';
@@ -30,6 +29,8 @@ import { Server } from '../Server';
 import { SetupDrag, DragManager } from '../util/DragManager';
 import { Transform } from '../util/Transform';
 import { UndoManager } from '../util/UndoManager';
+import { PresentationView } from './PresentationView';
+import { WorkspacesMenu } from '../../server/authentication/controllers/WorkspacesMenu';
 import { CollectionDockingView } from './collections/CollectionDockingView';
 import { ContextMenu } from './ContextMenu';
 import { DocumentDecorations } from './DocumentDecorations';
@@ -52,7 +53,10 @@ export class Main extends React.Component {
         return CurrentUserUtils.UserDocument.GetT(KeyStore.ActiveWorkspace, Document);
     }
     private set mainContainer(doc: Document | undefined | FIELD_WAITING) {
-        doc && CurrentUserUtils.UserDocument.Set(KeyStore.ActiveWorkspace, doc);
+        if (doc) {
+            doc.GetOrCreateAsync(KeyStore.PresentationView, Document, doc => { });
+            CurrentUserUtils.UserDocument.Set(KeyStore.ActiveWorkspace, doc);
+        }
     }
 
     constructor(props: Readonly<{}>) {
@@ -177,11 +181,21 @@ export class Main extends React.Component {
     }
 
     @computed
+    get presentationView() {
+        if (this.mainContainer) {
+            let presentation = this.mainContainer.GetT(KeyStore.PresentationView, Document);
+            return presentation ? <PresentationView Document={presentation} key="presentation" /> : (null);
+        }
+        return (null);
+    }
+
+    @computed
     get mainContent() {
         let pwidthFunc = () => this.pwidth;
         let pheightFunc = () => this.pheight;
         let noScaling = () => 1;
         let mainCont = this.mainContainer;
+        let pcontent = this.presentationView;
         return <Measure onResize={action((r: any) => { this.pwidth = r.entry.width; this.pheight = r.entry.height; })}>
             {({ measureRef }) =>
                 <div ref={measureRef} id="mainContent-div">
@@ -200,6 +214,7 @@ export class Main extends React.Component {
                             parentActive={returnTrue}
                             whenActiveChanged={emptyFunction}
                             ContainingCollectionView={undefined} />}
+                    {pcontent}
                 </div>
             }
         </Measure>;

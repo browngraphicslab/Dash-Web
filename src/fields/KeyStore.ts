@@ -32,6 +32,7 @@ export namespace KeyStore {
     export const Caption = new Key("Caption");
     export const ActiveWorkspace = new Key("ActiveWorkspace");
     export const DocumentText = new Key("DocumentText");
+    export const PresentationView = new Key("PresentationView");
     export const BrushingDocs = new Key("BrushingDocs");
     export const LinkedToDocs = new Key("LinkedToDocs");
     export const LinkedFromDocs = new Key("LinkedFromDocs");
@@ -43,6 +44,7 @@ export namespace KeyStore {
     export const AnnotationOn = new Key("AnnotationOn");
     export const NumPages = new Key("NumPages");
     export const Ink = new Key("Ink");
+    export const SelectedDoc = new Key("SelectedDoc");
     export const Cursors = new Key("Cursors");
     export const OptionalRightCollection = new Key("OptionalRightCollection");
     export const Archives = new Key("Archives");

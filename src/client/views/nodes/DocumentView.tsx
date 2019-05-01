@@ -23,9 +23,10 @@ import { Template, Templates } from "./../Templates";
 import { DocumentContentsView } from "./DocumentContentsView";
 import "./DocumentView.scss";
 import React = require("react");
+import { PresentationView } from "../PresentationView";
+
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
-import { MarqueeView } from "../collections/collectionFreeForm/MarqueeView";
 import { TextField } from "../../../fields/TextField";
 
 export interface DocumentViewProps {
@@ -305,7 +306,12 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         ContextMenu.Instance.addItem({ description: "Copy URL", event: () => Utils.CopyText(ServerUtils.prepend("/doc/" + this.props.Document.Id)) });
         ContextMenu.Instance.addItem({ description: "Copy ID", event: () => Utils.CopyText(this.props.Document.Id) });
         //ContextMenu.Instance.addItem({ description: "Docking", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Docking) })
+        ContextMenu.Instance.addItem({ description: "Pin to Presentation", event: () => PresentationView.Instance.PinDoc(this.props.Document) });
         ContextMenu.Instance.addItem({ description: "Delete", event: this.deleteClicked });
+        if (!this.topMost) {
+            // DocumentViews should stop propagation of this event
+            e.stopPropagation();
+        }
         ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15);
         if (!SelectionManager.IsSelected(this))
             SelectionManager.SelectDoc(this, false);
