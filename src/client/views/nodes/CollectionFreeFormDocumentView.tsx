@@ -16,7 +16,7 @@ export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
 }
 
 const schema = createSchema({
-    zoom: "number",
+    zoomBasis: "number",
     zIndex: "number"
 });
 
@@ -36,7 +36,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
 
     @computed get X() { return FieldValue(this.Document.x, 0); }
     @computed get Y() { return FieldValue(this.Document.y, 0); }
-    @computed get zoom(): number { return 1 / FieldValue(this.Document.zoom, 1); }
+    @computed get zoom(): number { return 1 / FieldValue(this.Document.zoomBasis, 1); }
     @computed get nativeWidth(): number { return FieldValue(this.Document.nativeWidth, 0); }
     @computed get nativeHeight(): number { return FieldValue(this.Document.nativeHeight, 0); }
     @computed get width(): number { return FieldValue(this.Document.width, 0); }
