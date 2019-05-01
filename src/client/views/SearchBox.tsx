@@ -9,6 +9,10 @@ import { faSearch } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { actionFieldDecorator } from 'mobx/lib/internal';
+// const app = express();
+// import * as express from 'express';
+import { Search } from '../../server/Search';
+
 
 library.add(faSearch);
 
@@ -26,12 +30,25 @@ export class SearchBox extends React.Component {
     }
 
     submitSearch = () => {
-        Utils.EmitCallback(Server.Socket, MessageStore.SearchFor, this.searchString, (results: string[]) => {
-            for (const result of results) {
-                console.log(result);
-                //Utils.GetQueryVariable();
-            }
-        });
+        // Utils.EmitCallback(Server.Socket, MessageStore.SearchFor, this.searchString, (results: string[]) => {
+        //     for (const result of results) {
+        //         console.log(result);
+        //         //Utils.GetQueryVariable();
+        //     }
+        // });
+
+        let query = this.searchString;
+        console.log(query);
+        //something bad is happening here
+        let results = Search.Instance.search(query);
+        console.log(results);
+
+        // app.get("/search", async (req, res) => {
+        //     //let query = req.query.query || "hello";
+        //     let query = this.searchString;
+        //     let results = await Search.Instance.search(query);
+        //     res.send(results);
+        // });
     }
 
     @action
@@ -73,7 +90,7 @@ export class SearchBox extends React.Component {
                     map(prop => <ContextMenuItem {...prop} key={prop.description} />)} */}
 
                     <button className="filter-button" onClick={this.toggleDisplay}> Filter </button>
-                    <div className="submit-search" ><FontAwesomeIcon style={{ height: "100%" }} icon="search" size="lg" /></div>
+                    <div className="submit-search" onClick={this.submitSearch}><FontAwesomeIcon style={{ height: "100%" }} icon="search" size="lg" /></div>
                 </div>
                 <div className="filter-form" id="filter" style={this._open ? { display: "flex" } : { display: "none" }}>
                     <div className="filter-form" id="header">Filter Search Results</div>
