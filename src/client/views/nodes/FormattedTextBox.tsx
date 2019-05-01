@@ -28,7 +28,7 @@ const { menuBar } = require("prosemirror-menu");
 
 // FormattedTextBox: Displays an editable plain text node that maps to a specified Key of a Document
 //
-//  HTML Markup:  <FormattedTextBox Doc={Document's ID} FieldKey={Key's name + "Key"}
+//  HTML Markup:  <FormattedTextBox Doc={Document's ID} FieldKey={Key's name}
 //
 //  In Code, the node's HTML is specified in the document's parameterized structure as:
 //        document.SetField(KeyStore.Layout,  "<FormattedTextBox doc={doc} fieldKey={<KEYNAME>Key} />");
@@ -144,8 +144,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
     private setupEditor(config: any, doc?: Doc) {
         let field = doc ? Cast(doc[this.props.fieldKey], RichTextField) : undefined;
-        if (this._ref.current) {
-            this._editorView = new EditorView(this._ref.current, {
+        if (this._proseRef.current) {
+            this._editorView = new EditorView(this._proseRef.current, {
                 state: field && field.Data ? EditorState.fromJSON(config, JSON.parse(field.Data)) : EditorState.create(config),
                 dispatchTransaction: this.dispatchTransaction
             });
@@ -195,8 +195,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         if (!this.props.isOverlay) {
             MainOverlayTextBox.Instance.SetTextDoc(this.props.Document, this.props.fieldKey, this._ref.current!, this.props.ScreenToLocalTransform);
         } else {
-            if (this._ref.current) {
-                this._ref.current.scrollTop = MainOverlayTextBox.Instance.TextScroll;
+            if (this._proseRef.current) {
+                this._proseRef.current.scrollTop = MainOverlayTextBox.Instance.TextScroll;
             }
         }
     }
@@ -279,7 +279,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         let color = StrCast(this.props.Document.backgroundColor);
         let interactive = InkingControl.Instance.selectedTool ? "" : "interactive";
         return (
-            <div className={`formattedTextBox-cont${style}`} ref={this._ref}
+            <div className={`formattedTextBox-cont-${style}`} ref={this._ref}
                 style={{
                     pointerEvents: interactive ? "all" : "none",
                     background: color,

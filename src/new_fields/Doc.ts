@@ -1,7 +1,6 @@
 import { observable, action } from "mobx";
 import { serializable, primitive, map, alias, list } from "serializr";
 import { autoObject, SerializationHelper, Deserializable } from "../client/util/SerializationHelper";
-import { Utils } from "../Utils";
 import { DocServer } from "../client/DocServer";
 import { setter, getter, getField, updateFunction, deleteProperty } from "./util";
 import { Cast, ToConstructor, PromiseValue, FieldValue, NumCast } from "./Types";
@@ -10,6 +9,7 @@ import { listSpec } from "./Schema";
 import { List } from "./List";
 import { ObjectField, Parent, OnUpdate } from "./ObjectField";
 import { RefField, FieldId, Id } from "./RefField";
+import { Docs } from "../client/documents/Documents";
 
 export function IsField(field: any): field is Field {
     return (typeof field === "string")
@@ -36,6 +36,15 @@ export class Doc extends RefField {
             set: setter,
             get: getter,
             ownKeys: target => Object.keys(target.__fields),
+            getOwnPropertyDescriptor: (target, prop) => {
+                if (prop in target.__fields) {
+                    return {
+                        configurable: true,//TODO Should configurable be true?
+                        enumerable: true,
+                    };
+                }
+                return Reflect.getOwnPropertyDescriptor(target, prop);
+            },
             deleteProperty: deleteProperty,
             defineProperty: () => { throw new Error("Currently properties can't be defined on documents using Object.defineProperty"); },
         });
@@ -154,9 +163,9 @@ export namespace Doc {
         return copy;
     }
 
-    export function MakeLink(source: Doc, target: Doc): Doc {
-        return UndoManager.RunInBatch(() => {
-            let linkDoc = new Doc;
+    export function MakeLink(source: Doc, target: Doc) {
+        UndoManager.RunInBatch(() => {
+            let linkDoc = Docs.TextDocument({ width: 100, height: 30, borderRounding: -1 });
             linkDoc.title = "New Link";
             linkDoc.linkDescription = "";
             linkDoc.linkTags = "Default";

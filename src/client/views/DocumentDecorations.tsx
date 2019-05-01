@@ -252,8 +252,9 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 }
             }
         }
-        if (SelectionManager.SelectedDocuments()[0].props.addDocument !== undefined)
+        if (SelectionManager.SelectedDocuments()[0].props.addDocument !== undefined) {
             SelectionManager.SelectedDocuments()[0].props.addDocument!(iconDoc!);
+        }
         return iconDoc;
     }
     @action

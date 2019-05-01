@@ -112,13 +112,13 @@ export namespace Docs {
     }
 
     function CreateImagePrototype(): Doc {
-        let imageProto = setupPrototypeOptions(imageProtoId, "IMAGE_PROTO", CollectionView.LayoutString("AnnotationsKey"),
+        let imageProto = setupPrototypeOptions(imageProtoId, "IMAGE_PROTO", CollectionView.LayoutString("annotations"),
             { x: 0, y: 0, nativeWidth: 600, width: 300, backgroundLayout: ImageBox.LayoutString(), curPage: 0 });
         return imageProto;
     }
 
     function CreateHistogramPrototype(): Doc {
-        let histoProto = setupPrototypeOptions(histoProtoId, "HISTO PROTO", CollectionView.LayoutString("AnnotationsKey"),
+        let histoProto = setupPrototypeOptions(histoProtoId, "HISTO PROTO", CollectionView.LayoutString("annotations"),
             { x: 0, y: 0, width: 300, height: 300, backgroundColor: "black", backgroundLayout: HistogramBox.LayoutString() });
         return histoProto;
     }
@@ -134,7 +134,7 @@ export namespace Docs {
         return textProto;
     }
     function CreatePdfPrototype(): Doc {
-        let pdfProto = setupPrototypeOptions(pdfProtoId, "PDF_PROTO", CollectionPDFView.LayoutString("AnnotationsKey"),
+        let pdfProto = setupPrototypeOptions(pdfProtoId, "PDF_PROTO", CollectionPDFView.LayoutString("annotations"),
             { x: 0, y: 0, nativeWidth: 1200, width: 300, backgroundLayout: PDFBox.LayoutString(), curPage: 1 });
         return pdfProto;
     }
@@ -155,7 +155,7 @@ export namespace Docs {
         return kvpProto;
     }
     function CreateVideoPrototype(): Doc {
-        let videoProto = setupPrototypeOptions(videoProtoId, "VIDEO_PROTO", CollectionVideoView.LayoutString("AnnotationsKey"),
+        let videoProto = setupPrototypeOptions(videoProtoId, "VIDEO_PROTO", CollectionVideoView.LayoutString("annotations"),
             { x: 0, y: 0, nativeWidth: 600, width: 300, backgroundLayout: VideoBox.LayoutString(), curPage: 0 });
         return videoProto;
     }
@@ -267,14 +267,14 @@ export namespace Docs {
             + ImageBox.LayoutString() +
             `</div>
             <div style="position:relative; height:15%; text-align:center; ">`
-            + FormattedTextBox.LayoutString("CaptionKey") +
+            + FormattedTextBox.LayoutString("caption") +
             `</div> 
         </div>`;
     }
-    export function FixedCaption(fieldName: string = "Caption") {
+    export function FixedCaption(fieldName: string = "caption") {
         return `<div style="position:absolute; height:30px; bottom:0; width:100%">
             <div style="position:absolute; width:100%; height:100%; text-align:center;bottom:0;">`
-            + FormattedTextBox.LayoutString(fieldName + "Key") +
+            + FormattedTextBox.LayoutString(fieldName) +
             `</div> 
         </div>`;
     }
@@ -286,7 +286,7 @@ export namespace Docs {
         {layout}
     </div>
     <div style="height:(100% + 25px); width:100%; position:absolute">
-        <FormattedTextBox doc={Document} DocumentViewForField={DocumentView} bindings={bindings} fieldKey={"CaptionKey"} isSelected={isSelected} select={select} selectOnLoad={SelectOnLoad} isTopMost={isTopMost}/>
+        <FormattedTextBox doc={Document} DocumentViewForField={DocumentView} bindings={bindings} fieldKey={"caption"} isSelected={isSelected} select={select} selectOnLoad={SelectOnLoad} isTopMost={isTopMost}/>
     </div>
 </div>       
         `);
@@ -298,7 +298,7 @@ export namespace Docs {
             {layout}
         </div>
         <div style="height:25px; width:100%; position:absolute">
-            <FormattedTextBox doc={Document} DocumentViewForField={DocumentView} bindings={bindings} fieldKey={"CaptionKey"} isSelected={isSelected} select={select} selectOnLoad={SelectOnLoad} isTopMost={isTopMost}/>
+            <FormattedTextBox doc={Document} DocumentViewForField={DocumentView} bindings={bindings} fieldKey={"caption"} isSelected={isSelected} select={select} selectOnLoad={SelectOnLoad} isTopMost={isTopMost}/>
         </div>
     </div>       
             `);
@@ -321,7 +321,7 @@ export namespace Docs {
             {layout}
         </div>
         <div style="height:15%; width:100%; position:absolute">
-            <FormattedTextBox doc={Document} DocumentViewForField={DocumentView} bindings={bindings} fieldKey={"CaptionKey"} isSelected={isSelected} select={select} selectOnLoad={SelectOnLoad} isTopMost={isTopMost}/>
+            <FormattedTextBox doc={Document} DocumentViewForField={DocumentView} bindings={bindings} fieldKey={"caption"} isSelected={isSelected} select={select} selectOnLoad={SelectOnLoad} isTopMost={isTopMost}/>
         </div>
     </div>       
             `);
