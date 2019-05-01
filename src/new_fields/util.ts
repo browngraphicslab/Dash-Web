@@ -31,7 +31,7 @@ export const setter = action(function (target: any, prop: string | symbol | numb
             throw new Error("Can't put the same object in multiple documents at the same time");
         }
         value[Parent] = target;
-        value[OnUpdate] = updateFunction(target, prop, value);
+        value[OnUpdate] = updateFunction(target, prop, value, receiver);
     }
     if (curValue instanceof ObjectField) {
         delete curValue[Parent];
@@ -86,9 +86,19 @@ export function deleteProperty(target: any, prop: string | number | symbol) {
     throw new Error("Currently properties can't be deleted from documents, assign to undefined instead");
 }
 
-export function updateFunction(target: any, prop: any, value: any) {
+export function updateFunction(target: any, prop: any, value: any, receiver: any) {
+    let current = ObjectField.MakeCopy(value);
     return (diff?: any) => {
-        if (!diff) diff = { '$set': { ["fields." + prop]: SerializationHelper.Serialize(value) } };
+        if (true || !diff) {
+            diff = { '$set': { ["fields." + prop]: SerializationHelper.Serialize(value) } };
+            const oldValue = current;
+            const newValue = ObjectField.MakeCopy(value);
+            current = newValue;
+            UndoManager.AddEvent({
+                redo() { receiver[prop] = newValue; },
+                undo() { receiver[prop] = oldValue; }
+            });
+        }
         target[Update](diff);
     };
 }

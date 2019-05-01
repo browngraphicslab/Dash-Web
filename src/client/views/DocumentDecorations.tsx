@@ -57,8 +57,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         reaction(() => SelectionManager.SelectedDocuments().slice(), (docs) => docs.length === 0 && (this._edtingTitle = false));
     }
 
-    @action titleChanged = (event: any) => { this._title = event.target.value; }
-    @action titleBlur = () => { this._edtingTitle = false; }
+    @action titleChanged = (event: any) => { this._title = event.target.value; };
+    @action titleBlur = () => { this._edtingTitle = false; };
     @action titleEntered = (e: any) => {
         var key = e.keyCode || e.which;
         // enter pressed
@@ -238,7 +238,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         iconDoc.y = NumCast(doc.y) - 24;
         iconDoc.maximizedDoc = doc;
         doc.minimizedDoc = iconDoc;
-        console.log("Layout " + iconDoc.layout)
+        console.log("Layout " + iconDoc.layout);
         docView.props.addDocument && docView.props.addDocument(iconDoc, false);
         return iconDoc;
     }
@@ -274,7 +274,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 minDocs.map(minDoc => {
                     minDoc.x = NumCast(minDocs[0].x);
                     minDoc.y = NumCast(minDocs[0].y);
-                    minDoc.linkTags = new List(minDocs.filter(d => d != minDoc));
+                    minDoc.linkTags = new List(minDocs.filter(d => d !== minDoc));
                     if (this._iconifying && selectedDocs[0].props.removeDocument) {
                         selectedDocs[0].props.removeDocument(minDoc);
                         (minDoc.maximizedDoc as Doc).minimizedDoc = undefined;

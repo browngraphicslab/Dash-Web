@@ -25,6 +25,7 @@ export type FieldResult<T extends Field = Field> = Opt<T> | FieldWaiting<Extract
 
 export const Update = Symbol("Update");
 export const Self = Symbol("Self");
+const SelfProxy = Symbol("SelfProxy");
 export const WidthSym = Symbol("Width");
 export const HeightSym = Symbol("Height");
 
@@ -48,6 +49,7 @@ export class Doc extends RefField {
             deleteProperty: deleteProperty,
             defineProperty: () => { throw new Error("Currently properties can't be defined on documents using Object.defineProperty"); },
         });
+        this[SelfProxy] = doc;
         if (!id || forceSave) {
             DocServer.CreateField(SerializationHelper.Serialize(doc));
         }
@@ -68,7 +70,7 @@ export class Doc extends RefField {
             const field = value[key];
             if (!(field instanceof ObjectField)) continue;
             field[Parent] = this[Self];
-            field[OnUpdate] = updateFunction(this[Self], key, field);
+            field[OnUpdate] = updateFunction(this[Self], key, field, this[SelfProxy]);
         }
     }
 
@@ -81,8 +83,9 @@ export class Doc extends RefField {
     }
 
     private [Self] = this;
-    public [WidthSym] = () => { return NumCast(this.__fields.width); }  // bcz: is this the right way to access width/height?   it didn't work with : this.width
-    public [HeightSym] = () => { return NumCast(this.__fields.height); }
+    private [SelfProxy]: any;
+    public [WidthSym] = () => NumCast(this.__fields.width);  // bcz: is this the right way to access width/height?   it didn't work with : this.width
+    public [HeightSym] = () => NumCast(this.__fields.height);
 }
 
 export namespace Doc {

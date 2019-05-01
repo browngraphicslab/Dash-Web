@@ -60,11 +60,11 @@ export class CollectionFreeFormLinksView extends React.Component<CollectionViewP
                         }
                         let dstBrushDocs = Cast(dstTarg.brushingDocs, listSpec(Doc));
                         if (dstBrushDocs === undefined) {
-                            dstTarg.brushingDocs = dstBrushDocs = new List();
+                            dstTarg.brushingDocs = dstBrushDocs = new List<Doc>();
                         }
                         let srcBrushDocs = Cast(srcTarg.brushingDocs, listSpec(Doc));
                         if (srcBrushDocs === undefined) {
-                            srcTarg.brushingDocs = srcBrushDocs = new List();
+                            srcTarg.brushingDocs = srcBrushDocs = new List<Doc>();
                         }
                         brushAction(dstBrushDocs);
                         brushAction(srcBrushDocs);
