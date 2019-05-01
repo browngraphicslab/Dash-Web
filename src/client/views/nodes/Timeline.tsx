@@ -20,10 +20,11 @@ export class Timeline extends React.Component<SubCollectionViewProps> {
     @observable private _currentBar: any = null;
     @observable private _newBar: any = null;
     private _reactionDisposers: IReactionDisposer[] = [];
-    private _keyFrames: HTMLDivElement[] = [];
+    private _keyFrames: KeyFrame[] = [];
+    private _keyBars: HTMLDivElement[] = [];
     private _actualKeyFrame: KeyFrame[] = [];
 
-    private _currentBarX:number = 0; 
+    private _currentBarX: number = 0;
     @observable private _onBar: Boolean = false;
 
 
@@ -34,16 +35,6 @@ export class Timeline extends React.Component<SubCollectionViewProps> {
 
     @action
     onStop = (e: React.MouseEvent) => {
-        // this._isRecording = false;
-        // if (this._inner.current) {
-        //     this._newBar = document.createElement("div");
-        //     this._newBar.style.height = "100%";
-        //     this._newBar.style.width = "5px";
-        //     this._newBar.style.backgroundColor = "yellow";
-        //     this._newBar.style.position = "absolute";
-        //     this._newBar.style.transform = this._currentBar.style.transform;
-        //     this._inner.current.appendChild(this._newBar);
-        // }
     }
 
     @action
@@ -52,35 +43,27 @@ export class Timeline extends React.Component<SubCollectionViewProps> {
             if (this._inner.current) {
                 let mouse = e.nativeEvent;
                 this._currentBar.style.transform = `translate(${mouse.offsetX}px)`;
-                this._currentBarX = mouse.offsetX; 
+                this._currentBarX = mouse.offsetX;
+                console.log(mouse.offsetX);
             }
         }
     }
 
-    createMark = (width: number) => {
-
-    }
-
-    createBar = (width: number, pos = 0, color = "green"):HTMLDivElement => {
-        let bar  = document.createElement("div");
+    createBar = (width: number, pos = 0, color = "green"): HTMLDivElement => {
+        let bar = document.createElement("div");
         bar.style.height = "100%";
         bar.style.width = `${width}px`;
         bar.style.left = "mouse.offsetX";
         bar.style.backgroundColor = color;
         bar.style.transform = `translate(${pos}px)`;
         bar.style.position = "absolute";
-        return bar; 
+        bar.style.zIndex = "2"; 
+        return bar;
     }
-
-    selectFrame = (e: React.PointerEvent) => {
-        this._onBar = true; //where to set back to false?
-        //let frame = document.getSelectedElement(e)
-    }
-
     componentDidMount() {
-        if (this._inner.current && this._currentBar === null){
-            this._currentBar = this.createBar(5); 
-            this._inner.current.appendChild(this._currentBar); 
+        if (this._inner.current && this._currentBar === null) {
+            this._currentBar = this.createBar(5);
+            this._inner.current.appendChild(this._currentBar);
         }
         let doc: Document = this.props.Document;
         let childrenList = this.props.Document.GetList(this.props.fieldKey, [] as Document[]);
@@ -88,19 +71,26 @@ export class Timeline extends React.Component<SubCollectionViewProps> {
         // this._keyFrames.push(keyFrame);
         let keys = [KeyStore.X, KeyStore.Y];
         const addReaction = (element: Document) => {
-            
+
             return reaction(() => {
+
                 return keys.map(key => element.GetNumber(key, 0));
             }, data => {
-                let keyFrame = new KeyFrame();
-                if (this._inner.current){
-                    this._inner.current.appendChild(this.createBar(5, this._currentBarX, "orange")); 
-
+                if (this._inner.current) {
+                    let keyFrame: KeyFrame;
+                    if (!this._keyBars[this._currentBarX]) {
+                        let bar = this.createBar(5, this._currentBarX, "orange");
+                        this._inner.current.appendChild(bar);
+                        this._keyBars[this._currentBarX] = bar;
+                        keyFrame = new KeyFrame();
+                        this._keyFrames[this._currentBarX] = keyFrame;
+                    } else {
+                        keyFrame = this._keyFrames[this._currentBarX];
+                    }
+                    keys.forEach((key, index) => {
+                        keyFrame.document.SetNumber(key, data[index]); //Tyler working on better Doc.ts functions...(this is currently not comprehensive...)
+                    });
                 }
-                keys.forEach((key, index) => {
-                    console.log("moved!"); //store key frames -> need to create a way to do this (data structure??)
-                    keyFrame.document().SetNumber(key, data[index]); //Tyler working on better Doc.ts functions...(this is currently not comprehensive...)
-                });
             });
         };
         observe(childrenList as IObservableArray<Document>, change => {
