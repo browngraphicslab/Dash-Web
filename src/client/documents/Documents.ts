@@ -125,7 +125,6 @@ export namespace Docs {
     function CreateIconPrototype(): Doc {
         let iconProto = setupPrototypeOptions(iconProtoId, "ICON_PROTO", IconBox.LayoutString(),
             { x: 0, y: 0, width: Number(MINIMIZED_ICON_SIZE), height: Number(MINIMIZED_ICON_SIZE) });
-        console.log("iconpr" + iconProto.layout)
         return iconProto;
     }
     function CreateTextPrototype(): Doc {

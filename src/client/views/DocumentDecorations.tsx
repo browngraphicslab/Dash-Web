@@ -24,6 +24,7 @@ export const Flyout = higflyout.default;
 import { faLink } from '@fortawesome/free-solid-svg-icons';
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { MINIMIZED_ICON_SIZE } from "../views/globalCssVariables.scss";
 
 library.add(faLink);
 
@@ -232,13 +233,14 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         let iconDoc = Docs.IconDocument(layoutString);
         iconDoc.title = "ICON" + StrCast(doc.title);
         iconDoc.isMinimized = false;
-        iconDoc.nativeWidth = 0;
-        iconDoc.nativeHeight = 0;
+        iconDoc.nativeWidth = Number(MINIMIZED_ICON_SIZE);
+        iconDoc.nativeHeight = Number(MINIMIZED_ICON_SIZE);
+        iconDoc.width = Number(MINIMIZED_ICON_SIZE);
+        iconDoc.height = Number(MINIMIZED_ICON_SIZE);
         iconDoc.x = NumCast(doc.x);
         iconDoc.y = NumCast(doc.y) - 24;
         iconDoc.maximizedDoc = doc;
         doc.minimizedDoc = iconDoc;
-        console.log("Layout " + iconDoc.layout);
         docView.props.addDocument && docView.props.addDocument(iconDoc, false);
         return iconDoc;
     }
@@ -247,13 +249,13 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         let doc = docView.props.Document;
         let iconDoc: Doc | undefined = await Cast(doc.minimizedDoc, Doc);
         if (!iconDoc) {
-            const field = StrCast(doc.backgroundLayout, undefined);
-            if (field !== undefined) {
-                iconDoc = this.createIcon(docView, field);
+            const background = StrCast(doc.backgroundLayout, undefined);
+            if (background) {
+                iconDoc = this.createIcon(docView, background);
             } else {
                 const layout = StrCast(doc.layout, undefined);
-                if (layout !== undefined) {
-                    iconDoc = this.createIcon(docView, field);
+                if (layout) {
+                    iconDoc = this.createIcon(docView, layout);
                 }
             }
         }

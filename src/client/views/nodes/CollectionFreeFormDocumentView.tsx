@@ -172,7 +172,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         let [bptX, bptY] = transform.transformPoint(this.props.PanelWidth(), this.props.PanelHeight());
         let w = bptX - sptX;
         //zoomFade = area < 100 || area > 800 ? Math.max(0, Math.min(1, 2 - 5 * (zoom < this.scale ? this.scale / zoom : zoom / this.scale))) : 1;
-        const screenWidth = 1800;
+        const screenWidth = Math.min(50 * NumCast(this.props.Document.nativeWidth, 0), 1800);
         let fadeUp = .75 * screenWidth;
         let fadeDown = (maximizedDoc ? .0075 : .075) * screenWidth;
         zoomFade = w < fadeDown  /* || w > fadeUp */ ? Math.max(0.1, Math.min(1, 2 - (w < fadeDown ? fadeDown / w : w / fadeUp))) : 1;
