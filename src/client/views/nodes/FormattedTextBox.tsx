@@ -238,7 +238,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         this._proseRef.current!.focus();
     }
     onMouseDown = (e: React.MouseEvent): void => {
-        if (!this.props.isSelected() && this.props.active()) { // preventing default allows the onClick to be generated instead of being swallowed by the text box itself
+        if (!this.props.isSelected()) { // preventing default allows the onClick to be generated instead of being swallowed by the text box itself
             e.preventDefault(); // bcz: this would normally be in OnPointerDown - however, if done there, no mouse move events will be generated which makes transititioning to GoldenLayout's drag interactions impossible
         }
     }
