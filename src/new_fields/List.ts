@@ -190,6 +190,8 @@ interface ListIndexUpdate<T> {
 
 type ListUpdate<T> = ListSpliceUpdate<T> | ListIndexUpdate<T>;
 
+type StoredType<T extends Field> = T extends RefField ? ProxyField<T> : T;
+
 @Deserializable("list")
 class ListImpl<T extends Field> extends ObjectField {
     constructor(fields: T[] = []) {
@@ -216,12 +218,14 @@ class ListImpl<T extends Field> extends ObjectField {
     }
 
     [Copy]() {
-        return new ListImpl<T>();
+        let copiedData = this.__fields.map(f => f instanceof ObjectField ? f[Copy]() : f);
+        let deepCopy = new ListImpl<T>(copiedData as any);
+        return deepCopy;
     }
 
     // @serializable(alias("fields", list(autoObject())))
     @observable
-    private ___fields: (T extends RefField ? ProxyField<T> : T)[] = [];
+    private ___fields: StoredType<T>[] = [];
 
     private [Update] = (diff: any) => {
         // console.log(diff);

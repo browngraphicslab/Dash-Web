@@ -22,8 +22,8 @@ export class URLField extends ObjectField {
         this.url = url;
     }
 
-    [Copy]() {
-        return new URLField(this.url);
+    [Copy](): this {
+        return new (this.constructor as any)(this.url);
     }
 }
 
