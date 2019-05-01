@@ -239,13 +239,13 @@ export namespace Docs {
         if (!makePrototype) {
             return SetInstanceOptions(collProto, { ...options, viewType: CollectionViewType.Freeform }, new List(documents));
         }
-        return CreateInstance(collProto, new List(documents), { schemaColumns: new List(["schemaColumns"]), ...options, viewType: CollectionViewType.Freeform });
+        return CreateInstance(collProto, new List(documents), { schemaColumns: new List(["title"]), ...options, viewType: CollectionViewType.Freeform });
     }
     export function SchemaDocument(documents: Array<Doc>, options: DocumentOptions) {
-        return CreateInstance(collProto, new List(documents), { schemaColumns: new List(["schemaColumns"]), ...options, viewType: CollectionViewType.Schema });
+        return CreateInstance(collProto, new List(documents), { schemaColumns: new List(["title"]), ...options, viewType: CollectionViewType.Schema });
     }
     export function TreeDocument(documents: Array<Doc>, options: DocumentOptions) {
-        return CreateInstance(collProto, new List(documents), { schemaColumns: new List(["schemaColumns"]), ...options, viewType: CollectionViewType.Tree });
+        return CreateInstance(collProto, new List(documents), { schemaColumns: new List(["title"]), ...options, viewType: CollectionViewType.Tree });
     }
     export function DockDocument(config: string, options: DocumentOptions) {
         return CreateInstance(collProto, config, { ...options, viewType: CollectionViewType.Docking });
