@@ -81,6 +81,9 @@ export namespace DocServer {
     }
 
     export function UpdateField(id: string, diff: any) {
+        if (id === updatingId) {
+            return;
+        }
         Utils.Emit(_socket, MessageStore.UpdateField, { id, diff });
     }
 
@@ -91,6 +94,7 @@ export namespace DocServer {
         Utils.Emit(_socket, MessageStore.CreateField, initialState);
     }
 
+    let updatingId: string | undefined;
     function respondToUpdate(diff: any) {
         const id = diff.id;
         if (id === undefined) {
@@ -103,7 +107,9 @@ export namespace DocServer {
             }
             const handler = f[HandleUpdate];
             if (handler) {
-                handler(diff);
+                updatingId = id;
+                handler.call(f, diff.diff);
+                updatingId = undefined;
             }
         };
         if (field instanceof Promise) {

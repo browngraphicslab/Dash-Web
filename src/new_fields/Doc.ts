@@ -8,7 +8,7 @@ import { UndoManager, undoBatch } from "../client/util/UndoManager";
 import { listSpec } from "./Schema";
 import { List } from "./List";
 import { ObjectField, Parent, OnUpdate } from "./ObjectField";
-import { RefField, FieldId, Id } from "./RefField";
+import { RefField, FieldId, Id, HandleUpdate } from "./RefField";
 import { Docs } from "../client/documents/Documents";
 
 export function IsField(field: any): field is Field {
@@ -86,6 +86,21 @@ export class Doc extends RefField {
     private [SelfProxy]: any;
     public [WidthSym] = () => NumCast(this.__fields.width);  // bcz: is this the right way to access width/height?   it didn't work with : this.width
     public [HeightSym] = () => NumCast(this.__fields.height);
+
+    public [HandleUpdate](diff: any) {
+        console.log(diff);
+        const set = diff.$set;
+        if (set) {
+            for (const key in set) {
+                if (!key.startsWith("fields.")) {
+                    continue;
+                }
+                const value = SerializationHelper.Deserialize(set[key]);
+                const fKey = key.substring(7);
+                this[fKey] = value;
+            }
+        }
+    }
 }
 
 export namespace Doc {
