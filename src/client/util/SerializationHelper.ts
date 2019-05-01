@@ -8,8 +8,8 @@ export namespace SerializationHelper {
     }
 
     export function Serialize(obj: Field): any {
-        if (!obj) {
-            return null;
+        if (obj === undefined || obj === null) {
+            return undefined;
         }
 
         if (typeof obj !== 'object') {
@@ -28,8 +28,8 @@ export namespace SerializationHelper {
     }
 
     export function Deserialize(obj: any): any {
-        if (!obj) {
-            return null;
+        if (obj === undefined || obj === null) {
+            return undefined;
         }
 
         if (typeof obj !== 'object') {

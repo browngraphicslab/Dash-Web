@@ -22,8 +22,8 @@ export namespace DocServer {
         let cached = _cache[id];
         if (cached === undefined) {
             const prom = Utils.EmitCallback(_socket, MessageStore.GetRefField, id).then(fieldJson => {
-                const field = fieldJson === undefined ? fieldJson : SerializationHelper.Deserialize(fieldJson);
-                if (field) {
+                const field = SerializationHelper.Deserialize(fieldJson);
+                if (field !== undefined) {
                     _cache[id] = field;
                 } else {
                     delete _cache[id];
@@ -58,7 +58,7 @@ export namespace DocServer {
         const prom = Utils.EmitCallback(_socket, MessageStore.GetRefFields, requestedIds).then(fields => {
             const fieldMap: { [id: string]: RefField } = {};
             for (const field of fields) {
-                if (field) {
+                if (field !== undefined) {
                     fieldMap[field.id] = SerializationHelper.Deserialize(field);
                 }
             }
@@ -68,7 +68,7 @@ export namespace DocServer {
         const fields = await prom;
         requestedIds.forEach(id => {
             const field = fields[id];
-            if (field) {
+            if (field !== undefined) {
                 _cache[id] = field;
             } else {
                 delete _cache[id];
