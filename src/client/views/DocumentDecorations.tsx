@@ -21,6 +21,11 @@ import { List } from "../../new_fields/List";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
+import { faLink } from '@fortawesome/free-solid-svg-icons';
+import { library } from '@fortawesome/fontawesome-svg-core';
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+
+library.add(faLink);
 
 @observer
 export class DocumentDecorations extends React.Component<{}, { value: string }> {
@@ -29,7 +34,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     private _resizing = "";
     private keyinput: React.RefObject<HTMLInputElement>;
     private _resizeBorderWidth = 16;
-    private _linkBoxHeight = 20;
+    private _linkBoxHeight = 20 + 3; // link button height + margin
     private _titleHeight = 20;
     private _linkButton = React.createRef<HTMLDivElement>();
     private _linkerButton = React.createRef<HTMLDivElement>();
@@ -550,10 +555,17 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 <div id="documentDecorations-bottomLeftResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-bottomResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-bottomRightResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
-
-                <div title="View Links" className="linkFlyout" ref={this._linkButton}> {linkButton}  </div>
-                <div className="linkButton-linker" ref={this._linkerButton} onPointerDown={this.onLinkerButtonDown}>∞</div>
-                <TemplateMenu doc={doc} templates={templates} />
+                <div className="link-button-container">
+                    <div className="linkButtonWrapper">
+                        <div title="View Links" className="linkFlyout" ref={this._linkButton}> {linkButton}  </div>
+                    </div>
+                    <div className="linkButtonWrapper">
+                        <div title="Drag Link" className="linkButton-linker" ref={this._linkerButton} onPointerDown={this.onLinkerButtonDown}>
+                            <FontAwesomeIcon className="fa-icon-link" icon="link" size="sm" />
+                        </div>
+                    </div>
+                    <TemplateMenu doc={doc} templates={templates} />
+                </div>
             </div >
         </div>
         );
