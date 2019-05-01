@@ -18,12 +18,11 @@ import "./DocumentView.scss";
 import React = require("react");
 import { Opt, Doc } from "../../../new_fields/Doc";
 import { DocComponent } from "../DocComponent";
-import { createSchema, makeInterface, listSpec } from "../../../new_fields/Schema";
-import { FieldValue, Cast, PromiseValue, StrCast } from "../../../new_fields/Types";
+import { createSchema, makeInterface } from "../../../new_fields/Schema";
+import { FieldValue, StrCast } from "../../../new_fields/Types";
 import { List } from "../../../new_fields/List";
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
-import { MarqueeView } from "../collections/collectionFreeForm/MarqueeView";
 import { DocServer } from "../../DocServer";
 import { Id } from "../../../new_fields/RefField";
 

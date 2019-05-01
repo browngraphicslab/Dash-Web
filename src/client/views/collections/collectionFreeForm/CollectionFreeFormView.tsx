@@ -71,7 +71,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     public getActiveDocuments = () => {
         const curPage = FieldValue(this.Document.curPage, -1);
         return FieldValue(this.children, [] as Doc[]).filter(doc => {
-            var page = Cast(doc.page, "number", -1);
+            var page = NumCast(doc.page, -1);
             return page === curPage || page === -1;
         });
     }
@@ -274,7 +274,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         let curPage = FieldValue(this.Document.curPage, -1);
         let docviews = (this.children || []).filter(doc => doc).reduce((prev, doc) => {
             if (!FieldValue(doc)) return prev;
-            var page = Cast(doc.page, "number", -1);
+            var page = NumCast(doc.page, -1);
             if (page === curPage || page === -1) {
                 let minim = Cast(doc.isMinimized, "boolean");
                 if (minim === undefined || !minim) {

@@ -41,6 +41,7 @@ export interface FieldViewProps {
     focus: (doc: Doc) => void;
     PanelWidth: () => number;
     PanelHeight: () => number;
+    setVideoBox?: (player: VideoBox) => void;
 }
 
 @observer
