@@ -228,7 +228,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
 
     get previewDocument(): Doc | undefined {
         const children = Cast(this.props.Document[this.props.fieldKey], listSpec(Doc), []);
-        const selected = children.length > this._selectedIndex ? children[this._selectedIndex] : undefined;
+        const selected = children.length > this._selectedIndex ? FieldValue(children[this._selectedIndex]) : undefined;
         return selected ? (this.previewScript ? FieldValue(Cast(selected[this.previewScript], Doc)) : selected) : undefined;
     }
     get tableWidth() { return (this.props.PanelWidth() - 2 * this.borderWidth - this.DIVIDER_WIDTH) * (1 - this.splitPercentage / 100); }
@@ -254,10 +254,11 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     @computed
     get previewPanel() {
         // let doc = CompileScript(this.previewScript, { this: selected }, true)();
-        return !this.previewDocument ? (null) : (
+        const previewDoc = this.previewDocument;
+        return !previewDoc ? (null) : (
             <div className="collectionSchemaView-previewRegion" style={{ width: `${this.previewRegionWidth}px` }}>
                 <div className="collectionSchemaView-previewDoc" style={{ transform: `translate(${this.previewPanelCenteringOffset}px, 0px)` }}>
-                    <DocumentView Document={this.previewDocument} isTopMost={false} selectOnLoad={false}
+                    <DocumentView Document={previewDoc} isTopMost={false} selectOnLoad={false}
                         toggleMinimized={emptyFunction}
                         addDocument={this.props.addDocument} removeDocument={this.props.removeDocument}
                         ScreenToLocalTransform={this.getPreviewTransform}
@@ -322,7 +323,8 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     render() {
         library.add(faCog);
         library.add(faPlus);
-        const children = Cast(this.props.Document[this.props.fieldKey], listSpec(Doc), []);
+        //This can't just pass FieldValue to filter because filter passes other arguments to the passed in function, which end up as default values in FieldValue
+        const children = (this.children || []).filter(doc => FieldValue(doc));
         return (
             <div className="collectionSchemaView-container" onPointerDown={this.onPointerDown} onWheel={this.onWheel}
                 onDrop={(e: React.DragEvent) => this.onDrop(e, {})} ref={this.createTarget}>
