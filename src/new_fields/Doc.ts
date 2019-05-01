@@ -166,7 +166,7 @@ export namespace Doc {
     export function MakeLink(source: Doc, target: Doc) {
         UndoManager.RunInBatch(() => {
             let linkDoc = Docs.TextDocument({ width: 100, height: 30, borderRounding: -1 });
-            linkDoc.title = "New Link";
+            linkDoc.title = "-link name-";
             linkDoc.linkDescription = "";
             linkDoc.linkTags = "Default";
 
