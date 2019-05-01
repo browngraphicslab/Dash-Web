@@ -1,6 +1,9 @@
 import { Deserializable } from "../client/util/SerializationHelper";
 import { serializable, custom, createSimpleSchema, list, object, map } from "serializr";
-import { ObjectField } from "./ObjectField";
+import { ObjectField, Copy } from "./ObjectField";
+import { number } from "prop-types";
+import { any } from "bluebird";
+import { deepCopy } from "../Utils";
 
 export enum InkTool {
     None,
@@ -33,5 +36,9 @@ export class InkField extends ObjectField {
     constructor(data?: Map<string, StrokeData>) {
         super();
         this.inkData = data || new Map;
+    }
+
+    [Copy]() {
+        return new InkField(deepCopy(this.inkData))
     }
 }

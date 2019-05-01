@@ -3,7 +3,7 @@ import { Field, Update, Self } from "./Doc";
 import { setter, getter, deleteProperty } from "./util";
 import { serializable, alias, list } from "serializr";
 import { observable, observe, IArrayChange, IArraySplice, IObservableArray, Lambda, reaction } from "mobx";
-import { ObjectField, OnUpdate } from "./ObjectField";
+import { ObjectField, OnUpdate, Copy } from "./ObjectField";
 import { RefField } from "./RefField";
 import { ProxyField } from "./Proxy";
 
@@ -213,6 +213,10 @@ class ListImpl<T extends Field> extends ObjectField {
 
     private set __fields(value) {
         this.___fields = value;
+    }
+
+    [Copy]() {
+        return new ListImpl<T>();
     }
 
     // @serializable(alias("fields", list(autoObject())))

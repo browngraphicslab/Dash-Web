@@ -117,3 +117,17 @@ export function returnZero() { return 0; }
 export function emptyFunction() { }
 
 export type Without<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;
+
+export type Predicate<K, V> = (entry: [K, V]) => boolean;
+
+export function deepCopy<K, V>(source: Map<K, V>, predicate?: Predicate<K, V>) {
+    let deepCopy = new Map<K, V>();
+    let entries = source.entries(), next = entries.next();
+    while (!next.done) {
+        let entry = next.value;
+        if (!predicate || predicate(entry)) {
+            deepCopy.set(entry[0], entry[1]);
+        }
+    }
+    return deepCopy;
+}

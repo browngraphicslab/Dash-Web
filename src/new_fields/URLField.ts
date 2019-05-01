@@ -1,6 +1,6 @@
 import { Deserializable } from "../client/util/SerializationHelper";
 import { serializable, custom } from "serializr";
-import { ObjectField } from "./ObjectField";
+import { ObjectField, Copy } from "./ObjectField";
 
 function url() {
     return custom(
@@ -20,6 +20,10 @@ export class URLField extends ObjectField {
     constructor(url: URL) {
         super();
         this.url = url;
+    }
+
+    [Copy]() {
+        return new URLField(this.url);
     }
 }
 

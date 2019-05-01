@@ -4,18 +4,26 @@ import { primitive, serializable } from "serializr";
 import { observable, action } from "mobx";
 import { DocServer } from "../client/DocServer";
 import { RefField, Id } from "./RefField";
-import { ObjectField } from "./ObjectField";
+import { ObjectField, Copy } from "./ObjectField";
 
 @Deserializable("proxy")
 export class ProxyField<T extends RefField> extends ObjectField {
     constructor();
     constructor(value: T);
-    constructor(value?: T) {
+    constructor(fieldId: string);
+    constructor(value?: T | string) {
         super();
-        if (value) {
+        if (typeof value === "string") {
+            this.fieldId = value;
+        } else if (value) {
             this.cache = value;
             this.fieldId = value[Id];
         }
+    }
+
+    [Copy]() {
+        if (this.cache) return new ProxyField<T>(this.cache);
+        return new ProxyField<T>(this.fieldId);
     }
 
     @serializable(primitive())

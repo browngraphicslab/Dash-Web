@@ -1,6 +1,6 @@
 import { Deserializable } from "../client/util/SerializationHelper";
 import { serializable, primitive } from "serializr";
-import { ObjectField } from "./ObjectField";
+import { ObjectField, Copy } from "./ObjectField";
 
 @Deserializable("html")
 export class HtmlField extends ObjectField {
@@ -10,5 +10,9 @@ export class HtmlField extends ObjectField {
     constructor(html: string) {
         super();
         this.html = html;
+    }
+
+    [Copy]() {
+        return new HtmlField(this.html);
     }
 }

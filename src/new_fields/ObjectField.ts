@@ -2,16 +2,16 @@ import { Doc } from "./Doc";
 
 export const OnUpdate = Symbol("OnUpdate");
 export const Parent = Symbol("Parent");
-const Id = Symbol("Object Id");
-export class ObjectField {
+export const Copy = Symbol("Copy");
+
+export abstract class ObjectField {
     protected [OnUpdate]?: (diff?: any) => void;
     private [Parent]?: Doc;
-    readonly [Id] = "";
+    abstract [Copy](): ObjectField;
 }
 
 export namespace ObjectField {
-    export function MakeCopy(field: ObjectField) {
-        //TODO Types
-        return field;
+    export function MakeCopy<T extends ObjectField>(field: T) {
+        return field[Copy]();
     }
 }

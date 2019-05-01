@@ -1,4 +1,4 @@
-import { ObjectField } from "./ObjectField";
+import { ObjectField, Copy } from "./ObjectField";
 import { serializable } from "serializr";
 import { Deserializable } from "../client/util/SerializationHelper";
 
@@ -10,5 +10,9 @@ export class RichTextField extends ObjectField {
     constructor(data: string) {
         super();
         this.Data = data;
+    }
+
+    [Copy]() {
+        return new RichTextField(this.Data);
     }
 }

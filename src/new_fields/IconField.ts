@@ -1,6 +1,6 @@
 import { Deserializable } from "../client/util/SerializationHelper";
 import { serializable, primitive } from "serializr";
-import { ObjectField } from "./ObjectField";
+import { ObjectField, Copy } from "./ObjectField";
 
 @Deserializable("icon")
 export class IconField extends ObjectField {
@@ -10,5 +10,9 @@ export class IconField extends ObjectField {
     constructor(icon: string) {
         super();
         this.icon = icon;
+    }
+
+    [Copy]() {
+        return new IconField(this.icon);
     }
 }
