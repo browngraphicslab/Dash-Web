@@ -313,7 +313,7 @@ export class CollectionFreeFormView extends CollectionSubView {
                                 {this.childViews}
                             </InkingCanvas>
                         </CollectionFreeFormLinksView>
-                        <CollectionFreeFormRemoteCursors {...this.props} key="remoteCursors" />]
+                        <CollectionFreeFormRemoteCursors {...this.props} key="remoteCursors" />
                     </CollectionFreeFormViewPannableContents>
                     <CollectionFreeFormOverlayView {...this.getDocumentViewProps(this.props.Document)} {...this.props} />
                 </MarqueeView>
