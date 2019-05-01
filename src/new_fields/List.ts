@@ -1,5 +1,5 @@
 import { Deserializable, autoObject } from "../client/util/SerializationHelper";
-import { Field, Update, Self } from "./Doc";
+import { Field, Update, Self, FieldResult } from "./Doc";
 import { setter, getter, deleteProperty } from "./util";
 import { serializable, alias, list } from "serializr";
 import { observable, observe, IArrayChange, IArraySplice, IObservableArray, Lambda, reaction } from "mobx";
@@ -194,17 +194,17 @@ type ListUpdate<T> = ListSpliceUpdate<T> | ListIndexUpdate<T>;
 class ListImpl<T extends Field> extends ObjectField {
     constructor(fields: T[] = []) {
         super();
-        this.___fields = fields;
         const list = new Proxy<this>(this, {
             set: setter,
             get: listGetter,
             deleteProperty: deleteProperty,
             defineProperty: () => { throw new Error("Currently properties can't be defined on documents using Object.defineProperty"); },
         });
+        (list as any).push(...fields);
         return list;
     }
 
-    [key: number]: T | null | undefined;
+    [key: number]: FieldResult<T>;
 
     @serializable(alias("fields", list(autoObject())))
     private get __fields() {
@@ -217,7 +217,7 @@ class ListImpl<T extends Field> extends ObjectField {
 
     // @serializable(alias("fields", list(autoObject())))
     @observable
-    private ___fields: (T | null | undefined)[];
+    private ___fields: (T extends RefField ? ProxyField<T> : T)[] = [];
 
     private [Update] = (diff: any) => {
         // console.log(diff);
