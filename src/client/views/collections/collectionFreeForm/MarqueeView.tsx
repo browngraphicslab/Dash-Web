@@ -1,4 +1,4 @@
-import { action, computed, observable, trace } from "mobx";
+import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import { Document } from "../../../../fields/Document";
 import { FieldWaiting } from "../../../../fields/Field";
@@ -7,11 +7,13 @@ import { KeyStore } from "../../../../fields/KeyStore";
 import { Documents } from "../../../documents/Documents";
 import { SelectionManager } from "../../../util/SelectionManager";
 import { Transform } from "../../../util/Transform";
+import { undoBatch } from "../../../util/UndoManager";
 import { InkingCanvas } from "../../InkingCanvas";
+import { PreviewCursor } from "../../PreviewCursor";
 import { CollectionFreeFormView } from "./CollectionFreeFormView";
 import "./MarqueeView.scss";
-import { PreviewCursor } from "./PreviewCursor";
 import React = require("react");
+import { Utils } from "../../../../Utils";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;
@@ -21,6 +23,8 @@ interface MarqueeViewProps {
     activeDocuments: () => Document[];
     selectDocuments: (docs: Document[]) => void;
     removeDocument: (doc: Document) => boolean;
+    addLiveTextDocument: (doc: Document) => void;
+    isSelected: () => boolean;
 }
 
 @observer
@@ -30,32 +34,41 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     @observable _lastY: number = 0;
     @observable _downX: number = 0;
     @observable _downY: number = 0;
-    @observable _used: boolean = false;
     @observable _visible: boolean = false;
-    static DRAG_THRESHOLD = 4;
+    _commandExecuted = false;
 
     @action
     cleanupInteractions = (all: boolean = false) => {
         if (all) {
-            document.removeEventListener("pointermove", this.onPointerMove, true);
             document.removeEventListener("pointerup", this.onPointerUp, true);
-        } else {
-            this._used = true;
+            document.removeEventListener("pointermove", this.onPointerMove, true);
         }
         document.removeEventListener("keydown", this.marqueeCommand, true);
         this._visible = false;
     }
 
     @action
+    onKeyPress = (e: KeyboardEvent) => {
+        //make textbox and add it to this collection
+        let [x, y] = this.props.getTransform().transformPoint(this._downX, this._downY);
+        let newBox = Documents.TextDocument({ width: 200, height: 100, x: x, y: y, title: "-typed text-" });
+        this.props.addLiveTextDocument(newBox);
+        e.stopPropagation();
+    }
+    @action
     onPointerDown = (e: React.PointerEvent): void => {
-        if (e.buttons === 1 && !e.altKey && !e.metaKey && this.props.container.props.active()) {
-            this._downX = this._lastX = e.pageX;
-            this._downY = this._lastY = e.pageY;
-            this._used = false;
+        this._downX = this._lastX = e.pageX;
+        this._downY = this._lastY = e.pageY;
+        this._commandExecuted = false;
+        PreviewCursor.Visible = false;
+        if ((CollectionFreeFormView.RIGHT_BTN_DRAG && e.button === 0 && !e.altKey && !e.metaKey && this.props.container.props.active()) ||
+            (!CollectionFreeFormView.RIGHT_BTN_DRAG && (e.button === 2 || (e.button === 0 && e.altKey)) && this.props.container.props.active())) {
             document.addEventListener("pointermove", this.onPointerMove, true);
             document.addEventListener("pointerup", this.onPointerUp, true);
             document.addEventListener("keydown", this.marqueeCommand, true);
         }
+        if (e.altKey)
+            e.preventDefault();
     }
 
     @action
@@ -63,24 +76,45 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         this._lastX = e.pageX;
         this._lastY = e.pageY;
         if (!e.cancelBubble) {
-            if (!this._used && e.buttons === 1 && !e.altKey && !e.metaKey &&
-                (Math.abs(this._lastX - this._downX) > MarqueeView.DRAG_THRESHOLD || Math.abs(this._lastY - this._downY) > MarqueeView.DRAG_THRESHOLD)) {
-                this._visible = true;
+            if (Math.abs(this._lastX - this._downX) > Utils.DRAG_THRESHOLD ||
+                Math.abs(this._lastY - this._downY) > Utils.DRAG_THRESHOLD) {
+                if (!this._commandExecuted) {
+                    this._visible = true;
+                }
+                e.stopPropagation();
+                e.preventDefault();
             }
-            e.stopPropagation();
-            e.preventDefault();
         }
+        if (e.altKey)
+            e.preventDefault();
     }
 
     @action
     onPointerUp = (e: PointerEvent): void => {
-        this.cleanupInteractions(true);
-        this._visible = false;
-        let mselect = this.marqueeSelect();
-        if (!e.shiftKey) {
-            SelectionManager.DeselectAll(mselect.length ? undefined : this.props.container.props.Document);
+        if (this._visible) {
+            let mselect = this.marqueeSelect();
+            if (!e.shiftKey) {
+                SelectionManager.DeselectAll(mselect.length ? undefined : this.props.container.props.Document);
+            }
+            this.props.selectDocuments(mselect.length ? mselect : [this.props.container.props.Document]);
         }
-        this.props.selectDocuments(mselect.length ? mselect : [this.props.container.props.Document]);
+        this.cleanupInteractions(true);
+        if (e.altKey)
+            e.preventDefault();
+    }
+
+    @action
+    onClick = (e: React.MouseEvent): void => {
+        if (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD &&
+            Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD) {
+            if (this.props.isSelected()) {
+                PreviewCursor.Show(e.clientX, e.clientY, this.onKeyPress);
+            }
+            // let the DocumentView stopPropagation of this event when it selects this document
+        } else {  // why do we get a click event when the cursor have moved a big distance?
+            // let's cut it off here so no one else has to deal with it.
+            e.stopPropagation();
+        }
     }
 
     intersectRect(r1: { left: number, top: number, width: number, height: number },
@@ -97,45 +131,74 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         return { left: topLeft[0], top: topLeft[1], width: Math.abs(size[0]), height: Math.abs(size[1]) };
     }
 
+    @undoBatch
     @action
     marqueeCommand = (e: KeyboardEvent) => {
-        if (e.key === "Backspace" || e.key === "Delete") {
+        if (this._commandExecuted) {
+            return;
+        }
+        if (e.key === "Backspace" || e.key === "Delete" || e.key == "d") {
+            this._commandExecuted = true;
             this.marqueeSelect().map(d => this.props.removeDocument(d));
             let ink = this.props.container.props.Document.GetT(KeyStore.Ink, InkField);
             if (ink && ink !== FieldWaiting) {
                 this.marqueeInkDelete(ink.Data);
             }
-            this.cleanupInteractions();
+            this.cleanupInteractions(false);
+            e.stopPropagation();
         }
-        if (e.key === "c") {
+        if (e.key === "c" || e.key === "r" || e.key === "e") {
+            this._commandExecuted = true;
+            e.stopPropagation();
             let bounds = this.Bounds;
             let selected = this.marqueeSelect().map(d => {
                 this.props.removeDocument(d);
                 d.SetNumber(KeyStore.X, d.GetNumber(KeyStore.X, 0) - bounds.left - bounds.width / 2);
                 d.SetNumber(KeyStore.Y, d.GetNumber(KeyStore.Y, 0) - bounds.top - bounds.height / 2);
                 d.SetNumber(KeyStore.Page, -1);
-                d.SetText(KeyStore.Title, "" + d.GetNumber(KeyStore.Width, 0) + " " + d.GetNumber(KeyStore.Height, 0));
                 return d;
             });
             let ink = this.props.container.props.Document.GetT(KeyStore.Ink, InkField);
             let inkData = ink && ink !== FieldWaiting ? ink.Data : undefined;
-            //setTimeout(() => {
+            let zoomBasis = this.props.container.props.Document.GetNumber(KeyStore.Scale, 1);
             let newCollection = Documents.FreeformDocument(selected, {
                 x: bounds.left,
                 y: bounds.top,
                 panx: 0,
                 pany: 0,
-                width: bounds.width,
-                height: bounds.height,
-                backgroundColor: "Transparent",
+                borderRounding: e.key === "e" ? -1 : undefined,
+                scale: zoomBasis,
+                width: bounds.width * zoomBasis,
+                height: bounds.height * zoomBasis,
                 ink: inkData ? this.marqueeInkSelect(inkData) : undefined,
                 title: "a nested collection"
             });
-            this.props.addDocument(newCollection, false);
+
             this.marqueeInkDelete(inkData);
-            // }, 100);
-            this.cleanupInteractions();
+            // SelectionManager.DeselectAll();
+            if (e.key === "r") {
+                let summary = Documents.TextDocument({ x: bounds.left, y: bounds.top, width: 300, height: 100, backgroundColor: "yellow", title: "-summary-" });
+                summary.GetPrototype()!.CreateLink(newCollection.GetPrototype()!);
+                this.props.addLiveTextDocument(summary);
+                e.preventDefault();
+            }
+            else {
+                this.props.addDocument(newCollection, false);
+            }
+            this.cleanupInteractions(false);
+        }
+        if (e.key === "s") {
+            this._commandExecuted = true;
+            e.stopPropagation();
+            e.preventDefault();
+            let bounds = this.Bounds;
+            let selected = this.marqueeSelect();
             SelectionManager.DeselectAll();
+            let summary = Documents.TextDocument({ x: bounds.left + bounds.width + 25, y: bounds.top, width: 300, height: 100, backgroundColor: "yellow", title: "-summary-" });
+            this.props.addLiveTextDocument(summary);
+            selected.map(select => summary.GetPrototype()!.CreateLink(select.GetPrototype()!));
+
+            this.cleanupInteractions(false);
         }
     }
     @action
@@ -176,10 +239,11 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         let selRect = this.Bounds;
         let selection: Document[] = [];
         this.props.activeDocuments().map(doc => {
+            var z = doc.GetNumber(KeyStore.ZoomBasis, 1);
             var x = doc.GetNumber(KeyStore.X, 0);
             var y = doc.GetNumber(KeyStore.Y, 0);
-            var w = doc.GetNumber(KeyStore.Width, 0);
-            var h = doc.GetNumber(KeyStore.Height, 0);
+            var w = doc.Width() / z;
+            var h = doc.Height() / z;
             if (this.intersectRect({ left: x, top: y, width: w, height: h }, selRect)) {
                 selection.push(doc);
             }
@@ -191,11 +255,13 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     get marqueeDiv() {
         let p = this.props.getContainerTransform().transformPoint(this._downX < this._lastX ? this._downX : this._lastX, this._downY < this._lastY ? this._downY : this._lastY);
         let v = this.props.getContainerTransform().transformDirection(this._lastX - this._downX, this._lastY - this._downY);
-        return <div className="marquee" style={{ transform: `translate(${p[0]}px, ${p[1]}px)`, width: `${Math.abs(v[0])}`, height: `${Math.abs(v[1])}` }} />;
+        return <div className="marquee" style={{ transform: `translate(${p[0]}px, ${p[1]}px)`, width: `${Math.abs(v[0])}`, height: `${Math.abs(v[1])}` }} >
+            <span className="marquee-legend" />
+        </div>;
     }
 
     render() {
-        return <div className="marqueeView" onPointerDown={this.onPointerDown}>
+        return <div className="marqueeView" style={{ borderRadius: "inherit" }} onClick={this.onClick} onPointerDown={this.onPointerDown}>
             {this.props.children}
             {!this._visible ? (null) : this.marqueeDiv}
         </div>;

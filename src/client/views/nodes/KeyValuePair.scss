@@ -1,12 +1,29 @@
-@import "../global_variables";
+@import "../globalCssVariables";
 
-.container{
-    display: flex;                 
-    flex-direction: row;           
-    flex-wrap: nowrap;              
-    justify-content: space-between; 
+
+.keyValuePair-td-key {
+    display:inline-block;
+    .keyValuePair-td-key-container{
+        width:100%;
+        height:100%;
+        display: flex;                 
+        flex-direction: row;           
+        flex-wrap: nowrap;              
+        justify-content: space-between; 
+        .keyValuePair-td-key-delete{
+            position: relative;
+            background-color: transparent;
+            color:red;
+        }
+        .keyValuePair-keyField {
+            width:100%;
+            text-align: center;
+            position: relative;
+            overflow: auto;
+        }
+    }
 }
-
-.delete{
-    color: red;
+.keyValuePair-td-value {
+    display:inline-block;
+    overflow: scroll;
 }

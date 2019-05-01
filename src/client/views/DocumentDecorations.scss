@@ -1,13 +1,18 @@
-@import "global_variables";
+@import "globalCssVariables";
 
-#documentDecorations-container {
+$linkGap : 3px;
+.documentDecorations {
+    position: absolute;
+}
+
+.documentDecorations-container {
+    z-index: $docDecorations-zindex;
     position: absolute;
     top: 0;
     left: 0;
     display: grid;
-    z-index: 1000;
     grid-template-rows: 20px 8px 1fr 8px;
-    grid-template-columns: 8px 8px 1fr 8px 8px;
+    grid-template-columns: 8px 16px 1fr 8px 8px;
     pointer-events: none;
 
     #documentDecorations-centerCont {
@@ -59,13 +64,12 @@
     #documentDecorations-rightResizer {
         cursor: ew-resize;
     }
-
-    .title {
-        width: 100%;
+    .title{
         background: lightblue;
         grid-column-start: 3;
         grid-column-end: 4;
         pointer-events: auto;
+        overflow: hidden;
     }
 }
 
@@ -77,6 +81,7 @@
     grid-column-end: 6;
     pointer-events: all;
     text-align: center;
+    cursor: pointer;
 }
 
 .documentDecorations-minimizeButton {
@@ -86,6 +91,12 @@
     grid-column-end: 3;
     pointer-events: all;
     text-align: center;
+    cursor: pointer;
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    width: $MINIMIZED_ICON_SIZE;
+    height: $MINIMIZED_ICON_SIZE;
 }
 
 .documentDecorations-background {
@@ -125,9 +136,9 @@
 //         cursor: ew-resize;
 //     }
 // }
-
 .linkFlyout {
     grid-column: 2/4;
+    margin-top: $linkGap;
 }
 
 .linkButton-empty:hover {
@@ -152,7 +163,7 @@
 
 .linkButton-linker {
     margin-left: 5px;
-    margin-top: 10px;
+    margin-top: $linkGap;
     height: 20px;
     width: 20px;
     text-align: center;
@@ -167,10 +178,9 @@
     transform: scale(1.05);
 }
 
-.linkButton-empty {
+.linkButton-empty, .linkButton-nonempty {
     height: 20px;
     width: 20px;
-    margin-top: 10px;
     border-radius: 50%;
     opacity: 0.9;
     pointer-events: auto;
@@ -184,14 +194,18 @@
     display: flex;
     justify-content: center;
     align-items: center;
+
+    &:hover {
+        background: $main-accent;
+        transform: scale(1.05);
+        cursor: pointer;
+    }
 }
 
-.linkButton-nonempty {
-    height: 20px;
-    width: 20px;
-    margin-top: 10px;
-    border-radius: 50%;
-    opacity: 0.9;
+.templating-menu {
+    position: absolute;
+    bottom: 0;
+    left: 50px;
     pointer-events: auto;
     background-color: $dark-color;
     color: $light-color;
@@ -207,4 +221,37 @@
 
 .fa-icon-link {
     margin-top: 3px;
+}
+.templating-button {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    opacity: 0.9;
+    background-color: $dark-color;
+    color: $light-color;
+    text-align: center;
+    cursor: pointer;
+
+    &:hover {
+        background: $main-accent;
+        transform: scale(1.05);
+    }
+}
+
+#template-list {
+    position: absolute;
+    top: 0;
+    left: 30px;
+    width: 150px;
+    line-height: 25px;
+    max-height: 175px;
+    font-family: $sans-serif;
+    font-size: 12px;
+    background-color: $light-color-secondary;
+    padding: 2px 12px;
+    list-style: none;
+
+    input {
+        margin-right: 10px;
+    }
 }

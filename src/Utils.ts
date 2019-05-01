@@ -1,9 +1,12 @@
 import v4 = require('uuid/v4');
 import v5 = require("uuid/v5");
 import { Socket } from 'socket.io';
-import { Message, Types } from './server/Message';
+import { Message } from './server/Message';
+import { Document } from './fields/Document';
 
 export class Utils {
+
+    public static DRAG_THRESHOLD = 4;
 
     public static GenerateGuid(): string {
         return v4();
@@ -47,7 +50,7 @@ export class Utils {
         if (this.logFilter !== undefined && this.logFilter !== message.type) {
             return;
         }
-        let idString = (message._id || message.id || "").padStart(36, ' ');
+        let idString = (message.id || "").padStart(36, ' ');
         prefix = prefix.padEnd(16, ' ');
         console.log(`${prefix}: ${idString}, ${receiving ? 'receiving' : 'sending'} ${messageName} with data ${JSON.stringify(message)}`);
     }
@@ -86,14 +89,27 @@ export class Utils {
     }
 }
 
-export function returnTrue() {
-    return true;
+export function OmitKeys(obj: any, keys: any, addKeyFunc?: (dup: any) => void) {
+    var dup: any = {};
+    for (var key in obj) {
+        if (keys.indexOf(key) === -1) {
+            dup[key] = obj[key];
+        }
+    }
+    addKeyFunc && addKeyFunc(dup);
+    return dup;
 }
 
-export function returnFalse() {
-    return false;
-}
+export function returnTrue() { return true; }
+
+export function returnFalse() { return false; }
+
+export function returnOne() { return 1; }
+
+export function returnZero() { return 0; }
 
 export function emptyFunction() { }
+
+export function emptyDocFunction(doc: Document) { }
 
 export type Without<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;

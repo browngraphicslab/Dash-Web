@@ -31,11 +31,11 @@ export class InkField extends BasicField<StrokeMap> {
         return new InkField(this.Data);
     }
 
-    ToJson(): { _id: string; type: Types; data: any; } {
+    ToJson() {
         return {
             type: Types.Ink,
             data: this.Data,
-            _id: this.Id,
+            id: this.Id,
         };
     }
 

@@ -1,7 +1,7 @@
 import React = require("react");
 import { observer } from "mobx-react";
 import { computed } from "mobx";
-import { Field, FieldWaiting, FieldValue } from "../../../fields/Field";
+import { Field, FieldWaiting, FieldValue, Opt } from "../../../fields/Field";
 import { Document } from "../../../fields/Document";
 import { TextField } from "../../../fields/TextField";
 import { NumberField } from "../../../fields/NumberField";
@@ -19,7 +19,12 @@ import { ListField } from "../../../fields/ListField";
 import { DocumentContentsView } from "./DocumentContentsView";
 import { Transform } from "../../util/Transform";
 import { KeyStore } from "../../../fields/KeyStore";
-import { returnFalse } from "../../../Utils";
+import { returnFalse, emptyDocFunction, emptyFunction, returnOne, returnZero } from "../../../Utils";
+import { CollectionView } from "../collections/CollectionView";
+import { CollectionPDFView } from "../collections/CollectionPDFView";
+import { CollectionVideoView } from "../collections/CollectionVideoView";
+import { IconField } from "../../../fields/IconFIeld";
+import { IconBox } from "./IconBox";
 
 
 //
@@ -29,6 +34,7 @@ import { returnFalse } from "../../../Utils";
 //
 export interface FieldViewProps {
     fieldKey: Key;
+    ContainingCollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
     Document: Document;
     isSelected: () => boolean;
     select: (isCtrlPressed: boolean) => void;
@@ -39,8 +45,10 @@ export interface FieldViewProps {
     moveDocument?: (document: Document, targetCollection: Document, addDocument: (document: Document) => boolean) => boolean;
     ScreenToLocalTransform: () => Transform;
     active: () => boolean;
-    onActiveChanged: (isActive: boolean) => void;
+    whenActiveChanged: (isActive: boolean) => void;
     focus: (doc: Document) => void;
+    PanelWidth: () => number;
+    PanelHeight: () => number;
 }
 
 @observer
@@ -68,6 +76,9 @@ export class FieldView extends React.Component<FieldViewProps> {
         else if (field instanceof ImageField) {
             return <ImageBox {...this.props} />;
         }
+        else if (field instanceof IconField) {
+            return <IconBox {...this.props} />;
+        }
         else if (field instanceof VideoField) {
             return <VideoBox {...this.props} />;
         }
@@ -85,13 +96,14 @@ export class FieldView extends React.Component<FieldViewProps> {
                     PanelHeight={() => 100}
                     isTopMost={true} //TODO Why is this top most?
                     selectOnLoad={false}
-                    focus={() => { }}
-                    isSelected={() => false}
-                    select={() => false}
+                    focus={emptyDocFunction}
+                    isSelected={this.props.isSelected}
+                    select={returnFalse}
                     layoutKey={KeyStore.Layout}
-                    ContainingCollectionView={undefined}
+                    ContainingCollectionView={this.props.ContainingCollectionView}
                     parentActive={this.props.active}
-                    onActiveChanged={this.props.onActiveChanged} />
+                    toggleMinimized={emptyFunction}
+                    whenActiveChanged={this.props.whenActiveChanged} />
             );
         }
         else if (field instanceof ListField) {
@@ -111,7 +123,7 @@ export class FieldView extends React.Component<FieldViewProps> {
         }
         else {
             return <p> {"Waiting for server..."} </p>;
- }
+        }
     }
 
 }

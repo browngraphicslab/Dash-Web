@@ -40,11 +40,11 @@ export class Key extends Field {
         return name;
     }
 
-    ToJson(): { type: Types, data: string, _id: string } {
+    ToJson() {
         return {
             type: Types.Key,
             data: this.name,
-            _id: this.Id
+            id: this.Id
         };
     }
 }

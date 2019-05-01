@@ -1,7 +1,9 @@
-@import "../global_variables";
+@import "../globalCssVariables";
 
 .collectionTreeView-dropTarget {
-    border: 0px solid transparent;
+    border-width: $COLLECTION_BORDER_WIDTH;
+    border-color: transparent;
+    border-style: solid;
     border-radius: $border-radius;
     box-sizing: border-box;
     height: 100%;
@@ -48,15 +50,15 @@
     .docContainer:hover {
         .delete-button {
             display: inline;
-            width: auto;
+            // width: auto;
         }
     }
 
     .delete-button {
         color: $intermediate-color;
-        float: right;
+        // float: right;
         margin-left: 15px;
-        margin-top: 3px;
+        // margin-top: 3px;
         display: inline;
     }
 }

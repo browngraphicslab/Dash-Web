@@ -49,11 +49,11 @@ export class TupleField<T, U> extends BasicField<[T, U]> {
         return new TupleField<T, U>(this.Data);
     }
 
-    ToJson(): { type: Types, data: [T, U], _id: string } {
+    ToJson() {
         return {
             type: Types.Tuple,
             data: this.Data,
-            _id: this.Id
+            id: this.Id
         };
     }
 }

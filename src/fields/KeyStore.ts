@@ -1,5 +1,4 @@
 import { Key } from "./Key";
-import { KeyTransfer } from "../server/Message";
 
 export namespace KeyStore {
     export const Prototype = new Key("Prototype");
@@ -16,10 +15,13 @@ export namespace KeyStore {
     export const Width = new Key("Width");
     export const Height = new Key("Height");
     export const ZIndex = new Key("ZIndex");
+    export const ZoomBasis = new Key("ZoomBasis");
     export const Data = new Key("Data");
     export const Annotations = new Key("Annotations");
     export const ViewType = new Key("ViewType");
+    export const BaseLayout = new Key("BaseLayout");
     export const Layout = new Key("Layout");
+    export const Templates = new Key("Templates");
     export const BackgroundColor = new Key("BackgroundColor");
     export const BackgroundLayout = new Key("BackgroundLayout");
     export const OverlayLayout = new Key("OverlayLayout");
@@ -45,15 +47,18 @@ export namespace KeyStore {
     export const OptionalRightCollection = new Key("OptionalRightCollection");
     export const Archives = new Key("Archives");
     export const Workspaces = new Key("Workspaces");
-    export const Minimized = new Key("Minimized");
+    export const IsMinimized = new Key("IsMinimized");
+    export const MinimizedDoc = new Key("MinimizedDoc");
+    export const MaximizedDoc = new Key("MaximizedDoc");
     export const CopyDraggedItems = new Key("CopyDraggedItems");
     export const PanTransformType = new Key("PanTransformType");
+    export const BorderRounding = new Key("BorderRounding");
 
     export const KeyList: Key[] = [Prototype, X, Y, Page, Title, Author, PanX, PanY, Scale, NativeWidth, NativeHeight,
-        Width, Height, ZIndex, Data, Annotations, ViewType, Layout, BackgroundColor, BackgroundLayout, OverlayLayout, LayoutKeys,
+        Width, Height, ZIndex, ZoomBasis, Data, Annotations, ViewType, Layout, BackgroundColor, BackgroundLayout, OverlayLayout, LayoutKeys,
         LayoutFields, ColumnsKey, SchemaSplitPercentage, Caption, ActiveWorkspace, DocumentText, BrushingDocs, LinkedToDocs, LinkedFromDocs,
         LinkDescription, LinkTags, Thumbnail, ThumbnailPage, CurPage, AnnotationOn, NumPages, Ink, Cursors, OptionalRightCollection,
-        Archives, Workspaces, Minimized, CopyDraggedItems
+        Archives, Workspaces, IsMinimized, MinimizedDoc, MaximizedDoc, CopyDraggedItems, BorderRounding
     ];
     export function KeyLookup(keyid: string) {
         for (const key of KeyList) {

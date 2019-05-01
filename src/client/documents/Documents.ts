@@ -1,6 +1,6 @@
 import { AudioField } from "../../fields/AudioField";
 import { Document } from "../../fields/Document";
-import { Field } from "../../fields/Field";
+import { Field, Opt } from "../../fields/Field";
 import { HtmlField } from "../../fields/HtmlField";
 import { ImageField } from "../../fields/ImageField";
 import { InkField, StrokeData } from "../../fields/InkField";
@@ -26,6 +26,17 @@ import { KeyValueBox } from "../views/nodes/KeyValueBox";
 import { PDFBox } from "../views/nodes/PDFBox";
 import { VideoBox } from "../views/nodes/VideoBox";
 import { WebBox } from "../views/nodes/WebBox";
+import { Gateway } from "../northstar/manager/Gateway";
+import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
+import { action } from "mobx";
+import { ColumnAttributeModel } from "../northstar/core/attribute/AttributeModel";
+import { AttributeTransformationModel } from "../northstar/core/attribute/AttributeTransformationModel";
+import { AggregateFunction } from "../northstar/model/idea/idea";
+import { Template } from "../views/Templates";
+import { TemplateField } from "../../fields/TemplateField";
+import { MINIMIZED_ICON_SIZE } from "../views/globalCssVariables.scss";
+import { IconBox } from "../views/nodes/IconBox";
+import { IconField } from "../../fields/IconFIeld";
 
 export interface DocumentOptions {
     x?: number;
@@ -40,11 +51,16 @@ export interface DocumentOptions {
     pany?: number;
     page?: number;
     scale?: number;
+    baseLayout?: string;
     layout?: string;
+    templates?: Array<Template>;
     layoutKeys?: Key[];
     viewType?: number;
     backgroundColor?: string;
     copyDraggedItems?: boolean;
+    documentText?: string;
+    borderRounding?: number;
+    columnsKey?: Array<Key>;
 }
 
 export namespace Documents {
@@ -57,6 +73,7 @@ export namespace Documents {
     let videoProto: Document;
     let audioProto: Document;
     let pdfProto: Document;
+    let iconProto: Document;
     const textProtoId = "textProto";
     const histoProtoId = "histoProto";
     const pdfProtoId = "pdfProto";
@@ -66,6 +83,7 @@ export namespace Documents {
     const kvpProtoId = "kvpProto";
     const videoProtoId = "videoProto";
     const audioProtoId = "audioProto";
+    const iconProtoId = "iconProto";
 
     export function initProtos(): Promise<void> {
         return Server.GetFields([textProtoId, histoProtoId, collProtoId, pdfProtoId, imageProtoId, videoProtoId, audioProtoId, webProtoId, kvpProtoId]).then(fields => {
@@ -78,6 +96,7 @@ export namespace Documents {
             videoProto = fields[videoProtoId] as Document || CreateVideoPrototype();
             audioProto = fields[audioProtoId] as Document || CreateAudioPrototype();
             pdfProto = fields[pdfProtoId] as Document || CreatePdfPrototype();
+            iconProto = fields[iconProtoId] as Document || CreateIconPrototype();
         });
     }
     function assignOptions(doc: Document, options: DocumentOptions): Document {
@@ -85,13 +104,20 @@ export namespace Documents {
         if (options.nativeHeight !== undefined) { doc.SetNumber(KeyStore.NativeHeight, options.nativeHeight); }
         if (options.title !== undefined) { doc.SetText(KeyStore.Title, options.title); }
         if (options.page !== undefined) { doc.SetNumber(KeyStore.Page, options.page); }
+        if (options.documentText !== undefined) { doc.SetText(KeyStore.DocumentText, options.documentText); }
         if (options.scale !== undefined) { doc.SetNumber(KeyStore.Scale, options.scale); }
+        if (options.width !== undefined) { doc.SetNumber(KeyStore.Width, options.width); }
+        if (options.height !== undefined) { doc.SetNumber(KeyStore.Height, options.height); }
         if (options.viewType !== undefined) { doc.SetNumber(KeyStore.ViewType, options.viewType); }
         if (options.backgroundColor !== undefined) { doc.SetText(KeyStore.BackgroundColor, options.backgroundColor); }
         if (options.ink !== undefined) { doc.Set(KeyStore.Ink, new InkField(options.ink)); }
+        if (options.baseLayout !== undefined) { doc.SetText(KeyStore.BaseLayout, options.baseLayout); }
         if (options.layout !== undefined) { doc.SetText(KeyStore.Layout, options.layout); }
+        if (options.templates !== undefined) { doc.Set(KeyStore.Templates, new TemplateField(options.templates)); }
         if (options.layoutKeys !== undefined) { doc.Set(KeyStore.LayoutKeys, new ListField(options.layoutKeys)); }
         if (options.copyDraggedItems !== undefined) { doc.SetBoolean(KeyStore.CopyDraggedItems, options.copyDraggedItems); }
+        if (options.borderRounding !== undefined) { doc.SetNumber(KeyStore.BorderRounding, options.borderRounding); }
+        if (options.columnsKey !== undefined) { doc.SetData(KeyStore.ColumnsKey, options.columnsKey, ListField); }
         return doc;
     }
 
@@ -106,7 +132,7 @@ export namespace Documents {
     }
 
     function setupPrototypeOptions(protoId: string, title: string, layout: string, options: DocumentOptions): Document {
-        return assignOptions(new Document(protoId), { ...options, title: title, layout: layout });
+        return assignOptions(new Document(protoId), { ...options, title: title, layout: layout, baseLayout: layout });
     }
     function SetInstanceOptions<T, U extends Field & { Data: T }>(doc: Document, options: DocumentOptions, value: [T, { new(): U }] | Document, id?: string) {
         var deleg = doc.MakeDelegate(id);
@@ -121,9 +147,10 @@ export namespace Documents {
 
     function CreateImagePrototype(): Document {
         let imageProto = setupPrototypeOptions(imageProtoId, "IMAGE_PROTO", CollectionView.LayoutString("AnnotationsKey"),
-            { x: 0, y: 0, nativeWidth: 300, width: 300, layoutKeys: [KeyStore.Data, KeyStore.Annotations, KeyStore.Caption] });
+            { x: 0, y: 0, nativeWidth: 600, width: 300, layoutKeys: [KeyStore.Data, KeyStore.Annotations, KeyStore.Caption] });
         imageProto.SetText(KeyStore.BackgroundLayout, ImageBox.LayoutString());
         imageProto.SetNumber(KeyStore.CurPage, 0);
+        imageProto.SetData(KeyStore.LayoutFields, [KeyStore.Title], ListField);
         return imageProto;
     }
 
@@ -132,6 +159,11 @@ export namespace Documents {
             { x: 0, y: 0, width: 300, height: 300, backgroundColor: "black", layoutKeys: [KeyStore.Data, KeyStore.Annotations, KeyStore.Caption] });
         histoProto.SetText(KeyStore.BackgroundLayout, HistogramBox.LayoutString());
         return histoProto;
+    }
+    function CreateIconPrototype(): Document {
+        let iconProto = setupPrototypeOptions(iconProtoId, "ICON_PROTO", IconBox.LayoutString(),
+            { x: 0, y: 0, width: Number(MINIMIZED_ICON_SIZE), height: Number(MINIMIZED_ICON_SIZE), layoutKeys: [KeyStore.Data] });
+        return iconProto;
     }
     function CreateTextPrototype(): Document {
         let textProto = setupPrototypeOptions(textProtoId, "TEXT_PROTO", FormattedTextBox.LayoutString(),
@@ -197,8 +229,36 @@ export namespace Documents {
     export function TextDocument(options: DocumentOptions = {}) {
         return assignToDelegate(SetInstanceOptions(textProto, options, ["", TextField]).MakeDelegate(), options);
     }
+    export function IconDocument(icon: string, options: DocumentOptions = {}) {
+        return assignToDelegate(SetInstanceOptions(iconProto, { width: Number(MINIMIZED_ICON_SIZE), height: Number(MINIMIZED_ICON_SIZE), layoutKeys: [KeyStore.Data], layout: IconBox.LayoutString(), ...options }, [icon, IconField]), options);
+    }
     export function PdfDocument(url: string, options: DocumentOptions = {}) {
         return assignToDelegate(SetInstanceOptions(pdfProto, options, [new URL(url), PDFField]).MakeDelegate(), options);
+    }
+    export async function DBDocument(url: string, options: DocumentOptions = {}) {
+        let schemaName = options.title ? options.title : "-no schema-";
+        let ctlog = await Gateway.Instance.GetSchema(url, schemaName);
+        if (ctlog && ctlog.schemas) {
+            let schema = ctlog.schemas[0];
+            let schemaDoc = Documents.TreeDocument([], { ...options, nativeWidth: undefined, nativeHeight: undefined, width: 150, height: 100, title: schema.displayName! });
+            let schemaDocuments = schemaDoc.GetList(KeyStore.Data, [] as Document[]);
+            CurrentUserUtils.GetAllNorthstarColumnAttributes(schema).map(attr => {
+                Server.GetField(attr.displayName! + ".alias", action((field: Opt<Field>) => {
+                    if (field instanceof Document) {
+                        schemaDocuments.push(field);
+                    } else {
+                        var atmod = new ColumnAttributeModel(attr);
+                        let histoOp = new HistogramOperation(schema.displayName!,
+                            new AttributeTransformationModel(atmod, AggregateFunction.None),
+                            new AttributeTransformationModel(atmod, AggregateFunction.Count),
+                            new AttributeTransformationModel(atmod, AggregateFunction.Count));
+                        schemaDocuments.push(Documents.HistogramDocument(histoOp, { width: 200, height: 200, title: attr.displayName! }, undefined, attr.displayName! + ".alias"));
+                    }
+                }));
+            });
+            return schemaDoc;
+        }
+        return Documents.TreeDocument([], { width: 50, height: 100, title: schemaName });
     }
     export function WebDocument(url: string, options: DocumentOptions = {}) {
         return assignToDelegate(SetInstanceOptions(webProto, options, [new URL(url), WebField]).MakeDelegate(), options);
@@ -213,13 +273,13 @@ export namespace Documents {
         if (!makePrototype) {
             return SetInstanceOptions(collProto, { ...options, viewType: CollectionViewType.Freeform }, [documents, ListField], id);
         }
-        return assignToDelegate(SetInstanceOptions(collProto, { ...options, viewType: CollectionViewType.Freeform }, [documents, ListField], id).MakeDelegate(), options);
+        return assignToDelegate(SetInstanceOptions(collProto, { columnsKey: [KeyStore.Title], ...options, viewType: CollectionViewType.Freeform }, [documents, ListField], id).MakeDelegate(), options);
     }
     export function SchemaDocument(documents: Array<Document>, options: DocumentOptions, id?: string) {
-        return assignToDelegate(SetInstanceOptions(collProto, { ...options, viewType: CollectionViewType.Schema }, [documents, ListField], id), options);
+        return assignToDelegate(SetInstanceOptions(collProto, { columnsKey: [KeyStore.Title], ...options, viewType: CollectionViewType.Schema }, [documents, ListField], id), options);
     }
     export function TreeDocument(documents: Array<Document>, options: DocumentOptions, id?: string) {
-        return assignToDelegate(SetInstanceOptions(collProto, { ...options, viewType: CollectionViewType.Tree }, [documents, ListField], id), options);
+        return assignToDelegate(SetInstanceOptions(collProto, { columnsKey: [KeyStore.Title], ...options, viewType: CollectionViewType.Tree }, [documents, ListField], id), options);
     }
     export function DockDocument(config: string, options: DocumentOptions, id?: string) {
         return assignToDelegate(SetInstanceOptions(collProto, { ...options, viewType: CollectionViewType.Docking }, [config, TextField], id), options);
@@ -242,13 +302,15 @@ export namespace Documents {
             <div style="position:relative; height:15%; text-align:center; ">`
             + FormattedTextBox.LayoutString("CaptionKey") +
             `</div> 
-        </div>`; }
+        </div>`;
+    }
     export function FixedCaption(fieldName: string = "Caption") {
         return `<div style="position:absolute; height:30px; bottom:0; width:100%">
             <div style="position:absolute; width:100%; height:100%; text-align:center;bottom:0;">`
             + FormattedTextBox.LayoutString(fieldName + "Key") +
             `</div> 
-        </div>`; }
+        </div>`;
+    }
 
     function OuterCaption() {
         return (`

@@ -13,6 +13,7 @@ import { BooleanField } from "./BooleanField";
 import { allLimit } from "async";
 import { prototype } from "nodemailer/lib/smtp-pool";
 import { HistogramField } from "../client/northstar/dash-fields/HistogramField";
+import { Documents } from "../client/documents/Documents";
 
 export class Document extends Field {
     //TODO tfs: We should probably store FieldWaiting in fields when we request it from the server so that we don't set up multiple server gets for the same document and field
@@ -25,6 +26,12 @@ export class Document extends Field {
         if (save) {
             Server.UpdateField(this);
         }
+    }
+    static FromJson(data: any, id: string, save: boolean): Document {
+        let doc = new Document(id, save);
+        let fields = data as [string, string][];
+        fields.forEach(pair => doc._proxies.set(pair[0], pair[1]));
+        return doc;
     }
 
     UpdateFromServer(data: [string, string][]) {
@@ -41,14 +48,14 @@ export class Document extends Field {
     @computed
     public get Title(): string {
         let title = this.Get(KeyStore.Title, true);
-        if (title) {
+        if (title || title === FieldWaiting) {
             if (title !== FieldWaiting && title instanceof TextField) {
                 return title.Data;
             }
             else return "-waiting-";
         }
         let parTitle = this.GetT(KeyStore.Title, TextField);
-        if (parTitle) {
+        if (parTitle || parTitle === FieldWaiting) {
             if (parTitle !== FieldWaiting) return parTitle.Data + ".alias";
             else return "-waiting-.alias";
         }
@@ -197,7 +204,7 @@ export class Document extends Field {
         callback: (field: T) => void
     ): void {
         //This currently doesn't deal with prototypes
-        if (this._proxies.has(key.Id)) {
+        if (this._proxies.has(key.Id) || this.fields.has(key.Id)) {
             Server.GetDocumentField(this, key, field => {
                 if (field && field instanceof ctor) {
                     callback(field);
@@ -365,6 +372,36 @@ export class Document extends Field {
         return alias;
     }
 
+    @action
+    CreateLink(dstTarg: Document) {
+        let batch = UndoManager.StartBatch("document view drop");
+        let linkDoc: Document = Documents.TextDocument({ width: 100, height: 25, title: "-link-" });
+        linkDoc.SetText(KeyStore.LinkDescription, "");
+        linkDoc.SetText(KeyStore.LinkTags, "Default");
+
+        let srcTarg = this;
+        linkDoc.Set(KeyStore.LinkedToDocs, dstTarg);
+        linkDoc.Set(KeyStore.LinkedFromDocs, srcTarg);
+        const prom1 = new Promise(resolve => dstTarg.GetOrCreateAsync(
+            KeyStore.LinkedFromDocs,
+            ListField,
+            field => {
+                (field as ListField<Document>).Data.push(linkDoc);
+                resolve();
+            }
+        ));
+        const prom2 = new Promise(resolve => srcTarg.GetOrCreateAsync(
+            KeyStore.LinkedToDocs,
+            ListField,
+            field => {
+                (field as ListField<Document>).Data.push(linkDoc);
+                resolve();
+            }
+        ));
+        Promise.all([prom1, prom2]).finally(() => batch.end());
+        return linkDoc;
+    }
+
     MakeDelegate(id?: string): Document {
         let delegate = new Document(id);
 
@@ -410,18 +447,15 @@ export class Document extends Field {
         return copy;
     }
 
-    ToJson(): { type: Types; data: [string, string][]; _id: string } {
+    ToJson() {
         let fields: [string, string][] = [];
-        this._proxies.forEach((field, key) => {
-            if (field) {
-                fields.push([key, field]);
-            }
-        });
+        this._proxies.forEach((field, key) =>
+            field && fields.push([key, field]));
 
         return {
             type: Types.Document,
             data: fields,
-            _id: this.Id
+            id: this.Id
         };
     }
 }

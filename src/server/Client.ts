@@ -1,15 +1,11 @@
 import { computed } from "mobx";
 
 export class Client {
+    private _guid: string;
+
     constructor(guid: string) {
-        this.guid = guid;
+        this._guid = guid;
     }
 
-    private guid: string;
-
-    @computed
-    public get GUID(): string {
-        return this.guid;
-    }
-
+    @computed public get GUID(): string { return this._guid; }
 }

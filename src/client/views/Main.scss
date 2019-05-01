@@ -1,4 +1,4 @@
-@import "global_variables";
+@import "globalCssVariables";
 @import "nodeModuleOverrides";
 
 html,
@@ -11,6 +11,10 @@ body {
     position: absolute;
     top: 0;
     left: 0;
+}
+
+div {
+    user-select: none;
 }
 
 #dash-title {
@@ -43,7 +47,9 @@ h1 {
 }
 
 .jsx-parser {
-    width: 100%
+    width:100%;
+    pointer-events: none;
+    border-radius: inherit;
 }
 
 p {
@@ -54,7 +60,7 @@ p {
 ::-webkit-scrollbar {
     -webkit-appearance: none;
     height: 5px;
-    width: 5px;
+    width: 10px;
 }
 
 ::-webkit-scrollbar-thumb {
@@ -177,26 +183,6 @@ button:hover {
     left: 0;
     overflow: scroll;
 }
-
-.mainDiv-textInput {
-    background: pink;
-    width: 200px;
-    height: 200px;
-    position: absolute;
-    overflow: visible;
-    top: 0;
-    left: 0;
-
-    .formattedTextBox-cont {
-        background: pink;
-        width: 100%;
-        height: 100%;
-        position: absolute;
-        top: 0;
-        left: 0;
-    }
-}
-
 #mainContent-div {
     width: 100%;
     height: 100%;

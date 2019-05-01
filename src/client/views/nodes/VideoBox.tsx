@@ -1,18 +1,16 @@
 import React = require("react");
+import { action, computed, IReactionDisposer, trace } from "mobx";
 import { observer } from "mobx-react";
+import Measure from "react-measure";
 import { FieldWaiting, Opt } from '../../../fields/Field';
+import { KeyStore } from "../../../fields/KeyStore";
 import { VideoField } from '../../../fields/VideoField';
 import { FieldView, FieldViewProps } from './FieldView';
 import "./VideoBox.scss";
-import Measure from "react-measure";
-import { action, trace, observable, IReactionDisposer, computed, reaction } from "mobx";
-import { KeyStore } from "../../../fields/KeyStore";
-import { number } from "prop-types";
 
 @observer
 export class VideoBox extends React.Component<FieldViewProps> {
 
-    private _reactionDisposer: Opt<IReactionDisposer>;
     private _videoRef = React.createRef<HTMLVideoElement>();
     public static LayoutString() { return FieldView.LayoutString(VideoBox); }
 
@@ -54,25 +52,26 @@ export class VideoBox extends React.Component<FieldViewProps> {
             (vref as any).AHackBecauseSomethingResetsTheVideoToZero = this.curPage;
         }
     }
+    videoContent(path: string) {
+        return <video className="videobox-cont" ref={this.setVideoRef}>
+            <source src={path} type="video/mp4" />
+            Not supported.
+    </video>;
+    }
 
     render() {
         let field = this.props.Document.GetT(this.props.fieldKey, VideoField);
         if (!field || field === FieldWaiting) {
             return <div>Loading</div>;
         }
-        let path = field.Data.href;
-        trace();
-        return (
+        return (this.props.Document.GetNumber(KeyStore.NativeHeight, 0)) ?
+            this.videoContent(field.Data.href) :
             <Measure onResize={this.setScaling}>
                 {({ measureRef }) =>
                     <div style={{ width: "100%", height: "auto" }} ref={measureRef}>
-                        <video className="videobox-cont" onClick={() => { }} ref={this.setVideoRef}>
-                            <source src={path} type="video/mp4" />
-                            Not supported.
-                        </video>
+                        {this.videoContent(field!.Data.href)}
                     </div>
                 }
-            </Measure>
-        );
+            </Measure>;
     }
 }

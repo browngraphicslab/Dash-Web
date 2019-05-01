@@ -1,38 +1,67 @@
-@import "../global_variables";
+@import "../globalCssVariables";
 .keyValueBox-cont {
     overflow-y: scroll;
+    width:100%;
     height: 100%;
     background-color: $light-color;
     border: 1px solid $intermediate-color;
     border-radius: $border-radius;
     box-sizing: border-box;
     display: inline-block;
+    pointer-events: all;
     .imageBox-cont img {
-        max-height: 45px;
-        height: auto;
+        width: auto;
     }
-    td {
-        padding: 6px 8px;
-        border-right: 1px solid $intermediate-color;
-        border-top: 1px solid $intermediate-color;
-        &:last-child {
-            border-right: none;
-        }
-    }
+}
+$header-height: 30px;
+.keyValueBox-tbody {
+    width:100%;
+    height:100%;
+    position: absolute;
+    overflow-y: scroll;
+}
+.keyValueBox-key {
+    display: inline-block;
+    height:100%;
+    width:50%;
+    text-align: center;
+}
+.keyValueBox-fields {
+    display: inline-block;
+    height:100%;
+    width:50%;
+    text-align: center;
 }
 
 .keyValueBox-table {
-    position: relative;
+    position: absolute;
+    width:100%;
+    height:100%;
     border-collapse: collapse;
 }
-
+.keyValueBox-td-key {
+    display:inline-block;
+    height:30px;
+}
+.keyValueBox-td-value {
+    display:inline-block;
+    height:30px;
+}
+.keyValueBox-valueRow {
+    width:100%;
+    height:30px;
+    display: inline-block;
+}
 .keyValueBox-header {
+    width:100%;
+    position: relative;
+    display: inline-block;
     background: $intermediate-color;
     color: $light-color;
     text-transform: uppercase;
     letter-spacing: 2px;
     font-size: 12px;
-    height: 30px;
+    height: $header-height;
     padding-top: 4px;
     th {
         font-weight: normal;
@@ -43,13 +72,50 @@
 }
 
 .keyValueBox-evenRow {
+    position: relative;
+    display: inline-block;
+    width:100%;
+    height:$header-height;
     background: $light-color;
     .formattedTextBox-cont {
         background: $light-color;
     }
 }
+.keyValueBox-cont {
+    .collectionfreeformview-overlay {
+        position: relative;
+    }
+}
+.keyValueBox-dividerDraggerThumb{
+    position: relative;
+    width: 4px;
+    float: left; 
+    height: 30px;
+    width: 10px;
+    z-index: 20;
+    right: 0;
+    top: 0;
+    border-radius: 10px;
+    background: gray;
+    pointer-events: all;
+}
+.keyValueBox-dividerDragger{
+    position: relative; 
+    width: 100%;
+    float: left; 
+    height: 37px;
+    z-index: 20;
+    right: 0;
+    top: 0;
+    background: transparent;
+    pointer-events: none;
+}
 
 .keyValueBox-oddRow {
+    position: relative;
+    display: inline-block;
+    width:100%;
+    height:30px;
     background: $light-color-secondary;
     .formattedTextBox-cont {
         background: $light-color-secondary;

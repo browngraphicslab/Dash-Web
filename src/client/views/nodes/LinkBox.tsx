@@ -1,24 +1,16 @@
-import { observable, computed, action } from "mobx";
-import React = require("react");
-import { SelectionManager } from "../../util/SelectionManager";
-import { observer } from "mobx-react";
-import './LinkBox.scss';
-import { KeyStore } from '../../../fields/KeyStore';
-import { props } from "bluebird";
-import { DocumentView } from "./DocumentView";
-import { Document } from "../../../fields/Document";
-import { ListField } from "../../../fields/ListField";
-import { DocumentManager } from "../../util/DocumentManager";
-import { LinkEditor } from "./LinkEditor";
-import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { library } from '@fortawesome/fontawesome-svg-core';
+import { faEdit, faEye, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEye } from '@fortawesome/free-solid-svg-icons';
-import { faEdit } from '@fortawesome/free-solid-svg-icons';
-import { faTimes } from '@fortawesome/free-solid-svg-icons';
-import { undoBatch } from "../../util/UndoManager";
-import { FieldWaiting } from "../../../fields/Field";
+import { observer } from "mobx-react";
+import { Document } from "../../../fields/Document";
+import { KeyStore } from '../../../fields/KeyStore';
+import { ListField } from "../../../fields/ListField";
 import { NumberField } from "../../../fields/NumberField";
+import { DocumentManager } from "../../util/DocumentManager";
+import { undoBatch } from "../../util/UndoManager";
+import { CollectionDockingView } from "../collections/CollectionDockingView";
+import './LinkBox.scss';
+import React = require("react");
 
 
 library.add(faEye);

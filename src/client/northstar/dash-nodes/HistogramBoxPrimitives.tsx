@@ -1,7 +1,7 @@
 import React = require("react");
 import { computed, observable, reaction, runInAction, trace, action } from "mobx";
 import { observer } from "mobx-react";
-import { Utils as DashUtils } from '../../../Utils';
+import { Utils as DashUtils, emptyFunction } from '../../../Utils';
 import { FilterModel } from "../../northstar/core/filter/FilterModel";
 import { ModelHelpers } from "../../northstar/model/ModelHelpers";
 import { ArrayUtil } from "../../northstar/utils/ArrayUtil";
@@ -49,7 +49,7 @@ export class HistogramBoxPrimitives extends React.Component<HistogramPrimitivesP
     private getSelectionToggle(binPrimitives: HistogramBinPrimitive[], allBrushIndex: number, filterModel: FilterModel) {
         let rawAllBrushPrim = ArrayUtil.FirstOrDefault(binPrimitives, bp => bp.BrushIndex === allBrushIndex);
         if (!rawAllBrushPrim) {
-            return () => { };
+            return emptyFunction;
         }
         let allBrushPrim = rawAllBrushPrim;
         return () => runInAction(() => {
@@ -97,7 +97,7 @@ export class HistogramBoxPrimitives extends React.Component<HistogramPrimitivesP
         let trans1Ypercent = `${yFrom / this.renderDimension * 100}%`;
         return <line className="histogramboxprimitives-line" key={DashUtils.GenerateGuid()} x1={trans1Xpercent} x2={`${trans2Xpercent}`} y1={trans1Ypercent} y2={`${trans2Ypercent}`} />;
     }
-    drawRect(r: PIXIRectangle, barAxis: number, color: number | undefined, classExt: string, tapHandler: () => void = () => { }) {
+    drawRect(r: PIXIRectangle, barAxis: number, color: number | undefined, classExt: string, tapHandler: () => void = emptyFunction) {
         if (r.height < 0) {
             r.y += r.height;
             r.height = -r.height;
