@@ -237,6 +237,11 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     onClick = (e: React.MouseEvent): void => {
         this._proseRef.current!.focus();
     }
+    onMouseDown = (e: React.MouseEvent): void => {
+        if (!this.props.isSelected() && this.props.active()) { // preventing default allows the onClick to be generated instead of being swallowed by the text box itself
+            e.preventDefault(); // bcz: this would normally be in OnPointerDown - however, if done there, no mouse move events will be generated which makes transititioning to GoldenLayout's drag interactions impossible
+        }
+    }
 
     tooltipTextMenuPlugin() {
         let myprops = this.props;
@@ -290,6 +295,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 onClick={this.onClick}
                 onPointerUp={this.onPointerUp}
                 onPointerDown={this.onPointerDown}
+                onMouseDown={this.onMouseDown}
                 onContextMenu={this.specificContextMenu}
                 // tfs: do we need this event handler
                 onWheel={this.onPointerWheel}

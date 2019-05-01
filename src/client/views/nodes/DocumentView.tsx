@@ -171,7 +171,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             document.addEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
             document.addEventListener("pointerup", this.onPointerUp);
-            e.preventDefault();
         }
     }
     onPointerMove = (e: PointerEvent): void => {
