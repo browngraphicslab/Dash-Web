@@ -261,9 +261,9 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         if (tab.hasOwnProperty("contentItem") && tab.contentItem.config.type !== "stack") {
             DocServer.GetRefField(tab.contentItem.config.props.documentId).then(async f => {
                 if (f instanceof Doc) {
-                    const tfield = await Cast(f.title, "string");
-                    if (tfield !== undefined) {
-                        tab.titleElement[0].textContent = f.Title;
+                    const title = Cast(f.title, "string");
+                    if (title !== undefined) {
+                        tab.titleElement[0].textContent = title;
                     }
                     const lf = await Cast(f.linkedFromDocs, listSpec(Doc));
                     const lt = await Cast(f.linkedToDocs, listSpec(Doc));
