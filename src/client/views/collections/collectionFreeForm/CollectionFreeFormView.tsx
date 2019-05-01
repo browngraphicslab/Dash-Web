@@ -237,10 +237,15 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
     focusDocument = (doc: Doc) => {
+        SelectionManager.DeselectAll();
+        this.props.Document.panTransformType = "Ease";
         this.setPan(
             NumCast(doc.x) + NumCast(doc.width) / 2,
             NumCast(doc.y) + NumCast(doc.height) / 2);
         this.props.focus(this.props.Document);
+        if (this.props.Document.panTransformType === "Ease") {
+            setTimeout(() => this.props.Document.panTransformType = "None", 2000);  // wait 3 seconds, then reset to false
+        }
     }
 
 
@@ -292,6 +297,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     private childViews = () => [...this.views, <CollectionFreeFormBackgroundView key="backgroundView" {...this.props} {...this.getDocumentViewProps(this.props.Document)} />];
     render() {
         const containerName = `collectionfreeformview${this.isAnnotationOverlay ? "-overlay" : "-container"}`;
+        const easing = () => this.props.Document.panTransformType === "Ease";
         return (
             <div className={containerName} ref={this.createDropTarget} onWheel={this.onPointerWheel}
                 style={{ borderRadius: "inherit" }}
@@ -300,7 +306,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                     addDocument={this.addDocument} removeDocument={this.props.removeDocument} addLiveTextDocument={this.addLiveTextBox}
                     getContainerTransform={this.getContainerTransform} getTransform={this.getTransform}>
                     <CollectionFreeFormViewPannableContents centeringShiftX={this.centeringShiftX} centeringShiftY={this.centeringShiftY}
-                        zoomScaling={this.zoomScaling} panX={this.panX} panY={this.panY}>
+                        easing={easing} zoomScaling={this.zoomScaling} panX={this.panX} panY={this.panY}>
+
                         <CollectionFreeFormLinksView {...this.props} key="freeformLinks">
                             <InkingCanvas getScreenTransform={this.getTransform} Document={this.props.Document} >
                                 {this.childViews}
@@ -347,17 +354,19 @@ interface CollectionFreeFormViewPannableContentsProps {
     panX: () => number;
     panY: () => number;
     zoomScaling: () => number;
+    easing: () => boolean;
 }
 
 @observer
 class CollectionFreeFormViewPannableContents extends React.Component<CollectionFreeFormViewPannableContentsProps>{
     render() {
+        let freeformclass = "collectionfreeformview" + (this.props.easing() ? "-ease" : "-none");
         const cenx = this.props.centeringShiftX();
         const ceny = this.props.centeringShiftY();
         const panx = -this.props.panX();
         const pany = -this.props.panY();
         const zoom = this.props.zoomScaling();// needs to be a variable outside of the <Measure> otherwise, reactions won't fire
-        return <div className="collectionfreeformview" style={{ borderRadius: "inherit", transform: `translate(${cenx}px, ${ceny}px) scale(${zoom}, ${zoom}) translate(${panx}px, ${pany}px)` }}>
+        return <div className={freeformclass} style={{ borderRadius: "inherit", transform: `translate(${cenx}px, ${ceny}px) scale(${zoom}, ${zoom}) translate(${panx}px, ${pany}px)` }}>
             {this.props.children}
         </div>;
     }

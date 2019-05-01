@@ -10,6 +10,7 @@ import React = require("react");
 import { Doc } from '../../../new_fields/Doc';
 import { Cast, NumCast } from '../../../new_fields/Types';
 import { listSpec } from '../../../new_fields/Schema';
+import { action } from 'mobx';
 
 
 library.add(faEye);
@@ -45,6 +46,7 @@ export class LinkBox extends React.Component<Props> {
                 }
                 let contextView = DocumentManager.Instance.getDocumentView(contextDoc);
                 if (contextView) {
+                    contextDoc.panTransformType = "Ease";
                     contextView.props.focus(contextDoc);
                 } else {
                     CollectionDockingView.Instance.AddRightSplit(contextDoc);
@@ -59,6 +61,7 @@ export class LinkBox extends React.Component<Props> {
         this.props.showEditor();
     }
 
+    @action
     onDeleteButtonPressed = async (e: React.PointerEvent): Promise<void> => {
         e.stopPropagation();
         const [linkedFrom, linkedTo] = await Promise.all([Cast(this.props.linkDoc.linkedFrom, Doc), Cast(this.props.linkDoc.linkedTo, Doc)]);
@@ -91,8 +94,8 @@ export class LinkBox extends React.Component<Props> {
                 </div>
 
                 <div className="button-container">
-                    <div title="Follow Link" className="button" onPointerDown={this.onViewButtonPressed}>
-                        <FontAwesomeIcon className="fa-icon-view" icon="eye" size="sm" /></div>
+                    {/* <div title="Follow Link" className="button" onPointerDown={this.onViewButtonPressed}>
+                        <FontAwesomeIcon className="fa-icon-view" icon="eye" size="sm" /></div> */}
                     <div title="Edit Link" className="button" onPointerDown={this.onEditButtonPressed}>
                         <FontAwesomeIcon className="fa-icon-edit" icon="edit" size="sm" /></div>
                     <div title="Delete Link" className="button" onPointerDown={this.onDeleteButtonPressed}>
