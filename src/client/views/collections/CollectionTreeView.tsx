@@ -9,10 +9,15 @@ import { CollectionSubView } from "./CollectionSubView";
 import "./CollectionTreeView.scss";
 import React = require("react");
 import { Document, listSpec } from '../../../new_fields/Schema';
-import { Cast, StrCast, BoolCast } from '../../../new_fields/Types';
+import { Cast, StrCast, BoolCast, FieldValue } from '../../../new_fields/Types';
 import { Doc } from '../../../new_fields/Doc';
 import { Id } from '../../../new_fields/RefField';
 import { Utils } from '../../../Utils';
+import { JSXElement } from 'babel-types';
+import { ContextMenu } from '../ContextMenu';
+import { undoBatch } from '../../util/UndoManager';
+import { Main } from '../Main';
+import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
 
 
 export interface TreeViewProps {
@@ -42,11 +47,14 @@ class TreeView extends React.Component<TreeViewProps> {
 
     delete = () => this.props.deleteDoc(this.props.document);
 
+    get children() {
+        return Cast(this.props.document.data, listSpec(Doc), []).filter(doc => FieldValue(doc));
+    }
+
     @action
     remove = (document: Document) => {
-        var children = Cast(this.props.document.data, listSpec(Doc));
-        if (children) {
-            children.splice(children.indexOf(document), 1);
+        if (this.children) {
+            this.children.splice(this.children.indexOf(document), 1);
         }
     }
 
@@ -94,26 +102,37 @@ class TreeView extends React.Component<TreeViewProps> {
             </div >);
     }
 
+    onWorkspaceContextMenu = (e: React.MouseEvent): void => {
+        if (!e.isPropagationStopped() && this.props.document[Id] !== CurrentUserUtils.MainDocId) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
+            if (!ContextMenu.Instance.getItems().some(item => item.description === "Open as Workspace")) {
+                ContextMenu.Instance.addItem({ description: "Open as Workspace", event: undoBatch(() => Main.Instance.openWorkspace(this.props.document)) });
+            }
+        }
+    }
     render() {
         let bulletType = BulletType.List;
-        let childElements: JSX.Element | undefined = undefined;
+        let contentElement: JSX.Element | null = (null);
         var children = Cast(this.props.document.data, listSpec(Doc));
         if (children) { // add children for a collection
             if (!this._collapsed) {
                 bulletType = BulletType.Collapsible;
-                childElements = <ul>
-                    {children.map(value => <TreeView key={value[Id]} document={value} deleteDoc={this.remove} moveDocument={this.move} copyOnDrag={this.props.copyOnDrag} />)}
+                contentElement = <ul>
+                    {TreeView.GetChildElements(children, this.remove, this.move, this.props.copyOnDrag)}
                 </ul >;
             }
             else bulletType = BulletType.Collapsed;
         }
-        return <div className="treeViewItem-container" >
+        return <div className="treeViewItem-container" onContextMenu={this.onWorkspaceContextMenu} >
             <li className="collection-child">
                 {this.renderBullet(bulletType)}
                 {this.renderTitle()}
-                {childElements ? childElements : (null)}
+                {contentElement}
             </li>
         </div>;
+    }
+    public static GetChildElements(docs: Doc[], remove: ((doc: Doc) => void), move: DragManager.MoveFunction, copyOnDrag: boolean) {
+        return docs.filter(child => !child.excludeFromLibrary).map(child =>
+            <TreeView document={child} key={child[Id]} deleteDoc={remove} moveDocument={move} copyOnDrag={copyOnDrag} />);
     }
 }
 
@@ -128,21 +147,30 @@ export class CollectionTreeView extends CollectionSubView(Document) {
         }
     }
 
+    onContextMenu = (e: React.MouseEvent): void => {
+        if (!e.isPropagationStopped() && this.props.Document[Id] !== CurrentUserUtils.MainDocId) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
+            ContextMenu.Instance.addItem({ description: "Create Workspace", event: undoBatch(() => Main.Instance.createNewWorkspace()) });
+        }
+    }
     render() {
         const children = this.children;
         let copyOnDrag = BoolCast(this.props.Document.copyDraggedItems, false);
-        let childrenElement = !children ? (null) :
-            (children.map(value =>
-                <TreeView document={value} key={value[Id]} deleteDoc={this.remove} moveDocument={this.props.moveDocument} copyOnDrag={copyOnDrag} />));
+        if (!children) {
+            return (null);
+        }
+        let testForLibrary = children && children.length === 1 && children[0] === CurrentUserUtils.UserDocument;
+        var subchildren = testForLibrary ? Cast(children[0].data, listSpec(Doc), children) : children;
+        let childElements = TreeView.GetChildElements(subchildren, this.remove, this.props.moveDocument, copyOnDrag);
 
         return (
             <div id="body" className="collectionTreeView-dropTarget"
                 style={{ borderRadius: "inherit" }}
+                onContextMenu={this.onContextMenu}
                 onWheel={(e: React.WheelEvent) => e.stopPropagation()}
                 onDrop={(e: React.DragEvent) => this.onDrop(e, {})} ref={this.createDropTarget}>
                 <div className="coll-title">
                     <EditableView
-                        contents={this.props.Document.Title}
+                        contents={this.props.Document.title}
                         display={"inline"}
                         height={72}
                         GetValue={() => StrCast(this.props.Document.title)}
@@ -151,9 +179,8 @@ export class CollectionTreeView extends CollectionSubView(Document) {
                             return true;
                         }} />
                 </div>
-                <hr />
                 <ul className="no-indent">
-                    {childrenElement}
+                    {childElements}
                 </ul>
             </div >
         );

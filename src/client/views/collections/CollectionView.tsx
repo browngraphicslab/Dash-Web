@@ -11,6 +11,7 @@ import { observer } from 'mobx-react';
 import { undoBatch } from '../../util/UndoManager';
 import { trace } from 'mobx';
 import { Id } from '../../../new_fields/RefField';
+import { Main } from '../Main';
 
 @observer
 export class CollectionView extends React.Component<FieldViewProps> {

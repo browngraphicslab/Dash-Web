@@ -19,15 +19,17 @@ import { List } from "../../../new_fields/List";
 import { DocServer } from "../../DocServer";
 import { listSpec } from "../../../new_fields/Schema";
 import { Id, FieldId } from "../../../new_fields/RefField";
+import { faSignInAlt } from "@fortawesome/free-solid-svg-icons";
 
 @observer
 export class CollectionDockingView extends React.Component<SubCollectionViewProps> {
     public static Instance: CollectionDockingView;
-    public static makeDocumentConfig(document: Doc) {
+    public static makeDocumentConfig(document: Doc, width?: number) {
         return {
             type: 'react-component',
             component: 'DocumentFrameRenderer',
             title: document.title,
+            width: width,
             props: {
                 documentId: document[Id],
                 //collectionDockingView: CollectionDockingView.Instance
@@ -37,7 +39,6 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
 
     private _goldenLayout: any = null;
     private _containerRef = React.createRef<HTMLDivElement>();
-    private _fullScreen: any = null;
     private _flush: boolean = false;
     private _ignoreStateChange = "";
 
@@ -67,19 +68,8 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         this._goldenLayout.root.contentItems[0].addChild(docconfig);
         docconfig.callDownwards('_$init');
         this._goldenLayout._$maximiseItem(docconfig);
-        this._fullScreen = docconfig;
         this._ignoreStateChange = JSON.stringify(this._goldenLayout.toConfig());
         this.stateChanged();
-    }
-    @action
-    public CloseFullScreen() {
-        if (this._fullScreen) {
-            this._goldenLayout._$minimiseItem(this._fullScreen);
-            this._goldenLayout.root.contentItems[0].removeChild(this._fullScreen);
-            this._fullScreen = null;
-            this._ignoreStateChange = JSON.stringify(this._goldenLayout.toConfig());
-            this.stateChanged();
-        }
     }
 
     //
@@ -330,7 +320,6 @@ interface DockedFrameProps {
 }
 @observer
 export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
-
     _mainCont = React.createRef<HTMLDivElement>();
     @observable private _panelWidth = 0;
     @observable private _panelHeight = 0;
@@ -347,10 +336,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         const nativeH = this.nativeHeight();
         const nativeW = this.nativeWidth();
         let wscale = this._panelWidth / nativeW;
-        if (wscale * nativeH > this._panelHeight) {
-            return this._panelHeight / nativeH;
-        }
-        return wscale;
+        return wscale * nativeH > this._panelHeight ? this._panelHeight / nativeH : wscale;
     }
 
     ScreenToLocalTransform = () => {
@@ -364,6 +350,8 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     get previewPanelCenteringOffset() { return (this._panelWidth - this.nativeWidth() * this.contentScaling()) / 2; }
 
     get content() {
+        if (!this._document)
+            return (null);
         return (
             <div className="collectionDockingView-content" ref={this._mainCont}
                 style={{ transform: `translate(${this.previewPanelCenteringOffset}px, 0px)` }}>
@@ -385,9 +373,10 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     }
 
     render() {
+        let theContent = this.content;
         return !this._document ? (null) :
             <Measure onResize={action((r: any) => { this._panelWidth = r.entry.width; this._panelHeight = r.entry.height; })}>
-                {({ measureRef }) => <div ref={measureRef}>  {this.content} </div>}
+                {({ measureRef }) => <div ref={measureRef}>  {theContent} </div>}
             </Measure>;
     }
 }

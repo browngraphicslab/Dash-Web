@@ -205,16 +205,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             CollectionDockingView.Instance.OpenFullScreen(doc);
         }
         ContextMenu.Instance.clearItems();
-        ContextMenu.Instance.addItem({ description: "Close Full Screen", event: this.closeFullScreenClicked });
-        ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15);
+        SelectionManager.DeselectAll();
     }
-    closeFullScreenClicked = (e: React.MouseEvent): void => {
-        CollectionDockingView.Instance.CloseFullScreen();
-        ContextMenu.Instance.clearItems();
-        ContextMenu.Instance.addItem({ description: "Full Screen", event: this.fullScreenClicked });
-        ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15);
-    }
-
     @undoBatch
     @action
     drop = async (e: Event, de: DragManager.DropEvent) => {

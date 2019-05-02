@@ -100,8 +100,7 @@ export class Main extends React.Component {
     onHistory = () => {
         if (window.location.pathname !== RouteStore.home) {
             let pathname = window.location.pathname.split("/");
-            CurrentUserUtils.MainDocId = pathname[pathname.length - 1];
-            DocServer.GetRefField(CurrentUserUtils.MainDocId).then(action((field: Opt<Field>) => {
+            DocServer.GetRefField(pathname[pathname.length - 1]).then(action((field: Opt<Field>) => {
                 if (field instanceof Doc) {
                     this.openWorkspace(field, true);
                 }
@@ -132,7 +131,6 @@ export class Main extends React.Component {
         if (!CurrentUserUtils.MainDocId) {
             const doc = await Cast(CurrentUserUtils.UserDocument.activeWorkspace, Doc);
             if (doc) {
-                CurrentUserUtils.MainDocId = doc[Id];
                 this.openWorkspace(doc);
             } else {
                 this.createNewWorkspace();
@@ -148,11 +146,12 @@ export class Main extends React.Component {
     createNewWorkspace = async (id?: string) => {
         const list = Cast(CurrentUserUtils.UserDocument.data, listSpec(Doc));
         if (list) {
+            let libraryDoc = Docs.TreeDocument([CurrentUserUtils.UserDocument], { x: 0, y: 400, title: `Library: ${CurrentUserUtils.email} ${list.length + 1}` });
+            libraryDoc.excludeFromLibrary = true;
             let freeformDoc = Docs.FreeformDocument([], { x: 0, y: 400, title: `WS collection ${list.length + 1}` });
-            var dockingLayout = { content: [{ type: 'row', content: [CollectionDockingView.makeDocumentConfig(freeformDoc)] }] };
-            let mainDoc = Docs.DockDocument([freeformDoc], JSON.stringify(dockingLayout), { title: `Workspace ${list.length + 1}` });
+            var dockingLayout = { content: [{ type: 'row', content: [CollectionDockingView.makeDocumentConfig(libraryDoc, 150), CollectionDockingView.makeDocumentConfig(freeformDoc, 600)] }] };
+            let mainDoc = Docs.DockDocument([libraryDoc, freeformDoc], JSON.stringify(dockingLayout), { title: `Workspace ${list.length + 1}` });
             list.push(mainDoc);
-            CurrentUserUtils.MainDocId = mainDoc[Id];
             // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
             setTimeout(() => {
                 this.openWorkspace(mainDoc);
@@ -164,6 +163,7 @@ export class Main extends React.Component {
 
     @action
     openWorkspace = async (doc: Doc, fromHistory = false) => {
+        CurrentUserUtils.MainDocId = doc[Id];
         this.mainContainer = doc;
         fromHistory || window.history.pushState(null, StrCast(doc.title), "/doc/" + doc[Id]);
         const col = await Cast(CurrentUserUtils.UserDocument.optionalRightCollection, Doc);
@@ -259,9 +259,7 @@ export class Main extends React.Component {
     /* @TODO this should really be moved into a moveable toolbar component, but for now let's put it here to meet the deadline */
     @computed
     get miscButtons() {
-        let workspacesRef = React.createRef<HTMLDivElement>();
         let logoutRef = React.createRef<HTMLDivElement>();
-        let toggleWorkspaces = () => runInAction(() => this._workspacesShown = !this._workspacesShown);
 
         return [
             <button className="clear-db-button" key="clear-db" onClick={DocServer.DeleteDatabase}>Clear Database</button>,
@@ -270,22 +268,9 @@ export class Main extends React.Component {
                 <button className="toolbar-button round-button" title="Redo" onClick={() => UndoManager.Redo()}><FontAwesomeIcon icon="redo-alt" size="sm" /></button>
                 <button className="toolbar-button round-button" title="Ink" onClick={() => InkingControl.Instance.toggleDisplay()}><FontAwesomeIcon icon="pen-nib" size="sm" /></button>
             </div >,
-            <div className="main-buttonDiv" key="workspaces" style={{ top: '34px', left: '2px', position: 'absolute' }} ref={workspacesRef}>
-                <button onClick={toggleWorkspaces}>Workspaces</button></div>,
             <div className="main-buttonDiv" key="logout" style={{ top: '34px', right: '1px', position: 'absolute' }} ref={logoutRef}>
                 <button onClick={() => request.get(DocServer.prepend(RouteStore.logout), emptyFunction)}>Log Out</button></div>
         ];
-    }
-
-    @computed
-    get workspaceMenu() {
-        let areWorkspacesShown = () => this._workspacesShown;
-        let toggleWorkspaces = () => runInAction(() => this._workspacesShown = !this._workspacesShown);
-        let workspaces = Cast(CurrentUserUtils.UserDocument.data, listSpec(Doc));
-        return (!workspaces || !this.mainContainer) ? (null) :
-            <WorkspacesMenu active={this.mainContainer} open={this.openWorkspace}
-                new={this.createNewWorkspace} allWorkspaces={workspaces}
-                isShown={areWorkspacesShown} toggle={toggleWorkspaces} />;
     }
 
     render() {
@@ -297,7 +282,6 @@ export class Main extends React.Component {
                 <ContextMenu />
                 {this.nodesMenu()}
                 {this.miscButtons}
-                {this.workspaceMenu}
                 <InkingControl />
                 <MainOverlayTextBox />
             </div>

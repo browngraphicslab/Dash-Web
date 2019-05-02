@@ -59,12 +59,9 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
     }
 
     render() {
-        trace();
         let templateMenu: Array<JSX.Element> = [];
-        this.props.templates.forEach((checked, template) => {
-            console.log("checked + " + checked + " " + this.props.templates.get(template));
-            templateMenu.push(<TemplateToggle key={template.Name} template={template} checked={checked} toggle={this.toggleTemplate} />);
-        });
+        this.props.templates.forEach((checked, template) =>
+            templateMenu.push(<TemplateToggle key={template.Name} template={template} checked={checked} toggle={this.toggleTemplate} />));
 
         return (
             <div className="templating-menu" >
