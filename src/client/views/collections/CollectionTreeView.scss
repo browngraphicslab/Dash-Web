@@ -33,6 +33,7 @@
     }
 
     .bullet {
+        position: absolute;
         width: 1.5em;
         display: inline-block;
         color: $intermediate-color;
@@ -44,6 +45,7 @@
     }
 
     .docContainer {
+        margin-left: 10px;
         display: inline-table;
     }
 
