@@ -162,8 +162,8 @@ export namespace Doc {
 
     export function MakeCopy(doc: Doc, copyProto: boolean = false): Doc {
         const copy = new Doc;
-        Object.keys(doc).forEach(async key => {
-            const field = await doc[key];
+        Object.keys(doc).forEach(key => {
+            const field = doc[key];
             if (key === "proto" && copyProto) {
                 if (field instanceof Doc) {
                     copy[key] = Doc.MakeCopy(field);
