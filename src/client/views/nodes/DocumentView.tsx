@@ -19,7 +19,7 @@ import React = require("react");
 import { Opt, Doc } from "../../../new_fields/Doc";
 import { DocComponent } from "../DocComponent";
 import { createSchema, makeInterface } from "../../../new_fields/Schema";
-import { FieldValue, StrCast } from "../../../new_fields/Types";
+import { FieldValue, StrCast, BoolCast } from "../../../new_fields/Types";
 import { List } from "../../../new_fields/List";
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
@@ -268,12 +268,13 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         ContextMenu.Instance.addItem({ description: "Copy URL", event: () => Utils.CopyText(DocServer.prepend("/doc/" + this.props.Document[Id])) });
         ContextMenu.Instance.addItem({ description: "Copy ID", event: () => Utils.CopyText(this.props.Document[Id]) });
         //ContextMenu.Instance.addItem({ description: "Docking", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Docking) })
-        ContextMenu.Instance.addItem({ description: "Delete", event: this.deleteClicked });
+        ContextMenu.Instance.addItem({ description: "Delete" + this.props.Document.title, event: this.deleteClicked });
         ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15);
         if (!SelectionManager.IsSelected(this)) {
             SelectionManager.SelectDoc(this, false);
         }
     }
+
 
     isSelected = () => SelectionManager.IsSelected(this);
     select = (ctrlPressed: boolean) => SelectionManager.SelectDoc(this, ctrlPressed);

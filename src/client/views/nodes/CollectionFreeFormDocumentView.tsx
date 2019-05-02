@@ -6,7 +6,7 @@ import "./DocumentView.scss";
 import React = require("react");
 import { DocComponent } from "../DocComponent";
 import { createSchema, makeInterface, listSpec } from "../../../new_fields/Schema";
-import { FieldValue, Cast, NumCast } from "../../../new_fields/Types";
+import { FieldValue, Cast, NumCast, BoolCast } from "../../../new_fields/Types";
 import { OmitKeys, Utils } from "../../../Utils";
 import { SelectionManager } from "../../util/SelectionManager";
 import { matchedData } from "express-validator/filter";
@@ -155,6 +155,9 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         }
     }
 
+    onPointerEnter = (e: React.PointerEvent): void => { this.props.Document.libraryBrush = true; }
+    onPointerLeave = (e: React.PointerEvent): void => { this.props.Document.libraryBrush = false; }
+
     borderRounding = () => {
         let br = NumCast(this.props.Document.borderRounding);
         return br >= 0 ? br :
@@ -180,8 +183,12 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         return (
             <div className="collectionFreeFormDocumentView-container" ref={this._mainCont}
                 onPointerDown={this.onPointerDown}
+                onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}
                 onClick={this.onClick}
                 style={{
+                    outlineColor: "black",
+                    outlineStyle: "dashed",
+                    outlineWidth: BoolCast(this.props.Document.libraryBrush, false) ? `${0.5 / this.contentScaling()}px` : "0px",
                     opacity: zoomFade,
                     borderRadius: `${this.borderRounding()}px`,
                     transformOrigin: "left top",

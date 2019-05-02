@@ -46,13 +46,14 @@ class TreeView extends React.Component<TreeViewProps> {
     delete = () => this.props.deleteDoc(this.props.document);
 
     get children() {
-        return Cast(this.props.document.data, listSpec(Doc), []).filter(doc => FieldValue(doc));
+        return Cast(this.props.document.data, listSpec(Doc), []); // bcz: needed?    .filter(doc => FieldValue(doc));
     }
 
     @action
     remove = (document: Document) => {
-        if (this.children) {
-            this.children.splice(this.children.indexOf(document), 1);
+        let children = Cast(this.props.document.data, listSpec(Doc), []);
+        if (children) {
+            children.splice(children.indexOf(document), 1);
         }
     }
 
@@ -106,8 +107,15 @@ class TreeView extends React.Component<TreeViewProps> {
             if (!ContextMenu.Instance.getItems().some(item => item.description === "Open as Workspace")) {
                 ContextMenu.Instance.addItem({ description: "Open as Workspace", event: undoBatch(() => Main.Instance.openWorkspace(this.props.document)) });
             }
+            if (!ContextMenu.Instance.getItems().some(item => item.description === "Delete")) {
+                ContextMenu.Instance.addItem({ description: "Delete", event: undoBatch(() => this.props.deleteDoc(this.props.document)) });
+            }
         }
     }
+
+    onPointerEnter = (e: React.PointerEvent): void => { this.props.document.libraryBrush = true; }
+    onPointerLeave = (e: React.PointerEvent): void => { this.props.document.libraryBrush = false; }
+
     render() {
         let bulletType = BulletType.List;
         let contentElement: JSX.Element | null = (null);
@@ -121,7 +129,12 @@ class TreeView extends React.Component<TreeViewProps> {
             }
             else bulletType = BulletType.Collapsed;
         }
-        return <div className="treeViewItem-container" onContextMenu={this.onWorkspaceContextMenu} >
+        return <div className="treeViewItem-container"
+            style={{
+                background: BoolCast(this.props.document.libraryBrush, false) ? "#06121212" : "0"
+            }}
+            onContextMenu={this.onWorkspaceContextMenu}
+            onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}>
             <li className="collection-child">
                 {this.renderBullet(bulletType)}
                 {this.renderTitle()}
@@ -137,18 +150,19 @@ class TreeView extends React.Component<TreeViewProps> {
 
 @observer
 export class CollectionTreeView extends CollectionSubView(Document) {
-
     @action
     remove = (document: Document) => {
-        const children = this.children;
+        let children = Cast(this.props.Document.data, listSpec(Doc), []);
         if (children) {
             children.splice(children.indexOf(document), 1);
         }
     }
-
     onContextMenu = (e: React.MouseEvent): void => {
         if (!e.isPropagationStopped() && this.props.Document[Id] !== CurrentUserUtils.MainDocId) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
             ContextMenu.Instance.addItem({ description: "Create Workspace", event: undoBatch(() => Main.Instance.createNewWorkspace()) });
+        }
+        if (!ContextMenu.Instance.getItems().some(item => item.description === "Delete")) {
+            ContextMenu.Instance.addItem({ description: "Delete", event: undoBatch(() => this.remove(this.props.Document)) });
         }
     }
     render() {
