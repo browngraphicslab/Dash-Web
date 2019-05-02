@@ -15,6 +15,7 @@ import { IconBox } from "./IconBox";
 import { KeyValueBox } from "./KeyValueBox";
 import { PDFBox } from "./PDFBox";
 import { VideoBox } from "./VideoBox";
+import { FieldView } from "./FieldView";
 import { WebBox } from "./WebBox";
 import { HistogramBox } from "../../northstar/dash-nodes/HistogramBox";
 import React = require("react");
@@ -63,7 +64,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
 
     render() {
         return <JsxParser
-            components={{ FormattedTextBox, ImageBox, IconBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, CollectionVideoView, WebBox, KeyValueBox, PDFBox, VideoBox, AudioBox, HistogramBox }}
+            components={{ FormattedTextBox, ImageBox, IconBox, FieldView, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, CollectionVideoView, WebBox, KeyValueBox, PDFBox, VideoBox, AudioBox, HistogramBox }}
             bindings={this.CreateBindings()}
             jsx={this.finalLayout}
             showWarnings={true}

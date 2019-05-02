@@ -26,6 +26,8 @@ export class CurrentUserUtils {
         doc.title = this.email;
         doc.data = new List<Doc>();
         doc.optionalRightCollection = Docs.SchemaDocument([], { title: "Pending documents" });
+        doc.library = Docs.TreeDocument([doc], { title: `Library: ${CurrentUserUtils.email}` });
+        (doc.library as Doc).excludeFromLibrary = true;
         return doc;
     }
 

@@ -144,8 +144,7 @@ export class Main extends React.Component {
     createNewWorkspace = async (id?: string) => {
         const list = Cast(CurrentUserUtils.UserDocument.data, listSpec(Doc));
         if (list) {
-            let libraryDoc = Docs.TreeDocument([CurrentUserUtils.UserDocument], { x: 0, y: 400, title: `Library: ${CurrentUserUtils.email} ${list.length + 1}` });
-            libraryDoc.excludeFromLibrary = true;
+            let libraryDoc = await (CurrentUserUtils.UserDocument.library as Doc);
             let freeformDoc = Docs.FreeformDocument([], { x: 0, y: 400, title: `WS collection ${list.length + 1}` });
             var dockingLayout = { content: [{ type: 'row', content: [CollectionDockingView.makeDocumentConfig(libraryDoc, 150), CollectionDockingView.makeDocumentConfig(freeformDoc, 600)] }] };
             let mainDoc = Docs.DockDocument([libraryDoc, freeformDoc], JSON.stringify(dockingLayout), { title: `Workspace ${list.length + 1}` });

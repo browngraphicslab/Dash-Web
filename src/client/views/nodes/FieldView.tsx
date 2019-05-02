@@ -57,12 +57,12 @@ export class FieldView extends React.Component<FieldViewProps> {
     }
     render() {
         const field = this.field;
-        if (!field) {
+        if (field === undefined) {
             return <p>{'<null>'}</p>;
         }
-        if (typeof field === "string") {
-            return <p>{field}</p>;
-        }
+        // if (typeof field === "string") {
+        //     return <p>{field}</p>;
+        // }
         else if (field instanceof RichTextField) {
             return <FormattedTextBox {...this.props} />;
         }
@@ -108,9 +108,6 @@ export class FieldView extends React.Component<FieldViewProps> {
         // else if (field instanceof HtmlField) {
         //     return <WebBox {...this.props} />
         // }
-        else if (typeof field === "number") {
-            return <p>{field}</p>;
-        }
         else if (!(field instanceof Promise)) {
             return <p>{JSON.stringify(field)}</p>;
         }

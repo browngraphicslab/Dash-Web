@@ -2,7 +2,7 @@ import { Deserializable, autoObject } from "../client/util/SerializationHelper";
 import { Field, Update, Self, FieldResult } from "./Doc";
 import { setter, getter, deleteProperty } from "./util";
 import { serializable, alias, list } from "serializr";
-import { observable } from "mobx";
+import { observable, action } from "mobx";
 import { ObjectField, OnUpdate, Copy } from "./ObjectField";
 import { RefField } from "./RefField";
 import { ProxyField } from "./Proxy";
@@ -25,12 +25,12 @@ const listHandlers: any = {
         this[Update]();
         return field;
     },
-    push(...items: any[]) {
+    push: action(function (this: any, ...items: any[]) {
         items = items.map(toObjectField);
         const res = this[Self].__fields.push(...items);
         this[Update]();
         return res;
-    },
+    }),
     reverse() {
         const res = this[Self].__fields.reverse();
         this[Update]();

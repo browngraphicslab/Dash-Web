@@ -1,7 +1,7 @@
 import { IconProp, library } from '@fortawesome/fontawesome-svg-core';
 import { faCaretDown, faCaretRight, faTrashAlt } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { action, observable } from "mobx";
+import { action, observable, trace } from "mobx";
 import { observer } from "mobx-react";
 import { DragManager, SetupDrag, dropActionType } from "../../util/DragManager";
 import { EditableView } from "../EditableView";
@@ -145,8 +145,11 @@ class TreeView extends React.Component<TreeViewProps> {
         </div>;
     }
     public static GetChildElements(docs: Doc[], remove: ((doc: Doc) => void), move: DragManager.MoveFunction, dropAction: dropActionType) {
-        return docs.filter(child => !child.excludeFromLibrary).map(child =>
-            <TreeView document={child} key={child[Id]} deleteDoc={remove} moveDocument={move} dropAction={dropAction} />);
+        return docs.filter(child => !child.excludeFromLibrary).filter(doc => FieldValue(doc)).map(child => {
+            console.log("child = " + child[Id]);
+            return <TreeView document={child} key={child[Id]} deleteDoc={remove} moveDocument={move} dropAction={dropAction} />
+        }
+        );
     }
 }
 
@@ -168,6 +171,7 @@ export class CollectionTreeView extends CollectionSubView(Document) {
         }
     }
     render() {
+        trace();
         const children = this.children;
         let dropAction = StrCast(this.props.Document.dropAction, "alias") as dropActionType;
         if (!children) {

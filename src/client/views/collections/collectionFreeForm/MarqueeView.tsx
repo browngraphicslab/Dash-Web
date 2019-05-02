@@ -180,7 +180,9 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             // SelectionManager.DeselectAll();
             if (e.key === "r") {
                 let summary = Docs.TextDocument({ x: bounds.left, y: bounds.top, width: 300, height: 100, backgroundColor: "yellow", title: "-summary-" });
-                summary.doc1 = newCollection.proto!;
+                summary.doc1 = selected[0];
+                if (selected.length > 1)
+                    summary.doc2 = selected[1];
                 summary.templates = new List<string>([Templates.Summary.Layout]);
                 this.props.addLiveTextDocument(summary);
                 e.preventDefault();
