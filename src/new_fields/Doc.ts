@@ -9,6 +9,7 @@ import { listSpec } from "./Schema";
 import { List } from "./List";
 import { ObjectField, Parent, OnUpdate } from "./ObjectField";
 import { RefField, FieldId, Id, HandleUpdate } from "./RefField";
+import { Docs } from "../client/documents/Documents";
 // import { Docs } from "../client/documents/Documents";
 
 export function IsField(field: any): field is Field {
@@ -183,8 +184,8 @@ export namespace Doc {
 
     export function MakeLink(source: Doc, target: Doc) {
         UndoManager.RunInBatch(() => {
-            // let linkDoc = Docs.TextDocument({ width: 100, height: 30, borderRounding: -1 });
-            let linkDoc = new Doc;
+            let linkDoc = Docs.TextDocument({ width: 100, height: 30, borderRounding: -1 });
+            //let linkDoc = new Doc;
             linkDoc.title = "-link name-";
             linkDoc.linkDescription = "";
             linkDoc.linkTags = "Default";

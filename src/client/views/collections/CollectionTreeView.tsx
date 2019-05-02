@@ -145,11 +145,8 @@ class TreeView extends React.Component<TreeViewProps> {
         </div>;
     }
     public static GetChildElements(docs: Doc[], remove: ((doc: Doc) => void), move: DragManager.MoveFunction, dropAction: dropActionType) {
-        return docs.filter(child => !child.excludeFromLibrary).filter(doc => FieldValue(doc)).map(child => {
-            console.log("child = " + child[Id]);
-            return <TreeView document={child} key={child[Id]} deleteDoc={remove} moveDocument={move} dropAction={dropAction} />
-        }
-        );
+        return docs.filter(child => !child.excludeFromLibrary).filter(doc => FieldValue(doc)).map(child =>
+            <TreeView document={child} key={child[Id]} deleteDoc={remove} moveDocument={move} dropAction={dropAction} />);
     }
 }
 
@@ -177,9 +174,7 @@ export class CollectionTreeView extends CollectionSubView(Document) {
         if (!children) {
             return (null);
         }
-        let testForLibrary = children && children.length === 1 && children[0] === CurrentUserUtils.UserDocument;
-        var subchildren = testForLibrary ? Cast(children[0].data, listSpec(Doc), children) : children;
-        let childElements = TreeView.GetChildElements(subchildren, this.remove, this.props.moveDocument, dropAction);
+        let childElements = TreeView.GetChildElements(children, this.remove, this.props.moveDocument, dropAction);
 
         return (
             <div id="body" className="collectionTreeView-dropTarget"

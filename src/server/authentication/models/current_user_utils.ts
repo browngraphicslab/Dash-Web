@@ -7,6 +7,9 @@ import { RouteStore } from "../../RouteStore";
 import { DocServer } from "../../../client/DocServer";
 import { Doc } from "../../../new_fields/Doc";
 import { List } from "../../../new_fields/List";
+import { CollectionViewType } from "../../../client/views/collections/CollectionBaseView";
+import { CollectionTreeView } from "../../../client/views/collections/CollectionTreeView";
+import { CollectionView } from "../../../client/views/collections/CollectionView";
 
 export class CurrentUserUtils {
     private static curr_email: string;
@@ -23,11 +26,14 @@ export class CurrentUserUtils {
 
     private static createUserDocument(id: string): Doc {
         let doc = new Doc(id, true);
+        doc.viewType = CollectionViewType.Tree;
+        doc.layout = CollectionView.LayoutString();
         doc.title = this.email;
         doc.data = new List<Doc>();
+        doc.excludeFromLibrary = true;
         doc.optionalRightCollection = Docs.SchemaDocument([], { title: "Pending documents" });
-        doc.library = Docs.TreeDocument([doc], { title: `Library: ${CurrentUserUtils.email}` });
-        (doc.library as Doc).excludeFromLibrary = true;
+        // doc.library = Docs.TreeDocument([doc], { title: `Library: ${CurrentUserUtils.email}` });
+        // (doc.library as Doc).excludeFromLibrary = true;
         return doc;
     }
 
