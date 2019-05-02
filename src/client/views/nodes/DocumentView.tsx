@@ -87,12 +87,14 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     public get ContentDiv() { return this._mainCont.current; }
     @computed get active(): boolean { return SelectionManager.IsSelected(this) || this.props.parentActive(); }
     @computed get topMost(): boolean { return this.props.isTopMost; }
-    @computed get templates(): Array<Template> {
-        return new Array<Template>();
-        // let field = this.props.Document[KeyStore.Templates];
-        // return !field || field === FieldWaiting ? [] : field.Data;
+    @computed get templates(): List<string> {
+        let field = this.props.Document.templates;
+        if (field && field instanceof List) {
+            return field;
+        }
+        return new List<string>();
     }
-    set templates(templates: Array<Template>) { /* this.props.Document.templates = templates;*/ }
+    set templates(templates: List<string>) { this.props.Document.templates = templates; }
     screenRect = (): ClientRect | DOMRect => this._mainCont.current ? this._mainCont.current.getBoundingClientRect() : new DOMRect();
 
     @action
@@ -239,44 +241,22 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
     }
 
-    updateLayout = async () => {
-        const baseLayout = await StrCast(this.props.Document.baseLayout);
-        if (baseLayout) {
-            let base = baseLayout;
-            let layout = baseLayout;
-
-            this.templates.forEach(template => {
-                let temp = template.Layout;
-                layout = temp.replace("{layout}", base);
-                base = layout;
-            });
-
-            this.props.Document.layout = layout;
-        }
-    }
 
     @action
     addTemplate = (template: Template) => {
-        let templates = this.templates;
-        templates.push(template);
-        templates = templates.splice(0, templates.length).sort(Templates.sortTemplates);
-        this.templates = templates;
-        this.updateLayout();
+        this.templates.push(template.Layout);
+        this.templates = this.templates;
     }
 
     @action
     removeTemplate = (template: Template) => {
-        let templates = this.templates;
-        for (let i = 0; i < templates.length; i++) {
-            let temp = templates[i];
-            if (temp.Name === template.Name) {
-                templates.splice(i, 1);
+        for (let i = 0; i < this.templates.length; i++) {
+            if (this.templates[i] === template.Layout) {
+                this.templates.splice(i, 1);
                 break;
             }
         }
-        templates = templates.splice(0, templates.length).sort(Templates.sortTemplates);
-        this.templates = templates;
-        this.updateLayout();
+        this.templates = this.templates;
     }
 
     @action

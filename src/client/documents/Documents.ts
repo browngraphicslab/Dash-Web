@@ -48,7 +48,7 @@ export interface DocumentOptions {
     scale?: number;
     baseLayout?: string;
     layout?: string;
-    //templates?: Array<Template>;
+    templates?: List<string>;
     viewType?: number;
     backgroundColor?: string;
     copyDraggedItems?: boolean;

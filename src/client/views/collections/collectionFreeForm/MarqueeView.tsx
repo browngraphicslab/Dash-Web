@@ -13,6 +13,8 @@ import { Utils } from "../../../../Utils";
 import { Doc } from "../../../../new_fields/Doc";
 import { NumCast, Cast } from "../../../../new_fields/Types";
 import { InkField, StrokeData } from "../../../../new_fields/InkField";
+import { Templates } from "../../Templates";
+import { List } from "../../../../new_fields/List";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;
@@ -178,7 +180,8 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             // SelectionManager.DeselectAll();
             if (e.key === "r") {
                 let summary = Docs.TextDocument({ x: bounds.left, y: bounds.top, width: 300, height: 100, backgroundColor: "yellow", title: "-summary-" });
-                Doc.MakeLink(summary.proto!, newCollection.proto!);
+                summary.doc1 = newCollection.proto!;
+                summary.templates = new List<string>([Templates.Summary.Layout]);
                 this.props.addLiveTextDocument(summary);
                 e.preventDefault();
             }

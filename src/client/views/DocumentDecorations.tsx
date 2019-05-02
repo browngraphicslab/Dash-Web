@@ -518,7 +518,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             let docTemps = doc.templates;
             let checked = false;
             docTemps.forEach(temp => {
-                if (template.Name === temp.Name) {
+                if (template.Layout === temp) {
                     checked = true;
                 }
             });

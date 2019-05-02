@@ -20,7 +20,8 @@ import { HistogramBox } from "../../northstar/dash-nodes/HistogramBox";
 import React = require("react");
 import { FieldViewProps } from "./FieldView";
 import { Without, OmitKeys } from "../../../Utils";
-import { Cast } from "../../../new_fields/Types";
+import { Cast, StrCast } from "../../../new_fields/Types";
+import { List } from "../../../new_fields/List";
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 type BindingProps = Without<FieldViewProps, 'fieldKey'>;
@@ -40,11 +41,31 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
         return { props: OmitKeys(this.props, ['parentActive'], (obj: any) => obj.active = this.props.parentActive).omit };
     }
 
+    @computed get templates(): List<string> {
+        let field = this.props.Document.templates;
+        if (field && field instanceof List) {
+            return field;
+        }
+        return new List<string>();
+    }
+    set templates(templates: List<string>) { this.props.Document.templates = templates; }
+    get finalLayout() {
+        const baseLayout = this.layout;
+        let base = baseLayout;
+        let layout = baseLayout;
+
+        this.templates.forEach(template => {
+            layout = template.replace("{layout}", base);
+            base = layout;
+        });
+        return layout;
+    }
+
     render() {
         return <JsxParser
             components={{ FormattedTextBox, ImageBox, IconBox, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, CollectionVideoView, WebBox, KeyValueBox, PDFBox, VideoBox, AudioBox, HistogramBox }}
             bindings={this.CreateBindings()}
-            jsx={this.layout}
+            jsx={this.finalLayout}
             showWarnings={true}
             onError={(test: any) => { console.log(test); }}
         />;
