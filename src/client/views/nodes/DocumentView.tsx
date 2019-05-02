@@ -243,42 +243,22 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
     }
 
-    updateLayout = async () => {
-        const baseLayout = await StrCast(this.props.Document.baseLayout);
-        if (baseLayout) {
-            let base = baseLayout;
-            let layout = baseLayout;
-
-            this.templates.forEach(template => {
-                layout = template.replace("{layout}", base);
-                base = layout;
-            });
-
-            this.props.Document.layout = layout;
-        }
-    }
 
     @action
     addTemplate = (template: Template) => {
-        let templates = this.templates;
-        templates.push(template.Layout);
-        this.templates = new List<string>(templates.map(t => t));
-        this.updateLayout();
+        this.templates.push(template.Layout);
+        this.templates = this.templates;
     }
 
     @action
     removeTemplate = (template: Template) => {
-        let templates = this.templates;
-        for (let i = 0; i < templates.length; i++) {
-            let temp = templates[i];
-            if (temp === template.Layout) {
-                templates.splice(i, 1);
+        for (let i = 0; i < this.templates.length; i++) {
+            if (this.templates[i] === template.Layout) {
+                this.templates.splice(i, 1);
                 break;
             }
         }
-        templates = new List<string>(templates.splice(0, templates.length));
-        this.templates = templates;
-        this.updateLayout();
+        this.templates = this.templates;
     }
 
     @action

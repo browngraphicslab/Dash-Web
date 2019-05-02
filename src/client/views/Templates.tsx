@@ -53,6 +53,9 @@ export namespace Templates {
     export const Title = new Template("Title", TemplatePosition.InnerTop,
         `<div><div style="height:100%; width:100%;position:absolute;">{layout}</div><div style="height:25px; width:100%; position:absolute; top: 0; background-color: rgba(0, 0, 0, .4); color: white; padding:2px 10px">{props.Document.title}</div></div>`
     );
+    export const Summary = new Template("Title", TemplatePosition.InnerTop,
+        `<div><div style="height:100%; width:100%;position:absolute;">{layout}</div><div style="height:25px; width:100%; position:absolute; top: 0; background-color: rgba(0, 0, 0, .4); color: white; padding:2px 10px">{props.Document.doc1.title}</div></div>`
+    );
 
     export const TemplateList: Template[] = [Title, OuterCaption, InnerCaption, SideCaption];
 
