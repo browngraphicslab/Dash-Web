@@ -1,4 +1,4 @@
-import { observable, computed, action } from "mobx";
+import { observable, computed, action, trace } from "mobx";
 import React = require("react");
 import { observer } from "mobx-react";
 import './DocumentDecorations.scss';
@@ -33,23 +33,24 @@ export interface TemplateMenuProps {
 export class TemplateMenu extends React.Component<TemplateMenuProps> {
 
     @observable private _hidden: boolean = true;
-    @observable private _templates: Map<Template, boolean> = this.props.templates;
 
 
     @action
     toggleTemplate = (event: React.ChangeEvent<HTMLInputElement>, template: Template): void => {
         if (event.target.checked) {
             this.props.doc.addTemplate(template);
-            this._templates.set(template, true);
+            this.props.templates.set(template, true);
+            this.props.templates.forEach((checked, template) => console.log("Set Checked + " + checked + " " + this.props.templates.get(template)));
         } else {
             this.props.doc.removeTemplate(template);
-            this._templates.set(template, false);
+            this.props.templates.set(template, false);
+            this.props.templates.forEach((checked, template) => console.log("Unset Checked + " + checked + " " + this.props.templates.get(template)));
         }
     }
 
     @action
     componentWillReceiveProps(nextProps: TemplateMenuProps) {
-        this._templates = nextProps.templates;
+        // this._templates = nextProps.templates;
     }
 
     @action
@@ -58,8 +59,10 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
     }
 
     render() {
+        trace();
         let templateMenu: Array<JSX.Element> = [];
-        this._templates.forEach((checked, template) => {
+        this.props.templates.forEach((checked, template) => {
+            console.log("checked + " + checked + " " + this.props.templates.get(template));
             templateMenu.push(<TemplateToggle key={template.Name} template={template} checked={checked} toggle={this.toggleTemplate} />);
         });
 
