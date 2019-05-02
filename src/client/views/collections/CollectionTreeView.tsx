@@ -102,9 +102,7 @@ class TreeView extends React.Component<TreeViewProps> {
             if (!this._collapsed) {
                 bulletType = BulletType.Collapsible;
                 childElements = <ul>
-                    {/* // bcz: should this work? 
-                     {children.map(value => <TreeView key={value[Id]} document={value} deleteDoc={this.remove} moveDocument={this.move} copyOnDrag={this.props.copyOnDrag} />)} */}
-                    {children.map(value => <TreeView key={value[Id] !== undefined ? value[Id] : Utils.GenerateGuid()} document={value} deleteDoc={this.remove} moveDocument={this.move} copyOnDrag={this.props.copyOnDrag} />)}
+                    {children.map(value => <TreeView key={value[Id]} document={value} deleteDoc={this.remove} moveDocument={this.move} copyOnDrag={this.props.copyOnDrag} />)}
                 </ul >;
             }
             else bulletType = BulletType.Collapsed;
@@ -135,10 +133,7 @@ export class CollectionTreeView extends CollectionSubView(Document) {
         let copyOnDrag = BoolCast(this.props.Document.copyDraggedItems, false);
         let childrenElement = !children ? (null) :
             (children.map(value =>
-                //bcz: shouldn't this work?   - I think value[Id] is undefined sometimes
-                // <TreeView document={value} key={value[Id]} deleteDoc={this.remove} moveDocument={this.props.moveDocument} copyOnDrag={copyOnDrag} />)
-                <TreeView document={value} key={value[Id] !== undefined ? value[Id] : Utils.GenerateGuid()} deleteDoc={this.remove} moveDocument={this.props.moveDocument} copyOnDrag={copyOnDrag} />)
-            );
+                <TreeView document={value} key={value[Id]} deleteDoc={this.remove} moveDocument={this.props.moveDocument} copyOnDrag={copyOnDrag} />));
 
         return (
             <div id="body" className="collectionTreeView-dropTarget"
