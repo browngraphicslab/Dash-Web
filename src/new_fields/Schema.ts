@@ -10,7 +10,7 @@ export const emptySchema = createSchema({});
 export const Document = makeInterface(emptySchema);
 export type Document = makeInterface<[typeof emptySchema]>;
 
-export type makeInterface<T extends Interface[]> = Partial<AllToInterface<T>> & Doc;
+export type makeInterface<T extends Interface[]> = Partial<AllToInterface<T>> & Doc & { proto: Doc | undefined };
 // export function makeInterface<T extends Interface[], U extends Doc>(schemas: T): (doc: U) => All<T, U>;
 // export function makeInterface<T extends Interface, U extends Doc>(schema: T): (doc: U) => makeInterface<T, U>; 
 export function makeInterface<T extends Interface[]>(...schemas: T): (doc?: Doc) => makeInterface<T> {

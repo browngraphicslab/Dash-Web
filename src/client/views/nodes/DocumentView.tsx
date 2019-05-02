@@ -198,9 +198,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         CollectionDockingView.Instance.AddRightSplit(kvp);
     }
     fullScreenClicked = (e: React.MouseEvent): void => {
-        const doc = Doc.MakeDelegate(FieldValue(this.props.Document.proto));
-        // bcz .. should this work?  
-        // const doc = Doc.MakeDelegate(FieldValue(this.Document.proto));
+        const doc = Doc.MakeDelegate(FieldValue(this.Document.proto));
         if (doc) {
             CollectionDockingView.Instance.OpenFullScreen(doc);
         }

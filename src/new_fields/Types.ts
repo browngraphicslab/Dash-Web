@@ -18,7 +18,7 @@ export type ToConstructor<T extends Field> =
     new (...args: any[]) => T;
 
 export type ToInterface<T extends Interface> = {
-    [P in keyof T]: FieldResult<ToType<T[P]>>;
+    [P in Exclude<keyof T, "proto">]: FieldResult<ToType<T[P]>>;
 };
 
 // type ListSpec<T extends Field[]> = { List: ToContructor<Head<T>> | ListSpec<Tail<T>> };
