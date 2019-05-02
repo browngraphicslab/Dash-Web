@@ -16,6 +16,8 @@ import { ContextMenu } from '../ContextMenu';
 import { undoBatch } from '../../util/UndoManager';
 import { Main } from '../Main';
 import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
+import { CollectionDockingView } from './CollectionDockingView';
+import { DocumentManager } from '../../util/DocumentManager';
 
 
 export interface TreeViewProps {
@@ -104,12 +106,14 @@ class TreeView extends React.Component<TreeViewProps> {
 
     onWorkspaceContextMenu = (e: React.MouseEvent): void => {
         if (!e.isPropagationStopped() && this.props.document[Id] !== CurrentUserUtils.MainDocId) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
-            if (!ContextMenu.Instance.getItems().some(item => item.description === "Open as Workspace")) {
-                ContextMenu.Instance.addItem({ description: "Open as Workspace", event: undoBatch(() => Main.Instance.openWorkspace(this.props.document)) });
+            ContextMenu.Instance.addItem({ description: "Open as Workspace", event: undoBatch(() => Main.Instance.openWorkspace(this.props.document)) });
+            ContextMenu.Instance.addItem({ description: "Open Right", event: () => CollectionDockingView.Instance.AddRightSplit(this.props.document) });
+            if (DocumentManager.Instance.getDocumentViews(this.props.document).length) {
+                ContextMenu.Instance.addItem({ description: "Focus", event: () => DocumentManager.Instance.getDocumentViews(this.props.document).map(view => view.props.focus(this.props.document)) });
             }
-            if (!ContextMenu.Instance.getItems().some(item => item.description === "Delete")) {
-                ContextMenu.Instance.addItem({ description: "Delete", event: undoBatch(() => this.props.deleteDoc(this.props.document)) });
-            }
+            ContextMenu.Instance.addItem({ description: "Delete", event: undoBatch(() => this.props.deleteDoc(this.props.document)) });
+            ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15);
+            e.stopPropagation();
         }
     }
 
@@ -130,9 +134,7 @@ class TreeView extends React.Component<TreeViewProps> {
             else bulletType = BulletType.Collapsed;
         }
         return <div className="treeViewItem-container"
-            style={{
-                background: BoolCast(this.props.document.libraryBrush, false) ? "#06121212" : "0"
-            }}
+            style={{ background: BoolCast(this.props.document.libraryBrush, false) ? "#06121212" : "0" }}
             onContextMenu={this.onWorkspaceContextMenu}
             onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}>
             <li className="collection-child">

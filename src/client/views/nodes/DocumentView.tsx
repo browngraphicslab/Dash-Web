@@ -268,7 +268,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         ContextMenu.Instance.addItem({ description: "Copy URL", event: () => Utils.CopyText(DocServer.prepend("/doc/" + this.props.Document[Id])) });
         ContextMenu.Instance.addItem({ description: "Copy ID", event: () => Utils.CopyText(this.props.Document[Id]) });
         //ContextMenu.Instance.addItem({ description: "Docking", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Docking) })
-        ContextMenu.Instance.addItem({ description: "Delete" + this.props.Document.title, event: this.deleteClicked });
+        ContextMenu.Instance.addItem({ description: "Delete", event: this.deleteClicked });
         ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15);
         if (!SelectionManager.IsSelected(this)) {
             SelectionManager.SelectDoc(this, false);
