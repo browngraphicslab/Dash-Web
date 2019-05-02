@@ -12,6 +12,7 @@ import { Document, listSpec } from '../../../new_fields/Schema';
 import { Cast, StrCast, BoolCast } from '../../../new_fields/Types';
 import { Doc } from '../../../new_fields/Doc';
 import { Id } from '../../../new_fields/RefField';
+import { Utils } from '../../../Utils';
 
 
 export interface TreeViewProps {
@@ -101,7 +102,9 @@ class TreeView extends React.Component<TreeViewProps> {
             if (!this._collapsed) {
                 bulletType = BulletType.Collapsible;
                 childElements = <ul>
-                    {children.map(value => <TreeView key={value[Id]} document={value} deleteDoc={this.remove} moveDocument={this.move} copyOnDrag={this.props.copyOnDrag} />)}
+                    {/* // bcz: should this work? 
+                     {children.map(value => <TreeView key={value[Id]} document={value} deleteDoc={this.remove} moveDocument={this.move} copyOnDrag={this.props.copyOnDrag} />)} */}
+                    {children.map(value => <TreeView key={Utils.GenerateGuid()} document={value} deleteDoc={this.remove} moveDocument={this.move} copyOnDrag={this.props.copyOnDrag} />)}
                 </ul >;
             }
             else bulletType = BulletType.Collapsed;
@@ -132,7 +135,9 @@ export class CollectionTreeView extends CollectionSubView(Document) {
         let copyOnDrag = BoolCast(this.props.Document.copyDraggedItems, false);
         let childrenElement = !children ? (null) :
             (children.map(value =>
-                <TreeView document={value} key={value[Id]} deleteDoc={this.remove} moveDocument={this.props.moveDocument} copyOnDrag={copyOnDrag} />)
+                //bcz: shouldn't this work?   - I think value[Id] is undefined sometimes
+                // <TreeView document={value} key={value[Id]} deleteDoc={this.remove} moveDocument={this.props.moveDocument} copyOnDrag={copyOnDrag} />)
+                <TreeView document={value} key={Utils.GenerateGuid()} deleteDoc={this.remove} moveDocument={this.props.moveDocument} copyOnDrag={copyOnDrag} />)
             );
 
         return (

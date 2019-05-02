@@ -1,7 +1,7 @@
 import * as GoldenLayout from "golden-layout";
 import 'golden-layout/src/css/goldenlayout-base.css';
 import 'golden-layout/src/css/goldenlayout-dark-theme.css';
-import { action, observable, reaction, trace } from "mobx";
+import { action, observable, reaction, trace, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import * as ReactDOM from 'react-dom';
 import Measure from "react-measure";
@@ -14,7 +14,7 @@ import { SubCollectionViewProps } from "./CollectionSubView";
 import { DragManager, DragLinksAsDocuments } from "../../util/DragManager";
 import { Transform } from '../../util/Transform';
 import { Doc, Opt, Field } from "../../../new_fields/Doc";
-import { Cast, NumCast } from "../../../new_fields/Types";
+import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
 import { List } from "../../../new_fields/List";
 import { DocServer } from "../../DocServer";
 import { listSpec } from "../../../new_fields/Schema";
@@ -87,6 +87,10 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     //
     @action
     public AddRightSplit(document: Doc, minimize: boolean = false) {
+        let docs = Cast(this.props.Document.data, listSpec(Doc));
+        if (docs) {
+            docs.push(document);
+        }
         let newItemStackConfig = {
             type: 'stack',
             content: [CollectionDockingView.makeDocumentConfig(document)]
@@ -122,7 +126,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     }
 
     setupGoldenLayout() {
-        var config = Cast(this.props.Document.data, "string", "");
+        var config = StrCast(this.props.Document.dockingConfig);
         if (config) {
             if (!this._goldenLayout) {
                 this._goldenLayout = new GoldenLayout(JSON.parse(config));
@@ -157,7 +161,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     componentDidMount: () => void = () => {
         if (this._containerRef.current) {
             reaction(
-                () => Cast(this.props.Document.data, "string", ""),
+                () => StrCast(this.props.Document.dockingConfig),
                 () => {
                     if (!this._goldenLayout || this._ignoreStateChange !== JSON.stringify(this._goldenLayout.toConfig())) {
                         setTimeout(() => this.setupGoldenLayout(), 1);
@@ -238,7 +242,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     @undoBatch
     stateChanged = () => {
         var json = JSON.stringify(this._goldenLayout.toConfig());
-        this.props.Document.data = json;
+        this.props.Document.dockingConfig = json;
         if (this.undohack && !this.hack) {
             this.undohack.end();
             this.undohack = undefined;
@@ -285,6 +289,14 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                 if (tab.reactionDisposer) {
                     tab.reactionDisposer();
                 }
+                DocServer.GetRefField(tab.contentItem.config.props.documentId).then(async f => runInAction(() => {
+                    if (f instanceof Doc) {
+                        let docs = Cast(CollectionDockingView.Instance.props.Document.data, listSpec(Doc));
+                        docs && docs.map((d, i) => d[Id] === f[Id] && docs!.splice(i, 1));
+                        // bcz: this seems like it should work, but it only does occasionally -- usually I get -1
+                        // docs && docs.indexOf(f) !== -1 && docs.splice(docs.indexOf(f), 1);
+                    }
+                }));
                 tab.contentItem.remove();
             });
     }

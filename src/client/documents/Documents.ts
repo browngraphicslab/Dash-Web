@@ -57,6 +57,7 @@ export interface DocumentOptions {
     documentText?: string;
     borderRounding?: number;
     schemaColumns?: List<string>;
+    dockingConfig?: string;
     // [key: string]: Opt<Field>;
 }
 const delegateKeys = ["x", "y", "width", "height", "panX", "panY"];
@@ -247,8 +248,8 @@ export namespace Docs {
     export function TreeDocument(documents: Array<Doc>, options: DocumentOptions) {
         return CreateInstance(collProto, new List(documents), { schemaColumns: new List(["title"]), ...options, viewType: CollectionViewType.Tree });
     }
-    export function DockDocument(config: string, options: DocumentOptions) {
-        return CreateInstance(collProto, config, { ...options, viewType: CollectionViewType.Docking });
+    export function DockDocument(documents: Array<Doc>, config: string, options: DocumentOptions) {
+        return CreateInstance(collProto, new List(documents), { ...options, viewType: CollectionViewType.Docking, dockingConfig: config });
     }
 
     export function CaptionDocument(doc: Doc) {

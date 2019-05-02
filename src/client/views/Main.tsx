@@ -150,7 +150,7 @@ export class Main extends React.Component {
         if (list) {
             let freeformDoc = Docs.FreeformDocument([], { x: 0, y: 400, title: "mini collection" });
             var dockingLayout = { content: [{ type: 'row', content: [CollectionDockingView.makeDocumentConfig(freeformDoc)] }] };
-            let mainDoc = Docs.DockDocument(JSON.stringify(dockingLayout), { title: `Main Container ${list.length + 1}` });
+            let mainDoc = Docs.DockDocument([freeformDoc], JSON.stringify(dockingLayout), { title: `Workspace ${list.length + 1}` });
             list.push(mainDoc);
             CurrentUserUtils.MainDocId = mainDoc[Id];
             // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
@@ -208,8 +208,8 @@ export class Main extends React.Component {
     }
 
     /* for the expandable add nodes menu. Not included with the miscbuttons because once it expands it expands the whole div with it, making canvas interactions limited. */
-    @computed
-    get nodesMenu() {
+    nodesMenu() {
+
         let imgurl = "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg";
         let pdfurl = "http://www.adobe.com/support/products/enterprise/knowledgecenter/media/c27211_sample_explain.pdf";
         let weburl = "https://cs.brown.edu/courses/cs166/";
@@ -219,7 +219,8 @@ export class Main extends React.Component {
         let addTextNode = action(() => Docs.TextDocument({ borderRounding: -1, width: 200, height: 200, title: "a text note" }));
         let addColNode = action(() => Docs.FreeformDocument([], { width: 200, height: 200, title: "a freeform collection" }));
         let addSchemaNode = action(() => Docs.SchemaDocument([], { width: 200, height: 200, title: "a schema collection" }));
-        let addTreeNode = action(() => Docs.TreeDocument(this._northstarSchemas, { width: 250, height: 400, title: "northstar schemas", copyDraggedItems: true }));
+        let addTreeNode = action(() => Docs.TreeDocument([this.mainContainer!], { width: 250, height: 400, title: "Library:" + StrCast(this.mainContainer!.title), copyDraggedItems: true }));
+        // let addTreeNode = action(() => Docs.TreeDocument(this._northstarSchemas, { width: 250, height: 400, title: "northstar schemas", copyDraggedItems: true }));
         let addVideoNode = action(() => Docs.VideoDocument(videourl, { width: 200, title: "video node" }));
         let addPDFNode = action(() => Docs.PdfDocument(pdfurl, { width: 200, height: 200, title: "a pdf doc" }));
         let addImageNode = action(() => Docs.ImageDocument(imgurl, { width: 200, title: "an image of a cat" }));
@@ -294,7 +295,7 @@ export class Main extends React.Component {
                 {this.mainContent}
                 <PreviewCursor />
                 <ContextMenu />
-                {this.nodesMenu}
+                {this.nodesMenu()}
                 {this.miscButtons}
                 {this.workspaceMenu}
                 <InkingControl />
