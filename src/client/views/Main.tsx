@@ -146,9 +146,9 @@ export class Main extends React.Component {
 
     @action
     createNewWorkspace = async (id?: string) => {
-        const list = Cast(CurrentUserUtils.UserDocument.workspaces, listSpec(Doc));
+        const list = Cast(CurrentUserUtils.UserDocument.data, listSpec(Doc));
         if (list) {
-            let freeformDoc = Docs.FreeformDocument([], { x: 0, y: 400, title: "mini collection" });
+            let freeformDoc = Docs.FreeformDocument([], { x: 0, y: 400, title: `WS collection ${list.length + 1}` });
             var dockingLayout = { content: [{ type: 'row', content: [CollectionDockingView.makeDocumentConfig(freeformDoc)] }] };
             let mainDoc = Docs.DockDocument([freeformDoc], JSON.stringify(dockingLayout), { title: `Workspace ${list.length + 1}` });
             list.push(mainDoc);
@@ -219,7 +219,7 @@ export class Main extends React.Component {
         let addTextNode = action(() => Docs.TextDocument({ borderRounding: -1, width: 200, height: 200, title: "a text note" }));
         let addColNode = action(() => Docs.FreeformDocument([], { width: 200, height: 200, title: "a freeform collection" }));
         let addSchemaNode = action(() => Docs.SchemaDocument([], { width: 200, height: 200, title: "a schema collection" }));
-        let addTreeNode = action(() => Docs.TreeDocument([this.mainContainer!], { width: 250, height: 400, title: "Library:" + StrCast(this.mainContainer!.title), copyDraggedItems: true }));
+        let addTreeNode = action(() => Docs.TreeDocument([CurrentUserUtils.UserDocument], { width: 250, height: 400, title: "Library:" + CurrentUserUtils.email, copyDraggedItems: true }));
         // let addTreeNode = action(() => Docs.TreeDocument(this._northstarSchemas, { width: 250, height: 400, title: "northstar schemas", copyDraggedItems: true }));
         let addVideoNode = action(() => Docs.VideoDocument(videourl, { width: 200, title: "video node" }));
         let addPDFNode = action(() => Docs.PdfDocument(pdfurl, { width: 200, height: 200, title: "a pdf doc" }));
@@ -281,7 +281,7 @@ export class Main extends React.Component {
     get workspaceMenu() {
         let areWorkspacesShown = () => this._workspacesShown;
         let toggleWorkspaces = () => runInAction(() => this._workspacesShown = !this._workspacesShown);
-        let workspaces = Cast(CurrentUserUtils.UserDocument.workspaces, listSpec(Doc));
+        let workspaces = Cast(CurrentUserUtils.UserDocument.data, listSpec(Doc));
         return (!workspaces || !this.mainContainer) ? (null) :
             <WorkspacesMenu active={this.mainContainer} open={this.openWorkspace}
                 new={this.createNewWorkspace} allWorkspaces={workspaces}

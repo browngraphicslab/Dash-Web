@@ -23,7 +23,8 @@ export class CurrentUserUtils {
 
     private static createUserDocument(id: string): Doc {
         let doc = new Doc(id, true);
-        doc.workspaces = new List<Doc>();
+        doc.title = this.email;
+        doc.data = new List<Doc>();
         doc.optionalRightCollection = Docs.SchemaDocument([], { title: "Pending documents" });
         return doc;
     }
