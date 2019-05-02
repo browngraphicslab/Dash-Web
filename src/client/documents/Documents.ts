@@ -32,6 +32,7 @@ import { IconField } from "../../new_fields/IconField";
 import { listSpec } from "../../new_fields/Schema";
 import { DocServer } from "../DocServer";
 import { StrokeData, InkField } from "../../new_fields/InkField";
+import { dropActionType } from "../util/DragManager";
 
 export interface DocumentOptions {
     x?: number;
@@ -51,7 +52,7 @@ export interface DocumentOptions {
     templates?: List<string>;
     viewType?: number;
     backgroundColor?: string;
-    copyDraggedItems?: boolean;
+    dropAction?: dropActionType;
     backgroundLayout?: string;
     curPage?: number;
     documentText?: string;

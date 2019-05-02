@@ -144,7 +144,6 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         let dragData = new DragManager.DocumentDragData(SelectionManager.SelectedDocuments().map(dv => dv.props.Document));
         dragData.xOffset = xoff;
         dragData.yOffset = yoff;
-        dragData.aliasOnDrop = false;
         dragData.moveDocument = SelectionManager.SelectedDocuments()[0].props.moveDocument;
         this.Interacting = true;
         this._hidden = true;

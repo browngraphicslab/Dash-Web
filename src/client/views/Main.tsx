@@ -8,9 +8,7 @@ import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import Measure from 'react-measure';
 import * as request from 'request';
-import { WorkspacesMenu } from '../../server/authentication/controllers/WorkspacesMenu';
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
-import { MessageStore } from '../../server/Message';
 import { RouteStore } from '../../server/RouteStore';
 import { emptyFunction, returnTrue, Utils, returnOne, returnZero } from '../../Utils';
 import { Docs } from '../documents/Documents';
@@ -86,11 +84,11 @@ export class Main extends React.Component {
         this.initEventListeners();
         this.initAuthenticationRouters();
 
-        try {
-            this.initializeNorthstar();
-        } catch (e) {
+        // try {
+        //     this.initializeNorthstar();
+        // } catch (e) {
 
-        }
+        // }
     }
 
     componentDidMount() { window.onpopstate = this.onHistory; }
@@ -219,8 +217,8 @@ export class Main extends React.Component {
         let addTextNode = action(() => Docs.TextDocument({ borderRounding: -1, width: 200, height: 200, title: "a text note" }));
         let addColNode = action(() => Docs.FreeformDocument([], { width: 200, height: 200, title: "a freeform collection" }));
         let addSchemaNode = action(() => Docs.SchemaDocument([], { width: 200, height: 200, title: "a schema collection" }));
-        let addTreeNode = action(() => Docs.TreeDocument([CurrentUserUtils.UserDocument], { width: 250, height: 400, title: "Library:" + CurrentUserUtils.email, copyDraggedItems: true }));
-        // let addTreeNode = action(() => Docs.TreeDocument(this._northstarSchemas, { width: 250, height: 400, title: "northstar schemas", copyDraggedItems: true }));
+        let addTreeNode = action(() => Docs.TreeDocument([CurrentUserUtils.UserDocument], { width: 250, height: 400, title: "Library:" + CurrentUserUtils.email, dropAction: "alias" }));
+        // let addTreeNode = action(() => Docs.TreeDocument(this._northstarSchemas, { width: 250, height: 400, title: "northstar schemas", dropAction: "copy"  }));
         let addVideoNode = action(() => Docs.VideoDocument(videourl, { width: 200, title: "video node" }));
         let addPDFNode = action(() => Docs.PdfDocument(pdfurl, { width: 200, height: 200, title: "a pdf doc" }));
         let addImageNode = action(() => Docs.ImageDocument(imgurl, { width: 200, title: "an image of a cat" }));

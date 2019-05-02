@@ -89,7 +89,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             if (title && title.startsWith("-") && this._editorView) {
                 let str = this._editorView.state.doc.textContent;
                 let titlestr = str.substr(0, Math.min(40, str.length));
-                this.props.Document.title = "-" + titlestr + (str.length > 40 ? "..." : "");
+                let target = this.props.Document.proto ? this.props.Document.proto : this.props.Document;
+                target.title = "-" + titlestr + (str.length > 40 ? "..." : "");
             };
         }
     }
@@ -275,7 +276,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         if (StrCast(this.props.Document.title).startsWith("-") && this._editorView) {
             let str = this._editorView.state.doc.textContent;
             let titlestr = str.substr(0, Math.min(40, str.length));
-            this.props.Document.title = "-" + titlestr + (str.length > 40 ? "..." : "");
+            let target = this.props.Document.proto ? this.props.Document.proto : this.props.Document;
+            target.title = "-" + titlestr + (str.length > 40 ? "..." : "");
         }
     }
     render() {

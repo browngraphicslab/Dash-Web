@@ -1,14 +1,14 @@
 import { action } from "mobx";
 import { emptyFunction } from "../../Utils";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
-import { DocumentDecorations } from "../views/DocumentDecorations";
 import * as globalCssVariables from "../views/globalCssVariables.scss";
 import { MainOverlayTextBox } from "../views/MainOverlayTextBox";
 import { Doc } from "../../new_fields/Doc";
 import { Cast } from "../../new_fields/Types";
 import { listSpec } from "../../new_fields/Schema";
 
-export function SetupDrag(_reference: React.RefObject<HTMLDivElement>, docFunc: () => Doc, moveFunc?: DragManager.MoveFunction, copyOnDrop: boolean = false) {
+export type dropActionType = "alias" | "copy" | undefined;
+export function SetupDrag(_reference: React.RefObject<HTMLDivElement>, docFunc: () => Doc, moveFunc?: DragManager.MoveFunction, dropAction?: dropActionType) {
     let onRowMove = action((e: PointerEvent): void => {
         e.stopPropagation();
         e.preventDefault();
@@ -16,7 +16,7 @@ export function SetupDrag(_reference: React.RefObject<HTMLDivElement>, docFunc: 
         document.removeEventListener("pointermove", onRowMove);
         document.removeEventListener('pointerup', onRowUp);
         var dragData = new DragManager.DocumentDragData([docFunc()]);
-        dragData.copyOnDrop = copyOnDrop;
+        dragData.dropAction = dropAction;
         dragData.moveDocument = moveFunc;
         DragManager.StartDocumentDrag([_reference.current!], dragData, e.x, e.y);
     });
@@ -146,15 +146,20 @@ export namespace DragManager {
         droppedDocuments: Doc[];
         xOffset: number;
         yOffset: number;
-        aliasOnDrop?: boolean;
-        copyOnDrop?: boolean;
+        dropAction: dropActionType;
+        userDropAction: dropActionType;
         moveDocument?: MoveFunction;
         [id: string]: any;
     }
 
     export function StartDocumentDrag(eles: HTMLElement[], dragData: DocumentDragData, downX: number, downY: number, options?: DragOptions) {
         StartDrag(eles, dragData, downX, downY, options,
-            (dropData: { [id: string]: any }) => (dropData.droppedDocuments = dragData.aliasOnDrop ? dragData.draggedDocuments.map(d => Doc.MakeAlias(d)) : dragData.copyOnDrop ? dragData.draggedDocuments.map(d => Doc.MakeCopy(d, true)) : dragData.draggedDocuments));
+            (dropData: { [id: string]: any }) =>
+                (dropData.droppedDocuments = dragData.userDropAction == "alias" || (!dragData.userDropAction && dragData.dropAction == "alias") ?
+                    dragData.draggedDocuments.map(d => Doc.MakeAlias(d)) :
+                    dragData.userDropAction == "copy" || (!dragData.userDropAction && dragData.dropAction == "copy") ?
+                        dragData.draggedDocuments.map(d => Doc.MakeCopy(d, true)) :
+                        dragData.draggedDocuments));
     }
 
     export class LinkDragData {
@@ -252,7 +257,7 @@ export namespace DragManager {
             e.stopPropagation();
             e.preventDefault();
             if (dragData instanceof DocumentDragData) {
-                dragData.aliasOnDrop = e.ctrlKey || e.altKey;
+                dragData.userDropAction = e.ctrlKey || e.altKey ? "alias" : undefined;
             }
             if (e.shiftKey) {
                 AbortDrag();

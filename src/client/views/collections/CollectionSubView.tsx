@@ -83,13 +83,13 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
         @action
         protected drop(e: Event, de: DragManager.DropEvent): boolean {
             if (de.data instanceof DragManager.DocumentDragData) {
-                if (de.data.aliasOnDrop || de.data.copyOnDrop) {
+                if (de.data.dropAction || de.data.userDropAction) {
                     ["width", "height", "curPage"].map(key =>
                         de.data.draggedDocuments.map((draggedDocument: Doc, i: number) =>
                             PromiseValue(Cast(draggedDocument[key], "number")).then(f => f && (de.data.droppedDocuments[i][key] = f))));
                 }
                 let added = false;
-                if (de.data.aliasOnDrop || de.data.copyOnDrop) {
+                if (de.data.dropAction || de.data.userDropAction) {
                     added = de.data.droppedDocuments.reduce((added: boolean, d) => {
                         let moved = this.props.addDocument(d);
                         return moved || added;
@@ -129,7 +129,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             }
             if (type.indexOf("excel") !== -1) {
                 ctor = Docs.DBDocument;
-                options.copyDraggedItems = true;
+                options.dropAction = "copy";
             }
             if (type.indexOf("html") !== -1) {
                 if (path.includes('localhost')) {

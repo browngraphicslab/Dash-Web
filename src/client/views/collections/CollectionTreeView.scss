@@ -45,7 +45,8 @@
 
     .docContainer {
         margin-left: 10px;
-        display: inline-table;
+        display: block;
+        width: max-content;
     }
 
     .docContainer:hover {

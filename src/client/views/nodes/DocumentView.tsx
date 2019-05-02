@@ -3,7 +3,7 @@ import { observer } from "mobx-react";
 import { emptyFunction, Utils } from "../../../Utils";
 import { Docs } from "../../documents/Documents";
 import { DocumentManager } from "../../util/DocumentManager";
-import { DragManager } from "../../util/DragManager";
+import { DragManager, dropActionType } from "../../util/DragManager";
 import { SelectionManager } from "../../util/SelectionManager";
 import { Transform } from "../../util/Transform";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
@@ -129,12 +129,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         e.stopPropagation();
     }
 
-    startDragging(x: number, y: number, dropAliasOfDraggedDoc: boolean) {
+    startDragging(x: number, y: number, dropAction: dropActionType) {
         if (this._mainCont.current) {
             const [left, top] = this.props.ScreenToLocalTransform().scale(this.props.ContentScaling()).inverse().transformPoint(0, 0);
             let dragData = new DragManager.DocumentDragData([this.props.Document]);
             const [xoff, yoff] = this.props.ScreenToLocalTransform().scale(this.props.ContentScaling()).transformDirection(x - left, y - top);
-            dragData.aliasOnDrop = dropAliasOfDraggedDoc;
+            dragData.dropAction = dropAction;
             dragData.xOffset = xoff;
             dragData.yOffset = yoff;
             dragData.moveDocument = this.props.moveDocument;
@@ -142,7 +142,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 handlers: {
                     dragComplete: action(emptyFunction)
                 },
-                hideSource: !dropAliasOfDraggedDoc
+                hideSource: !dropAction
             });
         }
     }
@@ -162,7 +162,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
         if (e.shiftKey && e.buttons === 1) {
             if (this.props.isTopMost) {
-                this.startDragging(e.pageX, e.pageY, e.altKey || e.ctrlKey);
+                this.startDragging(e.pageX, e.pageY, e.altKey || e.ctrlKey ? "alias" : undefined);
             } else {
                 CollectionDockingView.Instance.StartOtherDrag([this.props.Document], e);
             }
@@ -180,7 +180,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 document.removeEventListener("pointermove", this.onPointerMove);
                 document.removeEventListener("pointerup", this.onPointerUp);
                 if (!e.altKey && !this.topMost && (!CollectionFreeFormView.RIGHT_BTN_DRAG && e.buttons === 1) || (CollectionFreeFormView.RIGHT_BTN_DRAG && e.buttons === 2)) {
-                    this.startDragging(this._downX, this._downY, e.ctrlKey || e.altKey);
+                    this.startDragging(this._downX, this._downY, e.ctrlKey || e.altKey ? "alias" : undefined);
                 }
             }
             e.stopPropagation(); // doesn't actually stop propagation since all our listeners are listening to events on 'document'  however it does mark the event as cancelBubble=true which we test for in the move event handlers
