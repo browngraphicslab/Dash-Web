@@ -85,7 +85,7 @@ export namespace Docs {
     const iconProtoId = "iconProto";
 
     export function initProtos(): Promise<void> {
-        return DocServer.GetRefFields([textProtoId, histoProtoId, collProtoId, pdfProtoId, imageProtoId, videoProtoId, audioProtoId, webProtoId, kvpProtoId]).then(fields => {
+        return DocServer.GetRefFields([textProtoId, histoProtoId, collProtoId, imageProtoId, webProtoId, kvpProtoId, videoProtoId, audioProtoId, pdfProtoId, iconProtoId]).then(fields => {
             textProto = fields[textProtoId] as Doc || CreateTextPrototype();
             histoProto = fields[histoProtoId] as Doc || CreateHistogramPrototype();
             collProto = fields[collProtoId] as Doc || CreateCollectionPrototype();

@@ -292,9 +292,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                 DocServer.GetRefField(tab.contentItem.config.props.documentId).then(async f => runInAction(() => {
                     if (f instanceof Doc) {
                         let docs = Cast(CollectionDockingView.Instance.props.Document.data, listSpec(Doc));
-                        docs && docs.map((d, i) => d[Id] === f[Id] && docs!.splice(i, 1));
-                        // bcz: this seems like it should work, but it only does occasionally -- usually I get -1
-                        // docs && docs.indexOf(f) !== -1 && docs.splice(docs.indexOf(f), 1);
+                        docs && docs.indexOf(f) !== -1 && docs.splice(docs.indexOf(f), 1);
                     }
                 }));
                 tab.contentItem.remove();

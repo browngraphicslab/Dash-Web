@@ -3,7 +3,7 @@ import { MessageStore } from "./../server/Message";
 import { Opt } from '../new_fields/Doc';
 import { Utils } from '../Utils';
 import { SerializationHelper } from './util/SerializationHelper';
-import { RefField, HandleUpdate } from '../new_fields/RefField';
+import { RefField, HandleUpdate, Id } from '../new_fields/RefField';
 
 export namespace DocServer {
     const _cache: { [id: string]: RefField | Promise<Opt<RefField>> } = {};
@@ -23,6 +23,9 @@ export namespace DocServer {
         if (cached === undefined) {
             const prom = Utils.EmitCallback(_socket, MessageStore.GetRefField, id).then(fieldJson => {
                 const field = SerializationHelper.Deserialize(fieldJson);
+                if (_cache[id] !== undefined && !(_cache[id] instanceof Promise)) {
+                    id;
+                }
                 if (field !== undefined) {
                     _cache[id] = field;
                 } else {
@@ -87,10 +90,9 @@ export namespace DocServer {
         Utils.Emit(_socket, MessageStore.UpdateField, { id, diff });
     }
 
-    export function CreateField(initialState: any) {
-        if (!("id" in initialState)) {
-            throw new Error("Can't create a field on the server without an id");
-        }
+    export function CreateField(field: RefField) {
+        _cache[field[Id]] = field;
+        const initialState = SerializationHelper.Serialize(field);
         Utils.Emit(_socket, MessageStore.CreateField, initialState);
     }
 

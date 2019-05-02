@@ -51,7 +51,7 @@ export class Doc extends RefField {
         });
         this[SelfProxy] = doc;
         if (!id || forceSave) {
-            DocServer.CreateField(SerializationHelper.Serialize(doc));
+            DocServer.CreateField(doc);
         }
         return doc;
     }
