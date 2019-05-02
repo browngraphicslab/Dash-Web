@@ -295,7 +295,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     get tableOptionsPanel() {
         return !this.props.active() ? (null) :
             (<Flyout
-                anchorPoint={anchorPoints.LEFT_TOP}
+                anchorPoint={anchorPoints.RIGHT_TOP}
                 content={<div>
                     <div id="schema-options-header"><h5><b>Options</b></h5></div>
                     <div id="options-flyout-div">

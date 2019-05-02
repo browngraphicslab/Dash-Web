@@ -301,15 +301,20 @@ export namespace DragManager {
 
     function dispatchDrag(dragEles: HTMLElement[], e: PointerEvent, dragData: { [index: string]: any }, options?: DragOptions, finishDrag?: (dragData: { [index: string]: any }) => void) {
         let removed = dragEles.map(dragEle => {
-            let parent = dragEle.parentElement;
-            if (parent) parent.removeChild(dragEle);
-            return [dragEle, parent];
+            // let parent = dragEle.parentElement;
+            // if (parent) parent.removeChild(dragEle);
+            let ret = [dragEle, dragEle.style.width, dragEle.style.height];
+            dragEle.style.width = "0";
+            dragEle.style.height = "0";
+            return ret;
         });
         const target = document.elementFromPoint(e.x, e.y);
         removed.map(r => {
-            let dragEle = r[0];
-            let parent = r[1];
-            if (parent && dragEle) parent.appendChild(dragEle);
+            let dragEle = r[0] as HTMLElement;
+            dragEle.style.width = r[1] as string;
+            dragEle.style.height = r[2] as string;
+            // let parent = r[1];
+            // if (parent && dragEle) parent.appendChild(dragEle);
         });
         if (target) {
             if (finishDrag) finishDrag(dragData);
