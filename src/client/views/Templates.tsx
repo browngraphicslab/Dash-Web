@@ -54,18 +54,21 @@ export namespace Templates {
         `<div><div style="height:100%; width:100%;position:absolute;">{layout}</div><div style="height:25px; width:100%; position:absolute; top: 0; background-color: rgba(0, 0, 0, .4); color: white; padding:2px 10px">{props.Document.title}</div></div>`
     );
     export const Summary = new Template("Title", TemplatePosition.InnerTop,
-        `<div style="height:100%; width:100%;position:absolute; margin:0; padding: 0">
-            <div style="height:60%; width:100%;position:absolute;background:yellow; padding:0; margin:0">
-                {layout}
-            </div>
-            <div style="bottom:0px; height:40%; width:50%; position:absolute; background-color: rgba(0, 0, 0, .4); color: white;">
-                <FieldView {...props} fieldKey={"doc1"} />
-            </div>
-            <div style="bottom:0; left: 50%; height:40%; width:50%; position:absolute; background-color: rgba(0, 0, 0, .4); color: white;">
-                <FieldView {...props} fieldKey={"doc2"} />
-            </div>
-        </div>`
+        `<div><div style="height:100%; width:100%;position:absolute;">{layout}</div><div style="height:25px; width:100%; position:absolute; top: 0; background-color: rgba(0, 0, 0, .4); color: white; padding:2px 10px">{props.Document.doc1.title}</div></div>`
     );
+    // export const Summary = new Template("Title", TemplatePosition.InnerTop,
+    //     `<div style="height:100%; width:100%;position:absolute; margin:0; padding: 0">
+    //         <div style="height:60%; width:100%;position:absolute;background:yellow; padding:0; margin:0">
+    //             {layout}
+    //         </div>
+    //         <div style="bottom:0px; height:40%; width:50%; position:absolute; background-color: rgba(0, 0, 0, .4); color: white;">
+    //             <FieldView {...props} fieldKey={"doc1"} />
+    //         </div>
+    //         <div style="bottom:0; left: 50%; height:40%; width:50%; position:absolute; background-color: rgba(0, 0, 0, .4); color: white;">
+    //             <FieldView {...props} fieldKey={"doc2"} />
+    //         </div>
+    //     </div>`
+    // );
 
     export const TemplateList: Template[] = [Title, OuterCaption, InnerCaption, SideCaption];
 
