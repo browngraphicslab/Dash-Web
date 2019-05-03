@@ -1,15 +1,16 @@
 import * as rp from 'request-promise';
 import { Database } from './database';
+import { thisExpression } from 'babel-types';
 
 export class Search {
     public static Instance = new Search();
     private url = 'http://localhost:8983/solr/';
 
-    public updateDocument(document: any): rp.RequestPromise {
-        console.log(JSON.stringify(document));
-        return rp.post(this.url + "dash/update/json/docs", {
+    public async updateDocument(document: any) {
+        console.log("UPDATE: ", JSON.stringify(document));
+        return rp.post(this.url + "dash/update", {
             headers: { 'content-type': 'application/json' },
-            body: JSON.stringify(document)
+            body: JSON.stringify([document])
         });
     }
 
@@ -21,9 +22,7 @@ export class Search {
         }));
         const fields = searchResults.response.docs;
         const ids = fields.map((field: any) => field.id);
-        const docs = await Database.Instance.searchQuery(ids);
-        const docIds = docs.map((doc: any) => doc._id);
-        return docIds;
+        return ids;
     }
 
     public async clear() {

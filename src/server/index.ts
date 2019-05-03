@@ -316,8 +316,8 @@ function UpdateField(socket: Socket, diff: Diff) {
     }
     var merged = {};
     _.extend(merged, docid, docfield);
-    console.log(merged);
-    console.log(docfield);
+    console.log("MERGED: ", merged);
+    console.log("DOC_FIELD: ", docfield);
     if (dynfield) {
         console.log("dynamic field detected!");
         Search.Instance.updateDocument(merged);
