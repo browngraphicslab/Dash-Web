@@ -17,10 +17,10 @@ import React = require("react");
 import { SelectionManager } from "../../util/SelectionManager";
 import { DocComponent } from "../DocComponent";
 import { createSchema, makeInterface } from "../../../new_fields/Schema";
-import { Opt, Doc } from "../../../new_fields/Doc";
+import { Opt, Doc, WidthSym, HeightSym } from "../../../new_fields/Doc";
 import { observer } from "mobx-react";
 import { InkingControl } from "../InkingControl";
-import { StrCast, Cast, NumCast } from "../../../new_fields/Types";
+import { StrCast, Cast, NumCast, BoolCast } from "../../../new_fields/Types";
 import { RichTextField } from "../../../new_fields/RichTextField";
 import { Id } from "../../../new_fields/RefField";
 const { buildMenuItems } = require("prosemirror-example-setup");
@@ -128,7 +128,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             );
         } else {
             this._proxyReactionDisposer = reaction(() => this.props.isSelected(),
-                () => this.props.isSelected() && MainOverlayTextBox.Instance.SetTextDoc(this.props.Document, this.props.fieldKey, this._ref.current!, this.props.ScreenToLocalTransform));
+                () => this.props.isSelected() && !BoolCast(this.props.Document.isButton, false) && MainOverlayTextBox.Instance.SetTextDoc(this.props.Document, this.props.fieldKey, this._ref.current!, this.props.ScreenToLocalTransform));
         }
 
 
@@ -203,15 +203,23 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     }
 
     //REPLACE THIS WITH CAPABILITIES SPECIFIC TO THIS TYPE OF NODE
-    textCapability = (e: React.MouseEvent): void => { };
+    textCapability = (e: React.MouseEvent): void => {
+        if (NumCast(this.props.Document.nativeWidth)) {
+            this.props.Document.nativeWidth = undefined;
+            this.props.Document.nativeHeight = undefined;
 
+        } else {
+            this.props.Document.nativeWidth = this.props.Document[WidthSym]();
+            this.props.Document.nativeHeight = this.props.Document[HeightSym]();
+        }
+    }
     specificContextMenu = (e: React.MouseEvent): void => {
         if (!this._gotDown) {
             e.preventDefault();
             return;
         }
         ContextMenu.Instance.addItem({
-            description: "Text Capability",
+            description: NumCast(this.props.Document.nativeWidth) ? "Unfreeze" : "Freeze",
             event: this.textCapability
         });
 
@@ -302,7 +310,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 // tfs: do we need this event handler
                 onWheel={this.onPointerWheel}
             >
-                <div className={`formattedTextBox-inner${rounded}`} ref={this._proseRef} />
+                <div className={`formattedTextBox-inner${rounded}`} style={{ pointerEvents: this.props.Document.isButton ? "none" : "all" }} ref={this._proseRef} />
             </div>
         );
     }

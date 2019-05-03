@@ -16,7 +16,7 @@ import { Template, Templates } from "./../Templates";
 import { DocumentContentsView } from "./DocumentContentsView";
 import "./DocumentView.scss";
 import React = require("react");
-import { Opt, Doc } from "../../../new_fields/Doc";
+import { Opt, Doc, WidthSym, HeightSym } from "../../../new_fields/Doc";
 import { DocComponent } from "../DocComponent";
 import { createSchema, makeInterface } from "../../../new_fields/Schema";
 import { FieldValue, StrCast, BoolCast } from "../../../new_fields/Types";
@@ -200,6 +200,13 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         let kvp = Docs.KVPDocument(this.props.Document, { width: 300, height: 300 });
         CollectionDockingView.Instance.AddRightSplit(kvp);
     }
+    makeButton = (e: React.MouseEvent): void => {
+        this.props.Document.isButton = !BoolCast(this.props.Document.isButton, false);
+        if (this.props.Document.isButton && !this.props.Document.nativeWidth) {
+            this.props.Document.nativeWidth = this.props.Document[WidthSym]();
+            this.props.Document.nativeHeight = this.props.Document[HeightSym]();
+        }
+    }
     fullScreenClicked = (e: React.MouseEvent): void => {
         const doc = Doc.MakeDelegate(FieldValue(this.Document.proto));
         if (doc) {
@@ -263,6 +270,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         e.preventDefault();
 
         ContextMenu.Instance.addItem({ description: "Full Screen", event: this.fullScreenClicked });
+        ContextMenu.Instance.addItem({ description: this.props.Document.isButton ? "Remove Button" : "Make Button", event: this.makeButton });
         ContextMenu.Instance.addItem({ description: "Fields", event: this.fieldsClicked });
         ContextMenu.Instance.addItem({ description: "Center", event: () => this.props.focus(this.props.Document) });
         ContextMenu.Instance.addItem({ description: "Open Right", event: () => CollectionDockingView.Instance.AddRightSplit(this.props.Document) });

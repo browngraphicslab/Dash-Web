@@ -154,7 +154,8 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             e.stopPropagation();
             let bounds = this.Bounds;
             let selected = this.marqueeSelect().map(d => {
-                this.props.removeDocument(d);
+                if (e.key !== "r")
+                    this.props.removeDocument(d);
                 d.x = NumCast(d.x) - bounds.left - bounds.width / 2;
                 d.y = NumCast(d.y) - bounds.top - bounds.height / 2;
                 d.page = -1;
@@ -180,12 +181,21 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             // SelectionManager.DeselectAll();
             if (e.key === "r") {
                 let summary = Docs.TextDocument({ x: bounds.left, y: bounds.top, width: 300, height: 100, backgroundColor: "yellow", title: "-summary-" });
-                summary.doc1 = selected[0];
-                if (selected.length > 1)
-                    summary.doc2 = selected[1];
-                summary.templates = new List<string>([Templates.Summary.Layout]);
+                summary.maximizedDocs = new List<Doc>(selected);
+                // summary.doc1 = selected[0];
+                // if (selected.length > 1)
+                //     summary.doc2 = selected[1];
+                // summary.templates = new List<string>([Templates.Summary.Layout]);
                 this.props.addLiveTextDocument(summary);
                 e.preventDefault();
+                let scrpt = this.props.getTransform().inverse().transformPoint(bounds.left, bounds.top);
+                selected.map(maximizedDoc => {
+                    let maxx = NumCast(maximizedDoc.x, undefined);
+                    let maxy = NumCast(maximizedDoc.y, undefined);
+                    let maxw = NumCast(maximizedDoc.width, undefined);
+                    let maxh = NumCast(maximizedDoc.height, undefined);
+                    maximizedDoc.isIconAnimating = new List<number>([scrpt[0], scrpt[1], maxx, maxy, maxw, maxh, Date.now(), 0])
+                });
             }
             else {
                 this.props.addDocument(newCollection, false);

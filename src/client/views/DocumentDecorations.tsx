@@ -255,6 +255,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     @action createIcon = (selected: DocumentView[], layoutString: string): Doc => {
         let doc = selected[0].props.Document;
         let iconDoc = Docs.IconDocument(layoutString);
+        iconDoc.isButton = true;
         iconDoc.title = selected.length > 1 ? "ICONset" : "ICON" + StrCast(doc.title);
         iconDoc.labelField = this._fieldKey;
         iconDoc[this._fieldKey] = selected.length > 1 ? "collection" : undefined;
