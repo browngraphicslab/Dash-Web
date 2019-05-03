@@ -182,7 +182,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                     let prom = new Promise<string>(resolve => e.dataTransfer.items[i].getAsString(resolve))
                         .then(action((s: string) => rp.head(DocServer.prepend(RouteStore.corsProxy + "/" + (str = s)))))
                         .then(result => {
-                            let type = result.headers["content-type"];
+                            let type = result["content-type"];
                             if (type) {
                                 this.getDocumentFromType(type, str, { ...options, width: 300, nativeWidth: 300 })
                                     .then(doc => doc && this.props.addDocument(doc, false));

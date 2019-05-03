@@ -1,4 +1,4 @@
-import { computed, trace, action } from "mobx";
+import { computed, trace, action, reaction, IReactionDisposer } from "mobx";
 import { observer } from "mobx-react";
 import { Transform } from "../../util/Transform";
 import { DocumentView, DocumentViewProps, positionSchema } from "./DocumentView";
@@ -9,7 +9,6 @@ import { createSchema, makeInterface, listSpec } from "../../../new_fields/Schem
 import { FieldValue, Cast, NumCast, BoolCast } from "../../../new_fields/Types";
 import { OmitKeys, Utils } from "../../../Utils";
 import { SelectionManager } from "../../util/SelectionManager";
-import { matchedData } from "express-validator/filter";
 import { Doc } from "../../../new_fields/Doc";
 import { List } from "../../../new_fields/List";
 
@@ -30,6 +29,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     private _mainCont = React.createRef<HTMLDivElement>();
     private _downX: number = 0;
     private _downY: number = 0;
+    _bringToFrontDisposer?: IReactionDisposer;
 
     @computed get transform() {
         return `scale(${this.props.ContentScaling()}, ${this.props.ContentScaling()}) translate(${this.X}px, ${this.Y}px) scale(${this.zoom}, ${this.zoom}) `;
@@ -79,6 +79,20 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         />;
     }
 
+    componentDidMount() {
+        this._bringToFrontDisposer = reaction(() => this.props.Document.isIconAnimating, (values) => {
+            this.props.bringToFront(this.props.Document);
+            if (values instanceof List) {
+                let scrpt = this.props.ScreenToLocalTransform().transformPoint(values[0], values[1]);
+                this.animateBetweenIcon(true, scrpt, [values[2], values[3]], values[4], values[5], values[6], this.props.Document, values[7] ? true : false);
+            }
+        });
+    }
+
+    componentWillUnmount() {
+        if (this._bringToFrontDisposer) this._bringToFrontDisposer();
+    }
+
     animateBetweenIcon(first: boolean, icon: number[], targ: number[], width: number, height: number, stime: number, target: Doc, maximizing: boolean) {
         setTimeout(() => {
             let now = Date.now();
@@ -90,9 +104,6 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
             target.height = maximizing ? 25 + (height - 25) * progress : height + (25 - height) * progress;
             target.x = pval[0];
             target.y = pval[1];
-            if (first) {
-                target.isMinimized = false;
-            }
             if (now < stime + 200) {
                 this.animateBetweenIcon(false, icon, targ, width, height, stime, target, maximizing);
             }
@@ -104,7 +115,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                     target.width = width;
                     target.height = height;
                 }
-                target.isIconAnimating = false;
+                target.isIconAnimating = undefined;
             }
         },
             2);
@@ -119,24 +130,26 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
             minimizedDoc = await Cast(this.props.Document.minimizedDoc, Doc);
             if (minimizedDoc) maximizedDocs = await Cast(minimizedDoc.maximizedDocs, listSpec(Doc));
         }
-        if (minimizedDoc && maximizedDocs && maximizedDocs instanceof List && !maximizedDocs.some(md => BoolCast(md.isIconAnimating))) {
+        if (minimizedDoc && maximizedDocs && maximizedDocs instanceof List) {
             let minimizedTarget = minimizedDoc;
             maximizedDocs.map(maximizedDoc => {
-                maximizedDoc.isIconAnimating = true;
-                if (isMinimized === undefined) {
-                    let maximizedDocMinimizedState = Cast(maximizedDoc.isMinimized, "boolean");
-                    isMinimized = (maximizedDocMinimizedState) ? true : false;
-                }
-                if (isMinimized) this.props.bringToFront(maximizedDoc);
-                let minx = NumCast(minimizedTarget.x, undefined);
-                let miny = NumCast(minimizedTarget.y, undefined);
-                let maxx = NumCast(maximizedDoc.x, undefined);
-                let maxy = NumCast(maximizedDoc.y, undefined);
-                let maxw = NumCast(maximizedDoc.width, undefined);
-                let maxh = NumCast(maximizedDoc.height, undefined);
-                if (minx !== undefined && miny !== undefined && maxx !== undefined && maxy !== undefined &&
-                    maxw !== undefined && maxh !== undefined) {
-                    this.animateBetweenIcon(true, [minx, miny], [maxx, maxy], maxw, maxh, Date.now(), maximizedDoc, isMinimized);
+                let iconAnimating = Cast(maximizedDoc.isIconAnimating, List);
+                if (!iconAnimating || (Date.now() - iconAnimating[6] > 1000)) {
+                    if (isMinimized === undefined) {
+                        isMinimized = BoolCast(maximizedDoc.isMinimized, false);
+                    }
+                    let minx = NumCast(minimizedTarget.x, undefined);
+                    let miny = NumCast(minimizedTarget.y, undefined);
+                    let maxx = NumCast(maximizedDoc.x, undefined);
+                    let maxy = NumCast(maximizedDoc.y, undefined);
+                    let maxw = NumCast(maximizedDoc.width, undefined);
+                    let maxh = NumCast(maximizedDoc.height, undefined);
+                    if (minx !== undefined && miny !== undefined && maxx !== undefined && maxy !== undefined &&
+                        maxw !== undefined && maxh !== undefined) {
+                        let scrpt = this.props.ScreenToLocalTransform().inverse().transformPoint(minx, miny);
+                        maximizedDoc.isMinimized = false;
+                        maximizedDoc.isIconAnimating = new List<number>([scrpt[0], scrpt[1], maxx, maxy, maxw, maxh, Date.now(), isMinimized ? 1 : 0])
+                    }
                 }
             });
         }
@@ -148,11 +161,13 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     }
     onClick = async (e: React.MouseEvent) => {
         e.stopPropagation();
+        let ctrlKey = e.ctrlKey;
         if (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD &&
             Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD) {
             let maximizedDocs = await Cast(this.props.Document.maximizedDocs, listSpec(Doc));
             if (maximizedDocs) {   // bcz: need a better way to associate behaviors with click events on widget-documents
-                this.props.addDocument && maximizedDocs.filter(d => d instanceof Doc).map(maxDoc => this.props.addDocument!(maxDoc, false));
+                if (ctrlKey)
+                    this.props.addDocument && maximizedDocs.filter(d => d instanceof Doc).map(maxDoc => this.props.addDocument!(maxDoc, false));
                 this.toggleIcon();
             }
         }
