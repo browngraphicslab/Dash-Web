@@ -13,6 +13,7 @@ import { IconField } from "../../../new_fields/IconField";
 import { ContextMenu } from "../ContextMenu";
 import Measure from "react-measure";
 import { MINIMIZED_ICON_SIZE } from "../../views/globalCssVariables.scss";
+import { listSpec } from "../../../new_fields/Schema";
 
 
 library.add(faCaretUp);
@@ -25,7 +26,6 @@ library.add(faFilm);
 export class IconBox extends React.Component<FieldViewProps> {
     public static LayoutString() { return FieldView.LayoutString(IconBox); }
 
-    @computed get maximized() { return Cast(this.props.Document.maximizedDoc, Doc); }
     @computed get layout(): string { const field = Cast(this.props.Document[this.props.fieldKey], IconField); return field ? field.icon : "<p>Error loading icon data</p>"; }
     @computed get minimizedIcon() { return IconBox.DocumentIcon(this.layout); }
 
@@ -54,8 +54,8 @@ export class IconBox extends React.Component<FieldViewProps> {
     render() {
         let labelField = StrCast(this.props.Document.labelField);
         let hideLabel = BoolCast(this.props.Document.hideLabel);
-        let maxDoc = Cast(this.props.Document.maximizedDoc, Doc) as Doc;
-        let label = !hideLabel && maxDoc && labelField ? maxDoc[labelField] : "";
+        let maxDoc = Cast(this.props.Document.maximizedDocs, listSpec(Doc), []);
+        let label = !hideLabel && maxDoc && labelField ? (maxDoc.length === 1 ? maxDoc[0][labelField] : this.props.Document[labelField]) : "";
         return (
             <div className="iconBox-container" onContextMenu={this.specificContextMenu}>
                 {this.minimizedIcon}

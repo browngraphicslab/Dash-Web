@@ -11,6 +11,7 @@ import { OmitKeys, Utils } from "../../../Utils";
 import { SelectionManager } from "../../util/SelectionManager";
 import { matchedData } from "express-validator/filter";
 import { Doc } from "../../../new_fields/Doc";
+import { List } from "../../../new_fields/List";
 
 export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
 }
@@ -112,23 +113,23 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     public toggleIcon = async (): Promise<void> => {
         SelectionManager.DeselectAll();
         let isMinimized: boolean | undefined;
-        let minimizedDocSet = Cast(this.props.Document.linkedIconTags, listSpec(Doc), []);
-        let docs = minimizedDocSet.map(d => d);
-        let minimDoc = Cast(this.props.Document.minimizedDoc, Doc);
-        if (minimDoc instanceof Doc) docs.push(minimDoc);
-        else docs.push(this.props.Document);
-        docs.map(async minimizedDoc => {
-            this.props.addDocument && this.props.addDocument(minimizedDoc, false);
-            let maximizedDoc = await Cast(minimizedDoc.maximizedDoc, Doc);
-            if (maximizedDoc && !maximizedDoc.isIconAnimating) {
+        let maximizedDocs = await Cast(this.props.Document.maximizedDocs, listSpec(Doc));
+        let minimizedDoc: Doc | undefined = this.props.Document;
+        if (!maximizedDocs) {
+            minimizedDoc = await Cast(this.props.Document.minimizedDoc, Doc);
+            if (minimizedDoc) maximizedDocs = await Cast(minimizedDoc.maximizedDocs, listSpec(Doc));
+        }
+        if (minimizedDoc && maximizedDocs && maximizedDocs instanceof List && !maximizedDocs.some(md => BoolCast(md.isIconAnimating))) {
+            let minimizedTarget = minimizedDoc;
+            maximizedDocs.map(maximizedDoc => {
                 maximizedDoc.isIconAnimating = true;
                 if (isMinimized === undefined) {
                     let maximizedDocMinimizedState = Cast(maximizedDoc.isMinimized, "boolean");
                     isMinimized = (maximizedDocMinimizedState) ? true : false;
                 }
                 if (isMinimized) this.props.bringToFront(maximizedDoc);
-                let minx = NumCast(minimizedDoc.x, undefined);
-                let miny = NumCast(minimizedDoc.y, undefined);
+                let minx = NumCast(minimizedTarget.x, undefined);
+                let miny = NumCast(minimizedTarget.y, undefined);
                 let maxx = NumCast(maximizedDoc.x, undefined);
                 let maxy = NumCast(maximizedDoc.y, undefined);
                 let maxw = NumCast(maximizedDoc.width, undefined);
@@ -137,8 +138,8 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                     maxw !== undefined && maxh !== undefined) {
                     this.animateBetweenIcon(true, [minx, miny], [maxx, maxy], maxw, maxh, Date.now(), maximizedDoc, isMinimized);
                 }
-            }
-        })
+            });
+        }
     }
     onPointerDown = (e: React.PointerEvent): void => {
         this._downX = e.clientX;
@@ -149,9 +150,9 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         e.stopPropagation();
         if (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD &&
             Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD) {
-            const maxDoc = await Cast(this.props.Document.maximizedDoc, Doc);
-            if (maxDoc) {   // bcz: need a better way to associate behaviors with click events on widget-documents
-                this.props.addDocument && this.props.addDocument(maxDoc, false);
+            let maximizedDocs = await Cast(this.props.Document.maximizedDocs, listSpec(Doc));
+            if (maximizedDocs) {   // bcz: need a better way to associate behaviors with click events on widget-documents
+                this.props.addDocument && maximizedDocs.filter(d => d instanceof Doc).map(maxDoc => this.props.addDocument!(maxDoc, false));
                 this.toggleIcon();
             }
         }
@@ -169,7 +170,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     }
 
     render() {
-        let maximizedDoc = FieldValue(Cast(this.props.Document.maximizedDoc, Doc));
+        let maximizedDoc = FieldValue(Cast(this.props.Document.maximizedDocs, listSpec(Doc)));
         let zoomFade = 1;
         //var zoom = doc.GetNumber(KeyStore.ZoomBasis, 1);
         let transform = this.getTransform().scale(this.contentScaling()).inverse();

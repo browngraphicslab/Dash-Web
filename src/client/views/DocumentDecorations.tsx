@@ -25,6 +25,10 @@ import { faLink } from '@fortawesome/free-solid-svg-icons';
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { MINIMIZED_ICON_SIZE } from "../views/globalCssVariables.scss";
+import { CollectionFreeFormView } from "./collections/collectionFreeForm/CollectionFreeFormView";
+import { CollectionView } from "./collections/CollectionView";
+import { createCipher } from "crypto";
+import { FieldView } from "./nodes/FieldView";
 
 library.add(faLink);
 
@@ -41,6 +45,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     private _linkerButton = React.createRef<HTMLDivElement>();
     private _downX = 0;
     private _downY = 0;
+    private _iconDoc?: Doc = undefined;
     @observable private _minimizedX = 0;
     @observable private _minimizedY = 0;
     @observable private _title: string = "";
@@ -194,6 +199,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     @action
     onMinimizeDown = (e: React.PointerEvent): void => {
         e.stopPropagation();
+        this._iconDoc = undefined;
         if (e.button === 0) {
             this._downX = e.pageX;
             this._downY = e.pageY;
@@ -220,47 +226,15 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             this._minimizedX = snapped ? selDocPos[0] + 4 : e.clientX;
             this._minimizedY = snapped ? selDocPos[1] - 18 : e.clientY;
             let selectedDocs = SelectionManager.SelectedDocuments().map(sd => sd);
-            Promise.all(selectedDocs.map(selDoc => this.getIconDoc(selDoc))).then(minDocSet =>
-                this.moveIconDocs(SelectionManager.SelectedDocuments())
-            );
+
+            if (selectedDocs.length > 1) {
+                this._iconDoc = this._iconDoc ? this._iconDoc : this.createIcon(SelectionManager.SelectedDocuments(), CollectionView.LayoutString());
+                this.moveIconDoc(this._iconDoc);
+            } else {
+                this.getIconDoc(selectedDocs[0]).then(icon => icon && this.moveIconDoc(this._iconDoc = icon));
+            }
             this._removeIcon = snapped;
         }
-    }
-
-    @action createIcon = (docView: DocumentView, layoutString: string): Doc => {
-        let doc = docView.props.Document;
-        let iconDoc = Docs.IconDocument(layoutString);
-        iconDoc.title = "ICON" + StrCast(doc.title);
-        iconDoc.labelField = this._fieldKey;
-        iconDoc.isMinimized = false;
-        iconDoc.width = Number(MINIMIZED_ICON_SIZE);
-        iconDoc.height = Number(MINIMIZED_ICON_SIZE);
-        iconDoc.x = NumCast(doc.x);
-        iconDoc.y = NumCast(doc.y) - 24;
-        iconDoc.maximizedDoc = doc;
-        doc.minimizedDoc = iconDoc;
-        docView.props.addDocument && docView.props.addDocument(iconDoc, false);
-        return iconDoc;
-    }
-    @action
-    public getIconDoc = async (docView: DocumentView): Promise<Doc | undefined> => {
-        let doc = docView.props.Document;
-        let iconDoc: Doc | undefined = await Cast(doc.minimizedDoc, Doc);
-        if (!iconDoc) {
-            const background = StrCast(doc.backgroundLayout, undefined);
-            if (background) {
-                iconDoc = this.createIcon(docView, background);
-            } else {
-                const layout = StrCast(doc.layout, undefined);
-                if (layout) {
-                    iconDoc = this.createIcon(docView, layout);
-                }
-            }
-        }
-        if (SelectionManager.SelectedDocuments()[0].props.addDocument !== undefined) {
-            SelectionManager.SelectedDocuments()[0].props.addDocument!(iconDoc!);
-        }
-        return iconDoc;
     }
     @action
     onMinimizeUp = (e: PointerEvent): void => {
@@ -269,34 +243,51 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             document.removeEventListener("pointermove", this.onMinimizeMove);
             document.removeEventListener("pointerup", this.onMinimizeUp);
             let selectedDocs = SelectionManager.SelectedDocuments().map(sd => sd);
-            Promise.all(selectedDocs.map(selDoc => this.getIconDoc(selDoc))).then(minDocSet => {
-                let minDocs = minDocSet.filter(minDoc => minDoc instanceof Doc).map(minDoc => minDoc as Doc);
-                minDocs.map(minDoc => {
-                    minDoc.x = NumCast(minDocs[0].x);
-                    minDoc.y = NumCast(minDocs[0].y);
-                    minDoc.linkedIconTags = new List(minDocs.filter(d => d !== minDoc));
-                    if (this._removeIcon && selectedDocs[0].props.removeDocument) {
-                        selectedDocs[0].props.removeDocument(minDoc);
-                        (minDoc.maximizedDoc as Doc).minimizedDoc = undefined;
-                    }
-                });
-                runInAction(() => this._minimizedX = this._minimizedY = 0);
-                selectedDocs[0].props.toggleMinimized();
-                this._removeIcon = false;
-            });
-        }
-    }
-    moveIconDocs(selViews: DocumentView[], minDocSet?: FieldResult[]) {
-        selViews.map(selDoc => {
-            let minDoc = selDoc.props.Document.minimizedDoc;
-            if (minDoc instanceof Doc) {
-                let zoom = NumCast(selDoc.props.Document.zoomBasis, 1);
-                let where = (selDoc.props.ScreenToLocalTransform()).scale(selDoc.props.ContentScaling()).scale(1 / zoom).
-                    transformPoint(this._minimizedX - 12, this._minimizedY - 12);
-                minDoc.x = where[0] + NumCast(selDoc.props.Document.x);
-                minDoc.y = where[1] + NumCast(selDoc.props.Document.y);
+            if (this._iconDoc && selectedDocs.length === 1 && this._removeIcon) {
+                selectedDocs[0].props.removeDocument && selectedDocs[0].props.removeDocument(this._iconDoc);
             }
-        });
+            !this._removeIcon && selectedDocs.length === 1 && this.getIconDoc(selectedDocs[0]).then(icon => selectedDocs[0].props.toggleMinimized());
+            this._removeIcon = false;
+        }
+        runInAction(() => this._minimizedX = this._minimizedY = 0);
+    }
+
+    @action createIcon = (selected: DocumentView[], layoutString: string): Doc => {
+        let doc = selected[0].props.Document;
+        let iconDoc = Docs.IconDocument(layoutString);
+        iconDoc.title = selected.length > 1 ? "ICONset" : "ICON" + StrCast(doc.title);
+        iconDoc.labelField = this._fieldKey;
+        iconDoc[this._fieldKey] = selected.length > 1 ? "collection" : undefined;
+        iconDoc.isMinimized = false;
+        iconDoc.width = Number(MINIMIZED_ICON_SIZE);
+        iconDoc.height = Number(MINIMIZED_ICON_SIZE);
+        iconDoc.x = NumCast(doc.x);
+        iconDoc.y = NumCast(doc.y) - 24;
+        iconDoc.maximizedDocs = new List<Doc>(selected.map(s => s.props.Document));
+        doc.minimizedDoc = iconDoc;
+        selected[0].props.addDocument && selected[0].props.addDocument(iconDoc, false);
+        return iconDoc;
+    }
+    @action
+    public getIconDoc = async (docView: DocumentView): Promise<Doc | undefined> => {
+        let doc = docView.props.Document;
+        let iconDoc: Doc | undefined = await Cast(doc.minimizedDoc, Doc);
+        if (!iconDoc) {
+            const layout = StrCast(doc.backgroundLayout, StrCast(doc.layout, FieldView.LayoutString(DocumentView)));
+            iconDoc = this.createIcon([docView], layout);
+        }
+        if (SelectionManager.SelectedDocuments()[0].props.addDocument !== undefined) {
+            SelectionManager.SelectedDocuments()[0].props.addDocument!(iconDoc!);
+        }
+        return iconDoc;
+    }
+    moveIconDoc(iconDoc: Doc) {
+        let selView = SelectionManager.SelectedDocuments()[0];
+        let zoom = NumCast(selView.props.Document.zoomBasis, 1);
+        let where = (selView.props.ScreenToLocalTransform()).scale(selView.props.ContentScaling()).scale(1 / zoom).
+            transformPoint(this._minimizedX - 12, this._minimizedY - 12);
+        iconDoc.x = where[0] + NumCast(selView.props.Document.x);
+        iconDoc.y = where[1] + NumCast(selView.props.Document.y);
     }
 
     @action
