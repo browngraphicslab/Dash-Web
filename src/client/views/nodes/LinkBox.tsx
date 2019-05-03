@@ -68,13 +68,13 @@ export class LinkBox extends React.Component<Props> {
         if (linkedFrom) {
             const linkedToDocs = Cast(linkedFrom.linkedToDocs, listSpec(Doc));
             if (linkedToDocs) {
-                linkedToDocs.splice(linkedToDocs.indexOf(this.props.linkDoc));
+                linkedToDocs.splice(linkedToDocs.indexOf(this.props.linkDoc), 1);
             }
         }
         if (linkedTo) {
-            const linkedFromDocs = Cast(linkedTo.linkedToDocs, listSpec(Doc));
+            const linkedFromDocs = Cast(linkedTo.linkedFromDocs, listSpec(Doc));
             if (linkedFromDocs) {
-                linkedFromDocs.splice(linkedFromDocs.indexOf(this.props.linkDoc));
+                linkedFromDocs.splice(linkedFromDocs.indexOf(this.props.linkDoc), 1);
             }
         }
     }
