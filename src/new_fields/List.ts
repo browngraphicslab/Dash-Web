@@ -46,12 +46,12 @@ const listHandlers: any = {
         this[Update]();
         return res;
     },
-    splice(start: number, deleteCount: number, ...items: any[]) {
+    splice: action(function (this: any, start: number, deleteCount: number, ...items: any[]) {
         items = items.map(toObjectField);
         const res = this[Self].__fields.splice(start, deleteCount, ...items);
         this[Update]();
         return res.map(toRealField);
-    },
+    }),
     unshift(...items: any[]) {
         items = items.map(toObjectField);
         const res = this[Self].__fields.unshift(...items);
@@ -60,9 +60,9 @@ const listHandlers: any = {
 
     },
     /// Accessor methods
-    concat(...items: any[]) {
+    concat: action(function (this: any, ...items: any[]) {
         return this[Self].__fields.map(toRealField).concat(...items);
-    },
+    }),
     includes(valueToFind: any, fromIndex: number) {
         const fields = this[Self].__fields;
         if (valueToFind instanceof RefField) {
