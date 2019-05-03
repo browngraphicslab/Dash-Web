@@ -53,6 +53,7 @@ export interface DocumentViewProps {
     parentActive: () => boolean;
     whenActiveChanged: (isActive: boolean) => void;
     toggleMinimized: () => void;
+    bringToFront: (doc: Doc) => void;
 }
 
 const schema = createSchema({

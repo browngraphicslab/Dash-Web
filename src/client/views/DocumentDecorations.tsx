@@ -48,14 +48,14 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     @observable private _fieldKey = "title";
     @observable private _hidden = false;
     @observable private _opacity = 1;
-    @observable private _iconifying = false;
+    @observable private _removeIcon = false;
     @observable public Interacting = false;
 
     constructor(props: Readonly<{}>) {
         super(props);
         DocumentDecorations.Instance = this;
         this.keyinput = React.createRef();
-        reaction(() => SelectionManager.SelectedDocuments().slice(), (docs) => docs.length === 0 && (this._edtingTitle = false));
+        reaction(() => SelectionManager.SelectedDocuments().slice(), docs => this._edtingTitle = false);
     }
 
     @action titleChanged = (event: any) => { this._title = event.target.value; };
@@ -197,6 +197,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         if (e.button === 0) {
             this._downX = e.pageX;
             this._downY = e.pageY;
+            this._removeIcon = false;
             let selDoc = SelectionManager.SelectedDocuments()[0];
             let selDocPos = selDoc.props.ScreenToLocalTransform().scale(selDoc.props.ContentScaling()).inverse().transformPoint(0, 0);
             this._minimizedX = selDocPos[0] + 12;
@@ -222,18 +223,16 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             Promise.all(selectedDocs.map(selDoc => this.getIconDoc(selDoc))).then(minDocSet =>
                 this.moveIconDocs(SelectionManager.SelectedDocuments())
             );
-            this._iconifying = snapped;
+            this._removeIcon = snapped;
         }
     }
-
 
     @action createIcon = (docView: DocumentView, layoutString: string): Doc => {
         let doc = docView.props.Document;
         let iconDoc = Docs.IconDocument(layoutString);
         iconDoc.title = "ICON" + StrCast(doc.title);
+        iconDoc.labelField = this._fieldKey;
         iconDoc.isMinimized = false;
-        iconDoc.nativeWidth = Number(MINIMIZED_ICON_SIZE);
-        iconDoc.nativeHeight = Number(MINIMIZED_ICON_SIZE);
         iconDoc.width = Number(MINIMIZED_ICON_SIZE);
         iconDoc.height = Number(MINIMIZED_ICON_SIZE);
         iconDoc.x = NumCast(doc.x);
@@ -275,15 +274,15 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 minDocs.map(minDoc => {
                     minDoc.x = NumCast(minDocs[0].x);
                     minDoc.y = NumCast(minDocs[0].y);
-                    minDoc.linkTags = new List(minDocs.filter(d => d !== minDoc));
-                    if (this._iconifying && selectedDocs[0].props.removeDocument) {
+                    minDoc.linkedIconTags = new List(minDocs.filter(d => d !== minDoc));
+                    if (this._removeIcon && selectedDocs[0].props.removeDocument) {
                         selectedDocs[0].props.removeDocument(minDoc);
                         (minDoc.maximizedDoc as Doc).minimizedDoc = undefined;
                     }
                 });
                 runInAction(() => this._minimizedX = this._minimizedY = 0);
-                if (!this._iconifying) selectedDocs[0].props.toggleMinimized();
-                this._iconifying = false;
+                selectedDocs[0].props.toggleMinimized();
+                this._removeIcon = false;
             });
         }
     }

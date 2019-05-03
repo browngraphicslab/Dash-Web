@@ -225,7 +225,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     onDragOver = (): void => {
     }
 
-    bringToFront(doc: Doc) {
+    bringToFront = (doc: Doc) => {
         const docs = (this.children || []);
         docs.slice().sort((doc1, doc2) => {
             if (doc1 === doc) return 1;
@@ -266,6 +266,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             focus: this.focusDocument,
             parentActive: this.props.active,
             whenActiveChanged: this.props.active,
+            bringToFront: this.bringToFront,
         };
     }
 

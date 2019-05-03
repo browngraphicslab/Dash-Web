@@ -112,10 +112,11 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     public toggleIcon = async (): Promise<void> => {
         SelectionManager.DeselectAll();
         let isMinimized: boolean | undefined;
-        let minimizedDocSet = Cast(this.props.Document.linkTags, listSpec(Doc));
-        if (!minimizedDocSet) return;
+        let minimizedDocSet = Cast(this.props.Document.linkedIconTags, listSpec(Doc), []);
         let docs = minimizedDocSet.map(d => d);
-        docs.push(this.props.Document);
+        let minimDoc = Cast(this.props.Document.minimizedDoc, Doc);
+        if (minimDoc instanceof Doc) docs.push(minimDoc);
+        else docs.push(this.props.Document);
         docs.map(async minimizedDoc => {
             this.props.addDocument && this.props.addDocument(minimizedDoc, false);
             let maximizedDoc = await Cast(minimizedDoc.maximizedDoc, Doc);
@@ -125,6 +126,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                     let maximizedDocMinimizedState = Cast(maximizedDoc.isMinimized, "boolean");
                     isMinimized = (maximizedDocMinimizedState) ? true : false;
                 }
+                if (isMinimized) this.props.bringToFront(maximizedDoc);
                 let minx = NumCast(minimizedDoc.x, undefined);
                 let miny = NumCast(minimizedDoc.y, undefined);
                 let maxx = NumCast(maximizedDoc.x, undefined);
