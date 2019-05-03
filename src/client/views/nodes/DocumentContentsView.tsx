@@ -30,6 +30,15 @@ export interface JsxBindings {
     props: BindingProps;
 }
 
+class ObserverJsxParser1 extends JsxParser {
+    constructor(props: any) {
+        super(props);
+        observer(this as any);
+    }
+}
+
+const ObserverJsxParser: typeof JsxParser = ObserverJsxParser1 as any;
+
 @observer
 export class DocumentContentsView extends React.Component<DocumentViewProps & {
     isSelected: () => boolean,
@@ -63,7 +72,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
     }
 
     render() {
-        return <JsxParser
+        return <ObserverJsxParser
             components={{ FormattedTextBox, ImageBox, IconBox, FieldView, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, CollectionVideoView, WebBox, KeyValueBox, PDFBox, VideoBox, AudioBox, HistogramBox }}
             bindings={this.CreateBindings()}
             jsx={this.finalLayout}

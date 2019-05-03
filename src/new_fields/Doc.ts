@@ -10,7 +10,6 @@ import { List } from "./List";
 import { ObjectField, Parent, OnUpdate } from "./ObjectField";
 import { RefField, FieldId, Id, HandleUpdate } from "./RefField";
 import { Docs } from "../client/documents/Documents";
-// import { Docs } from "../client/documents/Documents";
 
 export function IsField(field: any): field is Field {
     return (typeof field === "string")
