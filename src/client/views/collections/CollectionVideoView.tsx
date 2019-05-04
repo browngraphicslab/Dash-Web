@@ -90,7 +90,7 @@ export class CollectionVideoView extends React.Component<FieldViewProps> {
         }
     }
 
-    setVideoBox = (player: VideoBox) => { this._videoBox = player; }
+    setVideoBox = (player: VideoBox) => { this._videoBox = player; };
 
     private subView = (_type: CollectionViewType, renderProps: CollectionRenderProps) => {
         let props = { ...this.props, ...renderProps };

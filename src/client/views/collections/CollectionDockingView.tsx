@@ -350,13 +350,15 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     get previewPanelCenteringOffset() { return (this._panelWidth - this.nativeWidth() * this.contentScaling()) / 2; }
 
     get content() {
-        if (!this._document)
+        if (!this._document) {
             return (null);
+        }
         return (
             <div className="collectionDockingView-content" ref={this._mainCont}
                 style={{ transform: `translate(${this.previewPanelCenteringOffset}px, 0px)` }}>
-                <DocumentView key={this._document![Id]} Document={this._document!}
+                <DocumentView key={this._document[Id]} Document={this._document}
                     toggleMinimized={emptyFunction}
+                    bringToFront={emptyFunction}
                     addDocument={undefined}
                     removeDocument={undefined}
                     ContentScaling={this.contentScaling}

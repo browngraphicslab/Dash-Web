@@ -5,7 +5,7 @@ export const Parent = Symbol("Parent");
 export const Copy = Symbol("Copy");
 
 export abstract class ObjectField {
-    protected [OnUpdate]?: (diff?: any) => void;
+    protected [OnUpdate](diff?: any) { };
     private [Parent]?: Doc;
     abstract [Copy](): ObjectField;
 }

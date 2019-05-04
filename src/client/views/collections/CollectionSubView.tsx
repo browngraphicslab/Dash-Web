@@ -17,6 +17,7 @@ import { Cast, PromiseValue, FieldValue } from "../../../new_fields/Types";
 import { List } from "../../../new_fields/List";
 import { DocServer } from "../../DocServer";
 import { ObjectField } from "../../../new_fields/ObjectField";
+import { TupleField } from "../../../new_fields/TupleField";
 
 export interface CollectionViewProps extends FieldViewProps {
     addDocument: (document: Doc, allowDuplicates?: boolean) => boolean;
@@ -66,12 +67,12 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 if (!proto) {
                     return;
                 }
-                let cursors = await Cast(proto.cursors, listSpec(ObjectField));
+                let cursors = await Cast(proto!.cursors, listSpec(TupleField));
                 if (!cursors) {
-                    proto.cursors = cursors = new List<ObjectField>();
+                    proto!.cursors = cursors = new List<TupleField<[]>>();
                 }
-                if (cursors.length > 0 && (ind = cursors.findIndex(entry => entry.Data[0][0] === id)) > -1) {
-                    cursors[ind].Data[1] = position;
+                if (cursors!.length > 0 && (ind = cursors!.findIndex(entry => entry.data[0][0] === id)) > -1) {
+                    cursors![ind].data[1] = position;
                 } else {
                     let entry = new TupleField<[string, string], [number, number]>([textInfo, position]);
                     cursors.push(entry);

@@ -65,7 +65,7 @@ export class HistogramOperation extends BaseOperation implements IBaseFilterCons
     @computed
     public get FilterString(): string {
         if (this.OverridingFilters.length > 0) {
-            return "(" + this.OverridingFilters.filter(fm => fm != null).map(fm => fm.ToPythonString()).join(" || ") + ")";
+            return "(" + this.OverridingFilters.filter(fm => fm !== null).map(fm => fm.ToPythonString()).join(" || ") + ")";
         }
         let filterModels: FilterModel[] = [];
         return FilterModel.GetFilterModelsRecursive(this, new Set<IBaseFilterProvider>(), filterModels, true);
@@ -89,8 +89,9 @@ export class HistogramOperation extends BaseOperation implements IBaseFilterCons
     @action
     public DrillDown(up: boolean) {
         if (!up) {
-            if (!this.BarFilterModels.length)
+            if (!this.BarFilterModels.length) {
                 return;
+            }
             this._stackedFilters.push(this.BarFilterModels.map(f => f));
             this.OverridingFilters.length = 0;
             this.OverridingFilters.push(...this._stackedFilters[this._stackedFilters.length - 1]);

@@ -278,7 +278,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             iconDoc = this.createIcon([docView], layout);
         }
         if (SelectionManager.SelectedDocuments()[0].props.addDocument !== undefined) {
-            SelectionManager.SelectedDocuments()[0].props.addDocument!(iconDoc!);
+            SelectionManager.SelectedDocuments()[0].props.addDocument!(iconDoc);
         }
         return iconDoc;
     }

@@ -117,8 +117,8 @@ class TreeView extends React.Component<TreeViewProps> {
         }
     }
 
-    onPointerEnter = (e: React.PointerEvent): void => { this.props.document.libraryBrush = true; }
-    onPointerLeave = (e: React.PointerEvent): void => { this.props.document.libraryBrush = false; }
+    onPointerEnter = (e: React.PointerEvent): void => { this.props.document.libraryBrush = true; };
+    onPointerLeave = (e: React.PointerEvent): void => { this.props.document.libraryBrush = false; };
 
     render() {
         let bulletType = BulletType.List;

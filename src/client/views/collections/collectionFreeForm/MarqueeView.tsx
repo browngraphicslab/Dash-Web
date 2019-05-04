@@ -139,7 +139,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         if (this._commandExecuted) {
             return;
         }
-        if (e.key === "Backspace" || e.key === "Delete" || e.key == "d") {
+        if (e.key === "Backspace" || e.key === "Delete" || e.key === "d") {
             this._commandExecuted = true;
             this.marqueeSelect().map(d => this.props.removeDocument(d));
             let ink = Cast(this.props.container.props.Document.ink, InkField);
@@ -154,8 +154,9 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             e.stopPropagation();
             let bounds = this.Bounds;
             let selected = this.marqueeSelect().map(d => {
-                if (e.key !== "r")
+                if (e.key !== "r") {
                     this.props.removeDocument(d);
+                }
                 d.x = NumCast(d.x) - bounds.left - bounds.width / 2;
                 d.y = NumCast(d.y) - bounds.top - bounds.height / 2;
                 d.page = -1;
@@ -194,7 +195,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                     let maxy = NumCast(maximizedDoc.y, undefined);
                     let maxw = NumCast(maximizedDoc.width, undefined);
                     let maxh = NumCast(maximizedDoc.height, undefined);
-                    maximizedDoc.isIconAnimating = new List<number>([scrpt[0], scrpt[1], maxx, maxy, maxw, maxh, Date.now(), 0])
+                    maximizedDoc.isIconAnimating = new List<number>([scrpt[0], scrpt[1], maxx, maxy, maxw, maxh, Date.now(), 0]);
                 });
             }
             else {

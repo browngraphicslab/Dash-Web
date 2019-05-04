@@ -148,7 +148,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                         maxw !== undefined && maxh !== undefined) {
                         let scrpt = this.props.ScreenToLocalTransform().inverse().transformPoint(minx, miny);
                         maximizedDoc.isMinimized = false;
-                        maximizedDoc.isIconAnimating = new List<number>([scrpt[0], scrpt[1], maxx, maxy, maxw, maxh, Date.now(), isMinimized ? 1 : 0])
+                        maximizedDoc.isIconAnimating = new List<number>([scrpt[0], scrpt[1], maxx, maxy, maxw, maxh, Date.now(), isMinimized ? 1 : 0]);
                     }
                 }
             });
@@ -167,16 +167,17 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
             if (await BoolCast(this.props.Document.isButton, false)) {
                 let maximizedDocs = await Cast(this.props.Document.maximizedDocs, listSpec(Doc));
                 if (maximizedDocs) {   // bcz: need a better way to associate behaviors with click events on widget-documents
-                    if (ctrlKey)
+                    if (ctrlKey) {
                         this.props.addDocument && maximizedDocs.filter(d => d instanceof Doc).map(maxDoc => this.props.addDocument!(maxDoc, false));
+                    }
                     this.toggleIcon();
                 }
             }
         }
     }
 
-    onPointerEnter = (e: React.PointerEvent): void => { this.props.Document.libraryBrush = true; }
-    onPointerLeave = (e: React.PointerEvent): void => { this.props.Document.libraryBrush = false; }
+    onPointerEnter = (e: React.PointerEvent): void => { this.props.Document.libraryBrush = true; };
+    onPointerLeave = (e: React.PointerEvent): void => { this.props.Document.libraryBrush = false; };
 
     borderRounding = () => {
         let br = NumCast(this.props.Document.borderRounding);

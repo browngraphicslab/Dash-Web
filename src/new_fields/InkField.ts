@@ -39,6 +39,6 @@ export class InkField extends ObjectField {
     }
 
     [Copy]() {
-        return new InkField(deepCopy(this.inkData))
+        return new InkField(deepCopy(this.inkData));
     }
 }

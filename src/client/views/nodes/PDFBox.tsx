@@ -215,8 +215,9 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
             if (e.altKey) {
                 this._alt = true;
             } else {
-                if (e.metaKey)
+                if (e.metaKey) {
                     e.stopPropagation();
+                }
             }
             document.removeEventListener("pointerup", this.onPointerUp);
             document.addEventListener("pointerup", this.onPointerUp);
@@ -286,7 +287,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     renderHeight = 2400;
     @computed
     get pdfPage() {
-        return <Page height={this.renderHeight} pageNumber={this.curPage} onLoadSuccess={this.onLoaded} />
+        return <Page height={this.renderHeight} pageNumber={this.curPage} onLoadSuccess={this.onLoaded} />;
     }
     @computed
     get pdfContent() {

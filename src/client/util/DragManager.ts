@@ -155,9 +155,9 @@ export namespace DragManager {
     export function StartDocumentDrag(eles: HTMLElement[], dragData: DocumentDragData, downX: number, downY: number, options?: DragOptions) {
         StartDrag(eles, dragData, downX, downY, options,
             (dropData: { [id: string]: any }) =>
-                (dropData.droppedDocuments = dragData.userDropAction == "alias" || (!dragData.userDropAction && dragData.dropAction == "alias") ?
+                (dropData.droppedDocuments = dragData.userDropAction === "alias" || (!dragData.userDropAction && dragData.dropAction === "alias") ?
                     dragData.draggedDocuments.map(d => Doc.MakeAlias(d)) :
-                    dragData.userDropAction == "copy" || (!dragData.userDropAction && dragData.dropAction == "copy") ?
+                    dragData.userDropAction === "copy" || (!dragData.userDropAction && dragData.dropAction === "copy") ?
                         dragData.draggedDocuments.map(d => Doc.MakeCopy(d, true)) :
                         dragData.draggedDocuments));
     }
@@ -280,7 +280,7 @@ export namespace DragManager {
         };
 
         let hideDragElements = () => {
-            dragElements.map(dragElement => dragElement.parentNode == dragDiv && dragDiv.removeChild(dragElement));
+            dragElements.map(dragElement => dragElement.parentNode === dragDiv && dragDiv.removeChild(dragElement));
             eles.map(ele => (ele.hidden = false));
         };
         let endDrag = () => {
@@ -289,7 +289,7 @@ export namespace DragManager {
             if (options) {
                 options.handlers.dragComplete({});
             }
-        }
+        };
 
         AbortDrag = () => {
             hideDragElements();
