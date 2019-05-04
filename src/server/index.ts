@@ -286,41 +286,31 @@ function GetRefField([id, callback]: [string, (result?: Transferable) => void]) 
     Database.Instance.getDocument(id, callback, "newDocuments");
 }
 
+const suffixMap: { [type: string]: string } = {
+    "number": "_n",
+    "string": "_t"
+};
 function UpdateField(socket: Socket, diff: Diff) {
     Database.Instance.update(diff.id, diff.diff,
         () => socket.broadcast.emit(MessageStore.UpdateField.Message, diff), false, "newDocuments");
-    //if (diff.diff === Types.Text) {
-    //Search.Instance.updateDocument({ name: "john", burns: "true" });
-    //Search.Instance.updateDocument({ id: diff.id, data: diff.diff.data });
-    //console.log("set field");
-    //}
-    const docid = { id: diff.id };
-    var docfield = diff.diff;
-    docfield = JSON.parse(JSON.stringify(docfield).split("fields.").join(""));
+    const docfield = diff.diff;
+    const update: any = { id: diff.id };
     console.log("FIELD: ", docfield);
-    var dynfield = false;
-    for (var key in docfield) {
+    let dynfield = false;
+    for (let key in docfield) {
+        if (!key.startsWith("fields.")) continue;
         const val = docfield[key];
-        if (typeof val === 'number') {
-            const new_key: string = key + "_n";
-            docfield = JSON.parse(JSON.stringify(docfield).split(key).join(new_key));
-            //docfield[new_key] = { 'set': val };
-            dynfield = true;
-        }
-        else if (typeof val === 'string') {
-            const new_key: string = key + "_t";
-            docfield = JSON.parse(JSON.stringify(docfield).split(key).join(new_key));
-            docfield[new_key] = { 'set': val };
+        const suffix = suffixMap[typeof val];
+        if (suffix !== undefined) {
+            key = key.substring(7);
+            Object.values(suffixMap).forEach(suf => update[key + suf] = null);
+            update[key + suffix] = { set: val };
             dynfield = true;
         }
     }
-    var merged = {};
-    _.extend(merged, docid, docfield);
-    console.log("MERGED: ", merged);
-    console.log("DOC_FIELD: ", docfield);
     if (dynfield) {
         console.log("dynamic field detected!");
-        Search.Instance.updateDocument(merged);
+        Search.Instance.updateDocument(update);
     }
 }
 
