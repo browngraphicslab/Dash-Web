@@ -22,6 +22,7 @@ import '../northstar/utils/Extensions';
 import { SetupDrag, DragManager } from '../util/DragManager';
 import { Transform } from '../util/Transform';
 import { UndoManager } from '../util/UndoManager';
+import { PresentationView } from './PresentationView';
 import { CollectionDockingView } from './collections/CollectionDockingView';
 import { ContextMenu } from './ContextMenu';
 import { DocumentDecorations } from './DocumentDecorations';
@@ -50,6 +51,9 @@ export class Main extends React.Component {
     }
     private set mainContainer(doc: Opt<Doc>) {
         if (doc) {
+            if (!("presentationView" in doc)) {
+                doc.presentationView = new Doc();
+            }
             CurrentUserUtils.UserDocument.activeWorkspace = doc;
         }
     }
@@ -175,11 +179,21 @@ export class Main extends React.Component {
     }
 
     @computed
+    get presentationView() {
+        if (this.mainContainer) {
+            let presentation = FieldValue(Cast(this.mainContainer.presentationView, Doc));
+            return presentation ? <PresentationView Document={presentation} key="presentation" /> : (null);
+        }
+        return (null);
+    }
+
+    @computed
     get mainContent() {
         let pwidthFunc = () => this.pwidth;
         let pheightFunc = () => this.pheight;
         let noScaling = () => 1;
         let mainCont = this.mainContainer;
+        let pcontent = this.presentationView;
         return <Measure onResize={action((r: any) => { this.pwidth = r.entry.width; this.pheight = r.entry.height; })}>
             {({ measureRef }) =>
                 <div ref={measureRef} id="mainContent-div">
@@ -197,7 +211,9 @@ export class Main extends React.Component {
                             focus={emptyFunction}
                             parentActive={returnTrue}
                             whenActiveChanged={emptyFunction}
+                            bringToFront={emptyFunction}
                             ContainingCollectionView={undefined} />}
+                    {pcontent}
                 </div>
             }
         </Measure>;

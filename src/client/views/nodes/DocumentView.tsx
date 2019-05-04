@@ -25,6 +25,7 @@ import { CollectionFreeFormView } from "../collections/collectionFreeForm/Collec
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { DocServer } from "../../DocServer";
 import { Id } from "../../../new_fields/RefField";
+import { PresentationView } from "../PresentationView";
 
 const linkSchema = createSchema({
     title: "string",
@@ -277,7 +278,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         ContextMenu.Instance.addItem({ description: "Copy URL", event: () => Utils.CopyText(DocServer.prepend("/doc/" + this.props.Document[Id])) });
         ContextMenu.Instance.addItem({ description: "Copy ID", event: () => Utils.CopyText(this.props.Document[Id]) });
         //ContextMenu.Instance.addItem({ description: "Docking", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Docking) })
+        ContextMenu.Instance.addItem({ description: "Pin to Presentation", event: () => PresentationView.Instance.PinDoc(this.props.Document) });
         ContextMenu.Instance.addItem({ description: "Delete", event: this.deleteClicked });
+        if (!this.topMost) {
+            // DocumentViews should stop propagation of this event
+            e.stopPropagation();
+        }
         ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15);
         if (!SelectionManager.IsSelected(this)) {
             SelectionManager.SelectDoc(this, false);

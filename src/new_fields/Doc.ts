@@ -36,6 +36,7 @@ export class Doc extends RefField {
         const doc = new Proxy<this>(this, {
             set: setter,
             get: getter,
+            has: (target, key) => key in target.__fields,
             ownKeys: target => Object.keys(target.__fields),
             getOwnPropertyDescriptor: (target, prop) => {
                 if (prop in target.__fields) {
