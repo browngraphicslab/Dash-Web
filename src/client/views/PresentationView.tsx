@@ -1,19 +1,18 @@
 import { observer } from "mobx-react";
-import { Document } from "../../fields/Document";
-import { KeyStore } from "../../fields/KeyStore";
-import { ListField } from "../../fields/ListField";
 import React = require("react")
-import { TextField } from "../../fields/TextField";
 import { observable, action } from "mobx";
-import { Field, FieldWaiting } from "../../fields/Field";
 import "./PresentationView.scss"
-import { NumberField } from "../../fields/NumberField";
 import "./Main.tsx";
 import { DocumentManager } from "../util/DocumentManager";
 import { Utils } from "../../Utils";
+import { Doc } from "../../new_fields/Doc";
+import { listSpec } from "../../new_fields/Schema";
+import { Cast, NumCast, FieldValue } from "../../new_fields/Types";
+import { Id } from "../../new_fields/RefField";
+import { List } from "../../new_fields/List";
 
 export interface PresViewProps {
-    Document: Document;
+    Document: Doc;
 }
 
 
@@ -25,7 +24,7 @@ class PresentationViewItem extends React.Component<PresViewProps> {
 
     //look at CollectionFreeformView.focusDocument(d)
     @action
-    openDoc = (doc: Document) => {
+    openDoc = (doc: Doc) => {
         let docView = DocumentManager.Instance.getDocumentView(doc);
         if (docView) {
             docView.props.focus(docView.props.Document);
@@ -36,17 +35,17 @@ class PresentationViewItem extends React.Component<PresViewProps> {
   * Removes a document from the presentation view
   **/
     @action
-    public RemoveDoc(doc: Document) {
-        const value = this.props.Document.GetData(KeyStore.Data, ListField, new Array<Document>())
+    public RemoveDoc(doc: Doc) {
+        const value = Cast(this.props.Document.data, listSpec(Doc), []);
         let index = -1;
         for (let i = 0; i < value.length; i++) {
-            if (value[i].Id === doc.Id) {
+            if (value[i][Id] === doc[Id]) {
                 index = i;
                 break;
             }
         }
         if (index !== -1) {
-            value.splice(index, 1)
+            value.splice(index, 1);
         }
     }
 
@@ -54,46 +53,36 @@ class PresentationViewItem extends React.Component<PresViewProps> {
      * Renders a single child document. It will just append a list element.
      * @param document The document to render.
      */
-    renderChild(document: Document) {
-        let title = document.Title;
+    renderChild(document: Doc) {
+        let title = document.title;
 
         //to get currently selected presentation doc
-        let selected = this.props.Document.GetNumber(KeyStore.SelectedDoc, 0);
+        let selected = NumCast(this.props.Document.selectedDoc, 0);
 
-        // if the title hasn't loaded, immediately return the div
-        if (!title) {
-            return <div className="presentationView-item" key={document.Id}></div>;
-        }
         // finally, if it's a normal document, then render it as such.
-        else {
-            const children = this.props.Document.GetT<ListField<Document>>(KeyStore.Data, ListField);
-            if (children && children.Data[selected] === document) {
-                //this doc is selected
-                const styles = {
-                    background: "gray"
-                }
-                return <li className="presentationView-item" style={styles} key={Utils.GenerateGuid()}>
-                    <div className="presentationView-header" onClick={() => this.openDoc(document)}>{title}</div>
-                    <div className="presentation-icon" onClick={() => this.RemoveDoc(document)}>X</div></li>;
-            } else {
-                return <li className="presentationView-item" key={Utils.GenerateGuid()} >
-                    <div className="presentationView-header" onClick={() => this.openDoc(document)}>{title}</div>
-                    <div className="presentation-icon" onClick={() => this.RemoveDoc(document)}>X</div></li>;
-            }
-
+        const children = Cast(this.props.Document.data, listSpec(Doc));
+        const styles: any = {};
+        if (children && children[selected] === document) {
+            //this doc is selected
+            styles.background = "gray";
         }
+        return (
+            <li className="presentationView-item" style={styles} key={Utils.GenerateGuid()}>
+                <div className="presentationView-header" onClick={() => this.openDoc(document)}>{title}</div>
+                <div className="presentation-icon" onClick={() => this.RemoveDoc(document)}>X</div>
+            </li>
+        );
+
     }
 
     render() {
-        const children = this.props.Document.GetT<ListField<Document>>(KeyStore.Data, ListField);
+        const children = Cast(this.props.Document.data, listSpec(Doc), []);
 
-        if (children) {
-            return (<div>
-                {children.Data.map(value => this.renderChild(value))}
-            </div>)
-        } else {
-            return <div></div>;
-        }
+        return (
+            <div>
+                {children.map(value => this.renderChild(value))}
+            </div>
+        );
     }
 }
 
@@ -105,42 +94,40 @@ export class PresentationView extends React.Component<PresViewProps>  {
     //observable means render is re-called every time variable is changed
     @observable
     collapsed: boolean = false;
-    closePresentation = action(() => this.props.Document.SetNumber(KeyStore.Width, 0));
+    closePresentation = action(() => this.props.Document.width = 0);
     next = () => {
-        const current = this.props.Document.GetNumber(KeyStore.SelectedDoc, 0);
-        const allDocs = this.props.Document.GetT<ListField<Document>>(KeyStore.Data, ListField);
-        if (allDocs && current < allDocs.Data.length + 1) {
+        const current = NumCast(this.props.Document.selectedDoc);
+        const allDocs = FieldValue(Cast(this.props.Document.data, listSpec(Doc)));
+        if (allDocs && current < allDocs.length + 1) {
             //can move forwards
-            this.props.Document.SetNumber(KeyStore.SelectedDoc, current + 1);
-            const doc = allDocs.Data[current + 1];
+            this.props.Document.selectedDoc = current + 1;
+            const doc = allDocs[current + 1];
             let docView = DocumentManager.Instance.getDocumentView(doc);
             if (docView) {
                 docView.props.focus(docView.props.Document);
             }
         }
 
-    };
+    }
     back = () => {
-        const current = this.props.Document.GetNumber(KeyStore.SelectedDoc, 0);
-        const allDocs = this.props.Document.GetT<ListField<Document>>(KeyStore.Data, ListField);
+        const current = NumCast(this.props.Document.selectedDoc);
+        const allDocs = FieldValue(Cast(this.props.Document.data, listSpec(Doc)));
         if (allDocs && current - 1 >= 0) {
             //can move forwards
-            this.props.Document.SetNumber(KeyStore.SelectedDoc, current - 1);
-            const doc = allDocs.Data[current - 1];
+            this.props.Document.selectedDoc = current - 1;
+            const doc = allDocs[current - 1];
             let docView = DocumentManager.Instance.getDocumentView(doc);
             if (docView) {
                 docView.props.focus(docView.props.Document);
             }
         }
+    }
 
-    };
-
-    private ref: React.RefObject<HTMLDivElement>;
+    private ref = React.createRef<HTMLDivElement>();
 
     //initilize class variables
     constructor(props: PresViewProps) {
         super(props);
-        this.ref = React.createRef()
         PresentationView.Instance = this;
     }
 
@@ -148,21 +135,21 @@ export class PresentationView extends React.Component<PresViewProps>  {
      * Adds a document to the presentation view
      **/
     @action
-    public PinDoc(doc: Document) {
+    public PinDoc(doc: Doc) {
         //add this new doc to props.Document
-        if (this.props.Document.Get(KeyStore.Data) instanceof Field) {
-            const value = this.props.Document.GetData(KeyStore.Data, ListField, new Array<Document>())
-            value.push(doc);
+        const data = Cast(this.props.Document.data, listSpec(Doc));
+        if (data) {
+            data.push(doc);
         } else {
-            this.props.Document.SetData(KeyStore.Data, [doc], ListField);
+            this.props.Document.data = new List([doc]);
         }
 
-        this.props.Document.SetNumber(KeyStore.Width, 300);
+        this.props.Document.width = 300;
     }
 
     render() {
         let titleStr = this.props.Document.Title;
-        let width = this.props.Document.GetNumber(KeyStore.Width, 0);
+        let width = NumCast(this.props.Document.width);
 
         //TODO: next and back should be icons
         return (

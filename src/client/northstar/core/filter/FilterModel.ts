@@ -2,10 +2,9 @@ import { ValueComparison } from "./ValueComparision";
 import { Utils } from "../../utils/Utils";
 import { IBaseFilterProvider } from "./IBaseFilterProvider";
 import { FilterOperand } from "./FilterOperand";
-import { KeyStore } from "../../../../fields/KeyStore";
-import { FieldWaiting } from "../../../../fields/Field";
-import { Document } from "../../../../fields/Document";
 import { HistogramField } from "../../dash-fields/HistogramField";
+import { Cast, FieldValue } from "../../../../new_fields/Types";
+import { Doc } from "../../../../new_fields/Doc";
 
 export class FilterModel {
     public ValueComparisons: ValueComparison[];
@@ -52,12 +51,12 @@ export class FilterModel {
             let children = new Array<string>();
             let linkedGraphNodes = baseOperation.Links;
             linkedGraphNodes.map(linkVm => {
-                let filterDoc = linkVm.Get(KeyStore.LinkedFromDocs);
-                if (filterDoc && filterDoc !== FieldWaiting && filterDoc instanceof Document) {
-                    let filterHistogram = filterDoc.GetT(KeyStore.Data, HistogramField);
-                    if (filterHistogram && filterHistogram !== FieldWaiting) {
-                        if (!visitedFilterProviders.has(filterHistogram.Data)) {
-                            let child = FilterModel.GetFilterModelsRecursive(filterHistogram.Data, visitedFilterProviders, filterModels, false);
+                let filterDoc = FieldValue(Cast(linkVm.linkedFrom, Doc));
+                if (filterDoc) {
+                    let filterHistogram = Cast(filterDoc.data, HistogramField);
+                    if (filterHistogram) {
+                        if (!visitedFilterProviders.has(filterHistogram.HistoOp)) {
+                            let child = FilterModel.GetFilterModelsRecursive(filterHistogram.HistoOp, visitedFilterProviders, filterModels, false);
                             if (child !== "") {
                                 // if (linkVm.IsInverted) {
                                 //     child = "! " + child;

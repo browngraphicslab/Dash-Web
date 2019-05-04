@@ -1,9 +1,6 @@
 import React = require("react");
 import { action, computed, observable, reaction, runInAction, trace } from "mobx";
 import { observer } from "mobx-react";
-import { FieldWaiting, Opt } from "../../../fields/Field";
-import { Document } from "../../../fields/Document";
-import { KeyStore } from "../../../fields/KeyStore";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { ChartType, VisualBinRange } from '../../northstar/model/binRanges/VisualBinRange';
 import { VisualBinRangeHelper } from "../../northstar/model/binRanges/VisualBinRangeHelper";
@@ -20,11 +17,15 @@ import "./HistogramBox.scss";
 import { HistogramBoxPrimitives } from './HistogramBoxPrimitives';
 import { HistogramLabelPrimitives } from "./HistogramLabelPrimitives";
 import { StyleConstants } from "../utils/StyleContants";
+import { NumCast, Cast } from "../../../new_fields/Types";
+import { listSpec } from "../../../new_fields/Schema";
+import { Doc } from "../../../new_fields/Doc";
+import { Id } from "../../../new_fields/RefField";
 
 
 @observer
 export class HistogramBox extends React.Component<FieldViewProps> {
-    public static LayoutString(fieldStr: string = "DataKey") { return FieldView.LayoutString(HistogramBox, fieldStr); }
+    public static LayoutString(fieldStr: string = "data") { return FieldView.LayoutString(HistogramBox, fieldStr); }
     private _dropXRef = React.createRef<HTMLDivElement>();
     private _dropYRef = React.createRef<HTMLDivElement>();
     private _dropXDisposer?: DragManager.DragDropDisposer;
@@ -47,9 +48,9 @@ export class HistogramBox extends React.Component<FieldViewProps> {
     @action
     dropX = (e: Event, de: DragManager.DropEvent) => {
         if (de.data instanceof DragManager.DocumentDragData) {
-            let h = de.data.draggedDocuments[0].GetT(KeyStore.Data, HistogramField);
-            if (h && h !== FieldWaiting) {
-                this.HistoOp.X = h.Data.X;
+            let h = Cast(de.data.draggedDocuments[0].data, HistogramField);
+            if (h) {
+                this.HistoOp.X = h.HistoOp.X;
             }
             e.stopPropagation();
             e.preventDefault();
@@ -58,9 +59,9 @@ export class HistogramBox extends React.Component<FieldViewProps> {
     @action
     dropY = (e: Event, de: DragManager.DropEvent) => {
         if (de.data instanceof DragManager.DocumentDragData) {
-            let h = de.data.draggedDocuments[0].GetT(KeyStore.Data, HistogramField);
-            if (h && h !== FieldWaiting) {
-                this.HistoOp.Y = h.Data.X;
+            let h = Cast(de.data.draggedDocuments[0].data, HistogramField);
+            if (h) {
+                this.HistoOp.Y = h.HistoOp.X;
             }
             e.stopPropagation();
             e.preventDefault();
@@ -110,25 +111,28 @@ export class HistogramBox extends React.Component<FieldViewProps> {
         }
     }
 
-    activateHistogramOperation(catalog?: Catalog) {
+    async activateHistogramOperation(catalog?: Catalog) {
         if (catalog) {
-            this.props.Document.GetTAsync(this.props.fieldKey, HistogramField).then((histoOp: Opt<HistogramField>) => runInAction(() => {
-                this.HistoOp = histoOp ? histoOp.Data : HistogramOperation.Empty;
+            let histoOp = await Cast(this.props.Document[this.props.fieldKey], HistogramField);
+            runInAction(() => {
+                this.HistoOp = histoOp ? histoOp.HistoOp : HistogramOperation.Empty;
                 if (this.HistoOp !== HistogramOperation.Empty) {
-                    reaction(() => this.props.Document.GetList(KeyStore.LinkedFromDocs, [] as Document[]), (docs) => this.HistoOp.Links.splice(0, this.HistoOp.Links.length, ...docs), { fireImmediately: true });
-                    reaction(() => this.props.Document.GetList(KeyStore.BrushingDocs, []).length,
+                    reaction(() => Cast(this.props.Document.linkedFromDocs, listSpec(Doc), []), (docs) => this.HistoOp.Links.splice(0, this.HistoOp.Links.length, ...docs), { fireImmediately: true });
+                    reaction(() => Cast(this.props.Document.brushingDocs, listSpec(Doc), []).length,
                         () => {
-                            let brushingDocs = this.props.Document.GetList(KeyStore.BrushingDocs, [] as Document[]);
-                            let proto = this.props.Document.GetPrototype() as Document;
-                            this.HistoOp.BrushLinks.splice(0, this.HistoOp.BrushLinks.length, ...brushingDocs.map((brush, i) => {
-                                brush.SetNumber(KeyStore.BackgroundColor, StyleConstants.BRUSH_COLORS[i % StyleConstants.BRUSH_COLORS.length]);
-                                let brushed = brush.GetList(KeyStore.BrushingDocs, [] as Document[]);
-                                return { l: brush, b: brushed[0].Id === proto.Id ? brushed[1] : brushed[0] };
-                            }));
+                            let brushingDocs = Cast(this.props.Document.brushingDocs, listSpec(Doc), []);
+                            const proto = this.props.Document.proto;
+                            if (proto) {
+                                this.HistoOp.BrushLinks.splice(0, this.HistoOp.BrushLinks.length, ...brushingDocs.map((brush, i) => {
+                                    brush.bckgroundColor = StyleConstants.BRUSH_COLORS[i % StyleConstants.BRUSH_COLORS.length];
+                                    let brushed = Cast(brush.brushingDocs, listSpec(Doc), []);
+                                    return { l: brush, b: brushed[0][Id] === proto[Id] ? brushed[1] : brushed[0] };
+                                }));
+                            }
                         }, { fireImmediately: true });
                     reaction(() => this.createOperationParamsCache, () => this.HistoOp.Update(), { fireImmediately: true });
                 }
-            }));
+            });
         }
     }
 

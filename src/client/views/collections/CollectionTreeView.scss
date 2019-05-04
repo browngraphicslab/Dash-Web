@@ -33,18 +33,24 @@
     }
 
     .bullet {
+        position: absolute;
         width: 1.5em;
         display: inline-block;
         color: $intermediate-color;
+        margin-top: 3px;
+        transform: scale(1.3,1.3);
     }
 
     .coll-title {
+        width:max-content;
+        display: block;
         font-size: 24px;
-        margin-bottom: 20px;
     }
 
     .docContainer {
-        display: inline-table;
+        margin-left: 10px;
+        display: block;
+        width: max-content;
     }
 
     .docContainer:hover {

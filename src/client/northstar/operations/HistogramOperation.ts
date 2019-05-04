@@ -1,7 +1,4 @@
 import { action, computed, observable, trace } from "mobx";
-import { Document } from "../../../fields/Document";
-import { FieldWaiting } from "../../../fields/Field";
-import { KeyStore } from "../../../fields/KeyStore";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { ColumnAttributeModel } from "../core/attribute/AttributeModel";
 import { AttributeTransformationModel } from "../core/attribute/AttributeTransformationModel";
@@ -16,12 +13,14 @@ import { AggregateFunction, AggregateParameters, Attribute, AverageAggregatePara
 import { ModelHelpers } from "../model/ModelHelpers";
 import { ArrayUtil } from "../utils/ArrayUtil";
 import { BaseOperation } from "./BaseOperation";
+import { Doc } from "../../../new_fields/Doc";
+import { Cast, NumCast } from "../../../new_fields/Types";
 
 export class HistogramOperation extends BaseOperation implements IBaseFilterConsumer, IBaseFilterProvider {
     public static Empty = new HistogramOperation("-empty schema-", new AttributeTransformationModel(new ColumnAttributeModel(new Attribute())), new AttributeTransformationModel(new ColumnAttributeModel(new Attribute())), new AttributeTransformationModel(new ColumnAttributeModel(new Attribute())));
     @observable public FilterOperand: FilterOperand = FilterOperand.AND;
-    @observable public Links: Document[] = [];
-    @observable public BrushLinks: { l: Document, b: Document }[] = [];
+    @observable public Links: Doc[] = [];
+    @observable public BrushLinks: { l: Doc, b: Doc }[] = [];
     @observable public BrushColors: number[] = [];
     @observable public BarFilterModels: FilterModel[] = [];
 
@@ -77,10 +76,10 @@ export class HistogramOperation extends BaseOperation implements IBaseFilterCons
         trace();
         let brushes: string[] = [];
         this.BrushLinks.map(brushLink => {
-            let brushHistogram = brushLink.b.GetT(KeyStore.Data, HistogramField);
-            if (brushHistogram && brushHistogram !== FieldWaiting) {
+            let brushHistogram = Cast(brushLink.b.data, HistogramField);
+            if (brushHistogram) {
                 let filterModels: FilterModel[] = [];
-                brushes.push(FilterModel.GetFilterModelsRecursive(brushHistogram.Data, new Set<IBaseFilterProvider>(), filterModels, false));
+                brushes.push(FilterModel.GetFilterModelsRecursive(brushHistogram.HistoOp, new Set<IBaseFilterProvider>(), filterModels, false));
             }
         });
         return brushes;
@@ -148,7 +147,7 @@ export class HistogramOperation extends BaseOperation implements IBaseFilterCons
 
     @action
     public async Update(): Promise<void> {
-        this.BrushColors = this.BrushLinks.map(e => e.l.GetNumber(KeyStore.BackgroundColor, 0));
+        this.BrushColors = this.BrushLinks.map(e => NumCast(e.l.backgroundColor));
         return super.Update();
     }
 }
