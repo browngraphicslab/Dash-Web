@@ -3,6 +3,9 @@ import * as ReactDOM from 'react-dom';
 import { serialize, deserialize, map } from 'serializr';
 import { URLField, Doc, createSchema, makeInterface, makeStrictInterface, List, ListSpec } from '../fields/NewDoc';
 import { SerializationHelper } from '../client/util/SerializationHelper';
+import { Search } from '../server/Search';
+import { restProperty } from 'babel-types';
+import * as rp from 'request-promise';
 
 const schema1 = createSchema({
     hello: "number",
@@ -76,8 +79,22 @@ class Test extends React.Component {
         // console.log(SerializationHelper.Serialize(l));
     }
 
+    onEnter = async (e: any) => {
+        var key = e.keyCode || e.which;
+        if (key === 13) {
+            var query = e.target.value;
+            await rp.get('http://localhost:1050/search', {
+                qs: {
+                    query
+                }
+            });
+        }
+    }
+
     render() {
-        return <button onClick={this.onClick}>Click me</button>;
+        return <div><button onClick={this.onClick}>Click me</button>
+            <input onKeyPress={this.onEnter}></input>
+        </div>;
     }
 }
 

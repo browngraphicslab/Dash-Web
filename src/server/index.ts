@@ -122,11 +122,14 @@ app.get("/pull", (req, res) =>
         res.redirect("/");
     }));
 
+// SEARCH
+
 // GETTERS
 
 app.get("/search", async (req, res) => {
     let query = req.query.query || "hello";
     let results = await Search.Instance.search(query);
+    console.log(results);
     res.send(results);
 });
 
