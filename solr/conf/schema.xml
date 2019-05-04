@@ -36,15 +36,14 @@
   </fieldType>
 
   <fieldType name="plong" class="solr.LongPointField" docValues="true"/>
-  <fieldType name="booleans" class="solr.BoolField" sortMissingLast="true" multiValued="true"/>
-  <fieldType name="pdates" class="solr.DatePointField" docValues="true" multiValued="true"/>
-  <fieldType name="plongs" class="solr.LongPointField" docValues="true" multiValued="true"/>
-  <fieldType name="pdoubles" class="solr.DoublePointField" docValues="true" multiValued="true"/>
+  <fieldType name="boolean" class="solr.BoolField" sortMissingLast="true"/>
+  <fieldType name="pdate" class="solr.DatePointField" docValues="true"/>
+  <fieldType name="pdouble" class="solr.DoublePointField" docValues="true"/>
 
   <field name="data" type="text" indexed="true" stored="true" uninvertible="false"/>
   <field name="id" type="string" indexed="true" stored="true" uninvertible="false" required="true"/>
   <field name="_version_" type="plong" indexed="false" stored="false"/>
 
-  <dynamicField name="*_t" type="string" indexed="false"  stored="false" docValues = "true"/>
-  <dynamicField name="*_n" type="plongs" indexed="false"  stored="false" docValues = "true"/>
+  <dynamicField name="*_t" type="string" indexed="true" stored="true"/>
+  <dynamicField name="*_n" type="pdouble" indexed="true" stored="true"/>
 </schema>
