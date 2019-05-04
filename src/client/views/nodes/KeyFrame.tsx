@@ -1,9 +1,9 @@
-import { Document } from '../../../fields/Document';
+import { Doc } from '../../../new_fields/Doc';
 
 export class KeyFrame {
-    private _document: any;
+    private _document: Doc;
     constructor() {
-        this._document = new Document();
+        this._document = new Doc();
 
 
     }
