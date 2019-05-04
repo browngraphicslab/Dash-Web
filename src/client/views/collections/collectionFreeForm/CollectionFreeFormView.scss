@@ -1,90 +1,103 @@
 @import "../../globalCssVariables";
-.collectionfreeformview {
-  position: inherit;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  transform-origin: left top;
-}
-.collectionfreeformview-container {
-  .collectionfreeformview > .jsx-parser {
-    position: inherit;
-    height: 100%;
-    width: 100%;
-  }
 
-  //nested freeform views
-  // .collectionfreeformview-container {
+.collectionfreeformview-ease {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    transform-origin: left top;
+    transition: transform 1s;
+}
+
+.collectionfreeformview-none {
+    position: inherit;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    transform-origin: left top;
+}
+
+.collectionfreeformview-container {
+    .collectionfreeformview>.jsx-parser {
+        position: inherit;
+        height: 100%;
+        width: 100%;
+    }
+
+    //nested freeform views
+    // .collectionfreeformview-container {
     // background-image: linear-gradient(to right, $light-color-secondary 1px, transparent 1px),
     //   linear-gradient(to bottom, $light-color-secondary 1px, transparent 1px);
     // background-size: 30px 30px;
-  // }
-
-  border-width: $COLLECTION_BORDER_WIDTH;
-  box-shadow: $intermediate-color 0.2vw 0.2vw 0.8vw;
-  border-color:  $light-color-secondary;
-  border-style: solid; 
-  border-radius: $border-radius;
-  box-sizing: border-box;
-  position: absolute;
-  overflow: hidden;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-}
-.collectionfreeformview-overlay {
-  .collectionfreeformview > .jsx-parser {
-    position: inherit;
+    // }
+    box-shadow: $intermediate-color 0.2vw 0.2vw 0.8vw;
+    border: 0px solid $light-color-secondary;
+    border-radius: $border-radius;
+    box-sizing: border-box;
+    position: absolute;
+    overflow: hidden;
+    top: 0;
+    left: 0;
+    width: 100%;
     height: 100%;
-  }
-  .formattedTextBox-cont {
-    background: $light-color-secondary;
-    overflow: visible;
-  }
- 
-  opacity: 0.99;
-  border-width: 0; 
-  border-color: transparent;
-  border-style: solid; 
-  border-radius: $border-radius;
-  box-sizing: border-box;
-  position: absolute;
-  overflow: hidden;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  .collectionfreeformview {
-    .formattedTextBox-cont {
-        background:yellow;
+}
+  
+
+.collectionfreeformview-overlay {
+    .collectionfreeformview>.jsx-parser {
+        position: inherit;
+        height: 100%;
     }
-  }
+
+    .formattedTextBox-cont {
+        background: $light-color-secondary;
+        overflow: visible;
+    }
+
+    opacity: 0.99;
+    border: 0px solid transparent;
+    border-radius: $border-radius;
+    box-sizing: border-box;
+    position:absolute;
+    overflow: hidden;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+
+    .collectionfreeformview {
+        .formattedTextBox-cont {
+            background: yellow;
+        }
+    }
 }
 
 // selection border...?
 .border {
-  border-style: solid;
-  box-sizing: border-box;
-  width: 98%;
-  height: 98%;
-  border-radius: $border-radius;
+    border-style: solid;
+    box-sizing: border-box;
+    width: 98%;
+    height: 98%;
+    border-radius: $border-radius;
 }
 
 //this is an animation for the blinking cursor!
 @keyframes blink {
-  0% {
-    opacity: 0;
-  }
-  49% {
-    opacity: 0;
-  }
-  50% {
-    opacity: 1;
-  }
+    0% {
+        opacity: 0;
+    }
+
+    49% {
+        opacity: 0;
+    }
+
+    50% {
+        opacity: 1;
+    }
 }
 
 #prevCursor {
-  animation: blink 1s infinite;
+    animation: blink 1s infinite;
 }

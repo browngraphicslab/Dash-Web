@@ -1,13 +1,14 @@
 import { action, computed } from 'mobx';
 import { observer } from 'mobx-react';
 import * as React from 'react';
-import { Document } from '../../../fields/Document';
-import { Field, FieldValue, FieldWaiting } from '../../../fields/Field';
-import { KeyStore } from '../../../fields/KeyStore';
-import { ListField } from '../../../fields/ListField';
-import { NumberField } from '../../../fields/NumberField';
 import { ContextMenu } from '../ContextMenu';
 import { FieldViewProps } from '../nodes/FieldView';
+import { Cast, FieldValue, PromiseValue, NumCast } from '../../../new_fields/Types';
+import { Doc, FieldResult, Opt } from '../../../new_fields/Doc';
+import { listSpec } from '../../../new_fields/Schema';
+import { List } from '../../../new_fields/List';
+import { Id } from '../../../new_fields/RefField';
+import { SelectionManager } from '../../util/SelectionManager';
 
 export enum CollectionViewType {
     Invalid,
@@ -18,9 +19,9 @@ export enum CollectionViewType {
 }
 
 export interface CollectionRenderProps {
-    addDocument: (document: Document, allowDuplicates?: boolean) => boolean;
-    removeDocument: (document: Document) => boolean;
-    moveDocument: (document: Document, targetCollection: Document, addDocument: (document: Document) => boolean) => boolean;
+    addDocument: (document: Doc, allowDuplicates?: boolean) => boolean;
+    removeDocument: (document: Doc) => boolean;
+    moveDocument: (document: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
     active: () => boolean;
     whenActiveChanged: (isActive: boolean) => void;
 }
@@ -37,11 +38,9 @@ export interface CollectionViewProps extends FieldViewProps {
 export class CollectionBaseView extends React.Component<CollectionViewProps> {
     get collectionViewType(): CollectionViewType | undefined {
         let Document = this.props.Document;
-        let viewField = Document.GetT(KeyStore.ViewType, NumberField);
-        if (viewField === FieldWaiting) {
-            return undefined;
-        } else if (viewField) {
-            return viewField.Data;
+        let viewField = Cast(Document.viewType, "number");
+        if (viewField !== undefined) {
+            return viewField;
         } else {
             return CollectionViewType.Invalid;
         }
@@ -60,101 +59,73 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         this.props.whenActiveChanged(isActive);
     }
 
-    createsCycle(documentToAdd: Document, containerDocument: Document): boolean {
-        if (!(documentToAdd instanceof Document)) {
+    createsCycle(documentToAdd: Doc, containerDocument: Doc): boolean {
+        if (!(documentToAdd instanceof Doc)) {
             return false;
         }
-        let data = documentToAdd.GetList(KeyStore.Data, [] as Document[]);
+        let data = Cast(documentToAdd.data, listSpec(Doc), []);
         for (const doc of data.filter(d => d instanceof Document)) {
             if (this.createsCycle(doc, containerDocument)) {
                 return true;
             }
         }
-        let annots = documentToAdd.GetList(KeyStore.Annotations, [] as Document[]);
+        let annots = Cast(documentToAdd.annotations, listSpec(Doc), []);
         for (const annot of annots) {
             if (this.createsCycle(annot, containerDocument)) {
                 return true;
             }
         }
-        for (let containerProto: FieldValue<Document> = containerDocument; containerProto && containerProto !== FieldWaiting; containerProto = containerProto.GetPrototype()) {
-            if (containerProto.Id === documentToAdd.Id) {
+        for (let containerProto: Opt<Doc> = containerDocument; containerProto !== undefined; containerProto = FieldValue(containerProto.proto)) {
+            if (containerProto[Id] === documentToAdd[Id]) {
                 return true;
             }
         }
         return false;
     }
-    @computed get isAnnotationOverlay() { return this.props.fieldKey && this.props.fieldKey.Id === KeyStore.Annotations.Id; } // bcz: ? Why do we need to compare Id's?
+    @computed get isAnnotationOverlay() { return this.props.fieldKey && this.props.fieldKey === "annotations"; }
 
     @action.bound
-    addDocument(doc: Document, allowDuplicates: boolean = false): boolean {
+    addDocument(doc: Doc, allowDuplicates: boolean = false): boolean {
         let props = this.props;
-        var curPage = props.Document.GetNumber(KeyStore.CurPage, -1);
-        doc.SetOnPrototype(KeyStore.Page, new NumberField(curPage));
+        var curPage = Cast(props.Document.curPage, "number", -1);
+        Doc.SetOnPrototype(doc, "page", curPage);
         if (curPage >= 0) {
-            doc.SetOnPrototype(KeyStore.AnnotationOn, props.Document);
+            Doc.SetOnPrototype(doc, "annotationOn", props.Document);
         }
-        if (props.Document.Get(props.fieldKey) instanceof Field) {
+        if (!this.createsCycle(doc, props.Document)) {
             //TODO This won't create the field if it doesn't already exist
-            const value = props.Document.GetData(props.fieldKey, ListField, new Array<Document>());
-            if (!this.createsCycle(doc, props.Document)) {
-                if (!value.some(v => v.Id === doc.Id) || allowDuplicates) {
+            const value = Cast(props.Document[props.fieldKey], listSpec(Doc));
+            if (value !== undefined) {
+                if (allowDuplicates || !value.some(v => v[Id] === doc[Id])) {
                     value.push(doc);
                 }
-                return true;
+            } else {
+                this.props.Document[this.props.fieldKey] = new List([doc]);
             }
-            else {
-                return false;
+            // set the ZoomBasis only if hasn't already been set -- bcz: maybe set/resetting the ZoomBasis should be a parameter to addDocument?
+            if (this.collectionViewType === CollectionViewType.Freeform || this.collectionViewType === CollectionViewType.Invalid) {
+                let zoom = NumCast(this.props.Document.scale, 1);
+                doc.zoomBasis = zoom;
             }
-        } else {
-            let proto = props.Document.GetPrototype();
-            if (!proto || proto === FieldWaiting || !this.createsCycle(proto, doc)) {
-                const field = new ListField([doc]);
-                // const script = CompileScript(`
-                //     if(added) {
-                //         console.log("added " + field.Title + " " + doc.Title);
-                //     } else {
-                //         console.log("removed " + field.Title + " " + doc.Title);
-                //     }
-                // `, {
-                //         addReturn: false,
-                //         params: {
-                //             field: Document.name,
-                //             added: "boolean"
-                //         },
-                //         capturedVariables: {
-                //             doc: this.props.Document
-                //         }
-                //     });
-                // if (script.compiled) {
-                //     field.addScript(new ScriptField(script));
-                // }
-                props.Document.SetOnPrototype(props.fieldKey, field);
-            }
-            else {
-                return false;
-            }
-        }
-        if (true || this.isAnnotationOverlay) {
-            doc.SetNumber(KeyStore.Zoom, this.props.Document.GetNumber(KeyStore.Scale, 1));
         }
         return true;
     }
 
     @action.bound
-    removeDocument(doc: Document): boolean {
+    removeDocument(doc: Doc): boolean {
         const props = this.props;
         //TODO This won't create the field if it doesn't already exist
-        const value = props.Document.GetData(props.fieldKey, ListField, new Array<Document>());
+        const value = Cast(props.Document[props.fieldKey], listSpec(Doc), []);
         let index = -1;
         for (let i = 0; i < value.length; i++) {
-            if (value[i].Id === doc.Id) {
+            if (value[i][Id] === doc[Id]) {
                 index = i;
                 break;
             }
         }
-        doc.GetTAsync(KeyStore.AnnotationOn, Document).then((annotationOn) => {
+        PromiseValue(Cast(doc.annotationOn, Doc)).then((annotationOn) => {
             if (annotationOn === props.Document) {
-                doc.Set(KeyStore.AnnotationOn, undefined, true);
+                doc.annotationOn = undefined;
             }
         });
 
@@ -169,11 +140,12 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
     }
 
     @action.bound
-    moveDocument(doc: Document, targetCollection: Document, addDocument: (doc: Document) => boolean): boolean {
+    moveDocument(doc: Doc, targetCollection: Doc, addDocument: (doc: Doc) => boolean): boolean {
         if (this.props.Document === targetCollection) {
             return true;
         }
         if (this.removeDocument(doc)) {
+            SelectionManager.DeselectAll();
             return addDocument(doc);
         }
         return false;
@@ -189,7 +161,9 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         };
         const viewtype = this.collectionViewType;
         return (
-            <div className={this.props.className || "collectionView-cont"} onContextMenu={this.props.onContextMenu} ref={this.props.contentRef}>
+            <div className={this.props.className || "collectionView-cont"}
+                style={{ borderRadius: "inherit", pointerEvents: "all" }}
+                onContextMenu={this.props.onContextMenu} ref={this.props.contentRef}>
                 {viewtype !== undefined ? this.props.children(viewtype, props) : (null)}
             </div>
         );

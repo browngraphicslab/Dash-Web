@@ -1,15 +1,14 @@
 import * as ReactDOM from 'react-dom';
 import * as rp from 'request-promise';
-import { Documents } from '../client/documents/Documents';
-import { Server } from '../client/Server';
-import { Document } from '../fields/Document';
-import { KeyStore } from '../fields/KeyStore';
-import { ListField } from '../fields/ListField';
+import { Docs } from '../client/documents/Documents';
 import { RouteStore } from '../server/RouteStore';
-import { ServerUtils } from '../server/ServerUtil';
 import "./ImageUpload.scss";
 import React = require('react');
-import { Opt } from '../fields/Field';
+import { DocServer } from '../client/DocServer';
+import { Opt, Doc } from '../new_fields/Doc';
+import { Cast } from '../new_fields/Types';
+import { listSpec } from '../new_fields/Schema';
+import { List } from '../new_fields/List';
 
 
 
@@ -38,21 +37,24 @@ const onFileLoad = async (file: any) => {
             const json = await res.json();
             json.map(async (file: any) => {
                 let path = window.location.origin + file;
-                var doc: Document = Documents.ImageDocument(path, { nativeWidth: 200, width: 200 });
+                var doc = Docs.ImageDocument(path, { nativeWidth: 200, width: 200 });
 
-                const res = await rp.get(ServerUtils.prepend(RouteStore.getUserDocumentId));
+                const res = await rp.get(DocServer.prepend(RouteStore.getUserDocumentId));
                 if (!res) {
                     throw new Error("No user id returned");
                 }
-                const field = await Server.GetField(res);
-                let pending: Opt<Document>;
-                if (field instanceof Document) {
-                    pending = await field.GetTAsync(KeyStore.OptionalRightCollection, Document);
+                const field = await DocServer.GetRefField(res);
+                let pending: Opt<Doc>;
+                if (field instanceof Doc) {
+                    pending = await Cast(field.optionalRightCollection, Doc);
                 }
                 if (pending) {
-                    pending.GetOrCreateAsync(KeyStore.Data, ListField, list => {
-                        list.Data.push(doc);
-                    });
+                    const data = await Cast(pending.data, listSpec(Doc));
+                    if (data) {
+                        data.push(doc);
+                    } else {
+                        pending.data = new List([doc]);
+                    }
                 }
             });
 

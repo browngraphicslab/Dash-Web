@@ -1,15 +1,9 @@
 import { action, computed, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Document } from "../../../fields/Document";
-import { Field, Opt } from "../../../fields/Field";
-import { Key } from "../../../fields/Key";
-import { KeyStore } from "../../../fields/KeyStore";
-import { ListField } from "../../../fields/ListField";
-import { ServerUtils } from "../../../server/ServerUtil";
 import { emptyFunction, Utils } from "../../../Utils";
-import { Documents } from "../../documents/Documents";
+import { Docs } from "../../documents/Documents";
 import { DocumentManager } from "../../util/DocumentManager";
-import { DragManager } from "../../util/DragManager";
+import { DragManager, dropActionType } from "../../util/DragManager";
 import { SelectionManager } from "../../util/SelectionManager";
 import { Transform } from "../../util/Transform";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
@@ -18,16 +12,35 @@ import { CollectionPDFView } from "../collections/CollectionPDFView";
 import { CollectionVideoView } from "../collections/CollectionVideoView";
 import { CollectionView } from "../collections/CollectionView";
 import { ContextMenu } from "../ContextMenu";
+import { Template, Templates } from "./../Templates";
 import { DocumentContentsView } from "./DocumentContentsView";
 import "./DocumentView.scss";
 import React = require("react");
-import { TextField } from "../../../fields/TextField";
-import { string } from "prop-types";
-import { NumberField } from "../../../fields/NumberField";
+import { Opt, Doc, WidthSym, HeightSym } from "../../../new_fields/Doc";
+import { DocComponent } from "../DocComponent";
+import { createSchema, makeInterface } from "../../../new_fields/Schema";
+import { FieldValue, StrCast, BoolCast } from "../../../new_fields/Types";
+import { List } from "../../../new_fields/List";
+import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
+import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
+import { DocServer } from "../../DocServer";
+import { Id } from "../../../new_fields/RefField";
+import { PresentationView } from "../PresentationView";
+
+const linkSchema = createSchema({
+    title: "string",
+    linkDescription: "string",
+    linkTags: "string",
+    linkedTo: Doc,
+    linkedFrom: Doc
+});
+
+type LinkDoc = makeInterface<[typeof linkSchema]>;
+const LinkDoc = makeInterface(linkSchema);
 
 export interface DocumentViewProps {
     ContainingCollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
-    Document: Document;
+    Document: Doc;
     addDocument?: (doc: Document, allowDuplicates?: boolean) => boolean;
     removeDocument?: (doc: Document) => boolean;
     moveDocument?: (doc: Document, targetCollection: Document, addDocument: (document: Document) => boolean) => boolean;
@@ -40,50 +53,34 @@ export interface DocumentViewProps {
     selectOnLoad: boolean;
     parentActive: () => boolean;
     whenActiveChanged: (isActive: boolean) => void;
-}
-export interface JsxArgs extends DocumentViewProps {
-    Keys: { [name: string]: Key };
-    Fields: { [name: string]: Field };
+    toggleMinimized: () => void;
+    bringToFront: (doc: Doc) => void;
 }
 
-/*
-This function is pretty much a hack that lets us fill out the fields in JsxArgs with something that
-jsx-to-string can recover the jsx from
-Example usage of this function:
-    public static LayoutString() {
-        let args = FakeJsxArgs(["Data"]);
-        return jsxToString(
-            <CollectionFreeFormView
-                doc={args.Document}
-                fieldKey={args.Keys.Data}
-                DocumentViewForField={args.DocumentView} />,
-            { useFunctionCode: true, functionNameOnly: true }
-        )
-    }
-*/
-export function FakeJsxArgs(keys: string[], fields: string[] = []): JsxArgs {
-    let Keys: { [name: string]: any } = {};
-    let Fields: { [name: string]: any } = {};
-    for (const key of keys) {
-        Object.defineProperty(emptyFunction, "name", { value: key + "Key" });
-        Keys[key] = emptyFunction;
-    }
-    for (const field of fields) {
-        Object.defineProperty(emptyFunction, "name", { value: field });
-        Fields[field] = emptyFunction;
-    }
-    let args: JsxArgs = {
-        Document: function Document() { },
-        DocumentView: function DocumentView() { },
-        Keys,
-        Fields
-    } as any;
-    return args;
-}
+const schema = createSchema({
+    layout: "string",
+    nativeWidth: "number",
+    nativeHeight: "number",
+    backgroundColor: "string"
+});
+
+export const positionSchema = createSchema({
+    nativeWidth: "number",
+    nativeHeight: "number",
+    width: "number",
+    height: "number",
+    x: "number",
+    y: "number",
+});
+
+export type PositionDocument = makeInterface<[typeof positionSchema]>;
+export const PositionDocument = makeInterface(positionSchema);
+
+type Document = makeInterface<[typeof schema]>;
+const Document = makeInterface(schema);
 
 @observer
-export class DocumentView extends React.Component<DocumentViewProps> {
-    static _incompleteAnimations: Map<string, boolean> = new Map<string, boolean>();
+export class DocumentView extends DocComponent<DocumentViewProps, Document>(Document) {
     private _downX: number = 0;
     private _downY: number = 0;
     private _mainCont = React.createRef<HTMLDivElement>();
@@ -92,43 +89,26 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     public get ContentDiv() { return this._mainCont.current; }
     @computed get active(): boolean { return SelectionManager.IsSelected(this) || this.props.parentActive(); }
     @computed get topMost(): boolean { return this.props.isTopMost; }
-    @computed get layout(): string { return this.props.Document.GetText(KeyStore.Layout, "<p>Error loading layout data</p>"); }
-    @computed get layoutKeys(): Key[] { return this.props.Document.GetData(KeyStore.LayoutKeys, ListField, new Array<Key>()); }
-    @computed get layoutFields(): Key[] { return this.props.Document.GetData(KeyStore.LayoutFields, ListField, new Array<Key>()); }
-
-    onPointerDown = (e: React.PointerEvent): void => {
-        this._downX = e.clientX;
-        this._downY = e.clientY;
-        if (e.button === 2 && !this.isSelected()) {
-            return;
+    @computed get templates(): List<string> {
+        let field = this.props.Document.templates;
+        if (field && field instanceof List) {
+            return field;
         }
-        if (e.shiftKey && e.buttons === 2) {
-            if (this.props.isTopMost) {
-                this.startDragging(e.pageX, e.pageY, e.altKey || e.ctrlKey);
-            } else {
-                CollectionDockingView.Instance.StartOtherDrag([this.props.Document], e);
-            }
-            e.stopPropagation();
-        } else {
-            if (this.active) {
-                e.stopPropagation();
-                document.removeEventListener("pointermove", this.onPointerMove);
-                document.addEventListener("pointermove", this.onPointerMove);
-                document.removeEventListener("pointerup", this.onPointerUp);
-                document.addEventListener("pointerup", this.onPointerUp);
-            }
-        }
+        return new List<string>();
     }
+    set templates(templates: List<string>) { this.props.Document.templates = templates; }
+    screenRect = (): ClientRect | DOMRect => this._mainCont.current ? this._mainCont.current.getBoundingClientRect() : new DOMRect();
 
+    @action
     componentDidMount() {
         if (this._mainCont.current) {
             this._dropDisposer = DragManager.MakeDropTarget(this._mainCont.current, {
                 handlers: { drop: this.drop.bind(this) }
             });
         }
-        runInAction(() => DocumentManager.Instance.DocumentViews.push(this));
+        DocumentManager.Instance.DocumentViews.push(this);
     }
-
+    @action
     componentDidUpdate() {
         if (this._dropDisposer) {
             this._dropDisposer();
@@ -139,228 +119,145 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             });
         }
     }
-
+    @action
     componentWillUnmount() {
         if (this._dropDisposer) {
             this._dropDisposer();
         }
-        runInAction(() => DocumentManager.Instance.DocumentViews.splice(DocumentManager.Instance.DocumentViews.indexOf(this), 1));
+        DocumentManager.Instance.DocumentViews.splice(DocumentManager.Instance.DocumentViews.indexOf(this), 1);
     }
 
-    startDragging(x: number, y: number, dropAliasOfDraggedDoc: boolean) {
+    stopPropagation = (e: React.SyntheticEvent) => {
+        e.stopPropagation();
+    }
+
+    startDragging(x: number, y: number, dropAction: dropActionType) {
         if (this._mainCont.current) {
-            const [left, top] = this.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
+            const [left, top] = this.props.ScreenToLocalTransform().scale(this.props.ContentScaling()).inverse().transformPoint(0, 0);
             let dragData = new DragManager.DocumentDragData([this.props.Document]);
-            dragData.aliasOnDrop = dropAliasOfDraggedDoc;
-            dragData.xOffset = x - left;
-            dragData.yOffset = y - top;
+            const [xoff, yoff] = this.props.ScreenToLocalTransform().scale(this.props.ContentScaling()).transformDirection(x - left, y - top);
+            dragData.dropAction = dropAction;
+            dragData.xOffset = xoff;
+            dragData.yOffset = yoff;
             dragData.moveDocument = this.props.moveDocument;
             DragManager.StartDocumentDrag([this._mainCont.current], dragData, x, y, {
                 handlers: {
                     dragComplete: action(emptyFunction)
                 },
-                hideSource: !dropAliasOfDraggedDoc
+                hideSource: !dropAction
             });
         }
     }
 
-    onPointerMove = (e: PointerEvent): void => {
-        if (e.cancelBubble) {
+    onClick = (e: React.MouseEvent): void => {
+        if (CurrentUserUtils.MainDocId !== this.props.Document[Id] &&
+            (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD &&
+                Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD)) {
+            SelectionManager.SelectDoc(this, e.ctrlKey);
+        }
+    }
+    onPointerDown = (e: React.PointerEvent): void => {
+        this._downX = e.clientX;
+        this._downY = e.clientY;
+        if (CollectionFreeFormView.RIGHT_BTN_DRAG && (e.button === 2 || (e.button === 0 && e.altKey)) && !this.isSelected()) {
             return;
         }
-        if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3) {
-            document.removeEventListener("pointermove", this.onPointerMove);
-            document.removeEventListener("pointerup", this.onPointerUp);
-            if (!e.altKey && (!this.topMost || e.buttons === 2)) {
-                this.startDragging(this._downX, this._downY, e.ctrlKey || e.altKey);
+        if (e.shiftKey && e.buttons === 1) {
+            if (this.props.isTopMost) {
+                this.startDragging(e.pageX, e.pageY, e.altKey || e.ctrlKey ? "alias" : undefined);
+            } else {
+                CollectionDockingView.Instance.StartOtherDrag([this.props.Document], e);
             }
+            e.stopPropagation();
+        } else if (this.active) {
+            document.removeEventListener("pointermove", this.onPointerMove);
+            document.addEventListener("pointermove", this.onPointerMove);
+            document.removeEventListener("pointerup", this.onPointerUp);
+            document.addEventListener("pointerup", this.onPointerUp);
         }
-        e.stopPropagation();
-        e.preventDefault();
+    }
+    onPointerMove = (e: PointerEvent): void => {
+        if (!e.cancelBubble) {
+            if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3) {
+                document.removeEventListener("pointermove", this.onPointerMove);
+                document.removeEventListener("pointerup", this.onPointerUp);
+                if (!e.altKey && !this.topMost && (!CollectionFreeFormView.RIGHT_BTN_DRAG && e.buttons === 1) || (CollectionFreeFormView.RIGHT_BTN_DRAG && e.buttons === 2)) {
+                    this.startDragging(this._downX, this._downY, e.ctrlKey || e.altKey ? "alias" : undefined);
+                }
+            }
+            e.stopPropagation(); // doesn't actually stop propagation since all our listeners are listening to events on 'document'  however it does mark the event as cancelBubble=true which we test for in the move event handlers
+            e.preventDefault();
+        }
     }
     onPointerUp = (e: PointerEvent): void => {
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
-        e.stopPropagation();
-        if (!SelectionManager.IsSelected(this) && e.button !== 2 &&
-            Math.abs(e.clientX - this._downX) < 4 && Math.abs(e.clientY - this._downY) < 4) {
-            this.props.Document.GetTAsync(KeyStore.MaximizedDoc, Document).then(maxdoc => {
-                if (maxdoc instanceof Document) {
-                    this.props.addDocument && this.props.addDocument(maxdoc, false);
-                    this.toggleIcon();
-                } else {
-                    SelectionManager.SelectDoc(this, e.ctrlKey);
-                }
-            });
-        }
-    }
-    stopPropagation = (e: React.SyntheticEvent) => {
-        e.stopPropagation();
     }
 
     deleteClicked = (): void => {
         this.props.removeDocument && this.props.removeDocument(this.props.Document);
     }
-
     fieldsClicked = (e: React.MouseEvent): void => {
-        if (this.props.addDocument) {
-            this.props.addDocument(Documents.KVPDocument(this.props.Document, { width: 300, height: 300 }), false);
+        let kvp = Docs.KVPDocument(this.props.Document, { width: 300, height: 300 });
+        CollectionDockingView.Instance.AddRightSplit(kvp);
+    }
+    makeButton = (e: React.MouseEvent): void => {
+        this.props.Document.isButton = !BoolCast(this.props.Document.isButton, false);
+        if (this.props.Document.isButton && !this.props.Document.nativeWidth) {
+            this.props.Document.nativeWidth = this.props.Document[WidthSym]();
+            this.props.Document.nativeHeight = this.props.Document[HeightSym]();
         }
     }
     fullScreenClicked = (e: React.MouseEvent): void => {
-        CollectionDockingView.Instance.OpenFullScreen((this.props.Document.GetPrototype() as Document).MakeDelegate());
+        const doc = Doc.MakeDelegate(FieldValue(this.Document.proto));
+        if (doc) {
+            CollectionDockingView.Instance.OpenFullScreen(doc);
+        }
         ContextMenu.Instance.clearItems();
-        ContextMenu.Instance.addItem({ description: "Close Full Screen", event: this.closeFullScreenClicked });
-        ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15);
-    }
-
-    closeFullScreenClicked = (e: React.MouseEvent): void => {
-        CollectionDockingView.Instance.CloseFullScreen();
-        ContextMenu.Instance.clearItems();
-        ContextMenu.Instance.addItem({ description: "Full Screen", event: this.fullScreenClicked });
-        ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15);
-    }
-
-    @action createIcon = (layoutString: string): Document => {
-        let iconDoc = Documents.IconDocument(layoutString);
-        iconDoc.SetText(KeyStore.Title, "ICON" + this.props.Document.Title);
-        iconDoc.SetBoolean(KeyStore.IsMinimized, false);
-        iconDoc.SetNumber(KeyStore.NativeWidth, 0);
-        iconDoc.SetNumber(KeyStore.NativeHeight, 0);
-        iconDoc.SetNumber(KeyStore.X, this.props.Document.GetNumber(KeyStore.X, 0));
-        iconDoc.SetNumber(KeyStore.Y, this.props.Document.GetNumber(KeyStore.Y, 0) - 24);
-        iconDoc.Set(KeyStore.Prototype, this.props.Document);
-        iconDoc.Set(KeyStore.MaximizedDoc, this.props.Document);
-        this.props.Document.Set(KeyStore.MinimizedDoc, iconDoc);
-        this.props.addDocument && this.props.addDocument(iconDoc, false);
-        return iconDoc;
-    }
-
-    animateBetweenIcon(icon: number[], targ: number[], width: number, height: number, stime: number, target: Document, maximizing: boolean) {
-        setTimeout(() => {
-            let now = Date.now();
-            let progress = Math.min(1, (now - stime) / 200);
-            let pval = maximizing ?
-                [icon[0] + (targ[0] - icon[0]) * progress, icon[1] + (targ[1] - icon[1]) * progress] :
-                [targ[0] + (icon[0] - targ[0]) * progress, targ[1] + (icon[1] - targ[1]) * progress];
-            target.SetNumber(KeyStore.Width, maximizing ? 25 + (width - 25) * progress : width + (25 - width) * progress);
-            target.SetNumber(KeyStore.Height, maximizing ? 25 + (height - 25) * progress : height + (25 - height) * progress);
-            target.SetNumber(KeyStore.X, pval[0]);
-            target.SetNumber(KeyStore.Y, pval[1]);
-            if (now < stime + 200) {
-                this.animateBetweenIcon(icon, targ, width, height, stime, target, maximizing);
-            }
-            else {
-                if (!maximizing) {
-                    target.SetBoolean(KeyStore.IsMinimized, true);
-                    target.SetNumber(KeyStore.X, targ[0]);
-                    target.SetNumber(KeyStore.Y, targ[1]);
-                    target.SetNumber(KeyStore.Width, width);
-                    target.SetNumber(KeyStore.Height, height);
-                }
-                DocumentView._incompleteAnimations.set(target.Id, false);
-            }
-        },
-            2);
-    }
-
-    @action
-    public toggleIcon = async (): Promise<void> => {
         SelectionManager.DeselectAll();
-        let isMinimized: boolean | undefined;
-        let minDoc = await this.props.Document.GetTAsync(KeyStore.MinimizedDoc, Document);
-        if (!minDoc) return;
-        let minimizedDocSet = await minDoc.GetTAsync(KeyStore.LinkTags, ListField);
-        if (!minimizedDocSet) return;
-        minimizedDocSet.Data.map(async minimizedDoc => {
-            if (minimizedDoc instanceof Document) {
-                this.props.addDocument && this.props.addDocument(minimizedDoc, false);
-                let maximizedDoc = await minimizedDoc.GetTAsync(KeyStore.MaximizedDoc, Document);
-                if (maximizedDoc instanceof Document && !DocumentView._incompleteAnimations.get(maximizedDoc.Id)) {
-                    DocumentView._incompleteAnimations.set(maximizedDoc.Id, true);
-                    isMinimized = isMinimized === undefined ? maximizedDoc.GetBoolean(KeyStore.IsMinimized, false) : isMinimized;
-                    maximizedDoc.SetBoolean(KeyStore.IsMinimized, false);
-                    let minx = await minimizedDoc.GetTAsync(KeyStore.X, NumberField);
-                    let miny = await minimizedDoc.GetTAsync(KeyStore.Y, NumberField);
-                    let maxx = await maximizedDoc.GetTAsync(KeyStore.X, NumberField);
-                    let maxy = await maximizedDoc.GetTAsync(KeyStore.Y, NumberField);
-                    let maxw = await maximizedDoc.GetTAsync(KeyStore.Width, NumberField);
-                    let maxh = await maximizedDoc.GetTAsync(KeyStore.Height, NumberField);
-                    if (minx !== undefined && miny !== undefined && maxx !== undefined && maxy !== undefined &&
-                        maxw !== undefined && maxh !== undefined) {
-                        this.animateBetweenIcon(
-                            [minx.Data, miny.Data], [maxx.Data, maxy.Data], maxw.Data, maxh.Data,
-                            Date.now(), maximizedDoc, isMinimized);
-                    }
-                }
-
-            }
-        });
     }
-
-    @action
-    public getIconDoc = async (): Promise<Document | undefined> => {
-        return this.props.Document.GetTAsync(KeyStore.MinimizedDoc, Document).then(async mindoc =>
-            mindoc ? mindoc :
-                this.props.Document.GetTAsync(KeyStore.BackgroundLayout, TextField).then(async field =>
-                    (field instanceof TextField) ? this.createIcon(field.Data) :
-                        this.props.Document.GetTAsync(KeyStore.Layout, TextField).then(field =>
-                            (field instanceof TextField) ? this.createIcon(field.Data) : undefined)));
-    }
-
     @undoBatch
     @action
-    drop = (e: Event, de: DragManager.DropEvent) => {
+    drop = async (e: Event, de: DragManager.DropEvent) => {
         if (de.data instanceof DragManager.LinkDragData) {
-            let sourceDoc: Document = de.data.linkSourceDocument;
-            let destDoc: Document = this.props.Document;
-            let linkDoc: Document = new Document();
+            let sourceDoc = de.data.linkSourceDocument;
+            let destDoc = this.props.Document;
 
-            destDoc.GetTAsync(KeyStore.Prototype, Document).then(protoDest =>
-                sourceDoc.GetTAsync(KeyStore.Prototype, Document).then(protoSrc =>
-                    runInAction(() => {
-                        let batch = UndoManager.StartBatch("document view drop");
-                        linkDoc.SetText(KeyStore.Title, "New Link");
-                        linkDoc.SetText(KeyStore.LinkDescription, "");
-                        linkDoc.SetText(KeyStore.LinkTags, "Default");
-
-                        let dstTarg = protoDest ? protoDest : destDoc;
-                        let srcTarg = protoSrc ? protoSrc : sourceDoc;
-                        linkDoc.Set(KeyStore.LinkedToDocs, dstTarg);
-                        linkDoc.Set(KeyStore.LinkedFromDocs, srcTarg);
-                        const prom1 = new Promise(resolve => dstTarg.GetOrCreateAsync(
-                            KeyStore.LinkedFromDocs,
-                            ListField,
-                            field => {
-                                (field as ListField<Document>).Data.push(linkDoc);
-                                resolve();
-                            }
-                        ));
-                        const prom2 = new Promise(resolve => srcTarg.GetOrCreateAsync(
-                            KeyStore.LinkedToDocs,
-                            ListField,
-                            field => {
-                                (field as ListField<Document>).Data.push(linkDoc);
-                                resolve();
-                            }
-                        ));
-                        Promise.all([prom1, prom2]).finally(() => batch.end());
-                    })
-                )
-            );
+            const protoDest = destDoc.proto;
+            const protoSrc = sourceDoc.proto;
+            Doc.MakeLink(protoSrc ? protoSrc : sourceDoc, protoDest ? protoDest : destDoc);
             e.stopPropagation();
         }
     }
 
+    @action
     onDrop = (e: React.DragEvent) => {
         let text = e.dataTransfer.getData("text/plain");
         if (!e.isDefaultPrevented() && text && text.startsWith("<div")) {
-            let oldLayout = this.props.Document.GetText(KeyStore.Layout, "");
+            let oldLayout = FieldValue(this.Document.layout) || "";
             let layout = text.replace("{layout}", oldLayout);
-            this.props.Document.SetText(KeyStore.Layout, layout);
+            this.Document.layout = layout;
             e.stopPropagation();
             e.preventDefault();
         }
+    }
+
+
+    @action
+    addTemplate = (template: Template) => {
+        this.templates.push(template.Layout);
+        this.templates = this.templates;
+    }
+
+    @action
+    removeTemplate = (template: Template) => {
+        for (let i = 0; i < this.templates.length; i++) {
+            if (this.templates[i] === template.Layout) {
+                this.templates.splice(i, 1);
+                break;
+            }
+        }
+        this.templates = this.templates;
     }
 
     @action
@@ -374,26 +271,32 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         e.preventDefault();
 
         ContextMenu.Instance.addItem({ description: "Full Screen", event: this.fullScreenClicked });
+        ContextMenu.Instance.addItem({ description: this.props.Document.isButton ? "Remove Button" : "Make Button", event: this.makeButton });
         ContextMenu.Instance.addItem({ description: "Fields", event: this.fieldsClicked });
         ContextMenu.Instance.addItem({ description: "Center", event: () => this.props.focus(this.props.Document) });
         ContextMenu.Instance.addItem({ description: "Open Right", event: () => CollectionDockingView.Instance.AddRightSplit(this.props.Document) });
-        ContextMenu.Instance.addItem({ description: "Copy URL", event: () => Utils.CopyText(ServerUtils.prepend("/doc/" + this.props.Document.Id)) });
-        ContextMenu.Instance.addItem({ description: "Copy ID", event: () => Utils.CopyText(this.props.Document.Id) });
+        ContextMenu.Instance.addItem({ description: "Copy URL", event: () => Utils.CopyText(DocServer.prepend("/doc/" + this.props.Document[Id])) });
+        ContextMenu.Instance.addItem({ description: "Copy ID", event: () => Utils.CopyText(this.props.Document[Id]) });
         //ContextMenu.Instance.addItem({ description: "Docking", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Docking) })
+        ContextMenu.Instance.addItem({ description: "Pin to Presentation", event: () => PresentationView.Instance.PinDoc(this.props.Document) });
         ContextMenu.Instance.addItem({ description: "Delete", event: this.deleteClicked });
+        if (!this.topMost) {
+            // DocumentViews should stop propagation of this event
+            e.stopPropagation();
+        }
         ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15);
         if (!SelectionManager.IsSelected(this)) {
             SelectionManager.SelectDoc(this, false);
         }
     }
 
+
     isSelected = () => SelectionManager.IsSelected(this);
     select = (ctrlPressed: boolean) => SelectionManager.SelectDoc(this, ctrlPressed);
 
-    @computed get nativeWidth() { return this.props.Document.GetNumber(KeyStore.NativeWidth, 0); }
-    @computed get nativeHeight() { return this.props.Document.GetNumber(KeyStore.NativeHeight, 0); }
-    @computed get contents() { return (<DocumentContentsView {...this.props} isSelected={this.isSelected} select={this.select} layoutKey={KeyStore.Layout} />); }
-
+    @computed get nativeWidth() { return this.Document.nativeWidth || 0; }
+    @computed get nativeHeight() { return this.Document.nativeHeight || 0; }
+    @computed get contents() { return (<DocumentContentsView {...this.props} isSelected={this.isSelected} select={this.select} layoutKey={"layout"} />); }
 
     render() {
         var scaling = this.props.ContentScaling();
@@ -404,11 +307,13 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             <div className={`documentView-node${this.props.isTopMost ? "-topmost" : ""}`}
                 ref={this._mainCont}
                 style={{
-                    background: this.props.Document.GetText(KeyStore.BackgroundColor, ""),
-                    width: nativeWidth, height: nativeHeight,
+                    borderRadius: "inherit",
+                    background: this.Document.backgroundColor || "",
+                    width: nativeWidth,
+                    height: nativeHeight,
                     transform: `scale(${scaling}, ${scaling})`
                 }}
-                onDrop={this.onDrop} onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown}
+                onDrop={this.onDrop} onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown} onClick={this.onClick}
             >
                 {this.contents}
             </div>

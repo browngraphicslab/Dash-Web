@@ -3,18 +3,18 @@ import * as ReactDOM from "react-dom";
 import { observer } from "mobx-react";
 import { observable, reaction, action, IReactionDisposer, observe, IObservableArray } from "mobx";
 import "./Timeline.scss";
-import { KeyStore } from "../../../fields/KeyStore";
-import { Document } from "../../../fields/Document";
 import { KeyFrame } from "./KeyFrame";
 import { CollectionViewProps } from "../collections/CollectionBaseView";
 import { CollectionSubView, SubCollectionViewProps } from "../collections/CollectionSubView";
 import { DocumentViewProps } from "./DocumentView";
 
-import { Opt } from '../../../fields/Field';
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
+import { Doc } from "../../../new_fields/Doc";
+import { Document } from "../../../new_fields/Schema";
+import { FieldValue } from "../../../new_fields/Types";
 
 @observer
-export class Timeline extends React.Component<SubCollectionViewProps> {
+export class Timeline extends CollectionSubView(Document) {
     @observable private _inner = React.createRef<HTMLDivElement>();
     @observable private _isRecording: Boolean = false;
     @observable private _currentBar: any = null;
@@ -66,14 +66,14 @@ export class Timeline extends React.Component<SubCollectionViewProps> {
             this._inner.current.appendChild(this._currentBar);
         }
         let doc: Document = this.props.Document;
-        let childrenList = this.props.Document.GetList(this.props.fieldKey, [] as Document[]);
+        let childrenList = this.children;
         // let keyFrame = new KeyFrame(); //should not be done here...
-        // this._keyFrames.push(keyFrame);
-        let keys = [KeyStore.X, KeyStore.Y];
+        // this._keyFrames.push(keyFrame)";
+        let keys = ["x", "y"];
         const addReaction = (element: Document) => {
             return reaction(() => {
 
-                return keys.map(key => element.GetNumber(key, 0));
+                return keys.map(key => FieldValue(element[key]));
             }, data => {
                 if (this._inner.current) {
                     let keyFrame: KeyFrame;
@@ -87,7 +87,7 @@ export class Timeline extends React.Component<SubCollectionViewProps> {
                         keyFrame = this._keyFrames[this._currentBarX];
                     }
                     keys.forEach((key, index) => {
-                        keyFrame.document.SetNumber(key, data[index]); //Tyler working on better Doc.ts functions...(this is currently not comprehensive...)
+                        keyFrame.document[key] = data[index];
                     });
                 }
             });

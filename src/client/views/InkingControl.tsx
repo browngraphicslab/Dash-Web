@@ -2,15 +2,14 @@ import { observable, action, computed } from "mobx";
 
 import { CirclePicker, ColorResult } from 'react-color';
 import React = require("react");
-import { InkTool } from "../../fields/InkField";
 import { observer } from "mobx-react";
 import "./InkingControl.scss";
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPen, faHighlighter, faEraser, faBan } from '@fortawesome/free-solid-svg-icons';
 import { SelectionManager } from "../util/SelectionManager";
-import { KeyStore } from "../../fields/KeyStore";
-import { TextField } from "../../fields/TextField";
+import { InkTool } from "../../new_fields/InkField";
+import { Doc } from "../../new_fields/Doc";
 
 library.add(faPen, faHighlighter, faEraser, faBan);
 
@@ -39,7 +38,7 @@ export class InkingControl extends React.Component {
         if (SelectionManager.SelectedDocuments().length === 1) {
             var sdoc = SelectionManager.SelectedDocuments()[0];
             if (sdoc.props.ContainingCollectionView) {
-                sdoc.props.Document.SetDataOnPrototype(KeyStore.BackgroundColor, color.hex, TextField);
+                Doc.SetOnPrototype(sdoc.props.Document, "backgroundColor", color.hex);
             }
         }
     }

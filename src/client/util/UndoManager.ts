@@ -1,4 +1,4 @@
-import { observable, action } from "mobx";
+import { observable, action, runInAction } from "mobx";
 import 'source-map-support/register';
 import { Without } from "../../Utils";
 import { string } from "prop-types";
@@ -140,10 +140,11 @@ export namespace UndoManager {
         }
     });
 
-    export function RunInBatch(fn: () => void, batchName: string) {
+    //TODO Make this return the return value
+    export function RunInBatch<T>(fn: () => T, batchName: string) {
         let batch = StartBatch(batchName);
         try {
-            fn();
+            return runInAction(fn);
         } finally {
             batch.end();
         }

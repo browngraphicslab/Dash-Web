@@ -1,6 +1,5 @@
 import { action, observable, trace } from "mobx";
 import { observer } from "mobx-react";
-import { KeyStore } from "../../../fields/KeyStore";
 import { ContextMenu } from "../ContextMenu";
 import { CollectionViewType, CollectionBaseView, CollectionRenderProps } from "./CollectionBaseView";
 import React = require("react");
@@ -8,17 +7,18 @@ import "./CollectionVideoView.scss";
 import { CollectionFreeFormView } from "./collectionFreeForm/CollectionFreeFormView";
 import { FieldView, FieldViewProps } from "../nodes/FieldView";
 import { emptyFunction } from "../../../Utils";
+import { Id } from "../../../new_fields/RefField";
+import { VideoBox } from "../nodes/VideoBox";
 
 
 @observer
 export class CollectionVideoView extends React.Component<FieldViewProps> {
-    private _intervalTimer: any = undefined;
-    private _player: HTMLVideoElement | undefined = undefined;
+    private _videoBox: VideoBox | undefined = undefined;
+    @observable _playTimer?: NodeJS.Timeout = undefined;
 
     @observable _currentTimecode: number = 0;
-    @observable _isPlaying: boolean = false;
 
-    public static LayoutString(fieldKey: string = "DataKey") {
+    public static LayoutString(fieldKey: string = "data") {
         return FieldView.LayoutString(CollectionVideoView, fieldKey);
     }
     private get uIButtons() {
@@ -29,7 +29,7 @@ export class CollectionVideoView extends React.Component<FieldViewProps> {
                 <span style={{ fontSize: 8 }}>{" " + Math.round((this._currentTimecode - Math.trunc(this._currentTimecode)) * 100)}</span>
             </div>,
             <div className="collectionVideoView-play" key="play" onPointerDown={this.onPlayDown} style={{ transform: `scale(${scaling}, ${scaling})` }}>
-                {this._isPlaying ? "\"" : ">"}
+                {this._playTimer ? "\"" : ">"}
             </div>,
             <div className="collectionVideoView-full" key="full" onPointerDown={this.onFullDown} style={{ transform: `scale(${scaling}, ${scaling})` }}>
                 F
@@ -38,53 +38,36 @@ export class CollectionVideoView extends React.Component<FieldViewProps> {
     }
 
     @action
-    mainCont = (ele: HTMLDivElement | null) => {
-        if (ele) {
-            this._player = ele.getElementsByTagName("video")[0];
-            if (this.props.Document.GetNumber(KeyStore.CurPage, -1) >= 0) {
-                this._currentTimecode = this.props.Document.GetNumber(KeyStore.CurPage, -1);
-            }
-        }
-    }
-
-    componentDidMount() {
-        this._intervalTimer = setInterval(this.updateTimecode, 1000);
-    }
-
-    componentWillUnmount() {
-        clearInterval(this._intervalTimer);
-    }
-
-    @action
     updateTimecode = () => {
-        if (this._player) {
-            if ((this._player as any).AHackBecauseSomethingResetsTheVideoToZero !== -1) {
-                this._player.currentTime = (this._player as any).AHackBecauseSomethingResetsTheVideoToZero;
-                (this._player as any).AHackBecauseSomethingResetsTheVideoToZero = -1;
-            } else {
-                this._currentTimecode = this._player.currentTime;
-                this.props.Document.SetNumber(KeyStore.CurPage, Math.round(this._currentTimecode));
-            }
+        if (this._videoBox && this._videoBox.player) {
+            this._currentTimecode = this._videoBox.player.currentTime;
+            this.props.Document.curPage = Math.round(this._currentTimecode);
         }
     }
+
+    componentDidMount() { this.updateTimecode(); }
+
+    componentWillUnmount() { if (this._playTimer) clearInterval(this._playTimer); }
 
     @action
     onPlayDown = () => {
-        if (this._player) {
-            if (this._player.paused) {
-                this._player.play();
-                this._isPlaying = true;
+        if (this._videoBox && this._videoBox.player) {
+            if (this._videoBox.player.paused) {
+                this._videoBox.player.play();
+                if (!this._playTimer) this._playTimer = setInterval(this.updateTimecode, 1000);
             } else {
-                this._player.pause();
-                this._isPlaying = false;
+                this._videoBox.player.pause();
+                if (this._playTimer) clearInterval(this._playTimer);
+                this._playTimer = undefined;
+
             }
         }
     }
 
     @action
     onFullDown = (e: React.PointerEvent) => {
-        if (this._player) {
-            this._player.requestFullscreen();
+        if (this._videoBox && this._videoBox.player) {
+            this._videoBox.player.requestFullscreen();
             e.stopPropagation();
             e.preventDefault();
         }
@@ -92,33 +75,34 @@ export class CollectionVideoView extends React.Component<FieldViewProps> {
 
     @action
     onResetDown = () => {
-        if (this._player) {
-            this._player.pause();
-            this._player.currentTime = 0;
+        if (this._videoBox && this._videoBox.player) {
+            this._videoBox.player.pause();
+            this._videoBox.player.currentTime = 0;
+            if (this._playTimer) clearInterval(this._playTimer);
+            this._playTimer = undefined;
+            this.updateTimecode();
         }
-
     }
 
     onContextMenu = (e: React.MouseEvent): void => {
-        if (!e.isPropagationStopped() && this.props.Document.Id !== "mainDoc") { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
+        if (!e.isPropagationStopped() && this.props.Document[Id] !== "mainDoc") { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
             ContextMenu.Instance.addItem({ description: "VideoOptions", event: emptyFunction });
         }
     }
 
+    setVideoBox = (player: VideoBox) => { this._videoBox = player; }
+
     private subView = (_type: CollectionViewType, renderProps: CollectionRenderProps) => {
         let props = { ...this.props, ...renderProps };
-        return (
-            <>
-                <CollectionFreeFormView {...props} CollectionView={this} />
-                {this.props.isSelected() ? this.uIButtons : (null)}
-            </>
-        );
+        return (<>
+            <CollectionFreeFormView {...props} setVideoBox={this.setVideoBox} CollectionView={this} />
+            {this.props.isSelected() ? this.uIButtons : (null)}
+        </>);
     }
 
     render() {
-        trace();
         return (
-            <CollectionBaseView {...this.props} className="collectionVideoView-cont" contentRef={this.mainCont} onContextMenu={this.onContextMenu}>
+            <CollectionBaseView {...this.props} className="collectionVideoView-cont" onContextMenu={this.onContextMenu}>
                 {this.subView}
             </CollectionBaseView>);
     }
