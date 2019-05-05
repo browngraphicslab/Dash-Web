@@ -198,7 +198,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         this.props.removeDocument && this.props.removeDocument(this.props.Document);
     }
     fieldsClicked = (e: React.MouseEvent): void => {
-        let kvp = Docs.KVPDocument(this.props.Document, { width: 300, height: 300 });
+        let kvp = Docs.KVPDocument(this.props.Document, { title: this.props.Document.title + ".kvp", width: 300, height: 300 });
         CollectionDockingView.Instance.AddRightSplit(kvp);
     }
     makeButton = (e: React.MouseEvent): void => {

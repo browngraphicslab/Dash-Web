@@ -24,8 +24,9 @@ export class LinkEditor extends React.Component<Props> {
     onSaveButtonPressed = (e: React.PointerEvent): void => {
         e.stopPropagation();
 
-        this.props.linkDoc.title = this._nameInput;
-        this.props.linkDoc.linkDescription = this._descriptionInput;
+        let linkDoc = this.props.linkDoc.proto ? this.props.linkDoc.proto : this.props.linkDoc;
+        linkDoc.title = this._nameInput;
+        linkDoc.linkDescription = this._descriptionInput;
 
         this.props.showLinks();
     }

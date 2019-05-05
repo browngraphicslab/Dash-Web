@@ -309,6 +309,16 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                 var url = DocServer.prepend("/doc/" + stack.contentItems[0].tab.contentItem.config.props.documentId);
                 let win = window.open(url, stack.contentItems[0].tab.title, "width=300,height=400");
             }));
+        stack.header.controlsContainer.find('.lm_close') //unbind the current click handler
+            .click(async function () {
+                stack.contentItems.map(async (contentItem: any) => {
+                    let doc = await DocServer.GetRefField(contentItem.config.props.documentId);
+                    if (doc instanceof Doc) {
+                        let theDoc = doc;
+                        CollectionDockingView.Instance._removedDocs.push(theDoc);
+                    }
+                });
+            });
     }
 
     render() {
