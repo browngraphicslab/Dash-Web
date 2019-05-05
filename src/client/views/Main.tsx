@@ -51,9 +51,6 @@ export class Main extends React.Component {
     }
     private set mainContainer(doc: Opt<Doc>) {
         if (doc) {
-            if (!("presentationView" in doc)) {
-                doc.presentationView = new Doc();
-            }
             CurrentUserUtils.UserDocument.activeWorkspace = doc;
         }
     }
@@ -180,11 +177,7 @@ export class Main extends React.Component {
 
     @computed
     get presentationView() {
-        if (this.mainContainer) {
-            let presentation = FieldValue(Cast(this.mainContainer.presentationView, Doc));
-            return presentation ? <PresentationView Document={presentation} key="presentation" /> : (null);
-        }
-        return (null);
+        return <PresentationView key="presentation" />;
     }
 
     @computed
