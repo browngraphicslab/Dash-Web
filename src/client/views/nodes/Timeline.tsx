@@ -6,24 +6,28 @@ import "./Timeline.scss";
 import { KeyFrame } from "./KeyFrame";
 import { CollectionViewProps } from "../collections/CollectionBaseView";
 import { CollectionSubView, SubCollectionViewProps } from "../collections/CollectionSubView";
-import { DocumentViewProps } from "./DocumentView";
+import { DocumentViewProps, DocumentView } from "./DocumentView";
 
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
 import { Doc, Self } from "../../../new_fields/Doc";
 import { Document, listSpec } from "../../../new_fields/Schema";
 import { FieldValue, Cast } from "../../../new_fields/Types";
 import { emptyStatement } from "babel-types";
+import { DocumentManager } from "../../util/DocumentManager";
+import { SelectionManager } from "../../util/SelectionManager";
+
 
 @observer
 export class Timeline extends CollectionSubView(Document) {
     @observable private _inner = React.createRef<HTMLDivElement>();
+    @observable private _timeInput = React.createRef<HTMLInputElement>();
+
     @observable private _isRecording: Boolean = false;
     @observable private _currentBar: any = null;
     @observable private _newBar: any = null;
     private _reactionDisposers: IReactionDisposer[] = [];
     private _keyFrames: KeyFrame[] = [];
     private _keyBars: HTMLDivElement[] = [];
-    private _actualKeyFrame: KeyFrame[] = [];
 
     private _currentBarX: number = 0;
     @observable private _onBar: Boolean = false;
@@ -32,8 +36,8 @@ export class Timeline extends CollectionSubView(Document) {
     @action
     onRecord = (e: React.MouseEvent) => {
         this._isRecording = true;
-
         let children = Cast(this.props.Document[this.props.fieldKey], listSpec(Doc));
+
         // let keyFrame = new KeyFrame(); //should not be done here...
         // this._keyFrames.push(keyFrame)";
         if (!children) {
@@ -41,19 +45,16 @@ export class Timeline extends CollectionSubView(Document) {
         }
         let childrenList = (children[Self] as any).__fields;
         let keys = ["x", "y"];
+
         const addReaction = (element: Doc) => {
             element = (element as any).value();
             return reaction(() => {
-                console.log("react");
-
                 return keys.map(key => FieldValue(element[key]));
             }, data => {
                 if (this._inner.current) {
                     let keyFrame: KeyFrame;
                     if (!this._keyBars[this._currentBarX]) {
-
                         let bar = this.createBar(5, this._currentBarX, "orange");
-                        console.log("created!");
                         this._inner.current.appendChild(bar);
                         this._keyBars[this._currentBarX] = bar;
                         keyFrame = new KeyFrame();
@@ -67,19 +68,26 @@ export class Timeline extends CollectionSubView(Document) {
                 }
             });
         };
+        
+      
         observe(childrenList as IObservableArray<Doc>, change => {
-            if (change.type === "update") {
+            
+            if (change.type === "update") { 
                 this._reactionDisposers[change.index]();
                 this._reactionDisposers[change.index] = addReaction(change.newValue);
             } else {
                 let removed = this._reactionDisposers.splice(change.index, change.removedCount, ...change.added.map(addReaction));
                 removed.forEach(disp => disp());
             }
-        }, true);
+        }, true); 
+        
     }
 
-    @action
-    onStop = (e: React.MouseEvent) => {
+    @action 
+    displayKeyFrames = (dv: DocumentView) => {
+        console.log(dv); 
+        dv.props.Document; 
+        
     }
 
 
@@ -127,6 +135,17 @@ export class Timeline extends CollectionSubView(Document) {
         bar.style.pointerEvents = "none";
         return bar;
     }
+
+    onTimeEntered = (e:React.KeyboardEvent) => {
+        if (this._timeInput.current){
+            if (e.keyCode === 13){     
+                let input = parseInt(this._timeInput.current.value) || 0; 
+                this._currentBar.style.transform = `translate(${input}px)`;
+                this._currentBarX = input; 
+            }
+        }
+    }
+    
     componentDidMount() {
         if (this._inner.current && this._currentBar === null) {
             this._currentBar = this.createBar(5);
@@ -149,11 +168,15 @@ export class Timeline extends CollectionSubView(Document) {
                 <div className="timeline-container">
                     <div className="timeline">
                         <div className="inner" ref={this._inner} onPointerDown={this.onInnerPointerDown} onPointerUp={this.onInnerPointerUp}>
+                        {
+                            SelectionManager.SelectedDocuments().map((dv) => {
+                                this.displayKeyFrames(dv); 
+                            })
+                        }
                         </div>
                     </div>
                     <button onClick={this.onRecord}>Record</button>
-                    {/* <button onClick={this.onStop}>Stop</button> */}
-                    <input placeholder="Time"></input>
+                    <input placeholder="Time" ref={this._timeInput} onKeyDown={this.onTimeEntered}></input>
                 </div>
             </div>
         );
