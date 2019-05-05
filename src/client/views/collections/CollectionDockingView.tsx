@@ -233,7 +233,8 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     stateChanged = () => {
         let docs = Cast(CollectionDockingView.Instance.props.Document.data, listSpec(Doc));
         CollectionDockingView.Instance._removedDocs.map(theDoc =>
-            docs && docs.indexOf(theDoc) !== -1 && docs.splice(docs.indexOf(theDoc), 1));
+            docs && docs.indexOf(theDoc) !== -1 &&
+            docs.splice(docs.indexOf(theDoc), 1));
         CollectionDockingView.Instance._removedDocs.length = 0;
         var json = JSON.stringify(this._goldenLayout.toConfig());
         this.props.Document.dockingConfig = json;
@@ -286,7 +287,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                 let doc = await DocServer.GetRefField(tab.contentItem.config.props.documentId);
                 if (doc instanceof Doc) {
                     let theDoc = doc;
-                    CollectionDockingView.Instance._removedDocs.push(theDoc.proto ? theDoc.proto : theDoc);
+                    CollectionDockingView.Instance._removedDocs.push(theDoc);
                 }
                 tab.contentItem.remove();
             });
