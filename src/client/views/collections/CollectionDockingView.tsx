@@ -231,6 +231,10 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
 
     @undoBatch
     stateChanged = () => {
+        let docs = Cast(CollectionDockingView.Instance.props.Document.data, listSpec(Doc));
+        CollectionDockingView.Instance._removedDocs.map(theDoc =>
+            docs && docs.indexOf(theDoc) !== -1 && docs.splice(docs.indexOf(theDoc), 1));
+        CollectionDockingView.Instance._removedDocs.length = 0;
         var json = JSON.stringify(this._goldenLayout.toConfig());
         this.props.Document.dockingConfig = json;
         if (this.undohack && !this.hack) {
@@ -275,19 +279,19 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             });
         }
         tab.closeElement.off('click') //unbind the current click handler
-            .click(function () {
+            .click(async function () {
                 if (tab.reactionDisposer) {
                     tab.reactionDisposer();
                 }
-                DocServer.GetRefField(tab.contentItem.config.props.documentId).then(async f => runInAction(() => {
-                    if (f instanceof Doc) {
-                        let docs = Cast(CollectionDockingView.Instance.props.Document.data, listSpec(Doc));
-                        docs && docs.indexOf(f) !== -1 && docs.splice(docs.indexOf(f), 1);
-                    }
-                }));
+                let doc = await DocServer.GetRefField(tab.contentItem.config.props.documentId);
+                if (doc instanceof Doc) {
+                    let theDoc = doc;
+                    CollectionDockingView.Instance._removedDocs.push(theDoc.proto ? theDoc.proto : theDoc);
+                }
                 tab.contentItem.remove();
             });
     }
+    _removedDocs: Doc[] = [];
 
     stackCreated = (stack: any) => {
         //stack.header.controlsContainer.find('.lm_popout').hide();
@@ -368,6 +372,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
                     parentActive={returnTrue}
                     whenActiveChanged={emptyFunction}
                     focus={emptyFunction}
+                    bringToFront={emptyFunction}
                     ContainingCollectionView={undefined} />
             </div >);
     }
