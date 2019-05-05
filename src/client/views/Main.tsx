@@ -174,19 +174,12 @@ export class Main extends React.Component {
             }
         }, 100);
     }
-
-    @computed
-    get presentationView() {
-        return <PresentationView key="presentation" />;
-    }
-
     @computed
     get mainContent() {
         let pwidthFunc = () => this.pwidth;
         let pheightFunc = () => this.pheight;
         let noScaling = () => 1;
         let mainCont = this.mainContainer;
-        let pcontent = this.presentationView;
         return <Measure onResize={action((r: any) => { this.pwidth = r.entry.width; this.pheight = r.entry.height; })}>
             {({ measureRef }) =>
                 <div ref={measureRef} id="mainContent-div">
@@ -206,7 +199,7 @@ export class Main extends React.Component {
                             whenActiveChanged={emptyFunction}
                             bringToFront={emptyFunction}
                             ContainingCollectionView={undefined} />}
-                    {pcontent}
+                    <PresentationView key="presentation" />
                 </div>
             }
         </Measure>;
