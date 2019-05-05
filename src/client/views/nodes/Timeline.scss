@@ -19,9 +19,10 @@
         height: 44px;
         width: 484px;
         background-color: black;
-        opacity: 0.5; 
+        //opacity: 0.5; 
         position: absolute;
         margin: 8px;
+        z-index: 10; 
     }
 
     button {

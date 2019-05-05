@@ -12,6 +12,7 @@ import { CollectionFreeFormView } from "../collections/collectionFreeForm/Collec
 import { Doc, Self } from "../../../new_fields/Doc";
 import { Document, listSpec } from "../../../new_fields/Schema";
 import { FieldValue, Cast } from "../../../new_fields/Types";
+import { emptyStatement } from "babel-types";
 
 @observer
 export class Timeline extends CollectionSubView(Document) {
@@ -31,42 +32,7 @@ export class Timeline extends CollectionSubView(Document) {
     @action
     onRecord = (e: React.MouseEvent) => {
         this._isRecording = true;
-    }
 
-    @action
-    onStop = (e: React.MouseEvent) => {
-    }
-
-    @action
-    onInnerPointerDown = (e: React.PointerEvent) => {
-        if (this._isRecording) {
-            if (this._inner.current) {
-                let mouse = e.nativeEvent;
-                this._currentBar.style.transform = `translate(${mouse.offsetX}px)`;
-                this._currentBarX = mouse.offsetX;
-                console.log(mouse.offsetX);
-            }
-        }
-    }
-
-    createBar = (width: number, pos = 0, color = "green"): HTMLDivElement => {
-        let bar = document.createElement("div");
-        bar.style.height = "100%";
-        bar.style.width = `${width}px`;
-        bar.style.left = "mouse.offsetX";
-        bar.style.backgroundColor = color;
-        bar.style.transform = `translate(${pos}px)`;
-        bar.style.position = "absolute";
-        bar.style.zIndex = "2";
-        return bar;
-    }
-    componentDidMount() {
-        if (this._inner.current && this._currentBar === null) {
-            this._currentBar = this.createBar(5);
-            this._inner.current.appendChild(this._currentBar);
-        }
-        let doc: Doc = this.props.Document;
-        let test = this.props.Document[this.props.fieldKey];
         let children = Cast(this.props.Document[this.props.fieldKey], listSpec(Doc));
         // let keyFrame = new KeyFrame(); //should not be done here...
         // this._keyFrames.push(keyFrame)";
@@ -76,14 +42,18 @@ export class Timeline extends CollectionSubView(Document) {
         let childrenList = (children[Self] as any).__fields;
         let keys = ["x", "y"];
         const addReaction = (element: Doc) => {
+            element = (element as any).value();
             return reaction(() => {
+                console.log("react");
 
                 return keys.map(key => FieldValue(element[key]));
             }, data => {
                 if (this._inner.current) {
                     let keyFrame: KeyFrame;
                     if (!this._keyBars[this._currentBarX]) {
+
                         let bar = this.createBar(5, this._currentBarX, "orange");
+                        console.log("created!");
                         this._inner.current.appendChild(bar);
                         this._keyBars[this._currentBarX] = bar;
                         keyFrame = new KeyFrame();
@@ -108,6 +78,66 @@ export class Timeline extends CollectionSubView(Document) {
         }, true);
     }
 
+    @action
+    onStop = (e: React.MouseEvent) => {
+    }
+
+
+    @action
+    onInnerPointerUp = (e: React.PointerEvent) => {
+        if (this._inner.current) {
+            this._inner.current.removeEventListener("pointermove", this.onInnerPointerMove);
+        }
+    }
+
+    @action
+    onInnerPointerDown = (e: React.PointerEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (this._isRecording) {
+            if (this._inner.current) {
+                let mouse = e.nativeEvent;
+                let offsetX = Math.round(mouse.offsetX);
+                this._currentBarX = offsetX;
+                this._currentBar.style.transform = `translate(${offsetX}px)`;
+                this._inner.current.removeEventListener("pointermove", this.onInnerPointerMove); //reset
+                this._inner.current.addEventListener("pointermove", this.onInnerPointerMove);
+            }
+        }
+    }
+
+    @action
+    onInnerPointerMove = (e: PointerEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        let offsetX = Math.round(e.offsetX);
+        this._currentBarX = offsetX;
+        this._currentBar.style.transform = `translate(${offsetX}px)`;
+        console.log(offsetX);
+        console.log(this._currentBarX);
+    }
+
+    createBar = (width: number, pos = 0, color = "green"): HTMLDivElement => {
+        let bar = document.createElement("div");
+        bar.style.height = "100%";
+        bar.style.width = `${width}px`;
+        bar.style.backgroundColor = color;
+        bar.style.transform = `translate(${pos}px)`;
+        bar.style.position = "absolute";
+        bar.style.pointerEvents = "none";
+        return bar;
+    }
+    componentDidMount() {
+        if (this._inner.current && this._currentBar === null) {
+            this._currentBar = this.createBar(5);
+            this._inner.current.appendChild(this._currentBar);
+        }
+
+        let doc: Doc = this.props.Document;
+        let test = this.props.Document[this.props.fieldKey];
+
+    }
+
     componentWillUnmount() {
         this._reactionDisposers.forEach(disp => disp());
         this._reactionDisposers = [];
@@ -118,7 +148,7 @@ export class Timeline extends CollectionSubView(Document) {
             <div>
                 <div className="timeline-container">
                     <div className="timeline">
-                        <div className="inner" ref={this._inner} onPointerDown={this.onInnerPointerDown}>
+                        <div className="inner" ref={this._inner} onPointerDown={this.onInnerPointerDown} onPointerUp={this.onInnerPointerUp}>
                         </div>
                     </div>
                     <button onClick={this.onRecord}>Record</button>
