@@ -18,6 +18,8 @@ import { Main } from '../Main';
 import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
 import { CollectionDockingView } from './CollectionDockingView';
 import { DocumentManager } from '../../util/DocumentManager';
+import { Utils } from '../../../Utils';
+import { List } from '../../../new_fields/List';
 
 
 export interface TreeViewProps {
@@ -122,17 +124,25 @@ class TreeView extends React.Component<TreeViewProps> {
 
     render() {
         let bulletType = BulletType.List;
-        let contentElement: JSX.Element | null = (null);
-        var children = Cast(this.props.document.data, listSpec(Doc));
-        if (children) { // add children for a collection
-            if (!this._collapsed) {
-                bulletType = BulletType.Collapsible;
-                contentElement = <ul>
-                    {TreeView.GetChildElements(children, this.remove, this.move, this.props.dropAction)}
-                </ul >;
-            }
-            else bulletType = BulletType.Collapsed;
+        let contentElement: (JSX.Element | null)[] = [];
+        let keys = Array.from(Object.keys(this.props.document));
+        if (this.props.document.proto instanceof Doc) {
+            keys.push(...Array.from(Object.keys(this.props.document.proto)));
         }
+        keys.map(key => {
+            let docList = Cast(this.props.document[key], listSpec(Doc));
+            if (docList instanceof List && docList.length && docList[0] instanceof Doc) {
+                if (!this._collapsed) {
+                    bulletType = BulletType.Collapsible;
+                    contentElement.push(<ul key={key + "more"}>
+                        {(key === "data") ? (null) :
+                            <span className="collectionTreeView-keyHeader" key={key}>{key}</span>}
+                        {TreeView.GetChildElements(docList, key !== "data", this.remove, this.move, this.props.dropAction)}
+                    </ul >);
+                } else
+                    bulletType = BulletType.Collapsed;
+            }
+        });
         return <div className="treeViewItem-container"
             style={{ background: BoolCast(this.props.document.libraryBrush, false) ? "#06121212" : "0" }}
             onContextMenu={this.onWorkspaceContextMenu}
@@ -144,8 +154,8 @@ class TreeView extends React.Component<TreeViewProps> {
             </li>
         </div>;
     }
-    public static GetChildElements(docs: Doc[], remove: ((doc: Doc) => void), move: DragManager.MoveFunction, dropAction: dropActionType) {
-        return docs.filter(child => !child.excludeFromLibrary).filter(doc => FieldValue(doc)).map(child =>
+    public static GetChildElements(docs: Doc[], allowMinimized: boolean, remove: ((doc: Doc) => void), move: DragManager.MoveFunction, dropAction: dropActionType) {
+        return docs.filter(child => !child.excludeFromLibrary && (allowMinimized || !child.isMinimized)).filter(doc => FieldValue(doc)).map(child =>
             <TreeView document={child} key={child[Id]} deleteDoc={remove} moveDocument={move} dropAction={dropAction} />);
     }
 }
@@ -168,13 +178,12 @@ export class CollectionTreeView extends CollectionSubView(Document) {
         }
     }
     render() {
-        trace();
         const children = this.children;
         let dropAction = StrCast(this.props.Document.dropAction, "alias") as dropActionType;
         if (!children) {
             return (null);
         }
-        let childElements = TreeView.GetChildElements(children, this.remove, this.props.moveDocument, dropAction);
+        let childElements = TreeView.GetChildElements(children, false, this.remove, this.props.moveDocument, dropAction);
 
         return (
             <div id="body" className="collectionTreeView-dropTarget"
