@@ -165,8 +165,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (e.shiftKey && e.buttons === 1) {
             if (this.props.isTopMost) {
                 this.startDragging(e.pageX, e.pageY, e.altKey || e.ctrlKey ? "alias" : undefined);
-            } else {
-                CollectionDockingView.Instance.StartOtherDrag([this.props.Document], e);
+            } else if (this.props.Document) {
+                CollectionDockingView.Instance.StartOtherDrag([Doc.MakeAlias(this.props.Document)], e);
             }
             e.stopPropagation();
         } else if (this.active) {
