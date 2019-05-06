@@ -19,7 +19,7 @@ import { DocumentView } from "../nodes/DocumentView";
 import { FieldView, FieldViewProps } from "../nodes/FieldView";
 import "./CollectionSchemaView.scss";
 import { CollectionSubView } from "./CollectionSubView";
-import { Opt, Field, Doc } from "../../../new_fields/Doc";
+import { Opt, Field, Doc, DocListCast } from "../../../new_fields/Doc";
 import { Cast, FieldValue, NumCast } from "../../../new_fields/Types";
 import { listSpec } from "../../../new_fields/Schema";
 import { List } from "../../../new_fields/List";
@@ -111,17 +111,15 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                         }
                         return applyToDoc(props.Document, script.run);
                     }}
-                    OnFillDown={(value: string) => {
+                    OnFillDown={async (value: string) => {
                         let script = CompileScript(value, { addReturn: true, params: { this: Document.name } });
                         if (!script.compiled) {
                             return;
                         }
                         const run = script.run;
                         //TODO This should be able to be refactored to compile the script once
-                        const val = Cast(this.props.Document[this.props.fieldKey], listSpec(Doc));
-                        if (val) {
-                            val.forEach(doc => applyToDoc(doc, run));
-                        }
+                        const val = await DocListCast(this.props.Document[this.props.fieldKey])
+                        val && val.forEach(doc => applyToDoc(doc, run));
                     }}>
                 </EditableView>
             </div >

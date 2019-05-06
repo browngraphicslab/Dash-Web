@@ -1,5 +1,5 @@
 import { IconProp, library } from '@fortawesome/fontawesome-svg-core';
-import { faCaretDown, faCaretRight, faTrashAlt } from '@fortawesome/free-solid-svg-icons';
+import { faCaretDown, faCaretRight, faTrashAlt, faAngleRight } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, observable, trace } from "mobx";
 import { observer } from "mobx-react";
@@ -20,6 +20,7 @@ import { CollectionDockingView } from './CollectionDockingView';
 import { DocumentManager } from '../../util/DocumentManager';
 import { Utils } from '../../../Utils';
 import { List } from '../../../new_fields/List';
+import { indexOf } from 'typescript-collections/dist/lib/arrays';
 
 
 export interface TreeViewProps {
@@ -36,6 +37,7 @@ export enum BulletType {
 }
 
 library.add(faTrashAlt);
+library.add(faAngleRight);
 library.add(faCaretDown);
 library.add(faCaretRight);
 
@@ -47,7 +49,15 @@ class TreeView extends React.Component<TreeViewProps> {
 
     @observable _collapsed: boolean = true;
 
-    delete = () => this.props.deleteDoc(this.props.document);
+    @undoBatch delete = () => this.props.deleteDoc(this.props.document);
+
+    @undoBatch openRight = () => {
+        if (this.props.document.dockingConfig) {
+            Main.Instance.openWorkspace(this.props.document);
+        } else {
+            CollectionDockingView.Instance.AddRightSplit(this.props.document);
+        }
+    };
 
     get children() {
         return Cast(this.props.document.data, listSpec(Doc), []); // bcz: needed?    .filter(doc => FieldValue(doc));
@@ -100,9 +110,11 @@ class TreeView extends React.Component<TreeViewProps> {
                 }}
             />);
         return (
-            <div className="docContainer" ref={reference} onPointerDown={onItemDown}>
+            <div className="docContainer" ref={reference} onPointerDown={onItemDown}
+                onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}>
                 {editableView(StrCast(this.props.document.title))}
-                {/* <div className="delete-button" onClick={this.delete}><FontAwesomeIcon icon="trash-alt" size="xs" /></div> */}
+                <div className="treeViewItem-openRight" onClick={this.openRight}><FontAwesomeIcon icon="angle-right" size="lg" /><FontAwesomeIcon icon="angle-right" size="lg" /></div>
+                {/* {<div className="delete-button" onClick={this.delete}><FontAwesomeIcon icon="trash-alt" size="xs" /></div>} */}
             </div >);
     }
 
@@ -145,8 +157,7 @@ class TreeView extends React.Component<TreeViewProps> {
         });
         return <div className="treeViewItem-container"
             style={{ background: BoolCast(this.props.document.libraryBrush, false) ? "#06121212" : "0" }}
-            onContextMenu={this.onWorkspaceContextMenu}
-            onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}>
+            onContextMenu={this.onWorkspaceContextMenu}>
             <li className="collection-child">
                 {this.renderBullet(bulletType)}
                 {this.renderTitle()}

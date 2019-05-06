@@ -202,10 +202,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         CollectionDockingView.Instance.AddRightSplit(kvp);
     }
     makeButton = (e: React.MouseEvent): void => {
-        this.props.Document.isButton = !BoolCast(this.props.Document.isButton, false);
-        if (this.props.Document.isButton && !this.props.Document.nativeWidth) {
-            this.props.Document.nativeWidth = this.props.Document[WidthSym]();
-            this.props.Document.nativeHeight = this.props.Document[HeightSym]();
+        let doc = this.props.Document.proto ? this.props.Document.proto : this.props.Document;
+        doc.isButton = !BoolCast(doc.isButton, false);
+        if (doc.isButton && !doc.nativeWidth) {
+            doc.nativeWidth = doc[WidthSym]();
+            doc.nativeHeight = doc[HeightSym]();
         }
     }
     fullScreenClicked = (e: React.MouseEvent): void => {

@@ -128,7 +128,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             );
         } else {
             this._proxyReactionDisposer = reaction(() => this.props.isSelected(),
-                () => this.props.isSelected() && !BoolCast(this.props.Document.isButton, false) && MainOverlayTextBox.Instance.SetTextDoc(this.props.Document, this.props.fieldKey, this._ref.current!, this.props.ScreenToLocalTransform));
+                () => this.props.isSelected() && MainOverlayTextBox.Instance.SetTextDoc(this.props.Document, this.props.fieldKey, this._ref.current!, this.props.ScreenToLocalTransform));
         }
 
 
@@ -310,7 +310,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 // tfs: do we need this event handler
                 onWheel={this.onPointerWheel}
             >
-                <div className={`formattedTextBox-inner${rounded}`} style={{ pointerEvents: this.props.Document.isButton ? "none" : "all" }} ref={this._proseRef} />
+                <div className={`formattedTextBox-inner${rounded}`} style={{ pointerEvents: this.props.Document.isButton && !this.props.isSelected() ? "none" : "all" }} ref={this._proseRef} />
             </div>
         );
     }

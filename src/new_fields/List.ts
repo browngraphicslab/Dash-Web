@@ -206,7 +206,7 @@ class ListImpl<T extends Field> extends ObjectField {
         return list;
     }
 
-    [key: number]: FieldResult<T>;
+    [key: number]: T | (T extends RefField ? Promise<T> : never);
 
     @serializable(alias("fields", list(autoObject())))
     private get __fields() {
@@ -236,5 +236,5 @@ class ListImpl<T extends Field> extends ObjectField {
 
     private [Self] = this;
 }
-export type List<T extends Field> = ListImpl<T> & T[];
+export type List<T extends Field> = ListImpl<T> & (T | (T extends RefField ? Promise<T> : never))[];
 export const List: { new <T extends Field>(fields?: T[]): List<T> } = ListImpl as any;
