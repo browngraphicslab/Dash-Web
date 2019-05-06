@@ -20,6 +20,7 @@ import { CollectionDockingView } from './CollectionDockingView';
 import { DocumentManager } from '../../util/DocumentManager';
 import { Utils } from '../../../Utils';
 import { List } from '../../../new_fields/List';
+import { indexOf } from 'typescript-collections/dist/lib/arrays';
 
 
 export interface TreeViewProps {
@@ -48,8 +49,15 @@ class TreeView extends React.Component<TreeViewProps> {
 
     @observable _collapsed: boolean = true;
 
-    delete = () => this.props.deleteDoc(this.props.document);
-    openRight = () => CollectionDockingView.Instance.AddRightSplit(this.props.document);
+    @undoBatch delete = () => this.props.deleteDoc(this.props.document);
+
+    @undoBatch openRight = () => {
+        if (this.props.document.dockingConfig) {
+            Main.Instance.openWorkspace(this.props.document);
+        } else {
+            CollectionDockingView.Instance.AddRightSplit(this.props.document);
+        }
+    };
 
     get children() {
         return Cast(this.props.document.data, listSpec(Doc), []); // bcz: needed?    .filter(doc => FieldValue(doc));

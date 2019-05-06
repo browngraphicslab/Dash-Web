@@ -1,25 +1,23 @@
-import * as GoldenLayout from "golden-layout";
 import 'golden-layout/src/css/goldenlayout-base.css';
 import 'golden-layout/src/css/goldenlayout-dark-theme.css';
-import { action, observable, reaction, trace, runInAction } from "mobx";
+import { action, observable, reaction } from "mobx";
 import { observer } from "mobx-react";
 import * as ReactDOM from 'react-dom';
 import Measure from "react-measure";
-import { Utils, returnTrue, emptyFunction, returnOne, returnZero } from "../../../Utils";
+import * as GoldenLayout from "../../../client/goldenLayout";
+import { Doc, Field, Opt } from "../../../new_fields/Doc";
+import { FieldId, Id } from "../../../new_fields/RefField";
+import { listSpec } from "../../../new_fields/Schema";
+import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
+import { emptyFunction, returnTrue, Utils } from "../../../Utils";
+import { DocServer } from "../../DocServer";
+import { DragLinksAsDocuments, DragManager } from "../../util/DragManager";
+import { Transform } from '../../util/Transform';
 import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { DocumentView } from "../nodes/DocumentView";
 import "./CollectionDockingView.scss";
-import React = require("react");
 import { SubCollectionViewProps } from "./CollectionSubView";
-import { DragManager, DragLinksAsDocuments } from "../../util/DragManager";
-import { Transform } from '../../util/Transform';
-import { Doc, Opt, Field } from "../../../new_fields/Doc";
-import { Cast, NumCast, StrCast, PromiseValue } from "../../../new_fields/Types";
-import { List } from "../../../new_fields/List";
-import { DocServer } from "../../DocServer";
-import { listSpec } from "../../../new_fields/Schema";
-import { Id, FieldId } from "../../../new_fields/RefField";
-import { faSignInAlt } from "@fortawesome/free-solid-svg-icons";
+import React = require("react");
 
 @observer
 export class CollectionDockingView extends React.Component<SubCollectionViewProps> {
@@ -286,6 +284,9 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
 
     tabCreated = async (tab: any) => {
         if (tab.hasOwnProperty("contentItem") && tab.contentItem.config.type !== "stack") {
+            if (tab.contentItem.config.fixed) {
+                tab.contentItem.parent.config.fixed = true;
+            }
             DocServer.GetRefField(tab.contentItem.config.props.documentId).then(async doc => {
                 if (doc instanceof Doc) {
                     let counter: any = this.htmlToElement(`<div class="messageCounter">0</div>`);
@@ -325,16 +326,6 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             .click(action(function () {
                 //if (confirm('really close this?')) {
                 stack.remove();
-                //}
-            }));
-        stack.header.controlsContainer.find('.lm_popout') //get the close icon
-            .off('click') //unbind the current click handler
-            .click(action(function () {
-                var url = DocServer.prepend("/doc/" + stack.contentItems[0].tab.contentItem.config.props.documentId);
-                let win = window.open(url, stack.contentItems[0].tab.title, "width=300,height=400");
-            }));
-        stack.header.controlsContainer.find('.lm_close') //unbind the current click handler
-            .click(async function () {
                 stack.contentItems.map(async (contentItem: any) => {
                     let doc = await DocServer.GetRefField(contentItem.config.props.documentId);
                     if (doc instanceof Doc) {
@@ -342,7 +333,15 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                         CollectionDockingView.Instance._removedDocs.push(theDoc);
                     }
                 });
-            });
+                //}
+            }));
+        stack.header.controlsContainer.find('.lm_popout') //get the close icon
+            .off('click') //unbind the current click handler
+            .click(action(function () {
+                stack.config.fixed = !stack.config.fixed;
+                // var url = DocServer.prepend("/doc/" + stack.contentItems[0].tab.contentItem.config.props.documentId);
+                // let win = window.open(url, stack.contentItems[0].tab.title, "width=300,height=400");
+            }));
     }
 
     render() {
@@ -351,6 +350,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                 onPointerDown={this.onPointerDown} onPointerUp={this.onPointerUp} ref={this._containerRef} />
         );
     }
+
 }
 
 interface DockedFrameProps {

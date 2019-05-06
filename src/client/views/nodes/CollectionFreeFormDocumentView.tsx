@@ -125,15 +125,15 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     public toggleIcon = async (): Promise<void> => {
         SelectionManager.DeselectAll();
         let isMinimized: boolean | undefined;
-        let maximizedDocs = await Cast(this.props.Document.maximizedDocs, listSpec(Doc));
+        let maximizedDocs = Cast(this.props.Document.maximizedDocs, listSpec(Doc));
         let minimizedDoc: Doc | undefined = this.props.Document;
         if (!maximizedDocs) {
             minimizedDoc = await Cast(this.props.Document.minimizedDoc, Doc);
-            if (minimizedDoc) maximizedDocs = await Cast(minimizedDoc.maximizedDocs, listSpec(Doc));
+            if (minimizedDoc) maximizedDocs = Cast(minimizedDoc.maximizedDocs, listSpec(Doc));
         }
-        if (minimizedDoc && maximizedDocs && maximizedDocs instanceof List) {
+        if (minimizedDoc && maximizedDocs) {
             let minimizedTarget = minimizedDoc;
-            maximizedDocs.map(maximizedDoc => {
+            (await Promise.all(maximizedDocs)).forEach(maximizedDoc => {
                 let iconAnimating = Cast(maximizedDoc.isIconAnimating, List);
                 if (!iconAnimating || (Date.now() - iconAnimating[6] > 1000)) {
                     if (isMinimized === undefined) {
@@ -166,26 +166,25 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         let metaKey = e.metaKey;
         if (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD &&
             Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD) {
-            if (await BoolCast(this.props.Document.isButton, false)) {
+            if (BoolCast(this.props.Document.isButton, false)) {
                 let maximizedDocs = await Cast(this.props.Document.maximizedDocs, listSpec(Doc));
                 if (maximizedDocs) {   // bcz: need a better way to associate behaviors with click events on widget-documents
                     if ((metaKey && !this.props.Document.maximizeOnRight) || (!metaKey && this.props.Document.maximizeOnRight)) {
-                        SelectionManager.DeselectAll();
-                        maximizedDocs.map(async mdoc => {
-                            let maxDoc = await mdoc;
-                            let dataDocs = await Cast(CollectionDockingView.Instance.props.Document.data, listSpec(Doc));
-                            if (dataDocs) {
-                                Promise.all(dataDocs.map(async doc => await doc)).then(docs => {
-                                    if (!docs || docs.indexOf(maxDoc) == -1) {
-                                        CollectionDockingView.Instance.AddRightSplit(maxDoc);
-                                    } else {
-                                        CollectionDockingView.Instance.CloseRightSplit(maxDoc);
-                                    }
-                                })
-                            }
-                        });
+                        let dataDocs = Cast(CollectionDockingView.Instance.props.Document.data, listSpec(Doc));
+                        if (dataDocs) {
+                            const docs = await Promise.all(dataDocs);
+                            const maxDocs = await Promise.all(maximizedDocs);
+                            SelectionManager.DeselectAll();
+                            maxDocs.forEach(maxDoc => {
+                                if (!docs || docs.indexOf(maxDoc) == -1) {
+                                    CollectionDockingView.Instance.AddRightSplit(maxDoc);
+                                } else {
+                                    CollectionDockingView.Instance.CloseRightSplit(maxDoc);
+                                }
+                            });
+                        }
                     } else {
-                        this.props.addDocument && maximizedDocs.map(async maxDoc => this.props.addDocument!(await maxDoc, false));
+                        this.props.addDocument && maximizedDocs.forEach(async maxDoc => this.props.addDocument!(await maxDoc, false));
                         this.toggleIcon();
                     }
                 }

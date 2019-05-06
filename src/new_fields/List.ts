@@ -206,7 +206,7 @@ class ListImpl<T extends Field> extends ObjectField {
         return list;
     }
 
-    [key: number]: FieldResult<T>;
+    [key: number]: T | (T extends RefField ? Promise<T> : never);
 
     @serializable(alias("fields", list(autoObject())))
     private get __fields() {
