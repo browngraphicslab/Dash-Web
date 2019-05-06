@@ -1,4 +1,4 @@
-import { Field, Opt, FieldResult } from "./Doc";
+import { Field, Opt, FieldResult, Doc } from "./Doc";
 import { List } from "./List";
 
 export type ToType<T extends ToConstructor<Field> | ListSpec<Field>> =

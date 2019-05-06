@@ -6,10 +6,10 @@ import "./DocumentView.scss";
 import React = require("react");
 import { DocComponent } from "../DocComponent";
 import { createSchema, makeInterface, listSpec } from "../../../new_fields/Schema";
-import { FieldValue, Cast, NumCast, BoolCast, PromiseValue } from "../../../new_fields/Types";
+import { FieldValue, Cast, NumCast, BoolCast } from "../../../new_fields/Types";
 import { OmitKeys, Utils } from "../../../Utils";
 import { SelectionManager } from "../../util/SelectionManager";
-import { Doc } from "../../../new_fields/Doc";
+import { Doc, DocListCast } from "../../../new_fields/Doc";
 import { List } from "../../../new_fields/List";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
 
@@ -125,15 +125,15 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     public toggleIcon = async (): Promise<void> => {
         SelectionManager.DeselectAll();
         let isMinimized: boolean | undefined;
-        let maximizedDocs = Cast(this.props.Document.maximizedDocs, listSpec(Doc));
+        let maximizedDocs = await DocListCast(this.props.Document.maximizedDocs);
         let minimizedDoc: Doc | undefined = this.props.Document;
         if (!maximizedDocs) {
             minimizedDoc = await Cast(this.props.Document.minimizedDoc, Doc);
-            if (minimizedDoc) maximizedDocs = Cast(minimizedDoc.maximizedDocs, listSpec(Doc));
+            if (minimizedDoc) maximizedDocs = await DocListCast(minimizedDoc.maximizedDocs);
         }
         if (minimizedDoc && maximizedDocs) {
             let minimizedTarget = minimizedDoc;
-            (await Promise.all(maximizedDocs)).forEach(maximizedDoc => {
+            maximizedDocs.forEach(maximizedDoc => {
                 let iconAnimating = Cast(maximizedDoc.isIconAnimating, List);
                 if (!iconAnimating || (Date.now() - iconAnimating[6] > 1000)) {
                     if (isMinimized === undefined) {
@@ -167,16 +167,14 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         if (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD &&
             Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD) {
             if (BoolCast(this.props.Document.isButton, false)) {
-                let maximizedDocs = await Cast(this.props.Document.maximizedDocs, listSpec(Doc));
+                let maximizedDocs = await DocListCast(this.props.Document.maximizedDocs);
                 if (maximizedDocs) {   // bcz: need a better way to associate behaviors with click events on widget-documents
                     if ((metaKey && !this.props.Document.maximizeOnRight) || (!metaKey && this.props.Document.maximizeOnRight)) {
-                        let dataDocs = Cast(CollectionDockingView.Instance.props.Document.data, listSpec(Doc));
+                        let dataDocs = await DocListCast(CollectionDockingView.Instance.props.Document.data);
                         if (dataDocs) {
-                            const docs = await Promise.all(dataDocs);
-                            const maxDocs = await Promise.all(maximizedDocs);
                             SelectionManager.DeselectAll();
-                            maxDocs.forEach(maxDoc => {
-                                if (!docs || docs.indexOf(maxDoc) == -1) {
+                            maximizedDocs.forEach(maxDoc => {
+                                if (!dataDocs || dataDocs.indexOf(maxDoc) == -1) {
                                     CollectionDockingView.Instance.AddRightSplit(maxDoc);
                                 } else {
                                     CollectionDockingView.Instance.CloseRightSplit(maxDoc);

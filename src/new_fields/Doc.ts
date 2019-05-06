@@ -29,6 +29,11 @@ const SelfProxy = Symbol("SelfProxy");
 export const WidthSym = Symbol("Width");
 export const HeightSym = Symbol("Height");
 
+export function DocListCast(field: FieldResult) {
+    const list = Cast(field, listSpec(Doc))
+    return list ? Promise.all(list) : Promise.resolve(undefined);
+}
+
 @Deserializable("doc").withFields(["id"])
 export class Doc extends RefField {
     constructor(id?: FieldId, forceSave?: boolean) {
