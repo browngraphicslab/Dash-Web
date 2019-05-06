@@ -17,6 +17,7 @@ import { List } from "../../../new_fields/List";
 import { ImageField, VideoField, AudioField } from "../../../new_fields/URLField";
 import { IconField } from "../../../new_fields/IconField";
 import { RichTextField } from "../../../new_fields/RichTextField";
+import { DateField } from "../../../new_fields/DateField";
 
 
 //
@@ -77,6 +78,8 @@ export class FieldView extends React.Component<FieldViewProps> {
         }
         else if (field instanceof AudioField) {
             return <AudioBox {...this.props} />;
+        } else if (field instanceof DateField) {
+            return <p>{field.date.toLocaleString()}</p>;
         }
         else if (field instanceof Doc) {
             return (
