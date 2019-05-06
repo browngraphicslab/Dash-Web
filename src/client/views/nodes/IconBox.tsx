@@ -2,7 +2,7 @@ import React = require("react");
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faCaretUp, faFilePdf, faFilm, faImage, faObjectGroup, faStickyNote } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, computed, observable, runInAction } from "mobx";
+import { action, computed, observable, runInAction, reaction, IReactionDisposer } from "mobx";
 import { observer } from "mobx-react";
 import { SelectionManager } from "../../util/SelectionManager";
 import { FieldView, FieldViewProps } from './FieldView';
@@ -25,6 +25,17 @@ library.add(faFilm);
 @observer
 export class IconBox extends React.Component<FieldViewProps> {
     public static LayoutString() { return FieldView.LayoutString(IconBox); }
+    _reactionDisposer?: IReactionDisposer;
+    componentDidMount() {
+        this._reactionDisposer = reaction(() => [this.props.Document.maximizedDocs],
+            () => {
+                let maxDoc = Cast(this.props.Document.maximizedDocs, listSpec(Doc), []);
+                this.props.Document.title = maxDoc && (maxDoc.length === 1 ? maxDoc[0].title + ".icon" : "");
+            }, { fireImmediately: true });
+    }
+    componentWillUnmount() {
+        if (this._reactionDisposer) this._reactionDisposer();
+    }
 
     @computed get layout(): string { const field = Cast(this.props.Document[this.props.fieldKey], IconField); return field ? field.icon : "<p>Error loading icon data</p>"; }
     @computed get minimizedIcon() { return IconBox.DocumentIcon(this.layout); }
@@ -52,6 +63,7 @@ export class IconBox extends React.Component<FieldViewProps> {
     @observable _panelWidth: number = 0;
     @observable _panelHeight: number = 0;
     render() {
+        let title = this._title;
         let labelField = StrCast(this.props.Document.labelField);
         let hideLabel = BoolCast(this.props.Document.hideLabel);
         let maxDoc = Cast(this.props.Document.maximizedDocs, listSpec(Doc), []);

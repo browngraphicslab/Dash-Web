@@ -10,7 +10,7 @@ import "./CollectionTreeView.scss";
 import React = require("react");
 import { Document, listSpec } from '../../../new_fields/Schema';
 import { Cast, StrCast, BoolCast, FieldValue } from '../../../new_fields/Types';
-import { Doc } from '../../../new_fields/Doc';
+import { Doc, DocListCast } from '../../../new_fields/Doc';
 import { Id } from '../../../new_fields/RefField';
 import { ContextMenu } from '../ContextMenu';
 import { undoBatch } from '../../util/UndoManager';
@@ -51,7 +51,7 @@ class TreeView extends React.Component<TreeViewProps> {
 
     @undoBatch delete = () => this.props.deleteDoc(this.props.document);
 
-    @undoBatch openRight = () => {
+    @undoBatch openRight = async () => {
         if (this.props.document.dockingConfig) {
             Main.Instance.openWorkspace(this.props.document);
         } else {
@@ -61,6 +61,10 @@ class TreeView extends React.Component<TreeViewProps> {
 
     get children() {
         return Cast(this.props.document.data, listSpec(Doc), []); // bcz: needed?    .filter(doc => FieldValue(doc));
+    }
+
+    onPointerDown = (e: React.PointerEvent) => {
+        e.stopPropagation();
     }
 
     @action
@@ -109,11 +113,18 @@ class TreeView extends React.Component<TreeViewProps> {
                     return true;
                 }}
             />);
+        let dataDocs = Cast(CollectionDockingView.Instance.props.Document.data, listSpec(Doc), []);
+        let openRight = dataDocs && dataDocs.indexOf(this.props.document) !== -1 ? (null) : (
+            <div className="treeViewItem-openRight" onPointerDown={this.onPointerDown} onClick={this.openRight}>
+                <FontAwesomeIcon icon="angle-right" size="lg" />
+                <FontAwesomeIcon icon="angle-right" size="lg" />
+            </div>);
         return (
             <div className="docContainer" ref={reference} onPointerDown={onItemDown}
+                style={{ background: BoolCast(this.props.document.libraryBrush, false) ? "#06121212" : "0" }}
                 onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}>
                 {editableView(StrCast(this.props.document.title))}
-                <div className="treeViewItem-openRight" onClick={this.openRight}><FontAwesomeIcon icon="angle-right" size="lg" /><FontAwesomeIcon icon="angle-right" size="lg" /></div>
+                {openRight}
                 {/* {<div className="delete-button" onClick={this.delete}><FontAwesomeIcon icon="trash-alt" size="xs" /></div>} */}
             </div >);
     }
@@ -156,7 +167,6 @@ class TreeView extends React.Component<TreeViewProps> {
             }
         });
         return <div className="treeViewItem-container"
-            style={{ background: BoolCast(this.props.document.libraryBrush, false) ? "#06121212" : "0" }}
             onContextMenu={this.onWorkspaceContextMenu}>
             <li className="collection-child">
                 {this.renderBullet(bulletType)}

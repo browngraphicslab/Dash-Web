@@ -78,14 +78,16 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                 if (child.contentItems.length === 1 && child.contentItems[0].config.component === "DocumentFrameRenderer" &&
                     child.contentItems[0].config.props.documentId == document[Id]) {
                     child.contentItems[0].remove();
-                    //this._goldenLayout.root.contentItems[0].contentItems.splice(i, 1);
                     this.layoutChanged(document);
+                    this.stateChanged();
                 } else
                     child.contentItems.map((tab: any, j: number) => {
                         if (tab.config.component === "DocumentFrameRenderer" && tab.config.props.documentId === document[Id]) {
                             child.contentItems[j].remove();
+                            child.config.activeItemIndex = Math.max(child.contentItems.length - 1, 0);
                             let docs = Cast(this.props.Document.data, listSpec(Doc));
                             docs && docs.indexOf(document) !== -1 && docs.splice(docs.indexOf(document), 1);
+                            this.stateChanged();
                         }
                     });
             })

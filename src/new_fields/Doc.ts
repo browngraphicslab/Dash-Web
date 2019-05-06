@@ -220,7 +220,6 @@ export namespace Doc {
             return undefined;
         }
         const delegate = new Doc();
-        //TODO Does this need to be doc[Self]?
         delegate.proto = doc;
         return delegate;
     }
