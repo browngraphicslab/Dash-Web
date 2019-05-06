@@ -1,5 +1,6 @@
 import { Field, Opt, FieldResult, Doc } from "./Doc";
 import { List } from "./List";
+import { RefField } from "./RefField";
 
 export type ToType<T extends ToConstructor<Field> | ListSpec<Field>> =
     T extends "string" ? string :
@@ -71,7 +72,7 @@ export function BoolCast(field: FieldResult, defaultVal: boolean | null = null) 
     return Cast(field, "boolean", defaultVal);
 }
 
-type WithoutList<T extends Field> = T extends List<infer R> ? R[] : T;
+type WithoutList<T extends Field> = T extends List<infer R> ? (R extends RefField ? (R | Promise<R>)[] : R[]) : T;
 
 export function FieldValue<T extends Field, U extends WithoutList<T>>(field: FieldResult<T>, defaultValue: U): WithoutList<T>;
 export function FieldValue<T extends Field>(field: FieldResult<T>): Opt<T>;
