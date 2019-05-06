@@ -162,14 +162,13 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     }
     onClick = async (e: React.MouseEvent) => {
         e.stopPropagation();
-        let ctrlKey = e.ctrlKey;
-        let metaKey = e.metaKey;
+        let altKey = e.altKey;
         if (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD &&
             Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD) {
             if (BoolCast(this.props.Document.isButton, false)) {
                 let maximizedDocs = await DocListCast(this.props.Document.maximizedDocs);
                 if (maximizedDocs) {   // bcz: need a better way to associate behaviors with click events on widget-documents
-                    if ((metaKey && !this.props.Document.maximizeOnRight) || (!metaKey && this.props.Document.maximizeOnRight)) {
+                    if ((altKey && !this.props.Document.maximizeOnRight) || (!altKey && this.props.Document.maximizeOnRight)) {
                         let dataDocs = await DocListCast(CollectionDockingView.Instance.props.Document.data);
                         if (dataDocs) {
                             SelectionManager.DeselectAll();

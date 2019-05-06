@@ -134,8 +134,9 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             newContentItem.config.width = 50;
         }
         if (minimize) {
-            newContentItem.config.width = 10;
-            newContentItem.config.height = 10;
+            // bcz: this makes the drag image show up better, but it also messes with fixed layout sizes
+            // newContentItem.config.width = 10;
+            // newContentItem.config.height = 10;
         }
         newContentItem.callDownwards('_$init');
         this.layoutChanged();
