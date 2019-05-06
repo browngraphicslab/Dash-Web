@@ -23,7 +23,7 @@ export interface PresViewProps {
  */
 class PresentationViewItem extends React.Component<PresViewProps> {
 
-    @observable Document?: Doc;
+    @observable Document: Doc;
     constructor(props: PresViewProps) {
         super(props);
         this.Document = FieldValue(Cast(FieldValue(Cast(CurrentUserUtils.UserDocument.activeWorkspace, Doc))!.presentationView, Doc))!;
@@ -42,7 +42,7 @@ class PresentationViewItem extends React.Component<PresViewProps> {
   **/
     @action
     public RemoveDoc(doc: Doc) {
-        const value = Cast(this.Document!.data, listSpec(Doc), []);
+        const value = Cast(this.Document.data, listSpec(Doc), []);
         let index = -1;
         for (let i = 0; i < value.length; i++) {
             if (value[i][Id] === doc[Id]) {
@@ -63,10 +63,10 @@ class PresentationViewItem extends React.Component<PresViewProps> {
         let title = document.title;
 
         //to get currently selected presentation doc
-        let selected = NumCast(this.Document!.selectedDoc, 0);
+        let selected = NumCast(this.Document.selectedDoc, 0);
 
         // finally, if it's a normal document, then render it as such.
-        const children = Cast(this.Document!.data, listSpec(Doc));
+        const children = Cast(this.Document.data, listSpec(Doc));
         const styles: any = {};
         if (children && children[selected] === document) {
             //this doc is selected
@@ -82,7 +82,7 @@ class PresentationViewItem extends React.Component<PresViewProps> {
     }
 
     render() {
-        const children = Cast(this.Document!.data, listSpec(Doc), []);
+        const children = Cast(this.Document.data, listSpec(Doc), []);
 
         return (
             <div>
