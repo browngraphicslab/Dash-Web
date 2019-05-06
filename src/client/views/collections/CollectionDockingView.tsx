@@ -14,7 +14,7 @@ import { SubCollectionViewProps } from "./CollectionSubView";
 import { DragManager, DragLinksAsDocuments } from "../../util/DragManager";
 import { Transform } from '../../util/Transform';
 import { Doc, Opt, Field } from "../../../new_fields/Doc";
-import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
+import { Cast, NumCast, StrCast, PromiseValue } from "../../../new_fields/Types";
 import { List } from "../../../new_fields/List";
 import { DocServer } from "../../DocServer";
 import { listSpec } from "../../../new_fields/Schema";
@@ -284,25 +284,21 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         return template.content.firstChild;
     }
 
-    tabCreated = (tab: any) => {
+    tabCreated = async (tab: any) => {
         if (tab.hasOwnProperty("contentItem") && tab.contentItem.config.type !== "stack") {
-            DocServer.GetRefField(tab.contentItem.config.props.documentId).then(async f => {
-                if (f instanceof Doc) {
-                    const title = Cast(f.title, "string");
-                    if (title !== undefined) {
-                        tab.titleElement[0].textContent = title;
-                    }
-                    const lf = await Cast(f.linkedFromDocs, listSpec(Doc));
-                    const lt = await Cast(f.linkedToDocs, listSpec(Doc));
-                    let count = (lf ? lf.length : 0) + (lt ? lt.length : 0);
-                    let counter: any = this.htmlToElement(`<div class="messageCounter">${count}</div>`);
+            DocServer.GetRefField(tab.contentItem.config.props.documentId).then(async doc => {
+                if (doc instanceof Doc) {
+                    let counter: any = this.htmlToElement(`<div class="messageCounter">0</div>`);
                     tab.element.append(counter);
                     counter.DashDocId = tab.contentItem.config.props.documentId;
-                    tab.reactionDisposer = reaction((): [List<Field> | null | undefined, List<Field> | null | undefined] => [lf, lt],
-                        ([linkedFrom, linkedTo]) => {
-                            let count = (linkedFrom ? linkedFrom.length : 0) + (linkedTo ? linkedTo.length : 0);
+                    tab.reactionDisposer = reaction(() => [doc.linkedFromDocs, doc.LinkedToDocs, doc.title],
+                        () => {
+                            const lf = Cast(doc.linkedFromDocs, listSpec(Doc), []);
+                            const lt = Cast(doc.linkedToDocs, listSpec(Doc), []);
+                            let count = (lf ? lf.length : 0) + (lt ? lt.length : 0);
                             counter.innerHTML = count;
-                        });
+                            tab.titleElement[0].textContent = doc.title;
+                        }, { fireImmediately: true });
                     tab.titleElement[0].DashDocId = tab.contentItem.config.props.documentId;
                 }
             });
