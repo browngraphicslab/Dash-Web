@@ -268,6 +268,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                         focus={emptyFunction}
                         parentActive={this.props.active}
                         whenActiveChanged={this.props.whenActiveChanged}
+                        bringToFront={emptyFunction}
                     />
                 </div>
                 <input className="collectionSchemaView-input" value={this.previewScript} onChange={this.onPreviewScriptChange}

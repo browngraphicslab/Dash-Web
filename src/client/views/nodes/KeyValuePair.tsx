@@ -40,6 +40,7 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
             PanelHeight: returnZero,
         };
         let contents = <FieldView {...props} />;
+        let fieldKey = Object.keys(props.Document).indexOf(props.fieldKey) !== -1 ? props.fieldKey : "(" + props.fieldKey + ")";
         return (
             <tr className={this.props.rowStyle}>
                 <td className="keyValuePair-td-key" style={{ width: `${this.props.keyWidth}%` }}>
@@ -50,11 +51,12 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
                         }}>
                             X
                         </button>
-                        <div className="keyValuePair-keyField">{this.props.keyName}</div>
+                        <div className="keyValuePair-keyField">{fieldKey}</div>
                     </div>
                 </td>
                 <td className="keyValuePair-td-value" style={{ width: `${100 - this.props.keyWidth}%` }}>
                     <EditableView contents={contents} height={36} GetValue={() => {
+
                         let field = FieldValue(props.Document[props.fieldKey]);
                         if (field) {
                             //TODO Types
