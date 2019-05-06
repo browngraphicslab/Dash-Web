@@ -2,35 +2,43 @@
     transform-origin: left top;
     position: absolute;
     top: 0;
-    left:0;
+    left: 0;
 }
+
 .react-pdf__Page__textContent span {
     user-select: text;
 }
+
 .react-pdf__Document {
     position: absolute;
 }
+
 .pdfBox-buttonTray {
-    position:absolute;
+    position: absolute;
     top: 0;
-    left:0;
+    left: 0;
     z-index: 25;
     pointer-events: all;
 }
+
 .pdfButton {
     pointer-events: all;
     width: 100px;
-    height:100px;
+    height: 100px;
 }
+
 .pdfBox-cont {
-    pointer-events: none ;
+    pointer-events: none;
+
     span {
         pointer-events: none !important;
     }
 }
+
 .pdfBox-cont-interactive {
     pointer-events: all;
 }
+
 .pdfBox-contentContainer {
     position: absolute;
     transform-origin: left top;

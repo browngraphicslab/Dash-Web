@@ -1,29 +1,85 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
-import JsxParser from 'react-jsx-parser';
+import { Document, Page, Pdf } from "react-pdf/dist/entry.webpack";
+import { computed, observable, action } from 'mobx';
+import Measure from 'react-measure';
+import { RouteStore } from '../server/RouteStore';
+import { observer } from 'mobx-react';
 
-class Hello extends React.Component<{ firstName: string, lastName: string }> {
-    render() {
-        return <div>Hello {this.props.firstName} {this.props.lastName}</div>;
-    }
-}
+const options = {
+    cMapUrl: 'cmaps/',
+    cMapPacked: true
+};
 
+@observer
 class Test extends React.Component {
-    render() {
-        let jsx = "<Hello {...props}/>";
-        let bindings = {
-            props: {
-                firstName: "First",
-                lastName: "Last"
+    @observable private file: string = 'http://projects.wojtekmaj.pl/react-pdf/static/sample.pdf';
+    // @observable private file: string = 'http://www.pdf995.com/samples/pdf.pdf';
+    @observable private numPages: number = 2;
+
+    @action
+    onFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        if (event && event.target.files) {
+            let file = event.target.files.item(0);
+            if (file) {
+                this.file = file.name;
             }
-        };
-        return <JsxParser jsx={jsx} bindings={bindings} components={{ Hello }}></JsxParser>;
+        }
+    }
+
+    onDocumentLoadSuccess = (pdf: Pdf) => {
+        if (pdf) {
+            this.numPages = pdf.numPages;
+        }
+    }
+
+    render() {
+        // let pdfUrl = "file:///C:/Users/Test/Desktop/layout.pdf";
+        // let pdfUrl = "http://cs.brown.edu/people/bcz/prairie.jpg";
+        let pdfUrl = new URL("http://www.pdf995.com/samples/pdf.pdf");
+        return (
+            <div className="Example">
+                <header>
+                    <h1>react-pdf sample page</h1>
+                </header>
+                <div className="Example__container">
+                    <div className="Example__container__load">
+                        <label htmlFor="file">Load from file:</label>
+                        {' '}
+                        <input
+                            type="file"
+                            onChange={this.onFileChange}
+                        />
+                    </div>
+                    <div className="Example__container__document">
+                        <Document
+                            file={this.file}
+                            onLoadSuccess={this.onDocumentLoadSuccess}
+                            onSourceError={(error: Error) => {
+                                console.log(error);
+                            }}
+                        >
+                            {
+                                Array.from(
+                                    new Array(this.numPages),
+                                    (el, index) => (
+                                        <Page
+                                            key={`page_${index + 1}`}
+                                            pageNumber={index + 1}
+                                            onRenderError={(error: Error) => console.log(error)}
+                                        />
+                                    ),
+                                )
+                            }
+                        </Document>
+                    </div>
+                </div>
+            </div>
+        );
     }
 }
 
 ReactDOM.render((
-    <div style={{ position: "absolute", width: "100%", height: "100%" }}>
-        <Test />
-    </div>),
+    <Test />),
     document.getElementById('root')
 );

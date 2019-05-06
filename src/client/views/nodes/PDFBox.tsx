@@ -114,6 +114,9 @@ export class PDFBox extends React.Component<FieldViewProps> {
                                 //@ts-ignore
                                 child.id = "highlighted";
                                 //@ts-ignore
+                                // child.style.transform = `scale(${50}%, 50%)`;
+                                // child.style.backgroundColor = `red`;
+                                //@ts-ignore
                                 obj.spans.push(child);
                                 // child.addEventListener("mouseover", this.onEnter); //adds mouseover annotation handler
                             }
@@ -136,6 +139,9 @@ export class PDFBox extends React.Component<FieldViewProps> {
                     temp.parentDivs.push(div);
                     //@ts-ignore
                     child.id = "highlighted";
+                    //@ts-ignore
+                    // child.style.transform = `scale(${25}%, 25%)`;
+                    // child.style.backgroundColor = `red`;
                     //@ts-ignore
                     temp.spans.push(child);
                     // child.addEventListener("mouseover", this.onEnter); //adds mouseover annotation handler
