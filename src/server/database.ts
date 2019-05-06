@@ -22,13 +22,6 @@ export class Database {
                 return new Promise<void>(resolve => {
                     collection.updateOne({ _id: id }, value, { upsert }
                         , (err, res) => {
-                            if (err) {
-                                console.log(err.message);
-                                console.log(err.errmsg);
-                            }
-                            // if (res) {
-                            //     console.log(JSON.stringify(res.result));
-                            // }
                             if (this.currentWrites[id] === newProm) {
                                 delete this.currentWrites[id];
                             }
@@ -52,11 +45,27 @@ export class Database {
     }
 
     public insert(value: any, collectionName = Database.DocumentsCollection) {
+        if (!this.db) { return; }
         if ("id" in value) {
             value._id = value.id;
             delete value.id;
         }
-        this.db && this.db.collection(collectionName).insertOne(value);
+        const id = value._id;
+        const collection = this.db.collection(collectionName);
+        const prom = this.currentWrites[id];
+        let newProm: Promise<void>;
+        const run = (): Promise<void> => {
+            return new Promise<void>(resolve => {
+                collection.insertOne(value, (err, res) => {
+                    if (this.currentWrites[id] === newProm) {
+                        delete this.currentWrites[id];
+                    }
+                    resolve();
+                });
+            });
+        };
+        newProm = prom ? prom.then(run) : run();
+        this.currentWrites[id] = newProm;
     }
 
     public getDocument(id: string, fn: (result?: Transferable) => void, collectionName = Database.DocumentsCollection) {
