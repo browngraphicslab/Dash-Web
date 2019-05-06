@@ -72,6 +72,37 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         this.stateChanged();
     }
 
+    @undoBatch
+    @action
+    public CloseRightSplit(document: Doc) {
+        if (this._goldenLayout.root.contentItems[0].isRow) {
+            this._goldenLayout.root.contentItems[0].contentItems.map((child: any, i: number) => {
+                if (child.contentItems.length === 1 && child.contentItems[0].config.component === "DocumentFrameRenderer" &&
+                    child.contentItems[0].config.props.documentId == document[Id]) {
+                    child.contentItems[0].remove();
+                    //this._goldenLayout.root.contentItems[0].contentItems.splice(i, 1);
+                    this.layoutChanged(document);
+                } else
+                    child.contentItems.map((tab: any, j: number) => {
+                        if (tab.config.component === "DocumentFrameRenderer" && tab.config.props.documentId === document[Id]) {
+                            child.contentItems[j].remove();
+                            let docs = Cast(this.props.Document.data, listSpec(Doc));
+                            docs && docs.indexOf(document) !== -1 && docs.splice(docs.indexOf(document), 1);
+                        }
+                    });
+            })
+        }
+    }
+
+    @action
+    layoutChanged(removed?: Doc) {
+        this._goldenLayout.root.callDownwards('setSize', [this._goldenLayout.width, this._goldenLayout.height]);
+        this._goldenLayout.emit('sbcreteChanged');
+        this._ignoreStateChange = JSON.stringify(this._goldenLayout.toConfig());
+        if (removed) CollectionDockingView.Instance._removedDocs.push(removed);
+        this.stateChanged();
+    }
+
     //
     //  Creates a vertical split on the right side of the docking view, and then adds the Document to that split
     //
@@ -107,10 +138,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             newContentItem.config.height = 10;
         }
         newContentItem.callDownwards('_$init');
-        this._goldenLayout.root.callDownwards('setSize', [this._goldenLayout.width, this._goldenLayout.height]);
-        this._goldenLayout.emit('stateChanged');
-        this._ignoreStateChange = JSON.stringify(this._goldenLayout.toConfig());
-        this.stateChanged();
+        this.layoutChanged();
 
         return newContentItem;
     }

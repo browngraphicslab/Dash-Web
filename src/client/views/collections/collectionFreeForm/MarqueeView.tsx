@@ -15,6 +15,8 @@ import { NumCast, Cast } from "../../../../new_fields/Types";
 import { InkField, StrokeData } from "../../../../new_fields/InkField";
 import { Templates } from "../../Templates";
 import { List } from "../../../../new_fields/List";
+import { emitKeypressEvents } from "readline";
+import { listSpec } from "../../../../new_fields/Schema";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;
@@ -149,16 +151,17 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             this.cleanupInteractions(false);
             e.stopPropagation();
         }
-        if (e.key === "c" || e.key === "r" || e.key === "e") {
+        if (e.key === "c" || e.key === "r" || e.key === "R" || e.key === "e") {
             this._commandExecuted = true;
             e.stopPropagation();
             let bounds = this.Bounds;
             let selected = this.marqueeSelect().map(d => {
-                if (e.key !== "r")
+                if (e.key !== "R") {
                     this.props.removeDocument(d);
-                d.x = NumCast(d.x) - bounds.left - bounds.width / 2;
-                d.y = NumCast(d.y) - bounds.top - bounds.height / 2;
-                d.page = -1;
+                    d.x = NumCast(d.x) - bounds.left - bounds.width / 2;
+                    d.y = NumCast(d.y) - bounds.top - bounds.height / 2;
+                    d.page = -1;
+                }
                 return d;
             });
             let ink = Cast(this.props.container.props.Document.ink, InkField);
@@ -179,16 +182,23 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
 
             this.marqueeInkDelete(inkData);
             // SelectionManager.DeselectAll();
-            if (e.key === "r") {
-                let summary = Docs.TextDocument({ x: bounds.left, y: bounds.top, width: 300, height: 100, backgroundColor: "yellow", title: "-summary-" });
-                summary.maximizedDocs = new List<Doc>(selected);
-                // summary.doc1 = selected[0];
-                // if (selected.length > 1)
-                //     summary.doc2 = selected[1];
-                // summary.templates = new List<string>([Templates.Summary.Layout]);
-                this.props.addLiveTextDocument(summary);
+            if (e.key === "r" || e.key === "R") {
                 e.preventDefault();
                 let scrpt = this.props.getTransform().inverse().transformPoint(bounds.left, bounds.top);
+                let summary = Docs.TextDocument({ x: bounds.left, y: bounds.top, width: 300, height: 100, backgroundColor: "yellow", title: "-summary-" });
+
+                if (e.key === "r") {
+                    summary.proto!.maximizeOnRight = true;
+                    let list = Cast(newCollection.data, listSpec(Doc));
+                    if (list && list.length === 1) {
+                        selected = list;
+                    } else {
+                        selected = [newCollection];
+                        this.props.addDocument(newCollection, false);
+                    }
+                }
+                summary.proto!.maximizedDocs = new List<Doc>(selected);
+                summary.proto!.isButton = true;
                 selected.map(maximizedDoc => {
                     let maxx = NumCast(maximizedDoc.x, undefined);
                     let maxy = NumCast(maximizedDoc.y, undefined);
@@ -196,6 +206,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                     let maxh = NumCast(maximizedDoc.height, undefined);
                     maximizedDoc.isIconAnimating = new List<number>([scrpt[0], scrpt[1], maxx, maxy, maxw, maxh, Date.now(), 0])
                 });
+                this.props.addLiveTextDocument(summary);
             }
             else {
                 this.props.addDocument(newCollection, false);

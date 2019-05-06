@@ -6,11 +6,12 @@ import "./DocumentView.scss";
 import React = require("react");
 import { DocComponent } from "../DocComponent";
 import { createSchema, makeInterface, listSpec } from "../../../new_fields/Schema";
-import { FieldValue, Cast, NumCast, BoolCast } from "../../../new_fields/Types";
+import { FieldValue, Cast, NumCast, BoolCast, PromiseValue } from "../../../new_fields/Types";
 import { OmitKeys, Utils } from "../../../Utils";
 import { SelectionManager } from "../../util/SelectionManager";
 import { Doc } from "../../../new_fields/Doc";
 import { List } from "../../../new_fields/List";
+import { CollectionDockingView } from "../collections/CollectionDockingView";
 
 export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
 }
@@ -86,7 +87,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 let scrpt = this.props.ScreenToLocalTransform().transformPoint(values[0], values[1]);
                 this.animateBetweenIcon(true, scrpt, [values[2], values[3]], values[4], values[5], values[6], this.props.Document, values[7] ? true : false);
             }
-        });
+        }, { fireImmediately: true });
     }
 
     componentWillUnmount() {
@@ -162,14 +163,31 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     onClick = async (e: React.MouseEvent) => {
         e.stopPropagation();
         let ctrlKey = e.ctrlKey;
+        let metaKey = e.metaKey;
         if (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD &&
             Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD) {
             if (await BoolCast(this.props.Document.isButton, false)) {
                 let maximizedDocs = await Cast(this.props.Document.maximizedDocs, listSpec(Doc));
                 if (maximizedDocs) {   // bcz: need a better way to associate behaviors with click events on widget-documents
-                    if (ctrlKey)
-                        this.props.addDocument && maximizedDocs.filter(d => d instanceof Doc).map(maxDoc => this.props.addDocument!(maxDoc, false));
-                    this.toggleIcon();
+                    if ((metaKey && !this.props.Document.maximizeOnRight) || (!metaKey && this.props.Document.maximizeOnRight)) {
+                        SelectionManager.DeselectAll();
+                        maximizedDocs.map(async mdoc => {
+                            let maxDoc = await mdoc;
+                            let dataDocs = await Cast(CollectionDockingView.Instance.props.Document.data, listSpec(Doc));
+                            if (dataDocs) {
+                                Promise.all(dataDocs.map(async doc => await doc)).then(docs => {
+                                    if (!docs || docs.indexOf(maxDoc) == -1) {
+                                        CollectionDockingView.Instance.AddRightSplit(maxDoc);
+                                    } else {
+                                        CollectionDockingView.Instance.CloseRightSplit(maxDoc);
+                                    }
+                                })
+                            }
+                        });
+                    } else {
+                        this.props.addDocument && maximizedDocs.map(async maxDoc => this.props.addDocument!(await maxDoc, false));
+                        this.toggleIcon();
+                    }
                 }
             }
         }
