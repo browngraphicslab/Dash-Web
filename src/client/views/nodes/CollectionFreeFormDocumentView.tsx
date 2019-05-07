@@ -9,7 +9,7 @@ import { createSchema, makeInterface, listSpec } from "../../../new_fields/Schem
 import { FieldValue, Cast, NumCast, BoolCast } from "../../../new_fields/Types";
 import { OmitKeys, Utils } from "../../../Utils";
 import { SelectionManager } from "../../util/SelectionManager";
-import { Doc, DocListCast } from "../../../new_fields/Doc";
+import { Doc, DocListCast, HeightSym } from "../../../new_fields/Doc";
 import { List } from "../../../new_fields/List";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
 
@@ -148,6 +148,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                     if (minx !== undefined && miny !== undefined && maxx !== undefined && maxy !== undefined &&
                         maxw !== undefined && maxh !== undefined) {
                         let scrpt = this.props.ScreenToLocalTransform().inverse().transformPoint(minx, miny);
+                        maximizedDoc.width = maximizedDoc.height = 1;
                         maximizedDoc.isMinimized = false;
                         maximizedDoc.isIconAnimating = new List<number>([scrpt[0], scrpt[1], maxx, maxy, maxw, maxh, Date.now(), isMinimized ? 1 : 0])
                     }
