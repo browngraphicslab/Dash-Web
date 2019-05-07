@@ -151,6 +151,11 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 state: field && field.Data ? EditorState.fromJSON(config, JSON.parse(field.Data)) : EditorState.create(config),
                 dispatchTransaction: this.dispatchTransaction
             });
+            let text = StrCast(this.props.Document.documentText);
+            if (text.startsWith("@@@")) {
+                this.props.Document.proto!.documentText = undefined;
+                this._editorView.dispatch(this._editorView.state.tr.insertText(text.substr(3)));
+            }
         }
 
         if (this.props.selectOnLoad) {

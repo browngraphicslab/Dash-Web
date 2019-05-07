@@ -132,7 +132,7 @@ export namespace Docs {
     }
     function CreateTextPrototype(): Doc {
         let textProto = setupPrototypeOptions(textProtoId, "TEXT_PROTO", FormattedTextBox.LayoutString(),
-            { x: 0, y: 0, width: 300, height: 150 });
+            { x: 0, y: 0, width: 300, height: 150, backgroundColor: "#f1efeb" });
         return textProto;
     }
     function CreatePdfPrototype(): Doc {

@@ -57,8 +57,27 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     onKeyPress = (e: KeyboardEvent) => {
         //make textbox and add it to this collection
         let [x, y] = this.props.getTransform().transformPoint(this._downX, this._downY);
-        let newBox = Docs.TextDocument({ width: 200, height: 100, x: x, y: y, title: "-typed text-" });
-        this.props.addLiveTextDocument(newBox);
+        if (e.key === "q" && e.ctrlKey) {
+            e.preventDefault();
+            (async () => {
+                let text = await navigator.clipboard.readText();
+                let ns = text.split("\n").filter(t => t != "\r");
+                for (let i = 0; i < ns.length - 1; i++) {
+                    while (!(ns[i].endsWith("-\r") || ns[i].endsWith(".\r") || ns[i].endsWith(":\r")) && i < ns.length - 1) {
+                        ns.splice(i, 2, ns[i].substr(0, ns[i].length - 1) + ns[i + 1].trimLeft());
+                    }
+                }
+                ns.map(line => {
+                    let indent = line.search(/\S|$/);
+                    let newBox = Docs.TextDocument({ width: 200, height: 35, x: x + indent / 3 * 10, y: y, documentText: "@@@" + line, title: line });
+                    this.props.addDocument(newBox, false);
+                    y += 40 * this.props.getTransform().Scale;
+                })
+            })();
+        } else {
+            let newBox = Docs.TextDocument({ width: 200, height: 100, x: x, y: y, title: "-typed text-" });
+            this.props.addLiveTextDocument(newBox);
+        }
         e.stopPropagation();
     }
     @action
