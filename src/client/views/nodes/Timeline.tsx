@@ -15,6 +15,7 @@ import { FieldValue, Cast } from "../../../new_fields/Types";
 import { emptyStatement } from "babel-types";
 import { DocumentManager } from "../../util/DocumentManager";
 import { SelectionManager } from "../../util/SelectionManager";
+import { List } from "../../../new_fields/List";
 
 
 @observer
@@ -37,9 +38,6 @@ export class Timeline extends CollectionSubView(Document) {
     onRecord = (e: React.MouseEvent) => {
         this._isRecording = true;
         let children = Cast(this.props.Document[this.props.fieldKey], listSpec(Doc));
-
-        // let keyFrame = new KeyFrame(); //should not be done here...
-        // this._keyFrames.push(keyFrame)";
         if (!children) {
             return;
         }
@@ -52,18 +50,39 @@ export class Timeline extends CollectionSubView(Document) {
                 return keys.map(key => FieldValue(element[key]));
             }, data => {
                 if (this._inner.current) {
-                    let keyFrame: KeyFrame;
-                    if (!this._keyBars[this._currentBarX]) {
-                        let bar = this.createBar(5, this._currentBarX, "orange");
-                        this._inner.current.appendChild(bar);
-                        this._keyBars[this._currentBarX] = bar;
-                        keyFrame = new KeyFrame();
-                        this._keyFrames[this._currentBarX] = keyFrame;
-                    } else {
-                        keyFrame = this._keyFrames[this._currentBarX];
+                    let keyFrame: KeyFrame; //keyframe reference
+                    let exists:boolean = false; 
+                    let time:number = this._currentBarX; //time that indicates what frame you are in. Whole numbers. 
+                    let frames:List<Doc>; 
+                    this._keyFrames.forEach(kf => { //checks if there is a keyframe that is tracking htis document. 
+                        if (kf.doc.document === element) {
+                            keyFrame = kf; 
+                            frames = Cast(keyFrame.doc.frames, listSpec(Doc))!;  
+                            exists = true; 
+                        }
+                    }); 
+
+                    if (!exists){
+                        keyFrame = new KeyFrame(); 
+                        let bar:HTMLDivElement = this.createBar(5, time, "yellow"); 
+                        this._inner.current.appendChild(bar); 
+                        keyFrame.doc.bar = bar; 
+                        keyFrame.doc.frames = new List<Doc>();
+                        
+                        this._keyFrames.push(keyFrame); 
                     }
+                    
                     keys.forEach((key, index) => {
-                        keyFrame.document[key] = data[index];
+                        console.log(data[index]); 
+                        if (keyFrame.doc.frames !== undefined){
+                            frames.forEach(frame => {
+                                if (frame.time === this._currentBarX){
+                                    frame.key = data[index]; 
+                                }
+                            }); 
+                        }
+                        
+                        //keyFrame.document[key] = data[index];
                     });
                 }
             });
@@ -125,7 +144,7 @@ export class Timeline extends CollectionSubView(Document) {
         console.log(this._currentBarX);
     }
 
-    createBar = (width: number, pos = 0, color = "green"): HTMLDivElement => {
+    createBar = (width: number, pos:number = 0, color:string = "green"): HTMLDivElement => {
         let bar = document.createElement("div");
         bar.style.height = "100%";
         bar.style.width = `${width}px`;
