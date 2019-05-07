@@ -38,9 +38,9 @@ export class TooltipTextMenu {
     private listTypeToIcon: Map<NodeType, string>;
     private fontSizeIndicator: HTMLSpanElement = document.createElement("span");
     //dropdown doms
-    private fontSizeDom: Node;
-    private fontStyleDom: Node;
-    private listTypeBtnDom: Node;
+    private fontSizeDom?: Node;
+    private fontStyleDom?: Node;
+    private listTypeBtnDom?: Node;
 
     constructor(view: EditorView, editorProps: FieldViewProps) {
         this.view = view;
@@ -321,7 +321,7 @@ export class TooltipTextMenu {
         this.tooltip.style.bottom = (box.bottom - start.top) * this.editorProps.ScreenToLocalTransform().Scale + "px";
 
         //UPDATE LIST ITEM DROPDOWN
-        this.listTypeBtnDom = this.updateListItemDropdown(":", this.listTypeBtnDom);
+        this.listTypeBtnDom = this.updateListItemDropdown(":", this.listTypeBtnDom!);
 
         //UPDATE FONT STYLE DROPDOWN
         let activeStyles = this.activeMarksOnSelection(this.fontStyles);

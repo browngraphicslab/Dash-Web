@@ -17,13 +17,12 @@ import { Socket } from 'socket.io';
 import * as webpack from 'webpack';
 import * as wdm from 'webpack-dev-middleware';
 import * as whm from 'webpack-hot-middleware';
-import { Field, FieldId } from '../fields/Field';
 import { Utils } from '../Utils';
 import { getForgot, getLogin, getLogout, getReset, getSignup, postForgot, postLogin, postReset, postSignup } from './authentication/controllers/user_controller';
 import { DashUserModel } from './authentication/models/user_model';
 import { Client } from './Client';
 import { Database } from './database';
-import { MessageStore, Transferable, Types } from "./Message";
+import { MessageStore, Transferable, Types, Diff } from "./Message";
 import { RouteStore } from './RouteStore';
 const app = express();
 const config = require('../../webpack.config');
@@ -34,6 +33,8 @@ import expressFlash = require('express-flash');
 import flash = require('connect-flash');
 import c = require("crypto");
 import { Search } from './Search';
+import { debug } from 'util';
+import _ = require('lodash');
 const MongoStore = require('connect-mongo')(session);
 const mongoose = require('mongoose');
 
@@ -120,11 +121,14 @@ app.get("/pull", (req, res) =>
         res.redirect("/");
     }));
 
+// SEARCH
+
 // GETTERS
 
 app.get("/search", async (req, res) => {
     let query = req.query.query || "hello";
     let results = await Search.Instance.search(query);
+    console.log(results);
     res.send(results);
 });
 
@@ -240,15 +244,22 @@ server.on("connection", function (socket: Socket) {
     Utils.AddServerHandlerCallback(socket, MessageStore.GetField, getField);
     Utils.AddServerHandlerCallback(socket, MessageStore.GetFields, getFields);
     Utils.AddServerHandler(socket, MessageStore.DeleteAll, deleteFields);
+
+    Utils.AddServerHandler(socket, MessageStore.CreateField, CreateField);
+    Utils.AddServerHandler(socket, MessageStore.UpdateField, diff => UpdateField(socket, diff));
+    Utils.AddServerHandlerCallback(socket, MessageStore.GetRefField, GetRefField);
+    Utils.AddServerHandlerCallback(socket, MessageStore.GetRefFields, GetRefFields);
 });
 
 async function deleteFields() {
     await Database.Instance.deleteAll();
     await Search.Instance.clear();
+    await Database.Instance.deleteAll('newDocuments');
 }
 
 async function deleteAll() {
     await Database.Instance.deleteAll();
+    await Database.Instance.deleteAll('newDocuments');
     await Database.Instance.deleteAll('sessions');
     await Database.Instance.deleteAll('users');
     await Search.Instance.clear();
@@ -272,7 +283,50 @@ function setField(socket: Socket, newValue: Transferable) {
         socket.broadcast.emit(MessageStore.SetField.Message, newValue));
     if (newValue.type === Types.Text) {
         Search.Instance.updateDocument({ id: newValue.id, data: (newValue as any).data });
+        console.log("set field");
     }
+}
+
+function GetRefField([id, callback]: [string, (result?: Transferable) => void]) {
+    Database.Instance.getDocument(id, callback, "newDocuments");
+}
+
+function GetRefFields([ids, callback]: [string[], (result?: Transferable[]) => void]) {
+    Database.Instance.getDocuments(ids, callback, "newDocuments");
+}
+
+
+const suffixMap: { [type: string]: string } = {
+    "number": "_n",
+    "string": "_t"
+};
+function UpdateField(socket: Socket, diff: Diff) {
+    Database.Instance.update(diff.id, diff.diff,
+        () => socket.broadcast.emit(MessageStore.UpdateField.Message, diff), false, "newDocuments");
+    const docfield = diff.diff;
+    const update: any = { id: diff.id };
+    console.log("FIELD: ", docfield);
+    let dynfield = false;
+    for (let key in docfield) {
+        if (!key.startsWith("fields.")) continue;
+        const val = docfield[key];
+        const suffix = suffixMap[typeof val];
+        if (suffix !== undefined) {
+            key = key.substring(7);
+            Object.values(suffixMap).forEach(suf => update[key + suf] = null);
+            update[key + suffix] = { set: val };
+            dynfield = true;
+        }
+    }
+    if (dynfield) {
+        console.log("dynamic field detected!");
+        Search.Instance.updateDocument(update);
+    }
+}
+
+function CreateField(newValue: any) {
+    Database.Instance.insert(newValue, "newDocuments");
+    console.log("created field");
 }
 
 server.listen(serverPort);

@@ -131,7 +131,7 @@ button:hover {
 // add nodes menu. Note that the + button is actually an input label, not an actual button.
 #add-nodes-menu {
     position: absolute;
-    bottom: 24px;
+    bottom: 22px;
     left: 24px;
 
     label {
@@ -149,7 +149,6 @@ button:hover {
 
     label p {
         padding-left: 10.5px;
-        padding-top: 3px;
     }
 
     label:hover {
@@ -183,6 +182,7 @@ button:hover {
     top: 0;
     left: 0;
     overflow: scroll;
+    z-index: 1;
 }
 
 #mainContent-div {
@@ -206,7 +206,7 @@ button:hover {
 
 ul#add-options-list {
     list-style: none;
-    padding: 0;
+    padding: 5 0 0 0;
 
     li {
         display: inline-block;

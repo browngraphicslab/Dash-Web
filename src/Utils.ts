@@ -2,7 +2,6 @@ import v4 = require('uuid/v4');
 import v5 = require("uuid/v5");
 import { Socket } from 'socket.io';
 import { Message } from './server/Message';
-import { Document } from './fields/Document';
 
 export class Utils {
 
@@ -89,13 +88,20 @@ export class Utils {
     }
 }
 
-export function OmitKeys(obj: any, keys: any, addKeyFunc?: (dup: any) => void) {
+export function OmitKeys(obj: any, keys: string[], addKeyFunc?: (dup: any) => void): { omit: any, extract: any } {
+    const omit: any = { ...obj };
+    const extract: any = {};
+    keys.forEach(key => {
+        extract[key] = omit[key];
+        delete omit[key];
+    });
+    addKeyFunc && addKeyFunc(omit);
+    return { omit, extract };
+}
+
+export function WithKeys(obj: any, keys: string[], addKeyFunc?: (dup: any) => void) {
     var dup: any = {};
-    for (var key in obj) {
-        if (keys.indexOf(key) === -1) {
-            dup[key] = obj[key];
-        }
-    }
+    keys.forEach(key => dup[key] = obj[key]);
     addKeyFunc && addKeyFunc(dup);
     return dup;
 }
@@ -110,6 +116,18 @@ export function returnZero() { return 0; }
 
 export function emptyFunction() { }
 
-export function emptyDocFunction(doc: Document) { }
-
 export type Without<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;
+
+export type Predicate<K, V> = (entry: [K, V]) => boolean;
+
+export function deepCopy<K, V>(source: Map<K, V>, predicate?: Predicate<K, V>) {
+    let deepCopy = new Map<K, V>();
+    let entries = source.entries(), next = entries.next();
+    while (!next.done) {
+        let entry = next.value;
+        if (!predicate || predicate(entry)) {
+            deepCopy.set(entry[0], entry[1]);
+        }
+    }
+    return deepCopy;
+}

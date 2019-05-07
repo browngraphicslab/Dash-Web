@@ -1,30 +1,23 @@
 import React = require("react");
 import { observer } from "mobx-react";
 import { computed } from "mobx";
-import { Field, FieldWaiting, FieldValue, Opt } from "../../../fields/Field";
-import { Document } from "../../../fields/Document";
-import { TextField } from "../../../fields/TextField";
-import { NumberField } from "../../../fields/NumberField";
-import { RichTextField } from "../../../fields/RichTextField";
-import { ImageField } from "../../../fields/ImageField";
-import { VideoField } from "../../../fields/VideoField";
-import { Key } from "../../../fields/Key";
 import { FormattedTextBox } from "./FormattedTextBox";
 import { ImageBox } from "./ImageBox";
-import { WebBox } from "./WebBox";
 import { VideoBox } from "./VideoBox";
 import { AudioBox } from "./AudioBox";
-import { AudioField } from "../../../fields/AudioField";
-import { ListField } from "../../../fields/ListField";
 import { DocumentContentsView } from "./DocumentContentsView";
 import { Transform } from "../../util/Transform";
-import { KeyStore } from "../../../fields/KeyStore";
-import { returnFalse, emptyDocFunction, emptyFunction, returnOne, returnZero } from "../../../Utils";
+import { returnFalse, emptyFunction } from "../../../Utils";
 import { CollectionView } from "../collections/CollectionView";
 import { CollectionPDFView } from "../collections/CollectionPDFView";
 import { CollectionVideoView } from "../collections/CollectionVideoView";
-import { IconField } from "../../../fields/IconFIeld";
 import { IconBox } from "./IconBox";
+import { Opt, Doc, FieldResult } from "../../../new_fields/Doc";
+import { List } from "../../../new_fields/List";
+import { ImageField, VideoField, AudioField } from "../../../new_fields/URLField";
+import { IconField } from "../../../new_fields/IconField";
+import { RichTextField } from "../../../new_fields/RichTextField";
+import { DateField } from "../../../new_fields/DateField";
 
 
 //
@@ -33,43 +26,44 @@ import { IconBox } from "./IconBox";
 // See the LayoutString method on each field view :   ImageBox, FormattedTextBox, etc. 
 //
 export interface FieldViewProps {
-    fieldKey: Key;
+    fieldKey: string;
     ContainingCollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
-    Document: Document;
+    Document: Doc;
     isSelected: () => boolean;
     select: (isCtrlPressed: boolean) => void;
     isTopMost: boolean;
     selectOnLoad: boolean;
-    addDocument?: (document: Document, allowDuplicates?: boolean) => boolean;
-    removeDocument?: (document: Document) => boolean;
-    moveDocument?: (document: Document, targetCollection: Document, addDocument: (document: Document) => boolean) => boolean;
+    addDocument?: (document: Doc, allowDuplicates?: boolean) => boolean;
+    removeDocument?: (document: Doc) => boolean;
+    moveDocument?: (document: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
     ScreenToLocalTransform: () => Transform;
     active: () => boolean;
     whenActiveChanged: (isActive: boolean) => void;
-    focus: (doc: Document) => void;
+    focus: (doc: Doc) => void;
     PanelWidth: () => number;
     PanelHeight: () => number;
+    setVideoBox?: (player: VideoBox) => void;
 }
 
 @observer
 export class FieldView extends React.Component<FieldViewProps> {
-    public static LayoutString(fieldType: { name: string }, fieldStr: string = "DataKey") {
-        return `<${fieldType.name} {...props} fieldKey={${fieldStr}} />`;
+    public static LayoutString(fieldType: { name: string }, fieldStr: string = "data") {
+        return `<${fieldType.name} {...props} fieldKey={"${fieldStr}"} />`;
     }
 
     @computed
-    get field(): FieldValue<Field> {
-        const { Document: doc, fieldKey } = this.props;
-        return doc.Get(fieldKey);
+    get field(): FieldResult {
+        const { Document, fieldKey } = this.props;
+        return Document[fieldKey];
     }
     render() {
         const field = this.field;
-        if (!field) {
+        if (field === undefined) {
             return <p>{'<null>'}</p>;
         }
-        if (field instanceof TextField) {
-            return <p>{field.Data}</p>;
-        }
+        // if (typeof field === "string") {
+        //     return <p>{field}</p>;
+        // }
         else if (field instanceof RichTextField) {
             return <FormattedTextBox {...this.props} />;
         }
@@ -84,8 +78,10 @@ export class FieldView extends React.Component<FieldViewProps> {
         }
         else if (field instanceof AudioField) {
             return <AudioBox {...this.props} />;
+        } else if (field instanceof DateField) {
+            return <p>{field.date.toLocaleString()}</p>;
         }
-        else if (field instanceof Document) {
+        else if (field instanceof Doc) {
             return (
                 <DocumentContentsView Document={field}
                     addDocument={undefined}
@@ -96,30 +92,27 @@ export class FieldView extends React.Component<FieldViewProps> {
                     PanelHeight={() => 100}
                     isTopMost={true} //TODO Why is this top most?
                     selectOnLoad={false}
-                    focus={emptyDocFunction}
+                    focus={emptyFunction}
                     isSelected={this.props.isSelected}
                     select={returnFalse}
-                    layoutKey={KeyStore.Layout}
+                    layoutKey={"layout"}
                     ContainingCollectionView={this.props.ContainingCollectionView}
                     parentActive={this.props.active}
                     toggleMinimized={emptyFunction}
                     whenActiveChanged={this.props.whenActiveChanged} />
             );
         }
-        else if (field instanceof ListField) {
+        else if (field instanceof List) {
             return (<div>
-                {(field as ListField<Field>).Data.map(f => f instanceof Document ? f.Title : f.GetValue().toString()).join(", ")}
+                {field.map(f => f instanceof Doc ? f.title : f.toString()).join(", ")}
             </div>);
         }
         // bcz: this belongs here, but it doesn't render well so taking it out for now
         // else if (field instanceof HtmlField) {
         //     return <WebBox {...this.props} />
         // }
-        else if (field instanceof NumberField) {
-            return <p>{field.Data}</p>;
-        }
-        else if (field !== FieldWaiting) {
-            return <p>{JSON.stringify(field.GetValue())}</p>;
+        else if (!(field instanceof Promise)) {
+            return <p>{JSON.stringify(field)}</p>;
         }
         else {
             return <p> {"Waiting for server..."} </p>;

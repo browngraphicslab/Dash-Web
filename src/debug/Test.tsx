@@ -1,29 +1,83 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
-import JsxParser from 'react-jsx-parser';
+import { SerializationHelper } from '../client/util/SerializationHelper';
+import { createSchema, makeInterface, makeStrictInterface, listSpec } from '../new_fields/Schema';
+import { ImageField } from '../new_fields/URLField';
+import { Doc } from '../new_fields/Doc';
+import { List } from '../new_fields/List';
 
-class Hello extends React.Component<{ firstName: string, lastName: string }> {
-    render() {
-        return <div>Hello {this.props.firstName} {this.props.lastName}</div>;
-    }
-}
+
+const schema1 = createSchema({
+    hello: "number",
+    test: "string",
+    fields: "boolean",
+    url: ImageField,
+    testDoc: Doc
+});
+
+type TestDoc = makeInterface<[typeof schema1]>;
+const TestDoc: (doc?: Doc) => TestDoc = makeInterface(schema1);
+
+const schema2 = createSchema({
+    hello: ImageField,
+    test: "boolean",
+    fields: listSpec("number"),
+    url: "number",
+    testDoc: ImageField
+});
+
+const Test2Doc = makeStrictInterface(schema2);
+type Test2Doc = makeStrictInterface<typeof schema2>;
+
+const assert = (bool: boolean) => {
+    if (!bool) throw new Error();
+};
 
 class Test extends React.Component {
+    onClick = () => {
+        const url = new ImageField(new URL("http://google.com"));
+        const doc = new Doc();
+        const doc2 = new Doc();
+        doc.hello = 5;
+        doc.fields = "test";
+        doc.test = "hello doc";
+        doc.url = url;
+        //doc.testDoc = doc2;
+
+
+        const test1: TestDoc = TestDoc(doc);
+        assert(test1.hello === 5);
+        assert(test1.fields === undefined);
+        assert(test1.test === "hello doc");
+        assert(test1.url === url);
+        assert(test1.testDoc === doc2);
+        test1.myField = 20;
+        assert(test1.myField === 20);
+
+        const test2: Test2Doc = Test2Doc(doc);
+        assert(test2.hello === undefined);
+        // assert(test2.fields === "test");
+        assert(test2.test === undefined);
+        assert(test2.url === undefined);
+        assert(test2.testDoc === undefined);
+        test2.url = 35;
+        assert(test2.url === 35);
+        const l = new List<Doc>();
+        //TODO push, and other array functions don't go through the proxy
+        l.push(doc2);
+        //TODO currently length, and any other string fields will get serialized
+        doc.list = l;
+        console.log(l.slice());
+    }
+
     render() {
-        let jsx = "<Hello {...props}/>";
-        let bindings = {
-            props: {
-                firstName: "First",
-                lastName: "Last"
-            }
-        };
-        return <JsxParser jsx={jsx} bindings={bindings} components={{ Hello }}></JsxParser>;
+        return <div><button onClick={this.onClick}>Click me</button>
+            {/* <input onKeyPress={this.onEnter}></input> */}
+        </div>;
     }
 }
 
-ReactDOM.render((
-    <div style={{ position: "absolute", width: "100%", height: "100%" }}>
-        <Test />
-    </div>),
+ReactDOM.render(
+    <Test />,
     document.getElementById('root')
 );

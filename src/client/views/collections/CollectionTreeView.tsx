@@ -1,24 +1,33 @@
 import { IconProp, library } from '@fortawesome/fontawesome-svg-core';
-import { faCaretDown, faCaretRight, faTrashAlt } from '@fortawesome/free-solid-svg-icons';
+import { faCaretDown, faCaretRight, faTrashAlt, faAngleRight } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { action, observable } from "mobx";
+import { action, observable, trace } from "mobx";
 import { observer } from "mobx-react";
-import { Document } from "../../../fields/Document";
-import { FieldWaiting } from "../../../fields/Field";
-import { KeyStore } from "../../../fields/KeyStore";
-import { ListField } from "../../../fields/ListField";
-import { DragManager, SetupDrag } from "../../util/DragManager";
+import { DragManager, SetupDrag, dropActionType } from "../../util/DragManager";
 import { EditableView } from "../EditableView";
 import { CollectionSubView } from "./CollectionSubView";
 import "./CollectionTreeView.scss";
 import React = require("react");
+import { Document, listSpec } from '../../../new_fields/Schema';
+import { Cast, StrCast, BoolCast, FieldValue } from '../../../new_fields/Types';
+import { Doc, DocListCast } from '../../../new_fields/Doc';
+import { Id } from '../../../new_fields/RefField';
+import { ContextMenu } from '../ContextMenu';
+import { undoBatch } from '../../util/UndoManager';
+import { Main } from '../Main';
+import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
+import { CollectionDockingView } from './CollectionDockingView';
+import { DocumentManager } from '../../util/DocumentManager';
+import { Utils } from '../../../Utils';
+import { List } from '../../../new_fields/List';
+import { indexOf } from 'typescript-collections/dist/lib/arrays';
 
 
 export interface TreeViewProps {
-    document: Document;
-    deleteDoc: (doc: Document) => void;
+    document: Doc;
+    deleteDoc: (doc: Doc) => void;
     moveDocument: DragManager.MoveFunction;
-    copyOnDrag: boolean;
+    dropAction: "alias" | "copy" | undefined;
 }
 
 export enum BulletType {
@@ -28,6 +37,7 @@ export enum BulletType {
 }
 
 library.add(faTrashAlt);
+library.add(faAngleRight);
 library.add(faCaretDown);
 library.add(faCaretRight);
 
@@ -39,13 +49,29 @@ class TreeView extends React.Component<TreeViewProps> {
 
     @observable _collapsed: boolean = true;
 
-    delete = () => this.props.deleteDoc(this.props.document);
+    @undoBatch delete = () => this.props.deleteDoc(this.props.document);
+
+    @undoBatch openRight = async () => {
+        if (this.props.document.dockingConfig) {
+            Main.Instance.openWorkspace(this.props.document);
+        } else {
+            CollectionDockingView.Instance.AddRightSplit(this.props.document);
+        }
+    };
+
+    get children() {
+        return Cast(this.props.document.data, listSpec(Doc), []); // bcz: needed?    .filter(doc => FieldValue(doc));
+    }
+
+    onPointerDown = (e: React.PointerEvent) => {
+        e.stopPropagation();
+    }
 
     @action
     remove = (document: Document) => {
-        var children = this.props.document.GetT<ListField<Document>>(KeyStore.Data, ListField);
-        if (children && children !== FieldWaiting) {
-            children.Data.splice(children.Data.indexOf(document), 1);
+        let children = Cast(this.props.document.data, listSpec(Doc), []);
+        if (children) {
+            children.splice(children.indexOf(document), 1);
         }
     }
 
@@ -74,86 +100,132 @@ class TreeView extends React.Component<TreeViewProps> {
      */
     renderTitle() {
         let reference = React.createRef<HTMLDivElement>();
-        let onItemDown = SetupDrag(reference, () => this.props.document, this.props.moveDocument, this.props.copyOnDrag);
+        let onItemDown = SetupDrag(reference, () => this.props.document, this.props.moveDocument, this.props.dropAction);
         let editableView = (titleString: string) =>
             (<EditableView
                 display={"inline"}
                 contents={titleString}
                 height={36}
-                GetValue={() => this.props.document.Title}
+                GetValue={() => StrCast(this.props.document.title)}
                 SetValue={(value: string) => {
-                    this.props.document.SetText(KeyStore.Title, value);
+                    let target = this.props.document.proto ? this.props.document.proto : this.props.document;
+                    target.title = value;
                     return true;
                 }}
             />);
+        let dataDocs = Cast(CollectionDockingView.Instance.props.Document.data, listSpec(Doc), []);
+        let openRight = dataDocs && dataDocs.indexOf(this.props.document) !== -1 ? (null) : (
+            <div className="treeViewItem-openRight" onPointerDown={this.onPointerDown} onClick={this.openRight}>
+                <FontAwesomeIcon icon="angle-right" size="lg" />
+                <FontAwesomeIcon icon="angle-right" size="lg" />
+            </div>);
         return (
-            <div className="docContainer" ref={reference} onPointerDown={onItemDown}>
-                {editableView(this.props.document.Title)}
-                <div className="delete-button" onClick={this.delete}><FontAwesomeIcon icon="trash-alt" size="xs" /></div>
+            <div className="docContainer" ref={reference} onPointerDown={onItemDown}
+                style={{ background: BoolCast(this.props.document.libraryBrush, false) ? "#06121212" : "0" }}
+                onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}>
+                {editableView(StrCast(this.props.document.title))}
+                {openRight}
+                {/* {<div className="delete-button" onClick={this.delete}><FontAwesomeIcon icon="trash-alt" size="xs" /></div>} */}
             </div >);
     }
 
+    onWorkspaceContextMenu = (e: React.MouseEvent): void => {
+        if (!e.isPropagationStopped() && this.props.document[Id] !== CurrentUserUtils.MainDocId) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
+            ContextMenu.Instance.addItem({ description: "Open as Workspace", event: undoBatch(() => Main.Instance.openWorkspace(this.props.document)) });
+            ContextMenu.Instance.addItem({ description: "Open Right", event: () => CollectionDockingView.Instance.AddRightSplit(this.props.document) });
+            if (DocumentManager.Instance.getDocumentViews(this.props.document).length) {
+                ContextMenu.Instance.addItem({ description: "Focus", event: () => DocumentManager.Instance.getDocumentViews(this.props.document).map(view => view.props.focus(this.props.document)) });
+            }
+            ContextMenu.Instance.addItem({ description: "Delete", event: undoBatch(() => this.props.deleteDoc(this.props.document)) });
+            ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15);
+            e.stopPropagation();
+        }
+    }
+
+    onPointerEnter = (e: React.PointerEvent): void => { this.props.document.libraryBrush = true; }
+    onPointerLeave = (e: React.PointerEvent): void => { this.props.document.libraryBrush = false; }
+
     render() {
         let bulletType = BulletType.List;
-        let childElements: JSX.Element | undefined = undefined;
-        var children = this.props.document.GetT<ListField<Document>>(KeyStore.Data, ListField);
-        if (children && children !== FieldWaiting) { // add children for a collection
-            if (!this._collapsed) {
-                bulletType = BulletType.Collapsible;
-                childElements = <ul>
-                    {children.Data.map(value => <TreeView key={value.Id} document={value} deleteDoc={this.remove} moveDocument={this.move} copyOnDrag={this.props.copyOnDrag} />)}
-                </ul >;
-            }
-            else bulletType = BulletType.Collapsed;
+        let contentElement: (JSX.Element | null)[] = [];
+        let keys = Array.from(Object.keys(this.props.document));
+        if (this.props.document.proto instanceof Doc) {
+            keys.push(...Array.from(Object.keys(this.props.document.proto)));
         }
-        return <div className="treeViewItem-container" >
+        keys.map(key => {
+            let docList = Cast(this.props.document[key], listSpec(Doc));
+            if (docList instanceof List && docList.length && docList[0] instanceof Doc) {
+                if (!this._collapsed) {
+                    bulletType = BulletType.Collapsible;
+                    contentElement.push(<ul key={key + "more"}>
+                        {(key === "data") ? (null) :
+                            <span className="collectionTreeView-keyHeader" key={key}>{key}</span>}
+                        {TreeView.GetChildElements(docList, key !== "data", this.remove, this.move, this.props.dropAction)}
+                    </ul >);
+                } else
+                    bulletType = BulletType.Collapsed;
+            }
+        });
+        return <div className="treeViewItem-container"
+            onContextMenu={this.onWorkspaceContextMenu}>
             <li className="collection-child">
                 {this.renderBullet(bulletType)}
                 {this.renderTitle()}
-                {childElements ? childElements : (null)}
+                {contentElement}
             </li>
         </div>;
+    }
+    public static GetChildElements(docs: Doc[], allowMinimized: boolean, remove: ((doc: Doc) => void), move: DragManager.MoveFunction, dropAction: dropActionType) {
+        return docs.filter(child => !child.excludeFromLibrary && (allowMinimized || !child.isMinimized)).filter(doc => FieldValue(doc)).map(child =>
+            <TreeView document={child} key={child[Id]} deleteDoc={remove} moveDocument={move} dropAction={dropAction} />);
     }
 }
 
 @observer
-export class CollectionTreeView extends CollectionSubView {
-
+export class CollectionTreeView extends CollectionSubView(Document) {
     @action
     remove = (document: Document) => {
-        var children = this.props.Document.GetT<ListField<Document>>(KeyStore.Data, ListField);
-        if (children && children !== FieldWaiting) {
-            children.Data.splice(children.Data.indexOf(document), 1);
+        let children = Cast(this.props.Document.data, listSpec(Doc), []);
+        if (children) {
+            children.splice(children.indexOf(document), 1);
         }
     }
-
+    onContextMenu = (e: React.MouseEvent): void => {
+        if (!e.isPropagationStopped() && this.props.Document[Id] !== CurrentUserUtils.MainDocId) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
+            ContextMenu.Instance.addItem({ description: "Create Workspace", event: undoBatch(() => Main.Instance.createNewWorkspace()) });
+        }
+        if (!ContextMenu.Instance.getItems().some(item => item.description === "Delete")) {
+            ContextMenu.Instance.addItem({ description: "Delete", event: undoBatch(() => this.remove(this.props.Document)) });
+        }
+    }
     render() {
-        let children = this.props.Document.GetT<ListField<Document>>(KeyStore.Data, ListField);
-        let copyOnDrag = this.props.Document.GetBoolean(KeyStore.CopyDraggedItems, false);
-        let childrenElement = !children || children === FieldWaiting ? (null) :
-            (children.Data.map(value =>
-                <TreeView document={value} key={value.Id} deleteDoc={this.remove} moveDocument={this.props.moveDocument} copyOnDrag={copyOnDrag} />)
-            );
+        const children = this.children;
+        let dropAction = StrCast(this.props.Document.dropAction, "alias") as dropActionType;
+        if (!children) {
+            return (null);
+        }
+        let childElements = TreeView.GetChildElements(children, false, this.remove, this.props.moveDocument, dropAction);
 
         return (
             <div id="body" className="collectionTreeView-dropTarget"
                 style={{ borderRadius: "inherit" }}
+                onContextMenu={this.onContextMenu}
                 onWheel={(e: React.WheelEvent) => e.stopPropagation()}
                 onDrop={(e: React.DragEvent) => this.onDrop(e, {})} ref={this.createDropTarget}>
                 <div className="coll-title">
                     <EditableView
-                        contents={this.props.Document.Title}
+                        contents={this.props.Document.title}
                         display={"inline"}
                         height={72}
-                        GetValue={() => this.props.Document.Title}
+                        GetValue={() => StrCast(this.props.Document.title)}
                         SetValue={(value: string) => {
-                            this.props.Document.SetText(KeyStore.Title, value);
+                            let target = this.props.Document.proto ? this.props.Document.proto : this.props.Document;
+                            target.title = value;
                             return true;
                         }} />
                 </div>
-                <hr />
                 <ul className="no-indent">
-                    {childrenElement}
+                    {childElements}
                 </ul>
             </div >
         );

@@ -1,5 +1,5 @@
-import { action, observable } from "mobx";
-import { Document } from "../../fields/Document";
+import { observable, action } from "mobx";
+import { Doc } from "../../new_fields/Doc";
 import { MainOverlayTextBox } from "../views/MainOverlayTextBox";
 import { DocumentView } from "../views/nodes/DocumentView";
 
@@ -49,7 +49,7 @@ export namespace SelectionManager {
         return manager.SelectedDocuments.indexOf(doc) !== -1;
     }
 
-    export function DeselectAll(except?: Document): void {
+    export function DeselectAll(except?: Doc): void {
         let found: DocumentView | undefined = undefined;
         if (except) {
             for (const view of manager.SelectedDocuments) {
