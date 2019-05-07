@@ -1,0 +1,11 @@
+.text-layer {
+    height: 0;
+    line-height: 1.0;
+
+    div {
+        position: absolute;
+        white-space: pre;
+        cursor: text;
+        transform-origin: 0% 0%;
+    }
+}
