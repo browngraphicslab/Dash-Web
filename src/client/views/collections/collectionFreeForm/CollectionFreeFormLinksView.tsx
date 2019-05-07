@@ -25,7 +25,7 @@ export class CollectionFreeFormLinksView extends React.Component<CollectionViewP
             },
             async () => {
                 let doclist = await DocListCast(this.props.Document[this.props.fieldKey]);
-                let views = doclist ? doclist.filter(doc => StrCast(doc.backgroundLayout).indexOf("istogram") === -1) : [];
+                let views = doclist ? doclist.filter(doc => StrCast(doc.backgroundLayout).indexOf("istogram") !== -1) : [];
                 views.forEach((dstDoc, i) => {
                     views.forEach((srcDoc, j) => {
                         let dstTarg = dstDoc;
