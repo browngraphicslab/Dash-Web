@@ -265,7 +265,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             ContainingCollectionView: this.props.CollectionView,
             focus: this.focusDocument,
             parentActive: this.props.active,
-            whenActiveChanged: this.props.active,
+            whenActiveChanged: this.props.whenActiveChanged,
             bringToFront: this.bringToFront,
         };
     }
@@ -274,7 +274,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     get views() {
         let curPage = FieldValue(this.Document.curPage, -1);
         let docviews = (this.children || []).filter(doc => doc).reduce((prev, doc) => {
-            if (!FieldValue(doc)) return prev;
+            if (!(doc instanceof Doc)) return prev;
             var page = NumCast(doc.page, -1);
             if (page === curPage || page === -1) {
                 let minim = Cast(doc.isMinimized, "boolean");
