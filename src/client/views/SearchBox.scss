@@ -8,18 +8,7 @@
     transition: width 0.4s ease-in-out;
     align-items: center;
 
-    .submit-search {
-        text-align: right;
-        color: $dark-color;
-        -webkit-transition: right 0.4s;
-        transition: right 0.4s;
-    }
 
-    .submit-search:hover {
-        color: $main-accent;
-        transform: scale(1.05);
-        cursor: pointer;
-    }
 
     input[type=text] {
         width: 130px;
@@ -37,6 +26,19 @@
     .filter-button {
         position: absolute;
         right: 30px;
+    }
+
+    .submit-search {
+        text-align: right;
+        color: $dark-color;
+        -webkit-transition: right 0.4s;
+        transition: right 0.4s;
+    }
+
+    .submit-search:hover {
+        color: $main-accent;
+        transform: scale(1.05);
+        cursor: pointer;
     }
 }
 
@@ -60,4 +62,32 @@
 
 #option {
     height: 20px;
+}
+
+.search-item {
+    width: 500px;
+    height: 50px;
+    background: $light-color-secondary;
+    display: flex;
+    justify-content: left;
+    align-items: center;
+    transition: all 0.1s;
+    border-width: 0.11px;
+    border-style: none;
+    border-color: $intermediate-color;
+    border-bottom-style: solid;
+    padding: 10px;
+    white-space: nowrap;
+    font-size: 13px;
+}
+
+.search-item:hover {
+    transition: all 0.1s;
+    background: $lighter-alt-accent;
+}
+
+.search-title {
+    text-transform: uppercase;
+    text-align: left;
+    width: 8vw;
 }

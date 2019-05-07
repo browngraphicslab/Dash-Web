@@ -74,42 +74,19 @@ export class SearchBox extends React.Component {
 
         let results = JSON.parse(response);
 
-        this._results = results;
+        //gets json result into a list of documents that can be used
+        this.getResults(results);
 
-        let doc = await Server.GetField(results[1]);
-        if (doc instanceof Document) {
-            console.log("doc");
-            console.log(doc.Title);
-        }
+    }
 
-        // weird things happening
-        // console.log("results")
-        // console.log(results);
-        // console.log("type")
-        // console.log(results.type)
-        let temp: string = this._results[1].Id;
-        // console.log(this._results)
-        // console.log(this._results[1])
-
-        console.log(this._results[1].constructor.name)
-
-        if (this._results[1] instanceof Document) {
-            console.log("is a doc")
-        }
-
-        if (this._results[1]) {
-            console.log("is a string")
-        }
-
-        console.log(temp);
-        let doc2 = await Server.GetField(temp);
-        console.log(doc2);
-        if (doc2 instanceof Document) {
-            console.log("doc2");
-            console.log(doc2.Title);
-        }
-
-
+    getResults = async (res: string[]) => {
+        let doc;
+        res.map(async result => {
+            doc = await Server.GetField(result);
+            if (doc instanceof Document) {
+                this._results.push(doc);
+            }
+        });
     }
 
     @action
@@ -143,10 +120,9 @@ export class SearchBox extends React.Component {
                 <button onClick={this.submitSearch} /> */}
 
                     <input value={this.searchString} onChange={this.onChange} type="text" placeholder="Search.." className="search" id="input" />
-                    {/* {this._items.filter(prop => prop.description.toLowerCase().indexOf(this._searchString.toLowerCase()) !== -1).
-                    map(prop => <ContextMenuItem {...prop} key={prop.description} />)} */}
-                    {this._results.map(doc => <SearchItem {...doc} key={doc.Title} />)}
-
+                    <div style={this._open ? { display: "flex" } : { display: "none" }}>
+                        {this._results.map(result => <SearchItem doc={result} key={result.Id} />)}
+                    </div>
                     <button className="filter-button" onClick={this.toggleDisplay}> Filter </button>
                     <div className="submit-search" id="submit" onClick={this.submitSearch}><FontAwesomeIcon style={{ height: "100%" }} icon="search" size="lg" /></div>
                 </div>
