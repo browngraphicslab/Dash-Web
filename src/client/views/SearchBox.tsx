@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { observer } from 'mobx-react';
-import { observable, action } from 'mobx';
+import { observable, action, runInAction } from 'mobx';
 import { Utils } from '../../Utils';
 import { MessageStore } from '../../server/Message';
 import { Server } from '../Server';
@@ -8,7 +8,6 @@ import "./SearchBox.scss";
 import { faSearch } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { actionFieldDecorator } from 'mobx/lib/internal';
 // const app = express();
 // import * as express from 'express';
 import { Search } from '../../server/Search';
@@ -26,8 +25,9 @@ export class SearchBox extends React.Component {
     searchString: string = "";
 
     @observable private _open: boolean = false;
+    @observable private _resultsOpen: boolean = false;
 
-    //@observable
+    @observable
     private _results: Document[] = [];
 
     // constructor(props: any) {
@@ -61,7 +61,7 @@ export class SearchBox extends React.Component {
         this.searchString = e.target.value;
     }
 
-    //@action
+    @action
     submitSearch = async () => {
 
         let query = this.searchString;
@@ -71,20 +71,20 @@ export class SearchBox extends React.Component {
                 query
             }
         });
-
         let results = JSON.parse(response);
 
         //gets json result into a list of documents that can be used
         this.getResults(results);
 
+        runInAction(() => { this._resultsOpen = true; });
     }
 
+    @action
     getResults = async (res: string[]) => {
-        let doc;
         res.map(async result => {
-            doc = await Server.GetField(result);
+            const doc = await Server.GetField(result);
             if (doc instanceof Document) {
-                this._results.push(doc);
+                runInAction(() => this._results.push(doc));
             }
         });
     }
@@ -120,7 +120,7 @@ export class SearchBox extends React.Component {
                 <button onClick={this.submitSearch} /> */}
 
                     <input value={this.searchString} onChange={this.onChange} type="text" placeholder="Search.." className="search" id="input" />
-                    <div style={this._open ? { display: "flex" } : { display: "none" }}>
+                    <div style={this._resultsOpen ? { display: "flex" } : { display: "none" }}>
                         {this._results.map(result => <SearchItem doc={result} key={result.Id} />)}
                     </div>
                     <button className="filter-button" onClick={this.toggleDisplay}> Filter </button>
