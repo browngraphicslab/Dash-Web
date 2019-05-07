@@ -308,7 +308,6 @@ function UpdateField(socket: Socket, diff: Diff) {
         return;
     }
     const update: any = { id: diff.id };
-    console.log("FIELD: ", docfield);
     let dynfield = false;
     for (let key in docfield) {
         if (!key.startsWith("fields.")) continue;
@@ -322,14 +321,12 @@ function UpdateField(socket: Socket, diff: Diff) {
         }
     }
     if (dynfield) {
-        console.log("dynamic field detected!");
         Search.Instance.updateDocument(update);
     }
 }
 
 function CreateField(newValue: any) {
     Database.Instance.insert(newValue, "newDocuments");
-    console.log("created field");
 }
 
 server.listen(serverPort);
