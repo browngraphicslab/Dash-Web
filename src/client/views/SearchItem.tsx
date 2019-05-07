@@ -1,8 +1,8 @@
 import React = require("react");
-import { Document } from "../../fields/Document";
+import { Doc } from "../../new_fields/Doc";
 
 export interface SearchProps {
-    doc: Document;
+    doc: Doc;
     //description: string;
     //event: (e: React.MouseEvent<HTMLDivElement>) => void;
 }
@@ -27,8 +27,8 @@ export class SearchItem extends React.Component<SearchProps> {
     render() {
         return (
             <div className="search-item" onClick={this.onClick}>
-                <div className="search-title">{this.props.doc.Title}</div>
+                <div className="search-title">{this.props.doc.title}</div>
             </div>
         );
     }
-}
+} 

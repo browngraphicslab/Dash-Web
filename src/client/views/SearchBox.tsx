@@ -3,7 +3,6 @@ import { observer } from 'mobx-react';
 import { observable, action, runInAction } from 'mobx';
 import { Utils } from '../../Utils';
 import { MessageStore } from '../../server/Message';
-import { Server } from '../Server';
 import "./SearchBox.scss";
 import { faSearch } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -12,10 +11,12 @@ import { library } from '@fortawesome/fontawesome-svg-core';
 // import * as express from 'express';
 import { Search } from '../../server/Search';
 import * as rp from 'request-promise';
-import { Document } from '../../fields/Document';
 import { SearchItem } from './SearchItem';
 import { isString } from 'util';
 import { constant } from 'async';
+import { DocServer } from '../DocServer';
+import { Doc } from '../../new_fields/Doc';
+import { Id } from '../../new_fields/RefField';
 
 
 library.add(faSearch);
@@ -29,7 +30,7 @@ export class SearchBox extends React.Component {
     @observable private _resultsOpen: boolean = false;
 
     @observable
-    private _results: Document[] = [];
+    private _results: Doc[] = [];
 
     @action.bound
     onChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -58,8 +59,8 @@ export class SearchBox extends React.Component {
     @action
     getResults = async (res: string[]) => {
         res.map(async result => {
-            const doc = await Server.GetField(result);
-            if (doc instanceof Document) {
+            const doc = await DocServer.GetRefField(result);
+            if (doc instanceof Doc) {
                 runInAction(() => this._results.push(doc));
             }
         });
@@ -103,7 +104,7 @@ export class SearchBox extends React.Component {
                     <button className="filter-button" onClick={this.toggleDisplay}> Filter </button>
                     <div className="submit-search" id="submit" onClick={this.submitSearch}><FontAwesomeIcon style={{ height: "100%" }} icon="search" size="lg" /></div>
                     <div className="results" style={this._resultsOpen ? { display: "flex" } : { display: "none" }}>
-                        {this._results.map(result => <SearchItem doc={result} key={result.Id} />)}
+                        {this._results.map(result => <SearchItem doc={result} key={result[Id]} />)}
                     </div>
                 </div>
                 <div className="filter-form" id="filter" style={this._open ? { display: "flex" } : { display: "none" }}>

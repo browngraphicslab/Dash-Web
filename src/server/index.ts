@@ -303,7 +303,10 @@ const suffixMap: { [type: string]: string } = {
 function UpdateField(socket: Socket, diff: Diff) {
     Database.Instance.update(diff.id, diff.diff,
         () => socket.broadcast.emit(MessageStore.UpdateField.Message, diff), false, "newDocuments");
-    const docfield = diff.diff;
+    const docfield = diff.diff.$set;
+    if (!docfield) {
+        return;
+    }
     const update: any = { id: diff.id };
     console.log("FIELD: ", docfield);
     let dynfield = false;
