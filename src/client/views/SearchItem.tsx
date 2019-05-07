@@ -21,7 +21,7 @@ export interface SearchProps {
 export class SearchItem extends React.Component<SearchProps> {
 
     onClick = () => {
-        console.log("clicked search item");
+        console.log("document clicked: ", this.props.doc);
     }
 
     render() {

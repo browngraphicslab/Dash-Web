@@ -15,6 +15,7 @@ import * as rp from 'request-promise';
 import { Document } from '../../fields/Document';
 import { SearchItem } from './SearchItem';
 import { isString } from 'util';
+import { constant } from 'async';
 
 
 library.add(faSearch);
@@ -30,40 +31,15 @@ export class SearchBox extends React.Component {
     @observable
     private _results: Document[] = [];
 
-    // constructor(props: any) {
-    //     super(props);
-    //     let searchInput = document.getElementById("input");
-    //     if (searchInput) {
-    //         // searchInput.addEventListener("keydown", this.onKeyPress)
-    //     }
-    // }
-
-    // //this is not working?????
-    // @action
-    // onKeyPress = (e: KeyboardEvent) => {
-    //     console.log('things happening')
-    //     //Number 13 is the "Enter" key on the keyboard
-    //     if (e.keyCode === 13) {
-    //         console.log("happi")
-    //         // Cancel the default action, if needed
-    //         e.preventDefault();
-    //         // Trigger the button element with a click
-    //         let btn = document.getElementById("submit");
-    //         if (btn) {
-    //             console.log("yesyesyes")
-    //             btn.click();
-    //         }
-    //     }
-    // }
-
     @action.bound
     onChange(e: React.ChangeEvent<HTMLInputElement>) {
         this.searchString = e.target.value;
+        console.log(this.searchString)
     }
 
     @action
     submitSearch = async () => {
-
+        runInAction(() => this._results = []);
         let query = this.searchString;
 
         let response = await rp.get('http://localhost:1050/search', {
@@ -112,19 +88,23 @@ export class SearchBox extends React.Component {
         this._open = !this._open;
     }
 
+    enter = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === "Enter") {
+            this.submitSearch();
+        }
+    }
+
     render() {
         return (
             <div id="outer">
                 <div className="searchBox" id="outer">
-                    {/* <input value={this.searchString} onChange={this.onChange} />
-                <button onClick={this.submitSearch} /> */}
 
-                    <input value={this.searchString} onChange={this.onChange} type="text" placeholder="Search.." className="search" id="input" />
-                    <div style={this._resultsOpen ? { display: "flex" } : { display: "none" }}>
-                        {this._results.map(result => <SearchItem doc={result} key={result.Id} />)}
-                    </div>
+                    <input value={this.searchString} onChange={this.onChange} type="text" placeholder="Search.." className="search" id="input" onKeyPress={this.enter} />
                     <button className="filter-button" onClick={this.toggleDisplay}> Filter </button>
                     <div className="submit-search" id="submit" onClick={this.submitSearch}><FontAwesomeIcon style={{ height: "100%" }} icon="search" size="lg" /></div>
+                    <div className="results" style={this._resultsOpen ? { display: "flex" } : { display: "none" }}>
+                        {this._results.map(result => <SearchItem doc={result} key={result.Id} />)}
+                    </div>
                 </div>
                 <div className="filter-form" id="filter" style={this._open ? { display: "flex" } : { display: "none" }}>
                     <div className="filter-form" id="header">Filter Search Results</div>
