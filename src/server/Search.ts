@@ -14,6 +14,8 @@ export class Search {
     }
 
     public async search(query: string) {
+        console.log("____________________________");
+        console.log(query);
         const searchResults = JSON.parse(await rp.get(this.url + "dash/select", {
             qs: {
                 q: query
