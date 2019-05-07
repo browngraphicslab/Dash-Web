@@ -17,6 +17,7 @@ import { constant } from 'async';
 import { DocServer } from '../DocServer';
 import { Doc } from '../../new_fields/Doc';
 import { Id } from '../../new_fields/RefField';
+import { DocumentManager } from '../util/DocumentManager';
 
 
 library.add(faSearch);
@@ -35,7 +36,6 @@ export class SearchBox extends React.Component {
     @action.bound
     onChange(e: React.ChangeEvent<HTMLInputElement>) {
         this.searchString = e.target.value;
-        console.log(this.searchString)
     }
 
     @action
