@@ -23,6 +23,7 @@ import { InkingControl } from "../InkingControl";
 import { StrCast, Cast, NumCast, BoolCast } from "../../../new_fields/Types";
 import { RichTextField } from "../../../new_fields/RichTextField";
 import { Id } from "../../../new_fields/RefField";
+import { UndoManager } from "../../util/UndoManager";
 const { buildMenuItems } = require("prosemirror-example-setup");
 const { menuBar } = require("prosemirror-menu");
 
@@ -271,7 +272,13 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             }
         });
     }
-
+    onBlur = (e: any) => {
+        if (this._undoTyping) {
+            this._undoTyping.end();
+            this._undoTyping = undefined;
+        }
+    }
+    public _undoTyping?: UndoManager.Batch;
     onKeyPress = (e: React.KeyboardEvent) => {
         if (e.key === "Escape") {
             SelectionManager.DeselectAll();
@@ -286,6 +293,9 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             let titlestr = str.substr(0, Math.min(40, str.length));
             let target = this.props.Document.proto ? this.props.Document.proto : this.props.Document;
             target.title = "-" + titlestr + (str.length > 40 ? "..." : "");
+        }
+        if (!this._undoTyping) {
+            this._undoTyping = UndoManager.StartBatch("undoTyping");
         }
     }
     render() {
@@ -303,6 +313,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 onKeyPress={this.onKeyPress}
                 onFocus={this.onFocused}
                 onClick={this.onClick}
+                onBlur={this.onBlur}
                 onPointerUp={this.onPointerUp}
                 onPointerDown={this.onPointerDown}
                 onMouseDown={this.onMouseDown}

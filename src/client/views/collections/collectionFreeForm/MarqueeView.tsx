@@ -3,7 +3,7 @@ import { observer } from "mobx-react";
 import { Docs } from "../../../documents/Documents";
 import { SelectionManager } from "../../../util/SelectionManager";
 import { Transform } from "../../../util/Transform";
-import { undoBatch } from "../../../util/UndoManager";
+import { undoBatch, UndoManager } from "../../../util/UndoManager";
 import { InkingCanvas } from "../../InkingCanvas";
 import { PreviewCursor } from "../../PreviewCursor";
 import { CollectionFreeFormView } from "./CollectionFreeFormView";
@@ -17,6 +17,8 @@ import { Templates } from "../../Templates";
 import { List } from "../../../../new_fields/List";
 import { emitKeypressEvents } from "readline";
 import { listSpec } from "../../../../new_fields/Schema";
+import { undo } from "prosemirror-history";
+import { FormattedTextBox } from "../../nodes/FormattedTextBox";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;
@@ -50,6 +52,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         this._visible = false;
     }
 
+    @undoBatch
     @action
     onKeyPress = (e: KeyboardEvent) => {
         //make textbox and add it to this collection
