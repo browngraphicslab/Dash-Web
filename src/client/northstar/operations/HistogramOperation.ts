@@ -1,7 +1,4 @@
 import { action, computed, observable, trace } from "mobx";
-import { Document } from "../../../fields/Document";
-import { FieldWaiting } from "../../../fields/Field";
-import { KeyStore } from "../../../fields/KeyStore";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { ColumnAttributeModel } from "../core/attribute/AttributeModel";
 import { AttributeTransformationModel } from "../core/attribute/AttributeTransformationModel";
@@ -16,14 +13,16 @@ import { AggregateFunction, AggregateParameters, Attribute, AverageAggregatePara
 import { ModelHelpers } from "../model/ModelHelpers";
 import { ArrayUtil } from "../utils/ArrayUtil";
 import { BaseOperation } from "./BaseOperation";
+import { Doc } from "../../../new_fields/Doc";
+import { Cast, NumCast } from "../../../new_fields/Types";
 
 export class HistogramOperation extends BaseOperation implements IBaseFilterConsumer, IBaseFilterProvider {
     public static Empty = new HistogramOperation("-empty schema-", new AttributeTransformationModel(new ColumnAttributeModel(new Attribute())), new AttributeTransformationModel(new ColumnAttributeModel(new Attribute())), new AttributeTransformationModel(new ColumnAttributeModel(new Attribute())));
     @observable public FilterOperand: FilterOperand = FilterOperand.AND;
-    @observable public Links: Document[] = [];
-    @observable public BrushLinks: { l: Document, b: Document }[] = [];
+    @observable public Links: Doc[] = [];
+    @observable public BrushLinks: { l: Doc, b: Doc }[] = [];
     @observable public BrushColors: number[] = [];
-    @observable public FilterModels: FilterModel[] = [];
+    @observable public BarFilterModels: FilterModel[] = [];
 
     @observable public Normalization: number = -1;
     @observable public X: AttributeTransformationModel;
@@ -50,17 +49,24 @@ export class HistogramOperation extends BaseOperation implements IBaseFilterCons
         throw new Error("Method not implemented.");
     }
 
+
+    @computed public get FilterModels() {
+        return this.BarFilterModels;
+    }
     @action
     public AddFilterModels(filterModels: FilterModel[]): void {
-        filterModels.filter(f => f !== null).forEach(fm => this.FilterModels.push(fm));
+        filterModels.filter(f => f !== null).forEach(fm => this.BarFilterModels.push(fm));
     }
     @action
     public RemoveFilterModels(filterModels: FilterModel[]): void {
-        ArrayUtil.RemoveMany(this.FilterModels, filterModels);
+        ArrayUtil.RemoveMany(this.BarFilterModels, filterModels);
     }
 
     @computed
     public get FilterString(): string {
+        if (this.OverridingFilters.length > 0) {
+            return "(" + this.OverridingFilters.filter(fm => fm != null).map(fm => fm.ToPythonString()).join(" || ") + ")";
+        }
         let filterModels: FilterModel[] = [];
         return FilterModel.GetFilterModelsRecursive(this, new Set<IBaseFilterProvider>(), filterModels, true);
     }
@@ -70,13 +76,34 @@ export class HistogramOperation extends BaseOperation implements IBaseFilterCons
         trace();
         let brushes: string[] = [];
         this.BrushLinks.map(brushLink => {
-            let brushHistogram = brushLink.b.GetT(KeyStore.Data, HistogramField);
-            if (brushHistogram && brushHistogram !== FieldWaiting) {
+            let brushHistogram = Cast(brushLink.b.data, HistogramField);
+            if (brushHistogram) {
                 let filterModels: FilterModel[] = [];
-                brushes.push(FilterModel.GetFilterModelsRecursive(brushHistogram.Data, new Set<IBaseFilterProvider>(), filterModels, false));
+                brushes.push(FilterModel.GetFilterModelsRecursive(brushHistogram.HistoOp, new Set<IBaseFilterProvider>(), filterModels, false));
             }
         });
         return brushes;
+    }
+
+    _stackedFilters: (FilterModel[])[] = [];
+    @action
+    public DrillDown(up: boolean) {
+        if (!up) {
+            if (!this.BarFilterModels.length)
+                return;
+            this._stackedFilters.push(this.BarFilterModels.map(f => f));
+            this.OverridingFilters.length = 0;
+            this.OverridingFilters.push(...this._stackedFilters[this._stackedFilters.length - 1]);
+            this.BarFilterModels.map(fm => fm).map(fm => this.RemoveFilterModels([fm]));
+            //this.updateHistogram();
+        } else {
+            this.OverridingFilters.length = 0;
+            if (this._stackedFilters.length) {
+                this.OverridingFilters.push(...this._stackedFilters.pop()!);
+            }
+            // else 
+            //     this.updateHistogram();
+        }
     }
 
     private getAggregateParameters(histoX: AttributeTransformationModel, histoY: AttributeTransformationModel, histoValue: AttributeTransformationModel) {
@@ -120,7 +147,7 @@ export class HistogramOperation extends BaseOperation implements IBaseFilterCons
 
     @action
     public async Update(): Promise<void> {
-        this.BrushColors = this.BrushLinks.map(e => e.l.GetNumber(KeyStore.BackgroundColor, 0));
+        this.BrushColors = this.BrushLinks.map(e => NumCast(e.l.backgroundColor));
         return super.Update();
     }
 }

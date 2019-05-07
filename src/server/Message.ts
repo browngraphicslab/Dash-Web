@@ -14,8 +14,8 @@ export class Message<T> {
 }
 
 export enum Types {
-    Number, List, Key, Image, Web, Document, Text, RichText, DocumentReference,
-    Html, Video, Audio, Ink, PDF, Tuple, HistogramOp, Boolean, Script,
+    Number, List, Key, Image, Web, Document, Text, Icon, RichText, DocumentReference,
+    Html, Video, Audio, Ink, PDF, Tuple, HistogramOp, Boolean, Script, Templates
 }
 
 export interface Transferable {
@@ -42,6 +42,7 @@ export namespace MessageStore {
     export const DeleteAll = new Message<any>("Delete All");
 
     export const GetRefField = new Message<string>("Get Ref Field");
+    export const GetRefFields = new Message<string[]>("Get Ref Fields");
     export const UpdateField = new Message<Diff>("Update Ref Field");
     export const CreateField = new Message<Reference>("Create Ref Field");
 }

@@ -60,7 +60,7 @@ export class EditableView extends React.Component<EditableProps> {
             return (
                 <div className="editableView-container-editing" style={{ display: this.props.display, height: "auto", maxHeight: `${this.props.height}` }}
                     onClick={action(() => this.editing = true)} >
-                    {this.props.contents}
+                    <span>{this.props.contents}</span>
                 </div>
             );
         }

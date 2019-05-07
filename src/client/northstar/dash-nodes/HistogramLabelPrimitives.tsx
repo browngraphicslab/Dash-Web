@@ -12,7 +12,7 @@ import { HistogramPrimitivesProps } from "./HistogramBoxPrimitives";
 @observer
 export class HistogramLabelPrimitives extends React.Component<HistogramPrimitivesProps> {
     componentDidMount() {
-        reaction(() => [this.props.HistoBox.PanelWidth, this.props.HistoBox.SizeConverter.LeftOffset, this.props.HistoBox.VisualBinRanges.length],
+        reaction(() => [this.props.HistoBox.props.PanelWidth(), this.props.HistoBox.SizeConverter.LeftOffset, this.props.HistoBox.VisualBinRanges.length],
             (fields) => HistogramLabelPrimitives.computeLabelAngle(fields[0], fields[1], this.props.HistoBox), { fireImmediately: true });
     }
 
@@ -35,7 +35,7 @@ export class HistogramLabelPrimitives extends React.Component<HistogramPrimitive
         if (!vb.length || !sc.Initialized) {
             return (null);
         }
-        let dim = (axis === 0 ? this.props.HistoBox.PanelWidth : this.props.HistoBox.PanelHeight) / ((axis === 0 && vb[axis] instanceof NominalVisualBinRange) ?
+        let dim = (axis === 0 ? this.props.HistoBox.props.PanelWidth() : this.props.HistoBox.props.PanelHeight()) / ((axis === 0 && vb[axis] instanceof NominalVisualBinRange) ?
             (12 + 5) : //  (<number>FontStyles.AxisLabel.fontSize + 5)));
             sc.MaxLabelSizes[axis].coords[axis] + 5);
 
@@ -49,12 +49,12 @@ export class HistogramLabelPrimitives extends React.Component<HistogramPrimitive
                 let yStart = (axis === 1 ? r.yFrom - textHeight / 2 : r.yFrom);
 
                 if (axis === 0 && vb[axis] instanceof NominalVisualBinRange) {
-                    let space = (r.xTo - r.xFrom) / sc.RenderDimension * this.props.HistoBox.PanelWidth;
+                    let space = (r.xTo - r.xFrom) / sc.RenderDimension * this.props.HistoBox.props.PanelWidth();
                     xStart += Math.max(textWidth / 2, (1 - textWidth / space) * textWidth / 2) - textHeight / 2;
                 }
 
                 let xPercent = axis === 1 ? `${xStart}px` : `${xStart / sc.RenderDimension * 100}%`;
-                let yPercent = axis === 0 ? `${this.props.HistoBox.PanelHeight - sc.BottomOffset - textHeight}px` : `${yStart / sc.RenderDimension * 100}%`;
+                let yPercent = axis === 0 ? `${this.props.HistoBox.props.PanelHeight() - sc.BottomOffset - textHeight}px` : `${yStart / sc.RenderDimension * 100}%`;
 
                 prims.push(
                     <div className="histogramLabelPrimitives-placer" key={DashUtils.GenerateGuid()} style={{ transform: `translate(${xPercent}, ${yPercent})` }}>

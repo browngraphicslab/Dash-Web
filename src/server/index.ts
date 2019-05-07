@@ -17,7 +17,6 @@ import { Socket } from 'socket.io';
 import * as webpack from 'webpack';
 import * as wdm from 'webpack-dev-middleware';
 import * as whm from 'webpack-hot-middleware';
-import { Field, FieldId } from '../fields/Field';
 import { Utils } from '../Utils';
 import { getForgot, getLogin, getLogout, getReset, getSignup, postForgot, postLogin, postReset, postSignup } from './authentication/controllers/user_controller';
 import { DashUserModel } from './authentication/models/user_model';
@@ -248,16 +247,19 @@ server.on("connection", function (socket: Socket) {
 
     Utils.AddServerHandler(socket, MessageStore.CreateField, CreateField);
     Utils.AddServerHandler(socket, MessageStore.UpdateField, diff => UpdateField(socket, diff));
-    Utils.AddServerHandler(socket, MessageStore.GetRefField, GetRefField);
+    Utils.AddServerHandlerCallback(socket, MessageStore.GetRefField, GetRefField);
+    Utils.AddServerHandlerCallback(socket, MessageStore.GetRefFields, GetRefFields);
 });
 
 async function deleteFields() {
     await Database.Instance.deleteAll();
     await Search.Instance.clear();
+    await Database.Instance.deleteAll('newDocuments');
 }
 
 async function deleteAll() {
     await Database.Instance.deleteAll();
+    await Database.Instance.deleteAll('newDocuments');
     await Database.Instance.deleteAll('sessions');
     await Database.Instance.deleteAll('users');
     await Search.Instance.clear();
@@ -288,6 +290,11 @@ function setField(socket: Socket, newValue: Transferable) {
 function GetRefField([id, callback]: [string, (result?: Transferable) => void]) {
     Database.Instance.getDocument(id, callback, "newDocuments");
 }
+
+function GetRefFields([ids, callback]: [string[], (result?: Transferable[]) => void]) {
+    Database.Instance.getDocuments(ids, callback, "newDocuments");
+}
+
 
 const suffixMap: { [type: string]: string } = {
     "number": "_n",

@@ -1,13 +1,5 @@
 // import * as ts from "typescript"
 let ts = (window as any).ts;
-import { Opt, Field } from "../../fields/Field";
-import { Document } from "../../fields/Document";
-import { NumberField } from "../../fields/NumberField";
-import { ImageField } from "../../fields/ImageField";
-import { TextField } from "../../fields/TextField";
-import { RichTextField } from "../../fields/RichTextField";
-import { KeyStore } from "../../fields/KeyStore";
-import { ListField } from "../../fields/ListField";
 // // @ts-ignore
 // import * as typescriptlib from '!!raw-loader!../../../node_modules/typescript/lib/lib.d.ts'
 // // @ts-ignore
@@ -15,8 +7,11 @@ import { ListField } from "../../fields/ListField";
 
 // @ts-ignore
 import * as typescriptlib from '!!raw-loader!./type_decls.d';
-import { Documents } from "../documents/Documents";
-import { Key } from "../../fields/Key";
+import { Docs } from "../documents/Documents";
+import { Doc, Field } from '../../new_fields/Doc';
+import { ImageField, PdfField, VideoField, AudioField } from '../../new_fields/URLField';
+import { List } from '../../new_fields/List';
+import { RichTextField } from '../../new_fields/RichTextField';
 
 export interface ScriptSucccess {
     success: true;
@@ -50,9 +45,9 @@ function Run(script: string | undefined, customParams: string[], diagnostics: an
         return { compiled: false, errors: diagnostics };
     }
 
-    let fieldTypes = [Document, NumberField, TextField, ImageField, RichTextField, ListField, Key];
-    let paramNames = ["KeyStore", "Documents", ...fieldTypes.map(fn => fn.name)];
-    let params: any[] = [KeyStore, Documents, ...fieldTypes];
+    let fieldTypes = [Doc, ImageField, PdfField, VideoField, AudioField, List, RichTextField];
+    let paramNames = ["Docs", ...fieldTypes.map(fn => fn.name)];
+    let params: any[] = [Docs, ...fieldTypes];
     let compiledFunction = new Function(...paramNames, `return ${script}`);
     let { capturedVariables = {} } = options;
     let run = (args: { [name: string]: any } = {}): ScriptResult => {
@@ -171,17 +166,4 @@ export function CompileScript(script: string, options: ScriptOptions = {}): Comp
     let diagnostics = ts.getPreEmitDiagnostics(program).concat(testResult.diagnostics);
 
     return Run(outputText, paramNames, diagnostics, script, options);
-}
-
-export function OrLiteralType(returnType: string): string {
-    return `${returnType} | string | number`;
-}
-
-export function ToField(data: any): Opt<Field> {
-    if (typeof data === "string") {
-        return new TextField(data);
-    } else if (typeof data === "number") {
-        return new NumberField(data);
-    }
-    return undefined;
 }

@@ -1,14 +1,14 @@
 import { action } from "mobx";
-import { Document } from "../../fields/Document";
-import { FieldWaiting } from "../../fields/Field";
-import { KeyStore } from "../../fields/KeyStore";
 import { emptyFunction } from "../../Utils";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
-import { DocumentDecorations } from "../views/DocumentDecorations";
 import * as globalCssVariables from "../views/globalCssVariables.scss";
 import { MainOverlayTextBox } from "../views/MainOverlayTextBox";
+import { Doc } from "../../new_fields/Doc";
+import { Cast } from "../../new_fields/Types";
+import { listSpec } from "../../new_fields/Schema";
 
-export function SetupDrag(_reference: React.RefObject<HTMLDivElement>, docFunc: () => Document, moveFunc?: DragManager.MoveFunction, copyOnDrop: boolean = false) {
+export type dropActionType = "alias" | "copy" | undefined;
+export function SetupDrag(_reference: React.RefObject<HTMLDivElement>, docFunc: () => Doc, moveFunc?: DragManager.MoveFunction, dropAction?: dropActionType) {
     let onRowMove = action((e: PointerEvent): void => {
         e.stopPropagation();
         e.preventDefault();
@@ -16,7 +16,7 @@ export function SetupDrag(_reference: React.RefObject<HTMLDivElement>, docFunc: 
         document.removeEventListener("pointermove", onRowMove);
         document.removeEventListener('pointerup', onRowUp);
         var dragData = new DragManager.DocumentDragData([docFunc()]);
-        dragData.copyOnDrop = copyOnDrop;
+        dragData.dropAction = dropAction;
         dragData.moveDocument = moveFunc;
         DragManager.StartDocumentDrag([_reference.current!], dragData, e.x, e.y);
     });
@@ -40,19 +40,19 @@ export function SetupDrag(_reference: React.RefObject<HTMLDivElement>, docFunc: 
     return onItemDown;
 }
 
-export async function DragLinksAsDocuments(dragEle: HTMLElement, x: number, y: number, sourceDoc: Document) {
-    let srcTarg = sourceDoc.GetT(KeyStore.Prototype, Document);
-    let draggedDocs = (srcTarg && srcTarg !== FieldWaiting) ?
-        srcTarg.GetList(KeyStore.LinkedToDocs, [] as Document[]).map(linkDoc =>
-            (linkDoc.GetT(KeyStore.LinkedToDocs, Document)) as Document) : [];
-    let draggedFromDocs = (srcTarg && srcTarg !== FieldWaiting) ?
-        srcTarg.GetList(KeyStore.LinkedFromDocs, [] as Document[]).map(linkDoc =>
-            (linkDoc.GetT(KeyStore.LinkedFromDocs, Document)) as Document) : [];
+export async function DragLinksAsDocuments(dragEle: HTMLElement, x: number, y: number, sourceDoc: Doc) {
+    let srcTarg = sourceDoc.proto;
+    let draggedDocs = srcTarg ?
+        Cast(srcTarg.linkedToDocs, listSpec(Doc), []).map(linkDoc =>
+            Cast(linkDoc.linkedTo, Doc) as Doc) : [];
+    let draggedFromDocs = srcTarg ?
+        Cast(srcTarg.linkedFromDocs, listSpec(Doc), []).map(linkDoc =>
+            Cast(linkDoc.linkedFrom, Doc) as Doc) : [];
     draggedDocs.push(...draggedFromDocs);
     if (draggedDocs.length) {
-        let moddrag = [] as Document[];
+        let moddrag: Doc[] = [];
         for (const draggedDoc of draggedDocs) {
-            let doc = await draggedDoc.GetTAsync(KeyStore.AnnotationOn, Document);
+            let doc = await Cast(draggedDoc.annotationOn, Doc);
             if (doc) moddrag.push(doc);
         }
         let dragData = new DragManager.DocumentDragData(moddrag.length ? moddrag : draggedDocs);
@@ -134,35 +134,42 @@ export namespace DragManager {
         };
     }
 
-    export type MoveFunction = (document: Document, targetCollection: Document, addDocument: (document: Document) => boolean) => boolean;
+    export type MoveFunction = (document: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
     export class DocumentDragData {
-        constructor(dragDoc: Document[]) {
+        constructor(dragDoc: Doc[]) {
             this.draggedDocuments = dragDoc;
             this.droppedDocuments = dragDoc;
             this.xOffset = 0;
             this.yOffset = 0;
         }
-        draggedDocuments: Document[];
-        droppedDocuments: Document[];
+        draggedDocuments: Doc[];
+        droppedDocuments: Doc[];
         xOffset: number;
         yOffset: number;
-        aliasOnDrop?: boolean;
-        copyOnDrop?: boolean;
+        dropAction: dropActionType;
+        userDropAction: dropActionType;
         moveDocument?: MoveFunction;
         [id: string]: any;
     }
 
     export function StartDocumentDrag(eles: HTMLElement[], dragData: DocumentDragData, downX: number, downY: number, options?: DragOptions) {
         StartDrag(eles, dragData, downX, downY, options,
-            (dropData: { [id: string]: any }) => (dropData.droppedDocuments = dragData.aliasOnDrop ? dragData.draggedDocuments.map(d => d.CreateAlias()) : dragData.copyOnDrop ? dragData.draggedDocuments.map(d => d.Copy(true) as Document) : dragData.draggedDocuments));
+            (dropData: { [id: string]: any }) =>
+                (dropData.droppedDocuments = dragData.userDropAction == "alias" || (!dragData.userDropAction && dragData.dropAction == "alias") ?
+                    dragData.draggedDocuments.map(d => Doc.MakeAlias(d)) :
+                    dragData.userDropAction == "copy" || (!dragData.userDropAction && dragData.dropAction == "copy") ?
+                        dragData.draggedDocuments.map(d => Doc.MakeCopy(d, true)) :
+                        dragData.draggedDocuments));
     }
 
     export class LinkDragData {
-        constructor(linkSourceDoc: Document) {
+        constructor(linkSourceDoc: Doc, blacklist: Doc[] = []) {
             this.linkSourceDocument = linkSourceDoc;
+            this.blacklist = blacklist;
         }
-        droppedDocuments: Document[] = [];
-        linkSourceDocument: Document;
+        droppedDocuments: Doc[] = [];
+        linkSourceDocument: Doc;
+        blacklist: Doc[];
         [id: string]: any;
     }
 
@@ -170,10 +177,13 @@ export namespace DragManager {
         StartDrag([ele], dragData, downX, downY, options);
     }
 
+    export let AbortDrag: () => void = emptyFunction;
+
     function StartDrag(eles: HTMLElement[], dragData: { [id: string]: any }, downX: number, downY: number, options?: DragOptions, finishDrag?: (dropData: { [id: string]: any }) => void) {
         if (!dragDiv) {
             dragDiv = document.createElement("div");
             dragDiv.className = "dragManager-dragDiv";
+            dragDiv.style.pointerEvents = "none";
             DragManager.Root().appendChild(dragDiv);
         }
         MainOverlayTextBox.Instance.SetTextDoc();
@@ -183,7 +193,7 @@ export namespace DragManager {
         let xs: number[] = [];
         let ys: number[] = [];
 
-        const docs: Document[] =
+        const docs: Doc[] =
             dragData instanceof DocumentDragData ? dragData.draggedDocuments : [];
         let dragElements = eles.map(ele => {
             const w = ele.offsetWidth,
@@ -247,10 +257,10 @@ export namespace DragManager {
             e.stopPropagation();
             e.preventDefault();
             if (dragData instanceof DocumentDragData) {
-                dragData.aliasOnDrop = e.ctrlKey || e.altKey;
+                dragData.userDropAction = e.ctrlKey || e.altKey ? "alias" : undefined;
             }
             if (e.shiftKey) {
-                abortDrag();
+                AbortDrag();
                 CollectionDockingView.Instance.StartOtherDrag(docs, {
                     pageX: e.pageX,
                     pageY: e.pageY,
@@ -269,31 +279,47 @@ export namespace DragManager {
             );
         };
 
-        const abortDrag = () => {
-            document.removeEventListener("pointermove", moveHandler, true);
-            document.removeEventListener("pointerup", upHandler);
-            dragElements.map(dragElement => dragDiv.removeChild(dragElement));
+        let hideDragElements = () => {
+            dragElements.map(dragElement => dragElement.parentNode == dragDiv && dragDiv.removeChild(dragElement));
             eles.map(ele => (ele.hidden = false));
         };
+        let endDrag = () => {
+            document.removeEventListener("pointermove", moveHandler, true);
+            document.removeEventListener("pointerup", upHandler);
+            if (options) {
+                options.handlers.dragComplete({});
+            }
+        }
+
+        AbortDrag = () => {
+            hideDragElements();
+            endDrag();
+        };
         const upHandler = (e: PointerEvent) => {
-            abortDrag();
-            FinishDrag(eles, e, dragData, options, finishDrag);
+            hideDragElements();
+            dispatchDrag(eles, e, dragData, options, finishDrag);
+            endDrag();
         };
         document.addEventListener("pointermove", moveHandler, true);
         document.addEventListener("pointerup", upHandler);
     }
 
-    function FinishDrag(dragEles: HTMLElement[], e: PointerEvent, dragData: { [index: string]: any }, options?: DragOptions, finishDrag?: (dragData: { [index: string]: any }) => void) {
+    function dispatchDrag(dragEles: HTMLElement[], e: PointerEvent, dragData: { [index: string]: any }, options?: DragOptions, finishDrag?: (dragData: { [index: string]: any }) => void) {
         let removed = dragEles.map(dragEle => {
-            let parent = dragEle.parentElement;
-            if (parent) parent.removeChild(dragEle);
-            return [dragEle, parent];
+            // let parent = dragEle.parentElement;
+            // if (parent) parent.removeChild(dragEle);
+            let ret = [dragEle, dragEle.style.width, dragEle.style.height];
+            dragEle.style.width = "0";
+            dragEle.style.height = "0";
+            return ret;
         });
         const target = document.elementFromPoint(e.x, e.y);
         removed.map(r => {
-            let dragEle = r[0];
-            let parent = r[1];
-            if (parent && dragEle) parent.appendChild(dragEle);
+            let dragEle = r[0] as HTMLElement;
+            dragEle.style.width = r[1] as string;
+            dragEle.style.height = r[2] as string;
+            // let parent = r[1];
+            // if (parent && dragEle) parent.appendChild(dragEle);
         });
         if (target) {
             if (finishDrag) finishDrag(dragData);
@@ -308,11 +334,6 @@ export namespace DragManager {
                     }
                 })
             );
-
-            if (options) {
-                options.handlers.dragComplete({});
-            }
         }
-        DocumentDecorations.Instance.Hidden = false;
     }
 }

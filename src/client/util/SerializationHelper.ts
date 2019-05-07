@@ -1,5 +1,5 @@
 import { PropSchema, serialize, deserialize, custom, setDefaultModelSchema, getDefaultModelSchema, primitive, SKIP } from "serializr";
-import { Field } from "../../fields/NewDoc";
+import { Field } from "../../new_fields/Doc";
 
 export namespace SerializationHelper {
     let serializing: number = 0;
@@ -8,8 +8,8 @@ export namespace SerializationHelper {
     }
 
     export function Serialize(obj: Field): any {
-        if (!obj) {
-            return null;
+        if (obj === undefined || obj === null) {
+            return undefined;
         }
 
         if (typeof obj !== 'object') {
@@ -28,8 +28,8 @@ export namespace SerializationHelper {
     }
 
     export function Deserialize(obj: any): any {
-        if (!obj) {
-            return null;
+        if (obj === undefined || obj === null) {
+            return undefined;
         }
 
         if (typeof obj !== 'object') {
@@ -55,14 +55,19 @@ let serializationTypes: { [name: string]: any } = {};
 let reverseMap: { [ctor: string]: string } = {};
 
 export interface DeserializableOpts {
-    (constructor: Function): void;
+    (constructor: { new(...args: any[]): any }): void;
     withFields(fields: string[]): Function;
 }
 
 export function Deserializable(name: string): DeserializableOpts;
-export function Deserializable(constructor: Function): void;
-export function Deserializable(constructor: Function | string): DeserializableOpts | void {
-    function addToMap(name: string, ctor: Function) {
+export function Deserializable(constructor: { new(...args: any[]): any }): void;
+export function Deserializable(constructor: { new(...args: any[]): any } | string): DeserializableOpts | void {
+    function addToMap(name: string, ctor: { new(...args: any[]): any }) {
+        const schema = getDefaultModelSchema(ctor) as any;
+        if (schema.targetClass !== ctor) {
+            const newSchema = { ...schema, factory: () => new ctor() };
+            setDefaultModelSchema(ctor, newSchema);
+        }
         if (!(name in serializationTypes)) {
             serializationTypes[name] = ctor;
             reverseMap[ctor.name] = name;
@@ -71,7 +76,7 @@ export function Deserializable(constructor: Function | string): DeserializableOp
         }
     }
     if (typeof constructor === "string") {
-        return Object.assign((ctor: Function) => {
+        return Object.assign((ctor: { new(...args: any[]): any }) => {
             addToMap(constructor, ctor);
         }, { withFields: Deserializable.withFields });
     }
