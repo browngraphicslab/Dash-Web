@@ -12,6 +12,7 @@ import { SelectionManager } from "../../util/SelectionManager";
 import { Doc, DocListCast, HeightSym } from "../../../new_fields/Doc";
 import { List } from "../../../new_fields/List";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
+import { undoBatch, UndoManager } from "../../util/UndoManager";
 
 export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
 }
@@ -95,6 +96,9 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     }
 
     animateBetweenIcon(first: boolean, icon: number[], targ: number[], width: number, height: number, stime: number, target: Doc, maximizing: boolean) {
+        if (first) {
+            if (maximizing) target.width = target.height = 1;
+        }
         setTimeout(() => {
             let now = Date.now();
             let progress = Math.min(1, (now - stime) / 200);
@@ -133,6 +137,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         }
         if (minimizedDoc && maximizedDocs) {
             let minimizedTarget = minimizedDoc;
+            CollectionFreeFormDocumentView._undoBatch = UndoManager.StartBatch("iconAnimating");
             maximizedDocs.forEach(maximizedDoc => {
                 let iconAnimating = Cast(maximizedDoc.isIconAnimating, List);
                 if (!iconAnimating || (Date.now() - iconAnimating[6] > 1000)) {
@@ -148,14 +153,18 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                     if (minx !== undefined && miny !== undefined && maxx !== undefined && maxy !== undefined &&
                         maxw !== undefined && maxh !== undefined) {
                         let scrpt = this.props.ScreenToLocalTransform().inverse().transformPoint(minx, miny);
-                        maximizedDoc.width = maximizedDoc.height = 1;
                         maximizedDoc.isMinimized = false;
                         maximizedDoc.isIconAnimating = new List<number>([scrpt[0], scrpt[1], maxx, maxy, maxw, maxh, Date.now(), isMinimized ? 1 : 0])
                     }
                 }
             });
+            setTimeout(() => {
+                CollectionFreeFormDocumentView._undoBatch && CollectionFreeFormDocumentView._undoBatch.end();
+                CollectionFreeFormDocumentView._undoBatch = undefined;
+            }, 500);
         }
     }
+    static _undoBatch?: UndoManager.Batch = undefined;
     onPointerDown = (e: React.PointerEvent): void => {
         this._downX = e.clientX;
         this._downY = e.clientY;
