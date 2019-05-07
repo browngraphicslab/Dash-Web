@@ -78,11 +78,15 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 if (SelectionManager.SelectedDocuments().length > 0) {
                     let field = SelectionManager.SelectedDocuments()[0].props.Document[this._fieldKey];
                     if (typeof field === "number") {
-                        SelectionManager.SelectedDocuments().forEach(d =>
-                            d.props.Document[this._fieldKey] = +this._title);
+                        SelectionManager.SelectedDocuments().forEach(d => {
+                            let doc = d.props.Document.proto ? d.props.Document.proto : d.props.Document;
+                            doc[this._fieldKey] = +this._title;
+                        });
                     } else {
-                        SelectionManager.SelectedDocuments().forEach(d =>
-                            d.props.Document[this._fieldKey] = this._title);
+                        SelectionManager.SelectedDocuments().forEach(d => {
+                            let doc = d.props.Document.proto ? d.props.Document.proto : d.props.Document;
+                            doc[this._fieldKey] = this._title;
+                        });
                     }
                 }
             }
