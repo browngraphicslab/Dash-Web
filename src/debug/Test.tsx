@@ -172,7 +172,7 @@ class Page extends React.Component<IPageProps> {
     @action
     private renderPage = (page: Pdfjs.PDFPageProxy) => {
         let scale = 1;
-        let viewport = page.getViewport(scale);
+        let viewport = page.getViewport({ scale });
         let canvas = this.canvas.current;
         if (canvas) {
             let context = canvas.getContext("2d");
@@ -189,7 +189,7 @@ class Page extends React.Component<IPageProps> {
                         container: this.textLayer.current,
                         viewport: viewport
                     });
-                    textLayer._render();
+                    // textLayer._render();
                 });
 
                 this._state = "rendered";
@@ -201,8 +201,10 @@ class Page extends React.Component<IPageProps> {
     render() {
         return (
             <div className={this.props.name} style={{ "width": this._width, "height": this._height }}>
-                <div className="text-layer" ref={this.textLayer} />
-                <canvas ref={this.canvas} />
+                <div className="canvasContainer">
+                    <canvas ref={this.canvas} />
+                </div>
+                <div className="textlayer" ref={this.textLayer} />
             </div>
         )
     }
@@ -219,15 +221,15 @@ class Viewer extends React.Component<IViewerProps> {
         console.log(numPages);
         return (
             <div className="viewer">
-                {Array.from(Array(numPages).keys()).map((i) => (
-                    <Page
-                        pdf={this.props.pdf}
-                        index={i + 1}
-                        key={`${this.props.pdf ? this.props.pdf.fingerprint : "undefined"}-page-${i}`}
-                        name={`${this.props.pdf ? this.props.pdf.fingerprint : "undefined"}-page-${i}`}
-                        {...this.props}
-                    />
-                ))}
+                {/* {Array.from(Array(numPages).keys()).map((i) => ( */}
+                <Page
+                    pdf={this.props.pdf}
+                    index={1}
+                    key={`${this.props.pdf ? this.props.pdf.fingerprint : "undefined"}-page-${1}`}
+                    name={`${this.props.pdf ? this.props.pdf.fingerprint : "undefined"}-page-${1}`}
+                    {...this.props}
+                />
+                {/* ))} */}
             </div>
         )
     }
