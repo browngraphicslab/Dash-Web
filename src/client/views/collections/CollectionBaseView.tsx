@@ -95,15 +95,18 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         if (!this.createsCycle(doc, props.Document)) {
             //TODO This won't create the field if it doesn't already exist
             const value = Cast(props.Document[props.fieldKey], listSpec(Doc));
+            let alreadyAdded = true;
             if (value !== undefined) {
-                if (allowDuplicates || !value.some(v => v[Id] === doc[Id])) {
+                if (allowDuplicates || !value.some(v => v instanceof Doc && v[Id] === doc[Id])) {
+                    alreadyAdded = false;
                     value.push(doc);
                 }
             } else {
+                alreadyAdded = false;
                 Doc.SetOnPrototype(this.props.Document, this.props.fieldKey, new List([doc]));
             }
             // set the ZoomBasis only if hasn't already been set -- bcz: maybe set/resetting the ZoomBasis should be a parameter to addDocument?
-            if (this.collectionViewType === CollectionViewType.Freeform || this.collectionViewType === CollectionViewType.Invalid) {
+            if (!alreadyAdded && (this.collectionViewType === CollectionViewType.Freeform || this.collectionViewType === CollectionViewType.Invalid)) {
                 let zoom = NumCast(this.props.Document.scale, 1);
                 Doc.SetOnPrototype(doc, "zoomBasis", zoom);
             }
@@ -118,7 +121,8 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         const value = Cast(props.Document[props.fieldKey], listSpec(Doc), []);
         let index = -1;
         for (let i = 0; i < value.length; i++) {
-            if (value[i][Id] === doc[Id]) {
+            let v = value[i];
+            if (v instanceof Doc && v[Id] === doc[Id]) {
                 index = i;
                 break;
             }
