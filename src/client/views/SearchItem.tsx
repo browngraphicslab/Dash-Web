@@ -22,7 +22,7 @@ export class SearchItem extends React.Component<SearchProps> {
 
     onClick = () => {
         console.log("clicked search item");
-    };
+    }
 
     render() {
         return (
