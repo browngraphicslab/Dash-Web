@@ -296,10 +296,17 @@ function GetRefFields([ids, callback]: [string[], (result?: Transferable[]) => v
 }
 
 
-const suffixMap: { [type: string]: string } = {
+const suffixMap: { [type: string]: string | [string, string] | [string, string, (json: any) => any] } = {
     "number": "_n",
-    "string": "_t"
+    "string": "_t",
+    "image": ["_t", "url"],
+    "video": ["_t", "url"],
+    "pdf": ["_t", "url"],
+    "audio": ["_t", "url"],
+    "web": ["_t", "url"],
+    "date": ["_d", "date", millis => new Date(millis).toISOString()],
 };
+
 function UpdateField(socket: Socket, diff: Diff) {
     Database.Instance.update(diff.id, diff.diff,
         () => socket.broadcast.emit(MessageStore.UpdateField.Message, diff), false, "newDocuments");
@@ -311,9 +318,18 @@ function UpdateField(socket: Socket, diff: Diff) {
     let dynfield = false;
     for (let key in docfield) {
         if (!key.startsWith("fields.")) continue;
-        const val = docfield[key];
-        const suffix = suffixMap[typeof val];
+        let val = docfield[key];
+        const type = val.__type || typeof val;
+        let suffix = suffixMap[type];
         if (suffix !== undefined) {
+            if (Array.isArray(suffix)) {
+                val = val[suffix[1]];
+                const func = suffix[2];
+                if (func) {
+                    val = func(val);
+                }
+                suffix = suffix[0];
+            }
             key = key.substring(7);
             Object.values(suffixMap).forEach(suf => update[key + suf] = null);
             update[key + suffix] = { set: val };
