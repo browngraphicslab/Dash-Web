@@ -29,6 +29,7 @@ import { CollectionFreeFormView } from "./collections/collectionFreeForm/Collect
 import { CollectionView } from "./collections/CollectionView";
 import { createCipher } from "crypto";
 import { FieldView } from "./nodes/FieldView";
+import { DocumentManager } from "../util/DocumentManager";
 
 library.add(faLink);
 
@@ -277,12 +278,10 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     public getIconDoc = async (docView: DocumentView): Promise<Doc | undefined> => {
         let doc = docView.props.Document;
         let iconDoc: Doc | undefined = await Cast(doc.minimizedDoc, Doc);
-        if (!iconDoc) {
+
+        if (!iconDoc || !DocumentManager.Instance.getDocumentView(iconDoc)) {
             const layout = StrCast(doc.backgroundLayout, StrCast(doc.layout, FieldView.LayoutString(DocumentView)));
             iconDoc = this.createIcon([docView], layout);
-        }
-        if (SelectionManager.SelectedDocuments()[0].props.addDocument !== undefined) {
-            SelectionManager.SelectedDocuments()[0].props.addDocument!(iconDoc!);
         }
         return iconDoc;
     }

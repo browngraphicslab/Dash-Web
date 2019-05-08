@@ -15,7 +15,7 @@ class TemplateToggle extends React.Component<{ template: Template, checked: bool
     render() {
         if (this.props.template) {
             return (
-                <li>
+                <li className="templateToggle">
                     <input type="checkbox" checked={this.props.checked} onChange={(event) => this.props.toggle(event, this.props.template)} />
                     {this.props.template.Name}
                 </li>
@@ -45,7 +45,6 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
                 this.props.docs.map(d => d.addTemplate(template));
             }
             this.props.templates.set(template, true);
-            this.props.templates.forEach((checked, template) => console.log("Set Checked + " + checked + " " + this.props.templates.get(template)));
         } else {
             if (template.Name == "Bullet") {
                 this.props.docs[0].removeTemplate(template);
@@ -54,7 +53,6 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
                 this.props.docs.map(d => d.removeTemplate(template));
             }
             this.props.templates.set(template, false);
-            this.props.templates.forEach((checked, template) => console.log("Unset Checked + " + checked + " " + this.props.templates.get(template)));
         }
     }
 

@@ -127,7 +127,6 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     }
     @action
     public toggleIcon = async (): Promise<void> => {
-        UndoManager.GetOpenBatches().forEach(batch => console.log(batch.batchName));
         SelectionManager.DeselectAll();
         let isMinimized: boolean | undefined;
         let maximizedDocs = await DocListCast(this.props.Document.maximizedDocs);

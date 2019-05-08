@@ -1,7 +1,6 @@
 import { observable, action, runInAction } from "mobx";
 import 'source-map-support/register';
 import { Without } from "../../Utils";
-import { string } from "prop-types";
 
 function getBatchName(target: any, key: string | symbol): string {
     let keyName = key.toString();
@@ -92,6 +91,10 @@ export namespace UndoManager {
 
     export function CanRedo(): boolean {
         return redoStack.length > 0;
+    }
+
+    export function PrintBatches(): void {
+        GetOpenBatches().forEach(batch => console.log(batch.batchName));
     }
 
     let openBatches: Batch[] = [];
