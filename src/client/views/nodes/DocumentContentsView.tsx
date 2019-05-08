@@ -1,4 +1,4 @@
-import { computed } from "mobx";
+import { computed, trace } from "mobx";
 import { observer } from "mobx-react";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
@@ -45,7 +45,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
     select: (ctrl: boolean) => void,
     layoutKey: string
 }> {
-    @computed get layout(): string { return Cast(this.props.Document[this.props.layoutKey], "string", "<p>Error loading layout data</p>"); }
+    @computed get layout(): string { return Cast(this.props.Document[this.props.layoutKey], "string", this.props.layoutKey === "layout" ? "<p>Error loading layout data</p>" : ""); }
 
     CreateBindings(): JsxBindings {
         return { props: OmitKeys(this.props, ['parentActive'], (obj: any) => obj.active = this.props.parentActive).omit };
@@ -58,17 +58,17 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
         }
         return new List<string>();
     }
-    set templates(templates: List<string>) { this.props.Document.templates = templates; }
-    get finalLayout() {
+    @computed get finalLayout() {
         const baseLayout = this.layout;
         let base = baseLayout;
         let layout = baseLayout;
 
-        // bcz: templates are intended only for a document's primary layout (not background).  However, 
+        // bcz: templates are intended only for a document's primary layout or overlay (not background).  However, 
         // a DocumentContentsView is used to render  annotation overlays, so we detect that here 
         // by checking the layoutKey.  This should probably be moved into
         // a prop so that the overlay can explicitly turn off templates.
-        if (this.props.layoutKey !== "backgroundLayout") {
+        if ((this.props.layoutKey === "overlayLayout" && StrCast(this.props.Document.layout).indexOf("CollectionView") !== -1) ||
+            (this.props.layoutKey === "layout" && StrCast(this.props.Document.layout).indexOf("CollectionView") === -1)) {
             this.templates.forEach(template => {
                 let self = this;
                 function convertConstantsToNative(match: string, offset: number, x: string) {
@@ -84,6 +84,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
     }
 
     render() {
+        if (!this.layout && (this.props.layoutKey !== "overlayLayout" || !this.templates.length)) return (null);
         return <ObserverJsxParser
             components={{ FormattedTextBox, ImageBox, IconBox, FieldView, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, CollectionVideoView, WebBox, KeyValueBox, PDFBox, VideoBox, AudioBox, HistogramBox }}
             bindings={this.CreateBindings()}

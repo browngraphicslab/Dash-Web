@@ -154,7 +154,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             let text = StrCast(this.props.Document.documentText);
             if (text.startsWith("@@@")) {
                 this.props.Document.proto!.documentText = undefined;
-                this._editorView.dispatch(this._editorView.state.tr.insertText(text.substr(3)));
+                this._editorView.dispatch(this._editorView.state.tr.insertText(text.replace("@@@", "")));
             }
         }
 

@@ -326,10 +326,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 @observer
 class CollectionFreeFormOverlayView extends React.Component<DocumentViewProps> {
     @computed get overlayView() {
-        let overlayLayout = Cast(this.props.Document.overlayLayout, "string", "");
-        return !overlayLayout ? (null) :
-            (<DocumentContentsView {...this.props} layoutKey={"overlayLayout"}
-                isTopMost={this.props.isTopMost} isSelected={returnFalse} select={emptyFunction} />);
+        return (<DocumentContentsView {...this.props} layoutKey={"overlayLayout"}
+            isTopMost={this.props.isTopMost} isSelected={returnFalse} select={emptyFunction} />);
     }
     render() {
         return this.overlayView;
@@ -339,10 +337,8 @@ class CollectionFreeFormOverlayView extends React.Component<DocumentViewProps> {
 @observer
 class CollectionFreeFormBackgroundView extends React.Component<DocumentViewProps & { isSelected: () => boolean }> {
     @computed get backgroundView() {
-        let backgroundLayout = Cast(this.props.Document.backgroundLayout, "string", "");
-        return !backgroundLayout ? (null) :
-            (<DocumentContentsView {...this.props} layoutKey={"backgroundLayout"}
-                isTopMost={this.props.isTopMost} isSelected={this.props.isSelected} select={emptyFunction} />);
+        return (<DocumentContentsView {...this.props} layoutKey={"backgroundLayout"}
+            isTopMost={this.props.isTopMost} isSelected={this.props.isSelected} select={emptyFunction} />);
     }
     render() {
         return this.backgroundView;
