@@ -128,7 +128,6 @@ app.get("/pull", (req, res) =>
 app.get("/search", async (req, res) => {
     let query = req.query.query || "hello";
     let results = await Search.Instance.search(query);
-    console.log(results);
     res.send(results);
 });
 
