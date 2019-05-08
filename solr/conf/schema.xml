@@ -38,17 +38,18 @@
   <fieldType name="plong" class="solr.LongPointField" docValues="true"/>
   <fieldType name="boolean" class="solr.BoolField" sortMissingLast="true"/>
   <fieldType name="pdate" class="solr.DatePointField" docValues="true"/>
+  <fieldType name="pdaterange" class="solr.DateRangeField" docValues="true"/>
   <fieldType name="pdouble" class="solr.DoublePointField" docValues="true"/>
 
   <field name="text" type="text" indexed="true" stored="false" uninvertible="false" multiValued="true"/>
   <field name="id" type="string" indexed="true" stored="true" uninvertible="false" required="true"/>
   <field name="_version_" type="plong" indexed="false" stored="false"/>
 
-  <dynamicField name="*_t" type="text" indexed="true" stored="true" uninvertible="false"/>
-  <dynamicField name="*_n" type="pdouble" indexed="true" stored="true" uninvertible="false"/>
-  <dynamicField name="*_d" type="pdate" indexed="true" stored="true" uninvertible="false"/>
+  <dynamicField name="*_t" type="text" indexed="true" stored="true" uninvertible="false" docValues="false"/>
+  <dynamicField name="*_n" type="pdouble" indexed="true" stored="true" uninvertible="false" docValues="false"/>
+  <dynamicField name="*_d" type="pdaterange" indexed="true" stored="true" uninvertible="false" docValues="false"/>
 
-  <dynamicField name="*_a" type="text" indexed="true" stored="false" uninvertible="false"/>
+  <dynamicField name="*_a" type="text" indexed="true" stored="false" uninvertible="false" docValues="false"/>
 
   <copyField source="*_t" dest="text"/>
 
