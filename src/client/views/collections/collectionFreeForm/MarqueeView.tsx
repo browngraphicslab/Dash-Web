@@ -9,16 +9,11 @@ import { PreviewCursor } from "../../PreviewCursor";
 import { CollectionFreeFormView } from "./CollectionFreeFormView";
 import "./MarqueeView.scss";
 import React = require("react");
-import { Utils, deepCopy } from "../../../../Utils";
+import { Utils } from "../../../../Utils";
 import { Doc } from "../../../../new_fields/Doc";
 import { NumCast, Cast } from "../../../../new_fields/Types";
 import { InkField, StrokeData } from "../../../../new_fields/InkField";
-import { Templates } from "../../Templates";
 import { List } from "../../../../new_fields/List";
-import { emitKeypressEvents } from "readline";
-import { listSpec } from "../../../../new_fields/Schema";
-import { undo } from "prosemirror-history";
-import { FormattedTextBox } from "../../nodes/FormattedTextBox";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;
@@ -101,7 +96,6 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             document.addEventListener("pointermove", this.onPointerMove, true);
             document.addEventListener("pointerup", this.onPointerUp, true);
             document.addEventListener("keydown", this.marqueeCommand, true);
-            console.log(this.props.container.props.Document.title);
             e.stopPropagation();
         }
         if (e.altKey) {
@@ -247,6 +241,8 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             }
             else {
                 this.props.addDocument(newCollection, false);
+                SelectionManager.DeselectAll();
+                this.props.selectDocuments([newCollection]);
             }
             this.cleanupInteractions(false);
         } else
