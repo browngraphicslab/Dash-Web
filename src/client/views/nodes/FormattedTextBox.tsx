@@ -24,8 +24,8 @@ import { StrCast, Cast, NumCast, BoolCast } from "../../../new_fields/Types";
 import { RichTextField } from "../../../new_fields/RichTextField";
 import { Id } from "../../../new_fields/RefField";
 import { UndoManager } from "../../util/UndoManager";
-const { buildMenuItems } = require("prosemirror-example-setup");
-const { menuBar } = require("prosemirror-menu");
+import { Transform } from "prosemirror-transform";
+import { Transform as MatrixTransform } from "../../util/Transform";
 
 // FormattedTextBox: Displays an editable plain text node that maps to a specified Key of a Document
 //
@@ -306,13 +306,11 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     render() {
         let style = this.props.isOverlay ? "scroll" : "hidden";
         let rounded = NumCast(this.props.Document.borderRounding) < 0 ? "-rounded" : "";
-        let color = StrCast(this.props.Document.backgroundColor);
         let interactive = InkingControl.Instance.selectedTool ? "" : "interactive";
         return (
             <div className={`formattedTextBox-cont-${style}`} ref={this._ref}
                 style={{
                     pointerEvents: interactive ? "all" : "none",
-                    background: color,
                 }}
                 onKeyDown={this.onKeyPress}
                 onKeyPress={this.onKeyPress}

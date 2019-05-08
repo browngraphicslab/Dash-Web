@@ -1,4 +1,4 @@
-import { computed, IReactionDisposer, reaction } from "mobx";
+import { computed, IReactionDisposer, reaction, trace } from "mobx";
 import { observer } from "mobx-react";
 import { Utils } from "../../../../Utils";
 import { DocumentManager } from "../../../util/DocumentManager";

@@ -39,7 +39,7 @@ export namespace Templates {
     // export const BasicLayout = new Template("Basic layout", "{layout}");
 
     export const OuterCaption = new Template("Outer caption", TemplatePosition.OutterBottom,
-        `<div><div style="margin:auto; height:calc(100%); width:100%;">{layout}</div><div style="height:(100% + 50px); width:100%; position:absolute"><FormattedTextBox {...props} fieldKey={"caption"} /></div></div>`
+        `<div id="screenSpace" style="margin-top: 100%; font-size:14px; background:yellow; width:100%; position:absolute"><FormattedTextBox {...props} fieldKey={"caption"} /></div>`
     );
 
     export const InnerCaption = new Template("Inner caption", TemplatePosition.InnerBottom,

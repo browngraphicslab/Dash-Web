@@ -101,6 +101,8 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             document.addEventListener("pointermove", this.onPointerMove, true);
             document.addEventListener("pointerup", this.onPointerUp, true);
             document.addEventListener("keydown", this.marqueeCommand, true);
+            console.log(this.props.container.props.Document.title);
+            e.stopPropagation();
         }
         if (e.altKey) {
             e.preventDefault();
@@ -180,6 +182,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             if (ink) {
                 this.marqueeInkDelete(ink.inkData);
             }
+            SelectionManager.DeselectAll();
             this.cleanupInteractions(false);
             e.stopPropagation();
         }
