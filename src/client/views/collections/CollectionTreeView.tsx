@@ -68,8 +68,8 @@ class TreeView extends React.Component<TreeViewProps> {
     }
 
     @action
-    remove = (document: Document) => {
-        let children = Cast(this.props.document.data, listSpec(Doc), []);
+    remove = (document: Document, key: string) => {
+        let children = Cast(this.props.document[key], listSpec(Doc), []);
         if (children) {
             children.splice(children.indexOf(document), 1);
         }
@@ -81,7 +81,7 @@ class TreeView extends React.Component<TreeViewProps> {
             return true;
         }
         //TODO This should check if it was removed
-        this.remove(document);
+        this.remove(document, "data");
         return addDoc(document);
     }
 
@@ -136,7 +136,11 @@ class TreeView extends React.Component<TreeViewProps> {
             if (DocumentManager.Instance.getDocumentViews(this.props.document).length) {
                 ContextMenu.Instance.addItem({ description: "Focus", event: () => DocumentManager.Instance.getDocumentViews(this.props.document).map(view => view.props.focus(this.props.document)) });
             }
-            ContextMenu.Instance.addItem({ description: "Delete", event: undoBatch(() => this.props.deleteDoc(this.props.document)) });
+            ContextMenu.Instance.addItem({
+                description: "Delete", event: undoBatch(() => {
+                    this.props.deleteDoc(this.props.document);
+                })
+            });
             ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15);
             e.stopPropagation();
         }
@@ -160,7 +164,7 @@ class TreeView extends React.Component<TreeViewProps> {
                     contentElement.push(<ul key={key + "more"}>
                         {(key === "data") ? (null) :
                             <span className="collectionTreeView-keyHeader" key={key}>{key}</span>}
-                        {TreeView.GetChildElements(docList, key !== "data", this.remove, this.move, this.props.dropAction)}
+                        {TreeView.GetChildElements(docList, key !== "data", (doc: Doc) => this.remove(doc, key), this.move, this.props.dropAction)}
                     </ul >);
                 } else
                     bulletType = BulletType.Collapsed;
@@ -175,9 +179,9 @@ class TreeView extends React.Component<TreeViewProps> {
             </li>
         </div>;
     }
-    public static GetChildElements(docs: Doc[], allowMinimized: boolean, remove: ((doc: Doc) => void), move: DragManager.MoveFunction, dropAction: dropActionType) {
-        return docs.filter(child => !child.excludeFromLibrary && (allowMinimized || !child.isMinimized)).filter(doc => FieldValue(doc)).map(child =>
-            <TreeView document={child} key={child[Id]} deleteDoc={remove} moveDocument={move} dropAction={dropAction} />);
+    public static GetChildElements(docs: (Doc | Promise<Doc>)[], allowMinimized: boolean, remove: ((doc: Doc) => void), move: DragManager.MoveFunction, dropAction: dropActionType) {
+        return docs.filter(child => child instanceof Doc && !child.excludeFromLibrary && (allowMinimized || !child.isMinimized)).filter(doc => FieldValue(doc)).map(child =>
+            <TreeView document={child as Doc} key={(child as Doc)[Id]} deleteDoc={remove} moveDocument={move} dropAction={dropAction} />);
     }
 }
 

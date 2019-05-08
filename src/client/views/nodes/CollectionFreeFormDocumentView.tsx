@@ -138,7 +138,9 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         }
         if (minimizedDoc && maximizedDocs) {
             let minimizedTarget = minimizedDoc;
-            CollectionFreeFormDocumentView._undoBatch = UndoManager.StartBatch("iconAnimating");
+            if (!CollectionFreeFormDocumentView._undoBatch) {
+                CollectionFreeFormDocumentView._undoBatch = UndoManager.StartBatch("iconAnimating");
+            }
             maximizedDocs.forEach(maximizedDoc => {
                 let iconAnimating = Cast(maximizedDoc.isIconAnimating, List);
                 if (!iconAnimating || (Date.now() - iconAnimating[6] > 1000)) {
