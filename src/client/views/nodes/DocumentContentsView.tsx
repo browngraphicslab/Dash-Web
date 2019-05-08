@@ -64,10 +64,16 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
         let base = baseLayout;
         let layout = baseLayout;
 
-        this.templates.forEach(template => {
-            layout = template.replace("{layout}", base);
-            base = layout;
-        });
+        // bcz: templates are intended for the main document layout.  However, 
+        // a DocumentContentsView is also used to render the annotation overlay for a document.
+        // So we detect that here by checking the layoutKey.  This should probably be moved into
+        // a prop so that the overlay can explicitly turn off templates.
+        if (this.props.layoutKey !== "backgroundLayout") {
+            this.templates.forEach(template => {
+                layout = template.replace("{layout}", base);
+                base = layout;
+            });
+        }
         return layout;
     }
 

@@ -145,8 +145,8 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                     if (isMinimized === undefined) {
                         isMinimized = BoolCast(maximizedDoc.isMinimized, false);
                     }
-                    let minx = NumCast(minimizedTarget.x, undefined) + NumCast(minimizedTarget.width, undefined) * this.getTransform().Scale / 2;
-                    let miny = NumCast(minimizedTarget.y, undefined) + NumCast(minimizedTarget.height, undefined) * this.getTransform().Scale / 2;
+                    let minx = NumCast(minimizedTarget.x, undefined) + NumCast(minimizedTarget.width, undefined) * this.getTransform().Scale * this.contentScaling() / 2;
+                    let miny = NumCast(minimizedTarget.y, undefined) + NumCast(minimizedTarget.height, undefined) * this.getTransform().Scale * this.contentScaling() / 2;
                     let maxx = NumCast(maximizedDoc.x, undefined);
                     let maxy = NumCast(maximizedDoc.y, undefined);
                     let maxw = NumCast(maximizedDoc.width, undefined);
@@ -176,7 +176,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         let altKey = e.altKey;
         if (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD &&
             Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD) {
-            if (BoolCast(this.props.Document.isButton, false) || (e.target as any).className === "isBullet") {
+            if (BoolCast(this.props.Document.isButton, false) || (e.target as any).id === "isBullet") {
                 let maximizedDocs = await DocListCast(this.props.Document.maximizedDocs);
                 if (maximizedDocs) {   // bcz: need a better way to associate behaviors with click events on widget-documents
                     if ((altKey && !this.props.Document.maximizeOnRight) || (!altKey && this.props.Document.maximizeOnRight)) {

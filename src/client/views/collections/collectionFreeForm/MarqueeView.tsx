@@ -63,8 +63,17 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 let text = await navigator.clipboard.readText();
                 let ns = text.split("\n").filter(t => t != "\r");
                 for (let i = 0; i < ns.length - 1; i++) {
-                    while (!(ns[i].endsWith("-\r") || ns[i].endsWith(".\r") || ns[i].endsWith(":\r")) && i < ns.length - 1) {
-                        ns.splice(i, 2, ns[i].substr(0, ns[i].length - 1) + ns[i + 1].trimLeft());
+                    if (ns[i].trim() === "") {
+                        ns.splice(i, 1);
+                        continue;
+                    }
+                    while (!(ns[i].trim() === "" || ns[i].endsWith("-\r") || ns[i].endsWith("-") ||
+                        ns[i].endsWith(".\r") || ns[i].endsWith(".") ||
+                        ns[i].endsWith(":\r") || ns[i].endsWith(":")) && i < ns.length - 1) {
+                        let sub = ns[i].endsWith("\r") ? 1 : 0;
+                        let br = ns[i + 1].trim() === "";
+                        ns.splice(i, 2, ns[i].substr(0, ns[i].length - sub) + ns[i + 1].trimLeft());
+                        if (br) break;
                     }
                 }
                 ns.map(line => {
