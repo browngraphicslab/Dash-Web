@@ -52,11 +52,15 @@ export namespace Templates {
 
     export const TitleOverlay = new Template("TitleOverlay", TemplatePosition.InnerTop,
         `<div><div style="height:100%; width:100%;position:absolute;">{layout}</div>
-        <div style="height:25px; width:100%; position:absolute; top: 0; background-color: rgba(0, 0, 0, .4); color: white; padding:2px 10px">{props.Document.title}</div></div>`
+        <div style="height:25px; width:100%; position:absolute; top: 0; background-color: rgba(0, 0, 0, .4); color: white; ">
+        <span style="text-align:center;width:100%;font-size:20px;position:absolute;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">{props.Document.title}</span>
+        </div></div>`
     );
     export const Title = new Template("Title", TemplatePosition.InnerTop,
         `<div><div style="height:calc(100% - 25px); margin-top: 25px; width:100%;position:absolute;">{layout}</div>
-        <div style="height:25px; width:100%; position:absolute; top: 0; background-color: rgba(0, 0, 0, .4); color: white; padding:2px 10px">{props.Document.title}</div></div>`
+        <div style="height:25px; width:100%; position:absolute; top: 0; background-color: rgba(0, 0, 0, .4); color: white; ">
+            <span style="text-align:center;width:100%;font-size:20px;position:absolute;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">{props.Document.title}</span>
+        </div></div>`
     );
 
     export const Bullet = new Template("Bullet", TemplatePosition.InnerTop,
