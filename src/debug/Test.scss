@@ -3,3 +3,19 @@
     top: 0;
     left: 0;
 }
+
+.viewer-button-cont {
+    position: absolute;
+    display: flex;
+    justify-content: space-evenly;
+    align-items: center;
+}
+
+.viewer-previousPage,
+.viewer-nextPage {
+    background: grey;
+    font-weight: bold;
+    opacity: 0.5;
+    padding: 0 10px;
+    border-radius: 5px;
+}

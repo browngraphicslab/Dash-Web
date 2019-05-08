@@ -116,8 +116,8 @@ class PDFViewer extends React.Component {
 
 interface IPageProps {
     pdf: Opt<Pdfjs.PDFDocumentProxy>;
-    index: number;
     name: string;
+    numPages: number;
 }
 
 @observer
@@ -128,6 +128,7 @@ class Page extends React.Component<IPageProps> {
     @observable _page: Opt<Pdfjs.PDFPageProxy>;
     canvas: React.RefObject<HTMLCanvasElement>;
     textLayer: React.RefObject<HTMLDivElement>;
+    @observable _currPage: number = 1;
 
     constructor(props: IPageProps) {
         super(props);
@@ -160,7 +161,7 @@ class Page extends React.Component<IPageProps> {
     private loadPage = (pdf: Pdfjs.PDFDocumentProxy) => {
         if (this._state === "rendering" || this._page) return;
 
-        pdf.getPage(this.props.index).then(
+        pdf.getPage(this._currPage).then(
             (page: Pdfjs.PDFPageProxy) => {
                 console.log("PAGE");
                 console.log(page);
@@ -191,11 +192,31 @@ class Page extends React.Component<IPageProps> {
                         viewport: viewport
                     });
                     // textLayer._render();
+                    this._state = "rendered";
                 });
 
-                this._state = "rendered";
                 this._page = page;
             }
+        }
+    }
+
+    @action
+    prevPage = (e: React.MouseEvent) => {
+        if (this._currPage > 2 && this._state !== "rendering") {
+            this._currPage = Math.max(this._currPage - 1, 1);
+            this._page = undefined;
+            this.loadPage(this.props.pdf!);
+            this._state = "rendering";
+        }
+    }
+
+    @action
+    nextPage = (e: React.MouseEvent) => {
+        if (this._currPage < this.props.numPages - 1 && this._state !== "rendering") {
+            this._currPage = Math.min(this._currPage + 1, this.props.numPages)
+            this._page = undefined;
+            this.loadPage(this.props.pdf!);
+            this._state = "rendering";
         }
     }
 
@@ -206,6 +227,10 @@ class Page extends React.Component<IPageProps> {
                     <canvas ref={this.canvas} />
                 </div>
                 <div className="textlayer" ref={this.textLayer} />
+                <div className="viewer-button-cont" style={{ "width": this._width / 10, "height": this._height / 20, "left": this._width * .9, "top": this._height * .95 }}>
+                    <div className="viewer-previousPage" onClick={this.prevPage}>&lt;</div>
+                    <div className="viewer-nextPage" onClick={this.nextPage}>&gt;</div>
+                </div>
             </div>
         );
     }
@@ -225,9 +250,9 @@ class Viewer extends React.Component<IViewerProps> {
                 {/* {Array.from(Array(numPages).keys()).map((i) => ( */}
                 <Page
                     pdf={this.props.pdf}
-                    index={1}
-                    key={`${this.props.pdf ? this.props.pdf.fingerprint : "undefined"}-page-${1}`}
-                    name={`${this.props.pdf ? this.props.pdf.fingerprint : "undefined"}-page-${1}`}
+                    numPages={numPages}
+                    key={`${this.props.pdf ? this.props.pdf.fingerprint : "undefined"}`}
+                    name={`${this.props.pdf ? this.props.pdf.fingerprint : "undefined"}`}
                     {...this.props}
                 />
                 {/* ))} */}
