@@ -6,6 +6,7 @@ import Measure from 'react-measure';
 import { RouteStore } from '../server/RouteStore';
 import { observer } from 'mobx-react';
 import * as Pdfjs from 'pdfjs-dist';
+import 'pdfjs-dist/web/pdf_viewer.css';
 import { Opt } from '../fields/Field';
 import "./Test.scss";
 
@@ -172,7 +173,7 @@ class Page extends React.Component<IPageProps> {
     @action
     private renderPage = (page: Pdfjs.PDFPageProxy) => {
         let scale = 1;
-        let viewport = page.getViewport({ scale });
+        let viewport = page.getViewport(scale);
         let canvas = this.canvas.current;
         if (canvas) {
             let context = canvas.getContext("2d");
@@ -206,7 +207,7 @@ class Page extends React.Component<IPageProps> {
                 </div>
                 <div className="textlayer" ref={this.textLayer} />
             </div>
-        )
+        );
     }
 }
 
@@ -231,7 +232,7 @@ class Viewer extends React.Component<IViewerProps> {
                 />
                 {/* ))} */}
             </div>
-        )
+        );
     }
 }
 
