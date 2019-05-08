@@ -9,7 +9,7 @@ import { PreviewCursor } from "../../PreviewCursor";
 import { CollectionFreeFormView } from "./CollectionFreeFormView";
 import "./MarqueeView.scss";
 import React = require("react");
-import { Utils } from "../../../../Utils";
+import { Utils, deepCopy } from "../../../../Utils";
 import { Doc } from "../../../../new_fields/Doc";
 import { NumCast, Cast } from "../../../../new_fields/Types";
 import { InkField, StrokeData } from "../../../../new_fields/InkField";
@@ -68,6 +68,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                         continue;
                     }
                     while (!(ns[i].trim() === "" || ns[i].endsWith("-\r") || ns[i].endsWith("-") ||
+                        ns[i].endsWith(";\r") || ns[i].endsWith(";") ||
                         ns[i].endsWith(".\r") || ns[i].endsWith(".") ||
                         ns[i].endsWith(":\r") || ns[i].endsWith(":")) && i < ns.length - 1) {
                         let sub = ns[i].endsWith("\r") ? 1 : 0;
@@ -182,12 +183,19 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             this.cleanupInteractions(false);
             e.stopPropagation();
         }
-        if (e.key === "c" || e.key === "r" || e.key === "R" || e.key === "e") {
+        if (e.key === "c" || e.key === "r" || e.key === "s" || e.key === "e") {
             this._commandExecuted = true;
             e.stopPropagation();
             let bounds = this.Bounds;
             let selected = this.marqueeSelect().map(d => {
-                if (e.key !== "R") {
+                if (e.key === "s") {
+                    let dCopy = Doc.MakeCopy(d);
+                    dCopy.x = NumCast(d.x) - bounds.left - bounds.width / 2;
+                    dCopy.y = NumCast(d.y) - bounds.top - bounds.height / 2;
+                    dCopy.page = -1;
+                    return dCopy;
+                }
+                else if (e.key !== "r") {
                     this.props.removeDocument(d);
                     d.x = NumCast(d.x) - bounds.left - bounds.width / 2;
                     d.y = NumCast(d.y) - bounds.top - bounds.height / 2;
@@ -208,25 +216,20 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 width: bounds.width * zoomBasis,
                 height: bounds.height * zoomBasis,
                 ink: inkData ? new InkField(this.marqueeInkSelect(inkData)) : undefined,
-                title: "a nested collection"
+                title: "a nested collection",
             });
 
             this.marqueeInkDelete(inkData);
             // SelectionManager.DeselectAll();
-            if (e.key === "r" || e.key === "R") {
+            if (e.key === "s" || e.key === "r") {
                 e.preventDefault();
                 let scrpt = this.props.getTransform().inverse().transformPoint(bounds.left, bounds.top);
                 let summary = Docs.TextDocument({ x: bounds.left, y: bounds.top, width: 300, height: 100, backgroundColor: "yellow", title: "-summary-" });
 
-                if (e.key === "r") {
+                if (e.key === "s") {
                     summary.proto!.maximizeOnRight = true;
-                    let list = Cast(newCollection.data, listSpec(Doc));
-                    if (list && list.length === 1) {
-                        selected = list;
-                    } else {
-                        selected = [newCollection];
-                        this.props.addDocument(newCollection, false);
-                    }
+                    newCollection.proto!.summaryDoc = summary;
+                    selected = [newCollection];
                 }
                 summary.proto!.maximizedDocs = new List<Doc>(selected);
                 summary.proto!.isButton = true;
@@ -243,20 +246,20 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 this.props.addDocument(newCollection, false);
             }
             this.cleanupInteractions(false);
-        }
-        if (e.key === "s") {
-            this._commandExecuted = true;
-            e.stopPropagation();
-            e.preventDefault();
-            let bounds = this.Bounds;
-            let selected = this.marqueeSelect();
-            SelectionManager.DeselectAll();
-            let summary = Docs.TextDocument({ x: bounds.left + bounds.width + 25, y: bounds.top, width: 300, height: 100, backgroundColor: "yellow", title: "-summary-" });
-            this.props.addLiveTextDocument(summary);
-            selected.forEach(select => Doc.MakeLink(summary.proto!, select.proto!));
+        } else
+            if (e.key === "s") {
+                // this._commandExecuted = true;
+                // e.stopPropagation();
+                // e.preventDefault();
+                // let bounds = this.Bounds;
+                // let selected = this.marqueeSelect();
+                // SelectionManager.DeselectAll();
+                // let summary = Docs.TextDocument({ x: bounds.left + bounds.width + 25, y: bounds.top, width: 300, height: 100, backgroundColor: "yellow", title: "-summary-" });
+                // this.props.addLiveTextDocument(summary);
+                // selected.forEach(select => Doc.MakeLink(summary.proto!, select.proto!));
 
-            this.cleanupInteractions(false);
-        }
+                // this.cleanupInteractions(false);
+            }
     }
     @action
     marqueeInkSelect(ink: Map<any, any>) {

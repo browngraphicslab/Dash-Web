@@ -185,6 +185,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                         if (dataDocs) {
                             SelectionManager.DeselectAll();
                             maximizedDocs.forEach(maxDoc => {
+                                maxDoc.isMinimized = false;
                                 if (!dataDocs || dataDocs.indexOf(maxDoc) == -1) {
                                     CollectionDockingView.Instance.AddRightSplit(maxDoc);
                                 } else {

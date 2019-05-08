@@ -1,4 +1,4 @@
-import { action, computed, runInAction } from "mobx";
+import { action, computed, runInAction, reaction, IReactionDisposer } from "mobx";
 import { observer } from "mobx-react";
 import { emptyFunction, Utils } from "../../../Utils";
 import { Docs } from "../../documents/Documents";
@@ -16,10 +16,10 @@ import { Template, Templates } from "./../Templates";
 import { DocumentContentsView } from "./DocumentContentsView";
 import "./DocumentView.scss";
 import React = require("react");
-import { Opt, Doc, WidthSym, HeightSym } from "../../../new_fields/Doc";
+import { Opt, Doc, WidthSym, HeightSym, DocListCast } from "../../../new_fields/Doc";
 import { DocComponent } from "../DocComponent";
 import { createSchema, makeInterface } from "../../../new_fields/Schema";
-import { FieldValue, StrCast, BoolCast } from "../../../new_fields/Types";
+import { FieldValue, StrCast, BoolCast, Cast } from "../../../new_fields/Types";
 import { List } from "../../../new_fields/List";
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
@@ -99,6 +99,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     set templates(templates: List<string>) { this.props.Document.templates = templates; }
     screenRect = (): ClientRect | DOMRect => this._mainCont.current ? this._mainCont.current.getBoundingClientRect() : new DOMRect();
 
+    _reactionDisposer?: IReactionDisposer;
     @action
     componentDidMount() {
         if (this._mainCont.current) {
@@ -106,6 +107,17 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 handlers: { drop: this.drop.bind(this) }
             });
         }
+        this._reactionDisposer = reaction(() => [this.props.Document.maximizedDocs, this.props.Document.summaryDoc, this.props.Document.summaryDoc instanceof Doc ? this.props.Document.summaryDoc.title : ""],
+            async () => {
+                let maxDoc = await DocListCast(this.props.Document.maximizedDocs);
+                if (maxDoc && StrCast(this.props.Document.layout).indexOf("IconBox") !== -1) {
+                    this.props.Document.title = (maxDoc && maxDoc.length === 1 ? maxDoc[0].title + ".icon" : "");
+                }
+                let sumDoc = Cast(this.props.Document.summaryDoc, Doc);
+                if (sumDoc instanceof Doc) {
+                    this.props.Document.title = sumDoc.title + ".expanded";
+                }
+            }, { fireImmediately: true });
         DocumentManager.Instance.DocumentViews.push(this);
     }
     @action
@@ -121,9 +133,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
     @action
     componentWillUnmount() {
-        if (this._dropDisposer) {
-            this._dropDisposer();
-        }
+        if (this._reactionDisposer) this._reactionDisposer();
+        if (this._dropDisposer) this._dropDisposer();
         DocumentManager.Instance.DocumentViews.splice(DocumentManager.Instance.DocumentViews.indexOf(this), 1);
     }
 
