@@ -18,7 +18,7 @@ import "./DocumentView.scss";
 import React = require("react");
 import { Opt, Doc, WidthSym, HeightSym, DocListCast } from "../../../new_fields/Doc";
 import { DocComponent } from "../DocComponent";
-import { createSchema, makeInterface } from "../../../new_fields/Schema";
+import { createSchema, makeInterface, listSpec } from "../../../new_fields/Schema";
 import { FieldValue, StrCast, BoolCast, Cast } from "../../../new_fields/Types";
 import { List } from "../../../new_fields/List";
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
@@ -107,6 +107,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 handlers: { drop: this.drop.bind(this) }
             });
         }
+        // bcz: kind of ugly .. setup a reaction to update the title of a summary document's target (maximizedDocs) whenver the summary doc's title changes
         this._reactionDisposer = reaction(() => [this.props.Document.maximizedDocs, this.props.Document.summaryDoc, this.props.Document.summaryDoc instanceof Doc ? this.props.Document.summaryDoc.title : ""],
             async () => {
                 let maxDoc = await DocListCast(this.props.Document.maximizedDocs);
@@ -142,10 +143,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         e.stopPropagation();
     }
 
-    startDragging(x: number, y: number, dropAction: dropActionType) {
+    startDragging(x: number, y: number, dropAction: dropActionType, dragSubBullets: boolean) {
         if (this._mainCont.current) {
+            let allConnected = dragSubBullets ? [this.props.Document, ...Cast(this.props.Document.subBulletDocs, listSpec(Doc), []).filter(d => d).map(d => d as Doc)] : [this.props.Document];
             const [left, top] = this.props.ScreenToLocalTransform().scale(this.props.ContentScaling()).inverse().transformPoint(0, 0);
-            let dragData = new DragManager.DocumentDragData([this.props.Document]);
+            let dragData = new DragManager.DocumentDragData(allConnected);
             const [xoff, yoff] = this.props.ScreenToLocalTransform().scale(this.props.ContentScaling()).transformDirection(x - left, y - top);
             dragData.dropAction = dropAction;
             dragData.xOffset = xoff;
@@ -167,15 +169,17 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             SelectionManager.SelectDoc(this, e.ctrlKey);
         }
     }
+    _hitIsBullet = false;
     onPointerDown = (e: React.PointerEvent): void => {
         this._downX = e.clientX;
         this._downY = e.clientY;
         if (CollectionFreeFormView.RIGHT_BTN_DRAG && (e.button === 2 || (e.button === 0 && e.altKey)) && !this.isSelected()) {
             return;
         }
+        this._hitIsBullet = (e.target && (e.target as any).id === "isBullet");
         if (e.shiftKey && e.buttons === 1) {
             if (this.props.isTopMost) {
-                this.startDragging(e.pageX, e.pageY, e.altKey || e.ctrlKey ? "alias" : undefined);
+                this.startDragging(e.pageX, e.pageY, e.altKey || e.ctrlKey ? "alias" : undefined, this._hitIsBullet);
             } else if (this.props.Document) {
                 CollectionDockingView.Instance.StartOtherDrag([Doc.MakeAlias(this.props.Document)], e);
             }
@@ -193,7 +197,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 document.removeEventListener("pointermove", this.onPointerMove);
                 document.removeEventListener("pointerup", this.onPointerUp);
                 if (!e.altKey && !this.topMost && (!CollectionFreeFormView.RIGHT_BTN_DRAG && e.buttons === 1) || (CollectionFreeFormView.RIGHT_BTN_DRAG && e.buttons === 2)) {
-                    this.startDragging(this._downX, this._downY, e.ctrlKey || e.altKey ? "alias" : undefined);
+                    this.startDragging(this._downX, this._downY, e.ctrlKey || e.altKey ? "alias" : undefined, this._hitIsBullet);
                 }
             }
             e.stopPropagation(); // doesn't actually stop propagation since all our listeners are listening to events on 'document'  however it does mark the event as cancelBubble=true which we test for in the move event handlers

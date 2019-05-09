@@ -84,7 +84,7 @@ export class CollectionFreeFormLinksView extends React.Component<CollectionViewP
         }
         if (view.props.ContainingCollectionView) {
             let collid = view.props.ContainingCollectionView.props.Document[Id];
-            Cast(this.props.Document[this.props.fieldKey], listSpec(Doc), []).
+            Cast(this.props.Document[this.props.fieldKey], listSpec(Doc), []).filter(d => d).map(d => d as Doc).
                 filter(child =>
                     child[Id] === collid).map(view =>
                         DocumentManager.Instance.getDocumentViews(view).map(view =>

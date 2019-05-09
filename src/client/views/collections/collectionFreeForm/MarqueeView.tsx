@@ -96,7 +96,8 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             document.addEventListener("pointermove", this.onPointerMove, true);
             document.addEventListener("pointerup", this.onPointerUp, true);
             document.addEventListener("keydown", this.marqueeCommand, true);
-            e.stopPropagation();
+            // bcz: do we need this?   it kills the context menu on the main collection
+            // e.stopPropagation();
         }
         if (e.altKey) {
             e.preventDefault();
@@ -228,14 +229,14 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                     newCollection.proto!.summaryDoc = summary;
                     selected = [newCollection];
                 }
-                summary.proto!.maximizedDocs = new List<Doc>(selected);
+                summary.proto!.summarizedDocs = new List<Doc>(selected);
                 summary.proto!.isButton = true;
-                selected.map(maximizedDoc => {
-                    let maxx = NumCast(maximizedDoc.x, undefined);
-                    let maxy = NumCast(maximizedDoc.y, undefined);
-                    let maxw = NumCast(maximizedDoc.width, undefined);
-                    let maxh = NumCast(maximizedDoc.height, undefined);
-                    maximizedDoc.isIconAnimating = new List<number>([scrpt[0], scrpt[1], maxx, maxy, maxw, maxh, Date.now(), 0])
+                selected.map(summarizedDoc => {
+                    let maxx = NumCast(summarizedDoc.x, undefined);
+                    let maxy = NumCast(summarizedDoc.y, undefined);
+                    let maxw = NumCast(summarizedDoc.width, undefined);
+                    let maxh = NumCast(summarizedDoc.height, undefined);
+                    summarizedDoc.isIconAnimating = new List<number>([scrpt[0], scrpt[1], maxx, maxy, maxw, maxh, Date.now(), 0])
                 });
                 this.props.addLiveTextDocument(summary);
             }

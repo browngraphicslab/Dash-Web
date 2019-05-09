@@ -6,7 +6,7 @@ import "./DocumentView.scss";
 import React = require("react");
 import { DocComponent } from "../DocComponent";
 import { createSchema, makeInterface, listSpec } from "../../../new_fields/Schema";
-import { FieldValue, Cast, NumCast, BoolCast } from "../../../new_fields/Types";
+import { FieldValue, Cast, NumCast, BoolCast, StrCast } from "../../../new_fields/Types";
 import { OmitKeys, Utils } from "../../../Utils";
 import { SelectionManager } from "../../util/SelectionManager";
 import { Doc, DocListCast, HeightSym } from "../../../new_fields/Doc";
@@ -65,7 +65,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     contentScaling = () => this.nativeWidth > 0 ? this.width / this.nativeWidth : 1;
     panelWidth = () => this.props.PanelWidth();
     panelHeight = () => this.props.PanelHeight();
-    toggleMinimized = () => this.toggleIcon();
+    toggleMinimized = async () => this.toggleIcon(await DocListCast(this.props.Document.maximizedDocs));
     getTransform = (): Transform => this.props.ScreenToLocalTransform()
         .translate(-this.X, -this.Y)
         .scale(1 / this.contentScaling()).scale(1 / this.zoom)
@@ -126,10 +126,9 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
             2);
     }
     @action
-    public toggleIcon = async (): Promise<void> => {
+    public toggleIcon = async (maximizedDocs: Doc[] | undefined): Promise<void> => {
         SelectionManager.DeselectAll();
         let isMinimized: boolean | undefined;
-        let maximizedDocs = await DocListCast(this.props.Document.maximizedDocs);
         let minimizedDoc: Doc | undefined = this.props.Document;
         if (!maximizedDocs) {
             minimizedDoc = await Cast(this.props.Document.minimizedDoc, Doc);
@@ -177,8 +176,10 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         let altKey = e.altKey;
         if (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD &&
             Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD) {
-            if (BoolCast(this.props.Document.isButton, false) || (e.target as any).id === "isBullet") {
-                let maximizedDocs = await DocListCast(this.props.Document.maximizedDocs);
+            let isBullet = (e.target as any).id === "isBullet";
+            let isIcon = StrCast(this.props.Document.layout).indexOf("IconBox") !== -1;
+            if (BoolCast(this.props.Document.isButton, false) || isBullet) {
+                let maximizedDocs = await DocListCast(isBullet ? this.props.Document.subBulletDocs : isIcon ? this.props.Document.maximizedDocs : this.props.Document.summarizedDocs);
                 if (maximizedDocs) {   // bcz: need a better way to associate behaviors with click events on widget-documents
                     if ((altKey && !this.props.Document.maximizeOnRight) || (!altKey && this.props.Document.maximizeOnRight)) {
                         let dataDocs = await DocListCast(CollectionDockingView.Instance.props.Document.data);
@@ -195,7 +196,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                         }
                     } else {
                         this.props.addDocument && maximizedDocs.forEach(async maxDoc => this.props.addDocument!(await maxDoc, false));
-                        this.toggleIcon();
+                        this.toggleIcon(maximizedDocs);
                     }
                 }
             }
@@ -230,7 +231,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         return (
             <div className="collectionFreeFormDocumentView-container" ref={this._mainCont}
                 onPointerDown={this.onPointerDown}
-                onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}
+                onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave} onPointerOver={this.onPointerEnter}
                 onClick={this.onClick}
                 style={{
                     outlineColor: "black",
