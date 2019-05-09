@@ -368,6 +368,7 @@ export class ImageResizeView {
         let self = this;
         this._handle.onpointerdown = function (e: any) {
             e.preventDefault();
+            e.stopPropagation();
             const startX = e.pageX;
             const startWidth = parseFloat(node.attrs.width);
             const onpointermove = (e: any) => {
@@ -381,7 +382,8 @@ export class ImageResizeView {
                 document.removeEventListener("pointerup", onpointerup);
                 view.dispatch(
                     view.state.tr.setNodeMarkup(getPos(), null,
-                        { src: node.attrs.src, width: self._outer.style.width }));
+                        { src: node.attrs.src, width: self._outer.style.width })
+                        .setSelection(view.state.selection));
             }
 
             document.addEventListener("pointermove", onpointermove)
