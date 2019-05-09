@@ -1,9 +1,9 @@
 import { Deserializable, autoObject } from "../client/util/SerializationHelper";
 import { Field, Update, Self, FieldResult } from "./Doc";
-import { setter, getter, deleteProperty } from "./util";
+import { setter, getter, deleteProperty, updateFunction } from "./util";
 import { serializable, alias, list } from "serializr";
 import { observable, action } from "mobx";
-import { ObjectField, OnUpdate, Copy } from "./ObjectField";
+import { ObjectField, OnUpdate, Copy, Parent } from "./ObjectField";
 import { RefField } from "./RefField";
 import { ProxyField } from "./Proxy";
 
@@ -27,7 +27,17 @@ const listHandlers: any = {
     },
     push: action(function (this: any, ...items: any[]) {
         items = items.map(toObjectField);
-        const res = this[Self].__fields.push(...items);
+        const list = this[Self];
+        const length = list.__fields.length;
+        for (let i = 0; i < items.length; i++) {
+            const item = items[i];
+            //TODO Error checking to make sure parent doesn't already exist
+            if (item instanceof ObjectField) {
+                item[Parent] = list;
+                item[OnUpdate] = updateFunction(list, i + length, item, this);
+            }
+        }
+        const res = list.__fields.push(...items);
         this[Update]();
         return res;
     }),
@@ -48,12 +58,33 @@ const listHandlers: any = {
     },
     splice: action(function (this: any, start: number, deleteCount: number, ...items: any[]) {
         items = items.map(toObjectField);
-        const res = this[Self].__fields.splice(start, deleteCount, ...items);
+        const list = this[Self];
+        for (let i = 0; i < items.length; i++) {
+            const item = items[i];
+            //TODO Error checking to make sure parent doesn't already exist
+            //TODO Need to change indices of other fields in array
+            if (item instanceof ObjectField) {
+                item[Parent] = list;
+                item[OnUpdate] = updateFunction(list, i + start, item, this);
+            }
+        }
+        const res = list.__fields.splice(start, deleteCount, ...items);
         this[Update]();
         return res.map(toRealField);
     }),
     unshift(...items: any[]) {
         items = items.map(toObjectField);
+        const list = this[Self];
+        const length = list.__fields.length;
+        for (let i = 0; i < items.length; i++) {
+            const item = items[i];
+            //TODO Error checking to make sure parent doesn't already exist
+            //TODO Need to change indices of other fields in array
+            if (item instanceof ObjectField) {
+                item[Parent] = list;
+                item[OnUpdate] = updateFunction(list, i, item, this);
+            }
+        }
         const res = this[Self].__fields.unshift(...items);
         this[Update]();
         return res;

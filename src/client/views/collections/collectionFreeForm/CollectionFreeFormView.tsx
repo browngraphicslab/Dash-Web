@@ -70,7 +70,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
     public getActiveDocuments = () => {
         const curPage = FieldValue(this.Document.curPage, -1);
-        return FieldValue(this.children, [] as Doc[]).filter(doc => {
+        return this.children.filter(doc => {
             var page = NumCast(doc.page, -1);
             return page === curPage || page === -1;
         });
@@ -314,7 +314,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                                 {this.childViews}
                             </InkingCanvas>
                         </CollectionFreeFormLinksView>
-                        {/* <CollectionFreeFormRemoteCursors {...this.props} key="remoteCursors" /> */}
+                        <CollectionFreeFormRemoteCursors {...this.props} key="remoteCursors" />
                     </CollectionFreeFormViewPannableContents>
                     <CollectionFreeFormOverlayView {...this.getDocumentViewProps(this.props.Document)} {...this.props} />
                 </MarqueeView>
