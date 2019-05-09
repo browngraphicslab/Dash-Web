@@ -170,7 +170,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         if (this._commandExecuted) {
             return;
         }
-        if (e.key === "Backspace" || e.key === "Delete" || e.key == "d") {
+        if (e.key === "Backspace" || e.key === "Delete" || e.key === "d") {
             this._commandExecuted = true;
             this.marqueeSelect().map(d => this.props.removeDocument(d));
             let ink = Cast(this.props.container.props.Document.ink, InkField);

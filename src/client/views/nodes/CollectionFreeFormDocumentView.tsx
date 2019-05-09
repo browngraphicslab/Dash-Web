@@ -203,8 +203,8 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         }
     }
 
-    onPointerEnter = (e: React.PointerEvent): void => { this.props.Document.libraryBrush = true; }
-    onPointerLeave = (e: React.PointerEvent): void => { this.props.Document.libraryBrush = false; }
+    onPointerEnter = (e: React.PointerEvent): void => { this.props.Document.libraryBrush = true; };
+    onPointerLeave = (e: React.PointerEvent): void => { this.props.Document.libraryBrush = false; };
 
     borderRounding = () => {
         let br = NumCast(this.props.Document.borderRounding);

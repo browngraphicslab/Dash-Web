@@ -10,13 +10,14 @@ import * as rp from 'request-promise';
 import { CollectionView } from "./CollectionView";
 import { CollectionPDFView } from "./CollectionPDFView";
 import { CollectionVideoView } from "./CollectionVideoView";
-import { Doc, Opt } from "../../../new_fields/Doc";
+import { Doc, Opt, FieldResult } from "../../../new_fields/Doc";
 import { DocComponent } from "../DocComponent";
 import { listSpec } from "../../../new_fields/Schema";
-import { Cast, PromiseValue, FieldValue } from "../../../new_fields/Types";
+import { Cast, PromiseValue, FieldValue, ListSpec } from "../../../new_fields/Types";
 import { List } from "../../../new_fields/List";
 import { DocServer } from "../../DocServer";
 import { ObjectField } from "../../../new_fields/ObjectField";
+import CursorField, { CursorPosition, CursorMetadata } from "../../../new_fields/CursorField";
 
 export interface CollectionViewProps extends FieldViewProps {
     addDocument: (document: Doc, allowDuplicates?: boolean) => boolean;
@@ -29,8 +30,6 @@ export interface CollectionViewProps extends FieldViewProps {
 export interface SubCollectionViewProps extends CollectionViewProps {
     CollectionView: CollectionView | CollectionPDFView | CollectionVideoView;
 }
-
-export type CursorEntry = TupleField<[string, string], [number, number]>;
 
 export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
     class CollectionSubView extends DocComponent<SubCollectionViewProps, T>(schemaCtor) {
@@ -55,25 +54,24 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
 
         @action
         protected async setCursorPosition(position: [number, number]) {
-            return;
             let ind;
             let doc = this.props.Document;
             let id = CurrentUserUtils.id;
             let email = CurrentUserUtils.email;
+            let pos = { x: position[0], y: position[1] };
             if (id && email) {
-                let textInfo: [string, string] = [id, email];
                 const proto = await doc.proto;
                 if (!proto) {
                     return;
                 }
-                let cursors = await Cast(proto.cursors, listSpec(ObjectField));
+                let cursors = Cast(proto.cursors, listSpec(CursorField));
                 if (!cursors) {
-                    proto.cursors = cursors = new List<ObjectField>();
+                    proto.cursors = cursors = new List<CursorField>();
                 }
-                if (cursors.length > 0 && (ind = cursors.findIndex(entry => entry.Data[0][0] === id)) > -1) {
-                    cursors[ind].Data[1] = position;
+                if (cursors.length > 0 && (ind = cursors.findIndex(entry => entry.data.metadata.id === id)) > -1) {
+                    cursors[ind].setPosition(pos);
                 } else {
-                    let entry = new TupleField<[string, string], [number, number]>([textInfo, position]);
+                    let entry = new CursorField({ metadata: { id: id, identifier: email }, position: pos });
                     cursors.push(entry);
                 }
             }

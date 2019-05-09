@@ -100,7 +100,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 let titlestr = str.substr(0, Math.min(40, str.length));
                 let target = this.props.Document.proto ? this.props.Document.proto : this.props.Document;
                 target.title = "-" + titlestr + (str.length > 40 ? "..." : "");
-            };
+            }
         }
     }
 
@@ -221,8 +221,9 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     onPointerDown = (e: React.PointerEvent): void => {
         if (e.button === 0 && this.props.isSelected() && !e.altKey && !e.ctrlKey && !e.metaKey) {
             e.stopPropagation();
-            if (this._toolTipTextMenu && this._toolTipTextMenu.tooltip)
+            if (this._toolTipTextMenu && this._toolTipTextMenu.tooltip) {
                 this._toolTipTextMenu.tooltip.style.opacity = "0";
+            }
         }
         if (e.button === 0 && ((!this.props.isSelected() && !e.ctrlKey) || (this.props.isSelected() && e.ctrlKey)) && !e.metaKey) {
             if (e.target && (e.target as any).href) {
@@ -248,8 +249,9 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         }
     }
     onPointerUp = (e: React.PointerEvent): void => {
-        if (this._toolTipTextMenu && this._toolTipTextMenu.tooltip)
+        if (this._toolTipTextMenu && this._toolTipTextMenu.tooltip) {
             this._toolTipTextMenu.tooltip.style.opacity = "1";
+        }
         if (e.buttons === 1 && this.props.isSelected() && !e.altKey) {
             e.stopPropagation();
         }

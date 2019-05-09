@@ -19,7 +19,6 @@ import { ColumnAttributeModel } from "../northstar/core/attribute/AttributeModel
 import { AttributeTransformationModel } from "../northstar/core/attribute/AttributeTransformationModel";
 import { AggregateFunction } from "../northstar/model/idea/idea";
 import { Template } from "../views/Templates";
-import { TemplateField } from "../../fields/TemplateField";
 import { MINIMIZED_ICON_SIZE } from "../views/globalCssVariables.scss";
 import { IconBox } from "../views/nodes/IconBox";
 import { Field, Doc, Opt } from "../../new_fields/Doc";

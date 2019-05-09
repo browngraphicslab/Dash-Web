@@ -25,7 +25,7 @@ export type FieldResult<T extends Field = Field> = Opt<T> | FieldWaiting<Extract
 
 export const Update = Symbol("Update");
 export const Self = Symbol("Self");
-const SelfProxy = Symbol("SelfProxy");
+export const SelfProxy = Symbol("SelfProxy");
 export const WidthSym = Symbol("Width");
 export const HeightSym = Symbol("Height");
 

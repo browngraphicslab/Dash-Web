@@ -309,7 +309,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                                 {this.childViews}
                             </InkingCanvas>
                         </CollectionFreeFormLinksView>
-                        {/* <CollectionFreeFormRemoteCursors {...this.props} key="remoteCursors" /> */}
+                        <CollectionFreeFormRemoteCursors {...this.props} key="remoteCursors" />
                     </CollectionFreeFormViewPannableContents>
                 </MarqueeView>
                 <CollectionFreeFormOverlayView {...this.getDocumentViewProps(this.props.Document)} {...this.props} />
