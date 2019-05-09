@@ -1,5 +1,5 @@
 import { Deserializable, autoObject } from "../client/util/SerializationHelper";
-import { Field, Update, Self, FieldResult } from "./Doc";
+import { Field, Update, Self, FieldResult, SelfProxy } from "./Doc";
 import { setter, getter, deleteProperty, updateFunction } from "./util";
 import { serializable, alias, list } from "serializr";
 import { observable, action } from "mobx";
@@ -233,11 +233,12 @@ class ListImpl<T extends Field> extends ObjectField {
             deleteProperty: deleteProperty,
             defineProperty: () => { throw new Error("Currently properties can't be defined on documents using Object.defineProperty"); },
         });
+        this[SelfProxy] = list;
         (list as any).push(...fields);
         return list;
     }
 
-    [key: number]: FieldResult<T>;
+    [key: number]: T | (T extends RefField ? Promise<T> : never);
 
     @serializable(alias("fields", list(autoObject())))
     private get __fields() {
@@ -246,6 +247,12 @@ class ListImpl<T extends Field> extends ObjectField {
 
     private set __fields(value) {
         this.___fields = value;
+        for (const key in value) {
+            const field = value[key];
+            if (!(field instanceof ObjectField)) continue;
+            (field as ObjectField)[Parent] = this[Self];
+            (field as ObjectField)[OnUpdate] = updateFunction(this[Self], key, field, this[SelfProxy]);
+        }
     }
 
     [Copy]() {
@@ -266,6 +273,7 @@ class ListImpl<T extends Field> extends ObjectField {
     }
 
     private [Self] = this;
+    private [SelfProxy]: any;
 }
-export type List<T extends Field> = ListImpl<T> & T[];
+export type List<T extends Field> = ListImpl<T> & (T | (T extends RefField ? Promise<T> : never))[];
 export const List: { new <T extends Field>(fields?: T[]): List<T> } = ListImpl as any;

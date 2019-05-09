@@ -1,18 +1,19 @@
 import { observer } from "mobx-react";
-import React = require("react");
-import { observable, action } from "mobx";
-import "./PresentationView.scss";
+import React = require("react")
+import { observable, action, runInAction, reaction } from "mobx";
+import "./PresentationView.scss"
 import "./Main.tsx";
 import { DocumentManager } from "../util/DocumentManager";
 import { Utils } from "../../Utils";
 import { Doc } from "../../new_fields/Doc";
 import { listSpec } from "../../new_fields/Schema";
-import { Cast, NumCast, FieldValue } from "../../new_fields/Types";
+import { Cast, NumCast, FieldValue, PromiseValue } from "../../new_fields/Types";
 import { Id } from "../../new_fields/RefField";
 import { List } from "../../new_fields/List";
+import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
 
 export interface PresViewProps {
-    Document: Doc;
+    //Document: Doc;
 }
 
 
@@ -22,6 +23,11 @@ export interface PresViewProps {
  */
 class PresentationViewItem extends React.Component<PresViewProps> {
 
+    @observable Document: Doc;
+    constructor(props: PresViewProps) {
+        super(props);
+        this.Document = FieldValue(Cast(FieldValue(Cast(CurrentUserUtils.UserDocument.activeWorkspace, Doc))!.presentationView, Doc))!;
+    }
     //look at CollectionFreeformView.focusDocument(d)
     @action
     openDoc = (doc: Doc) => {
@@ -36,7 +42,7 @@ class PresentationViewItem extends React.Component<PresViewProps> {
   **/
     @action
     public RemoveDoc(doc: Doc) {
-        const value = Cast(this.props.Document.data, listSpec(Doc), []);
+        const value = Cast(this.Document.data, listSpec(Doc), []);
         let index = -1;
         for (let i = 0; i < value.length; i++) {
             if (value[i][Id] === doc[Id]) {
@@ -57,10 +63,10 @@ class PresentationViewItem extends React.Component<PresViewProps> {
         let title = document.title;
 
         //to get currently selected presentation doc
-        let selected = NumCast(this.props.Document.selectedDoc, 0);
+        let selected = NumCast(this.Document.selectedDoc, 0);
 
         // finally, if it's a normal document, then render it as such.
-        const children = Cast(this.props.Document.data, listSpec(Doc));
+        const children = Cast(this.Document.data, listSpec(Doc));
         const styles: any = {};
         if (children && children[selected] === document) {
             //this doc is selected
@@ -76,7 +82,7 @@ class PresentationViewItem extends React.Component<PresViewProps> {
     }
 
     render() {
-        const children = Cast(this.props.Document.data, listSpec(Doc), []);
+        const children = Cast(this.Document.data, listSpec(Doc), []);
 
         return (
             <div>
@@ -94,13 +100,13 @@ export class PresentationView extends React.Component<PresViewProps>  {
     //observable means render is re-called every time variable is changed
     @observable
     collapsed: boolean = false;
-    closePresentation = action(() => this.props.Document.width = 0);
+    closePresentation = action(() => this.Document!.width = 0);
     next = () => {
-        const current = NumCast(this.props.Document.selectedDoc);
-        const allDocs = FieldValue(Cast(this.props.Document.data, listSpec(Doc)));
+        const current = NumCast(this.Document!.selectedDoc);
+        const allDocs = FieldValue(Cast(this.Document!.data, listSpec(Doc)));
         if (allDocs && current < allDocs.length + 1) {
             //can move forwards
-            this.props.Document.selectedDoc = current + 1;
+            this.Document!.selectedDoc = current + 1;
             const doc = allDocs[current + 1];
             let docView = DocumentManager.Instance.getDocumentView(doc);
             if (docView) {
@@ -110,11 +116,11 @@ export class PresentationView extends React.Component<PresViewProps>  {
 
     }
     back = () => {
-        const current = NumCast(this.props.Document.selectedDoc);
-        const allDocs = FieldValue(Cast(this.props.Document.data, listSpec(Doc)));
+        const current = NumCast(this.Document!.selectedDoc);
+        const allDocs = FieldValue(Cast(this.Document!.data, listSpec(Doc)));
         if (allDocs && current - 1 >= 0) {
             //can move forwards
-            this.props.Document.selectedDoc = current - 1;
+            this.Document!.selectedDoc = current - 1;
             const doc = allDocs[current - 1];
             let docView = DocumentManager.Instance.getDocumentView(doc);
             if (docView) {
@@ -125,9 +131,21 @@ export class PresentationView extends React.Component<PresViewProps>  {
 
     private ref = React.createRef<HTMLDivElement>();
 
+    @observable Document?: Doc;
     //initilize class variables
     constructor(props: PresViewProps) {
         super(props);
+        let self = this;
+        reaction(() =>
+            CurrentUserUtils.UserDocument.activeWorkspace,
+            (activeW) => {
+                if (activeW && activeW instanceof Doc) {
+                    PromiseValue(Cast(activeW.presentationView, Doc)).
+                        then(pv => runInAction(() =>
+                            self.Document = pv ? pv : (activeW.presentationView = new Doc())))
+                }
+            },
+            { fireImmediately: true });
         PresentationView.Instance = this;
     }
 
@@ -137,19 +155,21 @@ export class PresentationView extends React.Component<PresViewProps>  {
     @action
     public PinDoc(doc: Doc) {
         //add this new doc to props.Document
-        const data = Cast(this.props.Document.data, listSpec(Doc));
+        const data = Cast(this.Document!.data, listSpec(Doc));
         if (data) {
             data.push(doc);
         } else {
-            this.props.Document.data = new List([doc]);
+            this.Document!.data = new List([doc]);
         }
 
-        this.props.Document.width = 300;
+        this.Document!.width = 300;
     }
 
     render() {
-        let titleStr = this.props.Document.Title;
-        let width = NumCast(this.props.Document.width);
+        if (!this.Document)
+            return (null);
+        let titleStr = this.Document.Title;
+        let width = NumCast(this.Document.width);
 
         //TODO: next and back should be icons
         return (
@@ -163,9 +183,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
 
                 </div>
                 <ul>
-                    <PresentationViewItem
-                        Document={this.props.Document}
-                    />
+                    <PresentationViewItem />
                 </ul>
             </div>
         );

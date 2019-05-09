@@ -25,9 +25,16 @@ export type FieldResult<T extends Field = Field> = Opt<T> | FieldWaiting<Extract
 
 export const Update = Symbol("Update");
 export const Self = Symbol("Self");
-const SelfProxy = Symbol("SelfProxy");
+export const SelfProxy = Symbol("SelfProxy");
 export const WidthSym = Symbol("Width");
 export const HeightSym = Symbol("Height");
+
+export function DocListCast(field: FieldResult): Promise<Doc[] | undefined>;
+export function DocListCast(field: FieldResult, defaultValue: Doc[]): Promise<Doc[]>;
+export function DocListCast(field: FieldResult, defaultValue?: Doc[]) {
+    const list = Cast(field, listSpec(Doc));
+    return list ? Promise.all(list) : Promise.resolve(defaultValue);
+}
 
 @Deserializable("doc").withFields(["id"])
 export class Doc extends RefField {
@@ -186,7 +193,7 @@ export namespace Doc {
         UndoManager.RunInBatch(() => {
             let linkDoc = Docs.TextDocument({ width: 100, height: 30, borderRounding: -1 });
             //let linkDoc = new Doc;
-            linkDoc.title = "-link name-";
+            linkDoc.proto!.title = "-link name-";
             linkDoc.linkDescription = "";
             linkDoc.linkTags = "Default";
 
@@ -215,7 +222,6 @@ export namespace Doc {
             return undefined;
         }
         const delegate = new Doc();
-        //TODO Does this need to be doc[Self]?
         delegate.proto = doc;
         return delegate;
     }

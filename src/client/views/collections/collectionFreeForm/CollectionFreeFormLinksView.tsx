@@ -1,4 +1,4 @@
-import { computed, IReactionDisposer, reaction } from "mobx";
+import { computed, IReactionDisposer, reaction, trace } from "mobx";
 import { observer } from "mobx-react";
 import { Utils } from "../../../../Utils";
 import { DocumentManager } from "../../../util/DocumentManager";
@@ -7,7 +7,7 @@ import { CollectionViewProps } from "../CollectionSubView";
 import "./CollectionFreeFormLinksView.scss";
 import { CollectionFreeFormLinkView } from "./CollectionFreeFormLinkView";
 import React = require("react");
-import { Doc } from "../../../../new_fields/Doc";
+import { Doc, DocListCast } from "../../../../new_fields/Doc";
 import { Cast, FieldValue, NumCast, StrCast } from "../../../../new_fields/Types";
 import { listSpec } from "../../../../new_fields/Schema";
 import { List } from "../../../../new_fields/List";
@@ -18,59 +18,57 @@ export class CollectionFreeFormLinksView extends React.Component<CollectionViewP
 
     _brushReactionDisposer?: IReactionDisposer;
     componentDidMount() {
-        this._brushReactionDisposer = reaction(() => Cast(this.props.Document[this.props.fieldKey], listSpec(Doc), []).map(doc => NumCast(doc.x)),
+        this._brushReactionDisposer = reaction(
             () => {
-                let views = Cast(this.props.Document[this.props.fieldKey], listSpec(Doc), []).filter(doc => StrCast(doc.backgroundLayout, "").indexOf("istogram") !== -1);
-                for (let i = 0; i < views.length; i++) {
-                    for (let j = 0; j < views.length; j++) {
-                        let srcDoc = views[j];
-                        let dstDoc = views[i];
-                        let x1 = NumCast(srcDoc.x);
-                        let x1w = NumCast(srcDoc.width, -1);
-                        let x2 = NumCast(dstDoc.x);
-                        let x2w = NumCast(dstDoc.width, -1);
-                        if (x1w < 0 || x2w < 0 || i === j) {
-                            continue;
-                        }
+                let doclist = Cast(this.props.Document[this.props.fieldKey], listSpec(Doc), []);
+                return { doclist: doclist ? doclist : [], xs: doclist instanceof List ? doclist.map(d => d instanceof Doc && d.x) : [] };
+            },
+            async () => {
+                let doclist = await DocListCast(this.props.Document[this.props.fieldKey]);
+                let views = doclist ? doclist.filter(doc => StrCast(doc.backgroundLayout).indexOf("istogram") !== -1) : [];
+                views.forEach((dstDoc, i) => {
+                    views.forEach((srcDoc, j) => {
                         let dstTarg = dstDoc;
                         let srcTarg = srcDoc;
-                        let findBrush = (field: List<Doc>) => field.findIndex(brush => {
-                            let bdocs = brush ? Cast(brush.brushingDocs, listSpec(Doc), []) : [];
-                            return (bdocs.length && ((bdocs[0] === dstTarg && bdocs[1] === srcTarg)) ? true : false);
-                        });
-                        let brushAction = (field: List<Doc>) => {
-                            let found = findBrush(field);
-                            if (found !== -1) {
-                                console.log("REMOVE BRUSH " + srcTarg.Title + " " + dstTarg.Title);
-                                field.splice(found, 1);
-                            }
-                        };
-                        if (Math.abs(x1 + x1w - x2) < 20) {
-                            let linkDoc: Doc = new Doc();
-                            linkDoc.title = "Histogram Brush";
-                            linkDoc.linkDescription = "Brush between " + StrCast(srcTarg.title) + " and " + StrCast(dstTarg.Title);
-                            linkDoc.brushingDocs = new List([dstTarg, srcTarg]);
-
-                            brushAction = (field: List<Doc>) => {
-                                if (findBrush(field) === -1) {
-                                    console.log("ADD BRUSH " + srcTarg.Title + " " + dstTarg.Title);
-                                    (findBrush(field) === -1) && field.push(linkDoc);
+                        let x1 = NumCast(srcDoc.x);
+                        let x2 = NumCast(dstDoc.x);
+                        let x1w = NumCast(srcDoc.width, -1);
+                        let x2w = NumCast(dstDoc.width, -1);
+                        if (x1w < 0 || x2w < 0 || i === j) { }
+                        else {
+                            let findBrush = (field: (Doc | Promise<Doc>)[]) => field.findIndex(brush => {
+                                let bdocs = brush instanceof Doc ? Cast(brush.brushingDocs, listSpec(Doc), []) : undefined;
+                                return bdocs && bdocs.length && ((bdocs[0] === dstTarg && bdocs[1] === srcTarg)) ? true : false;
+                            });
+                            let brushAction = (field: (Doc | Promise<Doc>)[]) => {
+                                let found = findBrush(field);
+                                if (found !== -1) {
+                                    console.log("REMOVE BRUSH " + srcTarg.title + " " + dstTarg.title);
+                                    field.splice(found, 1);
                                 }
                             };
-                        }
-                        let dstBrushDocs = Cast(dstTarg.brushingDocs, listSpec(Doc));
-                        if (dstBrushDocs === undefined) {
-                            dstTarg.brushingDocs = dstBrushDocs = new List<Doc>();
-                        }
-                        let srcBrushDocs = Cast(srcTarg.brushingDocs, listSpec(Doc));
-                        if (srcBrushDocs === undefined) {
-                            srcTarg.brushingDocs = srcBrushDocs = new List<Doc>();
-                        }
-                        brushAction(dstBrushDocs);
-                        brushAction(srcBrushDocs);
+                            if (Math.abs(x1 + x1w - x2) < 20) {
+                                let linkDoc: Doc = new Doc();
+                                linkDoc.title = "Histogram Brush";
+                                linkDoc.linkDescription = "Brush between " + StrCast(srcTarg.title) + " and " + StrCast(dstTarg.Title);
+                                linkDoc.brushingDocs = new List([dstTarg, srcTarg]);
 
-                    }
-                }
+                                brushAction = (field: (Doc | Promise<Doc>)[]) => {
+                                    if (findBrush(field) === -1) {
+                                        console.log("ADD BRUSH " + srcTarg.title + " " + dstTarg.title);
+                                        field.push(linkDoc);
+                                    }
+                                };
+                            }
+                            let dstBrushDocs = Cast(dstTarg.brushingDocs, listSpec(Doc), []);
+                            let srcBrushDocs = Cast(srcTarg.brushingDocs, listSpec(Doc), []);
+                            if (dstBrushDocs === undefined) dstTarg.brushingDocs = dstBrushDocs = new List<Doc>();
+                            else brushAction(dstBrushDocs);
+                            if (srcBrushDocs === undefined) srcTarg.brushingDocs = srcBrushDocs = new List<Doc>();
+                            else brushAction(srcBrushDocs);
+                        }
+                    })
+                })
             });
     }
     componentWillUnmount() {

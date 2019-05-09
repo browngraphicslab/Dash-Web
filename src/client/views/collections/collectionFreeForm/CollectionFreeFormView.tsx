@@ -110,15 +110,11 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     @action
     onPointerDown = (e: React.PointerEvent): void => {
-        let childSelected = Cast(this.props.Document[this.props.fieldKey], listSpec(Doc), [] as Doc[]).filter(doc => doc).reduce((childSelected, doc) => {
-            var dv = DocumentManager.Instance.getDocumentView(doc);
-            return childSelected || (dv && SelectionManager.IsSelected(dv) ? true : false);
-        }, false);
         if ((CollectionFreeFormView.RIGHT_BTN_DRAG &&
             (((e.button === 2 && (!this.isAnnotationOverlay || this.zoomScaling() !== 1)) ||
-                (e.button === 0 && e.altKey)) && (childSelected || this.props.active()))) ||
+                (e.button === 0 && e.altKey)) && this.props.active())) ||
             (!CollectionFreeFormView.RIGHT_BTN_DRAG &&
-                ((e.button === 0 && !e.altKey && (!this.isAnnotationOverlay || this.zoomScaling() !== 1)) && (childSelected || this.props.active())))) {
+                ((e.button === 0 && !e.altKey && (!this.isAnnotationOverlay || this.zoomScaling() !== 1)) && this.props.active()))) {
             document.removeEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
             document.addEventListener("pointermove", this.onPointerMove);
@@ -233,7 +229,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             return NumCast(doc1.zIndex) - NumCast(doc2.zIndex);
         }).forEach((doc, index) => doc.zIndex = index + 1);
         doc.zIndex = docs.length + 1;
-        return doc;
     }
 
     focusDocument = (doc: Doc) => {
@@ -265,7 +260,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             ContainingCollectionView: this.props.CollectionView,
             focus: this.focusDocument,
             parentActive: this.props.active,
-            whenActiveChanged: this.props.active,
+            whenActiveChanged: this.props.whenActiveChanged,
             bringToFront: this.bringToFront,
         };
     }
@@ -274,7 +269,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     get views() {
         let curPage = FieldValue(this.Document.curPage, -1);
         let docviews = (this.children || []).filter(doc => doc).reduce((prev, doc) => {
-            if (!FieldValue(doc)) return prev;
+            if (!(doc instanceof Doc)) return prev;
             var page = NumCast(doc.page, -1);
             if (page === curPage || page === -1) {
                 let minim = Cast(doc.isMinimized, "boolean");
@@ -316,20 +311,18 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                         </CollectionFreeFormLinksView>
                         <CollectionFreeFormRemoteCursors {...this.props} key="remoteCursors" />
                     </CollectionFreeFormViewPannableContents>
-                    <CollectionFreeFormOverlayView {...this.getDocumentViewProps(this.props.Document)} {...this.props} />
                 </MarqueeView>
+                <CollectionFreeFormOverlayView {...this.getDocumentViewProps(this.props.Document)} {...this.props} />
             </div>
         );
     }
 }
 
 @observer
-class CollectionFreeFormOverlayView extends React.Component<DocumentViewProps> {
+class CollectionFreeFormOverlayView extends React.Component<DocumentViewProps & { isSelected: () => boolean }> {
     @computed get overlayView() {
-        let overlayLayout = Cast(this.props.Document.overlayLayout, "string", "");
-        return !overlayLayout ? (null) :
-            (<DocumentContentsView {...this.props} layoutKey={"overlayLayout"}
-                isTopMost={this.props.isTopMost} isSelected={returnFalse} select={emptyFunction} />);
+        return (<DocumentContentsView {...this.props} layoutKey={"overlayLayout"}
+            isTopMost={this.props.isTopMost} isSelected={this.props.isSelected} select={emptyFunction} />);
     }
     render() {
         return this.overlayView;
@@ -339,10 +332,8 @@ class CollectionFreeFormOverlayView extends React.Component<DocumentViewProps> {
 @observer
 class CollectionFreeFormBackgroundView extends React.Component<DocumentViewProps & { isSelected: () => boolean }> {
     @computed get backgroundView() {
-        let backgroundLayout = Cast(this.props.Document.backgroundLayout, "string", "");
-        return !backgroundLayout ? (null) :
-            (<DocumentContentsView {...this.props} layoutKey={"backgroundLayout"}
-                isTopMost={this.props.isTopMost} isSelected={this.props.isSelected} select={emptyFunction} />);
+        return (<DocumentContentsView {...this.props} layoutKey={"backgroundLayout"}
+            isTopMost={this.props.isTopMost} isSelected={this.props.isSelected} select={emptyFunction} />);
     }
     render() {
         return this.backgroundView;

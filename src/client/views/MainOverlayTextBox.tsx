@@ -43,6 +43,7 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
         this._textXf = tx ? tx : () => Transform.Identity();
         this._textTargetDiv = div;
         if (div) {
+            if (div.parentElement && div.parentElement instanceof HTMLDivElement && div.parentElement.id === "screenSpace") this._textXf = () => Transform.Identity();
             this._textColor = div.style.color;
             div.style.color = "transparent";
             this.TextScroll = div.scrollTop;

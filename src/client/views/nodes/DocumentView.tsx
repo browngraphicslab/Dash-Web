@@ -1,4 +1,4 @@
-import { action, computed, runInAction } from "mobx";
+import { action, computed, runInAction, reaction, IReactionDisposer } from "mobx";
 import { observer } from "mobx-react";
 import { emptyFunction, Utils } from "../../../Utils";
 import { Docs } from "../../documents/Documents";
@@ -16,10 +16,10 @@ import { Template, Templates } from "./../Templates";
 import { DocumentContentsView } from "./DocumentContentsView";
 import "./DocumentView.scss";
 import React = require("react");
-import { Opt, Doc, WidthSym, HeightSym } from "../../../new_fields/Doc";
+import { Opt, Doc, WidthSym, HeightSym, DocListCast } from "../../../new_fields/Doc";
 import { DocComponent } from "../DocComponent";
 import { createSchema, makeInterface } from "../../../new_fields/Schema";
-import { FieldValue, StrCast, BoolCast } from "../../../new_fields/Types";
+import { FieldValue, StrCast, BoolCast, Cast } from "../../../new_fields/Types";
 import { List } from "../../../new_fields/List";
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
@@ -99,6 +99,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     set templates(templates: List<string>) { this.props.Document.templates = templates; }
     screenRect = (): ClientRect | DOMRect => this._mainCont.current ? this._mainCont.current.getBoundingClientRect() : new DOMRect();
 
+    _reactionDisposer?: IReactionDisposer;
     @action
     componentDidMount() {
         if (this._mainCont.current) {
@@ -106,6 +107,17 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 handlers: { drop: this.drop.bind(this) }
             });
         }
+        this._reactionDisposer = reaction(() => [this.props.Document.maximizedDocs, this.props.Document.summaryDoc, this.props.Document.summaryDoc instanceof Doc ? this.props.Document.summaryDoc.title : ""],
+            async () => {
+                let maxDoc = await DocListCast(this.props.Document.maximizedDocs);
+                if (maxDoc && StrCast(this.props.Document.layout).indexOf("IconBox") !== -1) {
+                    this.props.Document.title = (maxDoc && maxDoc.length === 1 ? maxDoc[0].title + ".icon" : "");
+                }
+                let sumDoc = Cast(this.props.Document.summaryDoc, Doc);
+                if (sumDoc instanceof Doc) {
+                    this.props.Document.title = sumDoc.title + ".expanded";
+                }
+            }, { fireImmediately: true });
         DocumentManager.Instance.DocumentViews.push(this);
     }
     @action
@@ -121,9 +133,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
     @action
     componentWillUnmount() {
-        if (this._dropDisposer) {
-            this._dropDisposer();
-        }
+        if (this._reactionDisposer) this._reactionDisposer();
+        if (this._dropDisposer) this._dropDisposer();
         DocumentManager.Instance.DocumentViews.splice(DocumentManager.Instance.DocumentViews.indexOf(this), 1);
     }
 
@@ -165,8 +176,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (e.shiftKey && e.buttons === 1) {
             if (this.props.isTopMost) {
                 this.startDragging(e.pageX, e.pageY, e.altKey || e.ctrlKey ? "alias" : undefined);
-            } else {
-                CollectionDockingView.Instance.StartOtherDrag([this.props.Document], e);
+            } else if (this.props.Document) {
+                CollectionDockingView.Instance.StartOtherDrag([Doc.MakeAlias(this.props.Document)], e);
             }
             e.stopPropagation();
         } else if (this.active) {
@@ -198,14 +209,15 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         this.props.removeDocument && this.props.removeDocument(this.props.Document);
     }
     fieldsClicked = (e: React.MouseEvent): void => {
-        let kvp = Docs.KVPDocument(this.props.Document, { width: 300, height: 300 });
+        let kvp = Docs.KVPDocument(this.props.Document, { title: this.props.Document.title + ".kvp", width: 300, height: 300 });
         CollectionDockingView.Instance.AddRightSplit(kvp);
     }
     makeButton = (e: React.MouseEvent): void => {
-        this.props.Document.isButton = !BoolCast(this.props.Document.isButton, false);
-        if (this.props.Document.isButton && !this.props.Document.nativeWidth) {
-            this.props.Document.nativeWidth = this.props.Document[WidthSym]();
-            this.props.Document.nativeHeight = this.props.Document[HeightSym]();
+        let doc = this.props.Document.proto ? this.props.Document.proto : this.props.Document;
+        doc.isButton = !BoolCast(doc.isButton, false);
+        if (doc.isButton && !doc.nativeWidth) {
+            doc.nativeWidth = doc[WidthSym]();
+            doc.nativeHeight = doc[HeightSym]();
         }
     }
     fullScreenClicked = (e: React.MouseEvent): void => {

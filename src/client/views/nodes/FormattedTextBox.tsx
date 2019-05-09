@@ -23,8 +23,9 @@ import { InkingControl } from "../InkingControl";
 import { StrCast, Cast, NumCast, BoolCast } from "../../../new_fields/Types";
 import { RichTextField } from "../../../new_fields/RichTextField";
 import { Id } from "../../../new_fields/RefField";
-const { buildMenuItems } = require("prosemirror-example-setup");
-const { menuBar } = require("prosemirror-menu");
+import { UndoManager } from "../../util/UndoManager";
+import { Transform } from "prosemirror-transform";
+import { Transform as MatrixTransform } from "../../util/Transform";
 
 // FormattedTextBox: Displays an editable plain text node that maps to a specified Key of a Document
 //
@@ -128,7 +129,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             );
         } else {
             this._proxyReactionDisposer = reaction(() => this.props.isSelected(),
-                () => this.props.isSelected() && !BoolCast(this.props.Document.isButton, false) && MainOverlayTextBox.Instance.SetTextDoc(this.props.Document, this.props.fieldKey, this._ref.current!, this.props.ScreenToLocalTransform));
+                () => this.props.isSelected() && MainOverlayTextBox.Instance.SetTextDoc(this.props.Document, this.props.fieldKey, this._ref.current!, this.props.ScreenToLocalTransform));
         }
 
 
@@ -150,6 +151,11 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 state: field && field.Data ? EditorState.fromJSON(config, JSON.parse(field.Data)) : EditorState.create(config),
                 dispatchTransaction: this.dispatchTransaction
             });
+            let text = StrCast(this.props.Document.documentText);
+            if (text.startsWith("@@@")) {
+                this.props.Document.proto!.documentText = undefined;
+                this._editorView.dispatch(this._editorView.state.tr.insertText(text.replace("@@@", "")));
+            }
         }
 
         if (this.props.selectOnLoad) {
@@ -273,7 +279,13 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             }
         });
     }
-
+    onBlur = (e: any) => {
+        if (this._undoTyping) {
+            this._undoTyping.end();
+            this._undoTyping = undefined;
+        }
+    }
+    public _undoTyping?: UndoManager.Batch;
     onKeyPress = (e: React.KeyboardEvent) => {
         if (e.key === "Escape") {
             SelectionManager.DeselectAll();
@@ -289,22 +301,24 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             let target = this.props.Document.proto ? this.props.Document.proto : this.props.Document;
             target.title = "-" + titlestr + (str.length > 40 ? "..." : "");
         }
+        if (!this._undoTyping) {
+            this._undoTyping = UndoManager.StartBatch("undoTyping");
+        }
     }
     render() {
         let style = this.props.isOverlay ? "scroll" : "hidden";
         let rounded = NumCast(this.props.Document.borderRounding) < 0 ? "-rounded" : "";
-        let color = StrCast(this.props.Document.backgroundColor);
         let interactive = InkingControl.Instance.selectedTool ? "" : "interactive";
         return (
             <div className={`formattedTextBox-cont-${style}`} ref={this._ref}
                 style={{
                     pointerEvents: interactive ? "all" : "none",
-                    background: color,
                 }}
                 onKeyDown={this.onKeyPress}
                 onKeyPress={this.onKeyPress}
                 onFocus={this.onFocused}
                 onClick={this.onClick}
+                onBlur={this.onBlur}
                 onPointerUp={this.onPointerUp}
                 onPointerDown={this.onPointerDown}
                 onMouseDown={this.onMouseDown}
@@ -312,7 +326,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 // tfs: do we need this event handler
                 onWheel={this.onPointerWheel}
             >
-                <div className={`formattedTextBox-inner${rounded}`} style={{ pointerEvents: this.props.Document.isButton ? "none" : "all" }} ref={this._proseRef} />
+                <div className={`formattedTextBox-inner${rounded}`} style={{ pointerEvents: this.props.Document.isButton && !this.props.isSelected() ? "none" : "all" }} ref={this._proseRef} />
             </div>
         );
     }

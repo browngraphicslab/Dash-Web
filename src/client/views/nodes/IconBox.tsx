@@ -2,13 +2,12 @@ import React = require("react");
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faCaretUp, faFilePdf, faFilm, faImage, faObjectGroup, faStickyNote } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, computed, observable, runInAction } from "mobx";
+import { computed, observable, runInAction, reaction, IReactionDisposer } from "mobx";
 import { observer } from "mobx-react";
-import { SelectionManager } from "../../util/SelectionManager";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./IconBox.scss";
 import { Cast, StrCast, BoolCast } from "../../../new_fields/Types";
-import { Doc, WidthSym, HeightSym } from "../../../new_fields/Doc";
+import { Doc, DocListCast } from "../../../new_fields/Doc";
 import { IconField } from "../../../new_fields/IconField";
 import { ContextMenu } from "../ContextMenu";
 import Measure from "react-measure";
@@ -55,7 +54,8 @@ export class IconBox extends React.Component<FieldViewProps> {
         let labelField = StrCast(this.props.Document.labelField);
         let hideLabel = BoolCast(this.props.Document.hideLabel);
         let maxDoc = Cast(this.props.Document.maximizedDocs, listSpec(Doc), []);
-        let label = !hideLabel && maxDoc && labelField ? (maxDoc.length === 1 ? maxDoc[0][labelField] : this.props.Document[labelField]) : "";
+        let firstDoc = maxDoc && maxDoc.length > 0 && maxDoc[0] instanceof Doc ? maxDoc[0] as Doc : undefined;
+        let label = !hideLabel && firstDoc && labelField ? firstDoc[labelField] : "";
         return (
             <div className="iconBox-container" onContextMenu={this.specificContextMenu}>
                 {this.minimizedIcon}

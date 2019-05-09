@@ -51,9 +51,6 @@ export class Main extends React.Component {
     }
     private set mainContainer(doc: Opt<Doc>) {
         if (doc) {
-            if (!("presentationView" in doc)) {
-                doc.presentationView = new Doc();
-            }
             CurrentUserUtils.UserDocument.activeWorkspace = doc;
         }
     }
@@ -177,23 +174,12 @@ export class Main extends React.Component {
             }
         }, 100);
     }
-
-    @computed
-    get presentationView() {
-        if (this.mainContainer) {
-            let presentation = FieldValue(Cast(this.mainContainer.presentationView, Doc));
-            return presentation ? <PresentationView Document={presentation} key="presentation" /> : (null);
-        }
-        return (null);
-    }
-
     @computed
     get mainContent() {
         let pwidthFunc = () => this.pwidth;
         let pheightFunc = () => this.pheight;
         let noScaling = () => 1;
         let mainCont = this.mainContainer;
-        let pcontent = this.presentationView;
         return <Measure onResize={action((r: any) => { this.pwidth = r.entry.width; this.pheight = r.entry.height; })}>
             {({ measureRef }) =>
                 <div ref={measureRef} id="mainContent-div">
@@ -213,7 +199,7 @@ export class Main extends React.Component {
                             whenActiveChanged={emptyFunction}
                             bringToFront={emptyFunction}
                             ContainingCollectionView={undefined} />}
-                    {pcontent}
+                    <PresentationView key="presentation" />
                 </div>
             }
         </Measure>;

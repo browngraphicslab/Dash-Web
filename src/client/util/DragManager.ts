@@ -3,7 +3,7 @@ import { emptyFunction } from "../../Utils";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import * as globalCssVariables from "../views/globalCssVariables.scss";
 import { MainOverlayTextBox } from "../views/MainOverlayTextBox";
-import { Doc } from "../../new_fields/Doc";
+import { Doc, DocListCast } from "../../new_fields/Doc";
 import { Cast } from "../../new_fields/Types";
 import { listSpec } from "../../new_fields/Schema";
 
@@ -42,12 +42,14 @@ export function SetupDrag(_reference: React.RefObject<HTMLDivElement>, docFunc: 
 
 export async function DragLinksAsDocuments(dragEle: HTMLElement, x: number, y: number, sourceDoc: Doc) {
     let srcTarg = sourceDoc.proto;
-    let draggedDocs = srcTarg ?
-        Cast(srcTarg.linkedToDocs, listSpec(Doc), []).map(linkDoc =>
-            Cast(linkDoc.linkedTo, Doc) as Doc) : [];
-    let draggedFromDocs = srcTarg ?
-        Cast(srcTarg.linkedFromDocs, listSpec(Doc), []).map(linkDoc =>
-            Cast(linkDoc.linkedFrom, Doc) as Doc) : [];
+    let draggedDocs: Doc[] = [];
+    let draggedFromDocs: Doc[] = []
+    if (srcTarg) {
+        let linkToDocs = await DocListCast(srcTarg.linkedToDocs);
+        let linkFromDocs = await DocListCast(srcTarg.linkedFromDocs);
+        if (linkToDocs) draggedDocs = linkToDocs.map(linkDoc => Cast(linkDoc.linkedTo, Doc) as Doc);
+        if (linkFromDocs) draggedFromDocs = linkFromDocs.map(linkDoc => Cast(linkDoc.linkedFrom, Doc) as Doc);
+    }
     draggedDocs.push(...draggedFromDocs);
     if (draggedDocs.length) {
         let moddrag: Doc[] = [];

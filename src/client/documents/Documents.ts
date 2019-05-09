@@ -33,6 +33,7 @@ import { listSpec } from "../../new_fields/Schema";
 import { DocServer } from "../DocServer";
 import { StrokeData, InkField } from "../../new_fields/InkField";
 import { dropActionType } from "../util/DragManager";
+import { DateField } from "../../new_fields/DateField";
 
 export interface DocumentOptions {
     x?: number;
@@ -131,7 +132,7 @@ export namespace Docs {
     }
     function CreateTextPrototype(): Doc {
         let textProto = setupPrototypeOptions(textProtoId, "TEXT_PROTO", FormattedTextBox.LayoutString(),
-            { x: 0, y: 0, width: 300, height: 150 });
+            { x: 0, y: 0, width: 300, height: 150, backgroundColor: "#f1efeb" });
         return textProto;
     }
     function CreatePdfPrototype(): Doc {
@@ -168,6 +169,13 @@ export namespace Docs {
 
     function CreateInstance(proto: Doc, data: Field, options: DocumentOptions) {
         const { omit: protoProps, extract: delegateProps } = OmitKeys(options, delegateKeys);
+        if (!("author" in protoProps)) {
+            protoProps.author = CurrentUserUtils.email;
+        }
+        if (!("creationDate" in protoProps)) {
+            protoProps.creationDate = new DateField;
+        }
+
         return SetDelegateOptions(SetInstanceOptions(proto, protoProps, data), delegateProps);
     }
 

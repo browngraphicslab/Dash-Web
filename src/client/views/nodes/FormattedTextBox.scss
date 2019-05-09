@@ -11,12 +11,13 @@
 }
 
 .formattedTextBox-cont-scroll, .formattedTextBox-cont-hidden  {
-  background: $light-color-secondary;
+  background: inherit;
   padding: 0;
   border-width: 0px;
   border-radius: inherit;
   border-color: $intermediate-color;
   box-sizing: border-box;
+  background-color: inherit;
   border-style: solid;
   overflow-y: scroll;
   overflow-x: hidden;

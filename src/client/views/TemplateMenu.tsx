@@ -4,6 +4,8 @@ import { observer } from "mobx-react";
 import './DocumentDecorations.scss';
 import { Template } from "./Templates";
 import { DocumentView } from "./nodes/DocumentView";
+import { List } from "../../new_fields/List";
+import { Doc } from "../../new_fields/Doc";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -13,7 +15,7 @@ class TemplateToggle extends React.Component<{ template: Template, checked: bool
     render() {
         if (this.props.template) {
             return (
-                <li>
+                <li className="templateToggle">
                     <input type="checkbox" checked={this.props.checked} onChange={(event) => this.props.toggle(event, this.props.template)} />
                     {this.props.template.Name}
                 </li>
@@ -25,26 +27,32 @@ class TemplateToggle extends React.Component<{ template: Template, checked: bool
 }
 
 export interface TemplateMenuProps {
-    doc: DocumentView;
+    docs: DocumentView[];
     templates: Map<Template, boolean>;
 }
 
 @observer
 export class TemplateMenu extends React.Component<TemplateMenuProps> {
-
     @observable private _hidden: boolean = true;
-
 
     @action
     toggleTemplate = (event: React.ChangeEvent<HTMLInputElement>, template: Template): void => {
         if (event.target.checked) {
-            this.props.doc.addTemplate(template);
+            if (template.Name == "Bullet") {
+                this.props.docs[0].addTemplate(template);
+                this.props.docs[0].props.Document.maximizedDocs = new List<Doc>(this.props.docs.filter((v, i) => i !== 0).map(v => v.props.Document));
+            } else {
+                this.props.docs.map(d => d.addTemplate(template));
+            }
             this.props.templates.set(template, true);
-            this.props.templates.forEach((checked, template) => console.log("Set Checked + " + checked + " " + this.props.templates.get(template)));
         } else {
-            this.props.doc.removeTemplate(template);
+            if (template.Name == "Bullet") {
+                this.props.docs[0].removeTemplate(template);
+                this.props.docs[0].props.Document.maximizedDocs = undefined;
+            } else {
+                this.props.docs.map(d => d.removeTemplate(template));
+            }
             this.props.templates.set(template, false);
-            this.props.templates.forEach((checked, template) => console.log("Unset Checked + " + checked + " " + this.props.templates.get(template)));
         }
     }
 

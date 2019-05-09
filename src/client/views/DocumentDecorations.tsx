@@ -29,6 +29,7 @@ import { CollectionFreeFormView } from "./collections/collectionFreeForm/Collect
 import { CollectionView } from "./collections/CollectionView";
 import { createCipher } from "crypto";
 import { FieldView } from "./nodes/FieldView";
+import { DocumentManager } from "../util/DocumentManager";
 
 library.add(faLink);
 
@@ -78,11 +79,15 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 if (SelectionManager.SelectedDocuments().length > 0) {
                     let field = SelectionManager.SelectedDocuments()[0].props.Document[this._fieldKey];
                     if (typeof field === "number") {
-                        SelectionManager.SelectedDocuments().forEach(d =>
-                            d.props.Document[this._fieldKey] = +this._title);
+                        SelectionManager.SelectedDocuments().forEach(d => {
+                            let doc = d.props.Document.proto ? d.props.Document.proto : d.props.Document;
+                            doc[this._fieldKey] = +this._title;
+                        });
                     } else {
-                        SelectionManager.SelectedDocuments().forEach(d =>
-                            d.props.Document[this._fieldKey] = this._title);
+                        SelectionManager.SelectedDocuments().forEach(d => {
+                            let doc = d.props.Document.proto ? d.props.Document.proto : d.props.Document;
+                            doc[this._fieldKey] = this._title;
+                        });
                     }
                 }
             }
@@ -273,12 +278,10 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     public getIconDoc = async (docView: DocumentView): Promise<Doc | undefined> => {
         let doc = docView.props.Document;
         let iconDoc: Doc | undefined = await Cast(doc.minimizedDoc, Doc);
-        if (!iconDoc) {
+
+        if (!iconDoc || !DocumentManager.Instance.getDocumentView(iconDoc)) {
             const layout = StrCast(doc.backgroundLayout, StrCast(doc.layout, FieldView.LayoutString(DocumentView)));
             iconDoc = this.createIcon([docView], layout);
-        }
-        if (SelectionManager.SelectedDocuments()[0].props.addDocument !== undefined) {
-            SelectionManager.SelectedDocuments()[0].props.addDocument!(iconDoc);
         }
         return iconDoc;
     }
@@ -503,9 +506,18 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         }
 
         let templates: Map<Template, boolean> = new Map();
-        let doc = SelectionManager.SelectedDocuments()[0];
         Array.from(Object.values(Templates.TemplateList)).map(template => {
-            let docTemps = doc.templates;
+            let docTemps = SelectionManager.SelectedDocuments().reduce((res: string[], doc: DocumentView, i) => {
+                let temps = doc.props.Document.templates;
+                if (temps instanceof List) {
+                    temps.map(temp => {
+                        if (temp !== Templates.Bullet.Layout || i === 0) {
+                            res.push(temp);
+                        }
+                    })
+                }
+                return res
+            }, [] as string[]);
             let checked = false;
             docTemps.forEach(temp => {
                 if (template.Layout === temp) {
@@ -556,7 +568,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                             <FontAwesomeIcon className="fa-icon-link" icon="link" size="sm" />
                         </div>
                     </div>
-                    <TemplateMenu doc={doc} templates={templates} />
+                    <TemplateMenu docs={SelectionManager.SelectedDocuments()} templates={templates} />
                 </div>
             </div >
         </div>

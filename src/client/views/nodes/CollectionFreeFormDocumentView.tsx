@@ -9,8 +9,10 @@ import { createSchema, makeInterface, listSpec } from "../../../new_fields/Schem
 import { FieldValue, Cast, NumCast, BoolCast } from "../../../new_fields/Types";
 import { OmitKeys, Utils } from "../../../Utils";
 import { SelectionManager } from "../../util/SelectionManager";
-import { Doc } from "../../../new_fields/Doc";
+import { Doc, DocListCast, HeightSym } from "../../../new_fields/Doc";
 import { List } from "../../../new_fields/List";
+import { CollectionDockingView } from "../collections/CollectionDockingView";
+import { undoBatch, UndoManager } from "../../util/UndoManager";
 
 export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
 }
@@ -86,7 +88,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 let scrpt = this.props.ScreenToLocalTransform().transformPoint(values[0], values[1]);
                 this.animateBetweenIcon(true, scrpt, [values[2], values[3]], values[4], values[5], values[6], this.props.Document, values[7] ? true : false);
             }
-        });
+        }, { fireImmediately: true });
     }
 
     componentWillUnmount() {
@@ -94,6 +96,9 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     }
 
     animateBetweenIcon(first: boolean, icon: number[], targ: number[], width: number, height: number, stime: number, target: Doc, maximizing: boolean) {
+        if (first) {
+            if (maximizing) target.width = target.height = 1;
+        }
         setTimeout(() => {
             let now = Date.now();
             let progress = Math.min(1, (now - stime) / 200);
@@ -124,22 +129,25 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     public toggleIcon = async (): Promise<void> => {
         SelectionManager.DeselectAll();
         let isMinimized: boolean | undefined;
-        let maximizedDocs = await Cast(this.props.Document.maximizedDocs, listSpec(Doc));
+        let maximizedDocs = await DocListCast(this.props.Document.maximizedDocs);
         let minimizedDoc: Doc | undefined = this.props.Document;
         if (!maximizedDocs) {
             minimizedDoc = await Cast(this.props.Document.minimizedDoc, Doc);
-            if (minimizedDoc) maximizedDocs = await Cast(minimizedDoc.maximizedDocs, listSpec(Doc));
+            if (minimizedDoc) maximizedDocs = await DocListCast(minimizedDoc.maximizedDocs);
         }
-        if (minimizedDoc && maximizedDocs && maximizedDocs instanceof List) {
+        if (minimizedDoc && maximizedDocs) {
             let minimizedTarget = minimizedDoc;
-            maximizedDocs.map(maximizedDoc => {
+            if (!CollectionFreeFormDocumentView._undoBatch) {
+                CollectionFreeFormDocumentView._undoBatch = UndoManager.StartBatch("iconAnimating");
+            }
+            maximizedDocs.forEach(maximizedDoc => {
                 let iconAnimating = Cast(maximizedDoc.isIconAnimating, List);
                 if (!iconAnimating || (Date.now() - iconAnimating[6] > 1000)) {
                     if (isMinimized === undefined) {
                         isMinimized = BoolCast(maximizedDoc.isMinimized, false);
                     }
-                    let minx = NumCast(minimizedTarget.x, undefined) + NumCast(minimizedTarget.width, undefined) / 2;
-                    let miny = NumCast(minimizedTarget.y, undefined) + NumCast(minimizedTarget.height, undefined) / 2;
+                    let minx = NumCast(minimizedTarget.x, undefined) + NumCast(minimizedTarget.width, undefined) * this.getTransform().Scale * this.contentScaling() / 2;
+                    let miny = NumCast(minimizedTarget.y, undefined) + NumCast(minimizedTarget.height, undefined) * this.getTransform().Scale * this.contentScaling() / 2;
                     let maxx = NumCast(maximizedDoc.x, undefined);
                     let maxy = NumCast(maximizedDoc.y, undefined);
                     let maxw = NumCast(maximizedDoc.width, undefined);
@@ -147,30 +155,48 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                     if (minx !== undefined && miny !== undefined && maxx !== undefined && maxy !== undefined &&
                         maxw !== undefined && maxh !== undefined) {
                         let scrpt = this.props.ScreenToLocalTransform().inverse().transformPoint(minx, miny);
-                        maximizedDoc.isMinimized = false;
-                        maximizedDoc.isIconAnimating = new List<number>([scrpt[0], scrpt[1], maxx, maxy, maxw, maxh, Date.now(), isMinimized ? 1 : 0]);
+                        if (isMinimized) maximizedDoc.isMinimized = false;
+                        maximizedDoc.isIconAnimating = new List<number>([scrpt[0], scrpt[1], maxx, maxy, maxw, maxh, Date.now(), isMinimized ? 1 : 0])
                     }
                 }
             });
+            setTimeout(() => {
+                CollectionFreeFormDocumentView._undoBatch && CollectionFreeFormDocumentView._undoBatch.end();
+                CollectionFreeFormDocumentView._undoBatch = undefined;
+            }, 500);
         }
     }
+    static _undoBatch?: UndoManager.Batch = undefined;
     onPointerDown = (e: React.PointerEvent): void => {
         this._downX = e.clientX;
         this._downY = e.clientY;
-        e.stopPropagation();
+        // e.stopPropagation();
     }
     onClick = async (e: React.MouseEvent) => {
         e.stopPropagation();
-        let ctrlKey = e.ctrlKey;
+        let altKey = e.altKey;
         if (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD &&
             Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD) {
-            if (await BoolCast(this.props.Document.isButton, false)) {
-                let maximizedDocs = await Cast(this.props.Document.maximizedDocs, listSpec(Doc));
+            if (BoolCast(this.props.Document.isButton, false) || (e.target as any).id === "isBullet") {
+                let maximizedDocs = await DocListCast(this.props.Document.maximizedDocs);
                 if (maximizedDocs) {   // bcz: need a better way to associate behaviors with click events on widget-documents
-                    if (ctrlKey) {
-                        this.props.addDocument && maximizedDocs.filter(d => d instanceof Doc).map(maxDoc => this.props.addDocument!(maxDoc, false));
+                    if ((altKey && !this.props.Document.maximizeOnRight) || (!altKey && this.props.Document.maximizeOnRight)) {
+                        let dataDocs = await DocListCast(CollectionDockingView.Instance.props.Document.data);
+                        if (dataDocs) {
+                            SelectionManager.DeselectAll();
+                            maximizedDocs.forEach(maxDoc => {
+                                maxDoc.isMinimized = false;
+                                if (!dataDocs || dataDocs.indexOf(maxDoc) == -1) {
+                                    CollectionDockingView.Instance.AddRightSplit(maxDoc);
+                                } else {
+                                    CollectionDockingView.Instance.CloseRightSplit(maxDoc);
+                                }
+                            });
+                        }
+                    } else {
+                        this.props.addDocument && maximizedDocs.forEach(async maxDoc => this.props.addDocument!(await maxDoc, false));
+                        this.toggleIcon();
                     }
-                    this.toggleIcon();
                 }
             }
         }

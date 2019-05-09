@@ -22,11 +22,8 @@ export class CollectionFreeFormRemoteCursors extends React.Component<CollectionV
         }
 
         let cursors = Cast(doc.cursors, listSpec(CursorField));
-        if (!cursors) {
-            doc.cursors = cursors = new List<CursorField>();
-        }
 
-        return cursors.filter(cursor => cursor.data.metadata.id !== id);
+        return (cursors || []).filter(cursor => cursor.data.metadata.id !== id);
     }
 
     private crosshairs?: HTMLCanvasElement;
@@ -62,7 +59,6 @@ export class CollectionFreeFormRemoteCursors extends React.Component<CollectionV
         }
     }
 
-    @computed
     get sharedCursors() {
         return this.getCursors().map(c => {
             let m = c.data.metadata;

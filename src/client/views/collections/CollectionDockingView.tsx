@@ -1,25 +1,23 @@
-import * as GoldenLayout from "golden-layout";
 import 'golden-layout/src/css/goldenlayout-base.css';
 import 'golden-layout/src/css/goldenlayout-dark-theme.css';
-import { action, observable, reaction, trace, runInAction } from "mobx";
+import { action, observable, reaction } from "mobx";
 import { observer } from "mobx-react";
 import * as ReactDOM from 'react-dom';
 import Measure from "react-measure";
-import { Utils, returnTrue, emptyFunction, returnOne, returnZero } from "../../../Utils";
+import * as GoldenLayout from "../../../client/goldenLayout";
+import { Doc, Field, Opt } from "../../../new_fields/Doc";
+import { FieldId, Id } from "../../../new_fields/RefField";
+import { listSpec } from "../../../new_fields/Schema";
+import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
+import { emptyFunction, returnTrue, Utils } from "../../../Utils";
+import { DocServer } from "../../DocServer";
+import { DragLinksAsDocuments, DragManager } from "../../util/DragManager";
+import { Transform } from '../../util/Transform';
 import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { DocumentView } from "../nodes/DocumentView";
 import "./CollectionDockingView.scss";
-import React = require("react");
 import { SubCollectionViewProps } from "./CollectionSubView";
-import { DragManager, DragLinksAsDocuments } from "../../util/DragManager";
-import { Transform } from '../../util/Transform';
-import { Doc, Opt, Field } from "../../../new_fields/Doc";
-import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
-import { List } from "../../../new_fields/List";
-import { DocServer } from "../../DocServer";
-import { listSpec } from "../../../new_fields/Schema";
-import { Id, FieldId } from "../../../new_fields/RefField";
-import { faSignInAlt } from "@fortawesome/free-solid-svg-icons";
+import React = require("react");
 
 @observer
 export class CollectionDockingView extends React.Component<SubCollectionViewProps> {
@@ -72,6 +70,39 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         this.stateChanged();
     }
 
+    @undoBatch
+    @action
+    public CloseRightSplit(document: Doc) {
+        if (this._goldenLayout.root.contentItems[0].isRow) {
+            this._goldenLayout.root.contentItems[0].contentItems.map((child: any, i: number) => {
+                if (child.contentItems.length === 1 && child.contentItems[0].config.component === "DocumentFrameRenderer" &&
+                    child.contentItems[0].config.props.documentId == document[Id]) {
+                    child.contentItems[0].remove();
+                    this.layoutChanged(document);
+                    this.stateChanged();
+                } else
+                    child.contentItems.map((tab: any, j: number) => {
+                        if (tab.config.component === "DocumentFrameRenderer" && tab.config.props.documentId === document[Id]) {
+                            child.contentItems[j].remove();
+                            child.config.activeItemIndex = Math.max(child.contentItems.length - 1, 0);
+                            let docs = Cast(this.props.Document.data, listSpec(Doc));
+                            docs && docs.indexOf(document) !== -1 && docs.splice(docs.indexOf(document), 1);
+                            this.stateChanged();
+                        }
+                    });
+            })
+        }
+    }
+
+    @action
+    layoutChanged(removed?: Doc) {
+        this._goldenLayout.root.callDownwards('setSize', [this._goldenLayout.width, this._goldenLayout.height]);
+        this._goldenLayout.emit('sbcreteChanged');
+        this._ignoreStateChange = JSON.stringify(this._goldenLayout.toConfig());
+        if (removed) CollectionDockingView.Instance._removedDocs.push(removed);
+        this.stateChanged();
+    }
+
     //
     //  Creates a vertical split on the right side of the docking view, and then adds the Document to that split
     //
@@ -103,14 +134,12 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             newContentItem.config.width = 50;
         }
         if (minimize) {
-            newContentItem.config.width = 10;
-            newContentItem.config.height = 10;
+            // bcz: this makes the drag image show up better, but it also messes with fixed layout sizes
+            // newContentItem.config.width = 10;
+            // newContentItem.config.height = 10;
         }
         newContentItem.callDownwards('_$init');
-        this._goldenLayout.root.callDownwards('setSize', [this._goldenLayout.width, this._goldenLayout.height]);
-        this._goldenLayout.emit('stateChanged');
-        this._ignoreStateChange = JSON.stringify(this._goldenLayout.toConfig());
-        this.stateChanged();
+        this.layoutChanged();
 
         return newContentItem;
     }
@@ -231,6 +260,11 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
 
     @undoBatch
     stateChanged = () => {
+        let docs = Cast(CollectionDockingView.Instance.props.Document.data, listSpec(Doc));
+        CollectionDockingView.Instance._removedDocs.map(theDoc =>
+            docs && docs.indexOf(theDoc) !== -1 &&
+            docs.splice(docs.indexOf(theDoc), 1));
+        CollectionDockingView.Instance._removedDocs.length = 0;
         var json = JSON.stringify(this._goldenLayout.toConfig());
         this.props.Document.dockingConfig = json;
         if (this.undohack && !this.hack) {
@@ -251,43 +285,42 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         return template.content.firstChild;
     }
 
-    tabCreated = (tab: any) => {
+    tabCreated = async (tab: any) => {
         if (tab.hasOwnProperty("contentItem") && tab.contentItem.config.type !== "stack") {
-            DocServer.GetRefField(tab.contentItem.config.props.documentId).then(async f => {
-                if (f instanceof Doc) {
-                    const title = Cast(f.title, "string");
-                    if (title !== undefined) {
-                        tab.titleElement[0].textContent = title;
-                    }
-                    const lf = await Cast(f.linkedFromDocs, listSpec(Doc));
-                    const lt = await Cast(f.linkedToDocs, listSpec(Doc));
-                    let count = (lf ? lf.length : 0) + (lt ? lt.length : 0);
-                    let counter: any = this.htmlToElement(`<div class="messageCounter">${count}</div>`);
+            if (tab.contentItem.config.fixed) {
+                tab.contentItem.parent.config.fixed = true;
+            }
+            DocServer.GetRefField(tab.contentItem.config.props.documentId).then(async doc => {
+                if (doc instanceof Doc) {
+                    let counter: any = this.htmlToElement(`<div class="messageCounter">0</div>`);
                     tab.element.append(counter);
                     counter.DashDocId = tab.contentItem.config.props.documentId;
-                    tab.reactionDisposer = reaction((): [List<Field> | null | undefined, List<Field> | null | undefined] => [lf, lt],
-                        ([linkedFrom, linkedTo]) => {
-                            let count = (linkedFrom ? linkedFrom.length : 0) + (linkedTo ? linkedTo.length : 0);
+                    tab.reactionDisposer = reaction(() => [doc.linkedFromDocs, doc.LinkedToDocs, doc.title],
+                        () => {
+                            const lf = Cast(doc.linkedFromDocs, listSpec(Doc), []);
+                            const lt = Cast(doc.linkedToDocs, listSpec(Doc), []);
+                            let count = (lf ? lf.length : 0) + (lt ? lt.length : 0);
                             counter.innerHTML = count;
-                        });
+                            tab.titleElement[0].textContent = doc.title;
+                        }, { fireImmediately: true });
                     tab.titleElement[0].DashDocId = tab.contentItem.config.props.documentId;
                 }
             });
         }
         tab.closeElement.off('click') //unbind the current click handler
-            .click(function () {
+            .click(async function () {
                 if (tab.reactionDisposer) {
                     tab.reactionDisposer();
                 }
-                DocServer.GetRefField(tab.contentItem.config.props.documentId).then(async f => runInAction(() => {
-                    if (f instanceof Doc) {
-                        let docs = Cast(CollectionDockingView.Instance.props.Document.data, listSpec(Doc));
-                        docs && docs.indexOf(f) !== -1 && docs.splice(docs.indexOf(f), 1);
-                    }
-                }));
+                let doc = await DocServer.GetRefField(tab.contentItem.config.props.documentId);
+                if (doc instanceof Doc) {
+                    let theDoc = doc;
+                    CollectionDockingView.Instance._removedDocs.push(theDoc);
+                }
                 tab.contentItem.remove();
             });
     }
+    _removedDocs: Doc[] = [];
 
     stackCreated = (stack: any) => {
         //stack.header.controlsContainer.find('.lm_popout').hide();
@@ -296,13 +329,21 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             .click(action(function () {
                 //if (confirm('really close this?')) {
                 stack.remove();
+                stack.contentItems.map(async (contentItem: any) => {
+                    let doc = await DocServer.GetRefField(contentItem.config.props.documentId);
+                    if (doc instanceof Doc) {
+                        let theDoc = doc;
+                        CollectionDockingView.Instance._removedDocs.push(theDoc);
+                    }
+                });
                 //}
             }));
         stack.header.controlsContainer.find('.lm_popout') //get the close icon
             .off('click') //unbind the current click handler
             .click(action(function () {
-                var url = DocServer.prepend("/doc/" + stack.contentItems[0].tab.contentItem.config.props.documentId);
-                let win = window.open(url, stack.contentItems[0].tab.title, "width=300,height=400");
+                stack.config.fixed = !stack.config.fixed;
+                // var url = DocServer.prepend("/doc/" + stack.contentItems[0].tab.contentItem.config.props.documentId);
+                // let win = window.open(url, stack.contentItems[0].tab.title, "width=300,height=400");
             }));
     }
 
@@ -312,6 +353,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                 onPointerDown={this.onPointerDown} onPointerUp={this.onPointerUp} ref={this._containerRef} />
         );
     }
+
 }
 
 interface DockedFrameProps {
@@ -370,6 +412,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
                     parentActive={returnTrue}
                     whenActiveChanged={emptyFunction}
                     focus={emptyFunction}
+                    bringToFront={emptyFunction}
                     ContainingCollectionView={undefined} />
             </div >);
     }
