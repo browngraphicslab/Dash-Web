@@ -175,6 +175,7 @@ export namespace Docs {
         if (!("creationDate" in protoProps)) {
             protoProps.creationDate = new DateField;
         }
+        protoProps.isPrototype = true;
 
         return SetDelegateOptions(SetInstanceOptions(proto, protoProps, data), delegateProps);
     }

@@ -295,7 +295,7 @@ function GetRefFields([ids, callback]: [string[], (result?: Transferable[]) => v
 }
 
 
-const suffixMap: { [type: string]: string | [string, string] | [string, string, (json: any) => any] } = {
+const suffixMap: { [type: string]: (string | [string, string | ((json: any) => any)]) } = {
     "number": "_n",
     "string": "_t",
     "image": ["_t", "url"],
@@ -303,8 +303,39 @@ const suffixMap: { [type: string]: string | [string, string] | [string, string, 
     "pdf": ["_t", "url"],
     "audio": ["_t", "url"],
     "web": ["_t", "url"],
-    "date": ["_d", "date", millis => new Date(millis).toISOString()],
+    "date": ["_d", value => new Date(value.date).toISOString()],
+    "proxy": ["_i", "fieldId"],
+    "list": ["_l", list => {
+        const results = [];
+        for (const value of list.fields) {
+            const term = ToSearchTerm(value);
+            if (term) {
+                results.push(term.value);
+            }
+        }
+        return results.length ? results : null;
+    }]
 };
+
+function ToSearchTerm(val: any): { suffix: string, value: any } | undefined {
+    const type = val.__type || typeof val;
+    let suffix = suffixMap[type];
+    if (!suffix) {
+        return;
+    }
+
+    if (Array.isArray(suffix)) {
+        const accessor = suffix[1];
+        if (typeof accessor === "function") {
+            val = accessor(val);
+        } else {
+            val = val[accessor];
+        }
+        suffix = suffix[0];
+    }
+
+    return { suffix, value: val }
+}
 
 function UpdateField(socket: Socket, diff: Diff) {
     Database.Instance.update(diff.id, diff.diff,
@@ -318,20 +349,12 @@ function UpdateField(socket: Socket, diff: Diff) {
     for (let key in docfield) {
         if (!key.startsWith("fields.")) continue;
         let val = docfield[key];
-        const type = val.__type || typeof val;
-        let suffix = suffixMap[type];
-        if (suffix !== undefined) {
-            if (Array.isArray(suffix)) {
-                val = val[suffix[1]];
-                const func = suffix[2];
-                if (func) {
-                    val = func(val);
-                }
-                suffix = suffix[0];
-            }
+        let term = ToSearchTerm(val);
+        if (term !== undefined) {
+            let { suffix, value } = term;
             key = key.substring(7);
             Object.values(suffixMap).forEach(suf => update[key + suf] = null);
-            update[key + suffix] = { set: val };
+            update[key + suffix] = { set: value };
             dynfield = true;
         }
     }
