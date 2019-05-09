@@ -5,7 +5,6 @@ import { DragLinksAsDocuments, DragManager } from "../util/DragManager";
 import { SelectionManager } from "../util/SelectionManager";
 import { undoBatch } from "../util/UndoManager";
 import './DocumentDecorations.scss';
-import { MainOverlayTextBox } from "./MainOverlayTextBox";
 import { DocumentView, PositionDocument } from "./nodes/DocumentView";
 import { LinkMenu } from "./nodes/LinkMenu";
 import { TemplateMenu } from "./TemplateMenu";
@@ -25,11 +24,10 @@ import { faLink } from '@fortawesome/free-solid-svg-icons';
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { MINIMIZED_ICON_SIZE } from "../views/globalCssVariables.scss";
-import { CollectionFreeFormView } from "./collections/collectionFreeForm/CollectionFreeFormView";
 import { CollectionView } from "./collections/CollectionView";
-import { createCipher } from "crypto";
-import { FieldView } from "./nodes/FieldView";
 import { DocumentManager } from "../util/DocumentManager";
+import { FormattedTextBox } from "./nodes/FormattedTextBox";
+import { FieldView } from "./nodes/FieldView";
 
 library.add(faLink);
 
@@ -251,7 +249,22 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             if (this._iconDoc && selectedDocs.length === 1 && this._removeIcon) {
                 selectedDocs[0].props.removeDocument && selectedDocs[0].props.removeDocument(this._iconDoc);
             }
-            !this._removeIcon && selectedDocs.length === 1 && this.getIconDoc(selectedDocs[0]).then(icon => selectedDocs[0].props.toggleMinimized());
+            if (!this._removeIcon) {
+                if (selectedDocs.length === 1)
+                    this.getIconDoc(selectedDocs[0]).then(icon => selectedDocs[0].props.toggleMinimized());
+                else {
+                    let docViews = SelectionManager.ViewsSortedVertically();
+                    let topDocView = docViews[0];
+                    let ind = topDocView.templates.indexOf(Templates.Bullet.Layout);
+                    if (ind !== -1) {
+                        topDocView.templates.splice(ind, 1);
+                        topDocView.props.Document.subBulletDocs = undefined;
+                    } else {
+                        topDocView.addTemplate(Templates.Bullet);
+                        topDocView.props.Document.subBulletDocs = new List<Doc>(docViews.filter(v => v !== topDocView).map(v => v.props.Document));
+                    }
+                }
+            }
             this._removeIcon = false;
         }
         runInAction(() => this._minimizedX = this._minimizedY = 0);
@@ -321,6 +334,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         e.stopPropagation();
     }
 
+    @action
     onLinkerButtonMoved = (e: PointerEvent): void => {
         if (this._linkerButton.current !== null) {
             document.removeEventListener("pointermove", this.onLinkerButtonMoved);
@@ -328,6 +342,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             let selDoc = SelectionManager.SelectedDocuments()[0];
             let container = selDoc.props.ContainingCollectionView ? selDoc.props.ContainingCollectionView.props.Document.proto : undefined;
             let dragData = new DragManager.LinkDragData(selDoc.props.Document, container ? [container] : []);
+            FormattedTextBox.InputBoxOverlay = undefined;
             DragManager.StartLinkDrag(this._linkerButton.current, dragData, e.pageX, e.pageY, {
                 handlers: {
                     dragComplete: action(emptyFunction),
@@ -410,7 +425,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 break;
         }
 
-        MainOverlayTextBox.Instance.SetTextDoc();
+        runInAction(() => FormattedTextBox.InputBoxOverlay = undefined);
         SelectionManager.SelectedDocuments().forEach(element => {
             const rect = element.ContentDiv ? element.ContentDiv.getBoundingClientRect() : new DOMRect();
 
@@ -507,7 +522,12 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
 
         let templates: Map<Template, boolean> = new Map();
         Array.from(Object.values(Templates.TemplateList)).map(template => {
-            let docTemps = SelectionManager.SelectedDocuments().reduce((res: string[], doc: DocumentView, i) => {
+            let sorted = SelectionManager.ViewsSortedVertically().slice().sort((doc1, doc2) => {
+                if (NumCast(doc1.props.Document.x) > NumCast(doc2.props.Document.x)) return 1;
+                if (NumCast(doc1.props.Document.x) < NumCast(doc2.props.Document.x)) return -1;
+                return 0;
+            });
+            let docTemps = sorted.reduce((res: string[], doc: DocumentView, i) => {
                 let temps = doc.props.Document.templates;
                 if (temps instanceof List) {
                     temps.map(temp => {
@@ -568,7 +588,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                             <FontAwesomeIcon className="fa-icon-link" icon="link" size="sm" />
                         </div>
                     </div>
-                    <TemplateMenu docs={SelectionManager.SelectedDocuments()} templates={templates} />
+                    <TemplateMenu docs={SelectionManager.ViewsSortedVertically()} templates={templates} />
                 </div>
             </div >
         </div>

@@ -276,7 +276,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     }
 
     get documentKeysCheckList() {
-        const docs = Cast(this.props.Document[this.props.fieldKey], listSpec(Doc), []);
+        const docs = Cast(this.props.Document[this.props.fieldKey], listSpec(Doc), []).filter(d => d).map(d => d as Doc);
         let keys: { [key: string]: boolean } = {};
         // bcz: ugh.  this is untracked since otherwise a large collection of documents will blast the server for all their fields.
         //  then as each document's fields come back, we update the documents _proxies.  Each time we do this, the whole schema will be
@@ -322,8 +322,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     render() {
         library.add(faCog);
         library.add(faPlus);
-        //This can't just pass FieldValue to filter because filter passes other arguments to the passed in function, which end up as default values in FieldValue
-        const children = (this.children || []).filter(doc => FieldValue(doc));
+        const children = this.children;
         return (
             <div className="collectionSchemaView-container" onPointerDown={this.onPointerDown} onWheel={this.onWheel}
                 onDrop={(e: React.DragEvent) => this.onDrop(e, {})} ref={this.createTarget}>

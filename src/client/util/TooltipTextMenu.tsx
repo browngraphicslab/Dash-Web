@@ -6,19 +6,28 @@ import { keymap } from "prosemirror-keymap";
 import { EditorState, Transaction, NodeSelection, TextSelection } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { schema } from "./RichTextSchema";
-import { Schema, NodeType, MarkType } from "prosemirror-model";
+import { Schema, NodeType, MarkType, Mark } from "prosemirror-model";
 import React = require("react");
 import "./TooltipTextMenu.scss";
 const { toggleMark, setBlockType, wrapIn } = require("prosemirror-commands");
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { wrapInList, bulletList, liftListItem, listItem, } from 'prosemirror-schema-list';
-import { liftTarget } from 'prosemirror-transform';
+import { liftTarget, RemoveMarkStep, AddMarkStep } from 'prosemirror-transform';
 import {
     faListUl,
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { FieldViewProps } from "../views/nodes/FieldView";
 import { throwStatement } from "babel-types";
+import { View } from "@react-pdf/renderer";
+import { DragManager } from "./DragManager";
+import { Doc, Opt, Field } from "../../new_fields/Doc";
+import { Id } from "../../new_fields/RefField";
+import { Utils } from "../northstar/utils/Utils";
+import { DocServer } from "../DocServer";
+import { CollectionFreeFormDocumentView } from "../views/nodes/CollectionFreeFormDocumentView";
+import { CollectionDockingView } from "../views/collections/CollectionDockingView";
+import { DocumentManager } from "./DocumentManager";
 
 const SVG = "http://www.w3.org/2000/svg";
 
@@ -37,6 +46,9 @@ export class TooltipTextMenu {
     private fontStylesToName: Map<MarkType, string>;
     private listTypeToIcon: Map<NodeType, string>;
     private fontSizeIndicator: HTMLSpanElement = document.createElement("span");
+    private linkEditor?: HTMLDivElement;
+    private linkText?: HTMLDivElement;
+    private linkDrag?: HTMLImageElement;
     //dropdown doms
     private fontSizeDom?: Node;
     private fontStyleDom?: Node;
@@ -94,6 +106,7 @@ export class TooltipTextMenu {
         this.fontSizeToNum = new Map();
         this.fontSizeToNum.set(schema.marks.p10, 10);
         this.fontSizeToNum.set(schema.marks.p12, 12);
+        this.fontSizeToNum.set(schema.marks.p14, 14);
         this.fontSizeToNum.set(schema.marks.p16, 16);
         this.fontSizeToNum.set(schema.marks.p24, 24);
         this.fontSizeToNum.set(schema.marks.p32, 32);
@@ -147,6 +160,96 @@ export class TooltipTextMenu {
         }) as MenuItem).render(this.view).dom;
 
         this.tooltip.appendChild(this.fontStyleDom);
+    }
+
+    updateLinkMenu() {
+        if (!this.linkEditor || !this.linkText) {
+            this.linkEditor = document.createElement("div");
+            this.linkEditor.style.color = "white";
+            this.linkText = document.createElement("div");
+            this.linkText.style.cssFloat = "left";
+            this.linkText.style.marginRight = "5px";
+            this.linkText.style.marginLeft = "5px";
+            this.linkText.setAttribute("contenteditable", "true");
+            this.linkText.style.whiteSpace = "nowrap";
+            this.linkText.style.width = "150px";
+            this.linkText.style.overflow = "hidden";
+            this.linkText.style.color = "white";
+            this.linkText.onpointerdown = (e: PointerEvent) => { e.stopPropagation(); }
+            let linkBtn = document.createElement("div");
+            linkBtn.textContent = ">>";
+            linkBtn.style.width = "20px";
+            linkBtn.style.height = "20px";
+            linkBtn.style.color = "white";
+            linkBtn.style.cssFloat = "left";
+            linkBtn.onpointerdown = (e: PointerEvent) => {
+                let node = this.view.state.selection.$from.nodeAfter;
+                let link = node && node.marks.find(m => m.type.name === "link");
+                if (link) {
+                    console.log("Link to : " + link.attrs.href);
+                    let href: string = link.attrs.href;
+                    if (href.indexOf(DocServer.prepend("/doc/")) === 0) {
+                        let docid = href.replace(DocServer.prepend("/doc/"), "");
+                        DocServer.GetRefField(docid).then(action((f: Opt<Field>) => {
+                            if (f instanceof Doc) {
+                                if (DocumentManager.Instance.getDocumentView(f))
+                                    DocumentManager.Instance.getDocumentView(f)!.props.focus(f);
+                                else CollectionDockingView.Instance.AddRightSplit(f);
+                            }
+                        }));
+                    }
+                    e.stopPropagation();
+                    e.preventDefault();
+                }
+            }
+            this.linkDrag = document.createElement("img");
+            this.linkDrag.src = "https://seogurusnyc.com/wp-content/uploads/2016/12/link-1.png";
+            this.linkDrag.style.width = "20px";
+            this.linkDrag.style.height = "20px";
+            this.linkDrag.style.color = "white";
+            this.linkDrag.style.background = "black";
+            this.linkDrag.style.cssFloat = "left";
+            this.linkDrag.onpointerdown = (e: PointerEvent) => {
+                let dragData = new DragManager.LinkDragData(this.editorProps.Document);
+                dragData.dontClearTextBox = true;
+                DragManager.StartLinkDrag(this.linkDrag!, dragData, e.clientX, e.clientY,
+                    {
+                        handlers: {
+                            dragComplete: action(() => {
+                                let m = dragData.droppedDocuments as Doc[];
+                                this.makeLink(DocServer.prepend("/doc/" + m[0][Id]));
+                            }),
+                        },
+                        hideSource: false
+                    })
+            };
+            this.linkEditor.appendChild(this.linkDrag);
+            this.linkEditor.appendChild(this.linkText);
+            this.linkEditor.appendChild(linkBtn);
+            this.tooltip.appendChild(this.linkEditor);
+        }
+
+        let node = this.view.state.selection.$from.nodeAfter;
+        let link = node && node.marks.find(m => m.type.name === "link");
+        this.linkText.textContent = link ? link.attrs.href : "-empty-";
+
+        this.linkText.onkeydown = (e: KeyboardEvent) => {
+            if (e.key === "Enter") {
+                this.makeLink(this.linkText!.textContent!);
+                e.stopPropagation();
+                e.preventDefault();
+            }
+        }
+        this.tooltip.appendChild(this.linkEditor);
+    }
+
+    makeLink = (target: string) => {
+        let node = this.view.state.selection.$from.nodeAfter;
+        let link = this.view.state.schema.mark(this.view.state.schema.marks.link, { href: target });
+        this.view.dispatch(this.view.state.tr.removeMark(this.view.state.selection.from, this.view.state.selection.to, this.view.state.schema.marks.link));
+        this.view.dispatch(this.view.state.tr.addMark(this.view.state.selection.from, this.view.state.selection.to, link));
+        node = this.view.state.selection.$from.nodeAfter;
+        link = node && node.marks.find(m => m.type.name === "link");
     }
 
     //will display a remove-list-type button if selection is in list, otherwise will show list type dropdown
@@ -347,6 +450,8 @@ export class TooltipTextMenu {
         } else { //multiple font sizes selected
             this.updateFontSizeDropdown("Various");
         }
+
+        this.updateLinkMenu();
     }
 
     //finds all active marks on selection in given group

@@ -169,7 +169,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         // if (!this.props.active()) {
         //     return;
         // }
-        let childSelected = (this.children || []).filter(doc => doc).some(doc => {
+        let childSelected = this.children.some(doc => {
             var dv = DocumentManager.Instance.getDocumentView(doc);
             return dv && SelectionManager.IsSelected(dv) ? true : false;
         });
@@ -222,7 +222,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
     bringToFront = (doc: Doc) => {
-        const docs = (this.children || []);
+        const docs = this.children;
         docs.slice().sort((doc1, doc2) => {
             if (doc1 === doc) return 1;
             if (doc2 === doc) return -1;
@@ -268,7 +268,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     @computed.struct
     get views() {
         let curPage = FieldValue(this.Document.curPage, -1);
-        let docviews = (this.children || []).filter(doc => doc).reduce((prev, doc) => {
+        let docviews = this.children.reduce((prev, doc) => {
             if (!(doc instanceof Doc)) return prev;
             var page = NumCast(doc.page, -1);
             if (page === curPage || page === -1) {

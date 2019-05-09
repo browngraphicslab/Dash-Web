@@ -96,7 +96,8 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             document.addEventListener("pointermove", this.onPointerMove, true);
             document.addEventListener("pointerup", this.onPointerUp, true);
             document.addEventListener("keydown", this.marqueeCommand, true);
-            e.stopPropagation();
+            // bcz: do we need this?   it kills the context menu on the main collection
+            // e.stopPropagation();
         }
         if (e.altKey) {
             e.preventDefault();
@@ -180,7 +181,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             this.cleanupInteractions(false);
             e.stopPropagation();
         }
-        if (e.key === "c" || e.key === "r" || e.key === "s" || e.key === "e") {
+        if (e.key === "c" || e.key === "r" || e.key === "s" || e.key === "e" || e.key === "p") {
             this._commandExecuted = true;
             e.stopPropagation();
             let bounds = this.Bounds;
@@ -218,24 +219,24 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
 
             this.marqueeInkDelete(inkData);
             // SelectionManager.DeselectAll();
-            if (e.key === "s" || e.key === "r") {
+            if (e.key === "s" || e.key === "r" || e.key === "p") {
                 e.preventDefault();
                 let scrpt = this.props.getTransform().inverse().transformPoint(bounds.left, bounds.top);
                 let summary = Docs.TextDocument({ x: bounds.left, y: bounds.top, width: 300, height: 100, backgroundColor: "yellow", title: "-summary-" });
 
-                if (e.key === "s") {
+                if (e.key === "s" || e.key === "p") {
                     summary.proto!.maximizeOnRight = true;
                     newCollection.proto!.summaryDoc = summary;
                     selected = [newCollection];
                 }
-                summary.proto!.maximizedDocs = new List<Doc>(selected);
+                summary.proto!.summarizedDocs = new List<Doc>(selected);
                 summary.proto!.isButton = true;
-                selected.map(maximizedDoc => {
-                    let maxx = NumCast(maximizedDoc.x, undefined);
-                    let maxy = NumCast(maximizedDoc.y, undefined);
-                    let maxw = NumCast(maximizedDoc.width, undefined);
-                    let maxh = NumCast(maximizedDoc.height, undefined);
-                    maximizedDoc.isIconAnimating = new List<number>([scrpt[0], scrpt[1], maxx, maxy, maxw, maxh, Date.now(), 0]);
+                selected.map(summarizedDoc => {
+                    let maxx = NumCast(summarizedDoc.x, undefined);
+                    let maxy = NumCast(summarizedDoc.y, undefined);
+                    let maxw = NumCast(summarizedDoc.width, undefined);
+                    let maxh = NumCast(summarizedDoc.height, undefined);
+                    summarizedDoc.isIconAnimating = new List<number>([scrpt[0], scrpt[1], maxx, maxy, maxw, maxh, Date.now(), 0])
                 });
                 this.props.addLiveTextDocument(summary);
             }
