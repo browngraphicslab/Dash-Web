@@ -5,7 +5,6 @@ import { DragLinksAsDocuments, DragManager } from "../util/DragManager";
 import { SelectionManager } from "../util/SelectionManager";
 import { undoBatch } from "../util/UndoManager";
 import './DocumentDecorations.scss';
-import { MainOverlayTextBox } from "./MainOverlayTextBox";
 import { DocumentView, PositionDocument } from "./nodes/DocumentView";
 import { LinkMenu } from "./nodes/LinkMenu";
 import { TemplateMenu } from "./TemplateMenu";
@@ -25,11 +24,9 @@ import { faLink } from '@fortawesome/free-solid-svg-icons';
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { MINIMIZED_ICON_SIZE } from "../views/globalCssVariables.scss";
-import { CollectionFreeFormView } from "./collections/collectionFreeForm/CollectionFreeFormView";
 import { CollectionView } from "./collections/CollectionView";
-import { createCipher } from "crypto";
-import { FieldView } from "./nodes/FieldView";
 import { DocumentManager } from "../util/DocumentManager";
+import { FormattedTextBox } from "./nodes/FormattedTextBox";
 
 library.add(faLink);
 
@@ -328,6 +325,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             let selDoc = SelectionManager.SelectedDocuments()[0];
             let container = selDoc.props.ContainingCollectionView ? selDoc.props.ContainingCollectionView.props.Document.proto : undefined;
             let dragData = new DragManager.LinkDragData(selDoc.props.Document, container ? [container] : []);
+            FormattedTextBox.InputBoxOverlay = undefined;
             DragManager.StartLinkDrag(this._linkerButton.current, dragData, e.pageX, e.pageY, {
                 handlers: {
                     dragComplete: action(emptyFunction),
@@ -410,7 +408,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 break;
         }
 
-        MainOverlayTextBox.Instance.SetTextDoc();
+        FormattedTextBox.InputBoxOverlay = undefined;
         SelectionManager.SelectedDocuments().forEach(element => {
             const rect = element.ContentDiv ? element.ContentDiv.getBoundingClientRect() : new DOMRect();
 

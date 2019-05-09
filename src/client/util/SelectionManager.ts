@@ -1,7 +1,7 @@
 import { observable, action } from "mobx";
 import { Doc } from "../../new_fields/Doc";
-import { MainOverlayTextBox } from "../views/MainOverlayTextBox";
 import { DocumentView } from "../views/nodes/DocumentView";
+import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
 
 export namespace SelectionManager {
     class Manager {
@@ -25,7 +25,7 @@ export namespace SelectionManager {
         DeselectAll(): void {
             manager.SelectedDocuments.map(dv => dv.props.whenActiveChanged(false));
             manager.SelectedDocuments = [];
-            MainOverlayTextBox.Instance.SetTextDoc();
+            FormattedTextBox.InputBoxOverlay = undefined;
         }
         @action
         ReselectAll() {

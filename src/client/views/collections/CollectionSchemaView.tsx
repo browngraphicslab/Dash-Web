@@ -322,8 +322,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     render() {
         library.add(faCog);
         library.add(faPlus);
-        //This can't just pass FieldValue to filter because filter passes other arguments to the passed in function, which end up as default values in FieldValue
-        const children = (this.children || []).filter(doc => FieldValue(doc));
+        const children = this.children;
         return (
             <div className="collectionSchemaView-container" onPointerDown={this.onPointerDown} onWheel={this.onWheel}
                 onDrop={(e: React.DragEvent) => this.onDrop(e, {})} ref={this.createTarget}>

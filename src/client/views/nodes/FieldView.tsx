@@ -1,6 +1,6 @@
 import React = require("react");
 import { observer } from "mobx-react";
-import { computed } from "mobx";
+import { computed, observable } from "mobx";
 import { FormattedTextBox } from "./FormattedTextBox";
 import { ImageBox } from "./ImageBox";
 import { VideoBox } from "./VideoBox";

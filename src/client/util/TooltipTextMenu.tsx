@@ -48,6 +48,7 @@ export class TooltipTextMenu {
     private fontSizeIndicator: HTMLSpanElement = document.createElement("span");
     private linkEditor?: HTMLDivElement;
     private linkText?: HTMLDivElement;
+    private linkDrag?: HTMLImageElement;
     //dropdown doms
     private fontSizeDom?: Node;
     private fontStyleDom?: Node;
@@ -168,8 +169,13 @@ export class TooltipTextMenu {
             this.linkText = document.createElement("div");
             this.linkText.style.cssFloat = "left";
             this.linkText.style.marginRight = "5px";
+            this.linkText.style.marginLeft = "5px";
             this.linkText.setAttribute("contenteditable", "true");
+            this.linkText.style.whiteSpace = "nowrap";
+            this.linkText.style.width = "150px";
+            this.linkText.style.overflow = "hidden";
             this.linkText.style.color = "white";
+            this.linkText.onpointerdown = (e: PointerEvent) => { e.stopPropagation(); }
             let linkBtn = document.createElement("div");
             linkBtn.textContent = ">>";
             linkBtn.style.width = "20px";
@@ -196,16 +202,17 @@ export class TooltipTextMenu {
                     e.preventDefault();
                 }
             }
-            let linkDrag = document.createElement("div");
-            linkDrag.textContent = "O";
-            linkDrag.style.width = "20px";
-            linkDrag.style.height = "20px";
-            linkDrag.style.color = "white";
-            linkDrag.style.cssFloat = "left";
-            linkDrag.onpointerdown = (e: PointerEvent) => {
+            this.linkDrag = document.createElement("img");
+            this.linkDrag.src = "https://seogurusnyc.com/wp-content/uploads/2016/12/link-1.png";
+            this.linkDrag.style.width = "20px";
+            this.linkDrag.style.height = "20px";
+            this.linkDrag.style.color = "white";
+            this.linkDrag.style.background = "black";
+            this.linkDrag.style.cssFloat = "left";
+            this.linkDrag.onpointerdown = (e: PointerEvent) => {
                 let dragData = new DragManager.LinkDragData(this.editorProps.Document);
                 dragData.dontClearTextBox = true;
-                DragManager.StartLinkDrag(this.linkEditor!, dragData, e.clientX, e.clientY,
+                DragManager.StartLinkDrag(this.linkDrag!, dragData, e.clientX, e.clientY,
                     {
                         handlers: {
                             dragComplete: action(() => {
@@ -216,9 +223,9 @@ export class TooltipTextMenu {
                         hideSource: false
                     })
             };
+            this.linkEditor.appendChild(this.linkDrag);
             this.linkEditor.appendChild(this.linkText);
             this.linkEditor.appendChild(linkBtn);
-            this.linkEditor.appendChild(linkDrag)
             this.tooltip.appendChild(this.linkEditor);
         }
 

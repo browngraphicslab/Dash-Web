@@ -1,11 +1,9 @@
-import { action } from "mobx";
+import { action, runInAction } from "mobx";
+import { Doc, DocListCast } from "../../new_fields/Doc";
+import { Cast } from "../../new_fields/Types";
 import { emptyFunction } from "../../Utils";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import * as globalCssVariables from "../views/globalCssVariables.scss";
-import { MainOverlayTextBox } from "../views/MainOverlayTextBox";
-import { Doc, DocListCast } from "../../new_fields/Doc";
-import { Cast } from "../../new_fields/Types";
-import { listSpec } from "../../new_fields/Schema";
 
 export type dropActionType = "alias" | "copy" | undefined;
 export function SetupDrag(_reference: React.RefObject<HTMLDivElement>, docFunc: () => Doc, moveFunc?: DragManager.MoveFunction, dropAction?: dropActionType) {
@@ -154,7 +152,10 @@ export namespace DragManager {
         [id: string]: any;
     }
 
+    export let StartDragFunctions: (() => void)[] = [];
+
     export function StartDocumentDrag(eles: HTMLElement[], dragData: DocumentDragData, downX: number, downY: number, options?: DragOptions) {
+        runInAction(() => StartDragFunctions.map(func => func()));
         StartDrag(eles, dragData, downX, downY, options,
             (dropData: { [id: string]: any }) =>
                 (dropData.droppedDocuments = dragData.userDropAction == "alias" || (!dragData.userDropAction && dragData.dropAction == "alias") ?
@@ -189,7 +190,6 @@ export namespace DragManager {
             dragDiv.style.pointerEvents = "none";
             DragManager.Root().appendChild(dragDiv);
         }
-        if (!dragData.dontClearTextBox) MainOverlayTextBox.Instance.SetTextDoc();
 
         let scaleXs: number[] = [];
         let scaleYs: number[] = [];
@@ -217,6 +217,7 @@ export namespace DragManager {
             dragElement.style.top = "0";
             dragElement.style.bottom = "";
             dragElement.style.left = "0";
+            dragElement.style.color = "black";
             dragElement.style.transformOrigin = "0 0";
             dragElement.style.zIndex = globalCssVariables.contextMenuZindex;// "1000";
             dragElement.style.transform = `translate(${x}px, ${y}px) scale(${scaleX}, ${scaleY})`;
