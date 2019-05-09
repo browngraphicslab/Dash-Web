@@ -172,6 +172,7 @@ export namespace DragManager {
         droppedDocuments: Doc[] = [];
         linkSourceDocument: Doc;
         blacklist: Doc[];
+        dontClearTextBox?: boolean;
         [id: string]: any;
     }
 
@@ -188,7 +189,7 @@ export namespace DragManager {
             dragDiv.style.pointerEvents = "none";
             DragManager.Root().appendChild(dragDiv);
         }
-        MainOverlayTextBox.Instance.SetTextDoc();
+        if (!dragData.dontClearTextBox) MainOverlayTextBox.Instance.SetTextDoc();
 
         let scaleXs: number[] = [];
         let scaleYs: number[] = [];

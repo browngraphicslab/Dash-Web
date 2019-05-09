@@ -238,6 +238,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             const protoDest = destDoc.proto;
             const protoSrc = sourceDoc.proto;
             Doc.MakeLink(protoSrc ? protoSrc : sourceDoc, protoDest ? protoDest : destDoc);
+            de.data.droppedDocuments.push(destDoc);
             e.stopPropagation();
         }
     }
