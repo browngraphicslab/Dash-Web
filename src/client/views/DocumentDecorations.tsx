@@ -318,6 +318,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         e.stopPropagation();
     }
 
+    @action
     onLinkerButtonMoved = (e: PointerEvent): void => {
         if (this._linkerButton.current !== null) {
             document.removeEventListener("pointermove", this.onLinkerButtonMoved);
