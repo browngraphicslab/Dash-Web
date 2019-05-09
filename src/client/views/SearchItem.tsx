@@ -44,7 +44,7 @@ export class SearchItem extends React.Component<SearchProps> {
         return (
             <div className="search-item" id="result" onClick={this.onClick}>
                 <div className="search-title" id="result" >title: {this.props.doc.title}</div>
-                <div className="search-type" id="result" >Type: {this.props.doc.layout}</div>
+                {/* <div className="search-type" id="result" >Type: {this.props.doc.layout}</div> */}
                 {/* <div className="search-type" >{SearchItem.DocumentIcon(this.layout)}</div> */}
             </div>
         );
