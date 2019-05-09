@@ -6,7 +6,7 @@ import { EditorState, Plugin, Transaction } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import buildKeymap from "../../util/ProsemirrorKeymap";
 import { inpRules } from "../../util/RichTextRules";
-import { schema } from "../../util/RichTextSchema";
+import { schema, ImageResizeView } from "../../util/RichTextSchema";
 import { TooltipLinkingMenu } from "../../util/TooltipLinkingMenu";
 import { TooltipTextMenu } from "../../util/TooltipTextMenu";
 import { ContextMenu } from "../../views/ContextMenu";
@@ -24,8 +24,6 @@ import { StrCast, Cast, NumCast, BoolCast } from "../../../new_fields/Types";
 import { RichTextField } from "../../../new_fields/RichTextField";
 import { Id } from "../../../new_fields/RefField";
 import { UndoManager } from "../../util/UndoManager";
-import { Transform } from "prosemirror-transform";
-import { Transform as MatrixTransform } from "../../util/Transform";
 
 // FormattedTextBox: Displays an editable plain text node that maps to a specified Key of a Document
 //
@@ -149,7 +147,10 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         if (this._proseRef.current) {
             this._editorView = new EditorView(this._proseRef.current, {
                 state: field && field.Data ? EditorState.fromJSON(config, JSON.parse(field.Data)) : EditorState.create(config),
-                dispatchTransaction: this.dispatchTransaction
+                dispatchTransaction: this.dispatchTransaction,
+                nodeViews: {
+                    image(node, view, getPos) { return new ImageResizeView(node, view, getPos) }
+                }
             });
             let text = StrCast(this.props.Document.documentText);
             if (text.startsWith("@@@")) {
@@ -228,19 +229,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             description: NumCast(this.props.Document.nativeWidth) ? "Unfreeze" : "Freeze",
             event: this.textCapability
         });
-
-        // ContextMenu.Instance.addItem({
-        //     description: "Submenu",
-        //     items: [
-        //         {
-        //             description: "item 1", event:
-        //     },
-        //         {
-        //             description: "item 2", event:
-        //     }
-        //     ]
-        // })
-        // e.stopPropagation()
     }
 
     onPointerWheel = (e: React.WheelEvent): void => {

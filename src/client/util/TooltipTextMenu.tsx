@@ -94,6 +94,7 @@ export class TooltipTextMenu {
         this.fontSizeToNum = new Map();
         this.fontSizeToNum.set(schema.marks.p10, 10);
         this.fontSizeToNum.set(schema.marks.p12, 12);
+        this.fontSizeToNum.set(schema.marks.p14, 14);
         this.fontSizeToNum.set(schema.marks.p16, 16);
         this.fontSizeToNum.set(schema.marks.p24, 24);
         this.fontSizeToNum.set(schema.marks.p32, 32);

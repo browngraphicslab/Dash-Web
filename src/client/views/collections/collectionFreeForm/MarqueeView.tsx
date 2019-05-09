@@ -180,7 +180,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             this.cleanupInteractions(false);
             e.stopPropagation();
         }
-        if (e.key === "c" || e.key === "r" || e.key === "s" || e.key === "e") {
+        if (e.key === "c" || e.key === "r" || e.key === "s" || e.key === "e" || e.key === "p") {
             this._commandExecuted = true;
             e.stopPropagation();
             let bounds = this.Bounds;
@@ -218,12 +218,12 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
 
             this.marqueeInkDelete(inkData);
             // SelectionManager.DeselectAll();
-            if (e.key === "s" || e.key === "r") {
+            if (e.key === "s" || e.key === "r" || e.key === "p") {
                 e.preventDefault();
                 let scrpt = this.props.getTransform().inverse().transformPoint(bounds.left, bounds.top);
                 let summary = Docs.TextDocument({ x: bounds.left, y: bounds.top, width: 300, height: 100, backgroundColor: "yellow", title: "-summary-" });
 
-                if (e.key === "s") {
+                if (e.key === "s" || e.key === "p") {
                     summary.proto!.maximizeOnRight = true;
                     newCollection.proto!.summaryDoc = summary;
                     selected = [newCollection];
