@@ -67,7 +67,7 @@ export class SearchBox extends React.Component {
     }
 
     @action
-    handleClick = (e: Event): void => {
+    handleClickFilter = (e: Event): void => {
         var className = (e.target as any).className;
         var id = (e.target as any).id;
         if (className !== "filter-button" && className !== "filter-form") {
@@ -76,16 +76,28 @@ export class SearchBox extends React.Component {
 
     }
 
+    @action
+    handleClickResults = (e: Event): void => {
+        var className = (e.target as any).className;
+        var id = (e.target as any).id;
+        if (id !== "result") {
+            this._resultsOpen = false;
+        }
+
+    }
+
     componentWillMount() {
-        document.addEventListener('mousedown', this.handleClick, false);
+        document.addEventListener('mousedown', this.handleClickFilter, false);
+        document.addEventListener('mousedown', this.handleClickResults, false);
     }
 
     componentWillUnmount() {
-        document.removeEventListener('mousedown', this.handleClick, false);
+        document.removeEventListener('mousedown', this.handleClickFilter, false);
+        document.removeEventListener('mousedown', this.handleClickResults, false);
     }
 
     @action
-    toggleDisplay = () => {
+    toggleFilterDisplay = () => {
         this._open = !this._open;
     }
 
@@ -101,9 +113,9 @@ export class SearchBox extends React.Component {
                 <div className="searchBox" id="outer">
 
                     <input value={this.searchString} onChange={this.onChange} type="text" placeholder="Search.." className="search" id="input" onKeyPress={this.enter} />
-                    <button className="filter-button" onClick={this.toggleDisplay}> Filter </button>
+                    <button className="filter-button" onClick={this.toggleFilterDisplay}> Filter </button>
                     <div className="submit-search" id="submit" onClick={this.submitSearch}><FontAwesomeIcon style={{ height: "100%" }} icon="search" size="lg" /></div>
-                    <div className="results" style={this._resultsOpen ? { display: "flex" } : { display: "none" }}>
+                    <div className="results" id="results" style={this._resultsOpen ? { display: "flex" } : { display: "none" }}>
                         {this._results.map(result => <SearchItem doc={result} key={result[Id]} />)}
                     </div>
                 </div>
