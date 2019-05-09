@@ -27,6 +27,7 @@ import { MINIMIZED_ICON_SIZE } from "../views/globalCssVariables.scss";
 import { CollectionView } from "./collections/CollectionView";
 import { DocumentManager } from "../util/DocumentManager";
 import { FormattedTextBox } from "./nodes/FormattedTextBox";
+import { FieldView } from "./nodes/FieldView";
 
 library.add(faLink);
 

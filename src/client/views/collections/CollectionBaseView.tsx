@@ -63,13 +63,13 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         if (!(documentToAdd instanceof Doc)) {
             return false;
         }
-        let data = Cast(documentToAdd.data, listSpec(Doc), []);
+        let data = Cast(documentToAdd.data, listSpec(Doc), []).filter(d => d).map(d => d as Doc);
         for (const doc of data.filter(d => d instanceof Document)) {
             if (this.createsCycle(doc, containerDocument)) {
                 return true;
             }
         }
-        let annots = Cast(documentToAdd.annotations, listSpec(Doc), []);
+        let annots = Cast(documentToAdd.annotations, listSpec(Doc), []).filter(d => d).map(d => d as Doc);
         for (const annot of annots) {
             if (this.createsCycle(annot, containerDocument)) {
                 return true;

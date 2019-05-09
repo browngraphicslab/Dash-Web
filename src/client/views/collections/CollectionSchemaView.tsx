@@ -276,7 +276,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     }
 
     get documentKeysCheckList() {
-        const docs = Cast(this.props.Document[this.props.fieldKey], listSpec(Doc), []);
+        const docs = Cast(this.props.Document[this.props.fieldKey], listSpec(Doc), []).filter(d => d).map(d => d as Doc);
         let keys: { [key: string]: boolean } = {};
         // bcz: ugh.  this is untracked since otherwise a large collection of documents will blast the server for all their fields.
         //  then as each document's fields come back, we update the documents _proxies.  Each time we do this, the whole schema will be

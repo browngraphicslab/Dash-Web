@@ -71,7 +71,7 @@ export class DocumentManager {
     @computed
     public get LinkedDocumentViews() {
         return DocumentManager.Instance.DocumentViews.reduce((pairs, dv) => {
-            let linksList = Cast(dv.props.Document.linkedToDocs, listSpec(Doc));
+            let linksList = Cast(dv.props.Document.linkedToDocs, listSpec(Doc), []).filter(d => d).map(d => d as Doc);
             if (linksList && linksList.length) {
                 pairs.push(...linksList.reduce((pairs, link) => {
                     if (link) {
