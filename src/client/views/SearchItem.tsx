@@ -8,6 +8,7 @@ import { Cast } from "../../new_fields/Types";
 import { FieldView, FieldViewProps } from './nodes/FieldView';
 import { computed } from "mobx";
 import { IconField } from "../../new_fields/IconField";
+import { SetupDrag } from "../util/DragManager";
 
 
 export interface SearchProps {
@@ -40,9 +41,19 @@ export class SearchItem extends React.Component<SearchProps> {
         return <FontAwesomeIcon icon={button} className="documentView-minimizedIcon" />;
     }
 
+    collectionRef = React.createRef<HTMLDivElement>();
+    startDocDrag = () => {
+        let doc = this.props.doc;
+        const isProto = Doc.GetT(doc, "isPrototype", "boolean", true);
+        if (isProto) {
+            return Doc.MakeDelegate(doc);
+        } else {
+            return Doc.MakeAlias(doc);
+        }
+    }
     render() {
         return (
-            <div className="search-item" id="result" onClick={this.onClick}>
+            <div className="search-item" ref={this.collectionRef} id="result" onClick={this.onClick} onPointerDown={SetupDrag(this.collectionRef, this.startDocDrag)} >
                 <div className="search-title" id="result" >title: {this.props.doc.title}</div>
                 {/* <div className="search-type" id="result" >Type: {this.props.doc.layout}</div> */}
                 {/* <div className="search-type" >{SearchItem.DocumentIcon(this.layout)}</div> */}

@@ -92,8 +92,8 @@ export class Doc extends RefField {
 
     private [Self] = this;
     private [SelfProxy]: any;
-    public [WidthSym] = () => NumCast(this.__fields.width);  // bcz: is this the right way to access width/height?   it didn't work with : this.width
-    public [HeightSym] = () => NumCast(this.__fields.height);
+    public [WidthSym] = () => NumCast(this[SelfProxy].width);  // bcz: is this the right way to access width/height?   it didn't work with : this.width
+    public [HeightSym] = () => NumCast(this[SelfProxy].height);
 
     public [HandleUpdate](diff: any) {
         console.log(diff);
