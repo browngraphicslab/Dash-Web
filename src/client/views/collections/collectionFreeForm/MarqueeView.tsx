@@ -3,7 +3,7 @@ import { observer } from "mobx-react";
 import { Docs } from "../../../documents/Documents";
 import { SelectionManager } from "../../../util/SelectionManager";
 import { Transform } from "../../../util/Transform";
-import { undoBatch } from "../../../util/UndoManager";
+import { undoBatch, UndoManager } from "../../../util/UndoManager";
 import { InkingCanvas } from "../../InkingCanvas";
 import { PreviewCursor } from "../../PreviewCursor";
 import { CollectionFreeFormView } from "./CollectionFreeFormView";
@@ -13,10 +13,7 @@ import { Utils } from "../../../../Utils";
 import { Doc } from "../../../../new_fields/Doc";
 import { NumCast, Cast } from "../../../../new_fields/Types";
 import { InkField, StrokeData } from "../../../../new_fields/InkField";
-import { Templates } from "../../Templates";
 import { List } from "../../../../new_fields/List";
-import { emitKeypressEvents } from "readline";
-import { listSpec } from "../../../../new_fields/Schema";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;
@@ -50,12 +47,42 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         this._visible = false;
     }
 
+    @undoBatch
     @action
     onKeyPress = (e: KeyboardEvent) => {
         //make textbox and add it to this collection
         let [x, y] = this.props.getTransform().transformPoint(this._downX, this._downY);
-        let newBox = Docs.TextDocument({ width: 200, height: 100, x: x, y: y, title: "-typed text-" });
-        this.props.addLiveTextDocument(newBox);
+        if (e.key === "q" && e.ctrlKey) {
+            e.preventDefault();
+            (async () => {
+                let text = await navigator.clipboard.readText();
+                let ns = text.split("\n").filter(t => t != "\r");
+                for (let i = 0; i < ns.length - 1; i++) {
+                    if (ns[i].trim() === "") {
+                        ns.splice(i, 1);
+                        continue;
+                    }
+                    while (!(ns[i].trim() === "" || ns[i].endsWith("-\r") || ns[i].endsWith("-") ||
+                        ns[i].endsWith(";\r") || ns[i].endsWith(";") ||
+                        ns[i].endsWith(".\r") || ns[i].endsWith(".") ||
+                        ns[i].endsWith(":\r") || ns[i].endsWith(":")) && i < ns.length - 1) {
+                        let sub = ns[i].endsWith("\r") ? 1 : 0;
+                        let br = ns[i + 1].trim() === "";
+                        ns.splice(i, 2, ns[i].substr(0, ns[i].length - sub) + ns[i + 1].trimLeft());
+                        if (br) break;
+                    }
+                }
+                ns.map(line => {
+                    let indent = line.search(/\S|$/);
+                    let newBox = Docs.TextDocument({ width: 200, height: 35, x: x + indent / 3 * 10, y: y, documentText: "@@@" + line, title: line });
+                    this.props.addDocument(newBox, false);
+                    y += 40 * this.props.getTransform().Scale;
+                })
+            })();
+        } else {
+            let newBox = Docs.TextDocument({ width: 200, height: 100, x: x, y: y, title: "-typed text-" });
+            this.props.addLiveTextDocument(newBox);
+        }
         e.stopPropagation();
     }
     @action
@@ -69,6 +96,8 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             document.addEventListener("pointermove", this.onPointerMove, true);
             document.addEventListener("pointerup", this.onPointerUp, true);
             document.addEventListener("keydown", this.marqueeCommand, true);
+            // bcz: do we need this?   it kills the context menu on the main collection
+            // e.stopPropagation();
         }
         if (e.altKey) {
             e.preventDefault();
@@ -141,22 +170,30 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         if (this._commandExecuted) {
             return;
         }
-        if (e.key === "Backspace" || e.key === "Delete" || e.key == "d") {
+        if (e.key === "Backspace" || e.key === "Delete" || e.key === "d") {
             this._commandExecuted = true;
             this.marqueeSelect().map(d => this.props.removeDocument(d));
             let ink = Cast(this.props.container.props.Document.ink, InkField);
             if (ink) {
                 this.marqueeInkDelete(ink.inkData);
             }
+            SelectionManager.DeselectAll();
             this.cleanupInteractions(false);
             e.stopPropagation();
         }
-        if (e.key === "c" || e.key === "r" || e.key === "R" || e.key === "e") {
+        if (e.key === "c" || e.key === "r" || e.key === "s" || e.key === "e" || e.key === "p") {
             this._commandExecuted = true;
             e.stopPropagation();
             let bounds = this.Bounds;
             let selected = this.marqueeSelect().map(d => {
-                if (e.key !== "R") {
+                if (e.key === "s") {
+                    let dCopy = Doc.MakeCopy(d);
+                    dCopy.x = NumCast(d.x) - bounds.left - bounds.width / 2;
+                    dCopy.y = NumCast(d.y) - bounds.top - bounds.height / 2;
+                    dCopy.page = -1;
+                    return dCopy;
+                }
+                else if (e.key !== "r") {
                     this.props.removeDocument(d);
                     d.x = NumCast(d.x) - bounds.left - bounds.width / 2;
                     d.y = NumCast(d.y) - bounds.top - bounds.height / 2;
@@ -177,55 +214,52 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 width: bounds.width * zoomBasis,
                 height: bounds.height * zoomBasis,
                 ink: inkData ? new InkField(this.marqueeInkSelect(inkData)) : undefined,
-                title: "a nested collection"
+                title: "a nested collection",
             });
 
             this.marqueeInkDelete(inkData);
             // SelectionManager.DeselectAll();
-            if (e.key === "r" || e.key === "R") {
+            if (e.key === "s" || e.key === "r" || e.key === "p") {
                 e.preventDefault();
                 let scrpt = this.props.getTransform().inverse().transformPoint(bounds.left, bounds.top);
                 let summary = Docs.TextDocument({ x: bounds.left, y: bounds.top, width: 300, height: 100, backgroundColor: "yellow", title: "-summary-" });
 
-                if (e.key === "r") {
+                if (e.key === "s" || e.key === "p") {
                     summary.proto!.maximizeOnRight = true;
-                    let list = Cast(newCollection.data, listSpec(Doc));
-                    if (list && list.length === 1) {
-                        selected = list;
-                    } else {
-                        selected = [newCollection];
-                        this.props.addDocument(newCollection, false);
-                    }
+                    newCollection.proto!.summaryDoc = summary;
+                    selected = [newCollection];
                 }
-                summary.proto!.maximizedDocs = new List<Doc>(selected);
+                summary.proto!.summarizedDocs = new List<Doc>(selected);
                 summary.proto!.isButton = true;
-                selected.map(maximizedDoc => {
-                    let maxx = NumCast(maximizedDoc.x, undefined);
-                    let maxy = NumCast(maximizedDoc.y, undefined);
-                    let maxw = NumCast(maximizedDoc.width, undefined);
-                    let maxh = NumCast(maximizedDoc.height, undefined);
-                    maximizedDoc.isIconAnimating = new List<number>([scrpt[0], scrpt[1], maxx, maxy, maxw, maxh, Date.now(), 0])
+                selected.map(summarizedDoc => {
+                    let maxx = NumCast(summarizedDoc.x, undefined);
+                    let maxy = NumCast(summarizedDoc.y, undefined);
+                    let maxw = NumCast(summarizedDoc.width, undefined);
+                    let maxh = NumCast(summarizedDoc.height, undefined);
+                    summarizedDoc.isIconAnimating = new List<number>([scrpt[0], scrpt[1], maxx, maxy, maxw, maxh, Date.now(), 0])
                 });
                 this.props.addLiveTextDocument(summary);
             }
             else {
                 this.props.addDocument(newCollection, false);
+                SelectionManager.DeselectAll();
+                this.props.selectDocuments([newCollection]);
             }
             this.cleanupInteractions(false);
-        }
-        if (e.key === "s") {
-            this._commandExecuted = true;
-            e.stopPropagation();
-            e.preventDefault();
-            let bounds = this.Bounds;
-            let selected = this.marqueeSelect();
-            SelectionManager.DeselectAll();
-            let summary = Docs.TextDocument({ x: bounds.left + bounds.width + 25, y: bounds.top, width: 300, height: 100, backgroundColor: "yellow", title: "-summary-" });
-            this.props.addLiveTextDocument(summary);
-            selected.forEach(select => Doc.MakeLink(summary.proto!, select.proto!));
+        } else
+            if (e.key === "s") {
+                // this._commandExecuted = true;
+                // e.stopPropagation();
+                // e.preventDefault();
+                // let bounds = this.Bounds;
+                // let selected = this.marqueeSelect();
+                // SelectionManager.DeselectAll();
+                // let summary = Docs.TextDocument({ x: bounds.left + bounds.width + 25, y: bounds.top, width: 300, height: 100, backgroundColor: "yellow", title: "-summary-" });
+                // this.props.addLiveTextDocument(summary);
+                // selected.forEach(select => Doc.MakeLink(summary.proto!, select.proto!));
 
-            this.cleanupInteractions(false);
-        }
+                // this.cleanupInteractions(false);
+            }
     }
     @action
     marqueeInkSelect(ink: Map<any, any>) {

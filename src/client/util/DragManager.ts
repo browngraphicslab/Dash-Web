@@ -1,11 +1,9 @@
-import { action } from "mobx";
+import { action, runInAction } from "mobx";
+import { Doc, DocListCast } from "../../new_fields/Doc";
+import { Cast } from "../../new_fields/Types";
 import { emptyFunction } from "../../Utils";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import * as globalCssVariables from "../views/globalCssVariables.scss";
-import { MainOverlayTextBox } from "../views/MainOverlayTextBox";
-import { Doc } from "../../new_fields/Doc";
-import { Cast } from "../../new_fields/Types";
-import { listSpec } from "../../new_fields/Schema";
 
 export type dropActionType = "alias" | "copy" | undefined;
 export function SetupDrag(_reference: React.RefObject<HTMLDivElement>, docFunc: () => Doc, moveFunc?: DragManager.MoveFunction, dropAction?: dropActionType) {
@@ -42,12 +40,14 @@ export function SetupDrag(_reference: React.RefObject<HTMLDivElement>, docFunc: 
 
 export async function DragLinksAsDocuments(dragEle: HTMLElement, x: number, y: number, sourceDoc: Doc) {
     let srcTarg = sourceDoc.proto;
-    let draggedDocs = srcTarg ?
-        Cast(srcTarg.linkedToDocs, listSpec(Doc), []).map(linkDoc =>
-            Cast(linkDoc.linkedTo, Doc) as Doc) : [];
-    let draggedFromDocs = srcTarg ?
-        Cast(srcTarg.linkedFromDocs, listSpec(Doc), []).map(linkDoc =>
-            Cast(linkDoc.linkedFrom, Doc) as Doc) : [];
+    let draggedDocs: Doc[] = [];
+    let draggedFromDocs: Doc[] = []
+    if (srcTarg) {
+        let linkToDocs = await DocListCast(srcTarg.linkedToDocs);
+        let linkFromDocs = await DocListCast(srcTarg.linkedFromDocs);
+        if (linkToDocs) draggedDocs = linkToDocs.map(linkDoc => Cast(linkDoc.linkedTo, Doc) as Doc);
+        if (linkFromDocs) draggedFromDocs = linkFromDocs.map(linkDoc => Cast(linkDoc.linkedFrom, Doc) as Doc);
+    }
     draggedDocs.push(...draggedFromDocs);
     if (draggedDocs.length) {
         let moddrag: Doc[] = [];
@@ -152,12 +152,15 @@ export namespace DragManager {
         [id: string]: any;
     }
 
+    export let StartDragFunctions: (() => void)[] = [];
+
     export function StartDocumentDrag(eles: HTMLElement[], dragData: DocumentDragData, downX: number, downY: number, options?: DragOptions) {
+        runInAction(() => StartDragFunctions.map(func => func()));
         StartDrag(eles, dragData, downX, downY, options,
             (dropData: { [id: string]: any }) =>
-                (dropData.droppedDocuments = dragData.userDropAction == "alias" || (!dragData.userDropAction && dragData.dropAction == "alias") ?
+                (dropData.droppedDocuments = dragData.userDropAction === "alias" || (!dragData.userDropAction && dragData.dropAction === "alias") ?
                     dragData.draggedDocuments.map(d => Doc.MakeAlias(d)) :
-                    dragData.userDropAction == "copy" || (!dragData.userDropAction && dragData.dropAction == "copy") ?
+                    dragData.userDropAction === "copy" || (!dragData.userDropAction && dragData.dropAction === "copy") ?
                         dragData.draggedDocuments.map(d => Doc.MakeCopy(d, true)) :
                         dragData.draggedDocuments));
     }
@@ -170,6 +173,7 @@ export namespace DragManager {
         droppedDocuments: Doc[] = [];
         linkSourceDocument: Doc;
         blacklist: Doc[];
+        dontClearTextBox?: boolean;
         [id: string]: any;
     }
 
@@ -186,7 +190,6 @@ export namespace DragManager {
             dragDiv.style.pointerEvents = "none";
             DragManager.Root().appendChild(dragDiv);
         }
-        MainOverlayTextBox.Instance.SetTextDoc();
 
         let scaleXs: number[] = [];
         let scaleYs: number[] = [];
@@ -214,6 +217,7 @@ export namespace DragManager {
             dragElement.style.top = "0";
             dragElement.style.bottom = "";
             dragElement.style.left = "0";
+            dragElement.style.color = "black";
             dragElement.style.transformOrigin = "0 0";
             dragElement.style.zIndex = globalCssVariables.contextMenuZindex;// "1000";
             dragElement.style.transform = `translate(${x}px, ${y}px) scale(${scaleX}, ${scaleY})`;
@@ -280,7 +284,7 @@ export namespace DragManager {
         };
 
         let hideDragElements = () => {
-            dragElements.map(dragElement => dragElement.parentNode == dragDiv && dragDiv.removeChild(dragElement));
+            dragElements.map(dragElement => dragElement.parentNode === dragDiv && dragDiv.removeChild(dragElement));
             eles.map(ele => (ele.hidden = false));
         };
         let endDrag = () => {
@@ -289,7 +293,7 @@ export namespace DragManager {
             if (options) {
                 options.handlers.dragComplete({});
             }
-        }
+        };
 
         AbortDrag = () => {
             hideDragElements();

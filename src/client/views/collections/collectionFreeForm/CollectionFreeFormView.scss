@@ -37,7 +37,9 @@
     border-radius: $border-radius;
     box-sizing: border-box;
     position: absolute;
-    overflow: hidden;
+    .marqueeView {
+        overflow: hidden;
+    }
     top: 0;
     left: 0;
     width: 100%;
@@ -61,7 +63,9 @@
     border-radius: $border-radius;
     box-sizing: border-box;
     position:absolute;
-    overflow: hidden;
+    .marqueeView {
+        overflow: hidden;
+    }
     top: 0;
     left: 0;
     width: 100%;

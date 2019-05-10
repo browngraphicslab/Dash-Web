@@ -1,6 +1,6 @@
 import React = require("react");
 import { observer } from "mobx-react";
-import { computed } from "mobx";
+import { computed, observable } from "mobx";
 import { FormattedTextBox } from "./FormattedTextBox";
 import { ImageBox } from "./ImageBox";
 import { VideoBox } from "./VideoBox";
@@ -99,7 +99,8 @@ export class FieldView extends React.Component<FieldViewProps> {
                     ContainingCollectionView={this.props.ContainingCollectionView}
                     parentActive={this.props.active}
                     toggleMinimized={emptyFunction}
-                    whenActiveChanged={this.props.whenActiveChanged} />
+                    whenActiveChanged={this.props.whenActiveChanged}
+                    bringToFront={emptyFunction} />
             );
         }
         else if (field instanceof List) {

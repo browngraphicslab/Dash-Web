@@ -19,7 +19,6 @@ import { ColumnAttributeModel } from "../northstar/core/attribute/AttributeModel
 import { AttributeTransformationModel } from "../northstar/core/attribute/AttributeTransformationModel";
 import { AggregateFunction } from "../northstar/model/idea/idea";
 import { Template } from "../views/Templates";
-import { TemplateField } from "../../fields/TemplateField";
 import { MINIMIZED_ICON_SIZE } from "../views/globalCssVariables.scss";
 import { IconBox } from "../views/nodes/IconBox";
 import { Field, Doc, Opt } from "../../new_fields/Doc";
@@ -132,7 +131,7 @@ export namespace Docs {
     }
     function CreateTextPrototype(): Doc {
         let textProto = setupPrototypeOptions(textProtoId, "TEXT_PROTO", FormattedTextBox.LayoutString(),
-            { x: 0, y: 0, width: 300, height: 150 });
+            { x: 0, y: 0, width: 300, height: 150, backgroundColor: "#f1efeb" });
         return textProto;
     }
     function CreatePdfPrototype(): Doc {
@@ -175,6 +174,7 @@ export namespace Docs {
         if (!("creationDate" in protoProps)) {
             protoProps.creationDate = new DateField;
         }
+        protoProps.isPrototype = true;
 
         return SetDelegateOptions(SetInstanceOptions(proto, protoProps, data), delegateProps);
     }
