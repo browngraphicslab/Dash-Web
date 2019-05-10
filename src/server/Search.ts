@@ -8,7 +8,7 @@ export class Search {
 
     public async updateDocument(document: any) {
         try {
-            return rp.post(this.url + "dash/update", {
+            return await rp.post(this.url + "dash/update", {
                 headers: { 'content-type': 'application/json' },
                 body: JSON.stringify([document])
             });
@@ -32,7 +32,7 @@ export class Search {
 
     public async clear() {
         try {
-            return rp.post(this.url + "dash/update", {
+            return await rp.post(this.url + "dash/update", {
                 body: {
                     delete: {
                         query: "*:*"
