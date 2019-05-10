@@ -356,12 +356,12 @@ function UpdateField(socket: Socket, diff: Diff) {
     for (let key in docfield) {
         if (!key.startsWith("fields.")) continue;
         dynfield = true;
-        Object.values(suffixMap).forEach(suf => update[key + getSuffix(suf)] = null);
         let val = docfield[key];
+        key = key.substring(7);
+        Object.values(suffixMap).forEach(suf => update[key + getSuffix(suf)] = null);
         let term = ToSearchTerm(val);
         if (term !== undefined) {
             let { suffix, value } = term;
-            key = key.substring(7);
             update[key + suffix] = { set: value };
         }
     }

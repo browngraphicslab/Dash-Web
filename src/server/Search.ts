@@ -8,11 +8,12 @@ export class Search {
 
     public async updateDocument(document: any) {
         try {
-            return await rp.post(this.url + "dash/update", {
+            const res = await rp.post(this.url + "dash/update", {
                 headers: { 'content-type': 'application/json' },
                 body: JSON.stringify([document])
             });
-        } catch { }
+            return res;
+        } catch (e) { }
     }
 
     public async search(query: string) {

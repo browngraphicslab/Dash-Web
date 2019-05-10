@@ -4,7 +4,7 @@ import { observable, action, runInAction } from 'mobx';
 import { Utils } from '../../Utils';
 import { MessageStore } from '../../server/Message';
 import "./SearchBox.scss";
-import { faSearch } from '@fortawesome/free-solid-svg-icons';
+import { faSearch, faObjectGroup } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { library } from '@fortawesome/fontawesome-svg-core';
 // const app = express();
@@ -18,9 +18,11 @@ import { DocServer } from '../DocServer';
 import { Doc } from '../../new_fields/Doc';
 import { Id } from '../../new_fields/RefField';
 import { DocumentManager } from '../util/DocumentManager';
-
+import { SetupDrag } from '../util/DragManager';
+import { Docs } from '../documents/Documents';
 
 library.add(faSearch);
+library.add(faObjectGroup);
 
 @observer
 export class SearchBox extends React.Component {
@@ -40,30 +42,33 @@ export class SearchBox extends React.Component {
 
     @action
     submitSearch = async () => {
-        runInAction(() => this._results = []);
         let query = this.searchString;
+        //gets json result into a list of documents that can be used
+        const results = await this.getResults(query);
 
+        runInAction(() => {
+            this._resultsOpen = true;
+            this._results = results;
+        });
+    }
+
+    @action
+    getResults = async (query: string) => {
         let response = await rp.get('http://localhost:1050/search', {
             qs: {
                 query
             }
         });
-        let results = JSON.parse(response);
-
-        //gets json result into a list of documents that can be used
-        this.getResults(results);
-
-        runInAction(() => { this._resultsOpen = true; });
-    }
-
-    @action
-    getResults = async (res: string[]) => {
-        res.map(async result => {
-            const doc = await DocServer.GetRefField(result);
-            if (doc instanceof Doc) {
-                runInAction(() => this._results.push(doc));
+        let res: string[] = JSON.parse(response);
+        const fields = await DocServer.GetRefFields(res);
+        const docs: Doc[] = [];
+        for (const id of res) {
+            const field = fields[id];
+            if (field instanceof Doc) {
+                docs.push(field);
             }
-        });
+        }
+        return docs;
     }
 
     @action
@@ -82,6 +87,7 @@ export class SearchBox extends React.Component {
         var id = (e.target as any).id;
         if (id !== "result") {
             this._resultsOpen = false;
+            this._results = [];
         }
 
     }
@@ -107,27 +113,63 @@ export class SearchBox extends React.Component {
         }
     }
 
+    collectionRef = React.createRef<HTMLSpanElement>();
+    startDragCollection = async () => {
+        const results = await this.getResults(this.searchString);
+        const docs = results.map(doc => {
+            const isProto = Doc.GetT(doc, "isPrototype", "boolean", true);
+            if (isProto) {
+                return Doc.MakeDelegate(doc);
+            } else {
+                return Doc.MakeAlias(doc);
+            }
+        });
+        let x = 0;
+        let y = 0;
+        for (const doc of docs) {
+            doc.x = x;
+            doc.y = y;
+            doc.width = 200;
+            doc.height = 200;
+            x += 250;
+            if (x > 1000) {
+                x = 0;
+                y += 250;
+            }
+        }
+        return Docs.FreeformDocument(docs, { width: 400, height: 400, panX: 175, panY: 175, title: `Search Docs: "${this.searchString}"` });
+    }
+
     render() {
         return (
-            <div id="outer">
-                <div className="searchBox" id="outer">
-
-                    <input value={this.searchString} onChange={this.onChange} type="text" placeholder="Search.." className="search" id="input" onKeyPress={this.enter} />
-                    <button className="filter-button" onClick={this.toggleFilterDisplay}> Filter </button>
-                    <div className="submit-search" id="submit" onClick={this.submitSearch}><FontAwesomeIcon style={{ height: "100%" }} icon="search" size="lg" /></div>
-                    <div className="results" id="results" style={this._resultsOpen ? { display: "flex" } : { display: "none" }}>
-                        {this._results.map(result => <SearchItem doc={result} key={result[Id]} />)}
+            <div>
+                <div className="searchBox-container">
+                    <div className="searchBox-bar">
+                        <span onPointerDown={SetupDrag(this.collectionRef, this.startDragCollection)} ref={this.collectionRef}>
+                            <FontAwesomeIcon icon="object-group" className="searchBox-barChild" size="lg" />
+                        </span>
+                        <input value={this.searchString} onChange={this.onChange} type="text" placeholder="Search..."
+                            className="searchBox-barChild searchBox-input" onKeyPress={this.enter}
+                            style={{ width: this._resultsOpen ? "500px" : undefined }} />
+                        <button className="searchBox-barChild searchBox-filter" onClick={this.toggleFilterDisplay}>Filter</button>
+                        <FontAwesomeIcon icon="search" size="lg" className="searchBox-barChild searchBox-submit" />
                     </div>
+                    {this._resultsOpen ? (
+                        <div className="searchBox-results">
+                            {this._results.map(result => <SearchItem doc={result} key={result[Id]} />)}
+                        </div>
+                    ) : null}
                 </div>
-                <div className="filter-form" id="filter" style={this._open ? { display: "flex" } : { display: "none" }}>
-                    <div className="filter-form" id="header">Filter Search Results</div>
-                    <div className="filter-form" id="option">
-                        filter by collection, key, type of node
+                {this._open ? (
+                    <div className="filter-form" id="filter" style={this._open ? { display: "flex" } : { display: "none" }}>
+                        <div className="filter-form" id="header">Filter Search Results</div>
+                        <div className="filter-form" id="option">
+                            filter by collection, key, type of node
                     </div>
 
-                </div>
+                    </div>
+                ) : null}
             </div>
-
         );
     }
 }

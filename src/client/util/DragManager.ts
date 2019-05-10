@@ -6,28 +6,28 @@ import { CollectionDockingView } from "../views/collections/CollectionDockingVie
 import * as globalCssVariables from "../views/globalCssVariables.scss";
 
 export type dropActionType = "alias" | "copy" | undefined;
-export function SetupDrag(_reference: React.RefObject<HTMLDivElement>, docFunc: () => Doc, moveFunc?: DragManager.MoveFunction, dropAction?: dropActionType) {
-    let onRowMove = action((e: PointerEvent): void => {
+export function SetupDrag(_reference: React.RefObject<HTMLElement>, docFunc: () => Doc | Promise<Doc>, moveFunc?: DragManager.MoveFunction, dropAction?: dropActionType) {
+    let onRowMove = async (e: PointerEvent) => {
         e.stopPropagation();
         e.preventDefault();
 
         document.removeEventListener("pointermove", onRowMove);
         document.removeEventListener('pointerup', onRowUp);
-        var dragData = new DragManager.DocumentDragData([docFunc()]);
+        var dragData = new DragManager.DocumentDragData([await docFunc()]);
         dragData.dropAction = dropAction;
         dragData.moveDocument = moveFunc;
         DragManager.StartDocumentDrag([_reference.current!], dragData, e.x, e.y);
-    });
-    let onRowUp = action((e: PointerEvent): void => {
+    };
+    let onRowUp = (): void => {
         document.removeEventListener("pointermove", onRowMove);
         document.removeEventListener('pointerup', onRowUp);
-    });
-    let onItemDown = (e: React.PointerEvent) => {
+    };
+    let onItemDown = async (e: React.PointerEvent) => {
         // if (this.props.isSelected() || this.props.isTopMost) {
         if (e.button === 0) {
             e.stopPropagation();
             if (e.shiftKey) {
-                CollectionDockingView.Instance.StartOtherDrag([docFunc()], e);
+                CollectionDockingView.Instance.StartOtherDrag([await docFunc()], e);
             } else {
                 document.addEventListener("pointermove", onRowMove);
                 document.addEventListener("pointerup", onRowUp);
