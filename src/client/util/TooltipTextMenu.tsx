@@ -129,6 +129,8 @@ export class TooltipTextMenu {
         this.link.style.color = "white";
         this.tooltip.appendChild(this.link);
 
+        this.tooltip.appendChild(this.createLink().render(this.view).dom);
+
         this.update(view, undefined);
     }
 
