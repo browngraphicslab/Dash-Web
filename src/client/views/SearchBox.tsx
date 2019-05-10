@@ -54,7 +54,7 @@ export class SearchBox extends React.Component {
 
     @action
     getResults = async (query: string) => {
-        let response = await rp.get('http://localhost:1050/search', {
+        let response = await rp.get(DocServer.prepend('/search'), {
             qs: {
                 query
             }
