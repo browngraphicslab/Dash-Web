@@ -13,22 +13,15 @@ export class Database {
         this.MongoClient.connect(this.url, (err, client) => this.db = client.db());
     }
 
-    public update(id: string, value: any, callback: () => void) {
+    public update(id: string, value: any, callback: () => void, upsert = true, collectionName = Database.DocumentsCollection) {
         if (this.db) {
-            let collection = this.db.collection('documents');
+            let collection = this.db.collection(collectionName);
             const prom = this.currentWrites[id];
             let newProm: Promise<void>;
             const run = (): Promise<void> => {
                 return new Promise<void>(resolve => {
-                    collection.updateOne({ _id: id }, { $set: value }, { upsert: true }
+                    collection.updateOne({ _id: id }, value, { upsert }
                         , (err, res) => {
-                            if (err) {
-                                console.log(err.message);
-                                console.log(err.errmsg);
-                            }
-                            // if (res) {
-                            //     console.log(JSON.stringify(res.result));
-                            // }
                             if (this.currentWrites[id] === newProm) {
                                 delete this.currentWrites[id];
                             }
@@ -51,24 +44,53 @@ export class Database {
             this.db && this.db.collection(collectionName).deleteMany({}, res));
     }
 
-    public insert(kvpairs: any, collectionName = Database.DocumentsCollection) {
-        this.db && this.db.collection(collectionName).insertOne(kvpairs, (err, res) =>
-            err // &&  console.log(err)
-        );
+    public insert(value: any, collectionName = Database.DocumentsCollection) {
+        if (!this.db) { return; }
+        if ("id" in value) {
+            value._id = value.id;
+            delete value.id;
+        }
+        const id = value._id;
+        const collection = this.db.collection(collectionName);
+        const prom = this.currentWrites[id];
+        let newProm: Promise<void>;
+        const run = (): Promise<void> => {
+            return new Promise<void>(resolve => {
+                collection.insertOne(value, (err, res) => {
+                    if (this.currentWrites[id] === newProm) {
+                        delete this.currentWrites[id];
+                    }
+                    resolve();
+                });
+            });
+        };
+        newProm = prom ? prom.then(run) : run();
+        this.currentWrites[id] = newProm;
     }
 
     public getDocument(id: string, fn: (result?: Transferable) => void, collectionName = Database.DocumentsCollection) {
-        this.db && this.db.collection(collectionName).findOne({ id: id }, (err, result) =>
-            fn(result ? ({ id: result._id, type: result.type, data: result.data }) : undefined));
+        this.db && this.db.collection(collectionName).findOne({ _id: id }, (err, result) => {
+            if (result) {
+                result.id = result._id;
+                delete result._id;
+                fn(result);
+            } else {
+                fn(undefined);
+            }
+        });
     }
 
     public getDocuments(ids: string[], fn: (result: Transferable[]) => void, collectionName = Database.DocumentsCollection) {
-        this.db && this.db.collection(collectionName).find({ id: { "$in": ids } }).toArray((err, docs) => {
+        this.db && this.db.collection(collectionName).find({ _id: { "$in": ids } }).toArray((err, docs) => {
             if (err) {
                 console.log(err.message);
                 console.log(err.errmsg);
             }
-            fn(docs.map(doc => ({ id: doc._id, type: doc.type, data: doc.data })));
+            fn(docs.map(doc => {
+                doc.id = doc._id;
+                delete doc._id;
+                return doc;
+            }));
         });
     }
 

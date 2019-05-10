@@ -1,15 +1,14 @@
 import { action, observable } from "mobx";
 import { observer } from "mobx-react";
-import { Document } from "../../../fields/Document";
-import { FieldWaiting } from "../../../fields/Field";
-import { Key } from "../../../fields/Key";
-import { KeyStore } from '../../../fields/KeyStore';
-import { ListField } from "../../../fields/ListField";
 import { DocumentView } from "./DocumentView";
 import { LinkBox } from "./LinkBox";
 import { LinkEditor } from "./LinkEditor";
 import './LinkMenu.scss';
 import React = require("react");
+import { Doc } from "../../../new_fields/Doc";
+import { Cast, FieldValue } from "../../../new_fields/Types";
+import { listSpec } from "../../../new_fields/Schema";
+import { Id } from "../../../new_fields/RefField";
 
 interface Props {
     docView: DocumentView;
@@ -19,28 +18,28 @@ interface Props {
 @observer
 export class LinkMenu extends React.Component<Props> {
 
-    @observable private _editingLink?: Document;
+    @observable private _editingLink?: Doc;
 
-    renderLinkItems(links: Document[], key: Key, type: string) {
+    renderLinkItems(links: Doc[], key: string, type: string) {
         return links.map(link => {
-            let doc = link.GetT(key, Document);
-            if (doc && doc !== FieldWaiting) {
-                return <LinkBox key={doc.Id} linkDoc={link} linkName={link.Title} pairedDoc={doc} showEditor={action(() => this._editingLink = link)} type={type} />;
+            let doc = FieldValue(Cast(link[key], Doc));
+            if (doc) {
+                return <LinkBox key={doc[Id]} linkDoc={link} linkName={Cast(link.title, "string", "")} pairedDoc={doc} showEditor={action(() => this._editingLink = link)} type={type} />;
             }
         });
     }
 
     render() {
         //get list of links from document
-        let linkFrom: Document[] = this.props.docView.props.Document.GetData(KeyStore.LinkedFromDocs, ListField, []);
-        let linkTo: Document[] = this.props.docView.props.Document.GetData(KeyStore.LinkedToDocs, ListField, []);
+        let linkFrom = Cast(this.props.docView.props.Document.linkedFromDocs, listSpec(Doc), []).filter(d => d).map(d => d as Doc);
+        let linkTo = Cast(this.props.docView.props.Document.linkedToDocs, listSpec(Doc), []).filter(d => d).map(d => d as Doc);
         if (this._editingLink === undefined) {
             return (
                 <div id="linkMenu-container">
                     <input id="linkMenu-searchBar" type="text" placeholder="Search..."></input>
                     <div id="linkMenu-list">
-                        {this.renderLinkItems(linkTo, KeyStore.LinkedToDocs, "Destination: ")}
-                        {this.renderLinkItems(linkFrom, KeyStore.LinkedFromDocs, "Source: ")}
+                        {this.renderLinkItems(linkTo, "linkedTo", "Destination: ")}
+                        {this.renderLinkItems(linkFrom, "linkedFrom", "Source: ")}
                     </div>
                 </div>
             );

@@ -3,31 +3,30 @@ import React = require("react");
 import { SelectionManager } from "../../util/SelectionManager";
 import { observer } from "mobx-react";
 import './LinkEditor.scss';
-import { KeyStore } from '../../../fields/KeyStore';
 import { props } from "bluebird";
 import { DocumentView } from "./DocumentView";
-import { Document } from "../../../fields/Document";
-import { TextField } from "../../../fields/TextField";
 import { link } from "fs";
+import { StrCast } from "../../../new_fields/Types";
+import { Doc } from "../../../new_fields/Doc";
 
 interface Props {
-    linkDoc: Document;
+    linkDoc: Doc;
     showLinks: () => void;
 }
 
 @observer
 export class LinkEditor extends React.Component<Props> {
 
-    @observable private _nameInput: string = this.props.linkDoc.GetText(KeyStore.Title, "");
-    @observable private _descriptionInput: string = this.props.linkDoc.GetText(KeyStore.LinkDescription, "");
+    @observable private _nameInput: string = StrCast(this.props.linkDoc.title);
+    @observable private _descriptionInput: string = StrCast(this.props.linkDoc.linkDescription);
 
 
     onSaveButtonPressed = (e: React.PointerEvent): void => {
-        console.log("view down");
         e.stopPropagation();
 
-        this.props.linkDoc.SetData(KeyStore.Title, this._nameInput, TextField);
-        this.props.linkDoc.SetData(KeyStore.LinkDescription, this._descriptionInput, TextField);
+        let linkDoc = this.props.linkDoc.proto ? this.props.linkDoc.proto : this.props.linkDoc;
+        linkDoc.title = this._nameInput;
+        linkDoc.linkDescription = this._descriptionInput;
 
         this.props.showLinks();
     }

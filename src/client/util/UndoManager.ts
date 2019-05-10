@@ -1,7 +1,6 @@
-import { observable, action } from "mobx";
+import { observable, action, runInAction } from "mobx";
 import 'source-map-support/register';
 import { Without } from "../../Utils";
-import { string } from "prop-types";
 
 function getBatchName(target: any, key: string | symbol): string {
     let keyName = key.toString();
@@ -94,6 +93,10 @@ export namespace UndoManager {
         return redoStack.length > 0;
     }
 
+    export function PrintBatches(): void {
+        GetOpenBatches().forEach(batch => console.log(batch.batchName));
+    }
+
     let openBatches: Batch[] = [];
     export function GetOpenBatches(): Without<Batch, 'end'>[] {
         return openBatches;
@@ -140,10 +143,11 @@ export namespace UndoManager {
         }
     });
 
-    export function RunInBatch(fn: () => void, batchName: string) {
+    //TODO Make this return the return value
+    export function RunInBatch<T>(fn: () => T, batchName: string) {
         let batch = StartBatch(batchName);
         try {
-            fn();
+            return runInAction(fn);
         } finally {
             batch.end();
         }

@@ -16,13 +16,12 @@ import { Socket } from 'socket.io';
 import * as webpack from 'webpack';
 import * as wdm from 'webpack-dev-middleware';
 import * as whm from 'webpack-hot-middleware';
-import { Field, FieldId } from '../fields/Field';
 import { Utils } from '../Utils';
 import { getForgot, getLogin, getLogout, getReset, getSignup, postForgot, postLogin, postReset, postSignup } from './authentication/controllers/user_controller';
 import { DashUserModel } from './authentication/models/user_model';
 import { Client } from './Client';
 import { Database } from './database';
-import { MessageStore, Transferable } from "./Message";
+import { MessageStore, Transferable, Diff } from "./Message";
 import { RouteStore } from './RouteStore';
 const app = express();
 const config = require('../../webpack.config');
@@ -232,14 +231,21 @@ server.on("connection", function (socket: Socket) {
     Utils.AddServerHandlerCallback(socket, MessageStore.GetField, getField);
     Utils.AddServerHandlerCallback(socket, MessageStore.GetFields, getFields);
     Utils.AddServerHandler(socket, MessageStore.DeleteAll, deleteFields);
+
+    Utils.AddServerHandler(socket, MessageStore.CreateField, CreateField);
+    Utils.AddServerHandler(socket, MessageStore.UpdateField, diff => UpdateField(socket, diff));
+    Utils.AddServerHandlerCallback(socket, MessageStore.GetRefField, GetRefField);
+    Utils.AddServerHandlerCallback(socket, MessageStore.GetRefFields, GetRefFields);
 });
 
-function deleteFields() {
-    return Database.Instance.deleteAll();
+async function deleteFields() {
+    await Database.Instance.deleteAll();
+    await Database.Instance.deleteAll('newDocuments');
 }
 
 async function deleteAll() {
     await Database.Instance.deleteAll();
+    await Database.Instance.deleteAll('newDocuments');
     await Database.Instance.deleteAll('sessions');
     await Database.Instance.deleteAll('users');
 }
@@ -260,6 +266,23 @@ function getFields([ids, callback]: [string[], (result: Transferable[]) => void]
 function setField(socket: Socket, newValue: Transferable) {
     Database.Instance.update(newValue.id, newValue, () =>
         socket.broadcast.emit(MessageStore.SetField.Message, newValue));
+}
+
+function GetRefField([id, callback]: [string, (result?: Transferable) => void]) {
+    Database.Instance.getDocument(id, callback, "newDocuments");
+}
+
+function GetRefFields([ids, callback]: [string[], (result?: Transferable[]) => void]) {
+    Database.Instance.getDocuments(ids, callback, "newDocuments");
+}
+
+function UpdateField(socket: Socket, diff: Diff) {
+    Database.Instance.update(diff.id, diff.diff,
+        () => socket.broadcast.emit(MessageStore.UpdateField.Message, diff), false, "newDocuments");
+}
+
+function CreateField(newValue: any) {
+    Database.Instance.insert(newValue, "newDocuments");
 }
 
 server.listen(serverPort);

@@ -1,6 +1,7 @@
 @import "../globalCssVariables";
 
 
+
 .collectionSchemaView-container {
     border-width: $COLLECTION_BORDER_WIDTH;
     border-color : $intermediate-color;
@@ -10,6 +11,10 @@
     position: absolute;
     width: 100%;
     height: 100%;
+
+    .collectionSchemaView-cellContents {
+        height: $MAX_ROW_HEIGHT;
+    }
     
     .collectionSchemaView-previewRegion {
         position: relative;
@@ -104,7 +109,7 @@
         }
         .rt-tr-group {
             direction: ltr;
-            max-height: 44px;
+            max-height: $MAX_ROW_HEIGHT;
         }
         .rt-td {
             border-width: 1px;
@@ -136,7 +141,7 @@
     }
     .ReactTable .rt-th,
     .ReactTable .rt-td {
-        max-height: 44;
+        max-height: $MAX_ROW_HEIGHT;
         padding: 3px 7px;
         font-size: 13px;
         text-align: center;
@@ -153,9 +158,6 @@
     }
     .documentView-node:first-child {
         background: $light-color;
-        .imageBox-cont img {
-            object-fit: contain;
-        }
     }
 }
 //options menu styling

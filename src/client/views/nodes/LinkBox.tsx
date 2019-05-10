@@ -2,15 +2,15 @@ import { library } from '@fortawesome/fontawesome-svg-core';
 import { faEdit, faEye, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { observer } from "mobx-react";
-import { Document } from "../../../fields/Document";
-import { KeyStore } from '../../../fields/KeyStore';
-import { ListField } from "../../../fields/ListField";
-import { NumberField } from "../../../fields/NumberField";
 import { DocumentManager } from "../../util/DocumentManager";
 import { undoBatch } from "../../util/UndoManager";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
 import './LinkBox.scss';
 import React = require("react");
+import { Doc } from '../../../new_fields/Doc';
+import { Cast, NumCast } from '../../../new_fields/Types';
+import { listSpec } from '../../../new_fields/Schema';
+import { action } from 'mobx';
 
 
 library.add(faEye);
@@ -18,9 +18,9 @@ library.add(faEdit);
 library.add(faTimes);
 
 interface Props {
-    linkDoc: Document;
+    linkDoc: Doc;
     linkName: String;
-    pairedDoc: Document;
+    pairedDoc: Doc;
     type: String;
     showEditor: () => void;
 }
@@ -29,62 +29,54 @@ interface Props {
 export class LinkBox extends React.Component<Props> {
 
     @undoBatch
-    onViewButtonPressed = (e: React.PointerEvent): void => {
+    onViewButtonPressed = async (e: React.PointerEvent): Promise<void> => {
         e.stopPropagation();
         let docView = DocumentManager.Instance.getDocumentView(this.props.pairedDoc);
         if (docView) {
             docView.props.focus(docView.props.Document);
         } else {
-            this.props.pairedDoc.GetAsync(KeyStore.AnnotationOn, (contextDoc: any) => {
-                if (!contextDoc) {
-                    CollectionDockingView.Instance.AddRightSplit(this.props.pairedDoc.MakeDelegate());
-                } else if (contextDoc instanceof Document) {
-                    this.props.pairedDoc.GetTAsync(KeyStore.Page, NumberField).then((pfield: any) => {
-                        contextDoc.GetTAsync(KeyStore.CurPage, NumberField).then((cfield: any) => {
-                            if (pfield !== cfield) {
-                                contextDoc.SetNumber(KeyStore.CurPage, pfield.Data);
-                            }
-                            let contextView = DocumentManager.Instance.getDocumentView(contextDoc);
-                            if (contextView) {
-                                contextView.props.focus(contextDoc);
-                            } else {
-                                CollectionDockingView.Instance.AddRightSplit(contextDoc);
-                            }
-                        });
-                    });
+            const contextDoc = await Cast(this.props.pairedDoc.annotationOn, Doc);
+            if (!contextDoc) {
+                CollectionDockingView.Instance.AddRightSplit(Doc.MakeDelegate(this.props.pairedDoc));
+            } else {
+                const page = NumCast(this.props.pairedDoc.page, undefined);
+                const curPage = NumCast(contextDoc.curPage, undefined);
+                if (page !== curPage) {
+                    contextDoc.curPage = page;
                 }
-            });
+                let contextView = DocumentManager.Instance.getDocumentView(contextDoc);
+                if (contextView) {
+                    contextDoc.panTransformType = "Ease";
+                    contextView.props.focus(contextDoc);
+                } else {
+                    CollectionDockingView.Instance.AddRightSplit(contextDoc);
+                }
+            }
         }
     }
 
     onEditButtonPressed = (e: React.PointerEvent): void => {
-        console.log("edit down");
         e.stopPropagation();
 
         this.props.showEditor();
     }
 
-    onDeleteButtonPressed = (e: React.PointerEvent): void => {
-        console.log("delete down");
+    @action
+    onDeleteButtonPressed = async (e: React.PointerEvent): Promise<void> => {
         e.stopPropagation();
-        this.props.linkDoc.GetTAsync(KeyStore.LinkedFromDocs, Document, field => {
-            if (field) {
-                field.GetTAsync<ListField<Document>>(KeyStore.LinkedToDocs, ListField, field => {
-                    if (field) {
-                        field.Data.splice(field.Data.indexOf(this.props.linkDoc));
-                    }
-                });
+        const [linkedFrom, linkedTo] = await Promise.all([Cast(this.props.linkDoc.linkedFrom, Doc), Cast(this.props.linkDoc.linkedTo, Doc)]);
+        if (linkedFrom) {
+            const linkedToDocs = Cast(linkedFrom.linkedToDocs, listSpec(Doc));
+            if (linkedToDocs) {
+                linkedToDocs.splice(linkedToDocs.indexOf(this.props.linkDoc), 1);
             }
-        });
-        this.props.linkDoc.GetTAsync(KeyStore.LinkedToDocs, Document, field => {
-            if (field) {
-                field.GetTAsync<ListField<Document>>(KeyStore.LinkedFromDocs, ListField, field => {
-                    if (field) {
-                        field.Data.splice(field.Data.indexOf(this.props.linkDoc));
-                    }
-                });
+        }
+        if (linkedTo) {
+            const linkedFromDocs = Cast(linkedTo.linkedFromDocs, listSpec(Doc));
+            if (linkedFromDocs) {
+                linkedFromDocs.splice(linkedFromDocs.indexOf(this.props.linkDoc), 1);
             }
-        });
+        }
     }
 
     render() {
@@ -102,8 +94,8 @@ export class LinkBox extends React.Component<Props> {
                 </div>
 
                 <div className="button-container">
-                    <div title="Follow Link" className="button" onPointerDown={this.onViewButtonPressed}>
-                        <FontAwesomeIcon className="fa-icon-view" icon="eye" size="sm" /></div>
+                    {/* <div title="Follow Link" className="button" onPointerDown={this.onViewButtonPressed}>
+                        <FontAwesomeIcon className="fa-icon-view" icon="eye" size="sm" /></div> */}
                     <div title="Edit Link" className="button" onPointerDown={this.onEditButtonPressed}>
                         <FontAwesomeIcon className="fa-icon-edit" icon="edit" size="sm" /></div>
                     <div title="Delete Link" className="button" onPointerDown={this.onDeleteButtonPressed}>

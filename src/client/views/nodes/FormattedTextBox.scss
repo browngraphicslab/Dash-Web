@@ -10,13 +10,14 @@
   outline: none !important;
 }
 
-.formattedTextBox-cont-scroll, .formattedTextBox-cont-hidden {
-  background: $light-color-secondary;
-  padding: 0.9em;
+.formattedTextBox-cont-scroll, .formattedTextBox-cont-hidden  {
+  background: inherit;
+  padding: 0;
   border-width: 0px;
-  border-radius: $border-radius;
+  border-radius: inherit;
   border-color: $intermediate-color;
   box-sizing: border-box;
+  background-color: inherit;
   border-style: solid;
   overflow-y: scroll;
   overflow-x: hidden;
@@ -24,9 +25,18 @@
   height: 100%;
   pointer-events: all;
 }
+
 .formattedTextBox-cont-hidden {
     overflow: hidden;
     pointer-events: none;
+}
+.formattedTextBox-inner-rounded {
+    height: calc(100% - 25px);
+    width: calc(100% - 40px);
+    position: absolute;
+    overflow: auto;
+    top: 15;
+    left: 20;
 }
 
 .menuicon {
