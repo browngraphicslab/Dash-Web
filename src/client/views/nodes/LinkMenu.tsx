@@ -31,8 +31,8 @@ export class LinkMenu extends React.Component<Props> {
 
     render() {
         //get list of links from document
-        let linkFrom: Doc[] = Cast(this.props.docView.props.Document.linkedFromDocs, listSpec(Doc), []);
-        let linkTo: Doc[] = Cast(this.props.docView.props.Document.linkedToDocs, listSpec(Doc), []);
+        let linkFrom = Cast(this.props.docView.props.Document.linkedFromDocs, listSpec(Doc), []).filter(d => d).map(d => d as Doc);
+        let linkTo = Cast(this.props.docView.props.Document.linkedToDocs, listSpec(Doc), []).filter(d => d).map(d => d as Doc);
         if (this._editingLink === undefined) {
             return (
                 <div id="linkMenu-container">

@@ -6,7 +6,7 @@ import "./DocumentView.scss";
 import React = require("react");
 import { DocComponent } from "../DocComponent";
 import { createSchema, makeInterface, listSpec } from "../../../new_fields/Schema";
-import { FieldValue, Cast, NumCast, BoolCast } from "../../../new_fields/Types";
+import { FieldValue, Cast, NumCast, BoolCast, StrCast } from "../../../new_fields/Types";
 import { OmitKeys, Utils } from "../../../Utils";
 import { SelectionManager } from "../../util/SelectionManager";
 import { Doc, DocListCast, HeightSym } from "../../../new_fields/Doc";
@@ -65,7 +65,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     contentScaling = () => this.nativeWidth > 0 ? this.width / this.nativeWidth : 1;
     panelWidth = () => this.props.PanelWidth();
     panelHeight = () => this.props.PanelHeight();
-    toggleMinimized = () => this.toggleIcon();
+    toggleMinimized = async () => this.toggleIcon(await DocListCast(this.props.Document.maximizedDocs));
     getTransform = (): Transform => this.props.ScreenToLocalTransform()
         .translate(-this.X, -this.Y)
         .scale(1 / this.contentScaling()).scale(1 / this.zoom)
@@ -126,11 +126,9 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
             2);
     }
     @action
-    public toggleIcon = async (): Promise<void> => {
-        UndoManager.GetOpenBatches().forEach(batch => console.log(batch.batchName));
+    public toggleIcon = async (maximizedDocs: Doc[] | undefined): Promise<void> => {
         SelectionManager.DeselectAll();
         let isMinimized: boolean | undefined;
-        let maximizedDocs = await DocListCast(this.props.Document.maximizedDocs);
         let minimizedDoc: Doc | undefined = this.props.Document;
         if (!maximizedDocs) {
             minimizedDoc = await Cast(this.props.Document.minimizedDoc, Doc);
@@ -138,15 +136,17 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         }
         if (minimizedDoc && maximizedDocs) {
             let minimizedTarget = minimizedDoc;
-            CollectionFreeFormDocumentView._undoBatch = UndoManager.StartBatch("iconAnimating");
+            if (!CollectionFreeFormDocumentView._undoBatch) {
+                CollectionFreeFormDocumentView._undoBatch = UndoManager.StartBatch("iconAnimating");
+            }
             maximizedDocs.forEach(maximizedDoc => {
                 let iconAnimating = Cast(maximizedDoc.isIconAnimating, List);
                 if (!iconAnimating || (Date.now() - iconAnimating[6] > 1000)) {
                     if (isMinimized === undefined) {
                         isMinimized = BoolCast(maximizedDoc.isMinimized, false);
                     }
-                    let minx = NumCast(minimizedTarget.x, undefined) + NumCast(minimizedTarget.width, undefined) * this.getTransform().Scale / 2;
-                    let miny = NumCast(minimizedTarget.y, undefined) + NumCast(minimizedTarget.height, undefined) * this.getTransform().Scale / 2;
+                    let minx = NumCast(minimizedTarget.x, undefined) + NumCast(minimizedTarget.width, undefined) * this.getTransform().Scale * this.contentScaling() / 2;
+                    let miny = NumCast(minimizedTarget.y, undefined) + NumCast(minimizedTarget.height, undefined) * this.getTransform().Scale * this.contentScaling() / 2;
                     let maxx = NumCast(maximizedDoc.x, undefined);
                     let maxy = NumCast(maximizedDoc.y, undefined);
                     let maxw = NumCast(maximizedDoc.width, undefined);
@@ -169,21 +169,24 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     onPointerDown = (e: React.PointerEvent): void => {
         this._downX = e.clientX;
         this._downY = e.clientY;
-        e.stopPropagation();
+        // e.stopPropagation();
     }
     onClick = async (e: React.MouseEvent) => {
         e.stopPropagation();
         let altKey = e.altKey;
         if (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD &&
             Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD) {
-            if (BoolCast(this.props.Document.isButton, false) || (e.target as any).className === "isBullet") {
-                let maximizedDocs = await DocListCast(this.props.Document.maximizedDocs);
+            let isBullet = (e.target as any).id === "isBullet";
+            let isIcon = StrCast(this.props.Document.layout).indexOf("IconBox") !== -1;
+            if (BoolCast(this.props.Document.isButton, false) || isBullet) {
+                let maximizedDocs = await DocListCast(isBullet ? this.props.Document.subBulletDocs : isIcon ? this.props.Document.maximizedDocs : this.props.Document.summarizedDocs);
                 if (maximizedDocs) {   // bcz: need a better way to associate behaviors with click events on widget-documents
                     if ((altKey && !this.props.Document.maximizeOnRight) || (!altKey && this.props.Document.maximizeOnRight)) {
                         let dataDocs = await DocListCast(CollectionDockingView.Instance.props.Document.data);
                         if (dataDocs) {
                             SelectionManager.DeselectAll();
                             maximizedDocs.forEach(maxDoc => {
+                                maxDoc.isMinimized = false;
                                 if (!dataDocs || dataDocs.indexOf(maxDoc) == -1) {
                                     CollectionDockingView.Instance.AddRightSplit(maxDoc);
                                 } else {
@@ -193,7 +196,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                         }
                     } else {
                         this.props.addDocument && maximizedDocs.forEach(async maxDoc => this.props.addDocument!(await maxDoc, false));
-                        this.toggleIcon();
+                        this.toggleIcon(maximizedDocs);
                     }
                 }
             }
@@ -228,7 +231,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         return (
             <div className="collectionFreeFormDocumentView-container" ref={this._mainCont}
                 onPointerDown={this.onPointerDown}
-                onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}
+                onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave} onPointerOver={this.onPointerEnter}
                 onClick={this.onClick}
                 style={{
                     outlineColor: "black",

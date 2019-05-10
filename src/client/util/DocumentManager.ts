@@ -1,7 +1,7 @@
 import { computed, observable } from 'mobx';
 import { DocumentView } from '../views/nodes/DocumentView';
 import { Doc } from '../../new_fields/Doc';
-import { FieldValue, Cast, NumCast } from '../../new_fields/Types';
+import { FieldValue, Cast, NumCast, BoolCast } from '../../new_fields/Types';
 import { listSpec } from '../../new_fields/Schema';
 import { undoBatch } from './UndoManager';
 import { CollectionDockingView } from '../views/collections/CollectionDockingView';
@@ -72,8 +72,8 @@ export class DocumentManager {
 
     @computed
     public get LinkedDocumentViews() {
-        return DocumentManager.Instance.DocumentViews.reduce((pairs, dv) => {
-            let linksList = Cast(dv.props.Document.linkedToDocs, listSpec(Doc));
+        return DocumentManager.Instance.DocumentViews.filter(dv => dv.isSelected() || BoolCast(dv.props.Document.libraryBrush, false)).reduce((pairs, dv) => {
+            let linksList = Cast(dv.props.Document.linkedToDocs, listSpec(Doc), []).filter(d => d).map(d => d as Doc);
             if (linksList && linksList.length) {
                 pairs.push(...linksList.reduce((pairs, link) => {
                     if (link) {
@@ -85,6 +85,19 @@ export class DocumentManager {
                     }
                     return pairs;
                 }, [] as { a: DocumentView, b: DocumentView, l: Doc }[]));
+            }
+            linksList = Cast(dv.props.Document.linkedFromDocs, listSpec(Doc), []).filter(d => d).map(d => d as Doc);
+            if (linksList && linksList.length) {
+                pairs.push(...linksList.reduce((pairs, link) => {
+                    if (link) {
+                        let linkFromDoc = FieldValue(Cast(link.linkedFrom, Doc));
+                        if (linkFromDoc) {
+                            DocumentManager.Instance.getDocumentViews(linkFromDoc).map(docView1 =>
+                                pairs.push({ a: dv, b: docView1, l: link }));
+                        }
+                    }
+                    return pairs;
+                }, pairs));
             }
             return pairs;
         }, [] as { a: DocumentView, b: DocumentView, l: Doc }[]);

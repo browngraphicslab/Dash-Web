@@ -24,17 +24,6 @@ library.add(faFilm);
 @observer
 export class IconBox extends React.Component<FieldViewProps> {
     public static LayoutString() { return FieldView.LayoutString(IconBox); }
-    _reactionDisposer?: IReactionDisposer;
-    componentDidMount() {
-        this._reactionDisposer = reaction(() => [this.props.Document.maximizedDocs],
-            async () => {
-                let maxDoc = await DocListCast(this.props.Document.maximizedDocs);
-                this.props.Document.title = (maxDoc && maxDoc.length === 1 ? maxDoc[0].title + ".icon" : "");
-            }, { fireImmediately: true });
-    }
-    componentWillUnmount() {
-        if (this._reactionDisposer) this._reactionDisposer();
-    }
 
     @computed get layout(): string { const field = Cast(this.props.Document[this.props.fieldKey], IconField); return field ? field.icon : "<p>Error loading icon data</p>"; }
     @computed get minimizedIcon() { return IconBox.DocumentIcon(this.layout); }
