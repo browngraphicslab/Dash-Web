@@ -49,14 +49,13 @@ export class TooltipTextMenu {
     private fontSizeIndicator: HTMLSpanElement = document.createElement("span");
     private link: HTMLAnchorElement;
 
+    private linkEditor?: HTMLDivElement;
+    private linkText?: HTMLDivElement;
+    private linkDrag?: HTMLImageElement;
     //dropdown doms
     private fontSizeDom?: Node;
     private fontStyleDom?: Node;
     private listTypeBtnDom?: Node;
-
-    private linkEditor?: HTMLDivElement;
-    private linkText?: HTMLDivElement;
-    private linkDrag?: HTMLImageElement;
 
     constructor(view: EditorView, editorProps: FieldViewProps) {
         this.view = view;
@@ -186,7 +185,7 @@ export class TooltipTextMenu {
             this.linkText.style.width = "150px";
             this.linkText.style.overflow = "hidden";
             this.linkText.style.color = "white";
-            this.linkText.onpointerdown = (e: PointerEvent) => { e.stopPropagation(); }
+            this.linkText.onpointerdown = (e: PointerEvent) => { e.stopPropagation(); };
             let linkBtn = document.createElement("div");
             linkBtn.textContent = ">>";
             linkBtn.style.width = "20px";
@@ -203,8 +202,9 @@ export class TooltipTextMenu {
                         let docid = href.replace(DocServer.prepend("/doc/"), "");
                         DocServer.GetRefField(docid).then(action((f: Opt<Field>) => {
                             if (f instanceof Doc) {
-                                if (DocumentManager.Instance.getDocumentView(f))
+                                if (DocumentManager.Instance.getDocumentView(f)) {
                                     DocumentManager.Instance.getDocumentView(f)!.props.focus(f);
+                                }
                                 else CollectionDockingView.Instance.AddRightSplit(f);
                             }
                         }));
@@ -212,7 +212,7 @@ export class TooltipTextMenu {
                     e.stopPropagation();
                     e.preventDefault();
                 }
-            }
+            };
             this.linkDrag = document.createElement("img");
             this.linkDrag.src = "https://seogurusnyc.com/wp-content/uploads/2016/12/link-1.png";
             this.linkDrag.style.width = "20px";
@@ -232,7 +232,7 @@ export class TooltipTextMenu {
                             }),
                         },
                         hideSource: false
-                    })
+                    });
             };
             this.linkEditor.appendChild(this.linkDrag);
             this.linkEditor.appendChild(this.linkText);
@@ -250,7 +250,7 @@ export class TooltipTextMenu {
                 e.stopPropagation();
                 e.preventDefault();
             }
-        }
+        };
         this.tooltip.appendChild(this.linkEditor);
     }
 
@@ -351,7 +351,7 @@ export class TooltipTextMenu {
             icon: icons.link,
             css: "color:white;",
             class: "menuicon",
-            enable(state) { return !state.selection.empty },
+            enable(state) { return !state.selection.empty; },
             run: (state, dispatch, view) => {
                 // to remove link
                 if (this.markActive(state, markType)) {
@@ -396,10 +396,10 @@ export class TooltipTextMenu {
     }
 
     markActive = function (state: EditorState<any>, type: MarkType<Schema<string, string>>) {
-        let { from, $from, to, empty } = state.selection
-        if (empty) return type.isInSet(state.storedMarks || $from.marks())
-        else return state.doc.rangeHasMark(from, to, type)
-    }
+        let { from, $from, to, empty } = state.selection;
+        if (empty) return type.isInSet(state.storedMarks || $from.marks());
+        else return state.doc.rangeHasMark(from, to, type);
+    };
 
     // Helper function to create menu icons
     icon(text: string, name: string) {
@@ -480,8 +480,8 @@ export class TooltipTextMenu {
             let attributes = this.getMarksInSelection(this.view.state, [schema.marks.link])[0].attrs;
             this.link.href = attributes.href;
             this.link.textContent = attributes.title;
-            this.link.style.visibility = "visible"
-        } else this.link.style.visibility = "hidden"
+            this.link.style.visibility = "visible";
+        } else this.link.style.visibility = "hidden";
 
         // Otherwise, reposition it and update its content
         this.tooltip.style.display = "";

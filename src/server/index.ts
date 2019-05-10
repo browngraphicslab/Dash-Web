@@ -7,10 +7,10 @@ import * as expressValidator from 'express-validator';
 import * as formidable from 'formidable';
 import * as fs from 'fs';
 import * as mobileDetect from 'mobile-detect';
-import { ObservableMap } from 'mobx';
 import * as passport from 'passport';
 import * as path from 'path';
 import * as request from 'request';
+import * as rp from 'request-promise';
 import * as io from 'socket.io';
 import { Socket } from 'socket.io';
 import * as webpack from 'webpack';
@@ -21,7 +21,7 @@ import { getForgot, getLogin, getLogout, getReset, getSignup, postForgot, postLo
 import { DashUserModel } from './authentication/models/user_model';
 import { Client } from './Client';
 import { Database } from './database';
-import { MessageStore, Transferable, Diff } from "./Message";
+import { MessageStore, Transferable, Types, Diff } from "./Message";
 import { RouteStore } from './RouteStore';
 const app = express();
 const config = require('../../webpack.config');
@@ -31,6 +31,9 @@ const serverPort = 4321;
 import expressFlash = require('express-flash');
 import flash = require('connect-flash');
 import c = require("crypto");
+import { Search } from './Search';
+import { debug } from 'util';
+import _ = require('lodash');
 const MongoStore = require('connect-mongo')(session);
 const mongoose = require('mongoose');
 
@@ -117,7 +120,15 @@ app.get("/pull", (req, res) =>
         res.redirect("/");
     }));
 
+// SEARCH
+
 // GETTERS
+
+app.get("/search", async (req, res) => {
+    let query = req.query.query || "hello";
+    let results = await Search.Instance.search(query);
+    res.send(results);
+});
 
 // anyone attempting to navigate to localhost at this port will
 // first have to login
@@ -240,6 +251,7 @@ server.on("connection", function (socket: Socket) {
 
 async function deleteFields() {
     await Database.Instance.deleteAll();
+    await Search.Instance.clear();
     await Database.Instance.deleteAll('newDocuments');
 }
 
@@ -248,6 +260,7 @@ async function deleteAll() {
     await Database.Instance.deleteAll('newDocuments');
     await Database.Instance.deleteAll('sessions');
     await Database.Instance.deleteAll('users');
+    await Search.Instance.clear();
 }
 
 function barReceived(guid: String) {
@@ -266,6 +279,10 @@ function getFields([ids, callback]: [string[], (result: Transferable[]) => void]
 function setField(socket: Socket, newValue: Transferable) {
     Database.Instance.update(newValue.id, newValue, () =>
         socket.broadcast.emit(MessageStore.SetField.Message, newValue));
+    if (newValue.type === Types.Text) {
+        Search.Instance.updateDocument({ id: newValue.id, data: (newValue as any).data });
+        console.log("set field");
+    }
 }
 
 function GetRefField([id, callback]: [string, (result?: Transferable) => void]) {
@@ -276,9 +293,73 @@ function GetRefFields([ids, callback]: [string[], (result?: Transferable[]) => v
     Database.Instance.getDocuments(ids, callback, "newDocuments");
 }
 
+
+const suffixMap: { [type: string]: (string | [string, string | ((json: any) => any)]) } = {
+    "number": "_n",
+    "string": "_t",
+    "image": ["_t", "url"],
+    "video": ["_t", "url"],
+    "pdf": ["_t", "url"],
+    "audio": ["_t", "url"],
+    "web": ["_t", "url"],
+    "date": ["_d", value => new Date(value.date).toISOString()],
+    "proxy": ["_i", "fieldId"],
+    "list": ["_l", list => {
+        const results = [];
+        for (const value of list.fields) {
+            const term = ToSearchTerm(value);
+            if (term) {
+                results.push(term.value);
+            }
+        }
+        return results.length ? results : null;
+    }]
+};
+
+function ToSearchTerm(val: any): { suffix: string, value: any } | undefined {
+    const type = val.__type || typeof val;
+    let suffix = suffixMap[type];
+    if (!suffix) {
+        return;
+    }
+
+    if (Array.isArray(suffix)) {
+        const accessor = suffix[1];
+        if (typeof accessor === "function") {
+            val = accessor(val);
+        } else {
+            val = val[accessor];
+        }
+        suffix = suffix[0];
+    }
+
+    return { suffix, value: val };
+}
+
 function UpdateField(socket: Socket, diff: Diff) {
     Database.Instance.update(diff.id, diff.diff,
         () => socket.broadcast.emit(MessageStore.UpdateField.Message, diff), false, "newDocuments");
+    const docfield = diff.diff.$set;
+    if (!docfield) {
+        return;
+    }
+    const update: any = { id: diff.id };
+    let dynfield = false;
+    for (let key in docfield) {
+        if (!key.startsWith("fields.")) continue;
+        let val = docfield[key];
+        let term = ToSearchTerm(val);
+        if (term !== undefined) {
+            let { suffix, value } = term;
+            key = key.substring(7);
+            Object.values(suffixMap).forEach(suf => update[key + suf] = null);
+            update[key + suffix] = { set: value };
+            dynfield = true;
+        }
+    }
+    if (dynfield) {
+        Search.Instance.updateDocument(update);
+    }
 }
 
 function CreateField(newValue: any) {

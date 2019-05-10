@@ -176,7 +176,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (CollectionFreeFormView.RIGHT_BTN_DRAG && (e.button === 2 || (e.button === 0 && e.altKey)) && !this.isSelected()) {
             return;
         }
-        this._hitIsBullet = (e.target && (e.target as any).id === "isBullet");
+        this._hitIsBullet = (e.target && (e.target as any).id === "isBullet") || Cast(this.props.Document.subBulletDocs, listSpec(Doc), []).filter(d => d).map(d => d as Doc).length > 0;
         if (e.shiftKey && e.buttons === 1) {
             if (this.props.isTopMost) {
                 this.startDragging(e.pageX, e.pageY, e.altKey || e.ctrlKey ? "alias" : undefined, this._hitIsBullet);

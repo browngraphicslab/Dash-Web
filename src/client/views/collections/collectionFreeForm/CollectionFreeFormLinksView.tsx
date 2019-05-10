@@ -67,8 +67,8 @@ export class CollectionFreeFormLinksView extends React.Component<CollectionViewP
                             if (srcBrushDocs === undefined) srcTarg.brushingDocs = srcBrushDocs = new List<Doc>();
                             else brushAction(srcBrushDocs);
                         }
-                    })
-                })
+                    });
+                });
             });
     }
     componentWillUnmount() {

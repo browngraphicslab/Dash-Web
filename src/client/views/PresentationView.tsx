@@ -1,7 +1,7 @@
 import { observer } from "mobx-react";
-import React = require("react")
+import React = require("react");
 import { observable, action, runInAction, reaction } from "mobx";
-import "./PresentationView.scss"
+import "./PresentationView.scss";
 import "./Main.tsx";
 import { DocumentManager } from "../util/DocumentManager";
 import { Utils } from "../../Utils";
@@ -141,7 +141,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
                 if (activeW && activeW instanceof Doc) {
                     PromiseValue(Cast(activeW.presentationView, Doc)).
                         then(pv => runInAction(() =>
-                            self.Document = pv ? pv : (activeW.presentationView = new Doc())))
+                            self.Document = pv ? pv : (activeW.presentationView = new Doc())));
                 }
             },
             { fireImmediately: true });
@@ -165,8 +165,9 @@ export class PresentationView extends React.Component<PresViewProps>  {
     }
 
     render() {
-        if (!this.Document)
+        if (!this.Document) {
             return (null);
+        }
         let titleStr = this.Document.Title;
         let width = NumCast(this.Document.width);
 

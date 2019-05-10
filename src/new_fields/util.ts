@@ -56,6 +56,7 @@ export function getter(target: any, prop: string | symbol | number, receiver: an
     return getField(target, prop);
 }
 
+//TODO The callback parameter is never being passed in currently, so we should be able to get rid of it.
 export function getField(target: any, prop: string | number, ignoreProto: boolean = false, callback?: (field: Field | undefined) => void): any {
     const field = target.__fields[prop];
     if (field instanceof ProxyField) {
