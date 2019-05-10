@@ -412,7 +412,6 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
                     parentActive={returnTrue}
                     whenActiveChanged={emptyFunction}
                     focus={emptyFunction}
-                    bringToFront={emptyFunction}
                     ContainingCollectionView={undefined} />
             </div >);
     }
