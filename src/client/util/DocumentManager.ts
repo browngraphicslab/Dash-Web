@@ -1,9 +1,10 @@
 import { computed, observable } from 'mobx';
 import { DocumentView } from '../views/nodes/DocumentView';
 import { Doc } from '../../new_fields/Doc';
-import { FieldValue, Cast, BoolCast } from '../../new_fields/Types';
+import { FieldValue, Cast, NumCast, BoolCast } from '../../new_fields/Types';
 import { listSpec } from '../../new_fields/Schema';
-import { SelectionManager } from './SelectionManager';
+import { undoBatch } from './UndoManager';
+import { CollectionDockingView } from '../views/collections/CollectionDockingView';
 
 
 export class DocumentManager {
@@ -100,5 +101,31 @@ export class DocumentManager {
             }
             return pairs;
         }, [] as { a: DocumentView, b: DocumentView, l: Doc }[]);
+    }
+
+    @undoBatch
+    public jumpToDocument = async (doc: Doc): Promise<void> => {
+        let docView = DocumentManager.Instance.getDocumentView(doc);
+        if (docView) {
+            docView.props.focus(docView.props.Document);
+        } else {
+            const contextDoc = await Cast(doc.annotationOn, Doc);
+            if (!contextDoc) {
+                CollectionDockingView.Instance.AddRightSplit(Doc.MakeDelegate(doc));
+            } else {
+                const page = NumCast(doc.page, undefined);
+                const curPage = NumCast(contextDoc.curPage, undefined);
+                if (page !== curPage) {
+                    contextDoc.curPage = page;
+                }
+                let contextView = DocumentManager.Instance.getDocumentView(contextDoc);
+                if (contextView) {
+                    contextDoc.panTransformType = "Ease";
+                    contextView.props.focus(contextDoc);
+                } else {
+                    CollectionDockingView.Instance.AddRightSplit(contextDoc);
+                }
+            }
+        }
     }
 }
