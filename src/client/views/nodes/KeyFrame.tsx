@@ -4,14 +4,13 @@ export class KeyFrame {
     private _document: Doc;
     constructor() {
         this._document = new Doc();
-
+        
 
     }
 
-    get document() {
-        console.log(this._document);
+    get doc():Doc {
         return this._document;
-
     }
+    
 
 }
