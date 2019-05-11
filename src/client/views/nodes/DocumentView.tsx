@@ -26,6 +26,7 @@ import { CurrentUserUtils } from "../../../server/authentication/models/current_
 import { DocServer } from "../../DocServer";
 import { Id } from "../../../new_fields/RefField";
 import { PresentationView } from "../PresentationView";
+import { DatamartAugmentParameters } from "../../northstar/model/idea/idea";
 
 const linkSchema = createSchema({
     title: "string",

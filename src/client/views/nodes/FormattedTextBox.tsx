@@ -26,6 +26,8 @@ import { InkingControl } from "../InkingControl";
 import { FieldView, FieldViewProps } from "./FieldView";
 import "./FormattedTextBox.scss";
 import React = require("react");
+import { View } from "@react-pdf/renderer";
+import { NodeType } from "prosemirror-model";
 
 // FormattedTextBox: Displays an editable plain text node that maps to a specified Key of a Document
 //
@@ -107,6 +109,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     @undoBatch
     @action
     drop = async (e: Event, de: DragManager.DropEvent) => {
+        // We're dealing with a link to a document
         if (de.data instanceof DragManager.LinkDragData) {
             let sourceDoc = de.data.linkSourceDocument;
             let destDoc = this.props.Document;
@@ -116,6 +119,11 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             Doc.MakeLink(protoSrc ? protoSrc : sourceDoc, protoDest ? protoDest : destDoc);
             de.data.droppedDocuments.push(destDoc);
             e.stopPropagation();
+        } else if (de.data instanceof DragManager.EmbedDragData) {
+            // We're dealing with an internal document drop
+            let url = de.data.urlField.url.href;
+            let model: NodeType = (url.includes(".mov") || url.includes(".mp4")) ? schema.nodes.video : schema.nodes.image;
+            this._editorView!.dispatch(this._editorView!.state.tr.insert(0, model.create({ src: url })));
         }
     }
 

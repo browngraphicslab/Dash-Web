@@ -4,6 +4,7 @@ import { Cast } from "../../new_fields/Types";
 import { emptyFunction } from "../../Utils";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import * as globalCssVariables from "../views/globalCssVariables.scss";
+import { URLField } from "../../new_fields/URLField";
 
 export type dropActionType = "alias" | "copy" | undefined;
 export function SetupDrag(_reference: React.RefObject<HTMLDivElement>, docFunc: () => Doc, moveFunc?: DragManager.MoveFunction, dropAction?: dropActionType) {
@@ -177,7 +178,21 @@ export namespace DragManager {
         [id: string]: any;
     }
 
+    export class EmbedDragData {
+        constructor(embeddableSourceDoc: Doc) {
+            this.embeddableSourceDoc = embeddableSourceDoc;
+            this.urlField = Cast(embeddableSourceDoc.data, URLField)!;
+        }
+        embeddableSourceDoc: Doc;
+        urlField: URLField;
+        [id: string]: any;
+    }
+
     export function StartLinkDrag(ele: HTMLElement, dragData: LinkDragData, downX: number, downY: number, options?: DragOptions) {
+        StartDrag([ele], dragData, downX, downY, options);
+    }
+
+    export function StartEmbedDrag(ele: HTMLElement, dragData: EmbedDragData, downX: number, downY: number, options?: DragOptions) {
         StartDrag([ele], dragData, downX, downY, options);
     }
 

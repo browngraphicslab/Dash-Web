@@ -28,6 +28,7 @@ import { CollectionView } from "./collections/CollectionView";
 import { DocumentManager } from "../util/DocumentManager";
 import { FormattedTextBox } from "./nodes/FormattedTextBox";
 import { FieldView } from "./nodes/FieldView";
+import { URLField } from "../../new_fields/URLField";
 
 library.add(faLink);
 
@@ -42,6 +43,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     private _titleHeight = 20;
     private _linkButton = React.createRef<HTMLDivElement>();
     private _linkerButton = React.createRef<HTMLDivElement>();
+    private _embedButton = React.createRef<HTMLDivElement>();
     private _downX = 0;
     private _downY = 0;
     private _iconDoc?: Doc = undefined;
@@ -328,9 +330,24 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         document.removeEventListener("pointerup", this.onLinkerButtonUp);
         document.addEventListener("pointerup", this.onLinkerButtonUp);
     }
+
+    onEmbedButtonDown = (e: React.PointerEvent): void => {
+        e.stopPropagation();
+        document.removeEventListener("pointermove", this.onEmbedButtonMoved);
+        document.addEventListener("pointermove", this.onEmbedButtonMoved);
+        document.removeEventListener("pointerup", this.onEmbedButtonUp);
+        document.addEventListener("pointerup", this.onEmbedButtonUp);
+    }
+
     onLinkerButtonUp = (e: PointerEvent): void => {
         document.removeEventListener("pointermove", this.onLinkerButtonMoved);
         document.removeEventListener("pointerup", this.onLinkerButtonUp);
+        e.stopPropagation();
+    }
+
+    onEmbedButtonUp = (e: PointerEvent): void => {
+        document.removeEventListener("pointermove", this.onEmbedButtonMoved);
+        document.removeEventListener("pointerup", this.onEmbedButtonUp);
         e.stopPropagation();
     }
 
@@ -344,6 +361,25 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             let dragData = new DragManager.LinkDragData(selDoc.props.Document, container ? [container] : []);
             FormattedTextBox.InputBoxOverlay = undefined;
             DragManager.StartLinkDrag(this._linkerButton.current, dragData, e.pageX, e.pageY, {
+                handlers: {
+                    dragComplete: action(emptyFunction),
+                },
+                hideSource: false
+            });
+        }
+        e.stopPropagation();
+    }
+
+    @action
+    onEmbedButtonMoved = (e: PointerEvent): void => {
+        if (this._embedButton.current !== null) {
+            document.removeEventListener("pointermove", this.onEmbedButtonMoved);
+            document.removeEventListener("pointerup", this.onEmbedButtonUp);
+
+            let dragDocView = SelectionManager.SelectedDocuments()[0];
+            let dragData = new DragManager.EmbedDragData(dragDocView.props.Document);
+
+            DragManager.StartEmbedDrag(dragDocView.ContentDiv!, dragData, e.x, e.y, {
                 handlers: {
                     dragComplete: action(emptyFunction),
                 },
@@ -495,6 +531,19 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     //     e.stopPropagation();
     // }
 
+    considerEmbed = () => {
+        let thisDoc = SelectionManager.SelectedDocuments()[0].props.Document;
+        let canEmbed = thisDoc.data && Cast(thisDoc.data, URLField);
+        if (!canEmbed) return (null);
+        return (
+            <div className="linkButtonWrapper">
+                <div style={{ paddingTop: 3, marginLeft: 30 }} title="Drag Embed" className="linkButton-linker" ref={this._embedButton} onPointerDown={this.onEmbedButtonDown}>
+                    <FontAwesomeIcon className="fa-image" icon="image" size="sm" />
+                </div>
+            </div>
+        );
+    }
+
     render() {
         var bounds = this.Bounds;
         let seldoc = SelectionManager.SelectedDocuments().length ? SelectionManager.SelectedDocuments()[0] : undefined;
@@ -589,6 +638,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                         </div>
                     </div>
                     <TemplateMenu docs={SelectionManager.ViewsSortedVertically()} templates={templates} />
+                    {this.considerEmbed()}
                 </div>
             </div >
         </div>
