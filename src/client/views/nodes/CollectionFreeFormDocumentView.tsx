@@ -9,10 +9,10 @@ import { createSchema, makeInterface, listSpec } from "../../../new_fields/Schem
 import { FieldValue, Cast, NumCast, BoolCast, StrCast } from "../../../new_fields/Types";
 import { OmitKeys, Utils } from "../../../Utils";
 import { SelectionManager } from "../../util/SelectionManager";
-import { Doc, DocListCast, HeightSym } from "../../../new_fields/Doc";
+import { Doc, DocListCastAsync, DocListCast, } from "../../../new_fields/Doc";
 import { List } from "../../../new_fields/List";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
-import { undoBatch, UndoManager } from "../../util/UndoManager";
+import { UndoManager } from "../../util/UndoManager";
 
 export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
 }
@@ -65,7 +65,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     contentScaling = () => this.nativeWidth > 0 ? this.width / this.nativeWidth : 1;
     panelWidth = () => this.props.PanelWidth();
     panelHeight = () => this.props.PanelHeight();
-    toggleMinimized = async () => this.toggleIcon(await DocListCast(this.props.Document.maximizedDocs));
+    toggleMinimized = async () => this.toggleIcon(await DocListCastAsync(this.props.Document.maximizedDocs));
     getTransform = (): Transform => this.props.ScreenToLocalTransform()
         .translate(-this.X, -this.Y)
         .scale(1 / this.contentScaling()).scale(1 / this.zoom)
@@ -132,7 +132,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         let minimizedDoc: Doc | undefined = this.props.Document;
         if (!maximizedDocs) {
             minimizedDoc = await Cast(this.props.Document.minimizedDoc, Doc);
-            if (minimizedDoc) maximizedDocs = await DocListCast(minimizedDoc.maximizedDocs);
+            if (minimizedDoc) maximizedDocs = await DocListCastAsync(minimizedDoc.maximizedDocs);
         }
         if (minimizedDoc && maximizedDocs) {
             let minimizedTarget = minimizedDoc;
@@ -176,16 +176,18 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         let altKey = e.altKey;
         if (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD &&
             Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD) {
-            let isBullet = (e.target as any).id === "isBullet";
-            let isIcon = StrCast(this.props.Document.layout).indexOf("IconBox") !== -1;
-            if (BoolCast(this.props.Document.isButton, false) || isBullet) {
-                let maximizedDocs = await DocListCast(isBullet ? this.props.Document.subBulletDocs : isIcon ? this.props.Document.maximizedDocs : this.props.Document.summarizedDocs);
-                if (maximizedDocs) {   // bcz: need a better way to associate behaviors with click events on widget-documents
+            let isExpander = (e.target as any).id === "isExpander";
+            if (BoolCast(this.props.Document.isButton, false) || isExpander) {
+                let subBulletDocs = await DocListCastAsync(this.props.Document.subBulletDocs);
+                let maximizedDocs = await DocListCastAsync(this.props.Document.maximizedDocs);
+                let summarizedDocs = await DocListCastAsync(this.props.Document.summarizedDocs);
+                let expandedDocs = [...(subBulletDocs ? subBulletDocs : []), ...(maximizedDocs ? maximizedDocs : []), ...(summarizedDocs ? summarizedDocs : [])];
+                if (expandedDocs) {   // bcz: need a better way to associate behaviors with click events on widget-documents
                     if ((altKey && !this.props.Document.maximizeOnRight) || (!altKey && this.props.Document.maximizeOnRight)) {
-                        let dataDocs = await DocListCast(CollectionDockingView.Instance.props.Document.data);
+                        let dataDocs = DocListCast(CollectionDockingView.Instance.props.Document.data);
                         if (dataDocs) {
                             SelectionManager.DeselectAll();
-                            maximizedDocs.forEach(maxDoc => {
+                            expandedDocs.forEach(maxDoc => {
                                 maxDoc.isMinimized = false;
                                 if (!dataDocs || dataDocs.indexOf(maxDoc) == -1) {
                                     CollectionDockingView.Instance.AddRightSplit(maxDoc);
@@ -195,8 +197,8 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                             });
                         }
                     } else {
-                        this.props.addDocument && maximizedDocs.forEach(async maxDoc => this.props.addDocument!(await maxDoc, false));
-                        this.toggleIcon(maximizedDocs);
+                        this.props.addDocument && expandedDocs.forEach(async maxDoc => this.props.addDocument!(await maxDoc, false));
+                        this.toggleIcon(expandedDocs);
                     }
                 }
             }

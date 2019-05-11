@@ -1,5 +1,5 @@
 import { action, runInAction } from "mobx";
-import { Doc, DocListCast } from "../../new_fields/Doc";
+import { Doc, DocListCastAsync } from "../../new_fields/Doc";
 import { Cast } from "../../new_fields/Types";
 import { emptyFunction } from "../../Utils";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
@@ -43,8 +43,8 @@ export async function DragLinksAsDocuments(dragEle: HTMLElement, x: number, y: n
     let draggedDocs: Doc[] = [];
     let draggedFromDocs: Doc[] = []
     if (srcTarg) {
-        let linkToDocs = await DocListCast(srcTarg.linkedToDocs);
-        let linkFromDocs = await DocListCast(srcTarg.linkedFromDocs);
+        let linkToDocs = await DocListCastAsync(srcTarg.linkedToDocs);
+        let linkFromDocs = await DocListCastAsync(srcTarg.linkedFromDocs);
         if (linkToDocs) draggedDocs = linkToDocs.map(linkDoc => Cast(linkDoc.linkedTo, Doc) as Doc);
         if (linkFromDocs) draggedFromDocs = linkFromDocs.map(linkDoc => Cast(linkDoc.linkedFrom, Doc) as Doc);
     }

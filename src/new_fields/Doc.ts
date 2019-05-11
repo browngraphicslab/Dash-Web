@@ -29,11 +29,15 @@ export const SelfProxy = Symbol("SelfProxy");
 export const WidthSym = Symbol("Width");
 export const HeightSym = Symbol("Height");
 
-export function DocListCast(field: FieldResult): Promise<Doc[] | undefined>;
-export function DocListCast(field: FieldResult, defaultValue: Doc[]): Promise<Doc[]>;
-export function DocListCast(field: FieldResult, defaultValue?: Doc[]) {
+export function DocListCastAsync(field: FieldResult): Promise<Doc[] | undefined>;
+export function DocListCastAsync(field: FieldResult, defaultValue: Doc[]): Promise<Doc[]>;
+export function DocListCastAsync(field: FieldResult, defaultValue?: Doc[]) {
     const list = Cast(field, listSpec(Doc));
     return list ? Promise.all(list) : Promise.resolve(defaultValue);
+}
+
+export function DocListCast(field: FieldResult) {
+    return Cast(field, listSpec(Doc), []).filter(d => d && d instanceof Doc).map(d => d as Doc)
 }
 
 @Deserializable("doc").withFields(["id"])

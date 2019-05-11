@@ -10,7 +10,7 @@ import * as rp from 'request-promise';
 import { CollectionView } from "./CollectionView";
 import { CollectionPDFView } from "./CollectionPDFView";
 import { CollectionVideoView } from "./CollectionVideoView";
-import { Doc, Opt, FieldResult } from "../../../new_fields/Doc";
+import { Doc, Opt, FieldResult, DocListCast } from "../../../new_fields/Doc";
 import { DocComponent } from "../DocComponent";
 import { listSpec } from "../../../new_fields/Schema";
 import { Cast, PromiseValue, FieldValue, ListSpec } from "../../../new_fields/Types";
@@ -49,7 +49,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
         get children() {
             //TODO tfs: This might not be what we want?
             //This linter error can't be fixed because of how js arguments work, so don't switch this to filter(FieldValue)
-            return Cast(this.props.Document[this.props.fieldKey], listSpec(Doc), []).filter(doc => FieldValue(doc)).map(doc => doc as Doc);
+            return DocListCast(this.props.Document[this.props.fieldKey]);
         }
 
         @action

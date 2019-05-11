@@ -12,13 +12,13 @@ import { CollectionPDFView } from "../collections/CollectionPDFView";
 import { CollectionVideoView } from "../collections/CollectionVideoView";
 import { CollectionView } from "../collections/CollectionView";
 import { ContextMenu } from "../ContextMenu";
-import { Template, Templates } from "./../Templates";
+import { Template } from "./../Templates";
 import { DocumentContentsView } from "./DocumentContentsView";
 import "./DocumentView.scss";
 import React = require("react");
-import { Opt, Doc, WidthSym, HeightSym, DocListCast } from "../../../new_fields/Doc";
+import { Opt, Doc, WidthSym, HeightSym, DocListCastAsync, DocListCast } from "../../../new_fields/Doc";
 import { DocComponent } from "../DocComponent";
-import { createSchema, makeInterface, listSpec } from "../../../new_fields/Schema";
+import { createSchema, makeInterface } from "../../../new_fields/Schema";
 import { FieldValue, StrCast, BoolCast, Cast } from "../../../new_fields/Types";
 import { List } from "../../../new_fields/List";
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
@@ -109,8 +109,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
         // bcz: kind of ugly .. setup a reaction to update the title of a summary document's target (maximizedDocs) whenver the summary doc's title changes
         this._reactionDisposer = reaction(() => [this.props.Document.maximizedDocs, this.props.Document.summaryDoc, this.props.Document.summaryDoc instanceof Doc ? this.props.Document.summaryDoc.title : ""],
-            async () => {
-                let maxDoc = await DocListCast(this.props.Document.maximizedDocs);
+            () => {
+                let maxDoc = DocListCast(this.props.Document.maximizedDocs);
                 if (maxDoc && StrCast(this.props.Document.layout).indexOf("IconBox") !== -1) {
                     this.props.Document.title = (maxDoc && maxDoc.length === 1 ? maxDoc[0].title + ".icon" : "");
                 }
@@ -145,7 +145,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     startDragging(x: number, y: number, dropAction: dropActionType, dragSubBullets: boolean) {
         if (this._mainCont.current) {
-            let allConnected = dragSubBullets ? [this.props.Document, ...Cast(this.props.Document.subBulletDocs, listSpec(Doc), []).filter(d => d).map(d => d as Doc)] : [this.props.Document];
+            let allConnected = [this.props.Document, ...(dragSubBullets ? DocListCast(this.props.Document.subBulletDocs) : [])];
             const [left, top] = this.props.ScreenToLocalTransform().scale(this.props.ContentScaling()).inverse().transformPoint(0, 0);
             let dragData = new DragManager.DocumentDragData(allConnected);
             const [xoff, yoff] = this.props.ScreenToLocalTransform().scale(this.props.ContentScaling()).transformDirection(x - left, y - top);
@@ -169,17 +169,17 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             SelectionManager.SelectDoc(this, e.ctrlKey);
         }
     }
-    _hitIsBullet = false;
+    _hitExpander = false;
     onPointerDown = (e: React.PointerEvent): void => {
         this._downX = e.clientX;
         this._downY = e.clientY;
         if (CollectionFreeFormView.RIGHT_BTN_DRAG && (e.button === 2 || (e.button === 0 && e.altKey)) && !this.isSelected()) {
             return;
         }
-        this._hitIsBullet = (e.target && (e.target as any).id === "isBullet") || Cast(this.props.Document.subBulletDocs, listSpec(Doc), []).filter(d => d).map(d => d as Doc).length > 0;
+        this._hitExpander = DocListCast(this.props.Document.subBulletDocs).length > 0;
         if (e.shiftKey && e.buttons === 1) {
             if (this.props.isTopMost) {
-                this.startDragging(e.pageX, e.pageY, e.altKey || e.ctrlKey ? "alias" : undefined, this._hitIsBullet);
+                this.startDragging(e.pageX, e.pageY, e.altKey || e.ctrlKey ? "alias" : undefined, this._hitExpander);
             } else if (this.props.Document) {
                 CollectionDockingView.Instance.StartOtherDrag([Doc.MakeAlias(this.props.Document)], e);
             }
@@ -197,7 +197,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 document.removeEventListener("pointermove", this.onPointerMove);
                 document.removeEventListener("pointerup", this.onPointerUp);
                 if (!e.altKey && !this.topMost && (!CollectionFreeFormView.RIGHT_BTN_DRAG && e.buttons === 1) || (CollectionFreeFormView.RIGHT_BTN_DRAG && e.buttons === 2)) {
-                    this.startDragging(this._downX, this._downY, e.ctrlKey || e.altKey ? "alias" : undefined, this._hitIsBullet);
+                    this.startDragging(this._downX, this._downY, e.ctrlKey || e.altKey ? "alias" : undefined, this._hitExpander);
                 }
             }
             e.stopPropagation(); // doesn't actually stop propagation since all our listeners are listening to events on 'document'  however it does mark the event as cancelBubble=true which we test for in the move event handlers
@@ -232,6 +232,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         ContextMenu.Instance.clearItems();
         SelectionManager.DeselectAll();
     }
+
     @undoBatch
     @action
     drop = async (e: Event, de: DragManager.DropEvent) => {
@@ -258,7 +259,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             e.preventDefault();
         }
     }
-
 
     @action
     addTemplate = (template: Template) => {
@@ -306,7 +306,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             SelectionManager.SelectDoc(this, false);
         }
     }
-
 
     isSelected = () => SelectionManager.IsSelected(this);
     select = (ctrlPressed: boolean) => SelectionManager.SelectDoc(this, ctrlPressed);

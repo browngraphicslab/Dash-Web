@@ -19,7 +19,7 @@ import { DocumentView } from "../nodes/DocumentView";
 import { FieldView, FieldViewProps } from "../nodes/FieldView";
 import "./CollectionSchemaView.scss";
 import { CollectionSubView } from "./CollectionSubView";
-import { Opt, Field, Doc, DocListCast } from "../../../new_fields/Doc";
+import { Opt, Field, Doc, DocListCastAsync, DocListCast } from "../../../new_fields/Doc";
 import { Cast, FieldValue, NumCast } from "../../../new_fields/Types";
 import { listSpec } from "../../../new_fields/Schema";
 import { List } from "../../../new_fields/List";
@@ -118,7 +118,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                         }
                         const run = script.run;
                         //TODO This should be able to be refactored to compile the script once
-                        const val = await DocListCast(this.props.Document[this.props.fieldKey])
+                        const val = await DocListCastAsync(this.props.Document[this.props.fieldKey])
                         val && val.forEach(doc => applyToDoc(doc, run));
                     }}>
                 </EditableView>
@@ -276,7 +276,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     }
 
     get documentKeysCheckList() {
-        const docs = Cast(this.props.Document[this.props.fieldKey], listSpec(Doc), []).filter(d => d).map(d => d as Doc);
+        const docs = DocListCast(this.props.Document[this.props.fieldKey]);
         let keys: { [key: string]: boolean } = {};
         // bcz: ugh.  this is untracked since otherwise a large collection of documents will blast the server for all their fields.
         //  then as each document's fields come back, we update the documents _proxies.  Each time we do this, the whole schema will be

@@ -1,3 +1,4 @@
+import * as htmlToImage from "html-to-image";
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import { Docs } from "../../../documents/Documents";
@@ -14,6 +15,8 @@ import { Doc } from "../../../../new_fields/Doc";
 import { NumCast, Cast } from "../../../../new_fields/Types";
 import { InkField, StrokeData } from "../../../../new_fields/InkField";
 import { List } from "../../../../new_fields/List";
+import { ImageField } from "../../../../new_fields/URLField";
+import { Template, Templates } from "../../Templates";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;
@@ -30,6 +33,7 @@ interface MarqueeViewProps {
 @observer
 export class MarqueeView extends React.Component<MarqueeViewProps>
 {
+    private _mainCont = React.createRef<HTMLDivElement>();
     @observable _lastX: number = 0;
     @observable _lastY: number = 0;
     @observable _downX: number = 0;
@@ -166,7 +170,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
 
     @undoBatch
     @action
-    marqueeCommand = (e: KeyboardEvent) => {
+    marqueeCommand = async (e: KeyboardEvent) => {
         if (this._commandExecuted) {
             return;
         }
@@ -224,13 +228,17 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 let scrpt = this.props.getTransform().inverse().transformPoint(bounds.left, bounds.top);
                 let summary = Docs.TextDocument({ x: bounds.left, y: bounds.top, width: 300, height: 100, backgroundColor: "yellow", title: "-summary-" });
 
+                let dataUrl = await htmlToImage.toPng(this._mainCont.current!, { width: bounds.width, height: bounds.height, quality: 1 });
+                summary.proto!.thumbnail = new ImageField(new URL(dataUrl));
+
+                summary.proto!.templates = new List<string>([Templates.ImageOverlay(Math.min(50, bounds.width), bounds.height * Math.min(50, bounds.width) / bounds.width, "thumbnail")]);
                 if (e.key === "s" || e.key === "p") {
                     summary.proto!.maximizeOnRight = true;
                     newCollection.proto!.summaryDoc = summary;
                     selected = [newCollection];
                 }
                 summary.proto!.summarizedDocs = new List<Doc>(selected);
-                summary.proto!.isButton = true;
+                //summary.proto!.isButton = true;
                 selected.map(summarizedDoc => {
                     let maxx = NumCast(summarizedDoc.x, undefined);
                     let maxy = NumCast(summarizedDoc.y, undefined);
@@ -313,17 +321,21 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
 
     @computed
     get marqueeDiv() {
-        let p = this.props.getContainerTransform().transformPoint(this._downX < this._lastX ? this._downX : this._lastX, this._downY < this._lastY ? this._downY : this._lastY);
         let v = this.props.getContainerTransform().transformDirection(this._lastX - this._downX, this._lastY - this._downY);
-        return <div className="marquee" style={{ transform: `translate(${p[0]}px, ${p[1]}px)`, width: `${Math.abs(v[0])}`, height: `${Math.abs(v[1])}` }} >
+        return <div className="marquee" style={{ width: `${Math.abs(v[0])}`, height: `${Math.abs(v[1])}` }} >
             <span className="marquee-legend" />
         </div>;
     }
 
     render() {
+        let p = this.props.getContainerTransform().transformPoint(this._downX < this._lastX ? this._downX : this._lastX, this._downY < this._lastY ? this._downY : this._lastY);
         return <div className="marqueeView" style={{ borderRadius: "inherit" }} onClick={this.onClick} onPointerDown={this.onPointerDown}>
-            {this.props.children}
-            {!this._visible ? (null) : this.marqueeDiv}
+            <div style={{ position: "absolute", transform: `translate(${p[0]}px, ${p[1]}px)` }} >
+                <div ref={this._mainCont} style={{ position: "absolute", transform: `translate(${-p[0]}px, ${-p[1]}px)` }} >
+                    {this.props.children}
+                </div>
+                {!this._visible ? null : this.marqueeDiv}
+            </div>
         </div>;
     }
 }

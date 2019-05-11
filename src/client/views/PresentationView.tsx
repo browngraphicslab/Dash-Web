@@ -141,8 +141,15 @@ export class PresentationView extends React.Component<PresViewProps>  {
             (activeW) => {
                 if (activeW && activeW instanceof Doc) {
                     PromiseValue(Cast(activeW.presentationView, Doc)).
-                        then(pv => runInAction(() =>
-                            self.Document = pv ? pv : (activeW.presentationView = new Doc())))
+                        then(pv => runInAction(() => {
+                            if (pv) self.Document = pv;
+                            else {
+                                pv = new Doc();
+                                pv.title = "Presentation Doc";
+                                activeW.presentationView = pv;
+                                self.Document = pv;
+                            }
+                        }))
                 }
             },
             { fireImmediately: true });
