@@ -9,9 +9,9 @@ import { CollectionSubView, SubCollectionViewProps } from "../collections/Collec
 import { DocumentViewProps } from "./DocumentView";
 
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
-import { Doc } from "../../../new_fields/Doc";
-import { Document } from "../../../new_fields/Schema";
-import { FieldValue } from "../../../new_fields/Types";
+import { Doc, Self } from "../../../new_fields/Doc";
+import { Document, listSpec } from "../../../new_fields/Schema";
+import { FieldValue, Cast } from "../../../new_fields/Types";
 
 @observer
 export class Timeline extends CollectionSubView(Document) {
@@ -65,12 +65,17 @@ export class Timeline extends CollectionSubView(Document) {
             this._currentBar = this.createBar(5);
             this._inner.current.appendChild(this._currentBar);
         }
-        let doc: Document = this.props.Document;
-        let childrenList = this.children;
+        let doc: Doc = this.props.Document;
+        let test = this.props.Document[this.props.fieldKey];
+        let children = Cast(this.props.Document[this.props.fieldKey], listSpec(Doc));
         // let keyFrame = new KeyFrame(); //should not be done here...
         // this._keyFrames.push(keyFrame)";
+        if (!children) {
+            return;
+        }
+        let childrenList = (children[Self] as any).__fields;
         let keys = ["x", "y"];
-        const addReaction = (element: Document) => {
+        const addReaction = (element: Doc) => {
             return reaction(() => {
 
                 return keys.map(key => FieldValue(element[key]));
@@ -92,7 +97,7 @@ export class Timeline extends CollectionSubView(Document) {
                 }
             });
         };
-        observe(childrenList as IObservableArray<Document>, change => {
+        observe(childrenList as IObservableArray<Doc>, change => {
             if (change.type === "update") {
                 this._reactionDisposers[change.index]();
                 this._reactionDisposers[change.index] = addReaction(change.newValue);
