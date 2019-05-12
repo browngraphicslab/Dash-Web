@@ -128,6 +128,7 @@ export function deepCopy<K, V>(source: Map<K, V>, predicate?: Predicate<K, V>) {
         if (!predicate || predicate(entry)) {
             deepCopy.set(entry[0], entry[1]);
         }
+        next = entries.next();
     }
     return deepCopy;
 }

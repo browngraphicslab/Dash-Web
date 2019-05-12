@@ -23,6 +23,7 @@ import { Doc, WidthSym, HeightSym } from "../../../../new_fields/Doc";
 import { FieldValue, Cast, NumCast } from "../../../../new_fields/Types";
 import { pageSchema } from "../../nodes/ImageBox";
 import { Id } from "../../../../new_fields/RefField";
+import { InkField, StrokeData } from "../../../../new_fields/InkField";
 
 export const panZoomSchema = createSchema({
     panX: "number",
@@ -42,8 +43,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     private get _pwidth() { return this.props.PanelWidth(); }
     private get _pheight() { return this.props.PanelHeight(); }
 
-    @computed get nativeWidth() { return FieldValue(this.Document.nativeWidth, 0); }
-    @computed get nativeHeight() { return FieldValue(this.Document.nativeHeight, 0); }
+    @computed get nativeWidth() { return NumCast(this.Document.nativeWidth, 0); }
+    @computed get nativeHeight() { return NumCast(this.Document.nativeHeight, 0); }
     private get borderWidth() { return this.isAnnotationOverlay ? 0 : COLLECTION_BORDER_WIDTH; }
     private get isAnnotationOverlay() { return this.props.fieldKey && this.props.fieldKey === "annotations"; }
     private panX = () => FieldValue(this.Document.panX, 0);
@@ -132,23 +133,32 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     @action
     onPointerMove = (e: PointerEvent): void => {
         if (!e.cancelBubble) {
-            let x = Cast(this.props.Document.panX, "number", 0);
-            let y = Cast(this.props.Document.panY, "number", 0);
+            let x = NumCast(this.props.Document.panX);
+            let y = NumCast(this.props.Document.panY);
             let docs = this.children || [];
             let [dx, dy] = this.getTransform().transformDirection(e.clientX - this._lastX, e.clientY - this._lastY);
             if (!this.isAnnotationOverlay) {
-                let minx = docs.length ? Cast(docs[0].x, "number", 0) : 0;
-                let maxx = docs.length ? Cast(docs[0].width, "number", 0) + minx : minx;
-                let miny = docs.length ? Cast(docs[0].y, "number", 0) : 0;
-                let maxy = docs.length ? Cast(docs[0].height, "number", 0) + miny : miny;
+                let minx = docs.length ? NumCast(docs[0].x) : 0;
+                let maxx = docs.length ? NumCast(docs[0].width) + minx : minx;
+                let miny = docs.length ? NumCast(docs[0].y) : 0;
+                let maxy = docs.length ? NumCast(docs[0].height) + miny : miny;
                 let ranges = docs.filter(doc => doc).reduce((range, doc) => {
-                    let x = Cast(doc.x, "number", 0);
-                    let xe = x + Cast(doc.width, "number", 0);
-                    let y = Cast(doc.y, "number", 0);
-                    let ye = y + Cast(doc.height, "number", 0);
+                    let x = NumCast(doc.x);
+                    let xe = x + NumCast(doc.width);
+                    let y = NumCast(doc.y);
+                    let ye = y + NumCast(doc.height);
                     return [[range[0][0] > x ? x : range[0][0], range[0][1] < xe ? xe : range[0][1]],
                     [range[1][0] > y ? y : range[1][0], range[1][1] < ye ? ye : range[1][1]]];
                 }, [[minx, maxx], [miny, maxy]]);
+                let ink = Cast(this.props.Document.ink, InkField);
+                if (ink && ink.inkData) {
+                    ink.inkData.forEach((value: StrokeData, key: string) => {
+                        let bounds = InkingCanvas.StrokeRect(value);
+                        ranges[0] = [Math.min(ranges[0][0], bounds.left), Math.max(ranges[0][1], bounds.right)];
+                        ranges[1] = [Math.min(ranges[1][0], bounds.top), Math.max(ranges[1][1], bounds.bottom)];
+                    });
+                }
+
                 let panelwidth = this._pwidth / this.zoomScaling() / 2;
                 let panelheight = this._pheight / this.zoomScaling() / 2;
                 if (x - dx < ranges[0][0] - panelwidth) x = ranges[0][1] + panelwidth + dx;
@@ -181,8 +191,12 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
         if (e.ctrlKey) {
             let deltaScale = (1 - (e.deltaY / coefficient));
-            this.props.Document.nativeWidth = this.nativeWidth * deltaScale;
-            this.props.Document.nativeHeight = this.nativeHeight * deltaScale;
+            let nw = this.nativeWidth * deltaScale;
+            let nh = this.nativeHeight * deltaScale;
+            if (nw && nh) {
+                this.props.Document.nativeWidth = nw;
+                this.props.Document.nativeHeight = nh;
+            }
             e.stopPropagation();
             e.preventDefault();
         } else {
