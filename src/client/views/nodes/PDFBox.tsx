@@ -294,6 +294,9 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
         let page = this.curPage;
         const renderHeight = 2400;
         let pdfUrl = Cast(this.props.Document[this.props.fieldKey], PdfField);
+        if (!pdfUrl) {
+            return <p>No pdf url to render</p>;
+        }
         let xf = FieldValue(this.Document.nativeHeight, 0) / renderHeight;
         let body = NumCast(this.props.Document.nativeHeight) ?
             this.pdfPage :
@@ -305,7 +308,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
                 }
             </Measure>;
         return <div className="pdfBox-contentContainer" key="container" style={{ transform: `scale(${xf}, ${xf})` }}>
-            <Document file={window.origin + RouteStore.corsProxy + `/${pdfUrl}`} renderMode={this._renderAsSvg ? "svg" : "canvas"}>
+            <Document file={window.origin + RouteStore.corsProxy + `/${pdfUrl.url}`} renderMode={this._renderAsSvg ? "svg" : "canvas"}>
                 {body}
             </Document>
         </div >;
