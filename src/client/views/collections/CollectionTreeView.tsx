@@ -93,6 +93,15 @@ class TreeView extends React.Component<TreeViewProps> {
         return <div className="bullet" onClick={onClicked}>{bullet ? <FontAwesomeIcon icon={bullet} /> : ""} </div>;
     }
 
+    @action
+    onMouseEnter = () => {
+        this._isOver = true;
+    }
+    @observable _isOver: boolean = false;
+    @action
+    onMouseLeave = () => {
+        this._isOver = false;
+    }
     /**
      * Renders the EditableView title element for placement into the tree.
      */
@@ -101,7 +110,8 @@ class TreeView extends React.Component<TreeViewProps> {
         let onItemDown = SetupDrag(reference, () => this.props.document, this.props.moveDocument, this.props.dropAction);
         let editableView = (titleString: string) =>
             (<EditableView
-                display={"inline"}
+                oneLine={!this._isOver ? true : false}
+                display={"block"}
                 contents={titleString}
                 height={36}
                 GetValue={() => StrCast(this.props.document.title)}
@@ -118,7 +128,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 <FontAwesomeIcon icon="angle-right" size="lg" />
             </div>);
         return (
-            <div className="docContainer" ref={reference} onPointerDown={onItemDown}
+            <div className="docContainer" ref={reference} onPointerDown={onItemDown} onMouseEnter={this.onMouseEnter} onMouseLeave={this.onMouseLeave}
                 style={{ background: BoolCast(this.props.document.libraryBrush, false) ? "#06121212" : "0" }}
                 onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}>
                 {editableView(StrCast(this.props.document.title))}

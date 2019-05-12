@@ -65,7 +65,7 @@ $linkGap : 3px;
         cursor: ew-resize;
     }
     .title{
-        background: lightblue;
+        background: $alt-accent;
         grid-column-start: 3;
         grid-column-end: 4;
         pointer-events: auto;

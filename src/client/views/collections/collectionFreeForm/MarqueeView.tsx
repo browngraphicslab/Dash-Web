@@ -59,13 +59,9 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         if (e.key === "q" && e.ctrlKey) {
             e.preventDefault();
             (async () => {
-                let text = await navigator.clipboard.readText();
-                let ns = text.split("\n").filter(t => t != "\r");
+                let text: string = await navigator.clipboard.readText();
+                let ns = text.split("\n").filter(t => t.trim() != "\r" && t.trim() != "");
                 for (let i = 0; i < ns.length - 1; i++) {
-                    if (ns[i].trim() === "") {
-                        ns.splice(i, 1);
-                        continue;
-                    }
                     while (!(ns[i].trim() === "" || ns[i].endsWith("-\r") || ns[i].endsWith("-") ||
                         ns[i].endsWith(";\r") || ns[i].endsWith(";") ||
                         ns[i].endsWith(".\r") || ns[i].endsWith(".") ||
