@@ -13,7 +13,9 @@ export class Search {
                 body: JSON.stringify([document])
             });
             return res;
-        } catch (e) { }
+        } catch (e) {
+            console.warn("Search error: " + e + document);
+        }
     }
 
     public async search(query: string) {

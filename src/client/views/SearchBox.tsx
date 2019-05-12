@@ -140,6 +140,9 @@ export class SearchBox extends React.Component {
         return Docs.FreeformDocument(docs, { width: 400, height: 400, panX: 175, panY: 175, title: `Search Docs: "${this.searchString}"` });
     }
 
+    // Useful queries:
+    // Delegates of a document: {!join from=id to=proto_i}id:{protoId}
+    // Documents in a collection: {!join from=data_l to=id}id:{collectionProtoId}
     render() {
         return (
             <div>

@@ -298,6 +298,7 @@ function GetRefFields([ids, callback]: [string[], (result?: Transferable[]) => v
 const suffixMap: { [type: string]: (string | [string, string | ((json: any) => any)]) } = {
     "number": "_n",
     "string": "_t",
+    // "boolean": "_b",
     "image": ["_t", "url"],
     "video": ["_t", "url"],
     "pdf": ["_t", "url"],
