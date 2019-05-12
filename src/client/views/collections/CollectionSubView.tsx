@@ -18,6 +18,7 @@ import { List } from "../../../new_fields/List";
 import { DocServer } from "../../DocServer";
 import { ObjectField } from "../../../new_fields/ObjectField";
 import CursorField, { CursorPosition, CursorMetadata } from "../../../new_fields/CursorField";
+import { url } from "inspector";
 
 export interface CollectionViewProps extends FieldViewProps {
     addDocument: (document: Doc, allowDuplicates?: boolean) => boolean;
@@ -166,6 +167,11 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             if (html && html.indexOf("<img") !== 0 && !html.startsWith("<a")) {
                 let htmlDoc = Docs.HtmlDocument(html, { ...options, width: 300, height: 300, documentText: text });
                 this.props.addDocument(htmlDoc, false);
+                return;
+            }
+            if (text && text.indexOf("www.youtube.com/watch") !== -1) {
+                const url = text.replace("youtube.com/watch?v=", "youtube.com/embed/");
+                this.props.addDocument(Docs.WebDocument(url, { ...options, width: 300, height: 300 }));
                 return;
             }
 
