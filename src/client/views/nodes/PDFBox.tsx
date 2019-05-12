@@ -18,6 +18,7 @@ import "./PDFBox.scss";
 import React = require("react");
 import { SelectionManager } from "../../util/SelectionManager";
 import { InkingControl } from "../InkingControl";
+import { PDFTest } from "../../../debug/Test";
 
 /** ALSO LOOK AT: Annotation.tsx, Sticky.tsx
  * This method renders PDF and puts all kinds of functionalities such as annotation, highlighting, 
@@ -283,10 +284,11 @@ export class PDFBox extends React.Component<FieldViewProps> {
             this.props.Document.SetNumber(KeyStore.NativeHeight, nativeHeight);
         }
     }
-    renderHeight = 2400;
+    renderHeight = 1552;
+    renderWidth = 1200;
     @computed
     get pdfPage() {
-        return <Page height={this.renderHeight} pageNumber={this.curPage} onLoadSuccess={this.onLoaded} />
+        return <Page width={this.renderWidth} height={this.renderHeight} pageNumber={this.curPage} onLoadSuccess={this.onLoaded} />
     }
     @computed
     get pdfContent() {
@@ -350,9 +352,10 @@ export class PDFBox extends React.Component<FieldViewProps> {
         trace();
         let classname = "pdfBox-cont" + (this.props.isSelected() && !InkingControl.Instance.selectedTool && !this._alt ? "-interactive" : "");
         return (
-            <div className={classname} tabIndex={0} ref={this._mainDiv} onPointerDown={this.onPointerDown} onKeyDown={this.onKeyDown} onKeyUp={this.onKeyUp} >
-                {this.pdfRenderer}
-            </div >
+            // <div className={classname} tabIndex={0} ref={this._mainDiv} onPointerDown={this.onPointerDown} onKeyDown={this.onKeyDown} onKeyUp={this.onKeyUp} >
+            // {/* {this.pdfRenderer} */}
+            <PDFTest />
+            // </div >
         );
     }
 

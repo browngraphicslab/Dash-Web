@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 // import { Document, Page, Pdf } from "react-pdf/dist/entry.webpack";
-import { computed, observable, action } from 'mobx';
+import { computed, observable, action, runInAction } from 'mobx';
 import Measure from 'react-measure';
 import { RouteStore } from '../server/RouteStore';
 import { observer } from 'mobx-react';
@@ -83,7 +83,7 @@ const options = {
 //     }
 // }
 
-class PDFTest extends React.Component {
+export class PDFTest extends React.Component {
     render() {
         return <PDFViewer />;
     }
@@ -95,11 +95,11 @@ class PDFViewer extends React.Component {
 
     @action
     componentDidMount() {
-        const pdfUrl = "https://mozilla.github.io/pdf.js/web/compressed.tracemonkey-pldi-09.pdf";
+        const pdfUrl = window.origin + RouteStore.corsProxy + "/https://mozilla.github.io/pdf.js/web/compressed.tracemonkey-pldi-09.pdf";
         let promise = Pdfjs.getDocument(pdfUrl).promise;
 
         promise.then((pdf: Pdfjs.PDFDocumentProxy) => {
-            this._pdf = pdf;
+            runInAction(() => this._pdf = pdf);
         });
     }
 
@@ -121,7 +121,7 @@ interface IPageProps {
 }
 
 @observer
-class Page extends React.Component<IPageProps> {
+class Page2 extends React.Component<IPageProps> {
     @observable _state: string = "N/A";
     @observable _width: number = 0;
     @observable _height: number = 0;
@@ -248,7 +248,7 @@ class Viewer extends React.Component<IViewerProps> {
         return (
             <div className="viewer">
                 {/* {Array.from(Array(numPages).keys()).map((i) => ( */}
-                <Page
+                <Page2
                     pdf={this.props.pdf}
                     numPages={numPages}
                     key={`${this.props.pdf ? this.props.pdf.fingerprint : "undefined"}`}
@@ -260,8 +260,18 @@ class Viewer extends React.Component<IViewerProps> {
         );
     }
 }
+import "./../client/views/nodes/DocumentView.scss";
 
 ReactDOM.render((
-    <PDFTest />),
+    <div className={`documentView-node`}
+        style={{
+            borderRadius: "inherit",
+            width: "100%", height: "100%",
+            transform: `scale(50%, 50%)`
+        }}
+    >
+        <PDFTest />
+    </div>
+),
     document.getElementById('root')
 );
