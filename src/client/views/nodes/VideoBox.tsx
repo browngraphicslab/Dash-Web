@@ -35,7 +35,7 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
             // bcz: the nativeHeight should really be set when the document is imported.
             var nativeWidth = FieldValue(this.Document.nativeWidth, 0);
             var nativeHeight = FieldValue(this.Document.nativeHeight, 0);
-            var newNativeHeight = nativeWidth * r.entry.height / r.entry.width;
+            var newNativeHeight = nativeWidth * r.offset.height / r.offset.width;
             if (!nativeHeight && newNativeHeight !== nativeHeight && !isNaN(newNativeHeight)) {
                 this.Document.height = newNativeHeight / nativeWidth * FieldValue(this.Document.width, 0);
                 this.Document.nativeHeight = newNativeHeight;
@@ -71,7 +71,7 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
         let content = this.videoContent(field.url.href);
         return NumCast(this.props.Document.nativeHeight) ?
             content :
-            <Measure onResize={this.setScaling}>
+            <Measure offset onResize={this.setScaling}>
                 {({ measureRef }) =>
                     <div style={{ width: "100%", height: "auto" }} ref={measureRef}>
                         {content}

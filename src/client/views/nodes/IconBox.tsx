@@ -59,7 +59,7 @@ export class IconBox extends React.Component<FieldViewProps> {
         return (
             <div className="iconBox-container" onContextMenu={this.specificContextMenu}>
                 {this.minimizedIcon}
-                <Measure onResize={(r) => runInAction(() => { if (r.entry.width || BoolCast(this.props.Document.hideLabel)) this.props.Document.nativeWidth = this.props.Document.width = (r.entry.width + Number(MINIMIZED_ICON_SIZE)); })}>
+                <Measure offset onResize={(r) => runInAction(() => { if (r.offset!.width || BoolCast(this.props.Document.hideLabel)) this.props.Document.nativeWidth = this.props.Document.width = (r.offset!.width + Number(MINIMIZED_ICON_SIZE)); })}>
                     {({ measureRef }) =>
                         <span ref={measureRef} className="iconBox-label">{label}</span>
                     }

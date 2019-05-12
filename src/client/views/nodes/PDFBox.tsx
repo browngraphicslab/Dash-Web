@@ -279,7 +279,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
         //      so this design is flawed.
         var nativeWidth = FieldValue(this.Document.nativeWidth, 0);
         if (!FieldValue(this.Document.nativeHeight, 0)) {
-            var nativeHeight = nativeWidth * r.entry.height / r.entry.width;
+            var nativeHeight = nativeWidth * r.offset.height / r.offset.width;
             this.props.Document.height = nativeHeight / nativeWidth * FieldValue(this.Document.width, 0);
             this.props.Document.nativeHeight = nativeHeight;
         }
@@ -297,7 +297,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
         let xf = FieldValue(this.Document.nativeHeight, 0) / renderHeight;
         let body = NumCast(this.props.Document.nativeHeight) ?
             this.pdfPage :
-            <Measure onResize={this.setScaling}>
+            <Measure offset onResize={this.setScaling}>
                 {({ measureRef }) =>
                     <div className="pdfBox-page" ref={measureRef}>
                         {this.pdfPage}

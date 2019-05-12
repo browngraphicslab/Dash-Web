@@ -180,7 +180,7 @@ export class Main extends React.Component {
         let pheightFunc = () => this.pheight;
         let noScaling = () => 1;
         let mainCont = this.mainContainer;
-        return <Measure onResize={action((r: any) => { this.pwidth = r.entry.width; this.pheight = r.entry.height; })}>
+        return <Measure offset onResize={action((r: any) => { this.pwidth = r.offset.width; this.pheight = r.offset.height; })}>
             {({ measureRef }) =>
                 <div ref={measureRef} id="mainContent-div">
                     {!mainCont ? (null) :

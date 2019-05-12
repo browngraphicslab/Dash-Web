@@ -419,7 +419,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     render() {
         let theContent = this.content;
         return !this._document ? (null) :
-            <Measure onResize={action((r: any) => { this._panelWidth = r.entry.width; this._panelHeight = r.entry.height; })}>
+            <Measure offset onResize={action((r: any) => { this._panelWidth = r.offset.width; this._panelHeight = r.offset.height; })}>
                 {({ measureRef }) => <div ref={measureRef}>  {theContent} </div>}
             </Measure>;
     }
