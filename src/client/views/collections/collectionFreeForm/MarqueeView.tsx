@@ -79,7 +79,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                     y += 40 * this.props.getTransform().Scale;
                 })
             })();
-        } else if (e.key === "t" && e.ctrlKey) {
+        } else if (e.key === "b" && e.ctrlKey) {
             //heuristically converts pasted text into a table.
             // assumes each entry is separated by a tab
             // skips all rows until it gets to a row with more than one entry

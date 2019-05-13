@@ -19,6 +19,7 @@ import "./CollectionDockingView.scss";
 import { SubCollectionViewProps } from "./CollectionSubView";
 import React = require("react");
 import { ParentDocSelector } from './ParentDocumentSelector';
+import { DocumentManager } from '../../util/DocumentManager';
 
 @observer
 export class CollectionDockingView extends React.Component<SubCollectionViewProps> {
@@ -73,26 +74,33 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
 
     @undoBatch
     @action
-    public CloseRightSplit(document: Doc) {
+    public CloseRightSplit(document: Doc): boolean {
+        let retVal = false;
         if (this._goldenLayout.root.contentItems[0].isRow) {
-            this._goldenLayout.root.contentItems[0].contentItems.map((child: any, i: number) => {
+            retVal = Array.from(this._goldenLayout.root.contentItems[0].contentItems).some((child: any) => {
                 if (child.contentItems.length === 1 && child.contentItems[0].config.component === "DocumentFrameRenderer" &&
-                    child.contentItems[0].config.props.documentId == document[Id]) {
+                    Doc.AreProtosEqual(DocumentManager.Instance.getDocumentViewById(child.contentItems[0].config.props.documentId)!.Document, document)) {
                     child.contentItems[0].remove();
                     this.layoutChanged(document);
-                    this.stateChanged();
+                    return true;
                 } else
-                    child.contentItems.map((tab: any, j: number) => {
-                        if (tab.config.component === "DocumentFrameRenderer" && tab.config.props.documentId === document[Id]) {
+                    Array.from(child.contentItems).filter((tab: any) => tab.config.component === "DocumentFrameRenderer").some((tab: any, j: number) => {
+                        if (Doc.AreProtosEqual(DocumentManager.Instance.getDocumentViewById(tab.config.props.documentId)!.Document, document)) {
                             child.contentItems[j].remove();
                             child.config.activeItemIndex = Math.max(child.contentItems.length - 1, 0);
                             let docs = Cast(this.props.Document.data, listSpec(Doc));
                             docs && docs.indexOf(document) !== -1 && docs.splice(docs.indexOf(document), 1);
-                            this.stateChanged();
+                            return true;
                         }
+                        return false;
                     });
+                return false;
             })
         }
+        if (retVal) {
+            this.stateChanged();
+        }
+        return retVal;
     }
 
     @action

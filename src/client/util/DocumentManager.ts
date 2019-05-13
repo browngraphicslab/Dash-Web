@@ -5,6 +5,7 @@ import { FieldValue, Cast, NumCast, BoolCast } from '../../new_fields/Types';
 import { listSpec } from '../../new_fields/Schema';
 import { undoBatch } from './UndoManager';
 import { CollectionDockingView } from '../views/collections/CollectionDockingView';
+import { Id } from '../../new_fields/RefField';
 
 
 export class DocumentManager {
@@ -26,13 +27,13 @@ export class DocumentManager {
         // this.DocumentViews = new Array<DocumentView>();
     }
 
-    public getDocumentView(toFind: Doc): DocumentView | null {
+    public getDocumentViewById(id: string): DocumentView | null {
 
         let toReturn: DocumentView | null = null;
 
         //gets document view that is in a freeform canvas collection
         DocumentManager.Instance.DocumentViews.map(view => {
-            if (view.props.Document === toFind) {
+            if (view.props.Document[Id] === id) {
                 toReturn = view;
                 return;
             }
@@ -40,7 +41,7 @@ export class DocumentManager {
         if (!toReturn) {
             DocumentManager.Instance.DocumentViews.map(view => {
                 let doc = view.props.Document.proto;
-                if (doc && Object.is(doc, toFind)) {
+                if (doc && doc.Id === id) {
                     toReturn = view;
                 }
             });
@@ -48,6 +49,9 @@ export class DocumentManager {
 
         return toReturn;
     }
+
+    public getDocumentView(toFind: Doc): DocumentView | null { return this.getDocumentViewById(toFind[Id]); }
+
     public getDocumentViews(toFind: Doc): DocumentView[] {
 
         let toReturn: DocumentView[] = [];

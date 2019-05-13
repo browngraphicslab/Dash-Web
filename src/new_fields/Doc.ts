@@ -134,7 +134,8 @@ export namespace Doc {
         return Cast(Get(doc, key, ignoreProto), ctor) as FieldResult<T>;
     }
     export async function SetOnPrototype(doc: Doc, key: string, value: Field) {
-        const proto = doc.proto;
+        const proto = Object.getOwnPropertyNames(doc).indexOf("isProto") == -1 ? doc.proto : doc;
+
         if (proto) {
             proto[key] = value;
         }
@@ -158,6 +159,15 @@ export namespace Doc {
             }
         }
         return doc;
+    }
+
+    // compare whether documents or their protos match
+    export function AreProtosEqual(doc: Doc, other: Doc) {
+        let r = (doc[Id] === other[Id]);
+        let r2 = (doc.proto && doc.proto.Id === other[Id]);
+        let r3 = (other.proto && other.proto.Id === doc[Id]);
+        let r4 = (doc.proto && other.proto && doc.proto[Id] === other.proto[Id]);
+        return r || r2 || r3 || r4 ? true : false;
     }
 
     export function MakeAlias(doc: Doc) {

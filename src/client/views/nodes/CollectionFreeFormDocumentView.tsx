@@ -189,10 +189,8 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                             SelectionManager.DeselectAll();
                             expandedDocs.forEach(maxDoc => {
                                 maxDoc.isMinimized = false;
-                                if (!dataDocs || dataDocs.indexOf(maxDoc) == -1) {
-                                    CollectionDockingView.Instance.AddRightSplit(maxDoc);
-                                } else {
-                                    CollectionDockingView.Instance.CloseRightSplit(maxDoc);
+                                if (!CollectionDockingView.Instance.CloseRightSplit(maxDoc)) {
+                                    CollectionDockingView.Instance.AddRightSplit(Doc.MakeCopy(maxDoc));
                                 }
                             });
                         }
