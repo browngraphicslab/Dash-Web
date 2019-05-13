@@ -358,7 +358,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     @computed
     get marqueeDiv() {
         let v = this.props.getContainerTransform().transformDirection(this._lastX - this._downX, this._lastY - this._downY);
-        return <div className="marquee" style={{ width: `${Math.abs(v[0])}`, height: `${Math.abs(v[1])}` }} >
+        return <div className="marquee" style={{ width: `${Math.abs(v[0])}`, height: `${Math.abs(v[1])}`, zIndex: 2000 }} >
             <span className="marquee-legend" />
         </div>;
     }
@@ -366,11 +366,11 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     render() {
         let p = this.props.getContainerTransform().transformPoint(this._downX < this._lastX ? this._downX : this._lastX, this._downY < this._lastY ? this._downY : this._lastY);
         return <div className="marqueeView" style={{ borderRadius: "inherit" }} onClick={this.onClick} onPointerDown={this.onPointerDown}>
-            <div style={{ position: "absolute", transform: `translate(${p[0]}px, ${p[1]}px)` }} >
-                <div ref={this._mainCont} style={{ position: "absolute", transform: `translate(${-p[0]}px, ${-p[1]}px)` }} >
+            <div style={{ position: "relative", transform: `translate(${p[0]}px, ${p[1]}px)` }} >
+                {!this._visible ? null : this.marqueeDiv}
+                <div ref={this._mainCont} style={{ transform: `translate(${-p[0]}px, ${-p[1]}px)` }} >
                     {this.props.children}
                 </div>
-                {!this._visible ? null : this.marqueeDiv}
             </div>
         </div>;
     }
