@@ -262,8 +262,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         if (!this.props.isOverlay) {
             FormattedTextBox.InputBoxOverlay = this;
         } else {
-            if (this._proseRef.current) {
-                this._proseRef.current.scrollTop = FormattedTextBox.InputBoxOverlayScroll;
+            if (this._ref.current) {
+                this._ref.current.scrollTop = FormattedTextBox.InputBoxOverlayScroll;
             }
         }
     }

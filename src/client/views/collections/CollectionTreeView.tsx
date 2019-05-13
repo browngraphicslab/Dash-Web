@@ -19,6 +19,7 @@ import { CurrentUserUtils } from '../../../server/authentication/models/current_
 import { CollectionDockingView } from './CollectionDockingView';
 import { DocumentManager } from '../../util/DocumentManager';
 import { List } from '../../../new_fields/List';
+import { Docs } from '../../documents/Documents';
 
 
 export interface TreeViewProps {
@@ -141,6 +142,10 @@ class TreeView extends React.Component<TreeViewProps> {
         if (!e.isPropagationStopped() && this.props.document[Id] !== CurrentUserUtils.MainDocId) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
             ContextMenu.Instance.addItem({ description: "Open as Workspace", event: undoBatch(() => Main.Instance.openWorkspace(this.props.document)) });
             ContextMenu.Instance.addItem({ description: "Open Right", event: () => CollectionDockingView.Instance.AddRightSplit(this.props.document) });
+            ContextMenu.Instance.addItem({
+                description: "Open Fields", event: () => CollectionDockingView.Instance.AddRightSplit(Docs.KVPDocument(this.props.document,
+                    { title: this.props.document.title + ".kvp", width: 300, height: 300 }))
+            });
             if (DocumentManager.Instance.getDocumentViews(this.props.document).length) {
                 ContextMenu.Instance.addItem({ description: "Focus", event: () => DocumentManager.Instance.getDocumentViews(this.props.document).map(view => view.props.focus(this.props.document)) });
             }

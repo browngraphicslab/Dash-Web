@@ -79,6 +79,46 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                     y += 40 * this.props.getTransform().Scale;
                 })
             })();
+        } else if (e.key === "t" && e.ctrlKey) {
+            //heuristically converts pasted text into a table.
+            // assumes each entry is separated by a tab
+            // skips all rows until it gets to a row with more than one entry
+            // assumes that 1st row has header entry for each column
+            // assumes subsequent rows have entries for each column header OR
+            //         any row that has only one column is a section header-- this header is then added as a column to subsequent rows until the next header
+            // assumes each cell is a string or a number
+            e.preventDefault();
+            (async () => {
+                let text: string = await navigator.clipboard.readText();
+                let ns = text.split("\n").filter(t => t.trim() != "\r" && t.trim() != "");
+                while (ns.length > 0 && ns[0].split("\t").length < 2)
+                    ns.splice(0, 1);
+                if (ns.length > 0) {
+                    let columns = ns[0].split("\t");
+                    let docList: Doc[] = [];
+                    let groupAttr: string | number = "";
+                    for (let i = 1; i < ns.length - 1; i++) {
+                        let values = ns[i].split("\t");
+                        if (values.length === 1 && columns.length > 1) {
+                            groupAttr = values[0];
+                            continue;
+                        }
+                        let doc = new Doc();
+                        columns.forEach((col, i) => {
+                            console.log(values[i] + " " + Number(values[i]).toString());
+                            doc[columns[i]] = (values.length > i ? ((values[i].indexOf(Number(values[i]).toString()) !== -1) ? Number(values[i]) : values[i]) : undefined);
+                        });
+                        if (groupAttr) {
+                            doc["_group"] = groupAttr;
+                        }
+                        doc.title = i.toString();
+                        docList.push(doc);
+                    }
+                    let newCol = Docs.SchemaDocument(docList, { x: x, y: y, title: "-dropped table-", width: 300, height: 100 });
+                    newCol.proto!.schemaColumns = new List<string>([...(groupAttr ? ["_group"] : []), ...columns.filter(c => c)]);
+                    this.props.addDocument(newCol, false);
+                }
+            })();
         } else {
             let newBox = Docs.TextDocument({ width: 200, height: 100, x: x, y: y, title: "-typed text-" });
             this.props.addLiveTextDocument(newBox);
@@ -318,7 +358,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     @computed
     get marqueeDiv() {
         let v = this.props.getContainerTransform().transformDirection(this._lastX - this._downX, this._lastY - this._downY);
-        return <div className="marquee" style={{ width: `${Math.abs(v[0])}`, height: `${Math.abs(v[1])}` }} >
+        return <div className="marquee" style={{ width: `${Math.abs(v[0])}`, height: `${Math.abs(v[1])}`, zIndex: 2000 }} >
             <span className="marquee-legend" />
         </div>;
     }
@@ -326,11 +366,11 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     render() {
         let p = this.props.getContainerTransform().transformPoint(this._downX < this._lastX ? this._downX : this._lastX, this._downY < this._lastY ? this._downY : this._lastY);
         return <div className="marqueeView" style={{ borderRadius: "inherit" }} onClick={this.onClick} onPointerDown={this.onPointerDown}>
-            <div style={{ position: "absolute", transform: `translate(${p[0]}px, ${p[1]}px)` }} >
-                <div ref={this._mainCont} style={{ position: "absolute", transform: `translate(${-p[0]}px, ${-p[1]}px)` }} >
+            <div style={{ position: "relative", transform: `translate(${p[0]}px, ${p[1]}px)` }} >
+                {!this._visible ? null : this.marqueeDiv}
+                <div ref={this._mainCont} style={{ transform: `translate(${-p[0]}px, ${-p[1]}px)` }} >
                     {this.props.children}
                 </div>
-                {!this._visible ? null : this.marqueeDiv}
             </div>
         </div>;
     }

@@ -198,11 +198,11 @@ export namespace Doc {
             let linkDoc = Docs.TextDocument({ width: 100, height: 30, borderRounding: -1 });
             //let linkDoc = new Doc;
             linkDoc.proto!.title = "-link name-";
-            linkDoc.linkDescription = "";
-            linkDoc.linkTags = "Default";
+            linkDoc.proto!.linkDescription = "";
+            linkDoc.proto!.linkTags = "Default";
 
-            linkDoc.linkedTo = target;
-            linkDoc.linkedFrom = source;
+            linkDoc.proto!.linkedTo = target;
+            linkDoc.proto!.linkedFrom = source;
 
             let linkedFrom = Cast(target.linkedFromDocs, listSpec(Doc));
             if (!linkedFrom) {
