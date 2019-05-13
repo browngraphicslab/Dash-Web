@@ -24,6 +24,7 @@ import { Cast, FieldValue, NumCast } from "../../../new_fields/Types";
 import { listSpec } from "../../../new_fields/Schema";
 import { List } from "../../../new_fields/List";
 import { Id } from "../../../new_fields/RefField";
+import { isUndefined } from "typescript-collections/dist/lib/util";
 
 
 // bcz: need to add drag and drop of rows and columns.  This seems like it might work for rows: https://codesandbox.io/s/l94mn1q657
@@ -77,23 +78,22 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             PanelHeight: returnZero,
             PanelWidth: returnZero,
         };
-        let contents = (
-            <FieldView {...props} />
-        );
+        let fieldContentView = <FieldView {...props} />;
         let reference = React.createRef<HTMLDivElement>();
-        let onItemDown = SetupDrag(reference, () => props.Document, this.props.moveDocument);
+        let onItemDown = (e: React.PointerEvent) =>
+            (this.props.CollectionView!.props.isSelected() ?
+                SetupDrag(reference, () => props.Document, this.props.moveDocument)(e) : undefined);
         let applyToDoc = (doc: Doc, run: (args?: { [name: string]: any }) => any) => {
             const res = run({ this: doc });
             if (!res.success) return false;
-            const field = res.result;
-            doc[props.fieldKey] = field;
+            doc[props.fieldKey] = res.result;
             return true;
         };
         return (
             <div className="collectionSchemaView-cellContents" onPointerDown={onItemDown} key={props.Document[Id]} ref={reference}>
                 <EditableView
                     display={"inline"}
-                    contents={contents}
+                    contents={fieldContentView}
                     height={Number(MAX_ROW_HEIGHT)}
                     GetValue={() => {
                         let field = props.Document[props.fieldKey];
@@ -224,10 +224,11 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         this.previewScript = e.currentTarget.value;
     }
 
+    @computed
     get previewDocument(): Doc | undefined {
-        const children = Cast(this.props.Document[this.props.fieldKey], listSpec(Doc), []);
+        const children = DocListCast(this.props.Document[this.props.fieldKey]);
         const selected = children.length > this._selectedIndex ? FieldValue(children[this._selectedIndex]) : undefined;
-        return selected ? (this.previewScript ? FieldValue(Cast(selected[this.previewScript], Doc)) : selected) : undefined;
+        return selected ? (this.previewScript && this.previewScript != "this" ? FieldValue(Cast(selected[this.previewScript], Doc)) : selected) : undefined;
     }
     get tableWidth() { return (this.props.PanelWidth() - 2 * this.borderWidth - this.DIVIDER_WIDTH) * (1 - this.splitPercentage / 100); }
     get previewRegionHeight() { return this.props.PanelHeight() - 2 * this.borderWidth; }
@@ -253,8 +254,8 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     get previewPanel() {
         // let doc = CompileScript(this.previewScript, { this: selected }, true)();
         const previewDoc = this.previewDocument;
-        return !previewDoc || !this.previewRegionWidth ? (null) : (
-            <div className="collectionSchemaView-previewRegion" style={{ width: `${this.previewRegionWidth}px` }}>
+        return (<div className="collectionSchemaView-previewRegion" style={{ width: `${this.previewRegionWidth}px` }}>
+            {!previewDoc || !this.previewRegionWidth ? (null) : (
                 <div className="collectionSchemaView-previewDoc" style={{ transform: `translate(${this.previewPanelCenteringOffset}px, 0px)` }}>
                     <DocumentView Document={previewDoc} isTopMost={false} selectOnLoad={false}
                         toggleMinimized={emptyFunction}
@@ -268,11 +269,10 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                         whenActiveChanged={this.props.whenActiveChanged}
                         bringToFront={emptyFunction}
                     />
-                </div>
-                <input className="collectionSchemaView-input" value={this.previewScript} onChange={this.onPreviewScriptChange}
-                    style={{ left: `calc(50% - ${Math.min(75, this.previewPanelWidth() / 2)}px)` }} />
-            </div>
-        );
+                </div>)}
+            <input className="collectionSchemaView-input" value={this.previewScript} onChange={this.onPreviewScriptChange}
+                style={{ left: `calc(50% - ${Math.min(75, (previewDoc ? this.previewPanelWidth() / 2 : 75))}px)` }} />
+        </div>);
     }
 
     get documentKeysCheckList() {

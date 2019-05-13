@@ -14,6 +14,10 @@
 
     .collectionSchemaView-cellContents {
         height: $MAX_ROW_HEIGHT;
+        img {
+            width:auto;
+            max-height: $MAX_ROW_HEIGHT;
+        }
     }
     
     .collectionSchemaView-previewRegion {

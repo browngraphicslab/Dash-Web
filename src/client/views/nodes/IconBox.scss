@@ -1,7 +1,7 @@
 
 @import "../globalCssVariables";
 .iconBox-container {
-    position: absolute;
+    position: inherit;
     left:0;
     top:0;
     height: 100%;
@@ -14,7 +14,7 @@
         background: white;
     }
     .iconBox-label {
-        position: inherit;
+        position: absolute;
         width:max-content;
         font-size: 14px;
         margin-top: 3px;
