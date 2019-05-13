@@ -22,7 +22,8 @@ export class Search {
         try {
             const searchResults = JSON.parse(await rp.get(this.url + "dash/select", {
                 qs: {
-                    q: query
+                    q: query,
+                    fl: "id"
                 }
             }));
             const fields = searchResults.response.docs;

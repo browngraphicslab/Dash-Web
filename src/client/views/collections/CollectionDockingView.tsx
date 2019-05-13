@@ -18,6 +18,7 @@ import { DocumentView } from "../nodes/DocumentView";
 import "./CollectionDockingView.scss";
 import { SubCollectionViewProps } from "./CollectionSubView";
 import React = require("react");
+import { ParentDocSelector } from './ParentDocumentSelector';
 
 @observer
 export class CollectionDockingView extends React.Component<SubCollectionViewProps> {
@@ -157,6 +158,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                 try {
                     this._goldenLayout.unbind('itemDropped', this.itemDropped);
                     this._goldenLayout.unbind('tabCreated', this.tabCreated);
+                    this._goldenLayout.unbind('tabDestroyed', this.tabDestroyed);
                     this._goldenLayout.unbind('stackCreated', this.stackCreated);
                 } catch (e) { }
                 this._goldenLayout.destroy();
@@ -164,6 +166,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             }
             this._goldenLayout.on('itemDropped', this.itemDropped);
             this._goldenLayout.on('tabCreated', this.tabCreated);
+            this._goldenLayout.on('tabDestroyed', this.tabDestroyed);
             this._goldenLayout.on('stackCreated', this.stackCreated);
             this._goldenLayout.registerComponent('DocumentFrameRenderer', DockedFrameRenderer);
             this._goldenLayout.container = this._containerRef.current;
@@ -196,6 +199,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             this._goldenLayout.unbind('itemDropped', this.itemDropped);
             this._goldenLayout.unbind('tabCreated', this.tabCreated);
             this._goldenLayout.unbind('stackCreated', this.stackCreated);
+            this._goldenLayout.unbind('tabDestroyed', this.tabDestroyed);
         } catch (e) {
 
         }
@@ -292,8 +296,12 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             }
             DocServer.GetRefField(tab.contentItem.config.props.documentId).then(async doc => {
                 if (doc instanceof Doc) {
-                    let counter: any = this.htmlToElement(`<div class="messageCounter">0</div>`);
+                    let counter: any = this.htmlToElement(`<span class="messageCounter">0</div>`);
                     tab.element.append(counter);
+                    let upDiv = document.createElement("span");
+                    ReactDOM.render(<ParentDocSelector Document={doc} />, upDiv);
+                    tab.reactComponents = [upDiv];
+                    tab.element.append(upDiv);
                     counter.DashDocId = tab.contentItem.config.props.documentId;
                     tab.reactionDisposer = reaction(() => [doc.linkedFromDocs, doc.LinkedToDocs, doc.title],
                         () => {
@@ -319,6 +327,14 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                 }
                 tab.contentItem.remove();
             });
+    }
+
+    tabDestroyed = (tab: any) => {
+        if (tab.reactComponents) {
+            for (const ele of tab.reactComponents) {
+                ReactDOM.unmountComponentAtNode(ele);
+            }
+        }
     }
     _removedDocs: Doc[] = [];
 
