@@ -2,7 +2,34 @@ import * as React from "react";
 import './ParentDocumentSelector.scss';
 import { Doc } from "../../../new_fields/Doc";
 import { observer } from "mobx-react";
-import { observable, action } from "mobx";
+import { observable, action, runInAction } from "mobx";
+import { Id } from "../../../new_fields/RefField";
+import { SearchUtil } from "../../util/SearchUtil";
+import { CollectionDockingView } from "./CollectionDockingView";
+
+@observer
+export class SelectorContextMenu extends React.Component<{ Document: Doc }> {
+    @observable private _docs: Doc[] = [];
+
+    constructor(props: { Document: Doc }) {
+        super(props);
+
+        this.fetchDocuments();
+    }
+
+    async fetchDocuments() {
+        const docs = await SearchUtil.Search(`data_l:${this.props.Document[Id]}`, true);
+        runInAction(() => this._docs = docs);
+    }
+
+    render() {
+        return (
+            <>
+                {this._docs.map(doc => <p><a onClick={() => CollectionDockingView.Instance.AddRightSplit(doc)}>{doc.title}</a></p>)}
+            </>
+        );
+    }
+}
 
 @observer
 export class ParentDocSelector extends React.Component<{ Document: Doc }> {
@@ -23,7 +50,7 @@ export class ParentDocSelector extends React.Component<{ Document: Doc }> {
         if (this.hover) {
             flyout = (
                 <div className="PDS-flyout">
-                    <p>Hello world</p>
+                    <SelectorContextMenu Document={this.props.Document} />
                 </div>
             );
         }

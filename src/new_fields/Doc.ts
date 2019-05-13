@@ -130,8 +130,8 @@ export namespace Doc {
         const self = doc[Self];
         return getField(self, key, ignoreProto);
     }
-    export function GetT<T extends Field>(doc: Doc, key: string, ctor: ToConstructor<T>, ignoreProto: boolean = false): T | null | undefined {
-        return Cast(Get(doc, key, ignoreProto), ctor) as T | null | undefined;
+    export function GetT<T extends Field>(doc: Doc, key: string, ctor: ToConstructor<T>, ignoreProto: boolean = false): FieldResult<T> {
+        return Cast(Get(doc, key, ignoreProto), ctor) as FieldResult<T>;
     }
     export async function SetOnPrototype(doc: Doc, key: string, value: Field) {
         const proto = doc.proto;

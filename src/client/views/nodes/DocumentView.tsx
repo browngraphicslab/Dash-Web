@@ -26,6 +26,7 @@ import { CurrentUserUtils } from "../../../server/authentication/models/current_
 import { DocServer } from "../../DocServer";
 import { Id } from "../../../new_fields/RefField";
 import { PresentationView } from "../PresentationView";
+import { SearchUtil } from "../../util/SearchUtil";
 
 const linkSchema = createSchema({
     title: "string",
@@ -287,16 +288,22 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
         e.preventDefault();
 
-        ContextMenu.Instance.addItem({ description: "Full Screen", event: this.fullScreenClicked });
-        ContextMenu.Instance.addItem({ description: this.props.Document.isButton ? "Remove Button" : "Make Button", event: this.makeButton });
-        ContextMenu.Instance.addItem({ description: "Fields", event: this.fieldsClicked });
-        ContextMenu.Instance.addItem({ description: "Center", event: () => this.props.focus(this.props.Document) });
-        ContextMenu.Instance.addItem({ description: "Open Right", event: () => CollectionDockingView.Instance.AddRightSplit(this.props.Document) });
-        ContextMenu.Instance.addItem({ description: "Copy URL", event: () => Utils.CopyText(DocServer.prepend("/doc/" + this.props.Document[Id])) });
-        ContextMenu.Instance.addItem({ description: "Copy ID", event: () => Utils.CopyText(this.props.Document[Id]) });
-        //ContextMenu.Instance.addItem({ description: "Docking", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Docking) })
-        ContextMenu.Instance.addItem({ description: "Pin to Presentation", event: () => PresentationView.Instance.PinDoc(this.props.Document) });
-        ContextMenu.Instance.addItem({ description: "Delete", event: this.deleteClicked });
+        const cm = ContextMenu.Instance;
+        cm.addItem({ description: "Full Screen", event: this.fullScreenClicked });
+        cm.addItem({ description: this.props.Document.isButton ? "Remove Button" : "Make Button", event: this.makeButton });
+        cm.addItem({ description: "Fields", event: this.fieldsClicked });
+        cm.addItem({ description: "Center", event: () => this.props.focus(this.props.Document) });
+        cm.addItem({ description: "Open Right", event: () => CollectionDockingView.Instance.AddRightSplit(this.props.Document) });
+        cm.addItem({
+            description: "Find aliases", event: async () => {
+                const aliases = await SearchUtil.GetAliasesOfDocument(this.props.Document);
+                CollectionDockingView.Instance.AddRightSplit(Docs.SchemaDocument(aliases, {}));
+            }
+        });
+        cm.addItem({ description: "Copy URL", event: () => Utils.CopyText(DocServer.prepend("/doc/" + this.props.Document[Id])) });
+        cm.addItem({ description: "Copy ID", event: () => Utils.CopyText(this.props.Document[Id]) });
+        cm.addItem({ description: "Pin to Presentation", event: () => PresentationView.Instance.PinDoc(this.props.Document) });
+        cm.addItem({ description: "Delete", event: this.deleteClicked });
         if (!this.topMost) {
             // DocumentViews should stop propagation of this event
             e.stopPropagation();
