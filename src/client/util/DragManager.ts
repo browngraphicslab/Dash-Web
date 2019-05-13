@@ -105,7 +105,8 @@ export namespace DragManager {
         constructor(
             readonly x: number,
             readonly y: number,
-            readonly data: { [id: string]: any }
+            readonly data: { [id: string]: any },
+            readonly mods: string
         ) { }
     }
 
@@ -334,7 +335,8 @@ export namespace DragManager {
                     detail: {
                         x: e.x,
                         y: e.y,
-                        data: dragData
+                        data: dragData,
+                        mods: e.ctrlKey ? "Control" : ""
                     }
                 })
             );

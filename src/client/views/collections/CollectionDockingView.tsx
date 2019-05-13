@@ -5,7 +5,7 @@ import { observer } from "mobx-react";
 import * as ReactDOM from 'react-dom';
 import Measure from "react-measure";
 import * as GoldenLayout from "../../../client/goldenLayout";
-import { Doc, Field, Opt } from "../../../new_fields/Doc";
+import { Doc, Field, Opt, DocListCast } from "../../../new_fields/Doc";
 import { FieldId, Id } from "../../../new_fields/RefField";
 import { listSpec } from "../../../new_fields/Schema";
 import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
@@ -313,10 +313,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                     counter.DashDocId = tab.contentItem.config.props.documentId;
                     tab.reactionDisposer = reaction(() => [doc.linkedFromDocs, doc.LinkedToDocs, doc.title],
                         () => {
-                            const lf = Cast(doc.linkedFromDocs, listSpec(Doc), []);
-                            const lt = Cast(doc.linkedToDocs, listSpec(Doc), []);
-                            let count = (lf ? lf.length : 0) + (lt ? lt.length : 0);
-                            counter.innerHTML = count;
+                            counter.innerHTML = DocListCast(doc.linkedFromDocs).length + DocListCast(doc.linkedToDocs).length;
                             tab.titleElement[0].textContent = doc.title;
                         }, { fireImmediately: true });
                     tab.titleElement[0].DashDocId = tab.contentItem.config.props.documentId;

@@ -239,6 +239,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             this._removeIcon = snapped;
         }
     }
+    @undoBatch
     @action
     onMinimizeUp = (e: PointerEvent): void => {
         e.stopPropagation();
@@ -270,6 +271,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         runInAction(() => this._minimizedX = this._minimizedY = 0);
     }
 
+    @undoBatch
     @action createIcon = (selected: DocumentView[], layoutString: string): Doc => {
         let doc = selected[0].props.Document;
         let iconDoc = Docs.IconDocument(layoutString);

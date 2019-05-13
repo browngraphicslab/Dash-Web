@@ -43,9 +43,14 @@ const ObserverJsxParser: typeof JsxParser = ObserverJsxParser1 as any;
 export class DocumentContentsView extends React.Component<DocumentViewProps & {
     isSelected: () => boolean,
     select: (ctrl: boolean) => void,
-    layoutKey: string
+    layoutKey: string,
 }> {
-    @computed get layout(): string { return Cast(this.props.Document[this.props.layoutKey], "string", this.props.layoutKey === "layout" ? "<p>Error loading layout data</p>" : ""); }
+    @computed get layout(): string {
+        return StrCast(this.props.Document[this.props.layoutKey],
+            this.props.Document.data ?
+                "<FieldView {...props} fieldKey='data' />" :
+                KeyValueBox.LayoutString(this.props.Document.proto ? "proto" : ""));
+    }
 
     CreateBindings(): JsxBindings {
         return { props: OmitKeys(this.props, ['parentActive'], (obj: any) => obj.active = this.props.parentActive).omit };

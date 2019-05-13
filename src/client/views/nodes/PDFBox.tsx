@@ -1,5 +1,5 @@
 import * as htmlToImage from "html-to-image";
-import { action, computed, IReactionDisposer, observable, reaction, Reaction, trace } from 'mobx';
+import { action, computed, IReactionDisposer, observable, reaction, Reaction, trace, runInAction } from 'mobx';
 import { observer } from "mobx-react";
 import 'react-image-lightbox/style.css';
 import Measure from "react-measure";
@@ -223,7 +223,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
             document.addEventListener("pointerup", this.onPointerUp);
         }
         if (this.props.isSelected() && e.buttons === 2) {
-            this._alt = true;
+            runInAction(() => this._alt = true);
             document.removeEventListener("pointerup", this.onPointerUp);
             document.addEventListener("pointerup", this.onPointerUp);
         }

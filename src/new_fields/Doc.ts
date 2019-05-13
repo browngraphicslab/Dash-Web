@@ -173,11 +173,15 @@ export namespace Doc {
     export function MakeAlias(doc: Doc) {
         const alias = new Doc;
 
-        PromiseValue(Cast(doc.proto, Doc)).then(proto => {
-            if (proto) {
-                alias.proto = proto;
-            }
-        });
+        if (!doc.proto) {
+            alias.proto = doc;
+        } else {
+            PromiseValue(Cast(doc.proto, Doc)).then(proto => {
+                if (proto) {
+                    alias.proto = proto;
+                }
+            });
+        }
 
         return alias;
     }

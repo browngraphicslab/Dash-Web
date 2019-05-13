@@ -254,7 +254,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     get previewPanel() {
         // let doc = CompileScript(this.previewScript, { this: selected }, true)();
         const previewDoc = this.previewDocument;
-        return (<div className="collectionSchemaView-previewRegion" style={{ width: `${this.previewRegionWidth}px` }}>
+        return (<div className="collectionSchemaView-previewRegion" style={{ width: `${Math.max(0, this.previewRegionWidth - 1)}px` }}>
             {!previewDoc || !this.previewRegionWidth ? (null) : (
                 <div className="collectionSchemaView-previewDoc" style={{ transform: `translate(${this.previewPanelCenteringOffset}px, 0px)` }}>
                     <DocumentView Document={previewDoc} isTopMost={false} selectOnLoad={false}

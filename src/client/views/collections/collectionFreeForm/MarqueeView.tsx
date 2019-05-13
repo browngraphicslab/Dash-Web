@@ -104,10 +104,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                             continue;
                         }
                         let doc = new Doc();
-                        columns.forEach((col, i) => {
-                            console.log(values[i] + " " + Number(values[i]).toString());
-                            doc[columns[i]] = (values.length > i ? ((values[i].indexOf(Number(values[i]).toString()) !== -1) ? Number(values[i]) : values[i]) : undefined);
-                        });
+                        columns.forEach((col, i) => doc[columns[i]] = (values.length > i ? ((values[i].indexOf(Number(values[i]).toString()) !== -1) ? Number(values[i]) : values[i]) : undefined));
                         if (groupAttr) {
                             doc["_group"] = groupAttr;
                         }
@@ -207,7 +204,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     @undoBatch
     @action
     marqueeCommand = async (e: KeyboardEvent) => {
-        if (this._commandExecuted) {
+        if (this._commandExecuted || (e as any).propagationIsStopped) {
             return;
         }
         if (e.key === "Backspace" || e.key === "Delete" || e.key === "d") {
@@ -224,6 +221,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         if (e.key === "c" || e.key === "r" || e.key === "s" || e.key === "e" || e.key === "p") {
             this._commandExecuted = true;
             e.stopPropagation();
+            (e as any).propagationIsStopped = true;
             let bounds = this.Bounds;
             let selected = this.marqueeSelect().map(d => {
                 if (e.key === "s") {

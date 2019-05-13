@@ -243,8 +243,17 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
             const protoDest = destDoc.proto;
             const protoSrc = sourceDoc.proto;
-            Doc.MakeLink(protoSrc ? protoSrc : sourceDoc, protoDest ? protoDest : destDoc);
-            de.data.droppedDocuments.push(destDoc);
+            if (de.mods == "Control") {
+                let src = protoSrc ? protoSrc : sourceDoc;
+                let dst = protoDest ? protoDest : destDoc;
+                dst.data = src;
+                dst.nativeWidth = src.nativeWidth;
+                dst.nativeHeight = src.nativeHeight;
+            }
+            else {
+                Doc.MakeLink(protoSrc ? protoSrc : sourceDoc, protoDest ? protoDest : destDoc);
+                de.data.droppedDocuments.push(destDoc);
+            }
             e.stopPropagation();
         }
     }

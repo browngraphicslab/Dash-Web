@@ -339,7 +339,7 @@ class CollectionFreeFormOverlayView extends React.Component<DocumentViewProps & 
             isTopMost={this.props.isTopMost} isSelected={this.props.isSelected} select={emptyFunction} />);
     }
     render() {
-        return this.overlayView;
+        return this.props.Document.overlayLayout ? this.overlayView : (null);
     }
 }
 
@@ -350,7 +350,7 @@ class CollectionFreeFormBackgroundView extends React.Component<DocumentViewProps
             isTopMost={this.props.isTopMost} isSelected={this.props.isSelected} select={emptyFunction} />);
     }
     render() {
-        return this.backgroundView;
+        return this.props.Document.backgroundLayout ? this.backgroundView : (null);
     }
 }
 
