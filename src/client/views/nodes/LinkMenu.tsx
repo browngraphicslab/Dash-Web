@@ -36,7 +36,7 @@ export class LinkMenu extends React.Component<Props> {
         if (this._editingLink === undefined) {
             return (
                 <div id="linkMenu-container">
-                    <input id="linkMenu-searchBar" type="text" placeholder="Search..."></input>
+                    {/* <input id="linkMenu-searchBar" type="text" placeholder="Search..."></input> */}
                     <div id="linkMenu-list">
                         {this.renderLinkItems(linkTo, "linkedTo", "Destination: ")}
                         {this.renderLinkItems(linkFrom, "linkedFrom", "Source: ")}

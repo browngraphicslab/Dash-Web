@@ -1,7 +1,7 @@
 import { IconName, library } from '@fortawesome/fontawesome-svg-core';
 import { faFilePdf, faFilm, faFont, faGlobeAsia, faImage, faMusic, faObjectGroup, faPenNib, faRedoAlt, faTable, faTree, faUndoAlt } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { action, computed, configure, observable, runInAction } from 'mobx';
+import { action, computed, configure, observable, runInAction, trace } from 'mobx';
 import { observer } from 'mobx-react';
 import "normalize.css";
 import * as React from 'react';
@@ -51,6 +51,9 @@ export class Main extends React.Component {
     }
     private set mainContainer(doc: Opt<Doc>) {
         if (doc) {
+            if (!("presentationView" in doc)) {
+                doc.presentationView = new Doc();
+            }
             CurrentUserUtils.UserDocument.activeWorkspace = doc;
         }
     }
@@ -174,32 +177,42 @@ export class Main extends React.Component {
             }
         }, 100);
     }
+    @action
+    onResize = (r: any) => {
+        this.pwidth = r.offset.width;
+        this.pheight = r.offset.height;
+    }
+    getPWidth = () => {
+        return this.pwidth;
+    }
+    getPHeight = () => {
+        return this.pheight;
+    }
     @computed
     get mainContent() {
-        let pwidthFunc = () => this.pwidth;
-        let pheightFunc = () => this.pheight;
-        let noScaling = () => 1;
         let mainCont = this.mainContainer;
-        return <Measure offset onResize={action((r: any) => { this.pwidth = r.offset.width; this.pheight = r.offset.height; })}>
+        let content = !mainCont ? (null) :
+            <DocumentView Document={mainCont}
+                toggleMinimized={emptyFunction}
+                addDocument={undefined}
+                removeDocument={undefined}
+                ScreenToLocalTransform={Transform.Identity}
+                ContentScaling={returnOne}
+                PanelWidth={this.getPWidth}
+                PanelHeight={this.getPHeight}
+                isTopMost={true}
+                selectOnLoad={false}
+                focus={emptyFunction}
+                parentActive={returnTrue}
+                whenActiveChanged={emptyFunction}
+                bringToFront={emptyFunction}
+                ContainingCollectionView={undefined} />;
+        const pres = mainCont ? FieldValue(Cast(mainCont.presentationView, Doc)) : undefined;
+        return <Measure offset onResize={this.onResize}>
             {({ measureRef }) =>
                 <div ref={measureRef} id="mainContent-div">
-                    {!mainCont ? (null) :
-                        <DocumentView Document={mainCont}
-                            toggleMinimized={emptyFunction}
-                            addDocument={undefined}
-                            removeDocument={undefined}
-                            ScreenToLocalTransform={Transform.Identity}
-                            ContentScaling={noScaling}
-                            PanelWidth={pwidthFunc}
-                            PanelHeight={pheightFunc}
-                            isTopMost={true}
-                            selectOnLoad={false}
-                            focus={emptyFunction}
-                            parentActive={returnTrue}
-                            whenActiveChanged={emptyFunction}
-                            bringToFront={emptyFunction}
-                            ContainingCollectionView={undefined} />}
-                    <PresentationView key="presentation" />
+                    {content}
+                    {pres ? <PresentationView Document={pres} key="presentation" /> : null}
                 </div>
             }
         </Measure>;
