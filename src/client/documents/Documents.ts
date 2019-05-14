@@ -33,6 +33,7 @@ import { DocServer } from "../DocServer";
 import { StrokeData, InkField } from "../../new_fields/InkField";
 import { dropActionType } from "../util/DragManager";
 import { DateField } from "../../new_fields/DateField";
+import { schema } from "prosemirror-schema-basic";
 
 export interface DocumentOptions {
     x?: number;
@@ -207,16 +208,18 @@ export namespace Docs {
     export function PdfDocument(url: string, options: DocumentOptions = {}) {
         return CreateInstance(pdfProto, new PdfField(new URL(url)), options);
     }
+
     export async function DBDocument(url: string, options: DocumentOptions = {}) {
         let schemaName = options.title ? options.title : "-no schema-";
         let ctlog = await Gateway.Instance.GetSchema(url, schemaName);
         if (ctlog && ctlog.schemas) {
             let schema = ctlog.schemas[0];
             let schemaDoc = Docs.TreeDocument([], { ...options, nativeWidth: undefined, nativeHeight: undefined, width: 150, height: 100, title: schema.displayName! });
-            let schemaDocuments = Cast(schemaDoc.data, listSpec(Doc));
+            let schemaDocuments = Cast(schemaDoc.data, listSpec(Doc), []);
             if (!schemaDocuments) {
                 return;
             }
+            CurrentUserUtils.AddNorthstarSchema(schema, schemaDoc);
             const docs = schemaDocuments;
             CurrentUserUtils.GetAllNorthstarColumnAttributes(schema).map(attr => {
                 DocServer.GetRefField(attr.displayName! + ".alias").then(action((field: Opt<Field>) => {
@@ -251,8 +254,8 @@ export namespace Docs {
         }
         return CreateInstance(collProto, new List(documents), { schemaColumns: new List(["title"]), ...options, viewType: CollectionViewType.Freeform });
     }
-    export function SchemaDocument(documents: Array<Doc>, options: DocumentOptions) {
-        return CreateInstance(collProto, new List(documents), { schemaColumns: new List(["title"]), ...options, viewType: CollectionViewType.Schema });
+    export function SchemaDocument(schemaColumns: string[], documents: Array<Doc>, options: DocumentOptions) {
+        return CreateInstance(collProto, new List(documents), { schemaColumns: new List(schemaColumns), ...options, viewType: CollectionViewType.Schema });
     }
     export function TreeDocument(documents: Array<Doc>, options: DocumentOptions) {
         return CreateInstance(collProto, new List(documents), { schemaColumns: new List(["title"]), ...options, viewType: CollectionViewType.Tree });

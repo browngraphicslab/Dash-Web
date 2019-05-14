@@ -17,6 +17,9 @@ import { InkField, StrokeData } from "../../../../new_fields/InkField";
 import { List } from "../../../../new_fields/List";
 import { ImageField } from "../../../../new_fields/URLField";
 import { Template, Templates } from "../../Templates";
+import { Gateway } from "../../../northstar/manager/Gateway";
+import { DocServer } from "../../../DocServer";
+import { Id } from "../../../../new_fields/RefField";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;
@@ -111,8 +114,8 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                         doc.title = i.toString();
                         docList.push(doc);
                     }
-                    let newCol = Docs.SchemaDocument(docList, { x: x, y: y, title: "-dropped table-", width: 300, height: 100 });
-                    newCol.proto!.schemaColumns = new List<string>([...(groupAttr ? ["_group"] : []), ...columns.filter(c => c)]);
+                    let newCol = Docs.SchemaDocument([...(groupAttr ? ["_group"] : []), ...columns.filter(c => c)], docList, { x: x, y: y, title: "droppedTable", width: 300, height: 100 });
+
                     this.props.addDocument(newCol, false);
                 }
             })();
