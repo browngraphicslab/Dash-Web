@@ -1,6 +1,6 @@
 import 'golden-layout/src/css/goldenlayout-base.css';
 import 'golden-layout/src/css/goldenlayout-dark-theme.css';
-import { action, observable, reaction } from "mobx";
+import { action, observable, reaction, Lambda } from "mobx";
 import { observer } from "mobx-react";
 import * as ReactDOM from 'react-dom';
 import Measure from "react-measure";
@@ -188,12 +188,16 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             this._goldenLayout.init();
         }
     }
+    reactionDisposer?: Lambda;
     componentDidMount: () => void = () => {
+        console.log("Docking mount");
         if (this._containerRef.current) {
-            reaction(
+            this.reactionDisposer = reaction(
                 () => StrCast(this.props.Document.dockingConfig),
                 () => {
                     if (!this._goldenLayout || this._ignoreStateChange !== JSON.stringify(this._goldenLayout.toConfig())) {
+                        // Because this is in a set timeout, if this component unmounts right after mounting,
+                        // we will leak a GoldenLayout, because we try to destroy it before we ever create it
                         setTimeout(() => this.setupGoldenLayout(), 1);
                     }
                     this._ignoreStateChange = "";
@@ -203,6 +207,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         }
     }
     componentWillUnmount: () => void = () => {
+        console.log("Docking unmount");
         try {
             this._goldenLayout.unbind('itemDropped', this.itemDropped);
             this._goldenLayout.unbind('tabCreated', this.tabCreated);
@@ -214,6 +219,10 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         if (this._goldenLayout) this._goldenLayout.destroy();
         this._goldenLayout = null;
         window.removeEventListener('resize', this.onResize);
+
+        if (this.reactionDisposer) {
+            this.reactionDisposer();
+        }
     }
     @action
     onResize = (event: any) => {

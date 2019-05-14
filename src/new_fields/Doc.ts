@@ -29,15 +29,21 @@ export const SelfProxy = Symbol("SelfProxy");
 export const WidthSym = Symbol("Width");
 export const HeightSym = Symbol("Height");
 
+/**
+ * Cast any field to either a List of Docs or undefined if the given field isn't a List of Docs.  
+ * If a default value is given, that will be returned instead of undefined.  
+ * If a default value is given, the returned value should not be modified as it might be a temporary value.  
+ * If no default value is given, and the returned value is not undefined, it can be safely modified.  
+ */
 export function DocListCastAsync(field: FieldResult): Promise<Doc[] | undefined>;
 export function DocListCastAsync(field: FieldResult, defaultValue: Doc[]): Promise<Doc[]>;
 export function DocListCastAsync(field: FieldResult, defaultValue?: Doc[]) {
     const list = Cast(field, listSpec(Doc));
-    return list ? Promise.all(list) : Promise.resolve(defaultValue);
+    return list ? Promise.all(list).then(() => list) : Promise.resolve(defaultValue);
 }
 
 export function DocListCast(field: FieldResult) {
-    return Cast(field, listSpec(Doc), []).filter(d => d && d instanceof Doc).map(d => d as Doc)
+    return Cast(field, listSpec(Doc), []).filter(d => d && d instanceof Doc).map(d => d as Doc);
 }
 
 @Deserializable("doc").withFields(["id"])
