@@ -159,9 +159,10 @@ export namespace Doc {
         for (const key in fields) {
             if (fields.hasOwnProperty(key)) {
                 const value = fields[key];
-                if (value !== undefined) {
-                    doc[key] = value;
-                }
+                // Do we want to filter out undefineds?
+                // if (value !== undefined) {
+                doc[key] = value;
+                // }
             }
         }
         return doc;

@@ -38,6 +38,8 @@ import { Cast, FieldValue, StrCast } from '../../new_fields/Types';
 import { DocServer } from '../DocServer';
 import { listSpec } from '../../new_fields/Schema';
 import { Id } from '../../new_fields/RefField';
+import { HistoryUtil } from '../util/History';
+
 
 @observer
 export class Main extends React.Component {
@@ -95,21 +97,6 @@ export class Main extends React.Component {
         // }
     }
 
-    componentDidMount() { window.onpopstate = this.onHistory; }
-
-    componentWillUnmount() { window.onpopstate = null; }
-
-    onHistory = () => {
-        if (window.location.pathname !== RouteStore.home) {
-            let pathname = window.location.pathname.split("/");
-            DocServer.GetRefField(pathname[pathname.length - 1]).then(action((field: Opt<Field>) => {
-                if (field instanceof Doc) {
-                    this.openWorkspace(field, true);
-                }
-            }));
-        }
-    }
-
     initEventListeners = () => {
         // window.addEventListener("pointermove", (e) => this.reportLocation(e))
         window.addEventListener("drop", (e) => e.preventDefault(), false); // drop event handler
@@ -165,7 +152,7 @@ export class Main extends React.Component {
     openWorkspace = async (doc: Doc, fromHistory = false) => {
         CurrentUserUtils.MainDocId = doc[Id];
         this.mainContainer = doc;
-        fromHistory || window.history.pushState(null, StrCast(doc.title), "/doc/" + doc[Id]);
+        fromHistory || HistoryUtil.pushState({ type: "doc", docId: doc[Id], initializers: {} });
         const col = await Cast(CurrentUserUtils.UserDocument.optionalRightCollection, Doc);
         // if there is a pending doc, and it has new data, show it (syip: we use a timeout to prevent collection docking view from being uninitialized)
         setTimeout(async () => {

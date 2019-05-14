@@ -24,6 +24,7 @@ import { FieldValue, Cast, NumCast } from "../../../../new_fields/Types";
 import { pageSchema } from "../../nodes/ImageBox";
 import { Id } from "../../../../new_fields/RefField";
 import { InkField, StrokeData } from "../../../../new_fields/InkField";
+import { HistoryUtil } from "../../../util/History";
 
 export const panZoomSchema = createSchema({
     panX: "number",
@@ -219,6 +220,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     @action
     setPan(panX: number, panY: number) {
+        this.panDisposer && clearTimeout(this.panDisposer);
+        this.props.Document.panTransformType = "None";
         var scale = this.getLocalTransform().inverse().Scale;
         const newPanX = Math.min((1 - 1 / scale) * this.nativeWidth, Math.max(0, panX));
         const newPanY = Math.min((1 - 1 / scale) * this.nativeHeight, Math.max(0, panY));
@@ -245,16 +248,37 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         doc.zIndex = docs.length + 1;
     }
 
+    panDisposer?: NodeJS.Timeout;
     focusDocument = (doc: Doc) => {
-        SelectionManager.DeselectAll();
-        this.props.Document.panTransformType = "Ease";
-        this.setPan(
-            NumCast(doc.x) + NumCast(doc.width) / 2,
-            NumCast(doc.y) + NumCast(doc.height) / 2);
-        this.props.focus(this.props.Document);
-        if (this.props.Document.panTransformType === "Ease") {
-            setTimeout(() => this.props.Document.panTransformType = "None", 2000);  // wait 3 seconds, then reset to false
+        const panX = this.Document.panX;
+        const panY = this.Document.panY;
+        const id = this.Document[Id];
+        const state = HistoryUtil.getState();
+        // TODO This technically isn't correct if type !== "doc", as 
+        // currently nothing is done, but we should probably push a new state
+        if (state.type === "doc" && panX !== undefined && panY !== undefined) {
+            const init = state.initializers[id];
+            if (!init) {
+                state.initializers[id] = {
+                    panX, panY
+                };
+                HistoryUtil.pushState(state);
+            } else if (init.panX !== panX || init.panY !== panY) {
+                init.panX = panX;
+                init.panY = panY;
+                HistoryUtil.pushState(state);
+            }
         }
+        SelectionManager.DeselectAll();
+        const newPanX = NumCast(doc.x) + NumCast(doc.width) / 2;
+        const newPanY = NumCast(doc.y) + NumCast(doc.height) / 2;
+        const newState = HistoryUtil.getState();
+        newState.initializers[id] = { panX: newPanX, panY: newPanY };
+        HistoryUtil.pushState(newState);
+        this.setPan(newPanX, newPanY);
+        this.props.Document.panTransformType = "Ease";
+        this.props.focus(this.props.Document);
+        this.panDisposer = setTimeout(() => this.props.Document.panTransformType = "None", 2000);  // wait 3 seconds, then reset to false
     }
 
 

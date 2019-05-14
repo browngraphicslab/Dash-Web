@@ -190,7 +190,6 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     }
     reactionDisposer?: Lambda;
     componentDidMount: () => void = () => {
-        console.log("Docking mount");
         if (this._containerRef.current) {
             this.reactionDisposer = reaction(
                 () => StrCast(this.props.Document.dockingConfig),
@@ -207,7 +206,6 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         }
     }
     componentWillUnmount: () => void = () => {
-        console.log("Docking unmount");
         try {
             this._goldenLayout.unbind('itemDropped', this.itemDropped);
             this._goldenLayout.unbind('tabCreated', this.tabCreated);
