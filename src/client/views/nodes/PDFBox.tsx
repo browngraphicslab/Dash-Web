@@ -21,6 +21,7 @@ import { positionSchema } from "./DocumentView";
 import { pageSchema } from "./ImageBox";
 import { ImageField, PdfField } from "../../../new_fields/URLField";
 import { InkingControl } from "../InkingControl";
+import { PDFViewer } from "../pdf/PDFViewer";
 
 /** ALSO LOOK AT: Annotation.tsx, Sticky.tsx
  * This method renders PDF and puts all kinds of functionalities such as annotation, highlighting, 
@@ -354,10 +355,11 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     }
     render() {
         trace();
+        const pdfUrl = window.origin + RouteStore.corsProxy + "/https://mozilla.github.io/pdf.js/web/compressed.tracemonkey-pldi-09.pdf";
         let classname = "pdfBox-cont" + (this.props.isSelected() && !InkingControl.Instance.selectedTool && !this._alt ? "-interactive" : "");
         return (
             <div className={classname} tabIndex={0} ref={this._mainDiv} onPointerDown={this.onPointerDown} onKeyDown={this.onKeyDown} onKeyUp={this.onKeyUp} >
-                {this.pdfRenderer}
+                <PDFViewer url={pdfUrl} />
             </div >
         );
     }

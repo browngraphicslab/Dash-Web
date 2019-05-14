@@ -33,6 +33,7 @@ import { DocServer } from "../DocServer";
 import { StrokeData, InkField } from "../../new_fields/InkField";
 import { dropActionType } from "../util/DragManager";
 import { DateField } from "../../new_fields/DateField";
+import { PDFBox2 } from "../views/pdf/PDFBox2";
 
 export interface DocumentOptions {
     x?: number;
@@ -136,7 +137,7 @@ export namespace Docs {
     }
     function CreatePdfPrototype(): Doc {
         let pdfProto = setupPrototypeOptions(pdfProtoId, "PDF_PROTO", CollectionPDFView.LayoutString("annotations"),
-            { x: 0, y: 0, nativeWidth: 1200, width: 300, backgroundLayout: PDFBox.LayoutString(), curPage: 1 });
+            { x: 0, y: 0, nativeWidth: 1200, width: 300, height: 300, backgroundLayout: PDFBox.LayoutString(), curPage: 1 });
         return pdfProto;
     }
     function CreateWebPrototype(): Doc {
