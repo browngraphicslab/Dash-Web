@@ -41,7 +41,7 @@ export class DocumentManager {
         if (!toReturn) {
             DocumentManager.Instance.DocumentViews.map(view => {
                 let doc = view.props.Document.proto;
-                if (doc && doc.Id === id) {
+                if (doc && doc[Id] === id) {
                     toReturn = view;
                 }
             });
@@ -50,7 +50,9 @@ export class DocumentManager {
         return toReturn;
     }
 
-    public getDocumentView(toFind: Doc): DocumentView | null { return this.getDocumentViewById(toFind[Id]); }
+    public getDocumentView(toFind: Doc): DocumentView | null {
+        return this.getDocumentViewById(toFind[Id]);
+    }
 
     public getDocumentViews(toFind: Doc): DocumentView[] {
 
