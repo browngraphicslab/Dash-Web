@@ -165,7 +165,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         else if (field instanceof List) paths = field.filter(val => val instanceof ImageField).map(p => (p as ImageField).url.href);
         let nativeWidth = FieldValue(this.Document.nativeWidth, (this.props.PanelWidth as any) as string ? Number((this.props.PanelWidth as any) as string) : 50);
         let interactive = InkingControl.Instance.selectedTool ? "" : "-interactive";
-        let id = this.props.id;
+        let id = this.props.id; // bcz: used to set id = "isExpander" in templates.tsx
         return (
             <div id={id} className={`imageBox-cont${interactive}`} onPointerDown={this.onPointerDown} onDrop={this.onDrop} ref={this.createDropTarget} onContextMenu={this.specificContextMenu}>
                 <img id={id} src={paths[Math.min(paths.length, this._photoIndex)]}
