@@ -96,7 +96,6 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         this._downX = e.clientX;
         this._downY = e.clientY;
         e.stopPropagation();
-        this.onBackgroundDown(e);
         document.removeEventListener("pointermove", this.onTitleMove);
         document.removeEventListener("pointerup", this.onTitleUp);
         document.addEventListener("pointermove", this.onTitleMove);

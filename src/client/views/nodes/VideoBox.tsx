@@ -1,6 +1,7 @@
 import React = require("react");
 import { observer } from "mobx-react";
 import { FieldView, FieldViewProps } from './FieldView';
+import * as rp from "request-promise";
 import "./VideoBox.scss";
 import { action, computed, trace } from "mobx";
 import { DocComponent } from "../DocComponent";
@@ -12,6 +13,8 @@ import { VideoField } from "../../../new_fields/URLField";
 import Measure from "react-measure";
 import "./VideoBox.scss";
 import { Field, FieldResult, Opt } from "../../../new_fields/Doc";
+import { RouteStore } from "../../../server/RouteStore";
+import { DocServer } from "../../DocServer";
 
 type VideoDocument = makeInterface<[typeof positionSchema, typeof pageSchema]>;
 const VideoDocument = makeInterface(positionSchema, pageSchema);
@@ -63,11 +66,54 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
         </video>;
     }
 
+    getMp4ForVideo(videoId: string = "JN5beCVArMs") {
+        return new Promise(async (resolve, reject) => {
+            const videoInfoRequestConfig = {
+                headers: {
+                    connection: 'keep-alive',
+                    "user-agent": 'Mozilla/5.0 (Windows NT 10.0; WOW64; rv:43.0) Gecko/20100101 Firefox/46.0',
+                },
+
+            }
+            try {
+                let responseSchema: any = {};
+                const videoInfoResponse = await rp.get(DocServer.prepend(RouteStore.corsProxy + "/" + `https://www.youtube.com/watch?v=${videoId}`), videoInfoRequestConfig)
+                const dataHtml = videoInfoResponse;
+                const start = dataHtml.indexOf('ytplayer.config = ') + 18;
+                const end = dataHtml.indexOf(';ytplayer.load');
+                const subString = dataHtml.substring(start, end)
+                const subJson = JSON.parse(subString);
+                const stringSub = subJson.args.player_response;
+                const stringSubJson = JSON.parse(stringSub);
+                const adaptiveFormats = stringSubJson.streamingData.adaptiveFormats;
+                const videoDetails = stringSubJson.videoDetails
+                responseSchema["adaptiveFormats"] = adaptiveFormats;
+                responseSchema["videoDetails"] = videoDetails;
+                resolve(responseSchema)
+            }
+            catch (err) {
+                console.log(`
+                --- Youtube ---
+                Function: getMp4ForVideo
+                Error: `, err)
+                reject(err)
+            }
+        })
+    }
+
+
     render() {
         let field = Cast(this.Document[this.props.fieldKey], VideoField);
         if (!field) {
             return <div>Loading</div>;
         }
+
+        // this.getMp4ForVideo().then((mp4) => {
+        //     console.log(mp4);
+        // }).catch(e => {
+        //     console.log("")
+        // });
+        // //
         let content = this.videoContent(field.url.href);
         return NumCast(this.props.Document.nativeHeight) ?
             content :

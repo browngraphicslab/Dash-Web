@@ -53,8 +53,10 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     public static LayoutString() { return FieldView.LayoutString(PDFBox); }
 
     private _mainDiv = React.createRef<HTMLDivElement>();
+    private renderHeight = 2400;
 
     @observable private _renderAsSvg = true;
+    @observable private _alt = false;
 
     private _reactionDisposer: Opt<IReactionDisposer>;
 
@@ -65,8 +67,8 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     @observable private _interactive: boolean = false;
     @observable private _loaded: boolean = false;
 
-    @computed private get curPage() { return FieldValue(this.Document.curPage, 1); }
-    @computed private get thumbnailPage() { return Cast(this.props.Document.thumbnailPage, "number", -1); }
+    @computed private get curPage() { return NumCast(this.Document.curPage, 1); }
+    @computed private get thumbnailPage() { return NumCast(this.props.Document.thumbnailPage, -1); }
 
     componentDidMount() {
         this._reactionDisposer = reaction(
@@ -162,10 +164,8 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
         let index: any;
         this._pageInfo.divs.forEach((obj: any) => {
             obj.spans.forEach((element: any) => {
-                if (element === span) {
-                    if (!index) {
-                        index = this._pageInfo.divs.indexOf(obj);
-                    }
+                if (element === span && !index) {
+                    index = this._pageInfo.divs.indexOf(obj);
                 }
             });
         });
@@ -243,7 +243,6 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     }
 
 
-
     @action
     saveThumbnail = () => {
         this._renderAsSvg = false;
@@ -284,20 +283,16 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
             this.props.Document.nativeHeight = nativeHeight;
         }
     }
-    renderHeight = 2400;
     @computed
     get pdfPage() {
         return <Page height={this.renderHeight} pageNumber={this.curPage} onLoadSuccess={this.onLoaded} />;
     }
     @computed
     get pdfContent() {
-        let page = this.curPage;
-        const renderHeight = 2400;
         let pdfUrl = Cast(this.props.Document[this.props.fieldKey], PdfField);
         if (!pdfUrl) {
             return <p>No pdf url to render</p>;
         }
-        let xf = FieldValue(this.Document.nativeHeight, 0) / renderHeight;
         let body = NumCast(this.props.Document.nativeHeight) ?
             this.pdfPage :
             <Measure offset onResize={this.setScaling}>
@@ -307,6 +302,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
                     </div>
                 }
             </Measure>;
+        let xf = NumCast(this.Document.nativeHeight) / this.renderHeight;
         return <div className="pdfBox-contentContainer" key="container" style={{ transform: `scale(${xf}, ${xf})` }}>
             <Document file={window.origin + RouteStore.corsProxy + `/${pdfUrl.url}`} renderMode={this._renderAsSvg ? "svg" : "canvas"}>
                 {body}
@@ -339,22 +335,11 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
         }
         return (null);
     }
-    @observable _alt = false;
-    @action
-    onKeyDown = (e: React.KeyboardEvent) => {
-        if (e.key === "Alt") {
-            this._alt = true;
-        }
-    }
-    @action
-    onKeyUp = (e: React.KeyboardEvent) => {
-        if (e.key === "Alt") {
-            this._alt = false;
-        }
-    }
+    @action onKeyDown = (e: React.KeyboardEvent) => e.key === "Alt" && (this._alt = true);
+    @action onKeyUp = (e: React.KeyboardEvent) => e.key === "Alt" && (this._alt = false);
     render() {
         trace();
-        let classname = "pdfBox-cont" + (this.props.isSelected() && !InkingControl.Instance.selectedTool && !this._alt ? "-interactive" : "");
+        let classname = "pdfBox-cont"; // + (this.props.isSelected() && !InkingControl.Instance.selectedTool && !this._alt ? "-interactive" : "");
         return (
             <div className={classname} tabIndex={0} ref={this._mainDiv} onPointerDown={this.onPointerDown} onKeyDown={this.onKeyDown} onKeyUp={this.onKeyUp} >
                 {this.pdfRenderer}

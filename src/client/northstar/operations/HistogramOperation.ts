@@ -30,7 +30,7 @@ export class HistogramOperation extends BaseOperation implements IBaseFilterCons
     @observable public V: AttributeTransformationModel;
     @observable public SchemaName: string;
     @observable public QRange: QuantitativeBinRange | undefined;
-    @computed public get Schema() { return CurrentUserUtils.GetNorthstarSchema(this.SchemaName); }
+    public get Schema() { return CurrentUserUtils.GetNorthstarSchema(this.SchemaName); }
 
     constructor(schemaName: string, x: AttributeTransformationModel, y: AttributeTransformationModel, v: AttributeTransformationModel, normalized?: number) {
         super();
@@ -41,7 +41,11 @@ export class HistogramOperation extends BaseOperation implements IBaseFilterCons
         this.SchemaName = schemaName;
     }
 
-    Copy(): HistogramOperation {
+    public static Duplicate(op: HistogramOperation) {
+
+        return new HistogramOperation(op.SchemaName, op.X, op.Y, op.V, op.Normalization);
+    }
+    public Copy(): HistogramOperation {
         return new HistogramOperation(this.SchemaName, this.X, this.Y, this.V, this.Normalization);
     }
 
@@ -50,7 +54,7 @@ export class HistogramOperation extends BaseOperation implements IBaseFilterCons
     }
 
 
-    @computed public get FilterModels() {
+    public get FilterModels() {
         return this.BarFilterModels;
     }
     @action
@@ -71,9 +75,7 @@ export class HistogramOperation extends BaseOperation implements IBaseFilterCons
         return FilterModel.GetFilterModelsRecursive(this, new Set<IBaseFilterProvider>(), filterModels, true);
     }
 
-    @computed
     public get BrushString(): string[] {
-        trace();
         let brushes: string[] = [];
         this.BrushLinks.map(brushLink => {
             let brushHistogram = Cast(brushLink.b.data, HistogramField);

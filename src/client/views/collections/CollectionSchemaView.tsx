@@ -20,11 +20,20 @@ import { FieldView, FieldViewProps } from "../nodes/FieldView";
 import "./CollectionSchemaView.scss";
 import { CollectionSubView } from "./CollectionSubView";
 import { Opt, Field, Doc, DocListCastAsync, DocListCast } from "../../../new_fields/Doc";
-import { Cast, FieldValue, NumCast } from "../../../new_fields/Types";
+import { Cast, FieldValue, NumCast, StrCast } from "../../../new_fields/Types";
 import { listSpec } from "../../../new_fields/Schema";
 import { List } from "../../../new_fields/List";
 import { Id } from "../../../new_fields/RefField";
 import { isUndefined } from "typescript-collections/dist/lib/util";
+import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
+import { Gateway } from "../../northstar/manager/Gateway";
+import { DocServer } from "../../DocServer";
+import { ColumnAttributeModel } from "../../northstar/core/attribute/AttributeModel";
+import { HistogramOperation } from "../../northstar/operations/HistogramOperation";
+import { AggregateFunction } from "../../northstar/model/idea/idea";
+import { AttributeTransformationModel } from "../../northstar/core/attribute/AttributeTransformationModel";
+import { Docs } from "../../documents/Documents";
+import { ContextMenu } from "../ContextMenu";
 
 
 // bcz: need to add drag and drop of rows and columns.  This seems like it might work for rows: https://codesandbox.io/s/l94mn1q657
@@ -207,6 +216,32 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         }
     }
 
+    onContextMenu = (e: React.MouseEvent): void => {
+        if (!e.isPropagationStopped() && this.props.Document[Id] !== "mainDoc") { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
+            ContextMenu.Instance.addItem({ description: "Make DB", event: this.makeDB });
+        }
+    }
+
+    @action
+    makeDB = async () => {
+        let csv: string = this.columns.reduce((val, col) => val + col + ",", "");
+        csv = csv.substr(0, csv.length - 1) + "\n";
+        let self = this;
+        DocListCast(this.props.Document.data).map(doc => {
+            csv += self.columns.reduce((val, col) => val + (doc[col] ? doc[col]!.toString() : "") + ",", "");
+            csv = csv.substr(0, csv.length - 1) + "\n";
+        })
+        csv.substring(0, csv.length - 1);
+        let dbName = StrCast(this.props.Document.title);
+        let res = await Gateway.Instance.PostSchema(csv, dbName);
+        if (self.props.CollectionView.props.addDocument) {
+            let schemaDoc = await Docs.DBDocument("https://www.cs.brown.edu/" + dbName, { title: dbName });
+            if (schemaDoc) {
+                self.props.CollectionView.props.addDocument(schemaDoc, false); 
+            }
+        }
+    }
+
     @action
     addColumn = () => {
         this.columns.push(this._newKeyName);
@@ -325,7 +360,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         const children = this.children;
         return (
             <div className="collectionSchemaView-container" onPointerDown={this.onPointerDown} onWheel={this.onWheel}
-                onDrop={(e: React.DragEvent) => this.onDrop(e, {})} ref={this.createTarget}>
+                onDrop={(e: React.DragEvent) => this.onDrop(e, {})} onContextMenu={this.onContextMenu} ref={this.createTarget}>
                 <div className="collectionSchemaView-tableContainer" style={{ width: `${this.tableWidth}px` }}>
                     <ReactTable data={children} page={0} pageSize={children.length} showPagination={false}
                         columns={this.columns.map(col => ({
