@@ -13,6 +13,7 @@ import { Doc, DocListCastAsync, DocListCast, } from "../../../new_fields/Doc";
 import { List } from "../../../new_fields/List";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { UndoManager } from "../../util/UndoManager";
+import { DocumentManager } from "../../util/DocumentManager";
 
 export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
 }
@@ -181,7 +182,11 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 let subBulletDocs = await DocListCastAsync(this.props.Document.subBulletDocs);
                 let maximizedDocs = await DocListCastAsync(this.props.Document.maximizedDocs);
                 let summarizedDocs = await DocListCastAsync(this.props.Document.summarizedDocs);
-                let expandedDocs = [...(subBulletDocs ? subBulletDocs : []), ...(maximizedDocs ? maximizedDocs : []), ...(summarizedDocs ? summarizedDocs : [])];
+                let linkedToDocs = await DocListCastAsync(this.props.Document.linkedToDocs);
+                let linkedFromDocs = await DocListCastAsync(this.props.Document.linkedFromDocs);
+                let expandedDocs = [...(subBulletDocs ? subBulletDocs : []),
+                ...(maximizedDocs ? maximizedDocs : []),
+                ...(summarizedDocs ? summarizedDocs : []),];
                 if (expandedDocs) {   // bcz: need a better way to associate behaviors with click events on widget-documents
                     if ((altKey && !this.props.Document.maximizeOnRight) || (!altKey && this.props.Document.maximizeOnRight)) {
                         let dataDocs = DocListCast(CollectionDockingView.Instance.props.Document.data);
@@ -195,9 +200,15 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                             });
                         }
                     } else {
-                        this.props.addDocument && expandedDocs.forEach(async maxDoc => this.props.addDocument!(await maxDoc, false));
+                        this.props.addDocument && expandedDocs.forEach(async maxDoc => this.props.addDocument!(maxDoc, false));
                         this.toggleIcon(expandedDocs);
                     }
+                }
+                let linkedDocs = [
+                    ...(linkedFromDocs ? linkedFromDocs.map(l => l.linkedFrom as Doc) : []),
+                    ...(linkedToDocs ? linkedToDocs.map(l => l.linkedTo as Doc) : [])];
+                if (linkedDocs) {
+                    DocumentManager.Instance.jumpToDocument(linkedDocs[0]);
                 }
             }
         }
