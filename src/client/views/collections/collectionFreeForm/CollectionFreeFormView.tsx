@@ -20,7 +20,7 @@ import React = require("react");
 import v5 = require("uuid/v5");
 import { createSchema, makeInterface, listSpec } from "../../../../new_fields/Schema";
 import { Doc, WidthSym, HeightSym } from "../../../../new_fields/Doc";
-import { FieldValue, Cast, NumCast } from "../../../../new_fields/Types";
+import { FieldValue, Cast, NumCast, BoolCast } from "../../../../new_fields/Types";
 import { pageSchema } from "../../nodes/ImageBox";
 import { Id } from "../../../../new_fields/RefField";
 import { InkField, StrokeData } from "../../../../new_fields/InkField";
@@ -44,16 +44,16 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     private get _pwidth() { return this.props.PanelWidth(); }
     private get _pheight() { return this.props.PanelHeight(); }
 
-    @computed get nativeWidth() { return NumCast(this.Document.nativeWidth, 0); }
-    @computed get nativeHeight() { return NumCast(this.Document.nativeHeight, 0); }
+    @computed get nativeWidth() { return this.Document.nativeWidth || 0; }
+    @computed get nativeHeight() { return this.Document.nativeHeight || 0; }
     private get borderWidth() { return this.isAnnotationOverlay ? 0 : COLLECTION_BORDER_WIDTH; }
     private get isAnnotationOverlay() { return this.props.fieldKey && this.props.fieldKey === "annotations"; }
-    private panX = () => FieldValue(this.Document.panX, 0);
-    private panY = () => FieldValue(this.Document.panY, 0);
-    private zoomScaling = () => FieldValue(this.Document.scale, 1);
+    private panX = () => this.Document.panX || 0;
+    private panY = () => this.Document.panY || 0;
+    private zoomScaling = () => this.Document.scale || 1;
     private centeringShiftX = () => !this.nativeWidth ? this._pwidth / 2 : 0;  // shift so pan position is at center of window for non-overlay collections
     private centeringShiftY = () => !this.nativeHeight ? this._pheight / 2 : 0;// shift so pan position is at center of window for non-overlay collections
-    private getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-this.borderWidth, -this.borderWidth).translate(-this.centeringShiftX(), -this.centeringShiftY()).transform(this.getLocalTransform());
+    private getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-this.borderWidth + 1, -this.borderWidth + 1).translate(-this.centeringShiftX(), -this.centeringShiftY()).transform(this.getLocalTransform());
     private getContainerTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-this.borderWidth, -this.borderWidth);
     private getLocalTransform = (): Transform => Transform.Identity().scale(1 / this.zoomScaling()).translate(this.panX(), this.panY());
     private addLiveTextBox = (newBox: Doc) => {
@@ -134,8 +134,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     @action
     onPointerMove = (e: PointerEvent): void => {
         if (!e.cancelBubble) {
-            let x = NumCast(this.props.Document.panX);
-            let y = NumCast(this.props.Document.panY);
+            let x = this.props.Document.panX || 0;
+            let y = this.props.Document.panY || 0;
             let docs = this.children || [];
             let [dx, dy] = this.getTransform().transformDirection(e.clientX - this._lastX, e.clientY - this._lastY);
             if (!this.isAnnotationOverlay) {
@@ -310,7 +310,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             if (!(doc instanceof Doc)) return prev;
             var page = NumCast(doc.page, -1);
             if (page === curPage || page === -1) {
-                let minim = Cast(doc.isMinimized, "boolean");
+                let minim = BoolCast(doc.isMinimized, false);
                 if (minim === undefined || !minim) {
                     prev.push(<CollectionFreeFormDocumentView key={doc[Id]} {...this.getDocumentViewProps(doc)} />);
                 }
