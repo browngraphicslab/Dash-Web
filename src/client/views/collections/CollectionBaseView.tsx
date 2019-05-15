@@ -87,7 +87,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
     @action.bound
     addDocument(doc: Doc, allowDuplicates: boolean = false): boolean {
         let props = this.props;
-        var curPage = Cast(props.Document.curPage, "number", -1);
+        var curPage = NumCast(props.Document.curPage, -1);
         Doc.SetOnPrototype(doc, "page", curPage);
         if (curPage >= 0) {
             Doc.SetOnPrototype(doc, "annotationOn", props.Document);

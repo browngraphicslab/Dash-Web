@@ -3,16 +3,15 @@ import { observer } from "mobx-react";
 import { FieldView, FieldViewProps } from './FieldView';
 import * as rp from "request-promise";
 import "./VideoBox.scss";
-import { action, computed, trace } from "mobx";
+import { action, IReactionDisposer, reaction, observable } from "mobx";
 import { DocComponent } from "../DocComponent";
 import { positionSchema } from "./DocumentView";
 import { makeInterface } from "../../../new_fields/Schema";
 import { pageSchema } from "./ImageBox";
-import { Cast, FieldValue, NumCast, ToConstructor, ListSpec } from "../../../new_fields/Types";
+import { Cast, FieldValue, NumCast } from "../../../new_fields/Types";
 import { VideoField } from "../../../new_fields/URLField";
 import Measure from "react-measure";
 import "./VideoBox.scss";
-import { Field, FieldResult, Opt } from "../../../new_fields/Doc";
 import { RouteStore } from "../../../server/RouteStore";
 import { DocServer } from "../../DocServer";
 
@@ -21,10 +20,12 @@ const VideoDocument = makeInterface(positionSchema, pageSchema);
 
 @observer
 export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoDocument) {
-
+    private _reactionDisposer?: IReactionDisposer;
     private _videoRef: HTMLVideoElement | null = null;
     private _loaded: boolean = false;
-    private get initialTimecode() { return FieldValue(this.Document.curPage, -1); }
+    @observable _playTimer?: NodeJS.Timeout = undefined;
+    @observable _fullScreen = false;
+    @observable public Playing: boolean = false;
     public static LayoutString() { return FieldView.LayoutString(VideoBox); }
 
     public get player(): HTMLVideoElement | undefined {
@@ -48,19 +49,50 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
         }
     }
 
+    @action public Play() {
+        this.Playing = true;
+        if (this.player) this.player.play();
+        if (!this._playTimer) this._playTimer = setInterval(this.updateTimecode, 1000);
+    }
+
+    @action public Pause() {
+        this.Playing = false;
+        if (this.player) this.player.pause();
+        if (this._playTimer) {
+            clearInterval(this._playTimer);
+            this._playTimer = undefined;
+        }
+    }
+
+    @action public FullScreen() {
+        this._fullScreen = true;
+        this.player && this.player.requestFullscreen();
+    }
+
+    @action
+    updateTimecode = () => this.player && (this.props.Document.curPage = this.player.currentTime);
+
     componentDidMount() {
         if (this.props.setVideoBox) this.props.setVideoBox(this);
+    }
+    componentWillUnmount() {
+        this.Pause();
+        if (this._reactionDisposer) this._reactionDisposer();
     }
 
     @action
     setVideoRef = (vref: HTMLVideoElement | null) => {
         this._videoRef = vref;
-        if (this.initialTimecode >= 0 && vref) {
-            vref.currentTime = this.initialTimecode;
+        if (vref) {
+            vref.onfullscreenchange = action((e) => this._fullScreen = vref.webkitDisplayingFullscreen);
+            if (this._reactionDisposer) this._reactionDisposer();
+            this._reactionDisposer = reaction(() => this.props.Document.curPage, () =>
+                vref.currentTime = NumCast(this.props.Document.curPage, 0), { fireImmediately: true });
         }
     }
     videoContent(path: string) {
-        return <video className="videobox-cont" ref={this.setVideoRef}>
+        let style = "videoBox-cont" + (this._fullScreen ? "-fullScreen" : "");
+        return <video className={`${style}`} ref={this.setVideoRef} onPointerDown={this.onPointerDown}>
             <source src={path} type="video/mp4" />
             Not supported.
         </video>;
@@ -100,7 +132,10 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
             }
         })
     }
-
+    onPointerDown = (e: React.PointerEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+    }
 
     render() {
         let field = Cast(this.Document[this.props.fieldKey], VideoField);

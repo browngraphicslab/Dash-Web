@@ -58,7 +58,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     @observable private _renderAsSvg = true;
     @observable private _alt = false;
 
-    private _reactionDisposer: Opt<IReactionDisposer>;
+    private _reactionDisposer?: IReactionDisposer;
 
     @observable private _perPageInfo: Object[] = []; //stores pageInfo
     @observable private _pageInfo: any = { area: [], divs: [], anno: [] }; //divs is array of objects linked to anno
@@ -84,9 +84,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     }
 
     componentWillUnmount() {
-        if (this._reactionDisposer) {
-            this._reactionDisposer();
-        }
+        if (this._reactionDisposer) this._reactionDisposer();
     }
 
     /**
@@ -338,7 +336,6 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     @action onKeyDown = (e: React.KeyboardEvent) => e.key === "Alt" && (this._alt = true);
     @action onKeyUp = (e: React.KeyboardEvent) => e.key === "Alt" && (this._alt = false);
     render() {
-        trace();
         let classname = "pdfBox-cont"; // + (this.props.isSelected() && !InkingControl.Instance.selectedTool && !this._alt ? "-interactive" : "");
         return (
             <div className={classname} tabIndex={0} ref={this._mainDiv} onPointerDown={this.onPointerDown} onKeyDown={this.onKeyDown} onKeyUp={this.onKeyUp} >

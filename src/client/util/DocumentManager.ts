@@ -111,19 +111,19 @@ export class DocumentManager {
 
     @undoBatch
     public jumpToDocument = async (doc: Doc): Promise<void> => {
+        const page = NumCast(doc.page, undefined);
+        const contextDoc = await Cast(doc.annotationOn, Doc);
+        if (contextDoc) {
+            const curPage = NumCast(contextDoc.curPage, page);
+            if (page !== curPage) contextDoc.curPage = page;
+        }
         let docView = DocumentManager.Instance.getDocumentView(doc);
         if (docView) {
             docView.props.focus(docView.props.Document);
         } else {
-            const contextDoc = await Cast(doc.annotationOn, Doc);
             if (!contextDoc) {
                 CollectionDockingView.Instance.AddRightSplit(Doc.MakeDelegate(doc));
             } else {
-                const page = NumCast(doc.page, undefined);
-                const curPage = NumCast(contextDoc.curPage, undefined);
-                if (page !== curPage) {
-                    contextDoc.curPage = page;
-                }
                 let contextView = DocumentManager.Instance.getDocumentView(contextDoc);
                 if (contextView) {
                     contextDoc.panTransformType = "Ease";
