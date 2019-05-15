@@ -204,11 +204,11 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                         this.toggleIcon(expandedDocs);
                     }
                 }
-                let linkedDocs = [
-                    ...(linkedFromDocs ? linkedFromDocs.map(l => l.linkedFrom as Doc) : []),
-                    ...(linkedToDocs ? linkedToDocs.map(l => l.linkedTo as Doc) : [])];
-                if (linkedDocs) {
-                    DocumentManager.Instance.jumpToDocument(linkedDocs[0]);
+                let linkedFwdDocs = [
+                    linkedToDocs ? linkedToDocs[0].linkedTo as Doc : linkedFromDocs ? linkedFromDocs[0].linkedFrom as Doc : expandedDocs[0],
+                    linkedFromDocs ? linkedFromDocs[0].linkedFrom as Doc : linkedToDocs ? linkedToDocs[0].linkedTo as Doc : expandedDocs[0]];
+                if (linkedFwdDocs) {
+                    DocumentManager.Instance.jumpToDocument(linkedFwdDocs[altKey ? 1 : 0]);
                 }
             }
         }

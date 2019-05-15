@@ -229,7 +229,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             if (e.target && (e.target as any).href) {
                 let href = (e.target as any).href;
                 if (href.indexOf(DocServer.prepend("/doc/")) === 0) {
-                    let docid = href.replace(DocServer.prepend("/doc/"), "");
+                    let docid = href.replace(DocServer.prepend("/doc/"), "").split("%")[0];
                     DocServer.GetRefField(docid).then(action((f: Opt<Field>) => {
                         if (f instanceof Doc) {
                             if (DocumentManager.Instance.getDocumentView(f))
