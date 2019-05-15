@@ -247,7 +247,9 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 style={{
                     outlineColor: "black",
                     outlineStyle: "dashed",
-                    outlineWidth: BoolCast(this.props.Document.libraryBrush, false) ? `${0.5 / this.contentScaling()}px` : "0px",
+                    outlineWidth:
+                        BoolCast(this.props.Document.protoBrush, false) ? `${1 / this.contentScaling()}px` :
+                            BoolCast(this.props.Document.libraryBrush, false) ? `${0.5 / this.contentScaling()}px` : "0px",
                     opacity: zoomFade,
                     borderRadius: `${this.borderRounding()}px`,
                     transformOrigin: "left top",

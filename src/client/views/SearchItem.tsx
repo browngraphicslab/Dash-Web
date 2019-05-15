@@ -40,6 +40,14 @@ export class SearchItem extends React.Component<SearchProps> {
                             faCaretUp;
         return <FontAwesomeIcon icon={button} className="documentView-minimizedIcon" />;
     }
+    onPointerEnter = (e: React.PointerEvent) => {
+        this.props.doc.libraryBrush = true;
+        Doc.SetOnPrototype(this.props.doc, "protoBrush", true);
+    }
+    onPointerLeave = (e: React.PointerEvent) => {
+        this.props.doc.libraryBrush = false;
+        Doc.SetOnPrototype(this.props.doc, "protoBrush", false);
+    }
 
     collectionRef = React.createRef<HTMLDivElement>();
     startDocDrag = () => {
@@ -53,7 +61,9 @@ export class SearchItem extends React.Component<SearchProps> {
     }
     render() {
         return (
-            <div className="search-item" ref={this.collectionRef} id="result" onClick={this.onClick} onPointerDown={SetupDrag(this.collectionRef, this.startDocDrag)} >
+            <div className="search-item" ref={this.collectionRef} id="result"
+                onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}
+                onClick={this.onClick} onPointerDown={SetupDrag(this.collectionRef, this.startDocDrag)} >
                 <div className="search-title" id="result" >title: {this.props.doc.title}</div>
                 {/* <div className="search-type" id="result" >Type: {this.props.doc.layout}</div> */}
                 {/* <div className="search-type" >{SearchItem.DocumentIcon(this.layout)}</div> */}

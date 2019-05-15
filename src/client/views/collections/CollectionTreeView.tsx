@@ -130,7 +130,7 @@ class TreeView extends React.Component<TreeViewProps> {
             </div>);
         return (
             <div className="docContainer" ref={reference} onPointerDown={onItemDown} onMouseEnter={this.onMouseEnter} onMouseLeave={this.onMouseLeave}
-                style={{ background: BoolCast(this.props.document.libraryBrush, false) ? "#06121212" : "0" }}
+                style={{ background: BoolCast(this.props.document.protoBrush, false) ? "#06123232" : BoolCast(this.props.document.libraryBrush, false) ? "#06121212" : "0" }}
                 onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}>
                 {editableView(StrCast(this.props.document.title))}
                 {openRight}

@@ -140,7 +140,7 @@ export namespace Doc {
         return Cast(Get(doc, key, ignoreProto), ctor) as FieldResult<T>;
     }
     export async function SetOnPrototype(doc: Doc, key: string, value: Field) {
-        const proto = Object.getOwnPropertyNames(doc).indexOf("isProto") == -1 ? doc.proto : doc;
+        const proto = Object.getOwnPropertyNames(doc).indexOf("isPrototype") == -1 ? doc.proto : doc;
 
         if (proto) {
             proto[key] = value;
