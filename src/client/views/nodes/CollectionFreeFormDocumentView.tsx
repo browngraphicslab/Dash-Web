@@ -170,7 +170,9 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     onPointerDown = (e: React.PointerEvent): void => {
         this._downX = e.clientX;
         this._downY = e.clientY;
-        // e.stopPropagation();
+        if (e.button === 0 && e.altKey) {
+            e.stopPropagation(); // prevents panning from happening on collection if shift is pressed after a document drag has started
+        } // allow pointer down to go through otherwise so that marquees can be drawn starting over a document 
     }
     onClick = async (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -192,14 +194,15 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 // ...(maximizedDocs ? maximizedDocs : []),
                 // ...(summarizedDocs ? summarizedDocs : []),];
                 if (expandedDocs.length) {   // bcz: need a better way to associate behaviors with click events on widget-documents
-                    if ((altKey && !this.props.Document.maximizeOnRight) || (!altKey && this.props.Document.maximizeOnRight)) {
+                    let hasView = expandedDocs.length === 1 && DocumentManager.Instance.getDocumentView(expandedDocs[0].proto!);
+                    if (!hasView && ((altKey && !this.props.Document.maximizeOnRight) || (!altKey && this.props.Document.maximizeOnRight))) {
                         let dataDocs = DocListCast(CollectionDockingView.Instance.props.Document.data);
                         if (dataDocs) {
                             SelectionManager.DeselectAll();
                             expandedDocs.forEach(maxDoc => {
                                 maxDoc.isMinimized = false;
                                 if (!CollectionDockingView.Instance.CloseRightSplit(maxDoc)) {
-                                    CollectionDockingView.Instance.AddRightSplit(Doc.MakeCopy(maxDoc));
+                                    CollectionDockingView.Instance.AddRightSplit(maxDoc.proto ? Doc.MakeDelegate(maxDoc.proto) : maxDoc);
                                 }
                             });
                         }

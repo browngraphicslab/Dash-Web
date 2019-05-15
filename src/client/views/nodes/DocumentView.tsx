@@ -112,12 +112,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         this._reactionDisposer = reaction(() => [this.props.Document.maximizedDocs, this.props.Document.summaryDoc, this.props.Document.summaryDoc instanceof Doc ? this.props.Document.summaryDoc.title : ""],
             () => {
                 let maxDoc = DocListCast(this.props.Document.maximizedDocs);
-                if (maxDoc.length === 1 && StrCast(maxDoc[0].title).startsWith("-") && StrCast(this.props.Document.layout).indexOf("IconBox") !== -1) {
-                    this.props.Document.proto!.title = maxDoc[0].title + ".icon";
+                if (maxDoc.length === 1 && StrCast(this.props.Document.title).startsWith("-") && StrCast(this.props.Document.layout).indexOf("IconBox") !== -1) {
+                    this.props.Document.proto!.title = "-" + maxDoc[0].title + ".icon";
                 }
                 let sumDoc = Cast(this.props.Document.summaryDoc, Doc);
-                if (sumDoc instanceof Doc) {
-                    this.props.Document.title = sumDoc.title + ".expanded";
+                if (sumDoc instanceof Doc && StrCast(this.props.Document.title).startsWith("-")) {
+                    this.props.Document.proto!.title = "-" + sumDoc.title + ".expanded";
                 }
             }, { fireImmediately: true });
         DocumentManager.Instance.DocumentViews.push(this);
@@ -186,6 +186,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             }
             e.stopPropagation();
         } else if (this.active) {
+            //e.stopPropagation(); // bcz: doing this will block click events from CollectionFreeFormDocumentView which are needed for iconifying,etc
             document.removeEventListener("pointermove", this.onPointerMove);
             document.addEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);

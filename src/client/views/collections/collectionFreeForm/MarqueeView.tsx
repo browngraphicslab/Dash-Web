@@ -257,7 +257,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 width: bounds.width * zoomBasis,
                 height: bounds.height * zoomBasis,
                 ink: inkData ? new InkField(this.marqueeInkSelect(inkData)) : undefined,
-                title: "a nested collection",
+                title: e.key === "s" ? "-summary-" : e.key === "r" ? "-replacement-" : e.key === "p" ? "-summary-" : "a nested collection",
             });
 
             this.marqueeInkDelete(inkData);
@@ -283,7 +283,6 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                     let maxy = NumCast(summarizedDoc.y, undefined);
                     let maxw = NumCast(summarizedDoc.width, undefined);
                     let maxh = NumCast(summarizedDoc.height, undefined);
-                    summarizedDoc.isIconAnimating = new List<number>([scrpt[0], scrpt[1], maxx, maxy, maxw, maxh, Date.now(), 0])
                 });
                 this.props.addLiveTextDocument(summary);
             }
