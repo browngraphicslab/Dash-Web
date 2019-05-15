@@ -1,19 +1,19 @@
-import { computed, trace, action, reaction, IReactionDisposer } from "mobx";
+import { action, computed, IReactionDisposer, reaction } from "mobx";
 import { observer } from "mobx-react";
+import { Doc, DocListCast, DocListCastAsync } from "../../../new_fields/Doc";
+import { List } from "../../../new_fields/List";
+import { createSchema, listSpec, makeInterface } from "../../../new_fields/Schema";
+import { BoolCast, Cast, FieldValue, NumCast } from "../../../new_fields/Types";
+import { OmitKeys, Utils } from "../../../Utils";
+import { DocumentManager } from "../../util/DocumentManager";
+import { SelectionManager } from "../../util/SelectionManager";
 import { Transform } from "../../util/Transform";
+import { UndoManager } from "../../util/UndoManager";
+import { CollectionDockingView } from "../collections/CollectionDockingView";
+import { DocComponent } from "../DocComponent";
 import { DocumentView, DocumentViewProps, positionSchema } from "./DocumentView";
 import "./DocumentView.scss";
 import React = require("react");
-import { DocComponent } from "../DocComponent";
-import { createSchema, makeInterface, listSpec } from "../../../new_fields/Schema";
-import { FieldValue, Cast, NumCast, BoolCast, StrCast } from "../../../new_fields/Types";
-import { OmitKeys, Utils } from "../../../Utils";
-import { SelectionManager } from "../../util/SelectionManager";
-import { Doc, DocListCastAsync, DocListCast, } from "../../../new_fields/Doc";
-import { List } from "../../../new_fields/List";
-import { CollectionDockingView } from "../collections/CollectionDockingView";
-import { UndoManager } from "../../util/UndoManager";
-import { DocumentManager } from "../../util/DocumentManager";
 
 export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
 }
@@ -140,7 +140,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
             if (!CollectionFreeFormDocumentView._undoBatch) {
                 CollectionFreeFormDocumentView._undoBatch = UndoManager.StartBatch("iconAnimating");
             }
-            maximizedDocs.forEach(maximizedDoc => {
+            maximizedDocs.map(maximizedDoc => {
                 let iconAnimating = Cast(maximizedDoc.isIconAnimating, List);
                 if (!iconAnimating || (Date.now() - iconAnimating[6] > 1000)) {
                     if (isMinimized === undefined) {
@@ -182,12 +182,16 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 let subBulletDocs = await DocListCastAsync(this.props.Document.subBulletDocs);
                 let maximizedDocs = await DocListCastAsync(this.props.Document.maximizedDocs);
                 let summarizedDocs = await DocListCastAsync(this.props.Document.summarizedDocs);
-                let linkedToDocs = await DocListCastAsync(this.props.Document.linkedToDocs);
-                let linkedFromDocs = await DocListCastAsync(this.props.Document.linkedFromDocs);
-                let expandedDocs = [...(subBulletDocs ? subBulletDocs : []),
-                ...(maximizedDocs ? maximizedDocs : []),
-                ...(summarizedDocs ? summarizedDocs : []),];
-                if (expandedDocs) {   // bcz: need a better way to associate behaviors with click events on widget-documents
+                let linkedToDocs = await DocListCastAsync(this.props.Document.linkedToDocs, []);
+                let linkedFromDocs = await DocListCastAsync(this.props.Document.linkedFromDocs, []);
+                let expandedDocs: Doc[] = [];
+                expandedDocs = subBulletDocs ? [...subBulletDocs, ...expandedDocs] : expandedDocs;
+                expandedDocs = maximizedDocs ? [...maximizedDocs, ...expandedDocs] : expandedDocs;
+                expandedDocs = summarizedDocs ? [...summarizedDocs, ...expandedDocs] : expandedDocs;
+                // let expandedDocs = [...(subBulletDocs ? subBulletDocs : []),
+                // ...(maximizedDocs ? maximizedDocs : []),
+                // ...(summarizedDocs ? summarizedDocs : []),];
+                if (expandedDocs.length) {   // bcz: need a better way to associate behaviors with click events on widget-documents
                     if ((altKey && !this.props.Document.maximizeOnRight) || (!altKey && this.props.Document.maximizeOnRight)) {
                         let dataDocs = DocListCast(CollectionDockingView.Instance.props.Document.data);
                         if (dataDocs) {
@@ -204,11 +208,13 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                         this.toggleIcon(expandedDocs);
                     }
                 }
-                let linkedFwdDocs = [
-                    linkedToDocs ? linkedToDocs[0].linkedTo as Doc : linkedFromDocs ? linkedFromDocs[0].linkedFrom as Doc : expandedDocs[0],
-                    linkedFromDocs ? linkedFromDocs[0].linkedFrom as Doc : linkedToDocs ? linkedToDocs[0].linkedTo as Doc : expandedDocs[0]];
-                if (linkedFwdDocs) {
-                    DocumentManager.Instance.jumpToDocument(linkedFwdDocs[altKey ? 1 : 0]);
+                else if (linkedToDocs.length || linkedFromDocs.length) {
+                    let linkedFwdDocs = [
+                        linkedToDocs.length ? linkedToDocs[0].linkedTo as Doc : linkedFromDocs.length ? linkedFromDocs[0].linkedFrom as Doc : expandedDocs[0],
+                        linkedFromDocs.length ? linkedFromDocs[0].linkedFrom as Doc : linkedToDocs.length ? linkedToDocs[0].linkedTo as Doc : expandedDocs[0]];
+                    if (linkedFwdDocs) {
+                        DocumentManager.Instance.jumpToDocument(linkedFwdDocs[altKey ? 1 : 0]);
+                    }
                 }
             }
         }

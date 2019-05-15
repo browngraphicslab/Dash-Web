@@ -252,18 +252,20 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             if (!this._removeIcon) {
                 if (selectedDocs.length === 1)
                     this.getIconDoc(selectedDocs[0]).then(icon => selectedDocs[0].props.toggleMinimized());
-                else {
-                    let docViews = SelectionManager.ViewsSortedVertically();
-                    let topDocView = docViews[0];
-                    let ind = topDocView.templates.indexOf(Templates.Bullet.Layout);
-                    if (ind !== -1) {
-                        topDocView.templates.splice(ind, 1);
-                        topDocView.props.Document.subBulletDocs = undefined;
-                    } else {
-                        topDocView.addTemplate(Templates.Bullet);
-                        topDocView.props.Document.subBulletDocs = new List<Doc>(docViews.filter(v => v !== topDocView).map(v => v.props.Document));
+                else
+                    if (Math.abs(e.pageX - this._downX) < Utils.DRAG_THRESHOLD &&
+                        Math.abs(e.pageY - this._downY) < Utils.DRAG_THRESHOLD) {
+                        let docViews = SelectionManager.ViewsSortedVertically();
+                        let topDocView = docViews[0];
+                        let ind = topDocView.templates.indexOf(Templates.Bullet.Layout);
+                        if (ind !== -1) {
+                            topDocView.templates.splice(ind, 1);
+                            topDocView.props.Document.subBulletDocs = undefined;
+                        } else {
+                            topDocView.addTemplate(Templates.Bullet);
+                            topDocView.props.Document.subBulletDocs = new List<Doc>(docViews.filter(v => v !== topDocView).map(v => v.props.Document));
+                        }
                     }
-                }
             }
             this._removeIcon = false;
         }
@@ -275,9 +277,9 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         let doc = selected[0].props.Document;
         let iconDoc = Docs.IconDocument(layoutString);
         iconDoc.isButton = true;
-        iconDoc.title = selected.length > 1 ? "ICONset" : "ICON" + StrCast(doc.title);
-        iconDoc.labelField = this._fieldKey;
-        iconDoc[this._fieldKey] = selected.length > 1 ? "collection" : undefined;
+        iconDoc.proto!.title = selected.length > 1 ? "ICONset" : "ICON" + StrCast(doc.title);
+        iconDoc.labelField = selected.length > 1 ? undefined : this._fieldKey;
+        iconDoc.proto![this._fieldKey] = selected.length > 1 ? "collection" : undefined;
         iconDoc.isMinimized = false;
         iconDoc.width = Number(MINIMIZED_ICON_SIZE);
         iconDoc.height = Number(MINIMIZED_ICON_SIZE);

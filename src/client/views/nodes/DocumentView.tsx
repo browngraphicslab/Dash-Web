@@ -112,8 +112,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         this._reactionDisposer = reaction(() => [this.props.Document.maximizedDocs, this.props.Document.summaryDoc, this.props.Document.summaryDoc instanceof Doc ? this.props.Document.summaryDoc.title : ""],
             () => {
                 let maxDoc = DocListCast(this.props.Document.maximizedDocs);
-                if (maxDoc && StrCast(this.props.Document.layout).indexOf("IconBox") !== -1) {
-                    this.props.Document.title = (maxDoc && maxDoc.length === 1 ? maxDoc[0].title + ".icon" : "");
+                if (maxDoc.length === 1 && StrCast(maxDoc[0].title).startsWith("-") && StrCast(this.props.Document.layout).indexOf("IconBox") !== -1) {
+                    this.props.Document.proto!.title = maxDoc[0].title + ".icon";
                 }
                 let sumDoc = Cast(this.props.Document.summaryDoc, Doc);
                 if (sumDoc instanceof Doc) {
@@ -332,8 +332,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     render() {
         var scaling = this.props.ContentScaling();
-        var nativeHeight = this.nativeHeight > 0 ? this.nativeHeight.toString() + "px" : "100%";
-        var nativeWidth = this.nativeWidth > 0 ? this.nativeWidth.toString() + "px" : "100%";
+        var nativeHeight = this.nativeHeight > 0 ? `${this.nativeHeight}px` : (StrCast(this.props.Document.layout).indexOf("IconBox") === -1 ? "100%" : "auto");
+        var nativeWidth = this.nativeWidth > 0 ? `${this.nativeWidth}px` : "100%";
 
         return (
             <div className={`documentView-node${this.props.isTopMost ? "-topmost" : ""}`}

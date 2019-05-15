@@ -212,6 +212,8 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         }
         if (e.key === "Backspace" || e.key === "Delete" || e.key === "d") {
             this._commandExecuted = true;
+            e.stopPropagation();
+            (e as any).propagationIsStopped = true;
             this.marqueeSelect().map(d => this.props.removeDocument(d));
             let ink = Cast(this.props.container.props.Document.ink, InkField);
             if (ink) {
@@ -291,20 +293,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 this.props.selectDocuments([newCollection]);
             }
             this.cleanupInteractions(false);
-        } else
-            if (e.key === "s") {
-                // this._commandExecuted = true;
-                // e.stopPropagation();
-                // e.preventDefault();
-                // let bounds = this.Bounds;
-                // let selected = this.marqueeSelect();
-                // SelectionManager.DeselectAll();
-                // let summary = Docs.TextDocument({ x: bounds.left + bounds.width + 25, y: bounds.top, width: 300, height: 100, backgroundColor: "yellow", title: "-summary-" });
-                // this.props.addLiveTextDocument(summary);
-                // selected.forEach(select => Doc.MakeLink(summary.proto!, select.proto!));
-
-                // this.cleanupInteractions(false);
-            }
+        }
     }
     @action
     marqueeInkSelect(ink: Map<any, any>) {

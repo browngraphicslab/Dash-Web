@@ -18,7 +18,7 @@ export class SelectorContextMenu extends React.Component<{ Document: Doc }> {
     }
 
     async fetchDocuments() {
-        const docs = await SearchUtil.Search(`data_l:${this.props.Document[Id]}`, true);
+        const docs = await SearchUtil.Search(`data_l:"${this.props.Document[Id]}"`, true);
         runInAction(() => this._docs = docs);
     }
 
