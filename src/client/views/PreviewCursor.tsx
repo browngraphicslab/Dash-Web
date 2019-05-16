@@ -22,9 +22,11 @@ export class PreviewCursor extends React.Component<{}> {
     }
     paste = (e: ClipboardEvent) => {
         console.log(e.clipboardData);
-        console.log(e.clipboardData.getData("text/html"));
-        console.log(e.clipboardData.getData("text/csv"));
-        console.log(e.clipboardData.getData("text/plain"));
+        if (e.clipboardData) {
+            console.log(e.clipboardData.getData("text/html"));
+            console.log(e.clipboardData.getData("text/csv"));
+            console.log(e.clipboardData.getData("text/plain"));
+        }
     }
 
     @action
