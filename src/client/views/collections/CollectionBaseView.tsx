@@ -4,7 +4,7 @@ import * as React from 'react';
 import { ContextMenu } from '../ContextMenu';
 import { FieldViewProps } from '../nodes/FieldView';
 import { Cast, FieldValue, PromiseValue, NumCast } from '../../../new_fields/Types';
-import { Doc, FieldResult, Opt } from '../../../new_fields/Doc';
+import { Doc, FieldResult, Opt, DocListCast } from '../../../new_fields/Doc';
 import { listSpec } from '../../../new_fields/Schema';
 import { List } from '../../../new_fields/List';
 import { Id } from '../../../new_fields/RefField';
@@ -63,13 +63,13 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         if (!(documentToAdd instanceof Doc)) {
             return false;
         }
-        let data = Cast(documentToAdd.data, listSpec(Doc), []).filter(d => d).map(d => d as Doc);
-        for (const doc of data.filter(d => d instanceof Document)) {
+        let data = DocListCast(documentToAdd.data);
+        for (const doc of data) {
             if (this.createsCycle(doc, containerDocument)) {
                 return true;
             }
         }
-        let annots = Cast(documentToAdd.annotations, listSpec(Doc), []).filter(d => d).map(d => d as Doc);
+        let annots = DocListCast(documentToAdd.annotations);
         for (const annot of annots) {
             if (this.createsCycle(annot, containerDocument)) {
                 return true;
@@ -87,7 +87,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
     @action.bound
     addDocument(doc: Doc, allowDuplicates: boolean = false): boolean {
         let props = this.props;
-        var curPage = Cast(props.Document.curPage, "number", -1);
+        var curPage = NumCast(props.Document.curPage, -1);
         Doc.SetOnPrototype(doc, "page", curPage);
         if (curPage >= 0) {
             Doc.SetOnPrototype(doc, "annotationOn", props.Document);

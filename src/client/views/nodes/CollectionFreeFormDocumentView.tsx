@@ -1,18 +1,19 @@
-import { computed, trace, action, reaction, IReactionDisposer } from "mobx";
+import { action, computed, IReactionDisposer, reaction } from "mobx";
 import { observer } from "mobx-react";
+import { Doc, DocListCast, DocListCastAsync } from "../../../new_fields/Doc";
+import { List } from "../../../new_fields/List";
+import { createSchema, listSpec, makeInterface } from "../../../new_fields/Schema";
+import { BoolCast, Cast, FieldValue, NumCast } from "../../../new_fields/Types";
+import { OmitKeys, Utils } from "../../../Utils";
+import { DocumentManager } from "../../util/DocumentManager";
+import { SelectionManager } from "../../util/SelectionManager";
 import { Transform } from "../../util/Transform";
+import { UndoManager } from "../../util/UndoManager";
+import { CollectionDockingView } from "../collections/CollectionDockingView";
+import { DocComponent } from "../DocComponent";
 import { DocumentView, DocumentViewProps, positionSchema } from "./DocumentView";
 import "./DocumentView.scss";
 import React = require("react");
-import { DocComponent } from "../DocComponent";
-import { createSchema, makeInterface, listSpec } from "../../../new_fields/Schema";
-import { FieldValue, Cast, NumCast, BoolCast, StrCast } from "../../../new_fields/Types";
-import { OmitKeys, Utils } from "../../../Utils";
-import { SelectionManager } from "../../util/SelectionManager";
-import { Doc, DocListCast, HeightSym } from "../../../new_fields/Doc";
-import { List } from "../../../new_fields/List";
-import { CollectionDockingView } from "../collections/CollectionDockingView";
-import { undoBatch, UndoManager } from "../../util/UndoManager";
 
 export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
 }
@@ -65,7 +66,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     contentScaling = () => this.nativeWidth > 0 ? this.width / this.nativeWidth : 1;
     panelWidth = () => this.props.PanelWidth();
     panelHeight = () => this.props.PanelHeight();
-    toggleMinimized = async () => this.toggleIcon(await DocListCast(this.props.Document.maximizedDocs));
+    toggleMinimized = async () => this.toggleIcon(await DocListCastAsync(this.props.Document.maximizedDocs));
     getTransform = (): Transform => this.props.ScreenToLocalTransform()
         .translate(-this.X, -this.Y)
         .scale(1 / this.contentScaling()).scale(1 / this.zoom)
@@ -132,14 +133,14 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         let minimizedDoc: Doc | undefined = this.props.Document;
         if (!maximizedDocs) {
             minimizedDoc = await Cast(this.props.Document.minimizedDoc, Doc);
-            if (minimizedDoc) maximizedDocs = await DocListCast(minimizedDoc.maximizedDocs);
+            if (minimizedDoc) maximizedDocs = await DocListCastAsync(minimizedDoc.maximizedDocs);
         }
         if (minimizedDoc && maximizedDocs) {
             let minimizedTarget = minimizedDoc;
             if (!CollectionFreeFormDocumentView._undoBatch) {
                 CollectionFreeFormDocumentView._undoBatch = UndoManager.StartBatch("iconAnimating");
             }
-            maximizedDocs.forEach(maximizedDoc => {
+            maximizedDocs.map(maximizedDoc => {
                 let iconAnimating = Cast(maximizedDoc.isIconAnimating, List);
                 if (!iconAnimating || (Date.now() - iconAnimating[6] > 1000)) {
                     if (isMinimized === undefined) {
@@ -169,34 +170,53 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     onPointerDown = (e: React.PointerEvent): void => {
         this._downX = e.clientX;
         this._downY = e.clientY;
-        // e.stopPropagation();
+        if (e.button === 0 && e.altKey) {
+            e.stopPropagation(); // prevents panning from happening on collection if shift is pressed after a document drag has started
+        } // allow pointer down to go through otherwise so that marquees can be drawn starting over a document 
     }
     onClick = async (e: React.MouseEvent) => {
         e.stopPropagation();
         let altKey = e.altKey;
         if (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD &&
             Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD) {
-            let isBullet = (e.target as any).id === "isBullet";
-            let isIcon = StrCast(this.props.Document.layout).indexOf("IconBox") !== -1;
-            if (BoolCast(this.props.Document.isButton, false) || isBullet) {
-                let maximizedDocs = await DocListCast(isBullet ? this.props.Document.subBulletDocs : isIcon ? this.props.Document.maximizedDocs : this.props.Document.summarizedDocs);
-                if (maximizedDocs) {   // bcz: need a better way to associate behaviors with click events on widget-documents
-                    if ((altKey && !this.props.Document.maximizeOnRight) || (!altKey && this.props.Document.maximizeOnRight)) {
-                        let dataDocs = await DocListCast(CollectionDockingView.Instance.props.Document.data);
+            let isExpander = (e.target as any).id === "isExpander";
+            if (BoolCast(this.props.Document.isButton, false) || isExpander) {
+                let subBulletDocs = await DocListCastAsync(this.props.Document.subBulletDocs);
+                let maximizedDocs = await DocListCastAsync(this.props.Document.maximizedDocs);
+                let summarizedDocs = await DocListCastAsync(this.props.Document.summarizedDocs);
+                let linkedToDocs = await DocListCastAsync(this.props.Document.linkedToDocs, []);
+                let linkedFromDocs = await DocListCastAsync(this.props.Document.linkedFromDocs, []);
+                let expandedDocs: Doc[] = [];
+                expandedDocs = subBulletDocs ? [...subBulletDocs, ...expandedDocs] : expandedDocs;
+                expandedDocs = maximizedDocs ? [...maximizedDocs, ...expandedDocs] : expandedDocs;
+                expandedDocs = summarizedDocs ? [...summarizedDocs, ...expandedDocs] : expandedDocs;
+                // let expandedDocs = [...(subBulletDocs ? subBulletDocs : []),
+                // ...(maximizedDocs ? maximizedDocs : []),
+                // ...(summarizedDocs ? summarizedDocs : []),];
+                if (expandedDocs.length) {   // bcz: need a better way to associate behaviors with click events on widget-documents
+                    let hasView = expandedDocs.length === 1 && DocumentManager.Instance.getDocumentView(expandedDocs[0].proto!);
+                    if (!hasView && ((altKey && !this.props.Document.maximizeOnRight) || (!altKey && this.props.Document.maximizeOnRight))) {
+                        let dataDocs = DocListCast(CollectionDockingView.Instance.props.Document.data);
                         if (dataDocs) {
                             SelectionManager.DeselectAll();
-                            maximizedDocs.forEach(maxDoc => {
+                            expandedDocs.forEach(maxDoc => {
                                 maxDoc.isMinimized = false;
-                                if (!dataDocs || dataDocs.indexOf(maxDoc) == -1) {
-                                    CollectionDockingView.Instance.AddRightSplit(maxDoc);
-                                } else {
-                                    CollectionDockingView.Instance.CloseRightSplit(maxDoc);
+                                if (!CollectionDockingView.Instance.CloseRightSplit(maxDoc)) {
+                                    CollectionDockingView.Instance.AddRightSplit(maxDoc.proto ? Doc.MakeDelegate(maxDoc.proto) : maxDoc);
                                 }
                             });
                         }
                     } else {
-                        this.props.addDocument && maximizedDocs.forEach(async maxDoc => this.props.addDocument!(await maxDoc, false));
-                        this.toggleIcon(maximizedDocs);
+                        this.props.addDocument && expandedDocs.forEach(async maxDoc => this.props.addDocument!(maxDoc, false));
+                        this.toggleIcon(expandedDocs);
+                    }
+                }
+                else if (linkedToDocs.length || linkedFromDocs.length) {
+                    let linkedFwdDocs = [
+                        linkedToDocs.length ? linkedToDocs[0].linkedTo as Doc : linkedFromDocs.length ? linkedFromDocs[0].linkedFrom as Doc : expandedDocs[0],
+                        linkedFromDocs.length ? linkedFromDocs[0].linkedFrom as Doc : linkedToDocs.length ? linkedToDocs[0].linkedTo as Doc : expandedDocs[0]];
+                    if (linkedFwdDocs) {
+                        DocumentManager.Instance.jumpToDocument(linkedFwdDocs[altKey ? 1 : 0]);
                     }
                 }
             }
@@ -226,7 +246,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         const screenWidth = Math.min(50 * NumCast(this.props.Document.nativeWidth, 0), 1800);
         let fadeUp = .75 * screenWidth;
         let fadeDown = (maximizedDoc ? .0075 : .075) * screenWidth;
-        zoomFade = w < fadeDown  /* || w > fadeUp */ ? Math.max(0.1, Math.min(1, 2 - (w < fadeDown ? fadeDown / w : w / fadeUp))) : 1;
+        zoomFade = w < fadeDown  /* || w > fadeUp */ ? Math.max(0.1, Math.min(1, 2 - (w < fadeDown ? Math.sqrt(Math.sqrt(fadeDown / w)) : w / fadeUp))) : 1;
 
         return (
             <div className="collectionFreeFormDocumentView-container" ref={this._mainCont}
@@ -236,7 +256,9 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 style={{
                     outlineColor: "black",
                     outlineStyle: "dashed",
-                    outlineWidth: BoolCast(this.props.Document.libraryBrush, false) ? `${0.5 / this.contentScaling()}px` : "0px",
+                    outlineWidth:
+                        BoolCast(this.props.Document.protoBrush, false) ? `${1 / this.contentScaling()}px` :
+                            BoolCast(this.props.Document.libraryBrush, false) ? `${0.5 / this.contentScaling()}px` : "0px",
                     opacity: zoomFade,
                     borderRadius: `${this.borderRounding()}px`,
                     transformOrigin: "left top",

@@ -19,7 +19,7 @@
   box-sizing: border-box;
   background-color: inherit;
   border-style: solid;
-  overflow-y: scroll;
+  overflow-y: auto;
   overflow-x: hidden;
   color: initial;
   height: 100%;
@@ -27,7 +27,6 @@
 }
 
 .formattedTextBox-cont-hidden {
-    overflow: hidden;
     pointer-events: none;
 }
 .formattedTextBox-inner-rounded {

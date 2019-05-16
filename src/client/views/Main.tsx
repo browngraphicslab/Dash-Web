@@ -1,7 +1,7 @@
 import { IconName, library } from '@fortawesome/fontawesome-svg-core';
 import { faFilePdf, faFilm, faFont, faGlobeAsia, faImage, faMusic, faObjectGroup, faPenNib, faRedoAlt, faTable, faTree, faUndoAlt } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { action, computed, configure, observable, runInAction } from 'mobx';
+import { action, computed, configure, observable, runInAction, trace } from 'mobx';
 import { observer } from 'mobx-react';
 import "normalize.css";
 import * as React from 'react';
@@ -12,13 +12,6 @@ import { CurrentUserUtils } from '../../server/authentication/models/current_use
 import { RouteStore } from '../../server/RouteStore';
 import { emptyFunction, returnTrue, Utils, returnOne, returnZero } from '../../Utils';
 import { Docs } from '../documents/Documents';
-import { ColumnAttributeModel } from '../northstar/core/attribute/AttributeModel';
-import { AttributeTransformationModel } from '../northstar/core/attribute/AttributeTransformationModel';
-import { Gateway, NorthstarSettings } from '../northstar/manager/Gateway';
-import { AggregateFunction, Catalog } from '../northstar/model/idea/idea';
-import '../northstar/model/ModelExtensions';
-import { HistogramOperation } from '../northstar/operations/HistogramOperation';
-import '../northstar/utils/Extensions';
 import { SetupDrag, DragManager } from '../util/DragManager';
 import { Transform } from '../util/Transform';
 import { UndoManager } from '../util/UndoManager';
@@ -38,6 +31,8 @@ import { Cast, FieldValue, StrCast } from '../../new_fields/Types';
 import { DocServer } from '../DocServer';
 import { listSpec } from '../../new_fields/Schema';
 import { Id } from '../../new_fields/RefField';
+import { HistoryUtil } from '../util/History';
+
 
 @observer
 export class Main extends React.Component {
@@ -51,6 +46,9 @@ export class Main extends React.Component {
     }
     private set mainContainer(doc: Opt<Doc>) {
         if (doc) {
+            if (!("presentationView" in doc)) {
+                doc.presentationView = new Doc();
+            }
             CurrentUserUtils.UserDocument.activeWorkspace = doc;
         }
     }
@@ -67,8 +65,6 @@ export class Main extends React.Component {
             }
         }
 
-        CurrentUserUtils.loadCurrentUser();
-
         library.add(faFont);
         library.add(faImage);
         library.add(faFilePdf);
@@ -81,30 +77,8 @@ export class Main extends React.Component {
         library.add(faFilm);
         library.add(faMusic);
         library.add(faTree);
-
         this.initEventListeners();
         this.initAuthenticationRouters();
-
-        // try {
-        //     this.initializeNorthstar();
-        // } catch (e) {
-
-        // }
-    }
-
-    componentDidMount() { window.onpopstate = this.onHistory; }
-
-    componentWillUnmount() { window.onpopstate = null; }
-
-    onHistory = () => {
-        if (window.location.pathname !== RouteStore.home) {
-            let pathname = window.location.pathname.split("/");
-            DocServer.GetRefField(pathname[pathname.length - 1]).then(action((field: Opt<Field>) => {
-                if (field instanceof Doc) {
-                    this.openWorkspace(field, true);
-                }
-            }));
-        }
     }
 
     initEventListeners = () => {
@@ -152,7 +126,7 @@ export class Main extends React.Component {
             // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
             setTimeout(() => {
                 this.openWorkspace(mainDoc);
-                let pendingDocument = Docs.SchemaDocument([], { title: "New Mobile Uploads" });
+                let pendingDocument = Docs.SchemaDocument(["title"], [], { title: "New Mobile Uploads" });
                 mainDoc.optionalRightCollection = pendingDocument;
             }, 0);
         }
@@ -162,7 +136,7 @@ export class Main extends React.Component {
     openWorkspace = async (doc: Doc, fromHistory = false) => {
         CurrentUserUtils.MainDocId = doc[Id];
         this.mainContainer = doc;
-        fromHistory || window.history.pushState(null, StrCast(doc.title), "/doc/" + doc[Id]);
+        fromHistory || HistoryUtil.pushState({ type: "doc", docId: doc[Id], initializers: {} });
         const col = await Cast(CurrentUserUtils.UserDocument.optionalRightCollection, Doc);
         // if there is a pending doc, and it has new data, show it (syip: we use a timeout to prevent collection docking view from being uninitialized)
         setTimeout(async () => {
@@ -174,32 +148,42 @@ export class Main extends React.Component {
             }
         }, 100);
     }
+    @action
+    onResize = (r: any) => {
+        this.pwidth = r.offset.width;
+        this.pheight = r.offset.height;
+    }
+    getPWidth = () => {
+        return this.pwidth;
+    }
+    getPHeight = () => {
+        return this.pheight;
+    }
     @computed
     get mainContent() {
-        let pwidthFunc = () => this.pwidth;
-        let pheightFunc = () => this.pheight;
-        let noScaling = () => 1;
         let mainCont = this.mainContainer;
-        return <Measure onResize={action((r: any) => { this.pwidth = r.entry.width; this.pheight = r.entry.height; })}>
+        let content = !mainCont ? (null) :
+            <DocumentView Document={mainCont}
+                toggleMinimized={emptyFunction}
+                addDocument={undefined}
+                removeDocument={undefined}
+                ScreenToLocalTransform={Transform.Identity}
+                ContentScaling={returnOne}
+                PanelWidth={this.getPWidth}
+                PanelHeight={this.getPHeight}
+                isTopMost={true}
+                selectOnLoad={false}
+                focus={emptyFunction}
+                parentActive={returnTrue}
+                whenActiveChanged={emptyFunction}
+                bringToFront={emptyFunction}
+                ContainingCollectionView={undefined} />;
+        const pres = mainCont ? FieldValue(Cast(mainCont.presentationView, Doc)) : undefined;
+        return <Measure offset onResize={this.onResize}>
             {({ measureRef }) =>
                 <div ref={measureRef} id="mainContent-div">
-                    {!mainCont ? (null) :
-                        <DocumentView Document={mainCont}
-                            toggleMinimized={emptyFunction}
-                            addDocument={undefined}
-                            removeDocument={undefined}
-                            ScreenToLocalTransform={Transform.Identity}
-                            ContentScaling={noScaling}
-                            PanelWidth={pwidthFunc}
-                            PanelHeight={pheightFunc}
-                            isTopMost={true}
-                            selectOnLoad={false}
-                            focus={emptyFunction}
-                            parentActive={returnTrue}
-                            whenActiveChanged={emptyFunction}
-                            bringToFront={emptyFunction}
-                            ContainingCollectionView={undefined} />}
-                    <PresentationView key="presentation" />
+                    {content}
+                    {pres ? <PresentationView Document={pres} key="presentation" /> : null}
                 </div>
             }
         </Measure>;
@@ -216,7 +200,7 @@ export class Main extends React.Component {
 
         let addTextNode = action(() => Docs.TextDocument({ borderRounding: -1, width: 200, height: 200, title: "a text note" }));
         let addColNode = action(() => Docs.FreeformDocument([], { width: 200, height: 200, title: "a freeform collection" }));
-        let addSchemaNode = action(() => Docs.SchemaDocument([], { width: 200, height: 200, title: "a schema collection" }));
+        let addSchemaNode = action(() => Docs.SchemaDocument(["title"], [], { width: 200, height: 200, title: "a schema collection" }));
         let addTreeNode = action(() => Docs.TreeDocument([CurrentUserUtils.UserDocument], { width: 250, height: 400, title: "Library:" + CurrentUserUtils.email, dropAction: "alias" }));
         // let addTreeNode = action(() => Docs.TreeDocument(this._northstarSchemas, { width: 250, height: 400, title: "northstar schemas", dropAction: "copy"  }));
         let addVideoNode = action(() => Docs.VideoDocument(videourl, { width: 200, title: "video node" }));
@@ -286,40 +270,6 @@ export class Main extends React.Component {
                 <MainOverlayTextBox />
             </div>
         );
-    }
-
-    // --------------- Northstar hooks ------------- /
-    private _northstarSchemas: Doc[] = [];
-
-    @action SetNorthstarCatalog(ctlog: Catalog) {
-        CurrentUserUtils.NorthstarDBCatalog = ctlog;
-        if (ctlog && ctlog.schemas) {
-            ctlog.schemas.map(schema => {
-                let schemaDocuments: Doc[] = [];
-                let attributesToBecomeDocs = CurrentUserUtils.GetAllNorthstarColumnAttributes(schema);
-                Promise.all(attributesToBecomeDocs.reduce((promises, attr) => {
-                    promises.push(DocServer.GetRefField(attr.displayName! + ".alias").then(action((field: Opt<Field>) => {
-                        if (field instanceof Doc) {
-                            schemaDocuments.push(field);
-                        } else {
-                            var atmod = new ColumnAttributeModel(attr);
-                            let histoOp = new HistogramOperation(schema.displayName!,
-                                new AttributeTransformationModel(atmod, AggregateFunction.None),
-                                new AttributeTransformationModel(atmod, AggregateFunction.Count),
-                                new AttributeTransformationModel(atmod, AggregateFunction.Count));
-                            schemaDocuments.push(Docs.HistogramDocument(histoOp, { width: 200, height: 200, title: attr.displayName! }));
-                        }
-                    })));
-                    return promises;
-                }, [] as Promise<void>[])).finally(() =>
-                    this._northstarSchemas.push(Docs.TreeDocument(schemaDocuments, { width: 50, height: 100, title: schema.displayName! })));
-            });
-        }
-    }
-    async initializeNorthstar(): Promise<void> {
-        const getEnvironment = await fetch("/assets/env.json", { redirect: "follow", method: "GET", credentials: "include" });
-        NorthstarSettings.Instance.UpdateEnvironment(await getEnvironment.json());
-        Gateway.Instance.ClearCatalog().then(async () => this.SetNorthstarCatalog(await Gateway.Instance.GetCatalog()));
     }
 }
 

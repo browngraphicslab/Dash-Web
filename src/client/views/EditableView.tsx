@@ -24,6 +24,7 @@ export interface EditableProps {
     contents: any;
     height: number;
     display?: string;
+    oneLine?: boolean;
 }
 
 /**
@@ -54,11 +55,11 @@ export class EditableView extends React.Component<EditableProps> {
 
     render() {
         if (this.editing) {
-            return <input defaultValue={this.props.GetValue()} onKeyDown={this.onKeyDown} autoFocus onBlur={action(() => this.editing = false)}
-                style={{ display: this.props.display }}></input>;
+            return <input className="editableView-input" defaultValue={this.props.GetValue()} onKeyDown={this.onKeyDown} autoFocus onBlur={action(() => this.editing = false)}
+                style={{ display: this.props.display }} />;
         } else {
             return (
-                <div className="editableView-container-editing" style={{ display: this.props.display, height: "auto", maxHeight: `${this.props.height}` }}
+                <div className={`editableView-container-editing${this.props.oneLine ? "-oneLine" : ""}`} style={{ display: this.props.display, height: "auto", maxHeight: `${this.props.height}` }}
                     onClick={action(() => this.editing = true)} >
                     <span>{this.props.contents}</span>
                 </div>

@@ -1,5 +1,5 @@
 import { action, runInAction } from "mobx";
-import { Doc, DocListCast } from "../../new_fields/Doc";
+import { Doc, DocListCastAsync } from "../../new_fields/Doc";
 import { Cast } from "../../new_fields/Types";
 import { emptyFunction } from "../../Utils";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
@@ -7,28 +7,28 @@ import * as globalCssVariables from "../views/globalCssVariables.scss";
 import { URLField } from "../../new_fields/URLField";
 
 export type dropActionType = "alias" | "copy" | undefined;
-export function SetupDrag(_reference: React.RefObject<HTMLDivElement>, docFunc: () => Doc, moveFunc?: DragManager.MoveFunction, dropAction?: dropActionType) {
-    let onRowMove = action((e: PointerEvent): void => {
+export function SetupDrag(_reference: React.RefObject<HTMLElement>, docFunc: () => Doc | Promise<Doc>, moveFunc?: DragManager.MoveFunction, dropAction?: dropActionType) {
+    let onRowMove = async (e: PointerEvent) => {
         e.stopPropagation();
         e.preventDefault();
 
         document.removeEventListener("pointermove", onRowMove);
         document.removeEventListener('pointerup', onRowUp);
-        var dragData = new DragManager.DocumentDragData([docFunc()]);
+        var dragData = new DragManager.DocumentDragData([await docFunc()]);
         dragData.dropAction = dropAction;
         dragData.moveDocument = moveFunc;
         DragManager.StartDocumentDrag([_reference.current!], dragData, e.x, e.y);
-    });
-    let onRowUp = action((e: PointerEvent): void => {
+    };
+    let onRowUp = (): void => {
         document.removeEventListener("pointermove", onRowMove);
         document.removeEventListener('pointerup', onRowUp);
-    });
-    let onItemDown = (e: React.PointerEvent) => {
+    };
+    let onItemDown = async (e: React.PointerEvent) => {
         // if (this.props.isSelected() || this.props.isTopMost) {
         if (e.button === 0) {
             e.stopPropagation();
             if (e.shiftKey) {
-                CollectionDockingView.Instance.StartOtherDrag([docFunc()], e);
+                CollectionDockingView.Instance.StartOtherDrag([await docFunc()], e);
             } else {
                 document.addEventListener("pointermove", onRowMove);
                 document.addEventListener("pointerup", onRowUp);
@@ -44,8 +44,8 @@ export async function DragLinksAsDocuments(dragEle: HTMLElement, x: number, y: n
     let draggedDocs: Doc[] = [];
     let draggedFromDocs: Doc[] = []
     if (srcTarg) {
-        let linkToDocs = await DocListCast(srcTarg.linkedToDocs);
-        let linkFromDocs = await DocListCast(srcTarg.linkedFromDocs);
+        let linkToDocs = await DocListCastAsync(srcTarg.linkedToDocs);
+        let linkFromDocs = await DocListCastAsync(srcTarg.linkedFromDocs);
         if (linkToDocs) draggedDocs = linkToDocs.map(linkDoc => Cast(linkDoc.linkedTo, Doc) as Doc);
         if (linkFromDocs) draggedFromDocs = linkFromDocs.map(linkDoc => Cast(linkDoc.linkedFrom, Doc) as Doc);
     }
@@ -106,7 +106,8 @@ export namespace DragManager {
         constructor(
             readonly x: number,
             readonly y: number,
-            readonly data: { [id: string]: any }
+            readonly data: { [id: string]: any },
+            readonly mods: string
         ) { }
     }
 
@@ -349,7 +350,8 @@ export namespace DragManager {
                     detail: {
                         x: e.x,
                         y: e.y,
-                        data: dragData
+                        data: dragData,
+                        mods: e.ctrlKey ? "Control" : ""
                     }
                 })
             );

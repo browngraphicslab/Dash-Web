@@ -18,7 +18,7 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
     @observable private _keyInput: string = "";
     @observable private _valueInput: string = "";
     @computed get splitPercentage() { return NumCast(this.props.Document.schemaSplitPercentage, 50); }
-
+    get fieldDocToLayout() { return this.props.fieldKey ? FieldValue(Cast(this.props.Document[this.props.fieldKey], Doc)) : this.props.Document }
 
     constructor(props: FieldViewProps) {
         super(props);
@@ -28,7 +28,7 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
     onEnterKey = (e: React.KeyboardEvent): void => {
         if (e.key === 'Enter') {
             if (this._keyInput && this._valueInput) {
-                let doc = FieldValue(Cast(this.props.Document.data, Doc));
+                let doc = this.fieldDocToLayout;
                 if (!doc) {
                     return;
                 }
@@ -60,7 +60,7 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
     }
 
     createTable = () => {
-        let doc = FieldValue(Cast(this.props.Document.data, Doc));
+        let doc = this.fieldDocToLayout;
         if (!doc) {
             return <tr><td>Loading...</td></tr>;
         }

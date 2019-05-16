@@ -11,9 +11,6 @@ import { StyleConstants } from "../../northstar/utils/StyleContants";
 import { HistogramBinPrimitiveCollection, HistogramBinPrimitive } from "./HistogramBinPrimitiveCollection";
 import { HistogramBox } from "./HistogramBox";
 import "./HistogramBoxPrimitives.scss";
-import { JSXElement } from "babel-types";
-import { Utils } from "../utils/Utils";
-import { all } from "bluebird";
 
 export interface HistogramPrimitivesProps {
     HistoBox: HistogramBox;

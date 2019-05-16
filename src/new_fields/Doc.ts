@@ -29,11 +29,21 @@ export const SelfProxy = Symbol("SelfProxy");
 export const WidthSym = Symbol("Width");
 export const HeightSym = Symbol("Height");
 
-export function DocListCast(field: FieldResult): Promise<Doc[] | undefined>;
-export function DocListCast(field: FieldResult, defaultValue: Doc[]): Promise<Doc[]>;
-export function DocListCast(field: FieldResult, defaultValue?: Doc[]) {
+/**
+ * Cast any field to either a List of Docs or undefined if the given field isn't a List of Docs.  
+ * If a default value is given, that will be returned instead of undefined.  
+ * If a default value is given, the returned value should not be modified as it might be a temporary value.  
+ * If no default value is given, and the returned value is not undefined, it can be safely modified.  
+ */
+export function DocListCastAsync(field: FieldResult): Promise<Doc[] | undefined>;
+export function DocListCastAsync(field: FieldResult, defaultValue: Doc[]): Promise<Doc[]>;
+export function DocListCastAsync(field: FieldResult, defaultValue?: Doc[]) {
     const list = Cast(field, listSpec(Doc));
-    return list ? Promise.all(list) : Promise.resolve(defaultValue);
+    return list ? Promise.all(list).then(() => list) : Promise.resolve(defaultValue);
+}
+
+export function DocListCast(field: FieldResult) {
+    return Cast(field, listSpec(Doc), []).filter(d => d && d instanceof Doc).map(d => d as Doc);
 }
 
 @Deserializable("doc").withFields(["id"])
@@ -92,8 +102,8 @@ export class Doc extends RefField {
 
     private [Self] = this;
     private [SelfProxy]: any;
-    public [WidthSym] = () => NumCast(this.__fields.width);  // bcz: is this the right way to access width/height?   it didn't work with : this.width
-    public [HeightSym] = () => NumCast(this.__fields.height);
+    public [WidthSym] = () => NumCast(this[SelfProxy].width);  // bcz: is this the right way to access width/height?   it didn't work with : this.width
+    public [HeightSym] = () => NumCast(this[SelfProxy].height);
 
     public [HandleUpdate](diff: any) {
         const set = diff.$set;
@@ -125,11 +135,12 @@ export namespace Doc {
         const self = doc[Self];
         return getField(self, key, ignoreProto);
     }
-    export function GetT<T extends Field>(doc: Doc, key: string, ctor: ToConstructor<T>, ignoreProto: boolean = false): T | null | undefined {
-        return Cast(Get(doc, key, ignoreProto), ctor) as T | null | undefined;
+    export function GetT<T extends Field>(doc: Doc, key: string, ctor: ToConstructor<T>, ignoreProto: boolean = false): FieldResult<T> {
+        return Cast(Get(doc, key, ignoreProto), ctor) as FieldResult<T>;
     }
     export async function SetOnPrototype(doc: Doc, key: string, value: Field) {
-        const proto = doc.proto;
+        const proto = Object.getOwnPropertyNames(doc).indexOf("isPrototype") == -1 ? doc.proto : doc;
+
         if (proto) {
             proto[key] = value;
         }
@@ -147,22 +158,36 @@ export namespace Doc {
         for (const key in fields) {
             if (fields.hasOwnProperty(key)) {
                 const value = fields[key];
-                if (value !== undefined) {
-                    doc[key] = value;
-                }
+                // Do we want to filter out undefineds?
+                // if (value !== undefined) {
+                doc[key] = value;
+                // }
             }
         }
         return doc;
     }
 
+    // compare whether documents or their protos match
+    export function AreProtosEqual(doc: Doc, other: Doc) {
+        let r = (doc[Id] === other[Id]);
+        let r2 = (doc.proto && doc.proto.Id === other[Id]);
+        let r3 = (other.proto && other.proto.Id === doc[Id]);
+        let r4 = (doc.proto && other.proto && doc.proto[Id] === other.proto[Id]);
+        return r || r2 || r3 || r4 ? true : false;
+    }
+
     export function MakeAlias(doc: Doc) {
         const alias = new Doc;
 
-        PromiseValue(Cast(doc.proto, Doc)).then(proto => {
-            if (proto) {
-                alias.proto = proto;
-            }
-        });
+        if (!doc.proto) {
+            alias.proto = doc;
+        } else {
+            PromiseValue(Cast(doc.proto, Doc)).then(proto => {
+                if (proto) {
+                    alias.proto = proto;
+                }
+            });
+        }
 
         return alias;
     }
@@ -193,11 +218,11 @@ export namespace Doc {
             let linkDoc = Docs.TextDocument({ width: 100, height: 30, borderRounding: -1 });
             //let linkDoc = new Doc;
             linkDoc.proto!.title = "-link name-";
-            linkDoc.linkDescription = "";
-            linkDoc.linkTags = "Default";
+            linkDoc.proto!.linkDescription = "";
+            linkDoc.proto!.linkTags = "Default";
 
-            linkDoc.linkedTo = target;
-            linkDoc.linkedFrom = source;
+            linkDoc.proto!.linkedTo = target;
+            linkDoc.proto!.linkedFrom = source;
 
             let linkedFrom = Cast(target.linkedFromDocs, listSpec(Doc));
             if (!linkedFrom) {

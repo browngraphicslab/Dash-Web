@@ -198,8 +198,8 @@ export class HistogramBinPrimitiveCollection {
         var marginParams = new MarginAggregateParameters();
         marginParams.aggregateFunction = axis.AggregateFunction;
         var marginAggregateKey = ModelHelpers.CreateAggregateKey(this.histoOp.Schema!.distinctAttributeParameters, axis, this.histoResult, brush.brushIndex!, marginParams);
-        var marginResult = ModelHelpers.GetAggregateResult(bin, marginAggregateKey) as MarginAggregateResult;
-        return !marginResult ? 0 : marginResult.absolutMargin!;
+        let aggResult = ModelHelpers.GetAggregateResult(bin, marginAggregateKey);
+        return aggResult instanceof MarginAggregateResult && aggResult.absolutMargin ? aggResult.absolutMargin : 0;
     }
 
     private createBinPrimitive(barAxis: number, brush: Brush, marginRect: PIXIRectangle,

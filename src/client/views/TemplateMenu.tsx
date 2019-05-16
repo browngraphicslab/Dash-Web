@@ -38,7 +38,6 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
 
     constructor(props: TemplateMenuProps) {
         super(props);
-        console.log("");
     }
 
     @action

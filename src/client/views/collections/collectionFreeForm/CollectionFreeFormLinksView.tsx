@@ -7,7 +7,7 @@ import { CollectionViewProps } from "../CollectionSubView";
 import "./CollectionFreeFormLinksView.scss";
 import { CollectionFreeFormLinkView } from "./CollectionFreeFormLinkView";
 import React = require("react");
-import { Doc, DocListCast } from "../../../../new_fields/Doc";
+import { Doc, DocListCastAsync, DocListCast } from "../../../../new_fields/Doc";
 import { Cast, FieldValue, NumCast, StrCast } from "../../../../new_fields/Types";
 import { listSpec } from "../../../../new_fields/Schema";
 import { List } from "../../../../new_fields/List";
@@ -20,11 +20,11 @@ export class CollectionFreeFormLinksView extends React.Component<CollectionViewP
     componentDidMount() {
         this._brushReactionDisposer = reaction(
             () => {
-                let doclist = Cast(this.props.Document[this.props.fieldKey], listSpec(Doc), []);
-                return { doclist: doclist ? doclist : [], xs: doclist instanceof List ? doclist.map(d => d instanceof Doc && d.x) : [] };
+                let doclist = DocListCast(this.props.Document[this.props.fieldKey]);
+                return { doclist: doclist ? doclist : [], xs: doclist.map(d => d.x) };
             },
-            async () => {
-                let doclist = await DocListCast(this.props.Document[this.props.fieldKey]);
+            () => {
+                let doclist = DocListCast(this.props.Document[this.props.fieldKey]);
                 let views = doclist ? doclist.filter(doc => StrCast(doc.backgroundLayout).indexOf("istogram") !== -1) : [];
                 views.forEach((dstDoc, i) => {
                     views.forEach((srcDoc, j) => {
@@ -84,7 +84,7 @@ export class CollectionFreeFormLinksView extends React.Component<CollectionViewP
         }
         if (view.props.ContainingCollectionView) {
             let collid = view.props.ContainingCollectionView.props.Document[Id];
-            Cast(this.props.Document[this.props.fieldKey], listSpec(Doc), []).filter(d => d).map(d => d as Doc).
+            DocListCast(this.props.Document[this.props.fieldKey]).
                 filter(child =>
                     child[Id] === collid).map(view =>
                         DocumentManager.Instance.getDocumentViews(view).map(view =>

@@ -1,5 +1,5 @@
 import * as htmlToImage from "html-to-image";
-import { action, computed, IReactionDisposer, observable, reaction, Reaction, trace } from 'mobx';
+import { action, computed, IReactionDisposer, observable, reaction, Reaction, trace, runInAction } from 'mobx';
 import { observer } from "mobx-react";
 import 'react-image-lightbox/style.css';
 import Measure from "react-measure";
@@ -53,10 +53,12 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     public static LayoutString() { return FieldView.LayoutString(PDFBox); }
 
     private _mainDiv = React.createRef<HTMLDivElement>();
+    private renderHeight = 2400;
 
     @observable private _renderAsSvg = true;
+    @observable private _alt = false;
 
-    private _reactionDisposer: Opt<IReactionDisposer>;
+    private _reactionDisposer?: IReactionDisposer;
 
     @observable private _perPageInfo: Object[] = []; //stores pageInfo
     @observable private _pageInfo: any = { area: [], divs: [], anno: [] }; //divs is array of objects linked to anno
@@ -65,8 +67,8 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     @observable private _interactive: boolean = false;
     @observable private _loaded: boolean = false;
 
-    @computed private get curPage() { return FieldValue(this.Document.curPage, 1); }
-    @computed private get thumbnailPage() { return Cast(this.props.Document.thumbnailPage, "number", -1); }
+    @computed private get curPage() { return NumCast(this.Document.curPage, 1); }
+    @computed private get thumbnailPage() { return NumCast(this.props.Document.thumbnailPage, -1); }
 
     componentDidMount() {
         this._reactionDisposer = reaction(
@@ -82,9 +84,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     }
 
     componentWillUnmount() {
-        if (this._reactionDisposer) {
-            this._reactionDisposer();
-        }
+        if (this._reactionDisposer) this._reactionDisposer();
     }
 
     /**
@@ -162,10 +162,8 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
         let index: any;
         this._pageInfo.divs.forEach((obj: any) => {
             obj.spans.forEach((element: any) => {
-                if (element === span) {
-                    if (!index) {
-                        index = this._pageInfo.divs.indexOf(obj);
-                    }
+                if (element === span && !index) {
+                    index = this._pageInfo.divs.indexOf(obj);
                 }
             });
         });
@@ -223,7 +221,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
             document.addEventListener("pointerup", this.onPointerUp);
         }
         if (this.props.isSelected() && e.buttons === 2) {
-            this._alt = true;
+            runInAction(() => this._alt = true);
             document.removeEventListener("pointerup", this.onPointerUp);
             document.addEventListener("pointerup", this.onPointerUp);
         }
@@ -241,7 +239,6 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
         }
         this._interactive = true;
     }
-
 
 
     @action
@@ -279,33 +276,33 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
         //      so this design is flawed.
         var nativeWidth = FieldValue(this.Document.nativeWidth, 0);
         if (!FieldValue(this.Document.nativeHeight, 0)) {
-            var nativeHeight = nativeWidth * r.entry.height / r.entry.width;
+            var nativeHeight = nativeWidth * r.offset.height / r.offset.width;
             this.props.Document.height = nativeHeight / nativeWidth * FieldValue(this.Document.width, 0);
             this.props.Document.nativeHeight = nativeHeight;
         }
     }
-    renderHeight = 2400;
     @computed
     get pdfPage() {
         return <Page height={this.renderHeight} pageNumber={this.curPage} onLoadSuccess={this.onLoaded} />;
     }
     @computed
     get pdfContent() {
-        let page = this.curPage;
-        const renderHeight = 2400;
         let pdfUrl = Cast(this.props.Document[this.props.fieldKey], PdfField);
-        let xf = FieldValue(this.Document.nativeHeight, 0) / renderHeight;
+        if (!pdfUrl) {
+            return <p>No pdf url to render</p>;
+        }
         let body = NumCast(this.props.Document.nativeHeight) ?
             this.pdfPage :
-            <Measure onResize={this.setScaling}>
+            <Measure offset onResize={this.setScaling}>
                 {({ measureRef }) =>
                     <div className="pdfBox-page" ref={measureRef}>
                         {this.pdfPage}
                     </div>
                 }
             </Measure>;
+        let xf = NumCast(this.Document.nativeHeight) / this.renderHeight;
         return <div className="pdfBox-contentContainer" key="container" style={{ transform: `scale(${xf}, ${xf})` }}>
-            <Document file={window.origin + RouteStore.corsProxy + `/${pdfUrl}`} renderMode={this._renderAsSvg ? "svg" : "canvas"}>
+            <Document file={window.origin + RouteStore.corsProxy + `/${pdfUrl.url}`} renderMode={this._renderAsSvg ? "svg" : "canvas"}>
                 {body}
             </Document>
         </div >;
@@ -336,22 +333,10 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
         }
         return (null);
     }
-    @observable _alt = false;
-    @action
-    onKeyDown = (e: React.KeyboardEvent) => {
-        if (e.key === "Alt") {
-            this._alt = true;
-        }
-    }
-    @action
-    onKeyUp = (e: React.KeyboardEvent) => {
-        if (e.key === "Alt") {
-            this._alt = false;
-        }
-    }
+    @action onKeyDown = (e: React.KeyboardEvent) => e.key === "Alt" && (this._alt = true);
+    @action onKeyUp = (e: React.KeyboardEvent) => e.key === "Alt" && (this._alt = false);
     render() {
-        trace();
-        let classname = "pdfBox-cont" + (this.props.isSelected() && !InkingControl.Instance.selectedTool && !this._alt ? "-interactive" : "");
+        let classname = "pdfBox-cont"; // + (this.props.isSelected() && !InkingControl.Instance.selectedTool && !this._alt ? "-interactive" : "");
         return (
             <div className={classname} tabIndex={0} ref={this._mainDiv} onPointerDown={this.onPointerDown} onKeyDown={this.onKeyDown} onKeyUp={this.onKeyUp} >
                 {this.pdfRenderer}

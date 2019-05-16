@@ -1,5 +1,5 @@
 
-import { action, observable } from 'mobx';
+import { action, observable, trace } from 'mobx';
 import { observer } from "mobx-react";
 import Lightbox from 'react-image-lightbox';
 import 'react-image-lightbox/style.css'; // This only needs to be imported once in your app
@@ -42,8 +42,9 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
     onLoad = (target: any) => {
         var h = this._imgRef.current!.naturalHeight;
         var w = this._imgRef.current!.naturalWidth;
+        console.log("title: " + this.Document.title);
         if (this._photoIndex === 0) {
-            this.Document.nativeHeight = FieldValue(this.Document.nativeWidth, 0) * h / w;
+            Doc.SetOnPrototype(this.Document, "nativeHeight", FieldValue(this.Document.nativeWidth, 0) * h / w);
             this.Document.height = FieldValue(this.Document.width, 0) * h / w;
         }
     }
@@ -157,15 +158,21 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
     }
 
     render() {
+        trace();
         let field = this.Document[this.props.fieldKey];
         let paths: string[] = ["http://www.cs.brown.edu/~bcz/face.gif"];
         if (field instanceof ImageField) paths = [field.url.href];
         else if (field instanceof List) paths = field.filter(val => val instanceof ImageField).map(p => (p as ImageField).url.href);
-        let nativeWidth = FieldValue(this.Document.nativeWidth, 1);
+        let nativeWidth = FieldValue(this.Document.nativeWidth, (this.props.PanelWidth as any) as string ? Number((this.props.PanelWidth as any) as string) : 50);
         let interactive = InkingControl.Instance.selectedTool ? "" : "-interactive";
+        let id = this.props.id; // bcz: used to set id = "isExpander" in templates.tsx
         return (
-            <div className={`imageBox-cont${interactive}`} onPointerDown={this.onPointerDown} onDrop={this.onDrop} ref={this.createDropTarget} onContextMenu={this.specificContextMenu}>
-                <img src={paths[Math.min(paths.length, this._photoIndex)]} style={{ objectFit: (this._photoIndex === 0 ? undefined : "contain") }} width={nativeWidth} alt="Image not found" ref={this._imgRef} onLoad={this.onLoad} />
+            <div id={id} className={`imageBox-cont${interactive}`} onPointerDown={this.onPointerDown} onDrop={this.onDrop} ref={this.createDropTarget} onContextMenu={this.specificContextMenu}>
+                <img id={id} src={paths[Math.min(paths.length, this._photoIndex)]}
+                    style={{ objectFit: (this._photoIndex === 0 ? undefined : "contain") }}
+                    width={nativeWidth}
+                    ref={this._imgRef}
+                    onLoad={this.onLoad} />
                 {paths.length > 1 ? this.dots(paths) : (null)}
                 {this.lightbox(paths)}
             </div>);

@@ -1,45 +1,48 @@
 @import "globalCssVariables";
 
-.searchBox {
+.searchBox-bar {
     height: 32px;
-    //display: flex;
-    //padding: 4px;
-    -webkit-transition: width 0.4s ease-in-out;
-    transition: width 0.4s ease-in-out;
+    display: flex;
+    justify-content: flex-end;
     align-items: center;
+    padding-left: 2px;
+    padding-right: 2px;
 
-
-
-    input[type=text] {
+    .searchBox-input {
         width: 130px;
         -webkit-transition: width 0.4s;
         transition: width 0.4s;
-        position: absolute;
-        right: 100px;
+        align-self: stretch;
     }
 
-    input[type=text]:focus {
+    .searchBox-input:focus {
         width: 500px;
         outline: 3px solid lightblue;
     }
 
-    .filter-button {
-        position: absolute;
-        right: 30px;
+    .searchBox-barChild {
+        flex: 0 1 auto;
+        margin-left: 2px;
+        margin-right: 2px;
     }
 
-    .submit-search {
-        text-align: right;
+    .searchBox-filter {
+        align-self: stretch;
+    }
+
+    .searchBox-submit {
         color: $dark-color;
-        -webkit-transition: right 0.4s;
-        transition: right 0.4s;
     }
 
-    .submit-search:hover {
+    .searchBox-submit:hover {
         color: $main-accent;
         transform: scale(1.05);
         cursor: pointer;
     }
+}
+
+.searchBox-results {
+    margin-left: 27px; //Is there a better way to do this?
 }
 
 .filter-form {
@@ -64,7 +67,7 @@
     height: 20px;
 }
 
-.results {
+.searchBox-results {
     top: 300px;
     display: flex;
     flex-direction: column;

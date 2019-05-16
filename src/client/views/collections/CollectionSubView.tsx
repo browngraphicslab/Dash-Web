@@ -10,7 +10,7 @@ import * as rp from 'request-promise';
 import { CollectionView } from "./CollectionView";
 import { CollectionPDFView } from "./CollectionPDFView";
 import { CollectionVideoView } from "./CollectionVideoView";
-import { Doc, Opt, FieldResult } from "../../../new_fields/Doc";
+import { Doc, Opt, FieldResult, DocListCast } from "../../../new_fields/Doc";
 import { DocComponent } from "../DocComponent";
 import { listSpec } from "../../../new_fields/Schema";
 import { Cast, PromiseValue, FieldValue, ListSpec } from "../../../new_fields/Types";
@@ -18,6 +18,7 @@ import { List } from "../../../new_fields/List";
 import { DocServer } from "../../DocServer";
 import { ObjectField } from "../../../new_fields/ObjectField";
 import CursorField, { CursorPosition, CursorMetadata } from "../../../new_fields/CursorField";
+import { url } from "inspector";
 
 export interface CollectionViewProps extends FieldViewProps {
     addDocument: (document: Doc, allowDuplicates?: boolean) => boolean;
@@ -49,7 +50,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
         get children() {
             //TODO tfs: This might not be what we want?
             //This linter error can't be fixed because of how js arguments work, so don't switch this to filter(FieldValue)
-            return Cast(this.props.Document[this.props.fieldKey], listSpec(Doc), []).filter(doc => FieldValue(doc)).map(doc => doc as Doc);
+            return DocListCast(this.props.Document[this.props.fieldKey]);
         }
 
         @action
@@ -166,6 +167,11 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             if (html && html.indexOf("<img") !== 0 && !html.startsWith("<a")) {
                 let htmlDoc = Docs.HtmlDocument(html, { ...options, width: 300, height: 300, documentText: text });
                 this.props.addDocument(htmlDoc, false);
+                return;
+            }
+            if (text && text.indexOf("www.youtube.com/watch") !== -1) {
+                const url = text.replace("youtube.com/watch?v=", "youtube.com/embed/");
+                this.props.addDocument(Docs.WebDocument(url, { ...options, width: 300, height: 300 }));
                 return;
             }
 

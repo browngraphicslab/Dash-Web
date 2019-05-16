@@ -7,7 +7,7 @@ import { VideoBox } from "./VideoBox";
 import { AudioBox } from "./AudioBox";
 import { DocumentContentsView } from "./DocumentContentsView";
 import { Transform } from "../../util/Transform";
-import { returnFalse, emptyFunction } from "../../../Utils";
+import { returnFalse, emptyFunction, returnOne } from "../../../Utils";
 import { CollectionView } from "../collections/CollectionView";
 import { CollectionPDFView } from "../collections/CollectionPDFView";
 import { CollectionVideoView } from "../collections/CollectionVideoView";
@@ -18,6 +18,7 @@ import { ImageField, VideoField, AudioField } from "../../../new_fields/URLField
 import { IconField } from "../../../new_fields/IconField";
 import { RichTextField } from "../../../new_fields/RichTextField";
 import { DateField } from "../../../new_fields/DateField";
+import { NumCast } from "../../../new_fields/Types";
 
 
 //
@@ -82,14 +83,15 @@ export class FieldView extends React.Component<FieldViewProps> {
             return <p>{field.date.toLocaleString()}</p>;
         }
         else if (field instanceof Doc) {
+            let returnHundred = () => 100;
             return (
                 <DocumentContentsView Document={field}
                     addDocument={undefined}
                     removeDocument={undefined}
                     ScreenToLocalTransform={Transform.Identity}
-                    ContentScaling={() => 1}
-                    PanelWidth={() => 100}
-                    PanelHeight={() => 100}
+                    ContentScaling={returnOne}
+                    PanelWidth={returnHundred}
+                    PanelHeight={returnHundred}
                     isTopMost={true} //TODO Why is this top most?
                     selectOnLoad={false}
                     focus={emptyFunction}

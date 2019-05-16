@@ -230,6 +230,16 @@ class ListImpl<T extends Field> extends ObjectField {
         const list = new Proxy<this>(this, {
             set: setter,
             get: listGetter,
+            ownKeys: target => Object.keys(target.__fields),
+            getOwnPropertyDescriptor: (target, prop) => {
+                if (prop in target.__fields) {
+                    return {
+                        configurable: true,//TODO Should configurable be true?
+                        enumerable: true,
+                    };
+                }
+                return Reflect.getOwnPropertyDescriptor(target, prop);
+            },
             deleteProperty: deleteProperty,
             defineProperty: () => { throw new Error("Currently properties can't be defined on documents using Object.defineProperty"); },
         });

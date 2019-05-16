@@ -2,7 +2,7 @@ import React = require("react");
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faCaretUp, faFilePdf, faFilm, faImage, faObjectGroup, faStickyNote } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { computed, observable, runInAction, reaction, IReactionDisposer } from "mobx";
+import { computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./IconBox.scss";
@@ -41,25 +41,40 @@ export class IconBox extends React.Component<FieldViewProps> {
     setLabelField = (e: React.MouseEvent): void => {
         this.props.Document.hideLabel = !BoolCast(this.props.Document.hideLabel);
     }
+    setUseOwnTitleField = (e: React.MouseEvent): void => {
+        this.props.Document.useOwnTitle = !BoolCast(this.props.Document.useTargetTitle);
+    }
 
     specificContextMenu = (e: React.MouseEvent): void => {
         ContextMenu.Instance.addItem({
-            description: BoolCast(this.props.Document.hideLabel) ? "show label" : "hide label",
+            description: BoolCast(this.props.Document.hideLabel) ? "Show label with icon" : "Remove label from icon",
             event: this.setLabelField
         });
+        let maxDocs = DocListCast(this.props.Document.maximizedDocs);
+        if (maxDocs.length === 1 && !BoolCast(this.props.Document.hideLabel)) {
+            ContextMenu.Instance.addItem({
+                description: BoolCast(this.props.Document.useOwnTitle) ? "Use target title for label" : "Use own title label",
+                event: this.setUseOwnTitleField
+            });
+        }
     }
     @observable _panelWidth: number = 0;
     @observable _panelHeight: number = 0;
     render() {
         let labelField = StrCast(this.props.Document.labelField);
         let hideLabel = BoolCast(this.props.Document.hideLabel);
-        let maxDoc = Cast(this.props.Document.maximizedDocs, listSpec(Doc), []);
-        let firstDoc = maxDoc && maxDoc.length > 0 && maxDoc[0] instanceof Doc ? maxDoc[0] as Doc : undefined;
-        let label = !hideLabel && firstDoc && labelField ? firstDoc[labelField] : "";
+        let maxDocs = DocListCast(this.props.Document.maximizedDocs);
+        let firstDoc = maxDocs.length ? maxDocs[0] : undefined;
+        let label = hideLabel ? "" : (firstDoc && labelField && !BoolCast(this.props.Document.useOwnTitle, false) ? firstDoc[labelField] : this.props.Document.title);
         return (
             <div className="iconBox-container" onContextMenu={this.specificContextMenu}>
                 {this.minimizedIcon}
-                <Measure onResize={(r) => runInAction(() => { if (r.entry.width || BoolCast(this.props.Document.hideLabel)) this.props.Document.nativeWidth = this.props.Document.width = (r.entry.width + Number(MINIMIZED_ICON_SIZE)); })}>
+                <Measure offset onResize={(r) => runInAction(() => {
+                    if (r.offset!.width || BoolCast(this.props.Document.hideLabel)) {
+                        this.props.Document.nativeWidth = (r.offset!.width + Number(MINIMIZED_ICON_SIZE));
+                        if (this.props.Document.height === Number(MINIMIZED_ICON_SIZE)) this.props.Document.width = this.props.Document.nativeWidth;
+                    }
+                })}>
                     {({ measureRef }) =>
                         <span ref={measureRef} className="iconBox-label">{label}</span>
                     }

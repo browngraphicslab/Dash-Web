@@ -297,6 +297,7 @@ function GetRefFields([ids, callback]: [string[], (result?: Transferable[]) => v
 const suffixMap: { [type: string]: (string | [string, string | ((json: any) => any)]) } = {
     "number": "_n",
     "string": "_t",
+    // "boolean": "_b",
     "image": ["_t", "url"],
     "video": ["_t", "url"],
     "pdf": ["_t", "url"],
@@ -317,6 +318,9 @@ const suffixMap: { [type: string]: (string | [string, string | ((json: any) => a
 };
 
 function ToSearchTerm(val: any): { suffix: string, value: any } | undefined {
+    if (val === null || val === undefined) {
+        return;
+    }
     const type = val.__type || typeof val;
     let suffix = suffixMap[type];
     if (!suffix) {
@@ -336,6 +340,10 @@ function ToSearchTerm(val: any): { suffix: string, value: any } | undefined {
     return { suffix, value: val };
 }
 
+function getSuffix(value: string | [string, any]): string {
+    return typeof value === "string" ? value : value[0];
+}
+
 function UpdateField(socket: Socket, diff: Diff) {
     Database.Instance.update(diff.id, diff.diff,
         () => socket.broadcast.emit(MessageStore.UpdateField.Message, diff), false, "newDocuments");
@@ -347,14 +355,14 @@ function UpdateField(socket: Socket, diff: Diff) {
     let dynfield = false;
     for (let key in docfield) {
         if (!key.startsWith("fields.")) continue;
+        dynfield = true;
         let val = docfield[key];
+        key = key.substring(7);
+        Object.values(suffixMap).forEach(suf => update[key + getSuffix(suf)] = { set: null });
         let term = ToSearchTerm(val);
         if (term !== undefined) {
             let { suffix, value } = term;
-            key = key.substring(7);
-            Object.values(suffixMap).forEach(suf => update[key + suf] = null);
             update[key + suffix] = { set: value };
-            dynfield = true;
         }
     }
     if (dynfield) {

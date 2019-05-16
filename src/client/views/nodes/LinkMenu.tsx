@@ -5,7 +5,7 @@ import { LinkBox } from "./LinkBox";
 import { LinkEditor } from "./LinkEditor";
 import './LinkMenu.scss';
 import React = require("react");
-import { Doc } from "../../../new_fields/Doc";
+import { Doc, DocListCast } from "../../../new_fields/Doc";
 import { Cast, FieldValue } from "../../../new_fields/Types";
 import { listSpec } from "../../../new_fields/Schema";
 import { Id } from "../../../new_fields/RefField";
@@ -31,12 +31,12 @@ export class LinkMenu extends React.Component<Props> {
 
     render() {
         //get list of links from document
-        let linkFrom = Cast(this.props.docView.props.Document.linkedFromDocs, listSpec(Doc), []).filter(d => d).map(d => d as Doc);
-        let linkTo = Cast(this.props.docView.props.Document.linkedToDocs, listSpec(Doc), []).filter(d => d).map(d => d as Doc);
+        let linkFrom = DocListCast(this.props.docView.props.Document.linkedFromDocs);
+        let linkTo = DocListCast(this.props.docView.props.Document.linkedToDocs);
         if (this._editingLink === undefined) {
             return (
                 <div id="linkMenu-container">
-                    <input id="linkMenu-searchBar" type="text" placeholder="Search..."></input>
+                    {/* <input id="linkMenu-searchBar" type="text" placeholder="Search..."></input> */}
                     <div id="linkMenu-list">
                         {this.renderLinkItems(linkTo, "linkedTo", "Destination: ")}
                         {this.renderLinkItems(linkFrom, "linkedFrom", "Source: ")}

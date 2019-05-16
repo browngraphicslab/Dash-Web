@@ -1,10 +1,11 @@
 import { computed, observable } from 'mobx';
 import { DocumentView } from '../views/nodes/DocumentView';
-import { Doc } from '../../new_fields/Doc';
+import { Doc, DocListCast } from '../../new_fields/Doc';
 import { FieldValue, Cast, NumCast, BoolCast } from '../../new_fields/Types';
 import { listSpec } from '../../new_fields/Schema';
 import { undoBatch } from './UndoManager';
 import { CollectionDockingView } from '../views/collections/CollectionDockingView';
+import { Id } from '../../new_fields/RefField';
 
 
 export class DocumentManager {
@@ -26,13 +27,13 @@ export class DocumentManager {
         // this.DocumentViews = new Array<DocumentView>();
     }
 
-    public getDocumentView(toFind: Doc): DocumentView | null {
+    public getDocumentViewById(id: string): DocumentView | null {
 
         let toReturn: DocumentView | null = null;
 
         //gets document view that is in a freeform canvas collection
         DocumentManager.Instance.DocumentViews.map(view => {
-            if (view.props.Document === toFind) {
+            if (view.props.Document[Id] === id) {
                 toReturn = view;
                 return;
             }
@@ -40,7 +41,7 @@ export class DocumentManager {
         if (!toReturn) {
             DocumentManager.Instance.DocumentViews.map(view => {
                 let doc = view.props.Document.proto;
-                if (doc && Object.is(doc, toFind)) {
+                if (doc && doc[Id] === id) {
                     toReturn = view;
                 }
             });
@@ -48,6 +49,11 @@ export class DocumentManager {
 
         return toReturn;
     }
+
+    public getDocumentView(toFind: Doc): DocumentView | null {
+        return this.getDocumentViewById(toFind[Id]);
+    }
+
     public getDocumentViews(toFind: Doc): DocumentView[] {
 
         let toReturn: DocumentView[] = [];
@@ -73,7 +79,7 @@ export class DocumentManager {
     @computed
     public get LinkedDocumentViews() {
         return DocumentManager.Instance.DocumentViews.filter(dv => dv.isSelected() || BoolCast(dv.props.Document.libraryBrush, false)).reduce((pairs, dv) => {
-            let linksList = Cast(dv.props.Document.linkedToDocs, listSpec(Doc), []).filter(d => d).map(d => d as Doc);
+            let linksList = DocListCast(dv.props.Document.linkedToDocs);
             if (linksList && linksList.length) {
                 pairs.push(...linksList.reduce((pairs, link) => {
                     if (link) {
@@ -86,7 +92,7 @@ export class DocumentManager {
                     return pairs;
                 }, [] as { a: DocumentView, b: DocumentView, l: Doc }[]));
             }
-            linksList = Cast(dv.props.Document.linkedFromDocs, listSpec(Doc), []).filter(d => d).map(d => d as Doc);
+            linksList = DocListCast(dv.props.Document.linkedFromDocs);
             if (linksList && linksList.length) {
                 pairs.push(...linksList.reduce((pairs, link) => {
                     if (link) {
@@ -105,19 +111,19 @@ export class DocumentManager {
 
     @undoBatch
     public jumpToDocument = async (doc: Doc): Promise<void> => {
+        const page = NumCast(doc.page, undefined);
+        const contextDoc = await Cast(doc.annotationOn, Doc);
+        if (contextDoc) {
+            const curPage = NumCast(contextDoc.curPage, page);
+            if (page !== curPage) contextDoc.curPage = page;
+        }
         let docView = DocumentManager.Instance.getDocumentView(doc);
         if (docView) {
             docView.props.focus(docView.props.Document);
         } else {
-            const contextDoc = await Cast(doc.annotationOn, Doc);
             if (!contextDoc) {
                 CollectionDockingView.Instance.AddRightSplit(Doc.MakeDelegate(doc));
             } else {
-                const page = NumCast(doc.page, undefined);
-                const curPage = NumCast(contextDoc.curPage, undefined);
-                if (page !== curPage) {
-                    contextDoc.curPage = page;
-                }
                 let contextView = DocumentManager.Instance.getDocumentView(contextDoc);
                 if (contextView) {
                     contextDoc.panTransformType = "Ease";
