@@ -20,7 +20,7 @@ export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
 
 const schema = createSchema({
     zoomBasis: "number",
-    zIndex: "number"
+    zIndex: "number",
 });
 
 //TODO Types: The import order is wrong, so positionSchema is undefined
@@ -43,9 +43,8 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     @computed get zoom(): number { return 1 / FieldValue(this.Document.zoomBasis, 1); }
     @computed get nativeWidth(): number { return FieldValue(this.Document.nativeWidth, 0); }
     @computed get nativeHeight(): number { return FieldValue(this.Document.nativeHeight, 0); }
-    @computed get width(): number { return FieldValue(this.Document.width, 0); }
-    @computed get height(): number { return FieldValue(this.Document.height, 0); }
-    @computed get zIndex(): number { return FieldValue(this.Document.zIndex, 0); }
+    @computed get width(): number { return BoolCast(this.props.Document.willMaximize) ? 0 : FieldValue(this.Document.width, 0); }
+    @computed get height(): number { return BoolCast(this.props.Document.willMaximize) ? 0 : FieldValue(this.Document.height, 0); }
 
     set width(w: number) {
         this.Document.width = w;
@@ -59,10 +58,6 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
             this.Document.width = this.nativeWidth / this.nativeHeight * h;
         }
     }
-    set zIndex(h: number) {
-        this.Document.zIndex = h;
-    }
-
     contentScaling = () => this.nativeWidth > 0 ? this.width / this.nativeWidth : 1;
     panelWidth = () => this.props.PanelWidth();
     panelHeight = () => this.props.PanelHeight();
@@ -87,7 +82,8 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
             this.props.bringToFront(this.props.Document);
             if (values instanceof List) {
                 let scrpt = this.props.ScreenToLocalTransform().transformPoint(values[0], values[1]);
-                this.animateBetweenIcon(true, scrpt, [values[2], values[3]], values[4], values[5], values[6], this.props.Document, values[7] ? true : false);
+                this.animateBetweenIcon(true, scrpt, [this.Document.x || 0, this.Document.y || 0],
+                    this.Document.width || 0, this.Document.height || 0, values[2], values[3] ? true : false);
             }
         }, { fireImmediately: true });
     }
@@ -96,32 +92,33 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         if (this._bringToFrontDisposer) this._bringToFrontDisposer();
     }
 
-    animateBetweenIcon(first: boolean, icon: number[], targ: number[], width: number, height: number, stime: number, target: Doc, maximizing: boolean) {
-        if (first) {
-            if (maximizing) target.width = target.height = 1;
-        }
+    animateBetweenIcon(first: boolean, icon: number[], targ: number[], width: number, height: number, stime: number, maximizing: boolean) {
+
         setTimeout(() => {
             let now = Date.now();
             let progress = Math.min(1, (now - stime) / 200);
             let pval = maximizing ?
                 [icon[0] + (targ[0] - icon[0]) * progress, icon[1] + (targ[1] - icon[1]) * progress] :
                 [targ[0] + (icon[0] - targ[0]) * progress, targ[1] + (icon[1] - targ[1]) * progress];
-            target.width = maximizing ? 25 + (width - 25) * progress : width + (25 - width) * progress;
-            target.height = maximizing ? 25 + (height - 25) * progress : height + (25 - height) * progress;
-            target.x = pval[0];
-            target.y = pval[1];
+            this.props.Document.width = maximizing ? 25 + (width - 25) * progress : width + (25 - width) * progress;
+            this.props.Document.height = maximizing ? 25 + (height - 25) * progress : height + (25 - height) * progress;
+            this.props.Document.x = pval[0];
+            this.props.Document.y = pval[1];
+            if (first) {
+                this.props.Document.proto!.willMaximize = false;
+            }
             if (now < stime + 200) {
-                this.animateBetweenIcon(false, icon, targ, width, height, stime, target, maximizing);
+                this.animateBetweenIcon(false, icon, targ, width, height, stime, maximizing);
             }
             else {
                 if (!maximizing) {
-                    target.isMinimized = true;
-                    target.x = targ[0];
-                    target.y = targ[1];
-                    target.width = width;
-                    target.height = height;
+                    this.props.Document.proto!.isMinimized = true;
+                    this.props.Document.x = targ[0];
+                    this.props.Document.y = targ[1];
+                    this.props.Document.width = width;
+                    this.props.Document.height = height;
                 }
-                target.isIconAnimating = undefined;
+                this.props.Document.proto!.isIconAnimating = undefined;
             }
         },
             2);
@@ -146,17 +143,13 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                     if (isMinimized === undefined) {
                         isMinimized = BoolCast(maximizedDoc.isMinimized, false);
                     }
-                    let minx = NumCast(minimizedTarget.x, undefined) + NumCast(minimizedTarget.width, undefined) * this.getTransform().Scale * this.contentScaling() / 2;
-                    let miny = NumCast(minimizedTarget.y, undefined) + NumCast(minimizedTarget.height, undefined) * this.getTransform().Scale * this.contentScaling() / 2;
-                    let maxx = NumCast(maximizedDoc.x, undefined);
-                    let maxy = NumCast(maximizedDoc.y, undefined);
-                    let maxw = NumCast(maximizedDoc.width, undefined);
-                    let maxh = NumCast(maximizedDoc.height, undefined);
-                    if (minx !== undefined && miny !== undefined && maxx !== undefined && maxy !== undefined &&
-                        maxw !== undefined && maxh !== undefined) {
+                    let minx = NumCast(minimizedTarget.x, undefined) + NumCast(minimizedTarget.width, undefined) / 2;
+                    let miny = NumCast(minimizedTarget.y, undefined) + NumCast(minimizedTarget.height, undefined) / 2;
+                    if (minx !== undefined && miny !== undefined) {
                         let scrpt = this.props.ScreenToLocalTransform().inverse().transformPoint(minx, miny);
-                        if (isMinimized) maximizedDoc.isMinimized = false;
-                        maximizedDoc.isIconAnimating = new List<number>([scrpt[0], scrpt[1], maxx, maxy, maxw, maxh, Date.now(), isMinimized ? 1 : 0])
+                        maximizedDoc.willMaximize = isMinimized;
+                        maximizedDoc.isMinimized = false;
+                        maximizedDoc.isIconAnimating = new List<number>([scrpt[0], scrpt[1], Date.now(), isMinimized ? 1 : 0])
                     }
                 }
             });
@@ -194,7 +187,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 // ...(maximizedDocs ? maximizedDocs : []),
                 // ...(summarizedDocs ? summarizedDocs : []),];
                 if (expandedDocs.length) {   // bcz: need a better way to associate behaviors with click events on widget-documents
-                    let hasView = expandedDocs.length === 1 && DocumentManager.Instance.getDocumentView(expandedDocs[0].proto!);
+                    let hasView = expandedDocs.length === 1 && DocumentManager.Instance.getDocumentView(expandedDocs[0]);
                     if (!hasView && ((altKey && !this.props.Document.maximizeOnRight) || (!altKey && this.props.Document.maximizeOnRight))) {
                         let dataDocs = DocListCast(CollectionDockingView.Instance.props.Document.data);
                         if (dataDocs) {
@@ -202,12 +195,12 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                             expandedDocs.forEach(maxDoc => {
                                 maxDoc.isMinimized = false;
                                 if (!CollectionDockingView.Instance.CloseRightSplit(maxDoc)) {
-                                    CollectionDockingView.Instance.AddRightSplit(maxDoc.proto ? Doc.MakeDelegate(maxDoc.proto) : maxDoc);
+                                    CollectionDockingView.Instance.AddRightSplit(Doc.MakeDelegate(maxDoc));
                                 }
                             });
                         }
                     } else {
-                        this.props.addDocument && expandedDocs.forEach(async maxDoc => this.props.addDocument!(maxDoc, false));
+                        //if (altKey) this.props.addDocument && expandedDocs.forEach(async maxDoc => this.props.addDocument!(maxDoc, false));
                         this.toggleIcon(expandedDocs);
                     }
                 }
@@ -254,11 +247,11 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave} onPointerOver={this.onPointerEnter}
                 onClick={this.onClick}
                 style={{
-                    outlineColor: "black",
+                    outlineColor: "maroon",
                     outlineStyle: "dashed",
-                    outlineWidth:
-                        BoolCast(this.props.Document.protoBrush, false) ? `${1 / this.contentScaling()}px` :
-                            BoolCast(this.props.Document.libraryBrush, false) ? `${0.5 / this.contentScaling()}px` : "0px",
+                    outlineWidth: BoolCast(this.props.Document.libraryBrush, false) ||
+                        BoolCast(this.props.Document.protoBrush, false) ?
+                        `${1 * this.getTransform().Scale}px` : "0px",
                     opacity: zoomFade,
                     borderRadius: `${this.borderRounding()}px`,
                     transformOrigin: "left top",
@@ -267,7 +260,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                     width: this.width,
                     height: this.height,
                     position: "absolute",
-                    zIndex: this.zIndex,
+                    zIndex: this.Document.zIndex || 0,
                     backgroundColor: "transparent"
                 }} >
                 {this.docView}

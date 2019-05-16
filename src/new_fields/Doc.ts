@@ -140,7 +140,7 @@ export namespace Doc {
         return Cast(Get(doc, key, ignoreProto), ctor) as FieldResult<T>;
     }
     export async function SetOnPrototype(doc: Doc, key: string, value: Field) {
-        const proto = Object.getOwnPropertyNames(doc).indexOf("isPrototype") == -1 ? doc.proto : doc;
+        const proto = Object.getOwnPropertyNames(doc).indexOf("isPrototype") === -1 ? doc.proto : doc;
 
         if (proto) {
             proto[key] = value;
@@ -178,9 +178,10 @@ export namespace Doc {
     }
 
     export function MakeAlias(doc: Doc) {
+        const proto = Object.getOwnPropertyNames(doc).indexOf("isPrototype") === -1 ? doc.proto : undefined;
         const alias = new Doc;
 
-        if (!doc.proto) {
+        if (!proto) {
             alias.proto = doc;
         } else {
             PromiseValue(Cast(doc.proto, Doc)).then(proto => {

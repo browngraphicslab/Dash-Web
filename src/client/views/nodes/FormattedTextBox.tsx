@@ -269,14 +269,14 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     }
 
     //REPLACE THIS WITH CAPABILITIES SPECIFIC TO THIS TYPE OF NODE
-    textCapability = (e: React.MouseEvent): void => {
+    freezeNativeDimensions = (e: React.MouseEvent): void => {
         if (NumCast(this.props.Document.nativeWidth)) {
-            this.props.Document.nativeWidth = undefined;
-            this.props.Document.nativeHeight = undefined;
+            this.props.Document.proto!.nativeWidth = undefined;
+            this.props.Document.proto!.nativeHeight = undefined;
 
         } else {
-            this.props.Document.nativeWidth = this.props.Document[WidthSym]();
-            this.props.Document.nativeHeight = this.props.Document[HeightSym]();
+            this.props.Document.proto!.nativeWidth = this.props.Document[WidthSym]();
+            this.props.Document.proto!.nativeHeight = this.props.Document[HeightSym]();
         }
     }
     specificContextMenu = (e: React.MouseEvent): void => {
@@ -286,7 +286,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         }
         ContextMenu.Instance.addItem({
             description: NumCast(this.props.Document.nativeWidth) ? "Unfreeze" : "Freeze",
-            event: this.textCapability
+            event: this.freezeNativeDimensions
         });
     }
 

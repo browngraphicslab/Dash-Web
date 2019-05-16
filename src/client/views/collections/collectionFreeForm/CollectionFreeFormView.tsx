@@ -134,8 +134,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     @action
     onPointerMove = (e: PointerEvent): void => {
         if (!e.cancelBubble) {
-            let x = this.props.Document.panX || 0;
-            let y = this.props.Document.panY || 0;
+            let x = this.Document.panX || 0;
+            let y = this.Document.panY || 0;
             let docs = this.children || [];
             let [dx, dy] = this.getTransform().transformDirection(e.clientX - this._lastX, e.clientY - this._lastY);
             if (!this.isAnnotationOverlay) {
@@ -363,7 +363,7 @@ class CollectionFreeFormOverlayView extends React.Component<DocumentViewProps & 
             isTopMost={this.props.isTopMost} isSelected={this.props.isSelected} select={emptyFunction} />);
     }
     render() {
-        return this.props.Document.overlayLayout ? this.overlayView : (null);
+        return this.overlayView;
     }
 }
 

@@ -223,27 +223,21 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             this.cleanupInteractions(false);
             e.stopPropagation();
         }
-        if (e.key === "c" || e.key === "r" || e.key === "s" || e.key === "e" || e.key === "p") {
+        if (e.key === "c" || e.key === "s" || e.key === "e" || e.key === "p") {
             this._commandExecuted = true;
             e.stopPropagation();
             (e as any).propagationIsStopped = true;
             let bounds = this.Bounds;
-            let selected = this.marqueeSelect().map(d => {
-                if (e.key === "s") {
-                    let dCopy = Doc.MakeCopy(d);
-                    dCopy.x = NumCast(d.x) - bounds.left - bounds.width / 2;
-                    dCopy.y = NumCast(d.y) - bounds.top - bounds.height / 2;
-                    dCopy.page = -1;
-                    return dCopy;
-                }
-                else if (e.key !== "r") {
+            let selected = this.marqueeSelect();
+            if (e.key === "c") {
+                selected.map(d => {
                     this.props.removeDocument(d);
                     d.x = NumCast(d.x) - bounds.left - bounds.width / 2;
                     d.y = NumCast(d.y) - bounds.top - bounds.height / 2;
                     d.page = -1;
-                }
-                return d;
-            });
+                    return d;
+                });
+            }
             let ink = Cast(this.props.container.props.Document.ink, InkField);
             let inkData = ink ? ink.inkData : undefined;
             let zoomBasis = NumCast(this.props.container.props.Document.scale, 1);
@@ -257,34 +251,40 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 width: bounds.width * zoomBasis,
                 height: bounds.height * zoomBasis,
                 ink: inkData ? new InkField(this.marqueeInkSelect(inkData)) : undefined,
-                title: e.key === "s" ? "-summary-" : e.key === "r" ? "-replacement-" : e.key === "p" ? "-summary-" : "a nested collection",
+                title: e.key === "s" ? "-summary-" : e.key === "p" ? "-summary-" : "a nested collection",
             });
-
             this.marqueeInkDelete(inkData);
-            // SelectionManager.DeselectAll();
-            if (e.key === "s" || e.key === "r" || e.key === "p") {
-                e.preventDefault();
-                let scrpt = this.props.getTransform().inverse().transformPoint(bounds.left, bounds.top);
-                let summary = Docs.TextDocument({ x: bounds.left, y: bounds.top, width: 300, height: 100, backgroundColor: "yellow", title: "-summary-" });
 
-                let dataUrl = await htmlToImage.toPng(this._mainCont.current!, { width: bounds.width, height: bounds.height, quality: 1 });
-                summary.proto!.thumbnail = new ImageField(new URL(dataUrl));
+            if (e.key === "s" || e.key === "p") {
 
-                summary.proto!.templates = new List<string>([Templates.ImageOverlay(Math.min(50, bounds.width), bounds.height * Math.min(50, bounds.width) / bounds.width, "thumbnail")]);
-                if (e.key === "s" || e.key === "p") {
-                    summary.proto!.maximizeOnRight = true;
+                htmlToImage.toPng(this._mainCont.current!, { width: bounds.width * zoomBasis, height: bounds.height * zoomBasis, quality: 1 }).then((dataUrl) => {
+                    selected.map(d => {
+                        this.props.removeDocument(d);
+                        d.x = NumCast(d.x) - bounds.left - bounds.width / 2;
+                        d.y = NumCast(d.y) - bounds.top - bounds.height / 2;
+                        d.page = -1;
+                        return d;
+                    });
+                    let summary = Docs.TextDocument({ x: bounds.left, y: bounds.top, width: 300, height: 100, backgroundColor: "yellow", title: "-summary-" });
+                    summary.proto!.thumbnail = new ImageField(new URL(dataUrl));
+                    summary.proto!.templates = new List<string>([Templates.ImageOverlay(Math.min(50, bounds.width), bounds.height * Math.min(50, bounds.width) / bounds.width, "thumbnail")]);
                     newCollection.proto!.summaryDoc = summary;
                     selected = [newCollection];
-                }
-                summary.proto!.summarizedDocs = new List<Doc>(selected);
-                //summary.proto!.isButton = true;
-                selected.map(summarizedDoc => {
-                    let maxx = NumCast(summarizedDoc.x, undefined);
-                    let maxy = NumCast(summarizedDoc.y, undefined);
-                    let maxw = NumCast(summarizedDoc.width, undefined);
-                    let maxh = NumCast(summarizedDoc.height, undefined);
-                });
-                this.props.addLiveTextDocument(summary);
+                    newCollection.x = bounds.left + bounds.width;
+                    this.props.addDocument(newCollection, false);
+                    summary.proto!.summarizedDocs = new List<Doc>(selected.map(s => s.proto!));
+                    //summary.proto!.maximizeOnRight = true;
+                    //summary.proto!.isButton = true;
+                    //let scrpt = this.props.getTransform().inverse().transformPoint(bounds.left, bounds.top);
+                    // selected.map(summarizedDoc => {
+                    //     let maxx = NumCast(summarizedDoc.x, undefined);
+                    //     let maxy = NumCast(summarizedDoc.y, undefined);
+                    //     let maxw = NumCast(summarizedDoc.width, undefined);
+                    //     let maxh = NumCast(summarizedDoc.height, undefined);
+                    //     summarizedDoc.isIconAnimating = new List<number>([scrpt[0], scrpt[1], maxx, maxy, maxw, maxh, Date.now(), 0]);
+                    // });
+                    this.props.addLiveTextDocument(summary);
+                })
             }
             else {
                 this.props.addDocument(newCollection, false);

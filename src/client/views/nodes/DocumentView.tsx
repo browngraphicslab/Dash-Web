@@ -227,7 +227,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
     }
     fullScreenClicked = (e: React.MouseEvent): void => {
-        const doc = Doc.MakeDelegate(FieldValue(this.Document.proto));
+        const doc = Doc.MakeCopy(this.props.Document, false);
         if (doc) {
             CollectionDockingView.Instance.OpenFullScreen(doc);
         }

@@ -71,13 +71,14 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     @computed private get thumbnailPage() { return NumCast(this.props.Document.thumbnailPage, -1); }
 
     componentDidMount() {
+        let wasSelected = false;
         this._reactionDisposer = reaction(
-            () => [SelectionManager.SelectedDocuments().slice()],
+            () => this.props.isSelected(),
             () => {
-                if (this.curPage > 0 && this.thumbnailPage > 0 && this.curPage !== this.thumbnailPage && !this.props.isSelected()) {
+                if (this.curPage > 0 && this.curPage !== this.thumbnailPage && wasSelected && !this.props.isSelected()) {
                     this.saveThumbnail();
-                    this._interactive = true;
                 }
+                wasSelected = this._interactive = this.props.isSelected();
             },
             { fireImmediately: true });
 
@@ -256,7 +257,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
                 .catch(function (error: any) {
                     console.error('oops, something went wrong!', error);
                 });
-        }, 250);
+        }, 1250);
     }
 
     @action
@@ -283,24 +284,27 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     }
     @computed
     get pdfPage() {
-        return <Page height={this.renderHeight} pageNumber={this.curPage} onLoadSuccess={this.onLoaded} />;
+        console.log(this.curPage);
+        return <Page height={this.renderHeight} renderTextLayer={false} pageNumber={this.curPage} onLoadSuccess={this.onLoaded} />;
     }
     @computed
     get pdfContent() {
+        trace();
         let pdfUrl = Cast(this.props.Document[this.props.fieldKey], PdfField);
         if (!pdfUrl) {
             return <p>No pdf url to render</p>;
         }
-        let body = NumCast(this.props.Document.nativeHeight) ?
-            this.pdfPage :
+        let pdfpage = this.pdfPage;
+        let body = this.Document.nativeHeight ?
+            pdfpage :
             <Measure offset onResize={this.setScaling}>
                 {({ measureRef }) =>
                     <div className="pdfBox-page" ref={measureRef}>
-                        {this.pdfPage}
+                        {pdfpage}
                     </div>
                 }
             </Measure>;
-        let xf = NumCast(this.Document.nativeHeight) / this.renderHeight;
+        let xf = (this.Document.nativeHeight || 0) / this.renderHeight;
         return <div className="pdfBox-contentContainer" key="container" style={{ transform: `scale(${xf}, ${xf})` }}>
             <Document file={window.origin + RouteStore.corsProxy + `/${pdfUrl.url}`} renderMode={this._renderAsSvg ? "svg" : "canvas"}>
                 {body}
@@ -336,7 +340,8 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     @action onKeyDown = (e: React.KeyboardEvent) => e.key === "Alt" && (this._alt = true);
     @action onKeyUp = (e: React.KeyboardEvent) => e.key === "Alt" && (this._alt = false);
     render() {
-        let classname = "pdfBox-cont"; // + (this.props.isSelected() && !InkingControl.Instance.selectedTool && !this._alt ? "-interactive" : "");
+        trace();
+        let classname = "pdfBox-cont" + (this.props.isSelected() && !InkingControl.Instance.selectedTool && !this._alt ? "-interactive" : "");
         return (
             <div className={classname} tabIndex={0} ref={this._mainDiv} onPointerDown={this.onPointerDown} onKeyDown={this.onKeyDown} onKeyUp={this.onKeyUp} >
                 {this.pdfRenderer}
