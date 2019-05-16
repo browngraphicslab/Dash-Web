@@ -149,7 +149,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                         let scrpt = this.props.ScreenToLocalTransform().inverse().transformPoint(minx, miny);
                         maximizedDoc.willMaximize = isMinimized;
                         maximizedDoc.isMinimized = false;
-                        maximizedDoc.isIconAnimating = new List<number>([scrpt[0], scrpt[1], Date.now(), isMinimized ? 1 : 0])
+                        maximizedDoc.isIconAnimating = new List<number>([scrpt[0], scrpt[1], Date.now(), isMinimized ? 1 : 0]);
                     }
                 }
             });

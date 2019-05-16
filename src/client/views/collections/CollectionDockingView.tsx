@@ -83,7 +83,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                     child.contentItems[0].remove();
                     this.layoutChanged(document);
                     return true;
-                } else
+                } else {
                     Array.from(child.contentItems).filter((tab: any) => tab.config.component === "DocumentFrameRenderer").some((tab: any, j: number) => {
                         if (Doc.AreProtosEqual(DocumentManager.Instance.getDocumentViewById(tab.config.props.documentId)!.Document, document)) {
                             child.contentItems[j].remove();
@@ -94,8 +94,9 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                         }
                         return false;
                     });
+                }
                 return false;
-            })
+            });
         }
         if (retVal) {
             this.stateChanged();

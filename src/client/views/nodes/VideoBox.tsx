@@ -70,7 +70,7 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
     }
 
     @action
-    updateTimecode = () => this.player && (this.props.Document.curPage = this.player.currentTime);
+    updateTimecode = () => this.player && (this.props.Document.curPage = this.player.currentTime)
 
     componentDidMount() {
         if (this.props.setVideoBox) this.props.setVideoBox(this);
@@ -106,31 +106,31 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
                     "user-agent": 'Mozilla/5.0 (Windows NT 10.0; WOW64; rv:43.0) Gecko/20100101 Firefox/46.0',
                 },
 
-            }
+            };
             try {
                 let responseSchema: any = {};
-                const videoInfoResponse = await rp.get(DocServer.prepend(RouteStore.corsProxy + "/" + `https://www.youtube.com/watch?v=${videoId}`), videoInfoRequestConfig)
+                const videoInfoResponse = await rp.get(DocServer.prepend(RouteStore.corsProxy + "/" + `https://www.youtube.com/watch?v=${videoId}`), videoInfoRequestConfig);
                 const dataHtml = videoInfoResponse;
                 const start = dataHtml.indexOf('ytplayer.config = ') + 18;
                 const end = dataHtml.indexOf(';ytplayer.load');
-                const subString = dataHtml.substring(start, end)
+                const subString = dataHtml.substring(start, end);
                 const subJson = JSON.parse(subString);
                 const stringSub = subJson.args.player_response;
                 const stringSubJson = JSON.parse(stringSub);
                 const adaptiveFormats = stringSubJson.streamingData.adaptiveFormats;
-                const videoDetails = stringSubJson.videoDetails
-                responseSchema["adaptiveFormats"] = adaptiveFormats;
-                responseSchema["videoDetails"] = videoDetails;
-                resolve(responseSchema)
+                const videoDetails = stringSubJson.videoDetails;
+                responseSchema.adaptiveFormats = adaptiveFormats;
+                responseSchema.videoDetails = videoDetails;
+                resolve(responseSchema);
             }
             catch (err) {
                 console.log(`
                 --- Youtube ---
                 Function: getMp4ForVideo
-                Error: `, err)
-                reject(err)
+                Error: `, err);
+                reject(err);
             }
-        })
+        });
     }
     onPointerDown = (e: React.PointerEvent) => {
         e.preventDefault();

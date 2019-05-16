@@ -244,7 +244,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
             const protoDest = destDoc.proto;
             const protoSrc = sourceDoc.proto;
-            if (de.mods == "Control") {
+            if (de.mods === "Control") {
                 let src = protoSrc ? protoSrc : sourceDoc;
                 let dst = protoDest ? protoDest : destDoc;
                 dst.data = src;

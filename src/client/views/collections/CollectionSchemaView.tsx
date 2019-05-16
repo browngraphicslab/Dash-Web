@@ -90,7 +90,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         let fieldContentView = <FieldView {...props} />;
         let reference = React.createRef<HTMLDivElement>();
         let onItemDown = (e: React.PointerEvent) =>
-            (this.props.CollectionView!.props.isSelected() ?
+            (this.props.CollectionView.props.isSelected() ?
                 SetupDrag(reference, () => props.Document, this.props.moveDocument)(e) : undefined);
         let applyToDoc = (doc: Doc, run: (args?: { [name: string]: any }) => any) => {
             const res = run({ this: doc });
@@ -127,7 +127,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                         }
                         const run = script.run;
                         //TODO This should be able to be refactored to compile the script once
-                        const val = await DocListCastAsync(this.props.Document[this.props.fieldKey])
+                        const val = await DocListCastAsync(this.props.Document[this.props.fieldKey]);
                         val && val.forEach(doc => applyToDoc(doc, run));
                     }}>
                 </EditableView>
@@ -230,14 +230,14 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         DocListCast(this.props.Document.data).map(doc => {
             csv += self.columns.reduce((val, col) => val + (doc[col] ? doc[col]!.toString() : "") + ",", "");
             csv = csv.substr(0, csv.length - 1) + "\n";
-        })
+        });
         csv.substring(0, csv.length - 1);
         let dbName = StrCast(this.props.Document.title);
         let res = await Gateway.Instance.PostSchema(csv, dbName);
         if (self.props.CollectionView.props.addDocument) {
             let schemaDoc = await Docs.DBDocument("https://www.cs.brown.edu/" + dbName, { title: dbName });
             if (schemaDoc) {
-                self.props.CollectionView.props.addDocument(schemaDoc, false); 
+                self.props.CollectionView.props.addDocument(schemaDoc, false);
             }
         }
     }
@@ -263,7 +263,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     get previewDocument(): Doc | undefined {
         const children = DocListCast(this.props.Document[this.props.fieldKey]);
         const selected = children.length > this._selectedIndex ? FieldValue(children[this._selectedIndex]) : undefined;
-        return selected ? (this.previewScript && this.previewScript != "this" ? FieldValue(Cast(selected[this.previewScript], Doc)) : selected) : undefined;
+        return selected ? (this.previewScript && this.previewScript !== "this" ? FieldValue(Cast(selected[this.previewScript], Doc)) : selected) : undefined;
     }
     get tableWidth() { return (this.props.PanelWidth() - 2 * this.borderWidth - this.DIVIDER_WIDTH) * (1 - this.splitPercentage / 100); }
     get previewRegionHeight() { return this.props.PanelHeight() - 2 * this.borderWidth; }

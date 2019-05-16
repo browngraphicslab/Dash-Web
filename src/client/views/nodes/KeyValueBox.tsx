@@ -18,7 +18,7 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
     @observable private _keyInput: string = "";
     @observable private _valueInput: string = "";
     @computed get splitPercentage() { return NumCast(this.props.Document.schemaSplitPercentage, 50); }
-    get fieldDocToLayout() { return this.props.fieldKey ? FieldValue(Cast(this.props.Document[this.props.fieldKey], Doc)) : this.props.Document }
+    get fieldDocToLayout() { return this.props.fieldKey ? FieldValue(Cast(this.props.Document[this.props.fieldKey], Doc)) : this.props.Document; }
 
     constructor(props: FieldViewProps) {
         super(props);

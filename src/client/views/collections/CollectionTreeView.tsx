@@ -56,7 +56,7 @@ class TreeView extends React.Component<TreeViewProps> {
         } else {
             CollectionDockingView.Instance.AddRightSplit(this.props.document);
         }
-    };
+    }
 
     get children() {
         return Cast(this.props.document.data, listSpec(Doc), []); // bcz: needed?    .filter(doc => FieldValue(doc));
@@ -184,8 +184,9 @@ class TreeView extends React.Component<TreeViewProps> {
                             {TreeView.GetChildElements(doc instanceof Doc ? [doc] : docList, key !== "data", (doc: Doc) => this.remove(doc, key), this.move, this.props.dropAction)}
                         </div>
                     </ul >);
-                } else
+                } else {
                     bulletType = BulletType.Collapsed;
+                }
             }
         });
         return <div className="treeViewItem-container"
@@ -198,8 +199,8 @@ class TreeView extends React.Component<TreeViewProps> {
         </div>;
     }
     public static GetChildElements(docs: Doc[], allowMinimized: boolean, remove: ((doc: Doc) => void), move: DragManager.MoveFunction, dropAction: dropActionType) {
-        return docs.filter(child => child instanceof Doc && !child.excludeFromLibrary && (allowMinimized || !child.isMinimized)).filter(doc => FieldValue(doc)).map(child =>
-            <TreeView document={child as Doc} key={(child as Doc)[Id]} deleteDoc={remove} moveDocument={move} dropAction={dropAction} />);
+        return docs.filter(child => !child.excludeFromLibrary && (allowMinimized || !child.isMinimized)).map(child =>
+            <TreeView document={child} key={child[Id]} deleteDoc={remove} moveDocument={move} dropAction={dropAction} />);
     }
 }
 

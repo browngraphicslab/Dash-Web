@@ -42,8 +42,8 @@ export function DocListCastAsync(field: FieldResult, defaultValue?: Doc[]) {
     return list ? Promise.all(list).then(() => list) : Promise.resolve(defaultValue);
 }
 
-export function DocListCast(field: FieldResult) {
-    return Cast(field, listSpec(Doc), []).filter(d => d && d instanceof Doc).map(d => d as Doc);
+export function DocListCast(field: FieldResult): Doc[] {
+    return Cast(field, listSpec(Doc), []).filter(d => d && d instanceof Doc) as Doc[];
 }
 
 @Deserializable("doc").withFields(["id"])

@@ -6,17 +6,17 @@ import { serializable, createSimpleSchema, object } from "serializr";
 export type CursorPosition = {
     x: number,
     y: number
-}
+};
 
 export type CursorMetadata = {
     id: string,
     identifier: string
-}
+};
 
 export type CursorData = {
     metadata: CursorMetadata,
     position: CursorPosition
-}
+};
 
 const PositionSchema = createSimpleSchema({
     x: true,

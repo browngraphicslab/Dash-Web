@@ -250,22 +250,21 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 selectedDocs[0].props.removeDocument && selectedDocs[0].props.removeDocument(this._iconDoc);
             }
             if (!this._removeIcon) {
-                if (selectedDocs.length === 1)
+                if (selectedDocs.length === 1) {
                     this.getIconDoc(selectedDocs[0]).then(icon => selectedDocs[0].props.toggleMinimized());
-                else
-                    if (Math.abs(e.pageX - this._downX) < Utils.DRAG_THRESHOLD &&
-                        Math.abs(e.pageY - this._downY) < Utils.DRAG_THRESHOLD) {
-                        let docViews = SelectionManager.ViewsSortedVertically();
-                        let topDocView = docViews[0];
-                        let ind = topDocView.templates.indexOf(Templates.Bullet.Layout);
-                        if (ind !== -1) {
-                            topDocView.templates.splice(ind, 1);
-                            topDocView.props.Document.subBulletDocs = undefined;
-                        } else {
-                            topDocView.addTemplate(Templates.Bullet);
-                            topDocView.props.Document.subBulletDocs = new List<Doc>(docViews.filter(v => v !== topDocView).map(v => v.props.Document.proto!));
-                        }
+                } else if (Math.abs(e.pageX - this._downX) < Utils.DRAG_THRESHOLD &&
+                    Math.abs(e.pageY - this._downY) < Utils.DRAG_THRESHOLD) {
+                    let docViews = SelectionManager.ViewsSortedVertically();
+                    let topDocView = docViews[0];
+                    let ind = topDocView.templates.indexOf(Templates.Bullet.Layout);
+                    if (ind !== -1) {
+                        topDocView.templates.splice(ind, 1);
+                        topDocView.props.Document.subBulletDocs = undefined;
+                    } else {
+                        topDocView.addTemplate(Templates.Bullet);
+                        topDocView.props.Document.subBulletDocs = new List<Doc>(docViews.filter(v => v !== topDocView).map(v => v.props.Document.proto!));
                     }
+                }
             }
             this._removeIcon = false;
         }
@@ -537,9 +536,9 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                         if (temp !== Templates.Bullet.Layout || i === 0) {
                             res.push(temp);
                         }
-                    })
+                    });
                 }
-                return res
+                return res;
             }, [] as string[]);
             let checked = false;
             docTemps.forEach(temp => {

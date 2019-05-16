@@ -41,7 +41,7 @@ export function SetupDrag(_reference: React.RefObject<HTMLElement>, docFunc: () 
 export async function DragLinksAsDocuments(dragEle: HTMLElement, x: number, y: number, sourceDoc: Doc) {
     let srcTarg = sourceDoc.proto;
     let draggedDocs: Doc[] = [];
-    let draggedFromDocs: Doc[] = []
+    let draggedFromDocs: Doc[] = [];
     if (srcTarg) {
         let linkToDocs = await DocListCastAsync(srcTarg.linkedToDocs);
         let linkFromDocs = await DocListCastAsync(srcTarg.linkedFromDocs);

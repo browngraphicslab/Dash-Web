@@ -66,7 +66,7 @@ export class CurrentUserUtils {
             NorthstarSettings.Instance.UpdateEnvironment(await getEnvironment.json());
             await Gateway.Instance.ClearCatalog();
             const extraSchemas = Cast(CurrentUserUtils.UserDocument.DBSchemas, listSpec("string"), []);
-            let extras = await Promise.all(extraSchemas.map(async sc => await Gateway.Instance.GetSchema("", sc)));
+            let extras = await Promise.all(extraSchemas.map(sc => Gateway.Instance.GetSchema("", sc)));
             let catprom = CurrentUserUtils.SetNorthstarCatalog(await Gateway.Instance.GetCatalog(), extras);
             if (catprom) await Promise.all(catprom);
         } catch (e) {

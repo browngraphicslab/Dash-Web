@@ -184,7 +184,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 state: field && field.Data ? EditorState.fromJSON(config, JSON.parse(field.Data)) : EditorState.create(config),
                 dispatchTransaction: this.dispatchTransaction,
                 nodeViews: {
-                    image(node, view, getPos) { return new ImageResizeView(node, view, getPos) }
+                    image(node, view, getPos) { return new ImageResizeView(node, view, getPos); }
                 }
             });
             let text = StrCast(this.props.Document.documentText);
@@ -232,9 +232,11 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     let docid = href.replace(DocServer.prepend("/doc/"), "").split("?")[0];
                     DocServer.GetRefField(docid).then(action((f: Opt<Field>) => {
                         if (f instanceof Doc) {
-                            if (DocumentManager.Instance.getDocumentView(f))
+                            if (DocumentManager.Instance.getDocumentView(f)) {
                                 DocumentManager.Instance.getDocumentView(f)!.props.focus(f);
-                            else CollectionDockingView.Instance.AddRightSplit(f);
+                            } else {
+                                CollectionDockingView.Instance.AddRightSplit(f);
+                            }
                         }
                     }));
                 }

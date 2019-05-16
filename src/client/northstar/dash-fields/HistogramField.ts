@@ -52,7 +52,7 @@ export class HistogramField extends ObjectField {
 
     [Copy]() {
         let y = this.HistoOp;
-        let z = this.HistoOp["Copy"];
+        let z = this.HistoOp.Copy;
         return new HistogramField(HistogramOperation.Duplicate(this.HistoOp));
     }
 }

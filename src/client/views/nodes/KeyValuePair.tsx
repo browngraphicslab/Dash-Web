@@ -46,8 +46,9 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
                 <td className="keyValuePair-td-key" style={{ width: `${this.props.keyWidth}%` }}>
                     <div className="keyValuePair-td-key-container">
                         <button className="keyValuePair-td-key-delete" onClick={() => {
-                            if (Object.keys(props.Document).indexOf(props.fieldKey) !== -1)
+                            if (Object.keys(props.Document).indexOf(props.fieldKey) !== -1) {
                                 props.Document[props.fieldKey] = undefined;
+                            }
                             else props.Document.proto![props.fieldKey] = undefined;
                         }}>
                             X

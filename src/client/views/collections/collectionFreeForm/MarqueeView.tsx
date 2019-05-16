@@ -63,7 +63,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             e.preventDefault();
             (async () => {
                 let text: string = await navigator.clipboard.readText();
-                let ns = text.split("\n").filter(t => t.trim() != "\r" && t.trim() != "");
+                let ns = text.split("\n").filter(t => t.trim() !== "\r" && t.trim() !== "");
                 for (let i = 0; i < ns.length - 1; i++) {
                     while (!(ns[i].trim() === "" || ns[i].endsWith("-\r") || ns[i].endsWith("-") ||
                         ns[i].endsWith(";\r") || ns[i].endsWith(";") ||
@@ -80,7 +80,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                     let newBox = Docs.TextDocument({ width: 200, height: 35, x: x + indent / 3 * 10, y: y, documentText: "@@@" + line, title: line });
                     this.props.addDocument(newBox, false);
                     y += 40 * this.props.getTransform().Scale;
-                })
+                });
             })();
         } else if (e.key === "b" && e.ctrlKey) {
             //heuristically converts pasted text into a table.
@@ -93,9 +93,10 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             e.preventDefault();
             (async () => {
                 let text: string = await navigator.clipboard.readText();
-                let ns = text.split("\n").filter(t => t.trim() != "\r" && t.trim() != "");
-                while (ns.length > 0 && ns[0].split("\t").length < 2)
+                let ns = text.split("\n").filter(t => t.trim() !== "\r" && t.trim() !== "");
+                while (ns.length > 0 && ns[0].split("\t").length < 2) {
                     ns.splice(0, 1);
+                }
                 if (ns.length > 0) {
                     let columns = ns[0].split("\t");
                     let docList: Doc[] = [];
@@ -109,7 +110,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                         let doc = new Doc();
                         columns.forEach((col, i) => doc[columns[i]] = (values.length > i ? ((values[i].indexOf(Number(values[i]).toString()) !== -1) ? Number(values[i]) : values[i]) : undefined));
                         if (groupAttr) {
-                            doc["_group"] = groupAttr;
+                            doc._group = groupAttr;
                         }
                         doc.title = i.toString();
                         docList.push(doc);
@@ -284,7 +285,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                     //     summarizedDoc.isIconAnimating = new List<number>([scrpt[0], scrpt[1], maxx, maxy, maxw, maxh, Date.now(), 0]);
                     // });
                     this.props.addLiveTextDocument(summary);
-                })
+                });
             }
             else {
                 this.props.addDocument(newCollection, false);
