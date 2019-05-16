@@ -74,7 +74,7 @@ export namespace Templates {
     export function ImageOverlay(width: number, height: number, field: string = "thumbnail") {
         return (`<div>
                 <div style="height:100%; width:100%; position:absolute;">{layout}</div>
-                <div style="height:${height}px; top:0; right:0; background:rgba(0,0,0,0.25); position:absolute;overflow:hidden;">
+                <div style="height:${height}px; bottom:0; right:0; background:rgba(0,0,0,0.25); position:absolute;overflow:hidden;">
                     <ImageBox id="isExpander" {...props} PanelWidth={${width}} fieldKey={"${field}"} />
                 </div>
             </div>`);

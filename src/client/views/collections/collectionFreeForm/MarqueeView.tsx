@@ -257,7 +257,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
 
             if (e.key === "s" || e.key === "p") {
 
-                htmlToImage.toPng(this._mainCont.current!, { width: bounds.width, height: bounds.height, quality: 1 }).then((dataUrl) => {
+                htmlToImage.toPng(this._mainCont.current!, { width: bounds.width * zoomBasis, height: bounds.height * zoomBasis, quality: 1 }).then((dataUrl) => {
                     selected.map(d => {
                         this.props.removeDocument(d);
                         d.x = NumCast(d.x) - bounds.left - bounds.width / 2;
