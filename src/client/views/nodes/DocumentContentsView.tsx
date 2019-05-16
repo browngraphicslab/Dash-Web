@@ -64,7 +64,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
         return new List<string>();
     }
     @computed get finalLayout() {
-        const baseLayout = this.layout;
+        const baseLayout = this.props.layoutKey === "overlayLayout" ? "<div/>" : this.layout;
         let base = baseLayout;
         let layout = baseLayout;
 

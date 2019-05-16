@@ -40,8 +40,11 @@ export namespace Templates {
     // export const BasicLayout = new Template("Basic layout", "{layout}");
 
     export const Caption = new Template("Caption", TemplatePosition.OutterBottom,
-        `<div id="screenSpace" style="top: 100%; font-size:14px; background:yellow; width:100%; position:absolute">
-            <FormattedTextBox {...props} fieldKey={"caption"} />
+        `<div>
+            <div style="height:100%; width:100%;position:absolute;">{layout}</div>
+            <div id="screenSpace" style="top: 100%; font-size:14px; background:yellow; width:100%; position:absolute">
+                <FormattedTextBox {...props} fieldKey={"caption"} />
+            </div>
         </div>` );
 
     export const TitleOverlay = new Template("TitleOverlay", TemplatePosition.InnerTop,

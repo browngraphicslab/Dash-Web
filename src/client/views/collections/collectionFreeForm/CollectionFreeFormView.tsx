@@ -363,7 +363,7 @@ class CollectionFreeFormOverlayView extends React.Component<DocumentViewProps & 
             isTopMost={this.props.isTopMost} isSelected={this.props.isSelected} select={emptyFunction} />);
     }
     render() {
-        return this.props.Document.overlayLayout ? this.overlayView : (null);
+        return this.overlayView;
     }
 }
 
