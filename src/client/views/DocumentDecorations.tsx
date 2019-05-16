@@ -263,7 +263,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                             topDocView.props.Document.subBulletDocs = undefined;
                         } else {
                             topDocView.addTemplate(Templates.Bullet);
-                            topDocView.props.Document.subBulletDocs = new List<Doc>(docViews.filter(v => v !== topDocView).map(v => v.props.Document));
+                            topDocView.props.Document.subBulletDocs = new List<Doc>(docViews.filter(v => v !== topDocView).map(v => v.props.Document.proto!));
                         }
                     }
             }
@@ -285,7 +285,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         iconDoc.height = Number(MINIMIZED_ICON_SIZE);
         iconDoc.x = NumCast(doc.x);
         iconDoc.y = NumCast(doc.y) - 24;
-        iconDoc.maximizedDocs = new List<Doc>(selected.map(s => s.props.Document));
+        iconDoc.maximizedDocs = new List<Doc>(selected.map(s => s.props.Document.proto!));
         doc.minimizedDoc = iconDoc;
         selected[0].props.addDocument && selected[0].props.addDocument(iconDoc, false);
         return iconDoc;

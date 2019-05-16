@@ -87,7 +87,8 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
             this.props.bringToFront(this.props.Document);
             if (values instanceof List) {
                 let scrpt = this.props.ScreenToLocalTransform().transformPoint(values[0], values[1]);
-                this.animateBetweenIcon(true, scrpt, [values[2], values[3]], values[4], values[5], values[6], this.props.Document, values[7] ? true : false);
+                this.animateBetweenIcon(true, scrpt, [NumCast(this.props.Document.x), NumCast(this.props.Document.y)],
+                    NumCast(this.props.Document.width), NumCast(this.props.Document.height), values[2], this.props.Document, values[3] ? true : false);
             }
         }, { fireImmediately: true });
     }
@@ -98,7 +99,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
 
     animateBetweenIcon(first: boolean, icon: number[], targ: number[], width: number, height: number, stime: number, target: Doc, maximizing: boolean) {
         if (first) {
-            if (maximizing) target.width = target.height = 1;
+            if (maximizing) target.proto!.width = target.proto!.height = 1;
         }
         setTimeout(() => {
             let now = Date.now();
@@ -115,13 +116,13 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
             }
             else {
                 if (!maximizing) {
-                    target.isMinimized = true;
+                    target.proto!.isMinimized = true;
                     target.x = targ[0];
                     target.y = targ[1];
                     target.width = width;
                     target.height = height;
                 }
-                target.isIconAnimating = undefined;
+                target.proto!.isIconAnimating = undefined;
             }
         },
             2);
@@ -146,17 +147,12 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                     if (isMinimized === undefined) {
                         isMinimized = BoolCast(maximizedDoc.isMinimized, false);
                     }
-                    let minx = NumCast(minimizedTarget.x, undefined) + NumCast(minimizedTarget.width, undefined) * this.getTransform().Scale * this.contentScaling() / 2;
-                    let miny = NumCast(minimizedTarget.y, undefined) + NumCast(minimizedTarget.height, undefined) * this.getTransform().Scale * this.contentScaling() / 2;
-                    let maxx = NumCast(maximizedDoc.x, undefined);
-                    let maxy = NumCast(maximizedDoc.y, undefined);
-                    let maxw = NumCast(maximizedDoc.width, undefined);
-                    let maxh = NumCast(maximizedDoc.height, undefined);
-                    if (minx !== undefined && miny !== undefined && maxx !== undefined && maxy !== undefined &&
-                        maxw !== undefined && maxh !== undefined) {
+                    let minx = NumCast(minimizedTarget.x, undefined) + NumCast(minimizedTarget.width, undefined) / 2;
+                    let miny = NumCast(minimizedTarget.y, undefined) + NumCast(minimizedTarget.height, undefined) / 2;
+                    if (minx !== undefined && miny !== undefined) {
                         let scrpt = this.props.ScreenToLocalTransform().inverse().transformPoint(minx, miny);
                         if (isMinimized) maximizedDoc.isMinimized = false;
-                        maximizedDoc.isIconAnimating = new List<number>([scrpt[0], scrpt[1], maxx, maxy, maxw, maxh, Date.now(), isMinimized ? 1 : 0])
+                        maximizedDoc.isIconAnimating = new List<number>([scrpt[0], scrpt[1], Date.now(), isMinimized ? 1 : 0])
                     }
                 }
             });
@@ -194,7 +190,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 // ...(maximizedDocs ? maximizedDocs : []),
                 // ...(summarizedDocs ? summarizedDocs : []),];
                 if (expandedDocs.length) {   // bcz: need a better way to associate behaviors with click events on widget-documents
-                    let hasView = expandedDocs.length === 1 && DocumentManager.Instance.getDocumentView(expandedDocs[0].proto!);
+                    let hasView = expandedDocs.length === 1 && DocumentManager.Instance.getDocumentView(expandedDocs[0]);
                     if (!hasView && ((altKey && !this.props.Document.maximizeOnRight) || (!altKey && this.props.Document.maximizeOnRight))) {
                         let dataDocs = DocListCast(CollectionDockingView.Instance.props.Document.data);
                         if (dataDocs) {
@@ -202,12 +198,12 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                             expandedDocs.forEach(maxDoc => {
                                 maxDoc.isMinimized = false;
                                 if (!CollectionDockingView.Instance.CloseRightSplit(maxDoc)) {
-                                    CollectionDockingView.Instance.AddRightSplit(maxDoc.proto ? Doc.MakeDelegate(maxDoc.proto) : maxDoc);
+                                    CollectionDockingView.Instance.AddRightSplit(Doc.MakeDelegate(maxDoc));
                                 }
                             });
                         }
                     } else {
-                        this.props.addDocument && expandedDocs.forEach(async maxDoc => this.props.addDocument!(maxDoc, false));
+                        //if (altKey) this.props.addDocument && expandedDocs.forEach(async maxDoc => this.props.addDocument!(maxDoc, false));
                         this.toggleIcon(expandedDocs);
                     }
                 }

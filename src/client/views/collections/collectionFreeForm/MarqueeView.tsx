@@ -264,7 +264,6 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             // SelectionManager.DeselectAll();
             if (e.key === "s" || e.key === "r" || e.key === "p") {
                 e.preventDefault();
-                let scrpt = this.props.getTransform().inverse().transformPoint(bounds.left, bounds.top);
                 let summary = Docs.TextDocument({ x: bounds.left, y: bounds.top, width: 300, height: 100, backgroundColor: "yellow", title: "-summary-" });
 
                 let dataUrl = await htmlToImage.toPng(this._mainCont.current!, { width: bounds.width, height: bounds.height, quality: 1 });
@@ -272,12 +271,15 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
 
                 summary.proto!.templates = new List<string>([Templates.ImageOverlay(Math.min(50, bounds.width), bounds.height * Math.min(50, bounds.width) / bounds.width, "thumbnail")]);
                 if (e.key === "s" || e.key === "p") {
-                    summary.proto!.maximizeOnRight = true;
+                    // summary.proto!.maximizeOnRight = true;
                     newCollection.proto!.summaryDoc = summary;
                     selected = [newCollection];
+                    newCollection.proto!.isMinimized = true;
+                    this.props.addDocument(newCollection, false);
                 }
-                summary.proto!.summarizedDocs = new List<Doc>(selected);
+                summary.proto!.summarizedDocs = new List<Doc>(selected.map(s => s.proto!));
                 //summary.proto!.isButton = true;
+                let scrpt = this.props.getTransform().inverse().transformPoint(bounds.left, bounds.top);
                 selected.map(summarizedDoc => {
                     let maxx = NumCast(summarizedDoc.x, undefined);
                     let maxy = NumCast(summarizedDoc.y, undefined);
