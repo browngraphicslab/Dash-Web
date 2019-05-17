@@ -57,6 +57,7 @@ export interface DocumentViewProps {
     whenActiveChanged: (isActive: boolean) => void;
     toggleMinimized: () => void;
     bringToFront: (doc: Doc) => void;
+    addDocTab: (doc: Doc) => void;
 }
 
 const schema = createSchema({
@@ -307,6 +308,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         cm.addItem({ description: this.props.Document.isButton ? "Remove Button" : "Make Button", event: this.makeButton });
         cm.addItem({ description: "Fields", event: this.fieldsClicked });
         cm.addItem({ description: "Center", event: () => this.props.focus(this.props.Document) });
+        cm.addItem({ description: "Open Tab", event: () => this.props.addDocTab && this.props.addDocTab(this.props.Document) });
         cm.addItem({ description: "Open Right", event: () => CollectionDockingView.Instance.AddRightSplit(this.props.Document) });
         cm.addItem({
             description: "Find aliases", event: async () => {

@@ -300,6 +300,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             parentActive: this.props.active,
             whenActiveChanged: this.props.whenActiveChanged,
             bringToFront: this.bringToFront,
+            addDocTab: this.props.addDocTab,
         };
     }
 

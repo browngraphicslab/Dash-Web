@@ -166,6 +166,7 @@ export class Main extends React.Component {
             <DocumentView Document={mainCont}
                 toggleMinimized={emptyFunction}
                 addDocument={undefined}
+                addDocTab={emptyFunction}
                 removeDocument={undefined}
                 ScreenToLocalTransform={Transform.Identity}
                 ContentScaling={returnOne}

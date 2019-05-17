@@ -107,7 +107,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     @action
     layoutChanged(removed?: Doc) {
         this._goldenLayout.root.callDownwards('setSize', [this._goldenLayout.width, this._goldenLayout.height]);
-        this._goldenLayout.emit('sbcreteChanged');
+        this._goldenLayout.emit('stateChanged');
         this._ignoreStateChange = JSON.stringify(this._goldenLayout.toConfig());
         if (removed) CollectionDockingView.Instance._removedDocs.push(removed);
         this.stateChanged();
@@ -152,6 +152,17 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         this.layoutChanged();
 
         return newContentItem;
+    }
+    @action
+    public AddTab(stack: any, document: Doc) {
+        let docs = Cast(this.props.Document.data, listSpec(Doc));
+        if (docs) {
+            docs.push(document);
+        }
+        let docContentConfig = CollectionDockingView.makeDocumentConfig(document);
+        var newContentItem = stack.layoutManager.createContentItem(docContentConfig, this._goldenLayout);
+        stack.addChild(newContentItem.contentItems[0], undefined);
+        this.layoutChanged();
     }
 
     setupGoldenLayout() {
@@ -395,9 +406,10 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     @observable private _panelWidth = 0;
     @observable private _panelHeight = 0;
     @observable private _document: Opt<Doc>;
-
+    _stack: any;
     constructor(props: any) {
         super(props);
+        this._stack = (this.props as any).glContainer.parent.parent;
         DocServer.GetRefField(this.props.documentId).then(action((f: Opt<Field>) => this._document = f as Doc));
     }
 
@@ -420,6 +432,9 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     }
     get previewPanelCenteringOffset() { return (this._panelWidth - this.nativeWidth() * this.contentScaling()) / 2; }
 
+    addDocTab = (doc: Doc) => {
+        CollectionDockingView.Instance.AddTab(this._stack, doc);
+    }
     get content() {
         if (!this._document) {
             return (null);
@@ -441,6 +456,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
                     parentActive={returnTrue}
                     whenActiveChanged={emptyFunction}
                     focus={emptyFunction}
+                    addDocTab={this.addDocTab}
                     ContainingCollectionView={undefined} />
             </div >);
     }
