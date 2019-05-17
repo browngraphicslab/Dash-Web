@@ -42,8 +42,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
     onLoad = (target: any) => {
         var h = this._imgRef.current!.naturalHeight;
         var w = this._imgRef.current!.naturalWidth;
-        console.log("title: " + this.Document.title);
-        if (this._photoIndex === 0) {
+        if (this._photoIndex === 0 && (this.props as any).id !== "isExpander") {
             Doc.SetOnPrototype(this.Document, "nativeHeight", FieldValue(this.Document.nativeWidth, 0) * h / w);
             this.Document.height = FieldValue(this.Document.width, 0) * h / w;
         }

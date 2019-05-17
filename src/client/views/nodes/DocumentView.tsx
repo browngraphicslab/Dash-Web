@@ -224,6 +224,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (doc.isButton && !doc.nativeWidth) {
             doc.nativeWidth = this.props.Document[WidthSym]();
             doc.nativeHeight = this.props.Document[HeightSym]();
+        } else {
+
+            doc.nativeWidth = doc.nativeHeight = undefined;
         }
     }
     fullScreenClicked = (e: React.MouseEvent): void => {
