@@ -47,7 +47,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             this.createDropTarget(ele);
         }
 
-        get children() {
+        get childDocs() {
             //TODO tfs: This might not be what we want?
             //This linter error can't be fixed because of how js arguments work, so don't switch this to filter(FieldValue)
             return DocListCast(this.props.Document[this.props.fieldKey]);

@@ -43,7 +43,7 @@ export function DocListCastAsync(field: FieldResult, defaultValue?: Doc[]) {
 }
 
 export function DocListCast(field: FieldResult): Doc[] {
-    return Cast(field, listSpec(Doc), []).filter(d => d && d instanceof Doc) as Doc[];
+    return Cast(field, listSpec(Doc), []).filter(d => d instanceof Doc) as Doc[];
 }
 
 @Deserializable("doc").withFields(["id"])

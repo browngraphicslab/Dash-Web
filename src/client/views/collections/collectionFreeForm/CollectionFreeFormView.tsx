@@ -72,7 +72,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
     public getActiveDocuments = () => {
         const curPage = FieldValue(this.Document.curPage, -1);
-        return this.children.filter(doc => {
+        return this.childDocs.filter(doc => {
             var page = NumCast(doc.page, -1);
             return page === curPage || page === -1;
         });
@@ -90,7 +90,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 let y = yp - de.data.yOffset / zoom;
                 let dropX = NumCast(de.data.droppedDocuments[0].x);
                 let dropY = NumCast(de.data.droppedDocuments[0].y);
-                de.data.droppedDocuments.map(d => {
+                de.data.droppedDocuments.forEach(d => {
                     d.x = x + NumCast(d.x) - dropX;
                     d.y = y + NumCast(d.y) - dropY;
                     if (!NumCast(d.width)) {
@@ -136,7 +136,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         if (!e.cancelBubble) {
             let x = this.Document.panX || 0;
             let y = this.Document.panY || 0;
-            let docs = this.children || [];
+            let docs = this.childDocs || [];
             let [dx, dy] = this.getTransform().transformDirection(e.clientX - this._lastX, e.clientY - this._lastY);
             if (!this.isAnnotationOverlay) {
                 let minx = docs.length ? NumCast(docs[0].x) : 0;
@@ -180,7 +180,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         // if (!this.props.active()) {
         //     return;
         // }
-        let childSelected = this.children.some(doc => {
+        let childSelected = this.childDocs.some(doc => {
             var dv = DocumentManager.Instance.getDocumentView(doc);
             return dv && SelectionManager.IsSelected(dv) ? true : false;
         });
@@ -239,7 +239,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
     bringToFront = (doc: Doc) => {
-        const docs = this.children;
+        const docs = this.childDocs;
         docs.slice().sort((doc1, doc2) => {
             if (doc1 === doc) return 1;
             if (doc2 === doc) return -1;
@@ -306,7 +306,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     @computed.struct
     get views() {
         let curPage = FieldValue(this.Document.curPage, -1);
-        let docviews = this.children.reduce((prev, doc) => {
+        let docviews = this.childDocs.reduce((prev, doc) => {
             if (!(doc instanceof Doc)) return prev;
             var page = NumCast(doc.page, -1);
             if (page === curPage || page === -1) {

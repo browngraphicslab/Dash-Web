@@ -357,7 +357,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     render() {
         library.add(faCog);
         library.add(faPlus);
-        const children = this.children;
+        const children = this.childDocs;
         return (
             <div className="collectionSchemaView-container" onPointerDown={this.onPointerDown} onWheel={this.onWheel}
                 onDrop={(e: React.DragEvent) => this.onDrop(e, {})} onContextMenu={this.onContextMenu} ref={this.createTarget}>

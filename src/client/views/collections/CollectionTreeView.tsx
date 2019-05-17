@@ -223,10 +223,10 @@ export class CollectionTreeView extends CollectionSubView(Document) {
     }
     render() {
         let dropAction = StrCast(this.props.Document.dropAction, "alias") as dropActionType;
-        if (!this.children) {
+        if (!this.childDocs) {
             return (null);
         }
-        let childElements = TreeView.GetChildElements(this.children, false, this.remove, this.props.moveDocument, dropAction);
+        let childElements = TreeView.GetChildElements(this.childDocs, false, this.remove, this.props.moveDocument, dropAction);
 
         return (
             <div id="body" className="collectionTreeView-dropTarget"
