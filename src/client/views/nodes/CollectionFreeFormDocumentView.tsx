@@ -205,11 +205,12 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                     }
                 }
                 else if (linkedToDocs.length || linkedFromDocs.length) {
+                    SelectionManager.DeselectAll();
                     let linkedFwdDocs = [
                         linkedToDocs.length ? linkedToDocs[0].linkedTo as Doc : linkedFromDocs.length ? linkedFromDocs[0].linkedFrom as Doc : expandedDocs[0],
                         linkedFromDocs.length ? linkedFromDocs[0].linkedFrom as Doc : linkedToDocs.length ? linkedToDocs[0].linkedTo as Doc : expandedDocs[0]];
                     if (linkedFwdDocs) {
-                        DocumentManager.Instance.jumpToDocument(linkedFwdDocs[altKey ? 1 : 0]);
+                        DocumentManager.Instance.jumpToDocument(linkedFwdDocs[altKey ? 1 : 0], altKey);
                     }
                 }
             }

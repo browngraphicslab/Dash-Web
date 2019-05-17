@@ -27,6 +27,7 @@ import { DocServer } from "../../DocServer";
 import { Id } from "../../../new_fields/RefField";
 import { PresentationView } from "../PresentationView";
 import { SearchUtil } from "../../util/SearchUtil";
+import { ObjectField, Copy } from "../../../new_fields/ObjectField";
 
 const linkSchema = createSchema({
     title: "string",
@@ -245,17 +246,17 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             let sourceDoc = de.data.linkSourceDocument;
             let destDoc = this.props.Document;
 
-            const protoDest = destDoc.proto;
-            const protoSrc = sourceDoc.proto;
-            if (de.mods === "Control") {
+            if (de.mods === "AltKey") {
+                const protoDest = destDoc.proto;
+                const protoSrc = sourceDoc.proto;
                 let src = protoSrc ? protoSrc : sourceDoc;
                 let dst = protoDest ? protoDest : destDoc;
-                dst.data = src;
+                dst.data = (src.data! as ObjectField)[Copy]();
                 dst.nativeWidth = src.nativeWidth;
                 dst.nativeHeight = src.nativeHeight;
             }
             else {
-                Doc.MakeLink(protoSrc ? protoSrc : sourceDoc, protoDest ? protoDest : destDoc);
+                Doc.MakeLink(sourceDoc, destDoc);
                 de.data.droppedDocuments.push(destDoc);
             }
             e.stopPropagation();

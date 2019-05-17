@@ -186,7 +186,6 @@ export class TooltipTextMenu {
                 let node = this.view.state.selection.$from.nodeAfter;
                 let link = node && node.marks.find(m => m.type.name === "link");
                 if (link) {
-                    console.log("Link to : " + link.attrs.href);
                     let href: string = link.attrs.href;
                     if (href.indexOf(DocServer.prepend("/doc/")) === 0) {
                         let docid = href.replace(DocServer.prepend("/doc/"), "");

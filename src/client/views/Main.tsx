@@ -244,7 +244,7 @@ export class Main extends React.Component {
         let logoutRef = React.createRef<HTMLDivElement>();
 
         return [
-            <button className="clear-db-button" key="clear-db" onClick={e => e.shiftKey && e.ctrlKey && DocServer.DeleteDatabase()}>Clear Database</button>,
+            <button className="clear-db-button" key="clear-db" onClick={e => e.shiftKey && e.altKey && DocServer.DeleteDatabase()}>Clear Database</button>,
             <div id="toolbar" key="toolbar">
                 <button className="toolbar-button round-button" title="Undo" onClick={() => UndoManager.Undo()}><FontAwesomeIcon icon="undo-alt" size="sm" /></button>
                 <button className="toolbar-button round-button" title="Redo" onClick={() => UndoManager.Redo()}><FontAwesomeIcon icon="redo-alt" size="sm" /></button>

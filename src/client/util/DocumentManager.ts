@@ -110,7 +110,8 @@ export class DocumentManager {
     }
 
     @undoBatch
-    public jumpToDocument = async (doc: Doc): Promise<void> => {
+    public jumpToDocument = async (docDelegate: Doc, makeCopy: boolean = true): Promise<void> => {
+        let doc = docDelegate.proto ? docDelegate.proto : docDelegate;
         const page = NumCast(doc.page, undefined);
         const contextDoc = await Cast(doc.annotationOn, Doc);
         if (contextDoc) {
@@ -122,7 +123,7 @@ export class DocumentManager {
             docView.props.focus(docView.props.Document);
         } else {
             if (!contextDoc) {
-                CollectionDockingView.Instance.AddRightSplit(Doc.MakeDelegate(doc));
+                CollectionDockingView.Instance.AddRightSplit(docDelegate ? (makeCopy ? Doc.MakeCopy(docDelegate) : docDelegate) : Doc.MakeDelegate(doc));
             } else {
                 let contextView = DocumentManager.Instance.getDocumentView(contextDoc);
                 if (contextView) {
