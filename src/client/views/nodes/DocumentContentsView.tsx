@@ -46,10 +46,16 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
     layoutKey: string,
 }> {
     @computed get layout(): string {
-        return StrCast(this.props.Document[this.props.layoutKey],
-            this.props.Document.data ?
+        const layout = Cast(this.props.Document[this.props.layoutKey], "string");
+        if (layout === undefined) {
+            return this.props.Document.data ?
                 "<FieldView {...props} fieldKey='data' />" :
-                KeyValueBox.LayoutString(this.props.Document.proto ? "proto" : ""));
+                KeyValueBox.LayoutString(this.props.Document.proto ? "proto" : "");
+        } else if (typeof layout === "string") {
+            return layout;
+        } else {
+            return "<p>Loading layout</p>";
+        }
     }
 
     CreateBindings(): JsxBindings {
