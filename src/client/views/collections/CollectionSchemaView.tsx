@@ -24,14 +24,7 @@ import { Cast, FieldValue, NumCast, StrCast } from "../../../new_fields/Types";
 import { listSpec } from "../../../new_fields/Schema";
 import { List } from "../../../new_fields/List";
 import { Id } from "../../../new_fields/RefField";
-import { isUndefined } from "typescript-collections/dist/lib/util";
-import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { Gateway } from "../../northstar/manager/Gateway";
-import { DocServer } from "../../DocServer";
-import { ColumnAttributeModel } from "../../northstar/core/attribute/AttributeModel";
-import { HistogramOperation } from "../../northstar/operations/HistogramOperation";
-import { AggregateFunction } from "../../northstar/model/idea/idea";
-import { AttributeTransformationModel } from "../../northstar/core/attribute/AttributeTransformationModel";
 import { Docs } from "../../documents/Documents";
 import { ContextMenu } from "../ContextMenu";
 

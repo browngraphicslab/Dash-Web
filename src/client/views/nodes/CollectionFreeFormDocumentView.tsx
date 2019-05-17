@@ -187,7 +187,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 // ...(maximizedDocs ? maximizedDocs : []),
                 // ...(summarizedDocs ? summarizedDocs : []),];
                 if (expandedDocs.length) {   // bcz: need a better way to associate behaviors with click events on widget-documents
-                    let hasView = expandedDocs.length === 1 && DocumentManager.Instance.getDocumentView(expandedDocs[0]);
+                    let hasView = expandedDocs.length === 1 && DocumentManager.Instance.getDocumentView(expandedDocs[0], this.props.ContainingCollectionView);
                     if (!hasView && ((altKey && !this.props.Document.maximizeOnRight) || (!altKey && this.props.Document.maximizeOnRight))) {
                         let dataDocs = DocListCast(CollectionDockingView.Instance.props.Document.data);
                         if (dataDocs) {
