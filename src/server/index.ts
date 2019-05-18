@@ -278,6 +278,7 @@ function getFields([ids, callback]: [string[], (result: Transferable[]) => void]
 }
 
 function setField(socket: Socket, newValue: Transferable) {
+    return;
     Database.Instance.update(newValue.id, newValue, () =>
         socket.broadcast.emit(MessageStore.SetField.Message, newValue));
     if (newValue.type === Types.Text) {
@@ -346,6 +347,7 @@ function getSuffix(value: string | [string, any]): string {
 }
 
 function UpdateField(socket: Socket, diff: Diff) {
+    return;
     Database.Instance.update(diff.id, diff.diff,
         () => socket.broadcast.emit(MessageStore.UpdateField.Message, diff), false, "newDocuments");
     const docfield = diff.diff.$set;
@@ -362,8 +364,8 @@ function UpdateField(socket: Socket, diff: Diff) {
         Object.values(suffixMap).forEach(suf => update[key + getSuffix(suf)] = { set: null });
         let term = ToSearchTerm(val);
         if (term !== undefined) {
-            let { suffix, value } = term;
-            update[key + suffix] = { set: value };
+            // let { suffix, value } = term;
+            // update[key + suffix] = { set: value };
         }
     }
     if (dynfield) {
@@ -372,6 +374,7 @@ function UpdateField(socket: Socket, diff: Diff) {
 }
 
 function CreateField(newValue: any) {
+    return;
     Database.Instance.insert(newValue, "newDocuments");
 }
 
