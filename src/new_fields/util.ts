@@ -73,7 +73,7 @@ export function getField(target: any, prop: string | number, ignoreProto: boolea
     if (field instanceof ProxyField) {
         return field.value(callback);
     }
-    if (field === undefined && !ignoreProto) {
+    if (field === undefined && !ignoreProto && prop !== "proto") {
         const proto = getField(target, "proto", true);
         if (proto instanceof Doc) {
             return getProtoField(proto, prop, callback);

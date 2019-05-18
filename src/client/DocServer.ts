@@ -21,12 +21,10 @@ export namespace DocServer {
     export async function GetRefField(id: string): Promise<Opt<RefField>> {
         let cached = _cache[id];
         if (cached === undefined) {
-            const prom = Utils.EmitCallback(_socket, MessageStore.GetRefField, id).then(fieldJson => {
+            const prom = Utils.EmitCallback(_socket, MessageStore.GetRefField, id).then(async fieldJson => {
                 const field = SerializationHelper.Deserialize(fieldJson);
-                if (_cache[id] !== undefined && !(_cache[id] instanceof Promise)) {
-                    id;
-                }
                 if (field !== undefined) {
+                    await field.proto;
                     _cache[id] = field;
                 } else {
                     delete _cache[id];
@@ -65,6 +63,7 @@ export namespace DocServer {
                     fieldMap[field.id] = SerializationHelper.Deserialize(field);
                 }
             }
+
             return fieldMap;
         });
         requestedIds.forEach(id => _cache[id] = prom.then(fields => fields[id]));
@@ -78,6 +77,12 @@ export namespace DocServer {
             }
             map[id] = field;
         });
+        await Promise.all(requestedIds.map(async id => {
+            const field = fields[id];
+            if (field) {
+                await (field as any).proto;
+            }
+        }));
         const otherFields = await Promise.all(promises);
         waitingIds.forEach((id, index) => map[id] = otherFields[index]);
         return map;
