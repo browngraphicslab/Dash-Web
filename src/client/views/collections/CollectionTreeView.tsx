@@ -14,12 +14,12 @@ import { Doc, DocListCast } from '../../../new_fields/Doc';
 import { Id } from '../../../new_fields/RefField';
 import { ContextMenu } from '../ContextMenu';
 import { undoBatch } from '../../util/UndoManager';
-import { Main } from '../Main';
 import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
 import { CollectionDockingView } from './CollectionDockingView';
 import { DocumentManager } from '../../util/DocumentManager';
 import { List } from '../../../new_fields/List';
 import { Docs } from '../../documents/Documents';
+import { MainView } from '../MainView';
 
 
 export interface TreeViewProps {
@@ -52,7 +52,7 @@ class TreeView extends React.Component<TreeViewProps> {
 
     @undoBatch openRight = async () => {
         if (this.props.document.dockingConfig) {
-            Main.Instance.openWorkspace(this.props.document);
+            MainView.Instance.openWorkspace(this.props.document);
         } else {
             CollectionDockingView.Instance.AddRightSplit(this.props.document);
         }
@@ -140,7 +140,7 @@ class TreeView extends React.Component<TreeViewProps> {
 
     onWorkspaceContextMenu = (e: React.MouseEvent): void => {
         if (!e.isPropagationStopped() && this.props.document[Id] !== CurrentUserUtils.MainDocId) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
-            ContextMenu.Instance.addItem({ description: "Open as Workspace", event: undoBatch(() => Main.Instance.openWorkspace(this.props.document)) });
+            ContextMenu.Instance.addItem({ description: "Open as Workspace", event: undoBatch(() => MainView.Instance.openWorkspace(this.props.document)) });
             ContextMenu.Instance.addItem({ description: "Open Right", event: () => CollectionDockingView.Instance.AddRightSplit(this.props.document) });
             ContextMenu.Instance.addItem({
                 description: "Open Fields", event: () => CollectionDockingView.Instance.AddRightSplit(Docs.KVPDocument(this.props.document,
@@ -215,7 +215,7 @@ export class CollectionTreeView extends CollectionSubView(Document) {
     }
     onContextMenu = (e: React.MouseEvent): void => {
         if (!e.isPropagationStopped() && this.props.Document[Id] !== CurrentUserUtils.MainDocId) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
-            ContextMenu.Instance.addItem({ description: "Create Workspace", event: undoBatch(() => Main.Instance.createNewWorkspace()) });
+            ContextMenu.Instance.addItem({ description: "Create Workspace", event: undoBatch(() => MainView.Instance.createNewWorkspace()) });
         }
         if (!ContextMenu.Instance.getItems().some(item => item.description === "Delete")) {
             ContextMenu.Instance.addItem({ description: "Delete", event: undoBatch(() => this.remove(this.props.Document)) });

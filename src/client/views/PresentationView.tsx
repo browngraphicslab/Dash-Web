@@ -2,7 +2,6 @@ import { observer } from "mobx-react";
 import React = require("react");
 import { observable, action, runInAction, reaction } from "mobx";
 import "./PresentationView.scss";
-import "./Main.tsx";
 import { DocumentManager } from "../util/DocumentManager";
 import { Utils } from "../../Utils";
 import { Doc, DocListCast, DocListCastAsync } from "../../new_fields/Doc";
