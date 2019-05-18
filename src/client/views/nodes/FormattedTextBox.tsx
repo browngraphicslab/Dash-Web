@@ -1,3 +1,5 @@
+import { library } from '@fortawesome/fontawesome-svg-core';
+import { faEdit, faSmile } from '@fortawesome/free-solid-svg-icons';
 import { action, IReactionDisposer, observable, reaction } from "mobx";
 import { observer } from "mobx-react";
 import { baseKeymap } from "prosemirror-commands";
@@ -5,7 +7,7 @@ import { history } from "prosemirror-history";
 import { keymap } from "prosemirror-keymap";
 import { EditorState, Plugin, Transaction } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
-import { Doc, Field, HeightSym, Opt, WidthSym } from "../../../new_fields/Doc";
+import { Doc, Field, Opt, WidthSym, HeightSym } from "../../../new_fields/Doc";
 import { RichTextField } from "../../../new_fields/RichTextField";
 import { createSchema, makeInterface } from "../../../new_fields/Schema";
 import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
@@ -26,6 +28,9 @@ import { InkingControl } from "../InkingControl";
 import { FieldView, FieldViewProps } from "./FieldView";
 import "./FormattedTextBox.scss";
 import React = require("react");
+
+library.add(faEdit);
+library.add(faSmile);
 
 // FormattedTextBox: Displays an editable plain text node that maps to a specified Key of a Document
 //
@@ -286,7 +291,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         }
         ContextMenu.Instance.addItem({
             description: NumCast(this.props.Document.nativeWidth) ? "Unfreeze" : "Freeze",
-            event: this.freezeNativeDimensions
+            event: this.freezeNativeDimensions,
+            icon: "edit"
         });
     }
 

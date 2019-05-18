@@ -1,5 +1,4 @@
-
-import { action, observable, trace } from 'mobx';
+import { action, observable } from 'mobx';
 import { observer } from "mobx-react";
 import Lightbox from 'react-image-lightbox';
 import 'react-image-lightbox/style.css'; // This only needs to be imported once in your app
@@ -134,7 +133,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
             ContextMenu.Instance.addItem({
                 description: "Copy path", event: () => {
                     Utils.CopyText(url);
-                }
+                }, icon: "expand-arrows-alt"
             });
         }
     }

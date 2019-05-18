@@ -1,33 +1,44 @@
-import { action, computed, runInAction, reaction, IReactionDisposer } from "mobx";
+import { library } from '@fortawesome/fontawesome-svg-core';
+import { faAlignCenter, faCaretSquareRight, faCompressArrowsAlt, faExpandArrowsAlt, faLayerGroup, faSquare, faTrash } from '@fortawesome/free-solid-svg-icons';
+import { action, computed, IReactionDisposer, reaction } from "mobx";
 import { observer } from "mobx-react";
+import { Doc, DocListCast, HeightSym, Opt, WidthSym } from "../../../new_fields/Doc";
+import { List } from "../../../new_fields/List";
+import { Copy, ObjectField } from "../../../new_fields/ObjectField";
+import { Id } from "../../../new_fields/RefField";
+import { createSchema, makeInterface } from "../../../new_fields/Schema";
+import { BoolCast, Cast, FieldValue, StrCast } from "../../../new_fields/Types";
+import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { emptyFunction, Utils } from "../../../Utils";
+import { DocServer } from "../../DocServer";
 import { Docs } from "../../documents/Documents";
 import { DocumentManager } from "../../util/DocumentManager";
 import { DragManager, dropActionType } from "../../util/DragManager";
+import { SearchUtil } from "../../util/SearchUtil";
 import { SelectionManager } from "../../util/SelectionManager";
 import { Transform } from "../../util/Transform";
-import { undoBatch, UndoManager } from "../../util/UndoManager";
+import { undoBatch } from "../../util/UndoManager";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
+import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
 import { CollectionPDFView } from "../collections/CollectionPDFView";
 import { CollectionVideoView } from "../collections/CollectionVideoView";
 import { CollectionView } from "../collections/CollectionView";
 import { ContextMenu } from "../ContextMenu";
+import { DocComponent } from "../DocComponent";
+import { PresentationView } from "../PresentationView";
 import { Template } from "./../Templates";
 import { DocumentContentsView } from "./DocumentContentsView";
 import "./DocumentView.scss";
 import React = require("react");
-import { Opt, Doc, WidthSym, HeightSym, DocListCastAsync, DocListCast } from "../../../new_fields/Doc";
-import { DocComponent } from "../DocComponent";
-import { createSchema, makeInterface } from "../../../new_fields/Schema";
-import { FieldValue, StrCast, BoolCast, Cast } from "../../../new_fields/Types";
-import { List } from "../../../new_fields/List";
-import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
-import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
-import { DocServer } from "../../DocServer";
-import { Id } from "../../../new_fields/RefField";
-import { PresentationView } from "../PresentationView";
-import { SearchUtil } from "../../util/SearchUtil";
-import { ObjectField, Copy } from "../../../new_fields/ObjectField";
+const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
+
+library.add(faTrash);
+library.add(faExpandArrowsAlt);
+library.add(faCompressArrowsAlt);
+library.add(faLayerGroup);
+library.add(faAlignCenter);
+library.add(faCaretSquareRight);
+library.add(faSquare);
 
 const linkSchema = createSchema({
     title: "string",
@@ -300,22 +311,22 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         e.preventDefault();
 
         const cm = ContextMenu.Instance;
-        cm.addItem({ description: "Full Screen", event: this.fullScreenClicked });
-        cm.addItem({ description: this.props.Document.isButton ? "Remove Button" : "Make Button", event: this.makeButton });
-        cm.addItem({ description: "Fields", event: this.fieldsClicked });
-        cm.addItem({ description: "Center", event: () => this.props.focus(this.props.Document) });
-        cm.addItem({ description: "Open Tab", event: () => this.props.addDocTab && this.props.addDocTab(this.props.Document) });
-        cm.addItem({ description: "Open Right", event: () => CollectionDockingView.Instance.AddRightSplit(this.props.Document) });
+        cm.addItem({ description: "Full Screen", event: this.fullScreenClicked, icon: "expand-arrows-alt" });
+        cm.addItem({ description: this.props.Document.isButton ? "Remove Button" : "Make Button", event: this.makeButton, icon: "expand-arrows-alt" });
+        cm.addItem({ description: "Fields", event: this.fieldsClicked, icon: "layer-group" });
+        cm.addItem({ description: "Center", event: () => this.props.focus(this.props.Document), icon: "align-center" });
+        cm.addItem({ description: "Open Tab", event: () => this.props.addDocTab && this.props.addDocTab(this.props.Document), icon: "expand-arrows-alt" });
+        cm.addItem({ description: "Open Right", event: () => CollectionDockingView.Instance.AddRightSplit(this.props.Document), icon: "caret-square-right" });
         cm.addItem({
             description: "Find aliases", event: async () => {
                 const aliases = await SearchUtil.GetAliasesOfDocument(this.props.Document);
                 CollectionDockingView.Instance.AddRightSplit(Docs.SchemaDocument(["title"], aliases, {}));
-            }
+            }, icon: "expand-arrows-alt"
         });
-        cm.addItem({ description: "Copy URL", event: () => Utils.CopyText(DocServer.prepend("/doc/" + this.props.Document[Id])) });
-        cm.addItem({ description: "Copy ID", event: () => Utils.CopyText(this.props.Document[Id]) });
-        cm.addItem({ description: "Pin to Presentation", event: () => PresentationView.Instance.PinDoc(this.props.Document) });
-        cm.addItem({ description: "Delete", event: this.deleteClicked });
+        cm.addItem({ description: "Copy URL", event: () => Utils.CopyText(DocServer.prepend("/doc/" + this.props.Document[Id])), icon: "expand-arrows-alt" });
+        cm.addItem({ description: "Copy ID", event: () => Utils.CopyText(this.props.Document[Id]), icon: "expand-arrows-alt" });
+        cm.addItem({ description: "Pin to Pres", event: () => PresentationView.Instance.PinDoc(this.props.Document), icon: "expand-arrows-alt" });
+        cm.addItem({ description: "Delete", event: this.deleteClicked, icon: "trash" });
         if (!this.topMost) {
             // DocumentViews should stop propagation of this event
             e.stopPropagation();

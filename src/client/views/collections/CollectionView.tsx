@@ -1,15 +1,23 @@
+import { library } from '@fortawesome/fontawesome-svg-core';
+import { faProjectDiagram, faSquare, faTh, faTree } from '@fortawesome/free-solid-svg-icons';
+import { observer } from "mobx-react";
 import * as React from 'react';
-import { FieldViewProps, FieldView } from '../nodes/FieldView';
-import { CollectionBaseView, CollectionViewType, CollectionRenderProps } from './CollectionBaseView';
-import { CollectionFreeFormView } from './collectionFreeForm/CollectionFreeFormView';
-import { CollectionSchemaView } from './CollectionSchemaView';
-import { CollectionDockingView } from './CollectionDockingView';
-import { CollectionTreeView } from './CollectionTreeView';
-import { ContextMenu } from '../ContextMenu';
-import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
-import { observer } from 'mobx-react';
-import { undoBatch } from '../../util/UndoManager';
 import { Id } from '../../../new_fields/RefField';
+import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
+import { undoBatch } from '../../util/UndoManager';
+import { ContextMenu } from "../ContextMenu";
+import { FieldView, FieldViewProps } from '../nodes/FieldView';
+import { CollectionBaseView, CollectionRenderProps, CollectionViewType } from './CollectionBaseView';
+import { CollectionDockingView } from "./CollectionDockingView";
+import { CollectionSchemaView } from "./CollectionSchemaView";
+import { CollectionTreeView } from "./CollectionTreeView";
+import { CollectionFreeFormView } from './collectionFreeForm/CollectionFreeFormView';
+export const COLLECTION_BORDER_WIDTH = 2;
+
+library.add(faTh);
+library.add(faTree);
+library.add(faSquare);
+library.add(faProjectDiagram);
 
 @observer
 export class CollectionView extends React.Component<FieldViewProps> {
@@ -32,9 +40,9 @@ export class CollectionView extends React.Component<FieldViewProps> {
 
     onContextMenu = (e: React.MouseEvent): void => {
         if (!this.isAnnotationOverlay && !e.isPropagationStopped() && this.props.Document[Id] !== CurrentUserUtils.MainDocId) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
-            ContextMenu.Instance.addItem({ description: "Freeform", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Freeform) });
-            ContextMenu.Instance.addItem({ description: "Schema", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Schema) });
-            ContextMenu.Instance.addItem({ description: "Treeview", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Tree) });
+            ContextMenu.Instance.addItem({ description: "Freeform", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Freeform), icon: "project-diagram" });
+            ContextMenu.Instance.addItem({ description: "Schema", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Schema), icon: "project-diagram" });
+            ContextMenu.Instance.addItem({ description: "Treeview", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Tree), icon: "tree" });
         }
     }
 

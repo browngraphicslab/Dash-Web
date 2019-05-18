@@ -21,27 +21,35 @@
   color: $light-color;
 }
 
+.subMenu-cont {
+    position: absolute;
+    display: flex;
+    z-index: 1000;
+    box-shadow: #AAAAAA .2vw .2vw .4vw;
+    flex-direction: column;
+}
+
 .contextMenu-item {
-  width: auto;
-  height: auto;
-  background: $light-color-secondary;
-  display: flex;
-  justify-content: left;
-  align-items: center;
-  -webkit-touch-callout: none;
-  -webkit-user-select: none;
-  -khtml-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  user-select: none;
-  transition: all 0.1s;
-  border-width: 0.11px;
-  border-style: none;
-  border-color: $intermediate-color;
-  border-bottom-style: solid;
-  padding: 10px;
-  white-space: nowrap;
-  font-size: 13px;
+    width: 11vw; //10vw
+    height: 2.5vh; //2vh
+    background: #DDDDDD;
+    display: flex; //comment out to allow search icon to be inline with search text
+    justify-content: left;
+    align-items: center;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    transition: all .1s;
+    border-width: .11px;
+    border-style: none;
+    border-color: $intermediate-color; //  rgb(187, 186, 186);
+    border-bottom-style: solid;
+    padding: 10px;
+    white-space: nowrap;
+    font-size: 1.5vw;
 }
 
 .contextMenu-item:hover {
@@ -50,6 +58,12 @@
 }
 
 .contextMenu-description {
-  text-align: left;
-  width: 8vw;
+    font-size: 1.5vw;
+    text-align: left;
+    width: 8vw;
+    display: inline; //need this?
+}
+
+.icon-background {
+    background-color: #DDDDDD;
 }
