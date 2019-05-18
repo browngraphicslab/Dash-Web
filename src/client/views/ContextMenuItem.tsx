@@ -7,7 +7,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 export interface OriginalMenuProps {
     description: string;
     event: (e: React.MouseEvent<HTMLDivElement>) => void;
-    icon: IconProp; //maybe should be optional (icon?)
+    icon?: IconProp; //maybe should be optional (icon?)
 }
 
 export interface SubmenuProps {
@@ -38,27 +38,28 @@ export class ContextMenuItem extends React.Component<ContextMenuProps> {
                 <div className="contextMenu-item" onClick={this.props.event}>
                     <span className="icon-background">
                         <FontAwesomeIcon icon="circle" size="sm" />
-                        <FontAwesomeIcon icon={this.props.icon} size="sm" />
+                        {this.props.icon ? <FontAwesomeIcon icon={this.props.icon} size="sm" /> : null}
                     </span>
                     <div className="contextMenu-description"> {this.props.description}</div>
-                </div>)
+                </div>
+            );
         }
         else {
             let submenu = null;
             if (this.overItem) {
-                submenu = (<div className="subMenu-cont" style={{ marginLeft: "100.5%", left: "0px" }}>
-                    {this._items.map(prop => {
-                        return <ContextMenuItem {...prop} key={prop.description} />
-                    })}
-                </div>)
+                submenu = (
+                    <div className="subMenu-cont" style={{ marginLeft: "100.5%", left: "0px" }}>
+                        {this._items.map(prop => <ContextMenuItem {...prop} key={prop.description} />)}
+                    </div>
+                );
             }
             return (
-                <div className="contextMenu-item" onClick={this.props.event} onMouseEnter={action(() => {
-                    this.overItem = true
-                })} onMouseLeave={action(() => this.overItem = false)}>
+                <div className="contextMenu-item" onMouseEnter={action(() => { this.overItem = true; })}
+                    onMouseLeave={action(() => this.overItem = false)}>
                     <div className="contextMenu-description"> {this.props.description}</div>
                     {submenu}
-                </div>)
+                </div>
+            );
         }
     }
 }
