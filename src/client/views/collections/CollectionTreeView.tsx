@@ -17,7 +17,6 @@ import { undoBatch } from '../../util/UndoManager';
 import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
 import { CollectionDockingView } from './CollectionDockingView';
 import { DocumentManager } from '../../util/DocumentManager';
-import { List } from '../../../new_fields/List';
 import { Docs } from '../../documents/Documents';
 import { MainView } from '../MainView';
 
@@ -232,7 +231,7 @@ export class CollectionTreeView extends CollectionSubView(Document) {
             <div id="body" className="collectionTreeView-dropTarget"
                 style={{ borderRadius: "inherit" }}
                 onContextMenu={this.onContextMenu}
-                onWheel={(e: React.WheelEvent) => e.stopPropagation()}
+                onWheel={(e: React.WheelEvent) => this.props.isSelected() && e.stopPropagation()}
                 onDrop={(e: React.DragEvent) => this.onDrop(e, {})} ref={this.createDropTarget}>
                 <div className="coll-title">
                     <EditableView
