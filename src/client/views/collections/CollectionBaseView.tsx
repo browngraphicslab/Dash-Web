@@ -16,6 +16,7 @@ export enum CollectionViewType {
     Schema,
     Docking,
     Tree,
+    RealFreeform
 }
 
 export interface CollectionRenderProps {
@@ -41,6 +42,9 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         let viewField = Cast(Document.viewType, "number");
         if (viewField === CollectionViewType.Freeform) {
             return CollectionViewType.Tree;
+        }
+        if (viewField === CollectionViewType.RealFreeform) {
+            return CollectionViewType.Freeform;
         }
         if (viewField !== undefined) {
             return viewField;
