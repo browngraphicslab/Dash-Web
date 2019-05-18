@@ -137,7 +137,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
             if (!CollectionFreeFormDocumentView._undoBatch) {
                 CollectionFreeFormDocumentView._undoBatch = UndoManager.StartBatch("iconAnimating");
             }
-            maximizedDocs.map(maximizedDoc => {
+            maximizedDocs.map(d => Doc.GetProto(d)).map(maximizedDoc => {
                 let iconAnimating = Cast(maximizedDoc.isIconAnimating, List);
                 if (!iconAnimating || (Date.now() - iconAnimating[2] > 1000)) {
                     if (isMinimized === undefined) {
@@ -204,28 +204,31 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 expandedDocs = summarizedDocs ? [...summarizedDocs, ...expandedDocs] : expandedDocs;
                 // let expandedDocs = [...(subBulletDocs ? subBulletDocs : []), ...(maximizedDocs ? maximizedDocs : []), ...(summarizedDocs ? summarizedDocs : []),];
                 if (expandedDocs.length) {   // bcz: need a better way to associate behaviors with click events on widget-documents
-                    let hasView = expandedDocs.length === 1 && DocumentManager.Instance.getDocumentView(expandedDocs[0], this.props.ContainingCollectionView);
+                    let expandedProtoDocs = expandedDocs.map(doc => Doc.GetProto(doc))
                     let maxLocation = StrCast(this.props.Document.maximizeLocation, "inPlace");
-                    if (!hasView && altKey) {
-                        expandedDocs.forEach(maxDoc => maxDoc.isMinimized = false);
-                        hasView = expandedDocs.length === 1 && DocumentManager.Instance.getDocumentView(expandedDocs[0], this.props.ContainingCollectionView);
-                        maxLocation = this.props.Document.maximizeLocation = (maxLocation === "inPlace" ? "inTab" : "inPlace");
-                        if (!hasView && maxLocation === "inPlace") {
-                            this.props.addDocument && expandedDocs.forEach(async maxDoc => this.props.addDocument!(Doc.MakeDelegate(maxDoc), false));
-                            expandedDocs.forEach(maxDoc => maxDoc.isMinimized = true);
+                    let getDispDoc = (target: Doc) => Object.getOwnPropertyNames(target).indexOf("isPrototype") === -1 ? target : Doc.MakeDelegate(target);
+                    if (altKey) {
+                        maxLocation = this.props.Document.maximizeLocation = (maxLocation === "inPlace" || !maxLocation ? "inTab" : "inPlace");
+                        if (!maxLocation || maxLocation === "inPlace") {
+                            let hadView = expandedDocs.length === 1 && DocumentManager.Instance.getDocumentView(expandedProtoDocs[0], this.props.ContainingCollectionView);
+                            let wasMinimized = !hadView && expandedDocs.reduce((min, d) => !min && !BoolCast(d.IsMinimized, false), false);
+                            expandedDocs.forEach(maxDoc => Doc.GetProto(maxDoc).isMinimized = false);
+                            let hasView = expandedDocs.length === 1 && DocumentManager.Instance.getDocumentView(expandedProtoDocs[0], this.props.ContainingCollectionView);
+                            if (!hasView) {
+                                this.props.addDocument && expandedDocs.forEach(async maxDoc => this.props.addDocument!(getDispDoc(maxDoc), false));
+                            }
+                            expandedProtoDocs.forEach(maxDoc => maxDoc.isMinimized = wasMinimized);
                         }
                     }
-                    if (!hasView && maxLocation !== "inPlace") {
+                    if (maxLocation && maxLocation !== "inPlace") {
                         let dataDocs = DocListCast(CollectionDockingView.Instance.props.Document.data);
                         if (dataDocs) {
-                            expandedDocs.forEach(maxDoc => {
-                                if (!CollectionDockingView.Instance.CloseRightSplit(maxDoc)) {
-                                    this.props.addDocTab(Doc.MakeDelegate(maxDoc), maxLocation);
-                                }
-                            });
+                            expandedDocs.forEach(maxDoc =>
+                                (!CollectionDockingView.Instance.CloseRightSplit(Doc.GetProto(maxDoc)) &&
+                                    this.props.addDocTab(getDispDoc(maxDoc), maxLocation)));
                         }
                     } else {
-                        this.toggleIcon(expandedDocs);
+                        this.toggleIcon(expandedProtoDocs);
                     }
                 }
                 else if (linkedToDocs.length || linkedFromDocs.length) {

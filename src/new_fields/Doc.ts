@@ -177,6 +177,12 @@ export namespace Doc {
         return r || r2 || r3 || r4 ? true : false;
     }
 
+    // gets the document's prototype or returns the document if it is a prototype
+    export function GetProto(doc: Doc) {
+        return Object.getOwnPropertyNames(doc).indexOf("isPrototype") === -1 ? doc.proto! : doc;
+    }
+
+
     export function MakeAlias(doc: Doc) {
         const proto = Object.getOwnPropertyNames(doc).indexOf("isPrototype") === -1 ? doc.proto : undefined;
         const alias = new Doc;
