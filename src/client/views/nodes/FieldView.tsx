@@ -35,6 +35,7 @@ export interface FieldViewProps {
     isTopMost: boolean;
     selectOnLoad: boolean;
     addDocument?: (document: Doc, allowDuplicates?: boolean) => boolean;
+    addDocTab: (document: Doc) => boolean;
     removeDocument?: (document: Doc) => boolean;
     moveDocument?: (document: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
     ScreenToLocalTransform: () => Transform;
@@ -87,6 +88,7 @@ export class FieldView extends React.Component<FieldViewProps> {
             return (
                 <DocumentContentsView Document={field}
                     addDocument={undefined}
+                    addDocTab={this.props.addDocTab}
                     removeDocument={undefined}
                     ScreenToLocalTransform={Transform.Identity}
                     ContentScaling={returnOne}

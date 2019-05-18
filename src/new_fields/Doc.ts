@@ -216,6 +216,8 @@ export namespace Doc {
     }
 
     export function MakeLink(source: Doc, target: Doc) {
+        let protoSrc = source.proto ? source.proto : source;
+        let protoTarg = target.proto ? target.proto : target;
         UndoManager.RunInBatch(() => {
             let linkDoc = Docs.TextDocument({ width: 100, height: 30, borderRounding: -1 });
             //let linkDoc = new Doc;
@@ -226,15 +228,15 @@ export namespace Doc {
             linkDoc.proto!.linkedTo = target;
             linkDoc.proto!.linkedFrom = source;
 
-            let linkedFrom = Cast(target.linkedFromDocs, listSpec(Doc));
+            let linkedFrom = Cast(protoTarg.linkedFromDocs, listSpec(Doc));
             if (!linkedFrom) {
-                target.linkedFromDocs = linkedFrom = new List<Doc>();
+                protoTarg.linkedFromDocs = linkedFrom = new List<Doc>();
             }
             linkedFrom.push(linkDoc);
 
-            let linkedTo = Cast(source.linkedToDocs, listSpec(Doc));
+            let linkedTo = Cast(protoSrc.linkedToDocs, listSpec(Doc));
             if (!linkedTo) {
-                source.linkedToDocs = linkedTo = new List<Doc>();
+                protoSrc.linkedToDocs = linkedTo = new List<Doc>();
             }
             linkedTo.push(linkDoc);
             return linkDoc;

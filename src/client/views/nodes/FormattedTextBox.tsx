@@ -111,9 +111,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             let sourceDoc = de.data.linkSourceDocument;
             let destDoc = this.props.Document;
 
-            const protoDest = destDoc.proto;
-            const protoSrc = sourceDoc.proto;
-            Doc.MakeLink(protoSrc ? protoSrc : sourceDoc, protoDest ? protoDest : destDoc);
+            Doc.MakeLink(sourceDoc, destDoc);
             de.data.droppedDocuments.push(destDoc);
             e.stopPropagation();
         }

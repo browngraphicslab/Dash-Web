@@ -24,14 +24,7 @@ import { Cast, FieldValue, NumCast, StrCast } from "../../../new_fields/Types";
 import { listSpec } from "../../../new_fields/Schema";
 import { List } from "../../../new_fields/List";
 import { Id } from "../../../new_fields/RefField";
-import { isUndefined } from "typescript-collections/dist/lib/util";
-import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { Gateway } from "../../northstar/manager/Gateway";
-import { DocServer } from "../../DocServer";
-import { ColumnAttributeModel } from "../../northstar/core/attribute/AttributeModel";
-import { HistogramOperation } from "../../northstar/operations/HistogramOperation";
-import { AggregateFunction } from "../../northstar/model/idea/idea";
-import { AttributeTransformationModel } from "../../northstar/core/attribute/AttributeTransformationModel";
 import { Docs } from "../../documents/Documents";
 import { ContextMenu } from "../ContextMenu";
 
@@ -73,8 +66,8 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
 
     renderCell = (rowProps: CellInfo) => {
         let props: FieldViewProps = {
-            Document: rowProps.value[0],
-            fieldKey: rowProps.value[1],
+            Document: rowProps.original,
+            fieldKey: rowProps.column.id as string,
             ContainingCollectionView: this.props.CollectionView,
             isSelected: returnFalse,
             select: emptyFunction,
@@ -86,6 +79,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             whenActiveChanged: emptyFunction,
             PanelHeight: returnZero,
             PanelWidth: returnZero,
+            addDocTab: this.props.addDocTab,
         };
         let fieldContentView = <FieldView {...props} />;
         let reference = React.createRef<HTMLDivElement>();
@@ -303,6 +297,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                         parentActive={this.props.active}
                         whenActiveChanged={this.props.whenActiveChanged}
                         bringToFront={emptyFunction}
+                        addDocTab={this.props.addDocTab}
                     />
                 </div>)}
             <input className="collectionSchemaView-input" value={this.previewScript} onChange={this.onPreviewScriptChange}
@@ -365,7 +360,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                     <ReactTable data={children} page={0} pageSize={children.length} showPagination={false}
                         columns={this.columns.map(col => ({
                             Header: col,
-                            accessor: (doc: Doc) => [doc, col],
+                            accessor: (doc: Doc) => doc ? doc[col] : 0,
                             id: col
                         }))}
                         column={{ ...ReactTableDefaults.column, Cell: this.renderCell, }}

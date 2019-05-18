@@ -159,6 +159,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
             }, 500);
         }
     }
+    private _lastTap: number = 0;
     static _undoBatch?: UndoManager.Batch = undefined;
     onPointerDown = (e: React.PointerEvent): void => {
         this._downX = e.clientX;
@@ -166,6 +167,24 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         if (e.button === 0 && e.altKey) {
             e.stopPropagation(); // prevents panning from happening on collection if shift is pressed after a document drag has started
         } // allow pointer down to go through otherwise so that marquees can be drawn starting over a document 
+        if (Date.now() - this._lastTap < 300) {
+            if (e.buttons === 1) {
+                this._downX = e.clientX;
+                this._downY = e.clientY;
+                document.removeEventListener("pointerup", this.onPointerUp);
+                document.addEventListener("pointerup", this.onPointerUp);
+            }
+        } else {
+            this._lastTap = Date.now();
+        }
+    }
+    onPointerUp = (e: PointerEvent): void => {
+
+        document.removeEventListener("pointerup", this.onPointerUp);
+        if (Math.abs(e.clientX - this._downX) < 2 && Math.abs(e.clientY - this._downY) < 2) {
+            this.props.addDocTab(this.props.Document);
+        }
+        e.stopPropagation();
     }
     onClick = async (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -187,7 +206,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 // ...(maximizedDocs ? maximizedDocs : []),
                 // ...(summarizedDocs ? summarizedDocs : []),];
                 if (expandedDocs.length) {   // bcz: need a better way to associate behaviors with click events on widget-documents
-                    let hasView = expandedDocs.length === 1 && DocumentManager.Instance.getDocumentView(expandedDocs[0]);
+                    let hasView = expandedDocs.length === 1 && DocumentManager.Instance.getDocumentView(expandedDocs[0], this.props.ContainingCollectionView);
                     if (!hasView && ((altKey && !this.props.Document.maximizeOnRight) || (!altKey && this.props.Document.maximizeOnRight))) {
                         let dataDocs = DocListCast(CollectionDockingView.Instance.props.Document.data);
                         if (dataDocs) {
@@ -205,11 +224,12 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                     }
                 }
                 else if (linkedToDocs.length || linkedFromDocs.length) {
+                    SelectionManager.DeselectAll();
                     let linkedFwdDocs = [
                         linkedToDocs.length ? linkedToDocs[0].linkedTo as Doc : linkedFromDocs.length ? linkedFromDocs[0].linkedFrom as Doc : expandedDocs[0],
                         linkedFromDocs.length ? linkedFromDocs[0].linkedFrom as Doc : linkedToDocs.length ? linkedToDocs[0].linkedTo as Doc : expandedDocs[0]];
                     if (linkedFwdDocs) {
-                        DocumentManager.Instance.jumpToDocument(linkedFwdDocs[altKey ? 1 : 0]);
+                        DocumentManager.Instance.jumpToDocument(linkedFwdDocs[altKey ? 1 : 0], altKey);
                     }
                 }
             }

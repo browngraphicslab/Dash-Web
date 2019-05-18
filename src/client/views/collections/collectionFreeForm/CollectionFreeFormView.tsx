@@ -116,7 +116,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             (((e.button === 2 && (!this.isAnnotationOverlay || this.zoomScaling() !== 1)) ||
                 (e.button === 0 && e.altKey)) && this.props.active())) ||
             (!CollectionFreeFormView.RIGHT_BTN_DRAG &&
-                ((e.button === 0 && !e.altKey && (!this.isAnnotationOverlay || this.zoomScaling() !== 1)) && this.props.active()))) {
+                ((e.button === 0 && !e.shiftKey && !e.altKey && (!this.isAnnotationOverlay || this.zoomScaling() !== 1)) && this.props.active()))) {
             document.removeEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
             document.addEventListener("pointermove", this.onPointerMove);
@@ -300,6 +300,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             parentActive: this.props.active,
             whenActiveChanged: this.props.whenActiveChanged,
             bringToFront: this.bringToFront,
+            addDocTab: this.props.addDocTab,
         };
     }
 

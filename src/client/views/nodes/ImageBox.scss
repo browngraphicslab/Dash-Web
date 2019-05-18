@@ -25,7 +25,11 @@
 }
 
 .imageBox-cont img {
-    height: 100%;
+    height: auto;
+    width:100%;
+}
+.imageBox-cont-interactive img {
+    height: auto;
     width:100%;
 }
 

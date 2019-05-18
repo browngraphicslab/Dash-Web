@@ -284,7 +284,6 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     }
     @computed
     get pdfPage() {
-        console.log(this.curPage);
         return <Page height={this.renderHeight} renderTextLayer={false} pageNumber={this.curPage} onLoadSuccess={this.onLoaded} />;
     }
     @computed

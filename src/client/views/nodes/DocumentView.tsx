@@ -27,6 +27,7 @@ import { DocServer } from "../../DocServer";
 import { Id } from "../../../new_fields/RefField";
 import { PresentationView } from "../PresentationView";
 import { SearchUtil } from "../../util/SearchUtil";
+import { ObjectField, Copy } from "../../../new_fields/ObjectField";
 
 const linkSchema = createSchema({
     title: "string",
@@ -56,6 +57,7 @@ export interface DocumentViewProps {
     whenActiveChanged: (isActive: boolean) => void;
     toggleMinimized: () => void;
     bringToFront: (doc: Doc) => void;
+    addDocTab: (doc: Doc) => void;
 }
 
 const schema = createSchema({
@@ -179,11 +181,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
         this._hitExpander = DocListCast(this.props.Document.subBulletDocs).length > 0;
         if (e.shiftKey && e.buttons === 1) {
-            if (this.props.isTopMost) {
-                this.startDragging(e.pageX, e.pageY, e.altKey || e.ctrlKey ? "alias" : undefined, this._hitExpander);
-            } else if (this.props.Document) {
-                CollectionDockingView.Instance.StartOtherDrag([Doc.MakeAlias(this.props.Document)], e);
-            }
+            CollectionDockingView.Instance.StartOtherDrag([Doc.MakeAlias(this.props.Document)], e);
             e.stopPropagation();
         } else if (this.active) {
             //e.stopPropagation(); // bcz: doing this will block click events from CollectionFreeFormDocumentView which are needed for iconifying,etc
@@ -224,6 +222,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (doc.isButton && !doc.nativeWidth) {
             doc.nativeWidth = this.props.Document[WidthSym]();
             doc.nativeHeight = this.props.Document[HeightSym]();
+        } else {
+
+            doc.nativeWidth = doc.nativeHeight = undefined;
         }
     }
     fullScreenClicked = (e: React.MouseEvent): void => {
@@ -242,17 +243,17 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             let sourceDoc = de.data.linkSourceDocument;
             let destDoc = this.props.Document;
 
-            const protoDest = destDoc.proto;
-            const protoSrc = sourceDoc.proto;
-            if (de.mods === "Control") {
+            if (de.mods === "AltKey") {
+                const protoDest = destDoc.proto;
+                const protoSrc = sourceDoc.proto;
                 let src = protoSrc ? protoSrc : sourceDoc;
                 let dst = protoDest ? protoDest : destDoc;
-                dst.data = src;
+                dst.data = (src.data! as ObjectField)[Copy]();
                 dst.nativeWidth = src.nativeWidth;
                 dst.nativeHeight = src.nativeHeight;
             }
             else {
-                Doc.MakeLink(protoSrc ? protoSrc : sourceDoc, protoDest ? protoDest : destDoc);
+                Doc.MakeLink(sourceDoc, destDoc);
                 de.data.droppedDocuments.push(destDoc);
             }
             e.stopPropagation();
@@ -303,6 +304,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         cm.addItem({ description: this.props.Document.isButton ? "Remove Button" : "Make Button", event: this.makeButton });
         cm.addItem({ description: "Fields", event: this.fieldsClicked });
         cm.addItem({ description: "Center", event: () => this.props.focus(this.props.Document) });
+        cm.addItem({ description: "Open Tab", event: () => this.props.addDocTab && this.props.addDocTab(this.props.Document) });
         cm.addItem({ description: "Open Right", event: () => CollectionDockingView.Instance.AddRightSplit(this.props.Document) });
         cm.addItem({
             description: "Find aliases", event: async () => {
