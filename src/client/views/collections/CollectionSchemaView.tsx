@@ -64,6 +64,21 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     @computed get columns() { return Cast(this.props.Document.schemaColumns, listSpec("string"), []); }
     @computed get borderWidth() { return Number(COLLECTION_BORDER_WIDTH); }
 
+    @computed get tableColumns() {
+        return this.columns.map(col => {
+            const ref = React.createRef<HTMLParagraphElement>();
+            return {
+                Header: <p ref={ref} onPointerDown={SetupDrag(ref, () => this.onHeaderDrag(col))}>{col}</p>,
+                accessor: (doc: Doc) => doc ? doc[col] : 0,
+                id: col
+            };
+        });
+    }
+
+    onHeaderDrag = (columnName: string) => {
+        return this.props.Document;
+    }
+
     renderCell = (rowProps: CellInfo) => {
         let props: FieldViewProps = {
             Document: rowProps.original,
@@ -349,6 +364,8 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             <div className="collectionSchemaView-dividerDragger" onPointerDown={this.onDividerDown} style={{ width: `${this.DIVIDER_WIDTH}px` }} />;
     }
 
+
+
     render() {
         library.add(faCog);
         library.add(faPlus);
@@ -358,11 +375,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                 onDrop={(e: React.DragEvent) => this.onDrop(e, {})} onContextMenu={this.onContextMenu} ref={this.createTarget}>
                 <div className="collectionSchemaView-tableContainer" style={{ width: `${this.tableWidth}px` }}>
                     <ReactTable data={children} page={0} pageSize={children.length} showPagination={false}
-                        columns={this.columns.map(col => ({
-                            Header: col,
-                            accessor: (doc: Doc) => doc ? doc[col] : 0,
-                            id: col
-                        }))}
+                        columns={this.tableColumns}
                         column={{ ...ReactTableDefaults.column, Cell: this.renderCell, }}
                         getTrProps={this.getTrProps}
                     />

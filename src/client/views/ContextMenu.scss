@@ -1,24 +1,25 @@
 @import "globalCssVariables";
+
 .contextMenu-cont {
-  position: absolute;
-  display: flex;
-  z-index: $contextMenu-zindex;
-  box-shadow: $intermediate-color 0.2vw 0.2vw 0.4vw;
-  flex-direction: column;
+    position: absolute;
+    display: flex;
+    z-index: $contextMenu-zindex;
+    box-shadow: $intermediate-color 0.2vw 0.2vw 0.4vw;
+    flex-direction: column;
 }
 
 .contextMenu-item:first-child {
-  background: $intermediate-color;
-  color: $light-color;
+    background: $intermediate-color;
+    color: $light-color;
 }
 
 .contextMenu-item:first-child::placeholder {
-  color: $light-color;
+    color: $light-color;
 }
 
 .contextMenu-item:first-child:hover {
-  background: $intermediate-color;
-  color: $light-color;
+    background: $intermediate-color;
+    color: $light-color;
 }
 
 .subMenu-cont {
@@ -49,16 +50,16 @@
     border-bottom-style: solid;
     padding: 10px;
     white-space: nowrap;
-    font-size: 1.5vw;
+    font-size: 1vw;
 }
 
 .contextMenu-item:hover {
-  transition: all 0.1s;
-  background: $lighter-alt-accent;
+    transition: all 0.1s;
+    background: $lighter-alt-accent;
 }
 
 .contextMenu-description {
-    font-size: 1.5vw;
+    font-size: 1vw;
     text-align: left;
     width: 8vw;
     display: inline; //need this?
