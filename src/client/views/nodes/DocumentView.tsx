@@ -181,11 +181,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
         this._hitExpander = DocListCast(this.props.Document.subBulletDocs).length > 0;
         if (e.shiftKey && e.buttons === 1) {
-            if (this.props.isTopMost) {
-                this.startDragging(e.pageX, e.pageY, e.altKey || e.ctrlKey ? "alias" : undefined, this._hitExpander);
-            } else if (this.props.Document) {
-                CollectionDockingView.Instance.StartOtherDrag([Doc.MakeAlias(this.props.Document)], e);
-            }
+            CollectionDockingView.Instance.StartOtherDrag([Doc.MakeAlias(this.props.Document)], e);
             e.stopPropagation();
         } else if (this.active) {
             //e.stopPropagation(); // bcz: doing this will block click events from CollectionFreeFormDocumentView which are needed for iconifying,etc
