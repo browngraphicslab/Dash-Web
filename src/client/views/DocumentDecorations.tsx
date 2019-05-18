@@ -279,7 +279,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         iconDoc.proto!.title = selected.length > 1 ? "ICONset" : "ICON" + StrCast(doc.title);
         iconDoc.labelField = selected.length > 1 ? undefined : this._fieldKey;
         iconDoc.proto![this._fieldKey] = selected.length > 1 ? "collection" : undefined;
-        iconDoc.isMinimized = false;
+        iconDoc.proto!.isMinimized = false;
         iconDoc.width = Number(MINIMIZED_ICON_SIZE);
         iconDoc.height = Number(MINIMIZED_ICON_SIZE);
         iconDoc.x = NumCast(doc.x);

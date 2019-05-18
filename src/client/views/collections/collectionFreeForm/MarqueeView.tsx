@@ -272,9 +272,9 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                     newCollection.proto!.summaryDoc = summary;
                     selected = [newCollection];
                     newCollection.x = bounds.left + bounds.width;
-                    this.props.addDocument(newCollection, false);
+                    //this.props.addDocument(newCollection, false);
                     summary.proto!.summarizedDocs = new List<Doc>(selected.map(s => s.proto!));
-                    //summary.proto!.maximizeOnRight = true;
+                    summary.proto!.maximizeLocation = "inTab";  // or "inPlace", or "onRight"
                     //summary.proto!.isButton = true;
                     //let scrpt = this.props.getTransform().inverse().transformPoint(bounds.left, bounds.top);
                     // selected.map(summarizedDoc => {

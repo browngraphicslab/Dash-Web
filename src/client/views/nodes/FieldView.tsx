@@ -35,7 +35,7 @@ export interface FieldViewProps {
     isTopMost: boolean;
     selectOnLoad: boolean;
     addDocument?: (document: Doc, allowDuplicates?: boolean) => boolean;
-    addDocTab: (document: Doc) => boolean;
+    addDocTab: (document: Doc, where: string) => boolean;
     removeDocument?: (document: Doc) => boolean;
     moveDocument?: (document: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
     ScreenToLocalTransform: () => Transform;

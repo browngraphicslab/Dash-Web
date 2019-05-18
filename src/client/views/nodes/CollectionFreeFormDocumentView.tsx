@@ -3,7 +3,7 @@ import { observer } from "mobx-react";
 import { Doc, DocListCast, DocListCastAsync } from "../../../new_fields/Doc";
 import { List } from "../../../new_fields/List";
 import { createSchema, listSpec, makeInterface } from "../../../new_fields/Schema";
-import { BoolCast, Cast, FieldValue, NumCast } from "../../../new_fields/Types";
+import { BoolCast, Cast, FieldValue, NumCast, StrCast } from "../../../new_fields/Types";
 import { OmitKeys, Utils } from "../../../Utils";
 import { DocumentManager } from "../../util/DocumentManager";
 import { SelectionManager } from "../../util/SelectionManager";
@@ -139,7 +139,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
             }
             maximizedDocs.map(maximizedDoc => {
                 let iconAnimating = Cast(maximizedDoc.isIconAnimating, List);
-                if (!iconAnimating || (Date.now() - iconAnimating[6] > 1000)) {
+                if (!iconAnimating || (Date.now() - iconAnimating[2] > 1000)) {
                     if (isMinimized === undefined) {
                         isMinimized = BoolCast(maximizedDoc.isMinimized, false);
                     }
@@ -179,10 +179,9 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         }
     }
     onPointerUp = (e: PointerEvent): void => {
-
         document.removeEventListener("pointerup", this.onPointerUp);
         if (Math.abs(e.clientX - this._downX) < 2 && Math.abs(e.clientY - this._downY) < 2) {
-            this.props.addDocTab(this.props.Document);
+            this.props.addDocTab(this.props.Document, "inTab");
         }
         e.stopPropagation();
     }
@@ -193,6 +192,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
             Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD) {
             let isExpander = (e.target as any).id === "isExpander";
             if (BoolCast(this.props.Document.isButton, false) || isExpander) {
+                SelectionManager.DeselectAll();
                 let subBulletDocs = await DocListCastAsync(this.props.Document.subBulletDocs);
                 let maximizedDocs = await DocListCastAsync(this.props.Document.maximizedDocs);
                 let summarizedDocs = await DocListCastAsync(this.props.Document.summarizedDocs);
@@ -202,29 +202,33 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 expandedDocs = subBulletDocs ? [...subBulletDocs, ...expandedDocs] : expandedDocs;
                 expandedDocs = maximizedDocs ? [...maximizedDocs, ...expandedDocs] : expandedDocs;
                 expandedDocs = summarizedDocs ? [...summarizedDocs, ...expandedDocs] : expandedDocs;
-                // let expandedDocs = [...(subBulletDocs ? subBulletDocs : []),
-                // ...(maximizedDocs ? maximizedDocs : []),
-                // ...(summarizedDocs ? summarizedDocs : []),];
+                // let expandedDocs = [...(subBulletDocs ? subBulletDocs : []), ...(maximizedDocs ? maximizedDocs : []), ...(summarizedDocs ? summarizedDocs : []),];
                 if (expandedDocs.length) {   // bcz: need a better way to associate behaviors with click events on widget-documents
                     let hasView = expandedDocs.length === 1 && DocumentManager.Instance.getDocumentView(expandedDocs[0], this.props.ContainingCollectionView);
-                    if (!hasView && ((altKey && !this.props.Document.maximizeOnRight) || (!altKey && this.props.Document.maximizeOnRight))) {
+                    let maxLocation = StrCast(this.props.Document.maximizeLocation, "inPlace");
+                    if (!hasView && altKey) {
+                        expandedDocs.forEach(maxDoc => maxDoc.isMinimized = false);
+                        hasView = expandedDocs.length === 1 && DocumentManager.Instance.getDocumentView(expandedDocs[0], this.props.ContainingCollectionView);
+                        maxLocation = this.props.Document.maximizeLocation = (maxLocation === "inPlace" ? "inTab" : "inPlace");
+                        if (!hasView && maxLocation === "inPlace") {
+                            this.props.addDocument && expandedDocs.forEach(async maxDoc => this.props.addDocument!(Doc.MakeDelegate(maxDoc), false));
+                            expandedDocs.forEach(maxDoc => maxDoc.isMinimized = true);
+                        }
+                    }
+                    if (!hasView && maxLocation !== "inPlace") {
                         let dataDocs = DocListCast(CollectionDockingView.Instance.props.Document.data);
                         if (dataDocs) {
-                            SelectionManager.DeselectAll();
                             expandedDocs.forEach(maxDoc => {
-                                maxDoc.isMinimized = false;
                                 if (!CollectionDockingView.Instance.CloseRightSplit(maxDoc)) {
-                                    CollectionDockingView.Instance.AddRightSplit(Doc.MakeDelegate(maxDoc));
+                                    this.props.addDocTab(Doc.MakeDelegate(maxDoc), maxLocation);
                                 }
                             });
                         }
                     } else {
-                        //if (altKey) this.props.addDocument && expandedDocs.forEach(async maxDoc => this.props.addDocument!(maxDoc, false));
                         this.toggleIcon(expandedDocs);
                     }
                 }
                 else if (linkedToDocs.length || linkedFromDocs.length) {
-                    SelectionManager.DeselectAll();
                     let linkedFwdDocs = [
                         linkedToDocs.length ? linkedToDocs[0].linkedTo as Doc : linkedFromDocs.length ? linkedFromDocs[0].linkedFrom as Doc : expandedDocs[0],
                         linkedFromDocs.length ? linkedFromDocs[0].linkedFrom as Doc : linkedToDocs.length ? linkedToDocs[0].linkedTo as Doc : expandedDocs[0]];
