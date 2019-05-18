@@ -42,7 +42,6 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
     onLoad = (target: any) => {
         var h = this._imgRef.current!.naturalHeight;
         var w = this._imgRef.current!.naturalWidth;
-        console.log("title: " + this.Document.title);
         if (this._photoIndex === 0) {
             Doc.SetOnPrototype(this.Document, "nativeHeight", FieldValue(this.Document.nativeWidth, 0) * h / w);
             this.Document.height = FieldValue(this.Document.width, 0) * h / w;
@@ -158,7 +157,6 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
     }
 
     render() {
-        trace();
         let field = this.Document[this.props.fieldKey];
         let paths: string[] = ["http://www.cs.brown.edu/~bcz/face.gif"];
         if (field instanceof ImageField) paths = [field.url.href];
