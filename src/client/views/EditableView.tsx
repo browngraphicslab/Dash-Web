@@ -1,6 +1,7 @@
-import React = require('react')
+import React = require('react');
 import { observer } from 'mobx-react';
-import { observable, action } from 'mobx';
+import { observable, action, trace } from 'mobx';
+import "./EditableView.scss";
 
 export interface EditableProps {
     /**
@@ -15,11 +16,15 @@ export interface EditableProps {
      *  */
     SetValue(value: string): boolean;
 
+    OnFillDown?(value: string): void;
+
     /**
      * The contents to render when not editing
      */
     contents: any;
-    height: number
+    height: number;
+    display?: string;
+    oneLine?: boolean;
 }
 
 /**
@@ -34,26 +39,31 @@ export class EditableView extends React.Component<EditableProps> {
 
     @action
     onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key == "Enter" && !e.ctrlKey) {
-            if (this.props.SetValue(e.currentTarget.value)) {
+        if (e.key === "Enter") {
+            if (!e.ctrlKey) {
+                if (this.props.SetValue(e.currentTarget.value)) {
+                    this.editing = false;
+                }
+            } else if (this.props.OnFillDown) {
+                this.props.OnFillDown(e.currentTarget.value);
                 this.editing = false;
             }
-        } else if (e.key == "Escape") {
+        } else if (e.key === "Escape") {
             this.editing = false;
         }
     }
 
     render() {
         if (this.editing) {
-            return <input defaultValue={this.props.GetValue()} onKeyDown={this.onKeyDown} autoFocus onBlur={action(() => this.editing = false)}
-                style={{ display: "inline" }}></input>
+            return <input className="editableView-input" defaultValue={this.props.GetValue()} onKeyDown={this.onKeyDown} autoFocus onBlur={action(() => this.editing = false)}
+                style={{ display: this.props.display }} />;
         } else {
             return (
-                <div className="editableView-container-editing" style={{ display: "inline", height: "100%", maxHeight: `${this.props.height}` }}
-                    onClick={action(() => this.editing = true)}>
-                    {this.props.contents}
+                <div className={`editableView-container-editing${this.props.oneLine ? "-oneLine" : ""}`} style={{ display: this.props.display, height: "auto", maxHeight: `${this.props.height}` }}
+                    onClick={action(() => this.editing = true)} >
+                    <span>{this.props.contents}</span>
                 </div>
-            )
+            );
         }
     }
 }

@@ -1,12 +1,16 @@
 import { observer } from "mobx-react";
-import { observable } from "mobx";
+import { observable, trace } from "mobx";
 import { InkingControl } from "./InkingControl";
-import { InkTool } from "../../fields/InkField";
 import React = require("react");
+import { InkTool } from "../../new_fields/InkField";
+import "./InkingStroke.scss";
 
 
 interface StrokeProps {
+    offsetX: number;
+    offsetY: number;
     id: string;
+    count: number;
     line: Array<{ x: number, y: number }>;
     color: string;
     width: string;
@@ -21,23 +25,14 @@ export class InkingStroke extends React.Component<StrokeProps> {
     @observable private _strokeColor: string = this.props.color;
     @observable private _strokeWidth: string = this.props.width;
 
-    private _canvasColor: string = "#cdcdcd";
-
-    deleteStroke = (e: React.MouseEvent): void => {
+    deleteStroke = (e: React.PointerEvent): void => {
         if (InkingControl.Instance.selectedTool === InkTool.Eraser && e.buttons === 1) {
             this.props.deleteCallback(this.props.id);
         }
     }
 
     parseData = (line: Array<{ x: number, y: number }>): string => {
-        if (line.length === 0) {
-            return "";
-        }
-        const pathData = "M " +
-            line.map(p => {
-                return p.x + " " + p.y;
-            }).join(" L ");
-        return pathData;
+        return !line.length ? "" : "M " + line.map(p => (p.x + this.props.offsetX) + " " + (p.y + this.props.offsetY)).join(" L ");
     }
 
     createStyle() {
@@ -48,19 +43,20 @@ export class InkingStroke extends React.Component<StrokeProps> {
                     fill: "none",
                     stroke: this._strokeColor,
                     strokeWidth: this._strokeWidth + "px",
-                }
+                };
         }
     }
-
 
     render() {
         let pathStyle = this.createStyle();
         let pathData = this.parseData(this.props.line);
+        let pathlength = this.props.count; // bcz: this is needed to force reactions to the line data changes
+        let marker = this.props.tool === InkTool.Highlighter ? "-marker" : "";
 
+        let pointerEvents: any = InkingControl.Instance.selectedTool === InkTool.Eraser ? "all" : "none";
         return (
-            <path className={(this._strokeTool === InkTool.Highlighter) ? "highlight" : ""}
-                d={pathData} style={pathStyle} strokeLinejoin="round" strokeLinecap="round"
-                onMouseOver={this.deleteStroke} onMouseDown={this.deleteStroke} />
-        )
+            <path className={`inkingStroke${marker}`} d={pathData} style={{ ...pathStyle, pointerEvents: pointerEvents }} strokeLinejoin="round" strokeLinecap="round"
+                onPointerOver={this.deleteStroke} onPointerDown={this.deleteStroke} />
+        );
     }
 }

@@ -1,132 +1,56 @@
-import { action, computed, observable } from "mobx";
+import { library } from '@fortawesome/fontawesome-svg-core';
+import { faProjectDiagram, faSquare, faTh, faTree } from '@fortawesome/free-solid-svg-icons';
 import { observer } from "mobx-react";
-import { Document } from "../../../fields/Document";
-import { ListField } from "../../../fields/ListField";
-import { SelectionManager } from "../../util/SelectionManager";
+import * as React from 'react';
+import { Id } from '../../../new_fields/RefField';
+import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
+import { undoBatch } from '../../util/UndoManager';
 import { ContextMenu } from "../ContextMenu";
-import React = require("react");
-import { KeyStore } from "../../../fields/KeyStore";
-import { NumberField } from "../../../fields/NumberField";
-import { CollectionFreeFormView } from "./CollectionFreeFormView";
+import { FieldView, FieldViewProps } from '../nodes/FieldView';
+import { CollectionBaseView, CollectionRenderProps, CollectionViewType } from './CollectionBaseView';
 import { CollectionDockingView } from "./CollectionDockingView";
 import { CollectionSchemaView } from "./CollectionSchemaView";
-import { CollectionViewProps } from "./CollectionViewBase";
 import { CollectionTreeView } from "./CollectionTreeView";
-import { Field, FieldId } from "../../../fields/Field";
-import { library } from '@fortawesome/fontawesome-svg-core';
-import { faTh } from '@fortawesome/free-solid-svg-icons';
-import { faTree } from '@fortawesome/free-solid-svg-icons';
-import { faSquare } from '@fortawesome/free-solid-svg-icons';
-import { faProjectDiagram } from '@fortawesome/free-solid-svg-icons';
+import { CollectionFreeFormView } from './collectionFreeForm/CollectionFreeFormView';
+export const COLLECTION_BORDER_WIDTH = 2;
 
 library.add(faTh);
 library.add(faTree);
 library.add(faSquare);
 library.add(faProjectDiagram);
 
-export enum CollectionViewType {
-    Invalid,
-    Freeform,
-    Schema,
-    Docking,
-    Tree
-}
-
-export const COLLECTION_BORDER_WIDTH = 2;
-
 @observer
-export class CollectionView extends React.Component<CollectionViewProps> {
+export class CollectionView extends React.Component<FieldViewProps> {
+    public static LayoutString(fieldStr: string = "data") { return FieldView.LayoutString(CollectionView, fieldStr); }
 
-    @observable
-    public SelectedDocs: FieldId[] = [];
-
-    public static LayoutString(fieldKey: string = "DataKey") {
-        return `<${CollectionView.name} Document={Document}
-                    ScreenToLocalTransform={ScreenToLocalTransform} fieldKey={${fieldKey}} panelWidth={PanelWidth} panelHeight={PanelHeight} isSelected={isSelected} select={select} bindings={bindings}
-                    isTopMost={isTopMost} SelectOnLoad={selectOnLoad} BackgroundView={BackgroundView} focus={focus}/>`;
-    }
-
-    public active: () => boolean = () => CollectionView.Active(this);
-    addDocument = (doc: Document): void => { CollectionView.AddDocument(this.props, doc); }
-    removeDocument = (doc: Document): boolean => { return CollectionView.RemoveDocument(this.props, doc); }
-    get subView() { return CollectionView.SubView(this); }
-
-    public static Active(self: CollectionView): boolean {
-        var isSelected = self.props.isSelected();
-        var childSelected = SelectionManager.SelectedDocuments().some(view => view.props.ContainingCollectionView == self);
-        var topMost = self.props.isTopMost;
-        return isSelected || childSelected || topMost;
-    }
-
-    @action
-    public static AddDocument(props: CollectionViewProps, doc: Document) {
-        doc.SetNumber(KeyStore.Page, props.Document.GetNumber(KeyStore.CurPage, 0));
-        if (props.Document.Get(props.fieldKey) instanceof Field) {
-            //TODO This won't create the field if it doesn't already exist
-            const value = props.Document.GetData(props.fieldKey, ListField, new Array<Document>())
-            value.push(doc);
-        } else {
-            props.Document.SetData(props.fieldKey, [doc], ListField);
-        }
-    }
-
-    @action
-    public static RemoveDocument(props: CollectionViewProps, doc: Document): boolean {
-        //TODO This won't create the field if it doesn't already exist
-        const value = props.Document.GetData(props.fieldKey, ListField, new Array<Document>())
-        let index = -1;
-        for (let i = 0; i < value.length; i++) {
-            if (value[i].Id == doc.Id) {
-                index = i;
-                break;
-            }
-        }
-
-        if (index !== -1) {
-            value.splice(index, 1)
-
-            SelectionManager.DeselectAll()
-            ContextMenu.Instance.clearItems()
-            return true;
-        }
-        return false
-    }
-
-    get collectionViewType(): CollectionViewType {
-        let Document = this.props.Document;
-        let viewField = Document.GetT(KeyStore.ViewType, NumberField);
-        if (viewField === "<Waiting>") {
-            return CollectionViewType.Invalid;
-        } else if (viewField) {
-            return viewField.Data;
-        } else {
-            return CollectionViewType.Freeform;
-        }
-    }
-
-    specificContextMenu = (e: React.MouseEvent): void => {
-        if (!e.isPropagationStopped() && this.props.Document.Id != "mainDoc") { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
-            ContextMenu.Instance.addItem({ description: "Freeform", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Freeform), icon: "project-diagram" })
-            ContextMenu.Instance.addItem({ description: "Schema", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Schema), icon: "th" })
-            ContextMenu.Instance.addItem({ description: "Treeview", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Tree), icon: "tree" })
-            ContextMenu.Instance.addItem({ description: "Docking", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Docking), icon: "square" })
-        }
-    }
-
-    public static SubView(self: CollectionView) {
-        let subProps = { ...self.props, addDocument: self.addDocument, removeDocument: self.removeDocument, active: self.active, CollectionView: self }
-        switch (self.collectionViewType) {
-            case CollectionViewType.Freeform: return (<CollectionFreeFormView {...subProps} />)
-            case CollectionViewType.Schema: return (<CollectionSchemaView {...subProps} />)
-            case CollectionViewType.Docking: return (<CollectionDockingView {...subProps} />)
-            case CollectionViewType.Tree: return (<CollectionTreeView {...subProps} />)
+    private SubView = (type: CollectionViewType, renderProps: CollectionRenderProps) => {
+        let props = { ...this.props, ...renderProps };
+        switch (type) {
+            case CollectionViewType.Schema: return (<CollectionSchemaView {...props} CollectionView={this} />);
+            case CollectionViewType.Docking: return (<CollectionDockingView {...props} CollectionView={this} />);
+            case CollectionViewType.Tree: return (<CollectionTreeView {...props} CollectionView={this} />);
+            case CollectionViewType.Freeform:
+            default:
+                return (<CollectionFreeFormView {...props} CollectionView={this} />);
         }
         return (null);
     }
 
+    get isAnnotationOverlay() { return this.props.fieldKey && this.props.fieldKey === "annotations"; } // bcz: ? Why do we need to compare Id's?
+
+    onContextMenu = (e: React.MouseEvent): void => {
+        if (!this.isAnnotationOverlay && !e.isPropagationStopped() && this.props.Document[Id] !== CurrentUserUtils.MainDocId) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
+            ContextMenu.Instance.addItem({ description: "Freeform", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Freeform), icon: "project-diagram" });
+            ContextMenu.Instance.addItem({ description: "Schema", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Schema), icon: "project-diagram" });
+            ContextMenu.Instance.addItem({ description: "Treeview", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Tree), icon: "tree" });
+        }
+    }
+
     render() {
-        return (<div className="collectionView-cont" onContextMenu={this.specificContextMenu}>
-            {this.subView}
-        </div>)
+        return (
+            <CollectionBaseView {...this.props} onContextMenu={this.onContextMenu}>
+                {this.SubView}
+            </CollectionBaseView>
+        );
     }
 }

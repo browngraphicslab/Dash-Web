@@ -1,171 +1,35 @@
-import { NumberField } from "../src/fields/NumberField";
 import { expect } from 'chai';
-import 'mocha'
-import { Key } from "../src/fields/Key";
-import { Document } from "../src/fields/Document";
+import 'mocha';
 import { autorun, reaction } from "mobx";
-import { DocumentReference } from "../src/fields/DocumentReference";
-import { TextField } from "../src/fields/TextField";
-import { Field, FieldWaiting } from "../src/fields/Field";
-
-describe('Number Controller', () => {
-    it('Should be constructable', () => {
-        const numController = new NumberField(15);
-        expect(numController.Data).to.equal(15);
-    });
-
-    it('Should update', () => {
-        const numController = new NumberField(15);
-        let ran = false;
-        reaction(() => numController.Data, (data) => { ran = true; })
-        expect(ran).to.equal(false);
-        numController.Data = 5;
-        expect(ran).to.equal(true);
-    });
-});
+import { Doc } from '../src/new_fields/Doc';
+import { Cast } from '../src/new_fields/Types';
 
 describe("Document", () => {
     it('should hold fields', () => {
-        let key = new Key("Test");
-        let key2 = new Key("Test2");
-        let field = new NumberField(15);
-        let doc = new Document();
-        doc.Set(key, field);
-        let getField = doc.GetT(key, NumberField);
-        let getField2 = doc.GetT(key2, NumberField);
+        let key = "Test";
+        let key2 = "Test2";
+        let field = 15;
+        let doc = new Doc();
+        doc[key] = field;
+        let getField = Cast(doc[key], "number");
+        let getField2 = Cast(doc[key2], "number");
         expect(getField).to.equal(field);
         expect(getField2).to.equal(undefined);
     });
 
     it('should update', () => {
-        let doc = new Document();
-        let key = new Key("Test");
-        let key2 = new Key("Test2");
+        let doc = new Doc();
+        let key = "Test";
+        let key2 = "Test2";
         let ran = false;
-        reaction(() => doc.Get(key), (field) => { ran = true });
+        reaction(() => doc[key], (field) => { ran = true; });
         expect(ran).to.equal(false);
 
-        doc.Set(key2, new NumberField(4));
+        doc[key2] = 4;
         expect(ran).to.equal(false);
 
-        doc.Set(key, new NumberField(5));
+        doc[key] = 5;
 
-        expect(ran).to.equal(true);
-    });
-});
-
-describe("Reference", () => {
-    it('should dereference', () => {
-        let doc = new Document();
-        let doc2 = new Document();
-        const key = new Key("test");
-        const key2 = new Key("test2");
-
-        const numCont = new NumberField(55);
-        doc.Set(key, numCont);
-        let ref = new DocumentReference(doc, key);
-        let ref2 = new DocumentReference(doc, key2);
-        doc2.Set(key2, ref);
-
-        let ref3 = new DocumentReference(doc2, key2);
-        let ref4 = new DocumentReference(doc2, key);
-
-        expect(ref.Dereference()).to.equal(numCont);
-        expect(ref.DereferenceToRoot()).to.equal(numCont);
-        expect(ref2.Dereference()).to.equal(undefined);
-        expect(ref2.DereferenceToRoot()).to.equal(undefined);
-        expect(ref3.Dereference()).to.equal(ref);
-        expect(ref3.DereferenceToRoot()).to.equal(numCont);
-        expect(ref4.Dereference()).to.equal(undefined);
-        expect(ref4.DereferenceToRoot()).to.equal(undefined);
-    });
-
-    it('should work with prototypes', () => {
-        let doc = new Document;
-        let doc2 = doc.MakeDelegate();
-        let key = new Key("test");
-        expect(doc.Get(key)).to.equal(undefined);
-        expect(doc2.Get(key)).to.equal(undefined);
-        let num = new NumberField(55);
-        let num2 = new NumberField(56);
-
-        doc.Set(key, num);
-        expect(doc.Get(key)).to.equal(num);
-        expect(doc2.Get(key)).to.equal(num);
-
-        doc2.Set(key, num2);
-        expect(doc.Get(key)).to.equal(num);
-        expect(doc2.Get(key)).to.equal(num2);
-    });
-
-    it('should update through layers', () => {
-        let doc = new Document();
-        let doc2 = new Document();
-        let doc3 = new Document();
-        const key = new Key("test");
-        const key2 = new Key("test2");
-        const key3 = new Key("test3");
-
-        const numCont = new NumberField(55);
-        doc.Set(key, numCont);
-        const ref = new DocumentReference(doc, key);
-        doc2.Set(key2, ref);
-        const ref3 = new DocumentReference(doc2, key2);
-        doc3.Set(key3, ref3);
-
-        let ran = false;
-        reaction(() => {
-            let field = (<Field>(<Field>doc3.Get(key3)).DereferenceToRoot()).GetValue();
-            return field;
-        }, (field) => {
-            ran = true;
-        });
-        expect(ran).to.equal(false);
-
-        numCont.Data = 44;
-        expect(ran).to.equal(true);
-        ran = false;
-
-        doc.Set(key, new NumberField(33));
-        expect(ran).to.equal(true);
-        ran = false;
-
-        doc.Set(key2, new NumberField(4));
-        expect(ran).to.equal(false);
-
-        doc2.Set(key2, new TextField("hello"));
-        expect(ran).to.equal(true);
-        ran = false;
-
-        doc3.Set(key3, new TextField("world"));
-        expect(ran).to.equal(true);
-        ran = false;
-    });
-
-    it('should update with prototypes', () => {
-        let doc = new Document();
-        let doc2 = doc.MakeDelegate();
-        const key = new Key("test");
-
-        const numCont = new NumberField(55);
-
-        let ran = false;
-        reaction(() => {
-            let field = doc2.GetT(key, NumberField);
-            if (field && field != FieldWaiting) {
-                return field.Data;
-            }
-            return undefined;
-        }, (field) => {
-            ran = true;
-        });
-        expect(ran).to.equal(false);
-
-        doc.Set(key, numCont);
-        expect(ran).to.equal(true);
-
-        ran = false;
-        numCont.Data = 1;
         expect(ran).to.equal(true);
     });
 });

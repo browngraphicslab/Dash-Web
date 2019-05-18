@@ -1,67 +1,61 @@
-import { observable, computed, action } from "mobx";
-import React = require("react");
-import { SelectionManager } from "../../util/SelectionManager";
+import { library } from '@fortawesome/fontawesome-svg-core';
+import { faEdit, faEye, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { observer } from "mobx-react";
-import './LinkBox.scss'
-import { KeyStore } from '../../../fields/KeyStore'
-import { props } from "bluebird";
-import { DocumentView } from "./DocumentView";
-import { Document } from "../../../fields/Document";
-import { ListField } from "../../../fields/ListField";
 import { DocumentManager } from "../../util/DocumentManager";
-import { LinkEditor } from "./LinkEditor";
+import { undoBatch } from "../../util/UndoManager";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
+import './LinkBox.scss';
+import React = require("react");
+import { Doc } from '../../../new_fields/Doc';
+import { Cast, NumCast } from '../../../new_fields/Types';
+import { listSpec } from '../../../new_fields/Schema';
+import { action } from 'mobx';
+
+
+library.add(faEye);
+library.add(faEdit);
+library.add(faTimes);
 
 interface Props {
-    linkDoc: Document;
+    linkDoc: Doc;
     linkName: String;
-    pairedDoc: Document;
+    pairedDoc: Doc;
     type: String;
-    showEditor: () => void
+    showEditor: () => void;
 }
 
 @observer
 export class LinkBox extends React.Component<Props> {
 
-    onViewButtonPressed = (e: React.PointerEvent): void => {
-        console.log("view down");
+    @undoBatch
+    onViewButtonPressed = async (e: React.PointerEvent): Promise<void> => {
         e.stopPropagation();
-        let docView = DocumentManager.Instance.getDocumentView(this.props.pairedDoc);
-        if (docView) {
-            docView.props.focus(this.props.pairedDoc);
-        } else {
-            CollectionDockingView.Instance.AddRightSplit(this.props.pairedDoc)
-        }
+        DocumentManager.Instance.jumpToDocument(this.props.pairedDoc, e.altKey);
     }
 
     onEditButtonPressed = (e: React.PointerEvent): void => {
-        console.log("edit down");
         e.stopPropagation();
 
         this.props.showEditor();
     }
 
-    onDeleteButtonPressed = (e: React.PointerEvent): void => {
-        console.log("delete down");
+    @action
+    onDeleteButtonPressed = async (e: React.PointerEvent): Promise<void> => {
         e.stopPropagation();
-        this.props.linkDoc.GetTAsync(KeyStore.LinkedFromDocs, Document, field => {
-            if (field) {
-                field.GetTAsync<ListField<Document>>(KeyStore.LinkedToDocs, ListField, field => {
-                    if (field) {
-                        field.Data.splice(field.Data.indexOf(this.props.linkDoc));
-                    }
-                })
+        const [linkedFrom, linkedTo] = await Promise.all([Cast(this.props.linkDoc.linkedFrom, Doc), Cast(this.props.linkDoc.linkedTo, Doc)]);
+        if (linkedFrom) {
+            const linkedToDocs = Cast(linkedFrom.linkedToDocs, listSpec(Doc));
+            if (linkedToDocs) {
+                linkedToDocs.splice(linkedToDocs.indexOf(this.props.linkDoc), 1);
             }
-        });
-        this.props.linkDoc.GetTAsync(KeyStore.LinkedToDocs, Document, field => {
-            if (field) {
-                field.GetTAsync<ListField<Document>>(KeyStore.LinkedFromDocs, ListField, field => {
-                    if (field) {
-                        field.Data.splice(field.Data.indexOf(this.props.linkDoc));
-                    }
-                })
+        }
+        if (linkedTo) {
+            const linkedFromDocs = Cast(linkedTo.linkedFromDocs, listSpec(Doc));
+            if (linkedFromDocs) {
+                linkedFromDocs.splice(linkedFromDocs.indexOf(this.props.linkDoc), 1);
             }
-        });
+        }
     }
 
     render() {
@@ -79,11 +73,14 @@ export class LinkBox extends React.Component<Props> {
                 </div>
 
                 <div className="button-container">
-                    <div className="button" onPointerDown={this.onViewButtonPressed}></div>
-                    <div className="button" onPointerDown={this.onEditButtonPressed}></div>
-                    <div className="button" onPointerDown={this.onDeleteButtonPressed}></div>
+                    {/* <div title="Follow Link" className="button" onPointerDown={this.onViewButtonPressed}>
+                        <FontAwesomeIcon className="fa-icon-view" icon="eye" size="sm" /></div> */}
+                    <div title="Edit Link" className="button" onPointerDown={this.onEditButtonPressed}>
+                        <FontAwesomeIcon className="fa-icon-edit" icon="edit" size="sm" /></div>
+                    <div title="Delete Link" className="button" onPointerDown={this.onDeleteButtonPressed}>
+                        <FontAwesomeIcon className="fa-icon-delete" icon="times" size="sm" /></div>
                 </div>
             </div>
-        )
+        );
     }
 }

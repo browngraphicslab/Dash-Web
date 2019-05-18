@@ -1,4 +1,14 @@
-import { observable, action } from "mobx";
+import { observable, action, runInAction } from "mobx";
+import 'source-map-support/register';
+import { Without } from "../../Utils";
+
+function getBatchName(target: any, key: string | symbol): string {
+    let keyName = key.toString();
+    if (target && target.constructor && target.constructor.name) {
+        return `${target.constructor.name}.${keyName}`;
+    }
+    return keyName;
+}
 
 function propertyDecorator(target: any, key: string | symbol) {
     Object.defineProperty(target, key, {
@@ -13,18 +23,31 @@ function propertyDecorator(target: any, key: string | symbol) {
                 writable: true,
                 configurable: true,
                 value: function (...args: any[]) {
+                    let batch = UndoManager.StartBatch(getBatchName(target, key));
                     try {
-                        UndoManager.StartBatch();
                         return value.apply(this, args);
                     } finally {
-                        UndoManager.EndBatch();
+                        batch.end();
                     }
                 }
-            })
+            });
         }
-    })
+    });
 }
-export function undoBatch(target: any, key: string | symbol, descriptor?: TypedPropertyDescriptor<any>): any {
+
+export function undoBatch(target: any, key: string | symbol, descriptor?: TypedPropertyDescriptor<any>): any;
+export function undoBatch(fn: (...args: any[]) => any): (...args: any[]) => any;
+export function undoBatch(target: any, key?: string | symbol, descriptor?: TypedPropertyDescriptor<any>): any {
+    if (!key) {
+        return function () {
+            let batch = UndoManager.StartBatch("");
+            try {
+                return target.apply(undefined, arguments);
+            } finally {
+                batch.end();
+            }
+        };
+    }
     if (!descriptor) {
         propertyDecorator(target, key);
         return;
@@ -32,13 +55,13 @@ export function undoBatch(target: any, key: string | symbol, descriptor?: TypedP
     const oldFunction = descriptor.value;
 
     descriptor.value = function (...args: any[]) {
+        let batch = UndoManager.StartBatch(getBatchName(target, key));
         try {
-            UndoManager.StartBatch()
-            return oldFunction.apply(this, args)
+            return oldFunction.apply(this, args);
         } finally {
-            UndoManager.EndBatch()
+            batch.end();
         }
-    }
+    };
 
     return descriptor;
 }
@@ -70,26 +93,64 @@ export namespace UndoManager {
         return redoStack.length > 0;
     }
 
-    export function StartBatch(): void {
+    export function PrintBatches(): void {
+        GetOpenBatches().forEach(batch => console.log(batch.batchName));
+    }
+
+    let openBatches: Batch[] = [];
+    export function GetOpenBatches(): Without<Batch, 'end'>[] {
+        return openBatches;
+    }
+    export function TraceOpenBatches() {
+        console.log(`Open batches:\n\t${openBatches.map(batch => batch.batchName).join("\n\t")}\n`);
+    }
+    export class Batch {
+        private disposed: boolean = false;
+
+        constructor(readonly batchName: string) {
+            openBatches.push(this);
+        }
+
+        private dispose = (cancel: boolean) => {
+            if (this.disposed) {
+                throw new Error("Cannot dispose an already disposed batch");
+            }
+            this.disposed = true;
+            openBatches.splice(openBatches.indexOf(this));
+            EndBatch(cancel);
+        }
+
+        end = () => { this.dispose(false); };
+        cancel = () => { this.dispose(true); };
+    }
+
+    export function StartBatch(batchName: string): Batch {
         batchCounter++;
         if (batchCounter > 0) {
             currentBatch = [];
         }
+        return new Batch(batchName);
     }
 
-    export const EndBatch = action(() => {
+    const EndBatch = action((cancel: boolean = false) => {
         batchCounter--;
         if (batchCounter === 0 && currentBatch && currentBatch.length) {
-            undoStack.push(currentBatch);
+            if (!cancel) {
+                undoStack.push(currentBatch);
+            }
             redoStack.length = 0;
             currentBatch = undefined;
         }
-    })
+    });
 
-    export function RunInBatch(fn: () => void) {
-        StartBatch();
-        fn();
-        EndBatch();
+    //TODO Make this return the return value
+    export function RunInBatch<T>(fn: () => T, batchName: string) {
+        let batch = StartBatch(batchName);
+        try {
+            return runInAction(fn);
+        } finally {
+            batch.end();
+        }
     }
 
     export const Undo = action(() => {
@@ -109,7 +170,7 @@ export namespace UndoManager {
         undoing = false;
 
         redoStack.push(commands);
-    })
+    });
 
     export const Redo = action(() => {
         if (redoStack.length === 0) {
@@ -122,12 +183,12 @@ export namespace UndoManager {
         }
 
         undoing = true;
-        for (let i = 0; i < commands.length; i++) {
-            commands[i].redo();
+        for (const command of commands) {
+            command.redo();
         }
         undoing = false;
 
         undoStack.push(commands);
-    })
+    });
 
 }

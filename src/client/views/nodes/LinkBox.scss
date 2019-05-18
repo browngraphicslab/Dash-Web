@@ -1,13 +1,14 @@
+@import "../globalCssVariables";
 .link-container {
     width: 100%;
-    height: 30px;
+    height: 50px;
     display: flex;
     flex-direction: row;
     border-top: 0.5px solid #bababa;
 }
 
 .info-container {
-    width: 60%;
+    width: 65%;
     padding-top: 5px;
     padding-left: 5px;
     display: flex;
@@ -23,17 +24,43 @@
 }
 
 .button-container {
-    width: 40%;
+    width: 35%;
+    padding-top: 8px;
     display: flex;
     flex-direction: row;
 }
 
 .button {
-    height: 15px;
-    width: 15px;
-    margin: 8px 5px;
+    height: 20px;
+    width: 20px;
+    margin: 8px 4px;
     border-radius: 50%;
-    opacity: 0.6;
+    opacity: 0.9;
     pointer-events: auto;
-    background-color: #2B6091;
+    background-color: $dark-color;
+    color: $light-color;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-size: 60%;
+    transition: transform 0.2s;
+}
+
+.button:hover {
+    background: $main-accent;
+    cursor: pointer;
+}
+
+// .fa-icon-view {
+//     margin-left: 3px;
+//     margin-top: 5px;
+// }
+
+.fa-icon-edit {
+    margin-left: 6px;
+    margin-top: 6px;
+}
+
+.fa-icon-delete {
+    margin-left: 7px;
+    margin-top: 6px;
 }

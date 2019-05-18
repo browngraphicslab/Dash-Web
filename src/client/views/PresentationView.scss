@@ -1,0 +1,79 @@
+.presentationView-cont {
+    position: absolute;
+    background: white;
+    z-index: 1;
+    box-shadow: #AAAAAA .2vw .2vw .4vw;
+    right: 0;
+    top: 0;
+    bottom: 0;
+}
+
+.presentationView-item {
+    padding: 10px;
+    display: inline-block;
+    width: 100%;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    transition: all .1s;
+}
+
+.presentationView-listCont {
+    padding-left: 10px;
+    padding-right: 10px;
+}
+
+.presentationView-item:hover {
+    transition: all .1s;
+    background: #AAAAAA
+}
+
+.presentationView-selected {
+    background: gray;
+}
+
+.presentationView-heading {
+    background: lightseagreen;
+    padding: 10px;
+    display: inline-block;
+    width: 100%;
+}
+
+.presentationView-title {
+    padding-top: 3px;
+    padding-bottom: 3px;
+    font-size: 25px;
+    display: inline-block;
+}
+
+.presentation-icon {
+    float: right;
+}
+
+.presentationView-name {
+    font-size: 15px;
+    display: inline-block;
+}
+
+.presentation-button {
+    margin-right: 12.5%;
+    margin-left: 12.5%;
+    width: 25%;
+}
+
+.presentation-buttons {
+    padding: 10px;
+}
+
+.presentation-next:hover {
+    transition: all .1s;
+    background: #AAAAAA
+}
+
+.presentation-back:hover {
+    transition: all .1s;
+    background: #AAAAAA
+}

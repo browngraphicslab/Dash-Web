@@ -1,0 +1,26 @@
+
+.marqueeView {
+    position: inherit;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+}
+.marquee {
+    border-style: dashed;
+    box-sizing: border-box;
+    position: absolute;
+    border-width: 1px;
+    border-color: black;
+    pointer-events: none;
+    .marquee-legend {
+        bottom:-18px;
+        left:0;
+        position: absolute;
+        font-size: 9;
+        white-space:nowrap;
+    }
+    .marquee-legend::after {
+        content: "Press: c (collection), s (summary), r (replace) or Delete"
+    }
+}

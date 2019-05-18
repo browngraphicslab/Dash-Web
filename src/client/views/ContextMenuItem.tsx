@@ -15,6 +15,9 @@ export interface SubmenuProps {
     subitems: ContextMenuProps[];
 }
 
+export interface ContextMenuItemProps {
+    type: ContextMenuProps | SubmenuProps;
+}
 export type ContextMenuProps = OriginalMenuProps | SubmenuProps;
 
 @observer
@@ -22,7 +25,7 @@ export class ContextMenuItem extends React.Component<ContextMenuProps> {
     @observable private _items: Array<ContextMenuProps> = [];
     @observable private overItem = false;
 
-    constructor(props: ContextMenuProps) {
+    constructor(props: ContextMenuProps | SubmenuProps) {
         super(props);
         if ("subitems" in this.props) {
             this.props.subitems.forEach(i => this._items.push(i));
@@ -50,7 +53,7 @@ export class ContextMenuItem extends React.Component<ContextMenuProps> {
                 </div>)
             }
             return (
-                <div className="contextMenu-item" onMouseEnter={action(() => {
+                <div className="contextMenu-item" onClick={this.props.event} onMouseEnter={action(() => {
                     this.overItem = true
                 })} onMouseLeave={action(() => this.overItem = false)}>
                     <div className="contextMenu-description"> {this.props.description}</div>

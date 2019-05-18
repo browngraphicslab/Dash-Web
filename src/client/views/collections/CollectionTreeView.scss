@@ -1,37 +1,88 @@
-#body {
-    padding: 20px;
-    background: #bbbbbb;
-}
-
-ul {
-    list-style: none;
-}
-
-li {
-    margin: 5px 0;
-}
-
-.no-indent {
-    padding-left: 0;
-}
-
-.bullet {
-    width: 1.5em;
-    display: inline-block;
-}
+@import "../globalCssVariables";
 
 .collectionTreeView-dropTarget {
+    border-width: $COLLECTION_BORDER_WIDTH;
+    border-color: transparent;
     border-style: solid;
+    border-radius: $border-radius;
     box-sizing: border-box;
     height: 100%;
-}
+    padding: 20px;
+    padding-left: 10px;
+    padding-right: 0px;
+    background: $light-color-secondary;
+    font-size: 13px;
+    overflow: scroll;
 
-.docContainer {
-    display: inline-table;
-}
+    ul {
+        list-style: none;
+        padding-left: 20px;
+    }
 
-.delete-button {
-    color: #999999;
-    float: right;
-    margin-left: 1em;
+    li {
+        margin: 5px 0;
+    }
+
+
+    .no-indent {
+        padding-left: 0;
+    }
+
+    .bullet {
+        float:left;
+        position: relative;
+        width: 15px;
+        display: block;
+        color: $intermediate-color;
+        margin-top: 3px;
+        transform: scale(1.3,1.3);
+    }
+
+    .docContainer {
+        margin-left: 10px;
+        display: block;
+       // width:100%;//width: max-content;
+    }
+    .docContainer:hover {
+        .treeViewItem-openRight {
+            display:inline;
+        }
+    }
+
+
+    .editableView-container {
+        font-weight: bold;
+    }
+
+    .delete-button {
+        color: $intermediate-color;
+        // float: right;
+        margin-left: 15px;
+        // margin-top: 3px;
+        display: inline;
+    }
+    .treeViewItem-openRight {
+        margin-left: 5px;
+        display:none;
+    }
+    .docContainer:hover {
+        .delete-button {
+            display: inline;
+            // width: auto;
+        }
+    }
+
+    .coll-title {
+        width:max-content;
+        display: block;
+        font-size: 24px;
+    }
+    .collection-child {
+        margin-top: 10px;
+        margin-bottom: 10px;
+    }
+    .collectionTreeView-keyHeader {
+        font-style: italic;
+        font-size: 8pt;
+    }
 }

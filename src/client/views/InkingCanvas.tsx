@@ -1,120 +1,140 @@
+import { action, computed, trace, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { action, computed } from "mobx";
-import { InkingControl } from "./InkingControl";
-import React = require("react");
-import { Transform } from "../util/Transform";
-import { Document } from "../../fields/Document";
-import { KeyStore } from "../../fields/KeyStore";
-import { InkField, InkTool, StrokeData, StrokeMap } from "../../fields/InkField";
-import { JsxArgs } from "./nodes/DocumentView";
-import { InkingStroke } from "./InkingStroke";
-import "./InkingCanvas.scss"
-import { CollectionDockingView } from "./collections/CollectionDockingView";
 import { Utils } from "../../Utils";
-import { FieldWaiting } from "../../fields/Field";
-import { getMapLikeKeys } from "mobx/lib/internal";
-
+import { Transform } from "../util/Transform";
+import "./InkingCanvas.scss";
+import { InkingControl } from "./InkingControl";
+import { InkingStroke } from "./InkingStroke";
+import React = require("react");
+import { undoBatch, UndoManager } from "../util/UndoManager";
+import { StrokeData, InkField, InkTool } from "../../new_fields/InkField";
+import { Doc } from "../../new_fields/Doc";
+import { Cast, PromiseValue, NumCast } from "../../new_fields/Types";
 
 interface InkCanvasProps {
     getScreenTransform: () => Transform;
-    Document: Document;
+    Document: Doc;
+    children: () => JSX.Element[];
 }
 
 @observer
 export class InkingCanvas extends React.Component<InkCanvasProps> {
-
-    private _isDrawing: boolean = false;
-    private _idGenerator: string = "";
-
-    constructor(props: Readonly<InkCanvasProps>) {
-        super(props);
+    maxCanvasDim = 8192 / 2; // 1/2 of the maximum canvas dimension for Chrome
+    @observable inkMidX: number = 0;
+    @observable inkMidY: number = 0;
+    private previousState?: Map<string, StrokeData>;
+    private _currentStrokeId: string = "";
+    public static IntersectStrokeRect(stroke: StrokeData, selRect: { left: number, top: number, width: number, height: number }): boolean {
+        return stroke.pathData.reduce((inside: boolean, val) => inside ||
+            (selRect.left < val.x && selRect.left + selRect.width > val.x &&
+                selRect.top < val.y && selRect.top + selRect.height > val.y)
+            , false);
     }
-
-    @computed
-    get inkData(): StrokeMap {
-        let map = this.props.Document.GetT(KeyStore.Ink, InkField);
-        if (!map || map === FieldWaiting) {
-            return new Map;
-        }
-        return new Map(map.Data);
-    }
-
-    set inkData(value: StrokeMap) {
-        this.props.Document.SetData(KeyStore.Ink, value, InkField);
+    public static StrokeRect(stroke: StrokeData): { left: number, top: number, right: number, bottom: number } {
+        return stroke.pathData.reduce((bounds: { left: number, top: number, right: number, bottom: number }, val) =>
+            ({
+                left: Math.min(bounds.left, val.x), top: Math.min(bounds.top, val.y),
+                right: Math.max(bounds.right, val.x), bottom: Math.max(bounds.bottom, val.y)
+            })
+            , { left: Number.MAX_VALUE, top: Number.MAX_VALUE, right: -Number.MAX_VALUE, bottom: -Number.MAX_VALUE });
     }
 
     componentDidMount() {
-        document.addEventListener("mouseup", this.handleMouseUp);
+        PromiseValue(Cast(this.props.Document.ink, InkField)).then(ink => runInAction(() => {
+            if (ink) {
+                let bounds = Array.from(ink.inkData).reduce(([mix, max, miy, may], [id, strokeData]) =>
+                    strokeData.pathData.reduce(([mix, max, miy, may], p) =>
+                        [Math.min(mix, p.x), Math.max(max, p.x), Math.min(miy, p.y), Math.max(may, p.y)],
+                        [mix, max, miy, may]),
+                    [Number.MAX_VALUE, Number.MIN_VALUE, Number.MAX_VALUE, Number.MIN_VALUE]);
+                this.inkMidX = (bounds[0] + bounds[1]) / 2;
+                this.inkMidY = (bounds[2] + bounds[3]) / 2;
+            }
+        }));
     }
 
-    componentWillUnmount() {
-        document.removeEventListener("mouseup", this.handleMouseUp);
+    @computed
+    get inkData(): Map<string, StrokeData> {
+        let map = Cast(this.props.Document.ink, InkField);
+        return !map ? new Map : new Map(map.inkData);
     }
 
+    set inkData(value: Map<string, StrokeData>) {
+        Doc.SetOnPrototype(this.props.Document, "ink", new InkField(value));
+    }
 
     @action
-    handleMouseDown = (e: React.PointerEvent): void => {
-        if (e.button != 0 ||
-            InkingControl.Instance.selectedTool === InkTool.None) {
+    onPointerDown = (e: React.PointerEvent): void => {
+        if (e.button !== 0 || e.altKey || e.ctrlKey || InkingControl.Instance.selectedTool === InkTool.None) {
             return;
         }
-        e.stopPropagation()
-        if (InkingControl.Instance.selectedTool === InkTool.Eraser) {
-            return
-        }
-        e.stopPropagation()
-        const point = this.relativeCoordinatesForEvent(e);
 
-        // start the new line, saves a uuid to represent the field of the stroke
-        this._idGenerator = Utils.GenerateGuid();
-        let data = this.inkData;
-        data.set(this._idGenerator,
-            {
-                pathData: [point],
+        document.addEventListener("pointermove", this.onPointerMove, true);
+        document.addEventListener("pointerup", this.onPointerUp, true);
+        e.stopPropagation();
+        e.preventDefault();
+
+        this.previousState = this.inkData;
+
+        if (InkingControl.Instance.selectedTool !== InkTool.Eraser) {
+            // start the new line, saves a uuid to represent the field of the stroke
+            this._currentStrokeId = Utils.GenerateGuid();
+            const data = this.inkData;
+            data.set(this._currentStrokeId, {
+                pathData: [this.relativeCoordinatesForEvent(e.clientX, e.clientY)],
                 color: InkingControl.Instance.selectedColor,
                 width: InkingControl.Instance.selectedWidth,
                 tool: InkingControl.Instance.selectedTool,
-                page: this.props.Document.GetNumber(KeyStore.CurPage, 0)
+                page: NumCast(this.props.Document.curPage, -1)
             });
-        this.inkData = data;
-        this._isDrawing = true;
+            this.inkData = data;
+        }
     }
 
     @action
-    handleMouseMove = (e: React.PointerEvent): void => {
-        if (!this._isDrawing ||
-            InkingControl.Instance.selectedTool === InkTool.None) {
-            return;
+    onPointerUp = (e: PointerEvent): void => {
+        document.removeEventListener("pointermove", this.onPointerMove, true);
+        document.removeEventListener("pointerup", this.onPointerUp, true);
+        let coord = this.relativeCoordinatesForEvent(e.clientX, e.clientY);
+        if (Math.abs(coord.x - this.inkMidX) > 500 || Math.abs(coord.y - this.inkMidY) > 500) {
+            this.inkMidX = coord.x;
+            this.inkMidY = coord.y;
         }
-        e.stopPropagation()
-        if (InkingControl.Instance.selectedTool === InkTool.Eraser) {
-            return
-        }
-        const point = this.relativeCoordinatesForEvent(e);
+        e.stopPropagation();
+        e.preventDefault();
 
-        // add points to new line as it is being drawn
-        let data = this.inkData;
-        let strokeData = data.get(this._idGenerator);
-        if (strokeData) {
-            strokeData.pathData.push(point);
-            data.set(this._idGenerator, strokeData);
-        }
-
-        this.inkData = data;
+        const batch = UndoManager.StartBatch("One ink stroke");
+        const oldState = this.previousState || new Map;
+        this.previousState = undefined;
+        const newState = this.inkData;
+        UndoManager.AddEvent({
+            undo: () => this.inkData = oldState,
+            redo: () => this.inkData = newState,
+        });
+        batch.end();
     }
 
     @action
-    handleMouseUp = (e: MouseEvent): void => {
-        this._isDrawing = false;
+    onPointerMove = (e: PointerEvent): void => {
+        e.stopPropagation();
+        e.preventDefault();
+        if (InkingControl.Instance.selectedTool !== InkTool.Eraser) {
+            let data = this.inkData;  // add points to new line as it is being drawn
+            let strokeData = data.get(this._currentStrokeId);
+            if (strokeData) {
+                strokeData.pathData.push(this.relativeCoordinatesForEvent(e.clientX, e.clientY));
+                data.set(this._currentStrokeId, strokeData);
+            }
+            this.inkData = data;
+        }
     }
 
-    relativeCoordinatesForEvent = (e: React.MouseEvent): { x: number, y: number } => {
-        let [x, y] = this.props.getScreenTransform().transformPoint(e.clientX, e.clientY);
-        x += 50000
-        y += 50000
+    relativeCoordinatesForEvent = (ex: number, ey: number): { x: number, y: number } => {
+        let [x, y] = this.props.getScreenTransform().transformPoint(ex, ey);
         return { x, y };
     }
 
+    @undoBatch
     @action
     removeLine = (id: string): void => {
         let data = this.inkData;
@@ -122,50 +142,41 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
         this.inkData = data;
     }
 
-    render() {
-        // styling for cursor
-        let canvasStyle = {};
-        if (InkingControl.Instance.selectedTool === InkTool.None) {
-            canvasStyle = { pointerEvents: "none" };
-        } else {
-            canvasStyle = { pointerEvents: "auto", cursor: "crosshair" };
-        }
-
-        // get data from server
-        // let inkField = this.props.Document.GetT(KeyStore.Ink, InkField);
-        // if (!inkField || inkField == "<Waiting>") {
-        //     return (<div className="inking-canvas" style={canvasStyle}
-        //         onMouseDown={this.handleMouseDown} onMouseMove={this.handleMouseMove} >
-        //         <svg>
-        //         </svg>
-        //     </div >)
-        // }
-
-        let lines = this.inkData;
-
-        // parse data from server
-        let paths: Array<JSX.Element> = []
-        let curPage = this.props.Document.GetNumber(KeyStore.CurPage, 0)
-        Array.from(lines).map(item => {
-            let id = item[0];
-            let strokeData = item[1];
-            if (strokeData.page == 0 || strokeData.page == curPage)
+    @computed
+    get drawnPaths() {
+        let curPage = NumCast(this.props.Document.curPage, -1);
+        let paths = Array.from(this.inkData).reduce((paths, [id, strokeData]) => {
+            if (strokeData.page === -1 || strokeData.page === curPage) {
                 paths.push(<InkingStroke key={id} id={id}
                     line={strokeData.pathData}
+                    count={strokeData.pathData.length}
+                    offsetX={this.maxCanvasDim - this.inkMidX}
+                    offsetY={this.maxCanvasDim - this.inkMidY}
                     color={strokeData.color}
                     width={strokeData.width}
                     tool={strokeData.tool}
-                    deleteCallback={this.removeLine} />)
-        })
+                    deleteCallback={this.removeLine} />);
+            }
+            return paths;
+        }, [] as JSX.Element[]);
+        return [<svg className={`inkingCanvas-paths-ink`} key="Pens"
+            style={{ left: `${this.inkMidX - this.maxCanvasDim}px`, top: `${this.inkMidY - this.maxCanvasDim}px` }} >
+            {paths.filter(path => path.props.tool !== InkTool.Highlighter)}
+        </svg>,
+        <svg className={`inkingCanvas-paths-markers`} key="Markers"
+            style={{ left: `${this.inkMidX - this.maxCanvasDim}px`, top: `${this.inkMidY - this.maxCanvasDim}px` }}>
+            {paths.filter(path => path.props.tool === InkTool.Highlighter)}
+        </svg>];
+    }
 
+    render() {
+        let svgCanvasStyle = InkingControl.Instance.selectedTool !== InkTool.None ? "canSelect" : "noSelect";
         return (
-
-            <div className="inking-canvas" style={canvasStyle}
-                onPointerDown={this.handleMouseDown} onPointerMove={this.handleMouseMove} >
-                <svg>
-                    {paths}
-                </svg>
+            <div className="inkingCanvas" >
+                <div className={`inkingCanvas-${svgCanvasStyle}`} onPointerDown={this.onPointerDown} />
+                {this.props.children()}
+                {this.drawnPaths}
             </div >
-        )
+        );
     }
 }

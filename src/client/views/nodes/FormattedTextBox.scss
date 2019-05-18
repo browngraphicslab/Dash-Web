@@ -1,38 +1,60 @@
+@import "../globalCssVariables";
 .ProseMirror {
-    width: 100%;
-    height: auto;
-    min-height: 100%
+  width: 100%;
+  height: auto;
+  min-height: 100%;
+  font-family: $serif;
 }
 
 .ProseMirror:focus {
-    outline: none !important
+  outline: none !important;
 }
 
-.formattedTextBox-cont {
-    background: white;
-    padding: 1;
-    border-width: 1px;
-    border-radius: 2px;
-    border-color:black;
-    box-sizing: border-box;
-    background: white;
-    border-style:solid;
-    overflow-y: scroll;
-    overflow-x: hidden;
-    color: initial;
-    height: 100%;
+.formattedTextBox-cont-scroll, .formattedTextBox-cont-hidden  {
+  background: inherit;
+  padding: 0;
+  border-width: 0px;
+  border-radius: inherit;
+  border-color: $intermediate-color;
+  box-sizing: border-box;
+  background-color: inherit;
+  border-style: solid;
+  overflow-y: auto;
+  overflow-x: hidden;
+  color: initial;
+  height: 100%;
+  pointer-events: all;
+}
+
+.formattedTextBox-cont-hidden {
+    pointer-events: none;
+}
+.formattedTextBox-inner-rounded {
+    height: calc(100% - 25px);
+    width: calc(100% - 40px);
+    position: absolute;
+    overflow: auto;
+    top: 15;
+    left: 20;
 }
 
 .menuicon {
-    display: inline-block;
-    border-right: 1px solid rgba(0, 0, 0, 0.2);
-    color: #888;
-    line-height: 1;
-    padding: 0 7px;
-    margin: 1px;
-    cursor: pointer;
-    text-align: center;
-    min-width: 1.4em;
-  }
-  .strong, .heading { font-weight: bold; }
-  .em { font-style: italic; }
+  display: inline-block;
+  border-right: 1px solid rgba(0, 0, 0, 0.2);
+  color: #888;
+  line-height: 1;
+  padding: 0 7px;
+  margin: 1px;
+  cursor: pointer;
+  text-align: center;
+  min-width: 1.4em;
+}
+
+.strong,
+.heading {
+  font-weight: bold;
+}
+
+.em {
+  font-style: italic;
+}

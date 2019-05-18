@@ -1,0 +1,20 @@
+.editableView-container-editing, .editableView-container-editing-oneLine {
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    hyphens: auto;
+    overflow: hidden;
+}
+.editableView-container-editing-oneLine {
+    span {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display:block;
+    }
+    input {
+        display:block;
+    }
+}
+.editableView-input {
+    width: 100%;
+}

@@ -10,8 +10,26 @@
             "name": "Launch Chrome against localhost",
             "sourceMaps": true,
             "breakOnLoad": true,
-            "url": "http://localhost:1050",
+            "url": "http://localhost:1050/login",
             "webRoot": "${workspaceFolder}",
+        },
+        {
+            "type": "chrome",
+            "request": "launch",
+            "name": "Launch Chrome against Dash server",
+            "sourceMaps": true,
+            "breakOnLoad": true,
+            "url": "http://dash-web.eastus2.cloudapp.azure.com:1050/login",
+            "webRoot": "${workspaceFolder}",
+        },
+        {
+            "type": "node",
+            "request": "attach",
+            "name": "Typescript Server",
+            "protocol": "inspector",
+            "port": 9229,
+            "localRoot": "${workspaceFolder}",
+            "remoteRoot": "."
         },
         {
             "type": "node",

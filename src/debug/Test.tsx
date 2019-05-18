@@ -1,46 +1,83 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
+import { SerializationHelper } from '../client/util/SerializationHelper';
+import { createSchema, makeInterface, makeStrictInterface, listSpec } from '../new_fields/Schema';
+import { ImageField } from '../new_fields/URLField';
+import { Doc } from '../new_fields/Doc';
+import { List } from '../new_fields/List';
 
-class TestInternal extends React.Component {
-    onContextMenu = (e: React.MouseEvent) => {
-        console.log("Internal");
-        e.stopPropagation();
-    }
 
-    onPointerDown = (e: React.MouseEvent) => {
-        console.log("pointer down")
-        e.preventDefault();
+const schema1 = createSchema({
+    hello: "number",
+    test: "string",
+    fields: "boolean",
+    url: ImageField,
+    testDoc: Doc
+});
+
+type TestDoc = makeInterface<[typeof schema1]>;
+const TestDoc: (doc?: Doc) => TestDoc = makeInterface(schema1);
+
+const schema2 = createSchema({
+    hello: ImageField,
+    test: "boolean",
+    fields: listSpec("number"),
+    url: "number",
+    testDoc: ImageField
+});
+
+const Test2Doc = makeStrictInterface(schema2);
+type Test2Doc = makeStrictInterface<typeof schema2>;
+
+const assert = (bool: boolean) => {
+    if (!bool) throw new Error();
+};
+
+class Test extends React.Component {
+    onClick = () => {
+        const url = new ImageField(new URL("http://google.com"));
+        const doc = new Doc();
+        const doc2 = new Doc();
+        doc.hello = 5;
+        doc.fields = "test";
+        doc.test = "hello doc";
+        doc.url = url;
+        //doc.testDoc = doc2;
+
+
+        const test1: TestDoc = TestDoc(doc);
+        assert(test1.hello === 5);
+        assert(test1.fields === undefined);
+        assert(test1.test === "hello doc");
+        assert(test1.url === url);
+        assert(test1.testDoc === doc2);
+        test1.myField = 20;
+        assert(test1.myField === 20);
+
+        const test2: Test2Doc = Test2Doc(doc);
+        assert(test2.hello === undefined);
+        // assert(test2.fields === "test");
+        assert(test2.test === undefined);
+        assert(test2.url === undefined);
+        assert(test2.testDoc === undefined);
+        test2.url = 35;
+        assert(test2.url === 35);
+        const l = new List<Doc>();
+        //TODO push, and other array functions don't go through the proxy
+        l.push(doc2);
+        //TODO currently length, and any other string fields will get serialized
+        doc.list = l;
+        console.log(l.slice());
     }
 
     render() {
-        return <div onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown}
-            onPointerUp={this.onPointerDown}>Hello world</div>
+        return <div><button onClick={this.onClick}>Click me</button>
+            {/* <input onKeyPress={this.onEnter}></input> */}
+        </div>;
     }
 }
 
-class TestChild extends React.Component {
-    onContextMenu = () => {
-        console.log("Child");
-    }
-
-    render() {
-        return <div onContextMenu={this.onContextMenu}><TestInternal /></div>
-    }
-}
-
-class TestParent extends React.Component {
-    onContextMenu = () => {
-        console.log("Parent");
-    }
-
-    render() {
-        return <div onContextMenu={this.onContextMenu}><TestChild /></div>
-    }
-}
-
-ReactDOM.render((
-    <div style={{ position: "absolute", width: "100%", height: "100%" }}>
-        <TestParent />
-    </div>),
+ReactDOM.render(
+    <Test />,
     document.getElementById('root')
 );

@@ -1,0 +1,37 @@
+@import "../globalCssVariables";
+
+
+.keyValuePair-td-key {
+    display:inline-block;
+    .keyValuePair-td-key-container{
+        width:100%;
+        height:100%;
+        display: flex;                 
+        flex-direction: row;           
+        flex-wrap: nowrap;              
+        justify-content: space-between; 
+        .keyValuePair-td-key-delete{
+            position: relative;
+            background-color: transparent;
+            color:red;
+        }
+        .keyValuePair-keyField {
+            width:100%;
+            text-align: center;
+            position: relative;
+            overflow: auto;
+        }
+    }
+}
+.keyValuePair-td-value {
+    display:inline-block;
+    overflow: scroll;
+    img { 
+        max-height: 36px;
+        width: auto;
+    }
+    .videoBox-cont{
+        width: auto; 
+        max-height: 36px; 
+    }
+}

@@ -2,54 +2,93 @@ import { action, observable } from 'mobx';
 import { observer } from "mobx-react";
 import Lightbox from 'react-image-lightbox';
 import 'react-image-lightbox/style.css'; // This only needs to be imported once in your app
-import { FieldWaiting } from '../../../fields/Field';
-import { ImageField } from '../../../fields/ImageField';
-import { KeyStore } from '../../../fields/KeyStore';
+import { Utils } from '../../../Utils';
+import { DragManager } from '../../util/DragManager';
+import { undoBatch } from '../../util/UndoManager';
 import { ContextMenu } from "../../views/ContextMenu";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./ImageBox.scss";
-import React = require("react")
+import React = require("react");
+import { createSchema, makeInterface, listSpec } from '../../../new_fields/Schema';
+import { DocComponent } from '../DocComponent';
+import { positionSchema } from './DocumentView';
+import { FieldValue, Cast, StrCast } from '../../../new_fields/Types';
+import { ImageField } from '../../../new_fields/URLField';
+import { List } from '../../../new_fields/List';
+import { InkingControl } from '../InkingControl';
+import { Doc } from '../../../new_fields/Doc';
+
+export const pageSchema = createSchema({
+    curPage: "number"
+});
+
+type ImageDocument = makeInterface<[typeof pageSchema, typeof positionSchema]>;
+const ImageDocument = makeInterface(pageSchema, positionSchema);
 
 @observer
-export class ImageBox extends React.Component<FieldViewProps> {
+export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageDocument) {
 
-    public static LayoutString() { return FieldView.LayoutString(ImageBox) }
-    private _ref: React.RefObject<HTMLDivElement>;
-    private _imgRef: React.RefObject<HTMLImageElement>;
+    public static LayoutString() { return FieldView.LayoutString(ImageBox); }
+    private _imgRef: React.RefObject<HTMLImageElement> = React.createRef();
     private _downX: number = 0;
     private _downY: number = 0;
     private _lastTap: number = 0;
     @observable private _photoIndex: number = 0;
     @observable private _isOpen: boolean = false;
-
-    constructor(props: FieldViewProps) {
-        super(props);
-
-        this._ref = React.createRef();
-        this._imgRef = React.createRef();
-        this.state = {
-            photoIndex: 0,
-            isOpen: false,
-        };
-    }
+    private dropDisposer?: DragManager.DragDropDisposer;
 
     @action
     onLoad = (target: any) => {
         var h = this._imgRef.current!.naturalHeight;
         var w = this._imgRef.current!.naturalWidth;
-        this.props.doc.SetNumber(KeyStore.NativeHeight, this.props.doc.GetNumber(KeyStore.NativeWidth, 0) * h / w)
+        if (this._photoIndex === 0 && (this.props as any).id !== "isExpander") {
+            Doc.SetOnPrototype(this.Document, "nativeHeight", FieldValue(this.Document.nativeWidth, 0) * h / w);
+            this.Document.height = FieldValue(this.Document.width, 0) * h / w;
+        }
     }
 
-    componentDidMount() {
+
+    protected createDropTarget = (ele: HTMLDivElement) => {
+        if (this.dropDisposer) {
+            this.dropDisposer();
+        }
+        if (ele) {
+            this.dropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.drop.bind(this) } });
+        }
+    }
+    onDrop = (e: React.DragEvent) => {
+        e.stopPropagation();
+        e.preventDefault();
+        console.log("IMPLEMENT ME PLEASE");
     }
 
-    componentWillUnmount() {
+
+    @undoBatch
+    drop = (e: Event, de: DragManager.DropEvent) => {
+        if (de.data instanceof DragManager.DocumentDragData) {
+            de.data.droppedDocuments.forEach(action((drop: Doc) => {
+                let layout = StrCast(drop.backgroundLayout);
+                if (layout.indexOf(ImageBox.name) !== -1) {
+                    let imgData = this.props.Document[this.props.fieldKey];
+                    if (imgData instanceof ImageField) {
+                        Doc.SetOnPrototype(this.props.Document, "data", new List([imgData]));
+                    }
+                    let imgList = Cast(this.props.Document[this.props.fieldKey], listSpec(ImageField), [] as any[]);
+                    if (imgList) {
+                        let field = drop.data;
+                        if (field instanceof ImageField) imgList.push(field);
+                        else if (field instanceof List) imgList.concat(field);
+                    }
+                    e.stopPropagation();
+                }
+            }));
+            // de.data.removeDocument()  bcz: need to implement
+        }
     }
 
     onPointerDown = (e: React.PointerEvent): void => {
         if (Date.now() - this._lastTap < 300) {
-            if (e.buttons === 1 && this.props.isSelected()) {
-                e.stopPropagation();
+            if (e.buttons === 1) {
                 this._downX = e.clientX;
                 this._downY = e.clientY;
                 document.removeEventListener("pointerup", this.onPointerUp);
@@ -68,9 +107,8 @@ export class ImageBox extends React.Component<FieldViewProps> {
         e.stopPropagation();
     }
 
-    lightbox = (path: string) => {
-        const images = [path, "http://www.cs.brown.edu/~bcz/face.gif"];
-        if (this._isOpen && this.props.isSelected()) {
+    lightbox = (images: string[]) => {
+        if (this._isOpen) {
             return (<Lightbox
                 mainSrc={images[this._photoIndex]}
                 nextSrc={images[(this._photoIndex + 1) % images.length]}
@@ -84,27 +122,58 @@ export class ImageBox extends React.Component<FieldViewProps> {
                 onMoveNextRequest={action(() =>
                     this._photoIndex = (this._photoIndex + 1) % images.length
                 )}
-            />)
+            />);
         }
     }
 
-    //REPLACE THIS WITH CAPABILITIES SPECIFIC TO THIS TYPE OF NODE
-    imageCapability = (e: React.MouseEvent): void => {
+    specificContextMenu = (e: React.MouseEvent): void => {
+        let field = Cast(this.Document[this.props.fieldKey], ImageField);
+        if (field) {
+            let url = field.url.href;
+            ContextMenu.Instance.addItem({
+                description: "Copy path", event: () => {
+                    Utils.CopyText(url);
+                }, icon: "expand-arrows-alt"
+            });
+        }
     }
 
-    specificContextMenu = (e: React.MouseEvent): void => {
-        ContextMenu.Instance.addItem({ description: "Image Capability", event: this.imageCapability, icon: "smile" });
+    @action
+    onDotDown(index: number) {
+        this._photoIndex = index;
+        this.Document.curPage = index;
+    }
+
+    dots(paths: string[]) {
+        let nativeWidth = FieldValue(this.Document.nativeWidth, 1);
+        let dist = Math.min(nativeWidth / paths.length, 40);
+        let left = (nativeWidth - paths.length * dist) / 2;
+        return paths.map((p, i) =>
+            <div className="imageBox-placer" key={i} >
+                <div className="imageBox-dot" style={{ background: (i === this._photoIndex ? "black" : "gray"), transform: `translate(${i * dist + left}px, 0px)` }} onPointerDown={(e: React.PointerEvent) => { e.stopPropagation(); this.onDotDown(i); }} />
+            </div>
+        );
     }
 
     render() {
-        let field = this.props.doc.Get(this.props.fieldKey);
-        let path = field == FieldWaiting ? "https://image.flaticon.com/icons/svg/66/66163.svg" :
-            field instanceof ImageField ? field.Data.href : "http://www.cs.brown.edu/~bcz/face.gif";
-        let nativeWidth = this.props.doc.GetNumber(KeyStore.NativeWidth, 1);
+        let field = this.Document[this.props.fieldKey];
+        let paths: string[] = ["http://www.cs.brown.edu/~bcz/face.gif"];
+        if (field instanceof ImageField) paths = [field.url.href];
+        else if (field instanceof List) paths = field.filter(val => val instanceof ImageField).map(p => (p as ImageField).url.href);
+        let nativeWidth = FieldValue(this.Document.nativeWidth, (this.props.PanelWidth as any) as string ? Number((this.props.PanelWidth as any) as string) : 50);
+        let interactive = InkingControl.Instance.selectedTool ? "" : "-interactive";
+        let id = (this.props as any).id; // bcz: used to set id = "isExpander" in templates.tsx
         return (
-            <div className="imageBox-cont" onPointerDown={this.onPointerDown} ref={this._ref} onContextMenu={this.specificContextMenu}>
-                <img src={path} width={nativeWidth} alt="Image not found" ref={this._imgRef} onLoad={this.onLoad} />
-                {this.lightbox(path)}
-            </div>)
+            <div id={id} className={`imageBox-cont${interactive}`}
+                // onPointerDown={this.onPointerDown}
+                onDrop={this.onDrop} ref={this.createDropTarget} onContextMenu={this.specificContextMenu}>
+                <img id={id} src={paths[Math.min(paths.length, this._photoIndex)]}
+                    style={{ objectFit: (this._photoIndex === 0 ? undefined : "contain") }}
+                    width={nativeWidth}
+                    ref={this._imgRef}
+                    onLoad={this.onLoad} />
+                {paths.length > 1 ? this.dots(paths) : (null)}
+                {this.lightbox(paths)}
+            </div>);
     }
 }

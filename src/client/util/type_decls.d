@@ -174,13 +174,14 @@ declare class ListField<T> extends BasicField<T[]>{
     Copy(): Field;
 }
 declare class Key extends Field {
+    constructor(name:string);
     Name: string;
     TrySetValue(value: any): boolean;
     GetValue(): any;
     Copy(): Field;
     ToScriptString(): string;
 }
-declare type FIELD_WAITING = "<Waiting>";
+declare type FIELD_WAITING = null;
 declare type Opt<T> = T | undefined;
 declare type FieldValue<T> = Opt<T> | FIELD_WAITING;
 // @ts-ignore
@@ -213,3 +214,12 @@ declare class Document extends Field {
     GetAllPrototypes(): Document[];
     MakeDelegate(): Document;
 }
+
+declare const KeyStore: {
+    [name: string]: Key;
+}
+
+// @ts-ignore
+declare const console: any;
+
+declare const Documents: any;

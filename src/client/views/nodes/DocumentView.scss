@@ -1,23 +1,33 @@
-.documentView-node {
-    position: absolute;
-    background: #cdcdcd;
-    //overflow: hidden;
-    &.minimized {
-        width: 30px;
-        height: 30px;
-    }
-    .top {
-        background: #232323;
-        height: 20px;
-        cursor: pointer;
-    }
-    .content {
-        padding: 20px 20px;
-        height: auto;
-        box-sizing: border-box;
-    }
-    .scroll-box {
-        overflow-y: scroll;
-        height: calc(100% - 20px);
-    }
+@import "../globalCssVariables";
+
+.documentView-node, .documentView-node-topmost {
+  position: inherit;
+  top: 0;
+  left:0;
+ // background: $light-color; //overflow: hidden;
+  transform-origin: left top;
+
+  &.minimized {
+    width: 30px;
+    height: 30px;
+  }
+
+  .top {
+    height: 20px;
+    cursor: pointer;
+  }
+
+  .content {
+    padding: 20px 20px;
+    height: auto;
+    box-sizing: border-box;
+  }
+
+  .scroll-box {
+    overflow-y: scroll;
+    height: calc(100% - 20px);
+  }
+}
+.documentView-node-topmost {
+    background: white;
 }

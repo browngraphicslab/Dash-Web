@@ -1,56 +1,76 @@
 // import * as ts from "typescript"
 let ts = (window as any).ts;
-import { Opt, Field } from "../../fields/Field";
-import { Document } from "../../fields/Document";
-import { NumberField } from "../../fields/NumberField";
-import { ImageField } from "../../fields/ImageField";
-import { TextField } from "../../fields/TextField";
-import { RichTextField } from "../../fields/RichTextField";
-import { KeyStore } from "../../fields/KeyStore";
-import { ListField } from "../../fields/ListField";
 // // @ts-ignore
 // import * as typescriptlib from '!!raw-loader!../../../node_modules/typescript/lib/lib.d.ts'
 // // @ts-ignore
 // import * as typescriptes5 from '!!raw-loader!../../../node_modules/typescript/lib/lib.es5.d.ts'
 
 // @ts-ignore
-import * as typescriptlib from '!!raw-loader!./type_decls.d'
+import * as typescriptlib from '!!raw-loader!./type_decls.d';
+import { Docs } from "../documents/Documents";
+import { Doc, Field } from '../../new_fields/Doc';
+import { ImageField, PdfField, VideoField, AudioField } from '../../new_fields/URLField';
+import { List } from '../../new_fields/List';
+import { RichTextField } from '../../new_fields/RichTextField';
 
-
-export interface ExecutableScript {
-    (): any;
-
-    compiled: boolean;
+export interface ScriptSucccess {
+    success: true;
+    result: any;
 }
 
-function Compile(script: string | undefined, diagnostics: Opt<any[]>, scope: { [name: string]: any }): ExecutableScript {
-    const compiled = !(diagnostics && diagnostics.some(diag => diag.category == ts.DiagnosticCategory.Error));
+export interface ScriptError {
+    success: false;
+    error: any;
+}
 
-    let func: () => Opt<Field>;
-    if (compiled && script) {
-        let fieldTypes = [Document, NumberField, TextField, ImageField, RichTextField, ListField];
-        let paramNames = ["KeyStore", ...fieldTypes.map(fn => fn.name)];
-        let params: any[] = [KeyStore, ...fieldTypes]
-        for (let prop in scope) {
-            if (prop === "this") {
-                continue;
-            }
-            paramNames.push(prop);
-            params.push(scope[prop]);
-        }
-        let thisParam = scope["this"];
-        let compiledFunction = new Function(...paramNames, script);
-        func = function (): Opt<Field> {
-            return compiledFunction.apply(thisParam, params)
-        };
-    } else {
-        func = () => undefined;
+export type ScriptResult = ScriptSucccess | ScriptError;
+
+export interface CompiledScript {
+    readonly compiled: true;
+    readonly originalScript: string;
+    readonly options: Readonly<ScriptOptions>;
+    run(args?: { [name: string]: any }): ScriptResult;
+}
+
+export interface CompileError {
+    compiled: false;
+    errors: any[];
+}
+
+export type CompileResult = CompiledScript | CompileError;
+
+function Run(script: string | undefined, customParams: string[], diagnostics: any[], originalScript: string, options: ScriptOptions): CompileResult {
+    const errors = diagnostics.some(diag => diag.category === ts.DiagnosticCategory.Error);
+    if (errors || !script) {
+        return { compiled: false, errors: diagnostics };
     }
 
-    return Object.assign(func,
-        {
-            compiled
-        });
+    let fieldTypes = [Doc, ImageField, PdfField, VideoField, AudioField, List, RichTextField];
+    let paramNames = ["Docs", ...fieldTypes.map(fn => fn.name)];
+    let params: any[] = [Docs, ...fieldTypes];
+    let compiledFunction = new Function(...paramNames, `return ${script}`);
+    let { capturedVariables = {} } = options;
+    let run = (args: { [name: string]: any } = {}): ScriptResult => {
+        let argsArray: any[] = [];
+        for (let name of customParams) {
+            if (name === "this") {
+                continue;
+            }
+            if (name in args) {
+                argsArray.push(args[name]);
+            } else {
+                argsArray.push(capturedVariables[name]);
+            }
+        }
+        let thisParam = args.this || capturedVariables.this;
+        try {
+            const result = compiledFunction.apply(thisParam, params).apply(thisParam, argsArray);
+            return { success: true, result };
+        } catch (error) {
+            return { success: false, error };
+        }
+    };
+    return { compiled: true, run, originalScript, options };
 }
 
 interface File {
@@ -72,14 +92,14 @@ class ScriptingCompilerHost {
     }
     // getDefaultLibFileName(options: ts.CompilerOptions): string {
     getDefaultLibFileName(options: any): string {
-        return 'node_modules/typescript/lib/lib.d.ts' // No idea what this means...
+        return 'node_modules/typescript/lib/lib.d.ts'; // No idea what this means...
     }
     writeFile(fileName: string, content: string) {
         const file = this.files.find(file => file.fileName === fileName);
         if (file) {
             file.content = content;
         } else {
-            this.files.push({ fileName, content })
+            this.files.push({ fileName, content });
         }
     }
     getCurrentDirectory(): string {
@@ -106,27 +126,44 @@ class ScriptingCompilerHost {
     }
 }
 
-export function CompileScript(script: string, scope?: { [name: string]: any }, addReturn: boolean = false): ExecutableScript {
+export interface ScriptOptions {
+    requiredType?: string;
+    addReturn?: boolean;
+    params?: { [name: string]: string };
+    capturedVariables?: { [name: string]: Field };
+}
+
+export function CompileScript(script: string, options: ScriptOptions = {}): CompileResult {
+    const { requiredType = "", addReturn = false, params = {}, capturedVariables = {} } = options;
     let host = new ScriptingCompilerHost;
-    let funcScript = `(function() {
+    let paramNames: string[] = [];
+    if ("this" in params || "this" in capturedVariables) {
+        paramNames.push("this");
+    }
+    for (const key in params) {
+        if (key === "this") continue;
+        paramNames.push(key);
+    }
+    let paramList = paramNames.map(key => {
+        const val = params[key];
+        return `${key}: ${val}`;
+    });
+    for (const key in capturedVariables) {
+        if (key === "this") continue;
+        paramNames.push(key);
+        paramList.push(`${key}: ${capturedVariables[key].constructor.name}`);
+    }
+    let paramString = paramList.join(", ");
+    let funcScript = `(function(${paramString})${requiredType ? `: ${requiredType}` : ''} {
         ${addReturn ? `return ${script};` : script}
-    })()`
+    })`;
     host.writeFile("file.ts", funcScript);
     host.writeFile('node_modules/typescript/lib/lib.d.ts', typescriptlib);
     let program = ts.createProgram(["file.ts"], {}, host);
     let testResult = program.emit();
-    let outputText = "return " + host.readFile("file.js");
+    let outputText = host.readFile("file.js");
 
     let diagnostics = ts.getPreEmitDiagnostics(program).concat(testResult.diagnostics);
 
-    return Compile(outputText, diagnostics, scope || {});
-}
-
-export function ToField(data: any): Opt<Field> {
-    if (typeof data == "string") {
-        return new TextField(data);
-    } else if (typeof data == "number") {
-        return new NumberField(data);
-    }
-    return undefined;
+    return Run(outputText, paramNames, diagnostics, script, options);
 }
