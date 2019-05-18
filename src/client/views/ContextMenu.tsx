@@ -43,7 +43,6 @@ export class ContextMenu extends React.Component {
         if (this._items.indexOf(item) === -1) {
             this._items.push(item);
         }
-        console.log(`After adding, there are ${this._items.length} items`);
     }
 
     getItems() {
