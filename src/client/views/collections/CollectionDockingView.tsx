@@ -438,10 +438,11 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     get previewPanelCenteringOffset() { return (this._panelWidth - this.nativeWidth() * this.contentScaling()) / 2; }
 
     addDocTab = (doc: Doc, location: string) => {
-        if (location === "onRight")
+        if (location === "onRight") {
             CollectionDockingView.Instance.AddRightSplit(doc);
-        else
+        } else {
             CollectionDockingView.Instance.AddTab(this._stack, doc);
+        }
     }
     get content() {
         if (!this._document) {

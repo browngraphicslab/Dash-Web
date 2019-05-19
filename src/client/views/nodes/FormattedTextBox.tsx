@@ -28,6 +28,7 @@ import { InkingControl } from "../InkingControl";
 import { FieldView, FieldViewProps } from "./FieldView";
 import "./FormattedTextBox.scss";
 import React = require("react");
+import { DocUtils } from '../../documents/Documents';
 
 library.add(faEdit);
 library.add(faSmile);
@@ -116,7 +117,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             let sourceDoc = de.data.linkSourceDocument;
             let destDoc = this.props.Document;
 
-            Doc.MakeLink(sourceDoc, destDoc);
+            DocUtils.MakeLink(sourceDoc, destDoc);
             de.data.droppedDocuments.push(destDoc);
             e.stopPropagation();
         }

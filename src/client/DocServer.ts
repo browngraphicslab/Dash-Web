@@ -1,7 +1,7 @@
 import * as OpenSocket from 'socket.io-client';
 import { MessageStore } from "./../server/Message";
 import { Opt } from '../new_fields/Doc';
-import { Utils } from '../Utils';
+import { Utils, emptyFunction } from '../Utils';
 import { SerializationHelper } from './util/SerializationHelper';
 import { RefField, HandleUpdate, Id } from '../new_fields/RefField';
 
@@ -9,6 +9,12 @@ export namespace DocServer {
     const _cache: { [id: string]: RefField | Promise<Opt<RefField>> } = {};
     const _socket = OpenSocket(`${window.location.protocol}//${window.location.hostname}:4321`);
     const GUID: string = Utils.GenerateGuid();
+
+    export function makeReadOnly() {
+        _CreateField = emptyFunction;
+        _UpdateField = emptyFunction;
+        _respondToUpdate = emptyFunction;
+    }
 
     export function prepend(extension: string): string {
         return window.location.origin + extension;
@@ -88,21 +94,29 @@ export namespace DocServer {
         return map;
     }
 
-    export function UpdateField(id: string, diff: any) {
+    let _UpdateField = (id: string, diff: any) => {
         if (id === updatingId) {
             return;
         }
         Utils.Emit(_socket, MessageStore.UpdateField, { id, diff });
+    };
+
+    export function UpdateField(id: string, diff: any) {
+        _UpdateField(id, diff);
     }
 
-    export function CreateField(field: RefField) {
+    let _CreateField = (field: RefField) => {
         _cache[field[Id]] = field;
         const initialState = SerializationHelper.Serialize(field);
         Utils.Emit(_socket, MessageStore.CreateField, initialState);
+    };
+
+    export function CreateField(field: RefField) {
+        _CreateField(field);
     }
 
     let updatingId: string | undefined;
-    function respondToUpdate(diff: any) {
+    let _respondToUpdate = (diff: any) => {
         const id = diff.id;
         if (id === undefined) {
             return;
@@ -124,6 +138,9 @@ export namespace DocServer {
         } else {
             update(field);
         }
+    };
+    function respondToUpdate(diff: any) {
+        _respondToUpdate(diff);
     }
 
     function connected() {

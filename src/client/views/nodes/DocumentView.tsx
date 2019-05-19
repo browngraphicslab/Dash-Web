@@ -11,7 +11,7 @@ import { BoolCast, Cast, FieldValue, StrCast } from "../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { emptyFunction, Utils } from "../../../Utils";
 import { DocServer } from "../../DocServer";
-import { Docs } from "../../documents/Documents";
+import { Docs, DocUtils } from "../../documents/Documents";
 import { DocumentManager } from "../../util/DocumentManager";
 import { DragManager, dropActionType } from "../../util/DragManager";
 import { SearchUtil } from "../../util/SearchUtil";
@@ -261,7 +261,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 dst.nativeHeight = src.nativeHeight;
             }
             else {
-                Doc.MakeLink(sourceDoc, destDoc);
+                DocUtils.MakeLink(sourceDoc, destDoc);
                 de.data.droppedDocuments.push(destDoc);
             }
             e.stopPropagation();

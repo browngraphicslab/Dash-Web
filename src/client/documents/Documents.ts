@@ -34,6 +34,7 @@ import { StrokeData, InkField } from "../../new_fields/InkField";
 import { dropActionType } from "../util/DragManager";
 import { DateField } from "../../new_fields/DateField";
 import { schema } from "prosemirror-schema-basic";
+import { UndoManager } from "../util/UndoManager";
 
 export interface DocumentOptions {
     x?: number;
@@ -63,6 +64,38 @@ export interface DocumentOptions {
     // [key: string]: Opt<Field>;
 }
 const delegateKeys = ["x", "y", "width", "height", "panX", "panY"];
+
+export namespace DocUtils {
+    export function MakeLink(source: Doc, target: Doc) {
+        let protoSrc = source.proto ? source.proto : source;
+        let protoTarg = target.proto ? target.proto : target;
+        UndoManager.RunInBatch(() => {
+            let linkDoc = Docs.TextDocument({ width: 100, height: 30, borderRounding: -1 });
+            //let linkDoc = new Doc;
+            linkDoc.proto!.title = "-link name-";
+            linkDoc.proto!.linkDescription = "";
+            linkDoc.proto!.linkTags = "Default";
+
+            linkDoc.proto!.linkedTo = target;
+            linkDoc.proto!.linkedFrom = source;
+
+            let linkedFrom = Cast(protoTarg.linkedFromDocs, listSpec(Doc));
+            if (!linkedFrom) {
+                protoTarg.linkedFromDocs = linkedFrom = new List<Doc>();
+            }
+            linkedFrom.push(linkDoc);
+
+            let linkedTo = Cast(protoSrc.linkedToDocs, listSpec(Doc));
+            if (!linkedTo) {
+                protoSrc.linkedToDocs = linkedTo = new List<Doc>();
+            }
+            linkedTo.push(linkDoc);
+            return linkDoc;
+        }, "make link");
+    }
+
+
+}
 
 export namespace Docs {
     let textProto: Doc;
@@ -109,8 +142,8 @@ export namespace Docs {
         deleg.data = value;
         return Doc.assign(deleg, options);
     }
-    function SetDelegateOptions<U extends Field>(doc: Doc, options: DocumentOptions) {
-        const deleg = Doc.MakeDelegate(doc);
+    function SetDelegateOptions(doc: Doc, options: DocumentOptions, id?: string) {
+        const deleg = Doc.MakeDelegate(doc, id);
         return Doc.assign(deleg, options);
     }
 
@@ -167,7 +200,7 @@ export namespace Docs {
         return audioProto;
     }
 
-    function CreateInstance(proto: Doc, data: Field, options: DocumentOptions) {
+    function CreateInstance(proto: Doc, data: Field, options: DocumentOptions, delegId?: string) {
         const { omit: protoProps, extract: delegateProps } = OmitKeys(options, delegateKeys);
         if (!("author" in protoProps)) {
             protoProps.author = CurrentUserUtils.email;
@@ -177,7 +210,7 @@ export namespace Docs {
         }
         protoProps.isPrototype = true;
 
-        return SetDelegateOptions(SetInstanceOptions(proto, protoProps, data), delegateProps);
+        return SetDelegateOptions(SetInstanceOptions(proto, protoProps, data), delegateProps, delegId);
     }
 
     export function ImageDocument(url: string, options: DocumentOptions = {}) {
@@ -260,8 +293,8 @@ export namespace Docs {
     export function TreeDocument(documents: Array<Doc>, options: DocumentOptions) {
         return CreateInstance(collProto, new List(documents), { schemaColumns: new List(["title"]), ...options, viewType: CollectionViewType.Tree });
     }
-    export function DockDocument(documents: Array<Doc>, config: string, options: DocumentOptions) {
-        return CreateInstance(collProto, new List(documents), { ...options, viewType: CollectionViewType.Docking, dockingConfig: config });
+    export function DockDocument(documents: Array<Doc>, config: string, options: DocumentOptions, id?: string) {
+        return CreateInstance(collProto, new List(documents), { ...options, viewType: CollectionViewType.Docking, dockingConfig: config }, id);
     }
 
     export function CaptionDocument(doc: Doc) {

@@ -4,12 +4,9 @@ import { autoObject, SerializationHelper, Deserializable } from "../client/util/
 import { DocServer } from "../client/DocServer";
 import { setter, getter, getField, updateFunction, deleteProperty } from "./util";
 import { Cast, ToConstructor, PromiseValue, FieldValue, NumCast } from "./Types";
-import { UndoManager, undoBatch } from "../client/util/UndoManager";
 import { listSpec } from "./Schema";
-import { List } from "./List";
 import { ObjectField, Parent, OnUpdate } from "./ObjectField";
 import { RefField, FieldId, Id, HandleUpdate } from "./RefField";
-import { Docs } from "../client/documents/Documents";
 
 export function IsField(field: any): field is Field {
     return (typeof field === "string")
@@ -221,41 +218,13 @@ export namespace Doc {
         return copy;
     }
 
-    export function MakeLink(source: Doc, target: Doc) {
-        let protoSrc = source.proto ? source.proto : source;
-        let protoTarg = target.proto ? target.proto : target;
-        UndoManager.RunInBatch(() => {
-            let linkDoc = Docs.TextDocument({ width: 100, height: 30, borderRounding: -1 });
-            //let linkDoc = new Doc;
-            linkDoc.proto!.title = "-link name-";
-            linkDoc.proto!.linkDescription = "";
-            linkDoc.proto!.linkTags = "Default";
-
-            linkDoc.proto!.linkedTo = target;
-            linkDoc.proto!.linkedFrom = source;
-
-            let linkedFrom = Cast(protoTarg.linkedFromDocs, listSpec(Doc));
-            if (!linkedFrom) {
-                protoTarg.linkedFromDocs = linkedFrom = new List<Doc>();
-            }
-            linkedFrom.push(linkDoc);
-
-            let linkedTo = Cast(protoSrc.linkedToDocs, listSpec(Doc));
-            if (!linkedTo) {
-                protoSrc.linkedToDocs = linkedTo = new List<Doc>();
-            }
-            linkedTo.push(linkDoc);
-            return linkDoc;
-        }, "make link");
-    }
-
-    export function MakeDelegate(doc: Doc): Doc;
-    export function MakeDelegate(doc: Opt<Doc>): Opt<Doc>;
-    export function MakeDelegate(doc: Opt<Doc>): Opt<Doc> {
+    export function MakeDelegate(doc: Doc, id?: string): Doc;
+    export function MakeDelegate(doc: Opt<Doc>, id?: string): Opt<Doc>;
+    export function MakeDelegate(doc: Opt<Doc>, id?: string): Opt<Doc> {
         if (!doc) {
             return undefined;
         }
-        const delegate = new Doc();
+        const delegate = new Doc(id, true);
         delegate.proto = doc;
         return delegate;
     }

@@ -1,4 +1,4 @@
-import { action, computed } from 'mobx';
+import { action, computed, observable } from 'mobx';
 import { observer } from 'mobx-react';
 import * as React from 'react';
 import { ContextMenu } from '../ContextMenu';
@@ -16,7 +16,6 @@ export enum CollectionViewType {
     Schema,
     Docking,
     Tree,
-    // RealFreeform
 }
 
 export interface CollectionRenderProps {
@@ -37,15 +36,20 @@ export interface CollectionViewProps extends FieldViewProps {
 
 @observer
 export class CollectionBaseView extends React.Component<CollectionViewProps> {
+    @observable private static _safeMode = false;
+    static InSafeMode() { return this._safeMode; }
+    static SetSafeMode(safeMode: boolean) { this._safeMode = safeMode; }
     get collectionViewType(): CollectionViewType | undefined {
         let Document = this.props.Document;
         let viewField = Cast(Document.viewType, "number");
-        // if (viewField === CollectionViewType.Freeform) {
-        //     return CollectionViewType.Tree;
-        // }
-        // if (viewField === CollectionViewType.RealFreeform) {
-        //     return CollectionViewType.Freeform;
-        // }
+        if (CollectionBaseView._safeMode) {
+            if (viewField === CollectionViewType.Freeform) {
+                return CollectionViewType.Tree;
+            }
+            if (viewField === CollectionViewType.Invalid) {
+                return CollectionViewType.Freeform;
+            }
+        }
         if (viewField !== undefined) {
             return viewField;
         } else {
