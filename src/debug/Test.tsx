@@ -90,8 +90,9 @@ ReactDOM.render((
     <div className={`documentView-node`}
         style={{
             borderRadius: "inherit",
-            width: "100%", height: "100%",
-            transform: `scale(50%, 50%)`
+            width: "612px", height: "792px",
+            transform: `scale(50%, 50%)`,
+            overflow: "scroll"
         }}
     >
         <PDFViewer url={pdfUrl} />

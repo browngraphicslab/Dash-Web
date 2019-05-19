@@ -149,26 +149,6 @@ class Page extends React.Component<IPageProps> {
         }
     }
 
-    @action
-    prevPage = (e: React.MouseEvent) => {
-        if (this._currPage > 2 && this._state !== "rendering") {
-            this._currPage = Math.max(this._currPage - 1, 1);
-            this._page = undefined;
-            this.loadPage(this.props.pdf!);
-            this._state = "rendering";
-        }
-    }
-
-    @action
-    nextPage = (e: React.MouseEvent) => {
-        if (this._currPage < this.props.numPages - 1 && this._state !== "rendering") {
-            this._currPage = Math.min(this._currPage + 1, this.props.numPages)
-            this._page = undefined;
-            this.loadPage(this.props.pdf!);
-            this._state = "rendering";
-        }
-    }
-
     render() {
         return (
             <div className={this.props.name} style={{ "width": this._width, "height": this._height }}>
