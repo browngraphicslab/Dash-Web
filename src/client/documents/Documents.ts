@@ -33,12 +33,9 @@ import { DocServer } from "../DocServer";
 import { StrokeData, InkField } from "../../new_fields/InkField";
 import { dropActionType } from "../util/DragManager";
 import { DateField } from "../../new_fields/DateField";
-<<<<<<< HEAD
 import { PDFBox2 } from "../views/pdf/PDFBox2";
-=======
 import { schema } from "prosemirror-schema-basic";
 import { UndoManager } from "../util/UndoManager";
->>>>>>> 01a223f2e6685506cc1e5db69e9062d5ff0d3246
 
 export interface DocumentOptions {
     x?: number;
@@ -173,8 +170,8 @@ export namespace Docs {
         return textProto;
     }
     function CreatePdfPrototype(): Doc {
-        let pdfProto = setupPrototypeOptions(pdfProtoId, "PDF_PROTO", CollectionPDFView.LayoutString("annotations"),
-            { x: 0, y: 0, nativeWidth: 1200, width: 300, height: 300, backgroundLayout: PDFBox.LayoutString(), curPage: 1 });
+        let pdfProto = setupPrototypeOptions(pdfProtoId, "PDF_PROTO", PDFBox.LayoutString(),
+            { x: 0, y: 0, width: 300, height: 300, backgroundLayout: PDFBox.LayoutString(), curPage: 1 });
         return pdfProto;
     }
     function CreateWebPrototype(): Doc {

@@ -5,6 +5,7 @@ import { RouteStore } from "../../../server/RouteStore";
 import * as Pdfjs from "pdfjs-dist";
 import { Opt } from "../../../new_fields/Doc";
 import "./PDFViewer.scss";
+import "pdfjs-dist/web/pdf_viewer.css";
 
 interface IPDFViewerProps {
     url: string;
@@ -52,8 +53,8 @@ class Viewer extends React.Component<IViewerProps> {
                         pdf={this.props.pdf}
                         page={i}
                         numPages={numPages}
-                        key={`${this.props.pdf ? this.props.pdf.fingerprint + `page${i + 1}` : "undefined"}`}
-                        name={`${this.props.pdf ? this.props.pdf.fingerprint + `page${i + 1}` : "undefined"}`}
+                        key={`${this.props.pdf ? this.props.pdf.fingerprint + `-page${i + 1}` : "undefined"}`}
+                        name={`${this.props.pdf ? this.props.pdf.fingerprint + `-page${i + 1}` : "undefined"}`}
                         {...this.props}
                     />
                 ))} }
@@ -149,24 +150,12 @@ class Page extends React.Component<IPageProps> {
         }
     }
 
-    @action
-    prevPage = (e: React.MouseEvent) => {
-        if (this._currPage > 2 && this._state !== "rendering") {
-            this._currPage = Math.max(this._currPage - 1, 1);
-            this._page = undefined;
-            this.loadPage(this.props.pdf!);
-            this._state = "rendering";
-        }
+    onPointerDown = (e: React.PointerEvent) => {
+        e.stopPropagation();
     }
 
-    @action
-    nextPage = (e: React.MouseEvent) => {
-        if (this._currPage < this.props.numPages - 1 && this._state !== "rendering") {
-            this._currPage = Math.min(this._currPage + 1, this.props.numPages)
-            this._page = undefined;
-            this.loadPage(this.props.pdf!);
-            this._state = "rendering";
-        }
+    onPointerMove = (e: React.PointerEvent) => {
+        e.stopPropagation();
     }
 
     render() {
@@ -175,11 +164,7 @@ class Page extends React.Component<IPageProps> {
                 <div className="canvasContainer">
                     <canvas ref={this.canvas} />
                 </div>
-                <div className="textlayer" ref={this.textLayer} style={{ "position": "relative", "top": `-${this._height}px`, "height": `${this._height}px` }} />
-                {/* <div className="viewer-button-cont" style={{ "width": this._width / 10, "height": this._height / 20, "left": this._width * .9, "top": this._height * .95 }}>
-                    <div className="viewer-previousPage" onClick={this.prevPage}>&lt;</div>
-                    <div className="viewer-nextPage" onClick={this.nextPage}>&gt;</div>
-                </div> */}
+                <div onPointerDown={this.onPointerDown} onPointerMove={this.onPointerMove} className="textlayer" ref={this.textLayer} style={{ "position": "relative", "top": `-${this._height}px`, "height": `${this._height}px` }} />
             </div>
         );
     }
