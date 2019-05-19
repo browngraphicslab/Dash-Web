@@ -48,7 +48,7 @@
     border-style: none;
     border-color: $intermediate-color; //  rgb(187, 186, 186);
     border-bottom-style: solid;
-    padding: 10px;
+    padding: 10px 0px 10px 0px;
     white-space: nowrap;
     font-size: 1vw;
 }
@@ -67,4 +67,5 @@
 
 .icon-background {
     background-color: #DDDDDD;
+    margin-right: 2px;
 }

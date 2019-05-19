@@ -37,8 +37,7 @@ export class ContextMenuItem extends React.Component<ContextMenuProps> {
             return (
                 <div className="contextMenu-item" onClick={this.props.event}>
                     <span className="icon-background">
-                        <FontAwesomeIcon icon="circle" size="sm" />
-                        {this.props.icon ? <FontAwesomeIcon icon={this.props.icon} size="sm" /> : null}
+                        {this.props.icon ? <FontAwesomeIcon icon={this.props.icon} size="sm" /> : <FontAwesomeIcon icon="circle" size="sm" />}
                     </span>
                     <div className="contextMenu-description"> {this.props.description}</div>
                 </div>
