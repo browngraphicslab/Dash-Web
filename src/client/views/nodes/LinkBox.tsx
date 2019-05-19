@@ -31,7 +31,7 @@ export class LinkBox extends React.Component<Props> {
     @undoBatch
     onViewButtonPressed = async (e: React.PointerEvent): Promise<void> => {
         e.stopPropagation();
-        DocumentManager.Instance.jumpToDocument(this.props.pairedDoc);
+        DocumentManager.Instance.jumpToDocument(this.props.pairedDoc, e.altKey);
     }
 
     onEditButtonPressed = (e: React.PointerEvent): void => {

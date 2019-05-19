@@ -1,4 +1,4 @@
-import { action, computed } from 'mobx';
+import { action, computed, observable } from 'mobx';
 import { observer } from 'mobx-react';
 import * as React from 'react';
 import { ContextMenu } from '../ContextMenu';
@@ -36,9 +36,20 @@ export interface CollectionViewProps extends FieldViewProps {
 
 @observer
 export class CollectionBaseView extends React.Component<CollectionViewProps> {
+    @observable private static _safeMode = false;
+    static InSafeMode() { return this._safeMode; }
+    static SetSafeMode(safeMode: boolean) { this._safeMode = safeMode; }
     get collectionViewType(): CollectionViewType | undefined {
         let Document = this.props.Document;
         let viewField = Cast(Document.viewType, "number");
+        if (CollectionBaseView._safeMode) {
+            if (viewField === CollectionViewType.Freeform) {
+                return CollectionViewType.Tree;
+            }
+            if (viewField === CollectionViewType.Invalid) {
+                return CollectionViewType.Freeform;
+            }
+        }
         if (viewField !== undefined) {
             return viewField;
         } else {
@@ -82,12 +93,12 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         }
         return false;
     }
-    @computed get isAnnotationOverlay() { return this.props.fieldKey && this.props.fieldKey === "annotations"; }
+    @computed get isAnnotationOverlay() { return this.props.fieldKey === "annotations"; }
 
     @action.bound
     addDocument(doc: Doc, allowDuplicates: boolean = false): boolean {
         let props = this.props;
-        var curPage = Cast(props.Document.curPage, "number", -1);
+        var curPage = NumCast(props.Document.curPage, -1);
         Doc.SetOnPrototype(doc, "page", curPage);
         if (curPage >= 0) {
             Doc.SetOnPrototype(doc, "annotationOn", props.Document);

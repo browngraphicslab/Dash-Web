@@ -96,7 +96,6 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         this._downX = e.clientX;
         this._downY = e.clientY;
         e.stopPropagation();
-        this.onBackgroundDown(e);
         document.removeEventListener("pointermove", this.onTitleMove);
         document.removeEventListener("pointerup", this.onTitleUp);
         document.addEventListener("pointermove", this.onTitleMove);
@@ -239,6 +238,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             this._removeIcon = snapped;
         }
     }
+    @undoBatch
     @action
     onMinimizeUp = (e: PointerEvent): void => {
         e.stopPropagation();
@@ -250,9 +250,10 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 selectedDocs[0].props.removeDocument && selectedDocs[0].props.removeDocument(this._iconDoc);
             }
             if (!this._removeIcon) {
-                if (selectedDocs.length === 1)
+                if (selectedDocs.length === 1) {
                     this.getIconDoc(selectedDocs[0]).then(icon => selectedDocs[0].props.toggleMinimized());
-                else {
+                } else if (Math.abs(e.pageX - this._downX) < Utils.DRAG_THRESHOLD &&
+                    Math.abs(e.pageY - this._downY) < Utils.DRAG_THRESHOLD) {
                     let docViews = SelectionManager.ViewsSortedVertically();
                     let topDocView = docViews[0];
                     let ind = topDocView.templates.indexOf(Templates.Bullet.Layout);
@@ -261,7 +262,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                         topDocView.props.Document.subBulletDocs = undefined;
                     } else {
                         topDocView.addTemplate(Templates.Bullet);
-                        topDocView.props.Document.subBulletDocs = new List<Doc>(docViews.filter(v => v !== topDocView).map(v => v.props.Document));
+                        topDocView.props.Document.subBulletDocs = new List<Doc>(docViews.filter(v => v !== topDocView).map(v => v.props.Document.proto!));
                     }
                 }
             }
@@ -270,19 +271,20 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         runInAction(() => this._minimizedX = this._minimizedY = 0);
     }
 
+    @undoBatch
     @action createIcon = (selected: DocumentView[], layoutString: string): Doc => {
         let doc = selected[0].props.Document;
         let iconDoc = Docs.IconDocument(layoutString);
         iconDoc.isButton = true;
-        iconDoc.title = selected.length > 1 ? "ICONset" : "ICON" + StrCast(doc.title);
-        iconDoc.labelField = this._fieldKey;
-        iconDoc[this._fieldKey] = selected.length > 1 ? "collection" : undefined;
-        iconDoc.isMinimized = false;
+        iconDoc.proto!.title = selected.length > 1 ? "ICONset" : "ICON" + StrCast(doc.title);
+        iconDoc.labelField = selected.length > 1 ? undefined : this._fieldKey;
+        iconDoc.proto![this._fieldKey] = selected.length > 1 ? "collection" : undefined;
+        iconDoc.proto!.isMinimized = false;
         iconDoc.width = Number(MINIMIZED_ICON_SIZE);
         iconDoc.height = Number(MINIMIZED_ICON_SIZE);
         iconDoc.x = NumCast(doc.x);
         iconDoc.y = NumCast(doc.y) - 24;
-        iconDoc.maximizedDocs = new List<Doc>(selected.map(s => s.props.Document));
+        iconDoc.maximizedDocs = new List<Doc>(selected.map(s => s.props.Document.proto!));
         doc.minimizedDoc = iconDoc;
         selected[0].props.addDocument && selected[0].props.addDocument(iconDoc, false);
         return iconDoc;
@@ -429,31 +431,29 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         SelectionManager.SelectedDocuments().forEach(element => {
             const rect = element.ContentDiv ? element.ContentDiv.getBoundingClientRect() : new DOMRect();
 
-            if (rect.width !== 0) {
+            if (rect.width !== 0 && (dX != 0 || dY != 0 || dW != 0 || dH != 0)) {
                 let doc = PositionDocument(element.props.Document);
-                let width = FieldValue(doc.width, 0);
-                let nwidth = FieldValue(doc.nativeWidth, 0);
-                let nheight = FieldValue(doc.nativeHeight, 0);
-                let height = FieldValue(doc.height, nwidth ? nheight / nwidth * width : 0);
-                let x = FieldValue(doc.x, 0);
-                let y = FieldValue(doc.y, 0);
+                let nwidth = doc.nativeWidth || 0;
+                let nheight = doc.nativeHeight || 0;
+                let zoomBasis = NumCast(doc.zoomBasis, 1);
+                let width = (doc.width || 0) / zoomBasis;
+                let height = (doc.height || (nheight / nwidth * width)) / zoomBasis;
                 let scale = width / rect.width;
                 let actualdW = Math.max(width + (dW * scale), 20);
                 let actualdH = Math.max(height + (dH * scale), 20);
-                x += dX * (actualdW - width);
-                y += dY * (actualdH - height);
-                doc.x = x;
-                doc.y = y;
-                var nativeWidth = FieldValue(doc.nativeWidth, 0);
-                var nativeHeight = FieldValue(doc.nativeHeight, 0);
-                if (nativeWidth > 0 && nativeHeight > 0) {
+                doc.x = (doc.x || 0) + dX * (actualdW - width);
+                doc.y = (doc.y || 0) + dY * (actualdH - height);
+                if (nwidth > 0 && nheight > 0) {
                     if (Math.abs(dW) > Math.abs(dH)) {
-                        actualdH = nativeHeight / nativeWidth * actualdW;
+                        doc.zoomBasis = zoomBasis * width / actualdW;
                     }
-                    else actualdW = nativeWidth / nativeHeight * actualdH;
+                    else {
+                        doc.zoomBasis = zoomBasis * height / actualdH;
+                    }
+                } else {
+                    doc.width = zoomBasis * actualdW;
+                    doc.height = zoomBasis * actualdH;
                 }
-                doc.width = actualdW;
-                doc.height = actualdH;
             }
         });
     }
@@ -534,9 +534,9 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                         if (temp !== Templates.Bullet.Layout || i === 0) {
                             res.push(temp);
                         }
-                    })
+                    });
                 }
-                return res
+                return res;
             }, [] as string[]);
             let checked = false;
             docTemps.forEach(temp => {

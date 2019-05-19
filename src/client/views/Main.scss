@@ -27,25 +27,6 @@ div {
     z-index: 9999;
 }
 
-h1 {
-    font-size: 50px;
-    position: fixed;
-    top: 30px;
-    left: 50%;
-    transform: translateX(-50%);
-    color: $dark-color;
-    text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff;
-    z-index: 9999;
-    font-family: $sans-serif;
-    font-weight: 700;
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    -khtml-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
-}
-
 .jsx-parser {
     width: 100%;
     pointer-events: none;

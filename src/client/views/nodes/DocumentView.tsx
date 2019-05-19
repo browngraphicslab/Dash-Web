@@ -1,31 +1,44 @@
-import { action, computed, runInAction, reaction, IReactionDisposer } from "mobx";
+import { library } from '@fortawesome/fontawesome-svg-core';
+import { faAlignCenter, faCaretSquareRight, faCompressArrowsAlt, faExpandArrowsAlt, faLayerGroup, faSquare, faTrash } from '@fortawesome/free-solid-svg-icons';
+import { action, computed, IReactionDisposer, reaction } from "mobx";
 import { observer } from "mobx-react";
+import { Doc, DocListCast, HeightSym, Opt, WidthSym } from "../../../new_fields/Doc";
+import { List } from "../../../new_fields/List";
+import { Copy, ObjectField } from "../../../new_fields/ObjectField";
+import { Id } from "../../../new_fields/RefField";
+import { createSchema, makeInterface } from "../../../new_fields/Schema";
+import { BoolCast, Cast, FieldValue, StrCast } from "../../../new_fields/Types";
+import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { emptyFunction, Utils } from "../../../Utils";
-import { Docs } from "../../documents/Documents";
+import { DocServer } from "../../DocServer";
+import { Docs, DocUtils } from "../../documents/Documents";
 import { DocumentManager } from "../../util/DocumentManager";
 import { DragManager, dropActionType } from "../../util/DragManager";
+import { SearchUtil } from "../../util/SearchUtil";
 import { SelectionManager } from "../../util/SelectionManager";
 import { Transform } from "../../util/Transform";
-import { undoBatch, UndoManager } from "../../util/UndoManager";
+import { undoBatch } from "../../util/UndoManager";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
+import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
 import { CollectionPDFView } from "../collections/CollectionPDFView";
 import { CollectionVideoView } from "../collections/CollectionVideoView";
 import { CollectionView } from "../collections/CollectionView";
 import { ContextMenu } from "../ContextMenu";
+import { DocComponent } from "../DocComponent";
+import { PresentationView } from "../PresentationView";
 import { Template } from "./../Templates";
 import { DocumentContentsView } from "./DocumentContentsView";
 import "./DocumentView.scss";
 import React = require("react");
-import { Opt, Doc, WidthSym, HeightSym, DocListCastAsync, DocListCast } from "../../../new_fields/Doc";
-import { DocComponent } from "../DocComponent";
-import { createSchema, makeInterface } from "../../../new_fields/Schema";
-import { FieldValue, StrCast, BoolCast, Cast } from "../../../new_fields/Types";
-import { List } from "../../../new_fields/List";
-import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
-import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
-import { DocServer } from "../../DocServer";
-import { Id } from "../../../new_fields/RefField";
-import { PresentationView } from "../PresentationView";
+const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
+
+library.add(faTrash);
+library.add(faExpandArrowsAlt);
+library.add(faCompressArrowsAlt);
+library.add(faLayerGroup);
+library.add(faAlignCenter);
+library.add(faCaretSquareRight);
+library.add(faSquare);
 
 const linkSchema = createSchema({
     title: "string",
@@ -55,6 +68,7 @@ export interface DocumentViewProps {
     whenActiveChanged: (isActive: boolean) => void;
     toggleMinimized: () => void;
     bringToFront: (doc: Doc) => void;
+    addDocTab: (doc: Doc, where: string) => void;
 }
 
 const schema = createSchema({
@@ -111,12 +125,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         this._reactionDisposer = reaction(() => [this.props.Document.maximizedDocs, this.props.Document.summaryDoc, this.props.Document.summaryDoc instanceof Doc ? this.props.Document.summaryDoc.title : ""],
             () => {
                 let maxDoc = DocListCast(this.props.Document.maximizedDocs);
-                if (maxDoc && StrCast(this.props.Document.layout).indexOf("IconBox") !== -1) {
-                    this.props.Document.title = (maxDoc && maxDoc.length === 1 ? maxDoc[0].title + ".icon" : "");
+                if (maxDoc.length === 1 && StrCast(this.props.Document.title).startsWith("-") && StrCast(this.props.Document.layout).indexOf("IconBox") !== -1) {
+                    this.props.Document.proto!.title = "-" + maxDoc[0].title + ".icon";
                 }
                 let sumDoc = Cast(this.props.Document.summaryDoc, Doc);
-                if (sumDoc instanceof Doc) {
-                    this.props.Document.title = sumDoc.title + ".expanded";
+                if (sumDoc instanceof Doc && StrCast(this.props.Document.title).startsWith("-")) {
+                    this.props.Document.proto!.title = "-" + sumDoc.title + ".expanded";
                 }
             }, { fireImmediately: true });
         DocumentManager.Instance.DocumentViews.push(this);
@@ -173,18 +187,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     onPointerDown = (e: React.PointerEvent): void => {
         this._downX = e.clientX;
         this._downY = e.clientY;
-        if (CollectionFreeFormView.RIGHT_BTN_DRAG && (e.button === 2 || (e.button === 0 && e.altKey)) && !this.isSelected()) {
-            return;
-        }
         this._hitExpander = DocListCast(this.props.Document.subBulletDocs).length > 0;
         if (e.shiftKey && e.buttons === 1) {
-            if (this.props.isTopMost) {
-                this.startDragging(e.pageX, e.pageY, e.altKey || e.ctrlKey ? "alias" : undefined, this._hitExpander);
-            } else if (this.props.Document) {
-                CollectionDockingView.Instance.StartOtherDrag([Doc.MakeAlias(this.props.Document)], e);
-            }
+            CollectionDockingView.Instance.StartOtherDrag([Doc.MakeAlias(this.props.Document)], e);
             e.stopPropagation();
         } else if (this.active) {
+            //e.stopPropagation(); // bcz: doing this will block click events from CollectionFreeFormDocumentView which are needed for iconifying,etc
             document.removeEventListener("pointermove", this.onPointerMove);
             document.addEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
@@ -196,7 +204,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3) {
                 document.removeEventListener("pointermove", this.onPointerMove);
                 document.removeEventListener("pointerup", this.onPointerUp);
-                if (!e.altKey && !this.topMost && (!CollectionFreeFormView.RIGHT_BTN_DRAG && e.buttons === 1) || (CollectionFreeFormView.RIGHT_BTN_DRAG && e.buttons === 2)) {
+                if (!e.altKey && !this.topMost && e.buttons === 1) {
                     this.startDragging(this._downX, this._downY, e.ctrlKey || e.altKey ? "alias" : undefined, this._hitExpander);
                 }
             }
@@ -220,12 +228,15 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         let doc = this.props.Document.proto ? this.props.Document.proto : this.props.Document;
         doc.isButton = !BoolCast(doc.isButton, false);
         if (doc.isButton && !doc.nativeWidth) {
-            doc.nativeWidth = doc[WidthSym]();
-            doc.nativeHeight = doc[HeightSym]();
+            doc.nativeWidth = this.props.Document[WidthSym]();
+            doc.nativeHeight = this.props.Document[HeightSym]();
+        } else {
+
+            doc.nativeWidth = doc.nativeHeight = undefined;
         }
     }
     fullScreenClicked = (e: React.MouseEvent): void => {
-        const doc = Doc.MakeDelegate(FieldValue(this.Document.proto));
+        const doc = Doc.MakeCopy(this.props.Document, false);
         if (doc) {
             CollectionDockingView.Instance.OpenFullScreen(doc);
         }
@@ -240,10 +251,19 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             let sourceDoc = de.data.linkSourceDocument;
             let destDoc = this.props.Document;
 
-            const protoDest = destDoc.proto;
-            const protoSrc = sourceDoc.proto;
-            Doc.MakeLink(protoSrc ? protoSrc : sourceDoc, protoDest ? protoDest : destDoc);
-            de.data.droppedDocuments.push(destDoc);
+            if (de.mods === "AltKey") {
+                const protoDest = destDoc.proto;
+                const protoSrc = sourceDoc.proto;
+                let src = protoSrc ? protoSrc : sourceDoc;
+                let dst = protoDest ? protoDest : destDoc;
+                dst.data = (src.data! as ObjectField)[Copy]();
+                dst.nativeWidth = src.nativeWidth;
+                dst.nativeHeight = src.nativeHeight;
+            }
+            else {
+                DocUtils.MakeLink(sourceDoc, destDoc);
+                de.data.droppedDocuments.push(destDoc);
+            }
             e.stopPropagation();
         }
     }
@@ -287,16 +307,23 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
         e.preventDefault();
 
-        ContextMenu.Instance.addItem({ description: "Full Screen", event: this.fullScreenClicked });
-        ContextMenu.Instance.addItem({ description: this.props.Document.isButton ? "Remove Button" : "Make Button", event: this.makeButton });
-        ContextMenu.Instance.addItem({ description: "Fields", event: this.fieldsClicked });
-        ContextMenu.Instance.addItem({ description: "Center", event: () => this.props.focus(this.props.Document) });
-        ContextMenu.Instance.addItem({ description: "Open Right", event: () => CollectionDockingView.Instance.AddRightSplit(this.props.Document) });
-        ContextMenu.Instance.addItem({ description: "Copy URL", event: () => Utils.CopyText(DocServer.prepend("/doc/" + this.props.Document[Id])) });
-        ContextMenu.Instance.addItem({ description: "Copy ID", event: () => Utils.CopyText(this.props.Document[Id]) });
-        //ContextMenu.Instance.addItem({ description: "Docking", event: () => this.props.Document.SetNumber(KeyStore.ViewType, CollectionViewType.Docking) })
-        ContextMenu.Instance.addItem({ description: "Pin to Presentation", event: () => PresentationView.Instance.PinDoc(this.props.Document) });
-        ContextMenu.Instance.addItem({ description: "Delete", event: this.deleteClicked });
+        const cm = ContextMenu.Instance;
+        cm.addItem({ description: "Full Screen", event: this.fullScreenClicked, icon: "expand-arrows-alt" });
+        cm.addItem({ description: this.props.Document.isButton ? "Remove Button" : "Make Button", event: this.makeButton, icon: "expand-arrows-alt" });
+        cm.addItem({ description: "Fields", event: this.fieldsClicked, icon: "layer-group" });
+        cm.addItem({ description: "Center", event: () => this.props.focus(this.props.Document), icon: "align-center" });
+        cm.addItem({ description: "Open Tab", event: () => this.props.addDocTab && this.props.addDocTab(this.props.Document, "inTab"), icon: "expand-arrows-alt" });
+        cm.addItem({ description: "Open Right", event: () => CollectionDockingView.Instance.AddRightSplit(this.props.Document), icon: "caret-square-right" });
+        cm.addItem({
+            description: "Find aliases", event: async () => {
+                const aliases = await SearchUtil.GetAliasesOfDocument(this.props.Document);
+                CollectionDockingView.Instance.AddRightSplit(Docs.SchemaDocument(["title"], aliases, {}));
+            }, icon: "expand-arrows-alt"
+        });
+        cm.addItem({ description: "Copy URL", event: () => Utils.CopyText(DocServer.prepend("/doc/" + this.props.Document[Id])), icon: "expand-arrows-alt" });
+        cm.addItem({ description: "Copy ID", event: () => Utils.CopyText(this.props.Document[Id]), icon: "expand-arrows-alt" });
+        cm.addItem({ description: "Pin to Pres", event: () => PresentationView.Instance.PinDoc(this.props.Document), icon: "expand-arrows-alt" });
+        cm.addItem({ description: "Delete", event: this.deleteClicked, icon: "trash" });
         if (!this.topMost) {
             // DocumentViews should stop propagation of this event
             e.stopPropagation();
@@ -316,8 +343,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     render() {
         var scaling = this.props.ContentScaling();
-        var nativeHeight = this.nativeHeight > 0 ? this.nativeHeight.toString() + "px" : "100%";
-        var nativeWidth = this.nativeWidth > 0 ? this.nativeWidth.toString() + "px" : "100%";
+        var nativeHeight = this.nativeHeight > 0 ? `${this.nativeHeight}px` : (StrCast(this.props.Document.layout).indexOf("IconBox") === -1 ? "100%" : "auto");
+        var nativeWidth = this.nativeWidth > 0 ? `${this.nativeWidth}px` : "100%";
 
         return (
             <div className={`documentView-node${this.props.isTopMost ? "-topmost" : ""}`}

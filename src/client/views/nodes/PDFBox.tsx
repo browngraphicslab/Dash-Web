@@ -1,5 +1,5 @@
 import * as htmlToImage from "html-to-image";
-import { action, computed, IReactionDisposer, observable, reaction, Reaction, trace } from 'mobx';
+import { action, computed, IReactionDisposer, observable, reaction, Reaction, trace, runInAction } from 'mobx';
 import { observer } from "mobx-react";
 import 'react-image-lightbox/style.css';
 import Measure from "react-measure";
@@ -54,10 +54,12 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     public static LayoutString() { return FieldView.LayoutString(PDFBox); }
 
     private _mainDiv = React.createRef<HTMLDivElement>();
+    private renderHeight = 2400;
 
     @observable private _renderAsSvg = true;
+    @observable private _alt = false;
 
-    private _reactionDisposer: Opt<IReactionDisposer>;
+    private _reactionDisposer?: IReactionDisposer;
 
     @observable private _perPageInfo: Object[] = []; //stores pageInfo
     @observable private _pageInfo: any = { area: [], divs: [], anno: [] }; //divs is array of objects linked to anno
@@ -66,26 +68,25 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     @observable private _interactive: boolean = false;
     @observable private _loaded: boolean = false;
 
-    @computed private get curPage() { return FieldValue(this.Document.curPage, 1); }
-    @computed private get thumbnailPage() { return Cast(this.props.Document.thumbnailPage, "number", -1); }
+    @computed private get curPage() { return NumCast(this.Document.curPage, 1); }
+    @computed private get thumbnailPage() { return NumCast(this.props.Document.thumbnailPage, -1); }
 
     componentDidMount() {
-        // this._reactionDisposer = reaction(
-        //     () => [SelectionManager.SelectedDocuments().slice()],
-        //     () => {
-        //         if (this.curPage > 0 && this.thumbnailPage > 0 && this.curPage !== this.thumbnailPage && !this.props.isSelected()) {
-        //             this.saveThumbnail();
-        //             this._interactive = true;
-        //         }
-        //     },
-        //     { fireImmediately: true });
+        let wasSelected = false;
+        this._reactionDisposer = reaction(
+            () => this.props.isSelected(),
+            () => {
+                if (this.curPage > 0 && this.curPage !== this.thumbnailPage && wasSelected && !this.props.isSelected()) {
+                    this.saveThumbnail();
+                }
+                wasSelected = this._interactive = this.props.isSelected();
+            },
+            { fireImmediately: true });
 
     }
 
     componentWillUnmount() {
-        if (this._reactionDisposer) {
-            this._reactionDisposer();
-        }
+        if (this._reactionDisposer) this._reactionDisposer();
     }
 
     /**
@@ -163,10 +164,8 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
         let index: any;
         this._pageInfo.divs.forEach((obj: any) => {
             obj.spans.forEach((element: any) => {
-                if (element === span) {
-                    if (!index) {
-                        index = this._pageInfo.divs.indexOf(obj);
-                    }
+                if (element === span && !index) {
+                    index = this._pageInfo.divs.indexOf(obj);
                 }
             });
         });
@@ -224,7 +223,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
             document.addEventListener("pointerup", this.onPointerUp);
         }
         if (this.props.isSelected() && e.buttons === 2) {
-            this._alt = true;
+            runInAction(() => this._alt = true);
             document.removeEventListener("pointerup", this.onPointerUp);
             document.addEventListener("pointerup", this.onPointerUp);
         }
@@ -244,7 +243,6 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     }
 
 
-
     @action
     saveThumbnail = () => {
         this._renderAsSvg = false;
@@ -260,7 +258,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
                 .catch(function (error: any) {
                     console.error('oops, something went wrong!', error);
                 });
-        }, 250);
+        }, 1250);
     }
 
     @action
@@ -285,29 +283,28 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
             this.props.Document.nativeHeight = nativeHeight;
         }
     }
-    renderHeight = 2400;
     @computed
     get pdfPage() {
-        return <Page height={this.renderHeight} pageNumber={this.curPage} onLoadSuccess={this.onLoaded} />;
+        return <Page height={this.renderHeight} renderTextLayer={false} pageNumber={this.curPage} onLoadSuccess={this.onLoaded} />;
     }
     @computed
     get pdfContent() {
-        let page = this.curPage;
-        const renderHeight = 2400;
+        trace();
         let pdfUrl = Cast(this.props.Document[this.props.fieldKey], PdfField);
         if (!pdfUrl) {
             return <p>No pdf url to render</p>;
         }
-        let xf = FieldValue(this.Document.nativeHeight, 0) / renderHeight;
-        let body = NumCast(this.props.Document.nativeHeight) ?
-            this.pdfPage :
+        let pdfpage = this.pdfPage;
+        let body = this.Document.nativeHeight ?
+            pdfpage :
             <Measure offset onResize={this.setScaling}>
                 {({ measureRef }) =>
                     <div className="pdfBox-page" ref={measureRef}>
-                        {this.pdfPage}
+                        {pdfpage}
                     </div>
                 }
             </Measure>;
+        let xf = (this.Document.nativeHeight || 0) / this.renderHeight;
         return <div className="pdfBox-contentContainer" key="container" style={{ transform: `scale(${xf}, ${xf})` }}>
             <Document file={window.origin + RouteStore.corsProxy + `/${pdfUrl.url}`} renderMode={this._renderAsSvg ? "svg" : "canvas"}>
                 {body}
@@ -340,19 +337,8 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
         }
         return (null);
     }
-    @observable _alt = false;
-    @action
-    onKeyDown = (e: React.KeyboardEvent) => {
-        if (e.key === "Alt") {
-            this._alt = true;
-        }
-    }
-    @action
-    onKeyUp = (e: React.KeyboardEvent) => {
-        if (e.key === "Alt") {
-            this._alt = false;
-        }
-    }
+    @action onKeyDown = (e: React.KeyboardEvent) => e.key === "Alt" && (this._alt = true);
+    @action onKeyUp = (e: React.KeyboardEvent) => e.key === "Alt" && (this._alt = false);
     render() {
         trace();
         const pdfUrl = window.origin + RouteStore.corsProxy + "/https://mozilla.github.io/pdf.js/web/compressed.tracemonkey-pldi-09.pdf";

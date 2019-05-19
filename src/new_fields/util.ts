@@ -55,6 +55,17 @@ export function getter(target: any, prop: string | symbol | number, receiver: an
     }
     return getField(target, prop);
 }
+function getProtoField(protoField: Doc | undefined, prop: string | number, cb?: (field: Field | undefined) => void) {
+    if (!protoField) return undefined;
+    let field = protoField[prop];
+    if (field instanceof Promise) {
+        cb && field.then(cb);
+        return field;
+    } else {
+        cb && cb(field);
+        return field;
+    }
+}
 
 //TODO The callback parameter is never being passed in currently, so we should be able to get rid of it.
 export function getField(target: any, prop: string | number, ignoreProto: boolean = false, callback?: (field: Field | undefined) => void): any {
@@ -62,17 +73,12 @@ export function getField(target: any, prop: string | number, ignoreProto: boolea
     if (field instanceof ProxyField) {
         return field.value(callback);
     }
-    if (field === undefined && !ignoreProto) {
+    if (field === undefined && !ignoreProto && prop !== "proto") {
         const proto = getField(target, "proto", true);
         if (proto instanceof Doc) {
-            let field = proto[prop];
-            if (field instanceof Promise) {
-                callback && field.then(callback);
-                return undefined;
-            } else {
-                callback && callback(field);
-                return field;
-            }
+            return getProtoField(proto, prop, callback);
+        } else if (proto instanceof Promise) {
+            return proto.then(async proto => getProtoField(proto, prop, callback));
         }
     }
     callback && callback(field);

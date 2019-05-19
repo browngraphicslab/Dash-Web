@@ -22,6 +22,9 @@ export abstract class AggregateParameters implements IAggregateParameters {
 
     protected _discriminator: string;
 
+    public Equals(other: Object): boolean {
+        return this == other;
+    }
     constructor(data?: IAggregateParameters) {
         if (data) {
             for (var property in data) {
@@ -204,6 +207,9 @@ export interface IAverageAggregateParameters extends ISingleDimensionAggregatePa
 export abstract class AttributeParameters implements IAttributeParameters {
     visualizationHints?: VisualizationHint[] | undefined;
     rawName?: string | undefined;
+    public Equals(other: Object): boolean {
+        return this == other;
+    }
 
     protected _discriminator: string;
 

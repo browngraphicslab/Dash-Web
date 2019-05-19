@@ -9,7 +9,8 @@ import { OmitKeys } from "../../../Utils";
 import { Deserializable } from "../../util/SerializationHelper";
 
 function serialize(field: HistogramField) {
-    return OmitKeys(field.HistoOp, ['Links', 'BrushLinks', 'Result', 'BrushColors', 'FilterModels', 'FilterOperand']).omit;
+    let obj = OmitKeys(field, ['Links', 'BrushLinks', 'Result', 'BrushColors', 'FilterModels', 'FilterOperand']).omit;
+    return obj;
 }
 
 function deserialize(jp: any) {
@@ -31,10 +32,10 @@ function deserialize(jp: any) {
             }
         });
         if (X && Y && V) {
-            return new HistogramField(new HistogramOperation(jp.SchemaName, X, Y, V, jp.Normalization));
+            return new HistogramOperation(jp.SchemaName, X, Y, V, jp.Normalization);
         }
     }
-    return new HistogramField(HistogramOperation.Empty);
+    return HistogramOperation.Empty;
 }
 
 @Deserializable("histogramField")
@@ -50,6 +51,8 @@ export class HistogramField extends ObjectField {
     }
 
     [Copy]() {
-        return new HistogramField(this.HistoOp.Copy());
+        let y = this.HistoOp;
+        let z = this.HistoOp.Copy;
+        return new HistogramField(HistogramOperation.Duplicate(this.HistoOp));
     }
 }

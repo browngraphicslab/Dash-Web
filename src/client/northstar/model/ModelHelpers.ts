@@ -31,7 +31,12 @@ export class ModelHelpers {
     }
 
     public static GetAggregateParametersIndex(histogramResult: HistogramResult, aggParameters?: AggregateParameters): number {
-        return ArrayUtil.IndexOfWithEqual(histogramResult.aggregateParameters!, aggParameters);
+        return Array.from(histogramResult.aggregateParameters!).findIndex((value, i, set) => {
+            if (set[i] instanceof CountAggregateParameters && value instanceof CountAggregateParameters) return true;
+            if (set[i] instanceof MarginAggregateParameters && value instanceof MarginAggregateParameters) return true;
+            if (set[i] instanceof SumAggregateParameters && value instanceof SumAggregateParameters) return true;
+            return false;
+        });
     }
 
     public static GetAggregateParameter(distinctAttributeParameters: AttributeParameters | undefined, atm: AttributeTransformationModel): AggregateParameters | undefined {

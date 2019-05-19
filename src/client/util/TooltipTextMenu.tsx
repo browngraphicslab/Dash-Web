@@ -175,7 +175,7 @@ export class TooltipTextMenu {
             this.linkText.style.width = "150px";
             this.linkText.style.overflow = "hidden";
             this.linkText.style.color = "white";
-            this.linkText.onpointerdown = (e: PointerEvent) => { e.stopPropagation(); }
+            this.linkText.onpointerdown = (e: PointerEvent) => { e.stopPropagation(); };
             let linkBtn = document.createElement("div");
             linkBtn.textContent = ">>";
             linkBtn.style.width = "20px";
@@ -186,14 +186,14 @@ export class TooltipTextMenu {
                 let node = this.view.state.selection.$from.nodeAfter;
                 let link = node && node.marks.find(m => m.type.name === "link");
                 if (link) {
-                    console.log("Link to : " + link.attrs.href);
                     let href: string = link.attrs.href;
                     if (href.indexOf(DocServer.prepend("/doc/")) === 0) {
                         let docid = href.replace(DocServer.prepend("/doc/"), "");
                         DocServer.GetRefField(docid).then(action((f: Opt<Field>) => {
                             if (f instanceof Doc) {
-                                if (DocumentManager.Instance.getDocumentView(f))
+                                if (DocumentManager.Instance.getDocumentView(f)) {
                                     DocumentManager.Instance.getDocumentView(f)!.props.focus(f);
+                                }
                                 else CollectionDockingView.Instance.AddRightSplit(f);
                             }
                         }));
@@ -201,7 +201,7 @@ export class TooltipTextMenu {
                     e.stopPropagation();
                     e.preventDefault();
                 }
-            }
+            };
             this.linkDrag = document.createElement("img");
             this.linkDrag.src = "https://seogurusnyc.com/wp-content/uploads/2016/12/link-1.png";
             this.linkDrag.style.width = "20px";
@@ -216,12 +216,12 @@ export class TooltipTextMenu {
                     {
                         handlers: {
                             dragComplete: action(() => {
-                                let m = dragData.droppedDocuments as Doc[];
+                                let m = dragData.droppedDocuments;
                                 this.makeLink(DocServer.prepend("/doc/" + m[0][Id]));
                             }),
                         },
                         hideSource: false
-                    })
+                    });
             };
             this.linkEditor.appendChild(this.linkDrag);
             this.linkEditor.appendChild(this.linkText);
@@ -239,7 +239,7 @@ export class TooltipTextMenu {
                 e.stopPropagation();
                 e.preventDefault();
             }
-        }
+        };
         this.tooltip.appendChild(this.linkEditor);
     }
 

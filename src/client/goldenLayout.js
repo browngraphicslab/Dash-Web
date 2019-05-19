@@ -2902,6 +2902,7 @@
 		 * @returns {void}
 		 */
         _$destroy: function () {
+            this._layoutManager.emit('tabDestroyed', this);
             this.element.off('mousedown touchstart', this._onTabClickFn);
             this.closeElement.off('click touchstart', this._onCloseClickFn);
             if (this._dragListener) {

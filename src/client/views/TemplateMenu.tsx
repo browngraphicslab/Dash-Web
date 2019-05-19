@@ -38,22 +38,21 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
 
     constructor(props: TemplateMenuProps) {
         super(props);
-        console.log("");
     }
 
     @action
     toggleTemplate = (event: React.ChangeEvent<HTMLInputElement>, template: Template): void => {
         if (event.target.checked) {
-            if (template.Name == "Bullet") {
+            if (template.Name === "Bullet") {
                 let topDocView = this.props.docs[0];
                 topDocView.addTemplate(template);
-                topDocView.props.Document.subBulletDocs = new List<Doc>(this.props.docs.filter(v => v !== topDocView).map(v => v.props.Document));
+                topDocView.props.Document.subBulletDocs = new List<Doc>(this.props.docs.filter(v => v !== topDocView).map(v => v.props.Document.proto!));
             } else {
                 this.props.docs.map(d => d.addTemplate(template));
             }
             this.props.templates.set(template, true);
         } else {
-            if (template.Name == "Bullet") {
+            if (template.Name === "Bullet") {
                 let topDocView = this.props.docs[0];
                 topDocView.removeTemplate(template);
                 topDocView.props.Document.subBulletDocs = undefined;

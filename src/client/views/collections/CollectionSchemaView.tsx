@@ -20,10 +20,13 @@ import { FieldView, FieldViewProps } from "../nodes/FieldView";
 import "./CollectionSchemaView.scss";
 import { CollectionSubView } from "./CollectionSubView";
 import { Opt, Field, Doc, DocListCastAsync, DocListCast } from "../../../new_fields/Doc";
-import { Cast, FieldValue, NumCast } from "../../../new_fields/Types";
+import { Cast, FieldValue, NumCast, StrCast } from "../../../new_fields/Types";
 import { listSpec } from "../../../new_fields/Schema";
 import { List } from "../../../new_fields/List";
 import { Id } from "../../../new_fields/RefField";
+import { Gateway } from "../../northstar/manager/Gateway";
+import { Docs } from "../../documents/Documents";
+import { ContextMenu } from "../ContextMenu";
 
 
 // bcz: need to add drag and drop of rows and columns.  This seems like it might work for rows: https://codesandbox.io/s/l94mn1q657
@@ -61,10 +64,25 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     @computed get columns() { return Cast(this.props.Document.schemaColumns, listSpec("string"), []); }
     @computed get borderWidth() { return Number(COLLECTION_BORDER_WIDTH); }
 
+    @computed get tableColumns() {
+        return this.columns.map(col => {
+            const ref = React.createRef<HTMLParagraphElement>();
+            return {
+                Header: <p ref={ref} onPointerDown={SetupDrag(ref, () => this.onHeaderDrag(col))}>{col}</p>,
+                accessor: (doc: Doc) => doc ? doc[col] : 0,
+                id: col
+            };
+        });
+    }
+
+    onHeaderDrag = (columnName: string) => {
+        return this.props.Document;
+    }
+
     renderCell = (rowProps: CellInfo) => {
         let props: FieldViewProps = {
-            Document: rowProps.value[0],
-            fieldKey: rowProps.value[1],
+            Document: rowProps.original,
+            fieldKey: rowProps.column.id as string,
             ContainingCollectionView: this.props.CollectionView,
             isSelected: returnFalse,
             select: emptyFunction,
@@ -76,24 +94,24 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             whenActiveChanged: emptyFunction,
             PanelHeight: returnZero,
             PanelWidth: returnZero,
+            addDocTab: this.props.addDocTab,
         };
-        let contents = (
-            <FieldView {...props} />
-        );
+        let fieldContentView = <FieldView {...props} />;
         let reference = React.createRef<HTMLDivElement>();
-        let onItemDown = SetupDrag(reference, () => props.Document, this.props.moveDocument);
+        let onItemDown = (e: React.PointerEvent) =>
+            (this.props.CollectionView.props.isSelected() ?
+                SetupDrag(reference, () => props.Document, this.props.moveDocument)(e) : undefined);
         let applyToDoc = (doc: Doc, run: (args?: { [name: string]: any }) => any) => {
             const res = run({ this: doc });
             if (!res.success) return false;
-            const field = res.result;
-            doc[props.fieldKey] = field;
+            doc[props.fieldKey] = res.result;
             return true;
         };
         return (
             <div className="collectionSchemaView-cellContents" onPointerDown={onItemDown} key={props.Document[Id]} ref={reference}>
                 <EditableView
                     display={"inline"}
-                    contents={contents}
+                    contents={fieldContentView}
                     height={Number(MAX_ROW_HEIGHT)}
                     GetValue={() => {
                         let field = props.Document[props.fieldKey];
@@ -118,7 +136,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                         }
                         const run = script.run;
                         //TODO This should be able to be refactored to compile the script once
-                        const val = await DocListCastAsync(this.props.Document[this.props.fieldKey])
+                        const val = await DocListCastAsync(this.props.Document[this.props.fieldKey]);
                         val && val.forEach(doc => applyToDoc(doc, run));
                     }}>
                 </EditableView>
@@ -207,6 +225,32 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         }
     }
 
+    onContextMenu = (e: React.MouseEvent): void => {
+        if (!e.isPropagationStopped() && this.props.Document[Id] !== "mainDoc") { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
+            ContextMenu.Instance.addItem({ description: "Make DB", event: this.makeDB });
+        }
+    }
+
+    @action
+    makeDB = async () => {
+        let csv: string = this.columns.reduce((val, col) => val + col + ",", "");
+        csv = csv.substr(0, csv.length - 1) + "\n";
+        let self = this;
+        DocListCast(this.props.Document.data).map(doc => {
+            csv += self.columns.reduce((val, col) => val + (doc[col] ? doc[col]!.toString() : "") + ",", "");
+            csv = csv.substr(0, csv.length - 1) + "\n";
+        });
+        csv.substring(0, csv.length - 1);
+        let dbName = StrCast(this.props.Document.title);
+        let res = await Gateway.Instance.PostSchema(csv, dbName);
+        if (self.props.CollectionView.props.addDocument) {
+            let schemaDoc = await Docs.DBDocument("https://www.cs.brown.edu/" + dbName, { title: dbName });
+            if (schemaDoc) {
+                self.props.CollectionView.props.addDocument(schemaDoc, false);
+            }
+        }
+    }
+
     @action
     addColumn = () => {
         this.columns.push(this._newKeyName);
@@ -224,10 +268,11 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         this.previewScript = e.currentTarget.value;
     }
 
+    @computed
     get previewDocument(): Doc | undefined {
-        const children = Cast(this.props.Document[this.props.fieldKey], listSpec(Doc), []);
+        const children = DocListCast(this.props.Document[this.props.fieldKey]);
         const selected = children.length > this._selectedIndex ? FieldValue(children[this._selectedIndex]) : undefined;
-        return selected ? (this.previewScript ? FieldValue(Cast(selected[this.previewScript], Doc)) : selected) : undefined;
+        return selected ? (this.previewScript && this.previewScript !== "this" ? FieldValue(Cast(selected[this.previewScript], Doc)) : selected) : undefined;
     }
     get tableWidth() { return (this.props.PanelWidth() - 2 * this.borderWidth - this.DIVIDER_WIDTH) * (1 - this.splitPercentage / 100); }
     get previewRegionHeight() { return this.props.PanelHeight() - 2 * this.borderWidth; }
@@ -253,8 +298,8 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     get previewPanel() {
         // let doc = CompileScript(this.previewScript, { this: selected }, true)();
         const previewDoc = this.previewDocument;
-        return !previewDoc || !this.previewRegionWidth ? (null) : (
-            <div className="collectionSchemaView-previewRegion" style={{ width: `${this.previewRegionWidth}px` }}>
+        return (<div className="collectionSchemaView-previewRegion" style={{ width: `${Math.max(0, this.previewRegionWidth - 1)}px` }}>
+            {!previewDoc || !this.previewRegionWidth ? (null) : (
                 <div className="collectionSchemaView-previewDoc" style={{ transform: `translate(${this.previewPanelCenteringOffset}px, 0px)` }}>
                     <DocumentView Document={previewDoc} isTopMost={false} selectOnLoad={false}
                         toggleMinimized={emptyFunction}
@@ -267,12 +312,12 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                         parentActive={this.props.active}
                         whenActiveChanged={this.props.whenActiveChanged}
                         bringToFront={emptyFunction}
+                        addDocTab={this.props.addDocTab}
                     />
-                </div>
-                <input className="collectionSchemaView-input" value={this.previewScript} onChange={this.onPreviewScriptChange}
-                    style={{ left: `calc(50% - ${Math.min(75, this.previewPanelWidth() / 2)}px)` }} />
-            </div>
-        );
+                </div>)}
+            <input className="collectionSchemaView-input" value={this.previewScript} onChange={this.onPreviewScriptChange}
+                style={{ left: `calc(50% - ${Math.min(75, (previewDoc ? this.previewPanelWidth() / 2 : 75))}px)` }} />
+        </div>);
     }
 
     get documentKeysCheckList() {
@@ -319,20 +364,18 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             <div className="collectionSchemaView-dividerDragger" onPointerDown={this.onDividerDown} style={{ width: `${this.DIVIDER_WIDTH}px` }} />;
     }
 
+
+
     render() {
         library.add(faCog);
         library.add(faPlus);
-        const children = this.children;
+        const children = this.childDocs;
         return (
             <div className="collectionSchemaView-container" onPointerDown={this.onPointerDown} onWheel={this.onWheel}
-                onDrop={(e: React.DragEvent) => this.onDrop(e, {})} ref={this.createTarget}>
+                onDrop={(e: React.DragEvent) => this.onDrop(e, {})} onContextMenu={this.onContextMenu} ref={this.createTarget}>
                 <div className="collectionSchemaView-tableContainer" style={{ width: `${this.tableWidth}px` }}>
                     <ReactTable data={children} page={0} pageSize={children.length} showPagination={false}
-                        columns={this.columns.map(col => ({
-                            Header: col,
-                            accessor: (doc: Doc) => [doc, col],
-                            id: col
-                        }))}
+                        columns={this.tableColumns}
                         column={{ ...ReactTableDefaults.column, Cell: this.renderCell, }}
                         getTrProps={this.getTrProps}
                     />

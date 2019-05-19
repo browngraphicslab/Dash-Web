@@ -14,12 +14,11 @@ import { Doc, DocListCast } from '../../../new_fields/Doc';
 import { Id } from '../../../new_fields/RefField';
 import { ContextMenu } from '../ContextMenu';
 import { undoBatch } from '../../util/UndoManager';
-import { Main } from '../Main';
 import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
 import { CollectionDockingView } from './CollectionDockingView';
 import { DocumentManager } from '../../util/DocumentManager';
-import { List } from '../../../new_fields/List';
 import { Docs } from '../../documents/Documents';
+import { MainView } from '../MainView';
 
 
 export interface TreeViewProps {
@@ -52,11 +51,11 @@ class TreeView extends React.Component<TreeViewProps> {
 
     @undoBatch openRight = async () => {
         if (this.props.document.dockingConfig) {
-            Main.Instance.openWorkspace(this.props.document);
+            MainView.Instance.openWorkspace(this.props.document);
         } else {
             CollectionDockingView.Instance.AddRightSplit(this.props.document);
         }
-    };
+    }
 
     get children() {
         return Cast(this.props.document.data, listSpec(Doc), []); // bcz: needed?    .filter(doc => FieldValue(doc));
@@ -112,7 +111,7 @@ class TreeView extends React.Component<TreeViewProps> {
         let editableView = (titleString: string) =>
             (<EditableView
                 oneLine={!this._isOver ? true : false}
-                display={"block"}
+                display={"inline-block"}
                 contents={titleString}
                 height={36}
                 GetValue={() => StrCast(this.props.document.title)}
@@ -130,7 +129,7 @@ class TreeView extends React.Component<TreeViewProps> {
             </div>);
         return (
             <div className="docContainer" ref={reference} onPointerDown={onItemDown} onMouseEnter={this.onMouseEnter} onMouseLeave={this.onMouseLeave}
-                style={{ background: BoolCast(this.props.document.libraryBrush, false) ? "#06121212" : "0" }}
+                style={{ background: BoolCast(this.props.document.protoBrush, false) ? "#06123232" : BoolCast(this.props.document.libraryBrush, false) ? "#06121212" : "0" }}
                 onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}>
                 {editableView(StrCast(this.props.document.title))}
                 {openRight}
@@ -140,7 +139,7 @@ class TreeView extends React.Component<TreeViewProps> {
 
     onWorkspaceContextMenu = (e: React.MouseEvent): void => {
         if (!e.isPropagationStopped() && this.props.document[Id] !== CurrentUserUtils.MainDocId) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
-            ContextMenu.Instance.addItem({ description: "Open as Workspace", event: undoBatch(() => Main.Instance.openWorkspace(this.props.document)) });
+            ContextMenu.Instance.addItem({ description: "Open as Workspace", event: undoBatch(() => MainView.Instance.openWorkspace(this.props.document)) });
             ContextMenu.Instance.addItem({ description: "Open Right", event: () => CollectionDockingView.Instance.AddRightSplit(this.props.document) });
             ContextMenu.Instance.addItem({
                 description: "Open Fields", event: () => CollectionDockingView.Instance.AddRightSplit(Docs.KVPDocument(this.props.document,
@@ -184,8 +183,9 @@ class TreeView extends React.Component<TreeViewProps> {
                             {TreeView.GetChildElements(doc instanceof Doc ? [doc] : docList, key !== "data", (doc: Doc) => this.remove(doc, key), this.move, this.props.dropAction)}
                         </div>
                     </ul >);
-                } else
+                } else {
                     bulletType = BulletType.Collapsed;
+                }
             }
         });
         return <div className="treeViewItem-container"
@@ -198,8 +198,8 @@ class TreeView extends React.Component<TreeViewProps> {
         </div>;
     }
     public static GetChildElements(docs: Doc[], allowMinimized: boolean, remove: ((doc: Doc) => void), move: DragManager.MoveFunction, dropAction: dropActionType) {
-        return docs.filter(child => child instanceof Doc && !child.excludeFromLibrary && (allowMinimized || !child.isMinimized)).filter(doc => FieldValue(doc)).map(child =>
-            <TreeView document={child as Doc} key={(child as Doc)[Id]} deleteDoc={remove} moveDocument={move} dropAction={dropAction} />);
+        return docs.filter(child => !child.excludeFromLibrary && (allowMinimized || !child.isMinimized)).map(child =>
+            <TreeView document={child} key={child[Id]} deleteDoc={remove} moveDocument={move} dropAction={dropAction} />);
     }
 }
 
@@ -214,7 +214,7 @@ export class CollectionTreeView extends CollectionSubView(Document) {
     }
     onContextMenu = (e: React.MouseEvent): void => {
         if (!e.isPropagationStopped() && this.props.Document[Id] !== CurrentUserUtils.MainDocId) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
-            ContextMenu.Instance.addItem({ description: "Create Workspace", event: undoBatch(() => Main.Instance.createNewWorkspace()) });
+            ContextMenu.Instance.addItem({ description: "Create Workspace", event: undoBatch(() => MainView.Instance.createNewWorkspace()) });
         }
         if (!ContextMenu.Instance.getItems().some(item => item.description === "Delete")) {
             ContextMenu.Instance.addItem({ description: "Delete", event: undoBatch(() => this.remove(this.props.Document)) });
@@ -222,16 +222,16 @@ export class CollectionTreeView extends CollectionSubView(Document) {
     }
     render() {
         let dropAction = StrCast(this.props.Document.dropAction, "alias") as dropActionType;
-        if (!this.children) {
+        if (!this.childDocs) {
             return (null);
         }
-        let childElements = TreeView.GetChildElements(this.children, false, this.remove, this.props.moveDocument, dropAction);
+        let childElements = TreeView.GetChildElements(this.childDocs, false, this.remove, this.props.moveDocument, dropAction);
 
         return (
             <div id="body" className="collectionTreeView-dropTarget"
                 style={{ borderRadius: "inherit" }}
                 onContextMenu={this.onContextMenu}
-                onWheel={(e: React.WheelEvent) => e.stopPropagation()}
+                onWheel={(e: React.WheelEvent) => this.props.isSelected() && e.stopPropagation()}
                 onDrop={(e: React.DragEvent) => this.onDrop(e, {})} ref={this.createDropTarget}>
                 <div className="coll-title">
                     <EditableView

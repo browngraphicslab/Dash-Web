@@ -17,6 +17,9 @@ import { InkField, StrokeData } from "../../../../new_fields/InkField";
 import { List } from "../../../../new_fields/List";
 import { ImageField } from "../../../../new_fields/URLField";
 import { Template, Templates } from "../../Templates";
+import { Gateway } from "../../../northstar/manager/Gateway";
+import { DocServer } from "../../../DocServer";
+import { Id } from "../../../../new_fields/RefField";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;
@@ -60,7 +63,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             e.preventDefault();
             (async () => {
                 let text: string = await navigator.clipboard.readText();
-                let ns = text.split("\n").filter(t => t.trim() != "\r" && t.trim() != "");
+                let ns = text.split("\n").filter(t => t.trim() !== "\r" && t.trim() !== "");
                 for (let i = 0; i < ns.length - 1; i++) {
                     while (!(ns[i].trim() === "" || ns[i].endsWith("-\r") || ns[i].endsWith("-") ||
                         ns[i].endsWith(";\r") || ns[i].endsWith(";") ||
@@ -77,9 +80,9 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                     let newBox = Docs.TextDocument({ width: 200, height: 35, x: x + indent / 3 * 10, y: y, documentText: "@@@" + line, title: line });
                     this.props.addDocument(newBox, false);
                     y += 40 * this.props.getTransform().Scale;
-                })
+                });
             })();
-        } else if (e.key === "t" && e.ctrlKey) {
+        } else if (e.key === "b" && e.ctrlKey) {
             //heuristically converts pasted text into a table.
             // assumes each entry is separated by a tab
             // skips all rows until it gets to a row with more than one entry
@@ -90,9 +93,10 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             e.preventDefault();
             (async () => {
                 let text: string = await navigator.clipboard.readText();
-                let ns = text.split("\n").filter(t => t.trim() != "\r" && t.trim() != "");
-                while (ns.length > 0 && ns[0].split("\t").length < 2)
+                let ns = text.split("\n").filter(t => t.trim() !== "\r" && t.trim() !== "");
+                while (ns.length > 0 && ns[0].split("\t").length < 2) {
                     ns.splice(0, 1);
+                }
                 if (ns.length > 0) {
                     let columns = ns[0].split("\t");
                     let docList: Doc[] = [];
@@ -104,18 +108,15 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                             continue;
                         }
                         let doc = new Doc();
-                        columns.forEach((col, i) => {
-                            console.log(values[i] + " " + Number(values[i]).toString());
-                            doc[columns[i]] = (values.length > i ? ((values[i].indexOf(Number(values[i]).toString()) !== -1) ? Number(values[i]) : values[i]) : undefined);
-                        });
+                        columns.forEach((col, i) => doc[columns[i]] = (values.length > i ? ((values[i].indexOf(Number(values[i]).toString()) !== -1) ? Number(values[i]) : values[i]) : undefined));
                         if (groupAttr) {
-                            doc["_group"] = groupAttr;
+                            doc._group = groupAttr;
                         }
                         doc.title = i.toString();
                         docList.push(doc);
                     }
-                    let newCol = Docs.SchemaDocument(docList, { x: x, y: y, title: "-dropped table-", width: 300, height: 100 });
-                    newCol.proto!.schemaColumns = new List<string>([...(groupAttr ? ["_group"] : []), ...columns.filter(c => c)]);
+                    let newCol = Docs.SchemaDocument([...(groupAttr ? ["_group"] : []), ...columns.filter(c => c)], docList, { x: x, y: y, title: "droppedTable", width: 300, height: 100 });
+
                     this.props.addDocument(newCol, false);
                 }
             })();
@@ -131,16 +132,17 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         this._downY = this._lastY = e.pageY;
         this._commandExecuted = false;
         PreviewCursor.Visible = false;
-        if ((CollectionFreeFormView.RIGHT_BTN_DRAG && e.button === 0 && !e.altKey && !e.metaKey && this.props.container.props.active()) ||
-            (!CollectionFreeFormView.RIGHT_BTN_DRAG && (e.button === 2 || (e.button === 0 && e.altKey)) && this.props.container.props.active())) {
+        if (e.button === 2 || (e.button === 0 && e.altKey)) {
+            if (!this.props.container.props.active()) this.props.selectDocuments([this.props.container.props.Document]);
             document.addEventListener("pointermove", this.onPointerMove, true);
             document.addEventListener("pointerup", this.onPointerUp, true);
             document.addEventListener("keydown", this.marqueeCommand, true);
-            // bcz: do we need this?   it kills the context menu on the main collection
+            if (e.altKey) {
+                e.stopPropagation();
+                e.preventDefault();
+            }
+            // bcz: do we need this?   it kills the context menu on the main collection if !altKey
             // e.stopPropagation();
-        }
-        if (e.altKey) {
-            e.preventDefault();
         }
     }
 
@@ -207,11 +209,13 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     @undoBatch
     @action
     marqueeCommand = async (e: KeyboardEvent) => {
-        if (this._commandExecuted) {
+        if (this._commandExecuted || (e as any).propagationIsStopped) {
             return;
         }
         if (e.key === "Backspace" || e.key === "Delete" || e.key === "d") {
             this._commandExecuted = true;
+            e.stopPropagation();
+            (e as any).propagationIsStopped = true;
             this.marqueeSelect().map(d => this.props.removeDocument(d));
             let ink = Cast(this.props.container.props.Document.ink, InkField);
             if (ink) {
@@ -221,26 +225,21 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             this.cleanupInteractions(false);
             e.stopPropagation();
         }
-        if (e.key === "c" || e.key === "r" || e.key === "s" || e.key === "e" || e.key === "p") {
+        if (e.key === "c" || e.key === "s" || e.key === "e" || e.key === "p") {
             this._commandExecuted = true;
             e.stopPropagation();
+            (e as any).propagationIsStopped = true;
             let bounds = this.Bounds;
-            let selected = this.marqueeSelect().map(d => {
-                if (e.key === "s") {
-                    let dCopy = Doc.MakeCopy(d);
-                    dCopy.x = NumCast(d.x) - bounds.left - bounds.width / 2;
-                    dCopy.y = NumCast(d.y) - bounds.top - bounds.height / 2;
-                    dCopy.page = -1;
-                    return dCopy;
-                }
-                else if (e.key !== "r") {
+            let selected = this.marqueeSelect();
+            if (e.key === "c") {
+                selected.map(d => {
                     this.props.removeDocument(d);
                     d.x = NumCast(d.x) - bounds.left - bounds.width / 2;
                     d.y = NumCast(d.y) - bounds.top - bounds.height / 2;
                     d.page = -1;
-                }
-                return d;
-            });
+                    return d;
+                });
+            }
             let ink = Cast(this.props.container.props.Document.ink, InkField);
             let inkData = ink ? ink.inkData : undefined;
             let zoomBasis = NumCast(this.props.container.props.Document.scale, 1);
@@ -250,39 +249,36 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 panX: 0,
                 panY: 0,
                 borderRounding: e.key === "e" ? -1 : undefined,
+                backgroundColor: this.props.container.isAnnotationOverlay ? undefined : "white",
                 scale: zoomBasis,
                 width: bounds.width * zoomBasis,
                 height: bounds.height * zoomBasis,
                 ink: inkData ? new InkField(this.marqueeInkSelect(inkData)) : undefined,
-                title: "a nested collection",
+                title: e.key === "s" ? "-summary-" : e.key === "p" ? "-summary-" : "a nested collection",
             });
-
             this.marqueeInkDelete(inkData);
-            // SelectionManager.DeselectAll();
-            if (e.key === "s" || e.key === "r" || e.key === "p") {
-                e.preventDefault();
-                let scrpt = this.props.getTransform().inverse().transformPoint(bounds.left, bounds.top);
-                let summary = Docs.TextDocument({ x: bounds.left, y: bounds.top, width: 300, height: 100, backgroundColor: "yellow", title: "-summary-" });
 
-                let dataUrl = await htmlToImage.toPng(this._mainCont.current!, { width: bounds.width, height: bounds.height, quality: 1 });
-                summary.proto!.thumbnail = new ImageField(new URL(dataUrl));
+            if (e.key === "s" || e.key === "p") {
 
-                summary.proto!.templates = new List<string>([Templates.ImageOverlay(Math.min(50, bounds.width), bounds.height * Math.min(50, bounds.width) / bounds.width, "thumbnail")]);
-                if (e.key === "s" || e.key === "p") {
-                    summary.proto!.maximizeOnRight = true;
+                htmlToImage.toPng(this._mainCont.current!, { width: bounds.width * zoomBasis, height: bounds.height * zoomBasis, quality: 1 }).then((dataUrl) => {
+                    selected.map(d => {
+                        this.props.removeDocument(d);
+                        d.x = NumCast(d.x) - bounds.left - bounds.width / 2;
+                        d.y = NumCast(d.y) - bounds.top - bounds.height / 2;
+                        d.page = -1;
+                        return d;
+                    });
+                    let summary = Docs.TextDocument({ x: bounds.left, y: bounds.top, width: 300, height: 100, backgroundColor: "yellow", title: "-summary-" });
+                    summary.proto!.thumbnail = new ImageField(new URL(dataUrl));
+                    summary.proto!.templates = new List<string>([Templates.ImageOverlay(Math.min(50, bounds.width), bounds.height * Math.min(50, bounds.width) / bounds.width, "thumbnail")]);
                     newCollection.proto!.summaryDoc = summary;
                     selected = [newCollection];
-                }
-                summary.proto!.summarizedDocs = new List<Doc>(selected);
-                //summary.proto!.isButton = true;
-                selected.map(summarizedDoc => {
-                    let maxx = NumCast(summarizedDoc.x, undefined);
-                    let maxy = NumCast(summarizedDoc.y, undefined);
-                    let maxw = NumCast(summarizedDoc.width, undefined);
-                    let maxh = NumCast(summarizedDoc.height, undefined);
-                    summarizedDoc.isIconAnimating = new List<number>([scrpt[0], scrpt[1], maxx, maxy, maxw, maxh, Date.now(), 0])
+                    newCollection.x = bounds.left + bounds.width;
+                    //this.props.addDocument(newCollection, false);
+                    summary.proto!.summarizedDocs = new List<Doc>(selected);
+                    summary.proto!.maximizeLocation = "inTab";  // or "inPlace", or "onRight"
+                    this.props.addLiveTextDocument(summary);
                 });
-                this.props.addLiveTextDocument(summary);
             }
             else {
                 this.props.addDocument(newCollection, false);
@@ -290,20 +286,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 this.props.selectDocuments([newCollection]);
             }
             this.cleanupInteractions(false);
-        } else
-            if (e.key === "s") {
-                // this._commandExecuted = true;
-                // e.stopPropagation();
-                // e.preventDefault();
-                // let bounds = this.Bounds;
-                // let selected = this.marqueeSelect();
-                // SelectionManager.DeselectAll();
-                // let summary = Docs.TextDocument({ x: bounds.left + bounds.width + 25, y: bounds.top, width: 300, height: 100, backgroundColor: "yellow", title: "-summary-" });
-                // this.props.addLiveTextDocument(summary);
-                // selected.forEach(select => Doc.MakeLink(summary.proto!, select.proto!));
-
-                // this.cleanupInteractions(false);
-            }
+        }
     }
     @action
     marqueeInkSelect(ink: Map<any, any>) {

@@ -1,10 +1,14 @@
 import { computed, observable } from 'mobx';
 import { DocumentView } from '../views/nodes/DocumentView';
-import { Doc, DocListCast } from '../../new_fields/Doc';
+import { Doc, DocListCast, Opt } from '../../new_fields/Doc';
 import { FieldValue, Cast, NumCast, BoolCast } from '../../new_fields/Types';
 import { listSpec } from '../../new_fields/Schema';
 import { undoBatch } from './UndoManager';
 import { CollectionDockingView } from '../views/collections/CollectionDockingView';
+import { Id } from '../../new_fields/RefField';
+import { CollectionView } from '../views/collections/CollectionView';
+import { CollectionPDFView } from '../views/collections/CollectionPDFView';
+import { CollectionVideoView } from '../views/collections/CollectionVideoView';
 
 
 export class DocumentManager {
@@ -26,28 +30,35 @@ export class DocumentManager {
         // this.DocumentViews = new Array<DocumentView>();
     }
 
-    public getDocumentView(toFind: Doc): DocumentView | null {
+    public getDocumentViewById(id: string, preferredCollection?: CollectionView | CollectionPDFView | CollectionVideoView): DocumentView | null {
 
         let toReturn: DocumentView | null = null;
+        let passes = preferredCollection ? [preferredCollection, undefined] : [undefined];
 
-        //gets document view that is in a freeform canvas collection
-        DocumentManager.Instance.DocumentViews.map(view => {
-            if (view.props.Document === toFind) {
-                toReturn = view;
-                return;
-            }
-        });
-        if (!toReturn) {
+        for (let i = 0; i < passes.length; i++) {
             DocumentManager.Instance.DocumentViews.map(view => {
-                let doc = view.props.Document.proto;
-                if (doc && Object.is(doc, toFind)) {
+                if (view.props.Document[Id] === id && (!passes[i] || view.props.ContainingCollectionView === preferredCollection)) {
                     toReturn = view;
+                    return;
                 }
             });
+            if (!toReturn) {
+                DocumentManager.Instance.DocumentViews.map(view => {
+                    let doc = view.props.Document.proto;
+                    if (doc && doc[Id] === id && (!passes[i] || view.props.ContainingCollectionView === preferredCollection)) {
+                        toReturn = view;
+                    }
+                });
+            }
         }
 
         return toReturn;
     }
+
+    public getDocumentView(toFind: Doc, preferredCollection?: CollectionView | CollectionPDFView | CollectionVideoView): DocumentView | null {
+        return this.getDocumentViewById(toFind[Id], preferredCollection);
+    }
+
     public getDocumentViews(toFind: Doc): DocumentView[] {
 
         let toReturn: DocumentView[] = [];
@@ -104,20 +115,21 @@ export class DocumentManager {
     }
 
     @undoBatch
-    public jumpToDocument = async (doc: Doc): Promise<void> => {
+    public jumpToDocument = async (docDelegate: Doc, makeCopy: boolean = true): Promise<void> => {
+        let doc = docDelegate.proto ? docDelegate.proto : docDelegate;
+        const page = NumCast(doc.page, undefined);
+        const contextDoc = await Cast(doc.annotationOn, Doc);
+        if (contextDoc) {
+            const curPage = NumCast(contextDoc.curPage, page);
+            if (page !== curPage) contextDoc.curPage = page;
+        }
         let docView = DocumentManager.Instance.getDocumentView(doc);
         if (docView) {
             docView.props.focus(docView.props.Document);
         } else {
-            const contextDoc = await Cast(doc.annotationOn, Doc);
             if (!contextDoc) {
-                CollectionDockingView.Instance.AddRightSplit(Doc.MakeDelegate(doc));
+                CollectionDockingView.Instance.AddRightSplit(docDelegate ? (makeCopy ? Doc.MakeCopy(docDelegate) : docDelegate) : Doc.MakeDelegate(doc));
             } else {
-                const page = NumCast(doc.page, undefined);
-                const curPage = NumCast(contextDoc.curPage, undefined);
-                if (page !== curPage) {
-                    contextDoc.curPage = page;
-                }
                 let contextView = DocumentManager.Instance.getDocumentView(contextDoc);
                 if (contextView) {
                     contextDoc.panTransformType = "Ease";

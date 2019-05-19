@@ -20,10 +20,11 @@ import React = require("react");
 import v5 = require("uuid/v5");
 import { createSchema, makeInterface, listSpec } from "../../../../new_fields/Schema";
 import { Doc, WidthSym, HeightSym } from "../../../../new_fields/Doc";
-import { FieldValue, Cast, NumCast } from "../../../../new_fields/Types";
+import { FieldValue, Cast, NumCast, BoolCast } from "../../../../new_fields/Types";
 import { pageSchema } from "../../nodes/ImageBox";
 import { Id } from "../../../../new_fields/RefField";
 import { InkField, StrokeData } from "../../../../new_fields/InkField";
+import { HistoryUtil } from "../../../util/History";
 
 export const panZoomSchema = createSchema({
     panX: "number",
@@ -36,23 +37,22 @@ const PanZoomDocument = makeInterface(panZoomSchema, positionSchema, pageSchema)
 
 @observer
 export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
-    public static RIGHT_BTN_DRAG = false;
     private _selectOnLoaded: string = ""; // id of document that should be selected once it's loaded (used for click-to-type)
     private _lastX: number = 0;
     private _lastY: number = 0;
     private get _pwidth() { return this.props.PanelWidth(); }
     private get _pheight() { return this.props.PanelHeight(); }
 
-    @computed get nativeWidth() { return NumCast(this.Document.nativeWidth, 0); }
-    @computed get nativeHeight() { return NumCast(this.Document.nativeHeight, 0); }
+    @computed get nativeWidth() { return this.Document.nativeWidth || 0; }
+    @computed get nativeHeight() { return this.Document.nativeHeight || 0; }
+    public get isAnnotationOverlay() { return this.props.fieldKey && this.props.fieldKey === "annotations"; }
     private get borderWidth() { return this.isAnnotationOverlay ? 0 : COLLECTION_BORDER_WIDTH; }
-    private get isAnnotationOverlay() { return this.props.fieldKey && this.props.fieldKey === "annotations"; }
-    private panX = () => FieldValue(this.Document.panX, 0);
-    private panY = () => FieldValue(this.Document.panY, 0);
-    private zoomScaling = () => FieldValue(this.Document.scale, 1);
+    private panX = () => this.Document.panX || 0;
+    private panY = () => this.Document.panY || 0;
+    private zoomScaling = () => this.Document.scale || 1;
     private centeringShiftX = () => !this.nativeWidth ? this._pwidth / 2 : 0;  // shift so pan position is at center of window for non-overlay collections
     private centeringShiftY = () => !this.nativeHeight ? this._pheight / 2 : 0;// shift so pan position is at center of window for non-overlay collections
-    private getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-this.borderWidth, -this.borderWidth).translate(-this.centeringShiftX(), -this.centeringShiftY()).transform(this.getLocalTransform());
+    private getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-this.borderWidth + 1, -this.borderWidth + 1).translate(-this.centeringShiftX(), -this.centeringShiftY()).transform(this.getLocalTransform());
     private getContainerTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-this.borderWidth, -this.borderWidth);
     private getLocalTransform = (): Transform => Transform.Identity().scale(1 / this.zoomScaling()).translate(this.panX(), this.panY());
     private addLiveTextBox = (newBox: Doc) => {
@@ -65,13 +65,13 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         return true;
     }
     private selectDocuments = (docs: Doc[]) => {
-        SelectionManager.DeselectAll;
+        SelectionManager.DeselectAll();
         docs.map(doc => DocumentManager.Instance.getDocumentView(doc)).filter(dv => dv).map(dv =>
             SelectionManager.SelectDoc(dv!, true));
     }
     public getActiveDocuments = () => {
         const curPage = FieldValue(this.Document.curPage, -1);
-        return this.children.filter(doc => {
+        return this.childDocs.filter(doc => {
             var page = NumCast(doc.page, -1);
             return page === curPage || page === -1;
         });
@@ -89,7 +89,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 let y = yp - de.data.yOffset / zoom;
                 let dropX = NumCast(de.data.droppedDocuments[0].x);
                 let dropY = NumCast(de.data.droppedDocuments[0].y);
-                de.data.droppedDocuments.map(d => {
+                de.data.droppedDocuments.forEach(d => {
                     d.x = x + NumCast(d.x) - dropX;
                     d.y = y + NumCast(d.y) - dropY;
                     if (!NumCast(d.width)) {
@@ -111,11 +111,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     @action
     onPointerDown = (e: React.PointerEvent): void => {
-        if ((CollectionFreeFormView.RIGHT_BTN_DRAG &&
-            (((e.button === 2 && (!this.isAnnotationOverlay || this.zoomScaling() !== 1)) ||
-                (e.button === 0 && e.altKey)) && this.props.active())) ||
-            (!CollectionFreeFormView.RIGHT_BTN_DRAG &&
-                ((e.button === 0 && !e.altKey && (!this.isAnnotationOverlay || this.zoomScaling() !== 1)) && this.props.active()))) {
+        if (e.button === 0 && !e.shiftKey && !e.altKey && (!this.isAnnotationOverlay || this.zoomScaling() !== 1) && this.props.active()) {
             document.removeEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
             document.addEventListener("pointermove", this.onPointerMove);
@@ -133,20 +129,20 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     @action
     onPointerMove = (e: PointerEvent): void => {
         if (!e.cancelBubble) {
-            let x = NumCast(this.props.Document.panX);
-            let y = NumCast(this.props.Document.panY);
-            let docs = this.children || [];
+            let x = this.Document.panX || 0;
+            let y = this.Document.panY || 0;
+            let docs = this.childDocs || [];
             let [dx, dy] = this.getTransform().transformDirection(e.clientX - this._lastX, e.clientY - this._lastY);
             if (!this.isAnnotationOverlay) {
                 let minx = docs.length ? NumCast(docs[0].x) : 0;
-                let maxx = docs.length ? NumCast(docs[0].width) + minx : minx;
+                let maxx = docs.length ? NumCast(docs[0].width) / NumCast(docs[0].zoomBasis) + minx : minx;
                 let miny = docs.length ? NumCast(docs[0].y) : 0;
-                let maxy = docs.length ? NumCast(docs[0].height) + miny : miny;
+                let maxy = docs.length ? NumCast(docs[0].height) / NumCast(docs[0].zoomBasis) + miny : miny;
                 let ranges = docs.filter(doc => doc).reduce((range, doc) => {
                     let x = NumCast(doc.x);
-                    let xe = x + NumCast(doc.width);
+                    let xe = x + NumCast(doc.width) / NumCast(doc.zoomBasis);
                     let y = NumCast(doc.y);
-                    let ye = y + NumCast(doc.height);
+                    let ye = y + NumCast(doc.height) / NumCast(doc.zoomBasis);
                     return [[range[0][0] > x ? x : range[0][0], range[0][1] < xe ? xe : range[0][1]],
                     [range[1][0] > y ? y : range[1][0], range[1][1] < ye ? ye : range[1][1]]];
                 }, [[minx, maxx], [miny, maxy]]);
@@ -179,7 +175,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         // if (!this.props.active()) {
         //     return;
         // }
-        let childSelected = this.children.some(doc => {
+        let childSelected = this.childDocs.some(doc => {
             var dv = DocumentManager.Instance.getDocumentView(doc);
             return dv && SelectionManager.IsSelected(dv) ? true : false;
         });
@@ -210,7 +206,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             let [x, y] = this.getTransform().transformPoint(e.clientX, e.clientY);
             let localTransform = this.getLocalTransform().inverse().scaleAbout(deltaScale, x, y);
 
-            let safeScale = Math.abs(localTransform.Scale);
+            let safeScale = Math.min(Math.max(0.15, localTransform.Scale), 40);
             this.props.Document.scale = Math.abs(safeScale);
             this.setPan(-localTransform.TranslateX / safeScale, -localTransform.TranslateY / safeScale);
             e.stopPropagation();
@@ -219,6 +215,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     @action
     setPan(panX: number, panY: number) {
+        this.panDisposer && clearTimeout(this.panDisposer);
+        this.props.Document.panTransformType = "None";
         var scale = this.getLocalTransform().inverse().Scale;
         const newPanX = Math.min((1 - 1 / scale) * this.nativeWidth, Math.max(0, panX));
         const newPanY = Math.min((1 - 1 / scale) * this.nativeHeight, Math.max(0, panY));
@@ -236,7 +234,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
     bringToFront = (doc: Doc) => {
-        const docs = this.children;
+        const docs = this.childDocs;
         docs.slice().sort((doc1, doc2) => {
             if (doc1 === doc) return 1;
             if (doc2 === doc) return -1;
@@ -245,16 +243,37 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         doc.zIndex = docs.length + 1;
     }
 
+    panDisposer?: NodeJS.Timeout;
     focusDocument = (doc: Doc) => {
-        SelectionManager.DeselectAll();
-        this.props.Document.panTransformType = "Ease";
-        this.setPan(
-            NumCast(doc.x) + NumCast(doc.width) / 2,
-            NumCast(doc.y) + NumCast(doc.height) / 2);
-        this.props.focus(this.props.Document);
-        if (this.props.Document.panTransformType === "Ease") {
-            setTimeout(() => this.props.Document.panTransformType = "None", 2000);  // wait 3 seconds, then reset to false
+        const panX = this.Document.panX;
+        const panY = this.Document.panY;
+        const id = this.Document[Id];
+        const state = HistoryUtil.getState();
+        // TODO This technically isn't correct if type !== "doc", as 
+        // currently nothing is done, but we should probably push a new state
+        if (state.type === "doc" && panX !== undefined && panY !== undefined) {
+            const init = state.initializers[id];
+            if (!init) {
+                state.initializers[id] = {
+                    panX, panY
+                };
+                HistoryUtil.pushState(state);
+            } else if (init.panX !== panX || init.panY !== panY) {
+                init.panX = panX;
+                init.panY = panY;
+                HistoryUtil.pushState(state);
+            }
         }
+        SelectionManager.DeselectAll();
+        const newPanX = NumCast(doc.x) + NumCast(doc.width) / 2;
+        const newPanY = NumCast(doc.y) + NumCast(doc.height) / 2;
+        const newState = HistoryUtil.getState();
+        newState.initializers[id] = { panX: newPanX, panY: newPanY };
+        HistoryUtil.pushState(newState);
+        this.setPan(newPanX, newPanY);
+        this.props.Document.panTransformType = "Ease";
+        this.props.focus(this.props.Document);
+        this.panDisposer = setTimeout(() => this.props.Document.panTransformType = "None", 2000);  // wait 3 seconds, then reset to false
     }
 
 
@@ -276,17 +295,18 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             parentActive: this.props.active,
             whenActiveChanged: this.props.whenActiveChanged,
             bringToFront: this.bringToFront,
+            addDocTab: this.props.addDocTab,
         };
     }
 
     @computed.struct
     get views() {
         let curPage = FieldValue(this.Document.curPage, -1);
-        let docviews = this.children.reduce((prev, doc) => {
+        let docviews = this.childDocs.reduce((prev, doc) => {
             if (!(doc instanceof Doc)) return prev;
             var page = NumCast(doc.page, -1);
             if (page === curPage || page === -1) {
-                let minim = Cast(doc.isMinimized, "boolean");
+                let minim = BoolCast(doc.isMinimized, false);
                 if (minim === undefined || !minim) {
                     prev.push(<CollectionFreeFormDocumentView key={doc[Id]} {...this.getDocumentViewProps(doc)} />);
                 }
@@ -350,7 +370,7 @@ class CollectionFreeFormBackgroundView extends React.Component<DocumentViewProps
             isTopMost={this.props.isTopMost} isSelected={this.props.isSelected} select={emptyFunction} />);
     }
     render() {
-        return this.backgroundView;
+        return this.props.Document.backgroundLayout ? this.backgroundView : (null);
     }
 }
 

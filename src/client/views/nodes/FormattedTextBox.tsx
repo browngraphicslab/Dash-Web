@@ -1,3 +1,5 @@
+import { library } from '@fortawesome/fontawesome-svg-core';
+import { faEdit, faSmile } from '@fortawesome/free-solid-svg-icons';
 import { action, IReactionDisposer, observable, reaction } from "mobx";
 import { observer } from "mobx-react";
 import { baseKeymap } from "prosemirror-commands";
@@ -5,7 +7,7 @@ import { history } from "prosemirror-history";
 import { keymap } from "prosemirror-keymap";
 import { EditorState, Plugin, Transaction } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
-import { Doc, Field, HeightSym, Opt, WidthSym } from "../../../new_fields/Doc";
+import { Doc, Field, Opt, WidthSym, HeightSym } from "../../../new_fields/Doc";
 import { RichTextField } from "../../../new_fields/RichTextField";
 import { createSchema, makeInterface } from "../../../new_fields/Schema";
 import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
@@ -26,6 +28,10 @@ import { InkingControl } from "../InkingControl";
 import { FieldView, FieldViewProps } from "./FieldView";
 import "./FormattedTextBox.scss";
 import React = require("react");
+import { DocUtils } from '../../documents/Documents';
+
+library.add(faEdit);
+library.add(faSmile);
 
 // FormattedTextBox: Displays an editable plain text node that maps to a specified Key of a Document
 //
@@ -111,9 +117,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             let sourceDoc = de.data.linkSourceDocument;
             let destDoc = this.props.Document;
 
-            const protoDest = destDoc.proto;
-            const protoSrc = sourceDoc.proto;
-            Doc.MakeLink(protoSrc ? protoSrc : sourceDoc, protoDest ? protoDest : destDoc);
+            DocUtils.MakeLink(sourceDoc, destDoc);
             de.data.droppedDocuments.push(destDoc);
             e.stopPropagation();
         }
@@ -184,7 +188,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 state: field && field.Data ? EditorState.fromJSON(config, JSON.parse(field.Data)) : EditorState.create(config),
                 dispatchTransaction: this.dispatchTransaction,
                 nodeViews: {
-                    image(node, view, getPos) { return new ImageResizeView(node, view, getPos) }
+                    image(node, view, getPos) { return new ImageResizeView(node, view, getPos); }
                 }
             });
             let text = StrCast(this.props.Document.documentText);
@@ -229,12 +233,14 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             if (e.target && (e.target as any).href) {
                 let href = (e.target as any).href;
                 if (href.indexOf(DocServer.prepend("/doc/")) === 0) {
-                    let docid = href.replace(DocServer.prepend("/doc/"), "");
+                    let docid = href.replace(DocServer.prepend("/doc/"), "").split("?")[0];
                     DocServer.GetRefField(docid).then(action((f: Opt<Field>) => {
                         if (f instanceof Doc) {
-                            if (DocumentManager.Instance.getDocumentView(f))
+                            if (DocumentManager.Instance.getDocumentView(f)) {
                                 DocumentManager.Instance.getDocumentView(f)!.props.focus(f);
-                            else CollectionDockingView.Instance.AddRightSplit(f);
+                            } else {
+                                CollectionDockingView.Instance.AddRightSplit(f);
+                            }
                         }
                     }));
                 }
@@ -269,14 +275,14 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     }
 
     //REPLACE THIS WITH CAPABILITIES SPECIFIC TO THIS TYPE OF NODE
-    textCapability = (e: React.MouseEvent): void => {
+    freezeNativeDimensions = (e: React.MouseEvent): void => {
         if (NumCast(this.props.Document.nativeWidth)) {
-            this.props.Document.nativeWidth = undefined;
-            this.props.Document.nativeHeight = undefined;
+            this.props.Document.proto!.nativeWidth = undefined;
+            this.props.Document.proto!.nativeHeight = undefined;
 
         } else {
-            this.props.Document.nativeWidth = this.props.Document[WidthSym]();
-            this.props.Document.nativeHeight = this.props.Document[HeightSym]();
+            this.props.Document.proto!.nativeWidth = this.props.Document[WidthSym]();
+            this.props.Document.proto!.nativeHeight = this.props.Document[HeightSym]();
         }
     }
     specificContextMenu = (e: React.MouseEvent): void => {
@@ -286,7 +292,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         }
         ContextMenu.Instance.addItem({
             description: NumCast(this.props.Document.nativeWidth) ? "Unfreeze" : "Freeze",
-            event: this.textCapability
+            event: this.freezeNativeDimensions,
+            icon: "edit"
         });
     }
 

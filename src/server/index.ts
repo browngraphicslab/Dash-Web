@@ -362,8 +362,8 @@ function UpdateField(socket: Socket, diff: Diff) {
         Object.values(suffixMap).forEach(suf => update[key + getSuffix(suf)] = { set: null });
         let term = ToSearchTerm(val);
         if (term !== undefined) {
-            let { suffix, value } = term;
-            update[key + suffix] = { set: value };
+            // let { suffix, value } = term;
+            // update[key + suffix] = { set: value };
         }
     }
     if (dynfield) {

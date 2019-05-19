@@ -1,14 +1,20 @@
 import React = require("react");
 import { ContextMenuItem, ContextMenuProps } from "./ContextMenuItem";
 import { observable, action } from "mobx";
-import { observer } from "mobx-react";
-import "./ContextMenu.scss";
+import { observer } from "mobx-react"
+import "./ContextMenu.scss"
+import { library } from '@fortawesome/fontawesome-svg-core';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faSearch, faCircle } from '@fortawesome/free-solid-svg-icons';
+
+library.add(faSearch);
+library.add(faCircle);
 
 @observer
 export class ContextMenu extends React.Component {
     static Instance: ContextMenu;
 
-    @observable private _items: Array<ContextMenuProps> = [{ description: "test", event: (e: React.MouseEvent) => e.preventDefault() }];
+    @observable private _items: Array<ContextMenuProps> = [{ description: "test", event: (e: React.MouseEvent) => e.preventDefault(), icon: "smile" }];
     @observable private _pageX: number = 0;
     @observable private _pageY: number = 0;
     @observable private _display: string = "none";
@@ -82,7 +88,13 @@ export class ContextMenu extends React.Component {
 
         return (
             <div className="contextMenu-cont" style={style} ref={this.ref}>
-                <input className="contextMenu-item" type="text" placeholder="Search . . ." value={this._searchString} onChange={this.onChange}></input>
+                <span>
+                    <span className="icon-background">
+                        <FontAwesomeIcon icon="circle" size="lg" />
+                        <FontAwesomeIcon icon="search" size="lg" />
+                    </span>
+                    <input className="contextMenu-item" type="text" placeholder="Search . . ." value={this._searchString} onChange={this.onChange} />
+                </span>
                 {this._items.filter(prop => prop.description.toLowerCase().indexOf(this._searchString.toLowerCase()) !== -1).
                     map(prop => <ContextMenuItem {...prop} key={prop.description} />)}
             </div>

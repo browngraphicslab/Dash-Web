@@ -17,9 +17,8 @@ import "./HistogramBox.scss";
 import { HistogramBoxPrimitives } from './HistogramBoxPrimitives';
 import { HistogramLabelPrimitives } from "./HistogramLabelPrimitives";
 import { StyleConstants } from "../utils/StyleContants";
-import { NumCast, Cast } from "../../../new_fields/Types";
-import { listSpec } from "../../../new_fields/Schema";
-import { Doc, DocListCast } from "../../../new_fields/Doc";
+import { Cast } from "../../../new_fields/Types";
+import { Doc, DocListCast, DocListCastAsync } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/RefField";
 
 
@@ -119,15 +118,16 @@ export class HistogramBox extends React.Component<FieldViewProps> {
                 if (this.HistoOp !== HistogramOperation.Empty) {
                     reaction(() => DocListCast(this.props.Document.linkedFromDocs), (docs) => this.HistoOp.Links.splice(0, this.HistoOp.Links.length, ...docs), { fireImmediately: true });
                     reaction(() => DocListCast(this.props.Document.brushingDocs).length,
-                        () => {
-                            let brushingDocs = DocListCast(this.props.Document.brushingDocs);
+                        async () => {
+                            let brushingDocs = await DocListCastAsync(this.props.Document.brushingDocs);
                             const proto = this.props.Document.proto;
-                            if (proto) {
-                                this.HistoOp.BrushLinks.splice(0, this.HistoOp.BrushLinks.length, ...brushingDocs.map((brush, i) => {
+                            if (proto && brushingDocs) {
+                                let mapped = brushingDocs.map((brush, i) => {
                                     brush.backgroundColor = StyleConstants.BRUSH_COLORS[i % StyleConstants.BRUSH_COLORS.length];
                                     let brushed = DocListCast(brush.brushingDocs);
                                     return { l: brush, b: brushed[0][Id] === proto[Id] ? brushed[1] : brushed[0] };
-                                }));
+                                });
+                                this.HistoOp.BrushLinks.splice(0, this.HistoOp.BrushLinks.length, ...mapped);
                             }
                         }, { fireImmediately: true });
                     reaction(() => this.createOperationParamsCache, () => this.HistoOp.Update(), { fireImmediately: true });
