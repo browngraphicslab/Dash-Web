@@ -20,6 +20,7 @@ import { SubCollectionViewProps } from "./CollectionSubView";
 import React = require("react");
 import { ParentDocSelector } from './ParentDocumentSelector';
 import { DocumentManager } from '../../util/DocumentManager';
+import { CollectionViewType } from './CollectionBaseView';
 
 @observer
 export class CollectionDockingView extends React.Component<SubCollectionViewProps> {
@@ -431,9 +432,20 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         if (this._mainCont.current && this._mainCont.current.children) {
             let { scale, translateX, translateY } = Utils.GetScreenTransform(this._mainCont.current.children[0].firstChild as HTMLElement);
             scale = Utils.GetScreenTransform(this._mainCont.current).scale;
-            return CollectionDockingView.Instance.props.ScreenToLocalTransform().translate(-translateX, -translateY).scale(scale / this.contentScaling());
+            return CollectionDockingView.Instance.props.ScreenToLocalTransform().translate(-translateX, -translateY).scale(1 / scale);
         }
         return Transform.Identity();
+    }
+    get scaleToFitMultiplier() {
+        let docWidth = NumCast(this._document!.width);
+        let docHeight = NumCast(this._document!.height);
+        if (NumCast(this._document!.nativeWidth) || !docWidth || !this._panelWidth || !this._panelHeight) return 1;
+        if (StrCast(this._document!.layout).indexOf("Collection") === -1 ||
+            NumCast(this._document!.viewType) !== CollectionViewType.Freeform) return 1;
+        let scaling = Math.max(1, this._panelWidth / docWidth * docHeight > this._panelHeight ?
+            this._panelHeight / docHeight : this._panelWidth / docWidth);
+        console.log("Scaling = " + scaling);
+        return scaling;
     }
     get previewPanelCenteringOffset() { return (this._panelWidth - this.nativeWidth() * this.contentScaling()) / 2; }
 
@@ -450,7 +462,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         }
         return (
             <div className="collectionDockingView-content" ref={this._mainCont}
-                style={{ transform: `translate(${this.previewPanelCenteringOffset}px, 0px)` }}>
+                style={{ transform: `translate(${this.previewPanelCenteringOffset}px, 0px) scale(${this.scaleToFitMultiplier}, ${this.scaleToFitMultiplier})` }}>
                 <DocumentView key={this._document[Id]} Document={this._document}
                     toggleMinimized={emptyFunction}
                     bringToFront={emptyFunction}
