@@ -41,7 +41,9 @@ export class CollectionView extends React.Component<FieldViewProps> {
     onContextMenu = (e: React.MouseEvent): void => {
         if (!this.isAnnotationOverlay && !e.isPropagationStopped() && this.props.Document[Id] !== CurrentUserUtils.MainDocId) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
             ContextMenu.Instance.addItem({ description: "Freeform", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Freeform), icon: "project-diagram" });
-            ContextMenu.Instance.addItem({ description: "Freeform2", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.RealFreeform), icon: "project-diagram" });
+            if (CollectionBaseView.InSafeMode()) {
+                ContextMenu.Instance.addItem({ description: "Test Freeform", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Invalid), icon: "project-diagram" });
+            }
             ContextMenu.Instance.addItem({ description: "Schema", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Schema), icon: "project-diagram" });
             ContextMenu.Instance.addItem({ description: "Treeview", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Tree), icon: "tree" });
         }

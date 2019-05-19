@@ -31,6 +31,7 @@ import { DocServer } from '../DocServer';
 import { listSpec } from '../../new_fields/Schema';
 import { Id } from '../../new_fields/RefField';
 import { HistoryUtil } from '../util/History';
+import { CollectionBaseView } from './collections/CollectionBaseView';
 
 
 @observer
@@ -59,6 +60,12 @@ export class MainView extends React.Component {
         configure({ enforceActions: "observed" });
         if (window.location.search.includes("readonly")) {
             DocServer.makeReadOnly();
+        }
+        if (window.location.search.includes("safe")) {
+            if (!window.location.search.includes("nro")) {
+                DocServer.makeReadOnly();
+            }
+            CollectionBaseView.SetSafeMode(true);
         }
         if (window.location.pathname !== RouteStore.home) {
             let pathname = window.location.pathname.substr(1).split("/");
