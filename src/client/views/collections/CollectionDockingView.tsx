@@ -269,6 +269,10 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                 let y = e.clientY;
                 let docid = (e.target as any).DashDocId;
                 let tab = (e.target as any).parentElement as HTMLElement;
+                let glTab = (e.target as any).Tab;
+                if (glTab && glTab.contentItem && glTab.contentItem.parent) {
+                    glTab.contentItem.parent.setActiveContentItem(glTab.contentItem);
+                }
                 DocServer.GetRefField(docid).then(action((f: Opt<Field>) => {
                     if (f instanceof Doc) {
                         DragManager.StartDocumentDrag([tab], new DragManager.DocumentDragData([f]), x, y,
@@ -339,6 +343,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                 }
             });
         }
+        tab.titleElement[0].Tab = tab;
         tab.closeElement.off('click') //unbind the current click handler
             .click(async function () {
                 if (tab.reactionDisposer) {
