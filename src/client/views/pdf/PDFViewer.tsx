@@ -4,6 +4,7 @@ import { observable, action, runInAction } from "mobx";
 import { RouteStore } from "../../../server/RouteStore";
 import * as Pdfjs from "pdfjs-dist";
 import { Opt } from "../../../new_fields/Doc";
+import "./PDFViewer.scss";
 
 interface IPDFViewerProps {
     url: string;
@@ -46,15 +47,16 @@ class Viewer extends React.Component<IViewerProps> {
         console.log(numPages);
         return (
             <div className="viewer">
-                {/* {Array.from(Array(numPages).keys()).map((i) => ( */}
-                <Page
-                    pdf={this.props.pdf}
-                    numPages={numPages}
-                    key={`${this.props.pdf ? this.props.pdf.fingerprint : "undefined"}`}
-                    name={`${this.props.pdf ? this.props.pdf.fingerprint : "undefined"}`}
-                    {...this.props}
-                />
-                {/* ))} */}
+                {Array.from(Array(numPages).keys()).map((i) => (
+                    <Page
+                        pdf={this.props.pdf}
+                        page={i}
+                        numPages={numPages}
+                        key={`${this.props.pdf ? this.props.pdf.fingerprint + `page${i + 1}` : "undefined"}`}
+                        name={`${this.props.pdf ? this.props.pdf.fingerprint + `page${i + 1}` : "undefined"}`}
+                        {...this.props}
+                    />
+                ))} }
             </div>
         );
     }
@@ -64,6 +66,7 @@ interface IPageProps {
     pdf: Opt<Pdfjs.PDFDocumentProxy>;
     name: string;
     numPages: number;
+    page: number;
 }
 
 @observer
@@ -74,7 +77,7 @@ class Page extends React.Component<IPageProps> {
     @observable _page: Opt<Pdfjs.PDFPageProxy>;
     canvas: React.RefObject<HTMLCanvasElement>;
     textLayer: React.RefObject<HTMLDivElement>;
-    @observable _currPage: number = 1;
+    @observable _currPage: number = this.props.page + 1;
 
     constructor(props: IPageProps) {
         super(props);
@@ -172,11 +175,11 @@ class Page extends React.Component<IPageProps> {
                 <div className="canvasContainer">
                     <canvas ref={this.canvas} />
                 </div>
-                <div className="textlayer" ref={this.textLayer} />
-                <div className="viewer-button-cont" style={{ "width": this._width / 10, "height": this._height / 20, "left": this._width * .9, "top": this._height * .95 }}>
+                <div className="textlayer" ref={this.textLayer} style={{ "position": "relative", "top": `-${this._height}px`, "height": `${this._height}px` }} />
+                {/* <div className="viewer-button-cont" style={{ "width": this._width / 10, "height": this._height / 20, "left": this._width * .9, "top": this._height * .95 }}>
                     <div className="viewer-previousPage" onClick={this.prevPage}>&lt;</div>
                     <div className="viewer-nextPage" onClick={this.nextPage}>&gt;</div>
-                </div>
+                </div> */}
             </div>
         );
     }
