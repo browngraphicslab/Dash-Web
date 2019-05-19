@@ -132,16 +132,17 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         this._downY = this._lastY = e.pageY;
         this._commandExecuted = false;
         PreviewCursor.Visible = false;
-        if ((CollectionFreeFormView.RIGHT_BTN_DRAG && e.button === 0 && !e.altKey && !e.metaKey && this.props.container.props.active()) ||
-            (!CollectionFreeFormView.RIGHT_BTN_DRAG && (e.button === 2 || (e.button === 0 && e.altKey)) && this.props.container.props.active())) {
+        if (e.button === 2 || (e.button === 0 && e.altKey)) {
+            if (!this.props.container.props.active()) this.props.selectDocuments([this.props.container.props.Document]);
             document.addEventListener("pointermove", this.onPointerMove, true);
             document.addEventListener("pointerup", this.onPointerUp, true);
             document.addEventListener("keydown", this.marqueeCommand, true);
-            // bcz: do we need this?   it kills the context menu on the main collection
+            if (e.altKey) {
+                e.stopPropagation();
+                e.preventDefault();
+            }
+            // bcz: do we need this?   it kills the context menu on the main collection if !altKey
             // e.stopPropagation();
-        }
-        if (e.altKey) {
-            e.preventDefault();
         }
     }
 
@@ -248,6 +249,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 panX: 0,
                 panY: 0,
                 borderRounding: e.key === "e" ? -1 : undefined,
+                backgroundColor: this.props.container.isAnnotationOverlay ? undefined : "white",
                 scale: zoomBasis,
                 width: bounds.width * zoomBasis,
                 height: bounds.height * zoomBasis,
@@ -275,15 +277,6 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                     //this.props.addDocument(newCollection, false);
                     summary.proto!.summarizedDocs = new List<Doc>(selected);
                     summary.proto!.maximizeLocation = "inTab";  // or "inPlace", or "onRight"
-                    //summary.proto!.isButton = true;
-                    //let scrpt = this.props.getTransform().inverse().transformPoint(bounds.left, bounds.top);
-                    // selected.map(summarizedDoc => {
-                    //     let maxx = NumCast(summarizedDoc.x, undefined);
-                    //     let maxy = NumCast(summarizedDoc.y, undefined);
-                    //     let maxw = NumCast(summarizedDoc.width, undefined);
-                    //     let maxh = NumCast(summarizedDoc.height, undefined);
-                    //     summarizedDoc.isIconAnimating = new List<number>([scrpt[0], scrpt[1], maxx, maxy, maxw, maxh, Date.now(), 0]);
-                    // });
                     this.props.addLiveTextDocument(summary);
                 });
             }

@@ -37,7 +37,6 @@ const PanZoomDocument = makeInterface(panZoomSchema, positionSchema, pageSchema)
 
 @observer
 export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
-    public static RIGHT_BTN_DRAG = false;
     private _selectOnLoaded: string = ""; // id of document that should be selected once it's loaded (used for click-to-type)
     private _lastX: number = 0;
     private _lastY: number = 0;
@@ -46,8 +45,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     @computed get nativeWidth() { return this.Document.nativeWidth || 0; }
     @computed get nativeHeight() { return this.Document.nativeHeight || 0; }
+    public get isAnnotationOverlay() { return this.props.fieldKey && this.props.fieldKey === "annotations"; }
     private get borderWidth() { return this.isAnnotationOverlay ? 0 : COLLECTION_BORDER_WIDTH; }
-    private get isAnnotationOverlay() { return this.props.fieldKey && this.props.fieldKey === "annotations"; }
     private panX = () => this.Document.panX || 0;
     private panY = () => this.Document.panY || 0;
     private zoomScaling = () => this.Document.scale || 1;
@@ -66,7 +65,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         return true;
     }
     private selectDocuments = (docs: Doc[]) => {
-        SelectionManager.DeselectAll;
+        SelectionManager.DeselectAll();
         docs.map(doc => DocumentManager.Instance.getDocumentView(doc)).filter(dv => dv).map(dv =>
             SelectionManager.SelectDoc(dv!, true));
     }
@@ -112,11 +111,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     @action
     onPointerDown = (e: React.PointerEvent): void => {
-        if ((CollectionFreeFormView.RIGHT_BTN_DRAG &&
-            (((e.button === 2 && (!this.isAnnotationOverlay || this.zoomScaling() !== 1)) ||
-                (e.button === 0 && e.altKey)) && this.props.active())) ||
-            (!CollectionFreeFormView.RIGHT_BTN_DRAG &&
-                ((e.button === 0 && !e.shiftKey && !e.altKey && (!this.isAnnotationOverlay || this.zoomScaling() !== 1)) && this.props.active()))) {
+        if (e.button === 0 && !e.shiftKey && !e.altKey && (!this.isAnnotationOverlay || this.zoomScaling() !== 1) && this.props.active()) {
             document.removeEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
             document.addEventListener("pointermove", this.onPointerMove);

@@ -180,8 +180,9 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     }
     onPointerUp = (e: PointerEvent): void => {
         document.removeEventListener("pointerup", this.onPointerUp);
-        if (Math.abs(e.clientX - this._downX) < 2 && Math.abs(e.clientY - this._downY) < 2) {
+        if (!(e as any).propagationIsStopped && Math.abs(e.clientX - this._downX) < 2 && Math.abs(e.clientY - this._downY) < 2) {
             this.props.addDocTab(this.props.Document, "inTab");
+            (e as any).propagationIsStopped = true;
         }
         e.stopPropagation();
     }

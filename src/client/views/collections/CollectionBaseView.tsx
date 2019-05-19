@@ -89,7 +89,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         }
         return false;
     }
-    @computed get isAnnotationOverlay() { return this.props.fieldKey && this.props.fieldKey === "annotations"; }
+    @computed get isAnnotationOverlay() { return this.props.fieldKey === "annotations"; }
 
     @action.bound
     addDocument(doc: Doc, allowDuplicates: boolean = false): boolean {
@@ -114,7 +114,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
             }
             // set the ZoomBasis only if hasn't already been set -- bcz: maybe set/resetting the ZoomBasis should be a parameter to addDocument?
             if (!alreadyAdded && (this.collectionViewType === CollectionViewType.Freeform || this.collectionViewType === CollectionViewType.Invalid)) {
-                let zoom = NumCast(this.props.Document.scale, 1) / this.props.ScreenToLocalTransform().Scale;// ;
+                let zoom = NumCast(this.props.Document.scale, 1);
                 Doc.SetOnPrototype(doc, "zoomBasis", zoom);
             }
         }
