@@ -218,13 +218,13 @@ export namespace Doc {
         return copy;
     }
 
-    export function MakeDelegate(doc: Doc): Doc;
-    export function MakeDelegate(doc: Opt<Doc>): Opt<Doc>;
-    export function MakeDelegate(doc: Opt<Doc>): Opt<Doc> {
+    export function MakeDelegate(doc: Doc, id?: string): Doc;
+    export function MakeDelegate(doc: Opt<Doc>, id?: string): Opt<Doc>;
+    export function MakeDelegate(doc: Opt<Doc>, id?: string): Opt<Doc> {
         if (!doc) {
             return undefined;
         }
-        const delegate = new Doc();
+        const delegate = new Doc(id, true);
         delegate.proto = doc;
         return delegate;
     }

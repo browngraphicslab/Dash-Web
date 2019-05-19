@@ -57,10 +57,16 @@ export class MainView extends React.Component {
         MainView.Instance = this;
         // causes errors to be generated when modifying an observable outside of an action
         configure({ enforceActions: "observed" });
+        if (window.location.search.includes("readonly")) {
+            DocServer.makeReadOnly();
+        }
         if (window.location.pathname !== RouteStore.home) {
-            let pathname = window.location.pathname.split("/");
-            if (pathname.length > 1 && pathname[pathname.length - 2] === 'doc') {
-                CurrentUserUtils.MainDocId = pathname[pathname.length - 1];
+            let pathname = window.location.pathname.substr(1).split("/");
+            if (pathname.length > 1) {
+                let type = pathname[0];
+                if (type === "doc") {
+                    CurrentUserUtils.MainDocId = pathname[1];
+                }
             }
         }
 
@@ -120,7 +126,7 @@ export class MainView extends React.Component {
         if (list) {
             let freeformDoc = Docs.FreeformDocument([], { x: 0, y: 400, title: `WS collection ${list.length + 1}` });
             var dockingLayout = { content: [{ type: 'row', content: [CollectionDockingView.makeDocumentConfig(CurrentUserUtils.UserDocument, 150), CollectionDockingView.makeDocumentConfig(freeformDoc, 600)] }] };
-            let mainDoc = Docs.DockDocument([CurrentUserUtils.UserDocument, freeformDoc], JSON.stringify(dockingLayout), { title: `Workspace ${list.length + 1}` });
+            let mainDoc = Docs.DockDocument([CurrentUserUtils.UserDocument, freeformDoc], JSON.stringify(dockingLayout), { title: `Workspace ${list.length + 1}` }, id);
             list.push(mainDoc);
             // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
             setTimeout(() => {

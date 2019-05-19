@@ -142,8 +142,8 @@ export namespace Docs {
         deleg.data = value;
         return Doc.assign(deleg, options);
     }
-    function SetDelegateOptions<U extends Field>(doc: Doc, options: DocumentOptions) {
-        const deleg = Doc.MakeDelegate(doc);
+    function SetDelegateOptions(doc: Doc, options: DocumentOptions, id?: string) {
+        const deleg = Doc.MakeDelegate(doc, id);
         return Doc.assign(deleg, options);
     }
 
@@ -200,7 +200,7 @@ export namespace Docs {
         return audioProto;
     }
 
-    function CreateInstance(proto: Doc, data: Field, options: DocumentOptions) {
+    function CreateInstance(proto: Doc, data: Field, options: DocumentOptions, delegId?: string) {
         const { omit: protoProps, extract: delegateProps } = OmitKeys(options, delegateKeys);
         if (!("author" in protoProps)) {
             protoProps.author = CurrentUserUtils.email;
@@ -210,7 +210,7 @@ export namespace Docs {
         }
         protoProps.isPrototype = true;
 
-        return SetDelegateOptions(SetInstanceOptions(proto, protoProps, data), delegateProps);
+        return SetDelegateOptions(SetInstanceOptions(proto, protoProps, data), delegateProps, delegId);
     }
 
     export function ImageDocument(url: string, options: DocumentOptions = {}) {
@@ -293,8 +293,8 @@ export namespace Docs {
     export function TreeDocument(documents: Array<Doc>, options: DocumentOptions) {
         return CreateInstance(collProto, new List(documents), { schemaColumns: new List(["title"]), ...options, viewType: CollectionViewType.Tree });
     }
-    export function DockDocument(documents: Array<Doc>, config: string, options: DocumentOptions) {
-        return CreateInstance(collProto, new List(documents), { ...options, viewType: CollectionViewType.Docking, dockingConfig: config });
+    export function DockDocument(documents: Array<Doc>, config: string, options: DocumentOptions, id?: string) {
+        return CreateInstance(collProto, new List(documents), { ...options, viewType: CollectionViewType.Docking, dockingConfig: config }, id);
     }
 
     export function CaptionDocument(doc: Doc) {
