@@ -19,6 +19,7 @@ import React = require("react");
 import { SelectionManager } from "../../util/SelectionManager";
 import { InkingControl } from "../InkingControl";
 import { PDFTest } from "../../../debug/Test";
+import { PDFViewer } from "../pdf/PDFViewer";
 
 /** ALSO LOOK AT: Annotation.tsx, Sticky.tsx
  * This method renders PDF and puts all kinds of functionalities such as annotation, highlighting, 
@@ -351,10 +352,11 @@ export class PDFBox extends React.Component<FieldViewProps> {
     render() {
         trace();
         let classname = "pdfBox-cont" + (this.props.isSelected() && !InkingControl.Instance.selectedTool && !this._alt ? "-interactive" : "");
+        const pdfUrl = window.origin + RouteStore.corsProxy + "/https://mozilla.github.io/pdf.js/web/compressed.tracemonkey-pldi-09.pdf";
         return (
             // <div className={classname} tabIndex={0} ref={this._mainDiv} onPointerDown={this.onPointerDown} onKeyDown={this.onKeyDown} onKeyUp={this.onKeyUp} >
             // {/* {this.pdfRenderer} */}
-            <PDFTest />
+            <PDFViewer url={pdfUrl} />
             // </div >
         );
     }
