@@ -70,15 +70,15 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     @computed private get thumbnailPage() { return Cast(this.props.Document.thumbnailPage, "number", -1); }
 
     componentDidMount() {
-        this._reactionDisposer = reaction(
-            () => [SelectionManager.SelectedDocuments().slice()],
-            () => {
-                if (this.curPage > 0 && this.thumbnailPage > 0 && this.curPage !== this.thumbnailPage && !this.props.isSelected()) {
-                    this.saveThumbnail();
-                    this._interactive = true;
-                }
-            },
-            { fireImmediately: true });
+        // this._reactionDisposer = reaction(
+        //     () => [SelectionManager.SelectedDocuments().slice()],
+        //     () => {
+        //         if (this.curPage > 0 && this.thumbnailPage > 0 && this.curPage !== this.thumbnailPage && !this.props.isSelected()) {
+        //             this.saveThumbnail();
+        //             this._interactive = true;
+        //         }
+        //     },
+        //     { fireImmediately: true });
 
     }
 

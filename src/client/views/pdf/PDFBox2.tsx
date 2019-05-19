@@ -8,6 +8,7 @@ import { PDFViewer } from "./PDFViewer";
 import { RouteStore } from "../../../server/RouteStore";
 import { InkingControl } from "../InkingControl";
 import { observer } from "mobx-react";
+import { trace } from "mobx";
 
 type PdfDocument = makeInterface<[typeof positionSchema, typeof pageSchema]>;
 const PdfDocument = makeInterface(positionSchema, pageSchema);
@@ -17,6 +18,7 @@ export class PDFBox2 extends DocComponent<FieldViewProps, PdfDocument>(PdfDocume
     public static LayoutString() { return FieldView.LayoutString(PDFBox2); }
 
     render() {
+        trace();
         const pdfUrl = "https://mozilla.github.io/pdf.js/web/compressed.tracemonkey-pldi-09.pdf";
         let classname = "pdfBox-cont" + (this.props.isSelected() && !InkingControl.Instance.selectedTool);
         return (
