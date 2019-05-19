@@ -431,31 +431,29 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         SelectionManager.SelectedDocuments().forEach(element => {
             const rect = element.ContentDiv ? element.ContentDiv.getBoundingClientRect() : new DOMRect();
 
-            if (rect.width !== 0) {
+            if (rect.width !== 0 && (dX != 0 || dY != 0 || dW != 0 || dH != 0)) {
                 let doc = PositionDocument(element.props.Document);
-                let width = FieldValue(doc.width, 0);
-                let nwidth = FieldValue(doc.nativeWidth, 0);
-                let nheight = FieldValue(doc.nativeHeight, 0);
-                let height = FieldValue(doc.height, nwidth ? nheight / nwidth * width : 0);
-                let x = FieldValue(doc.x, 0);
-                let y = FieldValue(doc.y, 0);
+                let nwidth = doc.nativeWidth || 0;
+                let nheight = doc.nativeHeight || 0;
+                let zoomBasis = NumCast(doc.zoomBasis, 1);
+                let width = (doc.width || 0) / zoomBasis;
+                let height = (doc.height || (nheight / nwidth * width)) / zoomBasis;
                 let scale = width / rect.width;
                 let actualdW = Math.max(width + (dW * scale), 20);
                 let actualdH = Math.max(height + (dH * scale), 20);
-                x += dX * (actualdW - width);
-                y += dY * (actualdH - height);
-                doc.x = x;
-                doc.y = y;
-                var nativeWidth = FieldValue(doc.nativeWidth, 0);
-                var nativeHeight = FieldValue(doc.nativeHeight, 0);
-                if (nativeWidth > 0 && nativeHeight > 0) {
+                doc.x = (doc.x || 0) + dX * (actualdW - width);
+                doc.y = (doc.y || 0) + dY * (actualdH - height);
+                if (nwidth > 0 && nheight > 0) {
                     if (Math.abs(dW) > Math.abs(dH)) {
-                        actualdH = nativeHeight / nativeWidth * actualdW;
+                        doc.zoomBasis = zoomBasis * width / actualdW;
                     }
-                    else actualdW = nativeWidth / nativeHeight * actualdH;
+                    else {
+                        doc.zoomBasis = zoomBasis * height / actualdH;
+                    }
+                } else {
+                    doc.width = zoomBasis * actualdW;
+                    doc.height = zoomBasis * actualdH;
                 }
-                doc.width = actualdW;
-                doc.height = actualdH;
             }
         });
     }

@@ -114,7 +114,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
             }
             // set the ZoomBasis only if hasn't already been set -- bcz: maybe set/resetting the ZoomBasis should be a parameter to addDocument?
             if (!alreadyAdded && (this.collectionViewType === CollectionViewType.Freeform || this.collectionViewType === CollectionViewType.Invalid)) {
-                let zoom = NumCast(this.props.Document.scale, 1);
+                let zoom = NumCast(this.props.Document.scale, 1) / this.props.ScreenToLocalTransform().Scale;// ;
                 Doc.SetOnPrototype(doc, "zoomBasis", zoom);
             }
         }

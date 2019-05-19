@@ -140,14 +140,14 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             let [dx, dy] = this.getTransform().transformDirection(e.clientX - this._lastX, e.clientY - this._lastY);
             if (!this.isAnnotationOverlay) {
                 let minx = docs.length ? NumCast(docs[0].x) : 0;
-                let maxx = docs.length ? NumCast(docs[0].width) + minx : minx;
+                let maxx = docs.length ? NumCast(docs[0].width) / NumCast(docs[0].zoomBasis) + minx : minx;
                 let miny = docs.length ? NumCast(docs[0].y) : 0;
-                let maxy = docs.length ? NumCast(docs[0].height) + miny : miny;
+                let maxy = docs.length ? NumCast(docs[0].height) / NumCast(docs[0].zoomBasis) + miny : miny;
                 let ranges = docs.filter(doc => doc).reduce((range, doc) => {
                     let x = NumCast(doc.x);
-                    let xe = x + NumCast(doc.width);
+                    let xe = x + NumCast(doc.width) / NumCast(doc.zoomBasis);
                     let y = NumCast(doc.y);
-                    let ye = y + NumCast(doc.height);
+                    let ye = y + NumCast(doc.height) / NumCast(doc.zoomBasis);
                     return [[range[0][0] > x ? x : range[0][0], range[0][1] < xe ? xe : range[0][1]],
                     [range[1][0] > y ? y : range[1][0], range[1][1] < ye ? ye : range[1][1]]];
                 }, [[minx, maxx], [miny, maxy]]);
