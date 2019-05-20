@@ -135,7 +135,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             document.addEventListener("pointerup", this.onPointerUp, true);
             document.addEventListener("keydown", this.marqueeCommand, true);
             if (e.altKey) {
-                e.stopPropagation();
+                //e.stopPropagation(); // bcz: removed so that you can alt-click on button in a collection to switch link following behaviors.
                 e.preventDefault();
             }
             // bcz: do we need this?   it kills the context menu on the main collection if !altKey
