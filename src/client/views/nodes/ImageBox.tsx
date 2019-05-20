@@ -162,13 +162,25 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         );
     }
 
-    @observable _smallImageMissing = false;
-    @observable _mediumImageMissing = false;
-    @observable _largeImageMissing = false;
-    _curImageSize = "";
+    choosePath(url: URL) {
+        if (url.protocol === "data")
+            return url.href;
+        let ext = path.extname(url.href);
+        return url.href.replace(ext, this._curSuffix + ext);
+    }
+
+    @observable _smallRetryCount = 1;
+    @observable _mediumRetryCount = 1;
+    @observable _largeRetryCount = 1;
+    @action retryPath = () => {
+        if (this._curSuffix === "_s") this._smallRetryCount++;
+        if (this._curSuffix === "_m") this._mediumRetryCount++;
+        if (this._curSuffix === "_l") this._largeRetryCount++;
+    }
+    _curSuffix = "";
     render() {
         let transform = this.props.ScreenToLocalTransform().inverse();
-        let pw = Object.keys(this.props.PanelWidth).length === 0 ? this.props.PanelWidth() : (this.props.PanelWidth as any) as string ? Number((this.props.PanelWidth as any) as string) : 50;
+        let pw = typeof this.props.PanelWidth === "function" ? this.props.PanelWidth() : typeof this.props.PanelWidth === "number" ? (this.props.PanelWidth as any) as number : 50;
         var [sptX, sptY] = transform.transformPoint(0, 0);
         let [bptX, bptY] = transform.transformPoint(pw, this.props.PanelHeight());
         let w = bptX - sptX;
@@ -176,40 +188,29 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         let id = (this.props as any).id; // bcz: used to set id = "isExpander" in templates.tsx
         let nativeWidth = FieldValue(this.Document.nativeWidth, pw);
         let paths: string[] = ["http://www.cs.brown.edu/~bcz/noImage.png"];
+        this._curSuffix = "";
         if (w > 20) {
-            if (w < 100 && !this._smallImageMissing) {
-                this._curImageSize = "small";
-                let field = this.Document[this.props.fieldKey];
-                if (field instanceof ImageField) paths = [field.url.href.replace(path.extname(field.url.href), "_s" + path.extname(field.url.href))];
-                else if (field instanceof List) paths = field.filter(val => val instanceof ImageField).map(p =>
-                    (p as ImageField).url.href.replace(path.extname((p as ImageField).url.href), "_s" + path.extname((p as ImageField).url.href)));
-            } else if (w < 600 && !this._mediumImageMissing) {
-                this._curImageSize = "medium";
-                let field = this.Document[this.props.fieldKey];
-                if (field instanceof ImageField) paths = [field.url.href.replace(path.extname(field.url.href), "_m" + path.extname(field.url.href))];
-                else if (field instanceof List) paths = field.filter(val => val instanceof ImageField).map(p =>
-                    (p as ImageField).url.href.replace(path.extname((p as ImageField).url.href), "_m" + path.extname((p as ImageField).url.href)));
-            } else if (!this._largeImageMissing) {
-                this._curImageSize = "large";
-                let field = this.Document[this.props.fieldKey];
-                if (field instanceof ImageField) paths = [field.url.href.replace(path.extname(field.url.href), "_l" + path.extname(field.url.href))];
-                else if (field instanceof List) paths = field.filter(val => val instanceof ImageField).map(p =>
-                    (p as ImageField).url.href.replace(path.extname((p as ImageField).url.href), "_l" + path.extname((p as ImageField).url.href)));
-            }
+            let field = this.Document[this.props.fieldKey];
+            if (w < 100) this._curSuffix = "_s";
+            else if (w < 600) this._curSuffix = "_m";
+            else this._curSuffix = "_l";
+            if (field instanceof ImageField) paths = [this.choosePath(field.url)];
+            else if (field instanceof List) paths = field.filter(val => val instanceof ImageField).map(p => this.choosePath((p as ImageField).url));
         }
         let interactive = InkingControl.Instance.selectedTool ? "" : "-interactive";
         return (
             <div id={id} className={`imageBox-cont${interactive}`}
                 // onPointerDown={this.onPointerDown}
                 onDrop={this.onDrop} ref={this.createDropTarget} onContextMenu={this.specificContextMenu}>
-                <img id={id} src={paths[Math.min(paths.length, this._photoIndex)]}
+                <img id={id}
+                    key={this._smallRetryCount + (this._mediumRetryCount << 4) + (this._largeRetryCount << 8)} // force cache to update on retrys
+                    src={paths[Math.min(paths.length, this._photoIndex)]}
                     style={{ objectFit: (this._photoIndex === 0 ? undefined : "contain") }}
                     width={nativeWidth}
                     ref={this._imgRef}
                     onError={action(() => {
-                        if (this._curImageSize === "small") this._smallImageMissing = true;
-                        if (this._curImageSize === "medium") this._mediumImageMissing = true;
-                        if (this._curImageSize === "large") this._largeImageMissing = true;
+                        let timeout = this._curSuffix === "_s" ? this._smallRetryCount : this._curSuffix === "_m" ? this._mediumRetryCount : this._largeRetryCount;
+                        setTimeout(this.retryPath, Math.min(10000, timeout * 5));
                     })}
                     onLoad={this.onLoad} />
                 {paths.length > 1 ? this.dots(paths) : (null)}
