@@ -19,7 +19,6 @@ import { InkingControl } from '../InkingControl';
 import { Doc } from '../../../new_fields/Doc';
 import { faImage } from '@fortawesome/free-solid-svg-icons';
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 var path = require('path');
 
 library.add(faImage);
