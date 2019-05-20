@@ -133,6 +133,7 @@
         "nodemon": "^1.18.10",
         "normalize.css": "^8.0.1",
         "npm": "^6.9.0",
+        "p-limit": "^2.2.0",
         "passport": "^0.4.0",
         "passport-local": "^1.0.0",
         "prosemirror-commands": "^1.0.7",
