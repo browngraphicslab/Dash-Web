@@ -1,28 +1,27 @@
 import * as htmlToImage from "html-to-image";
-import { action, computed, IReactionDisposer, observable, reaction, Reaction, trace, runInAction } from 'mobx';
+import { action, computed, IReactionDisposer, observable, reaction, runInAction, trace } from 'mobx';
 import { observer } from "mobx-react";
 import 'react-image-lightbox/style.css';
 import Measure from "react-measure";
 //@ts-ignore
 import { Document, Page } from "react-pdf";
 import 'react-pdf/dist/Page/AnnotationLayer.css';
+import { Id } from "../../../new_fields/FieldSymbols";
+import { makeInterface } from "../../../new_fields/Schema";
+import { Cast, FieldValue, NumCast } from "../../../new_fields/Types";
+import { ImageField, PdfField } from "../../../new_fields/URLField";
 import { RouteStore } from "../../../server/RouteStore";
 import { Utils } from '../../../Utils';
-import { Annotation } from './Annotation';
-import { FieldView, FieldViewProps } from './FieldView';
-import "./PDFBox.scss";
-import React = require("react");
-import { SelectionManager } from "../../util/SelectionManager";
-import { Cast, FieldValue, NumCast } from "../../../new_fields/Types";
-import { Opt } from "../../../new_fields/Doc";
+import { DocServer } from "../../DocServer";
 import { DocComponent } from "../DocComponent";
-import { makeInterface } from "../../../new_fields/Schema";
-import { positionSchema } from "./DocumentView";
-import { pageSchema } from "./ImageBox";
-import { ImageField, PdfField } from "../../../new_fields/URLField";
 import { InkingControl } from "../InkingControl";
 import { SearchBox } from "../SearchBox";
-import { Id } from "../../../new_fields/FieldSymbols";
+import { Annotation } from './Annotation';
+import { positionSchema } from "./DocumentView";
+import { FieldView, FieldViewProps } from './FieldView';
+import { pageSchema } from "./ImageBox";
+import "./PDFBox.scss";
+import React = require("react");
 
 /** ALSO LOOK AT: Annotation.tsx, Sticky.tsx
  * This method renders PDF and puts all kinds of functionalities such as annotation, highlighting, 
@@ -73,11 +72,11 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     @computed private get thumbnailPage() { return NumCast(this.props.Document.thumbnailPage, -1); }
 
     componentDidMount() {
-        let wasSelected = false;
+        let wasSelected = this.props.isSelected();
         this._reactionDisposer = reaction(
-            () => this.props.isSelected(),
+            () => [this.props.isSelected(), this.curPage],
             () => {
-                if (this.curPage > 0 && this.curPage !== this.thumbnailPage && wasSelected && !this.props.isSelected()) {
+                if (this.curPage > 0 && !this.props.isTopMost && this.curPage !== this.thumbnailPage && wasSelected && !this.props.isSelected()) {
                     this.saveThumbnail();
                 }
                 wasSelected = this._interactive = this.props.isSelected();
@@ -246,16 +245,19 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
 
     @action
     saveThumbnail = () => {
+        this.props.Document.thumbnailPage = FieldValue(this.Document.curPage, -1);
         this._renderAsSvg = false;
         setTimeout(() => {
             let nwidth = FieldValue(this.Document.nativeWidth, 0);
             let nheight = FieldValue(this.Document.nativeHeight, 0);
-            htmlToImage.toPng(this._mainDiv.current!, { width: nwidth, height: nheight, quality: 1 })
+            htmlToImage.toPng(this._mainDiv.current!, { width: nwidth, height: nheight, quality: 0.8 })
                 .then(action((dataUrl: string) => {
-                    SearchBox.convertDataUri(dataUrl, this.Document[Id] + "_" + this.curPage).then((returnedFilename) => {
-                        this.props.Document.thumbnail = new ImageField(new URL(dataUrl));
-                        this.props.Document.thumbnailPage = FieldValue(this.Document.curPage, -1);
-                        this._renderAsSvg = true;
+                    SearchBox.convertDataUri(dataUrl, "icon" + this.Document[Id] + "_" + this.curPage).then((returnedFilename) => {
+                        if (returnedFilename) {
+                            let url = DocServer.prepend(returnedFilename);
+                            this.props.Document.thumbnail = new ImageField(new URL(url));
+                        }
+                        runInAction(() => this._renderAsSvg = true);
                     })
                 }))
                 .catch(function (error: any) {
@@ -292,7 +294,6 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     }
     @computed
     get pdfContent() {
-        trace();
         let pdfUrl = Cast(this.props.Document[this.props.fieldKey], PdfField);
         if (!pdfUrl) {
             return <p>No pdf url to render</p>;
@@ -309,7 +310,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
             </Measure>;
         let xf = (this.Document.nativeHeight || 0) / this.renderHeight;
         return <div className="pdfBox-contentContainer" key="container" style={{ transform: `scale(${xf}, ${xf})` }}>
-            <Document file={window.origin + RouteStore.corsProxy + `/${pdfUrl.url}`} renderMode={this._renderAsSvg ? "svg" : "canvas"}>
+            <Document file={window.origin + RouteStore.corsProxy + `/${pdfUrl.url}`} renderMode={this._renderAsSvg || this.props.isTopMost ? "svg" : "canvas"}>
                 {body}
             </Document>
         </div >;
@@ -317,26 +318,25 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
 
     @computed
     get pdfRenderer() {
-        let proxy = this._loaded ? (null) : this.imageProxyRenderer;
         let pdfUrl = Cast(this.props.Document[this.props.fieldKey], PdfField);
-        if ((!this._interactive && proxy) || !pdfUrl) {
+        let proxy = this.imageProxyRenderer;
+        if ((!this._interactive && proxy && (!this.props.ContainingCollectionView || !this.props.ContainingCollectionView.props.isTopMost)) || !pdfUrl) {
             return proxy;
         }
         return [
             this._pageInfo.area.filter(() => this._pageInfo.area).map((element: any) => element),
             this._currAnno.map((element: any) => element),
-            this.pdfContent,
-            proxy
+            this.pdfContent
         ];
     }
 
     @computed
     get imageProxyRenderer() {
         let thumbField = this.props.Document.thumbnail;
-        if (thumbField) {
-            let path = this.thumbnailPage !== this.curPage ? "https://image.flaticon.com/icons/svg/66/66163.svg" :
+        if (thumbField && this._renderAsSvg) {
+            let path = // this.thumbnailPage !== this.curPage ? "https://image.flaticon.com/icons/svg/66/66163.svg" :
                 thumbField instanceof ImageField ? thumbField.url.href : "http://cs.brown.edu/people/bcz/prairie.jpg";
-            return <img src={path} width="100%" />;
+            return <img key={Utils.GenerateGuid()} src={path} width="100%" />;
         }
         return (null);
     }

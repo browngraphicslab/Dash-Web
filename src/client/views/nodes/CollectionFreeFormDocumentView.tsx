@@ -189,6 +189,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         if (this._doubleTap) {
             this.props.addDocTab(this.props.Document, "inTab");
             SelectionManager.DeselectAll();
+            this.props.Document.libraryBrush = false;
         }
         let altKey = e.altKey;
         if (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD &&
