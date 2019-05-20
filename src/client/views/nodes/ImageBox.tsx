@@ -163,6 +163,9 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
     }
 
     @observable _smallImageMissing = false;
+    @observable _mediumImageMissing = false;
+    @observable _largeImageMissing = false;
+    _curImageSize = "";
     render() {
         let transform = this.props.ScreenToLocalTransform().inverse();
         let pw = Object.keys(this.props.PanelWidth).length === 0 ? this.props.PanelWidth() : (this.props.PanelWidth as any) as string ? Number((this.props.PanelWidth as any) as string) : 50;
@@ -175,14 +178,23 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         let paths: string[] = ["http://www.cs.brown.edu/~bcz/noImage.png"];
         if (w > 20) {
             if (w < 100 && !this._smallImageMissing) {
+                this._curImageSize = "small";
                 let field = this.Document[this.props.fieldKey];
                 if (field instanceof ImageField) paths = [field.url.href.replace(path.extname(field.url.href), "_s" + path.extname(field.url.href))];
                 else if (field instanceof List) paths = field.filter(val => val instanceof ImageField).map(p =>
                     (p as ImageField).url.href.replace(path.extname((p as ImageField).url.href), "_s" + path.extname((p as ImageField).url.href)));
-            } else {
+            } else if (w < 600 && !this._mediumImageMissing) {
+                this._curImageSize = "medium";
                 let field = this.Document[this.props.fieldKey];
-                if (field instanceof ImageField) paths = [field.url.href];
-                else if (field instanceof List) paths = field.filter(val => val instanceof ImageField).map(p => (p as ImageField).url.href);
+                if (field instanceof ImageField) paths = [field.url.href.replace(path.extname(field.url.href), "_m" + path.extname(field.url.href))];
+                else if (field instanceof List) paths = field.filter(val => val instanceof ImageField).map(p =>
+                    (p as ImageField).url.href.replace(path.extname((p as ImageField).url.href), "_m" + path.extname((p as ImageField).url.href)));
+            } else if (!this._largeImageMissing) {
+                this._curImageSize = "large";
+                let field = this.Document[this.props.fieldKey];
+                if (field instanceof ImageField) paths = [field.url.href.replace(path.extname(field.url.href), "_l" + path.extname(field.url.href))];
+                else if (field instanceof List) paths = field.filter(val => val instanceof ImageField).map(p =>
+                    (p as ImageField).url.href.replace(path.extname((p as ImageField).url.href), "_l" + path.extname((p as ImageField).url.href)));
             }
         }
         let interactive = InkingControl.Instance.selectedTool ? "" : "-interactive";
@@ -194,7 +206,11 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
                     style={{ objectFit: (this._photoIndex === 0 ? undefined : "contain") }}
                     width={nativeWidth}
                     ref={this._imgRef}
-                    onError={action(() => this._smallImageMissing = true)}
+                    onError={action(() => {
+                        if (this._curImageSize === "small") this._smallImageMissing = true;
+                        if (this._curImageSize === "medium") this._mediumImageMissing = true;
+                        if (this._curImageSize === "large") this._largeImageMissing = true;
+                    })}
                     onLoad={this.onLoad} />
                 {paths.length > 1 ? this.dots(paths) : (null)}
                 {this.lightbox(paths)}
