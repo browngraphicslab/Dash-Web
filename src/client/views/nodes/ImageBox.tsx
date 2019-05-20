@@ -17,6 +17,13 @@ import { ImageField } from '../../../new_fields/URLField';
 import { List } from '../../../new_fields/List';
 import { InkingControl } from '../InkingControl';
 import { Doc } from '../../../new_fields/Doc';
+import { faImage } from '@fortawesome/free-solid-svg-icons';
+import { library } from '@fortawesome/fontawesome-svg-core';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+var path = require('path');
+
+library.add(faImage);
+
 
 export const pageSchema = createSchema({
     curPage: "number"
@@ -41,7 +48,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
     onLoad = (target: any) => {
         var h = this._imgRef.current!.naturalHeight;
         var w = this._imgRef.current!.naturalWidth;
-        if (this._photoIndex === 0 && (this.props as any).id !== "isExpander") {
+        if (this._photoIndex === 0 && (this.props as any).id !== "isExpander" && (!this.Document.nativeHeight || !this.Document.nativeWidth)) {
             Doc.SetOnPrototype(this.Document, "nativeHeight", FieldValue(this.Document.nativeWidth, 0) * h / w);
             this.Document.height = FieldValue(this.Document.width, 0) * h / w;
         }
@@ -155,14 +162,30 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         );
     }
 
+    @observable _smallImageMissing = false;
     render() {
-        let field = this.Document[this.props.fieldKey];
-        let paths: string[] = ["http://www.cs.brown.edu/~bcz/face.gif"];
-        if (field instanceof ImageField) paths = [field.url.href];
-        else if (field instanceof List) paths = field.filter(val => val instanceof ImageField).map(p => (p as ImageField).url.href);
-        let nativeWidth = FieldValue(this.Document.nativeWidth, (this.props.PanelWidth as any) as string ? Number((this.props.PanelWidth as any) as string) : 50);
-        let interactive = InkingControl.Instance.selectedTool ? "" : "-interactive";
+        let transform = this.props.ScreenToLocalTransform().inverse();
+        let pw = Object.keys(this.props.PanelWidth).length === 0 ? this.props.PanelWidth() : (this.props.PanelWidth as any) as string ? Number((this.props.PanelWidth as any) as string) : 50;
+        var [sptX, sptY] = transform.transformPoint(0, 0);
+        let [bptX, bptY] = transform.transformPoint(pw, this.props.PanelHeight());
+        let w = bptX - sptX;
+
         let id = (this.props as any).id; // bcz: used to set id = "isExpander" in templates.tsx
+        let nativeWidth = FieldValue(this.Document.nativeWidth, pw);
+        let paths: string[] = ["http://www.cs.brown.edu/~bcz/noImage.png"];
+        if (w > 20) {
+            if (w < 100 && !this._smallImageMissing) {
+                let field = this.Document[this.props.fieldKey];
+                if (field instanceof ImageField) paths = [field.url.href.replace(path.extname(field.url.href), "_s" + path.extname(field.url.href))];
+                else if (field instanceof List) paths = field.filter(val => val instanceof ImageField).map(p =>
+                    (p as ImageField).url.href.replace(path.extname((p as ImageField).url.href), "_s" + path.extname((p as ImageField).url.href)));
+            } else {
+                let field = this.Document[this.props.fieldKey];
+                if (field instanceof ImageField) paths = [field.url.href];
+                else if (field instanceof List) paths = field.filter(val => val instanceof ImageField).map(p => (p as ImageField).url.href);
+            }
+        }
+        let interactive = InkingControl.Instance.selectedTool ? "" : "-interactive";
         return (
             <div id={id} className={`imageBox-cont${interactive}`}
                 // onPointerDown={this.onPointerDown}
@@ -171,6 +194,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
                     style={{ objectFit: (this._photoIndex === 0 ? undefined : "contain") }}
                     width={nativeWidth}
                     ref={this._imgRef}
+                    onError={action(() => this._smallImageMissing = true)}
                     onLoad={this.onLoad} />
                 {paths.length > 1 ? this.dots(paths) : (null)}
                 {this.lightbox(paths)}
