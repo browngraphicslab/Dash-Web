@@ -20,6 +20,7 @@ import { Id } from '../../new_fields/FieldSymbols';
 import { DocumentManager } from '../util/DocumentManager';
 import { SetupDrag } from '../util/DragManager';
 import { Docs } from '../documents/Documents';
+import { RouteStore } from '../../server/RouteStore';
 
 library.add(faSearch);
 library.add(faObjectGroup);
@@ -69,6 +70,22 @@ export class SearchBox extends React.Component {
             }
         }
         return docs;
+    }
+    public static async convertDataUri(imageUri: string, returnedFilename: string) {
+        try {
+            let posting = DocServer.prepend(RouteStore.dataUriToImage);
+            const returnedUri = await rp.post(posting, {
+                body: {
+                    uri: imageUri,
+                    name: returnedFilename
+                },
+                json: true,
+            });
+            return returnedUri;
+
+        } catch (e) {
+            console.log(e);
+        }
     }
 
     @action

@@ -114,6 +114,8 @@ function addSecureRoute(method: Method,
 app.use(express.static(__dirname + RouteStore.public));
 app.use(RouteStore.images, express.static(__dirname + RouteStore.public));
 
+app.use(express.json());
+
 app.get("/pull", (req, res) =>
     exec('"C:\\Program Files\\Git\\git-bash.exe" -c "git pull"', (err, stdout, stderr) => {
         if (err) {
@@ -220,10 +222,10 @@ addSecureRoute(
 addSecureRoute(
     Method.POST,
     (user, res, req) => {
-        const uri = req.query.uri;
-        const filename = req.query.name;
+        const uri = req.body.uri;
+        const filename = req.body.name;
         if (!uri || !filename) {
-            res.status(400).send("incorrect parameters specified");
+            res.status(401).send("incorrect parameters specified");
             return;
         }
         imageDataUri.outputFile(uri, uploadDir + filename).then((savedName: string) => {
