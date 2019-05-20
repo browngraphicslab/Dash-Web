@@ -163,7 +163,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
     }
 
     choosePath(url: URL) {
-        if (url.protocol === "data")
+        if (url.protocol === "data" || url.href.indexOf(window.location.origin) === -1)
             return url.href;
         let ext = path.extname(url.href);
         return url.href.replace(ext, this._curSuffix + ext);
