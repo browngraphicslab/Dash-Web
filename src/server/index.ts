@@ -6,6 +6,7 @@ import * as session from 'express-session';
 import * as expressValidator from 'express-validator';
 import * as formidable from 'formidable';
 import * as fs from 'fs';
+import * as sharp from 'sharp';
 import * as mobileDetect from 'mobile-detect';
 import { ObservableMap } from 'mobx';
 import * as passport from 'passport';
@@ -166,13 +167,15 @@ addSecureRoute(
     RouteStore.getCurrUser
 );
 
+const pngTypes = [".png", ".PNG"];
+const jpgTypes = [".jpg", ".JPG", ".jpeg", ".JPEG"];
+const uploadDir = __dirname + "/public/files/";
 // SETTERS
-
 addSecureRoute(
     Method.POST,
     (user, res, req) => {
         let form = new formidable.IncomingForm();
-        form.uploadDir = __dirname + "/public/files/";
+        form.uploadDir = uploadDir;
         form.keepExtensions = true;
         // let path = req.body.path;
         console.log("upload");
@@ -180,7 +183,31 @@ addSecureRoute(
             console.log("parsing");
             let names: string[] = [];
             for (const name in files) {
-                names.push(`/files/` + path.basename(files[name].path));
+                const file = path.basename(files[name].path);
+                const ext = path.extname(file);
+                let resizers = [
+                    { resizer: sharp().resize(100, undefined, { withoutEnlargement: true }), suffix: "_s" },
+                    { resizer: sharp().resize(400, undefined, { withoutEnlargement: true }), suffix: "_m" },
+                    { resizer: sharp().resize(900, undefined, { withoutEnlargement: true }), suffix: "_l" },
+                ];
+                let isImage = false;
+                if (pngTypes.includes(ext)) {
+                    resizers.forEach(element => {
+                        element.resizer = element.resizer.png();
+                    });
+                    isImage = true;
+                } else if (jpgTypes.includes(ext)) {
+                    resizers.forEach(element => {
+                        element.resizer = element.resizer.jpeg();
+                    });
+                    isImage = true;
+                }
+                if (isImage) {
+                    resizers.forEach(resizer => {
+                        fs.createReadStream(uploadDir + file).pipe(resizer.resizer).pipe(fs.createWriteStream(uploadDir + file.substring(0, file.length - ext.length) + resizer.suffix + ext));
+                    });
+                }
+                names.push(`/files/` + file);
             }
             res.send(names);
         });
