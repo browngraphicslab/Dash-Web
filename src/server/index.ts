@@ -60,7 +60,7 @@ app.use(session({
 
 app.use(flash());
 app.use(expressFlash());
-app.use(bodyParser.json());
+app.use(bodyParser.json({ limit: "10mb" }));
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(expressValidator());
 app.use(passport.initialize());
@@ -113,8 +113,6 @@ function addSecureRoute(method: Method,
 // STATIC FILE SERVING
 app.use(express.static(__dirname + RouteStore.public));
 app.use(RouteStore.images, express.static(__dirname + RouteStore.public));
-
-app.use(express.json());
 
 app.get("/pull", (req, res) =>
     exec('"C:\\Program Files\\Git\\git-bash.exe" -c "git pull"', (err, stdout, stderr) => {
