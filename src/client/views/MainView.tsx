@@ -47,7 +47,7 @@ export class MainView extends React.Component {
     private set mainContainer(doc: Opt<Doc>) {
         if (doc) {
             if (!("presentationView" in doc)) {
-                doc.presentationView = new Doc();
+                doc.presentationView = Docs.TreeDocument([], { title: "Presentation" });
             }
             CurrentUserUtils.UserDocument.activeWorkspace = doc;
         }

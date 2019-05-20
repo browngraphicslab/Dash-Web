@@ -1,5 +1,5 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faAlignCenter, faCaretSquareRight, faCompressArrowsAlt, faExpandArrowsAlt, faLayerGroup, faSquare, faTrash } from '@fortawesome/free-solid-svg-icons';
+import { faAlignCenter, faCaretSquareRight, faCompressArrowsAlt, faExpandArrowsAlt, faLayerGroup, faSquare, faTrash, faConciergeBell, faFolder, faMapPin, faLink, faFingerprint, faCrosshairs, faDesktop } from '@fortawesome/free-solid-svg-icons';
 import { action, computed, IReactionDisposer, reaction } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCast, HeightSym, Opt, WidthSym } from "../../../new_fields/Doc";
@@ -19,7 +19,6 @@ import { SelectionManager } from "../../util/SelectionManager";
 import { Transform } from "../../util/Transform";
 import { undoBatch } from "../../util/UndoManager";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
-import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
 import { CollectionPDFView } from "../collections/CollectionPDFView";
 import { CollectionVideoView } from "../collections/CollectionVideoView";
 import { CollectionView } from "../collections/CollectionView";
@@ -39,6 +38,13 @@ library.add(faLayerGroup);
 library.add(faAlignCenter);
 library.add(faCaretSquareRight);
 library.add(faSquare);
+library.add(faConciergeBell);
+library.add(faFolder);
+library.add(faMapPin);
+library.add(faLink);
+library.add(faFingerprint);
+library.add(faCrosshairs);
+library.add(faDesktop);
 
 const linkSchema = createSchema({
     title: "string",
@@ -122,7 +128,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             });
         }
         // bcz: kind of ugly .. setup a reaction to update the title of a summary document's target (maximizedDocs) whenver the summary doc's title changes
-        this._reactionDisposer = reaction(() => [this.props.Document.maximizedDocs, this.props.Document.summaryDoc, this.props.Document.summaryDoc instanceof Doc ? this.props.Document.summaryDoc.title : ""],
+        this._reactionDisposer = reaction(() => [DocListCast(this.props.Document.maximizedDocs).map(md => md.title),
+        this.props.Document.summaryDoc, this.props.Document.summaryDoc instanceof Doc ? this.props.Document.summaryDoc.title : ""],
             () => {
                 let maxDoc = DocListCast(this.props.Document.maximizedDocs);
                 if (maxDoc.length === 1 && StrCast(this.props.Document.title).startsWith("-") && StrCast(this.props.Document.layout).indexOf("IconBox") !== -1) {
@@ -308,21 +315,21 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         e.preventDefault();
 
         const cm = ContextMenu.Instance;
-        cm.addItem({ description: "Full Screen", event: this.fullScreenClicked, icon: "expand-arrows-alt" });
-        cm.addItem({ description: this.props.Document.isButton ? "Remove Button" : "Make Button", event: this.makeButton, icon: "expand-arrows-alt" });
-        cm.addItem({ description: "Fields", event: this.fieldsClicked, icon: "layer-group" });
-        cm.addItem({ description: "Center", event: () => this.props.focus(this.props.Document), icon: "align-center" });
-        cm.addItem({ description: "Open Tab", event: () => this.props.addDocTab && this.props.addDocTab(this.props.Document, "inTab"), icon: "expand-arrows-alt" });
+        cm.addItem({ description: "Full Screen", event: this.fullScreenClicked, icon: "desktop" });
+        cm.addItem({ description: "Open Tab", event: () => this.props.addDocTab && this.props.addDocTab(this.props.Document, "inTab"), icon: "folder" });
         cm.addItem({ description: "Open Right", event: () => CollectionDockingView.Instance.AddRightSplit(this.props.Document), icon: "caret-square-right" });
+        cm.addItem({ description: "Fields", event: this.fieldsClicked, icon: "layer-group" });
+        cm.addItem({ description: "Pin to Pres", event: () => PresentationView.Instance.PinDoc(this.props.Document), icon: "map-pin" });
+        cm.addItem({ description: this.props.Document.isButton ? "Remove Button" : "Make Button", event: this.makeButton, icon: "concierge-bell" });
         cm.addItem({
             description: "Find aliases", event: async () => {
                 const aliases = await SearchUtil.GetAliasesOfDocument(this.props.Document);
                 CollectionDockingView.Instance.AddRightSplit(Docs.SchemaDocument(["title"], aliases, {}));
-            }, icon: "expand-arrows-alt"
+            }, icon: "search"
         });
-        cm.addItem({ description: "Copy URL", event: () => Utils.CopyText(DocServer.prepend("/doc/" + this.props.Document[Id])), icon: "expand-arrows-alt" });
-        cm.addItem({ description: "Copy ID", event: () => Utils.CopyText(this.props.Document[Id]), icon: "expand-arrows-alt" });
-        cm.addItem({ description: "Pin to Pres", event: () => PresentationView.Instance.PinDoc(this.props.Document), icon: "expand-arrows-alt" });
+        cm.addItem({ description: "Center View", event: () => this.props.focus(this.props.Document), icon: "crosshairs" });
+        cm.addItem({ description: "Copy URL", event: () => Utils.CopyText(DocServer.prepend("/doc/" + this.props.Document[Id])), icon: "link" });
+        cm.addItem({ description: "Copy ID", event: () => Utils.CopyText(this.props.Document[Id]), icon: "fingerprint" });
         cm.addItem({ description: "Delete", event: this.deleteClicked, icon: "trash" });
         if (!this.topMost) {
             // DocumentViews should stop propagation of this event

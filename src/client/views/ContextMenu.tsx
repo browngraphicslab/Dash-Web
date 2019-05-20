@@ -90,7 +90,6 @@ export class ContextMenu extends React.Component {
             <div className="contextMenu-cont" style={style} ref={this.ref}>
                 <span>
                     <span className="icon-background">
-                        <FontAwesomeIcon icon="circle" size="lg" />
                         <FontAwesomeIcon icon="search" size="lg" />
                     </span>
                     <input className="contextMenu-item" type="text" placeholder="Search . . ." value={this._searchString} onChange={this.onChange} />

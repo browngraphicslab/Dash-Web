@@ -444,7 +444,6 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
             NumCast(this._document!.viewType) !== CollectionViewType.Freeform) return 1;
         let scaling = Math.max(1, this._panelWidth / docWidth * docHeight > this._panelHeight ?
             this._panelHeight / docHeight : this._panelWidth / docWidth);
-        console.log("Scaling = " + scaling);
         return scaling;
     }
     get previewPanelCenteringOffset() { return (this._panelWidth - this.nativeWidth() * this.contentScaling()) / 2; }

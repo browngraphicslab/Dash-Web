@@ -276,16 +276,16 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         let doc = selected[0].props.Document;
         let iconDoc = Docs.IconDocument(layoutString);
         iconDoc.isButton = true;
-        iconDoc.proto!.title = selected.length > 1 ? "ICONset" : "ICON" + StrCast(doc.title);
+        iconDoc.proto!.title = selected.length > 1 ? "-multiple-.icon" : StrCast(doc.title) + ".icon";
         iconDoc.labelField = selected.length > 1 ? undefined : this._fieldKey;
-        iconDoc.proto![this._fieldKey] = selected.length > 1 ? "collection" : undefined;
+        //iconDoc.proto![this._fieldKey] = selected.length > 1 ? "collection" : undefined;
         iconDoc.proto!.isMinimized = false;
         iconDoc.width = Number(MINIMIZED_ICON_SIZE);
         iconDoc.height = Number(MINIMIZED_ICON_SIZE);
         iconDoc.x = NumCast(doc.x);
         iconDoc.y = NumCast(doc.y) - 24;
         iconDoc.maximizedDocs = new List<Doc>(selected.map(s => s.props.Document.proto!));
-        doc.minimizedDoc = iconDoc;
+        selected.length === 1 && (doc.minimizedDoc = iconDoc);
         selected[0].props.addDocument && selected[0].props.addDocument(iconDoc, false);
         return iconDoc;
     }
