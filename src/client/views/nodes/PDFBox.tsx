@@ -21,6 +21,7 @@ import { positionSchema } from "./DocumentView";
 import { FieldView, FieldViewProps } from './FieldView';
 import { pageSchema } from "./ImageBox";
 import "./PDFBox.scss";
+var path = require('path');
 import React = require("react");
 
 /** ALSO LOOK AT: Annotation.tsx, Sticky.tsx
@@ -330,20 +331,54 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
         ];
     }
 
+    choosePath(url: URL) {
+        if (url.protocol === "data" || url.href.indexOf(window.location.origin) === -1)
+            return url.href;
+        let ext = path.extname(url.href);
+        return url.href.replace(ext, this._curSuffix + ext);
+    }
+    @observable _smallRetryCount = 1;
+    @observable _mediumRetryCount = 1;
+    @observable _largeRetryCount = 1;
+    @action retryPath = () => {
+        if (this._curSuffix === "_s") this._smallRetryCount++;
+        if (this._curSuffix === "_m") this._mediumRetryCount++;
+        if (this._curSuffix === "_l") this._largeRetryCount++;
+    }
+    @action onError = () => {
+        let timeout = this._curSuffix === "_s" ? this._smallRetryCount : this._curSuffix === "_m" ? this._mediumRetryCount : this._largeRetryCount;
+        if (timeout < 10)
+            setTimeout(this.retryPath, Math.min(10000, timeout * 5));
+    }
+    _curSuffix = "";
+
     @computed
     get imageProxyRenderer() {
         let thumbField = this.props.Document.thumbnail;
         if (thumbField && this._renderAsSvg) {
-            let path = // this.thumbnailPage !== this.curPage ? "https://image.flaticon.com/icons/svg/66/66163.svg" :
-                thumbField instanceof ImageField ? thumbField.url.href : "http://cs.brown.edu/people/bcz/prairie.jpg";
-            return <img key={Utils.GenerateGuid()} src={path} width="100%" />;
+
+            let transform = this.props.ScreenToLocalTransform().inverse();
+            let pw = typeof this.props.PanelWidth === "function" ? this.props.PanelWidth() : typeof this.props.PanelWidth === "number" ? (this.props.PanelWidth as any) as number : 50;
+            var [sptX, sptY] = transform.transformPoint(0, 0);
+            let [bptX, bptY] = transform.transformPoint(pw, this.props.PanelHeight());
+            let w = bptX - sptX;
+
+            let path = thumbField instanceof ImageField ? thumbField.url.href : "http://cs.brown.edu/people/bcz/prairie.jpg";
+            this._curSuffix = "";
+            if (w > 20) {
+                let field = thumbField;
+                if (w < 100 && this._smallRetryCount < 10) this._curSuffix = "_s";
+                else if (w < 400 && this._mediumRetryCount < 10) this._curSuffix = "_m";
+                else if (this._largeRetryCount < 10) this._curSuffix = "_l";
+                if (field instanceof ImageField) path = this.choosePath(field.url);
+            }
+            return <img key={path} src={path} width="100%" />;
         }
         return (null);
     }
     @action onKeyDown = (e: React.KeyboardEvent) => e.key === "Alt" && (this._alt = true);
     @action onKeyUp = (e: React.KeyboardEvent) => e.key === "Alt" && (this._alt = false);
     render() {
-        trace();
         let classname = "pdfBox-cont" + (this.props.isSelected() && !InkingControl.Instance.selectedTool && !this._alt ? "-interactive" : "");
         return (
             <div className={classname} tabIndex={0} ref={this._mainDiv} onPointerDown={this.onPointerDown} onKeyDown={this.onKeyDown} onKeyUp={this.onKeyUp} >
