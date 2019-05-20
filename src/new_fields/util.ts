@@ -38,7 +38,11 @@ export const setter = action(function (target: any, prop: string | symbol | numb
         delete curValue[Parent];
         delete curValue[OnUpdate];
     }
-    target.__fields[prop] = value;
+    if (value === undefined) {
+        delete target.__fields[prop];
+    } else {
+        target.__fields[prop] = value;
+    }
     target[Update]({ '$set': { ["fields." + prop]: value instanceof ObjectField ? SerializationHelper.Serialize(value) : (value === undefined ? null : value) } });
     UndoManager.AddEvent({
         redo: () => receiver[prop] = value,
