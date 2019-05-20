@@ -4466,7 +4466,7 @@
             }
 
             if (this.contentItems.length > 0) {
-                initialItem = this.contentItems[this.config.activeItemIndex || 0];
+                initialItem = this.contentItems[Math.min(this.contentItems.length - 1, this.config.activeItemIndex || 0)];
 
                 if (!initialItem) {
                     throw new Error('Configured activeItemIndex out of bounds');
