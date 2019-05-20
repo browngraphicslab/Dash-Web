@@ -34,6 +34,20 @@
         {
             "type": "node",
             "request": "launch",
+            "name": "Current TS File",
+            "runtimeExecutable": "npx",
+            "runtimeArgs": [
+                "ts-node-dev",
+                "--nolazy",
+                "--inspect",
+                "--",
+                "${relativeFile}"
+            ],
+            "port": 9229
+        },
+        {
+            "type": "node",
+            "request": "launch",
             "name": "Mocha Tests",
             "program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
             "args": [
@@ -65,15 +79,5 @@
             "internalConsoleOptions": "openOnSessionStart",
             "protocol": "inspector"
         },
-        {
-            "type": "node",
-            "request": "launch",
-            "name": "Launch via NPM",
-            "runtimeExecutable": "npm",
-            "runtimeArgs": [
-                "start"
-            ],
-            "port": 9229
-        }
     ]
 }
