@@ -11,6 +11,7 @@ export enum RouteStore {
     // UPLOAD AND STATIC FILE SERVING
     public = "/public",
     upload = "/upload",
+    dataUriToImage = "/uploadURI",
     images = "/images",
 
     // USER AND WORKSPACES

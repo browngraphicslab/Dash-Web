@@ -7,6 +7,7 @@ import * as expressValidator from 'express-validator';
 import * as formidable from 'formidable';
 import * as fs from 'fs';
 import * as sharp from 'sharp';
+const imageDataUri = require('image-data-uri');
 import * as mobileDetect from 'mobile-detect';
 import { ObservableMap } from 'mobx';
 import * as passport from 'passport';
@@ -216,6 +217,45 @@ addSecureRoute(
     RouteStore.upload
 );
 
+addSecureRoute(
+    Method.POST,
+    (user, res, req) => {
+        const uri = req.query.uri;
+        const filename = req.query.name;
+        if (!uri || !filename) {
+            res.status(400).send("incorrect parameters specified");
+            return;
+        }
+        imageDataUri.outputFile(uri, uploadDir + filename).then((savedName: string) => {
+            const ext = path.extname(savedName);
+            let resizers = [
+                { resizer: sharp().resize(100, undefined, { withoutEnlargement: true }), suffix: "_s" },
+                { resizer: sharp().resize(400, undefined, { withoutEnlargement: true }), suffix: "_m" },
+                { resizer: sharp().resize(900, undefined, { withoutEnlargement: true }), suffix: "_l" },
+            ];
+            let isImage = false;
+            if (pngTypes.includes(ext)) {
+                resizers.forEach(element => {
+                    element.resizer = element.resizer.png();
+                });
+                isImage = true;
+            } else if (jpgTypes.includes(ext)) {
+                resizers.forEach(element => {
+                    element.resizer = element.resizer.jpeg();
+                });
+                isImage = true;
+            }
+            if (isImage) {
+                resizers.forEach(resizer => {
+                    fs.createReadStream(savedName).pipe(resizer.resizer).pipe(fs.createWriteStream(uploadDir + filename + resizer.suffix + ext));
+                });
+            }
+            res.send("/files/" + filename + ext);
+        });
+    },
+    undefined,
+    RouteStore.dataUriToImage
+);
 // AUTHENTICATION
 
 // Sign Up
