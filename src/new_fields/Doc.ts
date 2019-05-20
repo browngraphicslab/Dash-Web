@@ -149,6 +149,9 @@ export namespace Doc {
     export function GetT<T extends Field>(doc: Doc, key: string, ctor: ToConstructor<T>, ignoreProto: boolean = false): FieldResult<T> {
         return Cast(Get(doc, key, ignoreProto), ctor) as FieldResult<T>;
     }
+    export function IsPrototype(doc: Doc) {
+        return GetT(doc, "isPrototype", "boolean", true);
+    }
     export async function SetOnPrototype(doc: Doc, key: string, value: Field) {
         const proto = Object.getOwnPropertyNames(doc).indexOf("isPrototype") === -1 ? doc.proto : doc;
 
@@ -180,11 +183,11 @@ export namespace Doc {
 
     // compare whether documents or their protos match
     export function AreProtosEqual(doc: Doc, other: Doc) {
-        let r = (doc[Id] === other[Id]);
-        let r2 = (doc.proto && doc.proto.Id === other[Id]);
-        let r3 = (other.proto && other.proto.Id === doc[Id]);
-        let r4 = (doc.proto && other.proto && doc.proto[Id] === other.proto[Id]);
-        return r || r2 || r3 || r4 ? true : false;
+        let r = (doc === other);
+        let r2 = (doc.proto === other);
+        let r3 = (other.proto === doc);
+        let r4 = (doc.proto === other.proto);
+        return r || r2 || r3 || r4;
     }
 
     // gets the document's prototype or returns the document if it is a prototype

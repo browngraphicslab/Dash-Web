@@ -181,26 +181,26 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         if (timeout < 10)
             setTimeout(this.retryPath, Math.min(10000, timeout * 5));
     }
-    _curSuffix = "";
+    _curSuffix = "_m";
     render() {
-        let transform = this.props.ScreenToLocalTransform().inverse();
+        // let transform = this.props.ScreenToLocalTransform().inverse();
         let pw = typeof this.props.PanelWidth === "function" ? this.props.PanelWidth() : typeof this.props.PanelWidth === "number" ? (this.props.PanelWidth as any) as number : 50;
-        var [sptX, sptY] = transform.transformPoint(0, 0);
-        let [bptX, bptY] = transform.transformPoint(pw, this.props.PanelHeight());
-        let w = bptX - sptX;
+        // var [sptX, sptY] = transform.transformPoint(0, 0);
+        // let [bptX, bptY] = transform.transformPoint(pw, this.props.PanelHeight());
+        // let w = bptX - sptX;
 
         let id = (this.props as any).id; // bcz: used to set id = "isExpander" in templates.tsx
         let nativeWidth = FieldValue(this.Document.nativeWidth, pw);
         let paths: string[] = ["http://www.cs.brown.edu/~bcz/noImage.png"];
-        this._curSuffix = "";
-        if (w > 20) {
-            let field = this.Document[this.props.fieldKey];
-            if (w < 100 && this._smallRetryCount < 10) this._curSuffix = "_s";
-            else if (w < 600 && this._mediumRetryCount < 10) this._curSuffix = "_m";
-            else if (this._largeRetryCount < 10) this._curSuffix = "_l";
-            if (field instanceof ImageField) paths = [this.choosePath(field.url)];
-            else if (field instanceof List) paths = field.filter(val => val instanceof ImageField).map(p => this.choosePath((p as ImageField).url));
-        }
+        // this._curSuffix = "";
+        // if (w > 20) {
+        let field = this.Document[this.props.fieldKey];
+        // if (w < 100 && this._smallRetryCount < 10) this._curSuffix = "_s";
+        // else if (w < 600 && this._mediumRetryCount < 10) this._curSuffix = "_m";
+        // else if (this._largeRetryCount < 10) this._curSuffix = "_l";
+        if (field instanceof ImageField) paths = [this.choosePath(field.url)];
+        else if (field instanceof List) paths = field.filter(val => val instanceof ImageField).map(p => this.choosePath((p as ImageField).url));
+        // }
         let interactive = InkingControl.Instance.selectedTool ? "" : "-interactive";
         return (
             <div id={id} className={`imageBox-cont${interactive}`}

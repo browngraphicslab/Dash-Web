@@ -332,7 +332,8 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                     let counter: any = this.htmlToElement(`<span class="messageCounter">0</div>`);
                     tab.element.append(counter);
                     let upDiv = document.createElement("span");
-                    ReactDOM.render(<ParentDocSelector Document={doc} />, upDiv);
+                    const stack = tab.contentItem.parent;
+                    ReactDOM.render(<ParentDocSelector Document={doc} addDocTab={(doc, location) => CollectionDockingView.Instance.AddTab(stack, doc)} />, upDiv);
                     tab.reactComponents = [upDiv];
                     tab.element.append(upDiv);
                     counter.DashDocId = tab.contentItem.config.props.documentId;

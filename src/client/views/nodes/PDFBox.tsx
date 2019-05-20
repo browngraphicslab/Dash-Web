@@ -350,28 +350,28 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
         if (timeout < 10)
             setTimeout(this.retryPath, Math.min(10000, timeout * 5));
     }
-    _curSuffix = "";
+    _curSuffix = "_m";
 
     @computed
     get imageProxyRenderer() {
         let thumbField = this.props.Document.thumbnail;
         if (thumbField && this._renderAsSvg) {
 
-            let transform = this.props.ScreenToLocalTransform().inverse();
+            // let transform = this.props.ScreenToLocalTransform().inverse();
             let pw = typeof this.props.PanelWidth === "function" ? this.props.PanelWidth() : typeof this.props.PanelWidth === "number" ? (this.props.PanelWidth as any) as number : 50;
-            var [sptX, sptY] = transform.transformPoint(0, 0);
-            let [bptX, bptY] = transform.transformPoint(pw, this.props.PanelHeight());
-            let w = bptX - sptX;
+            // var [sptX, sptY] = transform.transformPoint(0, 0);
+            // let [bptX, bptY] = transform.transformPoint(pw, this.props.PanelHeight());
+            // let w = bptX - sptX;
 
             let path = thumbField instanceof ImageField ? thumbField.url.href : "http://cs.brown.edu/people/bcz/prairie.jpg";
-            this._curSuffix = "";
-            if (w > 20) {
-                let field = thumbField;
-                if (w < 100 && this._smallRetryCount < 10) this._curSuffix = "_s";
-                else if (w < 400 && this._mediumRetryCount < 10) this._curSuffix = "_m";
-                else if (this._largeRetryCount < 10) this._curSuffix = "_l";
-                if (field instanceof ImageField) path = this.choosePath(field.url);
-            }
+            // this._curSuffix = "";
+            // if (w > 20) {
+            let field = thumbField;
+            // if (w < 100 && this._smallRetryCount < 10) this._curSuffix = "_s";
+            // else if (w < 400 && this._mediumRetryCount < 10) this._curSuffix = "_m";
+            // else if (this._largeRetryCount < 10) this._curSuffix = "_l";
+            if (field instanceof ImageField) path = this.choosePath(field.url);
+            // }
             return <img key={path} src={path} width="100%" />;
         }
         return (null);
