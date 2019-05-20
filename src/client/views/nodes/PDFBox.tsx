@@ -21,6 +21,8 @@ import { positionSchema } from "./DocumentView";
 import { pageSchema } from "./ImageBox";
 import { ImageField, PdfField } from "../../../new_fields/URLField";
 import { InkingControl } from "../InkingControl";
+import { SearchBox } from "../SearchBox";
+import { Id } from "../../../new_fields/FieldSymbols";
 
 /** ALSO LOOK AT: Annotation.tsx, Sticky.tsx
  * This method renders PDF and puts all kinds of functionalities such as annotation, highlighting, 
@@ -250,9 +252,11 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
             let nheight = FieldValue(this.Document.nativeHeight, 0);
             htmlToImage.toPng(this._mainDiv.current!, { width: nwidth, height: nheight, quality: 1 })
                 .then(action((dataUrl: string) => {
-                    this.props.Document.thumbnail = new ImageField(new URL(dataUrl));
-                    this.props.Document.thumbnailPage = FieldValue(this.Document.curPage, -1);
-                    this._renderAsSvg = true;
+                    SearchBox.convertDataUri(dataUrl, this.Document[Id] + "_" + this.curPage).then((returnedFilename) => {
+                        this.props.Document.thumbnail = new ImageField(new URL(dataUrl));
+                        this.props.Document.thumbnailPage = FieldValue(this.Document.curPage, -1);
+                        this._renderAsSvg = true;
+                    })
                 }))
                 .catch(function (error: any) {
                     console.error('oops, something went wrong!', error);
