@@ -7,7 +7,7 @@ const suffixMap: { [type: string]: (string | [string, string | ((json: any) => a
     "number": "_n",
     "string": "_t",
     // "boolean": "_b",
-    "image": ["_t", "url"],
+    // "image": ["_t", "url"],
     "video": ["_t", "url"],
     "pdf": ["_t", "url"],
     "audio": ["_t", "url"],
