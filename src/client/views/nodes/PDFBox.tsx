@@ -54,7 +54,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     public static LayoutString() { return FieldView.LayoutString(PDFBox); }
 
     @observable private _alt = false;
-    @observable private _interactive: boolean = false;
+    @observable private _scrollY: number = 0;
 
     getHeight = (): number => {
         if (this.props.Document) {
@@ -65,13 +65,28 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
         return 0;
     }
 
+    loaded = (nw: number, nh: number) => {
+        if (this.props.Document) {
+            let doc = this.props.Document.proto ? this.props.Document.proto : this.props.Document;
+            doc.nativeWidth = nw;
+            doc.nativeHeight = nh;
+        }
+    }
+
+    @action
+    onScroll = (e: React.UIEvent<HTMLDivElement>) => {
+        if (e.currentTarget) {
+            this._scrollY = e.currentTarget.scrollTop;
+        }
+    }
+
     render() {
         trace();
         const pdfUrl = window.origin + RouteStore.corsProxy + "/https://mozilla.github.io/pdf.js/web/compressed.tracemonkey-pldi-09.pdf";
         let classname = "pdfBox-cont" + (this.props.isSelected() && !InkingControl.Instance.selectedTool && !this._alt ? "-interactive" : "");
         return (
-            <div style={{ overflow: "scroll", height: `${NumCast(this.props.Document.height)}px` }} onWheel={(e: React.WheelEvent) => e.stopPropagation()} className={classname}>
-                <PDFViewer url={pdfUrl} />
+            <div onScroll={this.onScroll} style={{ overflow: "scroll", height: `${NumCast(this.props.Document.nativeWidth ? this.props.Document.nativeWidth : 300)}px` }} onWheel={(e: React.WheelEvent) => e.stopPropagation()} className={classname}>
+                <PDFViewer url={pdfUrl} loaded={this.loaded} scrollY={this._scrollY} />
             </div>
         );
     }
