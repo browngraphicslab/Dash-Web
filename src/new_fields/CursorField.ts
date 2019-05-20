@@ -1,7 +1,8 @@
-import { ObjectField, Copy, OnUpdate } from "./ObjectField";
+import { ObjectField } from "./ObjectField";
 import { observable } from "mobx";
 import { Deserializable } from "../client/util/SerializationHelper";
 import { serializable, createSimpleSchema, object } from "serializr";
+import { OnUpdate, ToScriptString, Copy } from "./FieldSymbols";
 
 export type CursorPosition = {
     x: number,
@@ -51,5 +52,9 @@ export default class CursorField extends ObjectField {
 
     [Copy]() {
         return new CursorField(this.data);
+    }
+
+    [ToScriptString]() {
+        return "invalid";
     }
 }

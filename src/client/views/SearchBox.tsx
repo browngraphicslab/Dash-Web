@@ -16,7 +16,7 @@ import { isString } from 'util';
 import { constant } from 'async';
 import { DocServer } from '../DocServer';
 import { Doc } from '../../new_fields/Doc';
-import { Id } from '../../new_fields/RefField';
+import { Id } from '../../new_fields/FieldSymbols';
 import { DocumentManager } from '../util/DocumentManager';
 import { SetupDrag } from '../util/DragManager';
 import { Docs } from '../documents/Documents';

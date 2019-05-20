@@ -22,9 +22,9 @@ import { createSchema, makeInterface, listSpec } from "../../../../new_fields/Sc
 import { Doc, WidthSym, HeightSym } from "../../../../new_fields/Doc";
 import { FieldValue, Cast, NumCast, BoolCast } from "../../../../new_fields/Types";
 import { pageSchema } from "../../nodes/ImageBox";
-import { Id } from "../../../../new_fields/RefField";
 import { InkField, StrokeData } from "../../../../new_fields/InkField";
 import { HistoryUtil } from "../../../util/History";
+import { Id } from "../../../../new_fields/FieldSymbols";
 
 export const panZoomSchema = createSchema({
     panX: "number",

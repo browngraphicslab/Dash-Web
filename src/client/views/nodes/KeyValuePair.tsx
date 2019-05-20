@@ -9,7 +9,7 @@ import { FieldView, FieldViewProps } from './FieldView';
 import "./KeyValueBox.scss";
 import "./KeyValuePair.scss";
 import React = require("react");
-import { Doc, Opt, IsField } from '../../../new_fields/Doc';
+import { Doc, Opt, Field } from '../../../new_fields/Doc';
 import { FieldValue } from '../../../new_fields/Types';
 
 // Represents one row in a key value plane
@@ -75,7 +75,7 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
                             let res = script.run();
                             if (!res.success) return false;
                             const field = res.result;
-                            if (IsField(field)) {
+                            if (Field.IsField(field)) {
                                 props.Document[props.fieldKey] = field;
                                 return true;
                             }

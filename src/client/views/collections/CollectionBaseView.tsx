@@ -7,8 +7,8 @@ import { Cast, FieldValue, PromiseValue, NumCast } from '../../../new_fields/Typ
 import { Doc, FieldResult, Opt, DocListCast } from '../../../new_fields/Doc';
 import { listSpec } from '../../../new_fields/Schema';
 import { List } from '../../../new_fields/List';
-import { Id } from '../../../new_fields/RefField';
 import { SelectionManager } from '../../util/SelectionManager';
+import { Id } from '../../../new_fields/FieldSymbols';
 
 export enum CollectionViewType {
     Invalid,

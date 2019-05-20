@@ -5,26 +5,32 @@ import { DocServer } from "../client/DocServer";
 import { setter, getter, getField, updateFunction, deleteProperty } from "./util";
 import { Cast, ToConstructor, PromiseValue, FieldValue, NumCast } from "./Types";
 import { listSpec } from "./Schema";
-import { ObjectField, Parent, OnUpdate } from "./ObjectField";
-import { RefField, FieldId, Id, HandleUpdate } from "./RefField";
+import { ObjectField } from "./ObjectField";
+import { RefField, FieldId } from "./RefField";
+import { ToScriptString, SelfProxy, Parent, OnUpdate, Self, HandleUpdate, Update, Id } from "./FieldSymbols";
 
-export function IsField(field: any): field is Field {
-    return (typeof field === "string")
-        || (typeof field === "number")
-        || (typeof field === "boolean")
-        || (field instanceof ObjectField)
-        || (field instanceof RefField);
+export namespace Field {
+    export function toScriptString(field: Field): string {
+        if (typeof field === "string") {
+            return `"${field}"`;
+        } else if (typeof field === "number" || typeof field === "boolean") {
+            return String(field);
+        } else {
+            return field[ToScriptString]();
+        }
+    }
+    export function IsField(field: any): field is Field {
+        return (typeof field === "string")
+            || (typeof field === "number")
+            || (typeof field === "boolean")
+            || (field instanceof ObjectField)
+            || (field instanceof RefField);
+    }
 }
 export type Field = number | string | boolean | ObjectField | RefField;
 export type Opt<T> = T | undefined;
 export type FieldWaiting<T extends RefField = RefField> = T extends undefined ? never : Promise<T | undefined>;
 export type FieldResult<T extends Field = Field> = Opt<T> | FieldWaiting<Extract<T, RefField>>;
-
-export const Update = Symbol("Update");
-export const Self = Symbol("Self");
-export const SelfProxy = Symbol("SelfProxy");
-export const WidthSym = Symbol("Width");
-export const HeightSym = Symbol("Height");
 
 /**
  * Cast any field to either a List of Docs or undefined if the given field isn't a List of Docs.  
@@ -42,6 +48,9 @@ export function DocListCastAsync(field: FieldResult, defaultValue?: Doc[]) {
 export function DocListCast(field: FieldResult): Doc[] {
     return Cast(field, listSpec(Doc), []).filter(d => d instanceof Doc) as Doc[];
 }
+
+export const WidthSym = Symbol("Width");
+export const HeightSym = Symbol("Height");
 
 @Deserializable("doc").withFields(["id"])
 export class Doc extends RefField {
@@ -101,6 +110,10 @@ export class Doc extends RefField {
     private [SelfProxy]: any;
     public [WidthSym] = () => NumCast(this[SelfProxy].width);  // bcz: is this the right way to access width/height?   it didn't work with : this.width
     public [HeightSym] = () => NumCast(this[SelfProxy].height);
+
+    [ToScriptString]() {
+        return "invalid";
+    }
 
     public [HandleUpdate](diff: any) {
         console.log(diff);

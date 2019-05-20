@@ -29,7 +29,7 @@ import { FieldResult, Field, Doc, Opt } from '../../new_fields/Doc';
 import { Cast, FieldValue, StrCast } from '../../new_fields/Types';
 import { DocServer } from '../DocServer';
 import { listSpec } from '../../new_fields/Schema';
-import { Id } from '../../new_fields/RefField';
+import { Id } from '../../new_fields/FieldSymbols';
 import { HistoryUtil } from '../util/History';
 import { CollectionBaseView } from './collections/CollectionBaseView';
 

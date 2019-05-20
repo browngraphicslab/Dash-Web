@@ -1,7 +1,7 @@
 import * as rp from 'request-promise';
 import { DocServer } from '../DocServer';
 import { Doc } from '../../new_fields/Doc';
-import { Id } from '../../new_fields/RefField';
+import { Id } from '../../new_fields/FieldSymbols';
 
 export namespace SearchUtil {
     export function Search(query: string, returnDocs: true): Promise<Doc[]>;

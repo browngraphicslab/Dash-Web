@@ -11,7 +11,7 @@ import React = require("react");
 import { Document, listSpec } from '../../../new_fields/Schema';
 import { Cast, StrCast, BoolCast, FieldValue } from '../../../new_fields/Types';
 import { Doc, DocListCast } from '../../../new_fields/Doc';
-import { Id } from '../../../new_fields/RefField';
+import { Id } from '../../../new_fields/FieldSymbols';
 import { ContextMenu } from '../ContextMenu';
 import { undoBatch } from '../../util/UndoManager';
 import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';

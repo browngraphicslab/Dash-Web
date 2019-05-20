@@ -22,12 +22,12 @@ import { throwStatement } from "babel-types";
 import { View } from "@react-pdf/renderer";
 import { DragManager } from "./DragManager";
 import { Doc, Opt, Field } from "../../new_fields/Doc";
-import { Id } from "../../new_fields/RefField";
 import { Utils } from "../northstar/utils/Utils";
 import { DocServer } from "../DocServer";
 import { CollectionFreeFormDocumentView } from "../views/nodes/CollectionFreeFormDocumentView";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import { DocumentManager } from "./DocumentManager";
+import { Id } from "../../new_fields/FieldSymbols";
 
 const SVG = "http://www.w3.org/2000/svg";
 

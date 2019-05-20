@@ -3,7 +3,7 @@ import './ParentDocumentSelector.scss';
 import { Doc } from "../../../new_fields/Doc";
 import { observer } from "mobx-react";
 import { observable, action, runInAction } from "mobx";
-import { Id } from "../../../new_fields/RefField";
+import { Id } from "../../../new_fields/FieldSymbols";
 import { SearchUtil } from "../../util/SearchUtil";
 import { CollectionDockingView } from "./CollectionDockingView";
 

@@ -8,7 +8,7 @@ import { FieldView, FieldViewProps } from "../nodes/FieldView";
 import { CollectionRenderProps, CollectionBaseView, CollectionViewType } from "./CollectionBaseView";
 import { emptyFunction } from "../../../Utils";
 import { NumCast } from "../../../new_fields/Types";
-import { Id } from "../../../new_fields/RefField";
+import { Id } from "../../../new_fields/FieldSymbols";
 
 
 @observer

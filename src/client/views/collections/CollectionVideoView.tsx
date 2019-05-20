@@ -7,7 +7,7 @@ import "./CollectionVideoView.scss";
 import { CollectionFreeFormView } from "./collectionFreeForm/CollectionFreeFormView";
 import { FieldView, FieldViewProps } from "../nodes/FieldView";
 import { emptyFunction } from "../../../Utils";
-import { Id } from "../../../new_fields/RefField";
+import { Id } from "../../../new_fields/FieldSymbols";
 import { VideoBox } from "../nodes/VideoBox";
 import { NumCast } from "../../../new_fields/Types";
 

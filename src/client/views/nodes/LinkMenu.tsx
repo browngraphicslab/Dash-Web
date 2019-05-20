@@ -7,7 +7,7 @@ import './LinkMenu.scss';
 import React = require("react");
 import { Doc, DocListCast } from "../../../new_fields/Doc";
 import { Cast, FieldValue, StrCast } from "../../../new_fields/Types";
-import { Id } from "../../../new_fields/RefField";
+import { Id } from "../../../new_fields/FieldSymbols";
 
 interface Props {
     docView: DocumentView;

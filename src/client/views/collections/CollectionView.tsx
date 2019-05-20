@@ -2,7 +2,7 @@ import { library } from '@fortawesome/fontawesome-svg-core';
 import { faProjectDiagram, faSquare, faTh, faTree, faSignature, faThList } from '@fortawesome/free-solid-svg-icons';
 import { observer } from "mobx-react";
 import * as React from 'react';
-import { Id } from '../../../new_fields/RefField';
+import { Id } from '../../../new_fields/FieldSymbols';
 import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
 import { undoBatch } from '../../util/UndoManager';
 import { ContextMenu } from "../ContextMenu";

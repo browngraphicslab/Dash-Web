@@ -4,8 +4,7 @@ import { action, computed, IReactionDisposer, reaction } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCast, HeightSym, Opt, WidthSym } from "../../../new_fields/Doc";
 import { List } from "../../../new_fields/List";
-import { Copy, ObjectField } from "../../../new_fields/ObjectField";
-import { Id } from "../../../new_fields/RefField";
+import { ObjectField } from "../../../new_fields/ObjectField";
 import { createSchema, makeInterface } from "../../../new_fields/Schema";
 import { BoolCast, Cast, FieldValue, StrCast } from "../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
@@ -29,6 +28,7 @@ import { Template } from "./../Templates";
 import { DocumentContentsView } from "./DocumentContentsView";
 import "./DocumentView.scss";
 import React = require("react");
+import { Id, Copy } from '../../../new_fields/FieldSymbols';
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 library.add(faTrash);

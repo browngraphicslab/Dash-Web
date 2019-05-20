@@ -7,7 +7,7 @@ import { Utils } from "../../Utils";
 import { Doc, DocListCast, DocListCastAsync } from "../../new_fields/Doc";
 import { listSpec } from "../../new_fields/Schema";
 import { Cast, NumCast, FieldValue, PromiseValue, StrCast } from "../../new_fields/Types";
-import { Id } from "../../new_fields/RefField";
+import { Id } from "../../new_fields/FieldSymbols";
 import { List } from "../../new_fields/List";
 import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
 

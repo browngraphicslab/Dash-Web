@@ -17,9 +17,6 @@ import { InkField, StrokeData } from "../../../../new_fields/InkField";
 import { List } from "../../../../new_fields/List";
 import { ImageField } from "../../../../new_fields/URLField";
 import { Template, Templates } from "../../Templates";
-import { Gateway } from "../../../northstar/manager/Gateway";
-import { DocServer } from "../../../DocServer";
-import { Id } from "../../../../new_fields/RefField";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;

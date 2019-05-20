@@ -6,7 +6,7 @@ import * as ReactDOM from 'react-dom';
 import Measure from "react-measure";
 import * as GoldenLayout from "../../../client/goldenLayout";
 import { Doc, Field, Opt, DocListCast } from "../../../new_fields/Doc";
-import { FieldId, Id } from "../../../new_fields/RefField";
+import { FieldId } from "../../../new_fields/RefField";
 import { listSpec } from "../../../new_fields/Schema";
 import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
 import { emptyFunction, returnTrue, Utils } from "../../../Utils";
@@ -21,6 +21,7 @@ import React = require("react");
 import { ParentDocSelector } from './ParentDocumentSelector';
 import { DocumentManager } from '../../util/DocumentManager';
 import { CollectionViewType } from './CollectionBaseView';
+import { Id } from '../../../new_fields/FieldSymbols';
 
 @observer
 export class CollectionDockingView extends React.Component<SubCollectionViewProps> {
@@ -75,7 +76,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
 
     @undoBatch
     @action
-    public CloseRightSplit(document: Doc): boolean {
+    public CloseRightSplit = (document: Doc): boolean => {
         let retVal = false;
         if (this._goldenLayout.root.contentItems[0].isRow) {
             retVal = Array.from(this._goldenLayout.root.contentItems[0].contentItems).some((child: any) => {
@@ -118,7 +119,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     //  Creates a vertical split on the right side of the docking view, and then adds the Document to that split
     //
     @action
-    public AddRightSplit(document: Doc, minimize: boolean = false) {
+    public AddRightSplit = (document: Doc, minimize: boolean = false) => {
         let docs = Cast(this.props.Document.data, listSpec(Doc));
         if (docs) {
             docs.push(document);
@@ -155,7 +156,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         return newContentItem;
     }
     @action
-    public AddTab(stack: any, document: Doc) {
+    public AddTab = (stack: any, document: Doc) => {
         let docs = Cast(this.props.Document.data, listSpec(Doc));
         if (docs) {
             docs.push(document);
@@ -412,10 +413,11 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     @observable private _panelWidth = 0;
     @observable private _panelHeight = 0;
     @observable private _document: Opt<Doc>;
-    _stack: any;
+    get _stack(): any {
+        return (this.props as any).glContainer.parent.parent;
+    }
     constructor(props: any) {
         super(props);
-        this._stack = (this.props as any).glContainer.parent.parent;
         DocServer.GetRefField(this.props.documentId).then(action((f: Opt<Field>) => this._document = f as Doc));
     }
 

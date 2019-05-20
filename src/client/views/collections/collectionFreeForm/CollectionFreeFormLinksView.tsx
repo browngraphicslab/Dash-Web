@@ -11,7 +11,7 @@ import { Doc, DocListCastAsync, DocListCast } from "../../../../new_fields/Doc";
 import { Cast, FieldValue, NumCast, StrCast } from "../../../../new_fields/Types";
 import { listSpec } from "../../../../new_fields/Schema";
 import { List } from "../../../../new_fields/List";
-import { Id } from "../../../../new_fields/RefField";
+import { Id } from "../../../../new_fields/FieldSymbols";
 
 @observer
 export class CollectionFreeFormLinksView extends React.Component<CollectionViewProps> {

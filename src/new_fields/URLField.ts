@@ -1,6 +1,7 @@
 import { Deserializable } from "../client/util/SerializationHelper";
 import { serializable, custom } from "serializr";
-import { ObjectField, Copy } from "./ObjectField";
+import { ObjectField } from "./ObjectField";
+import { ToScriptString, Copy } from "./FieldSymbols";
 
 function url() {
     return custom(
@@ -13,13 +14,17 @@ function url() {
     );
 }
 
-export class URLField extends ObjectField {
+export abstract class URLField extends ObjectField {
     @serializable(url())
     readonly url: URL;
 
     constructor(url: URL) {
         super();
         this.url = url;
+    }
+
+    [ToScriptString]() {
+        return `new ${this.constructor.name}(new URL(${this.url.href}))`;
     }
 
     [Copy](): this {

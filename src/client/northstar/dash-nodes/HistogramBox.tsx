@@ -19,7 +19,7 @@ import { HistogramLabelPrimitives } from "./HistogramLabelPrimitives";
 import { StyleConstants } from "../utils/StyleContants";
 import { Cast } from "../../../new_fields/Types";
 import { Doc, DocListCast, DocListCastAsync } from "../../../new_fields/Doc";
-import { Id } from "../../../new_fields/RefField";
+import { Id } from "../../../new_fields/FieldSymbols";
 
 
 @observer

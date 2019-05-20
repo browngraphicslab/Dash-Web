@@ -23,7 +23,7 @@ import { Opt, Field, Doc, DocListCastAsync, DocListCast } from "../../../new_fie
 import { Cast, FieldValue, NumCast, StrCast } from "../../../new_fields/Types";
 import { listSpec } from "../../../new_fields/Schema";
 import { List } from "../../../new_fields/List";
-import { Id } from "../../../new_fields/RefField";
+import { Id } from "../../../new_fields/FieldSymbols";
 import { Gateway } from "../../northstar/manager/Gateway";
 import { Docs } from "../../documents/Documents";
 import { ContextMenu } from "../ContextMenu";
