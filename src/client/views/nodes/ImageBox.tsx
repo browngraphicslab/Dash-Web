@@ -177,6 +177,11 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         if (this._curSuffix === "_m") this._mediumRetryCount++;
         if (this._curSuffix === "_l") this._largeRetryCount++;
     }
+    @action onError = () => {
+        let timeout = this._curSuffix === "_s" ? this._smallRetryCount : this._curSuffix === "_m" ? this._mediumRetryCount : this._largeRetryCount;
+        if (timeout < 10)
+            setTimeout(this.retryPath, Math.min(10000, timeout * 5));
+    }
     _curSuffix = "";
     render() {
         let transform = this.props.ScreenToLocalTransform().inverse();
@@ -191,9 +196,9 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         this._curSuffix = "";
         if (w > 20) {
             let field = this.Document[this.props.fieldKey];
-            if (w < 100) this._curSuffix = "_s";
-            else if (w < 600) this._curSuffix = "_m";
-            else this._curSuffix = "_l";
+            if (w < 100 && this._smallRetryCount < 10) this._curSuffix = "_s";
+            else if (w < 600 && this._mediumRetryCount < 10) this._curSuffix = "_m";
+            else if (this._largeRetryCount < 10) this._curSuffix = "_l";
             if (field instanceof ImageField) paths = [this.choosePath(field.url)];
             else if (field instanceof List) paths = field.filter(val => val instanceof ImageField).map(p => this.choosePath((p as ImageField).url));
         }
@@ -205,16 +210,13 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
                 <img id={id}
                     key={this._smallRetryCount + (this._mediumRetryCount << 4) + (this._largeRetryCount << 8)} // force cache to update on retrys
                     src={paths[Math.min(paths.length, this._photoIndex)]}
-                    style={{ objectFit: (this._photoIndex === 0 ? undefined : "contain") }}
+                    // style={{ objectFit: (this._photoIndex === 0 ? undefined : "contain") }}
                     width={nativeWidth}
                     ref={this._imgRef}
-                    onError={action(() => {
-                        let timeout = this._curSuffix === "_s" ? this._smallRetryCount : this._curSuffix === "_m" ? this._mediumRetryCount : this._largeRetryCount;
-                        setTimeout(this.retryPath, Math.min(10000, timeout * 5));
-                    })}
+                    onError={this.onError}
                     onLoad={this.onLoad} />
                 {paths.length > 1 ? this.dots(paths) : (null)}
-                {this.lightbox(paths)}
+                {/* {this.lightbox(paths)} */}
             </div>);
     }
 }
