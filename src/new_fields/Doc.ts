@@ -116,7 +116,6 @@ export class Doc extends RefField {
     }
 
     public [HandleUpdate](diff: any) {
-        console.log(diff);
         const set = diff.$set;
         if (set) {
             for (const key in set) {

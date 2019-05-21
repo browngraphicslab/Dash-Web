@@ -1,4 +1,4 @@
-import { action, observable } from 'mobx';
+import { action, observable, trace } from 'mobx';
 import { observer } from "mobx-react";
 import Lightbox from 'react-image-lightbox';
 import 'react-image-lightbox/style.css'; // This only needs to be imported once in your app

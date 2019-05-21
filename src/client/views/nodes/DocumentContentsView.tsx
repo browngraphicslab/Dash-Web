@@ -90,8 +90,9 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
                         Math.min(NumCast(self.props.Document.width, 0),
                             px * self.props.ScreenToLocalTransform().Scale))}px`;
                 }
-                let nativizedTemplate = template.replace(/([0-9]+)px/g, convertConstantsToNative);
-                layout = nativizedTemplate.replace("{layout}", base);
+                // let nativizedTemplate = template.replace(/([0-9]+)px/g, convertConstantsToNative);
+                // layout = nativizedTemplate.replace("{layout}", base);
+                layout = template.replace("{layout}", base);
                 base = layout;
             });
         }
