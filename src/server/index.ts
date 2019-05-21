@@ -350,6 +350,7 @@ function setField(socket: Socket, newValue: Transferable) {
     if (newValue.type === Types.Text) {
         Search.Instance.updateDocument({ id: newValue.id, data: (newValue as any).data });
         console.log("set field");
+        console.log("checking in");
     }
 }
 
