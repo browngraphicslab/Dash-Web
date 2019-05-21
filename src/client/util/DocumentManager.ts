@@ -123,16 +123,18 @@ export class DocumentManager {
             const curPage = NumCast(contextDoc.curPage, page);
             if (page !== curPage) contextDoc.curPage = page;
         }
-        docDelegate.libraryBrush = true;
         let docView = DocumentManager.Instance.getDocumentView(doc);
         if (docView) {
+            docView.props.Document.libraryBrush = true;
             docView.props.focus(docView.props.Document);
         } else {
             if (!contextDoc) {
                 const actualDoc = docDelegate ? (makeCopy ? Doc.MakeCopy(docDelegate) : docDelegate) : Doc.MakeDelegate(doc);
+                actualDoc.libraryBrush = true;
                 (dockFunc || CollectionDockingView.Instance.AddRightSplit)(actualDoc);
             } else {
                 let contextView = DocumentManager.Instance.getDocumentView(contextDoc);
+                docDelegate.libraryBrush = true;
                 if (contextView) {
                     contextDoc.panTransformType = "Ease";
                     contextView.props.focus(contextDoc);
