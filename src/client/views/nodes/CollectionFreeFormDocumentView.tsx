@@ -1,4 +1,4 @@
-import { action, computed, IReactionDisposer, reaction } from "mobx";
+import { action, computed, IReactionDisposer, reaction, trace } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCast, DocListCastAsync } from "../../../new_fields/Doc";
 import { List } from "../../../new_fields/List";
@@ -211,7 +211,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 expandedDocs = summarizedDocs ? [...summarizedDocs, ...expandedDocs] : expandedDocs;
                 // let expandedDocs = [...(subBulletDocs ? subBulletDocs : []), ...(maximizedDocs ? maximizedDocs : []), ...(summarizedDocs ? summarizedDocs : []),];
                 if (expandedDocs.length) {   // bcz: need a better way to associate behaviors with click events on widget-documents
-                    let expandedProtoDocs = expandedDocs.map(doc => Doc.GetProto(doc))
+                    let expandedProtoDocs = expandedDocs.map(doc => Doc.GetProto(doc));
                     let maxLocation = StrCast(this.props.Document.maximizeLocation, "inPlace");
                     let getDispDoc = (target: Doc) => Object.getOwnPropertyNames(target).indexOf("isPrototype") === -1 ? target : Doc.MakeDelegate(target);
                     if (altKey) {
@@ -286,7 +286,9 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                     outlineStyle: "dashed",
                     outlineWidth: BoolCast(this.props.Document.libraryBrush, false) ||
                         BoolCast(this.props.Document.protoBrush, false) ?
-                        `${1 * this.getTransform().Scale}px` : "0px",
+                        `${1 * this.getTransform().Scale}px`
+                        // "2px"
+                        : "0px",
                     opacity: zoomFade,
                     borderRadius: `${this.borderRounding()}px`,
                     transformOrigin: "left top",
