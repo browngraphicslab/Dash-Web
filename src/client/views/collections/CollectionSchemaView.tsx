@@ -115,22 +115,20 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                     height={Number(MAX_ROW_HEIGHT)}
                     GetValue={() => {
                         let field = props.Document[props.fieldKey];
-                        if (field) {
-                            //TODO Types
-                            // return field.ToScriptString();
-                            return String(field);
+                        if (Field.IsField(field)) {
+                            return Field.toScriptString(field);
                         }
                         return "";
                     }}
                     SetValue={(value: string) => {
-                        let script = CompileScript(value, { addReturn: true, params: { this: Document.name } });
+                        let script = CompileScript(value, { addReturn: true, params: { this: Doc.name } });
                         if (!script.compiled) {
                             return false;
                         }
                         return applyToDoc(props.Document, script.run);
                     }}
                     OnFillDown={async (value: string) => {
-                        let script = CompileScript(value, { addReturn: true, params: { this: Document.name } });
+                        let script = CompileScript(value, { addReturn: true, params: { this: Doc.name } });
                         if (!script.compiled) {
                             return;
                         }

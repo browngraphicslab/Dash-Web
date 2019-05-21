@@ -183,7 +183,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             return;
         }
         e.stopPropagation();
-        const coefficient = 100;
+        const coefficient = 1000;
 
         if (e.ctrlKey) {
             let deltaScale = (1 - (e.deltaY / coefficient));
