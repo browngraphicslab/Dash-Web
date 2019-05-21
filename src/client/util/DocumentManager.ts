@@ -123,30 +123,20 @@ export class DocumentManager {
             const curPage = NumCast(contextDoc.curPage, page);
             if (page !== curPage) contextDoc.curPage = page;
         }
-        let docView = DocumentManager.Instance.getDocumentView(doc);
-        if (docView) {
-            console.log("navigating to linked doc...");
-            // using makecopy as a flag for splitting linked to doc to the right...can change later if needed
-            if (makeCopy) {
-                if (!contextDoc) {
-                    const actualDoc = Doc.MakeAlias(docDelegate);
-                    actualDoc.libraryBrush = true;
-                    (dockFunc || CollectionDockingView.Instance.AddRightSplit)(actualDoc);
-                }
-            }
-            else {
-                docView.props.Document.libraryBrush = true;
-                docView.props.focus(docView.props.Document);
-            }
+        let docView: DocumentView | null;
+        // using makecopy as a flag for splitting linked to doc to the right...can change later if needed
+        if (!makeCopy && (docView = DocumentManager.Instance.getDocumentView(doc))) {
+            docView.props.Document.libraryBrush = true;
+            docView.props.focus(docView.props.Document);
         } else {
             if (!contextDoc) {
                 const actualDoc = Doc.MakeAlias(docDelegate);
-
+                actualDoc.libraryBrush = true;
                 (dockFunc || CollectionDockingView.Instance.AddRightSplit)(actualDoc);
             } else {
-                let contextView = DocumentManager.Instance.getDocumentView(contextDoc);
+                let contextView: DocumentView | null;
                 docDelegate.libraryBrush = true;
-                if (contextView) {
+                if (!makeCopy && (contextView = DocumentManager.Instance.getDocumentView(contextDoc))) {
                     contextDoc.panTransformType = "Ease";
                     contextView.props.focus(contextDoc);
                 } else {
