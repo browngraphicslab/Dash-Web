@@ -20,12 +20,15 @@ import { List } from '../new_fields/List';
 //     }
 // }
 
-const onFileLoad = async (file: any) => {
+const onFileLoad = async (file: React.ChangeEvent<HTMLInputElement>) => {
+    file.persist();
+    await Docs.initProtos();
     let imgPrev = document.getElementById("img_preview");
     if (imgPrev) {
-        let files: File[] = file.target.files;
-        if (files.length !== 0) {
+        let files: FileList | null = file.target.files;
+        if (files && files.length !== 0) {
             console.log(files[0]);
+            const name = files[0].name;
             let formData = new FormData();
             formData.append("file", files[0]);
 
@@ -37,7 +40,7 @@ const onFileLoad = async (file: any) => {
             const json = await res.json();
             json.map(async (file: any) => {
                 let path = window.location.origin + file;
-                var doc = Docs.ImageDocument(path, { nativeWidth: 200, width: 200 });
+                var doc = Docs.ImageDocument(path, { nativeWidth: 200, width: 200, title: name });
 
                 const res = await rp.get(DocServer.prepend(RouteStore.getUserDocumentId));
                 if (!res) {
