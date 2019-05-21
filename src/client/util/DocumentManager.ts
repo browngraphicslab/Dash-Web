@@ -116,13 +116,14 @@ export class DocumentManager {
 
     @undoBatch
     public jumpToDocument = async (docDelegate: Doc, makeCopy: boolean = true, dockFunc?: (doc: Doc) => void): Promise<void> => {
-        let doc = docDelegate.proto ? docDelegate.proto : docDelegate;
+        let doc = Doc.GetProto(docDelegate);
         const page = NumCast(doc.page, undefined);
         const contextDoc = await Cast(doc.annotationOn, Doc);
         if (contextDoc) {
             const curPage = NumCast(contextDoc.curPage, page);
             if (page !== curPage) contextDoc.curPage = page;
         }
+        docDelegate.libraryBrush = true;
         let docView = DocumentManager.Instance.getDocumentView(doc);
         if (docView) {
             docView.props.focus(docView.props.Document);
