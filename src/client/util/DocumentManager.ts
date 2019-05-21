@@ -116,7 +116,7 @@ export class DocumentManager {
 
     @undoBatch
     public jumpToDocument = async (docDelegate: Doc, makeCopy: boolean = true, dockFunc?: (doc: Doc) => void): Promise<void> => {
-        let doc = docDelegate.proto ? docDelegate.proto : docDelegate;
+        let doc = Doc.GetProto(docDelegate);
         const page = NumCast(doc.page, undefined);
         const contextDoc = await Cast(doc.annotationOn, Doc);
         if (contextDoc) {
@@ -130,18 +130,22 @@ export class DocumentManager {
             if (makeCopy) {
                 if (!contextDoc) {
                     const actualDoc = Doc.MakeAlias(docDelegate);
+                    actualDoc.libraryBrush = true;
                     (dockFunc || CollectionDockingView.Instance.AddRightSplit)(actualDoc);
                 }
             }
             else {
+                docView.props.Document.libraryBrush = true;
                 docView.props.focus(docView.props.Document);
             }
         } else {
             if (!contextDoc) {
                 const actualDoc = Doc.MakeAlias(docDelegate);
+
                 (dockFunc || CollectionDockingView.Instance.AddRightSplit)(actualDoc);
             } else {
                 let contextView = DocumentManager.Instance.getDocumentView(contextDoc);
+                docDelegate.libraryBrush = true;
                 if (contextView) {
                     contextDoc.panTransformType = "Ease";
                     contextView.props.focus(contextDoc);

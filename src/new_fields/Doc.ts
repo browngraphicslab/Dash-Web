@@ -194,7 +194,7 @@ export namespace Doc {
 
     // gets the document's prototype or returns the document if it is a prototype
     export function GetProto(doc: Doc) {
-        return Object.getOwnPropertyNames(doc).indexOf("isPrototype") === -1 ? doc.proto! : doc;
+        return Doc.GetT(doc, "isPrototype", "boolean", true) ? doc : doc.proto!;
     }
 
 

@@ -1,7 +1,7 @@
 import { action, observable } from 'mobx';
 import { observer } from "mobx-react";
 import 'react-image-lightbox/style.css'; // This only needs to be imported once in your app
-import { emptyFunction, returnFalse, returnZero } from '../../../Utils';
+import { emptyFunction, returnFalse, returnZero, returnTrue } from '../../../Utils';
 import { CompileScript } from "../../util/Scripting";
 import { Transform } from '../../util/Transform';
 import { EditableView } from "../EditableView";
@@ -38,6 +38,7 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
             focus: emptyFunction,
             PanelWidth: returnZero,
             PanelHeight: returnZero,
+            addDocTab: emptyFunction
         };
         let contents = <FieldView {...props} />;
         let fieldKey = Object.keys(props.Document).indexOf(props.fieldKey) !== -1 ? props.fieldKey : "(" + props.fieldKey + ")";
