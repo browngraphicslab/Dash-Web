@@ -52,7 +52,7 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
     @action public Play() {
         this.Playing = true;
         if (this.player) this.player.play();
-        if (!this._playTimer) this._playTimer = setInterval(this.updateTimecode, 1000);
+        if (!this._playTimer) this._playTimer = setInterval(this.updateTimecode, 500);
     }
 
     @action public Pause() {
@@ -70,7 +70,9 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
     }
 
     @action
-    updateTimecode = () => this.player && (this.props.Document.curPage = this.player.currentTime)
+    updateTimecode = () => {
+        this.player && (this.props.Document.curPage = this.player.currentTime);
+    }
 
     componentDidMount() {
         if (this.props.setVideoBox) this.props.setVideoBox(this);

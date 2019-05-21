@@ -39,6 +39,19 @@ export class Utils {
         document.body.removeChild(textArea);
     }
 
+    public static GetClipboardText(): string {
+        var textArea = document.createElement("textarea");
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+
+        try { document.execCommand('paste'); } catch (err) { }
+
+        const val = textArea.value;
+        document.body.removeChild(textArea);
+        return val;
+    }
+
     public static loggingEnabled: Boolean = false;
     public static logFilter: number | undefined = undefined;
     private static log(prefix: string, messageName: string, message: any, receiving: boolean) {
