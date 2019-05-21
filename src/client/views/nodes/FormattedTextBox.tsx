@@ -366,7 +366,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 style={{
                     pointerEvents: interactive ? "all" : "none",
                 }}
-                onKeyDown={this.onKeyPress}
+                // onKeyDown={this.onKeyPress}
                 onKeyPress={this.onKeyPress}
                 onFocus={this.onFocused}
                 onClick={this.onClick}
@@ -378,7 +378,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 // tfs: do we need this event handler
                 onWheel={this.onPointerWheel}
             >
-                <div className={`formattedTextBox-inner${rounded}`} style={{ pointerEvents: this.props.Document.isButton && !this.props.isSelected() ? "none" : "all" }} ref={this._proseRef} />
+                <div className={`formattedTextBox-inner${rounded}`} style={{ whiteSpace: "pre-wrap", pointerEvents: this.props.Document.isButton && !this.props.isSelected() ? "none" : "all" }} ref={this._proseRef} />
             </div>
         );
     }

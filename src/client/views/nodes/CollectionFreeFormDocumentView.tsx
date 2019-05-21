@@ -177,6 +177,9 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         } else {
             this._lastTap = Date.now();
         }
+        if (e.button === 0) {
+            e.preventDefault();  // prevents Firefox from dragging images (we want to do that ourself)
+        }
     }
     onPointerUp = (e: PointerEvent): void => {
         document.removeEventListener("pointerup", this.onPointerUp);
