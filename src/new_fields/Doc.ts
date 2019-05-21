@@ -19,12 +19,15 @@ export namespace Field {
             return field[ToScriptString]();
         }
     }
-    export function IsField(field: any): field is Field {
+    export function IsField(field: any): field is Field;
+    export function IsField(field: any, includeUndefined: true): field is Field | undefined;
+    export function IsField(field: any, includeUndefined: boolean = false): field is Field | undefined {
         return (typeof field === "string")
             || (typeof field === "number")
             || (typeof field === "boolean")
             || (field instanceof ObjectField)
-            || (field instanceof RefField);
+            || (field instanceof RefField)
+            || (includeUndefined && field === undefined);
     }
 }
 export type Field = number | string | boolean | ObjectField | RefField;
@@ -116,7 +119,6 @@ export class Doc extends RefField {
     }
 
     public [HandleUpdate](diff: any) {
-        console.log(diff);
         const set = diff.$set;
         if (set) {
             for (const key in set) {

@@ -9,6 +9,7 @@ import CursorField from "../../../../new_fields/CursorField";
 import { List } from "../../../../new_fields/List";
 import { Cast } from "../../../../new_fields/Types";
 import { listSpec } from "../../../../new_fields/Schema";
+import * as mobxUtils from 'mobx-utils';
 
 @observer
 export class CollectionFreeFormRemoteCursors extends React.Component<CollectionViewProps> {
@@ -23,7 +24,9 @@ export class CollectionFreeFormRemoteCursors extends React.Component<CollectionV
 
         let cursors = Cast(doc.cursors, listSpec(CursorField));
 
-        return (cursors || []).filter(cursor => cursor.data.metadata.id !== id);
+        const now = mobxUtils.now();
+        // const now = Date.now();
+        return (cursors || []).filter(cursor => cursor.data.metadata.id !== id && (now - cursor.data.metadata.timestamp) < 1000);
     }
 
     private crosshairs?: HTMLCanvasElement;

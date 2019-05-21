@@ -16,9 +16,7 @@ import { listSpec } from "../../../new_fields/Schema";
 import { Cast, PromiseValue, FieldValue, ListSpec } from "../../../new_fields/Types";
 import { List } from "../../../new_fields/List";
 import { DocServer } from "../../DocServer";
-import { ObjectField } from "../../../new_fields/ObjectField";
-import CursorField, { CursorPosition, CursorMetadata } from "../../../new_fields/CursorField";
-import { url } from "inspector";
+import CursorField from "../../../new_fields/CursorField";
 
 export interface CollectionViewProps extends FieldViewProps {
     addDocument: (document: Doc, allowDuplicates?: boolean) => boolean;
@@ -72,7 +70,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 if (cursors.length > 0 && (ind = cursors.findIndex(entry => entry.data.metadata.id === id)) > -1) {
                     cursors[ind].setPosition(pos);
                 } else {
-                    let entry = new CursorField({ metadata: { id: id, identifier: email }, position: pos });
+                    let entry = new CursorField({ metadata: { id: id, identifier: email, timestamp: Date.now() }, position: pos });
                     cursors.push(entry);
                 }
             }
