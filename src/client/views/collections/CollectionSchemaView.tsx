@@ -68,7 +68,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         return this.columns.map(col => {
             const ref = React.createRef<HTMLParagraphElement>();
             return {
-                Header: <p ref={ref} onPointerDown={SetupDrag(ref, () => this.onHeaderDrag(col))}>{col}</p>,
+                Header: <p ref={ref} onPointerDown={SetupDrag(ref, () => this.onHeaderDrag(col), undefined, "copy")}>{col}</p>,
                 accessor: (doc: Doc) => doc ? doc[col] : 0,
                 id: col
             };
@@ -76,6 +76,15 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     }
 
     onHeaderDrag = (columnName: string) => {
+        let dbDoc = Cast(this.props.Document.DBDoc, Doc);
+        if (dbDoc instanceof Doc) {
+            let columnDocs = DocListCast(dbDoc.data);
+            if (columnDocs) {
+                let ddoc = columnDocs.find(doc => doc.title === columnName);
+                if (ddoc)
+                    return ddoc;
+            }
+        }
         return this.props.Document;
     }
 
@@ -237,7 +246,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         csv = csv.substr(0, csv.length - 1) + "\n";
         let self = this;
         DocListCast(this.props.Document.data).map(doc => {
-            csv += self.columns.reduce((val, col) => val + (doc[col] ? doc[col]!.toString() : "") + ",", "");
+            csv += self.columns.reduce((val, col) => val + (doc[col] ? doc[col]!.toString() : "0") + ",", "");
             csv = csv.substr(0, csv.length - 1) + "\n";
         });
         csv.substring(0, csv.length - 1);
@@ -246,7 +255,8 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         if (self.props.CollectionView.props.addDocument) {
             let schemaDoc = await Docs.DBDocument("https://www.cs.brown.edu/" + dbName, { title: dbName });
             if (schemaDoc) {
-                self.props.CollectionView.props.addDocument(schemaDoc, false);
+                //self.props.CollectionView.props.addDocument(schemaDoc, false);
+                self.props.Document.DBDoc = schemaDoc;
             }
         }
     }

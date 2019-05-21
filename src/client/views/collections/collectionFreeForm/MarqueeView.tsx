@@ -98,18 +98,21 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                     let columns = ns[0].split("\t");
                     let docList: Doc[] = [];
                     let groupAttr: string | number = "";
+                    let rowProto = new Doc();
+                    rowProto.width = 200;
                     for (let i = 1; i < ns.length - 1; i++) {
                         let values = ns[i].split("\t");
                         if (values.length === 1 && columns.length > 1) {
                             groupAttr = values[0];
                             continue;
                         }
-                        let doc = new Doc();
+                        let doc = Doc.MakeDelegate(rowProto);
                         columns.forEach((col, i) => doc[columns[i]] = (values.length > i ? ((values[i].indexOf(Number(values[i]).toString()) !== -1) ? Number(values[i]) : values[i]) : undefined));
                         if (groupAttr) {
                             doc._group = groupAttr;
                         }
                         doc.title = i.toString();
+                        doc.width = 200;
                         docList.push(doc);
                     }
                     let newCol = Docs.SchemaDocument([...(groupAttr ? ["_group"] : []), ...columns.filter(c => c)], docList, { x: x, y: y, title: "droppedTable", width: 300, height: 100 });
