@@ -90,7 +90,7 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
                     style={{ width: `${textRect.width * s}px`, height: `${textRect.height * s}px` }}>
                     <FormattedTextBox fieldKey={this._textFieldKey} isOverlay={true} Document={FormattedTextBox.InputBoxOverlay.props.Document} isSelected={returnTrue} select={emptyFunction} isTopMost={true}
                         selectOnLoad={true} ContainingCollectionView={undefined} whenActiveChanged={emptyFunction} active={returnTrue}
-                        ScreenToLocalTransform={this._textXf} PanelWidth={returnZero} PanelHeight={returnZero} focus={emptyFunction} />
+                        ScreenToLocalTransform={this._textXf} PanelWidth={returnZero} PanelHeight={returnZero} focus={emptyFunction} addDocTab={emptyFunction} />
                 </div>
             </ div>;
         }

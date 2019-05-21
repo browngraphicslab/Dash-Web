@@ -20,6 +20,7 @@ export namespace SearchUtil {
     export async function GetAliasesOfDocument(doc: Doc): Promise<Doc[]> {
         const proto = await Doc.GetT(doc, "proto", Doc, true);
         const protoId = (proto || doc)[Id];
-        return Search(`{!join from=id to=proto_i}id:${protoId}`, true);
+        return Search(`proto_i:"${protoId}"`, true);
+        // return Search(`{!join from=id to=proto_i}id:${protoId}`, true);
     }
 }

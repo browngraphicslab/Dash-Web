@@ -46,7 +46,9 @@
 
     .docContainer:hover {
         .treeViewItem-openRight {
-            display: inline;
+            display: inline-block;
+            // display: inline;
+            transform: translate(0px, -3px); //TODO Fix this
         }
     }
 
