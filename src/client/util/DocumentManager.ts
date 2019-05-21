@@ -125,10 +125,20 @@ export class DocumentManager {
         }
         let docView = DocumentManager.Instance.getDocumentView(doc);
         if (docView) {
-            docView.props.focus(docView.props.Document);
+            console.log("navigating to linked doc...");
+            // using makecopy as a flag for splitting linked to doc to the right...can change later if needed
+            if (makeCopy) {
+                if (!contextDoc) {
+                    const actualDoc = Doc.MakeAlias(docDelegate);
+                    (dockFunc || CollectionDockingView.Instance.AddRightSplit)(actualDoc);
+                }
+            }
+            else {
+                docView.props.focus(docView.props.Document);
+            }
         } else {
             if (!contextDoc) {
-                const actualDoc = docDelegate ? (makeCopy ? Doc.MakeCopy(docDelegate) : docDelegate) : Doc.MakeDelegate(doc);
+                const actualDoc = Doc.MakeAlias(docDelegate);
                 (dockFunc || CollectionDockingView.Instance.AddRightSplit)(actualDoc);
             } else {
                 let contextView = DocumentManager.Instance.getDocumentView(contextDoc);
