@@ -228,6 +228,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         if (e.key === "c" || e.key === "s" || e.key === "e" || e.key === "p") {
             this._commandExecuted = true;
             e.stopPropagation();
+            e.preventDefault();
             (e as any).propagationIsStopped = true;
             let bounds = this.Bounds;
             let selected = this.marqueeSelect();
@@ -260,25 +261,26 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
 
             if (e.key === "s" || e.key === "p") {
 
-                htmlToImage.toPng(this._mainCont.current!, { width: bounds.width * zoomBasis, height: bounds.height * zoomBasis, quality: 0.2 }).then((dataUrl) => {
-                    selected.map(d => {
-                        this.props.removeDocument(d);
-                        d.x = NumCast(d.x) - bounds.left - bounds.width / 2;
-                        d.y = NumCast(d.y) - bounds.top - bounds.height / 2;
-                        d.page = -1;
-                        return d;
-                    });
-                    let summary = Docs.TextDocument({ x: bounds.left, y: bounds.top, width: 300, height: 100, backgroundColor: "yellow", title: "-summary-" });
-                    summary.proto!.thumbnail = new ImageField(new URL(dataUrl));
-                    summary.proto!.templates = new List<string>([Templates.ImageOverlay(Math.min(50, bounds.width), bounds.height * Math.min(50, bounds.width) / bounds.width, "thumbnail")]);
-                    newCollection.proto!.summaryDoc = summary;
-                    selected = [newCollection];
-                    newCollection.x = bounds.left + bounds.width;
-                    //this.props.addDocument(newCollection, false);
-                    summary.proto!.summarizedDocs = new List<Doc>(selected);
-                    summary.proto!.maximizeLocation = "inTab";  // or "inPlace", or "onRight"
-                    this.props.addLiveTextDocument(summary);
+                // htmlToImage.toPng(this._mainCont.current!, { width: bounds.width * zoomBasis, height: bounds.height * zoomBasis, quality: 0.2 }).then((dataUrl) => {
+                selected.map(d => {
+                    this.props.removeDocument(d);
+                    d.x = NumCast(d.x) - bounds.left - bounds.width / 2;
+                    d.y = NumCast(d.y) - bounds.top - bounds.height / 2;
+                    d.page = -1;
+                    return d;
                 });
+                let summary = Docs.TextDocument({ x: bounds.left, y: bounds.top, width: 300, height: 100, backgroundColor: "yellow", title: "-summary-" });
+                // summary.proto!.thumbnail = new ImageField(new URL(dataUrl));
+                // summary.proto!.templates = new List<string>([Templates.ImageOverlay(Math.min(50, bounds.width), bounds.height * Math.min(50, bounds.width) / bounds.width, "thumbnail")]);
+                newCollection.proto!.summaryDoc = summary;
+                selected = [newCollection];
+                newCollection.x = bounds.left + bounds.width;
+                //this.props.addDocument(newCollection, false);
+                summary.proto!.summarizedDocs = new List<Doc>(selected);
+                summary.proto!.maximizeLocation = "inTab";  // or "inPlace", or "onRight"
+
+                this.props.addLiveTextDocument(summary);
+                // });
             }
             else {
                 this.props.addDocument(newCollection, false);

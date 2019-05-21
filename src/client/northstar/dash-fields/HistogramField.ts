@@ -58,6 +58,6 @@ export class HistogramField extends ObjectField {
     }
 
     [ToScriptString]() {
-        return "invalid";
+        return this.toString();
     }
 }
