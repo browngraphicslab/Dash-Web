@@ -140,33 +140,50 @@ declare const ToScriptString: unique symbol;
 declare abstract class RefField {
     readonly [Id]: FieldId;
 
-    constructor(id?: FieldId);
-    protected [HandleUpdate]?(diff: any): void;
+    constructor();
+    // protected [HandleUpdate]?(diff: any): void;
 
-    abstract [ToScriptString](): string;
+    // abstract [ToScriptString](): string;
 }
 
 declare abstract class ObjectField {
     protected [OnUpdate](diff?: any): void;
     private [Parent]?: RefField | ObjectField;
-    abstract [Copy](): ObjectField;
+    // abstract [Copy](): ObjectField;
 
-    abstract [ToScriptString](): string;
+    // abstract [ToScriptString](): string;
 }
+
+declare abstract class URLField extends ObjectField {
+    readonly url: URL;
+
+    constructor(url: string);
+    constructor(url: URL);
+}
+
+declare class AudioField extends URLField { }
+declare class VideoField extends URLField { }
+declare class ImageField extends URLField { }
+declare class WebField extends URLField { }
+declare class PdfField extends URLField { }
+
 declare type FieldId = string;
 
 declare type Field = number | string | boolean | ObjectField | RefField;
 
 declare type Opt<T> = T | undefined;
 declare class Doc extends RefField {
+    constructor();
+
     [key: string]: Field | undefined;
-    [ToScriptString](): string;
+    // [ToScriptString](): string;
 }
 
 declare class ListImpl<T extends Field> extends ObjectField {
+    constructor(fields?: T[]);
     [index: number]: T | (T extends RefField ? Promise<T> : never);
-    [ToScriptString](): string;
-    [Copy](): ObjectField;
+    // [ToScriptString](): string;
+    // [Copy](): ObjectField;
 }
 
 // @ts-ignore

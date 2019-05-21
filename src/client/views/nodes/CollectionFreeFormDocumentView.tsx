@@ -1,4 +1,4 @@
-import { action, computed, IReactionDisposer, reaction } from "mobx";
+import { action, computed, IReactionDisposer, reaction, trace } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCast, DocListCastAsync } from "../../../new_fields/Doc";
 import { List } from "../../../new_fields/List";
@@ -177,6 +177,9 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         } else {
             this._lastTap = Date.now();
         }
+        if (e.button === 0) {
+            e.preventDefault();  // prevents Firefox from dragging images (we want to do that ourself)
+        }
     }
     onPointerUp = (e: PointerEvent): void => {
         document.removeEventListener("pointerup", this.onPointerUp);
@@ -189,6 +192,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         if (this._doubleTap) {
             this.props.addDocTab(this.props.Document, "inTab");
             SelectionManager.DeselectAll();
+            this.props.Document.libraryBrush = false;
         }
         let altKey = e.altKey;
         if (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD &&
@@ -207,7 +211,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 expandedDocs = summarizedDocs ? [...summarizedDocs, ...expandedDocs] : expandedDocs;
                 // let expandedDocs = [...(subBulletDocs ? subBulletDocs : []), ...(maximizedDocs ? maximizedDocs : []), ...(summarizedDocs ? summarizedDocs : []),];
                 if (expandedDocs.length) {   // bcz: need a better way to associate behaviors with click events on widget-documents
-                    let expandedProtoDocs = expandedDocs.map(doc => Doc.GetProto(doc))
+                    let expandedProtoDocs = expandedDocs.map(doc => Doc.GetProto(doc));
                     let maxLocation = StrCast(this.props.Document.maximizeLocation, "inPlace");
                     let getDispDoc = (target: Doc) => Object.getOwnPropertyNames(target).indexOf("isPrototype") === -1 ? target : Doc.MakeDelegate(target);
                     if (altKey) {
@@ -262,15 +266,15 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         let maximizedDoc = FieldValue(Cast(this.props.Document.maximizedDocs, listSpec(Doc)));
         let zoomFade = 1;
         //var zoom = doc.GetNumber(KeyStore.ZoomBasis, 1);
-        let transform = this.getTransform().scale(this.contentScaling()).inverse();
-        var [sptX, sptY] = transform.transformPoint(0, 0);
-        let [bptX, bptY] = transform.transformPoint(this.props.PanelWidth(), this.props.PanelHeight());
-        let w = bptX - sptX;
+        // let transform = this.getTransform().scale(this.contentScaling()).inverse();
+        // var [sptX, sptY] = transform.transformPoint(0, 0);
+        // let [bptX, bptY] = transform.transformPoint(this.props.PanelWidth(), this.props.PanelHeight());
+        // let w = bptX - sptX;
         //zoomFade = area < 100 || area > 800 ? Math.max(0, Math.min(1, 2 - 5 * (zoom < this.scale ? this.scale / zoom : zoom / this.scale))) : 1;
         const screenWidth = Math.min(50 * NumCast(this.props.Document.nativeWidth, 0), 1800);
         let fadeUp = .75 * screenWidth;
         let fadeDown = (maximizedDoc ? .0075 : .075) * screenWidth;
-        zoomFade = w < fadeDown  /* || w > fadeUp */ ? Math.max(0.1, Math.min(1, 2 - (w < fadeDown ? Math.sqrt(Math.sqrt(fadeDown / w)) : w / fadeUp))) : 1;
+        // zoomFade = w < fadeDown  /* || w > fadeUp */ ? Math.max(0.1, Math.min(1, 2 - (w < fadeDown ? Math.sqrt(Math.sqrt(fadeDown / w)) : w / fadeUp))) : 1;
 
         return (
             <div className="collectionFreeFormDocumentView-container" ref={this._mainCont}
@@ -282,7 +286,9 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                     outlineStyle: "dashed",
                     outlineWidth: BoolCast(this.props.Document.libraryBrush, false) ||
                         BoolCast(this.props.Document.protoBrush, false) ?
-                        `${1 * this.getTransform().Scale}px` : "0px",
+                        `${1 * this.getTransform().Scale}px`
+                        // "2px"
+                        : "0px",
                     opacity: zoomFade,
                     borderRadius: `${this.borderRounding()}px`,
                     transformOrigin: "left top",

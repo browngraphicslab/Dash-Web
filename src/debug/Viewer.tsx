@@ -20,7 +20,7 @@ function applyToDoc(doc: any, key: string | number, scriptString: string): boole
     }
     const res = script.run({ this: doc });
     if (!res.success) return false;
-    if (!Field.IsField(res.result)) return false;
+    if (!Field.IsField(res.result, true)) return false;
     doc[key] = res.result;
     return true;
 }

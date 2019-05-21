@@ -215,7 +215,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     @action
     setPan(panX: number, panY: number) {
-        this.panDisposer && clearTimeout(this.panDisposer);
         this.props.Document.panTransformType = "None";
         var scale = this.getLocalTransform().inverse().Scale;
         const newPanX = Math.min((1 - 1 / scale) * this.nativeWidth, Math.max(0, panX));
@@ -243,7 +242,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         doc.zIndex = docs.length + 1;
     }
 
-    panDisposer?: NodeJS.Timeout;
     focusDocument = (doc: Doc) => {
         const panX = this.Document.panX;
         const panY = this.Document.panY;
@@ -265,15 +263,14 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             }
         }
         SelectionManager.DeselectAll();
-        const newPanX = NumCast(doc.x) + NumCast(doc.width) / 2;
-        const newPanY = NumCast(doc.y) + NumCast(doc.height) / 2;
+        const newPanX = NumCast(doc.x) + NumCast(doc.width) / NumCast(doc.zoomBasis, 1) / 2;
+        const newPanY = NumCast(doc.y) + NumCast(doc.height) / NumCast(doc.zoomBasis, 1) / 2;
         const newState = HistoryUtil.getState();
         newState.initializers[id] = { panX: newPanX, panY: newPanY };
         HistoryUtil.pushState(newState);
         this.setPan(newPanX, newPanY);
         this.props.Document.panTransformType = "Ease";
         this.props.focus(this.props.Document);
-        this.panDisposer = setTimeout(() => this.props.Document.panTransformType = "None", 2000);  // wait 3 seconds, then reset to false
     }
 
 
@@ -305,7 +302,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         let docviews = this.childDocs.reduce((prev, doc) => {
             if (!(doc instanceof Doc)) return prev;
             var page = NumCast(doc.page, -1);
-            if (page === curPage || page === -1) {
+            if (Math.round(page) === Math.round(curPage) || page === -1) {
                 let minim = BoolCast(doc.isMinimized, false);
                 if (minim === undefined || !minim) {
                     prev.push(<CollectionFreeFormDocumentView key={doc[Id]} {...this.getDocumentViewProps(doc)} />);

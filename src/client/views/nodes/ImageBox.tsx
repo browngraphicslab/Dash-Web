@@ -1,4 +1,4 @@
-import { action, observable } from 'mobx';
+import { action, observable, trace } from 'mobx';
 import { observer } from "mobx-react";
 import Lightbox from 'react-image-lightbox';
 import 'react-image-lightbox/style.css'; // This only needs to be imported once in your app
@@ -17,6 +17,12 @@ import { ImageField } from '../../../new_fields/URLField';
 import { List } from '../../../new_fields/List';
 import { InkingControl } from '../InkingControl';
 import { Doc } from '../../../new_fields/Doc';
+import { faImage } from '@fortawesome/free-solid-svg-icons';
+import { library } from '@fortawesome/fontawesome-svg-core';
+var path = require('path');
+
+library.add(faImage);
+
 
 export const pageSchema = createSchema({
     curPage: "number"
@@ -41,7 +47,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
     onLoad = (target: any) => {
         var h = this._imgRef.current!.naturalHeight;
         var w = this._imgRef.current!.naturalWidth;
-        if (this._photoIndex === 0 && (this.props as any).id !== "isExpander") {
+        if (this._photoIndex === 0 && (this.props as any).id !== "isExpander" && (!this.Document.nativeHeight || !this.Document.nativeWidth)) {
             Doc.SetOnPrototype(this.Document, "nativeHeight", FieldValue(this.Document.nativeWidth, 0) * h / w);
             this.Document.height = FieldValue(this.Document.width, 0) * h / w;
         }
@@ -155,25 +161,61 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         );
     }
 
+    choosePath(url: URL) {
+        if (url.protocol === "data" || url.href.indexOf(window.location.origin) === -1)
+            return url.href;
+        let ext = path.extname(url.href);
+        return url.href.replace(ext, this._curSuffix + ext);
+    }
+
+    @observable _smallRetryCount = 1;
+    @observable _mediumRetryCount = 1;
+    @observable _largeRetryCount = 1;
+    @action retryPath = () => {
+        if (this._curSuffix === "_s") this._smallRetryCount++;
+        if (this._curSuffix === "_m") this._mediumRetryCount++;
+        if (this._curSuffix === "_l") this._largeRetryCount++;
+    }
+    @action onError = () => {
+        let timeout = this._curSuffix === "_s" ? this._smallRetryCount : this._curSuffix === "_m" ? this._mediumRetryCount : this._largeRetryCount;
+        if (timeout < 10)
+            setTimeout(this.retryPath, Math.min(10000, timeout * 5));
+    }
+    _curSuffix = "_m";
     render() {
-        let field = this.Document[this.props.fieldKey];
-        let paths: string[] = ["http://www.cs.brown.edu/~bcz/face.gif"];
-        if (field instanceof ImageField) paths = [field.url.href];
-        else if (field instanceof List) paths = field.filter(val => val instanceof ImageField).map(p => (p as ImageField).url.href);
-        let nativeWidth = FieldValue(this.Document.nativeWidth, (this.props.PanelWidth as any) as string ? Number((this.props.PanelWidth as any) as string) : 50);
-        let interactive = InkingControl.Instance.selectedTool ? "" : "-interactive";
+        // let transform = this.props.ScreenToLocalTransform().inverse();
+        let pw = typeof this.props.PanelWidth === "function" ? this.props.PanelWidth() : typeof this.props.PanelWidth === "number" ? (this.props.PanelWidth as any) as number : 50;
+        // var [sptX, sptY] = transform.transformPoint(0, 0);
+        // let [bptX, bptY] = transform.transformPoint(pw, this.props.PanelHeight());
+        // let w = bptX - sptX;
+
         let id = (this.props as any).id; // bcz: used to set id = "isExpander" in templates.tsx
+        let nativeWidth = FieldValue(this.Document.nativeWidth, pw);
+        let paths: string[] = ["http://www.cs.brown.edu/~bcz/noImage.png"];
+        // this._curSuffix = "";
+        // if (w > 20) {
+        let field = this.Document[this.props.fieldKey];
+        // if (w < 100 && this._smallRetryCount < 10) this._curSuffix = "_s";
+        // else if (w < 600 && this._mediumRetryCount < 10) this._curSuffix = "_m";
+        // else if (this._largeRetryCount < 10) this._curSuffix = "_l";
+        if (field instanceof ImageField) paths = [this.choosePath(field.url)];
+        else if (field instanceof List) paths = field.filter(val => val instanceof ImageField).map(p => this.choosePath((p as ImageField).url));
+        // }
+        let interactive = InkingControl.Instance.selectedTool ? "" : "-interactive";
         return (
             <div id={id} className={`imageBox-cont${interactive}`}
                 // onPointerDown={this.onPointerDown}
                 onDrop={this.onDrop} ref={this.createDropTarget} onContextMenu={this.specificContextMenu}>
-                <img id={id} src={paths[Math.min(paths.length, this._photoIndex)]}
-                    style={{ objectFit: (this._photoIndex === 0 ? undefined : "contain") }}
+                <img id={id}
+                    key={this._smallRetryCount + (this._mediumRetryCount << 4) + (this._largeRetryCount << 8)} // force cache to update on retrys
+                    src={paths[Math.min(paths.length, this._photoIndex)]}
+                    // style={{ objectFit: (this._photoIndex === 0 ? undefined : "contain") }}
                     width={nativeWidth}
                     ref={this._imgRef}
+                    onError={this.onError}
                     onLoad={this.onLoad} />
                 {paths.length > 1 ? this.dots(paths) : (null)}
-                {this.lightbox(paths)}
+                {/* {this.lightbox(paths)} */}
             </div>);
     }
 }

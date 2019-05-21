@@ -60,10 +60,8 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
                     <EditableView contents={contents} height={36} GetValue={() => {
 
                         let field = FieldValue(props.Document[props.fieldKey]);
-                        if (field) {
-                            //TODO Types
-                            return String(field);
-                            // return field.ToScriptString();
+                        if (Field.IsField(field)) {
+                            return Field.toScriptString(field);
                         }
                         return "";
                     }}
@@ -75,7 +73,7 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
                             let res = script.run();
                             if (!res.success) return false;
                             const field = res.result;
-                            if (Field.IsField(field)) {
+                            if (Field.IsField(field, true)) {
                                 props.Document[props.fieldKey] = field;
                                 return true;
                             }

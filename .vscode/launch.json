@@ -14,6 +14,15 @@
             "webRoot": "${workspaceFolder}",
         },
         {
+            "type": "firefox",
+            "request": "launch",
+            "name": "Launch Firefox against localhost",
+            "sourceMaps": "client",
+            "reAttach": true,
+            "url": "http://localhost:1050/login",
+            "webRoot": "${workspaceFolder}",
+        },
+        {
             "type": "chrome",
             "request": "launch",
             "name": "Launch Chrome against Dash server",
@@ -30,6 +39,20 @@
             "port": 9229,
             "localRoot": "${workspaceFolder}",
             "remoteRoot": "."
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Current TS File",
+            "runtimeExecutable": "npx",
+            "runtimeArgs": [
+                "ts-node-dev",
+                "--nolazy",
+                "--inspect",
+                "--",
+                "${relativeFile}"
+            ],
+            "port": 9229
         },
         {
             "type": "node",
@@ -65,15 +88,5 @@
             "internalConsoleOptions": "openOnSessionStart",
             "protocol": "inspector"
         },
-        {
-            "type": "node",
-            "request": "launch",
-            "name": "Launch via NPM",
-            "runtimeExecutable": "npm",
-            "runtimeArgs": [
-                "start"
-            ],
-            "port": 9229
-        }
     ]
 }

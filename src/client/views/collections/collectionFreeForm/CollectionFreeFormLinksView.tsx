@@ -32,8 +32,8 @@ export class CollectionFreeFormLinksView extends React.Component<CollectionViewP
                         let srcTarg = srcDoc;
                         let x1 = NumCast(srcDoc.x);
                         let x2 = NumCast(dstDoc.x);
-                        let x1w = NumCast(srcDoc.width, -1);
-                        let x2w = NumCast(dstDoc.width, -1);
+                        let x1w = NumCast(srcDoc.width, -1) / NumCast(srcDoc.zoomBasis, 1);
+                        let x2w = NumCast(dstDoc.width, -1) / NumCast(srcDoc.zoomBasis, 1);
                         if (x1w < 0 || x2w < 0 || i === j) { }
                         else {
                             let findBrush = (field: (Doc | Promise<Doc>)[]) => field.findIndex(brush => {
@@ -60,12 +60,12 @@ export class CollectionFreeFormLinksView extends React.Component<CollectionViewP
                                     }
                                 };
                             }
+                            if (dstTarg.brushingDocs === undefined) dstTarg.brushingDocs = new List<Doc>();
+                            if (srcTarg.brushingDocs === undefined) srcTarg.brushingDocs = new List<Doc>();
                             let dstBrushDocs = Cast(dstTarg.brushingDocs, listSpec(Doc), []);
                             let srcBrushDocs = Cast(srcTarg.brushingDocs, listSpec(Doc), []);
-                            if (dstBrushDocs === undefined) dstTarg.brushingDocs = dstBrushDocs = new List<Doc>();
-                            else brushAction(dstBrushDocs);
-                            if (srcBrushDocs === undefined) srcTarg.brushingDocs = srcBrushDocs = new List<Doc>();
-                            else brushAction(srcBrushDocs);
+                            brushAction(dstBrushDocs);
+                            brushAction(srcBrushDocs);
                         }
                     });
                 });

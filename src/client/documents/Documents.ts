@@ -33,7 +33,6 @@ import { DocServer } from "../DocServer";
 import { StrokeData, InkField } from "../../new_fields/InkField";
 import { dropActionType } from "../util/DragManager";
 import { DateField } from "../../new_fields/DateField";
-import { schema } from "prosemirror-schema-basic";
 import { UndoManager } from "../util/UndoManager";
 
 export interface DocumentOptions {

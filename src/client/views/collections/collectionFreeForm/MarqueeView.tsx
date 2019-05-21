@@ -1,5 +1,5 @@
 import * as htmlToImage from "html-to-image";
-import { action, computed, observable } from "mobx";
+import { action, computed, observable, trace } from "mobx";
 import { observer } from "mobx-react";
 import { Docs } from "../../../documents/Documents";
 import { SelectionManager } from "../../../util/SelectionManager";
@@ -98,18 +98,21 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                     let columns = ns[0].split("\t");
                     let docList: Doc[] = [];
                     let groupAttr: string | number = "";
+                    let rowProto = new Doc();
+                    rowProto.width = 200;
                     for (let i = 1; i < ns.length - 1; i++) {
                         let values = ns[i].split("\t");
                         if (values.length === 1 && columns.length > 1) {
                             groupAttr = values[0];
                             continue;
                         }
-                        let doc = new Doc();
+                        let doc = Doc.MakeDelegate(rowProto);
                         columns.forEach((col, i) => doc[columns[i]] = (values.length > i ? ((values[i].indexOf(Number(values[i]).toString()) !== -1) ? Number(values[i]) : values[i]) : undefined));
                         if (groupAttr) {
                             doc._group = groupAttr;
                         }
                         doc.title = i.toString();
+                        doc.width = 200;
                         docList.push(doc);
                     }
                     let newCol = Docs.SchemaDocument([...(groupAttr ? ["_group"] : []), ...columns.filter(c => c)], docList, { x: x, y: y, title: "droppedTable", width: 300, height: 100 });
@@ -135,7 +138,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             document.addEventListener("pointerup", this.onPointerUp, true);
             document.addEventListener("keydown", this.marqueeCommand, true);
             if (e.altKey) {
-                e.stopPropagation();
+                //e.stopPropagation(); // bcz: removed so that you can alt-click on button in a collection to switch link following behaviors.
                 e.preventDefault();
             }
             // bcz: do we need this?   it kills the context menu on the main collection if !altKey
@@ -225,6 +228,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         if (e.key === "c" || e.key === "s" || e.key === "e" || e.key === "p") {
             this._commandExecuted = true;
             e.stopPropagation();
+            e.preventDefault();
             (e as any).propagationIsStopped = true;
             let bounds = this.Bounds;
             let selected = this.marqueeSelect();
@@ -257,25 +261,26 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
 
             if (e.key === "s" || e.key === "p") {
 
-                htmlToImage.toPng(this._mainCont.current!, { width: bounds.width * zoomBasis, height: bounds.height * zoomBasis, quality: 1 }).then((dataUrl) => {
-                    selected.map(d => {
-                        this.props.removeDocument(d);
-                        d.x = NumCast(d.x) - bounds.left - bounds.width / 2;
-                        d.y = NumCast(d.y) - bounds.top - bounds.height / 2;
-                        d.page = -1;
-                        return d;
-                    });
-                    let summary = Docs.TextDocument({ x: bounds.left, y: bounds.top, width: 300, height: 100, backgroundColor: "yellow", title: "-summary-" });
-                    summary.proto!.thumbnail = new ImageField(new URL(dataUrl));
-                    summary.proto!.templates = new List<string>([Templates.ImageOverlay(Math.min(50, bounds.width), bounds.height * Math.min(50, bounds.width) / bounds.width, "thumbnail")]);
-                    newCollection.proto!.summaryDoc = summary;
-                    selected = [newCollection];
-                    newCollection.x = bounds.left + bounds.width;
-                    //this.props.addDocument(newCollection, false);
-                    summary.proto!.summarizedDocs = new List<Doc>(selected);
-                    summary.proto!.maximizeLocation = "inTab";  // or "inPlace", or "onRight"
-                    this.props.addLiveTextDocument(summary);
+                // htmlToImage.toPng(this._mainCont.current!, { width: bounds.width * zoomBasis, height: bounds.height * zoomBasis, quality: 0.2 }).then((dataUrl) => {
+                selected.map(d => {
+                    this.props.removeDocument(d);
+                    d.x = NumCast(d.x) - bounds.left - bounds.width / 2;
+                    d.y = NumCast(d.y) - bounds.top - bounds.height / 2;
+                    d.page = -1;
+                    return d;
                 });
+                let summary = Docs.TextDocument({ x: bounds.left, y: bounds.top, width: 300, height: 100, backgroundColor: "yellow", title: "-summary-" });
+                // summary.proto!.thumbnail = new ImageField(new URL(dataUrl));
+                // summary.proto!.templates = new List<string>([Templates.ImageOverlay(Math.min(50, bounds.width), bounds.height * Math.min(50, bounds.width) / bounds.width, "thumbnail")]);
+                newCollection.proto!.summaryDoc = summary;
+                selected = [newCollection];
+                newCollection.x = bounds.left + bounds.width;
+                //this.props.addDocument(newCollection, false);
+                summary.proto!.summarizedDocs = new List<Doc>(selected);
+                summary.proto!.maximizeLocation = "inTab";  // or "inPlace", or "onRight"
+
+                this.props.addLiveTextDocument(summary);
+                // });
             }
             else {
                 this.props.addDocument(newCollection, false);
@@ -344,10 +349,10 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     }
 
     render() {
-        let p = this.props.getContainerTransform().transformPoint(this._downX < this._lastX ? this._downX : this._lastX, this._downY < this._lastY ? this._downY : this._lastY);
+        let p: [number, number] = this._visible ? this.props.getContainerTransform().transformPoint(this._downX < this._lastX ? this._downX : this._lastX, this._downY < this._lastY ? this._downY : this._lastY) : [0, 0];
         return <div className="marqueeView" style={{ borderRadius: "inherit" }} onClick={this.onClick} onPointerDown={this.onPointerDown}>
             <div style={{ position: "relative", transform: `translate(${p[0]}px, ${p[1]}px)` }} >
-                {!this._visible ? null : this.marqueeDiv}
+                {this._visible ? this.marqueeDiv : null}
                 <div ref={this._mainCont} style={{ transform: `translate(${-p[0]}px, ${-p[1]}px)` }} >
                     {this.props.children}
                 </div>

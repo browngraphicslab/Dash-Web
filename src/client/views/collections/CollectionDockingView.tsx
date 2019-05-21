@@ -332,7 +332,8 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                     let counter: any = this.htmlToElement(`<span class="messageCounter">0</div>`);
                     tab.element.append(counter);
                     let upDiv = document.createElement("span");
-                    ReactDOM.render(<ParentDocSelector Document={doc} />, upDiv);
+                    const stack = tab.contentItem.parent;
+                    ReactDOM.render(<ParentDocSelector Document={doc} addDocTab={(doc, location) => CollectionDockingView.Instance.AddTab(stack, doc)} />, upDiv);
                     tab.reactComponents = [upDiv];
                     tab.element.append(upDiv);
                     counter.DashDocId = tab.contentItem.config.props.documentId;
@@ -434,7 +435,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         if (this._mainCont.current && this._mainCont.current.children) {
             let { scale, translateX, translateY } = Utils.GetScreenTransform(this._mainCont.current.children[0].firstChild as HTMLElement);
             scale = Utils.GetScreenTransform(this._mainCont.current).scale;
-            return CollectionDockingView.Instance.props.ScreenToLocalTransform().translate(-translateX, -translateY).scale(1 / scale);
+            return CollectionDockingView.Instance.props.ScreenToLocalTransform().translate(-translateX, -translateY).scale(1 / this.contentScaling() / scale);
         }
         return Transform.Identity();
     }
