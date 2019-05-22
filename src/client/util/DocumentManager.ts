@@ -115,7 +115,7 @@ export class DocumentManager {
     }
 
     @undoBatch
-    public jumpToDocument = async (docDelegate: Doc, makeCopy: boolean = true, dockFunc?: (doc: Doc) => void): Promise<void> => {
+    public jumpToDocument = async (docDelegate: Doc, forceDockFunc: boolean = false, dockFunc?: (doc: Doc) => void): Promise<void> => {
         let doc = Doc.GetProto(docDelegate);
         const page = NumCast(doc.page, undefined);
         const contextDoc = await Cast(doc.annotationOn, Doc);
@@ -124,8 +124,8 @@ export class DocumentManager {
             if (page !== curPage) contextDoc.curPage = page;
         }
         let docView: DocumentView | null;
-        // using makecopy as a flag for splitting linked to doc to the right...can change later if needed
-        if (!makeCopy && (docView = DocumentManager.Instance.getDocumentView(doc))) {
+        // using forceDockFunc as a flag for splitting linked to doc to the right...can change later if needed
+        if (!forceDockFunc && (docView = DocumentManager.Instance.getDocumentView(doc))) {
             docView.props.Document.libraryBrush = true;
             docView.props.focus(docView.props.Document);
         } else {
@@ -136,7 +136,7 @@ export class DocumentManager {
             } else {
                 let contextView: DocumentView | null;
                 docDelegate.libraryBrush = true;
-                if (!makeCopy && (contextView = DocumentManager.Instance.getDocumentView(contextDoc))) {
+                if (!forceDockFunc && (contextView = DocumentManager.Instance.getDocumentView(contextDoc))) {
                     contextDoc.panTransformType = "Ease";
                     contextView.props.focus(contextDoc);
                 } else {
