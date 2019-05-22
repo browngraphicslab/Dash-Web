@@ -21,6 +21,7 @@ import { DocumentManager } from '../util/DocumentManager';
 import { SetupDrag } from '../util/DragManager';
 import { Docs } from '../documents/Documents';
 import { RouteStore } from '../../server/RouteStore';
+import { NumCast } from '../../new_fields/Types';
 
 library.add(faSearch);
 library.add(faObjectGroup);
@@ -143,18 +144,21 @@ export class SearchBox extends React.Component {
         });
         let x = 0;
         let y = 0;
+        let maxy = 300;
         for (const doc of docs) {
             doc.x = x;
             doc.y = y;
             doc.width = 200;
-            doc.height = 200;
+            doc.height = 200 * NumCast(doc.nativeHeight) / NumCast(doc.nativeWidth, 1);
+            maxy = Math.max(doc.height, maxy);
             x += 250;
             if (x > 1000) {
+                maxy = 300;
                 x = 0;
-                y += 250;
+                y += maxy + 25;
             }
         }
-        return Docs.FreeformDocument(docs, { width: 400, height: 400, panX: 175, panY: 175, title: `Search Docs: "${this.searchString}"` });
+        return Docs.FreeformDocument(docs, { width: 400, height: 400, panX: 175, panY: 175, backgroundColor: "grey", title: `Search Docs: "${this.searchString}"` });
     }
 
     // Useful queries:

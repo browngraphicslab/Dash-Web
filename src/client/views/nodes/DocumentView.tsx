@@ -234,12 +234,14 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     makeButton = (e: React.MouseEvent): void => {
         let doc = this.props.Document.proto ? this.props.Document.proto : this.props.Document;
         doc.isButton = !BoolCast(doc.isButton, false);
-        if (doc.isButton && !doc.nativeWidth) {
-            doc.nativeWidth = this.props.Document[WidthSym]();
-            doc.nativeHeight = this.props.Document[HeightSym]();
-        } else {
+        if (StrCast(doc.layout).indexOf("Formatted") !== -1) { // only need to freeze the dimensions of text boxes since they don't have a native width and height naturally
+            if (doc.isButton && !doc.nativeWidth) {
+                doc.nativeWidth = this.props.Document[WidthSym]();
+                doc.nativeHeight = this.props.Document[HeightSym]();
+            } else {
 
-            doc.nativeWidth = doc.nativeHeight = undefined;
+                doc.nativeWidth = doc.nativeHeight = undefined;
+            }
         }
     }
     fullScreenClicked = (e: React.MouseEvent): void => {

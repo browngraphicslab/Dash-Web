@@ -47,7 +47,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
     onLoad = (target: any) => {
         var h = this._imgRef.current!.naturalHeight;
         var w = this._imgRef.current!.naturalWidth;
-        if (this._photoIndex === 0 && (this.props as any).id !== "isExpander" && (!this.Document.nativeHeight || !this.Document.nativeWidth)) {
+        if (this._photoIndex === 0 && (this.props as any).id !== "isExpander" && (!this.Document.nativeWidth || !this.Document.nativeHeight || Math.abs(this.Document.nativeWidth / this.Document.nativeHeight - w / h) > 0.05)) {
             Doc.SetOnPrototype(this.Document, "nativeHeight", FieldValue(this.Document.nativeWidth, 0) * h / w);
             this.Document.height = FieldValue(this.Document.width, 0) * h / w;
         }
@@ -165,8 +165,10 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
     }
 
     choosePath(url: URL) {
-        if (url.protocol === "data" || url.href.indexOf(window.location.origin) === -1)
+        const lower = url.href.toLowerCase();
+        if (url.protocol === "data" || url.href.indexOf(window.location.origin) === -1 || !(lower.endsWith(".png") || lower.endsWith(".jpg") || lower.endsWith(".jpeg"))) {
             return url.href;
+        }
         let ext = path.extname(url.href);
         return url.href.replace(ext, this._curSuffix + ext);
     }

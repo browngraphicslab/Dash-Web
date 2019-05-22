@@ -153,6 +153,10 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
         @undoBatch
         @action
         protected onDrop(e: React.DragEvent, options: DocumentOptions): void {
+            if (e.ctrlKey) {
+                e.stopPropagation(); // bcz: this is a hack to stop propagation when dropping an image on a text document with shift+ctrl
+                return;
+            }
             let html = e.dataTransfer.getData("text/html");
             let text = e.dataTransfer.getData("text/plain");
 

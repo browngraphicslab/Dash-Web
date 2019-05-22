@@ -77,7 +77,9 @@ export namespace DocUtils {
             linkDoc.proto!.linkTags = "Default";
 
             linkDoc.proto!.linkedTo = target;
+            linkDoc.proto!.linkedToPage = target.curPage;
             linkDoc.proto!.linkedFrom = source;
+            linkDoc.proto!.linkedFromPage = source.curPage;
 
             let linkedFrom = Cast(protoTarg.linkedFromDocs, listSpec(Doc));
             if (!linkedFrom) {

@@ -88,10 +88,14 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
         if (vref) {
             vref.onfullscreenchange = action((e) => this._fullScreen = vref.webkitDisplayingFullscreen);
             if (this._reactionDisposer) this._reactionDisposer();
-            this._reactionDisposer = reaction(() => this.props.Document.curPage, () =>
-                vref.currentTime = NumCast(this.props.Document.curPage, 0), { fireImmediately: true });
+            this._reactionDisposer = reaction(() => this.props.Document.curPage, () => {
+                if (!this.Playing) {
+                    vref.currentTime = NumCast(this.props.Document.curPage, 0);
+                }
+            }, { fireImmediately: true });
         }
     }
+
     videoContent(path: string) {
         let style = "videoBox-cont" + (this._fullScreen ? "-fullScreen" : "");
         return <video className={`${style}`} ref={this.setVideoRef} onPointerDown={this.onPointerDown}>

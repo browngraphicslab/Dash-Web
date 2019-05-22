@@ -115,11 +115,11 @@ export class DocumentManager {
     }
 
     @undoBatch
-    public jumpToDocument = async (docDelegate: Doc, forceDockFunc: boolean = false, dockFunc?: (doc: Doc) => void): Promise<void> => {
+    public jumpToDocument = async (docDelegate: Doc, forceDockFunc: boolean = false, dockFunc?: (doc: Doc) => void, linkPage?: number): Promise<void> => {
         let doc = Doc.GetProto(docDelegate);
-        const page = NumCast(doc.page, undefined);
         const contextDoc = await Cast(doc.annotationOn, Doc);
         if (contextDoc) {
+            const page = NumCast(doc.page, linkPage || 0);
             const curPage = NumCast(contextDoc.curPage, page);
             if (page !== curPage) contextDoc.curPage = page;
         }
@@ -127,11 +127,13 @@ export class DocumentManager {
         // using forceDockFunc as a flag for splitting linked to doc to the right...can change later if needed
         if (!forceDockFunc && (docView = DocumentManager.Instance.getDocumentView(doc))) {
             docView.props.Document.libraryBrush = true;
+            if (linkPage !== undefined) docView.props.Document.curPage = linkPage;
             docView.props.focus(docView.props.Document);
         } else {
             if (!contextDoc) {
                 const actualDoc = Doc.MakeAlias(docDelegate);
                 actualDoc.libraryBrush = true;
+                if (linkPage !== undefined) actualDoc.curPage = linkPage;
                 (dockFunc || CollectionDockingView.Instance.AddRightSplit)(actualDoc);
             } else {
                 let contextView: DocumentView | null;

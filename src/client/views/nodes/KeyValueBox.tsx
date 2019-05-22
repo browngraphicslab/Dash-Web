@@ -78,7 +78,7 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
 
         let rows: JSX.Element[] = [];
         let i = 0;
-        for (let key in ids) {
+        for (let key of Object.keys(ids).sort()) {
             rows.push(<KeyValuePair doc={realDoc} keyWidth={100 - this.splitPercentage} rowStyle={"keyValueBox-" + (i++ % 2 ? "oddRow" : "evenRow")} key={key} keyName={key} />);
         }
         return rows;

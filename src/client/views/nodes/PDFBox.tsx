@@ -23,6 +23,7 @@ import { pageSchema } from "./ImageBox";
 import "./PDFBox.scss";
 var path = require('path');
 import React = require("react");
+import { ContextMenu } from "../ContextMenu";
 
 /** ALSO LOOK AT: Annotation.tsx, Sticky.tsx
  * This method renders PDF and puts all kinds of functionalities such as annotation, highlighting, 
@@ -357,7 +358,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     @computed
     get imageProxyRenderer() {
         let thumbField = this.props.Document.thumbnail;
-        if (thumbField && this._renderAsSvg) {
+        if (thumbField && this._renderAsSvg && NumCast(this.props.Document.thumbnailPage, 0) === this.Document.curPage) {
 
             // let transform = this.props.ScreenToLocalTransform().inverse();
             let pw = typeof this.props.PanelWidth === "function" ? this.props.PanelWidth() : typeof this.props.PanelWidth === "number" ? (this.props.PanelWidth as any) as number : 50;
@@ -380,10 +381,21 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     }
     @action onKeyDown = (e: React.KeyboardEvent) => e.key === "Alt" && (this._alt = true);
     @action onKeyUp = (e: React.KeyboardEvent) => e.key === "Alt" && (this._alt = false);
+    onContextMenu = (e: React.MouseEvent): void => {
+        let field = Cast(this.Document[this.props.fieldKey], PdfField);
+        if (field) {
+            let url = field.url.href;
+            ContextMenu.Instance.addItem({
+                description: "Copy path", event: () => {
+                    Utils.CopyText(url);
+                }, icon: "expand-arrows-alt"
+            });
+        }
+    }
     render() {
         let classname = "pdfBox-cont" + (this.props.isSelected() && !InkingControl.Instance.selectedTool && !this._alt ? "-interactive" : "");
         return (
-            <div className={classname} tabIndex={0} ref={this._mainDiv} onPointerDown={this.onPointerDown} onKeyDown={this.onKeyDown} onKeyUp={this.onKeyUp} >
+            <div className={classname} tabIndex={0} ref={this._mainDiv} onPointerDown={this.onPointerDown} onKeyDown={this.onKeyDown} onKeyUp={this.onKeyUp} onContextMenu={this.onContextMenu} >
                 {this.pdfRenderer}
             </div >
         );
