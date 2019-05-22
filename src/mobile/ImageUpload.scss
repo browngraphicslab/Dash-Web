@@ -1,7 +1,13 @@
+@import "../client/views/globalCssVariables.scss";
+
 .imgupload_cont {
-    height: 100vh;
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+    align-items: center;
     width: 100vw;
-    align-content: center;
+    height: 100vh;
+
     .button_file {
         text-align: center;
         height: 50%;
@@ -9,5 +15,16 @@
         background-color: paleturquoise;
         color: grey;
         font-size: 3em;
+    }
+
+    .upload_label {
+        width: 80vw;
+        height: 40vh;
+        background: $dark-color;
+        font-size: 10vw;
+        font-family: $sans-serif;
+        text-align: center;
+        padding-top: 20vh;
+        color: white;
     }
 }

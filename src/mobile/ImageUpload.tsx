@@ -71,6 +71,7 @@ const onFileLoad = async (file: React.ChangeEvent<HTMLInputElement>) => {
 ReactDOM.render((
     <div className="imgupload_cont">
         {/* <button className = "button_file"  = {onPointerDown}> Open Image </button> */}
+        <label htmlFor="input_image_file" className="upload_label">Upload an Image</label>
         <input type="file" accept="image/*" onChange={onFileLoad} className="input_file" id="input_image_file"></input>
         <img id="img_preview" src=""></img>
         <div id="message" />

@@ -1,5 +1,5 @@
 import { IconName, library } from '@fortawesome/fontawesome-svg-core';
-import { faFilePdf, faFilm, faFont, faGlobeAsia, faImage, faMusic, faObjectGroup, faPenNib, faRedoAlt, faTable, faTree, faUndoAlt } from '@fortawesome/free-solid-svg-icons';
+import { faFilePdf, faFilm, faFont, faGlobeAsia, faImage, faMusic, faObjectGroup, faPenNib, faRedoAlt, faTable, faTree, faUndoAlt, faBell } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, configure, observable, runInAction, trace } from 'mobx';
 import { observer } from 'mobx-react';
@@ -25,7 +25,7 @@ import { DocumentView } from './nodes/DocumentView';
 import { PreviewCursor } from './PreviewCursor';
 import { SearchBox } from './SearchBox';
 import { SelectionManager } from '../util/SelectionManager';
-import { FieldResult, Field, Doc, Opt } from '../../new_fields/Doc';
+import { FieldResult, Field, Doc, Opt, DocListCast } from '../../new_fields/Doc';
 import { Cast, FieldValue, StrCast } from '../../new_fields/Types';
 import { DocServer } from '../DocServer';
 import { listSpec } from '../../new_fields/Schema';
@@ -137,11 +137,13 @@ export class MainView extends React.Component {
             // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
             setTimeout(() => {
                 this.openWorkspace(mainDoc);
-                let pendingDocument = Docs.SchemaDocument(["title"], [], { title: "New Mobile Uploads" });
-                mainDoc.optionalRightCollection = pendingDocument;
+                // let pendingDocument = Docs.StackingDocument([], { title: "New Mobile Uploads" });
+                // mainDoc.optionalRightCollection = pendingDocument;
             }, 0);
         }
     }
+
+    @observable _notifsCol: Opt<Doc>;
 
     @action
     openWorkspace = async (doc: Doc, fromHistory = false) => {
@@ -153,12 +155,19 @@ export class MainView extends React.Component {
         setTimeout(async () => {
             if (col) {
                 const l = Cast(col.data, listSpec(Doc));
-                if (l && l.length > 0) {
-                    CollectionDockingView.Instance.AddRightSplit(col);
+                if (l) {
+                    runInAction(() => this._notifsCol = col);
                 }
             }
         }, 100);
     }
+
+    openNotifsCol = () => {
+        if (this._notifsCol) {
+            CollectionDockingView.Instance.AddRightSplit(this._notifsCol);
+        }
+    }
+
     @action
     onResize = (r: any) => {
         this.pwidth = r.offset.width;
@@ -254,11 +263,23 @@ export class MainView extends React.Component {
     /* @TODO this should really be moved into a moveable toolbar component, but for now let's put it here to meet the deadline */
     @computed
     get miscButtons() {
+        const length = this._notifsCol ? DocListCast(this._notifsCol.data).length : 0;
+        const notifsRef = React.createRef<HTMLDivElement>();
+        const dragNotifs = action(() => this._notifsCol!);
         let logoutRef = React.createRef<HTMLDivElement>();
 
         return [
             <button className="clear-db-button" key="clear-db" onClick={e => e.shiftKey && e.altKey && DocServer.DeleteDatabase()}>Clear Database</button>,
             <div id="toolbar" key="toolbar">
+                <div ref={notifsRef}>
+                    <button className="toolbar-button round-button" title="Notifs"
+                        onClick={this.openNotifsCol} onPointerDown={this._notifsCol ? SetupDrag(notifsRef, dragNotifs) : emptyFunction}>
+                        <FontAwesomeIcon icon={faBell} size="sm" />
+                    </button>
+                    <div className="main-notifs-badge" style={length > 0 ? { "display": "initial" } : { "display": "none" }}>
+                        {length}
+                    </div>
+                </div>
                 <button className="toolbar-button round-button" title="Search" onClick={this.toggleSearch}><FontAwesomeIcon icon="search" size="sm" /></button>
                 <button className="toolbar-button round-button" title="Undo" onClick={() => UndoManager.Undo()}><FontAwesomeIcon icon="undo-alt" size="sm" /></button>
                 <button className="toolbar-button round-button" title="Redo" onClick={() => UndoManager.Redo()}><FontAwesomeIcon icon="redo-alt" size="sm" /></button>

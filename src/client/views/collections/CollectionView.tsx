@@ -12,6 +12,7 @@ import { CollectionDockingView } from "./CollectionDockingView";
 import { CollectionSchemaView } from "./CollectionSchemaView";
 import { CollectionTreeView } from "./CollectionTreeView";
 import { CollectionFreeFormView } from './collectionFreeForm/CollectionFreeFormView';
+import { CollectionStackingView } from './CollectionStackingView';
 export const COLLECTION_BORDER_WIDTH = 2;
 
 library.add(faTh);
@@ -31,6 +32,7 @@ export class CollectionView extends React.Component<FieldViewProps> {
             case CollectionViewType.Schema: return (<CollectionSchemaView {...props} CollectionView={this} />);
             case CollectionViewType.Docking: return (<CollectionDockingView {...props} CollectionView={this} />);
             case CollectionViewType.Tree: return (<CollectionTreeView {...props} CollectionView={this} />);
+            case CollectionViewType.Stacking: return (<CollectionStackingView {...props} CollectionView={this} />);
             case CollectionViewType.Freeform:
             default:
                 return (<CollectionFreeFormView {...props} CollectionView={this} />);
@@ -48,6 +50,7 @@ export class CollectionView extends React.Component<FieldViewProps> {
             }
             ContextMenu.Instance.addItem({ description: "Schema", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Schema), icon: "th-list" });
             ContextMenu.Instance.addItem({ description: "Treeview", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Tree), icon: "tree" });
+            ContextMenu.Instance.addItem({ description: "Stacking", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Stacking), icon: "th-list" });
         }
     }
 

@@ -292,6 +292,9 @@ export namespace Docs {
     export function TreeDocument(documents: Array<Doc>, options: DocumentOptions) {
         return CreateInstance(collProto, new List(documents), { schemaColumns: new List(["title"]), ...options, viewType: CollectionViewType.Tree });
     }
+    export function StackingDocument(documents: Array<Doc>, options: DocumentOptions) {
+        return CreateInstance(collProto, new List(documents), { schemaColumns: new List(["title"]), ...options, viewType: CollectionViewType.Stacking });
+    }
     export function DockDocument(documents: Array<Doc>, config: string, options: DocumentOptions, id?: string) {
         return CreateInstance(collProto, new List(documents), { ...options, viewType: CollectionViewType.Docking, dockingConfig: config }, id);
     }
