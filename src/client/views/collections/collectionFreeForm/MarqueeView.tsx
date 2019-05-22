@@ -17,6 +17,9 @@ import { InkField, StrokeData } from "../../../../new_fields/InkField";
 import { List } from "../../../../new_fields/List";
 import { ImageField } from "../../../../new_fields/URLField";
 import { Template, Templates } from "../../Templates";
+import { SearchBox } from "../../SearchBox";
+import { DocServer } from "../../../DocServer";
+import { Id } from "../../../../new_fields/FieldSymbols";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;
@@ -229,7 +232,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             this.cleanupInteractions(false);
             e.stopPropagation();
         }
-        if (e.key === "c" || e.key === "s" || e.key === "e" || e.key === "p") {
+        if (e.key === "c" || e.key === "s" || e.key === "S" || e.key === "e" || e.key === "p") {
             this._commandExecuted = true;
             e.stopPropagation();
             e.preventDefault();
@@ -259,13 +262,11 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 width: bounds.width * zoomBasis,
                 height: bounds.height * zoomBasis,
                 ink: inkData ? new InkField(this.marqueeInkSelect(inkData)) : undefined,
-                title: e.key === "s" ? "-summary-" : e.key === "p" ? "-summary-" : "a nested collection",
+                title: e.key === "s" || e.key === "S" ? "-summary-" : e.key === "p" ? "-summary-" : "a nested collection",
             });
             this.marqueeInkDelete(inkData);
 
-            if (e.key === "s" || e.key === "p") {
-
-                // htmlToImage.toPng(this._mainCont.current!, { width: bounds.width * zoomBasis, height: bounds.height * zoomBasis, quality: 0.2 }).then((dataUrl) => {
+            if (e.key === "s") {
                 selected.map(d => {
                     this.props.removeDocument(d);
                     d.x = NumCast(d.x) - bounds.left - bounds.width / 2;
@@ -274,17 +275,41 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                     return d;
                 });
                 let summary = Docs.TextDocument({ x: bounds.left, y: bounds.top, width: 300, height: 100, backgroundColor: "#e2ad32" /* yellow */, title: "-summary-" });
-                // summary.proto!.thumbnail = new ImageField(new URL(dataUrl));
-                // summary.proto!.templates = new List<string>([Templates.ImageOverlay(Math.min(50, bounds.width), bounds.height * Math.min(50, bounds.width) / bounds.width, "thumbnail")]);
                 newCollection.proto!.summaryDoc = summary;
                 selected = [newCollection];
                 newCollection.x = bounds.left + bounds.width;
-                //this.props.addDocument(newCollection, false);
                 summary.proto!.summarizedDocs = new List<Doc>(selected);
                 summary.proto!.maximizeLocation = "inTab";  // or "inPlace", or "onRight"
 
                 this.props.addLiveTextDocument(summary);
                 // });
+            } else if (e.key === "S") {
+                await htmlToImage.toPng(this._mainCont.current!, { width: bounds.width * zoomBasis, height: bounds.height * zoomBasis, quality: 0.2 }).then((dataUrl) => {
+                    selected.map(d => {
+                        this.props.removeDocument(d);
+                        d.x = NumCast(d.x) - bounds.left - bounds.width / 2;
+                        d.y = NumCast(d.y) - bounds.top - bounds.height / 2;
+                        d.page = -1;
+                        return d;
+                    });
+                    let summary = Docs.TextDocument({ x: bounds.left, y: bounds.top, width: 300, height: 100, backgroundColor: "#e2ad32" /* yellow */, title: "-summary-" });
+                    SearchBox.convertDataUri(dataUrl, "icon" + summary[Id] + "_image").then((returnedFilename) => {
+                        if (returnedFilename) {
+                            let url = DocServer.prepend(returnedFilename);
+                            let imageSummary = Docs.ImageDocument(url, { x: bounds.left + bounds.width, y: bounds.top, width: 300 });
+                            summary.imageSummary = imageSummary;
+                            this.props.addDocument(imageSummary, false);
+                        }
+                    })
+                    newCollection.proto!.summaryDoc = summary;
+                    selected = [newCollection];
+                    newCollection.x = bounds.left + bounds.width;
+                    //this.props.addDocument(newCollection, false);
+                    summary.proto!.summarizedDocs = new List<Doc>(selected);
+                    summary.proto!.maximizeLocation = "inTab";  // or "inPlace", or "onRight"
+
+                    this.props.addLiveTextDocument(summary);
+                });
             }
             else {
                 this.props.addDocument(newCollection, false);
