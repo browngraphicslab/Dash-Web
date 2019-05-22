@@ -93,16 +93,19 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
     }
 
     onPointerDown = (e: React.PointerEvent): void => {
-        if (Date.now() - this._lastTap < 300) {
-            if (e.buttons === 1) {
-                this._downX = e.clientX;
-                this._downY = e.clientY;
-                document.removeEventListener("pointerup", this.onPointerUp);
-                document.addEventListener("pointerup", this.onPointerUp);
-            }
-        } else {
-            this._lastTap = Date.now();
-        }
+        if (e.shiftKey && e.ctrlKey)
+            e.stopPropagation();
+
+        // if (Date.now() - this._lastTap < 300) {
+        //     if (e.buttons === 1) {
+        //         this._downX = e.clientX;
+        //         this._downY = e.clientY;
+        //         document.removeEventListener("pointerup", this.onPointerUp);
+        //         document.addEventListener("pointerup", this.onPointerUp);
+        //     }
+        // } else {
+        //     this._lastTap = Date.now();
+        // }
     }
     @action
     onPointerUp = (e: PointerEvent): void => {
@@ -204,7 +207,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         let interactive = InkingControl.Instance.selectedTool ? "" : "-interactive";
         return (
             <div id={id} className={`imageBox-cont${interactive}`}
-                // onPointerDown={this.onPointerDown}
+                onPointerDown={this.onPointerDown}
                 onDrop={this.onDrop} ref={this.createDropTarget} onContextMenu={this.specificContextMenu}>
                 <img id={id}
                     key={this._smallRetryCount + (this._mediumRetryCount << 4) + (this._largeRetryCount << 8)} // force cache to update on retrys

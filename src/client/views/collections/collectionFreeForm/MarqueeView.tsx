@@ -99,19 +99,23 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                     let docList: Doc[] = [];
                     let groupAttr: string | number = "";
                     let rowProto = new Doc();
+                    rowProto.title = rowProto.Id;
                     rowProto.width = 200;
+                    rowProto.isPrototype = true;
                     for (let i = 1; i < ns.length - 1; i++) {
                         let values = ns[i].split("\t");
                         if (values.length === 1 && columns.length > 1) {
                             groupAttr = values[0];
                             continue;
                         }
-                        let doc = Doc.MakeDelegate(rowProto);
-                        columns.forEach((col, i) => doc[columns[i]] = (values.length > i ? ((values[i].indexOf(Number(values[i]).toString()) !== -1) ? Number(values[i]) : values[i]) : undefined));
+                        let docDataProto = Doc.MakeDelegate(rowProto);
+                        docDataProto.isPrototype = true;
+                        columns.forEach((col, i) => docDataProto[columns[i]] = (values.length > i ? ((values[i].indexOf(Number(values[i]).toString()) !== -1) ? Number(values[i]) : values[i]) : undefined));
                         if (groupAttr) {
-                            doc._group = groupAttr;
+                            docDataProto._group = groupAttr;
                         }
-                        doc.title = i.toString();
+                        docDataProto.title = i.toString();
+                        let doc = Doc.MakeDelegate(docDataProto);
                         doc.width = 200;
                         docList.push(doc);
                     }
@@ -269,7 +273,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                     d.page = -1;
                     return d;
                 });
-                let summary = Docs.TextDocument({ x: bounds.left, y: bounds.top, width: 300, height: 100, backgroundColor: "yellow", title: "-summary-" });
+                let summary = Docs.TextDocument({ x: bounds.left, y: bounds.top, width: 300, height: 100, backgroundColor: "#e2ad32" /* yellow */, title: "-summary-" });
                 // summary.proto!.thumbnail = new ImageField(new URL(dataUrl));
                 // summary.proto!.templates = new List<string>([Templates.ImageOverlay(Math.min(50, bounds.width), bounds.height * Math.min(50, bounds.width) / bounds.width, "thumbnail")]);
                 newCollection.proto!.summaryDoc = summary;

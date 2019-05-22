@@ -76,9 +76,9 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     }
 
     onHeaderDrag = (columnName: string) => {
-        let dbDoc = Cast(this.props.Document.DBDoc, Doc);
-        if (dbDoc instanceof Doc) {
-            let columnDocs = DocListCast(dbDoc.data);
+        let schemaDoc = Cast(this.props.Document.schemaDoc, Doc);
+        if (schemaDoc instanceof Doc) {
+            let columnDocs = DocListCast(schemaDoc.data);
             if (columnDocs) {
                 let ddoc = columnDocs.find(doc => doc.title === columnName);
                 if (ddoc)
@@ -109,7 +109,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         let reference = React.createRef<HTMLDivElement>();
         let onItemDown = (e: React.PointerEvent) =>
             (this.props.CollectionView.props.isSelected() ?
-                SetupDrag(reference, () => props.Document, this.props.moveDocument)(e) : undefined);
+                SetupDrag(reference, () => props.Document, this.props.moveDocument, this.props.Document.schemaDoc ? "copy" : undefined)(e) : undefined);
         let applyToDoc = (doc: Doc, run: (args?: { [name: string]: any }) => any) => {
             const res = run({ this: doc });
             if (!res.success) return false;
@@ -251,10 +251,10 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         let dbName = StrCast(this.props.Document.title);
         let res = await Gateway.Instance.PostSchema(csv, dbName);
         if (self.props.CollectionView.props.addDocument) {
-            let schemaDoc = await Docs.DBDocument("https://www.cs.brown.edu/" + dbName, { title: dbName });
+            let schemaDoc = await Docs.DBDocument("https://www.cs.brown.edu/" + dbName, { title: dbName }, { dbDoc: self.props.Document });
             if (schemaDoc) {
                 //self.props.CollectionView.props.addDocument(schemaDoc, false);
-                self.props.Document.DBDoc = schemaDoc;
+                self.props.Document.schemaDoc = schemaDoc;
             }
         }
     }

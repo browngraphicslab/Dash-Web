@@ -63,6 +63,7 @@
     border-radius: $border-radius;
     box-sizing: border-box;
     position:absolute;
+    z-index: -1;
     .marqueeView {
         overflow: hidden;
     }

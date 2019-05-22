@@ -60,6 +60,7 @@ export interface DocumentOptions {
     borderRounding?: number;
     schemaColumns?: List<string>;
     dockingConfig?: string;
+    dbDoc?: Doc;
     // [key: string]: Opt<Field>;
 }
 const delegateKeys = ["x", "y", "width", "height", "panX", "panY"];
@@ -241,7 +242,7 @@ export namespace Docs {
         return CreateInstance(pdfProto, new PdfField(new URL(url)), options);
     }
 
-    export async function DBDocument(url: string, options: DocumentOptions = {}) {
+    export async function DBDocument(url: string, options: DocumentOptions = {}, columnOptions: DocumentOptions = {}) {
         let schemaName = options.title ? options.title : "-no schema-";
         let ctlog = await Gateway.Instance.GetSchema(url, schemaName);
         if (ctlog && ctlog.schemas) {
@@ -263,7 +264,7 @@ export namespace Docs {
                             new AttributeTransformationModel(atmod, AggregateFunction.None),
                             new AttributeTransformationModel(atmod, AggregateFunction.Count),
                             new AttributeTransformationModel(atmod, AggregateFunction.Count));
-                        docs.push(Docs.HistogramDocument(histoOp, { width: 200, height: 200, title: attr.displayName! }));
+                        docs.push(Docs.HistogramDocument(histoOp, { ...columnOptions, width: 200, height: 200, title: attr.displayName! }));
                     }
                 }));
             });
