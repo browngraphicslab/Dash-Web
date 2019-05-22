@@ -296,7 +296,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                     SearchBox.convertDataUri(dataUrl, "icon" + summary[Id] + "_image").then((returnedFilename) => {
                         if (returnedFilename) {
                             let url = DocServer.prepend(returnedFilename);
-                            let imageSummary = Docs.ImageDocument(url, { x: bounds.left + bounds.width, y: bounds.top, width: 300 });
+                            let imageSummary = Docs.ImageDocument(url, { x: bounds.left, y: bounds.top + 100 / zoomBasis, width: 150, title: "-summary image-" });
                             summary.imageSummary = imageSummary;
                             this.props.addDocument(imageSummary, false);
                         }
