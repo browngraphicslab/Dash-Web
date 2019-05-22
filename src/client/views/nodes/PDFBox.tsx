@@ -249,6 +249,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
         this.props.Document.thumbnailPage = FieldValue(this.Document.curPage, -1);
         this._renderAsSvg = false;
         setTimeout(() => {
+            runInAction(() => this._smallRetryCount = this._mediumRetryCount = this._largeRetryCount = 0);
             let nwidth = FieldValue(this.Document.nativeWidth, 0);
             let nheight = FieldValue(this.Document.nativeHeight, 0);
             htmlToImage.toPng(this._mainDiv.current!, { width: nwidth, height: nheight, quality: 0.8 })
@@ -325,6 +326,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
             return proxy;
         }
         return [
+            proxy,
             this._pageInfo.area.filter(() => this._pageInfo.area).map((element: any) => element),
             this._currAnno.map((element: any) => element),
             this.pdfContent
@@ -372,7 +374,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
             // else if (this._largeRetryCount < 10) this._curSuffix = "_l";
             if (field instanceof ImageField) path = this.choosePath(field.url);
             // }
-            return <img key={path} src={path} width="100%" />;
+            return <img key={path + (this._mediumRetryCount).toString()} style={{ position: "absolute", width: "100%" }} src={path} onError={this.onError} />;
         }
         return (null);
     }
