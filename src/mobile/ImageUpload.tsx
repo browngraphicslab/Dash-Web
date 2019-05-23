@@ -27,10 +27,12 @@ const inputRef = React.createRef<HTMLInputElement>();
 class Uploader extends React.Component {
     @observable
     error: string = "";
+    @observable
+    status: string = "";
 
     onClick = async () => {
         try {
-            this.error = "initializing protos";
+            this.status = "initializing protos";
             await Docs.initProtos();
             let imgPrev = document.getElementById("img_preview");
             if (imgPrev) {
@@ -42,17 +44,18 @@ class Uploader extends React.Component {
                     formData.append("file", files[0]);
 
                     const upload = window.location.origin + "/upload";
-                    this.error = "uploading image";
+                    this.status = "uploading image";
                     const res = await fetch(upload, {
                         method: 'POST',
                         body: formData
                     });
+                    this.status = "upload image, getting json";
                     const json = await res.json();
                     json.map(async (file: any) => {
                         let path = window.location.origin + file;
                         var doc = Docs.ImageDocument(path, { nativeWidth: 200, width: 200, title: name });
 
-                        this.error = "getting user document";
+                        this.status = "getting user document";
 
                         const res = await rp.get(DocServer.prepend(RouteStore.getUserDocumentId));
                         if (!res) {
@@ -64,14 +67,14 @@ class Uploader extends React.Component {
                             pending = await Cast(field.optionalRightCollection, Doc);
                         }
                         if (pending) {
-                            this.error = "has pending docs";
+                            this.status = "has pending docs";
                             const data = await Cast(pending.data, listSpec(Doc));
                             if (data) {
                                 data.push(doc);
                             } else {
                                 pending.data = new List([doc]);
                             }
-                            this.error = "finished";
+                            this.status = "finished";
                         }
                     });
 
@@ -92,6 +95,7 @@ class Uploader extends React.Component {
                 <input type="file" accept="image/*" className="input_file" id="input_image_file" ref={inputRef}></input>
                 <button onClick={this.onClick} className="upload_button">Upload</button>
                 <img id="img_preview" src=""></img>
+                <p>{this.status}</p>
                 <p>{this.error}</p>
             </div>
         );
