@@ -220,7 +220,7 @@ export class MainView extends React.Component {
         let videourl = "http://techslides.com/demos/sample-videos/small.mp4";
 
         let addTextNode = action(() => Docs.TextDocument({ borderRounding: -1, width: 200, height: 200, title: "a text note" }));
-        let addColNode = action(() => Docs.FreeformDocument([], { width: 200, height: 200, title: "a freeform collection" }));
+        let addColNode = action(() => Docs.FreeformDocument([], { width: this.pwidth * .7, height: this.pheight, title: "a freeform collection" }));
         let addSchemaNode = action(() => Docs.SchemaDocument(["title"], [], { width: 200, height: 200, title: "a schema collection" }));
         let addTreeNode = action(() => CurrentUserUtils.UserDocument);
         //let addTreeNode = action(() => Docs.TreeDocument([CurrentUserUtils.UserDocument], { width: 250, height: 400, title: "Library:" + CurrentUserUtils.email, dropAction: "alias" }));
