@@ -47,11 +47,11 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
         return (
             <>
                 <line key={Utils.GenerateGuid()} className="collectionfreeformlinkview-linkLine"
-                    style={{ strokeWidth: `${l.length / 2}` }}
+                    style={{ strokeWidth: `${35 * l.length / 2}` }}
                     x1={`${x1}`} y1={`${y1}`}
                     x2={`${x2}`} y2={`${y2}`} />
                 <circle key={Utils.GenerateGuid()} className="collectionfreeformlinkview-linkCircle"
-                    cx={(x1 + x2) / 2} cy={(y1 + y2) / 2} r={5} onPointerDown={this.onPointerDown} />
+                    cx={(x1 + x2) / 2} cy={(y1 + y2) / 2} r={8} onPointerDown={this.onPointerDown} />
             </>
         );
     }
