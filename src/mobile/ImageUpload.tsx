@@ -50,6 +50,8 @@ class Uploader extends React.Component {
                         body: formData
                     });
                     this.status = "upload image, getting json";
+                    this.status = await res.text();
+                    return;
                     const json = await res.json();
                     json.map(async (file: any) => {
                         let path = window.location.origin + file;
