@@ -129,7 +129,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 options.dropAction = "copy";
             }
             if (type.indexOf("html") !== -1) {
-                if (path.includes('localhost')) {
+                if (path.includes(window.location.hostname)) {
                     let s = path.split('/');
                     let id = s[s.length - 1];
                     DocServer.GetRefField(id).then(field => {
