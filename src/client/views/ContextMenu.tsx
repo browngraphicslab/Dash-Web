@@ -92,7 +92,7 @@ export class ContextMenu extends React.Component {
                     <span className="icon-background">
                         <FontAwesomeIcon icon="search" size="lg" />
                     </span>
-                    <input className="contextMenu-item" type="text" placeholder="Search . . ." value={this._searchString} onChange={this.onChange} />
+                    <input className="contextMenu-item contextMenu-description" type="text" placeholder="Search . . ." value={this._searchString} onChange={this.onChange} />
                 </span>
                 {this._items.filter(prop => prop.description.toLowerCase().indexOf(this._searchString.toLowerCase()) !== -1).
                     map(prop => <ContextMenuItem {...prop} key={prop.description} />)}

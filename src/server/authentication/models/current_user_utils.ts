@@ -68,7 +68,7 @@ export class CurrentUserUtils {
             const extraSchemas = Cast(CurrentUserUtils.UserDocument.DBSchemas, listSpec("string"), []);
             let extras = await Promise.all(extraSchemas.map(sc => Gateway.Instance.GetSchema("", sc)));
             let catprom = CurrentUserUtils.SetNorthstarCatalog(await Gateway.Instance.GetCatalog(), extras);
-            if (catprom) await Promise.all(catprom);
+            // if (catprom) await Promise.all(catprom);
         } catch (e) {
 
         }

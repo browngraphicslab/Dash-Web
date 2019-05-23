@@ -33,7 +33,7 @@ async function update() {
                 if (url.href.includes("azure")) {
                     dynfield = true;
 
-                    update.$set = { ["fields." + key]: { url: `${url.protocol}//localhost:1050${url.pathname}`, __type: "image" } };
+                    update.$set = { ["fields." + key + ".url"]: `${url.protocol}//localhost:1050${url.pathname}` };
                 }
             }
         }
@@ -47,7 +47,7 @@ async function update() {
         return new Promise(res => Database.Instance.update(doc[0], doc[1], () => {
             console.log("wrote " + JSON.stringify(doc[1]));
             res();
-        }));
+        }, false, "newDocuments"));
     }));
     console.log("Done");
     // await Promise.all(updates.map(update => {
