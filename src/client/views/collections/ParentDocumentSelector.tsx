@@ -50,6 +50,7 @@ export class SelectorContextMenu extends React.Component<SelectorProps> {
     render() {
         return (
             <>
+                <p>Contexts:</p>
                 {this._docs.map(doc => <p><a onClick={this.getOnClick(doc)}>{doc.col.title}</a></p>)}
                 {this._otherDocs.length ? <hr></hr> : null}
                 {this._otherDocs.map(doc => <p><a onClick={this.getOnClick(doc)}>{doc.col.title}</a></p>)}
@@ -76,13 +77,13 @@ export class ParentDocSelector extends React.Component<SelectorProps> {
         let flyout;
         if (this.hover) {
             flyout = (
-                <div className="PDS-flyout">
+                <div className="PDS-flyout" title=" ">
                     <SelectorContextMenu {...this.props} />
                 </div>
             );
         }
         return (
-            <span style={{ position: "relative", display: "inline-block" }}
+            <span style={{ position: "relative", display: "inline-block", paddingLeft: "5px", paddingRight: "5px" }}
                 onMouseEnter={this.onMouseEnter}
                 onMouseLeave={this.onMouseLeave}>
                 <p>^</p>
