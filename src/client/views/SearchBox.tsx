@@ -144,18 +144,26 @@ export class SearchBox extends React.Component {
         });
         let x = 0;
         let y = 0;
-        let maxy = 300;
         for (const doc of docs) {
             doc.x = x;
             doc.y = y;
-            doc.width = 200;
-            doc.height = 200 * NumCast(doc.nativeHeight) / NumCast(doc.nativeWidth, 1);
-            maxy = Math.max(doc.height, maxy);
+            const size = 200;
+            const aspect = NumCast(doc.nativeHeight) / NumCast(doc.nativeWidth, 1);
+            if (aspect > 1) {
+                doc.height = size;
+                doc.width = size / aspect;
+            } else if (aspect > 0) {
+                doc.width = size;
+                doc.height = size * aspect;
+            } else {
+                doc.width = size;
+                doc.height = size;
+            }
+            doc.zoomBasis = 1;
             x += 250;
             if (x > 1000) {
-                maxy = 300;
                 x = 0;
-                y += maxy + 25;
+                y += 300;
             }
         }
         return Docs.FreeformDocument(docs, { width: 400, height: 400, panX: 175, panY: 175, backgroundColor: "grey", title: `Search Docs: "${this.searchString}"` });
