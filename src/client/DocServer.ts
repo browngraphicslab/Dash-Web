@@ -8,7 +8,7 @@ import { Id, HandleUpdate } from '../new_fields/FieldSymbols';
 
 export namespace DocServer {
     const _cache: { [id: string]: RefField | Promise<Opt<RefField>> } = {};
-    const _socket = OpenSocket(`${window.location.origin}`);
+    const _socket = OpenSocket(`${window.location.protocol}//${window.location.hostname}:4321`);
     const GUID: string = Utils.GenerateGuid();
 
     export function makeReadOnly() {
