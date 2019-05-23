@@ -172,9 +172,9 @@ const pngTypes = [".png", ".PNG"];
 const jpgTypes = [".jpg", ".JPG", ".jpeg", ".JPEG"];
 const uploadDir = __dirname + "/public/files/";
 // SETTERS
-addSecureRoute(
-    Method.POST,
-    (user, res, req) => {
+app.post(
+    RouteStore.upload,
+    (req, res) => {
         let form = new formidable.IncomingForm();
         form.uploadDir = uploadDir;
         form.keepExtensions = true;
@@ -212,9 +212,7 @@ addSecureRoute(
             }
             res.send(names);
         });
-    },
-    undefined,
-    RouteStore.upload
+    }
 );
 
 addSecureRoute(
