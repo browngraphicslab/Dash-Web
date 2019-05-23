@@ -2,6 +2,7 @@ import * as bodyParser from 'body-parser';
 import { exec } from 'child_process';
 import * as cookieParser from 'cookie-parser';
 import * as express from 'express';
+import * as https from 'https';
 import * as session from 'express-session';
 import * as expressValidator from 'express-validator';
 import * as formidable from 'formidable';
@@ -172,6 +173,8 @@ const pngTypes = [".png", ".PNG"];
 const jpgTypes = [".jpg", ".JPG", ".jpeg", ".JPEG"];
 const uploadDir = __dirname + "/public/files/";
 // SETTERS
+//TODO This should be a secured route, but iPhones don't seem to deal well with out authentication,
+// so in order for the image upload from phones to work, we can make this authenticated
 app.post(
     RouteStore.upload,
     (req, res) => {
@@ -289,10 +292,13 @@ app.use(wdm(compiler, { publicPath: config.output.publicPath }));
 app.use(whm(compiler));
 
 // start the Express server
-app.listen(port, () =>
+const httpsServer = https.createServer({
+    key: fs.readFileSync(__dirname + '/server.key'),
+    cert: fs.readFileSync(__dirname + '/server.cert')
+}, app).listen(port, () =>
     console.log(`server started at http://localhost:${port}`));
 
-const server = io();
+const server = io(httpsServer);
 interface Map {
     [key: string]: Client;
 }
@@ -441,5 +447,5 @@ function CreateField(newValue: any) {
     Database.Instance.insert(newValue, "newDocuments");
 }
 
-server.listen(serverPort);
-console.log(`listening on port ${serverPort}`);
+// server.listen(serverPort);
+// console.log(`listening on port ${serverPort}`);
