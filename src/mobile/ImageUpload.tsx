@@ -19,13 +19,13 @@ import { List } from '../new_fields/List';
 //         imgInput.click();
 //     }
 // }
+const inputRef = React.createRef<HTMLInputElement>();
 
-const onFileLoad = async (file: React.ChangeEvent<HTMLInputElement>) => {
-    file.persist();
+const onClick = async () => {
     await Docs.initProtos();
     let imgPrev = document.getElementById("img_preview");
     if (imgPrev) {
-        let files: FileList | null = file.target.files;
+        let files: FileList | null = inputRef.current!.files;
         if (files && files.length !== 0) {
             console.log(files[0]);
             const name = files[0].name;
@@ -71,8 +71,9 @@ const onFileLoad = async (file: React.ChangeEvent<HTMLInputElement>) => {
 ReactDOM.render((
     <div className="imgupload_cont">
         {/* <button className = "button_file"  = {onPointerDown}> Open Image </button> */}
-        <label htmlFor="input_image_file" className="upload_label">Upload an Image</label>
-        <input type="file" accept="image/*" onChange={onFileLoad} className="input_file" id="input_image_file"></input>
+        <label htmlFor="input_image_file" className="upload_label">Choose an Image</label>
+        <input type="file" accept="image/*" className="input_file" id="input_image_file" ref={inputRef}></input>
+        <button onClick={onClick} className="upload_button">Upload</button>
         <img id="img_preview" src=""></img>
         <div id="message" />
     </div>),

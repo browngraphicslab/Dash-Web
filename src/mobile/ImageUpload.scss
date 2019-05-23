@@ -17,14 +17,18 @@
         font-size: 3em;
     }
 
-    .upload_label {
-        width: 80vw;
-        height: 40vh;
+    .input_file {
+        display: none;
+    }
+
+    .upload_label,
+    .upload_button {
         background: $dark-color;
-        font-size: 10vw;
+        font-size: 500%;
         font-family: $sans-serif;
         text-align: center;
-        padding-top: 20vh;
+        padding: 5vh;
+        margin-bottom: 20px;
         color: white;
     }
 }
