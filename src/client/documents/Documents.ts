@@ -34,6 +34,7 @@ import { StrokeData, InkField } from "../../new_fields/InkField";
 import { dropActionType } from "../util/DragManager";
 import { DateField } from "../../new_fields/DateField";
 import { UndoManager } from "../util/UndoManager";
+var requestImageSize = require('request-image-size');
 
 export interface DocumentOptions {
     x?: number;
@@ -216,7 +217,16 @@ export namespace Docs {
     }
 
     export function ImageDocument(url: string, options: DocumentOptions = {}) {
-        return CreateInstance(imageProto, new ImageField(new URL(url)), options);
+        let inst = CreateInstance(imageProto, new ImageField(new URL(url)), options);
+        requestImageSize(url)
+            .then((size: any) => {
+                if (!inst.proto!.nativeWidth) {
+                    inst.proto!.nativeWidth = size.width;
+                }
+                inst.proto!.nativeHeight = Number(inst.proto!.nativeWidth!) * size.height / size.width;
+            })
+            .catch((err: any) => console.log(err));
+        return inst;
         // let doc = SetInstanceOptions(GetImagePrototype(), { ...options, layoutKeys: [KeyStore.Data, KeyStore.Annotations, KeyStore.Caption] },
         //     [new URL(url), ImageField]);
         // doc.SetText(KeyStore.Caption, "my caption...");

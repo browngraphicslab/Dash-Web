@@ -375,7 +375,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
             // else if (this._largeRetryCount < 10) this._curSuffix = "_l";
             if (field instanceof ImageField) path = this.choosePath(field.url);
             // }
-            return <img key={path + (this._mediumRetryCount).toString()} style={{ position: "absolute", width: "100%" }} src={path} onError={this.onError} />;
+            return <img className="pdfBox-thumbnail" key={path + (this._mediumRetryCount).toString()} src={path} onError={this.onError} />;
         }
         return (null);
     }

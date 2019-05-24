@@ -167,6 +167,7 @@
         "react-split-pane": "^0.1.85",
         "react-table": "^6.9.2",
         "request": "^2.88.0",
+        "request-image-size": "^2.1.0",
         "request-promise": "^4.2.4",
         "serializr": "^1.5.1",
         "sharp": "^0.22.1",

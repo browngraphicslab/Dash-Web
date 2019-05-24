@@ -12,7 +12,7 @@ import React = require("react");
 import { createSchema, makeInterface, listSpec } from '../../../new_fields/Schema';
 import { DocComponent } from '../DocComponent';
 import { positionSchema } from './DocumentView';
-import { FieldValue, Cast, StrCast } from '../../../new_fields/Types';
+import { FieldValue, Cast, StrCast, PromiseValue } from '../../../new_fields/Types';
 import { ImageField } from '../../../new_fields/URLField';
 import { List } from '../../../new_fields/List';
 import { InkingControl } from '../InkingControl';
@@ -20,6 +20,7 @@ import { Doc } from '../../../new_fields/Doc';
 import { faImage } from '@fortawesome/free-solid-svg-icons';
 import { library } from '@fortawesome/fontawesome-svg-core';
 var path = require('path');
+
 
 library.add(faImage);
 
@@ -43,15 +44,6 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
     @observable private _isOpen: boolean = false;
     private dropDisposer?: DragManager.DragDropDisposer;
 
-    @action
-    onLoad = (target: any) => {
-        var h = this._imgRef.current!.naturalHeight;
-        var w = this._imgRef.current!.naturalWidth;
-        if (this._photoIndex === 0 && (this.props as any).id !== "isExpander" && (!this.Document.nativeWidth || !this.Document.nativeHeight || Math.abs(this.Document.nativeWidth / this.Document.nativeHeight - w / h) > 0.05)) {
-            Doc.SetOnPrototype(this.Document, "nativeHeight", FieldValue(this.Document.nativeWidth, 0) * h / w);
-            this.Document.height = FieldValue(this.Document.width, 0) * h / w;
-        }
-    }
 
 
     protected createDropTarget = (ele: HTMLDivElement) => {
@@ -217,8 +209,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
                     // style={{ objectFit: (this._photoIndex === 0 ? undefined : "contain") }}
                     width={nativeWidth}
                     ref={this._imgRef}
-                    onError={this.onError}
-                    onLoad={this.onLoad} />
+                    onError={this.onError} />
                 {paths.length > 1 ? this.dots(paths) : (null)}
                 {/* {this.lightbox(paths)} */}
             </div>);
