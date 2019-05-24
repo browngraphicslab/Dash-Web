@@ -62,6 +62,7 @@ export class Doc extends RefField {
         const doc = new Proxy<this>(this, {
             set: setter,
             get: getter,
+            // getPrototypeOf: (target) => Cast(target[SelfProxy].proto, Doc) || null, // TODO this might be able to replace the proto logic in getter
             has: (target, key) => key in target.__fields,
             ownKeys: target => Object.keys(target.__fields),
             getOwnPropertyDescriptor: (target, prop) => {
@@ -69,6 +70,7 @@ export class Doc extends RefField {
                     return {
                         configurable: true,//TODO Should configurable be true?
                         enumerable: true,
+                        value: target.__fields[prop]
                     };
                 }
                 return Reflect.getOwnPropertyDescriptor(target, prop);
@@ -197,6 +199,18 @@ export namespace Doc {
         return Doc.GetT(doc, "isPrototype", "boolean", true) ? doc : doc.proto!;
     }
 
+    export function allKeys(doc: Doc): string[] {
+        const results: Set<string> = new Set;
+
+        let proto: Doc | undefined = doc;
+        while (proto) {
+            Object.keys(proto).forEach(key => results.add(key));
+            proto = proto.proto;
+        }
+
+        return Array.from(results);
+    }
+
 
     export function MakeAlias(doc: Doc) {
         const proto = Object.getOwnPropertyNames(doc).indexOf("isPrototype") === -1 ? doc.proto : undefined;
@@ -246,5 +260,4 @@ export namespace Doc {
         delegate.proto = doc;
         return delegate;
     }
-    export const Prototype = Symbol("Prototype");
 }
