@@ -10,12 +10,12 @@ class Repl extends React.Component {
 
     @observable executedCommands: { command: string, result: any }[] = [];
 
-    onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    onChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         this.text = e.target.value;
     }
 
     onKeyDown = (e: React.KeyboardEvent) => {
-        if (e.key === "Enter") {
+        if (e.ctrlKey && e.key === "Enter") {
             const script = CompileScript(this.text, { addReturn: true, typecheck: false });
             if (!script.compiled) {
                 this.executedCommands.push({ command: this.text, result: "Compile Error" });
@@ -49,7 +49,7 @@ class Repl extends React.Component {
                 <div style={{ verticalAlign: "bottom" }}>
                     {this.commands}
                 </div>
-                <input style={{ width: "100%", position: "absolute", bottom: "0px" }} value={this.text} onChange={this.onChange} onKeyDown={this.onKeyDown} />
+                <textarea style={{ width: "100%", position: "absolute", bottom: "0px" }} value={this.text} onChange={this.onChange} onKeyDown={this.onKeyDown} />
             </div>
         );
     }
