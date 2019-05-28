@@ -83,55 +83,61 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 });
             })();
         } else if (e.key === "b" && e.ctrlKey) {
-            //heuristically converts pasted text into a table.
-            // assumes each entry is separated by a tab
-            // skips all rows until it gets to a row with more than one entry
-            // assumes that 1st row has header entry for each column
-            // assumes subsequent rows have entries for each column header OR
-            //         any row that has only one column is a section header-- this header is then added as a column to subsequent rows until the next header
-            // assumes each cell is a string or a number
             e.preventDefault();
-            (async () => {
-                let text: string = await navigator.clipboard.readText();
+            navigator.clipboard.readText().then(text => {
                 let ns = text.split("\n").filter(t => t.trim() !== "\r" && t.trim() !== "");
-                while (ns.length > 0 && ns[0].split("\t").length < 2) {
-                    ns.splice(0, 1);
+                if (ns.length === 1 && text.startsWith("http")) {
+                    this.props.addDocument(Docs.ImageDocument(text, { width: 300, x: x, y: y }), false);// paste an image from its URL in the paste buffer
+                } else {
+                    this.pasteTable(ns, x, y);
                 }
-                if (ns.length > 0) {
-                    let columns = ns[0].split("\t");
-                    let docList: Doc[] = [];
-                    let groupAttr: string | number = "";
-                    let rowProto = new Doc();
-                    rowProto.title = rowProto.Id;
-                    rowProto.width = 200;
-                    rowProto.isPrototype = true;
-                    for (let i = 1; i < ns.length - 1; i++) {
-                        let values = ns[i].split("\t");
-                        if (values.length === 1 && columns.length > 1) {
-                            groupAttr = values[0];
-                            continue;
-                        }
-                        let docDataProto = Doc.MakeDelegate(rowProto);
-                        docDataProto.isPrototype = true;
-                        columns.forEach((col, i) => docDataProto[columns[i]] = (values.length > i ? ((values[i].indexOf(Number(values[i]).toString()) !== -1) ? Number(values[i]) : values[i]) : undefined));
-                        if (groupAttr) {
-                            docDataProto._group = groupAttr;
-                        }
-                        docDataProto.title = i.toString();
-                        let doc = Doc.MakeDelegate(docDataProto);
-                        doc.width = 200;
-                        docList.push(doc);
-                    }
-                    let newCol = Docs.SchemaDocument([...(groupAttr ? ["_group"] : []), ...columns.filter(c => c)], docList, { x: x, y: y, title: "droppedTable", width: 300, height: 100 });
-
-                    this.props.addDocument(newCol, false);
-                }
-            })();
+            });
         } else {
             let newBox = Docs.TextDocument({ width: 200, height: 100, x: x, y: y, title: "-typed text-" });
             this.props.addLiveTextDocument(newBox);
         }
         e.stopPropagation();
+    }
+    //heuristically converts pasted text into a table.
+    // assumes each entry is separated by a tab
+    // skips all rows until it gets to a row with more than one entry
+    // assumes that 1st row has header entry for each column
+    // assumes subsequent rows have entries for each column header OR
+    //         any row that has only one column is a section header-- this header is then added as a column to subsequent rows until the next header
+    // assumes each cell is a string or a number
+    pasteTable(ns: string[], x: number, y: number) {
+        while (ns.length > 0 && ns[0].split("\t").length < 2) {
+            ns.splice(0, 1);
+        }
+        if (ns.length > 0) {
+            let columns = ns[0].split("\t");
+            let docList: Doc[] = [];
+            let groupAttr: string | number = "";
+            let rowProto = new Doc();
+            rowProto.title = rowProto.Id;
+            rowProto.width = 200;
+            rowProto.isPrototype = true;
+            for (let i = 1; i < ns.length - 1; i++) {
+                let values = ns[i].split("\t");
+                if (values.length === 1 && columns.length > 1) {
+                    groupAttr = values[0];
+                    continue;
+                }
+                let docDataProto = Doc.MakeDelegate(rowProto);
+                docDataProto.isPrototype = true;
+                columns.forEach((col, i) => docDataProto[columns[i]] = (values.length > i ? ((values[i].indexOf(Number(values[i]).toString()) !== -1) ? Number(values[i]) : values[i]) : undefined));
+                if (groupAttr) {
+                    docDataProto._group = groupAttr;
+                }
+                docDataProto.title = i.toString();
+                let doc = Doc.MakeDelegate(docDataProto);
+                doc.width = 200;
+                docList.push(doc);
+            }
+            let newCol = Docs.SchemaDocument([...(groupAttr ? ["_group"] : []), ...columns.filter(c => c)], docList, { x: x, y: y, title: "droppedTable", width: 300, height: 100 });
+
+            this.props.addDocument(newCol, false);
+        }
     }
     @action
     onPointerDown = (e: React.PointerEvent): void => {

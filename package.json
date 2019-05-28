@@ -119,6 +119,7 @@
         "html-to-image": "^0.1.0",
         "i": "^0.3.6",
         "image-data-uri": "^2.0.0",
+        "imagesloaded": "^4.1.4",
         "jsonwebtoken": "^8.5.0",
         "jsx-to-string": "^1.4.0",
         "lodash": "^4.17.11",
