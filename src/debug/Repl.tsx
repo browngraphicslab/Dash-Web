@@ -24,7 +24,7 @@ class Repl extends React.Component {
                 if (result.success) {
                     this.executedCommands.push({ command: this.text, result: result.result });
                 } else {
-                    this.executedCommands.push({ command: this.text, result: result.error });
+                    this.executedCommands.push({ command: this.text, result: result.error.message || result.error });
                 }
             }
             this.text = "";
@@ -37,7 +37,7 @@ class Repl extends React.Component {
             return (
                 <div style={{ marginTop: "5px" }}>
                     <p>{command.command}</p>
-                    <p>{JSON.stringify(command.result)}</p>
+                    <pre>{JSON.stringify(command.result, null, 2)}</pre>
                 </div>
             );
         });
