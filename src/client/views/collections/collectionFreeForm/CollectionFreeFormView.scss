@@ -25,6 +25,9 @@
         height: 100%;
         width: 100%;
     }
+    >.jsx-parser {
+        z-index:0;
+    }
 
     //nested freeform views
     // .collectionfreeformview-container {
@@ -51,6 +54,10 @@
     .collectionfreeformview>.jsx-parser {
         position: inherit;
         height: 100%;
+    }
+    
+    >.jsx-parser {
+        z-index:0;
     }
 
     .formattedTextBox-cont {

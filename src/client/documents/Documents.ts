@@ -34,6 +34,7 @@ import { StrokeData, InkField } from "../../new_fields/InkField";
 import { dropActionType } from "../util/DragManager";
 import { DateField } from "../../new_fields/DateField";
 import { UndoManager } from "../util/UndoManager";
+import { RouteStore } from "../../server/RouteStore";
 var requestImageSize = require('request-image-size');
 
 export interface DocumentOptions {
@@ -218,7 +219,7 @@ export namespace Docs {
 
     export function ImageDocument(url: string, options: DocumentOptions = {}) {
         let inst = CreateInstance(imageProto, new ImageField(new URL(url)), options);
-        requestImageSize(url)
+        requestImageSize(window.origin + RouteStore.corsProxy + "/" + url)
             .then((size: any) => {
                 if (!inst.proto!.nativeWidth) {
                     inst.proto!.nativeWidth = size.width;

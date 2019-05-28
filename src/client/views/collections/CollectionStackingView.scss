@@ -31,6 +31,13 @@
         align-items: center;
     }
 
+    .collectionStackingview-masonryGrid {
+        display:grid;
+        width:100%;
+        height:100%;
+        position: absolute;
+    }
+
     .collectionStackingView-description {
         font-size: 100%;
         margin-bottom: 1vw;
