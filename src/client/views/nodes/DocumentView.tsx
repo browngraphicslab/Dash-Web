@@ -5,7 +5,7 @@ import { observer } from "mobx-react";
 import { Doc, DocListCast, HeightSym, Opt, WidthSym } from "../../../new_fields/Doc";
 import { List } from "../../../new_fields/List";
 import { ObjectField } from "../../../new_fields/ObjectField";
-import { createSchema, makeInterface } from "../../../new_fields/Schema";
+import { createSchema, makeInterface, defaultSpec } from "../../../new_fields/Schema";
 import { BoolCast, Cast, FieldValue, StrCast } from "../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { emptyFunction, Utils } from "../../../Utils";
@@ -60,15 +60,15 @@ const LinkDoc = makeInterface(linkSchema);
 export interface DocumentViewProps {
     ContainingCollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
     Document: Doc;
-    addDocument?: (doc: Document, allowDuplicates?: boolean) => boolean;
-    removeDocument?: (doc: Document) => boolean;
-    moveDocument?: (doc: Document, targetCollection: Document, addDocument: (document: Document) => boolean) => boolean;
+    addDocument?: (doc: Doc, allowDuplicates?: boolean) => boolean;
+    removeDocument?: (doc: Doc) => boolean;
+    moveDocument?: (doc: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
     ScreenToLocalTransform: () => Transform;
     isTopMost: boolean;
     ContentScaling: () => number;
     PanelWidth: () => number;
     PanelHeight: () => number;
-    focus: (doc: Document) => void;
+    focus: (doc: Doc) => void;
     selectOnLoad: boolean;
     parentActive: () => boolean;
     whenActiveChanged: (isActive: boolean) => void;
@@ -81,7 +81,8 @@ const schema = createSchema({
     layout: "string",
     nativeWidth: "number",
     nativeHeight: "number",
-    backgroundColor: "string"
+    backgroundColor: "string",
+    test: defaultSpec("number", 5)
 });
 
 export const positionSchema = createSchema({
