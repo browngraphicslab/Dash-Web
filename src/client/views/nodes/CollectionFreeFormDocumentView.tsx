@@ -256,9 +256,6 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         }
     }
 
-    onPointerEnter = (e: React.PointerEvent): void => { this.props.Document.libraryBrush = true; };
-    onPointerLeave = (e: React.PointerEvent): void => { this.props.Document.libraryBrush = false; };
-
     borderRounding = () => {
         let br = NumCast(this.props.Document.borderRounding);
         return br >= 0 ? br :
@@ -283,8 +280,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
 
         return (
             <div className="collectionFreeFormDocumentView-container" ref={this._mainCont}
-                onPointerDown={this.onPointerDown}
-                onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave} onPointerOver={this.onPointerEnter}
+                onPointerDown={this.onPointerDown} onPointerOver={this.onPointerEnter}
                 onClick={this.onClick}
                 style={{
                     outlineColor: "maroon",

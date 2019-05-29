@@ -17,6 +17,7 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
     @observable _textXf: () => Transform = () => Transform.Identity();
     private _textFieldKey: string = "data";
     private _textColor: string | null = null;
+    private _textHideOnLeave?: boolean;
     private _textTargetDiv: HTMLDivElement | undefined;
     private _textProxyDiv: React.RefObject<HTMLDivElement>;
 
@@ -39,9 +40,9 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
         this._textFieldKey = textFieldKey!;
         this._textXf = tx ? tx : () => Transform.Identity();
         this._textTargetDiv = div;
+        this._textHideOnLeave = FormattedTextBox.InputBoxOverlay && FormattedTextBox.InputBoxOverlay.props.hideOnLeave;
         if (div) {
-            if (div.parentElement && div.parentElement instanceof HTMLDivElement && div.parentElement.id === "screenSpace") this._textXf = () => Transform.Identity();
-            this._textColor = div.style.color;
+            this._textColor = (getComputedStyle(div) as any).color;
             div.style.color = "transparent";
         }
     }
@@ -88,7 +89,7 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
             return <div className="mainOverlayTextBox-textInput" style={{ transform: `translate(${textRect.left}px, ${textRect.top}px) scale(${1 / s},${1 / s})`, width: "auto", height: "auto" }} >
                 <div className="mainOverlayTextBox-textInput" onPointerDown={this.textBoxDown} ref={this._textProxyDiv} onScroll={this.textScroll}
                     style={{ width: `${textRect.width * s}px`, height: `${textRect.height * s}px` }}>
-                    <FormattedTextBox fieldKey={this._textFieldKey} isOverlay={true} Document={FormattedTextBox.InputBoxOverlay.props.Document} isSelected={returnTrue} select={emptyFunction} isTopMost={true}
+                    <FormattedTextBox fieldKey={this._textFieldKey} hideOnLeave={this._textHideOnLeave} isOverlay={true} Document={FormattedTextBox.InputBoxOverlay.props.Document} isSelected={returnTrue} select={emptyFunction} isTopMost={true}
                         selectOnLoad={true} ContainingCollectionView={undefined} whenActiveChanged={emptyFunction} active={returnTrue}
                         ScreenToLocalTransform={this._textXf} PanelWidth={returnZero} PanelHeight={returnZero} focus={emptyFunction} addDocTab={emptyFunction} />
                 </div>

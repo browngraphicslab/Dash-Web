@@ -343,6 +343,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
     }
 
+    onPointerEnter = (e: React.PointerEvent): void => { this.props.Document.libraryBrush = true; };
+    onPointerLeave = (e: React.PointerEvent): void => { this.props.Document.libraryBrush = false; };
+
     isSelected = () => SelectionManager.IsSelected(this);
     select = (ctrlPressed: boolean) => SelectionManager.SelectDoc(this, ctrlPressed);
 
@@ -366,6 +369,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     transform: `scale(${scaling}, ${scaling})`
                 }}
                 onDrop={this.onDrop} onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown} onClick={this.onClick}
+
+                onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}
             >
                 {this.contents}
             </div>

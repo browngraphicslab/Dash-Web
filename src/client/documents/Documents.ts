@@ -26,7 +26,7 @@ import { OmitKeys } from "../../Utils";
 import { ImageField, VideoField, AudioField, PdfField, WebField } from "../../new_fields/URLField";
 import { HtmlField } from "../../new_fields/HtmlField";
 import { List } from "../../new_fields/List";
-import { Cast } from "../../new_fields/Types";
+import { Cast, NumCast } from "../../new_fields/Types";
 import { IconField } from "../../new_fields/IconField";
 import { listSpec } from "../../new_fields/Schema";
 import { DocServer } from "../DocServer";
@@ -221,10 +221,12 @@ export namespace Docs {
         let inst = CreateInstance(imageProto, new ImageField(new URL(url)), options);
         requestImageSize(window.origin + RouteStore.corsProxy + "/" + url)
             .then((size: any) => {
+                let aspect = size.height / size.width;
                 if (!inst.proto!.nativeWidth) {
                     inst.proto!.nativeWidth = size.width;
                 }
-                inst.proto!.nativeHeight = Number(inst.proto!.nativeWidth!) * size.height / size.width;
+                inst.proto!.nativeHeight = Number(inst.proto!.nativeWidth!) * aspect;
+                inst.proto!.height = NumCast(inst.proto!.width) * aspect;
             })
             .catch((err: any) => console.log(err));
         return inst;
