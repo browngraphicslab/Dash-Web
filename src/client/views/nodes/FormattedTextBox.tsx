@@ -275,7 +275,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         }
     }
 
-    //REPLACE THIS WITH CAPABILITIES SPECIFIC TO THIS TYPE OF NODE
     freezeNativeDimensions = (e: React.MouseEvent): void => {
         if (NumCast(this.props.Document.nativeWidth)) {
             this.props.Document.proto!.nativeWidth = undefined;

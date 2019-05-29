@@ -362,6 +362,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             <div className={`documentView-node${this.props.isTopMost ? "-topmost" : ""}`}
                 ref={this._mainCont}
                 style={{
+                    outlineColor: "maroon",
+                    outlineStyle: "dashed",
+                    outlineWidth: BoolCast(this.props.Document.libraryBrush, false) ||
+                        BoolCast(this.props.Document.protoBrush, false) ?
+                        `${1 * this.props.ScreenToLocalTransform().Scale}px`
+                        : "0px",
                     borderRadius: "inherit",
                     background: this.Document.backgroundColor || "",
                     width: nativeWidth,

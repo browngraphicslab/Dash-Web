@@ -47,14 +47,20 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             let rowSpan = Math.ceil((this.itemWidth / d[WidthSym]() * d[HeightSym]() + this.gridGap) / (this.gridSize + this.gridGap));
             let dref = React.createRef<HTMLDivElement>();
             let dxf = () => this.getDocTransform(d, dref.current!);
+            let childFocus = (doc: Doc) => {
+                doc.libraryBrush = true;
+                this.props.focus(this.props.Document); // just focus on this collection, not the underlying document because the API doesn't support adding an offset to focus on and we can't pan zoom our contents to be centered.
+            }
             return (<div className="colletionStackingView-masonryDoc"
                 key={d[Id]}
                 ref={dref}
                 style={{
+                    width: NumCast(d.nativeWidth, d[WidthSym]()),
+                    height: NumCast(d.nativeHeight, d[HeightSym]()),
                     transformOrigin: "top left",
                     gridRowEnd: `span ${rowSpan}`,
                     gridColumnEnd: `span ${colSpan}`,
-                    transform: `scale(${this.itemWidth / NumCast(d.nativeWidth, 1)}, ${this.itemWidth / NumCast(d.nativeWidth, 1)})`
+                    transform: `scale(${this.itemWidth / NumCast(d.nativeWidth, d[WidthSym]())}, ${this.itemWidth / NumCast(d.nativeWidth, d[WidthSym]())})`
                 }} >
                 <DocumentView key={d[Id]} Document={d}
                     addDocument={this.props.addDocument}
@@ -63,7 +69,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                     ContainingCollectionView={this.props.CollectionView}
                     isTopMost={false}
                     ScreenToLocalTransform={dxf}
-                    focus={emptyFunction}
+                    focus={childFocus}
                     ContentScaling={returnOne}
                     PanelWidth={d[WidthSym]}
                     PanelHeight={d[HeightSym]}

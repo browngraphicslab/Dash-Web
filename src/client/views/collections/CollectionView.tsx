@@ -13,6 +13,8 @@ import { CollectionSchemaView } from "./CollectionSchemaView";
 import { CollectionTreeView } from "./CollectionTreeView";
 import { CollectionFreeFormView } from './collectionFreeForm/CollectionFreeFormView';
 import { CollectionStackingView } from './CollectionStackingView';
+import { NumCast } from '../../../new_fields/Types';
+import { WidthSym, HeightSym } from '../../../new_fields/Doc';
 export const COLLECTION_BORDER_WIDTH = 2;
 
 library.add(faTh);
@@ -42,6 +44,16 @@ export class CollectionView extends React.Component<FieldViewProps> {
 
     get isAnnotationOverlay() { return this.props.fieldKey && this.props.fieldKey === "annotations"; } // bcz: ? Why do we need to compare Id's?
 
+    freezeNativeDimensions = (e: React.MouseEvent): void => {
+        if (NumCast(this.props.Document.nativeWidth)) {
+            this.props.Document.proto!.nativeWidth = undefined;
+            this.props.Document.proto!.nativeHeight = undefined;
+
+        } else {
+            this.props.Document.proto!.nativeWidth = this.props.Document[WidthSym]();
+            this.props.Document.proto!.nativeHeight = this.props.Document[HeightSym]();
+        }
+    }
     onContextMenu = (e: React.MouseEvent): void => {
         if (!this.isAnnotationOverlay && !e.isPropagationStopped() && this.props.Document[Id] !== CurrentUserUtils.MainDocId) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
             ContextMenu.Instance.addItem({ description: "Freeform", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Freeform), icon: "signature" });
@@ -51,6 +63,7 @@ export class CollectionView extends React.Component<FieldViewProps> {
             ContextMenu.Instance.addItem({ description: "Schema", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Schema), icon: "th-list" });
             ContextMenu.Instance.addItem({ description: "Treeview", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Tree), icon: "tree" });
             ContextMenu.Instance.addItem({ description: "Stacking", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Stacking), icon: "th-list" });
+            ContextMenu.Instance.addItem({ description: NumCast(this.props.Document.nativeWidth) ? "Unfreeze" : "Freeze", event: this.freezeNativeDimensions, icon: "edit" });
         }
     }
 

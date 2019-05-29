@@ -280,16 +280,9 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
 
         return (
             <div className="collectionFreeFormDocumentView-container" ref={this._mainCont}
-                onPointerDown={this.onPointerDown} onPointerOver={this.onPointerEnter}
+                onPointerDown={this.onPointerDown}
                 onClick={this.onClick}
                 style={{
-                    outlineColor: "maroon",
-                    outlineStyle: "dashed",
-                    outlineWidth: BoolCast(this.props.Document.libraryBrush, false) ||
-                        BoolCast(this.props.Document.protoBrush, false) ?
-                        `${1 * this.getTransform().Scale}px`
-                        // "2px"
-                        : "0px",
                     opacity: zoomFade,
                     borderRadius: `${this.borderRounding()}px`,
                     transformOrigin: "left top",

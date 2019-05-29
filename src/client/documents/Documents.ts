@@ -36,6 +36,7 @@ import { DateField } from "../../new_fields/DateField";
 import { UndoManager } from "../util/UndoManager";
 import { RouteStore } from "../../server/RouteStore";
 var requestImageSize = require('request-image-size');
+var path = require('path');
 
 export interface DocumentOptions {
     x?: number;
@@ -218,7 +219,7 @@ export namespace Docs {
     }
 
     export function ImageDocument(url: string, options: DocumentOptions = {}) {
-        let inst = CreateInstance(imageProto, new ImageField(new URL(url)), options);
+        let inst = CreateInstance(imageProto, new ImageField(new URL(url)), { title: path.basename(url), ...options });
         requestImageSize(window.origin + RouteStore.corsProxy + "/" + url)
             .then((size: any) => {
                 let aspect = size.height / size.width;

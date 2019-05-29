@@ -95,22 +95,26 @@ export class CollectionFreeFormLinksView extends React.Component<CollectionViewP
 
     @computed
     get uniqueConnections() {
+        console.log("-----");
         let connections = DocumentManager.Instance.LinkedDocumentViews.reduce((drawnPairs, connection) => {
             let srcViews = this.documentAnchors(connection.a);
             let targetViews = this.documentAnchors(connection.b);
             let possiblePairs: { a: Doc, b: Doc, }[] = [];
             srcViews.map(sv => targetViews.map(tv => possiblePairs.push({ a: sv.props.Document, b: tv.props.Document })));
-            possiblePairs.map(possiblePair =>
-                drawnPairs.reduce((found, drawnPair) => {
-                    let match = (possiblePair.a === drawnPair.a && possiblePair.b === drawnPair.b);
+            possiblePairs.map(possiblePair => {
+                if (!drawnPairs.reduce((found, drawnPair) => {
+                    let match1 = (Doc.AreProtosEqual(possiblePair.a, drawnPair.a) && Doc.AreProtosEqual(possiblePair.b, drawnPair.b));
+                    let match2 = (Doc.AreProtosEqual(possiblePair.a, drawnPair.b) && Doc.AreProtosEqual(possiblePair.b, drawnPair.a));
+                    let match = match1 || match2;
                     if (match && !drawnPair.l.reduce((found, link) => found || link[Id] === connection.l[Id], false)) {
                         drawnPair.l.push(connection.l);
                     }
                     return match || found;
-                }, false)
-                ||
-                drawnPairs.push({ a: possiblePair.a, b: possiblePair.b, l: [connection.l] })
-            );
+                }, false)) {
+                    console.log("A" + possiblePair.a[Id] + " B" + possiblePair.b[Id] + " L" + connection.l[Id]);
+                    drawnPairs.push({ a: possiblePair.a, b: possiblePair.b, l: [connection.l] })
+                }
+            });
             return drawnPairs;
         }, [] as { a: Doc, b: Doc, l: Doc[] }[]);
         return connections.map(c => {
