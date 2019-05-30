@@ -12,11 +12,11 @@ import React = require("react");
 import { createSchema, makeInterface, listSpec } from '../../../new_fields/Schema';
 import { DocComponent } from '../DocComponent';
 import { positionSchema } from './DocumentView';
-import { FieldValue, Cast, StrCast, PromiseValue } from '../../../new_fields/Types';
+import { FieldValue, Cast, StrCast, PromiseValue, NumCast } from '../../../new_fields/Types';
 import { ImageField } from '../../../new_fields/URLField';
 import { List } from '../../../new_fields/List';
 import { InkingControl } from '../InkingControl';
-import { Doc } from '../../../new_fields/Doc';
+import { Doc, WidthSym, HeightSym } from '../../../new_fields/Doc';
 import { faImage } from '@fortawesome/free-solid-svg-icons';
 import { library } from '@fortawesome/fontawesome-svg-core';
 var path = require('path');
@@ -136,6 +136,17 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
                     Utils.CopyText(url);
                 }, icon: "expand-arrows-alt"
             });
+            ContextMenu.Instance.addItem({
+                description: "Rotate", event: action(() => {
+                    this.props.Document.rotation = (NumCast(this.props.Document.rotation) + 90) % 360;
+                    let nw = this.props.Document.nativeWidth;
+                    this.props.Document.nativeWidth = this.props.Document.nativeHeight;
+                    this.props.Document.nativeHeight = nw;
+                    let w = this.props.Document.width;
+                    this.props.Document.width = this.props.Document.height;
+                    this.props.Document.height = w;
+                }), icon: "expand-arrows-alt"
+            });
         }
     }
 
@@ -199,6 +210,9 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         else if (field instanceof List) paths = field.filter(val => val instanceof ImageField).map(p => this.choosePath((p as ImageField).url));
         // }
         let interactive = InkingControl.Instance.selectedTool ? "" : "-interactive";
+        let rotation = NumCast(this.props.Document.rotation, 0);
+        let aspect = (rotation % 180) ? this.props.Document[HeightSym]() / this.props.Document[WidthSym]() : 1;
+        let shift = (rotation % 180) ? (this.props.Document[HeightSym]() - this.props.Document[WidthSym]() / aspect) / 2 : 0;
         return (
             <div id={id} className={`imageBox-cont${interactive}`}
                 onPointerDown={this.onPointerDown}
@@ -206,6 +220,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
                 <img id={id}
                     key={this._smallRetryCount + (this._mediumRetryCount << 4) + (this._largeRetryCount << 8)} // force cache to update on retrys
                     src={paths[Math.min(paths.length, this._photoIndex)]}
+                    style={{ transform: `translate(0px, ${shift}px) rotate(${rotation}deg) scale(${aspect})` }}
                     // style={{ objectFit: (this._photoIndex === 0 ? undefined : "contain") }}
                     width={nativeWidth}
                     ref={this._imgRef}

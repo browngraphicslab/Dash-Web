@@ -33,7 +33,6 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     private _downX: number = 0;
     private _downY: number = 0;
     private _doubleTap = false;
-    private _lastTap: number = 0;
     _bringToFrontDisposer?: IReactionDisposer;
 
     @computed get transform() {
@@ -169,31 +168,13 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         if (e.button === 0 && e.altKey) {
             e.stopPropagation(); // prevents panning from happening on collection if shift is pressed after a document drag has started
         } // allow pointer down to go through otherwise so that marquees can be drawn starting over a document 
-        if (Date.now() - this._lastTap < 300) {
-            if (e.buttons === 1) {
-                document.removeEventListener("pointerup", this.onPointerUp);
-                document.addEventListener("pointerup", this.onPointerUp);
-            }
-        } else {
-            this._lastTap = Date.now();
-        }
+
         if (e.button === 0) {
             e.preventDefault();  // prevents Firefox from dragging images (we want to do that ourself)
         }
     }
-    onPointerUp = (e: PointerEvent): void => {
-        document.removeEventListener("pointerup", this.onPointerUp);
-        if (Math.abs(e.clientX - this._downX) < 2 && Math.abs(e.clientY - this._downY) < 2) {
-            this._doubleTap = true;
-        }
-    }
     onClick = async (e: React.MouseEvent) => {
         e.stopPropagation();
-        if (this._doubleTap) {
-            this.props.addDocTab(this.props.Document, "inTab");
-            SelectionManager.DeselectAll();
-            this.props.Document.libraryBrush = false;
-        }
         let altKey = e.altKey;
         let ctrlKey = e.ctrlKey;
         if (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD &&

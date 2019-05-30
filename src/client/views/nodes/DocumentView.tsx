@@ -183,13 +183,21 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
     }
 
+    _doubleTap = false;
     onClick = (e: React.MouseEvent): void => {
-        if (CurrentUserUtils.MainDocId !== this.props.Document[Id] &&
+        if (this._doubleTap && !this.props.isTopMost) {
+            this.props.addDocTab(this.props.Document, "inTab");
+            SelectionManager.DeselectAll();
+            this.props.Document.libraryBrush = false;
+            e.stopPropagation();
+        }
+        else if (CurrentUserUtils.MainDocId !== this.props.Document[Id] &&
             (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD &&
                 Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD)) {
             SelectionManager.SelectDoc(this, e.ctrlKey);
         }
     }
+    private _lastTap: number = 0;
     _hitExpander = false;
     onPointerDown = (e: React.PointerEvent): void => {
         this._downX = e.clientX;
@@ -222,6 +230,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     onPointerUp = (e: PointerEvent): void => {
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
+        this._doubleTap = (Date.now() - this._lastTap < 300 && e.button === 0 && Math.abs(e.clientX - this._downX) < 2 && Math.abs(e.clientY - this._downY) < 2);
+        this._lastTap = Date.now();
     }
 
     deleteClicked = (): void => {
