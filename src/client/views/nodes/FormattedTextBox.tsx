@@ -240,7 +240,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                             if (DocumentManager.Instance.getDocumentView(f)) {
                                 DocumentManager.Instance.getDocumentView(f)!.props.focus(f);
                             } else {
-                                CollectionDockingView.Instance.AddRightSplit(f);
+                                this.props.addDocTab && this.props.addDocTab(f, "onRight");
                             }
                         }
                     }));
@@ -274,29 +274,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             }
         }
     }
-
-    freezeNativeDimensions = (e: React.MouseEvent): void => {
-        if (NumCast(this.props.Document.nativeWidth)) {
-            this.props.Document.proto!.nativeWidth = undefined;
-            this.props.Document.proto!.nativeHeight = undefined;
-
-        } else {
-            this.props.Document.proto!.nativeWidth = this.props.Document[WidthSym]();
-            this.props.Document.proto!.nativeHeight = this.props.Document[HeightSym]();
-        }
-    }
-    specificContextMenu = (e: React.MouseEvent): void => {
-        if (!this._gotDown) {
-            e.preventDefault();
-            return;
-        }
-        ContextMenu.Instance.addItem({
-            description: NumCast(this.props.Document.nativeWidth) ? "Unfreeze" : "Freeze",
-            event: this.freezeNativeDimensions,
-            icon: "edit"
-        });
-    }
-
     onPointerWheel = (e: React.WheelEvent): void => {
         if (this.props.isSelected()) {
             e.stopPropagation();

@@ -194,7 +194,7 @@ export class TooltipTextMenu {
                                 if (DocumentManager.Instance.getDocumentView(f)) {
                                     DocumentManager.Instance.getDocumentView(f)!.props.focus(f);
                                 }
-                                else CollectionDockingView.Instance.AddRightSplit(f);
+                                else if (CollectionDockingView.Instance) CollectionDockingView.Instance.AddRightSplit(f);
                             }
                         }));
                     }

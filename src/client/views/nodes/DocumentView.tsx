@@ -29,6 +29,7 @@ import { DocumentContentsView } from "./DocumentContentsView";
 import "./DocumentView.scss";
 import React = require("react");
 import { Id, Copy } from '../../../new_fields/FieldSymbols';
+import { ContextMenuProps } from '../ContextMenuItem';
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 library.add(faTrash);
@@ -263,7 +264,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                             expandedProtoDocs.forEach(maxDoc => maxDoc.isMinimized = wasMinimized);
                         }
                     }
-                    if (maxLocation && maxLocation !== "inPlace") {
+                    if (maxLocation && maxLocation !== "inPlace" && CollectionDockingView.Instance) {
                         let dataDocs = DocListCast(CollectionDockingView.Instance.props.Document.data);
                         if (dataDocs) {
                             expandedDocs.forEach(maxDoc =>
@@ -295,7 +296,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         this._downX = e.clientX;
         this._downY = e.clientY;
         this._hitExpander = DocListCast(this.props.Document.subBulletDocs).length > 0;
-        if (e.shiftKey && e.buttons === 1) {
+        if (e.shiftKey && e.buttons === 1 && CollectionDockingView.Instance) {
             CollectionDockingView.Instance.StartOtherDrag([Doc.MakeAlias(this.props.Document)], e);
             e.stopPropagation();
         } else {
@@ -341,7 +342,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
     }
     fullScreenClicked = (): void => {
-        CollectionDockingView.Instance.OpenFullScreen(Doc.MakeCopy(this.props.Document, false));
+        CollectionDockingView.Instance && CollectionDockingView.Instance.OpenFullScreen(Doc.MakeCopy(this.props.Document, false));
         SelectionManager.DeselectAll();
     }
 
@@ -398,6 +399,17 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         this.templates = this.templates;
     }
 
+    freezeNativeDimensions = (e: React.MouseEvent): void => {
+        if (NumCast(this.props.Document.nativeWidth)) {
+            this.props.Document.proto!.nativeWidth = undefined;
+            this.props.Document.proto!.nativeHeight = undefined;
+
+        } else {
+            this.props.Document.proto!.nativeWidth = this.props.Document[WidthSym]();
+            this.props.Document.proto!.nativeHeight = this.props.Document[HeightSym]();
+        }
+    }
+
     @action
     onContextMenu = (e: React.MouseEvent): void => {
         e.stopPropagation();
@@ -409,16 +421,19 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         e.preventDefault();
 
         const cm = ContextMenu.Instance;
-        cm.addItem({ description: "Full Screen", event: this.fullScreenClicked, icon: "desktop" });
-        cm.addItem({ description: "Open Tab", event: () => this.props.addDocTab && this.props.addDocTab(this.props.Document, "inTab"), icon: "folder" });
-        cm.addItem({ description: "Open Right", event: () => CollectionDockingView.Instance.AddRightSplit(this.props.Document), icon: "caret-square-right" });
-        cm.addItem({ description: "Fields", event: this.fieldsClicked, icon: "layer-group" });
+        let subitems: ContextMenuProps[] = [];
+        subitems.push({ description: "Open Full Screen", event: this.fullScreenClicked, icon: "desktop" });
+        subitems.push({ description: "Open Tab", event: () => this.props.addDocTab && this.props.addDocTab(this.props.Document, "inTab"), icon: "folder" });
+        subitems.push({ description: "Open Right", event: () => this.props.addDocTab && this.props.addDocTab(this.props.Document, "onRight"), icon: "caret-square-right" });
+        subitems.push({ description: "Open Fields", event: this.fieldsClicked, icon: "layer-group" });
+        cm.addItem({ description: "Open...", subitems: subitems });
+        cm.addItem({ description: NumCast(this.props.Document.nativeWidth) ? "Unfreeze" : "Freeze", event: this.freezeNativeDimensions, icon: "edit" });
         cm.addItem({ description: "Pin to Pres", event: () => PresentationView.Instance.PinDoc(this.props.Document), icon: "map-pin" });
         cm.addItem({ description: this.props.Document.isButton ? "Remove Button" : "Make Button", event: this.makeBtnClicked, icon: "concierge-bell" });
         cm.addItem({
             description: "Find aliases", event: async () => {
                 const aliases = await SearchUtil.GetAliasesOfDocument(this.props.Document);
-                CollectionDockingView.Instance.AddRightSplit(Docs.SchemaDocument(["title"], aliases, {}));
+                this.props.addDocTab && this.props.addDocTab(Docs.SchemaDocument(["title"], aliases, {}), "onRight");
             }, icon: "search"
         });
         cm.addItem({ description: "Center View", event: () => this.props.focus(this.props.Document), icon: "crosshairs" });

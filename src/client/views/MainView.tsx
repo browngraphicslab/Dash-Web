@@ -104,7 +104,9 @@ export class MainView extends React.Component {
         }, false); // drag event handler
         // click interactions for the context menu
         document.addEventListener("pointerdown", action(function (e: PointerEvent) {
-            if (!ContextMenu.Instance.intersects(e.pageX, e.pageY)) {
+
+            const targets = document.elementsFromPoint(e.x, e.y);
+            if (targets && targets.length && targets[0].className.toString().indexOf("contextMenu") === -1) {
                 ContextMenu.Instance.clearItems();
             }
         }), true);
@@ -163,7 +165,7 @@ export class MainView extends React.Component {
     }
 
     openNotifsCol = () => {
-        if (this._notifsCol) {
+        if (this._notifsCol && CollectionDockingView.Instance) {
             CollectionDockingView.Instance.AddRightSplit(this._notifsCol);
         }
     }

@@ -19,6 +19,7 @@ import { InkingControl } from '../InkingControl';
 import { Doc, WidthSym, HeightSym } from '../../../new_fields/Doc';
 import { faImage } from '@fortawesome/free-solid-svg-icons';
 import { library } from '@fortawesome/fontawesome-svg-core';
+import { ContextMenuItemProps, ContextMenuProps } from '../ContextMenuItem';
 var path = require('path');
 
 
@@ -131,12 +132,9 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         let field = Cast(this.Document[this.props.fieldKey], ImageField);
         if (field) {
             let url = field.url.href;
-            ContextMenu.Instance.addItem({
-                description: "Copy path", event: () => {
-                    Utils.CopyText(url);
-                }, icon: "expand-arrows-alt"
-            });
-            ContextMenu.Instance.addItem({
+            let subitems: ContextMenuProps[] = [];
+            subitems.push({ description: "Copy path", event: () => Utils.CopyText(url), icon: "expand-arrows-alt" });
+            subitems.push({
                 description: "Rotate", event: action(() => {
                     this.props.Document.rotation = (NumCast(this.props.Document.rotation) + 90) % 360;
                     let nw = this.props.Document.nativeWidth;
@@ -147,6 +145,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
                     this.props.Document.height = w;
                 }), icon: "expand-arrows-alt"
             });
+            ContextMenu.Instance.addItem({ description: "Image Funcs...", subitems: subitems });
         }
     }
 
