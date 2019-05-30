@@ -184,7 +184,6 @@ export class MainView extends React.Component {
         let mainCont = this.mainContainer;
         let content = !mainCont ? (null) :
             <DocumentView Document={mainCont}
-                toggleMinimized={emptyFunction}
                 addDocument={undefined}
                 addDocTab={emptyFunction}
                 removeDocument={undefined}

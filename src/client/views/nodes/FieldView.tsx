@@ -102,7 +102,6 @@ export class FieldView extends React.Component<FieldViewProps> {
                     layoutKey={"layout"}
                     ContainingCollectionView={this.props.ContainingCollectionView}
                     parentActive={this.props.active}
-                    toggleMinimized={emptyFunction}
                     whenActiveChanged={this.props.whenActiveChanged}
                     bringToFront={emptyFunction} />
             );

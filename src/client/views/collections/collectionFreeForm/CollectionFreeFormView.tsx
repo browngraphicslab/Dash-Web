@@ -279,7 +279,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     getDocumentViewProps(document: Doc): DocumentViewProps {
         return {
             Document: document,
-            toggleMinimized: emptyFunction,
             addDocument: this.props.addDocument,
             removeDocument: this.props.removeDocument,
             moveDocument: this.props.moveDocument,

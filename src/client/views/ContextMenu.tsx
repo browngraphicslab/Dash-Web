@@ -81,6 +81,11 @@ export class ContextMenu extends React.Component {
         return false;
     }
 
+    @action
+    closeMenu = () => {
+        this.clearItems();
+    }
+
     render() {
         let style = this._yRelativeToTop ? { left: this._pageX, top: this._pageY, display: this._display } :
             { left: this._pageX, bottom: this._pageY, display: this._display };
@@ -95,7 +100,7 @@ export class ContextMenu extends React.Component {
                     <input className="contextMenu-item contextMenu-description" type="text" placeholder="Search . . ." value={this._searchString} onChange={this.onChange} />
                 </span>
                 {this._items.filter(prop => prop.description.toLowerCase().indexOf(this._searchString.toLowerCase()) !== -1).
-                    map(prop => <ContextMenuItem {...prop} key={prop.description} />)}
+                    map(prop => <ContextMenuItem {...prop} key={prop.description} closeMenu={this.closeMenu} />)}
             </div>
         );
     }

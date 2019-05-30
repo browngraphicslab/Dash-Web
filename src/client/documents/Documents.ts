@@ -295,7 +295,7 @@ export namespace Docs {
         return CreateInstance(webProto, new HtmlField(html), options);
     }
     export function KVPDocument(document: Doc, options: DocumentOptions = {}) {
-        return CreateInstance(kvpProto, document, options);
+        return CreateInstance(kvpProto, document, { title: document.title + ".kvp", ...options });
     }
     export function FreeformDocument(documents: Array<Doc>, options: DocumentOptions, makePrototype: boolean = true) {
         if (!makePrototype) {

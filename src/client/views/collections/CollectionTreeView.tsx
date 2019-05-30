@@ -26,6 +26,7 @@ export interface TreeViewProps {
     deleteDoc: (doc: Doc) => void;
     moveDocument: DragManager.MoveFunction;
     dropAction: "alias" | "copy" | undefined;
+    addDocTab: (doc: Doc, where: string) => void;
 }
 
 export enum BulletType {
@@ -140,19 +141,12 @@ class TreeView extends React.Component<TreeViewProps> {
     onWorkspaceContextMenu = (e: React.MouseEvent): void => {
         if (!e.isPropagationStopped() && this.props.document[Id] !== CurrentUserUtils.MainDocId) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
             ContextMenu.Instance.addItem({ description: "Open as Workspace", event: undoBatch(() => MainView.Instance.openWorkspace(this.props.document)) });
-            ContextMenu.Instance.addItem({ description: "Open Right", event: () => CollectionDockingView.Instance.AddRightSplit(this.props.document) });
-            ContextMenu.Instance.addItem({
-                description: "Open Fields", event: () => CollectionDockingView.Instance.AddRightSplit(Docs.KVPDocument(this.props.document,
-                    { title: this.props.document.title + ".kvp", width: 300, height: 300 }))
-            });
+            ContextMenu.Instance.addItem({ description: "Open Right", event: () => this.props.addDocTab(this.props.document, "onRight") });
+            ContextMenu.Instance.addItem({ description: "Open Fields", event: () => this.props.addDocTab(Docs.KVPDocument(this.props.document, { width: 300, height: 300 }), "onRight") });
             if (DocumentManager.Instance.getDocumentViews(this.props.document).length) {
                 ContextMenu.Instance.addItem({ description: "Focus", event: () => DocumentManager.Instance.getDocumentViews(this.props.document).map(view => view.props.focus(this.props.document)) });
             }
-            ContextMenu.Instance.addItem({
-                description: "Delete", event: undoBatch(() => {
-                    this.props.deleteDoc(this.props.document);
-                })
-            });
+            ContextMenu.Instance.addItem({ description: "Delete", event: undoBatch(() => this.props.deleteDoc(this.props.document)) });
             ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15);
             e.stopPropagation();
         }
@@ -180,7 +174,7 @@ class TreeView extends React.Component<TreeViewProps> {
                         {(key === "data") ? (null) :
                             <span className="collectionTreeView-keyHeader" style={{ display: "block", marginTop: "7px" }} key={key}>{key}</span>}
                         <div style={{ display: "block", marginTop: `${spacing}px` }}>
-                            {TreeView.GetChildElements(doc instanceof Doc ? [doc] : docList, key !== "data", (doc: Doc) => this.remove(doc, key), this.move, this.props.dropAction)}
+                            {TreeView.GetChildElements(doc instanceof Doc ? [doc] : docList, key !== "data", (doc: Doc) => this.remove(doc, key), this.move, this.props.dropAction, this.props.addDocTab)}
                         </div>
                     </ul >);
                 } else {
@@ -197,9 +191,9 @@ class TreeView extends React.Component<TreeViewProps> {
             </li>
         </div>;
     }
-    public static GetChildElements(docs: Doc[], allowMinimized: boolean, remove: ((doc: Doc) => void), move: DragManager.MoveFunction, dropAction: dropActionType) {
+    public static GetChildElements(docs: Doc[], allowMinimized: boolean, remove: ((doc: Doc) => void), move: DragManager.MoveFunction, dropAction: dropActionType, addDocTab: (doc: Doc, where: string) => void) {
         return docs.filter(child => !child.excludeFromLibrary && (allowMinimized || !child.isMinimized)).map(child =>
-            <TreeView document={child} key={child[Id]} deleteDoc={remove} moveDocument={move} dropAction={dropAction} />);
+            <TreeView document={child} key={child[Id]} deleteDoc={remove} moveDocument={move} dropAction={dropAction} addDocTab={addDocTab} />);
     }
 }
 
@@ -225,7 +219,7 @@ export class CollectionTreeView extends CollectionSubView(Document) {
         if (!this.childDocs) {
             return (null);
         }
-        let childElements = TreeView.GetChildElements(this.childDocs, false, this.remove, this.props.moveDocument, dropAction);
+        let childElements = TreeView.GetChildElements(this.childDocs, false, this.remove, this.props.moveDocument, dropAction, this.props.addDocTab);
 
         return (
             <div id="body" className="collectionTreeView-dropTarget"

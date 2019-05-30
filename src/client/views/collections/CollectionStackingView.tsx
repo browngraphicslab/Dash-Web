@@ -14,14 +14,10 @@ import { Id } from "../../../new_fields/FieldSymbols";
 
 @observer
 export class CollectionStackingView extends CollectionSubView(doc => doc) {
-
+    _masonryGridRef: HTMLDivElement | null = null;
     get gridGap() { return 10; }
     get gridSize() { return 20; }
     get itemWidth() { return NumCast(this.props.Document.itemWidth, 250); }
-
-    constructor(props: SubCollectionViewProps) {
-        super(props);
-    }
 
     @action
     moveDocument = (doc: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean): boolean => {
@@ -31,13 +27,12 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     }
     getDocTransform(doc: Doc, dref: HTMLDivElement) {
         let { scale, translateX, translateY } = Utils.GetScreenTransform(dref);
-        let outerXf = Utils.GetScreenTransform(this.masonryGridRef!);
+        let outerXf = Utils.GetScreenTransform(this._masonryGridRef!);
         let offset = this.props.ScreenToLocalTransform().transformDirection(outerXf.translateX - translateX, outerXf.translateY - translateY);
         return this.props.ScreenToLocalTransform().translate(offset[0], offset[1]).scale(NumCast(doc.width, 1) / this.itemWidth);
     }
-    masonryGridRef: HTMLDivElement | null = null;
     createRef = (ele: HTMLDivElement | null) => {
-        this.masonryGridRef = ele;
+        this._masonryGridRef = ele;
         this.createDropTarget(ele!);
     }
     @computed
@@ -77,24 +72,9 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                     parentActive={this.props.active}
                     addDocTab={this.props.addDocTab}
                     bringToFront={emptyFunction}
-                    toggleMinimized={emptyFunction}
                     whenActiveChanged={this.props.whenActiveChanged} />
             </div>);
         })
-    }
-    onClick = (e: React.MouseEvent) => {
-        let hitBackground = (e.target as any).className === "collectionStackingView-masonryGrid" ||
-            (e.target as any).className === "collectionStackingView";
-        if (this.props.active()) {
-            if (!hitBackground)
-                e.stopPropagation();
-        }
-        if (hitBackground) {
-            if (!this.props.active() && this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.active()) {
-                e.stopPropagation();
-            }
-            this.props.select(false);
-        }
     }
     render() {
         let leftMargin = 20;
@@ -102,7 +82,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         let itemCols = Math.ceil(this.itemWidth / (this.gridSize + this.gridGap));
         let cells = Math.floor((this.props.PanelWidth() - leftMargin) / (itemCols * (this.gridSize + this.gridGap)));
         return (
-            <div className="collectionStackingView" ref={this.createRef} onClick={this.onClick} onWheel={(e: React.WheelEvent) => e.stopPropagation()}>
+            <div className="collectionStackingView" ref={this.createRef} onWheel={(e: React.WheelEvent) => e.stopPropagation()}>
                 <div className="collectionStackingView-masonryGrid"
                     style={{
                         padding: `${topMargin}px 0px 0px ${leftMargin}px`,
