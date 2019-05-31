@@ -2,11 +2,11 @@ import { library } from '@fortawesome/fontawesome-svg-core';
 import { faAlignCenter, faCaretSquareRight, faCompressArrowsAlt, faExpandArrowsAlt, faLayerGroup, faSquare, faTrash, faConciergeBell, faFolder, faMapPin, faLink, faFingerprint, faCrosshairs, faDesktop } from '@fortawesome/free-solid-svg-icons';
 import { action, computed, IReactionDisposer, reaction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast, HeightSym, Opt, WidthSym } from "../../../new_fields/Doc";
+import { Doc, DocListCast, HeightSym, Opt, WidthSym, DocListCastAsync } from "../../../new_fields/Doc";
 import { List } from "../../../new_fields/List";
 import { ObjectField } from "../../../new_fields/ObjectField";
 import { createSchema, makeInterface } from "../../../new_fields/Schema";
-import { BoolCast, Cast, FieldValue, StrCast } from "../../../new_fields/Types";
+import { BoolCast, Cast, FieldValue, StrCast, NumCast } from "../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { emptyFunction, Utils } from "../../../Utils";
 import { DocServer } from "../../DocServer";
@@ -16,7 +16,7 @@ import { DragManager, dropActionType } from "../../util/DragManager";
 import { SearchUtil } from "../../util/SearchUtil";
 import { SelectionManager } from "../../util/SelectionManager";
 import { Transform } from "../../util/Transform";
-import { undoBatch } from "../../util/UndoManager";
+import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { CollectionPDFView } from "../collections/CollectionPDFView";
 import { CollectionVideoView } from "../collections/CollectionVideoView";
@@ -29,6 +29,7 @@ import { DocumentContentsView } from "./DocumentContentsView";
 import "./DocumentView.scss";
 import React = require("react");
 import { Id, Copy } from '../../../new_fields/FieldSymbols';
+import { ContextMenuProps } from '../ContextMenuItem';
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 library.add(faTrash);
@@ -72,9 +73,9 @@ export interface DocumentViewProps {
     selectOnLoad: boolean;
     parentActive: () => boolean;
     whenActiveChanged: (isActive: boolean) => void;
-    toggleMinimized: () => void;
     bringToFront: (doc: Doc) => void;
     addDocTab: (doc: Doc, where: string) => void;
+    whenClicked?: () => void;
 }
 
 const schema = createSchema({
@@ -103,6 +104,9 @@ const Document = makeInterface(schema);
 export class DocumentView extends DocComponent<DocumentViewProps, Document>(Document) {
     private _downX: number = 0;
     private _downY: number = 0;
+    private _lastTap: number = 0;
+    private _doubleTap = false;
+    private _hitExpander = false;
     private _mainCont = React.createRef<HTMLDivElement>();
     private _dropDisposer?: DragManager.DragDropDisposer;
 
@@ -182,32 +186,121 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             });
         }
     }
+    toggleMinimized = async () => {
+        let minimizedDoc = await Cast(this.props.Document.minimizedDoc, Doc);
+        if (minimizedDoc) {
+            let scrpt = this.props.ScreenToLocalTransform().inverse().transformPoint(
+                NumCast(minimizedDoc.x) - NumCast(this.Document.x), NumCast(minimizedDoc.y) - NumCast(this.Document.y));
+            this.collapseToPoint(scrpt, await DocListCastAsync(minimizedDoc.maximizedDocs));
+        }
+    }
 
-    _doubleTap = false;
-    onClick = (e: React.MouseEvent): void => {
+    static _undoBatch?: UndoManager.Batch = undefined;
+    @action
+    public collapseToPoint = async (scrpt: number[], expandedDocs: Doc[] | undefined): Promise<void> => {
+        SelectionManager.DeselectAll();
+        if (expandedDocs) {
+            if (!DocumentView._undoBatch) {
+                DocumentView._undoBatch = UndoManager.StartBatch("iconAnimating");
+            }
+            let isMinimized: boolean | undefined;
+            expandedDocs.map(d => Doc.GetProto(d)).map(maximizedDoc => {
+                let iconAnimating = Cast(maximizedDoc.isIconAnimating, List);
+                if (!iconAnimating || (Date.now() - iconAnimating[2] > 1000)) {
+                    if (isMinimized === undefined) {
+                        isMinimized = BoolCast(maximizedDoc.isMinimized, false);
+                    }
+                    maximizedDoc.willMaximize = isMinimized;
+                    maximizedDoc.isMinimized = false;
+                    maximizedDoc.isIconAnimating = new List<number>([scrpt[0], scrpt[1], Date.now(), isMinimized ? 1 : 0]);
+                }
+            });
+            setTimeout(() => {
+                DocumentView._undoBatch && DocumentView._undoBatch.end();
+                DocumentView._undoBatch = undefined;
+            }, 500);
+        }
+    }
+    onClick = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+        let altKey = e.altKey;
+        let ctrlKey = e.ctrlKey;
         if (this._doubleTap && !this.props.isTopMost) {
             this.props.addDocTab(this.props.Document, "inTab");
             SelectionManager.DeselectAll();
             this.props.Document.libraryBrush = false;
-            e.stopPropagation();
         }
         else if (CurrentUserUtils.MainDocId !== this.props.Document[Id] &&
             (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD &&
                 Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD)) {
             SelectionManager.SelectDoc(this, e.ctrlKey);
+            let isExpander = (e.target as any).id === "isExpander";
+            if (BoolCast(this.props.Document.isButton, false) || isExpander) {
+                SelectionManager.DeselectAll();
+                let subBulletDocs = await DocListCastAsync(this.props.Document.subBulletDocs);
+                let maximizedDocs = await DocListCastAsync(this.props.Document.maximizedDocs);
+                let summarizedDocs = await DocListCastAsync(this.props.Document.summarizedDocs);
+                let linkedToDocs = await DocListCastAsync(this.props.Document.linkedToDocs, []);
+                let linkedFromDocs = await DocListCastAsync(this.props.Document.linkedFromDocs, []);
+                let expandedDocs: Doc[] = [];
+                expandedDocs = subBulletDocs ? [...subBulletDocs, ...expandedDocs] : expandedDocs;
+                expandedDocs = maximizedDocs ? [...maximizedDocs, ...expandedDocs] : expandedDocs;
+                expandedDocs = summarizedDocs ? [...summarizedDocs, ...expandedDocs] : expandedDocs;
+                // let expandedDocs = [...(subBulletDocs ? subBulletDocs : []), ...(maximizedDocs ? maximizedDocs : []), ...(summarizedDocs ? summarizedDocs : []),];
+                if (expandedDocs.length) {   // bcz: need a better way to associate behaviors with click events on widget-documents
+                    let expandedProtoDocs = expandedDocs.map(doc => Doc.GetProto(doc));
+                    let maxLocation = StrCast(this.props.Document.maximizeLocation, "inPlace");
+                    let getDispDoc = (target: Doc) => Object.getOwnPropertyNames(target).indexOf("isPrototype") === -1 ? target : Doc.MakeDelegate(target);
+                    if (altKey) {
+                        maxLocation = this.props.Document.maximizeLocation = (maxLocation === "inPlace" || !maxLocation ? "inTab" : "inPlace");
+                        if (!maxLocation || maxLocation === "inPlace") {
+                            let hadView = expandedDocs.length === 1 && DocumentManager.Instance.getDocumentView(expandedProtoDocs[0], this.props.ContainingCollectionView);
+                            let wasMinimized = !hadView && expandedDocs.reduce((min, d) => !min && !BoolCast(d.IsMinimized, false), false);
+                            expandedDocs.forEach(maxDoc => Doc.GetProto(maxDoc).isMinimized = false);
+                            let hasView = expandedDocs.length === 1 && DocumentManager.Instance.getDocumentView(expandedProtoDocs[0], this.props.ContainingCollectionView);
+                            if (!hasView) {
+                                this.props.addDocument && expandedDocs.forEach(async maxDoc => this.props.addDocument!(getDispDoc(maxDoc), false));
+                            }
+                            expandedProtoDocs.forEach(maxDoc => maxDoc.isMinimized = wasMinimized);
+                        }
+                    }
+                    if (maxLocation && maxLocation !== "inPlace" && CollectionDockingView.Instance) {
+                        let dataDocs = DocListCast(CollectionDockingView.Instance.props.Document.data);
+                        if (dataDocs) {
+                            expandedDocs.forEach(maxDoc =>
+                                (!CollectionDockingView.Instance.CloseRightSplit(Doc.GetProto(maxDoc)) &&
+                                    this.props.addDocTab(getDispDoc(maxDoc), maxLocation)));
+                        }
+                    } else {
+                        let scrpt = this.props.ScreenToLocalTransform().inverse().transformPoint(NumCast(this.Document.width) / 2, NumCast(this.Document.height) / 2);
+                        this.collapseToPoint(scrpt, expandedProtoDocs);
+                    }
+                }
+                else if (linkedToDocs.length || linkedFromDocs.length) {
+                    let linkedFwdDocs = [
+                        linkedToDocs.length ? linkedToDocs[0].linkedTo as Doc : linkedFromDocs.length ? linkedFromDocs[0].linkedFrom as Doc : expandedDocs[0],
+                        linkedFromDocs.length ? linkedFromDocs[0].linkedFrom as Doc : linkedToDocs.length ? linkedToDocs[0].linkedTo as Doc : expandedDocs[0]];
+
+                    let linkedFwdPage = [
+                        linkedToDocs.length ? NumCast(linkedToDocs[0].linkedToPage, undefined) : linkedFromDocs.length ? NumCast(linkedFromDocs[0].linkedFromPage, undefined) : undefined,
+                        linkedFromDocs.length ? NumCast(linkedFromDocs[0].linkedFromPage, undefined) : linkedToDocs.length ? NumCast(linkedToDocs[0].linkedToPage, undefined) : undefined];
+                    if (!linkedFwdDocs.some(l => l instanceof Promise)) {
+                        let maxLocation = StrCast(linkedFwdDocs[altKey ? 1 : 0].maximizeLocation, "inTab");
+                        DocumentManager.Instance.jumpToDocument(linkedFwdDocs[altKey ? 1 : 0], ctrlKey, document => this.props.addDocTab(document, maxLocation), linkedFwdPage[altKey ? 1 : 0]);
+                    }
+                }
+            }
         }
     }
-    private _lastTap: number = 0;
-    _hitExpander = false;
     onPointerDown = (e: React.PointerEvent): void => {
         this._downX = e.clientX;
         this._downY = e.clientY;
         this._hitExpander = DocListCast(this.props.Document.subBulletDocs).length > 0;
-        if (e.shiftKey && e.buttons === 1) {
+        if (e.shiftKey && e.buttons === 1 && CollectionDockingView.Instance) {
             CollectionDockingView.Instance.StartOtherDrag([Doc.MakeAlias(this.props.Document)], e);
             e.stopPropagation();
-        } else if (this.active) {
-            //e.stopPropagation(); // bcz: doing this will block click events from CollectionFreeFormDocumentView which are needed for iconifying,etc
+        } else {
+            if (this.active) e.stopPropagation(); // events stop at the lowest document that is active.  
             document.removeEventListener("pointermove", this.onPointerMove);
             document.addEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
@@ -215,7 +308,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
     }
     onPointerMove = (e: PointerEvent): void => {
-        if (!e.cancelBubble) {
+        if (!e.cancelBubble && this.active) {
             if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3) {
                 document.removeEventListener("pointermove", this.onPointerMove);
                 document.removeEventListener("pointerup", this.onPointerUp);
@@ -234,32 +327,22 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         this._lastTap = Date.now();
     }
 
-    deleteClicked = (): void => {
-        this.props.removeDocument && this.props.removeDocument(this.props.Document);
-    }
-    fieldsClicked = (e: React.MouseEvent): void => {
-        let kvp = Docs.KVPDocument(this.props.Document, { title: this.props.Document.title + ".kvp", width: 300, height: 300 });
-        CollectionDockingView.Instance.AddRightSplit(kvp);
-    }
-    makeButton = (e: React.MouseEvent): void => {
-        let doc = this.props.Document.proto ? this.props.Document.proto : this.props.Document;
+    deleteClicked = (): void => { this.props.removeDocument && this.props.removeDocument(this.props.Document); }
+    fieldsClicked = (): void => { this.props.addDocTab(Docs.KVPDocument(this.Document, { width: 300, height: 300 }), "onRight") };
+    makeBtnClicked = (): void => {
+        let doc = Doc.GetProto(this.props.Document);
         doc.isButton = !BoolCast(doc.isButton, false);
         if (StrCast(doc.layout).indexOf("Formatted") !== -1) { // only need to freeze the dimensions of text boxes since they don't have a native width and height naturally
             if (doc.isButton && !doc.nativeWidth) {
                 doc.nativeWidth = this.props.Document[WidthSym]();
                 doc.nativeHeight = this.props.Document[HeightSym]();
             } else {
-
                 doc.nativeWidth = doc.nativeHeight = undefined;
             }
         }
     }
-    fullScreenClicked = (e: React.MouseEvent): void => {
-        const doc = Doc.MakeCopy(this.props.Document, false);
-        if (doc) {
-            CollectionDockingView.Instance.OpenFullScreen(doc);
-        }
-        ContextMenu.Instance.clearItems();
+    fullScreenClicked = (): void => {
+        CollectionDockingView.Instance && CollectionDockingView.Instance.OpenFullScreen(Doc.MakeCopy(this.props.Document, false));
         SelectionManager.DeselectAll();
     }
 
@@ -316,6 +399,17 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         this.templates = this.templates;
     }
 
+    freezeNativeDimensions = (e: React.MouseEvent): void => {
+        if (NumCast(this.props.Document.nativeWidth)) {
+            this.props.Document.proto!.nativeWidth = undefined;
+            this.props.Document.proto!.nativeHeight = undefined;
+
+        } else {
+            this.props.Document.proto!.nativeWidth = this.props.Document[WidthSym]();
+            this.props.Document.proto!.nativeHeight = this.props.Document[HeightSym]();
+        }
+    }
+
     @action
     onContextMenu = (e: React.MouseEvent): void => {
         e.stopPropagation();
@@ -327,16 +421,19 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         e.preventDefault();
 
         const cm = ContextMenu.Instance;
-        cm.addItem({ description: "Full Screen", event: this.fullScreenClicked, icon: "desktop" });
-        cm.addItem({ description: "Open Tab", event: () => this.props.addDocTab && this.props.addDocTab(this.props.Document, "inTab"), icon: "folder" });
-        cm.addItem({ description: "Open Right", event: () => CollectionDockingView.Instance.AddRightSplit(this.props.Document), icon: "caret-square-right" });
-        cm.addItem({ description: "Fields", event: this.fieldsClicked, icon: "layer-group" });
+        let subitems: ContextMenuProps[] = [];
+        subitems.push({ description: "Open Full Screen", event: this.fullScreenClicked, icon: "desktop" });
+        subitems.push({ description: "Open Tab", event: () => this.props.addDocTab && this.props.addDocTab(this.props.Document, "inTab"), icon: "folder" });
+        subitems.push({ description: "Open Right", event: () => this.props.addDocTab && this.props.addDocTab(this.props.Document, "onRight"), icon: "caret-square-right" });
+        subitems.push({ description: "Open Fields", event: this.fieldsClicked, icon: "layer-group" });
+        cm.addItem({ description: "Open...", subitems: subitems });
+        cm.addItem({ description: NumCast(this.props.Document.nativeWidth) ? "Unfreeze" : "Freeze", event: this.freezeNativeDimensions, icon: "edit" });
         cm.addItem({ description: "Pin to Pres", event: () => PresentationView.Instance.PinDoc(this.props.Document), icon: "map-pin" });
-        cm.addItem({ description: this.props.Document.isButton ? "Remove Button" : "Make Button", event: this.makeButton, icon: "concierge-bell" });
+        cm.addItem({ description: this.props.Document.isButton ? "Remove Button" : "Make Button", event: this.makeBtnClicked, icon: "concierge-bell" });
         cm.addItem({
             description: "Find aliases", event: async () => {
                 const aliases = await SearchUtil.GetAliasesOfDocument(this.props.Document);
-                CollectionDockingView.Instance.AddRightSplit(Docs.SchemaDocument(["title"], aliases, {}));
+                this.props.addDocTab && this.props.addDocTab(Docs.SchemaDocument(["title"], aliases, {}), "onRight");
             }, icon: "search"
         });
         cm.addItem({ description: "Center View", event: () => this.props.focus(this.props.Document), icon: "crosshairs" });

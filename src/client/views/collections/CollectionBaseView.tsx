@@ -128,6 +128,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
 
     @action.bound
     removeDocument(doc: Doc): boolean {
+        SelectionManager.DeselectAll();
         const props = this.props;
         //TODO This won't create the field if it doesn't already exist
         const value = Cast(props.Document[props.fieldKey], listSpec(Doc), []);

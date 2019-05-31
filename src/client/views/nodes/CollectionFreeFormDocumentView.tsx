@@ -30,9 +30,6 @@ const FreeformDocument = makeInterface(schema, positionSchema);
 @observer
 export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeFormDocumentViewProps, FreeformDocument>(FreeformDocument) {
     private _mainCont = React.createRef<HTMLDivElement>();
-    private _downX: number = 0;
-    private _downY: number = 0;
-    private _doubleTap = false;
     _bringToFrontDisposer?: IReactionDisposer;
 
     @computed get transform() {
@@ -62,7 +59,6 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     contentScaling = () => this.nativeWidth > 0 ? this.width / this.nativeWidth : 1;
     panelWidth = () => this.props.PanelWidth();
     panelHeight = () => this.props.PanelHeight();
-    toggleMinimized = async () => this.toggleIcon(await DocListCastAsync(this.props.Document.maximizedDocs));
     getTransform = (): Transform => this.props.ScreenToLocalTransform()
         .translate(-this.X, -this.Y)
         .scale(1 / this.contentScaling()).scale(1 / this.zoom)
@@ -70,7 +66,6 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     @computed
     get docView() {
         return <DocumentView {...OmitKeys(this.props, ['zoomFade']).omit}
-            toggleMinimized={this.toggleMinimized}
             ContentScaling={this.contentScaling}
             ScreenToLocalTransform={this.getTransform}
             PanelWidth={this.panelWidth}
@@ -124,118 +119,6 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         },
             2);
     }
-    @action
-    public toggleIcon = async (maximizedDocs: Doc[] | undefined): Promise<void> => {
-        SelectionManager.DeselectAll();
-        let isMinimized: boolean | undefined;
-        let minimizedDoc: Doc | undefined = this.props.Document;
-        if (!maximizedDocs) {
-            minimizedDoc = await Cast(this.props.Document.minimizedDoc, Doc);
-            if (minimizedDoc) maximizedDocs = await DocListCastAsync(minimizedDoc.maximizedDocs);
-        }
-        if (minimizedDoc && maximizedDocs) {
-            let minimizedTarget = minimizedDoc;
-            if (!CollectionFreeFormDocumentView._undoBatch) {
-                CollectionFreeFormDocumentView._undoBatch = UndoManager.StartBatch("iconAnimating");
-            }
-            maximizedDocs.map(d => Doc.GetProto(d)).map(maximizedDoc => {
-                let iconAnimating = Cast(maximizedDoc.isIconAnimating, List);
-                if (!iconAnimating || (Date.now() - iconAnimating[2] > 1000)) {
-                    if (isMinimized === undefined) {
-                        isMinimized = BoolCast(maximizedDoc.isMinimized, false);
-                    }
-                    let minx = NumCast(minimizedTarget.x, undefined) + NumCast(minimizedTarget.width, undefined) / 2;
-                    let miny = NumCast(minimizedTarget.y, undefined) + NumCast(minimizedTarget.height, undefined) / 2;
-                    if (minx !== undefined && miny !== undefined) {
-                        let scrpt = this.props.ScreenToLocalTransform().inverse().transformPoint(minx, miny);
-                        maximizedDoc.willMaximize = isMinimized;
-                        maximizedDoc.isMinimized = false;
-                        maximizedDoc.isIconAnimating = new List<number>([scrpt[0], scrpt[1], Date.now(), isMinimized ? 1 : 0]);
-                    }
-                }
-            });
-            setTimeout(() => {
-                CollectionFreeFormDocumentView._undoBatch && CollectionFreeFormDocumentView._undoBatch.end();
-                CollectionFreeFormDocumentView._undoBatch = undefined;
-            }, 500);
-        }
-    }
-    static _undoBatch?: UndoManager.Batch = undefined;
-    onPointerDown = (e: React.PointerEvent): void => {
-        this._downX = e.clientX;
-        this._downY = e.clientY;
-        this._doubleTap = false;
-        if (e.button === 0 && e.altKey) {
-            e.stopPropagation(); // prevents panning from happening on collection if shift is pressed after a document drag has started
-        } // allow pointer down to go through otherwise so that marquees can be drawn starting over a document 
-
-        if (e.button === 0) {
-            e.preventDefault();  // prevents Firefox from dragging images (we want to do that ourself)
-        }
-    }
-    onClick = async (e: React.MouseEvent) => {
-        e.stopPropagation();
-        let altKey = e.altKey;
-        let ctrlKey = e.ctrlKey;
-        if (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD &&
-            Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD) {
-            let isExpander = (e.target as any).id === "isExpander";
-            if (BoolCast(this.props.Document.isButton, false) || isExpander) {
-                SelectionManager.DeselectAll();
-                let subBulletDocs = await DocListCastAsync(this.props.Document.subBulletDocs);
-                let maximizedDocs = await DocListCastAsync(this.props.Document.maximizedDocs);
-                let summarizedDocs = await DocListCastAsync(this.props.Document.summarizedDocs);
-                let linkedToDocs = await DocListCastAsync(this.props.Document.linkedToDocs, []);
-                let linkedFromDocs = await DocListCastAsync(this.props.Document.linkedFromDocs, []);
-                let expandedDocs: Doc[] = [];
-                expandedDocs = subBulletDocs ? [...subBulletDocs, ...expandedDocs] : expandedDocs;
-                expandedDocs = maximizedDocs ? [...maximizedDocs, ...expandedDocs] : expandedDocs;
-                expandedDocs = summarizedDocs ? [...summarizedDocs, ...expandedDocs] : expandedDocs;
-                // let expandedDocs = [...(subBulletDocs ? subBulletDocs : []), ...(maximizedDocs ? maximizedDocs : []), ...(summarizedDocs ? summarizedDocs : []),];
-                if (expandedDocs.length) {   // bcz: need a better way to associate behaviors with click events on widget-documents
-                    let expandedProtoDocs = expandedDocs.map(doc => Doc.GetProto(doc));
-                    let maxLocation = StrCast(this.props.Document.maximizeLocation, "inPlace");
-                    let getDispDoc = (target: Doc) => Object.getOwnPropertyNames(target).indexOf("isPrototype") === -1 ? target : Doc.MakeDelegate(target);
-                    if (altKey) {
-                        maxLocation = this.props.Document.maximizeLocation = (maxLocation === "inPlace" || !maxLocation ? "inTab" : "inPlace");
-                        if (!maxLocation || maxLocation === "inPlace") {
-                            let hadView = expandedDocs.length === 1 && DocumentManager.Instance.getDocumentView(expandedProtoDocs[0], this.props.ContainingCollectionView);
-                            let wasMinimized = !hadView && expandedDocs.reduce((min, d) => !min && !BoolCast(d.IsMinimized, false), false);
-                            expandedDocs.forEach(maxDoc => Doc.GetProto(maxDoc).isMinimized = false);
-                            let hasView = expandedDocs.length === 1 && DocumentManager.Instance.getDocumentView(expandedProtoDocs[0], this.props.ContainingCollectionView);
-                            if (!hasView) {
-                                this.props.addDocument && expandedDocs.forEach(async maxDoc => this.props.addDocument!(getDispDoc(maxDoc), false));
-                            }
-                            expandedProtoDocs.forEach(maxDoc => maxDoc.isMinimized = wasMinimized);
-                        }
-                    }
-                    if (maxLocation && maxLocation !== "inPlace") {
-                        let dataDocs = DocListCast(CollectionDockingView.Instance.props.Document.data);
-                        if (dataDocs) {
-                            expandedDocs.forEach(maxDoc =>
-                                (!CollectionDockingView.Instance.CloseRightSplit(Doc.GetProto(maxDoc)) &&
-                                    this.props.addDocTab(getDispDoc(maxDoc), maxLocation)));
-                        }
-                    } else {
-                        this.toggleIcon(expandedProtoDocs);
-                    }
-                }
-                else if (linkedToDocs.length || linkedFromDocs.length) {
-                    let linkedFwdDocs = [
-                        linkedToDocs.length ? linkedToDocs[0].linkedTo as Doc : linkedFromDocs.length ? linkedFromDocs[0].linkedFrom as Doc : expandedDocs[0],
-                        linkedFromDocs.length ? linkedFromDocs[0].linkedFrom as Doc : linkedToDocs.length ? linkedToDocs[0].linkedTo as Doc : expandedDocs[0]];
-
-                    let linkedFwdPage = [
-                        linkedToDocs.length ? NumCast(linkedToDocs[0].linkedToPage, undefined) : linkedFromDocs.length ? NumCast(linkedFromDocs[0].linkedFromPage, undefined) : undefined,
-                        linkedFromDocs.length ? NumCast(linkedFromDocs[0].linkedFromPage, undefined) : linkedToDocs.length ? NumCast(linkedToDocs[0].linkedToPage, undefined) : undefined];
-                    if (!linkedFwdDocs.some(l => l instanceof Promise)) {
-                        let maxLocation = StrCast(linkedFwdDocs[altKey ? 1 : 0].maximizeLocation, "inTab");
-                        DocumentManager.Instance.jumpToDocument(linkedFwdDocs[altKey ? 1 : 0], ctrlKey, document => this.props.addDocTab(document, maxLocation), linkedFwdPage[altKey ? 1 : 0]);
-                    }
-                }
-            }
-        }
-    }
 
     borderRounding = () => {
         let br = NumCast(this.props.Document.borderRounding);
@@ -261,8 +144,6 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
 
         return (
             <div className="collectionFreeFormDocumentView-container" ref={this._mainCont}
-                onPointerDown={this.onPointerDown}
-                onClick={this.onClick}
                 style={{
                     opacity: zoomFade,
                     borderRadius: `${this.borderRounding()}px`,

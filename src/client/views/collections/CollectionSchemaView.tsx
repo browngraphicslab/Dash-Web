@@ -412,7 +412,6 @@ class CollectionSchemaPreview extends React.Component<CollectionSchemaPreviewPro
             {!this.props.Document || !this.props.width ? (null) : (
                 <div className="collectionSchemaView-previewDoc" style={{ transform: `translate(${this.centeringOffset}px, 0px)` }}>
                     <DocumentView Document={this.props.Document} isTopMost={false} selectOnLoad={false}
-                        toggleMinimized={emptyFunction}
                         addDocument={this.props.addDocument} removeDocument={this.props.removeDocument}
                         ScreenToLocalTransform={this.getTransform}
                         ContentScaling={this.contentScaling}

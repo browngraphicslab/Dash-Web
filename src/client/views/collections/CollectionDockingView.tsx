@@ -22,6 +22,7 @@ import { ParentDocSelector } from './ParentDocumentSelector';
 import { DocumentManager } from '../../util/DocumentManager';
 import { CollectionViewType } from './CollectionBaseView';
 import { Id } from '../../../new_fields/FieldSymbols';
+import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
 
 @observer
 export class CollectionDockingView extends React.Component<SubCollectionViewProps> {
@@ -415,7 +416,10 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     @observable private _panelHeight = 0;
     @observable private _document: Opt<Doc>;
     get _stack(): any {
-        return (this.props as any).glContainer.parent.parent;
+        let parent = (this.props as any).glContainer.parent.parent;
+        if (this._document && this._document.excludeFromLibrary && parent.parent && parent.parent.contentItems.length > 1)
+            return parent.parent.contentItems[1];
+        return parent;
     }
     constructor(props: any) {
         super(props);
@@ -466,7 +470,6 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
             <div className="collectionDockingView-content" ref={this._mainCont}
                 style={{ transform: `translate(${this.previewPanelCenteringOffset}px, 0px) scale(${this.scaleToFitMultiplier}, ${this.scaleToFitMultiplier})` }}>
                 <DocumentView key={this._document[Id]} Document={this._document}
-                    toggleMinimized={emptyFunction}
                     bringToFront={emptyFunction}
                     addDocument={undefined}
                     removeDocument={undefined}

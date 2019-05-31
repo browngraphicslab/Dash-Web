@@ -95,7 +95,6 @@ export class CollectionFreeFormLinksView extends React.Component<CollectionViewP
 
     @computed
     get uniqueConnections() {
-        console.log("-----");
         let connections = DocumentManager.Instance.LinkedDocumentViews.reduce((drawnPairs, connection) => {
             let srcViews = this.documentAnchors(connection.a);
             let targetViews = this.documentAnchors(connection.b);
