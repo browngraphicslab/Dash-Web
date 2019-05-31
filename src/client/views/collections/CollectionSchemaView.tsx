@@ -64,6 +64,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     @observable _columnsPercentage = 0;
     @observable _keys: string[] = [];
     @observable _newKeyName: string = "";
+    @observable previewScript: string = "";
 
     @computed get previewWidth() { return () => NumCast(this.props.Document.schemaPreviewWidth); }
     @computed get previewHeight() { return () => this.props.PanelHeight() - 2 * this.borderWidth; }
@@ -346,7 +347,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     @computed
     get previewPanel() {
         trace();
-        return !this.previewDocument ? (null) : <CollectionSchemaPreview
+        return <CollectionSchemaPreview
             Document={this.previewDocument}
             width={this.previewWidth}
             height={this.previewHeight}
@@ -357,7 +358,13 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             active={this.props.active}
             whenActiveChanged={this.props.whenActiveChanged}
             addDocTab={this.props.addDocTab}
+            setPreviewScript={this.setPreviewScript}
+            previewScript={this.previewScript}
         />
+    }
+    @action
+    setPreviewScript = (script: string) => {
+        this.previewScript = script;
     }
 
     render() {
@@ -374,7 +381,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     }
 }
 interface CollectionSchemaPreviewProps {
-    Document: Doc;
+    Document?: Doc;
     width: () => number;
     height: () => number;
     CollectionView: CollectionView | CollectionPDFView | CollectionVideoView;
@@ -384,13 +391,14 @@ interface CollectionSchemaPreviewProps {
     active: () => boolean;
     whenActiveChanged: (isActive: boolean) => void;
     addDocTab: (document: Doc, where: string) => void;
+    setPreviewScript: (script: string) => void;
+    previewScript: string;
 }
 
 @observer
 class CollectionSchemaPreview extends React.Component<CollectionSchemaPreviewProps>{
-    @observable previewScript: string = "";
-    private get nativeWidth() { return NumCast(this.props.Document.nativeWidth, this.props.width()); }
-    private get nativeHeight() { return NumCast(this.props.Document.nativeHeight, this.props.height()); }
+    private get nativeWidth() { return NumCast(this.props.Document!.nativeWidth, this.props.width()); }
+    private get nativeHeight() { return NumCast(this.props.Document!.nativeHeight, this.props.height()); }
     private contentScaling = () => {
         let wscale = this.props.width() / (this.nativeWidth ? this.nativeWidth : this.props.width());
         if (wscale * this.nativeHeight > this.props.height()) {
@@ -404,10 +412,11 @@ class CollectionSchemaPreview extends React.Component<CollectionSchemaPreviewPro
     get centeringOffset() { return (this.props.width() - this.nativeWidth * this.contentScaling()) / 2; }
     @action
     onPreviewScriptChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        this.previewScript = e.currentTarget.value;
+        this.props.setPreviewScript(e.currentTarget.value);
     }
     render() {
         trace();
+        console.log(this.props.Document);
         return (<div className="collectionSchemaView-previewRegion" style={{ width: this.props.width() }}>
             {!this.props.Document || !this.props.width ? (null) : (
                 <div className="collectionSchemaView-previewDoc" style={{ transform: `translate(${this.centeringOffset}px, 0px)` }}>
@@ -422,9 +431,10 @@ class CollectionSchemaPreview extends React.Component<CollectionSchemaPreviewPro
                         whenActiveChanged={this.props.whenActiveChanged}
                         bringToFront={emptyFunction}
                         addDocTab={this.props.addDocTab}
+                        toggleMinimized={emptyFunction}
                     />
                 </div>)}
-            <input className="collectionSchemaView-input" value={this.previewScript} onChange={this.onPreviewScriptChange}
+            <input className="collectionSchemaView-input" value={this.props.previewScript} onChange={this.onPreviewScriptChange}
                 style={{ left: `calc(50% - ${Math.min(75, (this.props.Document ? this.PanelWidth() / 2 : 75))}px)` }} />
         </div>);
     }
