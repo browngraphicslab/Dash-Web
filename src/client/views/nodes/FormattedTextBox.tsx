@@ -230,20 +230,15 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 this._toolTipTextMenu.tooltip.style.opacity = "0";
             }
         }
+        let ctrlKey = e.ctrlKey;
         if (e.button === 0 && ((!this.props.isSelected() && !e.ctrlKey) || (this.props.isSelected() && e.ctrlKey)) && !e.metaKey) {
             if (e.target && (e.target as any).href) {
                 let href = (e.target as any).href;
                 if (href.indexOf(DocServer.prepend("/doc/")) === 0) {
                     let docid = href.replace(DocServer.prepend("/doc/"), "").split("?")[0];
-                    DocServer.GetRefField(docid).then(action((f: Opt<Field>) => {
-                        if (f instanceof Doc) {
-                            if (DocumentManager.Instance.getDocumentView(f)) {
-                                DocumentManager.Instance.getDocumentView(f)!.props.focus(f);
-                            } else {
-                                this.props.addDocTab && this.props.addDocTab(f, "onRight");
-                            }
-                        }
-                    }));
+                    DocServer.GetRefField(docid).then(f => {
+                        (f instanceof Doc) && DocumentManager.Instance.jumpToDocument(f, ctrlKey, document => this.props.addDocTab(document, "inTab"))
+                    });
                 }
                 e.stopPropagation();
                 e.preventDefault();

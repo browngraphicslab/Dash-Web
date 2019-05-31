@@ -1,23 +1,35 @@
 import React = require("react");
+import { action, computed, IReactionDisposer, reaction } from "mobx";
 import { observer } from "mobx-react";
-import { CollectionSubView, CollectionViewProps, SubCollectionViewProps } from "./CollectionSubView";
-import { Doc, WidthSym, HeightSym, DocListCast } from "../../../new_fields/Doc";
-import { DocumentView } from "../nodes/DocumentView";
-import { Transform } from "../../util/Transform";
-import { emptyFunction, returnOne, Utils } from "../../../Utils";
-import "./CollectionStackingView.scss";
-import { action, reaction, trace, computed } from "mobx";
-import { StrCast, NumCast } from "../../../new_fields/Types";
+import { Doc, HeightSym, WidthSym } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
+import { NumCast } from "../../../new_fields/Types";
+import { emptyFunction, returnOne, Utils } from "../../../Utils";
+import { DocumentView } from "../nodes/DocumentView";
+import "./CollectionStackingView.scss";
+import { CollectionSubView } from "./CollectionSubView";
 
 
 
 @observer
 export class CollectionStackingView extends CollectionSubView(doc => doc) {
     _masonryGridRef: HTMLDivElement | null = null;
+    _heightDisposer?: IReactionDisposer;
     get gridGap() { return 10; }
     get gridSize() { return 20; }
     get itemWidth() { return NumCast(this.props.Document.itemWidth, 250); }
+
+    componentDidMount() {
+        this._heightDisposer = reaction(() => [this.childDocs.map(d => d[HeightSym]()), this.props.PanelWidth()],
+            () => {
+                let hgt = (this.props.PanelWidth() > 500) ? this.props.Document[HeightSym]() :
+                    this.childDocs.filter(d => !d.isMinimized).reduce((height, d) => height + d[HeightSym]() + this.gridGap, this.gridGap + 20 /* top margin */);
+                this.props.Document.height = hgt;
+            }, { fireImmediately: true });
+    }
+    componentWillUnmount() {
+        if (this._heightDisposer) this._heightDisposer();
+    }
 
     @action
     moveDocument = (doc: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean): boolean => {
@@ -37,7 +49,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     }
     @computed
     get children() {
-        return this.childDocs.map(d => {
+        return this.childDocs.filter(d => !d.isMinimized).map(d => {
             let colSpan = Math.ceil((this.itemWidth + this.gridGap) / (this.gridSize + this.gridGap));
             let rowSpan = Math.ceil((this.itemWidth / d[WidthSym]() * d[HeightSym]() + this.gridGap) / (this.gridSize + this.gridGap));
             let dref = React.createRef<HTMLDivElement>();

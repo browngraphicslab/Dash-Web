@@ -7,6 +7,8 @@ import { Transform } from '../util/Transform';
 import "normalize.css";
 import "./MainOverlayTextBox.scss";
 import { FormattedTextBox } from './nodes/FormattedTextBox';
+import { CollectionDockingView } from './collections/CollectionDockingView';
+import { Doc } from '../../new_fields/Doc';
 
 interface MainOverlayTextBoxProps {
 }
@@ -82,6 +84,11 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
         document.removeEventListener('pointerup', this.textBoxUp);
     }
 
+    addDocTab = (doc: Doc, location: string) => {
+        if (true) { // location === "onRight") { need to figure out stack to add "inTab"
+            CollectionDockingView.Instance.AddRightSplit(doc);
+        }
+    }
     render() {
         if (FormattedTextBox.InputBoxOverlay && this._textTargetDiv) {
             let textRect = this._textTargetDiv.getBoundingClientRect();
@@ -91,10 +98,10 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
                     style={{ width: `${textRect.width * s}px`, height: `${textRect.height * s}px` }}>
                     <FormattedTextBox fieldKey={this._textFieldKey} hideOnLeave={this._textHideOnLeave} isOverlay={true} Document={FormattedTextBox.InputBoxOverlay.props.Document} isSelected={returnTrue} select={emptyFunction} isTopMost={true}
                         selectOnLoad={true} ContainingCollectionView={undefined} whenActiveChanged={emptyFunction} active={returnTrue}
-                        ScreenToLocalTransform={this._textXf} PanelWidth={returnZero} PanelHeight={returnZero} focus={emptyFunction} addDocTab={emptyFunction} />
+                        ScreenToLocalTransform={this._textXf} PanelWidth={returnZero} PanelHeight={returnZero} focus={emptyFunction} addDocTab={this.addDocTab} />
                 </div>
             </ div>;
         }
-        else return (null);
+        else return (null); Z
     }
 }
