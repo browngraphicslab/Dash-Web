@@ -251,7 +251,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             }
             if (!this._removeIcon) {
                 if (selectedDocs.length === 1) {
-                    this.getIconDoc(selectedDocs[0]).then(icon => selectedDocs[0].props.toggleMinimized());
+                    this.getIconDoc(selectedDocs[0]).then(icon => selectedDocs[0].toggleMinimized());
                 } else if (Math.abs(e.pageX - this._downX) < Utils.DRAG_THRESHOLD &&
                     Math.abs(e.pageY - this._downY) < Utils.DRAG_THRESHOLD) {
                     let docViews = SelectionManager.ViewsSortedVertically();

@@ -44,6 +44,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
     isSelected: () => boolean,
     select: (ctrl: boolean) => void,
     layoutKey: string,
+    hideOnLeave?: boolean
 }> {
     @computed get layout(): string {
         const layout = Cast(this.props.Document[this.props.layoutKey], "string");

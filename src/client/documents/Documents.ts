@@ -26,7 +26,7 @@ import { OmitKeys } from "../../Utils";
 import { ImageField, VideoField, AudioField, PdfField, WebField } from "../../new_fields/URLField";
 import { HtmlField } from "../../new_fields/HtmlField";
 import { List } from "../../new_fields/List";
-import { Cast } from "../../new_fields/Types";
+import { Cast, NumCast } from "../../new_fields/Types";
 import { IconField } from "../../new_fields/IconField";
 import { listSpec } from "../../new_fields/Schema";
 import { DocServer } from "../DocServer";
@@ -36,6 +36,7 @@ import { DateField } from "../../new_fields/DateField";
 import { UndoManager } from "../util/UndoManager";
 import { RouteStore } from "../../server/RouteStore";
 var requestImageSize = require('request-image-size');
+var path = require('path');
 
 export interface DocumentOptions {
     x?: number;
@@ -218,13 +219,15 @@ export namespace Docs {
     }
 
     export function ImageDocument(url: string, options: DocumentOptions = {}) {
-        let inst = CreateInstance(imageProto, new ImageField(new URL(url)), options);
+        let inst = CreateInstance(imageProto, new ImageField(new URL(url)), { title: path.basename(url), ...options });
         requestImageSize(window.origin + RouteStore.corsProxy + "/" + url)
             .then((size: any) => {
+                let aspect = size.height / size.width;
                 if (!inst.proto!.nativeWidth) {
                     inst.proto!.nativeWidth = size.width;
                 }
-                inst.proto!.nativeHeight = Number(inst.proto!.nativeWidth!) * size.height / size.width;
+                inst.proto!.nativeHeight = Number(inst.proto!.nativeWidth!) * aspect;
+                inst.proto!.height = NumCast(inst.proto!.width) * aspect;
             })
             .catch((err: any) => console.log(err));
         return inst;
@@ -292,7 +295,7 @@ export namespace Docs {
         return CreateInstance(webProto, new HtmlField(html), options);
     }
     export function KVPDocument(document: Doc, options: DocumentOptions = {}) {
-        return CreateInstance(kvpProto, document, options);
+        return CreateInstance(kvpProto, document, { title: document.title + ".kvp", ...options });
     }
     export function FreeformDocument(documents: Array<Doc>, options: DocumentOptions, makePrototype: boolean = true) {
         if (!makePrototype) {

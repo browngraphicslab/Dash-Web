@@ -42,8 +42,8 @@ export namespace Templates {
     export const Caption = new Template("Caption", TemplatePosition.OutterBottom,
         `<div>
             <div style="height:100%; width:100%;position:absolute;">{layout}</div>
-            <div id="screenSpace" style="top: 100%; font-size:14px; background:yellow; width:100%; position:absolute">
-                <FormattedTextBox {...props} fieldKey={"caption"} />
+            <div style="bottom: 0; font-size:14px; width:100%; position:absolute">
+                <FormattedTextBox {...props} fieldKey={"caption"} hideOnLeave={"true"} />
             </div>
         </div>` );
 

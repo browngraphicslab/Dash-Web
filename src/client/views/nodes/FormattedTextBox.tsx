@@ -50,8 +50,9 @@ library.add(faSmile);
 //  this will edit the document and assign the new value to that field.
 //]
 
-export interface FormattedTextBoxOverlay {
+export interface FormattedTextBoxProps {
     isOverlay?: boolean;
+    hideOnLeave?: boolean;
 }
 
 const richTextSchema = createSchema({
@@ -62,7 +63,7 @@ type RichTextDocument = makeInterface<[typeof richTextSchema]>;
 const RichTextDocument = makeInterface(richTextSchema);
 
 @observer
-export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTextBoxOverlay), RichTextDocument>(RichTextDocument) {
+export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTextBoxProps), RichTextDocument>(RichTextDocument) {
     public static LayoutString(fieldStr: string = "data") {
         return FieldView.LayoutString(FormattedTextBox, fieldStr);
     }
@@ -239,7 +240,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                             if (DocumentManager.Instance.getDocumentView(f)) {
                                 DocumentManager.Instance.getDocumentView(f)!.props.focus(f);
                             } else {
-                                CollectionDockingView.Instance.AddRightSplit(f);
+                                this.props.addDocTab && this.props.addDocTab(f, "onRight");
                             }
                         }
                     }));
@@ -273,30 +274,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             }
         }
     }
-
-    //REPLACE THIS WITH CAPABILITIES SPECIFIC TO THIS TYPE OF NODE
-    freezeNativeDimensions = (e: React.MouseEvent): void => {
-        if (NumCast(this.props.Document.nativeWidth)) {
-            this.props.Document.proto!.nativeWidth = undefined;
-            this.props.Document.proto!.nativeHeight = undefined;
-
-        } else {
-            this.props.Document.proto!.nativeWidth = this.props.Document[WidthSym]();
-            this.props.Document.proto!.nativeHeight = this.props.Document[HeightSym]();
-        }
-    }
-    specificContextMenu = (e: React.MouseEvent): void => {
-        if (!this._gotDown) {
-            e.preventDefault();
-            return;
-        }
-        ContextMenu.Instance.addItem({
-            description: NumCast(this.props.Document.nativeWidth) ? "Unfreeze" : "Freeze",
-            event: this.freezeNativeDimensions,
-            icon: "edit"
-        });
-    }
-
     onPointerWheel = (e: React.WheelEvent): void => {
         if (this.props.isSelected()) {
             e.stopPropagation();
@@ -357,6 +334,17 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             this._undoTyping = UndoManager.StartBatch("undoTyping");
         }
     }
+
+    @observable
+    _entered = false;
+    @action
+    onPointerEnter = (e: React.PointerEvent) => {
+        this._entered = true;
+    }
+    @action
+    onPointerLeave = (e: React.PointerEvent) => {
+        this._entered = false;
+    }
     render() {
         let style = this.props.isOverlay ? "scroll" : "hidden";
         let rounded = NumCast(this.props.Document.borderRounding) < 0 ? "-rounded" : "";
@@ -364,6 +352,9 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         return (
             <div className={`formattedTextBox-cont-${style}`} ref={this._ref}
                 style={{
+                    background: this.props.hideOnLeave ? "rgba(0,0,0,0.4)" : undefined,
+                    opacity: this.props.hideOnLeave ? (this._entered || this.props.isSelected() || this.props.Document.libraryBrush ? 1 : 0.1) : 1,
+                    color: this.props.hideOnLeave ? "white" : "initial",
                     pointerEvents: interactive ? "all" : "none",
                 }}
                 // onKeyDown={this.onKeyPress}
@@ -377,6 +368,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 onContextMenu={this.specificContextMenu}
                 // tfs: do we need this event handler
                 onWheel={this.onPointerWheel}
+                onPointerEnter={this.onPointerEnter}
+                onPointerLeave={this.onPointerLeave}
             >
                 <div className={`formattedTextBox-inner${rounded}`} style={{ whiteSpace: "pre-wrap", pointerEvents: this.props.Document.isButton && !this.props.isSelected() ? "none" : "all" }} ref={this._proseRef} />
             </div>

@@ -87,7 +87,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             navigator.clipboard.readText().then(text => {
                 let ns = text.split("\n").filter(t => t.trim() !== "\r" && t.trim() !== "");
                 if (ns.length === 1 && text.startsWith("http")) {
-                    this.props.addDocument(Docs.ImageDocument(text, { width: 300, x: x, y: y }), false);// paste an image from its URL in the paste buffer
+                    this.props.addDocument(Docs.ImageDocument(text, { nativeWidth: 300, width: 300, x: x, y: y }), false);// paste an image from its URL in the paste buffer
                 } else {
                     this.pasteTable(ns, x, y);
                 }

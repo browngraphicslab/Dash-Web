@@ -48,7 +48,11 @@
         .treeViewItem-openRight {
             display: inline-block;
             // display: inline;
-            transform: translate(0px, -3px); //TODO Fix this
+            svg {
+                display:block;
+                padding:0px;
+                margin: 0px;
+            }
         }
     }
 

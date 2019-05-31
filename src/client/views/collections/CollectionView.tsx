@@ -1,18 +1,19 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faProjectDiagram, faSquare, faTh, faTree, faSignature, faThList } from '@fortawesome/free-solid-svg-icons';
+import { faProjectDiagram, faSignature, faSquare, faTh, faThList, faTree } from '@fortawesome/free-solid-svg-icons';
 import { observer } from "mobx-react";
 import * as React from 'react';
 import { Id } from '../../../new_fields/FieldSymbols';
 import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
 import { undoBatch } from '../../util/UndoManager';
 import { ContextMenu } from "../ContextMenu";
+import { ContextMenuProps } from '../ContextMenuItem';
 import { FieldView, FieldViewProps } from '../nodes/FieldView';
 import { CollectionBaseView, CollectionRenderProps, CollectionViewType } from './CollectionBaseView';
 import { CollectionDockingView } from "./CollectionDockingView";
-import { CollectionSchemaView } from "./CollectionSchemaView";
-import { CollectionTreeView } from "./CollectionTreeView";
 import { CollectionFreeFormView } from './collectionFreeForm/CollectionFreeFormView';
+import { CollectionSchemaView } from "./CollectionSchemaView";
 import { CollectionStackingView } from './CollectionStackingView';
+import { CollectionTreeView } from "./CollectionTreeView";
 export const COLLECTION_BORDER_WIDTH = 2;
 
 library.add(faTh);
@@ -44,13 +45,15 @@ export class CollectionView extends React.Component<FieldViewProps> {
 
     onContextMenu = (e: React.MouseEvent): void => {
         if (!this.isAnnotationOverlay && !e.isPropagationStopped() && this.props.Document[Id] !== CurrentUserUtils.MainDocId) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
-            ContextMenu.Instance.addItem({ description: "Freeform", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Freeform), icon: "signature" });
+            let subItems: ContextMenuProps[] = [];
+            subItems.push({ description: "Freeform", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Freeform), icon: "signature" });
             if (CollectionBaseView.InSafeMode()) {
                 ContextMenu.Instance.addItem({ description: "Test Freeform", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Invalid), icon: "project-diagram" });
             }
-            ContextMenu.Instance.addItem({ description: "Schema", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Schema), icon: "th-list" });
-            ContextMenu.Instance.addItem({ description: "Treeview", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Tree), icon: "tree" });
-            ContextMenu.Instance.addItem({ description: "Stacking", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Stacking), icon: "th-list" });
+            subItems.push({ description: "Schema", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Schema), icon: "th-list" });
+            subItems.push({ description: "Treeview", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Tree), icon: "tree" });
+            subItems.push({ description: "Stacking", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Stacking), icon: "th-list" });
+            ContextMenu.Instance.addItem({ description: "View Modes...", subitems: subItems });
         }
     }
 

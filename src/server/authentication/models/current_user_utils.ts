@@ -1,21 +1,17 @@
-import { computed, observable, action, runInAction } from "mobx";
+import { action, computed, observable, runInAction } from "mobx";
 import * as rp from 'request-promise';
-import { Docs } from "../../../client/documents/Documents";
-import { Attribute, AttributeGroup, Catalog, Schema, AggregateFunction } from "../../../client/northstar/model/idea/idea";
-import { ArrayUtil } from "../../../client/northstar/utils/ArrayUtil";
-import { RouteStore } from "../../RouteStore";
 import { DocServer } from "../../../client/DocServer";
-import { Doc, Opt, Field } from "../../../new_fields/Doc";
-import { List } from "../../../new_fields/List";
+import { Docs } from "../../../client/documents/Documents";
+import { Gateway, NorthstarSettings } from "../../../client/northstar/manager/Gateway";
+import { Attribute, AttributeGroup, Catalog, Schema } from "../../../client/northstar/model/idea/idea";
+import { ArrayUtil } from "../../../client/northstar/utils/ArrayUtil";
 import { CollectionViewType } from "../../../client/views/collections/CollectionBaseView";
-import { CollectionTreeView } from "../../../client/views/collections/CollectionTreeView";
 import { CollectionView } from "../../../client/views/collections/CollectionView";
-import { NorthstarSettings, Gateway } from "../../../client/northstar/manager/Gateway";
-import { AttributeTransformationModel } from "../../../client/northstar/core/attribute/AttributeTransformationModel";
-import { ColumnAttributeModel } from "../../../client/northstar/core/attribute/AttributeModel";
-import { HistogramOperation } from "../../../client/northstar/operations/HistogramOperation";
-import { Cast, PromiseValue } from "../../../new_fields/Types";
+import { Doc } from "../../../new_fields/Doc";
+import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
+import { Cast } from "../../../new_fields/Types";
+import { RouteStore } from "../../RouteStore";
 
 export class CurrentUserUtils {
     private static curr_email: string;

@@ -8,8 +8,7 @@
     width: 100%;
     height: 100%;
     position: absolute;
-    overflow-y: scroll;
-    min-width: 250px;
+    overflow-y: auto;
     border-width: 0;
     box-shadow: $intermediate-color 0.2vw 0.2vw 0.8vw;
     border-color: $light-color-secondary;
@@ -31,7 +30,7 @@
         align-items: center;
     }
 
-    .collectionStackingview-masonryGrid {
+    .collectionStackingView-masonryGrid {
         display:grid;
         width:100%;
         height:100%;
