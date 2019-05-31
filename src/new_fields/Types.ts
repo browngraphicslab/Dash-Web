@@ -2,12 +2,13 @@ import { Field, Opt, FieldResult, Doc } from "./Doc";
 import { List } from "./List";
 import { RefField } from "./RefField";
 
-export type ToType<T extends ToConstructor<Field> | ListSpec<Field>> =
+export type ToType<T extends ToConstructor<Field> | ListSpec<Field> | DefaultFieldConstructor<Field>> =
     T extends "string" ? string :
     T extends "number" ? number :
     T extends "boolean" ? boolean :
     T extends ListSpec<infer U> ? List<U> :
     // T extends { new(...args: any[]): infer R } ? (R | Promise<R>) : never;
+    T extends DefaultFieldConstructor<infer _U> ? never :
     T extends { new(...args: any[]): List<Field> } ? never :
     T extends { new(...args: any[]): infer R } ? R : never;
 
@@ -19,11 +20,16 @@ export type ToConstructor<T extends Field> =
     new (...args: any[]) => T;
 
 export type ToInterface<T extends Interface> = {
-    [P in Exclude<keyof T, "proto">]: FieldResult<ToType<T[P]>>;
+    [P in Exclude<keyof T, "proto">]: T[P] extends DefaultFieldConstructor<infer F> ? Exclude<FieldResult<F>, undefined> : FieldResult<ToType<T[P]>>;
 };
 
 // type ListSpec<T extends Field[]> = { List: ToContructor<Head<T>> | ListSpec<Tail<T>> };
 export type ListSpec<T extends Field> = { List: ToConstructor<T> };
+
+export type DefaultFieldConstructor<T extends Field> = {
+    type: ToConstructor<T>,
+    defaultVal: T
+};
 
 // type ListType<U extends Field[]> = { 0: List<ListType<Tail<U>>>, 1: ToType<Head<U>> }[HasTail<U> extends true ? 0 : 1];
 
@@ -34,7 +40,7 @@ export type HasTail<T extends any[]> = T extends ([] | [any]) ? false : true;
 
 //TODO Allow you to optionally specify default values for schemas, which should then make that field not be partial
 export interface Interface {
-    [key: string]: ToConstructor<Field> | ListSpec<Field>;
+    [key: string]: ToConstructor<Field> | ListSpec<Field> | DefaultFieldConstructor<Field>;
     // [key: string]: ToConstructor<Field> | ListSpec<Field[]>;
 }
 

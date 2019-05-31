@@ -61,15 +61,15 @@ const LinkDoc = makeInterface(linkSchema);
 export interface DocumentViewProps {
     ContainingCollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
     Document: Doc;
-    addDocument?: (doc: Document, allowDuplicates?: boolean) => boolean;
-    removeDocument?: (doc: Document) => boolean;
-    moveDocument?: (doc: Document, targetCollection: Document, addDocument: (document: Document) => boolean) => boolean;
+    addDocument?: (doc: Doc, allowDuplicates?: boolean) => boolean;
+    removeDocument?: (doc: Doc) => boolean;
+    moveDocument?: (doc: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
     ScreenToLocalTransform: () => Transform;
     isTopMost: boolean;
     ContentScaling: () => number;
     PanelWidth: () => number;
     PanelHeight: () => number;
-    focus: (doc: Document) => void;
+    focus: (doc: Doc) => void;
     selectOnLoad: boolean;
     parentActive: () => boolean;
     whenActiveChanged: (isActive: boolean) => void;
@@ -82,7 +82,7 @@ const schema = createSchema({
     layout: "string",
     nativeWidth: "number",
     nativeHeight: "number",
-    backgroundColor: "string"
+    backgroundColor: "string",
 });
 
 export const positionSchema = createSchema({
@@ -424,7 +424,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         let subitems: ContextMenuProps[] = [];
         subitems.push({ description: "Open Full Screen", event: this.fullScreenClicked, icon: "desktop" });
         subitems.push({ description: "Open Tab", event: () => this.props.addDocTab && this.props.addDocTab(this.props.Document, "inTab"), icon: "folder" });
+        subitems.push({ description: "Open Tab Alias", event: () => this.props.addDocTab && this.props.addDocTab(Doc.MakeAlias(this.props.Document), "inTab"), icon: "folder" });
         subitems.push({ description: "Open Right", event: () => this.props.addDocTab && this.props.addDocTab(this.props.Document, "onRight"), icon: "caret-square-right" });
+        subitems.push({ description: "Open Right Alias", event: () => this.props.addDocTab && this.props.addDocTab(Doc.MakeAlias(this.props.Document), "onRight"), icon: "caret-square-right" });
         subitems.push({ description: "Open Fields", event: this.fieldsClicked, icon: "layer-group" });
         cm.addItem({ description: "Open...", subitems: subitems });
         cm.addItem({ description: NumCast(this.props.Document.nativeWidth) ? "Unfreeze" : "Freeze", event: this.freezeNativeDimensions, icon: "edit" });

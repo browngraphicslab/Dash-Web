@@ -198,6 +198,7 @@ export class TooltipTextMenu {
                             }
                         }));
                     }
+                    // TODO This should have an else to handle external links
                     e.stopPropagation();
                     e.preventDefault();
                 }

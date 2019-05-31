@@ -3,6 +3,7 @@ import * as ReactDOM from 'react-dom';
 import { observer } from 'mobx-react';
 import { observable, computed } from 'mobx';
 import { CompileScript } from '../client/util/Scripting';
+import { makeInterface } from '../new_fields/Schema';
 
 @observer
 class Repl extends React.Component {
@@ -15,12 +16,16 @@ class Repl extends React.Component {
     }
 
     onKeyDown = (e: React.KeyboardEvent) => {
-        if (e.ctrlKey && e.key === "Enter") {
-            const script = CompileScript(this.text, { addReturn: true, typecheck: false });
+        if (!e.ctrlKey && e.key === "Enter") {
+            e.preventDefault();
+            const script = CompileScript(this.text, {
+                addReturn: true, typecheck: false,
+                params: { makeInterface: "any" }
+            });
             if (!script.compiled) {
                 this.executedCommands.push({ command: this.text, result: "Compile Error" });
             } else {
-                const result = script.run();
+                const result = script.run({ makeInterface });
                 if (result.success) {
                     this.executedCommands.push({ command: this.text, result: result.result });
                 } else {

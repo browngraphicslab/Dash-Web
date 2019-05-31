@@ -213,19 +213,10 @@ export namespace Doc {
 
 
     export function MakeAlias(doc: Doc) {
-        const proto = Object.getOwnPropertyNames(doc).indexOf("isPrototype") === -1 ? doc.proto : undefined;
         const alias = new Doc;
-
-        if (!proto) {
-            alias.proto = doc;
-        } else {
-            PromiseValue(Cast(doc.proto, Doc)).then(proto => {
-                if (proto) {
-                    alias.proto = proto;
-                }
-            });
+        if (!GetT(doc, "isPrototype", "boolean", true)) {
+            alias.proto = doc.proto;
         }
-
         return alias;
     }
 
