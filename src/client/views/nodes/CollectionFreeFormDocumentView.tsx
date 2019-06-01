@@ -1,19 +1,17 @@
-import { action, computed, IReactionDisposer, reaction, trace } from "mobx";
+import { computed, IReactionDisposer, reaction, action } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast, DocListCastAsync } from "../../../new_fields/Doc";
+import { Doc } from "../../../new_fields/Doc";
 import { List } from "../../../new_fields/List";
 import { createSchema, listSpec, makeInterface } from "../../../new_fields/Schema";
-import { BoolCast, Cast, FieldValue, NumCast, StrCast } from "../../../new_fields/Types";
-import { OmitKeys, Utils } from "../../../Utils";
-import { DocumentManager } from "../../util/DocumentManager";
-import { SelectionManager } from "../../util/SelectionManager";
+import { BoolCast, Cast, FieldValue, NumCast } from "../../../new_fields/Types";
+import { OmitKeys } from "../../../Utils";
 import { Transform } from "../../util/Transform";
-import { UndoManager } from "../../util/UndoManager";
-import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { DocComponent } from "../DocComponent";
 import { DocumentView, DocumentViewProps, positionSchema } from "./DocumentView";
 import "./DocumentView.scss";
 import React = require("react");
+import { UndoManager } from "../../util/UndoManager";
+import { SelectionManager } from "../../util/SelectionManager";
 
 export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
 }
@@ -70,6 +68,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
             ScreenToLocalTransform={this.getTransform}
             PanelWidth={this.panelWidth}
             PanelHeight={this.panelHeight}
+            collapseToPoint={this.collapseToPoint}
         />;
     }
 
@@ -86,6 +85,33 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
 
     componentWillUnmount() {
         if (this._bringToFrontDisposer) this._bringToFrontDisposer();
+    }
+
+    static _undoBatch?: UndoManager.Batch = undefined;
+    @action
+    public collapseToPoint = async (scrpt: number[], expandedDocs: Doc[] | undefined): Promise<void> => {
+        SelectionManager.DeselectAll();
+        if (expandedDocs) {
+            if (!CollectionFreeFormDocumentView._undoBatch) {
+                CollectionFreeFormDocumentView._undoBatch = UndoManager.StartBatch("iconAnimating");
+            }
+            let isMinimized: boolean | undefined;
+            expandedDocs.map(d => Doc.GetProto(d)).map(maximizedDoc => {
+                let iconAnimating = Cast(maximizedDoc.isIconAnimating, List);
+                if (!iconAnimating || (Date.now() - iconAnimating[2] > 1000)) {
+                    if (isMinimized === undefined) {
+                        isMinimized = BoolCast(maximizedDoc.isMinimized, false);
+                    }
+                    maximizedDoc.willMaximize = isMinimized;
+                    maximizedDoc.isMinimized = false;
+                    maximizedDoc.isIconAnimating = new List<number>([scrpt[0], scrpt[1], Date.now(), isMinimized ? 1 : 0]);
+                }
+            });
+            setTimeout(() => {
+                CollectionFreeFormDocumentView._undoBatch && CollectionFreeFormDocumentView._undoBatch.end();
+                CollectionFreeFormDocumentView._undoBatch = undefined;
+            }, 500);
+        }
     }
 
     animateBetweenIcon(first: boolean, icon: number[], targ: number[], width: number, height: number, stime: number, maximizing: boolean) {

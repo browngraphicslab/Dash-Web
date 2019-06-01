@@ -3,11 +3,14 @@ import { action, computed, IReactionDisposer, reaction } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, HeightSym, WidthSym } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
-import { NumCast } from "../../../new_fields/Types";
+import { NumCast, Cast, BoolCast } from "../../../new_fields/Types";
 import { emptyFunction, returnOne, Utils } from "../../../Utils";
 import { DocumentView } from "../nodes/DocumentView";
 import "./CollectionStackingView.scss";
 import { CollectionSubView } from "./CollectionSubView";
+import { undoBatch } from "../../util/UndoManager";
+import { SelectionManager } from "../../util/SelectionManager";
+import { List } from "../../../new_fields/List";
 
 
 
@@ -20,10 +23,13 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     get itemWidth() { return NumCast(this.props.Document.itemWidth, 250); }
 
     componentDidMount() {
-        this._heightDisposer = reaction(() => [this.childDocs.map(d => d[HeightSym]()), this.props.PanelWidth()],
+        this._heightDisposer = reaction(() => [this.childDocs.map(d => [d[HeightSym](), d.isMinimized]), this.props.PanelWidth()],
             () => {
                 let hgt = (this.props.PanelWidth() > 500) ? this.props.Document[HeightSym]() :
-                    this.childDocs.filter(d => !d.isMinimized).reduce((height, d) => height + d[HeightSym]() + this.gridGap, this.gridGap + 20 /* top margin */);
+                    this.childDocs.filter(d => !d.isMinimized).reduce((height, d) => {
+                        let rowSpan = Math.ceil((this.itemWidth / d[WidthSym]() * d[HeightSym]() + this.gridGap) / (this.gridSize + this.gridGap));
+                        return height + rowSpan * (this.gridSize + this.gridGap);
+                    }, 10);
                 this.props.Document.height = hgt;
             }, { fireImmediately: true });
     }
@@ -46,6 +52,20 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     createRef = (ele: HTMLDivElement | null) => {
         this._masonryGridRef = ele;
         this.createDropTarget(ele!);
+    }
+    @undoBatch
+    @action
+    public collapseToPoint = (scrpt: number[], expandedDocs: Doc[] | undefined): void => {
+        SelectionManager.DeselectAll();
+        if (expandedDocs) {
+            let isMinimized: boolean | undefined;
+            expandedDocs.map(d => Doc.GetProto(d)).map(maximizedDoc => {
+                if (isMinimized === undefined) {
+                    isMinimized = BoolCast(maximizedDoc.isMinimized, false);
+                }
+                maximizedDoc.isMinimized = !isMinimized;
+            });
+        }
     }
     @computed
     get children() {
@@ -84,7 +104,9 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                     parentActive={this.props.active}
                     addDocTab={this.props.addDocTab}
                     bringToFront={emptyFunction}
-                    whenActiveChanged={this.props.whenActiveChanged} />
+                    whenActiveChanged={this.props.whenActiveChanged}
+                    collapseToPoint={this.collapseToPoint}
+                />
             </div>);
         })
     }

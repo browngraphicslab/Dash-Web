@@ -75,7 +75,7 @@ export interface DocumentViewProps {
     whenActiveChanged: (isActive: boolean) => void;
     bringToFront: (doc: Doc) => void;
     addDocTab: (doc: Doc, where: string) => void;
-    whenClicked?: () => void;
+    collapseToPoint?: (scrpt: number[], expandedDocs: Doc[] | undefined) => void;
 }
 
 const schema = createSchema({
@@ -195,32 +195,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
     }
 
-    static _undoBatch?: UndoManager.Batch = undefined;
-    @action
-    public collapseToPoint = async (scrpt: number[], expandedDocs: Doc[] | undefined): Promise<void> => {
-        SelectionManager.DeselectAll();
-        if (expandedDocs) {
-            if (!DocumentView._undoBatch) {
-                DocumentView._undoBatch = UndoManager.StartBatch("iconAnimating");
-            }
-            let isMinimized: boolean | undefined;
-            expandedDocs.map(d => Doc.GetProto(d)).map(maximizedDoc => {
-                let iconAnimating = Cast(maximizedDoc.isIconAnimating, List);
-                if (!iconAnimating || (Date.now() - iconAnimating[2] > 1000)) {
-                    if (isMinimized === undefined) {
-                        isMinimized = BoolCast(maximizedDoc.isMinimized, false);
-                    }
-                    maximizedDoc.willMaximize = isMinimized;
-                    maximizedDoc.isMinimized = false;
-                    maximizedDoc.isIconAnimating = new List<number>([scrpt[0], scrpt[1], Date.now(), isMinimized ? 1 : 0]);
-                }
-            });
-            setTimeout(() => {
-                DocumentView._undoBatch && DocumentView._undoBatch.end();
-                DocumentView._undoBatch = undefined;
-            }, 500);
-        }
-    }
     onClick = async (e: React.MouseEvent) => {
         e.stopPropagation();
         let altKey = e.altKey;
@@ -273,7 +247,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                         }
                     } else {
                         let scrpt = this.props.ScreenToLocalTransform().inverse().transformPoint(NumCast(this.Document.width) / 2, NumCast(this.Document.height) / 2);
-                        this.collapseToPoint(scrpt, expandedProtoDocs);
+                        this.props.collapseToPoint && this.props.collapseToPoint(scrpt, expandedProtoDocs);
                     }
                 }
                 else if (linkedToDocs.length || linkedFromDocs.length) {
