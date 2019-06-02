@@ -20,7 +20,7 @@ import { FieldView, FieldViewProps } from "../nodes/FieldView";
 import "./CollectionSchemaView.scss";
 import { CollectionSubView } from "./CollectionSubView";
 import { Opt, Field, Doc, DocListCastAsync, DocListCast } from "../../../new_fields/Doc";
-import { Cast, FieldValue, NumCast, StrCast } from "../../../new_fields/Types";
+import { Cast, FieldValue, NumCast, StrCast, BoolCast } from "../../../new_fields/Types";
 import { listSpec } from "../../../new_fields/Schema";
 import { List } from "../../../new_fields/List";
 import { Id } from "../../../new_fields/FieldSymbols";
@@ -30,6 +30,8 @@ import { ContextMenu } from "../ContextMenu";
 import { CollectionView } from "./CollectionView";
 import { CollectionPDFView } from "./CollectionPDFView";
 import { CollectionVideoView } from "./CollectionVideoView";
+import { SelectionManager } from "../../util/SelectionManager";
+import { undoBatch } from "../../util/UndoManager";
 
 
 library.add(faCog);
@@ -392,11 +394,11 @@ interface CollectionSchemaPreviewProps {
     whenActiveChanged: (isActive: boolean) => void;
     addDocTab: (document: Doc, where: string) => void;
     setPreviewScript: (script: string) => void;
-    previewScript: string;
+    previewScript?: string;
 }
 
 @observer
-class CollectionSchemaPreview extends React.Component<CollectionSchemaPreviewProps>{
+export class CollectionSchemaPreview extends React.Component<CollectionSchemaPreviewProps>{
     private get nativeWidth() { return NumCast(this.props.Document!.nativeWidth, this.props.width()); }
     private get nativeHeight() { return NumCast(this.props.Document!.nativeHeight, this.props.height()); }
     private contentScaling = () => {
@@ -414,9 +416,26 @@ class CollectionSchemaPreview extends React.Component<CollectionSchemaPreviewPro
     onPreviewScriptChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         this.props.setPreviewScript(e.currentTarget.value);
     }
+    @undoBatch
+    @action
+    public collapseToPoint = (scrpt: number[], expandedDocs: Doc[] | undefined): void => {
+        SelectionManager.DeselectAll();
+        if (expandedDocs) {
+            let isMinimized: boolean | undefined;
+            expandedDocs.map(d => Doc.GetProto(d)).map(maximizedDoc => {
+                if (isMinimized === undefined) {
+                    isMinimized = BoolCast(maximizedDoc.isMinimized, false);
+                }
+                maximizedDoc.isMinimized = !isMinimized;
+            });
+        }
+    }
     render() {
         trace();
         console.log(this.props.Document);
+        let input = this.props.previewScript === undefined ? (null) :
+            <input className="collectionSchemaView-input" value={this.props.previewScript} onChange={this.onPreviewScriptChange}
+                style={{ left: `calc(50% - ${Math.min(75, (this.props.Document ? this.PanelWidth() / 2 : 75))}px)` }} />;
         return (<div className="collectionSchemaView-previewRegion" style={{ width: this.props.width() }}>
             {!this.props.Document || !this.props.width ? (null) : (
                 <div className="collectionSchemaView-previewDoc" style={{ transform: `translate(${this.centeringOffset}px, 0px)` }}>
@@ -431,11 +450,10 @@ class CollectionSchemaPreview extends React.Component<CollectionSchemaPreviewPro
                         whenActiveChanged={this.props.whenActiveChanged}
                         bringToFront={emptyFunction}
                         addDocTab={this.props.addDocTab}
-                        toggleMinimized={emptyFunction}
+                        collapseToPoint={this.collapseToPoint}
                     />
                 </div>)}
-            <input className="collectionSchemaView-input" value={this.props.previewScript} onChange={this.onPreviewScriptChange}
-                style={{ left: `calc(50% - ${Math.min(75, (this.props.Document ? this.PanelWidth() / 2 : 75))}px)` }} />
+            {input}
         </div>);
     }
 }
