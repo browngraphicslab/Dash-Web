@@ -21,10 +21,6 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     get columnWidth() { return this.singleColumn ? this.props.PanelWidth() - 2 * this.gridSize - this.gridGap : NumCast(this.props.Document.columnWidth, 250); }
 
     componentDidMount() {
-        reaction(() => [this.props.PanelWidth()],
-            () => {
-                this.props.Document.columnWidth = this.props.PanelWidth() - 2 * this.gridSize - this.gridGap;
-            }, { fireImmediately: true });
         this._heightDisposer = reaction(() => [this.childDocs.map(d => [d[HeightSym](), d.isMinimized]), this.props.PanelWidth()],
             () => {
                 if (this.singleColumn) {
