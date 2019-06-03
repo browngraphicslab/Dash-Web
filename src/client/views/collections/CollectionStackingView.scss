@@ -29,11 +29,13 @@
         align-items: center;
     }
 
-    .collectionStackingView-masonryGrid {
-        display:grid;
+    .collectionStackingView-masonrySingle, .collectionStackingView-masonryGrid{
         width:100%;
         height:100%;
         position: absolute;
+    }
+    .collectionStackingView-masonryGrid {
+        display:grid;
     }
 
     .collectionStackingView-description {
