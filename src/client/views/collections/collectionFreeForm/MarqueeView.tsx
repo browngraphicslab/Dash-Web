@@ -272,6 +272,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 ink: inkData ? new InkField(this.marqueeInkSelect(inkData)) : undefined,
                 title: e.key === "s" || e.key === "S" ? "-summary-" : e.key === "p" ? "-summary-" : "a nested collection",
             });
+            newCollection.zoomBasis = zoomBasis;
             this.marqueeInkDelete(inkData);
 
             if (e.key === "s") {
