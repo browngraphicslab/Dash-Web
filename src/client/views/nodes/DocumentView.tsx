@@ -375,12 +375,21 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     freezeNativeDimensions = (e: React.MouseEvent): void => {
         if (NumCast(this.props.Document.nativeWidth)) {
-            this.props.Document.proto!.nativeWidth = undefined;
-            this.props.Document.proto!.nativeHeight = undefined;
-
-        } else {
-            this.props.Document.proto!.nativeWidth = this.props.Document[WidthSym]();
-            this.props.Document.proto!.nativeHeight = this.props.Document[HeightSym]();
+            let proto = Doc.GetProto(this.props.Document);
+            let nw = proto.nativeWidth;
+            let nh = proto.nativeHeight;
+            proto.nativeWidth = proto.nativeHeight = undefined;
+            this.props.Document.width = this.props.Document.frozenWidth;
+            this.props.Document.height = this.props.Document.frozenHeight;
+        }
+        else {
+            let scale = this.props.ScreenToLocalTransform().Scale * NumCast(this.props.Document.zoomBasis, 1);
+            let scr = this.screenRect();
+            let proto = Doc.GetProto(this.props.Document);
+            this.props.Document.frozenWidth = this.props.Document.width;
+            this.props.Document.frozenHeight = this.props.Document.height;
+            this.props.Document.height = proto.nativeHeight = scr.height * scale;
+            this.props.Document.width = proto.nativeWidth = scr.width * scale;
         }
     }
 

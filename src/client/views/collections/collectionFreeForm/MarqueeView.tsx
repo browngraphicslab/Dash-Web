@@ -20,6 +20,8 @@ import { Template, Templates } from "../../Templates";
 import { SearchBox } from "../../SearchBox";
 import { DocServer } from "../../../DocServer";
 import { Id } from "../../../../new_fields/FieldSymbols";
+import { CollectionView } from "../CollectionView";
+import { CollectionViewType } from "../CollectionBaseView";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;
@@ -284,10 +286,12 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 newCollection.proto!.summaryDoc = summary;
                 selected = [newCollection];
                 newCollection.x = bounds.left + bounds.width;
-                summary.proto!.summarizedDocs = new List<Doc>(selected);
-                summary.proto!.maximizeLocation = "inTab";  // or "inPlace", or "onRight"
-
-                this.props.addLiveTextDocument(summary);
+                summary.proto!.subBulletDocs = new List<Doc>(selected);
+                //summary.proto!.maximizeLocation = "inTab";  // or "inPlace", or "onRight"
+                summary.templates = new List<string>([Templates.Bullet.Layout]);
+                let container = Docs.FreeformDocument([summary, newCollection], { x: bounds.left, y: bounds.top, width: 300, height: 200, title: "-summary-" });
+                container.viewType = CollectionViewType.Stacking;
+                this.props.addLiveTextDocument(container);
                 // });
             } else if (e.key === "S") {
                 await htmlToImage.toPng(this._mainCont.current!, { width: bounds.width * zoomBasis, height: bounds.height * zoomBasis, quality: 0.2 }).then((dataUrl) => {
