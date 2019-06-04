@@ -191,7 +191,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (minimizedDoc) {
             let scrpt = this.props.ScreenToLocalTransform().inverse().transformPoint(
                 NumCast(minimizedDoc.x) - NumCast(this.Document.x), NumCast(minimizedDoc.y) - NumCast(this.Document.y));
-            this.collapseToPoint(scrpt, await DocListCastAsync(minimizedDoc.maximizedDocs));
+            this.props.collapseToPoint && this.props.collapseToPoint(scrpt, await DocListCastAsync(minimizedDoc.maximizedDocs));
         }
     }
 
@@ -447,7 +447,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     render() {
         var scaling = this.props.ContentScaling();
-        var nativeHeight = this.nativeHeight > 0 ? `${this.nativeHeight}px` : (StrCast(this.props.Document.layout).indexOf("IconBox") === -1 ? "100%" : "auto");
+        var nativeHeight = this.nativeHeight > 0 ? `${this.nativeHeight}px` : "100%";
         var nativeWidth = this.nativeWidth > 0 ? `${this.nativeWidth}px` : "100%";
 
         return (

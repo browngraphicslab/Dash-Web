@@ -26,13 +26,13 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             () => {
                 if (this.singleColumn) {
                     this.props.Document.height = this.childDocs.filter(d => !d.isMinimized).reduce((height, d) => {
-                        let hgt = d[HeightSym]() / NumCast(d.zoomBasis, 1);
-                        let wid = d[WidthSym]() / NumCast(d.zoomBasis, 1);
+                        let hgt = d[HeightSym]();
+                        let wid = d[WidthSym]();
                         let nw = NumCast(d.nativeWidth);
                         let nh = NumCast(d.nativeHeight);
                         if (nw && nh) hgt = nh / nw * Math.min(this.columnWidth, wid);
                         return height + hgt + 2 * this.gridGap;
-                    }, this.gridGap * 2) * NumCast(this.props.Document.zoomBasis, 1);
+                    }, this.gridGap * 2);
                 }
             }, { fireImmediately: true });
     }
@@ -76,10 +76,10 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         return this.childDocs.filter(d => !d.isMinimized).map((d, i) => {
             let dref = React.createRef<HTMLDivElement>();
             let script = undefined;
-            let colWidth = () => d.nativeWidth ? Math.min(d[WidthSym]() / NumCast(d.zoomBasis, 1), this.columnWidth) : this.columnWidth;
+            let colWidth = () => d.nativeWidth ? Math.min(d[WidthSym](), this.columnWidth) : this.columnWidth;
             let margin = colWidth() < this.columnWidth ? "auto" : undefined;
             let rowHeight = () => {
-                let hgt = d[HeightSym]() / NumCast(d.zoomBasis, 1);
+                let hgt = d[HeightSym]();
                 let nw = NumCast(d.nativeWidth);
                 let nh = NumCast(d.nativeHeight);
                 if (nw && nh) hgt = nh / nw * colWidth();
