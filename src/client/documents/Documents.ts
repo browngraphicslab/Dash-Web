@@ -33,11 +33,6 @@ import { DocServer } from "../DocServer";
 import { StrokeData, InkField } from "../../new_fields/InkField";
 import { dropActionType } from "../util/DragManager";
 import { DateField } from "../../new_fields/DateField";
-<<<<<<< HEAD
-import { PDFBox2 } from "../views/pdf/PDFBox2";
-import { schema } from "prosemirror-schema-basic";
-=======
->>>>>>> 7d3ef1c914cc1cc0b6c05b14773a8b83e1b95c96
 import { UndoManager } from "../util/UndoManager";
 import { RouteStore } from "../../server/RouteStore";
 var requestImageSize = require('request-image-size');
