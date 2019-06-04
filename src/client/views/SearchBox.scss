@@ -48,7 +48,6 @@
 .filter-form {
     background: $dark-color;
     height: 400px;
-    width: 400px;
     position: relative;
     right: 1px;
     color: $light-color;
@@ -71,15 +70,14 @@
     top: 300px;
     display: flex;
     flex-direction: column;
+    margin-right: 72px;
 
     .search-item {
+        pointer-events: auto;
         width: 500px;
-        height: 50px;
         background: $light-color-secondary;
-        display: flex;
         justify-content: space-between;
         align-items: center;
-        transition: all 0.1s;
         border-width: 0.11px;
         border-style: none;
         border-color: $intermediate-color;
@@ -87,6 +85,18 @@
         padding: 10px;
         white-space: nowrap;
         font-size: 13px;
+    }
+
+    .search-info {
+        display: flex;
+        justify-content: flex-end;
+        width: 100%;
+    }
+
+    .main-search-info {
+        display: flex;
+        flex-direction: row;
+        width: 100%;
     }
 
     .search-item:hover {
@@ -98,5 +108,57 @@
         text-transform: uppercase;
         text-align: left;
         width: 8vw;
+        font-weight: bold;
+    }
+
+    .more-search-info {
+        text-align: left;
+    }
+
+    .link-count {
+        height: 25px;
+        width: 25px;
+        border-radius: 50%;
+        background: $dark-color;
+        color: $light-color-secondary;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-right: 10px;
+    }
+
+    .search-type {
+        width: 25PX;
+        height: 25PX;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+
+    .searchBox-instances {
+        display: inline-block;
+        background: $dark-color;
+        width: 100px;
+        opacity: 1;
+        // width: 0px; this is real
+        // visibility: hidden;
+        // opacity: 0; THIS IS REAL
+        // transition: all 0.2s ease;
+        color: $light-color;
+    }
+
+    .search-overview {
+        display: flex;
+        // float: left;
+        justify-content: flex-end;
+    }
+
+    .search-overview:hover {
+        .searchBox-instances {
+            // visibility: visible;
+            opacity: 1;
+            width: 100px;
+        }
     }
 }

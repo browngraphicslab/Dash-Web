@@ -22,6 +22,7 @@ import { SetupDrag } from '../util/DragManager';
 import { Docs } from '../documents/Documents';
 import { RouteStore } from '../../server/RouteStore';
 import { NumCast } from '../../new_fields/Types';
+import { SearchUtil } from '../util/SearchUtil';
 
 library.add(faSearch);
 library.add(faObjectGroup);
@@ -169,6 +170,18 @@ export class SearchBox extends React.Component {
         return Docs.FreeformDocument(docs, { width: 400, height: 400, panX: 175, panY: 175, backgroundColor: "grey", title: `Search Docs: "${this.searchString}"` });
     }
 
+    @action
+    getViews = async (doc: Doc) => {
+        console.log("getting view")
+        const results = await SearchUtil.GetViewsOfDocument(doc);
+        let toReturn: Doc[] = [];
+        await runInAction(() => {
+            toReturn = results;
+        });
+        return toReturn;
+    }
+
+
     // Useful queries:
     // Delegates of a document: {!join from=id to=proto_i}id:{protoId}
     // Documents in a collection: {!join from=data_l to=id}id:{collectionProtoId}
@@ -183,12 +196,19 @@ export class SearchBox extends React.Component {
                         <input value={this.searchString} onChange={this.onChange} type="text" placeholder="Search..."
                             className="searchBox-barChild searchBox-input" onKeyPress={this.enter}
                             style={{ width: this._resultsOpen ? "500px" : undefined }} />
-                        {/* <button className="searchBox-barChild searchBox-filter" onClick={this.toggleFilterDisplay}>Filter</button> */}
+                        <button className="searchBox-barChild searchBox-filter" onClick={this.toggleFilterDisplay}>Filter</button>
                         {/* <FontAwesomeIcon icon="search" size="lg" className="searchBox-barChild searchBox-submit" /> */}
                     </div>
                     {this._resultsOpen ? (
                         <div className="searchBox-results">
-                            {this._results.map(result => <SearchItem doc={result} key={result[Id]} />)}
+                            {this._results.map(result => {
+                                this.getViews(result).then((res: Doc[]) => {
+                                    console.log("found")
+                                    return <SearchItem doc={result} views={res} key={result[Id]} />
+                                })
+                            })}
+                            {/* {this._results.map(result => <SearchItem doc={result} views = {this.getViews(result)} key={result[Id]} />)} */}
+                            {/*views = {this.getViews(result)}*/}
                         </div>
                     ) : null}
                 </div>
