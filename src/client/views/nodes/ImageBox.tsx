@@ -1,4 +1,4 @@
-import { action, observable } from 'mobx';
+import { action, observable, trace } from 'mobx';
 import { observer } from "mobx-react";
 import Lightbox from 'react-image-lightbox';
 import 'react-image-lightbox/style.css'; // This only needs to be imported once in your app
@@ -12,11 +12,19 @@ import React = require("react");
 import { createSchema, makeInterface, listSpec } from '../../../new_fields/Schema';
 import { DocComponent } from '../DocComponent';
 import { positionSchema } from './DocumentView';
-import { FieldValue, Cast, StrCast } from '../../../new_fields/Types';
+import { FieldValue, Cast, StrCast, PromiseValue, NumCast } from '../../../new_fields/Types';
 import { ImageField } from '../../../new_fields/URLField';
 import { List } from '../../../new_fields/List';
 import { InkingControl } from '../InkingControl';
-import { Doc } from '../../../new_fields/Doc';
+import { Doc, WidthSym, HeightSym } from '../../../new_fields/Doc';
+import { faImage } from '@fortawesome/free-solid-svg-icons';
+import { library } from '@fortawesome/fontawesome-svg-core';
+import { ContextMenuItemProps, ContextMenuProps } from '../ContextMenuItem';
+var path = require('path');
+
+
+library.add(faImage);
+
 
 export const pageSchema = createSchema({
     curPage: "number"
@@ -37,15 +45,6 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
     @observable private _isOpen: boolean = false;
     private dropDisposer?: DragManager.DragDropDisposer;
 
-    @action
-    onLoad = (target: any) => {
-        var h = this._imgRef.current!.naturalHeight;
-        var w = this._imgRef.current!.naturalWidth;
-        if (this._photoIndex === 0 && (this.props as any).id !== "isExpander") {
-            Doc.SetOnPrototype(this.Document, "nativeHeight", FieldValue(this.Document.nativeWidth, 0) * h / w);
-            this.Document.height = FieldValue(this.Document.width, 0) * h / w;
-        }
-    }
 
 
     protected createDropTarget = (ele: HTMLDivElement) => {
@@ -87,16 +86,19 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
     }
 
     onPointerDown = (e: React.PointerEvent): void => {
-        if (Date.now() - this._lastTap < 300) {
-            if (e.buttons === 1) {
-                this._downX = e.clientX;
-                this._downY = e.clientY;
-                document.removeEventListener("pointerup", this.onPointerUp);
-                document.addEventListener("pointerup", this.onPointerUp);
-            }
-        } else {
-            this._lastTap = Date.now();
-        }
+        if (e.shiftKey && e.ctrlKey)
+
+            e.stopPropagation();
+        // if (Date.now() - this._lastTap < 300) {
+        //     if (e.buttons === 1) {
+        //         this._downX = e.clientX;
+        //         this._downY = e.clientY;
+        //         document.removeEventListener("pointerup", this.onPointerUp);
+        //         document.addEventListener("pointerup", this.onPointerUp);
+        //     }
+        // } else {
+        //     this._lastTap = Date.now();
+        // }
     }
     @action
     onPointerUp = (e: PointerEvent): void => {
@@ -130,11 +132,20 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         let field = Cast(this.Document[this.props.fieldKey], ImageField);
         if (field) {
             let url = field.url.href;
-            ContextMenu.Instance.addItem({
-                description: "Copy path", event: () => {
-                    Utils.CopyText(url);
-                }, icon: "expand-arrows-alt"
+            let subitems: ContextMenuProps[] = [];
+            subitems.push({ description: "Copy path", event: () => Utils.CopyText(url), icon: "expand-arrows-alt" });
+            subitems.push({
+                description: "Rotate", event: action(() => {
+                    this.props.Document.rotation = (NumCast(this.props.Document.rotation) + 90) % 360;
+                    let nw = this.props.Document.nativeWidth;
+                    this.props.Document.nativeWidth = this.props.Document.nativeHeight;
+                    this.props.Document.nativeHeight = nw;
+                    let w = this.props.Document.width;
+                    this.props.Document.width = this.props.Document.height;
+                    this.props.Document.height = w;
+                }), icon: "expand-arrows-alt"
             });
+            ContextMenu.Instance.addItem({ description: "Image Funcs...", subitems: subitems });
         }
     }
 
@@ -155,25 +166,66 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         );
     }
 
+    choosePath(url: URL) {
+        const lower = url.href.toLowerCase();
+        if (url.protocol === "data" || url.href.indexOf(window.location.origin) === -1 || !(lower.endsWith(".png") || lower.endsWith(".jpg") || lower.endsWith(".jpeg"))) {
+            return url.href;
+        }
+        let ext = path.extname(url.href);
+        return url.href.replace(ext, this._curSuffix + ext);
+    }
+
+    @observable _smallRetryCount = 1;
+    @observable _mediumRetryCount = 1;
+    @observable _largeRetryCount = 1;
+    @action retryPath = () => {
+        if (this._curSuffix === "_s") this._smallRetryCount++;
+        if (this._curSuffix === "_m") this._mediumRetryCount++;
+        if (this._curSuffix === "_l") this._largeRetryCount++;
+    }
+    @action onError = () => {
+        let timeout = this._curSuffix === "_s" ? this._smallRetryCount : this._curSuffix === "_m" ? this._mediumRetryCount : this._largeRetryCount;
+        if (timeout < 10)
+            setTimeout(this.retryPath, Math.min(10000, timeout * 5));
+    }
+    _curSuffix = "_m";
     render() {
-        let field = this.Document[this.props.fieldKey];
-        let paths: string[] = ["http://www.cs.brown.edu/~bcz/face.gif"];
-        if (field instanceof ImageField) paths = [field.url.href];
-        else if (field instanceof List) paths = field.filter(val => val instanceof ImageField).map(p => (p as ImageField).url.href);
-        let nativeWidth = FieldValue(this.Document.nativeWidth, (this.props.PanelWidth as any) as string ? Number((this.props.PanelWidth as any) as string) : 50);
-        let interactive = InkingControl.Instance.selectedTool ? "" : "-interactive";
+        // let transform = this.props.ScreenToLocalTransform().inverse();
+        let pw = typeof this.props.PanelWidth === "function" ? this.props.PanelWidth() : typeof this.props.PanelWidth === "number" ? (this.props.PanelWidth as any) as number : 50;
+        // var [sptX, sptY] = transform.transformPoint(0, 0);
+        // let [bptX, bptY] = transform.transformPoint(pw, this.props.PanelHeight());
+        // let w = bptX - sptX;
+
         let id = (this.props as any).id; // bcz: used to set id = "isExpander" in templates.tsx
+        let nativeWidth = FieldValue(this.Document.nativeWidth, pw);
+        let paths: string[] = ["http://www.cs.brown.edu/~bcz/noImage.png"];
+        // this._curSuffix = "";
+        // if (w > 20) {
+        let field = this.Document[this.props.fieldKey];
+        // if (w < 100 && this._smallRetryCount < 10) this._curSuffix = "_s";
+        // else if (w < 600 && this._mediumRetryCount < 10) this._curSuffix = "_m";
+        // else if (this._largeRetryCount < 10) this._curSuffix = "_l";
+        if (field instanceof ImageField) paths = [this.choosePath(field.url)];
+        else if (field instanceof List) paths = field.filter(val => val instanceof ImageField).map(p => this.choosePath((p as ImageField).url));
+        // }
+        let interactive = InkingControl.Instance.selectedTool ? "" : "-interactive";
+        let rotation = NumCast(this.props.Document.rotation, 0);
+        let aspect = (rotation % 180) ? this.props.Document[HeightSym]() / this.props.Document[WidthSym]() : 1;
+        let shift = (rotation % 180) ? (this.props.Document[HeightSym]() - this.props.Document[WidthSym]() / aspect) / 2 : 0;
         return (
             <div id={id} className={`imageBox-cont${interactive}`}
-                // onPointerDown={this.onPointerDown}
+                onPointerDown={this.onPointerDown}
                 onDrop={this.onDrop} ref={this.createDropTarget} onContextMenu={this.specificContextMenu}>
-                <img id={id} src={paths[Math.min(paths.length, this._photoIndex)]}
-                    style={{ objectFit: (this._photoIndex === 0 ? undefined : "contain") }}
+                <img id={id}
+                    key={this._smallRetryCount + (this._mediumRetryCount << 4) + (this._largeRetryCount << 8)} // force cache to update on retrys
+                    src={paths[Math.min(paths.length, this._photoIndex)]}
+                    style={{ transform: `translate(0px, ${shift}px) rotate(${rotation}deg) scale(${aspect})` }}
+                    // style={{ objectFit: (this._photoIndex === 0 ? undefined : "contain") }}
                     width={nativeWidth}
                     ref={this._imgRef}
-                    onLoad={this.onLoad} />
+                    onError={this.onError} />
                 {paths.length > 1 ? this.dots(paths) : (null)}
-                {this.lightbox(paths)}
+                {/* {this.lightbox(paths)} */}
             </div>);
     }
 }

@@ -1,6 +1,7 @@
 import { Deserializable } from "../client/util/SerializationHelper";
 import { serializable, primitive } from "serializr";
-import { ObjectField, Copy } from "./ObjectField";
+import { ObjectField } from "./ObjectField";
+import { Copy, ToScriptString } from "./FieldSymbols";
 
 @Deserializable("html")
 export class HtmlField extends ObjectField {
@@ -14,5 +15,9 @@ export class HtmlField extends ObjectField {
 
     [Copy]() {
         return new HtmlField(this.html);
+    }
+
+    [ToScriptString]() {
+        return "invalid";
     }
 }

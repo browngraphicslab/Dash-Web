@@ -251,7 +251,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             }
             if (!this._removeIcon) {
                 if (selectedDocs.length === 1) {
-                    this.getIconDoc(selectedDocs[0]).then(icon => selectedDocs[0].props.toggleMinimized());
+                    this.getIconDoc(selectedDocs[0]).then(icon => selectedDocs[0].toggleMinimized());
                 } else if (Math.abs(e.pageX - this._downX) < Utils.DRAG_THRESHOLD &&
                     Math.abs(e.pageY - this._downY) < Utils.DRAG_THRESHOLD) {
                     let docViews = SelectionManager.ViewsSortedVertically();
@@ -276,16 +276,16 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         let doc = selected[0].props.Document;
         let iconDoc = Docs.IconDocument(layoutString);
         iconDoc.isButton = true;
-        iconDoc.proto!.title = selected.length > 1 ? "ICONset" : "ICON" + StrCast(doc.title);
+        iconDoc.proto!.title = selected.length > 1 ? "-multiple-.icon" : StrCast(doc.title) + ".icon";
         iconDoc.labelField = selected.length > 1 ? undefined : this._fieldKey;
-        iconDoc.proto![this._fieldKey] = selected.length > 1 ? "collection" : undefined;
+        //iconDoc.proto![this._fieldKey] = selected.length > 1 ? "collection" : undefined;
         iconDoc.proto!.isMinimized = false;
         iconDoc.width = Number(MINIMIZED_ICON_SIZE);
         iconDoc.height = Number(MINIMIZED_ICON_SIZE);
         iconDoc.x = NumCast(doc.x);
         iconDoc.y = NumCast(doc.y) - 24;
         iconDoc.maximizedDocs = new List<Doc>(selected.map(s => s.props.Document.proto!));
-        doc.minimizedDoc = iconDoc;
+        selected.length === 1 && (doc.minimizedDoc = iconDoc);
         selected[0].props.addDocument && selected[0].props.addDocument(iconDoc, false);
         return iconDoc;
     }
@@ -433,6 +433,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
 
             if (rect.width !== 0 && (dX != 0 || dY != 0 || dW != 0 || dH != 0)) {
                 let doc = PositionDocument(element.props.Document);
+                let docHeightBefore = doc.height;
                 let nwidth = doc.nativeWidth || 0;
                 let nheight = doc.nativeHeight || 0;
                 let zoomBasis = NumCast(doc.zoomBasis, 1);
@@ -452,7 +453,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     }
                 } else {
                     doc.width = zoomBasis * actualdW;
-                    doc.height = zoomBasis * actualdH;
+                    if (docHeightBefore === doc.height) doc.height = zoomBasis * actualdH;
                 }
             }
         });

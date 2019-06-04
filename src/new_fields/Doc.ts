@@ -5,26 +5,35 @@ import { DocServer } from "../client/DocServer";
 import { setter, getter, getField, updateFunction, deleteProperty } from "./util";
 import { Cast, ToConstructor, PromiseValue, FieldValue, NumCast } from "./Types";
 import { listSpec } from "./Schema";
-import { ObjectField, Parent, OnUpdate } from "./ObjectField";
-import { RefField, FieldId, Id, HandleUpdate } from "./RefField";
+import { ObjectField } from "./ObjectField";
+import { RefField, FieldId } from "./RefField";
+import { ToScriptString, SelfProxy, Parent, OnUpdate, Self, HandleUpdate, Update, Id } from "./FieldSymbols";
 
-export function IsField(field: any): field is Field {
-    return (typeof field === "string")
-        || (typeof field === "number")
-        || (typeof field === "boolean")
-        || (field instanceof ObjectField)
-        || (field instanceof RefField);
+export namespace Field {
+    export function toScriptString(field: Field): string {
+        if (typeof field === "string") {
+            return `"${field}"`;
+        } else if (typeof field === "number" || typeof field === "boolean") {
+            return String(field);
+        } else {
+            return field[ToScriptString]();
+        }
+    }
+    export function IsField(field: any): field is Field;
+    export function IsField(field: any, includeUndefined: true): field is Field | undefined;
+    export function IsField(field: any, includeUndefined: boolean = false): field is Field | undefined {
+        return (typeof field === "string")
+            || (typeof field === "number")
+            || (typeof field === "boolean")
+            || (field instanceof ObjectField)
+            || (field instanceof RefField)
+            || (includeUndefined && field === undefined);
+    }
 }
 export type Field = number | string | boolean | ObjectField | RefField;
 export type Opt<T> = T | undefined;
 export type FieldWaiting<T extends RefField = RefField> = T extends undefined ? never : Promise<T | undefined>;
 export type FieldResult<T extends Field = Field> = Opt<T> | FieldWaiting<Extract<T, RefField>>;
-
-export const Update = Symbol("Update");
-export const Self = Symbol("Self");
-export const SelfProxy = Symbol("SelfProxy");
-export const WidthSym = Symbol("Width");
-export const HeightSym = Symbol("Height");
 
 /**
  * Cast any field to either a List of Docs or undefined if the given field isn't a List of Docs.  
@@ -43,6 +52,9 @@ export function DocListCast(field: FieldResult): Doc[] {
     return Cast(field, listSpec(Doc), []).filter(d => d instanceof Doc) as Doc[];
 }
 
+export const WidthSym = Symbol("Width");
+export const HeightSym = Symbol("Height");
+
 @Deserializable("doc").withFields(["id"])
 export class Doc extends RefField {
     constructor(id?: FieldId, forceSave?: boolean) {
@@ -50,6 +62,7 @@ export class Doc extends RefField {
         const doc = new Proxy<this>(this, {
             set: setter,
             get: getter,
+            // getPrototypeOf: (target) => Cast(target[SelfProxy].proto, Doc) || null, // TODO this might be able to replace the proto logic in getter
             has: (target, key) => key in target.__fields,
             ownKeys: target => Object.keys(target.__fields),
             getOwnPropertyDescriptor: (target, prop) => {
@@ -57,6 +70,7 @@ export class Doc extends RefField {
                     return {
                         configurable: true,//TODO Should configurable be true?
                         enumerable: true,
+                        value: target.__fields[prop]
                     };
                 }
                 return Reflect.getOwnPropertyDescriptor(target, prop);
@@ -102,8 +116,11 @@ export class Doc extends RefField {
     public [WidthSym] = () => NumCast(this[SelfProxy].width);  // bcz: is this the right way to access width/height?   it didn't work with : this.width
     public [HeightSym] = () => NumCast(this[SelfProxy].height);
 
+    [ToScriptString]() {
+        return "invalid";
+    }
+
     public [HandleUpdate](diff: any) {
-        console.log(diff);
         const set = diff.$set;
         if (set) {
             for (const key in set) {
@@ -136,6 +153,9 @@ export namespace Doc {
     export function GetT<T extends Field>(doc: Doc, key: string, ctor: ToConstructor<T>, ignoreProto: boolean = false): FieldResult<T> {
         return Cast(Get(doc, key, ignoreProto), ctor) as FieldResult<T>;
     }
+    export function IsPrototype(doc: Doc) {
+        return GetT(doc, "isPrototype", "boolean", true);
+    }
     export async function SetOnPrototype(doc: Doc, key: string, value: Field) {
         const proto = Object.getOwnPropertyNames(doc).indexOf("isPrototype") === -1 ? doc.proto : doc;
 
@@ -167,33 +187,36 @@ export namespace Doc {
 
     // compare whether documents or their protos match
     export function AreProtosEqual(doc: Doc, other: Doc) {
-        let r = (doc[Id] === other[Id]);
-        let r2 = (doc.proto && doc.proto.Id === other[Id]);
-        let r3 = (other.proto && other.proto.Id === doc[Id]);
-        let r4 = (doc.proto && other.proto && doc.proto[Id] === other.proto[Id]);
-        return r || r2 || r3 || r4 ? true : false;
+        let r = (doc === other);
+        let r2 = (doc.proto === other);
+        let r3 = (other.proto === doc);
+        let r4 = (doc.proto === other.proto);
+        return r || r2 || r3 || r4;
     }
 
     // gets the document's prototype or returns the document if it is a prototype
     export function GetProto(doc: Doc) {
-        return Object.getOwnPropertyNames(doc).indexOf("isPrototype") === -1 ? doc.proto! : doc;
+        return Doc.GetT(doc, "isPrototype", "boolean", true) ? doc : doc.proto!;
+    }
+
+    export function allKeys(doc: Doc): string[] {
+        const results: Set<string> = new Set;
+
+        let proto: Doc | undefined = doc;
+        while (proto) {
+            Object.keys(proto).forEach(key => results.add(key));
+            proto = proto.proto;
+        }
+
+        return Array.from(results);
     }
 
 
     export function MakeAlias(doc: Doc) {
-        const proto = Object.getOwnPropertyNames(doc).indexOf("isPrototype") === -1 ? doc.proto : undefined;
         const alias = new Doc;
-
-        if (!proto) {
-            alias.proto = doc;
-        } else {
-            PromiseValue(Cast(doc.proto, Doc)).then(proto => {
-                if (proto) {
-                    alias.proto = proto;
-                }
-            });
+        if (!GetT(doc, "isPrototype", "boolean", true)) {
+            alias.proto = doc.proto;
         }
-
         return alias;
     }
 
@@ -228,5 +251,4 @@ export namespace Doc {
         delegate.proto = doc;
         return delegate;
     }
-    export const Prototype = Symbol("Prototype");
 }

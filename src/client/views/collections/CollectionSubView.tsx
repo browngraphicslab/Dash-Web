@@ -16,9 +16,8 @@ import { listSpec } from "../../../new_fields/Schema";
 import { Cast, PromiseValue, FieldValue, ListSpec } from "../../../new_fields/Types";
 import { List } from "../../../new_fields/List";
 import { DocServer } from "../../DocServer";
-import { ObjectField } from "../../../new_fields/ObjectField";
-import CursorField, { CursorPosition, CursorMetadata } from "../../../new_fields/CursorField";
-import { url } from "inspector";
+import CursorField from "../../../new_fields/CursorField";
+import { DocumentManager } from "../../util/DocumentManager";
 
 export interface CollectionViewProps extends FieldViewProps {
     addDocument: (document: Doc, allowDuplicates?: boolean) => boolean;
@@ -72,7 +71,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 if (cursors.length > 0 && (ind = cursors.findIndex(entry => entry.data.metadata.id === id)) > -1) {
                     cursors[ind].setPosition(pos);
                 } else {
-                    let entry = new CursorField({ metadata: { id: id, identifier: email }, position: pos });
+                    let entry = new CursorField({ metadata: { id: id, identifier: email, timestamp: Date.now() }, position: pos });
                     cursors.push(entry);
                 }
             }
@@ -131,7 +130,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 options.dropAction = "copy";
             }
             if (type.indexOf("html") !== -1) {
-                if (path.includes('localhost')) {
+                if (path.includes(window.location.hostname)) {
                     let s = path.split('/');
                     let id = s[s.length - 1];
                     DocServer.GetRefField(id).then(field => {
@@ -155,6 +154,10 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
         @undoBatch
         @action
         protected onDrop(e: React.DragEvent, options: DocumentOptions): void {
+            if (e.ctrlKey) {
+                e.stopPropagation(); // bcz: this is a hack to stop propagation when dropping an image on a text document with shift+ctrl
+                return;
+            }
             let html = e.dataTransfer.getData("text/html");
             let text = e.dataTransfer.getData("text/plain");
 
@@ -164,6 +167,13 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             e.stopPropagation();
             e.preventDefault();
 
+            if (html && html.indexOf(document.location.origin)) { // prosemirror text containing link to dash document
+                let start = html.indexOf(window.location.origin);
+                let path = html.substr(start, html.length - start);
+                let docid = path.substr(0, path.indexOf("\">")).replace(DocServer.prepend("/doc/"), "").split("?")[0];
+                DocServer.GetRefField(docid).then(f => (f instanceof Doc) && this.props.addDocument(f, false));
+                return;
+            }
             if (html && html.indexOf("<img") !== 0 && !html.startsWith("<a")) {
                 let htmlDoc = Docs.HtmlDocument(html, { ...options, width: 300, height: 300, documentText: text });
                 this.props.addDocument(htmlDoc, false);
@@ -210,7 +220,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                     }).then(async (res: Response) => {
                         (await res.json()).map(action((file: any) => {
                             let path = window.location.origin + file;
-                            let docPromise = this.getDocumentFromType(type, path, { ...options, nativeWidth: 600, width: 300, title: dropFileName });
+                            let docPromise = this.getDocumentFromType(type, path, { ...options, nativeWidth: 300, width: 300, title: dropFileName });
 
                             docPromise.then(doc => doc && this.props.addDocument(doc));
                         }));

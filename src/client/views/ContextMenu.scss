@@ -22,7 +22,7 @@
     color: $light-color;
 }
 
-.subMenu-cont {
+.contextMenu-subMenu-cont {
     position: absolute;
     display: flex;
     z-index: 1000;
@@ -31,8 +31,8 @@
 }
 
 .contextMenu-item {
-    width: 11vw; //10vw
-    height: 2.5vh; //2vh
+    // width: 11vw; //10vw
+    height: 30px; //2vh
     background: #DDDDDD;
     display: flex; //comment out to allow search icon to be inline with search text
     justify-content: left;
@@ -48,9 +48,9 @@
     border-style: none;
     border-color: $intermediate-color; //  rgb(187, 186, 186);
     border-bottom-style: solid;
-    padding: 10px;
+    // padding: 10px 0px 10px 0px;
     white-space: nowrap;
-    font-size: 1vw;
+    font-size: 20px;
 }
 
 .contextMenu-item:hover {
@@ -59,12 +59,15 @@
 }
 
 .contextMenu-description {
-    font-size: 1vw;
+    font-size: 20px;
     text-align: left;
-    width: 8vw;
     display: inline; //need this?
 }
 
 .icon-background {
+    pointer-events: none;
     background-color: #DDDDDD;
+    width: 35px;
+    text-align: center;
+    font-size: 22px;
 }

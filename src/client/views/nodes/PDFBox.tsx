@@ -1,5 +1,5 @@
 import * as htmlToImage from "html-to-image";
-import { action, computed, IReactionDisposer, observable, reaction, Reaction, trace, runInAction } from 'mobx';
+import { action, computed, IReactionDisposer, observable, reaction, runInAction, trace } from 'mobx';
 import { observer } from "mobx-react";
 import 'react-image-lightbox/style.css';
 import Measure from "react-measure";
@@ -8,19 +8,22 @@ import Measure from "react-measure";
 // import 'react-pdf/dist/Page/AnnotationLayer.css';
 import { RouteStore } from "../../../server/RouteStore";
 import { Utils } from '../../../Utils';
+import { DocServer } from "../../DocServer";
+import { DocComponent } from "../DocComponent";
+import { InkingControl } from "../InkingControl";
+import { SearchBox } from "../SearchBox";
 import { Annotation } from './Annotation';
+import { positionSchema } from "./DocumentView";
 import { FieldView, FieldViewProps } from './FieldView';
+import { pageSchema } from "./ImageBox";
 import "./PDFBox.scss";
+var path = require('path');
 import React = require("react");
 import { SelectionManager } from "../../util/SelectionManager";
 import { Cast, FieldValue, NumCast } from "../../../new_fields/Types";
 import { Opt, HeightSym, Doc } from "../../../new_fields/Doc";
-import { DocComponent } from "../DocComponent";
 import { makeInterface } from "../../../new_fields/Schema";
-import { positionSchema } from "./DocumentView";
-import { pageSchema } from "./ImageBox";
 import { ImageField, PdfField } from "../../../new_fields/URLField";
-import { InkingControl } from "../InkingControl";
 import { PDFViewer } from "../pdf/PDFViewer";
 
 /** ALSO LOOK AT: Annotation.tsx, Sticky.tsx

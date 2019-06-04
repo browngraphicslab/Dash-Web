@@ -1,5 +1,5 @@
 import { IconName, library } from '@fortawesome/fontawesome-svg-core';
-import { faFilePdf, faFilm, faFont, faGlobeAsia, faImage, faMusic, faObjectGroup, faPenNib, faRedoAlt, faTable, faTree, faUndoAlt } from '@fortawesome/free-solid-svg-icons';
+import { faFilePdf, faFilm, faFont, faGlobeAsia, faImage, faMusic, faObjectGroup, faPenNib, faRedoAlt, faTable, faTree, faUndoAlt, faBell } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, configure, observable, runInAction, trace } from 'mobx';
 import { observer } from 'mobx-react';
@@ -25,11 +25,11 @@ import { DocumentView } from './nodes/DocumentView';
 import { PreviewCursor } from './PreviewCursor';
 import { SearchBox } from './SearchBox';
 import { SelectionManager } from '../util/SelectionManager';
-import { FieldResult, Field, Doc, Opt } from '../../new_fields/Doc';
+import { FieldResult, Field, Doc, Opt, DocListCast } from '../../new_fields/Doc';
 import { Cast, FieldValue, StrCast } from '../../new_fields/Types';
 import { DocServer } from '../DocServer';
 import { listSpec } from '../../new_fields/Schema';
-import { Id } from '../../new_fields/RefField';
+import { Id } from '../../new_fields/FieldSymbols';
 import { HistoryUtil } from '../util/History';
 import { CollectionBaseView } from './collections/CollectionBaseView';
 
@@ -40,14 +40,13 @@ export class MainView extends React.Component {
     @observable private _workspacesShown: boolean = false;
     @observable public pwidth: number = 0;
     @observable public pheight: number = 0;
-
     @computed private get mainContainer(): Opt<Doc> {
         return FieldValue(Cast(CurrentUserUtils.UserDocument.activeWorkspace, Doc));
     }
     private set mainContainer(doc: Opt<Doc>) {
         if (doc) {
             if (!("presentationView" in doc)) {
-                doc.presentationView = new Doc();
+                doc.presentationView = Docs.TreeDocument([], { title: "Presentation" });
             }
             CurrentUserUtils.UserDocument.activeWorkspace = doc;
         }
@@ -105,7 +104,9 @@ export class MainView extends React.Component {
         }, false); // drag event handler
         // click interactions for the context menu
         document.addEventListener("pointerdown", action(function (e: PointerEvent) {
-            if (!ContextMenu.Instance.intersects(e.pageX, e.pageY)) {
+
+            const targets = document.elementsFromPoint(e.x, e.y);
+            if (targets && targets.length && targets[0].className.toString().indexOf("contextMenu") === -1) {
                 ContextMenu.Instance.clearItems();
             }
         }), true);
@@ -131,18 +132,20 @@ export class MainView extends React.Component {
     createNewWorkspace = async (id?: string) => {
         const list = Cast(CurrentUserUtils.UserDocument.data, listSpec(Doc));
         if (list) {
-            let freeformDoc = Docs.FreeformDocument([], { x: 0, y: 400, title: `WS collection ${list.length + 1}` });
+            let freeformDoc = Docs.FreeformDocument([], { x: 0, y: 400, width: this.pwidth * .7, height: this.pheight, title: `WS collection ${list.length + 1}` });
             var dockingLayout = { content: [{ type: 'row', content: [CollectionDockingView.makeDocumentConfig(CurrentUserUtils.UserDocument, 150), CollectionDockingView.makeDocumentConfig(freeformDoc, 600)] }] };
             let mainDoc = Docs.DockDocument([CurrentUserUtils.UserDocument, freeformDoc], JSON.stringify(dockingLayout), { title: `Workspace ${list.length + 1}` }, id);
             list.push(mainDoc);
             // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
             setTimeout(() => {
                 this.openWorkspace(mainDoc);
-                let pendingDocument = Docs.SchemaDocument(["title"], [], { title: "New Mobile Uploads" });
-                mainDoc.optionalRightCollection = pendingDocument;
+                // let pendingDocument = Docs.StackingDocument([], { title: "New Mobile Uploads" });
+                // mainDoc.optionalRightCollection = pendingDocument;
             }, 0);
         }
     }
+
+    @observable _notifsCol: Opt<Doc>;
 
     @action
     openWorkspace = async (doc: Doc, fromHistory = false) => {
@@ -154,12 +157,19 @@ export class MainView extends React.Component {
         setTimeout(async () => {
             if (col) {
                 const l = Cast(col.data, listSpec(Doc));
-                if (l && l.length > 0) {
-                    CollectionDockingView.Instance.AddRightSplit(col);
+                if (l) {
+                    runInAction(() => this._notifsCol = col);
                 }
             }
         }, 100);
     }
+
+    openNotifsCol = () => {
+        if (this._notifsCol && CollectionDockingView.Instance) {
+            CollectionDockingView.Instance.AddRightSplit(this._notifsCol);
+        }
+    }
+
     @action
     onResize = (r: any) => {
         this.pwidth = r.offset.width;
@@ -176,7 +186,6 @@ export class MainView extends React.Component {
         let mainCont = this.mainContainer;
         let content = !mainCont ? (null) :
             <DocumentView Document={mainCont}
-                toggleMinimized={emptyFunction}
                 addDocument={undefined}
                 addDocTab={emptyFunction}
                 removeDocument={undefined}
@@ -212,7 +221,7 @@ export class MainView extends React.Component {
         let videourl = "http://techslides.com/demos/sample-videos/small.mp4";
 
         let addTextNode = action(() => Docs.TextDocument({ borderRounding: -1, width: 200, height: 200, title: "a text note" }));
-        let addColNode = action(() => Docs.FreeformDocument([], { width: 200, height: 200, title: "a freeform collection" }));
+        let addColNode = action(() => Docs.FreeformDocument([], { width: this.pwidth * .7, height: this.pheight, title: "a freeform collection" }));
         let addSchemaNode = action(() => Docs.SchemaDocument(["title"], [], { width: 200, height: 200, title: "a schema collection" }));
         let addTreeNode = action(() => CurrentUserUtils.UserDocument);
         //let addTreeNode = action(() => Docs.TreeDocument([CurrentUserUtils.UserDocument], { width: 250, height: 400, title: "Library:" + CurrentUserUtils.email, dropAction: "alias" }));
@@ -255,20 +264,39 @@ export class MainView extends React.Component {
     /* @TODO this should really be moved into a moveable toolbar component, but for now let's put it here to meet the deadline */
     @computed
     get miscButtons() {
+        const length = this._notifsCol ? DocListCast(this._notifsCol.data).length : 0;
+        const notifsRef = React.createRef<HTMLDivElement>();
+        const dragNotifs = action(() => this._notifsCol!);
         let logoutRef = React.createRef<HTMLDivElement>();
 
         return [
             <button className="clear-db-button" key="clear-db" onClick={e => e.shiftKey && e.altKey && DocServer.DeleteDatabase()}>Clear Database</button>,
             <div id="toolbar" key="toolbar">
+                <div ref={notifsRef}>
+                    <button className="toolbar-button round-button" title="Notifs"
+                        onClick={this.openNotifsCol} onPointerDown={this._notifsCol ? SetupDrag(notifsRef, dragNotifs) : emptyFunction}>
+                        <FontAwesomeIcon icon={faBell} size="sm" />
+                    </button>
+                    <div className="main-notifs-badge" style={length > 0 ? { "display": "initial" } : { "display": "none" }}>
+                        {length}
+                    </div>
+                </div>
+                <button className="toolbar-button round-button" title="Search" onClick={this.toggleSearch}><FontAwesomeIcon icon="search" size="sm" /></button>
                 <button className="toolbar-button round-button" title="Undo" onClick={() => UndoManager.Undo()}><FontAwesomeIcon icon="undo-alt" size="sm" /></button>
                 <button className="toolbar-button round-button" title="Redo" onClick={() => UndoManager.Redo()}><FontAwesomeIcon icon="redo-alt" size="sm" /></button>
                 <button className="toolbar-button round-button" title="Ink" onClick={() => InkingControl.Instance.toggleDisplay()}><FontAwesomeIcon icon="pen-nib" size="sm" /></button>
             </div >,
-            <div className="main-searchDiv" key="search" style={{ top: '34px', right: '1px', position: 'absolute' }} > <SearchBox /> </div>,
+            this.isSearchVisible ? <div className="main-searchDiv" key="search" style={{ top: '34px', right: '1px', position: 'absolute' }} > <SearchBox /> </div> : null,
             <div className="main-buttonDiv" key="logout" style={{ bottom: '0px', right: '1px', position: 'absolute' }} ref={logoutRef}>
                 <button onClick={() => request.get(DocServer.prepend(RouteStore.logout), emptyFunction)}>Log Out</button></div>
         ];
 
+    }
+
+    @observable isSearchVisible = false;
+    @action
+    toggleSearch = () => {
+        this.isSearchVisible = !this.isSearchVisible;
     }
 
     render() {

@@ -17,6 +17,10 @@
     z-index: 25;
     pointer-events: all;
 }
+.pdfBox-thumbnail {
+    position: absolute;
+    width: 100%;
+}
 .pdfButton {
     pointer-events: all;
     width: 100px;

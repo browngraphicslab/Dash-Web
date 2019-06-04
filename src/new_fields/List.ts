@@ -1,11 +1,12 @@
 import { Deserializable, autoObject } from "../client/util/SerializationHelper";
-import { Field, Update, Self, FieldResult, SelfProxy } from "./Doc";
+import { Field } from "./Doc";
 import { setter, getter, deleteProperty, updateFunction } from "./util";
 import { serializable, alias, list } from "serializr";
 import { observable, action } from "mobx";
-import { ObjectField, OnUpdate, Copy, Parent } from "./ObjectField";
+import { ObjectField } from "./ObjectField";
 import { RefField } from "./RefField";
 import { ProxyField } from "./Proxy";
+import { Self, Update, Parent, OnUpdate, SelfProxy, ToScriptString, Copy } from "./FieldSymbols";
 
 const listHandlers: any = {
     /// Mutator methods
@@ -225,7 +226,7 @@ type StoredType<T extends Field> = T extends RefField ? ProxyField<T> : T;
 
 @Deserializable("list")
 class ListImpl<T extends Field> extends ObjectField {
-    constructor(fields: T[] = []) {
+    constructor(fields?: T[]) {
         super();
         const list = new Proxy<this>(this, {
             set: setter,
@@ -244,7 +245,9 @@ class ListImpl<T extends Field> extends ObjectField {
             defineProperty: () => { throw new Error("Currently properties can't be defined on documents using Object.defineProperty"); },
         });
         this[SelfProxy] = list;
-        (list as any).push(...fields);
+        if (fields) {
+            (list as any).push(...fields);
+        }
         return list;
     }
 
@@ -284,6 +287,11 @@ class ListImpl<T extends Field> extends ObjectField {
 
     private [Self] = this;
     private [SelfProxy]: any;
+
+    [ToScriptString]() {
+        return "invalid";
+        // return `new List([${(this as any).map((field => Field.toScriptString(field))}])`;
+    }
 }
 export type List<T extends Field> = ListImpl<T> & (T | (T extends RefField ? Promise<T> : never))[];
 export const List: { new <T extends Field>(fields?: T[]): List<T> } = ListImpl as any;

@@ -1,7 +1,7 @@
 import { action, observable } from 'mobx';
 import { observer } from "mobx-react";
 import 'react-image-lightbox/style.css'; // This only needs to be imported once in your app
-import { emptyFunction, returnFalse, returnZero } from '../../../Utils';
+import { emptyFunction, returnFalse, returnZero, returnTrue } from '../../../Utils';
 import { CompileScript } from "../../util/Scripting";
 import { Transform } from '../../util/Transform';
 import { EditableView } from "../EditableView";
@@ -9,7 +9,7 @@ import { FieldView, FieldViewProps } from './FieldView';
 import "./KeyValueBox.scss";
 import "./KeyValuePair.scss";
 import React = require("react");
-import { Doc, Opt, IsField } from '../../../new_fields/Doc';
+import { Doc, Opt, Field } from '../../../new_fields/Doc';
 import { FieldValue } from '../../../new_fields/Types';
 
 // Represents one row in a key value plane
@@ -38,6 +38,7 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
             focus: emptyFunction,
             PanelWidth: returnZero,
             PanelHeight: returnZero,
+            addDocTab: emptyFunction
         };
         let contents = <FieldView {...props} />;
         let fieldKey = Object.keys(props.Document).indexOf(props.fieldKey) !== -1 ? props.fieldKey : "(" + props.fieldKey + ")";
@@ -60,10 +61,8 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
                     <EditableView contents={contents} height={36} GetValue={() => {
 
                         let field = FieldValue(props.Document[props.fieldKey]);
-                        if (field) {
-                            //TODO Types
-                            return String(field);
-                            // return field.ToScriptString();
+                        if (Field.IsField(field)) {
+                            return Field.toScriptString(field);
                         }
                         return "";
                     }}
@@ -75,7 +74,7 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
                             let res = script.run();
                             if (!res.success) return false;
                             const field = res.result;
-                            if (IsField(field)) {
+                            if (Field.IsField(field, true)) {
                                 props.Document[props.fieldKey] = field;
                                 return true;
                             }

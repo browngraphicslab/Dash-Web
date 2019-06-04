@@ -1,5 +1,5 @@
 import * as htmlToImage from "html-to-image";
-import { action, computed, observable } from "mobx";
+import { action, computed, observable, trace } from "mobx";
 import { observer } from "mobx-react";
 import { Docs } from "../../../documents/Documents";
 import { SelectionManager } from "../../../util/SelectionManager";
@@ -17,9 +17,11 @@ import { InkField, StrokeData } from "../../../../new_fields/InkField";
 import { List } from "../../../../new_fields/List";
 import { ImageField } from "../../../../new_fields/URLField";
 import { Template, Templates } from "../../Templates";
-import { Gateway } from "../../../northstar/manager/Gateway";
+import { SearchBox } from "../../SearchBox";
 import { DocServer } from "../../../DocServer";
-import { Id } from "../../../../new_fields/RefField";
+import { Id } from "../../../../new_fields/FieldSymbols";
+import { CollectionView } from "../CollectionView";
+import { CollectionViewType } from "../CollectionBaseView";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;
@@ -83,48 +85,61 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 });
             })();
         } else if (e.key === "b" && e.ctrlKey) {
-            //heuristically converts pasted text into a table.
-            // assumes each entry is separated by a tab
-            // skips all rows until it gets to a row with more than one entry
-            // assumes that 1st row has header entry for each column
-            // assumes subsequent rows have entries for each column header OR
-            //         any row that has only one column is a section header-- this header is then added as a column to subsequent rows until the next header
-            // assumes each cell is a string or a number
             e.preventDefault();
-            (async () => {
-                let text: string = await navigator.clipboard.readText();
+            navigator.clipboard.readText().then(text => {
                 let ns = text.split("\n").filter(t => t.trim() !== "\r" && t.trim() !== "");
-                while (ns.length > 0 && ns[0].split("\t").length < 2) {
-                    ns.splice(0, 1);
+                if (ns.length === 1 && text.startsWith("http")) {
+                    this.props.addDocument(Docs.ImageDocument(text, { nativeWidth: 300, width: 300, x: x, y: y }), false);// paste an image from its URL in the paste buffer
+                } else {
+                    this.pasteTable(ns, x, y);
                 }
-                if (ns.length > 0) {
-                    let columns = ns[0].split("\t");
-                    let docList: Doc[] = [];
-                    let groupAttr: string | number = "";
-                    for (let i = 1; i < ns.length - 1; i++) {
-                        let values = ns[i].split("\t");
-                        if (values.length === 1 && columns.length > 1) {
-                            groupAttr = values[0];
-                            continue;
-                        }
-                        let doc = new Doc();
-                        columns.forEach((col, i) => doc[columns[i]] = (values.length > i ? ((values[i].indexOf(Number(values[i]).toString()) !== -1) ? Number(values[i]) : values[i]) : undefined));
-                        if (groupAttr) {
-                            doc._group = groupAttr;
-                        }
-                        doc.title = i.toString();
-                        docList.push(doc);
-                    }
-                    let newCol = Docs.SchemaDocument([...(groupAttr ? ["_group"] : []), ...columns.filter(c => c)], docList, { x: x, y: y, title: "droppedTable", width: 300, height: 100 });
-
-                    this.props.addDocument(newCol, false);
-                }
-            })();
+            });
         } else {
             let newBox = Docs.TextDocument({ width: 200, height: 100, x: x, y: y, title: "-typed text-" });
             this.props.addLiveTextDocument(newBox);
         }
         e.stopPropagation();
+    }
+    //heuristically converts pasted text into a table.
+    // assumes each entry is separated by a tab
+    // skips all rows until it gets to a row with more than one entry
+    // assumes that 1st row has header entry for each column
+    // assumes subsequent rows have entries for each column header OR
+    //         any row that has only one column is a section header-- this header is then added as a column to subsequent rows until the next header
+    // assumes each cell is a string or a number
+    pasteTable(ns: string[], x: number, y: number) {
+        while (ns.length > 0 && ns[0].split("\t").length < 2) {
+            ns.splice(0, 1);
+        }
+        if (ns.length > 0) {
+            let columns = ns[0].split("\t");
+            let docList: Doc[] = [];
+            let groupAttr: string | number = "";
+            let rowProto = new Doc();
+            rowProto.title = rowProto.Id;
+            rowProto.width = 200;
+            rowProto.isPrototype = true;
+            for (let i = 1; i < ns.length - 1; i++) {
+                let values = ns[i].split("\t");
+                if (values.length === 1 && columns.length > 1) {
+                    groupAttr = values[0];
+                    continue;
+                }
+                let docDataProto = Doc.MakeDelegate(rowProto);
+                docDataProto.isPrototype = true;
+                columns.forEach((col, i) => docDataProto[columns[i]] = (values.length > i ? ((values[i].indexOf(Number(values[i]).toString()) !== -1) ? Number(values[i]) : values[i]) : undefined));
+                if (groupAttr) {
+                    docDataProto._group = groupAttr;
+                }
+                docDataProto.title = i.toString();
+                let doc = Doc.MakeDelegate(docDataProto);
+                doc.width = 200;
+                docList.push(doc);
+            }
+            let newCol = Docs.SchemaDocument([...(groupAttr ? ["_group"] : []), ...columns.filter(c => c)], docList, { x: x, y: y, title: "droppedTable", width: 300, height: 100 });
+
+            this.props.addDocument(newCol, false);
+        }
     }
     @action
     onPointerDown = (e: React.PointerEvent): void => {
@@ -138,7 +153,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             document.addEventListener("pointerup", this.onPointerUp, true);
             document.addEventListener("keydown", this.marqueeCommand, true);
             if (e.altKey) {
-                e.stopPropagation();
+                //e.stopPropagation(); // bcz: removed so that you can alt-click on button in a collection to switch link following behaviors.
                 e.preventDefault();
             }
             // bcz: do we need this?   it kills the context menu on the main collection if !altKey
@@ -225,9 +240,10 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             this.cleanupInteractions(false);
             e.stopPropagation();
         }
-        if (e.key === "c" || e.key === "s" || e.key === "e" || e.key === "p") {
+        if (e.key === "c" || e.key === "s" || e.key === "S" || e.key === "e" || e.key === "p") {
             this._commandExecuted = true;
             e.stopPropagation();
+            e.preventDefault();
             (e as any).propagationIsStopped = true;
             let bounds = this.Bounds;
             let selected = this.marqueeSelect();
@@ -254,13 +270,32 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 width: bounds.width * zoomBasis,
                 height: bounds.height * zoomBasis,
                 ink: inkData ? new InkField(this.marqueeInkSelect(inkData)) : undefined,
-                title: e.key === "s" ? "-summary-" : e.key === "p" ? "-summary-" : "a nested collection",
+                title: e.key === "s" || e.key === "S" ? "-summary-" : e.key === "p" ? "-summary-" : "a nested collection",
             });
+            newCollection.zoomBasis = zoomBasis;
             this.marqueeInkDelete(inkData);
 
-            if (e.key === "s" || e.key === "p") {
-
-                htmlToImage.toPng(this._mainCont.current!, { width: bounds.width * zoomBasis, height: bounds.height * zoomBasis, quality: 1 }).then((dataUrl) => {
+            if (e.key === "s") {
+                selected.map(d => {
+                    this.props.removeDocument(d);
+                    d.x = NumCast(d.x) - bounds.left - bounds.width / 2;
+                    d.y = NumCast(d.y) - bounds.top - bounds.height / 2;
+                    d.page = -1;
+                    return d;
+                });
+                let summary = Docs.TextDocument({ x: bounds.left, y: bounds.top, width: 300, height: 100, backgroundColor: "#e2ad32" /* yellow */, title: "-summary-" });
+                newCollection.proto!.summaryDoc = summary;
+                selected = [newCollection];
+                newCollection.x = bounds.left + bounds.width;
+                summary.proto!.subBulletDocs = new List<Doc>(selected);
+                //summary.proto!.maximizeLocation = "inTab";  // or "inPlace", or "onRight"
+                summary.templates = new List<string>([Templates.Bullet.Layout]);
+                let container = Docs.FreeformDocument([summary, newCollection], { x: bounds.left, y: bounds.top, width: 300, height: 200, title: "-summary-" });
+                container.viewType = CollectionViewType.Stacking;
+                this.props.addLiveTextDocument(container);
+                // });
+            } else if (e.key === "S") {
+                await htmlToImage.toPng(this._mainCont.current!, { width: bounds.width * zoomBasis, height: bounds.height * zoomBasis, quality: 0.2 }).then((dataUrl) => {
                     selected.map(d => {
                         this.props.removeDocument(d);
                         d.x = NumCast(d.x) - bounds.left - bounds.width / 2;
@@ -268,15 +303,25 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                         d.page = -1;
                         return d;
                     });
-                    let summary = Docs.TextDocument({ x: bounds.left, y: bounds.top, width: 300, height: 100, backgroundColor: "yellow", title: "-summary-" });
-                    summary.proto!.thumbnail = new ImageField(new URL(dataUrl));
-                    summary.proto!.templates = new List<string>([Templates.ImageOverlay(Math.min(50, bounds.width), bounds.height * Math.min(50, bounds.width) / bounds.width, "thumbnail")]);
+                    let summary = Docs.TextDocument({ x: bounds.left, y: bounds.top, width: 300, height: 100, backgroundColor: "#e2ad32" /* yellow */, title: "-summary-" });
+                    SearchBox.convertDataUri(dataUrl, "icon" + summary[Id] + "_image").then((returnedFilename) => {
+                        if (returnedFilename) {
+                            let url = DocServer.prepend(returnedFilename);
+                            let imageSummary = Docs.ImageDocument(url, {
+                                x: bounds.left, y: bounds.top + 100 / zoomBasis,
+                                width: 150, height: bounds.height / bounds.width * 150, title: "-summary image-"
+                            });
+                            summary.imageSummary = imageSummary;
+                            this.props.addDocument(imageSummary, false);
+                        }
+                    })
                     newCollection.proto!.summaryDoc = summary;
                     selected = [newCollection];
                     newCollection.x = bounds.left + bounds.width;
                     //this.props.addDocument(newCollection, false);
                     summary.proto!.summarizedDocs = new List<Doc>(selected);
                     summary.proto!.maximizeLocation = "inTab";  // or "inPlace", or "onRight"
+
                     this.props.addLiveTextDocument(summary);
                 });
             }
@@ -347,10 +392,10 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     }
 
     render() {
-        let p = this.props.getContainerTransform().transformPoint(this._downX < this._lastX ? this._downX : this._lastX, this._downY < this._lastY ? this._downY : this._lastY);
+        let p: [number, number] = this._visible ? this.props.getContainerTransform().transformPoint(this._downX < this._lastX ? this._downX : this._lastX, this._downY < this._lastY ? this._downY : this._lastY) : [0, 0];
         return <div className="marqueeView" style={{ borderRadius: "inherit" }} onClick={this.onClick} onPointerDown={this.onPointerDown}>
             <div style={{ position: "relative", transform: `translate(${p[0]}px, ${p[1]}px)` }} >
-                {!this._visible ? null : this.marqueeDiv}
+                {this._visible ? this.marqueeDiv : null}
                 <div ref={this._mainCont} style={{ transform: `translate(${-p[0]}px, ${-p[1]}px)` }} >
                     {this.props.children}
                 </div>

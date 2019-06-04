@@ -26,16 +26,22 @@ import { OmitKeys } from "../../Utils";
 import { ImageField, VideoField, AudioField, PdfField, WebField } from "../../new_fields/URLField";
 import { HtmlField } from "../../new_fields/HtmlField";
 import { List } from "../../new_fields/List";
-import { Cast } from "../../new_fields/Types";
+import { Cast, NumCast } from "../../new_fields/Types";
 import { IconField } from "../../new_fields/IconField";
 import { listSpec } from "../../new_fields/Schema";
 import { DocServer } from "../DocServer";
 import { StrokeData, InkField } from "../../new_fields/InkField";
 import { dropActionType } from "../util/DragManager";
 import { DateField } from "../../new_fields/DateField";
+<<<<<<< HEAD
 import { PDFBox2 } from "../views/pdf/PDFBox2";
 import { schema } from "prosemirror-schema-basic";
+=======
+>>>>>>> 7d3ef1c914cc1cc0b6c05b14773a8b83e1b95c96
 import { UndoManager } from "../util/UndoManager";
+import { RouteStore } from "../../server/RouteStore";
+var requestImageSize = require('request-image-size');
+var path = require('path');
 
 export interface DocumentOptions {
     x?: number;
@@ -62,6 +68,7 @@ export interface DocumentOptions {
     borderRounding?: number;
     schemaColumns?: List<string>;
     dockingConfig?: string;
+    dbDoc?: Doc;
     // [key: string]: Opt<Field>;
 }
 const delegateKeys = ["x", "y", "width", "height", "panX", "panY"];
@@ -78,7 +85,9 @@ export namespace DocUtils {
             linkDoc.proto!.linkTags = "Default";
 
             linkDoc.proto!.linkedTo = target;
+            linkDoc.proto!.linkedToPage = target.curPage;
             linkDoc.proto!.linkedFrom = source;
+            linkDoc.proto!.linkedFromPage = source.curPage;
 
             let linkedFrom = Cast(protoTarg.linkedFromDocs, listSpec(Doc));
             if (!linkedFrom) {
@@ -215,7 +224,18 @@ export namespace Docs {
     }
 
     export function ImageDocument(url: string, options: DocumentOptions = {}) {
-        return CreateInstance(imageProto, new ImageField(new URL(url)), options);
+        let inst = CreateInstance(imageProto, new ImageField(new URL(url)), { title: path.basename(url), ...options });
+        requestImageSize(window.origin + RouteStore.corsProxy + "/" + url)
+            .then((size: any) => {
+                let aspect = size.height / size.width;
+                if (!inst.proto!.nativeWidth) {
+                    inst.proto!.nativeWidth = size.width;
+                }
+                inst.proto!.nativeHeight = Number(inst.proto!.nativeWidth!) * aspect;
+                inst.proto!.height = NumCast(inst.proto!.width) * aspect;
+            })
+            .catch((err: any) => console.log(err));
+        return inst;
         // let doc = SetInstanceOptions(GetImagePrototype(), { ...options, layoutKeys: [KeyStore.Data, KeyStore.Annotations, KeyStore.Caption] },
         //     [new URL(url), ImageField]);
         // doc.SetText(KeyStore.Caption, "my caption...");
@@ -243,7 +263,7 @@ export namespace Docs {
         return CreateInstance(pdfProto, new PdfField(new URL(url)), options);
     }
 
-    export async function DBDocument(url: string, options: DocumentOptions = {}) {
+    export async function DBDocument(url: string, options: DocumentOptions = {}, columnOptions: DocumentOptions = {}) {
         let schemaName = options.title ? options.title : "-no schema-";
         let ctlog = await Gateway.Instance.GetSchema(url, schemaName);
         if (ctlog && ctlog.schemas) {
@@ -265,7 +285,7 @@ export namespace Docs {
                             new AttributeTransformationModel(atmod, AggregateFunction.None),
                             new AttributeTransformationModel(atmod, AggregateFunction.Count),
                             new AttributeTransformationModel(atmod, AggregateFunction.Count));
-                        docs.push(Docs.HistogramDocument(histoOp, { width: 200, height: 200, title: attr.displayName! }));
+                        docs.push(Docs.HistogramDocument(histoOp, { ...columnOptions, width: 200, height: 200, title: attr.displayName! }));
                     }
                 }));
             });
@@ -280,7 +300,7 @@ export namespace Docs {
         return CreateInstance(webProto, new HtmlField(html), options);
     }
     export function KVPDocument(document: Doc, options: DocumentOptions = {}) {
-        return CreateInstance(kvpProto, document, options);
+        return CreateInstance(kvpProto, document, { title: document.title + ".kvp", ...options });
     }
     export function FreeformDocument(documents: Array<Doc>, options: DocumentOptions, makePrototype: boolean = true) {
         if (!makePrototype) {
@@ -293,6 +313,9 @@ export namespace Docs {
     }
     export function TreeDocument(documents: Array<Doc>, options: DocumentOptions) {
         return CreateInstance(collProto, new List(documents), { schemaColumns: new List(["title"]), ...options, viewType: CollectionViewType.Tree });
+    }
+    export function StackingDocument(documents: Array<Doc>, options: DocumentOptions) {
+        return CreateInstance(collProto, new List(documents), { schemaColumns: new List(["title"]), ...options, viewType: CollectionViewType.Stacking });
     }
     export function DockDocument(documents: Array<Doc>, config: string, options: DocumentOptions, id?: string) {
         return CreateInstance(collProto, new List(documents), { ...options, viewType: CollectionViewType.Docking, dockingConfig: config }, id);

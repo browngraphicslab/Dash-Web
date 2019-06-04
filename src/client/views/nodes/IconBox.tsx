@@ -12,7 +12,6 @@ import { IconField } from "../../../new_fields/IconField";
 import { ContextMenu } from "../ContextMenu";
 import Measure from "react-measure";
 import { MINIMIZED_ICON_SIZE } from "../../views/globalCssVariables.scss";
-import { listSpec } from "../../../new_fields/Schema";
 
 
 library.add(faCaretUp);

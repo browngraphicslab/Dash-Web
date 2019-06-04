@@ -2,7 +2,7 @@ import React = require("react");
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faCog, faPlus } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { action, computed, observable, untracked, runInAction } from "mobx";
+import { action, computed, observable, untracked, runInAction, trace } from "mobx";
 import { observer } from "mobx-react";
 import ReactTable, { CellInfo, ComponentPropsGetterR, ReactTableDefaults } from "react-table";
 import { MAX_ROW_HEIGHT } from '../../views/globalCssVariables.scss';
@@ -20,15 +20,22 @@ import { FieldView, FieldViewProps } from "../nodes/FieldView";
 import "./CollectionSchemaView.scss";
 import { CollectionSubView } from "./CollectionSubView";
 import { Opt, Field, Doc, DocListCastAsync, DocListCast } from "../../../new_fields/Doc";
-import { Cast, FieldValue, NumCast, StrCast } from "../../../new_fields/Types";
+import { Cast, FieldValue, NumCast, StrCast, BoolCast } from "../../../new_fields/Types";
 import { listSpec } from "../../../new_fields/Schema";
 import { List } from "../../../new_fields/List";
-import { Id } from "../../../new_fields/RefField";
+import { Id } from "../../../new_fields/FieldSymbols";
 import { Gateway } from "../../northstar/manager/Gateway";
 import { Docs } from "../../documents/Documents";
 import { ContextMenu } from "../ContextMenu";
+import { CollectionView } from "./CollectionView";
+import { CollectionPDFView } from "./CollectionPDFView";
+import { CollectionVideoView } from "./CollectionVideoView";
+import { SelectionManager } from "../../util/SelectionManager";
+import { undoBatch } from "../../util/UndoManager";
 
 
+library.add(faCog);
+library.add(faPlus);
 // bcz: need to add drag and drop of rows and columns.  This seems like it might work for rows: https://codesandbox.io/s/l94mn1q657
 
 
@@ -51,7 +58,7 @@ class KeyToggle extends React.Component<{ keyName: string, checked: boolean, tog
 @observer
 export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     private _mainCont?: HTMLDivElement;
-    private _startSplitPercent = 0;
+    private _startPreviewWidth = 0;
     private DIVIDER_WIDTH = 4;
 
     @observable _columns: Array<string> = ["title", "data", "author"];
@@ -59,16 +66,18 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     @observable _columnsPercentage = 0;
     @observable _keys: string[] = [];
     @observable _newKeyName: string = "";
+    @observable previewScript: string = "";
 
-    @computed get splitPercentage() { return NumCast(this.props.Document.schemaSplitPercentage); }
+    @computed get previewWidth() { return () => NumCast(this.props.Document.schemaPreviewWidth); }
+    @computed get previewHeight() { return () => this.props.PanelHeight() - 2 * this.borderWidth; }
+    @computed get tableWidth() { return this.props.PanelWidth() - 2 * this.borderWidth - this.DIVIDER_WIDTH - this.previewWidth(); }
     @computed get columns() { return Cast(this.props.Document.schemaColumns, listSpec("string"), []); }
     @computed get borderWidth() { return Number(COLLECTION_BORDER_WIDTH); }
-
     @computed get tableColumns() {
         return this.columns.map(col => {
             const ref = React.createRef<HTMLParagraphElement>();
             return {
-                Header: <p ref={ref} onPointerDown={SetupDrag(ref, () => this.onHeaderDrag(col))}>{col}</p>,
+                Header: <p ref={ref} onPointerDown={SetupDrag(ref, () => this.onHeaderDrag(col), undefined, "copy")}>{col}</p>,
                 accessor: (doc: Doc) => doc ? doc[col] : 0,
                 id: col
             };
@@ -76,6 +85,15 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     }
 
     onHeaderDrag = (columnName: string) => {
+        let schemaDoc = Cast(this.props.Document.schemaDoc, Doc);
+        if (schemaDoc instanceof Doc) {
+            let columnDocs = DocListCast(schemaDoc.data);
+            if (columnDocs) {
+                let ddoc = columnDocs.find(doc => doc.title === columnName);
+                if (ddoc)
+                    return ddoc;
+            }
+        }
         return this.props.Document;
     }
 
@@ -100,7 +118,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         let reference = React.createRef<HTMLDivElement>();
         let onItemDown = (e: React.PointerEvent) =>
             (this.props.CollectionView.props.isSelected() ?
-                SetupDrag(reference, () => props.Document, this.props.moveDocument)(e) : undefined);
+                SetupDrag(reference, () => props.Document, this.props.moveDocument, this.props.Document.schemaDoc ? "copy" : undefined)(e) : undefined);
         let applyToDoc = (doc: Doc, run: (args?: { [name: string]: any }) => any) => {
             const res = run({ this: doc });
             if (!res.success) return false;
@@ -115,22 +133,20 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                     height={Number(MAX_ROW_HEIGHT)}
                     GetValue={() => {
                         let field = props.Document[props.fieldKey];
-                        if (field) {
-                            //TODO Types
-                            // return field.ToScriptString();
-                            return String(field);
+                        if (Field.IsField(field)) {
+                            return Field.toScriptString(field);
                         }
                         return "";
                     }}
                     SetValue={(value: string) => {
-                        let script = CompileScript(value, { addReturn: true, params: { this: Document.name } });
+                        let script = CompileScript(value, { addReturn: true, params: { this: Doc.name } });
                         if (!script.compiled) {
                             return false;
                         }
                         return applyToDoc(props.Document, script.run);
                     }}
                     OnFillDown={async (value: string) => {
-                        let script = CompileScript(value, { addReturn: true, params: { this: Document.name } });
+                        let script = CompileScript(value, { addReturn: true, params: { this: Doc.name } });
                         if (!script.compiled) {
                             return;
                         }
@@ -187,29 +203,30 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
 
     //toggles preview side-panel of schema
     @action
-    toggleExpander = (event: React.ChangeEvent<HTMLInputElement>) => {
-        this.props.Document.schemaSplitPercentage = this.splitPercentage === 0 ? 33 : 0;
+    toggleExpander = () => {
+        this.props.Document.schemaPreviewWidth = this.previewWidth() === 0 ? Math.min(this.tableWidth / 3, 200) : 0;
     }
 
+    onDividerDown = (e: React.PointerEvent) => {
+        this._startPreviewWidth = this.previewWidth();
+        e.stopPropagation();
+        e.preventDefault();
+        document.addEventListener("pointermove", this.onDividerMove);
+        document.addEventListener('pointerup', this.onDividerUp);
+    }
     @action
     onDividerMove = (e: PointerEvent): void => {
         let nativeWidth = this._mainCont!.getBoundingClientRect();
-        this.props.Document.schemaSplitPercentage = Math.max(0, 100 - Math.round((e.clientX - nativeWidth.left) / nativeWidth.width * 100));
+        this.props.Document.schemaPreviewWidth = Math.min(nativeWidth.right - nativeWidth.left - 40,
+            this.props.ScreenToLocalTransform().transformDirection(nativeWidth.right - e.clientX, 0)[0]);
     }
     @action
     onDividerUp = (e: PointerEvent): void => {
         document.removeEventListener("pointermove", this.onDividerMove);
         document.removeEventListener('pointerup', this.onDividerUp);
-        if (this._startSplitPercent === this.splitPercentage) {
-            this.props.Document.schemaSplitPercentage = this.splitPercentage === 0 ? 33 : 0;
+        if (this._startPreviewWidth === this.previewWidth()) {
+            this.toggleExpander();
         }
-    }
-    onDividerDown = (e: React.PointerEvent) => {
-        this._startSplitPercent = this.splitPercentage;
-        e.stopPropagation();
-        e.preventDefault();
-        document.addEventListener("pointermove", this.onDividerMove);
-        document.addEventListener('pointerup', this.onDividerUp);
     }
 
     onPointerDown = (e: React.PointerEvent): void => {
@@ -237,16 +254,17 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         csv = csv.substr(0, csv.length - 1) + "\n";
         let self = this;
         DocListCast(this.props.Document.data).map(doc => {
-            csv += self.columns.reduce((val, col) => val + (doc[col] ? doc[col]!.toString() : "") + ",", "");
+            csv += self.columns.reduce((val, col) => val + (doc[col] ? doc[col]!.toString() : "0") + ",", "");
             csv = csv.substr(0, csv.length - 1) + "\n";
         });
         csv.substring(0, csv.length - 1);
         let dbName = StrCast(this.props.Document.title);
         let res = await Gateway.Instance.PostSchema(csv, dbName);
         if (self.props.CollectionView.props.addDocument) {
-            let schemaDoc = await Docs.DBDocument("https://www.cs.brown.edu/" + dbName, { title: dbName });
+            let schemaDoc = await Docs.DBDocument("https://www.cs.brown.edu/" + dbName, { title: dbName }, { dbDoc: self.props.Document });
             if (schemaDoc) {
-                self.props.CollectionView.props.addDocument(schemaDoc, false);
+                //self.props.CollectionView.props.addDocument(schemaDoc, false);
+                self.props.Document.schemaDoc = schemaDoc;
             }
         }
     }
@@ -262,63 +280,16 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         this._newKeyName = e.currentTarget.value;
     }
 
-    @observable previewScript: string = "";
-    @action
-    onPreviewScriptChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        this.previewScript = e.currentTarget.value;
-    }
-
     @computed
     get previewDocument(): Doc | undefined {
         const children = DocListCast(this.props.Document[this.props.fieldKey]);
         const selected = children.length > this._selectedIndex ? FieldValue(children[this._selectedIndex]) : undefined;
         return selected ? (this.previewScript && this.previewScript !== "this" ? FieldValue(Cast(selected[this.previewScript], Doc)) : selected) : undefined;
     }
-    get tableWidth() { return (this.props.PanelWidth() - 2 * this.borderWidth - this.DIVIDER_WIDTH) * (1 - this.splitPercentage / 100); }
-    get previewRegionHeight() { return this.props.PanelHeight() - 2 * this.borderWidth; }
-    get previewRegionWidth() { return (this.props.PanelWidth() - 2 * this.borderWidth - this.DIVIDER_WIDTH) * this.splitPercentage / 100; }
 
-    private previewDocNativeWidth = () => Cast(this.previewDocument!.nativeWidth, "number", this.previewRegionWidth);
-    private previewDocNativeHeight = () => Cast(this.previewDocument!.nativeHeight, "number", this.previewRegionHeight);
-    private previewContentScaling = () => {
-        let wscale = this.previewRegionWidth / (this.previewDocNativeWidth() ? this.previewDocNativeWidth() : this.previewRegionWidth);
-        if (wscale * this.previewDocNativeHeight() > this.previewRegionHeight) {
-            return this.previewRegionHeight / (this.previewDocNativeHeight() ? this.previewDocNativeHeight() : this.previewRegionHeight);
-        }
-        return wscale;
-    }
-    private previewPanelWidth = () => this.previewDocNativeWidth() * this.previewContentScaling();
-    private previewPanelHeight = () => this.previewDocNativeHeight() * this.previewContentScaling();
-    get previewPanelCenteringOffset() { return (this.previewRegionWidth - this.previewDocNativeWidth() * this.previewContentScaling()) / 2; }
     getPreviewTransform = (): Transform => this.props.ScreenToLocalTransform().translate(
-        - this.borderWidth - this.DIVIDER_WIDTH - this.tableWidth - this.previewPanelCenteringOffset,
-        - this.borderWidth).scale(1 / this.previewContentScaling())
+        - this.borderWidth - this.DIVIDER_WIDTH - this.tableWidth, - this.borderWidth);
 
-    @computed
-    get previewPanel() {
-        // let doc = CompileScript(this.previewScript, { this: selected }, true)();
-        const previewDoc = this.previewDocument;
-        return (<div className="collectionSchemaView-previewRegion" style={{ width: `${Math.max(0, this.previewRegionWidth - 1)}px` }}>
-            {!previewDoc || !this.previewRegionWidth ? (null) : (
-                <div className="collectionSchemaView-previewDoc" style={{ transform: `translate(${this.previewPanelCenteringOffset}px, 0px)` }}>
-                    <DocumentView Document={previewDoc} isTopMost={false} selectOnLoad={false}
-                        toggleMinimized={emptyFunction}
-                        addDocument={this.props.addDocument} removeDocument={this.props.removeDocument}
-                        ScreenToLocalTransform={this.getPreviewTransform}
-                        ContentScaling={this.previewContentScaling}
-                        PanelWidth={this.previewPanelWidth} PanelHeight={this.previewPanelHeight}
-                        ContainingCollectionView={this.props.CollectionView}
-                        focus={emptyFunction}
-                        parentActive={this.props.active}
-                        whenActiveChanged={this.props.whenActiveChanged}
-                        bringToFront={emptyFunction}
-                        addDocTab={this.props.addDocTab}
-                    />
-                </div>)}
-            <input className="collectionSchemaView-input" value={this.previewScript} onChange={this.onPreviewScriptChange}
-                style={{ left: `calc(50% - ${Math.min(75, (previewDoc ? this.previewPanelWidth() / 2 : 75))}px)` }} />
-        </div>);
-    }
 
     get documentKeysCheckList() {
         const docs = DocListCast(this.props.Document[this.props.fieldKey]);
@@ -344,7 +315,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                     <div id="schema-options-header"><h5><b>Options</b></h5></div>
                     <div id="options-flyout-div">
                         <h6 className="schema-options-subHeader">Preview Window</h6>
-                        <div id="preview-schema-checkbox-div"><input type="checkbox" key={"Show Preview"} checked={this.splitPercentage !== 0} onChange={this.toggleExpander} />  Show Preview </div>
+                        <div id="preview-schema-checkbox-div"><input type="checkbox" key={"Show Preview"} checked={this.previewWidth() !== 0} onChange={this.toggleExpander} />  Show Preview </div>
                         <h6 className="schema-options-subHeader" >Displayed Columns</h6>
                         <ul id="schema-col-checklist" >
                             {this.documentKeysCheckList}
@@ -359,31 +330,130 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     }
 
     @computed
+    get reactTable() {
+        trace();
+        let previewWidth = this.previewWidth() + 2 * this.borderWidth + this.DIVIDER_WIDTH + 1;
+        return <ReactTable style={{ position: "relative", float: "left", width: `calc(100% - ${previewWidth}px` }} data={this.childDocs} page={0} pageSize={this.childDocs.length} showPagination={false}
+            columns={this.tableColumns}
+            column={{ ...ReactTableDefaults.column, Cell: this.renderCell, }}
+            getTrProps={this.getTrProps}
+        />
+    }
+
+    @computed
     get dividerDragger() {
-        return this.splitPercentage === 0 ? (null) :
+        return this.previewWidth() === 0 ? (null) :
             <div className="collectionSchemaView-dividerDragger" onPointerDown={this.onDividerDown} style={{ width: `${this.DIVIDER_WIDTH}px` }} />;
     }
 
-
+    @computed
+    get previewPanel() {
+        trace();
+        return <CollectionSchemaPreview
+            Document={this.previewDocument}
+            width={this.previewWidth}
+            height={this.previewHeight}
+            getTransform={this.getPreviewTransform}
+            CollectionView={this.props.CollectionView}
+            addDocument={this.props.addDocument}
+            removeDocument={this.props.removeDocument}
+            active={this.props.active}
+            whenActiveChanged={this.props.whenActiveChanged}
+            addDocTab={this.props.addDocTab}
+            setPreviewScript={this.setPreviewScript}
+            previewScript={this.previewScript}
+        />
+    }
+    @action
+    setPreviewScript = (script: string) => {
+        this.previewScript = script;
+    }
 
     render() {
-        library.add(faCog);
-        library.add(faPlus);
-        const children = this.childDocs;
+        trace();
         return (
             <div className="collectionSchemaView-container" onPointerDown={this.onPointerDown} onWheel={this.onWheel}
                 onDrop={(e: React.DragEvent) => this.onDrop(e, {})} onContextMenu={this.onContextMenu} ref={this.createTarget}>
-                <div className="collectionSchemaView-tableContainer" style={{ width: `${this.tableWidth}px` }}>
-                    <ReactTable data={children} page={0} pageSize={children.length} showPagination={false}
-                        columns={this.tableColumns}
-                        column={{ ...ReactTableDefaults.column, Cell: this.renderCell, }}
-                        getTrProps={this.getTrProps}
-                    />
-                </div>
+                {this.reactTable}
                 {this.dividerDragger}
-                {this.previewPanel}
+                {!this.previewWidth() ? (null) : this.previewPanel}
                 {this.tableOptionsPanel}
             </div>
         );
+    }
+}
+interface CollectionSchemaPreviewProps {
+    Document?: Doc;
+    width: () => number;
+    height: () => number;
+    CollectionView: CollectionView | CollectionPDFView | CollectionVideoView;
+    getTransform: () => Transform;
+    addDocument: (document: Doc, allowDuplicates?: boolean) => boolean;
+    removeDocument: (document: Doc) => boolean;
+    active: () => boolean;
+    whenActiveChanged: (isActive: boolean) => void;
+    addDocTab: (document: Doc, where: string) => void;
+    setPreviewScript: (script: string) => void;
+    previewScript?: string;
+}
+
+@observer
+export class CollectionSchemaPreview extends React.Component<CollectionSchemaPreviewProps>{
+    private get nativeWidth() { return NumCast(this.props.Document!.nativeWidth, this.props.width()); }
+    private get nativeHeight() { return NumCast(this.props.Document!.nativeHeight, this.props.height()); }
+    private contentScaling = () => {
+        let wscale = this.props.width() / (this.nativeWidth ? this.nativeWidth : this.props.width());
+        if (wscale * this.nativeHeight > this.props.height()) {
+            return this.props.height() / (this.nativeHeight ? this.nativeHeight : this.props.height());
+        }
+        return wscale;
+    }
+    private PanelWidth = () => this.nativeWidth * this.contentScaling();
+    private PanelHeight = () => this.nativeHeight * this.contentScaling();
+    private getTransform = () => this.props.getTransform().translate(-this.centeringOffset, 0).scale(1 / this.contentScaling())
+    get centeringOffset() { return (this.props.width() - this.nativeWidth * this.contentScaling()) / 2; }
+    @action
+    onPreviewScriptChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        this.props.setPreviewScript(e.currentTarget.value);
+    }
+    @undoBatch
+    @action
+    public collapseToPoint = (scrpt: number[], expandedDocs: Doc[] | undefined): void => {
+        SelectionManager.DeselectAll();
+        if (expandedDocs) {
+            let isMinimized: boolean | undefined;
+            expandedDocs.map(d => Doc.GetProto(d)).map(maximizedDoc => {
+                if (isMinimized === undefined) {
+                    isMinimized = BoolCast(maximizedDoc.isMinimized, false);
+                }
+                maximizedDoc.isMinimized = !isMinimized;
+            });
+        }
+    }
+    render() {
+        trace();
+        console.log(this.props.Document);
+        let input = this.props.previewScript === undefined ? (null) :
+            <input className="collectionSchemaView-input" value={this.props.previewScript} onChange={this.onPreviewScriptChange}
+                style={{ left: `calc(50% - ${Math.min(75, (this.props.Document ? this.PanelWidth() / 2 : 75))}px)` }} />;
+        return (<div className="collectionSchemaView-previewRegion" style={{ width: this.props.width() }}>
+            {!this.props.Document || !this.props.width ? (null) : (
+                <div className="collectionSchemaView-previewDoc" style={{ transform: `translate(${this.centeringOffset}px, 0px)` }}>
+                    <DocumentView Document={this.props.Document} isTopMost={false} selectOnLoad={false}
+                        addDocument={this.props.addDocument} removeDocument={this.props.removeDocument}
+                        ScreenToLocalTransform={this.getTransform}
+                        ContentScaling={this.contentScaling}
+                        PanelWidth={this.PanelWidth} PanelHeight={this.PanelHeight}
+                        ContainingCollectionView={this.props.CollectionView}
+                        focus={emptyFunction}
+                        parentActive={this.props.active}
+                        whenActiveChanged={this.props.whenActiveChanged}
+                        bringToFront={emptyFunction}
+                        addDocTab={this.props.addDocTab}
+                        collapseToPoint={this.collapseToPoint}
+                    />
+                </div>)}
+            {input}
+        </div>);
     }
 }

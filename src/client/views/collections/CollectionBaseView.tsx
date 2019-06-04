@@ -7,8 +7,8 @@ import { Cast, FieldValue, PromiseValue, NumCast } from '../../../new_fields/Typ
 import { Doc, FieldResult, Opt, DocListCast } from '../../../new_fields/Doc';
 import { listSpec } from '../../../new_fields/Schema';
 import { List } from '../../../new_fields/List';
-import { Id } from '../../../new_fields/RefField';
 import { SelectionManager } from '../../util/SelectionManager';
+import { Id } from '../../../new_fields/FieldSymbols';
 
 export enum CollectionViewType {
     Invalid,
@@ -16,6 +16,7 @@ export enum CollectionViewType {
     Schema,
     Docking,
     Tree,
+    Stacking
 }
 
 export interface CollectionRenderProps {
@@ -119,7 +120,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
             // set the ZoomBasis only if hasn't already been set -- bcz: maybe set/resetting the ZoomBasis should be a parameter to addDocument?
             if (!alreadyAdded && (this.collectionViewType === CollectionViewType.Freeform || this.collectionViewType === CollectionViewType.Invalid)) {
                 let zoom = NumCast(this.props.Document.scale, 1);
-                Doc.SetOnPrototype(doc, "zoomBasis", zoom);
+                // Doc.GetProto(doc).zoomBasis = zoom;
             }
         }
         return true;
@@ -127,6 +128,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
 
     @action.bound
     removeDocument(doc: Doc): boolean {
+        SelectionManager.DeselectAll();
         const props = this.props;
         //TODO This won't create the field if it doesn't already exist
         const value = Cast(props.Document[props.fieldKey], listSpec(Doc), []);

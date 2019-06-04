@@ -10,6 +10,7 @@
     pointer-events: all;
     svg {
         width:  $MINIMIZED_ICON_SIZE !important;
+        height:  $MINIMIZED_ICON_SIZE !important;
         height: auto;
         background: white;
     }

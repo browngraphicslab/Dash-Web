@@ -1,6 +1,7 @@
-import { ObjectField, Copy } from "./ObjectField";
+import { ObjectField } from "./ObjectField";
 import { serializable } from "serializr";
 import { Deserializable } from "../client/util/SerializationHelper";
+import { Copy, ToScriptString } from "./FieldSymbols";
 
 @Deserializable("RichTextField")
 export class RichTextField extends ObjectField {
@@ -14,5 +15,9 @@ export class RichTextField extends ObjectField {
 
     [Copy]() {
         return new RichTextField(this.Data);
+    }
+
+    [ToScriptString]() {
+        return "invalid";
     }
 }

@@ -46,7 +46,14 @@
 
     .docContainer:hover {
         .treeViewItem-openRight {
-            display: inline;
+            display: inline-block;
+            height:13px;
+            // display: inline;
+            svg {
+                display:block;
+                padding:0px;
+                margin: 0px;
+            }
         }
     }
 

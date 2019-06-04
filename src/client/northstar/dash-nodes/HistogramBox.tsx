@@ -19,7 +19,7 @@ import { HistogramLabelPrimitives } from "./HistogramLabelPrimitives";
 import { StyleConstants } from "../utils/StyleContants";
 import { Cast } from "../../../new_fields/Types";
 import { Doc, DocListCast, DocListCastAsync } from "../../../new_fields/Doc";
-import { Id } from "../../../new_fields/RefField";
+import { Id } from "../../../new_fields/FieldSymbols";
 
 
 @observer
@@ -125,9 +125,11 @@ export class HistogramBox extends React.Component<FieldViewProps> {
                                 let mapped = brushingDocs.map((brush, i) => {
                                     brush.backgroundColor = StyleConstants.BRUSH_COLORS[i % StyleConstants.BRUSH_COLORS.length];
                                     let brushed = DocListCast(brush.brushingDocs);
+                                    if (!brushed.length)
+                                        return null;
                                     return { l: brush, b: brushed[0][Id] === proto[Id] ? brushed[1] : brushed[0] };
                                 });
-                                this.HistoOp.BrushLinks.splice(0, this.HistoOp.BrushLinks.length, ...mapped);
+                                runInAction(() => this.HistoOp.BrushLinks.splice(0, this.HistoOp.BrushLinks.length, ...mapped.filter(m => m) as { l: Doc, b: Doc }[]));
                             }
                         }, { fireImmediately: true });
                     reaction(() => this.createOperationParamsCache, () => this.HistoOp.Update(), { fireImmediately: true });

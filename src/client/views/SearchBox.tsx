@@ -16,10 +16,12 @@ import { isString } from 'util';
 import { constant } from 'async';
 import { DocServer } from '../DocServer';
 import { Doc } from '../../new_fields/Doc';
-import { Id } from '../../new_fields/RefField';
+import { Id } from '../../new_fields/FieldSymbols';
 import { DocumentManager } from '../util/DocumentManager';
 import { SetupDrag } from '../util/DragManager';
 import { Docs } from '../documents/Documents';
+import { RouteStore } from '../../server/RouteStore';
+import { NumCast } from '../../new_fields/Types';
 
 library.add(faSearch);
 library.add(faObjectGroup);
@@ -69,6 +71,22 @@ export class SearchBox extends React.Component {
             }
         }
         return docs;
+    }
+    public static async convertDataUri(imageUri: string, returnedFilename: string) {
+        try {
+            let posting = DocServer.prepend(RouteStore.dataUriToImage);
+            const returnedUri = await rp.post(posting, {
+                body: {
+                    uri: imageUri,
+                    name: returnedFilename
+                },
+                json: true,
+            });
+            return returnedUri;
+
+        } catch (e) {
+            console.log(e);
+        }
     }
 
     @action
@@ -129,15 +147,26 @@ export class SearchBox extends React.Component {
         for (const doc of docs) {
             doc.x = x;
             doc.y = y;
-            doc.width = 200;
-            doc.height = 200;
+            const size = 200;
+            const aspect = NumCast(doc.nativeHeight) / NumCast(doc.nativeWidth, 1);
+            if (aspect > 1) {
+                doc.height = size;
+                doc.width = size / aspect;
+            } else if (aspect > 0) {
+                doc.width = size;
+                doc.height = size * aspect;
+            } else {
+                doc.width = size;
+                doc.height = size;
+            }
+            doc.zoomBasis = 1;
             x += 250;
             if (x > 1000) {
                 x = 0;
-                y += 250;
+                y += 300;
             }
         }
-        return Docs.FreeformDocument(docs, { width: 400, height: 400, panX: 175, panY: 175, title: `Search Docs: "${this.searchString}"` });
+        return Docs.FreeformDocument(docs, { width: 400, height: 400, panX: 175, panY: 175, backgroundColor: "grey", title: `Search Docs: "${this.searchString}"` });
     }
 
     // Useful queries:
@@ -154,8 +183,8 @@ export class SearchBox extends React.Component {
                         <input value={this.searchString} onChange={this.onChange} type="text" placeholder="Search..."
                             className="searchBox-barChild searchBox-input" onKeyPress={this.enter}
                             style={{ width: this._resultsOpen ? "500px" : undefined }} />
-                        <button className="searchBox-barChild searchBox-filter" onClick={this.toggleFilterDisplay}>Filter</button>
-                        <FontAwesomeIcon icon="search" size="lg" className="searchBox-barChild searchBox-submit" />
+                        {/* <button className="searchBox-barChild searchBox-filter" onClick={this.toggleFilterDisplay}>Filter</button> */}
+                        {/* <FontAwesomeIcon icon="search" size="lg" className="searchBox-barChild searchBox-submit" /> */}
                     </div>
                     {this._resultsOpen ? (
                         <div className="searchBox-results">

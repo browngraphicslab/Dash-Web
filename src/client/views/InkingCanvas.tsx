@@ -146,7 +146,7 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
     get drawnPaths() {
         let curPage = NumCast(this.props.Document.curPage, -1);
         let paths = Array.from(this.inkData).reduce((paths, [id, strokeData]) => {
-            if (strokeData.page === -1 || strokeData.page === curPage) {
+            if (strokeData.page === -1 || Math.round(strokeData.page) === Math.round(curPage)) {
                 paths.push(<InkingStroke key={id} id={id}
                     line={strokeData.pathData}
                     count={strokeData.pathData.length}

@@ -5,10 +5,10 @@ import { FieldValue, Cast, NumCast, BoolCast } from '../../new_fields/Types';
 import { listSpec } from '../../new_fields/Schema';
 import { undoBatch } from './UndoManager';
 import { CollectionDockingView } from '../views/collections/CollectionDockingView';
-import { Id } from '../../new_fields/RefField';
 import { CollectionView } from '../views/collections/CollectionView';
 import { CollectionPDFView } from '../views/collections/CollectionPDFView';
 import { CollectionVideoView } from '../views/collections/CollectionVideoView';
+import { Id } from '../../new_fields/FieldSymbols';
 
 
 export class DocumentManager {
@@ -115,27 +115,34 @@ export class DocumentManager {
     }
 
     @undoBatch
-    public jumpToDocument = async (docDelegate: Doc, makeCopy: boolean = true): Promise<void> => {
-        let doc = docDelegate.proto ? docDelegate.proto : docDelegate;
-        const page = NumCast(doc.page, undefined);
+    public jumpToDocument = async (docDelegate: Doc, forceDockFunc: boolean = false, dockFunc?: (doc: Doc) => void, linkPage?: number): Promise<void> => {
+        let doc = Doc.GetProto(docDelegate);
         const contextDoc = await Cast(doc.annotationOn, Doc);
         if (contextDoc) {
+            const page = NumCast(doc.page, linkPage || 0);
             const curPage = NumCast(contextDoc.curPage, page);
             if (page !== curPage) contextDoc.curPage = page;
         }
-        let docView = DocumentManager.Instance.getDocumentView(doc);
-        if (docView) {
+        let docView: DocumentView | null;
+        // using forceDockFunc as a flag for splitting linked to doc to the right...can change later if needed
+        if (!forceDockFunc && (docView = DocumentManager.Instance.getDocumentView(doc))) {
+            docView.props.Document.libraryBrush = true;
+            if (linkPage !== undefined) docView.props.Document.curPage = linkPage;
             docView.props.focus(docView.props.Document);
         } else {
             if (!contextDoc) {
-                CollectionDockingView.Instance.AddRightSplit(docDelegate ? (makeCopy ? Doc.MakeCopy(docDelegate) : docDelegate) : Doc.MakeDelegate(doc));
+                const actualDoc = Doc.MakeAlias(docDelegate);
+                actualDoc.libraryBrush = true;
+                if (linkPage !== undefined) actualDoc.curPage = linkPage;
+                (dockFunc || CollectionDockingView.Instance.AddRightSplit)(actualDoc);
             } else {
-                let contextView = DocumentManager.Instance.getDocumentView(contextDoc);
-                if (contextView) {
+                let contextView: DocumentView | null;
+                docDelegate.libraryBrush = true;
+                if (!forceDockFunc && (contextView = DocumentManager.Instance.getDocumentView(contextDoc))) {
                     contextDoc.panTransformType = "Ease";
                     contextView.props.focus(contextDoc);
                 } else {
-                    CollectionDockingView.Instance.AddRightSplit(contextDoc);
+                    (dockFunc || CollectionDockingView.Instance.AddRightSplit)(contextDoc);
                 }
             }
         }

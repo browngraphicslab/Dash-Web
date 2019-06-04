@@ -6,7 +6,7 @@ import * as ReactDOM from 'react-dom';
 import Measure from "react-measure";
 import * as GoldenLayout from "../../../client/goldenLayout";
 import { Doc, Field, Opt, DocListCast } from "../../../new_fields/Doc";
-import { FieldId, Id } from "../../../new_fields/RefField";
+import { FieldId } from "../../../new_fields/RefField";
 import { listSpec } from "../../../new_fields/Schema";
 import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
 import { emptyFunction, returnTrue, Utils } from "../../../Utils";
@@ -21,6 +21,8 @@ import React = require("react");
 import { ParentDocSelector } from './ParentDocumentSelector';
 import { DocumentManager } from '../../util/DocumentManager';
 import { CollectionViewType } from './CollectionBaseView';
+import { Id } from '../../../new_fields/FieldSymbols';
+import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
 
 @observer
 export class CollectionDockingView extends React.Component<SubCollectionViewProps> {
@@ -75,7 +77,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
 
     @undoBatch
     @action
-    public CloseRightSplit(document: Doc): boolean {
+    public CloseRightSplit = (document: Doc): boolean => {
         let retVal = false;
         if (this._goldenLayout.root.contentItems[0].isRow) {
             retVal = Array.from(this._goldenLayout.root.contentItems[0].contentItems).some((child: any) => {
@@ -118,7 +120,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     //  Creates a vertical split on the right side of the docking view, and then adds the Document to that split
     //
     @action
-    public AddRightSplit(document: Doc, minimize: boolean = false) {
+    public AddRightSplit = (document: Doc, minimize: boolean = false) => {
         let docs = Cast(this.props.Document.data, listSpec(Doc));
         if (docs) {
             docs.push(document);
@@ -155,7 +157,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         return newContentItem;
     }
     @action
-    public AddTab(stack: any, document: Doc) {
+    public AddTab = (stack: any, document: Doc) => {
         let docs = Cast(this.props.Document.data, listSpec(Doc));
         if (docs) {
             docs.push(document);
@@ -331,7 +333,8 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                     let counter: any = this.htmlToElement(`<span class="messageCounter">0</div>`);
                     tab.element.append(counter);
                     let upDiv = document.createElement("span");
-                    ReactDOM.render(<ParentDocSelector Document={doc} />, upDiv);
+                    const stack = tab.contentItem.parent;
+                    ReactDOM.render(<ParentDocSelector Document={doc} addDocTab={(doc, location) => CollectionDockingView.Instance.AddTab(stack, doc)} />, upDiv);
                     tab.reactComponents = [upDiv];
                     tab.element.append(upDiv);
                     counter.DashDocId = tab.contentItem.config.props.documentId;
@@ -412,10 +415,14 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     @observable private _panelWidth = 0;
     @observable private _panelHeight = 0;
     @observable private _document: Opt<Doc>;
-    _stack: any;
+    get _stack(): any {
+        let parent = (this.props as any).glContainer.parent.parent;
+        if (this._document && this._document.excludeFromLibrary && parent.parent && parent.parent.contentItems.length > 1)
+            return parent.parent.contentItems[1];
+        return parent;
+    }
     constructor(props: any) {
         super(props);
-        this._stack = (this.props as any).glContainer.parent.parent;
         DocServer.GetRefField(this.props.documentId).then(action((f: Opt<Field>) => this._document = f as Doc));
     }
 
@@ -432,7 +439,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         if (this._mainCont.current && this._mainCont.current.children) {
             let { scale, translateX, translateY } = Utils.GetScreenTransform(this._mainCont.current.children[0].firstChild as HTMLElement);
             scale = Utils.GetScreenTransform(this._mainCont.current).scale;
-            return CollectionDockingView.Instance.props.ScreenToLocalTransform().translate(-translateX, -translateY).scale(1 / scale);
+            return CollectionDockingView.Instance.props.ScreenToLocalTransform().translate(-translateX, -translateY).scale(1 / this.contentScaling() / scale);
         }
         return Transform.Identity();
     }
@@ -444,7 +451,6 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
             NumCast(this._document!.viewType) !== CollectionViewType.Freeform) return 1;
         let scaling = Math.max(1, this._panelWidth / docWidth * docHeight > this._panelHeight ?
             this._panelHeight / docHeight : this._panelWidth / docWidth);
-        console.log("Scaling = " + scaling);
         return scaling;
     }
     get previewPanelCenteringOffset() { return (this._panelWidth - this.nativeWidth() * this.contentScaling()) / 2; }
@@ -464,7 +470,6 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
             <div className="collectionDockingView-content" ref={this._mainCont}
                 style={{ transform: `translate(${this.previewPanelCenteringOffset}px, 0px) scale(${this.scaleToFitMultiplier}, ${this.scaleToFitMultiplier})` }}>
                 <DocumentView key={this._document[Id]} Document={this._document}
-                    toggleMinimized={emptyFunction}
                     bringToFront={emptyFunction}
                     addDocument={undefined}
                     removeDocument={undefined}

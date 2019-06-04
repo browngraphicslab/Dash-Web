@@ -6,6 +6,8 @@ import * as session from 'express-session';
 import * as expressValidator from 'express-validator';
 import * as formidable from 'formidable';
 import * as fs from 'fs';
+import * as sharp from 'sharp';
+const imageDataUri = require('image-data-uri');
 import * as mobileDetect from 'mobile-detect';
 import { ObservableMap } from 'mobx';
 import * as passport from 'passport';
@@ -58,7 +60,7 @@ app.use(session({
 
 app.use(flash());
 app.use(expressFlash());
-app.use(bodyParser.json());
+app.use(bodyParser.json({ limit: "10mb" }));
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(expressValidator());
 app.use(passport.initialize());
@@ -166,13 +168,15 @@ addSecureRoute(
     RouteStore.getCurrUser
 );
 
+const pngTypes = [".png", ".PNG"];
+const jpgTypes = [".jpg", ".JPG", ".jpeg", ".JPEG"];
+const uploadDir = __dirname + "/public/files/";
 // SETTERS
-
-addSecureRoute(
-    Method.POST,
-    (user, res, req) => {
+app.post(
+    RouteStore.upload,
+    (req, res) => {
         let form = new formidable.IncomingForm();
-        form.uploadDir = __dirname + "/public/files/";
+        form.uploadDir = uploadDir;
         form.keepExtensions = true;
         // let path = req.body.path;
         console.log("upload");
@@ -180,15 +184,76 @@ addSecureRoute(
             console.log("parsing");
             let names: string[] = [];
             for (const name in files) {
-                names.push(`/files/` + path.basename(files[name].path));
+                const file = path.basename(files[name].path);
+                const ext = path.extname(file);
+                let resizers = [
+                    { resizer: sharp().resize(100, undefined, { withoutEnlargement: true }), suffix: "_s" },
+                    { resizer: sharp().resize(400, undefined, { withoutEnlargement: true }), suffix: "_m" },
+                    { resizer: sharp().resize(900, undefined, { withoutEnlargement: true }), suffix: "_l" },
+                ];
+                let isImage = false;
+                if (pngTypes.includes(ext)) {
+                    resizers.forEach(element => {
+                        element.resizer = element.resizer.png();
+                    });
+                    isImage = true;
+                } else if (jpgTypes.includes(ext)) {
+                    resizers.forEach(element => {
+                        element.resizer = element.resizer.jpeg();
+                    });
+                    isImage = true;
+                }
+                if (isImage) {
+                    resizers.forEach(resizer => {
+                        fs.createReadStream(uploadDir + file).pipe(resizer.resizer).pipe(fs.createWriteStream(uploadDir + file.substring(0, file.length - ext.length) + resizer.suffix + ext));
+                    });
+                }
+                names.push(`/files/` + file);
             }
             res.send(names);
         });
-    },
-    undefined,
-    RouteStore.upload
+    }
 );
 
+addSecureRoute(
+    Method.POST,
+    (user, res, req) => {
+        const uri = req.body.uri;
+        const filename = req.body.name;
+        if (!uri || !filename) {
+            res.status(401).send("incorrect parameters specified");
+            return;
+        }
+        imageDataUri.outputFile(uri, uploadDir + filename).then((savedName: string) => {
+            const ext = path.extname(savedName);
+            let resizers = [
+                { resizer: sharp().resize(100, undefined, { withoutEnlargement: true }), suffix: "_s" },
+                { resizer: sharp().resize(400, undefined, { withoutEnlargement: true }), suffix: "_m" },
+                { resizer: sharp().resize(900, undefined, { withoutEnlargement: true }), suffix: "_l" },
+            ];
+            let isImage = false;
+            if (pngTypes.includes(ext)) {
+                resizers.forEach(element => {
+                    element.resizer = element.resizer.png();
+                });
+                isImage = true;
+            } else if (jpgTypes.includes(ext)) {
+                resizers.forEach(element => {
+                    element.resizer = element.resizer.jpeg();
+                });
+                isImage = true;
+            }
+            if (isImage) {
+                resizers.forEach(resizer => {
+                    fs.createReadStream(savedName).pipe(resizer.resizer).pipe(fs.createWriteStream(uploadDir + filename + resizer.suffix + ext));
+                });
+            }
+            res.send("/files/" + filename + ext);
+        });
+    },
+    undefined,
+    RouteStore.dataUriToImage
+);
 // AUTHENTICATION
 
 // Sign Up
@@ -283,6 +348,7 @@ function setField(socket: Socket, newValue: Transferable) {
     if (newValue.type === Types.Text) {
         Search.Instance.updateDocument({ id: newValue.id, data: (newValue as any).data });
         console.log("set field");
+        console.log("checking in");
     }
 }
 
@@ -299,7 +365,7 @@ const suffixMap: { [type: string]: (string | [string, string | ((json: any) => a
     "number": "_n",
     "string": "_t",
     // "boolean": "_b",
-    "image": ["_t", "url"],
+    // "image": ["_t", "url"],
     "video": ["_t", "url"],
     "pdf": ["_t", "url"],
     "audio": ["_t", "url"],
@@ -362,8 +428,8 @@ function UpdateField(socket: Socket, diff: Diff) {
         Object.values(suffixMap).forEach(suf => update[key + getSuffix(suf)] = { set: null });
         let term = ToSearchTerm(val);
         if (term !== undefined) {
-            // let { suffix, value } = term;
-            // update[key + suffix] = { set: value };
+            let { suffix, value } = term;
+            update[key + suffix] = { set: value };
         }
     }
     if (dynfield) {

@@ -1,7 +1,7 @@
 import * as rp from 'request-promise';
 import { DocServer } from '../DocServer';
 import { Doc } from '../../new_fields/Doc';
-import { Id } from '../../new_fields/RefField';
+import { Id } from '../../new_fields/FieldSymbols';
 
 export namespace SearchUtil {
     export function Search(query: string, returnDocs: true): Promise<Doc[]>;
@@ -20,6 +20,7 @@ export namespace SearchUtil {
     export async function GetAliasesOfDocument(doc: Doc): Promise<Doc[]> {
         const proto = await Doc.GetT(doc, "proto", Doc, true);
         const protoId = (proto || doc)[Id];
-        return Search(`{!join from=id to=proto_i}id:${protoId}`, true);
+        return Search(`proto_i:"${protoId}"`, true);
+        // return Search(`{!join from=id to=proto_i}id:${protoId}`, true);
     }
 }

@@ -41,7 +41,7 @@ export type CompileResult = CompiledScript | CompileError;
 
 function Run(script: string | undefined, customParams: string[], diagnostics: any[], originalScript: string, options: ScriptOptions): CompileResult {
     const errors = diagnostics.some(diag => diag.category === ts.DiagnosticCategory.Error);
-    if (errors || !script) {
+    if ((options.typecheck !== false && errors) || !script) {
         return { compiled: false, errors: diagnostics };
     }
 
@@ -131,10 +131,11 @@ export interface ScriptOptions {
     addReturn?: boolean;
     params?: { [name: string]: string };
     capturedVariables?: { [name: string]: Field };
+    typecheck?: boolean;
 }
 
 export function CompileScript(script: string, options: ScriptOptions = {}): CompileResult {
-    const { requiredType = "", addReturn = false, params = {}, capturedVariables = {} } = options;
+    const { requiredType = "", addReturn = false, params = {}, capturedVariables = {}, typecheck = true } = options;
     let host = new ScriptingCompilerHost;
     let paramNames: string[] = [];
     if ("this" in params || "this" in capturedVariables) {
@@ -158,7 +159,7 @@ export function CompileScript(script: string, options: ScriptOptions = {}): Comp
         ${addReturn ? `return ${script};` : script}
     })`;
     host.writeFile("file.ts", funcScript);
-    host.writeFile('node_modules/typescript/lib/lib.d.ts', typescriptlib);
+    if (typecheck) host.writeFile('node_modules/typescript/lib/lib.d.ts', typescriptlib);
     let program = ts.createProgram(["file.ts"], {}, host);
     let testResult = program.emit();
     let outputText = host.readFile("file.js");

@@ -8,11 +8,13 @@ export interface OriginalMenuProps {
     description: string;
     event: (e: React.MouseEvent<HTMLDivElement>) => void;
     icon?: IconProp; //maybe should be optional (icon?)
+    closeMenu?: () => void;
 }
 
 export interface SubmenuProps {
     description: string;
     subitems: ContextMenuProps[];
+    closeMenu?: () => void;
 }
 
 export interface ContextMenuItemProps {
@@ -32,31 +34,36 @@ export class ContextMenuItem extends React.Component<ContextMenuProps> {
         }
     }
 
+    handleEvent = (e: React.MouseEvent<HTMLDivElement>) => {
+        if ("event" in this.props) {
+            this.props.event(e);
+            this.props.closeMenu && this.props.closeMenu();
+        }
+    }
+
     render() {
         if ("event" in this.props) {
             return (
-                <div className="contextMenu-item" onClick={this.props.event}>
+                <div className="contextMenu-item" onClick={this.handleEvent}>
                     <span className="icon-background">
-                        <FontAwesomeIcon icon="circle" size="sm" />
-                        {this.props.icon ? <FontAwesomeIcon icon={this.props.icon} size="sm" /> : null}
+                        {this.props.icon ? <FontAwesomeIcon icon={this.props.icon} size="sm" /> : <FontAwesomeIcon icon="circle" size="sm" />}
                     </span>
-                    <div className="contextMenu-description"> {this.props.description}</div>
+                    <div className="contextMenu-description">
+                        {this.props.description}
+                    </div>
                 </div>
             );
         }
         else {
-            let submenu = null;
-            if (this.overItem) {
-                submenu = (
-                    <div className="subMenu-cont" style={{ marginLeft: "100.5%", left: "0px" }}>
-                        {this._items.map(prop => <ContextMenuItem {...prop} key={prop.description} />)}
-                    </div>
-                );
-            }
+            let submenu = !this.overItem ? (null) :
+                <div className="contextMenu-subMenu-cont" style={{ marginLeft: "100.5%", left: "0px" }}>
+                    {this._items.map(prop => <ContextMenuItem {...prop} key={prop.description} closeMenu={this.props.closeMenu} />)}
+                </div>;
             return (
-                <div className="contextMenu-item" onMouseEnter={action(() => { this.overItem = true; })}
-                    onMouseLeave={action(() => this.overItem = false)}>
-                    <div className="contextMenu-description"> {this.props.description}</div>
+                <div className="contextMenu-item" onMouseEnter={action(() => { this.overItem = true; })} onMouseLeave={action(() => this.overItem = false)}>
+                    <div className="contextMenu-description">
+                        {this.props.description}
+                    </div>
                     {submenu}
                 </div>
             );

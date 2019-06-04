@@ -1,11 +1,12 @@
 import { UndoManager } from "../client/util/UndoManager";
-import { Update, Doc, Field } from "./Doc";
+import { Doc, Field } from "./Doc";
 import { SerializationHelper } from "../client/util/SerializationHelper";
 import { ProxyField } from "./Proxy";
 import { FieldValue } from "./Types";
-import { RefField, Id } from "./RefField";
-import { ObjectField, Parent, OnUpdate } from "./ObjectField";
+import { RefField } from "./RefField";
+import { ObjectField } from "./ObjectField";
 import { action } from "mobx";
+import { Parent, OnUpdate, Update, Id } from "./FieldSymbols";
 
 export const setter = action(function (target: any, prop: string | symbol | number, value: any, receiver: any): boolean {
     if (SerializationHelper.IsSerializing()) {
@@ -37,7 +38,11 @@ export const setter = action(function (target: any, prop: string | symbol | numb
         delete curValue[Parent];
         delete curValue[OnUpdate];
     }
-    target.__fields[prop] = value;
+    if (value === undefined) {
+        delete target.__fields[prop];
+    } else {
+        target.__fields[prop] = value;
+    }
     target[Update]({ '$set': { ["fields." + prop]: value instanceof ObjectField ? SerializationHelper.Serialize(value) : (value === undefined ? null : value) } });
     UndoManager.AddEvent({
         redo: () => receiver[prop] = value,

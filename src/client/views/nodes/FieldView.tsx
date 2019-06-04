@@ -35,7 +35,7 @@ export interface FieldViewProps {
     isTopMost: boolean;
     selectOnLoad: boolean;
     addDocument?: (document: Doc, allowDuplicates?: boolean) => boolean;
-    addDocTab: (document: Doc, where: string) => boolean;
+    addDocTab: (document: Doc, where: string) => void;
     removeDocument?: (document: Doc) => boolean;
     moveDocument?: (document: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
     ScreenToLocalTransform: () => Transform;
@@ -102,7 +102,6 @@ export class FieldView extends React.Component<FieldViewProps> {
                     layoutKey={"layout"}
                     ContainingCollectionView={this.props.ContainingCollectionView}
                     parentActive={this.props.active}
-                    toggleMinimized={emptyFunction}
                     whenActiveChanged={this.props.whenActiveChanged}
                     bringToFront={emptyFunction} />
             );
@@ -117,7 +116,7 @@ export class FieldView extends React.Component<FieldViewProps> {
         //     return <WebBox {...this.props} />
         // }
         else if (!(field instanceof Promise)) {
-            return <p>{JSON.stringify(field)}</p>;
+            return <p>{field.toString()}</p>;
         }
         else {
             return <p> {"Waiting for server..."} </p>;

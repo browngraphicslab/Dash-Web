@@ -42,8 +42,8 @@ export namespace Templates {
     export const Caption = new Template("Caption", TemplatePosition.OutterBottom,
         `<div>
             <div style="height:100%; width:100%;position:absolute;">{layout}</div>
-            <div id="screenSpace" style="top: 100%; font-size:14px; background:yellow; width:100%; position:absolute">
-                <FormattedTextBox {...props} fieldKey={"caption"} />
+            <div style="bottom: 0; font-size:14px; width:100%; position:absolute">
+                <FormattedTextBox {...props} fieldKey={"caption"} hideOnLeave={"true"} />
             </div>
         </div>` );
 
@@ -56,10 +56,12 @@ export namespace Templates {
         </div>` );
 
     export const Title = new Template("Title", TemplatePosition.InnerTop,
-        `<div><div style="height:calc(100% - 25px); margin-top: 25px; width:100%;position:absolute;">{layout}</div>
-        <div style="height:25px; width:100%; position:absolute; top: 0; background-color: rgba(0, 0, 0, .4); color: white; ">
-            <span style="text-align:center;width:100%;font-size:20px;position:absolute;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">{props.Document.title}</span>
-        </div></div>` );
+        `<div>
+            <div style="height:calc(100% - 25px); margin-top: 25px; width:100%;position:absolute;">{layout}</div>
+            <div style="height:25px; width:100%; position:absolute; top: 0; background-color: rgba(0, 0, 0, .4); color: white; ">
+                <span style="text-align:center;width:100%;font-size:20px;position:absolute;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">{props.Document.title}</span>
+            </div>
+        </div>` );
 
     export const Bullet = new Template("Bullet", TemplatePosition.InnerTop,
         `<div>

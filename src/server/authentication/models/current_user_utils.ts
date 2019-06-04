@@ -1,21 +1,17 @@
-import { computed, observable, action, runInAction } from "mobx";
+import { action, computed, observable, runInAction } from "mobx";
 import * as rp from 'request-promise';
-import { Docs } from "../../../client/documents/Documents";
-import { Attribute, AttributeGroup, Catalog, Schema, AggregateFunction } from "../../../client/northstar/model/idea/idea";
-import { ArrayUtil } from "../../../client/northstar/utils/ArrayUtil";
-import { RouteStore } from "../../RouteStore";
 import { DocServer } from "../../../client/DocServer";
-import { Doc, Opt, Field } from "../../../new_fields/Doc";
-import { List } from "../../../new_fields/List";
+import { Docs } from "../../../client/documents/Documents";
+import { Gateway, NorthstarSettings } from "../../../client/northstar/manager/Gateway";
+import { Attribute, AttributeGroup, Catalog, Schema } from "../../../client/northstar/model/idea/idea";
+import { ArrayUtil } from "../../../client/northstar/utils/ArrayUtil";
 import { CollectionViewType } from "../../../client/views/collections/CollectionBaseView";
-import { CollectionTreeView } from "../../../client/views/collections/CollectionTreeView";
 import { CollectionView } from "../../../client/views/collections/CollectionView";
-import { NorthstarSettings, Gateway } from "../../../client/northstar/manager/Gateway";
-import { AttributeTransformationModel } from "../../../client/northstar/core/attribute/AttributeTransformationModel";
-import { ColumnAttributeModel } from "../../../client/northstar/core/attribute/AttributeModel";
-import { HistogramOperation } from "../../../client/northstar/operations/HistogramOperation";
-import { Cast, PromiseValue } from "../../../new_fields/Types";
+import { Doc } from "../../../new_fields/Doc";
+import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
+import { Cast } from "../../../new_fields/Types";
+import { RouteStore } from "../../RouteStore";
 
 export class CurrentUserUtils {
     private static curr_email: string;
@@ -37,7 +33,7 @@ export class CurrentUserUtils {
         doc.title = this.email;
         doc.data = new List<Doc>();
         doc.excludeFromLibrary = true;
-        doc.optionalRightCollection = Docs.SchemaDocument(["title"], [], { title: "Pending documents" });
+        doc.optionalRightCollection = Docs.StackingDocument([], { title: "New mobile uploads" });
         // doc.library = Docs.TreeDocument([doc], { title: `Library: ${CurrentUserUtils.email}` });
         // (doc.library as Doc).excludeFromLibrary = true;
         return doc;
@@ -68,7 +64,7 @@ export class CurrentUserUtils {
             const extraSchemas = Cast(CurrentUserUtils.UserDocument.DBSchemas, listSpec("string"), []);
             let extras = await Promise.all(extraSchemas.map(sc => Gateway.Instance.GetSchema("", sc)));
             let catprom = CurrentUserUtils.SetNorthstarCatalog(await Gateway.Instance.GetCatalog(), extras);
-            if (catprom) await Promise.all(catprom);
+            // if (catprom) await Promise.all(catprom);
         } catch (e) {
 
         }
@@ -83,29 +79,29 @@ export class CurrentUserUtils {
 
     @action static SetNorthstarCatalog(ctlog: Catalog, extras: Catalog[]) {
         CurrentUserUtils.NorthstarDBCatalog = ctlog;
-        if (ctlog && ctlog.schemas) {
-            extras.map(ex => ctlog.schemas!.push(ex));
-            return ctlog.schemas.map(async schema => {
-                let schemaDocuments: Doc[] = [];
-                let attributesToBecomeDocs = CurrentUserUtils.GetAllNorthstarColumnAttributes(schema);
-                await Promise.all(attributesToBecomeDocs.reduce((promises, attr) => {
-                    promises.push(DocServer.GetRefField(attr.displayName! + ".alias").then(action((field: Opt<Field>) => {
-                        if (field instanceof Doc) {
-                            schemaDocuments.push(field);
-                        } else {
-                            var atmod = new ColumnAttributeModel(attr);
-                            let histoOp = new HistogramOperation(schema.displayName!,
-                                new AttributeTransformationModel(atmod, AggregateFunction.None),
-                                new AttributeTransformationModel(atmod, AggregateFunction.Count),
-                                new AttributeTransformationModel(atmod, AggregateFunction.Count));
-                            schemaDocuments.push(Docs.HistogramDocument(histoOp, { width: 200, height: 200, title: attr.displayName! }));
-                        }
-                    })));
-                    return promises;
-                }, [] as Promise<void>[]));
-                return CurrentUserUtils._northstarSchemas.push(Docs.TreeDocument(schemaDocuments, { width: 50, height: 100, title: schema.displayName! }));
-            });
-        }
+        // if (ctlog && ctlog.schemas) {
+        //     extras.map(ex => ctlog.schemas!.push(ex));
+        //     return ctlog.schemas.map(async schema => {
+        //         let schemaDocuments: Doc[] = [];
+        //         let attributesToBecomeDocs = CurrentUserUtils.GetAllNorthstarColumnAttributes(schema);
+        //         await Promise.all(attributesToBecomeDocs.reduce((promises, attr) => {
+        //             promises.push(DocServer.GetRefField(attr.displayName! + ".alias").then(action((field: Opt<Field>) => {
+        //                 if (field instanceof Doc) {
+        //                     schemaDocuments.push(field);
+        //                 } else {
+        //                     var atmod = new ColumnAttributeModel(attr);
+        //                     let histoOp = new HistogramOperation(schema.displayName!,
+        //                         new AttributeTransformationModel(atmod, AggregateFunction.None),
+        //                         new AttributeTransformationModel(atmod, AggregateFunction.Count),
+        //                         new AttributeTransformationModel(atmod, AggregateFunction.Count));
+        //                     schemaDocuments.push(Docs.HistogramDocument(histoOp, { width: 200, height: 200, title: attr.displayName! }));
+        //                 }
+        //             })));
+        //             return promises;
+        //         }, [] as Promise<void>[]));
+        //         return CurrentUserUtils._northstarSchemas.push(Docs.TreeDocument(schemaDocuments, { width: 50, height: 100, title: schema.displayName! }));
+        //     });
+        // }
     }
     public static set NorthstarDBCatalog(ctlog: Catalog | undefined) { this._northstarCatalog = ctlog; }
 

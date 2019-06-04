@@ -22,7 +22,7 @@ export interface EditableProps {
      * The contents to render when not editing
      */
     contents: any;
-    height: number;
+    height?: number;
     display?: string;
     oneLine?: boolean;
 }
@@ -53,6 +53,12 @@ export class EditableView extends React.Component<EditableProps> {
         }
     }
 
+    @action
+    onClick = (e: React.MouseEvent) => {
+        this.editing = true;
+        e.stopPropagation();
+    }
+
     render() {
         if (this.editing) {
             return <input className="editableView-input" defaultValue={this.props.GetValue()} onKeyDown={this.onKeyDown} autoFocus onBlur={action(() => this.editing = false)}
@@ -60,7 +66,7 @@ export class EditableView extends React.Component<EditableProps> {
         } else {
             return (
                 <div className={`editableView-container-editing${this.props.oneLine ? "-oneLine" : ""}`} style={{ display: this.props.display, height: "auto", maxHeight: `${this.props.height}` }}
-                    onClick={action(() => this.editing = true)} >
+                    onClick={this.onClick} >
                     <span>{this.props.contents}</span>
                 </div>
             );

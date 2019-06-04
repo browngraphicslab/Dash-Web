@@ -1,14 +1,13 @@
 import { Doc } from "./Doc";
 import { RefField } from "./RefField";
-
-export const OnUpdate = Symbol("OnUpdate");
-export const Parent = Symbol("Parent");
-export const Copy = Symbol("Copy");
+import { OnUpdate, Parent, Copy, ToScriptString } from "./FieldSymbols";
 
 export abstract class ObjectField {
     protected [OnUpdate](diff?: any) { }
     private [Parent]?: RefField | ObjectField;
     abstract [Copy](): ObjectField;
+
+    abstract [ToScriptString](): string;
 }
 
 export namespace ObjectField {

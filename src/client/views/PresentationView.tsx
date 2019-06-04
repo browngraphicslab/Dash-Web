@@ -6,8 +6,8 @@ import { DocumentManager } from "../util/DocumentManager";
 import { Utils } from "../../Utils";
 import { Doc, DocListCast, DocListCastAsync } from "../../new_fields/Doc";
 import { listSpec } from "../../new_fields/Schema";
-import { Cast, NumCast, FieldValue, PromiseValue, StrCast } from "../../new_fields/Types";
-import { Id } from "../../new_fields/RefField";
+import { Cast, NumCast, FieldValue, PromiseValue, StrCast, BoolCast } from "../../new_fields/Types";
+import { Id } from "../../new_fields/FieldSymbols";
 import { List } from "../../new_fields/List";
 import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
 
@@ -27,6 +27,7 @@ interface PresListProps extends PresViewProps {
  */
 class PresentationViewList extends React.Component<PresListProps> {
 
+
     /**
      * Renders a single child document. It will just append a list element.
      * @param document The document to render.
@@ -42,8 +43,17 @@ class PresentationViewList extends React.Component<PresListProps> {
             //this doc is selected
             className += " presentationView-selected";
         }
+        let onEnter = (e: React.PointerEvent) => { document.libraryBrush = true; }
+        let onLeave = (e: React.PointerEvent) => { document.libraryBrush = false; }
         return (
-            <div className={className} key={document[Id] + index} onClick={e => { this.props.gotoDocument(index); e.stopPropagation(); }}>
+            <div className={className} key={document[Id] + index}
+                onPointerEnter={onEnter} onPointerLeave={onLeave}
+                style={{
+                    outlineColor: "maroon",
+                    outlineStyle: "dashed",
+                    outlineWidth: BoolCast(document.libraryBrush, false) || BoolCast(document.protoBrush, false) ? `1px` : "0px",
+                }}
+                onClick={e => { this.props.gotoDocument(index); e.stopPropagation(); }}>
                 <strong className="presentationView-name">
                     {`${index + 1}. ${title}`}
                 </strong>

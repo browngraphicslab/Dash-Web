@@ -25,6 +25,9 @@
         height: 100%;
         width: 100%;
     }
+    >.jsx-parser {
+        z-index:0;
+    }
 
     //nested freeform views
     // .collectionfreeformview-container {
@@ -52,6 +55,10 @@
         position: inherit;
         height: 100%;
     }
+    
+    >.jsx-parser {
+        z-index:0;
+    }
 
     .formattedTextBox-cont {
         background: $light-color-secondary;
@@ -63,6 +70,7 @@
     border-radius: $border-radius;
     box-sizing: border-box;
     position:absolute;
+    z-index: -1;
     .marqueeView {
         overflow: hidden;
     }

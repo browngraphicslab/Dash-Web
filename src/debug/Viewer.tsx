@@ -3,11 +3,27 @@ import "normalize.css";
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import { observer } from 'mobx-react';
-import { Doc, Field, FieldResult } from '../new_fields/Doc';
+import { Doc, Field, FieldResult, Opt } from '../new_fields/Doc';
 import { DocServer } from '../client/DocServer';
-import { Id } from '../new_fields/RefField';
+import { Id } from '../new_fields/FieldSymbols';
 import { List } from '../new_fields/List';
 import { URLField } from '../new_fields/URLField';
+import { EditableView } from '../client/views/EditableView';
+import { CompileScript } from '../client/util/Scripting';
+
+function applyToDoc(doc: { [index: string]: FieldResult }, key: string, scriptString: string): boolean;
+function applyToDoc(doc: { [index: number]: FieldResult }, key: number, scriptString: string): boolean;
+function applyToDoc(doc: any, key: string | number, scriptString: string): boolean {
+    let script = CompileScript(scriptString, { addReturn: true, params: { this: doc instanceof Doc ? Doc.name : List.name } });
+    if (!script.compiled) {
+        return false;
+    }
+    const res = script.run({ this: doc });
+    if (!res.success) return false;
+    if (!Field.IsField(res.result, true)) return false;
+    doc[key] = res.result;
+    return true;
+}
 
 configure({
     enforceActions: "observed"
@@ -18,12 +34,18 @@ class ListViewer extends React.Component<{ field: List<Field> }>{
     @observable
     expanded = false;
 
+    @action
+    onClick = (e: React.MouseEvent) => {
+        this.expanded = !this.expanded;
+        e.stopPropagation();
+    }
+
     render() {
         let content;
         if (this.expanded) {
             content = (
                 <div>
-                    {this.props.field.map((field, index) => <DebugViewer field={field} key={index} />)}
+                    {this.props.field.map((field, index) => <DebugViewer field={field} key={index} setValue={value => applyToDoc(this.props.field, index, value)} />)}
                 </div>
             );
         } else {
@@ -31,7 +53,7 @@ class ListViewer extends React.Component<{ field: List<Field> }>{
         }
         return (
             <div>
-                <button onClick={action(() => this.expanded = !this.expanded)}>Toggle</button>
+                <button onClick={this.onClick}>Toggle</button>
                 {content}
             </div >
         );
@@ -42,6 +64,13 @@ class ListViewer extends React.Component<{ field: List<Field> }>{
 class DocumentViewer extends React.Component<{ field: Doc }> {
     @observable
     expanded = false;
+
+    @action
+    onClick = (e: React.MouseEvent) => {
+        this.expanded = !this.expanded;
+        e.stopPropagation();
+    }
+
     render() {
         let content;
         if (this.expanded) {
@@ -50,7 +79,7 @@ class DocumentViewer extends React.Component<{ field: Doc }> {
                 return (
                     <div key={key}>
                         <b>({key}): </b>
-                        <DebugViewer field={this.props.field[key]}></DebugViewer>
+                        <DebugViewer field={this.props.field[key]} setValue={value => applyToDoc(this.props.field, key, value)}></DebugViewer>
                     </div>
                 );
             });
@@ -67,7 +96,7 @@ class DocumentViewer extends React.Component<{ field: Doc }> {
         }
         return (
             <div>
-                <button onClick={action(() => this.expanded = !this.expanded)}>Toggle</button>
+                <button onClick={this.onClick}>Toggle</button>
                 {content}
             </div >
         );
@@ -75,7 +104,7 @@ class DocumentViewer extends React.Component<{ field: Doc }> {
 }
 
 @observer
-class DebugViewer extends React.Component<{ field: FieldResult }> {
+class DebugViewer extends React.Component<{ field: FieldResult, setValue(value: string): boolean }> {
 
     render() {
         let content;
@@ -90,10 +119,14 @@ class DebugViewer extends React.Component<{ field: FieldResult }> {
             content = <p>{field}</p>;
         } else if (field instanceof URLField) {
             content = <p>{field.url.href}</p>;
+        } else if (field instanceof Promise) {
+            return <p>Field loading</p>;
         } else {
-            content = <p>Unrecognized field type</p>;
+            return <p>Unrecognized field type</p>;
         }
-        return content;
+
+        return <EditableView GetValue={() => Field.toScriptString(field)} SetValue={this.props.setValue}
+            contents={content}></EditableView>;
     }
 }
 
@@ -129,7 +162,7 @@ class Viewer extends React.Component {
                     onChange={this.inputOnChange}
                     onKeyDown={this.onKeyPress} />
                 <div>
-                    {this.fields.map((field, index) => <DebugViewer field={field} key={index}></DebugViewer>)}
+                    {this.fields.map((field, index) => <DebugViewer field={field} key={index} setValue={() => false}></DebugViewer>)}
                 </div>
             </>
         );

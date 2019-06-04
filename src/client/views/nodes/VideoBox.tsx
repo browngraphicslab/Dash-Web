@@ -10,10 +10,10 @@ import { makeInterface } from "../../../new_fields/Schema";
 import { pageSchema } from "./ImageBox";
 import { Cast, FieldValue, NumCast } from "../../../new_fields/Types";
 import { VideoField } from "../../../new_fields/URLField";
-import Measure from "react-measure";
 import "./VideoBox.scss";
 import { RouteStore } from "../../../server/RouteStore";
 import { DocServer } from "../../DocServer";
+import { actionFieldDecorator } from "mobx/lib/internal";
 
 type VideoDocument = makeInterface<[typeof positionSchema, typeof pageSchema]>;
 const VideoDocument = makeInterface(positionSchema, pageSchema);
@@ -22,37 +22,30 @@ const VideoDocument = makeInterface(positionSchema, pageSchema);
 export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoDocument) {
     private _reactionDisposer?: IReactionDisposer;
     private _videoRef: HTMLVideoElement | null = null;
-    private _loaded: boolean = false;
     @observable _playTimer?: NodeJS.Timeout = undefined;
     @observable _fullScreen = false;
     @observable public Playing: boolean = false;
     public static LayoutString() { return FieldView.LayoutString(VideoBox); }
 
-    public get player(): HTMLVideoElement | undefined {
-        if (this._videoRef) {
-            return this._videoRef;
-        }
+    public get player(): HTMLVideoElement | null {
+        return this._videoRef;
     }
-    @action
-    setScaling = (r: any) => {
-        if (this._loaded) {
-            // bcz: the nativeHeight should really be set when the document is imported.
-            var nativeWidth = FieldValue(this.Document.nativeWidth, 0);
-            var nativeHeight = FieldValue(this.Document.nativeHeight, 0);
-            var newNativeHeight = nativeWidth * r.offset.height / r.offset.width;
-            if (!nativeHeight && newNativeHeight !== nativeHeight && !isNaN(newNativeHeight)) {
-                this.Document.height = newNativeHeight / nativeWidth * FieldValue(this.Document.width, 0);
-                this.Document.nativeHeight = newNativeHeight;
-            }
-        } else {
-            this._loaded = true;
+
+    videoLoad = () => {
+        let aspect = this.player!.videoWidth / this.player!.videoHeight;
+        var nativeWidth = FieldValue(this.Document.nativeWidth, 0);
+        var nativeHeight = FieldValue(this.Document.nativeHeight, 0);
+        if (!nativeWidth || !nativeHeight) {
+            if (!this.Document.nativeWidth) this.Document.nativeWidth = this.player!.videoWidth;
+            this.Document.nativeHeight = this.Document.nativeWidth / aspect;
+            this.Document.height = FieldValue(this.Document.width, 0) / aspect;
         }
     }
 
     @action public Play() {
         this.Playing = true;
         if (this.player) this.player.play();
-        if (!this._playTimer) this._playTimer = setInterval(this.updateTimecode, 1000);
+        if (!this._playTimer) this._playTimer = setInterval(this.updateTimecode, 500);
     }
 
     @action public Pause() {
@@ -70,7 +63,9 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
     }
 
     @action
-    updateTimecode = () => this.player && (this.props.Document.curPage = this.player.currentTime)
+    updateTimecode = () => {
+        this.player && (this.props.Document.curPage = this.player.currentTime);
+    }
 
     componentDidMount() {
         if (this.props.setVideoBox) this.props.setVideoBox(this);
@@ -87,15 +82,9 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
             vref.onfullscreenchange = action((e) => this._fullScreen = vref.webkitDisplayingFullscreen);
             if (this._reactionDisposer) this._reactionDisposer();
             this._reactionDisposer = reaction(() => this.props.Document.curPage, () =>
-                vref.currentTime = NumCast(this.props.Document.curPage, 0), { fireImmediately: true });
+                !this.Playing && (vref.currentTime = this.Document.curPage || 0)
+                , { fireImmediately: true });
         }
-    }
-    videoContent(path: string) {
-        let style = "videoBox-cont" + (this._fullScreen ? "-fullScreen" : "");
-        return <video className={`${style}`} ref={this.setVideoRef} onPointerDown={this.onPointerDown}>
-            <source src={path} type="video/mp4" />
-            Not supported.
-        </video>;
     }
 
     getMp4ForVideo(videoId: string = "JN5beCVArMs") {
@@ -105,7 +94,6 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
                     connection: 'keep-alive',
                     "user-agent": 'Mozilla/5.0 (Windows NT 10.0; WOW64; rv:43.0) Gecko/20100101 Firefox/46.0',
                 },
-
             };
             try {
                 let responseSchema: any = {};
@@ -139,9 +127,6 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
 
     render() {
         let field = Cast(this.Document[this.props.fieldKey], VideoField);
-        if (!field) {
-            return <div>Loading</div>;
-        }
 
         // this.getMp4ForVideo().then((mp4) => {
         //     console.log(mp4);
@@ -149,15 +134,12 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
         //     console.log("")
         // });
         // //
-        let content = this.videoContent(field.url.href);
-        return NumCast(this.props.Document.nativeHeight) ?
-            content :
-            <Measure offset onResize={this.setScaling}>
-                {({ measureRef }) =>
-                    <div style={{ width: "100%", height: "auto" }} ref={measureRef}>
-                        {content}
-                    </div>
-                }
-            </Measure>;
+
+        let style = "videoBox-cont" + (this._fullScreen ? "-fullScreen" : "");
+        return !field ? <div>Loading</div> :
+            <video className={`${style}`} ref={this.setVideoRef} onCanPlay={this.videoLoad} onPointerDown={this.onPointerDown}>
+                <source src={field.url.href} type="video/mp4" />
+                Not supported.
+            </video>;
     }
 }
