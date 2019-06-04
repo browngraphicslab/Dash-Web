@@ -231,9 +231,12 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             }
         }
         let ctrlKey = e.ctrlKey;
-        if (e.button === 0 && ((!this.props.isSelected() && !e.ctrlKey) || (this.props.isSelected() && e.ctrlKey)) && !e.metaKey) {
-            if (e.target && (e.target as any).href) {
-                let href = (e.target as any).href;
+        if (e.button === 0 && ((!this.props.isSelected() && !e.ctrlKey) || (this.props.isSelected() && e.ctrlKey)) && !e.metaKey && e.target) {
+            let href = (e.target as any).href;
+            for (let parent = (e.target as any).parentNode; !href && parent; parent = parent.parentNode) {
+                href = parent.childNodes[0].href;
+            }
+            if (href) {
                 if (href.indexOf(DocServer.prepend("/doc/")) === 0) {
                     let docid = href.replace(DocServer.prepend("/doc/"), "").split("?")[0];
                     DocServer.GetRefField(docid).then(f => {

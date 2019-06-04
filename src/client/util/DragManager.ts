@@ -279,8 +279,7 @@ export namespace DragManager {
             lastX = e.pageX;
             lastY = e.pageY;
             dragElements.map((dragElement, i) => (dragElement.style.transform =
-                `translate(${(xs[i] += moveX)}px, ${(ys[i] += moveY)}px) 
-                scale(${scaleXs[i]}, ${scaleYs[i]})`)
+                `translate(${(xs[i] += moveX)}px, ${(ys[i] += moveY)}px)  scale(${scaleXs[i]}, ${scaleYs[i]})`)
             );
         };
 
