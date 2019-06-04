@@ -1,18 +1,24 @@
 import { observer } from "mobx-react";
 import React = require("react");
-import { observable, action, runInAction, computed } from "mobx";
+import { observable, action, runInAction, computed, IReactionDisposer, reaction } from "mobx";
 import { RouteStore } from "../../../server/RouteStore";
 import * as Pdfjs from "pdfjs-dist";
+import * as htmlToImage from "html-to-image";
 import { Opt } from "../../../new_fields/Doc";
 import "./PDFViewer.scss";
 import "pdfjs-dist/web/pdf_viewer.css";
 import { number } from "prop-types";
 import { JSXElement } from "babel-types";
+import { PDFBox } from "../nodes/PDFBox";
+import { NumCast, FieldValue } from "../../../new_fields/Types";
+import { SearchBox } from "../SearchBox";
+import { Utils } from "../../../Utils";
 
 interface IPDFViewerProps {
     url: string;
     loaded: (nw: number, nh: number) => void;
     scrollY: number;
+    parent: PDFBox;
 }
 
 @observer
@@ -33,7 +39,7 @@ export class PDFViewer extends React.Component<IPDFViewerProps> {
     render() {
         return (
             <div>
-                <Viewer pdf={this._pdf} loaded={this.props.loaded} scrollY={this.props.scrollY} />
+                <Viewer pdf={this._pdf} loaded={this.props.loaded} scrollY={this.props.scrollY} parent={this.props.parent} />
             </div>
         );
     }
@@ -43,9 +49,8 @@ interface IViewerProps {
     pdf: Opt<Pdfjs.PDFDocumentProxy>;
     loaded: (nw: number, nh: number) => void;
     scrollY: number;
+    parent: PDFBox;
 }
-
-type PDFItem = React.Component<IPageProps> | HTMLDivElement;
 
 @observer
 class Viewer extends React.Component<IViewerProps> {
@@ -56,8 +61,41 @@ class Viewer extends React.Component<IViewerProps> {
     @observable private _endIndex: number = 1;
     @observable private _loaded: boolean = false;
     @observable private _pdf: Opt<Pdfjs.PDFDocumentProxy>;
+    @observable private _renderAsSvg = true;
 
     private _pageBuffer: number = 1;
+    private _reactionDisposer?: IReactionDisposer;
+    private _mainDiv = React.createRef<HTMLDivElement>();
+
+    @computed private get thumbnailPage() { return NumCast(this.props.parent.Document.thumbnailPage, -1); }
+
+    componentDidMount() {
+        let wasSelected = this.props.parent.props.isSelected();
+        this._reactionDisposer = reaction(
+            () => [this.props.parent.props.isSelected(), this.startIndex],
+            () => {
+                if (this.startIndex > 0 && !this.props.parent.props.isTopMost && this.startIndex !== this.thumbnailPage && wasSelected && !this.props.parent.props.isSelected()) {
+                    this.saveThumbnail();
+                }
+                wasSelected = this.props.parent.props.isSelected();
+            },
+            { fireImmediately: true }
+        );
+        let numPages = this.props.pdf ? this.props.pdf.numPages : 0;
+        this.renderPages(0, numPages - 1, true);
+    }
+
+    saveThumbnail = () => {
+        this.props.parent.props.Document.thumbnailPage = FieldValue(this.props.parent.Document.curPage, -1);
+        this._renderAsSvg = false;
+        setTimeout(() => {
+            let nwidth = FieldValue(this.props.parent.Document.nativeWidth, 0);
+            let nheight = FieldValue(this.props.parent.Document.nativeHeight, 0);
+            htmlToImage.toPng(this._mainDiv.current!, { width: nwidth, height: nheight, quality: 0.8 })
+                .then(action((dataUrl: string) => {
+                }));
+        }, 1250);
+    }
 
     @computed get scrollY(): number {
         return this.props.scrollY;
@@ -70,11 +108,6 @@ class Viewer extends React.Component<IViewerProps> {
     @computed get endIndex(): number {
         let width = this._pageSizes.map(i => i.width);
         return Math.min(this.props.pdf ? this.props.pdf.numPages - 1 : 0, this.getIndex(this.scrollY + Math.max(...width)) + this._pageBuffer);
-    }
-
-    componentDidMount = () => {
-        let numPages = this.props.pdf ? this.props.pdf.numPages : 0;
-        this.renderPages(0, numPages - 1, true);
     }
 
     componentDidUpdate = (prevProps: IViewerProps) => {
@@ -188,7 +221,7 @@ class Viewer extends React.Component<IViewerProps> {
         console.log(`END: ${this.endIndex}`)
         let numPages = this.props.pdf ? this.props.pdf.numPages : 0;
         return (
-            <div className="viewer">
+            <div className="viewer" ref={this._mainDiv}>
                 {/* {Array.from(Array(numPages).keys()).map((i) => (
                     <Page
                         pdf={this.props.pdf}
@@ -294,20 +327,22 @@ class Page extends React.Component<IPageProps> {
     }
 
     onPointerDown = (e: React.PointerEvent) => {
+        console.log("down");
         e.stopPropagation();
     }
 
     onPointerMove = (e: React.PointerEvent) => {
+        console.log("move")
         e.stopPropagation();
     }
 
     render() {
         return (
-            <div className={this.props.name} style={{ "width": this._width, "height": this._height }}>
+            <div onPointerDown={this.onPointerDown} onPointerMove={this.onPointerMove} className={this.props.name} style={{ "width": this._width, "height": this._height }}>
                 <div className="canvasContainer">
                     <canvas ref={this.canvas} />
                 </div>
-                <div onPointerDown={this.onPointerDown} onPointerMove={this.onPointerMove} className="textlayer" ref={this.textLayer} style={{ "position": "relative", "top": `-${this._height}px`, "height": `${this._height}px` }} />
+                <div className="textlayer" ref={this.textLayer} style={{ "position": "relative", "top": `-${this._height}px`, "height": `${this._height}px` }} />
             </div>
         );
     }

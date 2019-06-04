@@ -1,4 +1,8 @@
-.canvasContainer {}
+.textLayer {
+    div {
+        user-select: text;
+    }
+}
 
 .viewer-button-cont {
     position: absolute;
