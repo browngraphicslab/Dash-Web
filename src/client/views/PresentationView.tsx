@@ -58,6 +58,12 @@ class PresentationViewList extends React.Component<PresListProps> {
                     {`${index + 1}. ${title}`}
                 </strong>
                 <button className="presentation-icon" onClick={e => { this.props.deleteDocument(index); e.stopPropagation(); }}>X</button>
+                <br></br>
+                <button className="presentation-interaction">A</button>
+                <button className="presentation-interaction">B</button>
+                <button className="presentation-interaction">C</button>
+                <button className="presentation-interaction">D</button>
+
             </div>
         );
 
