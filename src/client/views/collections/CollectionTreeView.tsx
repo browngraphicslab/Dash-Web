@@ -113,7 +113,7 @@ class TreeView extends React.Component<TreeViewProps> {
         let editableView = (titleString: string) =>
             (<EditableView
                 oneLine={!this._isOver ? true : false}
-                display={"inline-block"}
+                display={"inline"}
                 contents={titleString}
                 height={36}
                 GetValue={() => StrCast(this.props.document.title)}
