@@ -32,7 +32,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                         let nh = NumCast(d.nativeHeight);
                         if (nw && nh) hgt = nh / nw * Math.min(this.columnWidth, wid);
                         return height + hgt + 2 * this.gridGap;
-                    }, this.gridGap * 2);
+                    }, this.gridGap * 2) * NumCast(this.props.Document.zoomBasis, 1);
                 }
             }, { fireImmediately: true });
     }
