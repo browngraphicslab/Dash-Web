@@ -14,7 +14,7 @@ import { FieldView, FieldViewProps } from './FieldView';
 import { pageSchema } from "./ImageBox";
 import "./PDFBox.scss";
 import React = require("react");
-import { NumCast } from "../../../new_fields/Types";
+import { NumCast, StrCast } from "../../../new_fields/Types";
 import { makeInterface } from "../../../new_fields/Schema";
 import { PDFViewer } from "../pdf/PDFViewer";
 
@@ -77,7 +77,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
 
     render() {
         trace();
-        const pdfUrl = window.origin + RouteStore.corsProxy + "/https://mozilla.github.io/pdf.js/web/compressed.tracemonkey-pldi-09.pdf";
+        const pdfUrl = window.origin + RouteStore.corsProxy + "/" + StrCast(this.props.Document.title);
         let classname = "pdfBox-cont" + (this.props.isSelected() && !InkingControl.Instance.selectedTool && !this._alt ? "-interactive" : "");
         return (
             <div onScroll={this.onScroll} style={{ overflow: "scroll", height: `${NumCast(this.props.Document.nativeWidth ? this.props.Document.nativeWidth : 300)}px` }} onWheel={(e: React.WheelEvent) => e.stopPropagation()} className={classname}>

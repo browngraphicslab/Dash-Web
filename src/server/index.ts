@@ -7,6 +7,7 @@ import * as expressValidator from 'express-validator';
 import * as formidable from 'formidable';
 import * as fs from 'fs';
 import * as sharp from 'sharp';
+import * as Pdfjs from 'pdfjs-dist';
 const imageDataUri = require('image-data-uri');
 import * as mobileDetect from 'mobile-detect';
 import { ObservableMap } from 'mobx';
@@ -28,6 +29,7 @@ import { MessageStore, Transferable, Types, Diff } from "./Message";
 import { RouteStore } from './RouteStore';
 const app = express();
 const config = require('../../webpack.config');
+import { createCanvas, loadImage, Canvas } from "canvas";
 const compiler = webpack(config);
 const port = 1050; // default port to listen
 const serverPort = 4321;
@@ -168,7 +170,31 @@ addSecureRoute(
     RouteStore.getCurrUser
 );
 
+class NodeCanvasFactory {
+    create = (width: number, height: number) => {
+        var canvas = createCanvas(width, height);
+        var context = canvas.getContext('2d');
+        return {
+            canvas: canvas,
+            context: context,
+        };
+    }
+
+    reset = (canvasAndContext: any, width: number, height: number) => {
+        canvasAndContext.canvas.width = width;
+        canvasAndContext.canvas.height = height;
+    }
+
+    destroy = (canvasAndContext: any) => {
+        canvasAndContext.canvas.width = 0;
+        canvasAndContext.canvas.height = 0;
+        canvasAndContext.canvas = null;
+        canvasAndContext.context = null;
+    }
+}
+
 const pngTypes = [".png", ".PNG"];
+const pdfTypes = [".pdf", ".PDF"];
 const jpgTypes = [".jpg", ".JPG", ".jpeg", ".JPEG"];
 const uploadDir = __dirname + "/public/files/";
 // SETTERS
@@ -202,6 +228,38 @@ app.post(
                         element.resizer = element.resizer.jpeg();
                     });
                     isImage = true;
+                }
+                else if (pdfTypes.includes(ext)) {
+                    Pdfjs.getDocument(uploadDir + file).promise
+                        .then((pdf: Pdfjs.PDFDocumentProxy) => {
+                            let numPages = pdf.numPages;
+                            let factory = new NodeCanvasFactory();
+                            for (let pageNum = 0; pageNum < numPages; pageNum++) {
+                                console.log(pageNum);
+                                pdf.getPage(pageNum + 1).then((page: Pdfjs.PDFPageProxy) => {
+                                    console.log("reading " + pageNum);
+                                    let viewport = page.getViewport(1);
+                                    let canvasAndContext = factory.create(viewport.width, viewport.height);
+                                    let renderContext = {
+                                        canvasContext: canvasAndContext.context,
+                                        viewport: viewport,
+                                        canvasFactory: factory
+                                    }
+                                    console.log("read " + pageNum);
+
+                                    page.render(renderContext).promise
+                                        .then(() => {
+                                            console.log("saving " + pageNum);
+                                            let stream = canvasAndContext.canvas.createPNGStream();
+                                            let out = fs.createWriteStream(uploadDir + file.substring(0, file.length - ext.length) + `-${pageNum + 1}.PNG`);
+                                            stream.pipe(out);
+                                            out.on("finish", () => console.log(`Success! Saved to ${uploadDir + file.substring(0, file.length - ext.length) + `-${pageNum + 1}.PNG`}`));
+                                        }, (reason: string) => {
+                                            console.error(reason + ` ${pageNum}`);
+                                        });
+                                });
+                            }
+                        });
                 }
                 if (isImage) {
                     resizers.forEach(resizer => {

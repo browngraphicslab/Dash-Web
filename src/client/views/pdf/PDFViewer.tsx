@@ -91,24 +91,24 @@ class Viewer extends React.Component<IViewerProps> {
     }
 
     saveThumbnail = () => {
-        this.props.parent.props.Document.thumbnailY = FieldValue(this.scrollY, 0);
-        this._renderAsSvg = false;
-        setTimeout(() => {
-            let nwidth = FieldValue(this.props.parent.Document.nativeWidth, 0);
-            htmlToImage.toPng(this.props.mainCont.current!, { width: nwidth, height: nwidth, quality: 0.8, })
-                .then(action((dataUrl: string) => {
-                    SearchBox.convertDataUri(dataUrl, `icon${this.props.parent.Document[Id]}_${this.startIndex}`).then((returnedFilename) => {
-                        if (returnedFilename) {
-                            let url = DocServer.prepend(returnedFilename);
-                            this.props.parent.props.Document.thumbnail = new ImageField(new URL(url));
-                        }
-                        runInAction(() => this._renderAsSvg = true);
-                    });
-                }))
-                .catch(function (error: any) {
-                    console.error("Oops, something went wrong!", error);
-                });
-        }, 1250);
+        // this.props.parent.props.Document.thumbnailY = FieldValue(this.scrollY, 0);
+        // this._renderAsSvg = false;
+        // setTimeout(() => {
+        //     let nwidth = FieldValue(this.props.parent.Document.nativeWidth, 0);
+        //     htmlToImage.toPng(this.props.mainCont.current!, { width: nwidth, height: nwidth, quality: 0.8, })
+        //         .then(action((dataUrl: string) => {
+        //             SearchBox.convertDataUri(dataUrl, `icon${this.props.parent.Document[Id]}_${this.startIndex}`).then((returnedFilename) => {
+        //                 if (returnedFilename) {
+        //                     let url = DocServer.prepend(returnedFilename);
+        //                     this.props.parent.props.Document.thumbnail = new ImageField(new URL(url));
+        //                 }
+        //                 runInAction(() => this._renderAsSvg = true);
+        //             });
+        //         }))
+        //         .catch(function (error: any) {
+        //             console.error("Oops, something went wrong!", error);
+        //         });
+        // }, 1250);
     }
 
     @computed get scrollY(): number {
@@ -338,15 +338,23 @@ class Page extends React.Component<IPageProps> {
         let scale = 1;
         let viewport = page.getViewport(scale);
         let canvas = this.canvas.current;
-        if (canvas) {
-            let context = canvas.getContext("2d");
+        let tempCanvas = document.createElement('canvas')
+        if (tempCanvas && canvas) {
+            let ctx = canvas.getContext("2d");
+            let context = tempCanvas.getContext("2d");
+            tempCanvas.width = viewport.width;
             canvas.width = viewport.width;
             this._width = viewport.width;
+            tempCanvas.height = viewport.height;
             canvas.height = viewport.height;
             this._height = viewport.height;
             this.props.pageLoaded(this._currPage, viewport);
             if (context) {
-                page.render({ canvasContext: context, viewport: viewport });
+                page.render({ canvasContext: context, viewport: viewport }).promise.then(() => {
+                    if (context && ctx) {
+                        ctx.putImageData(context.getImageData(0, 0, tempCanvas.width, tempCanvas.height), 0, 0);
+                    }
+                });
                 page.getTextContent().then((res: Pdfjs.TextContent) => {
                     //@ts-ignore
                     let textLayer = Pdfjs.renderTextLayer({
