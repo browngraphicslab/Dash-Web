@@ -25,6 +25,7 @@ import { pageSchema } from "../../nodes/ImageBox";
 import { InkField, StrokeData } from "../../../../new_fields/InkField";
 import { HistoryUtil } from "../../../util/History";
 import { Id } from "../../../../new_fields/FieldSymbols";
+import { DocServer } from "../../../DocServer";
 
 export const panZoomSchema = createSchema({
     panX: "number",
@@ -228,7 +229,24 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     @action
     onDrop = (e: React.DragEvent): void => {
         var pt = this.getTransform().transformPoint(e.pageX, e.pageY);
-        super.onDrop(e, { x: pt[0], y: pt[1] });
+        let html = e.dataTransfer.getData("text/html");
+        if (html && html.indexOf(document.location.origin)) {  // prosemirror text containing link to dash document
+            e.stopPropagation();
+            e.preventDefault();
+            let start = html.indexOf(window.location.origin);
+            let path = html.substr(start, html.length - start);
+            let docid = path.substr(0, path.indexOf("\">")).replace(DocServer.prepend("/doc/"), "").split("?")[0];
+            DocServer.GetRefField(docid).then(f => {
+                if (f instanceof Doc) {
+                    f.x = pt[0];
+                    f.y = pt[1];
+                    (f instanceof Doc) && this.props.addDocument(f, false);
+                }
+            });
+            return;
+        } else {
+            super.onDrop(e, { x: pt[0], y: pt[1] });
+        }
     }
 
     onDragOver = (): void => {

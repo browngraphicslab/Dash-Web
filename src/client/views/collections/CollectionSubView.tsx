@@ -17,6 +17,7 @@ import { Cast, PromiseValue, FieldValue, ListSpec } from "../../../new_fields/Ty
 import { List } from "../../../new_fields/List";
 import { DocServer } from "../../DocServer";
 import CursorField from "../../../new_fields/CursorField";
+import { DocumentManager } from "../../util/DocumentManager";
 
 export interface CollectionViewProps extends FieldViewProps {
     addDocument: (document: Doc, allowDuplicates?: boolean) => boolean;
@@ -166,6 +167,13 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             e.stopPropagation();
             e.preventDefault();
 
+            if (html && html.indexOf(document.location.origin)) { // prosemirror text containing link to dash document
+                let start = html.indexOf(window.location.origin);
+                let path = html.substr(start, html.length - start);
+                let docid = path.substr(0, path.indexOf("\">")).replace(DocServer.prepend("/doc/"), "").split("?")[0];
+                DocServer.GetRefField(docid).then(f => (f instanceof Doc) && this.props.addDocument(f, false));
+                return;
+            }
             if (html && html.indexOf("<img") !== 0 && !html.startsWith("<a")) {
                 let htmlDoc = Docs.HtmlDocument(html, { ...options, width: 300, height: 300, documentText: text });
                 this.props.addDocument(htmlDoc, false);
