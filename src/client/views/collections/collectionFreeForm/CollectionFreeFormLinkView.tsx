@@ -55,7 +55,7 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
                     x2={`${x2}`} y2={`${y2}`} />
                 {/* <circle key="linkCircle" className="collectionfreeformlinkview-linkCircle"
                     cx={(x1 + x2) / 2} cy={(y1 + y2) / 2} r={8} onPointerDown={this.onPointerDown} /> */}
-                <text key="linkText" className="collectionfreeformlinkview-linkText" x={`${(x1 + x2) / 2}`} y={`${(y1 + y2) / 2}`}>
+                <text key="linkText" textAnchor="middle" className="collectionfreeformlinkview-linkText" x={`${(x1 + x2) / 2}`} y={`${(y1 + y2) / 2}`}>
                     {text}
                 </text>
             </>
