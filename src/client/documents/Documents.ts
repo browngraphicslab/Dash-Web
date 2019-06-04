@@ -19,7 +19,6 @@ import { ColumnAttributeModel } from "../northstar/core/attribute/AttributeModel
 import { AttributeTransformationModel } from "../northstar/core/attribute/AttributeTransformationModel";
 import { AggregateFunction } from "../northstar/model/idea/idea";
 import { Template } from "../views/Templates";
-import { TemplateField } from "../../fields/TemplateField";
 import { MINIMIZED_ICON_SIZE } from "../views/globalCssVariables.scss";
 import { IconBox } from "../views/nodes/IconBox";
 import { Field, Doc, Opt } from "../../new_fields/Doc";
@@ -27,12 +26,17 @@ import { OmitKeys } from "../../Utils";
 import { ImageField, VideoField, AudioField, PdfField, WebField } from "../../new_fields/URLField";
 import { HtmlField } from "../../new_fields/HtmlField";
 import { List } from "../../new_fields/List";
-import { Cast } from "../../new_fields/Types";
+import { Cast, NumCast } from "../../new_fields/Types";
 import { IconField } from "../../new_fields/IconField";
 import { listSpec } from "../../new_fields/Schema";
 import { DocServer } from "../DocServer";
 import { StrokeData, InkField } from "../../new_fields/InkField";
 import { dropActionType } from "../util/DragManager";
+import { DateField } from "../../new_fields/DateField";
+import { UndoManager } from "../util/UndoManager";
+import { RouteStore } from "../../server/RouteStore";
+var requestImageSize = require('request-image-size');
+var path = require('path');
 
 export interface DocumentOptions {
     x?: number;
@@ -59,9 +63,44 @@ export interface DocumentOptions {
     borderRounding?: number;
     schemaColumns?: List<string>;
     dockingConfig?: string;
+    dbDoc?: Doc;
     // [key: string]: Opt<Field>;
 }
 const delegateKeys = ["x", "y", "width", "height", "panX", "panY"];
+
+export namespace DocUtils {
+    export function MakeLink(source: Doc, target: Doc) {
+        let protoSrc = source.proto ? source.proto : source;
+        let protoTarg = target.proto ? target.proto : target;
+        UndoManager.RunInBatch(() => {
+            let linkDoc = Docs.TextDocument({ width: 100, height: 30, borderRounding: -1 });
+            //let linkDoc = new Doc;
+            linkDoc.proto!.title = "-link name-";
+            linkDoc.proto!.linkDescription = "";
+            linkDoc.proto!.linkTags = "Default";
+
+            linkDoc.proto!.linkedTo = target;
+            linkDoc.proto!.linkedToPage = target.curPage;
+            linkDoc.proto!.linkedFrom = source;
+            linkDoc.proto!.linkedFromPage = source.curPage;
+
+            let linkedFrom = Cast(protoTarg.linkedFromDocs, listSpec(Doc));
+            if (!linkedFrom) {
+                protoTarg.linkedFromDocs = linkedFrom = new List<Doc>();
+            }
+            linkedFrom.push(linkDoc);
+
+            let linkedTo = Cast(protoSrc.linkedToDocs, listSpec(Doc));
+            if (!linkedTo) {
+                protoSrc.linkedToDocs = linkedTo = new List<Doc>();
+            }
+            linkedTo.push(linkDoc);
+            return linkDoc;
+        }, "make link");
+    }
+
+
+}
 
 export namespace Docs {
     let textProto: Doc;
@@ -108,8 +147,8 @@ export namespace Docs {
         deleg.data = value;
         return Doc.assign(deleg, options);
     }
-    function SetDelegateOptions<U extends Field>(doc: Doc, options: DocumentOptions) {
-        const deleg = Doc.MakeDelegate(doc);
+    function SetDelegateOptions(doc: Doc, options: DocumentOptions, id?: string) {
+        const deleg = Doc.MakeDelegate(doc, id);
         return Doc.assign(deleg, options);
     }
 
@@ -131,7 +170,7 @@ export namespace Docs {
     }
     function CreateTextPrototype(): Doc {
         let textProto = setupPrototypeOptions(textProtoId, "TEXT_PROTO", FormattedTextBox.LayoutString(),
-            { x: 0, y: 0, width: 300, height: 150 });
+            { x: 0, y: 0, width: 300, height: 150, backgroundColor: "#f1efeb" });
         return textProto;
     }
     function CreatePdfPrototype(): Doc {
@@ -166,13 +205,32 @@ export namespace Docs {
         return audioProto;
     }
 
-    function CreateInstance(proto: Doc, data: Field, options: DocumentOptions) {
+    function CreateInstance(proto: Doc, data: Field, options: DocumentOptions, delegId?: string) {
         const { omit: protoProps, extract: delegateProps } = OmitKeys(options, delegateKeys);
-        return SetDelegateOptions(SetInstanceOptions(proto, protoProps, data), delegateProps);
+        if (!("author" in protoProps)) {
+            protoProps.author = CurrentUserUtils.email;
+        }
+        if (!("creationDate" in protoProps)) {
+            protoProps.creationDate = new DateField;
+        }
+        protoProps.isPrototype = true;
+
+        return SetDelegateOptions(SetInstanceOptions(proto, protoProps, data), delegateProps, delegId);
     }
 
     export function ImageDocument(url: string, options: DocumentOptions = {}) {
-        return CreateInstance(imageProto, new ImageField(new URL(url)), options);
+        let inst = CreateInstance(imageProto, new ImageField(new URL(url)), { title: path.basename(url), ...options });
+        requestImageSize(window.origin + RouteStore.corsProxy + "/" + url)
+            .then((size: any) => {
+                let aspect = size.height / size.width;
+                if (!inst.proto!.nativeWidth) {
+                    inst.proto!.nativeWidth = size.width;
+                }
+                inst.proto!.nativeHeight = Number(inst.proto!.nativeWidth!) * aspect;
+                inst.proto!.height = NumCast(inst.proto!.width) * aspect;
+            })
+            .catch((err: any) => console.log(err));
+        return inst;
         // let doc = SetInstanceOptions(GetImagePrototype(), { ...options, layoutKeys: [KeyStore.Data, KeyStore.Annotations, KeyStore.Caption] },
         //     [new URL(url), ImageField]);
         // doc.SetText(KeyStore.Caption, "my caption...");
@@ -199,16 +257,18 @@ export namespace Docs {
     export function PdfDocument(url: string, options: DocumentOptions = {}) {
         return CreateInstance(pdfProto, new PdfField(new URL(url)), options);
     }
-    export async function DBDocument(url: string, options: DocumentOptions = {}) {
+
+    export async function DBDocument(url: string, options: DocumentOptions = {}, columnOptions: DocumentOptions = {}) {
         let schemaName = options.title ? options.title : "-no schema-";
         let ctlog = await Gateway.Instance.GetSchema(url, schemaName);
         if (ctlog && ctlog.schemas) {
             let schema = ctlog.schemas[0];
             let schemaDoc = Docs.TreeDocument([], { ...options, nativeWidth: undefined, nativeHeight: undefined, width: 150, height: 100, title: schema.displayName! });
-            let schemaDocuments = Cast(schemaDoc.data, listSpec(Doc));
+            let schemaDocuments = Cast(schemaDoc.data, listSpec(Doc), []);
             if (!schemaDocuments) {
                 return;
             }
+            CurrentUserUtils.AddNorthstarSchema(schema, schemaDoc);
             const docs = schemaDocuments;
             CurrentUserUtils.GetAllNorthstarColumnAttributes(schema).map(attr => {
                 DocServer.GetRefField(attr.displayName! + ".alias").then(action((field: Opt<Field>) => {
@@ -220,7 +280,7 @@ export namespace Docs {
                             new AttributeTransformationModel(atmod, AggregateFunction.None),
                             new AttributeTransformationModel(atmod, AggregateFunction.Count),
                             new AttributeTransformationModel(atmod, AggregateFunction.Count));
-                        docs.push(Docs.HistogramDocument(histoOp, { width: 200, height: 200, title: attr.displayName! }));
+                        docs.push(Docs.HistogramDocument(histoOp, { ...columnOptions, width: 200, height: 200, title: attr.displayName! }));
                     }
                 }));
             });
@@ -235,7 +295,7 @@ export namespace Docs {
         return CreateInstance(webProto, new HtmlField(html), options);
     }
     export function KVPDocument(document: Doc, options: DocumentOptions = {}) {
-        return CreateInstance(kvpProto, document, options);
+        return CreateInstance(kvpProto, document, { title: document.title + ".kvp", ...options });
     }
     export function FreeformDocument(documents: Array<Doc>, options: DocumentOptions, makePrototype: boolean = true) {
         if (!makePrototype) {
@@ -243,14 +303,17 @@ export namespace Docs {
         }
         return CreateInstance(collProto, new List(documents), { schemaColumns: new List(["title"]), ...options, viewType: CollectionViewType.Freeform });
     }
-    export function SchemaDocument(documents: Array<Doc>, options: DocumentOptions) {
-        return CreateInstance(collProto, new List(documents), { schemaColumns: new List(["title"]), ...options, viewType: CollectionViewType.Schema });
+    export function SchemaDocument(schemaColumns: string[], documents: Array<Doc>, options: DocumentOptions) {
+        return CreateInstance(collProto, new List(documents), { schemaColumns: new List(schemaColumns), ...options, viewType: CollectionViewType.Schema });
     }
     export function TreeDocument(documents: Array<Doc>, options: DocumentOptions) {
         return CreateInstance(collProto, new List(documents), { schemaColumns: new List(["title"]), ...options, viewType: CollectionViewType.Tree });
     }
-    export function DockDocument(documents: Array<Doc>, config: string, options: DocumentOptions) {
-        return CreateInstance(collProto, new List(documents), { ...options, viewType: CollectionViewType.Docking, dockingConfig: config });
+    export function StackingDocument(documents: Array<Doc>, options: DocumentOptions) {
+        return CreateInstance(collProto, new List(documents), { schemaColumns: new List(["title"]), ...options, viewType: CollectionViewType.Stacking });
+    }
+    export function DockDocument(documents: Array<Doc>, config: string, options: DocumentOptions, id?: string) {
+        return CreateInstance(collProto, new List(documents), { ...options, viewType: CollectionViewType.Docking, dockingConfig: config }, id);
     }
 
     export function CaptionDocument(doc: Doc) {

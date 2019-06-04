@@ -1,18 +1,23 @@
 import { observer } from "mobx-react";
-import React = require("react")
-import { observable, action } from "mobx";
-import "./PresentationView.scss"
-import "./Main.tsx";
+import React = require("react");
+import { observable, action, runInAction, reaction } from "mobx";
+import "./PresentationView.scss";
 import { DocumentManager } from "../util/DocumentManager";
 import { Utils } from "../../Utils";
-import { Doc } from "../../new_fields/Doc";
+import { Doc, DocListCast, DocListCastAsync } from "../../new_fields/Doc";
 import { listSpec } from "../../new_fields/Schema";
-import { Cast, NumCast, FieldValue } from "../../new_fields/Types";
-import { Id } from "../../new_fields/RefField";
+import { Cast, NumCast, FieldValue, PromiseValue, StrCast, BoolCast } from "../../new_fields/Types";
+import { Id } from "../../new_fields/FieldSymbols";
 import { List } from "../../new_fields/List";
+import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
 
 export interface PresViewProps {
     Document: Doc;
+}
+
+interface PresListProps extends PresViewProps {
+    deleteDocument(index: number): void;
+    gotoDocument(index: number): void;
 }
 
 
@@ -20,67 +25,50 @@ export interface PresViewProps {
 /**
  * Component that takes in a document prop and a boolean whether it's collapsed or not.
  */
-class PresentationViewItem extends React.Component<PresViewProps> {
+class PresentationViewList extends React.Component<PresListProps> {
 
-    //look at CollectionFreeformView.focusDocument(d)
-    @action
-    openDoc = (doc: Doc) => {
-        let docView = DocumentManager.Instance.getDocumentView(doc);
-        if (docView) {
-            docView.props.focus(docView.props.Document);
-        }
-    }
-
-    /**
-  * Removes a document from the presentation view
-  **/
-    @action
-    public RemoveDoc(doc: Doc) {
-        const value = Cast(this.props.Document.data, listSpec(Doc), []);
-        let index = -1;
-        for (let i = 0; i < value.length; i++) {
-            if (value[i][Id] === doc[Id]) {
-                index = i;
-                break;
-            }
-        }
-        if (index !== -1) {
-            value.splice(index, 1);
-        }
-    }
 
     /**
      * Renders a single child document. It will just append a list element.
      * @param document The document to render.
      */
-    renderChild(document: Doc) {
+    renderChild = (document: Doc, index: number) => {
         let title = document.title;
 
         //to get currently selected presentation doc
         let selected = NumCast(this.props.Document.selectedDoc, 0);
 
-        // finally, if it's a normal document, then render it as such.
-        const children = Cast(this.props.Document.data, listSpec(Doc));
-        const styles: any = {};
-        if (children && children[selected] === document) {
+        let className = "presentationView-item";
+        if (selected === index) {
             //this doc is selected
-            styles.background = "gray";
+            className += " presentationView-selected";
         }
+        let onEnter = (e: React.PointerEvent) => { document.libraryBrush = true; }
+        let onLeave = (e: React.PointerEvent) => { document.libraryBrush = false; }
         return (
-            <li className="presentationView-item" style={styles} key={Utils.GenerateGuid()}>
-                <div className="presentationView-header" onClick={() => this.openDoc(document)}>{title}</div>
-                <div className="presentation-icon" onClick={() => this.RemoveDoc(document)}>X</div>
-            </li>
+            <div className={className} key={document[Id] + index}
+                onPointerEnter={onEnter} onPointerLeave={onLeave}
+                style={{
+                    outlineColor: "maroon",
+                    outlineStyle: "dashed",
+                    outlineWidth: BoolCast(document.libraryBrush, false) || BoolCast(document.protoBrush, false) ? `1px` : "0px",
+                }}
+                onClick={e => { this.props.gotoDocument(index); e.stopPropagation(); }}>
+                <strong className="presentationView-name">
+                    {`${index + 1}. ${title}`}
+                </strong>
+                <button className="presentation-icon" onClick={e => { this.props.deleteDocument(index); e.stopPropagation(); }}>X</button>
+            </div>
         );
 
     }
 
     render() {
-        const children = Cast(this.props.Document.data, listSpec(Doc), []);
+        const children = DocListCast(this.props.Document.data);
 
         return (
-            <div>
-                {children.map(value => this.renderChild(value))}
+            <div className="presentationView-listCont">
+                {children.map(this.renderChild)}
             </div>
         );
     }
@@ -97,33 +85,35 @@ export class PresentationView extends React.Component<PresViewProps>  {
     closePresentation = action(() => this.props.Document.width = 0);
     next = () => {
         const current = NumCast(this.props.Document.selectedDoc);
-        const allDocs = FieldValue(Cast(this.props.Document.data, listSpec(Doc)));
-        if (allDocs && current < allDocs.length + 1) {
-            //can move forwards
-            this.props.Document.selectedDoc = current + 1;
-            const doc = allDocs[current + 1];
-            let docView = DocumentManager.Instance.getDocumentView(doc);
-            if (docView) {
-                docView.props.focus(docView.props.Document);
-            }
-        }
+        this.gotoDocument(current + 1);
 
     }
     back = () => {
         const current = NumCast(this.props.Document.selectedDoc);
-        const allDocs = FieldValue(Cast(this.props.Document.data, listSpec(Doc)));
-        if (allDocs && current - 1 >= 0) {
-            //can move forwards
-            this.props.Document.selectedDoc = current - 1;
-            const doc = allDocs[current - 1];
-            let docView = DocumentManager.Instance.getDocumentView(doc);
-            if (docView) {
-                docView.props.focus(docView.props.Document);
-            }
+        this.gotoDocument(current - 1);
+    }
+
+    @action
+    public RemoveDoc = (index: number) => {
+        const value = FieldValue(Cast(this.props.Document.data, listSpec(Doc)));
+        if (value) {
+            value.splice(index, 1);
         }
     }
 
-    private ref = React.createRef<HTMLDivElement>();
+    public gotoDocument = async (index: number) => {
+        const list = FieldValue(Cast(this.props.Document.data, listSpec(Doc)));
+        if (!list) {
+            return;
+        }
+        if (index < 0 || index >= list.length) {
+            return;
+        }
+
+        this.props.Document.selectedDoc = index;
+        const doc = await list[index];
+        DocumentManager.Instance.jumpToDocument(doc);
+    }
 
     //initilize class variables
     constructor(props: PresViewProps) {
@@ -148,7 +138,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
     }
 
     render() {
-        let titleStr = this.props.Document.Title;
+        let titleStr = StrCast(this.props.Document.title);
         let width = NumCast(this.props.Document.width);
 
         //TODO: next and back should be icons
@@ -156,17 +146,13 @@ export class PresentationView extends React.Component<PresViewProps>  {
             <div className="presentationView-cont" style={{ width: width, overflow: "hidden" }}>
                 <div className="presentationView-heading">
                     <div className="presentationView-title">{titleStr}</div>
-                    <div className='presentation-icon' onClick={this.closePresentation}>X</div></div>
-                <div>
-                    <div className="presentation-back" onClick={this.back}>back</div>
-                    <div className="presentation-next" onClick={this.next}>next</div>
-
+                    <button className='presentation-icon' onClick={this.closePresentation}>X</button>
                 </div>
-                <ul>
-                    <PresentationViewItem
-                        Document={this.props.Document}
-                    />
-                </ul>
+                <div className="presentation-buttons">
+                    <button className="presentation-button" onClick={this.back}>back</button>
+                    <button className="presentation-button" onClick={this.next}>next</button>
+                </div>
+                <PresentationViewList Document={this.props.Document} deleteDocument={this.RemoveDoc} gotoDocument={this.gotoDocument} />
             </div>
         );
     }

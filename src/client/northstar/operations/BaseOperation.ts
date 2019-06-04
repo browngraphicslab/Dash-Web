@@ -25,23 +25,6 @@ export abstract class BaseOperation {
 
     @computed
     public get FilterString(): string {
-
-        // let filterModels: FilterModel[] = [];
-        // return FilterModel.GetFilterModelsRecursive(this, new Set<GraphNode<BaseOperationViewModel, FilterLinkViewModel>>(), filterModels, true)
-        // if (this.OverridingFilters.length > 0) {
-        //     return "(" + this.OverridingFilters.filter(fm => fm !== null).map(fm => fm.ToPythonString()).join(" || ") + ")";
-        // }
-        // let rdg = MainManager.Instance.MainViewModel.FilterReverseDependencyGraph;
-        // let sliceModel = this.TypedViewModel.IncomingSliceModel;
-        // if (sliceModel !== null && sliceModel.Source !== null && instanceOfIBaseFilterProvider(sliceModel.Source) && rdg.has(sliceModel.Source)) {
-        //     let filterModels = sliceModel.Source.FilterModels.map(f => f);
-        //     return FilterModel.GetFilterModelsRecursive(rdg.get(sliceModel.Source), new Set<GraphNode<BaseOperationViewModel, FilterLinkViewModel>>(), filterModels, false);
-        // }
-
-        // if (rdg.has(this.TypedViewModel)) {
-        //     let filterModels = [];
-        //     return FilterModel.GetFilterModelsRecursive(rdg.get(this.TypedViewModel), new Set<GraphNode<BaseOperationViewModel, FilterLinkViewModel>>(), filterModels, true)
-        // }
         return "";
     }
 

@@ -1,4 +1,8 @@
-.videobox-cont{
+.videoBox-cont, .videoBox-cont-fullScreen{
     width: 100%; 
     height: Auto; 
+}
+
+.videoBox-cont-fullScreen {
+    pointer-events: all;
 }

@@ -5,7 +5,6 @@ import { DragLinksAsDocuments, DragManager } from "../util/DragManager";
 import { SelectionManager } from "../util/SelectionManager";
 import { undoBatch } from "../util/UndoManager";
 import './DocumentDecorations.scss';
-import { MainOverlayTextBox } from "./MainOverlayTextBox";
 import { DocumentView, PositionDocument } from "./nodes/DocumentView";
 import { LinkMenu } from "./nodes/LinkMenu";
 import { TemplateMenu } from "./TemplateMenu";
@@ -25,9 +24,9 @@ import { faLink } from '@fortawesome/free-solid-svg-icons';
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { MINIMIZED_ICON_SIZE } from "../views/globalCssVariables.scss";
-import { CollectionFreeFormView } from "./collections/collectionFreeForm/CollectionFreeFormView";
 import { CollectionView } from "./collections/CollectionView";
-import { createCipher } from "crypto";
+import { DocumentManager } from "../util/DocumentManager";
+import { FormattedTextBox } from "./nodes/FormattedTextBox";
 import { FieldView } from "./nodes/FieldView";
 
 library.add(faLink);
@@ -78,11 +77,15 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 if (SelectionManager.SelectedDocuments().length > 0) {
                     let field = SelectionManager.SelectedDocuments()[0].props.Document[this._fieldKey];
                     if (typeof field === "number") {
-                        SelectionManager.SelectedDocuments().forEach(d =>
-                            d.props.Document[this._fieldKey] = +this._title);
+                        SelectionManager.SelectedDocuments().forEach(d => {
+                            let doc = d.props.Document.proto ? d.props.Document.proto : d.props.Document;
+                            doc[this._fieldKey] = +this._title;
+                        });
                     } else {
-                        SelectionManager.SelectedDocuments().forEach(d =>
-                            d.props.Document[this._fieldKey] = this._title);
+                        SelectionManager.SelectedDocuments().forEach(d => {
+                            let doc = d.props.Document.proto ? d.props.Document.proto : d.props.Document;
+                            doc[this._fieldKey] = this._title;
+                        });
                     }
                 }
             }
@@ -93,7 +96,6 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         this._downX = e.clientX;
         this._downY = e.clientY;
         e.stopPropagation();
-        this.onBackgroundDown(e);
         document.removeEventListener("pointermove", this.onTitleMove);
         document.removeEventListener("pointerup", this.onTitleUp);
         document.addEventListener("pointermove", this.onTitleMove);
@@ -236,6 +238,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             this._removeIcon = snapped;
         }
     }
+    @undoBatch
     @action
     onMinimizeUp = (e: PointerEvent): void => {
         e.stopPropagation();
@@ -246,26 +249,43 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             if (this._iconDoc && selectedDocs.length === 1 && this._removeIcon) {
                 selectedDocs[0].props.removeDocument && selectedDocs[0].props.removeDocument(this._iconDoc);
             }
-            !this._removeIcon && selectedDocs.length === 1 && this.getIconDoc(selectedDocs[0]).then(icon => selectedDocs[0].props.toggleMinimized());
+            if (!this._removeIcon) {
+                if (selectedDocs.length === 1) {
+                    this.getIconDoc(selectedDocs[0]).then(icon => selectedDocs[0].toggleMinimized());
+                } else if (Math.abs(e.pageX - this._downX) < Utils.DRAG_THRESHOLD &&
+                    Math.abs(e.pageY - this._downY) < Utils.DRAG_THRESHOLD) {
+                    let docViews = SelectionManager.ViewsSortedVertically();
+                    let topDocView = docViews[0];
+                    let ind = topDocView.templates.indexOf(Templates.Bullet.Layout);
+                    if (ind !== -1) {
+                        topDocView.templates.splice(ind, 1);
+                        topDocView.props.Document.subBulletDocs = undefined;
+                    } else {
+                        topDocView.addTemplate(Templates.Bullet);
+                        topDocView.props.Document.subBulletDocs = new List<Doc>(docViews.filter(v => v !== topDocView).map(v => v.props.Document.proto!));
+                    }
+                }
+            }
             this._removeIcon = false;
         }
         runInAction(() => this._minimizedX = this._minimizedY = 0);
     }
 
+    @undoBatch
     @action createIcon = (selected: DocumentView[], layoutString: string): Doc => {
         let doc = selected[0].props.Document;
         let iconDoc = Docs.IconDocument(layoutString);
         iconDoc.isButton = true;
-        iconDoc.title = selected.length > 1 ? "ICONset" : "ICON" + StrCast(doc.title);
-        iconDoc.labelField = this._fieldKey;
-        iconDoc[this._fieldKey] = selected.length > 1 ? "collection" : undefined;
-        iconDoc.isMinimized = false;
+        iconDoc.proto!.title = selected.length > 1 ? "-multiple-.icon" : StrCast(doc.title) + ".icon";
+        iconDoc.labelField = selected.length > 1 ? undefined : this._fieldKey;
+        //iconDoc.proto![this._fieldKey] = selected.length > 1 ? "collection" : undefined;
+        iconDoc.proto!.isMinimized = false;
         iconDoc.width = Number(MINIMIZED_ICON_SIZE);
         iconDoc.height = Number(MINIMIZED_ICON_SIZE);
         iconDoc.x = NumCast(doc.x);
         iconDoc.y = NumCast(doc.y) - 24;
-        iconDoc.maximizedDocs = new List<Doc>(selected.map(s => s.props.Document));
-        doc.minimizedDoc = iconDoc;
+        iconDoc.maximizedDocs = new List<Doc>(selected.map(s => s.props.Document.proto!));
+        selected.length === 1 && (doc.minimizedDoc = iconDoc);
         selected[0].props.addDocument && selected[0].props.addDocument(iconDoc, false);
         return iconDoc;
     }
@@ -273,12 +293,10 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     public getIconDoc = async (docView: DocumentView): Promise<Doc | undefined> => {
         let doc = docView.props.Document;
         let iconDoc: Doc | undefined = await Cast(doc.minimizedDoc, Doc);
-        if (!iconDoc) {
+
+        if (!iconDoc || !DocumentManager.Instance.getDocumentView(iconDoc)) {
             const layout = StrCast(doc.backgroundLayout, StrCast(doc.layout, FieldView.LayoutString(DocumentView)));
             iconDoc = this.createIcon([docView], layout);
-        }
-        if (SelectionManager.SelectedDocuments()[0].props.addDocument !== undefined) {
-            SelectionManager.SelectedDocuments()[0].props.addDocument!(iconDoc!);
         }
         return iconDoc;
     }
@@ -318,6 +336,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         e.stopPropagation();
     }
 
+    @action
     onLinkerButtonMoved = (e: PointerEvent): void => {
         if (this._linkerButton.current !== null) {
             document.removeEventListener("pointermove", this.onLinkerButtonMoved);
@@ -325,6 +344,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             let selDoc = SelectionManager.SelectedDocuments()[0];
             let container = selDoc.props.ContainingCollectionView ? selDoc.props.ContainingCollectionView.props.Document.proto : undefined;
             let dragData = new DragManager.LinkDragData(selDoc.props.Document, container ? [container] : []);
+            FormattedTextBox.InputBoxOverlay = undefined;
             DragManager.StartLinkDrag(this._linkerButton.current, dragData, e.pageX, e.pageY, {
                 handlers: {
                     dragComplete: action(emptyFunction),
@@ -407,35 +427,34 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 break;
         }
 
-        MainOverlayTextBox.Instance.SetTextDoc();
+        runInAction(() => FormattedTextBox.InputBoxOverlay = undefined);
         SelectionManager.SelectedDocuments().forEach(element => {
             const rect = element.ContentDiv ? element.ContentDiv.getBoundingClientRect() : new DOMRect();
 
-            if (rect.width !== 0) {
+            if (rect.width !== 0 && (dX != 0 || dY != 0 || dW != 0 || dH != 0)) {
                 let doc = PositionDocument(element.props.Document);
-                let width = FieldValue(doc.width, 0);
-                let nwidth = FieldValue(doc.nativeWidth, 0);
-                let nheight = FieldValue(doc.nativeHeight, 0);
-                let height = FieldValue(doc.height, nwidth ? nheight / nwidth * width : 0);
-                let x = FieldValue(doc.x, 0);
-                let y = FieldValue(doc.y, 0);
+                let docHeightBefore = doc.height;
+                let nwidth = doc.nativeWidth || 0;
+                let nheight = doc.nativeHeight || 0;
+                let zoomBasis = NumCast(doc.zoomBasis, 1);
+                let width = (doc.width || 0) / zoomBasis;
+                let height = (doc.height || (nheight / nwidth * width)) / zoomBasis;
                 let scale = width / rect.width;
                 let actualdW = Math.max(width + (dW * scale), 20);
                 let actualdH = Math.max(height + (dH * scale), 20);
-                x += dX * (actualdW - width);
-                y += dY * (actualdH - height);
-                doc.x = x;
-                doc.y = y;
-                var nativeWidth = FieldValue(doc.nativeWidth, 0);
-                var nativeHeight = FieldValue(doc.nativeHeight, 0);
-                if (nativeWidth > 0 && nativeHeight > 0) {
+                doc.x = (doc.x || 0) + dX * (actualdW - width);
+                doc.y = (doc.y || 0) + dY * (actualdH - height);
+                if (nwidth > 0 && nheight > 0) {
                     if (Math.abs(dW) > Math.abs(dH)) {
-                        actualdH = nativeHeight / nativeWidth * actualdW;
+                        doc.zoomBasis = zoomBasis * width / actualdW;
                     }
-                    else actualdW = nativeWidth / nativeHeight * actualdH;
+                    else {
+                        doc.zoomBasis = zoomBasis * height / actualdH;
+                    }
+                } else {
+                    doc.width = zoomBasis * actualdW;
+                    if (docHeightBefore === doc.height) doc.height = zoomBasis * actualdH;
                 }
-                doc.width = actualdW;
-                doc.height = actualdH;
             }
         });
     }
@@ -503,9 +522,23 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         }
 
         let templates: Map<Template, boolean> = new Map();
-        let doc = SelectionManager.SelectedDocuments()[0];
         Array.from(Object.values(Templates.TemplateList)).map(template => {
-            let docTemps = doc.templates;
+            let sorted = SelectionManager.ViewsSortedVertically().slice().sort((doc1, doc2) => {
+                if (NumCast(doc1.props.Document.x) > NumCast(doc2.props.Document.x)) return 1;
+                if (NumCast(doc1.props.Document.x) < NumCast(doc2.props.Document.x)) return -1;
+                return 0;
+            });
+            let docTemps = sorted.reduce((res: string[], doc: DocumentView, i) => {
+                let temps = doc.props.Document.templates;
+                if (temps instanceof List) {
+                    temps.map(temp => {
+                        if (temp !== Templates.Bullet.Layout || i === 0) {
+                            res.push(temp);
+                        }
+                    });
+                }
+                return res;
+            }, [] as string[]);
             let checked = false;
             docTemps.forEach(temp => {
                 if (template.Layout === temp) {
@@ -556,7 +589,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                             <FontAwesomeIcon className="fa-icon-link" icon="link" size="sm" />
                         </div>
                     </div>
-                    <TemplateMenu doc={doc} templates={templates} />
+                    <TemplateMenu docs={SelectionManager.ViewsSortedVertically()} templates={templates} />
                 </div>
             </div >
         </div>

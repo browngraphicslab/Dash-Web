@@ -1,8 +1,7 @@
 import { Deserializable } from "../client/util/SerializationHelper";
 import { serializable, custom, createSimpleSchema, list, object, map } from "serializr";
-import { ObjectField, Copy } from "./ObjectField";
-import { number } from "prop-types";
-import { any } from "bluebird";
+import { ObjectField } from "./ObjectField";
+import { Copy, ToScriptString } from "./FieldSymbols";
 import { deepCopy } from "../Utils";
 
 export enum InkTool {
@@ -11,6 +10,7 @@ export enum InkTool {
     Highlighter,
     Eraser
 }
+
 export interface StrokeData {
     pathData: Array<{ x: number, y: number }>;
     color: string;
@@ -39,6 +39,10 @@ export class InkField extends ObjectField {
     }
 
     [Copy]() {
-        return new InkField(deepCopy(this.inkData))
+        return new InkField(deepCopy(this.inkData));
+    }
+
+    [ToScriptString]() {
+        return "invalid";
     }
 }

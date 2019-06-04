@@ -1,7 +1,8 @@
 import { observable, action } from "mobx";
 import { Doc } from "../../new_fields/Doc";
-import { MainOverlayTextBox } from "../views/MainOverlayTextBox";
 import { DocumentView } from "../views/nodes/DocumentView";
+import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
+import { NumCast } from "../../new_fields/Types";
 
 export namespace SelectionManager {
     class Manager {
@@ -25,7 +26,7 @@ export namespace SelectionManager {
         DeselectAll(): void {
             manager.SelectedDocuments.map(dv => dv.props.whenActiveChanged(false));
             manager.SelectedDocuments = [];
-            MainOverlayTextBox.Instance.SetTextDoc();
+            FormattedTextBox.InputBoxOverlay = undefined;
         }
         @action
         ReselectAll() {
@@ -67,5 +68,21 @@ export namespace SelectionManager {
     }
     export function SelectedDocuments(): Array<DocumentView> {
         return manager.SelectedDocuments;
+    }
+    export function ViewsSortedVertically(): DocumentView[] {
+        let sorted = SelectionManager.SelectedDocuments().slice().sort((doc1, doc2) => {
+            if (NumCast(doc1.props.Document.x) > NumCast(doc2.props.Document.x)) return 1;
+            if (NumCast(doc1.props.Document.x) < NumCast(doc2.props.Document.x)) return -1;
+            return 0;
+        });
+        return sorted;
+    }
+    export function ViewsSortedHorizontally(): DocumentView[] {
+        let sorted = SelectionManager.SelectedDocuments().slice().sort((doc1, doc2) => {
+            if (NumCast(doc1.props.Document.y) > NumCast(doc2.props.Document.y)) return 1;
+            if (NumCast(doc1.props.Document.y) < NumCast(doc2.props.Document.y)) return -1;
+            return 0;
+        });
+        return sorted;
     }
 }

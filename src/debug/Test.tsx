@@ -6,6 +6,7 @@ import { ImageField } from '../new_fields/URLField';
 import { Doc } from '../new_fields/Doc';
 import { List } from '../new_fields/List';
 
+
 const schema1 = createSchema({
     hello: "number",
     test: "string",
@@ -41,7 +42,7 @@ class Test extends React.Component {
         doc.fields = "test";
         doc.test = "hello doc";
         doc.url = url;
-        doc.testDoc = doc2;
+        //doc.testDoc = doc2;
 
 
         const test1: TestDoc = TestDoc(doc);
@@ -70,7 +71,9 @@ class Test extends React.Component {
     }
 
     render() {
-        return <button onClick={this.onClick}>Click me</button>;
+        return <div><button onClick={this.onClick}>Click me</button>
+            {/* <input onKeyPress={this.onEnter}></input> */}
+        </div>;
     }
 }
 

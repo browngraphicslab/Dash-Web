@@ -1,11 +1,12 @@
 import { Deserializable, autoObject } from "../client/util/SerializationHelper";
-import { Field, Update, Self, FieldResult } from "./Doc";
-import { setter, getter, deleteProperty } from "./util";
+import { Field } from "./Doc";
+import { setter, getter, deleteProperty, updateFunction } from "./util";
 import { serializable, alias, list } from "serializr";
 import { observable, action } from "mobx";
-import { ObjectField, OnUpdate, Copy } from "./ObjectField";
+import { ObjectField } from "./ObjectField";
 import { RefField } from "./RefField";
 import { ProxyField } from "./Proxy";
+import { Self, Update, Parent, OnUpdate, SelfProxy, ToScriptString, Copy } from "./FieldSymbols";
 
 const listHandlers: any = {
     /// Mutator methods
@@ -27,7 +28,17 @@ const listHandlers: any = {
     },
     push: action(function (this: any, ...items: any[]) {
         items = items.map(toObjectField);
-        const res = this[Self].__fields.push(...items);
+        const list = this[Self];
+        const length = list.__fields.length;
+        for (let i = 0; i < items.length; i++) {
+            const item = items[i];
+            //TODO Error checking to make sure parent doesn't already exist
+            if (item instanceof ObjectField) {
+                item[Parent] = list;
+                item[OnUpdate] = updateFunction(list, i + length, item, this);
+            }
+        }
+        const res = list.__fields.push(...items);
         this[Update]();
         return res;
     }),
@@ -48,12 +59,33 @@ const listHandlers: any = {
     },
     splice: action(function (this: any, start: number, deleteCount: number, ...items: any[]) {
         items = items.map(toObjectField);
-        const res = this[Self].__fields.splice(start, deleteCount, ...items);
+        const list = this[Self];
+        for (let i = 0; i < items.length; i++) {
+            const item = items[i];
+            //TODO Error checking to make sure parent doesn't already exist
+            //TODO Need to change indices of other fields in array
+            if (item instanceof ObjectField) {
+                item[Parent] = list;
+                item[OnUpdate] = updateFunction(list, i + start, item, this);
+            }
+        }
+        const res = list.__fields.splice(start, deleteCount, ...items);
         this[Update]();
         return res.map(toRealField);
     }),
     unshift(...items: any[]) {
         items = items.map(toObjectField);
+        const list = this[Self];
+        const length = list.__fields.length;
+        for (let i = 0; i < items.length; i++) {
+            const item = items[i];
+            //TODO Error checking to make sure parent doesn't already exist
+            //TODO Need to change indices of other fields in array
+            if (item instanceof ObjectField) {
+                item[Parent] = list;
+                item[OnUpdate] = updateFunction(list, i, item, this);
+            }
+        }
         const res = this[Self].__fields.unshift(...items);
         this[Update]();
         return res;
@@ -194,19 +226,32 @@ type StoredType<T extends Field> = T extends RefField ? ProxyField<T> : T;
 
 @Deserializable("list")
 class ListImpl<T extends Field> extends ObjectField {
-    constructor(fields: T[] = []) {
+    constructor(fields?: T[]) {
         super();
         const list = new Proxy<this>(this, {
             set: setter,
             get: listGetter,
+            ownKeys: target => Object.keys(target.__fields),
+            getOwnPropertyDescriptor: (target, prop) => {
+                if (prop in target.__fields) {
+                    return {
+                        configurable: true,//TODO Should configurable be true?
+                        enumerable: true,
+                    };
+                }
+                return Reflect.getOwnPropertyDescriptor(target, prop);
+            },
             deleteProperty: deleteProperty,
             defineProperty: () => { throw new Error("Currently properties can't be defined on documents using Object.defineProperty"); },
         });
-        (list as any).push(...fields);
+        this[SelfProxy] = list;
+        if (fields) {
+            (list as any).push(...fields);
+        }
         return list;
     }
 
-    [key: number]: FieldResult<T>;
+    [key: number]: T | (T extends RefField ? Promise<T> : never);
 
     @serializable(alias("fields", list(autoObject())))
     private get __fields() {
@@ -215,6 +260,12 @@ class ListImpl<T extends Field> extends ObjectField {
 
     private set __fields(value) {
         this.___fields = value;
+        for (const key in value) {
+            const field = value[key];
+            if (!(field instanceof ObjectField)) continue;
+            (field as ObjectField)[Parent] = this[Self];
+            (field as ObjectField)[OnUpdate] = updateFunction(this[Self], key, field, this[SelfProxy]);
+        }
     }
 
     [Copy]() {
@@ -235,6 +286,12 @@ class ListImpl<T extends Field> extends ObjectField {
     }
 
     private [Self] = this;
+    private [SelfProxy]: any;
+
+    [ToScriptString]() {
+        return "invalid";
+        // return `new List([${(this as any).map((field => Field.toScriptString(field))}])`;
+    }
 }
-export type List<T extends Field> = ListImpl<T> & T[];
+export type List<T extends Field> = ListImpl<T> & (T | (T extends RefField ? Promise<T> : never))[];
 export const List: { new <T extends Field>(fields?: T[]): List<T> } = ListImpl as any;

@@ -6,11 +6,14 @@ import * as session from 'express-session';
 import * as expressValidator from 'express-validator';
 import * as formidable from 'formidable';
 import * as fs from 'fs';
+import * as sharp from 'sharp';
+const imageDataUri = require('image-data-uri');
 import * as mobileDetect from 'mobile-detect';
 import { ObservableMap } from 'mobx';
 import * as passport from 'passport';
 import * as path from 'path';
 import * as request from 'request';
+import * as rp from 'request-promise';
 import * as io from 'socket.io';
 import { Socket } from 'socket.io';
 import * as webpack from 'webpack';
@@ -21,7 +24,7 @@ import { getForgot, getLogin, getLogout, getReset, getSignup, postForgot, postLo
 import { DashUserModel } from './authentication/models/user_model';
 import { Client } from './Client';
 import { Database } from './database';
-import { MessageStore, Transferable, Diff } from "./Message";
+import { MessageStore, Transferable, Types, Diff } from "./Message";
 import { RouteStore } from './RouteStore';
 const app = express();
 const config = require('../../webpack.config');
@@ -31,6 +34,9 @@ const serverPort = 4321;
 import expressFlash = require('express-flash');
 import flash = require('connect-flash');
 import c = require("crypto");
+import { Search } from './Search';
+import { debug } from 'util';
+import _ = require('lodash');
 const MongoStore = require('connect-mongo')(session);
 const mongoose = require('mongoose');
 
@@ -54,7 +60,7 @@ app.use(session({
 
 app.use(flash());
 app.use(expressFlash());
-app.use(bodyParser.json());
+app.use(bodyParser.json({ limit: "10mb" }));
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(expressValidator());
 app.use(passport.initialize());
@@ -117,7 +123,15 @@ app.get("/pull", (req, res) =>
         res.redirect("/");
     }));
 
+// SEARCH
+
 // GETTERS
+
+app.get("/search", async (req, res) => {
+    let query = req.query.query || "hello";
+    let results = await Search.Instance.search(query);
+    res.send(results);
+});
 
 // anyone attempting to navigate to localhost at this port will
 // first have to login
@@ -154,13 +168,15 @@ addSecureRoute(
     RouteStore.getCurrUser
 );
 
+const pngTypes = [".png", ".PNG"];
+const jpgTypes = [".jpg", ".JPG", ".jpeg", ".JPEG"];
+const uploadDir = __dirname + "/public/files/";
 // SETTERS
-
-addSecureRoute(
-    Method.POST,
-    (user, res, req) => {
+app.post(
+    RouteStore.upload,
+    (req, res) => {
         let form = new formidable.IncomingForm();
-        form.uploadDir = __dirname + "/public/files/";
+        form.uploadDir = uploadDir;
         form.keepExtensions = true;
         // let path = req.body.path;
         console.log("upload");
@@ -168,15 +184,76 @@ addSecureRoute(
             console.log("parsing");
             let names: string[] = [];
             for (const name in files) {
-                names.push(`/files/` + path.basename(files[name].path));
+                const file = path.basename(files[name].path);
+                const ext = path.extname(file);
+                let resizers = [
+                    { resizer: sharp().resize(100, undefined, { withoutEnlargement: true }), suffix: "_s" },
+                    { resizer: sharp().resize(400, undefined, { withoutEnlargement: true }), suffix: "_m" },
+                    { resizer: sharp().resize(900, undefined, { withoutEnlargement: true }), suffix: "_l" },
+                ];
+                let isImage = false;
+                if (pngTypes.includes(ext)) {
+                    resizers.forEach(element => {
+                        element.resizer = element.resizer.png();
+                    });
+                    isImage = true;
+                } else if (jpgTypes.includes(ext)) {
+                    resizers.forEach(element => {
+                        element.resizer = element.resizer.jpeg();
+                    });
+                    isImage = true;
+                }
+                if (isImage) {
+                    resizers.forEach(resizer => {
+                        fs.createReadStream(uploadDir + file).pipe(resizer.resizer).pipe(fs.createWriteStream(uploadDir + file.substring(0, file.length - ext.length) + resizer.suffix + ext));
+                    });
+                }
+                names.push(`/files/` + file);
             }
             res.send(names);
         });
-    },
-    undefined,
-    RouteStore.upload
+    }
 );
 
+addSecureRoute(
+    Method.POST,
+    (user, res, req) => {
+        const uri = req.body.uri;
+        const filename = req.body.name;
+        if (!uri || !filename) {
+            res.status(401).send("incorrect parameters specified");
+            return;
+        }
+        imageDataUri.outputFile(uri, uploadDir + filename).then((savedName: string) => {
+            const ext = path.extname(savedName);
+            let resizers = [
+                { resizer: sharp().resize(100, undefined, { withoutEnlargement: true }), suffix: "_s" },
+                { resizer: sharp().resize(400, undefined, { withoutEnlargement: true }), suffix: "_m" },
+                { resizer: sharp().resize(900, undefined, { withoutEnlargement: true }), suffix: "_l" },
+            ];
+            let isImage = false;
+            if (pngTypes.includes(ext)) {
+                resizers.forEach(element => {
+                    element.resizer = element.resizer.png();
+                });
+                isImage = true;
+            } else if (jpgTypes.includes(ext)) {
+                resizers.forEach(element => {
+                    element.resizer = element.resizer.jpeg();
+                });
+                isImage = true;
+            }
+            if (isImage) {
+                resizers.forEach(resizer => {
+                    fs.createReadStream(savedName).pipe(resizer.resizer).pipe(fs.createWriteStream(uploadDir + filename + resizer.suffix + ext));
+                });
+            }
+            res.send("/files/" + filename + ext);
+        });
+    },
+    undefined,
+    RouteStore.dataUriToImage
+);
 // AUTHENTICATION
 
 // Sign Up
@@ -240,6 +317,7 @@ server.on("connection", function (socket: Socket) {
 
 async function deleteFields() {
     await Database.Instance.deleteAll();
+    await Search.Instance.clear();
     await Database.Instance.deleteAll('newDocuments');
 }
 
@@ -248,6 +326,7 @@ async function deleteAll() {
     await Database.Instance.deleteAll('newDocuments');
     await Database.Instance.deleteAll('sessions');
     await Database.Instance.deleteAll('users');
+    await Search.Instance.clear();
 }
 
 function barReceived(guid: String) {
@@ -266,6 +345,11 @@ function getFields([ids, callback]: [string[], (result: Transferable[]) => void]
 function setField(socket: Socket, newValue: Transferable) {
     Database.Instance.update(newValue.id, newValue, () =>
         socket.broadcast.emit(MessageStore.SetField.Message, newValue));
+    if (newValue.type === Types.Text) {
+        Search.Instance.updateDocument({ id: newValue.id, data: (newValue as any).data });
+        console.log("set field");
+        console.log("checking in");
+    }
 }
 
 function GetRefField([id, callback]: [string, (result?: Transferable) => void]) {
@@ -276,9 +360,81 @@ function GetRefFields([ids, callback]: [string[], (result?: Transferable[]) => v
     Database.Instance.getDocuments(ids, callback, "newDocuments");
 }
 
+
+const suffixMap: { [type: string]: (string | [string, string | ((json: any) => any)]) } = {
+    "number": "_n",
+    "string": "_t",
+    // "boolean": "_b",
+    // "image": ["_t", "url"],
+    "video": ["_t", "url"],
+    "pdf": ["_t", "url"],
+    "audio": ["_t", "url"],
+    "web": ["_t", "url"],
+    "date": ["_d", value => new Date(value.date).toISOString()],
+    "proxy": ["_i", "fieldId"],
+    "list": ["_l", list => {
+        const results = [];
+        for (const value of list.fields) {
+            const term = ToSearchTerm(value);
+            if (term) {
+                results.push(term.value);
+            }
+        }
+        return results.length ? results : null;
+    }]
+};
+
+function ToSearchTerm(val: any): { suffix: string, value: any } | undefined {
+    if (val === null || val === undefined) {
+        return;
+    }
+    const type = val.__type || typeof val;
+    let suffix = suffixMap[type];
+    if (!suffix) {
+        return;
+    }
+
+    if (Array.isArray(suffix)) {
+        const accessor = suffix[1];
+        if (typeof accessor === "function") {
+            val = accessor(val);
+        } else {
+            val = val[accessor];
+        }
+        suffix = suffix[0];
+    }
+
+    return { suffix, value: val };
+}
+
+function getSuffix(value: string | [string, any]): string {
+    return typeof value === "string" ? value : value[0];
+}
+
 function UpdateField(socket: Socket, diff: Diff) {
     Database.Instance.update(diff.id, diff.diff,
         () => socket.broadcast.emit(MessageStore.UpdateField.Message, diff), false, "newDocuments");
+    const docfield = diff.diff.$set;
+    if (!docfield) {
+        return;
+    }
+    const update: any = { id: diff.id };
+    let dynfield = false;
+    for (let key in docfield) {
+        if (!key.startsWith("fields.")) continue;
+        dynfield = true;
+        let val = docfield[key];
+        key = key.substring(7);
+        Object.values(suffixMap).forEach(suf => update[key + getSuffix(suf)] = { set: null });
+        let term = ToSearchTerm(val);
+        if (term !== undefined) {
+            let { suffix, value } = term;
+            update[key + suffix] = { set: value };
+        }
+    }
+    if (dynfield) {
+        Search.Instance.updateDocument(update);
+    }
 }
 
 function CreateField(newValue: any) {

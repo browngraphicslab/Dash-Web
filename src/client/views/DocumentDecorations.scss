@@ -65,7 +65,7 @@ $linkGap : 3px;
         cursor: ew-resize;
     }
     .title{
-        background: lightblue;
+        background: $alt-accent;
         grid-column-start: 3;
         grid-column-end: 4;
         pointer-events: auto;
@@ -210,14 +210,15 @@ $linkGap : 3px;
     position: absolute;
     top: 0;
     left: 30px;
-    width: 150px;
-    line-height: 25px;
-    max-height: 175px;
+    width: max-content;
     font-family: $sans-serif;
     font-size: 12px;
     background-color: $light-color-secondary;
     padding: 2px 12px;
     list-style: none;
+    .templateToggle {
+        text-align: left;
+    }
 
     input {
         margin-right: 10px;

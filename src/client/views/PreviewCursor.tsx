@@ -17,7 +17,16 @@ export class PreviewCursor extends React.Component<{}> {
 
     constructor(props: any) {
         super(props);
-        document.addEventListener("keydown", this.onKeyPress)
+        document.addEventListener("keydown", this.onKeyPress);
+        document.addEventListener("paste", this.paste);
+    }
+    paste = (e: ClipboardEvent) => {
+        console.log(e.clipboardData);
+        if (e.clipboardData) {
+            console.log(e.clipboardData.getData("text/html"));
+            console.log(e.clipboardData.getData("text/csv"));
+            console.log(e.clipboardData.getData("text/plain"));
+        }
     }
 
     @action
@@ -27,8 +36,8 @@ export class PreviewCursor extends React.Component<{}> {
         // the keyPress here.
         //if not these keys, make a textbox if preview cursor is active!
         if (e.key.startsWith("F") && !e.key.endsWith("F")) {
-        } else if (e.key != "Escape" && e.key != "Alt" && e.key != "Shift" && e.key != "Meta" && e.key != "Control" && !e.defaultPrevented && !(e as any).DASHFormattedTextBoxHandled) {
-            if ((!e.ctrlKey && !e.metaKey) || e.key === "v") {
+        } else if (e.key !== "Escape" && e.key !== "Alt" && e.key !== "Shift" && e.key !== "Meta" && e.key !== "Control" && !e.defaultPrevented && !(e as any).DASHFormattedTextBoxHandled) {
+            if ((!e.ctrlKey && !e.metaKey) || (e.key >= "a" && e.key <= "z")) {
                 PreviewCursor.Visible && PreviewCursor._onKeyPress && PreviewCursor._onKeyPress(e);
                 PreviewCursor.Visible = false;
             }

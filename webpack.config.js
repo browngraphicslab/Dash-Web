@@ -8,6 +8,7 @@ module.exports = {
     entry: {
         bundle: ["./src/client/views/Main.tsx", 'webpack-hot-middleware/client?reload=true'],
         viewer: ["./src/debug/Viewer.tsx", 'webpack-hot-middleware/client?reload=true'],
+        repl: ["./src/debug/Repl.tsx", 'webpack-hot-middleware/client?reload=true'],
         test: ["./src/debug/Test.tsx", 'webpack-hot-middleware/client?reload=true'],
         inkControls: ["./src/mobile/InkControls.tsx", 'webpack-hot-middleware/client?reload=true'],
         imageUpload: ["./src/mobile/ImageUpload.tsx", 'webpack-hot-middleware/client?reload=true'],

@@ -1,12 +1,12 @@
 .collectionfreeformlinkview-linkLine {
     stroke: black;
-    stroke-width: 3;
     transform: translate(10000px,10000px);
+    opacity: 0.5;
     pointer-events: all;
 }
 .collectionfreeformlinkview-linkCircle {
-    stroke: black;
-    stroke-width: 3;
+    stroke: rgb(0,0,0);
+    opacity: 0.5;
     transform: translate(10000px,10000px);
     pointer-events: all;
 }

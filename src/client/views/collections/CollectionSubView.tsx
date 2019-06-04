@@ -10,13 +10,13 @@ import * as rp from 'request-promise';
 import { CollectionView } from "./CollectionView";
 import { CollectionPDFView } from "./CollectionPDFView";
 import { CollectionVideoView } from "./CollectionVideoView";
-import { Doc, Opt } from "../../../new_fields/Doc";
+import { Doc, Opt, FieldResult, DocListCast } from "../../../new_fields/Doc";
 import { DocComponent } from "../DocComponent";
 import { listSpec } from "../../../new_fields/Schema";
-import { Cast, PromiseValue, FieldValue } from "../../../new_fields/Types";
+import { Cast, PromiseValue, FieldValue, ListSpec } from "../../../new_fields/Types";
 import { List } from "../../../new_fields/List";
 import { DocServer } from "../../DocServer";
-import { ObjectField } from "../../../new_fields/ObjectField";
+import CursorField from "../../../new_fields/CursorField";
 
 export interface CollectionViewProps extends FieldViewProps {
     addDocument: (document: Doc, allowDuplicates?: boolean) => boolean;
@@ -29,8 +29,6 @@ export interface CollectionViewProps extends FieldViewProps {
 export interface SubCollectionViewProps extends CollectionViewProps {
     CollectionView: CollectionView | CollectionPDFView | CollectionVideoView;
 }
-
-export type CursorEntry = TupleField<[string, string], [number, number]>;
 
 export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
     class CollectionSubView extends DocComponent<SubCollectionViewProps, T>(schemaCtor) {
@@ -47,33 +45,32 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             this.createDropTarget(ele);
         }
 
-        get children() {
+        get childDocs() {
             //TODO tfs: This might not be what we want?
             //This linter error can't be fixed because of how js arguments work, so don't switch this to filter(FieldValue)
-            return Cast(this.props.Document[this.props.fieldKey], listSpec(Doc), []).filter(doc => FieldValue(doc));
+            return DocListCast(this.props.Document[this.props.fieldKey]);
         }
 
         @action
         protected async setCursorPosition(position: [number, number]) {
-            return;
             let ind;
             let doc = this.props.Document;
             let id = CurrentUserUtils.id;
             let email = CurrentUserUtils.email;
+            let pos = { x: position[0], y: position[1] };
             if (id && email) {
-                let textInfo: [string, string] = [id, email];
                 const proto = await doc.proto;
                 if (!proto) {
                     return;
                 }
-                let cursors = await Cast(proto.cursors, listSpec(ObjectField));
+                let cursors = Cast(proto.cursors, listSpec(CursorField));
                 if (!cursors) {
-                    proto.cursors = cursors = new List<ObjectField>();
+                    proto.cursors = cursors = new List<CursorField>();
                 }
-                if (cursors.length > 0 && (ind = cursors.findIndex(entry => entry.Data[0][0] === id)) > -1) {
-                    cursors[ind].Data[1] = position;
+                if (cursors.length > 0 && (ind = cursors.findIndex(entry => entry.data.metadata.id === id)) > -1) {
+                    cursors[ind].setPosition(pos);
                 } else {
-                    let entry = new TupleField<[string, string], [number, number]>([textInfo, position]);
+                    let entry = new CursorField({ metadata: { id: id, identifier: email, timestamp: Date.now() }, position: pos });
                     cursors.push(entry);
                 }
             }
@@ -132,7 +129,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 options.dropAction = "copy";
             }
             if (type.indexOf("html") !== -1) {
-                if (path.includes('localhost')) {
+                if (path.includes(window.location.hostname)) {
                     let s = path.split('/');
                     let id = s[s.length - 1];
                     DocServer.GetRefField(id).then(field => {
@@ -156,6 +153,10 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
         @undoBatch
         @action
         protected onDrop(e: React.DragEvent, options: DocumentOptions): void {
+            if (e.ctrlKey) {
+                e.stopPropagation(); // bcz: this is a hack to stop propagation when dropping an image on a text document with shift+ctrl
+                return;
+            }
             let html = e.dataTransfer.getData("text/html");
             let text = e.dataTransfer.getData("text/plain");
 
@@ -168,6 +169,11 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             if (html && html.indexOf("<img") !== 0 && !html.startsWith("<a")) {
                 let htmlDoc = Docs.HtmlDocument(html, { ...options, width: 300, height: 300, documentText: text });
                 this.props.addDocument(htmlDoc, false);
+                return;
+            }
+            if (text && text.indexOf("www.youtube.com/watch") !== -1) {
+                const url = text.replace("youtube.com/watch?v=", "youtube.com/embed/");
+                this.props.addDocument(Docs.WebDocument(url, { ...options, width: 300, height: 300 }));
                 return;
             }
 
@@ -206,7 +212,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                     }).then(async (res: Response) => {
                         (await res.json()).map(action((file: any) => {
                             let path = window.location.origin + file;
-                            let docPromise = this.getDocumentFromType(type, path, { ...options, nativeWidth: 600, width: 300, title: dropFileName });
+                            let docPromise = this.getDocumentFromType(type, path, { ...options, nativeWidth: 300, width: 300, title: dropFileName });
 
                             docPromise.then(doc => doc && this.props.addDocument(doc));
                         }));

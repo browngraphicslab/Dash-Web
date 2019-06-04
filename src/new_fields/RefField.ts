@@ -1,9 +1,8 @@
 import { serializable, primitive, alias } from "serializr";
 import { Utils } from "../Utils";
+import { Id, HandleUpdate, ToScriptString } from "./FieldSymbols";
 
 export type FieldId = string;
-export const HandleUpdate = Symbol("HandleUpdate");
-export const Id = Symbol("Id");
 export abstract class RefField {
     @serializable(alias("id", primitive()))
     private __id: FieldId;
@@ -15,4 +14,6 @@ export abstract class RefField {
     }
 
     protected [HandleUpdate]?(diff: any): void;
+
+    abstract [ToScriptString](): string;
 }

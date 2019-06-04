@@ -8,7 +8,7 @@ import "./KeyValueBox.scss";
 import { KeyValuePair } from "./KeyValuePair";
 import React = require("react");
 import { NumCast, Cast, FieldValue } from "../../../new_fields/Types";
-import { Doc, IsField } from "../../../new_fields/Doc";
+import { Doc, Field } from "../../../new_fields/Doc";
 
 @observer
 export class KeyValueBox extends React.Component<FieldViewProps> {
@@ -18,7 +18,7 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
     @observable private _keyInput: string = "";
     @observable private _valueInput: string = "";
     @computed get splitPercentage() { return NumCast(this.props.Document.schemaSplitPercentage, 50); }
-
+    get fieldDocToLayout() { return this.props.fieldKey ? FieldValue(Cast(this.props.Document[this.props.fieldKey], Doc)) : this.props.Document; }
 
     constructor(props: FieldViewProps) {
         super(props);
@@ -28,7 +28,7 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
     onEnterKey = (e: React.KeyboardEvent): void => {
         if (e.key === 'Enter') {
             if (this._keyInput && this._valueInput) {
-                let doc = FieldValue(Cast(this.props.Document.data, Doc));
+                let doc = this.fieldDocToLayout;
                 if (!doc) {
                     return;
                 }
@@ -41,7 +41,7 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
                 let res = script.run();
                 if (!res.success) return;
                 const field = res.result;
-                if (IsField(field)) {
+                if (Field.IsField(field)) {
                     realDoc[this._keyInput] = field;
                 }
                 this._keyInput = "";
@@ -60,7 +60,7 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
     }
 
     createTable = () => {
-        let doc = FieldValue(Cast(this.props.Document.data, Doc));
+        let doc = this.fieldDocToLayout;
         if (!doc) {
             return <tr><td>Loading...</td></tr>;
         }
@@ -78,7 +78,7 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
 
         let rows: JSX.Element[] = [];
         let i = 0;
-        for (let key in ids) {
+        for (let key of Object.keys(ids).sort()) {
             rows.push(<KeyValuePair doc={realDoc} keyWidth={100 - this.splitPercentage} rowStyle={"keyValueBox-" + (i++ % 2 ? "oddRow" : "evenRow")} key={key} keyName={key} />);
         }
         return rows;

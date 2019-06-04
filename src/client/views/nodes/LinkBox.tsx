@@ -31,28 +31,7 @@ export class LinkBox extends React.Component<Props> {
     @undoBatch
     onViewButtonPressed = async (e: React.PointerEvent): Promise<void> => {
         e.stopPropagation();
-        let docView = DocumentManager.Instance.getDocumentView(this.props.pairedDoc);
-        if (docView) {
-            docView.props.focus(docView.props.Document);
-        } else {
-            const contextDoc = await Cast(this.props.pairedDoc.annotationOn, Doc);
-            if (!contextDoc) {
-                CollectionDockingView.Instance.AddRightSplit(Doc.MakeDelegate(this.props.pairedDoc));
-            } else {
-                const page = NumCast(this.props.pairedDoc.page, undefined);
-                const curPage = NumCast(contextDoc.curPage, undefined);
-                if (page !== curPage) {
-                    contextDoc.curPage = page;
-                }
-                let contextView = DocumentManager.Instance.getDocumentView(contextDoc);
-                if (contextView) {
-                    contextDoc.panTransformType = "Ease";
-                    contextView.props.focus(contextDoc);
-                } else {
-                    CollectionDockingView.Instance.AddRightSplit(contextDoc);
-                }
-            }
-        }
+        DocumentManager.Instance.jumpToDocument(this.props.pairedDoc, e.altKey);
     }
 
     onEditButtonPressed = (e: React.PointerEvent): void => {

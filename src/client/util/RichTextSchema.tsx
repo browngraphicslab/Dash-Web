@@ -84,6 +84,7 @@ export const nodes: { [index: string]: NodeSpec } = {
         inline: true,
         attrs: {
             src: {},
+            width: { default: "100px" },
             alt: { default: null },
             title: { default: null }
         },
@@ -94,11 +95,16 @@ export const nodes: { [index: string]: NodeSpec } = {
                 return {
                     src: dom.getAttribute("src"),
                     title: dom.getAttribute("title"),
-                    alt: dom.getAttribute("alt")
+                    alt: dom.getAttribute("alt"),
+                    width: Math.min(100, Number(dom.getAttribute("width"))),
                 };
             }
         }],
-        toDOM(node: any) { return ["img", node.attrs]; }
+        // TODO if we don't define toDom, something weird happens: dragging the image will not move it but clone it. Why?
+        toDOM(node) {
+            const attrs = { style: `width: ${node.attrs.width}` };
+            return ["img", { ...node.attrs, ...attrs }];
+        }
     },
 
     // :: NodeSpec A hard line break, represented in the DOM as `<br>`.
@@ -290,6 +296,13 @@ export const marks: { [index: string]: MarkSpec } = {
         }]
     },
 
+    p14: {
+        parseDOM: [{ style: 'font-size: 14px;' }],
+        toDOM: () => ['span', {
+            style: 'font-size: 14px;'
+        }]
+    },
+
     p16: {
         parseDOM: [{ style: 'font-size: 16px;' }],
         toDOM: () => ['span', {
@@ -325,7 +338,75 @@ export const marks: { [index: string]: MarkSpec } = {
         }]
     },
 };
+function getFontSize(element: any) {
+    return parseFloat((getComputedStyle(element) as any).fontSize);
+}
 
+export class ImageResizeView {
+    _handle: HTMLElement;
+    _img: HTMLElement;
+    _outer: HTMLElement;
+    constructor(node: any, view: any, getPos: any) {
+        this._handle = document.createElement("span");
+        this._img = document.createElement("img");
+        this._outer = document.createElement("span");
+        this._outer.style.position = "relative";
+        this._outer.style.width = node.attrs.width;
+        this._outer.style.display = "inline-block";
+        this._outer.style.overflow = "hidden";
+
+        this._img.setAttribute("src", node.attrs.src);
+        this._img.style.width = "100%";
+        this._handle.style.position = "absolute";
+        this._handle.style.width = "20px";
+        this._handle.style.height = "20px";
+        this._handle.style.backgroundColor = "blue";
+        this._handle.style.borderRadius = "15px";
+        this._handle.style.display = "none";
+        this._handle.style.bottom = "-10px";
+        this._handle.style.right = "-10px";
+        let self = this;
+        this._handle.onpointerdown = function (e: any) {
+            e.preventDefault();
+            e.stopPropagation();
+            const startX = e.pageX;
+            const startWidth = parseFloat(node.attrs.width);
+            const onpointermove = (e: any) => {
+                const currentX = e.pageX;
+                const diffInPx = currentX - startX;
+                self._outer.style.width = `${startWidth + diffInPx}`;
+            };
+
+            const onpointerup = () => {
+                document.removeEventListener("pointermove", onpointermove);
+                document.removeEventListener("pointerup", onpointerup);
+                view.dispatch(
+                    view.state.tr.setNodeMarkup(getPos(), null,
+                        { src: node.attrs.src, width: self._outer.style.width })
+                        .setSelection(view.state.selection));
+            };
+
+            document.addEventListener("pointermove", onpointermove);
+            document.addEventListener("pointerup", onpointerup);
+        };
+
+        this._outer.appendChild(this._handle);
+        this._outer.appendChild(this._img);
+        (this as any).dom = this._outer;
+    }
+
+    selectNode() {
+        this._img.classList.add("ProseMirror-selectednode");
+
+        this._handle.style.display = "";
+    }
+
+    deselectNode() {
+        this._img.classList.remove("ProseMirror-selectednode");
+
+        this._handle.style.display = "none";
+    }
+}
 // :: Schema
 // This schema rougly corresponds to the document schema used by
 // [CommonMark](http://commonmark.org/), minus the list elements,

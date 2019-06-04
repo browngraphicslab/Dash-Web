@@ -30,6 +30,14 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
                 selRect.top < val.y && selRect.top + selRect.height > val.y)
             , false);
     }
+    public static StrokeRect(stroke: StrokeData): { left: number, top: number, right: number, bottom: number } {
+        return stroke.pathData.reduce((bounds: { left: number, top: number, right: number, bottom: number }, val) =>
+            ({
+                left: Math.min(bounds.left, val.x), top: Math.min(bounds.top, val.y),
+                right: Math.max(bounds.right, val.x), bottom: Math.max(bounds.bottom, val.y)
+            })
+            , { left: Number.MAX_VALUE, top: Number.MAX_VALUE, right: -Number.MAX_VALUE, bottom: -Number.MAX_VALUE });
+    }
 
     componentDidMount() {
         PromiseValue(Cast(this.props.Document.ink, InkField)).then(ink => runInAction(() => {
@@ -138,7 +146,7 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
     get drawnPaths() {
         let curPage = NumCast(this.props.Document.curPage, -1);
         let paths = Array.from(this.inkData).reduce((paths, [id, strokeData]) => {
-            if (strokeData.page === -1 || strokeData.page === curPage) {
+            if (strokeData.page === -1 || Math.round(strokeData.page) === Math.round(curPage)) {
                 paths.push(<InkingStroke key={id} id={id}
                     line={strokeData.pathData}
                     count={strokeData.pathData.length}

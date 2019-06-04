@@ -1,30 +1,37 @@
-import { action, IReactionDisposer, reaction, trace, computed, _allowStateChangesInsideComputed } from "mobx";
+import { library } from '@fortawesome/fontawesome-svg-core';
+import { faEdit, faSmile } from '@fortawesome/free-solid-svg-icons';
+import { action, IReactionDisposer, observable, reaction } from "mobx";
+import { observer } from "mobx-react";
 import { baseKeymap } from "prosemirror-commands";
 import { history } from "prosemirror-history";
 import { keymap } from "prosemirror-keymap";
 import { EditorState, Plugin, Transaction } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
+import { Doc, Field, Opt, WidthSym, HeightSym } from "../../../new_fields/Doc";
+import { RichTextField } from "../../../new_fields/RichTextField";
+import { createSchema, makeInterface } from "../../../new_fields/Schema";
+import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
+import { DocServer } from "../../DocServer";
+import { DocumentManager } from "../../util/DocumentManager";
+import { DragManager } from "../../util/DragManager";
 import buildKeymap from "../../util/ProsemirrorKeymap";
 import { inpRules } from "../../util/RichTextRules";
-import { schema } from "../../util/RichTextSchema";
+import { ImageResizeView, schema } from "../../util/RichTextSchema";
+import { SelectionManager } from "../../util/SelectionManager";
 import { TooltipLinkingMenu } from "../../util/TooltipLinkingMenu";
 import { TooltipTextMenu } from "../../util/TooltipTextMenu";
+import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { ContextMenu } from "../../views/ContextMenu";
-import { MainOverlayTextBox } from "../MainOverlayTextBox";
+import { CollectionDockingView } from "../collections/CollectionDockingView";
+import { DocComponent } from "../DocComponent";
+import { InkingControl } from "../InkingControl";
 import { FieldView, FieldViewProps } from "./FieldView";
 import "./FormattedTextBox.scss";
 import React = require("react");
-import { SelectionManager } from "../../util/SelectionManager";
-import { DocComponent } from "../DocComponent";
-import { createSchema, makeInterface } from "../../../new_fields/Schema";
-import { Opt, Doc, WidthSym, HeightSym } from "../../../new_fields/Doc";
-import { observer } from "mobx-react";
-import { InkingControl } from "../InkingControl";
-import { StrCast, Cast, NumCast, BoolCast } from "../../../new_fields/Types";
-import { RichTextField } from "../../../new_fields/RichTextField";
-import { Id } from "../../../new_fields/RefField";
-const { buildMenuItems } = require("prosemirror-example-setup");
-const { menuBar } = require("prosemirror-menu");
+import { DocUtils } from '../../documents/Documents';
+
+library.add(faEdit);
+library.add(faSmile);
 
 // FormattedTextBox: Displays an editable plain text node that maps to a specified Key of a Document
 //
@@ -43,8 +50,9 @@ const { menuBar } = require("prosemirror-menu");
 //  this will edit the document and assign the new value to that field.
 //]
 
-export interface FormattedTextBoxOverlay {
+export interface FormattedTextBoxProps {
     isOverlay?: boolean;
+    hideOnLeave?: boolean;
 }
 
 const richTextSchema = createSchema({
@@ -55,7 +63,7 @@ type RichTextDocument = makeInterface<[typeof richTextSchema]>;
 const RichTextDocument = makeInterface(richTextSchema);
 
 @observer
-export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTextBoxOverlay), RichTextDocument>(RichTextDocument) {
+export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTextBoxProps), RichTextDocument>(RichTextDocument) {
     public static LayoutString(fieldStr: string = "data") {
         return FieldView.LayoutString(FormattedTextBox, fieldStr);
     }
@@ -63,15 +71,23 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     private _proseRef: React.RefObject<HTMLDivElement>;
     private _editorView: Opt<EditorView>;
     private _gotDown: boolean = false;
+    private _dropDisposer?: DragManager.DragDropDisposer;
     private _reactionDisposer: Opt<IReactionDisposer>;
     private _inputReactionDisposer: Opt<IReactionDisposer>;
     private _proxyReactionDisposer: Opt<IReactionDisposer>;
+    public get CurrentDiv(): HTMLDivElement { return this._ref.current!; }
+
+    @observable public static InputBoxOverlay?: FormattedTextBox = undefined;
+    public static InputBoxOverlayScroll: number = 0;
 
     constructor(props: FieldViewProps) {
         super(props);
 
         this._ref = React.createRef();
         this._proseRef = React.createRef();
+        if (this.props.isOverlay) {
+            DragManager.StartDragFunctions.push(() => FormattedTextBox.InputBoxOverlay = undefined);
+        }
     }
 
     _applyingChange: boolean = false;
@@ -91,11 +107,29 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 let titlestr = str.substr(0, Math.min(40, str.length));
                 let target = this.props.Document.proto ? this.props.Document.proto : this.props.Document;
                 target.title = "-" + titlestr + (str.length > 40 ? "..." : "");
-            };
+            }
+        }
+    }
+
+    @undoBatch
+    @action
+    drop = async (e: Event, de: DragManager.DropEvent) => {
+        if (de.data instanceof DragManager.LinkDragData) {
+            let sourceDoc = de.data.linkSourceDocument;
+            let destDoc = this.props.Document;
+
+            DocUtils.MakeLink(sourceDoc, destDoc);
+            de.data.droppedDocuments.push(destDoc);
+            e.stopPropagation();
         }
     }
 
     componentDidMount() {
+        if (this._ref.current) {
+            this._dropDisposer = DragManager.MakeDropTarget(this._ref.current, {
+                handlers: { drop: this.drop.bind(this) }
+            });
+        }
         const config = {
             schema,
             inpRules, //these currently don't do anything, but could eventually be helpful
@@ -118,7 +152,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         };
 
         if (this.props.isOverlay) {
-            this._inputReactionDisposer = reaction(() => MainOverlayTextBox.Instance.TextDoc && MainOverlayTextBox.Instance.TextDoc[Id],
+            this._inputReactionDisposer = reaction(() => FormattedTextBox.InputBoxOverlay,
                 () => {
                     if (this._editorView) {
                         this._editorView.destroy();
@@ -128,7 +162,12 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             );
         } else {
             this._proxyReactionDisposer = reaction(() => this.props.isSelected(),
-                () => this.props.isSelected() && !BoolCast(this.props.Document.isButton, false) && MainOverlayTextBox.Instance.SetTextDoc(this.props.Document, this.props.fieldKey, this._ref.current!, this.props.ScreenToLocalTransform));
+                () => {
+                    if (this.props.isSelected()) {
+                        FormattedTextBox.InputBoxOverlay = this;
+                        FormattedTextBox.InputBoxOverlayScroll = this._ref.current!.scrollTop;
+                    }
+                });
         }
 
 
@@ -148,8 +187,16 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         if (this._proseRef.current) {
             this._editorView = new EditorView(this._proseRef.current, {
                 state: field && field.Data ? EditorState.fromJSON(config, JSON.parse(field.Data)) : EditorState.create(config),
-                dispatchTransaction: this.dispatchTransaction
+                dispatchTransaction: this.dispatchTransaction,
+                nodeViews: {
+                    image(node, view, getPos) { return new ImageResizeView(node, view, getPos); }
+                }
             });
+            let text = StrCast(this.props.Document.documentText);
+            if (text.startsWith("@@@")) {
+                this.props.Document.proto!.documentText = undefined;
+                this._editorView.dispatch(this._editorView.state.tr.insertText(text.replace("@@@", "")));
+            }
         }
 
         if (this.props.selectOnLoad) {
@@ -171,13 +218,35 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         if (this._proxyReactionDisposer) {
             this._proxyReactionDisposer();
         }
+        if (this._dropDisposer) {
+            this._dropDisposer();
+        }
     }
 
     onPointerDown = (e: React.PointerEvent): void => {
         if (e.button === 0 && this.props.isSelected() && !e.altKey && !e.ctrlKey && !e.metaKey) {
             e.stopPropagation();
-            if (this._toolTipTextMenu && this._toolTipTextMenu.tooltip)
+            if (this._toolTipTextMenu && this._toolTipTextMenu.tooltip) {
                 this._toolTipTextMenu.tooltip.style.opacity = "0";
+            }
+        }
+        let ctrlKey = e.ctrlKey;
+        if (e.button === 0 && ((!this.props.isSelected() && !e.ctrlKey) || (this.props.isSelected() && e.ctrlKey)) && !e.metaKey && e.target) {
+            let href = (e.target as any).href;
+            for (let parent = (e.target as any).parentNode; !href && parent; parent = parent.parentNode) {
+                href = parent.childNodes[0].href;
+            }
+            if (href) {
+                if (href.indexOf(DocServer.prepend("/doc/")) === 0) {
+                    let docid = href.replace(DocServer.prepend("/doc/"), "").split("?")[0];
+                    DocServer.GetRefField(docid).then(f => {
+                        (f instanceof Doc) && DocumentManager.Instance.jumpToDocument(f, ctrlKey, document => this.props.addDocTab(document, "inTab"))
+                    });
+                }
+                e.stopPropagation();
+                e.preventDefault();
+            }
+
         }
         if (e.button === 2 || (e.button === 0 && e.ctrlKey)) {
             this._gotDown = true;
@@ -185,58 +254,24 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         }
     }
     onPointerUp = (e: React.PointerEvent): void => {
-        if (this._toolTipTextMenu && this._toolTipTextMenu.tooltip)
+        if (this._toolTipTextMenu && this._toolTipTextMenu.tooltip) {
             this._toolTipTextMenu.tooltip.style.opacity = "1";
+        }
         if (e.buttons === 1 && this.props.isSelected() && !e.altKey) {
             e.stopPropagation();
         }
     }
 
+    @action
     onFocused = (e: React.FocusEvent): void => {
         if (!this.props.isOverlay) {
-            MainOverlayTextBox.Instance.SetTextDoc(this.props.Document, this.props.fieldKey, this._ref.current!, this.props.ScreenToLocalTransform);
+            FormattedTextBox.InputBoxOverlay = this;
         } else {
-            if (this._proseRef.current) {
-                this._proseRef.current.scrollTop = MainOverlayTextBox.Instance.TextScroll;
+            if (this._ref.current) {
+                this._ref.current.scrollTop = FormattedTextBox.InputBoxOverlayScroll;
             }
         }
     }
-
-    //REPLACE THIS WITH CAPABILITIES SPECIFIC TO THIS TYPE OF NODE
-    textCapability = (e: React.MouseEvent): void => {
-        if (NumCast(this.props.Document.nativeWidth)) {
-            this.props.Document.nativeWidth = undefined;
-            this.props.Document.nativeHeight = undefined;
-
-        } else {
-            this.props.Document.nativeWidth = this.props.Document[WidthSym]();
-            this.props.Document.nativeHeight = this.props.Document[HeightSym]();
-        }
-    }
-    specificContextMenu = (e: React.MouseEvent): void => {
-        if (!this._gotDown) {
-            e.preventDefault();
-            return;
-        }
-        ContextMenu.Instance.addItem({
-            description: NumCast(this.props.Document.nativeWidth) ? "Unfreeze" : "Freeze",
-            event: this.textCapability
-        });
-
-        // ContextMenu.Instance.addItem({
-        //     description: "Submenu",
-        //     items: [
-        //         {
-        //             description: "item 1", event:
-        //     },
-        //         {
-        //             description: "item 2", event:
-        //     }
-        //     ]
-        // })
-        // e.stopPropagation()
-    }
-
     onPointerWheel = (e: React.WheelEvent): void => {
         if (this.props.isSelected()) {
             e.stopPropagation();
@@ -271,7 +306,13 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             }
         });
     }
-
+    onBlur = (e: any) => {
+        if (this._undoTyping) {
+            this._undoTyping.end();
+            this._undoTyping = undefined;
+        }
+    }
+    public _undoTyping?: UndoManager.Batch;
     onKeyPress = (e: React.KeyboardEvent) => {
         if (e.key === "Escape") {
             SelectionManager.DeselectAll();
@@ -287,30 +328,48 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             let target = this.props.Document.proto ? this.props.Document.proto : this.props.Document;
             target.title = "-" + titlestr + (str.length > 40 ? "..." : "");
         }
+        if (!this._undoTyping) {
+            this._undoTyping = UndoManager.StartBatch("undoTyping");
+        }
+    }
+
+    @observable
+    _entered = false;
+    @action
+    onPointerEnter = (e: React.PointerEvent) => {
+        this._entered = true;
+    }
+    @action
+    onPointerLeave = (e: React.PointerEvent) => {
+        this._entered = false;
     }
     render() {
         let style = this.props.isOverlay ? "scroll" : "hidden";
         let rounded = NumCast(this.props.Document.borderRounding) < 0 ? "-rounded" : "";
-        let color = StrCast(this.props.Document.backgroundColor);
         let interactive = InkingControl.Instance.selectedTool ? "" : "interactive";
         return (
             <div className={`formattedTextBox-cont-${style}`} ref={this._ref}
                 style={{
+                    background: this.props.hideOnLeave ? "rgba(0,0,0,0.4)" : undefined,
+                    opacity: this.props.hideOnLeave ? (this._entered || this.props.isSelected() || this.props.Document.libraryBrush ? 1 : 0.1) : 1,
+                    color: this.props.hideOnLeave ? "white" : "initial",
                     pointerEvents: interactive ? "all" : "none",
-                    background: color,
                 }}
-                onKeyDown={this.onKeyPress}
+                // onKeyDown={this.onKeyPress}
                 onKeyPress={this.onKeyPress}
                 onFocus={this.onFocused}
                 onClick={this.onClick}
+                onBlur={this.onBlur}
                 onPointerUp={this.onPointerUp}
                 onPointerDown={this.onPointerDown}
                 onMouseDown={this.onMouseDown}
                 onContextMenu={this.specificContextMenu}
                 // tfs: do we need this event handler
                 onWheel={this.onPointerWheel}
+                onPointerEnter={this.onPointerEnter}
+                onPointerLeave={this.onPointerLeave}
             >
-                <div className={`formattedTextBox-inner${rounded}`} style={{ pointerEvents: this.props.Document.isButton ? "none" : "all" }} ref={this._proseRef} />
+                <div className={`formattedTextBox-inner${rounded}`} style={{ whiteSpace: "pre-wrap", pointerEvents: this.props.Document.isButton && !this.props.isSelected() ? "none" : "all" }} ref={this._proseRef} />
             </div>
         );
     }

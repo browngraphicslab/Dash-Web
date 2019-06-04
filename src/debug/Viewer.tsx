@@ -3,184 +3,175 @@ import "normalize.css";
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import { observer } from 'mobx-react';
+import { Doc, Field, FieldResult, Opt } from '../new_fields/Doc';
+import { DocServer } from '../client/DocServer';
+import { Id } from '../new_fields/FieldSymbols';
+import { List } from '../new_fields/List';
+import { URLField } from '../new_fields/URLField';
+import { EditableView } from '../client/views/EditableView';
+import { CompileScript } from '../client/util/Scripting';
 
-// configure({
-//     enforceActions: "observed"
-// });
+function applyToDoc(doc: { [index: string]: FieldResult }, key: string, scriptString: string): boolean;
+function applyToDoc(doc: { [index: number]: FieldResult }, key: number, scriptString: string): boolean;
+function applyToDoc(doc: any, key: string | number, scriptString: string): boolean {
+    let script = CompileScript(scriptString, { addReturn: true, params: { this: doc instanceof Doc ? Doc.name : List.name } });
+    if (!script.compiled) {
+        return false;
+    }
+    const res = script.run({ this: doc });
+    if (!res.success) return false;
+    if (!Field.IsField(res.result, true)) return false;
+    doc[key] = res.result;
+    return true;
+}
 
-// @observer
-// class FieldViewer extends React.Component<{ field: BasicField<any> }> {
-//     render() {
-//         return <span>{JSON.stringify(this.props.field.Data)} ({this.props.field.Id})</span>;
-//     }
-// }
+configure({
+    enforceActions: "observed"
+});
 
-// @observer
-// class KeyViewer extends React.Component<{ field: Key }> {
-//     render() {
-//         return this.props.field.Name;
-//     }
-// }
+@observer
+class ListViewer extends React.Component<{ field: List<Field> }>{
+    @observable
+    expanded = false;
 
-// @observer
-// class ListViewer extends React.Component<{ field: ListField<Field> }>{
-//     @observable
-//     expanded = false;
+    @action
+    onClick = (e: React.MouseEvent) => {
+        this.expanded = !this.expanded;
+        e.stopPropagation();
+    }
 
-//     render() {
-//         let content;
-//         if (this.expanded) {
-//             content = (
-//                 <div>
-//                     {this.props.field.Data.map(field => <DebugViewer fieldId={field.Id} key={field.Id} />)}
-//                 </div>
-//             );
-//         } else {
-//             content = <>[...] ({this.props.field.Id})</>;
-//         }
-//         return (
-//             <div>
-//                 <button onClick={action(() => this.expanded = !this.expanded)}>Toggle</button>
-//                 {content}
-//             </div >
-//         );
-//     }
-// }
+    render() {
+        let content;
+        if (this.expanded) {
+            content = (
+                <div>
+                    {this.props.field.map((field, index) => <DebugViewer field={field} key={index} setValue={value => applyToDoc(this.props.field, index, value)} />)}
+                </div>
+            );
+        } else {
+            content = <>[...]</>;
+        }
+        return (
+            <div>
+                <button onClick={this.onClick}>Toggle</button>
+                {content}
+            </div >
+        );
+    }
+}
 
-// @observer
-// class DocumentViewer extends React.Component<{ field: Document }> {
-//     private keyMap: ObservableMap<string, Key> = new ObservableMap;
+@observer
+class DocumentViewer extends React.Component<{ field: Doc }> {
+    @observable
+    expanded = false;
 
-//     private disposer?: Lambda;
+    @action
+    onClick = (e: React.MouseEvent) => {
+        this.expanded = !this.expanded;
+        e.stopPropagation();
+    }
 
-//     componentDidMount() {
-//         let f = () => {
-//             Array.from(this.props.field._proxies.keys()).forEach(id => {
-//                 if (!this.keyMap.has(id)) {
-//                     Server.GetField(id, (field) => {
-//                         if (field && field instanceof Key) {
-//                             this.keyMap.set(id, field);
-//                         }
-//                     });
-//                 }
-//             });
-//         };
-//         this.disposer = this.props.field._proxies.observe(f);
-//         f();
-//     }
+    render() {
+        let content;
+        if (this.expanded) {
+            const keys = Object.keys(this.props.field);
+            let fields = keys.map(key => {
+                return (
+                    <div key={key}>
+                        <b>({key}): </b>
+                        <DebugViewer field={this.props.field[key]} setValue={value => applyToDoc(this.props.field, key, value)}></DebugViewer>
+                    </div>
+                );
+            });
+            content = (
+                <div>
+                    Document ({this.props.field[Id]})
+                <div style={{ paddingLeft: "25px" }}>
+                        {fields}
+                    </div>
+                </div>
+            );
+        } else {
+            content = <>[...] ({this.props.field[Id]})</>;
+        }
+        return (
+            <div>
+                <button onClick={this.onClick}>Toggle</button>
+                {content}
+            </div >
+        );
+    }
+}
 
-//     componentWillUnmount() {
-//         if (this.disposer) {
-//             this.disposer();
-//         }
-//     }
+@observer
+class DebugViewer extends React.Component<{ field: FieldResult, setValue(value: string): boolean }> {
 
-//     render() {
-//         let fields = Array.from(this.props.field._proxies.entries()).map(kv => {
-//             let key = this.keyMap.get(kv[0]);
-//             return (
-//                 <div key={kv[0]}>
-//                     <b>({key ? key.Name : kv[0]}): </b>
-//                     <DebugViewer fieldId={kv[1]}></DebugViewer>
-//                 </div>
-//             );
-//         });
-//         return (
-//             <div>
-//                 Document ({this.props.field.Id})
-//                 <div style={{ paddingLeft: "25px" }}>
-//                     {fields}
-//                 </div>
-//             </div>
-//         );
-//     }
-// }
+    render() {
+        let content;
+        const field = this.props.field;
+        if (field instanceof List) {
+            content = (<ListViewer field={field} />);
+        } else if (field instanceof Doc) {
+            content = (<DocumentViewer field={field} />);
+        } else if (typeof field === "string") {
+            content = <p>"{field}"</p>;
+        } else if (typeof field === "number" || typeof field === "boolean") {
+            content = <p>{field}</p>;
+        } else if (field instanceof URLField) {
+            content = <p>{field.url.href}</p>;
+        } else if (field instanceof Promise) {
+            return <p>Field loading</p>;
+        } else {
+            return <p>Unrecognized field type</p>;
+        }
 
-// @observer
-// class DebugViewer extends React.Component<{ fieldId: string }> {
-//     @observable
-//     private field?: Field;
+        return <EditableView GetValue={() => Field.toScriptString(field)} SetValue={this.props.setValue}
+            contents={content}></EditableView>;
+    }
+}
 
-//     @observable
-//     private error?: string;
+@observer
+class Viewer extends React.Component {
+    @observable
+    private idToAdd: string = '';
 
-//     constructor(props: { fieldId: string }) {
-//         super(props);
-//         this.update();
-//     }
+    @observable
+    private fields: Field[] = [];
 
-//     update() {
-//         Server.GetField(this.props.fieldId, action((field: Opt<Field>) => {
-//             this.field = field;
-//             if (!field) {
-//                 this.error = `Field with id ${this.props.fieldId} not found`;
-//             }
-//         }));
+    @action
+    inputOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        this.idToAdd = e.target.value;
+    }
 
-//     }
+    @action
+    onKeyPress = (e: React.KeyboardEvent<HTMLDivElement>) => {
+        if (e.key === "Enter") {
+            DocServer.GetRefField(this.idToAdd).then(action((field: any) => {
+                if (field !== undefined) {
+                    this.fields.push(field);
+                }
+            }));
+            this.idToAdd = "";
+        }
+    }
 
-//     render() {
-//         let content;
-//         if (this.field) {
-//             // content = this.field.ToJson();
-//             if (this.field instanceof ListField) {
-//                 content = (<ListViewer field={this.field} />);
-//             } else if (this.field instanceof Document) {
-//                 content = (<DocumentViewer field={this.field} />);
-//             } else if (this.field instanceof BasicField) {
-//                 content = (<FieldViewer field={this.field} />);
-//             } else if (this.field instanceof Key) {
-//                 content = (<KeyViewer field={this.field} />);
-//             } else {
-//                 content = (<span>Unrecognized field type</span>);
-//             }
-//         } else if (this.error) {
-//             content = <span>Field <b>{this.props.fieldId}</b> not found <button onClick={() => this.update()}>Refresh</button></span>;
-//         } else {
-//             content = <span>Field loading: {this.props.fieldId}</span>;
-//         }
-//         return content;
-//     }
-// }
+    render() {
+        return (
+            <>
+                <input value={this.idToAdd}
+                    onChange={this.inputOnChange}
+                    onKeyDown={this.onKeyPress} />
+                <div>
+                    {this.fields.map((field, index) => <DebugViewer field={field} key={index} setValue={() => false}></DebugViewer>)}
+                </div>
+            </>
+        );
+    }
+}
 
-// @observer
-// class Viewer extends React.Component {
-//     @observable
-//     private idToAdd: string = '';
-
-//     @observable
-//     private ids: string[] = [];
-
-//     @action
-//     inputOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-//         this.idToAdd = e.target.value;
-//     }
-
-//     @action
-//     onKeyPress = (e: React.KeyboardEvent<HTMLDivElement>) => {
-//         if (e.key === "Enter") {
-//             this.ids.push(this.idToAdd);
-//             this.idToAdd = "";
-//         }
-//     }
-
-//     render() {
-//         return (
-//             <>
-//                 <input value={this.idToAdd}
-//                     onChange={this.inputOnChange}
-//                     onKeyDown={this.onKeyPress} />
-//                 <div>
-//                     {this.ids.map(id => <DebugViewer fieldId={id} key={id}></DebugViewer>)}
-//                 </div>
-//             </>
-//         );
-//     }
-// }
-
-// ReactDOM.render((
-//     <div style={{ position: "absolute", width: "100%", height: "100%" }}>
-//         <Viewer />
-//     </div>),
-//     document.getElementById('root')
-// );
+ReactDOM.render((
+    <div style={{ position: "absolute", width: "100%", height: "100%" }}>
+        <Viewer />
+    </div>),
+    document.getElementById('root')
+);

@@ -26,4 +26,12 @@
 .keyValuePair-td-value {
     display:inline-block;
     overflow: scroll;
+    img { 
+        max-height: 36px;
+        width: auto;
+    }
+    .videoBox-cont{
+        width: auto; 
+        max-height: 36px; 
+    }
 }

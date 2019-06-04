@@ -1,26 +1,29 @@
 import * as htmlToImage from "html-to-image";
-import { action, computed, IReactionDisposer, observable, reaction, Reaction, trace } from 'mobx';
+import { action, computed, IReactionDisposer, observable, reaction, runInAction, trace } from 'mobx';
 import { observer } from "mobx-react";
 import 'react-image-lightbox/style.css';
 import Measure from "react-measure";
 //@ts-ignore
 import { Document, Page } from "react-pdf";
 import 'react-pdf/dist/Page/AnnotationLayer.css';
+import { Id } from "../../../new_fields/FieldSymbols";
+import { makeInterface } from "../../../new_fields/Schema";
+import { Cast, FieldValue, NumCast } from "../../../new_fields/Types";
+import { ImageField, PdfField } from "../../../new_fields/URLField";
 import { RouteStore } from "../../../server/RouteStore";
 import { Utils } from '../../../Utils';
-import { Annotation } from './Annotation';
-import { FieldView, FieldViewProps } from './FieldView';
-import "./PDFBox.scss";
-import React = require("react");
-import { SelectionManager } from "../../util/SelectionManager";
-import { Cast, FieldValue, NumCast } from "../../../new_fields/Types";
-import { Opt } from "../../../new_fields/Doc";
+import { DocServer } from "../../DocServer";
 import { DocComponent } from "../DocComponent";
-import { makeInterface } from "../../../new_fields/Schema";
-import { positionSchema } from "./DocumentView";
-import { pageSchema } from "./ImageBox";
-import { ImageField, PdfField } from "../../../new_fields/URLField";
 import { InkingControl } from "../InkingControl";
+import { SearchBox } from "../SearchBox";
+import { Annotation } from './Annotation';
+import { positionSchema } from "./DocumentView";
+import { FieldView, FieldViewProps } from './FieldView';
+import { pageSchema } from "./ImageBox";
+import "./PDFBox.scss";
+var path = require('path');
+import React = require("react");
+import { ContextMenu } from "../ContextMenu";
 
 /** ALSO LOOK AT: Annotation.tsx, Sticky.tsx
  * This method renders PDF and puts all kinds of functionalities such as annotation, highlighting, 
@@ -53,10 +56,12 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     public static LayoutString() { return FieldView.LayoutString(PDFBox); }
 
     private _mainDiv = React.createRef<HTMLDivElement>();
+    private renderHeight = 2400;
 
     @observable private _renderAsSvg = true;
+    @observable private _alt = false;
 
-    private _reactionDisposer: Opt<IReactionDisposer>;
+    private _reactionDisposer?: IReactionDisposer;
 
     @observable private _perPageInfo: Object[] = []; //stores pageInfo
     @observable private _pageInfo: any = { area: [], divs: [], anno: [] }; //divs is array of objects linked to anno
@@ -65,27 +70,25 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     @observable private _interactive: boolean = false;
     @observable private _loaded: boolean = false;
 
-    @computed private get curPage() { return FieldValue(this.Document.curPage, 1); }
-    @computed private get thumbnailPage() { return Cast(this.props.Document.thumbnailPage, "number", -1); }
+    @computed private get curPage() { return NumCast(this.Document.curPage, 1); }
+    @computed private get thumbnailPage() { return NumCast(this.props.Document.thumbnailPage, -1); }
 
     componentDidMount() {
+        let wasSelected = this.props.isSelected();
         this._reactionDisposer = reaction(
-            () => [SelectionManager.SelectedDocuments().slice()],
+            () => [this.props.isSelected(), this.curPage],
             () => {
-                if (this.curPage > 0 && this.thumbnailPage > 0 && this.curPage !== this.thumbnailPage && !this.props.isSelected()) {
+                if (this.curPage > 0 && !this.props.isTopMost && this.curPage !== this.thumbnailPage && wasSelected && !this.props.isSelected()) {
                     this.saveThumbnail();
-                    this._interactive = true;
                 }
+                wasSelected = this._interactive = this.props.isSelected();
             },
             { fireImmediately: true });
 
     }
 
     componentWillUnmount() {
-        if (this._reactionDisposer) {
-            this._reactionDisposer();
-            this._reactionDisposer = undefined;
-        }
+        if (this._reactionDisposer) this._reactionDisposer();
     }
 
     /**
@@ -163,10 +166,8 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
         let index: any;
         this._pageInfo.divs.forEach((obj: any) => {
             obj.spans.forEach((element: any) => {
-                if (element === span) {
-                    if (!index) {
-                        index = this._pageInfo.divs.indexOf(obj);
-                    }
+                if (element === span && !index) {
+                    index = this._pageInfo.divs.indexOf(obj);
                 }
             });
         });
@@ -216,14 +217,15 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
             if (e.altKey) {
                 this._alt = true;
             } else {
-                if (e.metaKey)
+                if (e.metaKey) {
                     e.stopPropagation();
+                }
             }
             document.removeEventListener("pointerup", this.onPointerUp);
             document.addEventListener("pointerup", this.onPointerUp);
         }
         if (this.props.isSelected() && e.buttons === 2) {
-            this._alt = true;
+            runInAction(() => this._alt = true);
             document.removeEventListener("pointerup", this.onPointerUp);
             document.addEventListener("pointerup", this.onPointerUp);
         }
@@ -243,23 +245,28 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     }
 
 
-
     @action
     saveThumbnail = () => {
+        this.props.Document.thumbnailPage = FieldValue(this.Document.curPage, -1);
         this._renderAsSvg = false;
         setTimeout(() => {
+            runInAction(() => this._smallRetryCount = this._mediumRetryCount = this._largeRetryCount = 0);
             let nwidth = FieldValue(this.Document.nativeWidth, 0);
             let nheight = FieldValue(this.Document.nativeHeight, 0);
-            htmlToImage.toPng(this._mainDiv.current!, { width: nwidth, height: nheight, quality: 1 })
+            htmlToImage.toPng(this._mainDiv.current!, { width: nwidth, height: nheight, quality: 0.8 })
                 .then(action((dataUrl: string) => {
-                    this.props.Document.thumbnail = new ImageField(new URL(dataUrl));
-                    this.props.Document.thumbnailPage = FieldValue(this.Document.curPage, -1);
-                    this._renderAsSvg = true;
+                    SearchBox.convertDataUri(dataUrl, "icon" + this.Document[Id] + "_" + this.curPage).then((returnedFilename) => {
+                        if (returnedFilename) {
+                            let url = DocServer.prepend(returnedFilename);
+                            this.props.Document.thumbnail = new ImageField(new URL(url));
+                        }
+                        runInAction(() => this._renderAsSvg = true);
+                    })
                 }))
                 .catch(function (error: any) {
                     console.error('oops, something went wrong!', error);
                 });
-        }, 250);
+        }, 1250);
     }
 
     @action
@@ -279,33 +286,34 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
         //      so this design is flawed.
         var nativeWidth = FieldValue(this.Document.nativeWidth, 0);
         if (!FieldValue(this.Document.nativeHeight, 0)) {
-            var nativeHeight = nativeWidth * r.entry.height / r.entry.width;
+            var nativeHeight = nativeWidth * r.offset.height / r.offset.width;
             this.props.Document.height = nativeHeight / nativeWidth * FieldValue(this.Document.width, 0);
             this.props.Document.nativeHeight = nativeHeight;
         }
     }
-    renderHeight = 2400;
     @computed
     get pdfPage() {
-        return <Page height={this.renderHeight} pageNumber={this.curPage} onLoadSuccess={this.onLoaded} />
+        return <Page height={this.renderHeight} renderTextLayer={false} pageNumber={this.curPage} onLoadSuccess={this.onLoaded} />;
     }
     @computed
     get pdfContent() {
-        let page = this.curPage;
-        const renderHeight = 2400;
         let pdfUrl = Cast(this.props.Document[this.props.fieldKey], PdfField);
-        let xf = FieldValue(this.Document.nativeHeight, 0) / renderHeight;
-        let body = NumCast(this.props.Document.nativeHeight) ?
-            this.pdfPage :
-            <Measure onResize={this.setScaling}>
+        if (!pdfUrl) {
+            return <p>No pdf url to render</p>;
+        }
+        let pdfpage = this.pdfPage;
+        let body = this.Document.nativeHeight ?
+            pdfpage :
+            <Measure offset onResize={this.setScaling}>
                 {({ measureRef }) =>
                     <div className="pdfBox-page" ref={measureRef}>
-                        {this.pdfPage}
+                        {pdfpage}
                     </div>
                 }
             </Measure>;
+        let xf = (this.Document.nativeHeight || 0) / this.renderHeight;
         return <div className="pdfBox-contentContainer" key="container" style={{ transform: `scale(${xf}, ${xf})` }}>
-            <Document file={window.origin + RouteStore.corsProxy + `/${pdfUrl}`} renderMode={this._renderAsSvg ? "svg" : "canvas"}>
+            <Document file={window.origin + RouteStore.corsProxy + `/${pdfUrl.url}`} renderMode={this._renderAsSvg || this.props.isTopMost ? "svg" : "canvas"}>
                 {body}
             </Document>
         </div >;
@@ -313,47 +321,81 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
 
     @computed
     get pdfRenderer() {
-        let proxy = this._loaded ? (null) : this.imageProxyRenderer;
         let pdfUrl = Cast(this.props.Document[this.props.fieldKey], PdfField);
-        if ((!this._interactive && proxy) || !pdfUrl) {
+        let proxy = this.imageProxyRenderer;
+        if ((!this._interactive && proxy && (!this.props.ContainingCollectionView || !this.props.ContainingCollectionView.props.isTopMost)) || !pdfUrl) {
             return proxy;
         }
         return [
+            proxy,
             this._pageInfo.area.filter(() => this._pageInfo.area).map((element: any) => element),
             this._currAnno.map((element: any) => element),
-            this.pdfContent,
-            proxy
+            this.pdfContent
         ];
     }
+
+    choosePath(url: URL) {
+        if (url.protocol === "data" || url.href.indexOf(window.location.origin) === -1)
+            return url.href;
+        let ext = path.extname(url.href);
+        return url.href.replace(ext, this._curSuffix + ext);
+    }
+    @observable _smallRetryCount = 1;
+    @observable _mediumRetryCount = 1;
+    @observable _largeRetryCount = 1;
+    @action retryPath = () => {
+        if (this._curSuffix === "_s") this._smallRetryCount++;
+        if (this._curSuffix === "_m") this._mediumRetryCount++;
+        if (this._curSuffix === "_l") this._largeRetryCount++;
+    }
+    @action onError = () => {
+        let timeout = this._curSuffix === "_s" ? this._smallRetryCount : this._curSuffix === "_m" ? this._mediumRetryCount : this._largeRetryCount;
+        if (timeout < 10)
+            setTimeout(this.retryPath, Math.min(10000, timeout * 5));
+    }
+    _curSuffix = "_m";
 
     @computed
     get imageProxyRenderer() {
         let thumbField = this.props.Document.thumbnail;
-        if (thumbField) {
-            let path = this.thumbnailPage !== this.curPage ? "https://image.flaticon.com/icons/svg/66/66163.svg" :
-                thumbField instanceof ImageField ? thumbField.url.href : "http://cs.brown.edu/people/bcz/prairie.jpg";
-            return <img src={path} width="100%" />;
+        if (thumbField && this._renderAsSvg && NumCast(this.props.Document.thumbnailPage, 0) === this.Document.curPage) {
+
+            // let transform = this.props.ScreenToLocalTransform().inverse();
+            let pw = typeof this.props.PanelWidth === "function" ? this.props.PanelWidth() : typeof this.props.PanelWidth === "number" ? (this.props.PanelWidth as any) as number : 50;
+            // var [sptX, sptY] = transform.transformPoint(0, 0);
+            // let [bptX, bptY] = transform.transformPoint(pw, this.props.PanelHeight());
+            // let w = bptX - sptX;
+
+            let path = thumbField instanceof ImageField ? thumbField.url.href : "http://cs.brown.edu/people/bcz/prairie.jpg";
+            // this._curSuffix = "";
+            // if (w > 20) {
+            let field = thumbField;
+            // if (w < 100 && this._smallRetryCount < 10) this._curSuffix = "_s";
+            // else if (w < 400 && this._mediumRetryCount < 10) this._curSuffix = "_m";
+            // else if (this._largeRetryCount < 10) this._curSuffix = "_l";
+            if (field instanceof ImageField) path = this.choosePath(field.url);
+            // }
+            return <img className="pdfBox-thumbnail" key={path + (this._mediumRetryCount).toString()} src={path} onError={this.onError} />;
         }
         return (null);
     }
-    @observable _alt = false;
-    @action
-    onKeyDown = (e: React.KeyboardEvent) => {
-        if (e.key === "Alt") {
-            this._alt = true;
-        }
-    }
-    @action
-    onKeyUp = (e: React.KeyboardEvent) => {
-        if (e.key === "Alt") {
-            this._alt = false;
+    @action onKeyDown = (e: React.KeyboardEvent) => e.key === "Alt" && (this._alt = true);
+    @action onKeyUp = (e: React.KeyboardEvent) => e.key === "Alt" && (this._alt = false);
+    onContextMenu = (e: React.MouseEvent): void => {
+        let field = Cast(this.Document[this.props.fieldKey], PdfField);
+        if (field) {
+            let url = field.url.href;
+            ContextMenu.Instance.addItem({
+                description: "Copy path", event: () => {
+                    Utils.CopyText(url);
+                }, icon: "expand-arrows-alt"
+            });
         }
     }
     render() {
-        trace();
         let classname = "pdfBox-cont" + (this.props.isSelected() && !InkingControl.Instance.selectedTool && !this._alt ? "-interactive" : "");
         return (
-            <div className={classname} tabIndex={0} ref={this._mainDiv} onPointerDown={this.onPointerDown} onKeyDown={this.onKeyDown} onKeyUp={this.onKeyUp} >
+            <div className={classname} tabIndex={0} ref={this._mainDiv} onPointerDown={this.onPointerDown} onKeyDown={this.onKeyDown} onKeyUp={this.onKeyUp} onContextMenu={this.onContextMenu} >
                 {this.pdfRenderer}
             </div >
         );

@@ -40,18 +40,18 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
         let l = this.props.LinkDocs;
         let a = this.props.A;
         let b = this.props.B;
-        let x1 = NumCast(a.x) + (BoolCast(a.isMinimized, false) ? 5 : NumCast(a.width) / 2);
-        let y1 = NumCast(a.y) + (BoolCast(a.isMinimized, false) ? 5 : NumCast(a.height) / 2);
-        let x2 = NumCast(b.x) + (BoolCast(b.isMinimized, false) ? 5 : NumCast(b.width) / 2);
-        let y2 = NumCast(b.y) + (BoolCast(b.isMinimized, false) ? 5 : NumCast(b.height) / 2);
+        let x1 = NumCast(a.x) + (BoolCast(a.isMinimized, false) ? 5 : NumCast(a.width) / NumCast(a.zoomBasis, 1) / 2);
+        let y1 = NumCast(a.y) + (BoolCast(a.isMinimized, false) ? 5 : NumCast(a.height) / NumCast(a.zoomBasis, 1) / 2);
+        let x2 = NumCast(b.x) + (BoolCast(b.isMinimized, false) ? 5 : NumCast(b.width) / NumCast(b.zoomBasis, 1) / 2);
+        let y2 = NumCast(b.y) + (BoolCast(b.isMinimized, false) ? 5 : NumCast(b.height) / NumCast(b.zoomBasis, 1) / 2);
         return (
             <>
-                <line key={Utils.GenerateGuid()} className="collectionfreeformlinkview-linkLine"
-                    style={{ strokeWidth: `${l.length * 5}` }}
+                <line key={"linkLine"} className="collectionfreeformlinkview-linkLine"
+                    style={{ strokeWidth: `${35 * l.length / 2}` }}
                     x1={`${x1}`} y1={`${y1}`}
                     x2={`${x2}`} y2={`${y2}`} />
-                <circle key={Utils.GenerateGuid()} className="collectionfreeformlinkview-linkLine"
-                    cx={(x1 + x2) / 2} cy={(y1 + y2) / 2} r={10} onPointerDown={this.onPointerDown} />
+                <circle key={"linkCircle"} className="collectionfreeformlinkview-linkCircle"
+                    cx={(x1 + x2) / 2} cy={(y1 + y2) / 2} r={8} onPointerDown={this.onPointerDown} />
             </>
         );
     }

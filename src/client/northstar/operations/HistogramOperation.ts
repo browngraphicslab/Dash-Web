@@ -30,7 +30,7 @@ export class HistogramOperation extends BaseOperation implements IBaseFilterCons
     @observable public V: AttributeTransformationModel;
     @observable public SchemaName: string;
     @observable public QRange: QuantitativeBinRange | undefined;
-    @computed public get Schema() { return CurrentUserUtils.GetNorthstarSchema(this.SchemaName); }
+    public get Schema() { return CurrentUserUtils.GetNorthstarSchema(this.SchemaName); }
 
     constructor(schemaName: string, x: AttributeTransformationModel, y: AttributeTransformationModel, v: AttributeTransformationModel, normalized?: number) {
         super();
@@ -41,7 +41,11 @@ export class HistogramOperation extends BaseOperation implements IBaseFilterCons
         this.SchemaName = schemaName;
     }
 
-    Copy(): HistogramOperation {
+    public static Duplicate(op: HistogramOperation) {
+
+        return new HistogramOperation(op.SchemaName, op.X, op.Y, op.V, op.Normalization);
+    }
+    public Copy(): HistogramOperation {
         return new HistogramOperation(this.SchemaName, this.X, this.Y, this.V, this.Normalization);
     }
 
@@ -50,7 +54,7 @@ export class HistogramOperation extends BaseOperation implements IBaseFilterCons
     }
 
 
-    @computed public get FilterModels() {
+    public get FilterModels() {
         return this.BarFilterModels;
     }
     @action
@@ -65,15 +69,13 @@ export class HistogramOperation extends BaseOperation implements IBaseFilterCons
     @computed
     public get FilterString(): string {
         if (this.OverridingFilters.length > 0) {
-            return "(" + this.OverridingFilters.filter(fm => fm != null).map(fm => fm.ToPythonString()).join(" || ") + ")";
+            return "(" + this.OverridingFilters.filter(fm => fm !== null).map(fm => fm.ToPythonString()).join(" || ") + ")";
         }
         let filterModels: FilterModel[] = [];
         return FilterModel.GetFilterModelsRecursive(this, new Set<IBaseFilterProvider>(), filterModels, true);
     }
 
-    @computed
     public get BrushString(): string[] {
-        trace();
         let brushes: string[] = [];
         this.BrushLinks.map(brushLink => {
             let brushHistogram = Cast(brushLink.b.data, HistogramField);
@@ -89,8 +91,9 @@ export class HistogramOperation extends BaseOperation implements IBaseFilterCons
     @action
     public DrillDown(up: boolean) {
         if (!up) {
-            if (!this.BarFilterModels.length)
+            if (!this.BarFilterModels.length) {
                 return;
+            }
             this._stackedFilters.push(this.BarFilterModels.map(f => f));
             this.OverridingFilters.length = 0;
             this.OverridingFilters.push(...this._stackedFilters[this._stackedFilters.length - 1]);

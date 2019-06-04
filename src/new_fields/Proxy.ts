@@ -3,8 +3,9 @@ import { FieldWaiting } from "./Doc";
 import { primitive, serializable } from "serializr";
 import { observable, action } from "mobx";
 import { DocServer } from "../client/DocServer";
-import { RefField, Id } from "./RefField";
-import { ObjectField, Copy } from "./ObjectField";
+import { RefField } from "./RefField";
+import { ObjectField } from "./ObjectField";
+import { Id, Copy, ToScriptString } from "./FieldSymbols";
 
 @Deserializable("proxy")
 export class ProxyField<T extends RefField> extends ObjectField {
@@ -24,6 +25,10 @@ export class ProxyField<T extends RefField> extends ObjectField {
     [Copy]() {
         if (this.cache) return new ProxyField<T>(this.cache);
         return new ProxyField<T>(this.fieldId);
+    }
+
+    [ToScriptString]() {
+        return "invalid";
     }
 
     @serializable(primitive())

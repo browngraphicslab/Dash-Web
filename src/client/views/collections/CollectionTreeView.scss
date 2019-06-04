@@ -23,34 +23,55 @@
         margin: 5px 0;
     }
 
-    .collection-child {
-        margin-top: 10px;
-        margin-bottom: 10px;
-    }
 
     .no-indent {
         padding-left: 0;
     }
 
     .bullet {
-        position: absolute;
-        width: 1.5em;
-        display: inline-block;
+        float: left;
+        position: relative;
+        width: 15px;
+        display: block;
         color: $intermediate-color;
         margin-top: 3px;
-        transform: scale(1.3,1.3);
-    }
-
-    .coll-title {
-        width:max-content;
-        display: block;
-        font-size: 24px;
+        transform: scale(1.3, 1.3);
     }
 
     .docContainer {
         margin-left: 10px;
         display: block;
-        width: max-content;
+        // width:100%;//width: max-content;
+    }
+
+    .docContainer:hover {
+        .treeViewItem-openRight {
+            display: inline-block;
+            // display: inline;
+            svg {
+                display:block;
+                padding:0px;
+                margin: 0px;
+            }
+        }
+    }
+
+
+    .editableView-container {
+        font-weight: bold;
+    }
+
+    .delete-button {
+        color: $intermediate-color;
+        // float: right;
+        margin-left: 15px;
+        // margin-top: 3px;
+        display: inline;
+    }
+
+    .treeViewItem-openRight {
+        margin-left: 5px;
+        display: none;
     }
 
     .docContainer:hover {
@@ -60,11 +81,19 @@
         }
     }
 
-    .delete-button {
-        color: $intermediate-color;
-        // float: right;
-        margin-left: 15px;
-        // margin-top: 3px;
-        display: inline;
+    .coll-title {
+        width: max-content;
+        display: block;
+        font-size: 24px;
+    }
+
+    .collection-child {
+        margin-top: 10px;
+        margin-bottom: 10px;
+    }
+
+    .collectionTreeView-keyHeader {
+        font-style: italic;
+        font-size: 8pt;
     }
 }

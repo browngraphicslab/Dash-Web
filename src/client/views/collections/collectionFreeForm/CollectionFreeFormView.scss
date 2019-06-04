@@ -25,6 +25,9 @@
         height: 100%;
         width: 100%;
     }
+    >.jsx-parser {
+        z-index:0;
+    }
 
     //nested freeform views
     // .collectionfreeformview-container {
@@ -37,7 +40,9 @@
     border-radius: $border-radius;
     box-sizing: border-box;
     position: absolute;
-    overflow: hidden;
+    .marqueeView {
+        overflow: hidden;
+    }
     top: 0;
     left: 0;
     width: 100%;
@@ -50,6 +55,10 @@
         position: inherit;
         height: 100%;
     }
+    
+    >.jsx-parser {
+        z-index:0;
+    }
 
     .formattedTextBox-cont {
         background: $light-color-secondary;
@@ -61,7 +70,10 @@
     border-radius: $border-radius;
     box-sizing: border-box;
     position:absolute;
-    overflow: hidden;
+    z-index: -1;
+    .marqueeView {
+        overflow: hidden;
+    }
     top: 0;
     left: 0;
     width: 100%;

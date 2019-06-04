@@ -1,0 +1,102 @@
+@import "globalCssVariables";
+
+.searchBox-bar {
+    height: 32px;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    padding-left: 2px;
+    padding-right: 2px;
+
+    .searchBox-input {
+        width: 130px;
+        -webkit-transition: width 0.4s;
+        transition: width 0.4s;
+        align-self: stretch;
+    }
+
+    .searchBox-input:focus {
+        width: 500px;
+        outline: 3px solid lightblue;
+    }
+
+    .searchBox-barChild {
+        flex: 0 1 auto;
+        margin-left: 2px;
+        margin-right: 2px;
+    }
+
+    .searchBox-filter {
+        align-self: stretch;
+    }
+
+    .searchBox-submit {
+        color: $dark-color;
+    }
+
+    .searchBox-submit:hover {
+        color: $main-accent;
+        transform: scale(1.05);
+        cursor: pointer;
+    }
+}
+
+.searchBox-results {
+    margin-left: 27px; //Is there a better way to do this?
+}
+
+.filter-form {
+    background: $dark-color;
+    height: 400px;
+    width: 400px;
+    position: relative;
+    right: 1px;
+    color: $light-color;
+    padding: 10px;
+    flex-direction: column;
+}
+
+#header {
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-size: 100%;
+    height: 40px;
+}
+
+#option {
+    height: 20px;
+}
+
+.searchBox-results {
+    top: 300px;
+    display: flex;
+    flex-direction: column;
+
+    .search-item {
+        width: 500px;
+        height: 50px;
+        background: $light-color-secondary;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: all 0.1s;
+        border-width: 0.11px;
+        border-style: none;
+        border-color: $intermediate-color;
+        border-bottom-style: solid;
+        padding: 10px;
+        white-space: nowrap;
+        font-size: 13px;
+    }
+
+    .search-item:hover {
+        transition: all 0.1s;
+        background: $lighter-alt-accent;
+    }
+
+    .search-title {
+        text-transform: uppercase;
+        text-align: left;
+        width: 8vw;
+    }
+}

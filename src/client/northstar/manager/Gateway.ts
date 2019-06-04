@@ -23,6 +23,18 @@ export class Gateway {
         }
     }
 
+    public async PostSchema(csvdata: string, schemaname: string): Promise<string> {
+        try {
+            const json = await this.MakePostJsonRequest("postSchema", { csv: csvdata, schema: schemaname });
+            // const cat = Catalog.fromJS(json);
+            // return cat;
+            return json;
+        }
+        catch (error) {
+            throw new Error("can not reach northstar's backend");
+        }
+    }
+
     public async GetSchema(pathname: string, schemaname: string): Promise<Catalog> {
         try {
             const json = await this.MakeGetRequest("schema", undefined, { path: pathname, schema: schemaname });
