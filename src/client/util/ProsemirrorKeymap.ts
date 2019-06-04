@@ -50,7 +50,7 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: 
     }
 
     if (type = schema.nodes.bullet_list) {
-        bind("Ctrl-b", wrapInList(type));
+        bind("Ctrl-.", wrapInList(type));
     }
     if (type = schema.nodes.ordered_list) {
         bind("Ctrl-n", wrapInList(type));

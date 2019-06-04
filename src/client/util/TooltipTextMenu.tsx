@@ -68,12 +68,12 @@ export class TooltipTextMenu {
         library.add(faListUl);
         //add the buttons to the tooltip
         let items = [
-            { command: toggleMark(schema.marks.strong), dom: this.icon("B", "strong") },
-            { command: toggleMark(schema.marks.em), dom: this.icon("i", "em") },
-            { command: toggleMark(schema.marks.underline), dom: this.icon("U", "underline") },
-            { command: toggleMark(schema.marks.strikethrough), dom: this.icon("S", "strikethrough") },
-            { command: toggleMark(schema.marks.superscript), dom: this.icon("s", "superscript") },
-            { command: toggleMark(schema.marks.subscript), dom: this.icon("s", "subscript") },
+            { command: toggleMark(schema.marks.strong), dom: this.icon("B", "strong", "Bold") },
+            { command: toggleMark(schema.marks.em), dom: this.icon("i", "em", "Italic") },
+            { command: toggleMark(schema.marks.underline), dom: this.icon("U", "underline", "Underline") },
+            { command: toggleMark(schema.marks.strikethrough), dom: this.icon("S", "strikethrough", "Strikethrough") },
+            { command: toggleMark(schema.marks.superscript), dom: this.icon("s", "superscript", "Superscript") },
+            { command: toggleMark(schema.marks.subscript), dom: this.icon("s", "subscript", "Subscript") },
             // { command: wrapInList(schema.nodes.bullet_list), dom: this.icon(":", "bullets") },
             // { command: wrapInList(schema.nodes.ordered_list), dom: this.icon("1)", "bullets") },
             // { command: lift, dom: this.icon("<", "lift") },
@@ -349,10 +349,10 @@ export class TooltipTextMenu {
     }
 
     // Helper function to create menu icons
-    icon(text: string, name: string) {
+    icon(text: string, name: string, title: string = name) {
         let span = document.createElement("span");
         span.className = name + " menuicon";
-        span.title = name;
+        span.title = title;
         span.textContent = text;
         span.style.color = "white";
         return span;
