@@ -6,13 +6,22 @@ import { faCaretUp, faFilePdf, faFilm, faImage, faObjectGroup, faStickyNote } fr
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Cast } from "../../new_fields/Types";
 import { FieldView, FieldViewProps } from './nodes/FieldView';
-import { computed } from "mobx";
+import { computed, observable } from "mobx";
 import { IconField } from "../../new_fields/IconField";
+import { listSpec } from "../../new_fields/Schema";
+import { Transform } from "../util/Transform";
+import { ObjectField } from "../../new_fields/ObjectField";
+import { RichTextField } from "../../new_fields/RichTextField";
 import { SetupDrag } from "../util/DragManager";
 
 
 export interface SearchProps {
     doc: Doc;
+}
+
+export interface SearchItemProps {
+    doc: Doc;
+    subitems: FieldViewProps;
 }
 
 library.add(faCaretUp);
@@ -21,32 +30,52 @@ library.add(faStickyNote);
 library.add(faFilePdf);
 library.add(faFilm);
 
-export class SearchItem extends React.Component<SearchProps> {
+export class SearchItem extends React.Component<SearchItemProps> {
+
+    @observable _selected: boolean = false;
 
     onClick = () => {
         DocumentManager.Instance.jumpToDocument(this.props.doc);
     }
 
-    //needs help
-    // @computed get layout(): string { const field = Cast(this.props.doc[fieldKey], IconField); return field ? field.icon : "<p>Error loading icon data</p>"; }
+    containingCollection(): string {
+        let docView = DocumentManager.Instance.getDocumentView(this.props.doc);
+        if (docView) {
+            let containerView = docView.props.ContainingCollectionView;
+            if (containerView) {
+                let container = containerView.props.Document;
+                const field = Cast(container.title, RichTextField);
+                return field ? field.Data : "<p>Error loading icon data</p>";
+            }
+        }
+        return "None";
+    }
 
+    containingCollectionView() {
+        let docView = DocumentManager.Instance.getDocumentView(this.props.doc);
+        if (docView) {
+            let containerView = docView.props.ContainingCollectionView;
+            if (containerView) {
+                return containerView.props.Document;
+            }
+        }
 
-    public static DocumentIcon(layout: string) {
-        let button = layout.indexOf("PDFBox") !== -1 ? faFilePdf :
-            layout.indexOf("ImageBox") !== -1 ? faImage :
-                layout.indexOf("Formatted") !== -1 ? faStickyNote :
-                    layout.indexOf("Video") !== -1 ? faFilm :
-                        layout.indexOf("Collection") !== -1 ? faObjectGroup :
+        return this.props.doc;
+    }
+
+    public DocumentIcon() {
+        let layoutresult = Cast(this.props.doc.layout, "string", "");
+
+        //TODO: images showing up as collections because the layout is collectionview
+        console.log(layoutresult)
+
+        let button = layoutresult.indexOf("PDFBox") !== -1 ? faFilePdf :
+            layoutresult.indexOf("ImageBox") !== -1 ? faImage :
+                layoutresult.indexOf("Formatted") !== -1 ? faStickyNote :
+                    layoutresult.indexOf("Video") !== -1 ? faFilm :
+                        layoutresult.indexOf("Collection") !== -1 ? faObjectGroup :
                             faCaretUp;
-        return <FontAwesomeIcon icon={button} className="documentView-minimizedIcon" />;
-    }
-    onPointerEnter = (e: React.PointerEvent) => {
-        this.props.doc.libraryBrush = true;
-        Doc.SetOnPrototype(this.props.doc, "protoBrush", true);
-    }
-    onPointerLeave = (e: React.PointerEvent) => {
-        this.props.doc.libraryBrush = false;
-        Doc.SetOnPrototype(this.props.doc, "protoBrush", false);
+        return <FontAwesomeIcon icon={button} size="2x" />;
     }
 
     collectionRef = React.createRef<HTMLDivElement>();
@@ -59,14 +88,62 @@ export class SearchItem extends React.Component<SearchProps> {
             return Doc.MakeAlias(doc);
         }
     }
+
+    select = () => {
+        // console.log('moused');
+        // console.log("before:", this.props.doc[Id], this._selected)
+        this._selected = !this._selected;
+        // console.log("after:", this.props.doc[Id], this._selected)
+    }
+
+    linkCount = () => {
+        let linkToSize = Cast(this.props.doc.linkedToDocs, listSpec(Doc), []).length;
+        let linkFromSize = Cast(this.props.doc.linkedFromDocs, listSpec(Doc), []).length;
+        let linkCount = linkToSize + linkFromSize;
+        console.log(linkCount)
+        return linkCount;
+    }
+
+    //taken from collectionschemaview, counld show doc preview to the left of the results. not sure if this should go in here
+    // get previewDocument(): Doc | undefined {
+    //     const children = Cast(this.props.doc[this.props.subitems.fieldKey], listSpec(Doc), []);
+    //     const selected = children.length > this._selectedIndex ? FieldValue(children[this._selectedIndex]) : undefined;
+    //     return selected ? (this.previewScript ? FieldValue(Cast(selected[this.previewScript], Doc)) : selected) : undefined;
+    // }
+
+    // get previewRegionHeight() { return 200; }
+    // get previewRegionWidth() { return 300; }
+    // private previewDocNativeWidth = () => Cast(this.previewDocument!.nativeWidth, "number", this.previewRegionWidth);
+    // private previewDocNativeHeight = () => Cast(this.previewDocument!.nativeHeight, "number", this.previewRegionHeight);
+    // private previewContentScaling = () => {
+    //     let wscale = this.previewRegionWidth / (this.previewDocNativeWidth() ? this.previewDocNativeWidth() : this.previewRegionWidth);
+    //     if (wscale * this.previewDocNativeHeight() > this.previewRegionHeight) {
+    //         return this.previewRegionHeight / (this.previewDocNativeHeight() ? this.previewDocNativeHeight() : this.previewRegionHeight);
+    //     }
+    //     return wscale;
+    // }
+    // private previewPanelWidth = () => this.previewDocNativeWidth() * this.previewContentScaling();
+    // private previewPanelHeight = () => this.previewDocNativeHeight() * this.previewContentScaling();
+    // get previewPanelCenteringOffset() { return (this.previewRegionWidth - this.previewDocNativeWidth() * this.previewContentScaling()) / 2; }
+    // getPreviewTransform = (): Transform => this.props.ScreenToLocalTransform().translate(
+    //     - this.borderWidth - this.DIVIDER_WIDTH - this.tableWidth - this.previewPanelCenteringOffset,
+    //     - this.borderWidth).scale(1 / this.previewContentScaling())
+
+
     render() {
         return (
-            <div className="search-item" ref={this.collectionRef} id="result"
-                onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}
-                onClick={this.onClick} onPointerDown={SetupDrag(this.collectionRef, this.startDocDrag)} >
-                <div className="search-title" id="result" >title: {this.props.doc.title}</div>
-                {/* <div className="search-type" id="result" >Type: {this.props.doc.layout}</div> */}
-                {/* <div className="search-type" >{SearchItem.DocumentIcon(this.layout)}</div> */}
+            <div>
+                <div className="search-item" onMouseOver={this.select} onMouseOut={this.select} ref={this.collectionRef} id="result" onClick={this.onClick} onPointerDown={SetupDrag(this.collectionRef, this.startDocDrag)} >
+                    <div className="search-title" id="result" >title: {this.props.doc.title}</div>
+                    <div className="search-info">
+                        <div className="link-count">{this.linkCount()}</div>
+                        <div className="search-type" >{this.DocumentIcon()}</div>
+                    </div>
+                </div>
+                <div className="expanded-result" style={this._selected ? { display: "flex" } : { display: "none" }}>
+                    <div className="collection-label">Collection: {this.containingCollection()}</div>
+                    <div className="preview"></div>
+                </div>
             </div>
         );
     }
