@@ -9,7 +9,7 @@ import { CollectionSubView, SubCollectionViewProps } from "../collections/Collec
 import { DocumentViewProps, DocumentView } from "./DocumentView";
 
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
-import { Doc, Self } from "../../../new_fields/Doc";
+import { Doc, Self, DocListCastAsync } from "../../../new_fields/Doc";
 import { Document, listSpec } from "../../../new_fields/Schema";
 import { FieldValue, Cast } from "../../../new_fields/Types";
 import { emptyStatement } from "babel-types";
@@ -33,7 +33,8 @@ export class Timeline extends CollectionSubView(Document) {
     private _currentBarX: number = 0;
     @observable private _onBar: Boolean = false;
     @observable private _keys = ["x", "y"];
-    @observable private _frames: Doc[] = [];
+    @observable private _frames: List<Doc>;
+    @observable private _kfDoc = []; //list of _keys
 
 
     @action
@@ -57,7 +58,7 @@ export class Timeline extends CollectionSubView(Document) {
                     let exists: boolean = false;
                     let time: number = this._currentBarX; //time that indicates what frame you are in. Whole numbers. 
                     // let frames: List<Doc>; //don't know if this should be an instance...
-                    this._keyFrames.forEach(kf => { //checks if there is a keyframe that is tracking htis document. 
+                    this._keyFrames.forEach(kf => { //checks if there is a keyframe that is tracking this document. 
                         if (kf.doc.document === element) {
                             keyFrame = kf;
                             this._frames = Cast(keyFrame.doc.frames, listSpec(Doc))!;
@@ -122,32 +123,28 @@ export class Timeline extends CollectionSubView(Document) {
         //GOOD EXAMPLES: collection subview has childdox getter : gets the data part (field key)
         //to get keyframes out of document can also use similar code
         let keyFrame: KeyFrame; //keyframe reference
-        //potentially correct looping??
         const docs = await DocListCastAsync(this.props.Document[this.props.fieldKey]);
+        const kfs = await DocListCastAsync(this._keyFrames[]); //this should be something different...?
         for (let i in docs) {
             let oneDoc = docs[i];
-            let kfs = this._keyFrames[i]; //what is this doing (is this where child getter comes in?)
-        }
-        //end of potentially correct looping
-        this._keyFrames.forEach(kf => { //checks if there is a keyframe that is tracking this document 
-            if (kf.doc.document === element) {
-                keyFrame = kf;
-                this._frames = Cast(keyFrame.doc.frames, listSpec(Doc))!;
-            }
-        },
-            this._keys.forEach((key) => { //for each key
-                if (keyFrame.doc.frames !== undefined) {
-                    this._frames.forEach(frame => {
-                        if (frame.time === time) {
-                            keyFrame.doc[key] = frame[key]; //set the doc's position to the frames' stored values
-                        }
-                    });
-                }
-            }
-    }
+            let oneKfs = this._keyFrames[i]; //use child getter if keyframes is list of keyframes (because collection is list of children)
 
-    get keyFrames() {
-        return Cast(this.props.Document[this.props.fieldKey], listSpec(Doc), []).filter(doc => KeyFrame);
+            this._keyFrames.forEach(kf => { //checks if there is a keyframe that is tracking this document 
+                if (kf.doc.document === element) {
+                    keyFrame = kf;
+                    this._frames = Cast(keyFrame.doc.frames, listSpec(Doc))!;
+                }
+            },
+                this._keys.forEach((key) => { //for each key
+                    if (keyFrame.doc.frames !== undefined) {
+                        this._frames.forEach(frame => {
+                            if (frame.time === time) {
+                                keyFrame.doc[key] = frame[key]; //set the doc's position to the frames' stored values
+                            }
+                        });
+                    }
+                }
+        }
     }
 
     @action
