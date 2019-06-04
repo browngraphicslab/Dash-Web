@@ -13,6 +13,10 @@ import { PDFBox } from "../nodes/PDFBox";
 import { NumCast, FieldValue } from "../../../new_fields/Types";
 import { SearchBox } from "../SearchBox";
 import { Utils } from "../../../Utils";
+import { Id } from "../../../new_fields/FieldSymbols";
+import { DocServer } from "../../DocServer";
+import { ImageField } from "../../../new_fields/URLField";
+var path = require("path");
 
 interface IPDFViewerProps {
     url: string;
@@ -24,6 +28,7 @@ interface IPDFViewerProps {
 @observer
 export class PDFViewer extends React.Component<IPDFViewerProps> {
     @observable _pdf: Opt<Pdfjs.PDFDocumentProxy>;
+    private _mainDiv = React.createRef<HTMLDivElement>();
 
     @action
     componentDidMount() {
@@ -38,8 +43,8 @@ export class PDFViewer extends React.Component<IPDFViewerProps> {
 
     render() {
         return (
-            <div>
-                <Viewer pdf={this._pdf} loaded={this.props.loaded} scrollY={this.props.scrollY} parent={this.props.parent} />
+            <div ref={this._mainDiv}>
+                <Viewer pdf={this._pdf} loaded={this.props.loaded} scrollY={this.props.scrollY} parent={this.props.parent} mainCont={this._mainDiv} />
             </div>
         );
     }
@@ -50,6 +55,7 @@ interface IViewerProps {
     loaded: (nw: number, nh: number) => void;
     scrollY: number;
     parent: PDFBox;
+    mainCont: React.RefObject<HTMLDivElement>;
 }
 
 @observer
@@ -61,20 +67,19 @@ class Viewer extends React.Component<IViewerProps> {
     @observable private _endIndex: number = 1;
     @observable private _loaded: boolean = false;
     @observable private _pdf: Opt<Pdfjs.PDFDocumentProxy>;
-    @observable private _renderAsSvg = true;
+    @observable private _renderAsSvg = false;
 
     private _pageBuffer: number = 1;
     private _reactionDisposer?: IReactionDisposer;
-    private _mainDiv = React.createRef<HTMLDivElement>();
 
-    @computed private get thumbnailPage() { return NumCast(this.props.parent.Document.thumbnailPage, -1); }
+    @computed private get thumbnailY() { return NumCast(this.props.parent.Document.thumbnailY, -1); }
 
-    componentDidMount() {
+    componentDidMount = () => {
         let wasSelected = this.props.parent.props.isSelected();
         this._reactionDisposer = reaction(
             () => [this.props.parent.props.isSelected(), this.startIndex],
             () => {
-                if (this.startIndex > 0 && !this.props.parent.props.isTopMost && this.startIndex !== this.thumbnailPage && wasSelected && !this.props.parent.props.isSelected()) {
+                if (this.startIndex >= 0 && !this.props.parent.props.isTopMost && this.scrollY !== this.thumbnailY && wasSelected && !this.props.parent.props.isSelected()) {
                     this.saveThumbnail();
                 }
                 wasSelected = this.props.parent.props.isSelected();
@@ -86,19 +91,51 @@ class Viewer extends React.Component<IViewerProps> {
     }
 
     saveThumbnail = () => {
-        this.props.parent.props.Document.thumbnailPage = FieldValue(this.props.parent.Document.curPage, -1);
+        this.props.parent.props.Document.thumbnailY = FieldValue(this.scrollY, 0);
         this._renderAsSvg = false;
         setTimeout(() => {
             let nwidth = FieldValue(this.props.parent.Document.nativeWidth, 0);
-            let nheight = FieldValue(this.props.parent.Document.nativeHeight, 0);
-            htmlToImage.toPng(this._mainDiv.current!, { width: nwidth, height: nheight, quality: 0.8 })
+            htmlToImage.toPng(this.props.mainCont.current!, { width: nwidth, height: nwidth, quality: 0.8, })
                 .then(action((dataUrl: string) => {
-                }));
+                    SearchBox.convertDataUri(dataUrl, `icon${this.props.parent.Document[Id]}_${this.startIndex}`).then((returnedFilename) => {
+                        if (returnedFilename) {
+                            let url = DocServer.prepend(returnedFilename);
+                            this.props.parent.props.Document.thumbnail = new ImageField(new URL(url));
+                        }
+                        runInAction(() => this._renderAsSvg = true);
+                    });
+                }))
+                .catch(function (error: any) {
+                    console.error("Oops, something went wrong!", error);
+                });
         }, 1250);
     }
 
     @computed get scrollY(): number {
         return this.props.scrollY;
+    }
+
+    @computed get imageProxyRenderer() {
+        let thumbField = this.props.parent.props.Document.thumbnail;
+        if (thumbField && this._renderAsSvg && NumCast(this.props.parent.props.Document.startY, 0) === this.scrollY) {
+            let pw = typeof this.props.parent.props.PanelWidth === "function" ? this.props.parent.props.PanelWidth() : typeof this.props.parent.props.PanelWidth === "number" ? (this.props.parent.props.PanelWidth as any) as number : 50;
+            let path = thumbField instanceof ImageField ? thumbField.url.href : "http://cs.brown.edu/people/bcz/prairie.jpg";
+            let field = thumbField;
+            if (field instanceof ImageField) path = this.choosePath(field.url);
+            return <img className="pdfBox-thumbnail" key={path} src={path} onError={this.onError} />;
+        }
+    }
+
+    @action onError = () => {
+    }
+
+    choosePath(url: URL) {
+        if (url.protocol === "data" || url.href.indexOf(window.location.origin) === -1) {
+            return url.href;
+        }
+        let ext = path.extname(url.href);
+        ///TODO: Not done lol - syip2
+        return url.href;
     }
 
     @computed get startIndex(): number {
@@ -221,7 +258,7 @@ class Viewer extends React.Component<IViewerProps> {
         console.log(`END: ${this.endIndex}`)
         let numPages = this.props.pdf ? this.props.pdf.numPages : 0;
         return (
-            <div className="viewer" ref={this._mainDiv}>
+            <div className="viewer">
                 {/* {Array.from(Array(numPages).keys()).map((i) => (
                     <Page
                         pdf={this.props.pdf}
@@ -233,7 +270,7 @@ class Viewer extends React.Component<IViewerProps> {
                         {...this.props}
                     />
                 ))} */}
-                {this._visibleElements}
+                {this._renderAsSvg ? this.imageProxyRenderer : this._visibleElements}
             </div>
         );
     }

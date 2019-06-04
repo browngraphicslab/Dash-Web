@@ -7,23 +7,15 @@ import Measure from "react-measure";
 // import { Document, Page } from "react-pdf";
 // import 'react-pdf/dist/Page/AnnotationLayer.css';
 import { RouteStore } from "../../../server/RouteStore";
-import { Utils } from '../../../Utils';
-import { DocServer } from "../../DocServer";
 import { DocComponent } from "../DocComponent";
 import { InkingControl } from "../InkingControl";
-import { SearchBox } from "../SearchBox";
-import { Annotation } from './Annotation';
 import { positionSchema } from "./DocumentView";
 import { FieldView, FieldViewProps } from './FieldView';
 import { pageSchema } from "./ImageBox";
 import "./PDFBox.scss";
-var path = require('path');
 import React = require("react");
-import { SelectionManager } from "../../util/SelectionManager";
-import { Cast, FieldValue, NumCast } from "../../../new_fields/Types";
-import { Opt, HeightSym, Doc } from "../../../new_fields/Doc";
+import { NumCast } from "../../../new_fields/Types";
 import { makeInterface } from "../../../new_fields/Schema";
-import { ImageField, PdfField } from "../../../new_fields/URLField";
 import { PDFViewer } from "../pdf/PDFViewer";
 
 /** ALSO LOOK AT: Annotation.tsx, Sticky.tsx
