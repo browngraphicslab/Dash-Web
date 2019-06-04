@@ -327,7 +327,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     private childViews = () => [
         <CollectionFreeFormBackgroundView key="backgroundView" {...this.props} {...this.getDocumentViewProps(this.props.Document)} />,
         ...this.views
-    ];
+    ]
     render() {
         const containerName = `collectionfreeformview${this.isAnnotationOverlay ? "-overlay" : "-container"}`;
         const easing = () => this.props.Document.panTransformType === "Ease";
@@ -349,11 +349,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                         <CollectionFreeFormRemoteCursors {...this.props} key="remoteCursors" />
                     </CollectionFreeFormViewPannableContents>
                 </MarqueeView>
-<<<<<<< HEAD
-        <Timeline {...this.props} />
-=======
+                <Timeline {...this.props} />
                 <CollectionFreeFormOverlayView {...this.getDocumentViewProps(this.props.Document)} {...this.props} />
->>>>>>> 6f49d067b58caf6297f7ae7687cf05b627c27a1d
             </div >
         );
     }

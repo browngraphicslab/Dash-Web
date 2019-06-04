@@ -261,7 +261,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
                             this.props.Document.thumbnail = new ImageField(new URL(url));
                         }
                         runInAction(() => this._renderAsSvg = true);
-                    })
+                    });
                 }))
                 .catch(function (error: any) {
                     console.error('oops, something went wrong!', error);
@@ -335,8 +335,9 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     }
 
     choosePath(url: URL) {
-        if (url.protocol === "data" || url.href.indexOf(window.location.origin) === -1)
+        if (url.protocol === "data" || url.href.indexOf(window.location.origin) === -1) {
             return url.href;
+        }
         let ext = path.extname(url.href);
         return url.href.replace(ext, this._curSuffix + ext);
     }
@@ -350,8 +351,9 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     }
     @action onError = () => {
         let timeout = this._curSuffix === "_s" ? this._smallRetryCount : this._curSuffix === "_m" ? this._mediumRetryCount : this._largeRetryCount;
-        if (timeout < 10)
+        if (timeout < 10) {
             setTimeout(this.retryPath, Math.min(10000, timeout * 5));
+        }
     }
     _curSuffix = "_m";
 
