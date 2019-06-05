@@ -1,11 +1,10 @@
 import { observer } from "mobx-react";
-import { Utils } from "../../../../Utils";
+import { Doc, HeightSym, WidthSym } from "../../../../new_fields/Doc";
+import { BoolCast, NumCast, StrCast } from "../../../../new_fields/Types";
+import { InkingControl } from "../../InkingControl";
 import "./CollectionFreeFormLinkView.scss";
 import React = require("react");
 import v5 = require("uuid/v5");
-import { StrCast, NumCast, BoolCast } from "../../../../new_fields/Types";
-import { Doc, WidthSym, HeightSym } from "../../../../new_fields/Doc";
-import { InkingControl } from "../../InkingControl";
 
 export interface CollectionFreeFormLinkViewProps {
     A: Doc;

@@ -432,7 +432,6 @@ export class CollectionSchemaPreview extends React.Component<CollectionSchemaPre
     }
     render() {
         trace();
-        console.log(this.props.Document);
         let input = this.props.previewScript === undefined ? (null) :
             <input className="collectionSchemaView-input" value={this.props.previewScript} onChange={this.onPreviewScriptChange}
                 style={{ left: `calc(50% - ${Math.min(75, (this.props.Document ? this.PanelWidth() / 2 : 75))}px)` }} />;

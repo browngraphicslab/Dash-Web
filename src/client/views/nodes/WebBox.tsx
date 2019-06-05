@@ -1,12 +1,11 @@
-import "./WebBox.scss";
-import React = require("react");
-import { FieldViewProps, FieldView } from './FieldView';
+import { observer } from "mobx-react";
 import { HtmlField } from "../../../new_fields/HtmlField";
 import { WebField } from "../../../new_fields/URLField";
-import { observer } from "mobx-react";
-import { computed, reaction, IReactionDisposer } from 'mobx';
 import { DocumentDecorations } from "../DocumentDecorations";
 import { InkingControl } from "../InkingControl";
+import { FieldView, FieldViewProps } from './FieldView';
+import "./WebBox.scss";
+import React = require("react");
 
 @observer
 export class WebBox extends React.Component<FieldViewProps> {

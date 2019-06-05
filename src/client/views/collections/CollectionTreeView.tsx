@@ -1,25 +1,24 @@
 import { IconProp, library } from '@fortawesome/fontawesome-svg-core';
-import { faCaretDown, faCaretRight, faTrashAlt, faAngleRight } from '@fortawesome/free-solid-svg-icons';
+import { faAngleRight, faCaretDown, faCaretRight, faTrashAlt } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, observable, trace } from "mobx";
 import { observer } from "mobx-react";
-import { DragManager, SetupDrag, dropActionType } from "../../util/DragManager";
+import { Doc, DocListCast } from '../../../new_fields/Doc';
+import { Id } from '../../../new_fields/FieldSymbols';
+import { Document, listSpec } from '../../../new_fields/Schema';
+import { BoolCast, Cast, NumCast, StrCast } from '../../../new_fields/Types';
+import { Docs } from '../../documents/Documents';
+import { DocumentManager } from '../../util/DocumentManager';
+import { DragManager, dropActionType, SetupDrag } from "../../util/DragManager";
+import { undoBatch } from '../../util/UndoManager';
+import { ContextMenu } from '../ContextMenu';
 import { EditableView } from "../EditableView";
+import { MainView } from '../MainView';
+import { CollectionViewType } from './CollectionBaseView';
+import { CollectionDockingView } from './CollectionDockingView';
 import { CollectionSubView } from "./CollectionSubView";
 import "./CollectionTreeView.scss";
 import React = require("react");
-import { Document, listSpec } from '../../../new_fields/Schema';
-import { Cast, StrCast, BoolCast, FieldValue, NumCast } from '../../../new_fields/Types';
-import { Doc, DocListCast } from '../../../new_fields/Doc';
-import { Id } from '../../../new_fields/FieldSymbols';
-import { ContextMenu } from '../ContextMenu';
-import { undoBatch } from '../../util/UndoManager';
-import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
-import { CollectionDockingView } from './CollectionDockingView';
-import { DocumentManager } from '../../util/DocumentManager';
-import { Docs } from '../../documents/Documents';
-import { MainView } from '../MainView';
-import { CollectionViewType } from './CollectionBaseView';
 
 
 export interface TreeViewProps {
@@ -220,6 +219,7 @@ export class CollectionTreeView extends CollectionSubView(Document) {
         }
     }
     render() {
+        trace();
         let dropAction = StrCast(this.props.Document.dropAction, "alias") as dropActionType;
         if (!this.childDocs) {
             return (null);
