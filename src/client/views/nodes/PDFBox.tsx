@@ -84,7 +84,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
         console.log(pdfUrl);
         let classname = "pdfBox-cont" + (this.props.isSelected() && !InkingControl.Instance.selectedTool && !this._alt ? "-interactive" : "");
         return (
-            <div onScroll={this.onScroll} style={{ overflow: "scroll", height: `${NumCast(this.props.Document.nativeHeight ? this.props.Document.nativeHeight : 300)}px` }} onWheel={(e: React.WheelEvent) => e.stopPropagation()} className={classname}>
+            <div onScroll={this.onScroll} style={{ overflowY: "scroll", overflowX: "hidden", height: `${NumCast(this.props.Document.nativeHeight ? this.props.Document.nativeHeight : 300)}px` }} onWheel={(e: React.WheelEvent) => e.stopPropagation()} className={classname}>
                 <PDFViewer url={pdfUrl.url.href} loaded={this.loaded} scrollY={this._scrollY} parent={this} />
             </div>
         );

@@ -104,7 +104,7 @@ class Viewer extends React.Component<IViewerProps> {
         // )
 
         let numPages = this.props.pdf ? this.props.pdf.numPages : 0;
-        this.renderPages(0, numPages - 1, true);
+        setTimeout(() => this.renderPages(this.startIndex, this.endIndex, true), 1000);
     }
 
     componentWillUnmount = () => {
