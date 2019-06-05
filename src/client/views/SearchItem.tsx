@@ -1,6 +1,4 @@
 import React = require("react");
-import { Doc } from "../../new_fields/Doc";
-import { DocumentManager } from "../util/DocumentManager";
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faCaretUp, faFilePdf, faFilm, faImage, faObjectGroup, faStickyNote, faMusic, faLink, faChartBar, faGlobeAsia } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -12,6 +10,8 @@ import { listSpec } from "../../new_fields/Schema";
 import { Transform } from "../util/Transform";
 import { ObjectField } from "../../new_fields/ObjectField";
 import { RichTextField } from "../../new_fields/RichTextField";
+import { Doc } from "../../new_fields/Doc";
+import { DocumentManager } from "../util/DocumentManager";
 import { SetupDrag } from "../util/DragManager";
 import { SearchUtil } from "../util/SearchUtil";
 import { Id } from "../../new_fields/FieldSymbols";

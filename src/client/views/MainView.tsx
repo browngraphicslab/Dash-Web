@@ -170,6 +170,12 @@ export class MainView extends React.Component {
         }
     }
 
+    onDrop = (e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log("Drop");
+    }
+
     @action
     onResize = (r: any) => {
         this.pwidth = r.offset.width;
@@ -203,7 +209,7 @@ export class MainView extends React.Component {
         const pres = mainCont ? FieldValue(Cast(mainCont.presentationView, Doc)) : undefined;
         return <Measure offset onResize={this.onResize}>
             {({ measureRef }) =>
-                <div ref={measureRef} id="mainContent-div">
+                <div ref={measureRef} id="mainContent-div" onDrop={this.onDrop}>
                     {content}
                     {pres ? <PresentationView Document={pres} key="presentation" /> : null}
                 </div>

@@ -1,25 +1,25 @@
-import { action, observable, trace } from 'mobx';
+import { library } from '@fortawesome/fontawesome-svg-core';
+import { faImage } from '@fortawesome/free-solid-svg-icons';
+import { action, observable } from 'mobx';
 import { observer } from "mobx-react";
 import Lightbox from 'react-image-lightbox';
 import 'react-image-lightbox/style.css'; // This only needs to be imported once in your app
+import { Doc, HeightSym, WidthSym } from '../../../new_fields/Doc';
+import { List } from '../../../new_fields/List';
+import { createSchema, listSpec, makeInterface } from '../../../new_fields/Schema';
+import { Cast, FieldValue, NumCast, StrCast } from '../../../new_fields/Types';
+import { ImageField } from '../../../new_fields/URLField';
 import { Utils } from '../../../Utils';
 import { DragManager } from '../../util/DragManager';
 import { undoBatch } from '../../util/UndoManager';
 import { ContextMenu } from "../../views/ContextMenu";
+import { ContextMenuProps } from '../ContextMenuItem';
+import { DocComponent } from '../DocComponent';
+import { InkingControl } from '../InkingControl';
+import { positionSchema } from './DocumentView';
 import { FieldView, FieldViewProps } from './FieldView';
 import "./ImageBox.scss";
 import React = require("react");
-import { createSchema, makeInterface, listSpec } from '../../../new_fields/Schema';
-import { DocComponent } from '../DocComponent';
-import { positionSchema } from './DocumentView';
-import { FieldValue, Cast, StrCast, PromiseValue, NumCast } from '../../../new_fields/Types';
-import { ImageField } from '../../../new_fields/URLField';
-import { List } from '../../../new_fields/List';
-import { InkingControl } from '../InkingControl';
-import { Doc, WidthSym, HeightSym } from '../../../new_fields/Doc';
-import { faImage } from '@fortawesome/free-solid-svg-icons';
-import { library } from '@fortawesome/fontawesome-svg-core';
-import { ContextMenuItemProps, ContextMenuProps } from '../ContextMenuItem';
 var path = require('path');
 
 
