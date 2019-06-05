@@ -24,55 +24,6 @@ export default class PresentationElement extends React.Component<PresentationEle
 
     @observable selectedButtons: boolean[] = new Array(6);
 
-
-    @action
-    onGroupClick = (document: Doc, index: number, buttonStatus: boolean[] | boolean) => {
-        let p = this.props;
-        if (Array.isArray(buttonStatus)) {
-            if (buttonStatus[5]) {
-                buttonStatus[5] = false;
-                console.log("Reached!");
-                if (index >= 1) {
-                    if (p.groupedMembers[index].length >= 0) {
-                        p.groupedMembers[index].forEach((doc: Doc) => p.groupedMembers[index - 1] = p.groupedMembers[index - 1].slice(p.groupedMembers[index - 1].indexOf(doc), 1));
-                    }
-                }
-            } else {
-                buttonStatus[5] = true;
-                if (index >= 1) {
-                    if (p.groupedMembers[index].length >= 0) {
-                        p.groupedMembers[index].forEach((doc: Doc) => { if (!p.groupedMembers[index - 1].includes(doc)) { p.groupedMembers[index - 1].push(doc); } });
-                    }
-                    if (!p.groupedMembers[index - 1].includes(document)) {
-                        p.groupedMembers[index - 1].push(document);
-                    }
-                    //this.onGroupClick()
-                }
-            }
-        } else {
-            if (!buttonStatus) {
-                console.log("U reached me!");
-                if (p.groupedMembers[index].length >= 0) {
-                    p.groupedMembers[index].forEach((doc: Doc) => p.groupedMembers[index - 1] = p.groupedMembers[index - 1].slice(p.groupedMembers[index - 1].indexOf(doc), 1));
-                }
-            } else {
-                if (p.groupedMembers[index].length >= 0) {
-                    p.groupedMembers[index].forEach((doc: Doc) => { if (!p.groupedMembers[index - 1].includes(doc)) { p.groupedMembers[index - 1].push(doc); } });
-                }
-                if (!p.groupedMembers[index - 1].includes(document)) {
-                    p.groupedMembers[index - 1].push(document);
-                }
-            }
-        }
-        if (index >= 2) {
-            this.onGroupClick(p.allListElements[index - 1], index - 1, p.groupedMembers[index - 2].length !== 1);
-        }
-
-        p.groupedMembers.forEach((docArray: Doc[], index: number) => console.log("Index: ", index, " size: ", docArray.length));
-        console.log("Group Size: ", p.groupedMembers[index - 1].length, "Index: ", index - 1);
-    }
-
-
     @action
     onGroupClickRec = (document: Doc, index: number, buttonStatus: boolean) => {
         let p = this.props;
@@ -105,8 +56,6 @@ export default class PresentationElement extends React.Component<PresentationEle
                     });
                 }
 
-
-
                 if (index >= 2) {
                     let nextBool = p.groupedMembers[index - 2].length !== 1;
                     if (nextBool !== buttonStatus) {
@@ -129,19 +78,6 @@ export default class PresentationElement extends React.Component<PresentationEle
             let nextBool = p.groupedMembers[index - 2].length !== 1;
             if (nextBool === true) {
                 this.recursiveDeleteGroups(index - 1, removeSize);
-            }
-        }
-    }
-
-    @action
-    onGroupClickRec2 = (document: Doc, index: number, buttonStatus: boolean) => {
-        let p = this.props;
-        if (buttonStatus) {
-            if (index >= 1) {
-                p.groupedMembers[index - 1].push(document);
-                if (index >= 2) {
-                    this.onGroupClickRec2(document, index - 1, p.groupedMembers[index - 2].length !== 1);
-                }
             }
         }
     }
