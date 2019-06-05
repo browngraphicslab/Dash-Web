@@ -12,7 +12,7 @@ import { RichTextField } from "../../../new_fields/RichTextField";
 import { createSchema, makeInterface } from "../../../new_fields/Schema";
 import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
 import { DocServer } from "../../DocServer";
-import { DocUtils } from '../../documents/Documents';
+import { DocUtils, Docs } from '../../documents/Documents';
 import { DocumentManager } from "../../util/DocumentManager";
 import { DragManager } from "../../util/DragManager";
 import buildKeymap from "../../util/ProsemirrorKeymap";
@@ -27,6 +27,7 @@ import { InkingControl } from "../InkingControl";
 import { FieldView, FieldViewProps } from "./FieldView";
 import "./FormattedTextBox.scss";
 import React = require("react");
+import { Id } from '../../../new_fields/FieldSymbols';
 
 library.add(faEdit);
 library.add(faSmile);
@@ -68,15 +69,40 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     private _ref: React.RefObject<HTMLDivElement>;
     private _proseRef: React.RefObject<HTMLDivElement>;
     private _editorView: Opt<EditorView>;
-    private _gotDown: boolean = false;
+    private _toolTipTextMenu: TooltipTextMenu | undefined = undefined;
+    private _lastState: any = undefined;
+    private _applyingChange: boolean = false;
     private _dropDisposer?: DragManager.DragDropDisposer;
+    private _linkClicked = "";
     private _reactionDisposer: Opt<IReactionDisposer>;
     private _inputReactionDisposer: Opt<IReactionDisposer>;
     private _proxyReactionDisposer: Opt<IReactionDisposer>;
     public get CurrentDiv(): HTMLDivElement { return this._ref.current!; }
+    @observable _entered = false;
 
     @observable public static InputBoxOverlay?: FormattedTextBox = undefined;
     public static InputBoxOverlayScroll: number = 0;
+    public static IsFragment(html: string) {
+        return html.indexOf("data-pm-slice") !== -1;
+    }
+    public static GetHref(html: string): string {
+        let parser = new DOMParser();
+        let parsedHtml = parser.parseFromString(html, 'text/html');
+        if (parsedHtml.body.childNodes.length === 1 && parsedHtml.body.childNodes[0].childNodes.length === 1 &&
+            (parsedHtml.body.childNodes[0].childNodes[0] as any).href) {
+            return (parsedHtml.body.childNodes[0].childNodes[0] as any).href;
+        }
+        return "";
+    }
+    public static GetDocFromUrl(url: string) {
+        if (url.startsWith(document.location.origin)) {
+            let start = url.indexOf(window.location.origin);
+            let path = url.substr(start, url.length - start);
+            let docid = path.replace(DocServer.prepend("/doc/"), "").split("?")[0];
+            return docid;
+        }
+        return "";
+    }
 
     constructor(props: FieldViewProps) {
         super(props);
@@ -88,9 +114,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         }
     }
 
-    _applyingChange: boolean = false;
 
-    _lastState: any = undefined;
     dispatchTransaction = (tx: Transaction) => {
         if (this._editorView) {
             const state = this._lastState = this._editorView.state.apply(tx);
@@ -221,7 +245,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         }
     }
 
-    _linkClicked = "";
     onPointerDown = (e: React.PointerEvent): void => {
         if (e.button === 0 && this.props.isSelected() && !e.altKey && !e.ctrlKey && !e.metaKey) {
             e.stopPropagation();
@@ -235,14 +258,19 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             for (let parent = (e.target as any).parentNode; !href && parent; parent = parent.parentNode) {
                 href = parent.childNodes[0].href;
             }
-            if (href && href.indexOf(DocServer.prepend("/doc/")) === 0) {
-                this._linkClicked = href.replace(DocServer.prepend("/doc/"), "").split("?")[0];
+            if (href) {
+                if (href.indexOf(DocServer.prepend("/doc/")) === 0) {
+                    this._linkClicked = href.replace(DocServer.prepend("/doc/"), "").split("?")[0];
+                } else {
+                    let webDoc = Docs.WebDocument(href, { x: NumCast(this.props.Document.x, 0) + NumCast(this.props.Document.width, 0), y: NumCast(this.props.Document.y) });
+                    this.props.addDocument && this.props.addDocument(webDoc);
+                    this._linkClicked = webDoc[Id];
+                }
                 e.stopPropagation();
                 e.preventDefault();
             }
         }
         if (e.button === 2 || (e.button === 0 && e.ctrlKey)) {
-            this._gotDown = true;
             e.preventDefault();
         }
     }
@@ -302,7 +330,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         });
     }
 
-    _toolTipTextMenu: TooltipTextMenu | undefined = undefined;
     tooltipLinkingMenuPlugin() {
         let myprops = this.props;
         return new Plugin({
@@ -338,8 +365,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         }
     }
 
-    @observable
-    _entered = false;
     @action
     onPointerEnter = (e: React.PointerEvent) => {
         this._entered = true;
