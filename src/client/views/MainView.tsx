@@ -14,7 +14,7 @@ import { Docs } from '../documents/Documents';
 import { SetupDrag, DragManager } from '../util/DragManager';
 import { Transform } from '../util/Transform';
 import { UndoManager } from '../util/UndoManager';
-import { PresentationView } from './PresentationView';
+import { PresentationView } from './presentationview/PresentationView';
 import { CollectionDockingView } from './collections/CollectionDockingView';
 import { ContextMenu } from './ContextMenu';
 import { DocumentDecorations } from './DocumentDecorations';
