@@ -151,6 +151,10 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 ]
         };
 
+        const config2 = {
+
+        };
+
         if (this.props.isOverlay) {
             this._inputReactionDisposer = reaction(() => FormattedTextBox.InputBoxOverlay,
                 () => {
