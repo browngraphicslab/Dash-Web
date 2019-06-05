@@ -21,22 +21,19 @@ export namespace SelectionManager {
                 doc.props.whenActiveChanged(true);
             }
         }
+        @action
+        DeSelectDoc(doc: DocumentView): void {
+            if (manager.SelectedDocuments.indexOf(doc) !== -1) {
+                manager.SelectedDocuments.splice(manager.SelectedDocuments.indexOf(doc), 1);
+                doc.props.whenActiveChanged(false);
+            }
+        }
 
         @action
         DeselectAll(): void {
             manager.SelectedDocuments.map(dv => dv.props.whenActiveChanged(false));
             manager.SelectedDocuments = [];
             FormattedTextBox.InputBoxOverlay = undefined;
-        }
-        @action
-        ReselectAll() {
-            let sdocs = manager.SelectedDocuments.map(d => d);
-            manager.SelectedDocuments = [];
-            return sdocs;
-        }
-        @action
-        ReselectAll2(sdocs: DocumentView[]) {
-            sdocs.map(s => SelectionManager.SelectDoc(s, true));
         }
     }
 
@@ -48,6 +45,9 @@ export namespace SelectionManager {
 
     export function IsSelected(doc: DocumentView): boolean {
         return manager.SelectedDocuments.indexOf(doc) !== -1;
+    }
+    export function DeSelectDoc(doc: DocumentView): void {
+        manager.DeSelectDoc(doc);
     }
 
     export function DeselectAll(except?: Doc): void {
@@ -62,10 +62,6 @@ export namespace SelectionManager {
         if (found) manager.SelectDoc(found, false);
     }
 
-    export function ReselectAll() {
-        let sdocs = manager.ReselectAll();
-        setTimeout(() => manager.ReselectAll2(sdocs), 0);
-    }
     export function SelectedDocuments(): Array<DocumentView> {
         return manager.SelectedDocuments;
     }

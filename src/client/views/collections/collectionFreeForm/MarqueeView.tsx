@@ -325,7 +325,6 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             }
             else {
                 this.props.addDocument(newCollection, false);
-                SelectionManager.DeselectAll();
                 this.props.selectDocuments([newCollection]);
             }
             this.cleanupInteractions(false);

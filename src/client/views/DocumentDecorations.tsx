@@ -463,7 +463,6 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         e.stopPropagation();
         this._resizing = "";
         this.Interacting = false;
-        SelectionManager.ReselectAll();
         if (e.button === 0) {
             e.preventDefault();
             this._isPointerDown = false;

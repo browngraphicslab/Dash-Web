@@ -104,7 +104,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                     }
                     this.bringToFront(d);
                 });
-                SelectionManager.ReselectAll();
             }
             return true;
         }
