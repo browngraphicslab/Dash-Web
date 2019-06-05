@@ -86,7 +86,10 @@ export class TooltipTextMenu {
             dom.addEventListener("pointerdown", e => {
                 e.preventDefault();
                 view.focus();
-                command(view.state, view.dispatch, view);
+                if (dom.contains(e.target as Node)) {
+                    e.stopPropagation();
+                    command(view.state, view.dispatch, view);
+                }
             });
 
         });
@@ -131,13 +134,13 @@ export class TooltipTextMenu {
         //font SIZES
         let fontSizeBtns: MenuItem[] = [];
         this.fontSizeToNum.forEach((number, mark) => {
-            fontSizeBtns.push(this.dropdownMarkBtn(String(number), "width: 50px;", mark, this.view, this.changeToMarkInGroup, this.fontSizes));
+            fontSizeBtns.push(this.dropdownMarkBtn(String(number), "color: black; width: 50px;", mark, this.view, this.changeToMarkInGroup, this.fontSizes));
         });
 
         if (this.fontSizeDom) { this.tooltip.removeChild(this.fontSizeDom); }
         this.fontSizeDom = (new Dropdown(cut(fontSizeBtns), {
             label: label,
-            css: "color:white; min-width: 60px; padding-left: 5px; margin-right: 0;"
+            css: "color:black; min-width: 60px; padding-left: 5px; margin-right: 0;"
         }) as MenuItem).render(this.view).dom;
         this.tooltip.appendChild(this.fontSizeDom);
     }
@@ -150,13 +153,13 @@ export class TooltipTextMenu {
         //font STYLES
         let fontBtns: MenuItem[] = [];
         this.fontStylesToName.forEach((name, mark) => {
-            fontBtns.push(this.dropdownMarkBtn(name, "font-family: " + name + ", sans-serif; width: 125px;", mark, this.view, this.changeToMarkInGroup, this.fontStyles));
+            fontBtns.push(this.dropdownMarkBtn(name, "color: black; font-family: " + name + ", sans-serif; width: 125px;", mark, this.view, this.changeToMarkInGroup, this.fontStyles));
         });
 
         if (this.fontStyleDom) { this.tooltip.removeChild(this.fontStyleDom); }
         this.fontStyleDom = (new Dropdown(cut(fontBtns), {
             label: label,
-            css: "color:white; width: 125px; margin-left: -3px; padding-left: 2px;"
+            css: "color:black; width: 125px; margin-left: -3px; padding-left: 2px;"
         }) as MenuItem).render(this.view).dom;
 
         this.tooltip.appendChild(this.fontStyleDom);
@@ -165,7 +168,7 @@ export class TooltipTextMenu {
     updateLinkMenu() {
         if (!this.linkEditor || !this.linkText) {
             this.linkEditor = document.createElement("div");
-            this.linkEditor.style.color = "white";
+            this.linkEditor.style.color = "black";
             this.linkText = document.createElement("div");
             this.linkText.style.cssFloat = "left";
             this.linkText.style.marginRight = "5px";
@@ -174,13 +177,13 @@ export class TooltipTextMenu {
             this.linkText.style.whiteSpace = "nowrap";
             this.linkText.style.width = "150px";
             this.linkText.style.overflow = "hidden";
-            this.linkText.style.color = "white";
+            this.linkText.style.color = "black";
             this.linkText.onpointerdown = (e: PointerEvent) => { e.stopPropagation(); };
             let linkBtn = document.createElement("div");
             linkBtn.textContent = ">>";
-            linkBtn.style.width = "20px";
-            linkBtn.style.height = "20px";
-            linkBtn.style.color = "white";
+            linkBtn.style.width = "10px";
+            linkBtn.style.height = "10px";
+            linkBtn.style.color = "black";
             linkBtn.style.cssFloat = "left";
             linkBtn.onpointerdown = (e: PointerEvent) => {
                 let node = this.view.state.selection.$from.nodeAfter;
@@ -207,7 +210,7 @@ export class TooltipTextMenu {
             this.linkDrag.src = "https://seogurusnyc.com/wp-content/uploads/2016/12/link-1.png";
             this.linkDrag.style.width = "20px";
             this.linkDrag.style.height = "20px";
-            this.linkDrag.style.color = "white";
+            this.linkDrag.style.color = "black";
             this.linkDrag.style.background = "black";
             this.linkDrag.style.cssFloat = "left";
             this.linkDrag.onpointerdown = (e: PointerEvent) => {
@@ -261,14 +264,14 @@ export class TooltipTextMenu {
         //Make a dropdown of all list types
         let toAdd: MenuItem[] = [];
         this.listTypeToIcon.forEach((icon, type) => {
-            toAdd.push(this.dropdownNodeBtn(icon, "width: 40px;", type, this.view, this.listTypes, this.changeToNodeType));
+            toAdd.push(this.dropdownNodeBtn(icon, "color: black; width: 40px;", type, this.view, this.listTypes, this.changeToNodeType));
         });
         //option to remove the list formatting
-        toAdd.push(this.dropdownNodeBtn("X", "width: 40px;", undefined, this.view, this.listTypes, this.changeToNodeType));
+        toAdd.push(this.dropdownNodeBtn("X", "color: black; width: 40px;", undefined, this.view, this.listTypes, this.changeToNodeType));
 
         listTypeBtn = (new Dropdown(toAdd, {
             label: label,
-            css: "color:white; width: 40px;"
+            css: "color:black; width: 40px;"
         }) as MenuItem).render(this.view).dom;
 
         //add this new button and return it
@@ -354,7 +357,7 @@ export class TooltipTextMenu {
         span.className = name + " menuicon";
         span.title = title;
         span.textContent = text;
-        span.style.color = "white";
+        span.style.color = "black";
         return span;
     }
 
