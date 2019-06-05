@@ -10,8 +10,8 @@ import { DocumentViewProps, DocumentView } from "./DocumentView";
 
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
 import { Doc, DocListCastAsync } from "../../../new_fields/Doc";
-import { Document, listSpec, createSchema, makeInterface } from "../../../new_fields/Schema";
-import { FieldValue, Cast } from "../../../new_fields/Types";
+import { Document, listSpec, createSchema, makeInterface, defaultSpec } from "../../../new_fields/Schema";
+import { FieldValue, Cast, NumCast } from "../../../new_fields/Types";
 import { emptyStatement } from "babel-types";
 import { DocumentManager } from "../../util/DocumentManager";
 import { SelectionManager } from "../../util/SelectionManager";
@@ -22,20 +22,21 @@ type IndividualDocKeyFrame = List<Doc>;
 type KeyframeList = List<List<Doc>>;
 
 const DocKeyFrameSchema = createSchema({
-    x: "number",
-    y: "number"
+    x: defaultSpec("number", 0),
+    y: defaultSpec("number", 0)
 });
 
 type DocKeyFrame = makeInterface<[typeof DocKeyFrameSchema]>;
 const DocKeyFrame = makeInterface(DocKeyFrameSchema);
 
 const IndividualDocTimeKeyFrameSchema = createSchema({
-    time: "number",
-    keyframe: Doc
+    time: defaultSpec("number", 0),
+    keyframe: Doc//DocKeyFrame
 });
 
 type IndividualDocTimeKeyFrame = makeInterface<[typeof IndividualDocTimeKeyFrameSchema]>;
 const IndividualDocTimeKeyFrame = makeInterface(IndividualDocTimeKeyFrameSchema);
+
 
 @observer
 export class Timeline extends CollectionSubView(Document) {
@@ -57,6 +58,8 @@ export class Timeline extends CollectionSubView(Document) {
     @observable private _keyFrameList: String[] = []; //list of _keyList
     @observable private _topLevelList: String[] = []; //list of _keyFrameList
 
+    private temp1:any = null; 
+    private temp2:any = null; 
 
     @action
     onRecord = (e: React.MouseEvent) => {
@@ -130,7 +133,6 @@ export class Timeline extends CollectionSubView(Document) {
 
 
         observe(childrenList as IObservableArray<Doc>, change => {
-
             if (change.type === "update") {
                 this._reactionDisposers[change.index]();
                 this._reactionDisposers[change.index] = addReaction(change.newValue);
@@ -203,6 +205,33 @@ export class Timeline extends CollectionSubView(Document) {
                 });
         }
     }
+    
+    /**
+     * Linearly interpolates a document from time1 to time2 
+     * @param Doc that needs to be modified
+     * @param  
+     */
+    @action
+    interpolate = async (doc: Doc, kf1: IndividualDocTimeKeyFrame, kf2: IndividualDocTimeKeyFrame, time: number) => {
+        const keyFrame1 = DocKeyFrame(await kf1.keyframe);
+        const keyFrame2 = DocKeyFrame(await kf2.keyframe);
+
+        const dif_X = NumCast(keyFrame2.X) - NumCast(keyFrame1.X); 
+        const dif_Y = NumCast(keyFrame2.Y) - NumCast(keyFrame1.Y); 
+        const dif_time = kf2.time - kf1.time; 
+        const ratio = (time - kf1.time) / dif_time;
+        const adjusted_X = dif_X * ratio; 
+        const adjusted_Y = dif_Y * ratio; 
+        
+        doc.X = keyFrame1.x + adjusted_X; 
+        doc.Y = keyFrame1.y + adjusted_Y; 
+    }
+
+
+    @action 
+    onInterpolate = (e: React.MouseEvent) => {
+
+    }
 
     @action
     displayKeyFrames = (dv: DocumentView) => {
@@ -210,8 +239,7 @@ export class Timeline extends CollectionSubView(Document) {
         dv.props.Document;
 
     }
-
-
+    
     @action
     onInnerPointerUp = (e: React.PointerEvent) => {
         if (this._inner.current) {
@@ -297,6 +325,7 @@ export class Timeline extends CollectionSubView(Document) {
                         </div>
                     </div>
                     <button onClick={this.onRecord}>Record</button>
+                    <button onClick={this.onInterpolate}>Inter</button>
                     <input placeholder="Time" ref={this._timeInput} onKeyDown={this.onTimeEntered}></input>
                 </div>
             </div>
