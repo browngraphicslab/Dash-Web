@@ -1,5 +1,4 @@
 import { observable, action, computed } from "mobx";
-
 import { CirclePicker, ColorResult } from 'react-color';
 import React = require("react");
 import { observer } from "mobx-react";

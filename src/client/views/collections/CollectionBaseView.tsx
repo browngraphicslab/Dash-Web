@@ -1,14 +1,14 @@
 import { action, computed, observable } from 'mobx';
 import { observer } from 'mobx-react';
 import * as React from 'react';
+import { Doc, DocListCast, Opt } from '../../../new_fields/Doc';
+import { Id } from '../../../new_fields/FieldSymbols';
+import { List } from '../../../new_fields/List';
+import { listSpec } from '../../../new_fields/Schema';
+import { Cast, FieldValue, NumCast, PromiseValue } from '../../../new_fields/Types';
+import { SelectionManager } from '../../util/SelectionManager';
 import { ContextMenu } from '../ContextMenu';
 import { FieldViewProps } from '../nodes/FieldView';
-import { Cast, FieldValue, PromiseValue, NumCast } from '../../../new_fields/Types';
-import { Doc, FieldResult, Opt, DocListCast } from '../../../new_fields/Doc';
-import { listSpec } from '../../../new_fields/Schema';
-import { List } from '../../../new_fields/List';
-import { SelectionManager } from '../../util/SelectionManager';
-import { Id } from '../../../new_fields/FieldSymbols';
 
 export enum CollectionViewType {
     Invalid,
