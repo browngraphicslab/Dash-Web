@@ -2,14 +2,9 @@ import React = require("react");
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faCaretUp, faFilePdf, faFilm, faImage, faObjectGroup, faStickyNote, faMusic, faLink, faChartBar, faGlobeAsia } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { Cast, NumCast } from "../../new_fields/Types";
-import { FieldView, FieldViewProps } from './nodes/FieldView';
-import { computed, observable, action, runInAction } from "mobx";
-import { IconField } from "../../new_fields/IconField";
+import { Cast } from "../../new_fields/Types";
+import { observable, runInAction } from "mobx";
 import { listSpec } from "../../new_fields/Schema";
-import { Transform } from "../util/Transform";
-import { ObjectField } from "../../new_fields/ObjectField";
-import { RichTextField } from "../../new_fields/RichTextField";
 import { Doc } from "../../new_fields/Doc";
 import { DocumentManager } from "../util/DocumentManager";
 import { SetupDrag } from "../util/DragManager";
@@ -17,7 +12,6 @@ import { SearchUtil } from "../util/SearchUtil";
 import { Id } from "../../new_fields/FieldSymbols";
 import { CollectionDockingView } from "./collections/CollectionDockingView";
 import { observer } from "mobx-react";
-import { CollectionViewType } from "./collections/CollectionBaseView";
 
 export interface SearchItemProps {
     doc: Doc;
@@ -127,29 +121,12 @@ export class SearchItem extends React.Component<SearchItemProps> {
         return Cast(this.props.doc.linkedToDocs, listSpec(Doc), []).length + Cast(this.props.doc.linkedFromDocs, listSpec(Doc), []).length;
     }
 
-    // @action
-    // onMouseLeave = () => {
-    //     this.hover = false;
-    // }
-
-    // @action
-    // onMouseEnter = () => {
-    //     this.hover = true;
-    // }
-
     render() {
         return (
             <div className="search-overview">
-                {/* onMouseEnter={this.onMouseEnter}
-                onMouseLeave={this.onMouseLeave}> */}
                 <div className="searchBox-instances">
                     <SelectorContextMenu {...this.props} />
                 </div>
-                {/* {this.hover ? (
-                        <div className="searchBox-instances">
-                                <SelectorContextMenu {...this.props} />
-                        </div>
-                    ) : null} */}
                 <div className="search-item" ref={this.collectionRef} id="result" onClick={this.onClick} onPointerDown={SetupDrag(this.collectionRef, this.startDocDrag)} >
                     <div className="main-search-info">
                         <div className="search-title" id="result" >{this.props.doc.title}</div>

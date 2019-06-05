@@ -1,23 +1,15 @@
 import * as React from 'react';
 import { observer } from 'mobx-react';
 import { observable, action, runInAction } from 'mobx';
-import { Utils } from '../../Utils';
-import { MessageStore } from '../../server/Message';
 import "./SearchBox.scss";
 import { faSearch, faObjectGroup } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { library } from '@fortawesome/fontawesome-svg-core';
-// const app = express();
-// import * as express from 'express';
-import { Search } from '../../server/Search';
 import * as rp from 'request-promise';
 import { SearchItem } from './SearchItem';
-import { isString } from 'util';
-import { constant } from 'async';
 import { DocServer } from '../DocServer';
 import { Doc } from '../../new_fields/Doc';
 import { Id } from '../../new_fields/FieldSymbols';
-import { DocumentManager } from '../util/DocumentManager';
 import { SetupDrag } from '../util/DragManager';
 import { Docs } from '../documents/Documents';
 import { RouteStore } from '../../server/RouteStore';
@@ -174,7 +166,6 @@ export class SearchBox extends React.Component {
 
     @action
     getViews = async (doc: Doc) => {
-        console.log("getting view")
         const results = await SearchUtil.GetViewsOfDocument(doc);
         let toReturn: Doc[] = [];
         await runInAction(() => {
@@ -199,7 +190,6 @@ export class SearchBox extends React.Component {
                             className="searchBox-barChild searchBox-input" onKeyPress={this.enter}
                             style={{ width: this._resultsOpen ? "500px" : undefined }} />
                         <button className="searchBox-barChild searchBox-filter" onClick={this.toggleFilterDisplay}>Filter</button>
-                        {/* <FontAwesomeIcon icon="search" size="lg" className="searchBox-barChild searchBox-submit" /> */}
                     </div>
                     {this._resultsOpen ? (
                         <div className="searchBox-results">
