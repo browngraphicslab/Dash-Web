@@ -2,7 +2,7 @@ import * as React from 'react';
 import { observer } from 'mobx-react';
 import { observable, action, runInAction } from 'mobx';
 import "./SearchBox.scss";
-import { faSearch, faObjectGroup } from '@fortawesome/free-solid-svg-icons';
+import { faSearch, faFilePdf, faFilm, faImage, faObjectGroup, faStickyNote, faMusic, faLink, faChartBar, faGlobeAsia } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { library } from '@fortawesome/fontawesome-svg-core';
 import * as rp from 'request-promise';
@@ -18,6 +18,14 @@ import { SearchUtil } from '../util/SearchUtil';
 
 library.add(faSearch);
 library.add(faObjectGroup);
+library.add(faImage);
+library.add(faStickyNote);
+library.add(faFilePdf);
+library.add(faFilm);
+library.add(faMusic);
+library.add(faLink);
+library.add(faChartBar);
+library.add(faGlobeAsia);
 
 @observer
 export class SearchBox extends React.Component {
@@ -202,7 +210,30 @@ export class SearchBox extends React.Component {
                         <div className="filter-form" id="header">Filter Search Results</div>
                         <div className="filter-form" id="option">
                             filter by collection, key, type of node
-                    </div>
+                            <div className="required-words">
+                                temp for making words required
+                            </div>
+                            <div className="type-of-node">
+                                temp for filtering by a type of node
+                                <div className="icon-bar">
+                                    <FontAwesomeIcon icon={faFilePdf} size="2x" />
+                                    <FontAwesomeIcon icon={faChartBar} size="2x" />
+                                    <FontAwesomeIcon icon={faObjectGroup} size="2x" />
+                                    <FontAwesomeIcon icon={faImage} size="2x" />
+                                    <FontAwesomeIcon icon={faFilm} size="2x" />
+                                    <FontAwesomeIcon icon={faGlobeAsia} size="2x" />
+                                    <FontAwesomeIcon icon={faLink} size="2x" />
+                                    <FontAwesomeIcon icon={faMusic} size="2x" />
+                                    <FontAwesomeIcon icon={faStickyNote} size="2x" />
+                                </div>
+                            </div>
+                            <div className="filter-collection">
+                                temp for filtering by collection
+                            </div>
+                            <div className="where-in-doc">
+                                temp for filtering where in doc the keywords are found
+                            </div>
+                        </div>
 
                     </div>
                 ) : null}
