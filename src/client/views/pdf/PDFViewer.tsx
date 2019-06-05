@@ -4,18 +4,18 @@ import { observable, action, runInAction, computed, IReactionDisposer, reaction 
 import { RouteStore } from "../../../server/RouteStore";
 import * as Pdfjs from "pdfjs-dist";
 import * as htmlToImage from "html-to-image";
-import { Opt } from "../../../new_fields/Doc";
+import { Opt, WidthSym } from "../../../new_fields/Doc";
 import "./PDFViewer.scss";
 import "pdfjs-dist/web/pdf_viewer.css";
 import { number } from "prop-types";
 import { JSXElement } from "babel-types";
 import { PDFBox } from "../nodes/PDFBox";
-import { NumCast, FieldValue } from "../../../new_fields/Types";
+import { NumCast, FieldValue, Cast } from "../../../new_fields/Types";
 import { SearchBox } from "../SearchBox";
 import { Utils } from "../../../Utils";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { DocServer } from "../../DocServer";
-import { ImageField } from "../../../new_fields/URLField";
+import { ImageField, PdfField } from "../../../new_fields/URLField";
 var path = require("path");
 
 interface IPDFViewerProps {
@@ -44,7 +44,7 @@ export class PDFViewer extends React.Component<IPDFViewerProps> {
     render() {
         return (
             <div ref={this._mainDiv}>
-                <Viewer pdf={this._pdf} loaded={this.props.loaded} scrollY={this.props.scrollY} parent={this.props.parent} mainCont={this._mainDiv} />
+                <Viewer pdf={this._pdf} loaded={this.props.loaded} scrollY={this.props.scrollY} parent={this.props.parent} mainCont={this._mainDiv} url={this.props.url} />
             </div>
         );
     }
@@ -56,6 +56,7 @@ interface IViewerProps {
     scrollY: number;
     parent: PDFBox;
     mainCont: React.RefObject<HTMLDivElement>;
+    url: string;
 }
 
 @observer
@@ -71,71 +72,63 @@ class Viewer extends React.Component<IViewerProps> {
 
     private _pageBuffer: number = 1;
     private _reactionDisposer?: IReactionDisposer;
-
-    @computed private get thumbnailY() { return NumCast(this.props.parent.Document.thumbnailY, -1); }
+    private _widthReactionDisposer?: IReactionDisposer;
+    private _width: number = 0;
 
     componentDidMount = () => {
         let wasSelected = this.props.parent.props.isSelected();
         this._reactionDisposer = reaction(
             () => [this.props.parent.props.isSelected(), this.startIndex],
             () => {
-                if (this.startIndex >= 0 && !this.props.parent.props.isTopMost && this.scrollY !== this.thumbnailY && wasSelected && !this.props.parent.props.isSelected()) {
+                if (wasSelected && !this.props.parent.props.isSelected()) {
                     this.saveThumbnail();
+                }
+                else if (!wasSelected && this.props.parent.props.isSelected()) {
+                    this.renderPages(this.startIndex, this.endIndex, true);
                 }
                 wasSelected = this.props.parent.props.isSelected();
             },
             { fireImmediately: true }
         );
+
+        // this._widthReactionDisposer = reaction(
+        //     () => [this._docWidth],
+        //     () => {
+        //         if (this._width !== this._docWidth) {
+        //             this._width = this._docWidth;
+        //             this.renderPages(this.startIndex, this.endIndex, true);
+        //             console.log(this._width);
+        //         }
+        //     },
+        //     { fireImmediately: true }
+        // )
+
         let numPages = this.props.pdf ? this.props.pdf.numPages : 0;
         this.renderPages(0, numPages - 1, true);
     }
 
+    componentWillUnmount = () => {
+        if (this._reactionDisposer) {
+            this._reactionDisposer();
+        }
+    }
+
+    @action
     saveThumbnail = () => {
-        // this.props.parent.props.Document.thumbnailY = FieldValue(this.scrollY, 0);
-        // this._renderAsSvg = false;
-        // setTimeout(() => {
-        //     let nwidth = FieldValue(this.props.parent.Document.nativeWidth, 0);
-        //     htmlToImage.toPng(this.props.mainCont.current!, { width: nwidth, height: nwidth, quality: 0.8, })
-        //         .then(action((dataUrl: string) => {
-        //             SearchBox.convertDataUri(dataUrl, `icon${this.props.parent.Document[Id]}_${this.startIndex}`).then((returnedFilename) => {
-        //                 if (returnedFilename) {
-        //                     let url = DocServer.prepend(returnedFilename);
-        //                     this.props.parent.props.Document.thumbnail = new ImageField(new URL(url));
-        //                 }
-        //                 runInAction(() => this._renderAsSvg = true);
-        //             });
-        //         }))
-        //         .catch(function (error: any) {
-        //             console.error("Oops, something went wrong!", error);
-        //         });
-        // }, 1250);
+        const address: string = this.props.url;
+        console.log(address);
+        for (let i = 0; i < this._visibleElements.length; i++) {
+            if (this._isPage[i]) {
+                let thisAddress = `${address.substring(0, address.length - ".pdf".length)}-${i + 1}.PNG`;
+                let nWidth = this._pageSizes[i].width;
+                let nHeight = this._pageSizes[i].height;
+                this._visibleElements[i] = <img key={thisAddress} style={{ width: `${nWidth}px`, height: `${nHeight}px` }} src={thisAddress} />;
+            }
+        }
     }
 
     @computed get scrollY(): number {
         return this.props.scrollY;
-    }
-
-    @computed get imageProxyRenderer() {
-        let thumbField = this.props.parent.props.Document.thumbnail;
-        if (thumbField && this._renderAsSvg && NumCast(this.props.parent.props.Document.startY, 0) === this.scrollY) {
-            let pw = typeof this.props.parent.props.PanelWidth === "function" ? this.props.parent.props.PanelWidth() : typeof this.props.parent.props.PanelWidth === "number" ? (this.props.parent.props.PanelWidth as any) as number : 50;
-            let path = thumbField instanceof ImageField ? thumbField.url.href : "http://cs.brown.edu/people/bcz/prairie.jpg";
-            let field = thumbField;
-            if (field instanceof ImageField) path = this.choosePath(field.url);
-            return <img className="pdfBox-thumbnail" key={path} src={path} onError={this.onError} />;
-        }
-    }
-
-    @action onError = () => {
-    }
-
-    choosePath(url: URL) {
-        if (url.protocol === "data" || url.href.indexOf(window.location.origin) === -1) {
-            return url.href;
-        }
-        let ext = path.extname(url.href);
-        ///TODO: Not done lol - syip2
-        return url.href;
     }
 
     @computed get startIndex(): number {
@@ -157,6 +150,9 @@ class Viewer extends React.Component<IViewerProps> {
     @action
     renderPages = (startIndex: number, endIndex: number, forceRender: boolean = false) => {
         let numPages = this.props.pdf ? this.props.pdf.numPages : 0;
+        if (!this.props.pdf) {
+            return;
+        }
 
         if (this._visibleElements.length !== numPages) {
             let divs = Array.from(Array(numPages).keys()).map(i => (
@@ -178,54 +174,45 @@ class Viewer extends React.Component<IViewerProps> {
             return;
         }
 
-        for (let i = startIndex; i <= endIndex; i++) {
-            if (this._isPage[i] && forceRender) {
-                this._visibleElements[i] = (
-                    <Page
-                        pdf={this.props.pdf}
-                        page={i}
-                        numPages={numPages}
-                        key={`${this.props.pdf ? this.props.pdf.fingerprint + `-page${i + 1}` : "undefined"}`}
-                        name={`${this.props.pdf ? this.props.pdf.fingerprint + `-page${i + 1}` : "undefined"}`}
-                        pageLoaded={this.pageLoaded}
-                        {...this.props} />
-                );
-                this._isPage[i] = true;
-            }
-            else if (!this._isPage[i]) {
-                this._visibleElements[i] = (
-                    <Page
-                        pdf={this.props.pdf}
-                        page={i}
-                        numPages={numPages}
-                        key={`${this.props.pdf ? this.props.pdf.fingerprint + `-page${i + 1}` : "undefined"}`}
-                        name={`${this.props.pdf ? this.props.pdf.fingerprint + `-page${i + 1}` : "undefined"}`}
-                        pageLoaded={this.pageLoaded}
-                        {...this.props} />
-                );
-                this._isPage[i] = true;
-            }
-        }
-
         for (let i = 0; i < numPages; i++) {
             if (i < startIndex || i > endIndex) {
                 if (this._isPage[i]) {
                     this._visibleElements[i] = (
                         <div key={`pdfviewer-placeholder-${i}`} className="pdfviewer-placeholder" style={{ width: this._pageSizes[i] ? this._pageSizes[i].width : 0, height: this._pageSizes[i] ? this._pageSizes[i].height : 0 }} />
                     );
-                    this._isPage[i] = false;
                 }
+                this._isPage[i] = false;
             }
         }
+
+        for (let i = startIndex; i <= endIndex; i++) {
+            if (!this._isPage[i] || forceRender) {
+                this._visibleElements[i] = (
+                    <Page
+                        pdf={this.props.pdf}
+                        page={i}
+                        numPages={numPages}
+                        key={`${this.props.pdf ? this.props.pdf.fingerprint + `-page${i + 1}` : "undefined"}`}
+                        name={`${this.props.pdf ? this.props.pdf.fingerprint + `-page${i + 1}` : "undefined"}`}
+                        pageLoaded={this.pageLoaded}
+                        {...this.props} />
+                );
+                this._isPage[i] = true;
+            }
+        }
+
+        this._startIndex = startIndex;
+        this._endIndex = endIndex;
 
         return;
     }
 
     getIndex = (vOffset: number) => {
         if (this._loaded) {
+            let numPages = this.props.pdf ? this.props.pdf.numPages : 0;
             let index = 0;
             let currOffset = vOffset;
-            while (currOffset - this._pageSizes[index].height > 0) {
+            while (index < numPages && currOffset - this._pageSizes[index].height > 0) {
                 currOffset -= this._pageSizes[index].height;
                 index++;
             }
@@ -236,6 +223,9 @@ class Viewer extends React.Component<IViewerProps> {
 
     @action
     pageLoaded = (index: number, page: Pdfjs.PDFPageViewport): void => {
+        if (this._loaded) {
+            return;
+        }
         let numPages = this.props.pdf ? this.props.pdf.numPages : 0;
         this.props.loaded(page.width, page.height);
         if (index > this._pageSizes.length) {
@@ -270,7 +260,7 @@ class Viewer extends React.Component<IViewerProps> {
                         {...this.props}
                     />
                 ))} */}
-                {this._renderAsSvg ? this.imageProxyRenderer : this._visibleElements}
+                {this._visibleElements}
             </div>
         );
     }
@@ -338,32 +328,24 @@ class Page extends React.Component<IPageProps> {
         let scale = 1;
         let viewport = page.getViewport(scale);
         let canvas = this.canvas.current;
-        let tempCanvas = document.createElement('canvas')
-        if (tempCanvas && canvas) {
+        let textLayer = this.textLayer.current;
+        if (canvas && textLayer) {
             let ctx = canvas.getContext("2d");
-            let context = tempCanvas.getContext("2d");
-            tempCanvas.width = viewport.width;
             canvas.width = viewport.width;
             this._width = viewport.width;
-            tempCanvas.height = viewport.height;
             canvas.height = viewport.height;
             this._height = viewport.height;
             this.props.pageLoaded(this._currPage, viewport);
-            if (context) {
-                page.render({ canvasContext: context, viewport: viewport }).promise.then(() => {
-                    if (context && ctx) {
-                        ctx.putImageData(context.getImageData(0, 0, tempCanvas.width, tempCanvas.height), 0, 0);
-                    }
-                });
+            if (ctx) {
+                page.render({ canvasContext: ctx, viewport: viewport })
                 page.getTextContent().then((res: Pdfjs.TextContent) => {
                     //@ts-ignore
-                    let textLayer = Pdfjs.renderTextLayer({
+                    Pdfjs.renderTextLayer({
                         textContent: res,
-                        container: this.textLayer.current,
+                        container: textLayer,
                         viewport: viewport
                     });
                     // textLayer._render();
-                    this._state = "rendered";
                 });
 
                 this._page = page;

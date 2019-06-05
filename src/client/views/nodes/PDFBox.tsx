@@ -14,9 +14,11 @@ import { FieldView, FieldViewProps } from './FieldView';
 import { pageSchema } from "./ImageBox";
 import "./PDFBox.scss";
 import React = require("react");
-import { NumCast, StrCast } from "../../../new_fields/Types";
+import { NumCast, StrCast, Cast } from "../../../new_fields/Types";
 import { makeInterface } from "../../../new_fields/Schema";
 import { PDFViewer } from "../pdf/PDFViewer";
+import { PdfField } from "../../../new_fields/URLField";
+import { HeightSym, WidthSym } from "../../../new_fields/Doc";
 
 /** ALSO LOOK AT: Annotation.tsx, Sticky.tsx
  * This method renders PDF and puts all kinds of functionalities such as annotation, highlighting, 
@@ -65,6 +67,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
             let doc = this.props.Document.proto ? this.props.Document.proto : this.props.Document;
             doc.nativeWidth = nw;
             doc.nativeHeight = nh;
+            doc.height = nh * (doc[WidthSym]() / nw);
         }
     }
 
@@ -77,11 +80,12 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
 
     render() {
         trace();
-        const pdfUrl = window.origin + RouteStore.corsProxy + "/" + StrCast(this.props.Document.title);
+        const pdfUrl = Cast(this.props.Document.data, PdfField, new PdfField(window.origin + RouteStore.corsProxy + "/https://mozilla.github.io/pdf.js/web/compressed.tracemonkey-pldi-09.pdf"));
+        console.log(pdfUrl);
         let classname = "pdfBox-cont" + (this.props.isSelected() && !InkingControl.Instance.selectedTool && !this._alt ? "-interactive" : "");
         return (
-            <div onScroll={this.onScroll} style={{ overflow: "scroll", height: `${NumCast(this.props.Document.nativeWidth ? this.props.Document.nativeWidth : 300)}px` }} onWheel={(e: React.WheelEvent) => e.stopPropagation()} className={classname}>
-                <PDFViewer url={pdfUrl} loaded={this.loaded} scrollY={this._scrollY} parent={this} />
+            <div onScroll={this.onScroll} style={{ overflow: "scroll", height: `${NumCast(this.props.Document.nativeHeight ? this.props.Document.nativeHeight : 300)}px` }} onWheel={(e: React.WheelEvent) => e.stopPropagation()} className={classname}>
+                <PDFViewer url={pdfUrl.url.href} loaded={this.loaded} scrollY={this._scrollY} parent={this} />
             </div>
         );
     }
