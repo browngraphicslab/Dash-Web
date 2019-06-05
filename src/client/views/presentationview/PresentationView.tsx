@@ -52,9 +52,12 @@ class PresentationViewList extends React.Component<PresListProps> {
     // }
     @action
     initializeGroupArrays = (docList: Doc[]) => {
+        console.log("Starting len: ", this.props.groupedMembers.length);
         docList.forEach((doc: Doc, index: number) => {
-            if (this.props.groupedMembers.length < index + 1) {
+            if (this.props.groupedMembers.length < index + 2) {
                 this.props.groupedMembers[index] = new Array();
+                this.props.groupedMembers[index].push(docList[index]);
+
             }
         });
     }

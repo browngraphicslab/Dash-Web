@@ -41,14 +41,17 @@ export default class PresentationElement extends React.Component<PresentationEle
                 buttonStatus[5] = true;
                 if (index >= 1) {
                     if (p.groupedMembers[index].length >= 0) {
-                        p.groupedMembers[index].forEach((doc: Doc) => p.groupedMembers[index - 1].push(doc));
+                        p.groupedMembers[index].forEach((doc: Doc) => { if (!p.groupedMembers[index - 1].includes(doc)) { p.groupedMembers[index - 1].push(doc); } });
                     }
-                    p.groupedMembers[index - 1].push(document);
+                    if (!p.groupedMembers[index - 1].includes(document)) {
+                        p.groupedMembers[index - 1].push(document);
+                    }
                     //this.onGroupClick()
                 }
             }
         } else {
             if (!buttonStatus) {
+                console.log("U reached me!");
                 if (p.groupedMembers[index].length >= 0) {
                     p.groupedMembers[index].forEach((doc: Doc) => p.groupedMembers[index - 1] = p.groupedMembers[index - 1].slice(p.groupedMembers[index - 1].indexOf(doc), 1));
                 }
@@ -62,11 +65,98 @@ export default class PresentationElement extends React.Component<PresentationEle
             }
         }
         if (index >= 2) {
-            this.onGroupClick(p.allListElements[index - 1], index - 1, p.groupedMembers[index - 2].length !== 0);
+            this.onGroupClick(p.allListElements[index - 1], index - 1, p.groupedMembers[index - 2].length !== 1);
         }
 
         p.groupedMembers.forEach((docArray: Doc[], index: number) => console.log("Index: ", index, " size: ", docArray.length));
-        console.log("Group Size: ", p.groupedMembers[index - 1].length);
+        console.log("Group Size: ", p.groupedMembers[index - 1].length, "Index: ", index - 1);
+    }
+
+
+    @action
+    onGroupClickRec = (document: Doc, index: number, buttonStatus: boolean) => {
+        let p = this.props;
+        if (buttonStatus) {
+            if (index >= 1) {
+                if (p.groupedMembers[index].length >= 0) {
+                    p.groupedMembers[index].forEach((doc: Doc) => {
+                        if (!p.groupedMembers[index - 1].includes(doc)) {
+                            p.groupedMembers[index - 1].push(doc);
+                        }
+                    });
+                }
+
+                if (index >= 2) {
+                    let nextBool = p.groupedMembers[index - 2].length !== 1;
+                    if (nextBool === buttonStatus) {
+                        this.onGroupClickRec(document, index - 1, p.groupedMembers[index - 2].length !== 1);
+                    }
+                }
+
+            }
+        }
+        else {
+
+            if (index >= 1) {
+                let removeSize = p.groupedMembers[index].length;
+                if (p.groupedMembers[index].length >= 0) {
+                    p.groupedMembers[index].forEach((doc: Doc) => {
+                        p.groupedMembers[index - 1].pop(); console.log("Reached!!");
+                    });
+                }
+
+
+
+                if (index >= 2) {
+                    let nextBool = p.groupedMembers[index - 2].length !== 1;
+                    if (nextBool !== buttonStatus) {
+                        this.recursiveDeleteGroups(index - 1, removeSize);
+                    }
+                }
+            }
+        }
+
+    }
+
+    @action
+    recursiveDeleteGroups = (index: number, removeSize: number) => {
+        let p = this.props;
+        for (let i = 0; i < removeSize; i++) {
+            p.groupedMembers[index - 1].pop();
+        }
+        if (index >= 2) {
+
+            let nextBool = p.groupedMembers[index - 2].length !== 1;
+            if (nextBool === true) {
+                this.recursiveDeleteGroups(index - 1, removeSize);
+            }
+        }
+    }
+
+    @action
+    onGroupClickRec2 = (document: Doc, index: number, buttonStatus: boolean) => {
+        let p = this.props;
+        if (buttonStatus) {
+            if (index >= 1) {
+                p.groupedMembers[index - 1].push(document);
+                if (index >= 2) {
+                    this.onGroupClickRec2(document, index - 1, p.groupedMembers[index - 2].length !== 1);
+                }
+            }
+        }
+    }
+
+    @action
+    changeGroupStatus = () => {
+        if (this.selectedButtons[5]) {
+            this.selectedButtons[5] = false;
+        } else {
+            this.selectedButtons[5] = true;
+        }
+    }
+
+    printGroupSizes = () => {
+        this.props.groupedMembers.forEach((doc: Doc[], index: number) => console.log("Index: ", index, " size: ", doc.length));
     }
 
 
@@ -83,8 +173,8 @@ export default class PresentationElement extends React.Component<PresentationEle
             //this doc is selected
             className += " presentationView-selected";
         }
-        let onEnter = (e: React.PointerEvent) => { p.document.libraryBrush = true; }
-        let onLeave = (e: React.PointerEvent) => { p.document.libraryBrush = false; }
+        let onEnter = (e: React.PointerEvent) => { p.document.libraryBrush = true; };
+        let onLeave = (e: React.PointerEvent) => { p.document.libraryBrush = false; };
         return (
             <div className={className} key={p.document[Id] + p.index}
                 onPointerEnter={onEnter} onPointerLeave={onLeave}
@@ -106,7 +196,9 @@ export default class PresentationElement extends React.Component<PresentationEle
                 <button className={this.selectedButtons[4] ? "presentation-interaction-selected" : "presentation-interaction"}>E</button>
                 <button className={this.selectedButtons[5] ? "presentation-interaction-selected" : "presentation-interaction"} onClick={(e) => {
                     e.stopPropagation();
-                    this.onGroupClick(p.document, p.index, this.selectedButtons);
+                    this.changeGroupStatus();
+                    this.onGroupClickRec(p.document, p.index, this.selectedButtons[5]);
+                    this.printGroupSizes();
                 }}>F</button>
 
             </div>
