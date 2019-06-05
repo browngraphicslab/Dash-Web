@@ -73,6 +73,8 @@
     margin-right: 72px;
 
     .search-item {
+        position: relative;
+        z-index: 1000;
         pointer-events: auto;
         width: 500px;
         background: $light-color-secondary;
@@ -85,6 +87,7 @@
         padding: 10px;
         white-space: nowrap;
         font-size: 13px;
+        height: 70px;
     }
 
     .search-info {
@@ -137,28 +140,27 @@
 
 
     .searchBox-instances {
-        display: inline-block;
-        background: $dark-color;
-        width: 100px;
-        opacity: 1;
-        // width: 0px; this is real
-        // visibility: hidden;
-        // opacity: 0; THIS IS REAL
-        // transition: all 0.2s ease;
-        color: $light-color;
+        display: block;
+        background: $light-color-secondary;
+        opacity: 0;
+        width: 150px;
+        transition: all 0.2s ease;
+        color: black;
+        transform: translateX(150px);
     }
+
 
     .search-overview {
         display: flex;
         // float: left;
         justify-content: flex-end;
+        height: 70px;
     }
 
     .search-overview:hover {
         .searchBox-instances {
-            // visibility: visible;
+            transform: translateX(0px);
             opacity: 1;
-            width: 100px;
         }
     }
 }

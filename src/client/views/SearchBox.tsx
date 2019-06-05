@@ -38,6 +38,7 @@ export class SearchBox extends React.Component {
     @observable
     private _results: Doc[] = [];
 
+
     @action.bound
     onChange(e: React.ChangeEvent<HTMLInputElement>) {
         this.searchString = e.target.value;
@@ -73,6 +74,7 @@ export class SearchBox extends React.Component {
         }
         return docs;
     }
+
     public static async convertDataUri(imageUri: string, returnedFilename: string) {
         try {
             let posting = DocServer.prepend(RouteStore.dataUriToImage);
@@ -201,14 +203,7 @@ export class SearchBox extends React.Component {
                     </div>
                     {this._resultsOpen ? (
                         <div className="searchBox-results">
-                            {this._results.map(result => {
-                                this.getViews(result).then((res: Doc[]) => {
-                                    console.log("found")
-                                    return <SearchItem doc={result} views={res} key={result[Id]} />
-                                })
-                            })}
-                            {/* {this._results.map(result => <SearchItem doc={result} views = {this.getViews(result)} key={result[Id]} />)} */}
-                            {/*views = {this.getViews(result)}*/}
+                            {this._results.map(result => <SearchItem doc={result} key={result[Id]} />)}
                         </div>
                     ) : null}
                 </div>
