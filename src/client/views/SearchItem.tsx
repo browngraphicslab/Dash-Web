@@ -1,13 +1,9 @@
 import React = require("react");
-import { Doc } from "../../new_fields/Doc";
-import { DocumentManager } from "../util/DocumentManager";
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faCaretUp, faFilePdf, faFilm, faImage, faObjectGroup, faStickyNote } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { Cast } from "../../new_fields/Types";
-import { FieldView, FieldViewProps } from './nodes/FieldView';
-import { computed } from "mobx";
-import { IconField } from "../../new_fields/IconField";
+import { Doc } from "../../new_fields/Doc";
+import { DocumentManager } from "../util/DocumentManager";
 import { SetupDrag } from "../util/DragManager";
 
 

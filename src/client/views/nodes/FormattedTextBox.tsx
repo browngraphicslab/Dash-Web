@@ -7,11 +7,12 @@ import { history } from "prosemirror-history";
 import { keymap } from "prosemirror-keymap";
 import { EditorState, Plugin, Transaction } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
-import { Doc, Field, Opt, WidthSym, HeightSym } from "../../../new_fields/Doc";
+import { Doc, Opt } from "../../../new_fields/Doc";
 import { RichTextField } from "../../../new_fields/RichTextField";
 import { createSchema, makeInterface } from "../../../new_fields/Schema";
 import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
 import { DocServer } from "../../DocServer";
+import { DocUtils } from '../../documents/Documents';
 import { DocumentManager } from "../../util/DocumentManager";
 import { DragManager } from "../../util/DragManager";
 import buildKeymap from "../../util/ProsemirrorKeymap";
@@ -21,14 +22,11 @@ import { SelectionManager } from "../../util/SelectionManager";
 import { TooltipLinkingMenu } from "../../util/TooltipLinkingMenu";
 import { TooltipTextMenu } from "../../util/TooltipTextMenu";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
-import { ContextMenu } from "../../views/ContextMenu";
-import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { DocComponent } from "../DocComponent";
 import { InkingControl } from "../InkingControl";
 import { FieldView, FieldViewProps } from "./FieldView";
 import "./FormattedTextBox.scss";
 import React = require("react");
-import { DocUtils } from '../../documents/Documents';
 
 library.add(faEdit);
 library.add(faSmile);
@@ -227,6 +225,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         }
     }
 
+    _linkClicked = "";
     onPointerDown = (e: React.PointerEvent): void => {
         if (e.button === 0 && this.props.isSelected() && !e.altKey && !e.ctrlKey && !e.metaKey) {
             e.stopPropagation();
@@ -234,23 +233,17 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 this._toolTipTextMenu.tooltip.style.opacity = "0";
             }
         }
-        let ctrlKey = e.ctrlKey;
+        this._linkClicked = "";
         if (e.button === 0 && ((!this.props.isSelected() && !e.ctrlKey) || (this.props.isSelected() && e.ctrlKey)) && !e.metaKey && e.target) {
             let href = (e.target as any).href;
             for (let parent = (e.target as any).parentNode; !href && parent; parent = parent.parentNode) {
                 href = parent.childNodes[0].href;
             }
-            if (href) {
-                if (href.indexOf(DocServer.prepend("/doc/")) === 0) {
-                    let docid = href.replace(DocServer.prepend("/doc/"), "").split("?")[0];
-                    DocServer.GetRefField(docid).then(f => {
-                        (f instanceof Doc) && DocumentManager.Instance.jumpToDocument(f, ctrlKey, document => this.props.addDocTab(document, "inTab"))
-                    });
-                }
+            if (href && href.indexOf(DocServer.prepend("/doc/")) === 0) {
+                this._linkClicked = href.replace(DocServer.prepend("/doc/"), "").split("?")[0];
                 e.stopPropagation();
                 e.preventDefault();
             }
-
         }
         if (e.button === 2 || (e.button === 0 && e.ctrlKey)) {
             this._gotDown = true;
@@ -260,6 +253,14 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     onPointerUp = (e: React.PointerEvent): void => {
         if (this._toolTipTextMenu && this._toolTipTextMenu.tooltip) {
             this._toolTipTextMenu.tooltip.style.opacity = "1";
+        }
+        let ctrlKey = e.ctrlKey;
+        if (this._linkClicked) {
+            DocServer.GetRefField(this._linkClicked).then(f => {
+                (f instanceof Doc) && DocumentManager.Instance.jumpToDocument(f, ctrlKey, document => this.props.addDocTab(document, "inTab"));
+            });
+            e.stopPropagation();
+            e.preventDefault();
         }
         if (e.buttons === 1 && this.props.isSelected() && !e.altKey) {
             e.stopPropagation();
@@ -284,6 +285,10 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
     onClick = (e: React.MouseEvent): void => {
         this._proseRef.current!.focus();
+        if (this._linkClicked) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
     }
     onMouseDown = (e: React.MouseEvent): void => {
         if (!this.props.isSelected()) { // preventing default allows the onClick to be generated instead of being swallowed by the text box itself
@@ -367,7 +372,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 onPointerUp={this.onPointerUp}
                 onPointerDown={this.onPointerDown}
                 onMouseDown={this.onMouseDown}
-                onContextMenu={this.specificContextMenu}
                 // tfs: do we need this event handler
                 onWheel={this.onPointerWheel}
                 onPointerEnter={this.onPointerEnter}

@@ -1,22 +1,22 @@
-import { action, runInAction } from "mobx";
-import React = require("react");
-import { undoBatch, UndoManager } from "../../util/UndoManager";
-import { DragManager } from "../../util/DragManager";
-import { Docs, DocumentOptions } from "../../documents/Documents";
-import { RouteStore } from "../../../server/RouteStore";
-import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
-import { FieldViewProps } from "../nodes/FieldView";
+import { action } from "mobx";
 import * as rp from 'request-promise';
-import { CollectionView } from "./CollectionView";
+import CursorField from "../../../new_fields/CursorField";
+import { Doc, DocListCast, Opt } from "../../../new_fields/Doc";
+import { List } from "../../../new_fields/List";
+import { listSpec } from "../../../new_fields/Schema";
+import { Cast, PromiseValue } from "../../../new_fields/Types";
+import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
+import { RouteStore } from "../../../server/RouteStore";
+import { DocServer } from "../../DocServer";
+import { Docs, DocumentOptions } from "../../documents/Documents";
+import { DragManager } from "../../util/DragManager";
+import { undoBatch, UndoManager } from "../../util/UndoManager";
+import { DocComponent } from "../DocComponent";
+import { FieldViewProps } from "../nodes/FieldView";
 import { CollectionPDFView } from "./CollectionPDFView";
 import { CollectionVideoView } from "./CollectionVideoView";
-import { Doc, Opt, FieldResult, DocListCast } from "../../../new_fields/Doc";
-import { DocComponent } from "../DocComponent";
-import { listSpec } from "../../../new_fields/Schema";
-import { Cast, PromiseValue, FieldValue, ListSpec } from "../../../new_fields/Types";
-import { List } from "../../../new_fields/List";
-import { DocServer } from "../../DocServer";
-import CursorField from "../../../new_fields/CursorField";
+import { CollectionView } from "./CollectionView";
+import React = require("react");
 
 export interface CollectionViewProps extends FieldViewProps {
     addDocument: (document: Doc, allowDuplicates?: boolean) => boolean;
@@ -166,6 +166,13 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             e.stopPropagation();
             e.preventDefault();
 
+            if (html && html.indexOf(document.location.origin)) { // prosemirror text containing link to dash document
+                let start = html.indexOf(window.location.origin);
+                let path = html.substr(start, html.length - start);
+                let docid = path.substr(0, path.indexOf("\">")).replace(DocServer.prepend("/doc/"), "").split("?")[0];
+                DocServer.GetRefField(docid).then(f => (f instanceof Doc) && this.props.addDocument(f, false));
+                return;
+            }
             if (html && html.indexOf("<img") !== 0 && !html.startsWith("<a")) {
                 let htmlDoc = Docs.HtmlDocument(html, { ...options, width: 300, height: 300, documentText: text });
                 this.props.addDocument(htmlDoc, false);
