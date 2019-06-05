@@ -130,9 +130,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
                             <div className="search-type" >{this.DocumentIcon()}</div>
                         </div>
                     </div>
-                    <div className="more-search-info">
                         <div className="found">Where Found: (i.e. title, body, etc)</div>
-                    </div>
                 </div>
                 <div className="searchBox-instances">
                     <SelectorContextMenu {...this.props} />
