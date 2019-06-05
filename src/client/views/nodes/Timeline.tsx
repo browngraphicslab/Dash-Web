@@ -60,6 +60,7 @@ export class Timeline extends CollectionSubView(Document) {
 
     private temp1:any = null; 
     private temp2:any = null; 
+    private tempdoc: any = null; 
 
     @action
     onRecord = (e: React.MouseEvent) => {
@@ -73,6 +74,7 @@ export class Timeline extends CollectionSubView(Document) {
 
         const addReaction = (element: Doc) => {
             element = (element as any).value();
+            this.tempdoc = element; 
             return reaction(() => {
                 return this._keys.map(key => FieldValue(element[key]));
             }, async data => { //where is the data index actually being set?
@@ -92,12 +94,23 @@ export class Timeline extends CollectionSubView(Document) {
 
                     if (!exists) {
                         keyFrame = new KeyFrame();
+                        
                         let bar: HTMLDivElement = this.createBar(5, time, "yellow");
                         this._inner.current.appendChild(bar);
                         // keyFrame.doc.bar = bar;
                         keyFrame.doc.frames = new List<Doc>();
 
-                        this._keyFrames.push(keyFrame);
+                        this._keyFrames.push(keyFrame);     
+
+                        //TEMPORARY!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                        if (this.temp1 === null){
+                            console.log("hereee"); 
+                            this.temp1 = IndividualDocTimeKeyFrame(keyFrame.doc); 
+                        } else {
+                            console.log("bdaf");
+                            this.temp2 = IndividualDocTimeKeyFrame(keyFrame.doc);
+                        }    
+                        ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////                                  
                     }
 
                     this._keys.forEach((key, index) => {
@@ -110,6 +123,7 @@ export class Timeline extends CollectionSubView(Document) {
                             });
                         }
                     });
+
 
                     // for (let i in this._keys) { //add _keys to _keyList
                     //     let key = this._keys[i];
@@ -223,13 +237,20 @@ export class Timeline extends CollectionSubView(Document) {
         const adjusted_X = dif_X * ratio; 
         const adjusted_Y = dif_Y * ratio; 
         
+        console.log(doc.X); 
         doc.X = keyFrame1.x + adjusted_X; 
         doc.Y = keyFrame1.y + adjusted_Y; 
     }
 
 
+    /**
+     * TEMPORARY
+     */
     @action 
     onInterpolate = (e: React.MouseEvent) => {
+        console.log(this.temp1);
+        console.log(this.temp2);
+        this.interpolate(this.tempdoc, this.temp1, this.temp2, this._currentBarX);
 
     }
 
@@ -239,7 +260,7 @@ export class Timeline extends CollectionSubView(Document) {
         dv.props.Document;
 
     }
-    
+
     @action
     onInnerPointerUp = (e: React.PointerEvent) => {
         if (this._inner.current) {
