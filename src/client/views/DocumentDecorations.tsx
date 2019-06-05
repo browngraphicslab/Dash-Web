@@ -521,11 +521,11 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
 
         let templates: Map<Template, boolean> = new Map();
         Array.from(Object.values(Templates.TemplateList)).map(template => {
-            let sorted = SelectionManager.ViewsSortedVertically().slice().sort((doc1, doc2) => {
-                if (NumCast(doc1.props.Document.x) > NumCast(doc2.props.Document.x)) return 1;
-                if (NumCast(doc1.props.Document.x) < NumCast(doc2.props.Document.x)) return -1;
-                return 0;
-            });
+            let sorted = SelectionManager.ViewsSortedVertically(); // slice().sort((doc1, doc2) => {
+            //     if (NumCast(doc1.props.Document.y) > NumCast(doc2.props.Document.x)) return 1;
+            //     if (NumCast(doc1.props.Document.x) < NumCast(doc2.props.Document.x)) return -1;
+            //     return 0;
+            // });
             let docTemps = sorted.reduce((res: string[], doc: DocumentView, i) => {
                 let temps = doc.props.Document.templates;
                 if (temps instanceof List) {

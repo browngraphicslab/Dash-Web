@@ -1,5 +1,5 @@
 import React = require("react");
-import { action, computed, IReactionDisposer, reaction } from "mobx";
+import { action, computed, IReactionDisposer, reaction, trace } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, HeightSym, WidthSym } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
@@ -16,13 +16,13 @@ import { CollectionSubView } from "./CollectionSubView";
 export class CollectionStackingView extends CollectionSubView(doc => doc) {
     _masonryGridRef: HTMLDivElement | null = null;
     _heightDisposer?: IReactionDisposer;
-    get gridGap() { return 10; }
-    get gridSize() { return 20; }
-    get singleColumn() { return BoolCast(this.props.Document.singleColumn, true); }
-    get columnWidth() { return this.singleColumn ? this.props.PanelWidth() - 4 * this.gridGap : NumCast(this.props.Document.columnWidth, 250); }
+    @computed get gridGap() { return NumCast(this.props.Document.gridGap, 10); }
+    @computed get gridSize() { return NumCast(this.props.Document.gridSize, 20); }
+    @computed get singleColumn() { return BoolCast(this.props.Document.singleColumn, true); }
+    @computed get columnWidth() { return this.singleColumn ? this.props.PanelWidth() - 4 * this.gridGap : NumCast(this.props.Document.columnWidth, 250); }
 
     componentDidMount() {
-        this._heightDisposer = reaction(() => [this.childDocs.map(d => [d.height, d.width, d.zoomBasis, d.nativeHeight, d.nativeWidth, d.isMinimized]), this.columnWidth, this.props.PanelHeight()],
+        this._heightDisposer = reaction(() => [this.props.Document.gridGap, this.gridSize, this.columnWidth, this.childDocs.map(d => [d.height, d.width, d.zoomBasis, d.nativeHeight, d.nativeWidth, d.isMinimized])],
             () => {
                 if (this.singleColumn) {
                     this.props.Document.height = this.childDocs.filter(d => !d.isMinimized).reduce((height, d) => {
