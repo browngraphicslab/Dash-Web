@@ -19,6 +19,16 @@ interface PresentationElementProps {
 
 }
 
+enum buttonIndex {
+    Show = 0,
+    Navigate = 1,
+    HideTillPressed = 2,
+    FadeAfter = 3,
+    HideAfter = 4,
+    Group = 5,
+
+}
+
 @observer
 export default class PresentationElement extends React.Component<PresentationElementProps> {
 
@@ -84,15 +94,30 @@ export default class PresentationElement extends React.Component<PresentationEle
 
     @action
     changeGroupStatus = () => {
-        if (this.selectedButtons[5]) {
-            this.selectedButtons[5] = false;
+        if (this.selectedButtons[buttonIndex.Group]) {
+            this.selectedButtons[buttonIndex.Group] = false;
         } else {
-            this.selectedButtons[5] = true;
+            this.selectedButtons[buttonIndex.Group] = true;
         }
     }
 
     printGroupSizes = () => {
         this.props.groupedMembers.forEach((doc: Doc[], index: number) => console.log("Index: ", index, " size: ", doc.length));
+    }
+
+    @action
+    onHideDocumentUntilPressClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (this.selectedButtons[buttonIndex.HideTillPressed]) {
+            this.selectedButtons[buttonIndex.HideTillPressed] = false;
+
+        } else {
+            this.selectedButtons[buttonIndex.HideTillPressed] = true;
+        }
+    }
+
+    hideDocumentIfNotPressed = () => {
+        this.props.allListElements.forEach((doc: Doc) => doc.opacity = 0);
     }
 
 
@@ -125,15 +150,15 @@ export default class PresentationElement extends React.Component<PresentationEle
                 </strong>
                 <button className="presentation-icon" onClick={e => { this.props.deleteDocument(p.index); e.stopPropagation(); }}>X</button>
                 <br></br>
-                <button className={this.selectedButtons[0] ? "presentation-interaction-selected" : "presentation-interaction"}>A</button>
-                <button className={this.selectedButtons[1] ? "presentation-interaction-selected" : "presentation-interaction"}>B</button>
-                <button className={this.selectedButtons[2] ? "presentation-interaction-selected" : "presentation-interaction"}>C</button>
-                <button className={this.selectedButtons[3] ? "presentation-interaction-selected" : "presentation-interaction"}>D</button>
-                <button className={this.selectedButtons[4] ? "presentation-interaction-selected" : "presentation-interaction"}>E</button>
-                <button className={this.selectedButtons[5] ? "presentation-interaction-selected" : "presentation-interaction"} onClick={(e) => {
+                <button className={this.selectedButtons[buttonIndex.Show] ? "presentation-interaction-selected" : "presentation-interaction"}>A</button>
+                <button className={this.selectedButtons[buttonIndex.Navigate] ? "presentation-interaction-selected" : "presentation-interaction"}>B</button>
+                <button className={this.selectedButtons[buttonIndex.HideTillPressed] ? "presentation-interaction-selected" : "presentation-interaction"} onClick={(e) => { this.onHideDocumentUntilPressClick(e); this.hideDocumentIfNotPressed(); }}>C</button>
+                <button className={this.selectedButtons[buttonIndex.FadeAfter] ? "presentation-interaction-selected" : "presentation-interaction"}>D</button>
+                <button className={this.selectedButtons[buttonIndex.HideAfter] ? "presentation-interaction-selected" : "presentation-interaction"}>E</button>
+                <button className={this.selectedButtons[buttonIndex.Group] ? "presentation-interaction-selected" : "presentation-interaction"} onClick={(e) => {
                     e.stopPropagation();
                     this.changeGroupStatus();
-                    this.onGroupClickRec(p.document, p.index, this.selectedButtons[5]);
+                    this.onGroupClickRec(p.document, p.index, this.selectedButtons[buttonIndex.Group]);
                     this.printGroupSizes();
                 }}>F</button>
 

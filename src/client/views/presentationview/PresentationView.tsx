@@ -55,7 +55,7 @@ class PresentationViewList extends React.Component<PresListProps> {
         console.log("Starting len: ", this.props.groupedMembers.length);
         docList.forEach((doc: Doc, index: number) => {
             if (this.props.groupedMembers.length < index + 2) {
-                this.props.groupedMembers[index] = new Array();
+                this.props.groupedMembers[index] = [];
                 this.props.groupedMembers[index].push(docList[index]);
 
             }
@@ -123,8 +123,7 @@ class PresentationViewList extends React.Component<PresListProps> {
 export class PresentationView extends React.Component<PresViewProps>  {
     public static Instance: PresentationView;
 
-    @observable groupedMembers: [Doc[]] = [[]];
-
+    @observable groupedMembers: Doc[][] = [];
 
     //observable means render is re-called every time variable is changed
     @observable
