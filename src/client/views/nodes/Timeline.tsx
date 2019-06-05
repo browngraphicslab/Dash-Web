@@ -9,14 +9,33 @@ import { CollectionSubView, SubCollectionViewProps } from "../collections/Collec
 import { DocumentViewProps, DocumentView } from "./DocumentView";
 
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
-import { Doc, Self, DocListCastAsync } from "../../../new_fields/Doc";
-import { Document, listSpec } from "../../../new_fields/Schema";
+import { Doc, DocListCastAsync } from "../../../new_fields/Doc";
+import { Document, listSpec, createSchema, makeInterface } from "../../../new_fields/Schema";
 import { FieldValue, Cast } from "../../../new_fields/Types";
 import { emptyStatement } from "babel-types";
 import { DocumentManager } from "../../util/DocumentManager";
 import { SelectionManager } from "../../util/SelectionManager";
 import { List } from "../../../new_fields/List";
+import { Self } from "../../../new_fields/FieldSymbols";
 
+type IndividualDocKeyFrame = List<Doc>;
+type KeyframeList = List<List<Doc>>;
+
+const DocKeyFrameSchema = createSchema({
+    x: "number",
+    y: "number"
+});
+
+type DocKeyFrame = makeInterface<[typeof DocKeyFrameSchema]>;
+const DocKeyFrame = makeInterface(DocKeyFrameSchema);
+
+const IndividualDocTimeKeyFrameSchema = createSchema({
+    time: "number",
+    keyframe: Doc
+});
+
+type IndividualDocTimeKeyFrame = makeInterface<[typeof IndividualDocTimeKeyFrameSchema]>;
+const IndividualDocTimeKeyFrame = makeInterface(IndividualDocTimeKeyFrameSchema);
 
 @observer
 export class Timeline extends CollectionSubView(Document) {
@@ -33,8 +52,10 @@ export class Timeline extends CollectionSubView(Document) {
     private _currentBarX: number = 0;
     @observable private _onBar: Boolean = false;
     @observable private _keys = ["x", "y"];
-    @observable private _frames: List<Doc>;
-    @observable private _kfDoc = []; //list of _keys
+    @observable private _frames: Doc[] = [];
+    @observable private _keyList: String[] = []; //list of _keys
+    @observable private _keyFrameList: String[] = []; //list of _keyList
+    @observable private _topLevelList: String[] = []; //list of _keyFrameList
 
 
     @action
@@ -51,17 +72,17 @@ export class Timeline extends CollectionSubView(Document) {
             element = (element as any).value();
             return reaction(() => {
                 return this._keys.map(key => FieldValue(element[key]));
-            }, data => { //where is the data index actually being set?
+            }, async data => { //where is the data index actually being set?
                 if (this._inner.current) {
                     let keyFrame: KeyFrame; //keyframe reference
                     //is KeyFrame just a wrapper for a doc? cause then could just be of type doc...
                     let exists: boolean = false;
                     let time: number = this._currentBarX; //time that indicates what frame you are in. Whole numbers. 
                     // let frames: List<Doc>; //don't know if this should be an instance...
-                    this._keyFrames.forEach(kf => { //checks if there is a keyframe that is tracking this document. 
+                    this._keyFrames.forEach(async kf => { //checks if there is a keyframe that is tracking this document. 
                         if (kf.doc.document === element) {
                             keyFrame = kf;
-                            this._frames = Cast(keyFrame.doc.frames, listSpec(Doc))!;
+                            this._frames = (await DocListCastAsync(keyFrame.doc.frames))!;
                             exists = true;
                         }
                     });
@@ -85,9 +106,24 @@ export class Timeline extends CollectionSubView(Document) {
                                 }
                             });
                         }
-
-                        //keyFrame.document[key] = data[index];
                     });
+
+                    // for (let i in this._keys) { //add _keys to _keyList
+                    //     let key = this._keys[i];
+                    //     this._keyList.push(key);
+                    // }
+
+                    // for (let i in this._keyList) { //add keyList to _keyFrameList
+                    //     let keyList = this._keyList[i];
+                    //     this._keyFrameList.push(keyList);
+                    // }
+
+                    // for (let i in this._topLevelList) { //add _keyFrameList to _topLevelList
+                    //     let keyFrameList = this._keyFrameList[i];
+                    //     this._topLevelList.push(keyFrameList);
+                    // }
+
+                    //keyFrame.document[key] = data[index];
                 }
             });
         };
@@ -117,33 +153,54 @@ export class Timeline extends CollectionSubView(Document) {
 
     @action
     timeChange = async (time: number) => { //x position of mouse relative to inner box can be passed in?
-        let element = (Doc as any).value();
         //data is list of docs
-        //this.props.document
-        //GOOD EXAMPLES: collection subview has childdox getter : gets the data part (field key)
-        //to get keyframes out of document can also use similar code
         let keyFrame: KeyFrame; //keyframe reference
-        const docs = await DocListCastAsync(this.props.Document[this.props.fieldKey]);
-        const kfs = await DocListCastAsync(this._keyFrames[]); //this should be something different...?
+        const docs = (await DocListCastAsync(this.props.Document[this.props.fieldKey]))!;
+        const kfList: KeyframeList = Cast(this.props.Document.keyframes, listSpec(Doc)) as any;
+        const list = await Promise.all(kfList.map(l => Promise.all(l)));
         for (let i in docs) {
             let oneDoc = docs[i];
-            let oneKfs = this._keyFrames[i]; //use child getter if keyframes is list of keyframes (because collection is list of children)
+            let oneKf = list[i]; //use child getter if keyframes is list of keyframes (because collection is list of children)
 
-            this._keyFrames.forEach(kf => { //checks if there is a keyframe that is tracking this document 
-                if (kf.doc.document === element) {
-                    keyFrame = kf;
-                    this._frames = Cast(keyFrame.doc.frames, listSpec(Doc))!;
+            //first find frame with closest time
+            //after find frame: need to do await for specific frame, except cast to Doc instead of listSpec(Doc)
+            //then make a promise for that 
+            //_frames array is probably irrelevant (so can probably get rid of this._keyFrames.forEach(async).. section)
+            //lastly, set all properties of current keyframe to that of the stored and now accessed keyframe (singleKf)***
+
+            for (let i in oneKf) {
+                let singleKf = oneKf[i][i];
+                let min: Number = Infinity;
+                if (singleKf !== undefined && singleKf.time === time) {
+                    //singleKf remains singleΚf
+                } else { //choose closest time neighbor and reset singleKf to that keyFrame
+                    for (let j in oneKf) {
+                        const difference: Number = Math.abs(oneKf[j][j].time - time);
+                        if (difference < min) {
+                            min = difference;
+                            singleKf = oneKf[j][j];
+                        }
+                    }
                 }
-            },
+                const kfProm: KeyframeList = Cast(singleKf, Doc) as any;
+                const prom = await Promise.all(kfProm.map(l => Promise.all(l)));
+            }
+
+            this._keyFrames.forEach(async kf => { //checks if there is a keyframe that is tracking this document 
+                if (kf.doc.document === oneDoc) { //oneDoc used to be element...
+                    keyFrame = kf;
+                    this._frames = (await DocListCastAsync(keyFrame.doc.frames))!;
+                }
+            }),
                 this._keys.forEach((key) => { //for each key
-                    if (keyFrame.doc.frames !== undefined) {
+                    if (keyFrame.doc.frames !== undefined) { //should this check if frames is onekf
                         this._frames.forEach(frame => {
                             if (frame.time === time) {
                                 keyFrame.doc[key] = frame[key]; //set the doc's position to the frames' stored values
                             }
                         });
                     }
-                }
+                });
         }
     }
 
