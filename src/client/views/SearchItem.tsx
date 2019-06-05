@@ -12,6 +12,7 @@ import { SearchUtil } from "../util/SearchUtil";
 import { Id } from "../../new_fields/FieldSymbols";
 import { CollectionDockingView } from "./collections/CollectionDockingView";
 import { observer } from "mobx-react";
+import "./SearchItem.scss";
 
 export interface SearchItemProps {
     doc: Doc;
