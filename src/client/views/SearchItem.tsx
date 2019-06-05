@@ -40,7 +40,6 @@ export class SelectorContextMenu extends React.Component<SearchItemProps> {
     }
 
     async fetchDocuments() {
-        console.log("fetching");
         let aliases = (await SearchUtil.GetViewsOfDocument(this.props.doc)).filter(doc => doc !== this.props.doc);
         const docs = await SearchUtil.Search(`data_l:"${this.props.doc[Id]}"`, true);
         const map: Map<Doc, Doc> = new Map;
@@ -48,7 +47,6 @@ export class SelectorContextMenu extends React.Component<SearchItemProps> {
         allDocs.forEach((docs, index) => docs.forEach(doc => map.set(doc, aliases[index])));
         docs.forEach(doc => map.delete(doc));
         runInAction(() => {
-            console.log("action running")
             this._docs = docs.filter(doc => !Doc.AreProtosEqual(doc, CollectionDockingView.Instance.props.Document)).map(doc => ({ col: doc, target: this.props.doc }));
             this._otherDocs = Array.from(map.entries()).filter(entry => !Doc.AreProtosEqual(entry[0], CollectionDockingView.Instance.props.Document)).map(([col, target]) => ({ col, target }));
         });
@@ -70,12 +68,11 @@ export class SelectorContextMenu extends React.Component<SearchItemProps> {
 
     render() {
         return (
-            <>
+            < div className="parents">
                 <p>Contexts:</p>
-                    {this._docs.map(doc => <p><a onClick={this.getOnClick(doc)}>{doc.col.title}</a></p>)}
-                    {this._otherDocs.length ? <hr></hr> : null}
-                    {this._otherDocs.map(doc => <p><a onClick={this.getOnClick(doc)}>{doc.col.title}</a></p>)}
-            </>
+                    {this._docs.map(doc => <div className = "collection"><a  onClick={this.getOnClick(doc)}>{doc.col.title}</a></div>)}
+                    {this._otherDocs.map(doc =><div className = "collection"><a onClick={this.getOnClick(doc)}>{doc.col.title}</a></div>)}
+            </div>
         );
     }
 }
@@ -124,9 +121,6 @@ export class SearchItem extends React.Component<SearchItemProps> {
     render() {
         return (
             <div className="search-overview">
-                <div className="searchBox-instances">
-                    <SelectorContextMenu {...this.props} />
-                </div>
                 <div className="search-item" ref={this.collectionRef} id="result" onClick={this.onClick} onPointerDown={SetupDrag(this.collectionRef, this.startDocDrag)} >
                     <div className="main-search-info">
                         <div className="search-title" id="result" >{this.props.doc.title}</div>
@@ -138,6 +132,9 @@ export class SearchItem extends React.Component<SearchItemProps> {
                     <div className="more-search-info">
                         <div className="found">Where Found: (i.e. title, body, etc)</div>
                     </div>
+                </div>
+                <div className="searchBox-instances">
+                    <SelectorContextMenu {...this.props} />
                 </div>
             </div>
         );
