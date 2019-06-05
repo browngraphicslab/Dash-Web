@@ -70,7 +70,7 @@ export class CollectionPDFView extends React.Component<FieldViewProps> {
         return (
             <>
                 <CollectionFreeFormView {...props} CollectionView={this} />
-                {this.props.active() ? this.uIButtons : (null)}
+                {renderProps.active() ? this.uIButtons : (null)}
             </>
         );
     }

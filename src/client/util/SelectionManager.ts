@@ -22,14 +22,6 @@ export namespace SelectionManager {
             }
         }
         @action
-        DeSelectDoc(doc: DocumentView): void {
-            if (manager.SelectedDocuments.indexOf(doc) !== -1) {
-                manager.SelectedDocuments.splice(manager.SelectedDocuments.indexOf(doc), 1);
-                doc.props.whenActiveChanged(false);
-            }
-        }
-
-        @action
         DeselectAll(): void {
             manager.SelectedDocuments.map(dv => dv.props.whenActiveChanged(false));
             manager.SelectedDocuments = [];
@@ -45,9 +37,6 @@ export namespace SelectionManager {
 
     export function IsSelected(doc: DocumentView): boolean {
         return manager.SelectedDocuments.indexOf(doc) !== -1;
-    }
-    export function DeSelectDoc(doc: DocumentView): void {
-        manager.DeSelectDoc(doc);
     }
 
     export function DeselectAll(except?: Doc): void {
