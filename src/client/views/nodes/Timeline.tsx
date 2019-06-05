@@ -7,7 +7,6 @@ import { KeyFrame } from "./KeyFrame";
 import { CollectionViewProps } from "../collections/CollectionBaseView";
 import { CollectionSubView, SubCollectionViewProps } from "../collections/CollectionSubView";
 import { DocumentViewProps, DocumentView } from "./DocumentView";
-
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
 import { Doc, DocListCastAsync } from "../../../new_fields/Doc";
 import { Document, listSpec, createSchema, makeInterface, defaultSpec } from "../../../new_fields/Schema";
@@ -21,21 +20,21 @@ import { Self } from "../../../new_fields/FieldSymbols";
 type IndividualDocKeyFrame = List<Doc>;
 type KeyframeList = List<List<Doc>>;
 
-const DocKeyFrameSchema = createSchema({
+const PositionSchema = createSchema({
     x: defaultSpec("number", 0),
     y: defaultSpec("number", 0)
 });
 
-type DocKeyFrame = makeInterface<[typeof DocKeyFrameSchema]>;
-const DocKeyFrame = makeInterface(DocKeyFrameSchema);
+type Position = makeInterface<[typeof PositionSchema]>;
+const Position = makeInterface(PositionSchema);
 
-const IndividualDocTimeKeyFrameSchema = createSchema({
+const TimeAndPositionSchema = createSchema({
     time: defaultSpec("number", 0),
-    keyframe: Doc//DocKeyFrame
+    keyframe: Doc //Position
 });
 
-type IndividualDocTimeKeyFrame = makeInterface<[typeof IndividualDocTimeKeyFrameSchema]>;
-const IndividualDocTimeKeyFrame = makeInterface(IndividualDocTimeKeyFrameSchema);
+type TimeAndPosition = makeInterface<[typeof TimeAndPositionSchema]>;
+const TimeAndPosition = makeInterface(TimeAndPositionSchema);
 
 
 @observer
@@ -54,9 +53,6 @@ export class Timeline extends CollectionSubView(Document) {
     @observable private _onBar: Boolean = false;
     @observable private _keys = ["x", "y"];
     @observable private _frames: Doc[] = [];
-    @observable private _keyList: String[] = []; //list of _keys
-    @observable private _keyFrameList: String[] = []; //list of _keyList
-    @observable private _topLevelList: String[] = []; //list of _keyFrameList
 
     private temp1:any = null; 
     private temp2:any = null; 
@@ -100,17 +96,7 @@ export class Timeline extends CollectionSubView(Document) {
                         // keyFrame.doc.bar = bar;
                         keyFrame.doc.frames = new List<Doc>();
 
-                        this._keyFrames.push(keyFrame);     
-
-                        //TEMPORARY!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-                        if (this.temp1 === null){
-                            console.log("hereee"); 
-                            this.temp1 = IndividualDocTimeKeyFrame(keyFrame.doc); 
-                        } else {
-                            console.log("bdaf");
-                            this.temp2 = IndividualDocTimeKeyFrame(keyFrame.doc);
-                        }    
-                        ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////                                  
+                        this._keyFrames.push(keyFrame);                                    
                     }
 
                     this._keys.forEach((key, index) => {
@@ -170,69 +156,54 @@ export class Timeline extends CollectionSubView(Document) {
     @action
     timeChange = async (time: number) => { //x position of mouse relative to inner box can be passed in?
         //data is list of docs
-        let keyFrame: KeyFrame; //keyframe reference
+        let keyFrame: TimeAndPosition; //keyframe reference
         const docs = (await DocListCastAsync(this.props.Document[this.props.fieldKey]))!;
         const kfList: KeyframeList = Cast(this.props.Document.keyframes, listSpec(Doc)) as any;
         const list = await Promise.all(kfList.map(l => Promise.all(l)));
         for (let i in docs) {
             let oneDoc = docs[i];
-            let oneKf = list[i]; //use child getter if keyframes is list of keyframes (because collection is list of children)
-
-            //first find frame with closest time
-            //after find frame: need to do await for specific frame, except cast to Doc instead of listSpec(Doc)
-            //then make a promise for that 
-            //_frames array is probably irrelevant (so can probably get rid of this._keyFrames.forEach(async).. section)
-            //lastly, set all properties of current keyframe to that of the stored and now accessed keyframe (singleKf)***
-
-            for (let i in oneKf) {
-                let singleKf = oneKf[i][i];
-                let min: Number = Infinity;
-                if (singleKf !== undefined && singleKf.time === time) {
-                    //singleKf remains singleΚf
-                } else { //choose closest time neighbor and reset singleKf to that keyFrame
-                    for (let j in oneKf) {
-                        const difference: Number = Math.abs(oneKf[j][j].time - time);
-                        if (difference < min) {
-                            min = difference;
-                            singleKf = oneKf[j][j];
+            let oneKf: TimeAndPosition[] = list[i].map(TimeAndPosition);
+            let leftKf!: TimeAndPosition;
+            let rightKf!: TimeAndPosition;
+            for (let j in oneKf) {
+                let singleKf: TimeAndPosition = oneKf[j];
+                let leftMin: Number = Infinity;
+                let rightMin: Number = Infinity;
+                if (singleKf.time !== time) { //choose closest time neighbors
+                    for (let k in oneKf) {
+                        if (oneKf[k].time < time) {
+                            const diff: Number = Math.abs(oneKf[k].time - time);
+                            if (diff < leftMin) {
+                                leftMin = diff;
+                                leftKf = oneKf[k];
+                            }
+                        } else {
+                            const diff: Number = Math.abs(oneKf[k].time - time);
+                            if (diff < rightMin) {
+                                rightMin = diff;
+                                rightKf = oneKf[k];
+                            }
                         }
                     }
                 }
-                const kfProm: KeyframeList = Cast(singleKf, Doc) as any;
-                const prom = await Promise.all(kfProm.map(l => Promise.all(l)));
             }
-
-            this._keyFrames.forEach(async kf => { //checks if there is a keyframe that is tracking this document 
-                if (kf.doc.document === oneDoc) { //oneDoc used to be element...
-                    keyFrame = kf;
-                    this._frames = (await DocListCastAsync(keyFrame.doc.frames))!;
-                }
-            }),
-                this._keys.forEach((key) => { //for each key
-                    if (keyFrame.doc.frames !== undefined) { //should this check if frames is onekf
-                        this._frames.forEach(frame => {
-                            if (frame.time === time) {
-                                keyFrame.doc[key] = frame[key]; //set the doc's position to the frames' stored values
-                            }
-                        });
-                    }
-                });
+            this.interpolate(oneDoc, leftKf, rightKf, time);
         }
     }
-    
+
     /**
      * Linearly interpolates a document from time1 to time2 
      * @param Doc that needs to be modified
      * @param  
      */
     @action
-    interpolate = async (doc: Doc, kf1: IndividualDocTimeKeyFrame, kf2: IndividualDocTimeKeyFrame, time: number) => {
-        const keyFrame1 = DocKeyFrame(await kf1.keyframe);
-        const keyFrame2 = DocKeyFrame(await kf2.keyframe);
+    interpolate = async (doc: Doc, kf1: TimeAndPosition, kf2: TimeAndPosition, time: number) => {
+        const keyFrame1 = Position(await kf1.keyframe);
+        const keyFrame2 = Position(await kf2.keyframe);
 
-        const dif_X = NumCast(keyFrame2.X) - NumCast(keyFrame1.X); 
-        const dif_Y = NumCast(keyFrame2.Y) - NumCast(keyFrame1.Y); 
-        const dif_time = kf2.time - kf1.time; 
+        const dif_X = NumCast(keyFrame2.X) - NumCast(keyFrame1.X);
+        const dif_Y = NumCast(keyFrame2.Y) - NumCast(keyFrame1.Y);
+        const dif_time = kf2.time - kf1.time;
         const ratio = (time - kf1.time) / dif_time;
         const adjusted_X = dif_X * ratio; 
         const adjusted_Y = dif_Y * ratio; 
@@ -248,10 +219,7 @@ export class Timeline extends CollectionSubView(Document) {
      */
     @action 
     onInterpolate = (e: React.MouseEvent) => {
-        console.log(this.temp1);
-        console.log(this.temp2);
-        this.interpolate(this.tempdoc, this.temp1, this.temp2, this._currentBarX);
-
+        
     }
 
     @action
@@ -280,6 +248,7 @@ export class Timeline extends CollectionSubView(Document) {
                 this._currentBar.style.transform = `translate(${offsetX}px)`;
                 this._inner.current.removeEventListener("pointermove", this.onInnerPointerMove); //reset
                 this._inner.current.addEventListener("pointermove", this.onInnerPointerMove);
+                this.timeChange(this._currentBarX); 
             }
         }
     }
@@ -291,8 +260,7 @@ export class Timeline extends CollectionSubView(Document) {
         let offsetX = Math.round(e.offsetX);
         this._currentBarX = offsetX;
         this._currentBar.style.transform = `translate(${offsetX}px)`; //styling should not have to be done this way...maybe done through react??
-        console.log(offsetX);
-        console.log(this._currentBarX);
+        this.timeChange(this._currentBarX); 
     }
 
     createBar = (width: number, pos: number = 0, color: string = "green"): HTMLDivElement => {
