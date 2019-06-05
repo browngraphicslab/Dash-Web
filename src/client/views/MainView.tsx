@@ -52,6 +52,15 @@ export class MainView extends React.Component {
         }
     }
 
+    componentWillMount() {
+        document.removeEventListener("keydown", this.globalKeyHandler);
+        document.addEventListener("keydown", this.globalKeyHandler);
+    }
+
+    componentWillUnMount() {
+        document.removeEventListener("keydown", this.globalKeyHandler);
+    }
+
     constructor(props: Readonly<{}>) {
         super(props);
         MainView.Instance = this;
@@ -297,6 +306,19 @@ export class MainView extends React.Component {
     @action
     toggleSearch = () => {
         this.isSearchVisible = !this.isSearchVisible;
+    }
+
+    globalKeyHandler = (e: KeyboardEvent) => {
+        if (e.key === "Control" || !e.ctrlKey) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        switch (e.key) {
+            case "ArrowRight":
+                CollectionDockingView.Instance.AddRightSplit(this.mainContainer!);
+                console.log("split screen right");
+        }
     }
 
     render() {
