@@ -15,7 +15,6 @@ interface PresentationElementProps {
     index: number;
     deleteDocument(index: number): void;
     gotoDocument(index: number): void;
-    groupedMembers: Doc[][];
     allListElements: Doc[];
     groupMappings: Map<String, Doc[]>;
 
@@ -45,12 +44,9 @@ export default class PresentationElement extends React.Component<PresentationEle
                 let newGuid = Utils.GenerateGuid();
                 let aboveGuid = StrCast(p.allListElements[index - 1].presentId, null);
                 let docGuid = StrCast(document.presentId, null);
-                // if (aboveGuid !== undefined) {
                 if (p.groupMappings.has(aboveGuid)) {
                     let aboveArray = p.groupMappings.get(aboveGuid)!;
                     if (p.groupMappings.has(docGuid)) {
-                        console.log("Doc Guid: ", docGuid);
-                        console.log("Above Guid: ", aboveGuid);
                         let docsArray = p.groupMappings.get(docGuid)!;
                         docsArray.forEach((doc: Doc) => {
                             if (!aboveArray.includes(doc)) {
@@ -91,27 +87,6 @@ export default class PresentationElement extends React.Component<PresentationEle
 
                 }
                 document.presentId = aboveGuid;
-                // } else {
-                //     p.allListElements[index - 1].presentId = newGuid;
-                //     let newAboveArray: Doc[] = [];
-                //     newAboveArray.push(p.allListElements[index - 1]);
-                //     if (p.groupMappings.has(docGuid)) {
-                //         let docsArray = p.groupMappings.get(docGuid)!;
-                //         docsArray.forEach((doc: Doc) => {
-                //             doc.presentId = newGuid;
-                //             newAboveArray.push(doc);
-                //         });
-                //         p.groupMappings.delete(docGuid);
-                //     } else {
-                //         newAboveArray.push(document);
-                //     }
-                //     document.presentId = newGuid;
-                //     p.groupMappings.set(newGuid, newAboveArray);
-                //     console.log("New Array created");
-
-
-                // }
-
             } else {
                 let curArray = p.groupMappings.get(StrCast(document.presentId, Utils.GenerateGuid()))!;
                 let targetIndex = curArray.indexOf(document);
@@ -130,74 +105,12 @@ export default class PresentationElement extends React.Component<PresentationEle
     }
 
     @action
-    onGroupClickRec = (document: Doc, index: number, buttonStatus: boolean) => {
-        let p = this.props;
-        if (buttonStatus) {
-            if (index >= 1) {
-                if (p.groupedMembers[index].length >= 0) {
-                    p.groupedMembers[index].forEach((doc: Doc) => {
-                        if (!p.groupedMembers[index - 1].includes(doc)) {
-                            p.groupedMembers[index - 1].push(doc);
-                        }
-                    });
-                }
-
-                if (index >= 2) {
-                    let nextBool = p.groupedMembers[index - 2].length !== 1;
-                    if (nextBool === buttonStatus) {
-                        this.onGroupClickRec(document, index - 1, p.groupedMembers[index - 2].length !== 1);
-                    }
-                }
-
-            }
-        }
-        else {
-
-            if (index >= 1) {
-                let removeSize = p.groupedMembers[index].length;
-                if (p.groupedMembers[index].length >= 0) {
-                    p.groupedMembers[index].forEach((doc: Doc) => {
-                        p.groupedMembers[index - 1].pop(); console.log("Reached!!");
-                    });
-                }
-
-                if (index >= 2) {
-                    let nextBool = p.groupedMembers[index - 2].length !== 1;
-                    if (nextBool !== buttonStatus) {
-                        this.recursiveDeleteGroups(index - 1, removeSize);
-                    }
-                }
-            }
-        }
-
-    }
-
-    @action
-    recursiveDeleteGroups = (index: number, removeSize: number) => {
-        let p = this.props;
-        for (let i = 0; i < removeSize; i++) {
-            p.groupedMembers[index - 1].pop();
-        }
-        if (index >= 2) {
-
-            let nextBool = p.groupedMembers[index - 2].length !== 1;
-            if (nextBool === true) {
-                this.recursiveDeleteGroups(index - 1, removeSize);
-            }
-        }
-    }
-
-    @action
     changeGroupStatus = () => {
         if (this.selectedButtons[buttonIndex.Group]) {
             this.selectedButtons[buttonIndex.Group] = false;
         } else {
             this.selectedButtons[buttonIndex.Group] = true;
         }
-    }
-
-    printGroupSizes = () => {
-        this.props.groupedMembers.forEach((doc: Doc[], index: number) => console.log("Index: ", index, " size: ", doc.length));
     }
 
     @action
@@ -254,7 +167,6 @@ export default class PresentationElement extends React.Component<PresentationEle
                     e.stopPropagation();
                     this.changeGroupStatus();
                     this.onGroupClick(p.document, p.index, this.selectedButtons[buttonIndex.Group]);
-                    //this.printGroupSizes();
                 }}>F</button>
 
             </div>

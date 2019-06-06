@@ -19,7 +19,6 @@ export interface PresViewProps {
 interface PresListProps extends PresViewProps {
     deleteDocument(index: number): void;
     gotoDocument(index: number): void;
-    groupedMembers: Doc[][];
     groupMappings: Map<String, Doc[]>;
 }
 
@@ -50,17 +49,6 @@ class PresentationViewList extends React.Component<PresListProps> {
     //         }
     //     }
     // }
-    @action
-    initializeGroupArrays = (docList: Doc[]) => {
-        console.log("Starting len: ", this.props.groupedMembers.length);
-        docList.forEach((doc: Doc, index: number) => {
-            if (this.props.groupedMembers.length < index + 2) {
-                this.props.groupedMembers[index] = [];
-                this.props.groupedMembers[index].push(docList[index]);
-
-            }
-        });
-    }
 
     @action
     initializeGroupIds = (docList: Doc[]) => {
@@ -118,12 +106,11 @@ class PresentationViewList extends React.Component<PresListProps> {
 
     render() {
         const children = DocListCast(this.props.Document.data);
-        this.initializeGroupArrays(children);
         this.initializeGroupIds(children);
 
         return (
             <div className="presentationView-listCont">
-                {children.map((doc: Doc, index: number) => <PresentationElement key={index} mainDocument={this.props.Document} document={doc} index={index} deleteDocument={this.props.deleteDocument} gotoDocument={this.props.gotoDocument} groupedMembers={this.props.groupedMembers} groupMappings={this.props.groupMappings} allListElements={children} />)}
+                {children.map((doc: Doc, index: number) => <PresentationElement key={index} mainDocument={this.props.Document} document={doc} index={index} deleteDocument={this.props.deleteDocument} gotoDocument={this.props.gotoDocument} groupMappings={this.props.groupMappings} allListElements={children} />)}
             </div>
         );
     }
@@ -210,7 +197,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
                     <button className="presentation-button" onClick={this.back}>back</button>
                     <button className="presentation-button" onClick={this.next}>next</button>
                 </div>
-                <PresentationViewList Document={this.props.Document} deleteDocument={this.RemoveDoc} gotoDocument={this.gotoDocument} groupedMembers={this.groupedMembers} groupMappings={this.groupMappings} />
+                <PresentationViewList Document={this.props.Document} deleteDocument={this.RemoveDoc} gotoDocument={this.gotoDocument} groupMappings={this.groupMappings} />
             </div>
         );
     }
