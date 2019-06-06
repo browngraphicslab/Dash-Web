@@ -132,6 +132,8 @@ export class PresentationView extends React.Component<PresViewProps>  {
     closePresentation = action(() => this.props.Document.width = 0);
     next = () => {
         const current = NumCast(this.props.Document.selectedDoc);
+        // let currentPresId = StrCast(current.presentId);
+        // this.groupMappings.get(current.presentId);
         this.gotoDocument(current + 1);
 
     }
