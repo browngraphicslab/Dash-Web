@@ -17,7 +17,7 @@ import { SelectionManager } from "../../util/SelectionManager";
 import { List } from "../../../new_fields/List";
 import { Self } from "../../../new_fields/FieldSymbols";
 
-type IndividualDocKeyFrame = List<Doc>;
+type IndividualDocKeyFrame = List<Doc>; //data?
 type KeyframeList = List<List<Doc>>;
 
 const PositionSchema = createSchema({
@@ -30,7 +30,7 @@ const Position = makeInterface(PositionSchema);
 
 const TimeAndPositionSchema = createSchema({
     time: defaultSpec("number", 0),
-    keyframe: Doc //Position
+    position: Doc //Position
 });
 
 type TimeAndPosition = makeInterface<[typeof TimeAndPositionSchema]>;
@@ -46,13 +46,13 @@ export class Timeline extends CollectionSubView(Document) {
     @observable private _currentBar: any = null;
     @observable private _newBar: any = null;
     private _reactionDisposers: IReactionDisposer[] = [];
-    private _keyFrames: KeyFrame[] = [];
+    private _keyFrames: Doc[] = []; //private _keyFrames: KeyFrame[] = [];
     private _keyBars: HTMLDivElement[] = [];
 
     private _currentBarX: number = 0;
     @observable private _onBar: Boolean = false;
     @observable private _keys = ["x", "y"];
-    @observable private _frames: Doc[] = [];
+    @observable private _data: Doc[] = [];
 
     private temp1: any = null;
     private temp2: any = null;
@@ -75,34 +75,37 @@ export class Timeline extends CollectionSubView(Document) {
                 return this._keys.map(key => FieldValue(element[key]));
             }, async data => { //where is the data index actually being set?
                 if (this._inner.current) {
-                    let keyFrame: KeyFrame; //keyframe reference
-                    //is KeyFrame just a wrapper for a doc? cause then could just be of type doc...
-                    let exists: boolean = false;
+                    let keyFrame: Doc;
+                    const kf = new Doc;
+                    this._data.push(kf);
+                    let info = [];
                     let time: number = this._currentBarX; //time that indicates what frame you are in. Whole numbers. 
+                    info.push(time); //index 0: should be x position of mouse relative to inner
+                    info.push(kf.X); //index 1
+                    info.push(kf.Y); //index 2
+                    this._keyFrames.push(kf);
+                    let exists: boolean = false;
                     // let frames: List<Doc>; //don't know if this should be an instance...
-                    this._keyFrames.forEach(async kf => { //checks if there is a keyframe that is tracking this document. 
-                        if (kf.doc.document === element) {
-                            keyFrame = kf;
-                            this._frames = (await DocListCastAsync(keyFrame.doc.frames))!;
+                    this._keyFrames.forEach(async kfs => { //checks if there is a keyframe that is tracking this document. 
+                        if (kfs === element) {
+                            keyFrame = kfs;
+                            this._data = (await DocListCastAsync(keyFrame.frames))!; //keyFrame.doc.frames
                             exists = true;
                         }
                     });
 
                     if (!exists) {
-                        keyFrame = new KeyFrame();
-
+                        keyFrame = new Doc();
                         let bar: HTMLDivElement = this.createBar(5, time, "yellow");
                         this._inner.current.appendChild(bar);
-                        // keyFrame.doc.bar = bar;
-                        keyFrame.doc.frames = new List<Doc>();
-
-                        this._keyFrames.push(keyFrame);
+                        keyFrame.frames = new List<Doc>();
+                        // this._keyFrames.push(keyFrame);
                     }
 
                     this._keys.forEach((key, index) => {
                         console.log(data[index]);
-                        if (keyFrame.doc.frames !== undefined) {
-                            this._frames.forEach(frame => {
+                        if (keyFrame.frames !== undefined) {
+                            this._data.forEach(frame => {
                                 if (frame.time === this._currentBarX) {
                                     frame[key] = data[index];
                                 }
@@ -192,8 +195,8 @@ export class Timeline extends CollectionSubView(Document) {
      */
     @action
     interpolate = async (doc: Doc, kf1: TimeAndPosition, kf2: TimeAndPosition, time: number) => {
-        const keyFrame1 = Position(await kf1.keyframe);
-        const keyFrame2 = Position(await kf2.keyframe);
+        const keyFrame1 = Position(await kf1.position);
+        const keyFrame2 = Position(await kf2.position);
 
         const dif_X = NumCast(keyFrame2.X) - NumCast(keyFrame1.X);
         const dif_Y = NumCast(keyFrame2.Y) - NumCast(keyFrame1.Y);
