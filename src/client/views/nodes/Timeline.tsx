@@ -16,9 +16,11 @@ import { DocumentManager } from "../../util/DocumentManager";
 import { SelectionManager } from "../../util/SelectionManager";
 import { List } from "../../../new_fields/List";
 import { Self } from "../../../new_fields/FieldSymbols";
+import { list } from "serializr";
+import { arrays } from "typescript-collections";
 
-type IndividualDocKeyFrame = List<Doc>; //data?
-type KeyframeList = List<List<Doc>>;
+type Data = List<Doc>; //data?
+type Keyframes = List<List<Doc>>;
 
 const PositionSchema = createSchema({
     x: defaultSpec("number", 0),
@@ -46,16 +48,13 @@ export class Timeline extends CollectionSubView(Document) {
     @observable private _currentBar: any = null;
     @observable private _newBar: any = null;
     private _reactionDisposers: IReactionDisposer[] = [];
-    private _keyFrames: Doc[] = []; //private _keyFrames: KeyFrame[] = [];
-    private _keyBars: HTMLDivElement[] = [];
 
-    private _currentBarX: number = 0;
+    @observable private _currentBarX: number = 0;
     @observable private _onBar: Boolean = false;
     @observable private _keys = ["x", "y"];
-    @observable private _data: Doc[] = [];
+    @observable private _data:Doc[] = []; // 1D list of nodes
+    @observable private _keyframes:Doc[][] = []; //2D list of infos
 
-    private temp1: any = null;
-    private temp2: any = null;
     private tempdoc: any = null;
 
     @action
@@ -68,54 +67,58 @@ export class Timeline extends CollectionSubView(Document) {
         let childrenList = (children[Self] as any).__fields;
         // let keys = ["x", "y"]; //maybe make this an instance var?
 
-        const addReaction = (element: Doc) => {
-            element = (element as any).value();
-            this.tempdoc = element;
+        const addReaction = (node: Doc) => {
+            node = (node as any).value();
+            this.tempdoc = node;
+            
             return reaction(() => {
-                return this._keys.map(key => FieldValue(element[key]));
+                return this._keys.map(key => FieldValue(node[key]));
             }, async data => { //where is the data index actually being set?
                 if (this._inner.current) {
-                    let keyFrame: Doc;
-                    const kf = new Doc;
-                    this._data.push(kf);
-                    let info = [];
-                    let time: number = this._currentBarX; //time that indicates what frame you are in. Whole numbers. 
-                    info.push(time); //index 0: should be x position of mouse relative to inner
-                    info.push(kf.X); //index 1
-                    info.push(kf.Y); //index 2
-                    this._keyFrames.push(kf);
-                    let exists: boolean = false;
-                    // let frames: List<Doc>; //don't know if this should be an instance...
-                    this._keyFrames.forEach(async kfs => { //checks if there is a keyframe that is tracking this document. 
-                        if (kfs === element) {
-                            keyFrame = kfs;
-                            this._data = (await DocListCastAsync(keyFrame.frames))!; //keyFrame.doc.frames
-                            exists = true;
-                        }
-                    });
+                    if(this._data.indexOf(node) === -1){
+                        const kf = new List();
+                        this._data.push(node);
+                        let index = this._data.indexOf(node);
 
-                    if (!exists) {
-                        keyFrame = new Doc();
-                        let bar: HTMLDivElement = this.createBar(5, time, "yellow");
+                        let timeandpos = this.setTimeAndPos(node); 
+
+                        let info: Doc[] = new Array(1000);  //////////////////////////////////////////////////// do something
+                        info[this._currentBarX] = timeandpos; 
+
+                        this._keyframes[index] = info;
+
+                        //graphcial yellow bar
+                        let bar: HTMLDivElement = this.createBar(5, this._currentBarX, "yellow");
                         this._inner.current.appendChild(bar);
-                        keyFrame.frames = new List<Doc>();
-                        // this._keyFrames.push(keyFrame);
-                    }
-
-                    this._keys.forEach((key, index) => {
-                        console.log(data[index]);
-                        if (keyFrame.frames !== undefined) {
-                            this._data.forEach(frame => {
-                                if (frame.time === this._currentBarX) {
-                                    frame[key] = data[index];
-                                }
-                            });
+                    
+                        this._keys.forEach((key, index) => {
+                        
+                        } );
+                    } else {
+                        let index = this._data.indexOf(node); 
+                        if (this._keyframes[index][this._currentBarX] !== null ){ //when node is in data, but doesn't have data for this specific time. 
+                            let timeandpos = this.setTimeAndPos(node);
+                            let pos = Position(node); 
+                            timeandpos.position = pos; 
+                            let bar: HTMLDivElement = this.createBar(5, this._currentBarX, "yellow");
+                            this._inner.current.appendChild(bar);
+                        
+                            this._keyframes[index][this._currentBarX] = timeandpos; 
+                        } else { //when node is in data, and has data for this specfic time
+                            let timeandpos = this.setTimeAndPos(node);
+                            let pos = Position(node); 
+                            timeandpos.position = pos; 
+                            this._keyframes[index][this._currentBarX] = timeandpos; 
                         }
-                    });
-                }
+                    }
+                } 
+                console.log(this._keyframes[this._data.indexOf(node)]); 
+
             });
         };
 
+        
+        
 
         observe(childrenList as IObservableArray<Doc>, change => {
             if (change.type === "update") {
@@ -128,64 +131,91 @@ export class Timeline extends CollectionSubView(Document) {
         }, true);
 
     }
-
-    //maybe to be called in innerPointerDown
-    //this is the only method that should have access to time changes
-    //should run every time the time has been changed
-    //should look through the array of times and positions and set docs to the positions associated with the specific time
-    //if there is not an entry in the array associated with the time (for now) choose the next existing lower/higher time entry, etc.
-    //eventually there will be interpolation between these existing times 
-    //will be similar to last block of code in the onRecord reaction, but kind of doing the opposite...
-
+    setTimeAndPos = (node:Doc) => {
+        let pos:Position = Position(node); 
+        let timeandpos:TimeAndPosition = TimeAndPosition(node); 
+        timeandpos.position = pos; 
+        timeandpos.time = this._currentBarX;
+        return timeandpos; 
+    }
+    
 
     @action
-    timeChange = async (time: number) => { //x position of mouse relative to inner box can be passed in?
-        //data is list of docs
-        let keyFrame: TimeAndPosition; //keyframe reference
-        const docs = (await DocListCastAsync(this.props.Document[this.props.fieldKey]))!;
-        const kfList: KeyframeList = Cast(this.props.Document.keyframes, listSpec(Doc), []) as any;
-        //^currently KeyframeList is undefined (because no keyframes have been added to the list)
-        //to fix this problem add keyframes to the List 
-        //this could either happen by moving this outside of the method
-        //or make list outside of this method and then copy it here (recommended)
+    timeChange = async (time: number) => {
+        //const docs = (await DocListCastAsync(this.props.Document[this.props.fieldKey]))!;
+        //const kfList:Doc[][] = Cast(this._keyframes, listSpec(Doc), []) as any;
+        const docs = this._data; 
+        const kfList:Doc[][] = this._keyframes; 
+
         const list = await Promise.all(kfList.map(l => Promise.all(l)));
         let isFrame: boolean = false;
-        for (let i in docs) {
-            let oneDoc = docs[i];
-            let oneKf: TimeAndPosition[] = list[i].map(TimeAndPosition);
-            let leftKf!: TimeAndPosition;
-            let rightKf!: TimeAndPosition;
-            for (let j in oneKf) {
-                let singleKf: TimeAndPosition = oneKf[j];
-                let leftMin: Number = Infinity;
-                let rightMin: Number = Infinity;
+
+        docs.forEach((oneDoc) => {
+            let leftKf!:TimeAndPosition; 
+            let rightKf!:TimeAndPosition; 
+            console.log("adsf")
+
+            let oneKf = this._keyframes[docs.indexOf(oneDoc)]; 
+            console.log(oneKf); 
+            oneKf.forEach((singleKf) => {
+                let leftMin = Infinity;
+                let rightMin = Infinity;
                 if (singleKf.time !== time) { //choose closest time neighbors
-                    for (let k in oneKf) {
-                        if (oneKf[k].time < time) {
-                            const diff: Number = Math.abs(oneKf[k].time - time);
-                            if (diff < leftMin) {
-                                leftMin = diff;
-                                leftKf = oneKf[k];
-                            }
-                        } else {
-                            const diff: Number = Math.abs(oneKf[k].time - time);
-                            if (diff < rightMin) {
-                                rightMin = diff;
-                                rightKf = oneKf[k];
-                            }
-                        }
+                    if (singleKf.time! <  time){
+                        leftMin = NumCast(singleKf.time); 
+                        leftKf = TimeAndPosition(this._keyframes[docs.indexOf(oneDoc)][leftMin]); 
+                    } else {
+                        rightMin = NumCast(singleKf.time); 
+                        rightKf = TimeAndPosition(this._keyframes[docs.indexOf(oneDoc)][rightMin]); 
                     }
-                } else {
-                    isFrame = true;
-                }
+                } 
+                
+            });
+            if (leftKf && rightKf){
+                console.log("interpolate"); 
+                this.interpolate(oneDoc, leftKf, rightKf, this._currentBarX); 
             }
-            this.interpolate(oneDoc, leftKf, rightKf, time);
-            if (isFrame) {
-                oneDoc.X = oneKf[i].X;
-                oneDoc.Y = oneKf[i].Y;
-            }
-            isFrame = false;
-        }
+        }); 
+
+
+
+        // for (let i in docs) {
+        //     let oneDoc = docs[i];
+        //     //let oneKf: TimeAndPosition[] = list[i].map(TimeAndPosition);
+        //     let oneKf = this._keyframes[i]
+        //     let leftKf!: TimeAndPosition;
+        //     let rightKf!: TimeAndPosition;
+        //     for (let j in oneKf) {
+        //         let singleKf: TimeAndPosition = oneKf[j];
+        //         let leftMin: Number = Infinity;
+        //         let rightMin: Number = Infinity;
+        //         if (singleKf.time !== time) { //choose closest time neighbors
+        //             for (let k in oneKf) {
+        //                 if (oneKf[k].time < time) {
+        //                     const diff: Number = Math.abs(oneKf[k].time - time);
+        //                     if (diff < leftMin) {
+        //                         leftMin = diff;
+        //                         leftKf = oneKf[k];
+        //                     }
+        //                 } else {
+        //                     const diff: Number = Math.abs(oneKf[k].time - time);
+        //                     if (diff < rightMin) {
+        //                         rightMin = diff;
+        //                         rightKf = oneKf[k];
+        //                     }
+        //                 }
+        //             }
+        //         } else {
+        //             isFrame = true;
+        //         }
+        //     }
+        //     this.interpolate(oneDoc, leftKf, rightKf, time);
+        //     if (isFrame) {
+        //         oneDoc.X = oneKf[i].X;
+        //         oneDoc.Y = oneKf[i].Y;
+        //     }
+        //     isFrame = false;
+        // }
     }
 
     /**
@@ -205,7 +235,6 @@ export class Timeline extends CollectionSubView(Document) {
         const adjusted_X = dif_X * ratio;
         const adjusted_Y = dif_Y * ratio;
 
-        console.log(doc.X);
         doc.X = keyFrame1.x + adjusted_X;
         doc.Y = keyFrame1.y + adjusted_Y;
     }
@@ -216,14 +245,12 @@ export class Timeline extends CollectionSubView(Document) {
      */
     @action
     onInterpolate = (e: React.MouseEvent) => {
-
+        this.timeChange(this._currentBarX);
     }
 
     @action
     displayKeyFrames = (dv: DocumentView) => {
-        console.log(dv);
         dv.props.Document;
-
     }
 
     @action
@@ -245,7 +272,7 @@ export class Timeline extends CollectionSubView(Document) {
                 this._currentBar.style.transform = `translate(${offsetX}px)`;
                 this._inner.current.removeEventListener("pointermove", this.onInnerPointerMove); //reset
                 this._inner.current.addEventListener("pointermove", this.onInnerPointerMove);
-                this.timeChange(this._currentBarX);
+                //this.timeChange(this._currentBarX);
             }
         }
     }
@@ -257,7 +284,7 @@ export class Timeline extends CollectionSubView(Document) {
         let offsetX = Math.round(e.offsetX);
         this._currentBarX = offsetX;
         this._currentBar.style.transform = `translate(${offsetX}px)`; //styling should not have to be done this way...maybe done through react??
-        this.timeChange(this._currentBarX);
+        //this.timeChange(this._currentBarX);
     }
 
     createBar = (width: number, pos: number = 0, color: string = "green"): HTMLDivElement => {
