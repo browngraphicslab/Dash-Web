@@ -45,72 +45,79 @@ export default class PresentationElement extends React.Component<PresentationEle
                 let newGuid = Utils.GenerateGuid();
                 let aboveGuid = StrCast(p.allListElements[index - 1].presentId, null);
                 let docGuid = StrCast(document.presentId, null);
-                if (aboveGuid !== undefined) {
-                    if (p.groupMappings.has(aboveGuid)) {
-                        let aboveArray = p.groupMappings.get(aboveGuid)!;
-                        if (p.groupMappings.has(docGuid)) {
-                            console.log("Doc Guid: ", docGuid);
-                            console.log("Above Guid: ", aboveGuid);
-                            let docsArray = p.groupMappings.get(docGuid)!;
-                            docsArray.forEach((doc: Doc) => {
-                                if (!aboveArray.includes(doc)) {
-                                    aboveArray.push(doc);
-
-                                }
-                            });
-                            console.log("CAlled first one");
-
-                        } else {
-                            if (!aboveArray.includes(document)) {
-                                aboveArray.push(document);
-                                console.log("CAlled this one");
-                                console.log("Doc: ", document);
-
+                // if (aboveGuid !== undefined) {
+                if (p.groupMappings.has(aboveGuid)) {
+                    let aboveArray = p.groupMappings.get(aboveGuid)!;
+                    if (p.groupMappings.has(docGuid)) {
+                        console.log("Doc Guid: ", docGuid);
+                        console.log("Above Guid: ", aboveGuid);
+                        let docsArray = p.groupMappings.get(docGuid)!;
+                        docsArray.forEach((doc: Doc) => {
+                            if (!aboveArray.includes(doc)) {
+                                aboveArray.push(doc);
                             }
-
-                        }
-                        console.log("AboveArray Size: ", aboveArray.length);
+                            doc.presentId = aboveGuid;
+                        });
+                        console.log("CAlled first one");
+                        p.groupMappings.delete(docGuid);
                     } else {
-                        let newAboveArray: Doc[] = [];
-                        newAboveArray.push(p.allListElements[index - 1]);
-                        if (p.groupMappings.has(docGuid)) {
-                            let docsArray = p.groupMappings.get(docGuid)!;
-                            docsArray.forEach((doc: Doc) => {
-                                newAboveArray.push(doc);
-
-                            });
-                        } else {
-                            newAboveArray.push(document);
+                        if (!aboveArray.includes(document)) {
+                            aboveArray.push(document);
+                            console.log("CAlled this one");
+                            console.log("Doc: ", document);
 
                         }
-                        p.groupMappings.set(aboveGuid, newAboveArray);
-                        console.log("NewABove array size: ", newAboveArray.length);
-
-
 
                     }
-                    document.presentId = aboveGuid;
+                    console.log("AboveArray Size: ", aboveArray.length);
                 } else {
-                    p.allListElements[index - 1].presentId = newGuid;
                     let newAboveArray: Doc[] = [];
                     newAboveArray.push(p.allListElements[index - 1]);
                     if (p.groupMappings.has(docGuid)) {
                         let docsArray = p.groupMappings.get(docGuid)!;
-                        docsArray.forEach((doc: Doc) => newAboveArray.push(doc));
+                        docsArray.forEach((doc: Doc) => {
+                            newAboveArray.push(doc);
+                            doc.presentId = aboveGuid;
+                        });
+                        p.groupMappings.delete(docGuid);
                     } else {
                         newAboveArray.push(document);
+
                     }
-                    document.presentId = newGuid;
-                    p.groupMappings.set(newGuid, newAboveArray);
-                    console.log("New Array created");
+                    p.groupMappings.set(aboveGuid, newAboveArray);
+                    console.log("NewABove array size: ", newAboveArray.length);
+
 
 
                 }
+                document.presentId = aboveGuid;
+                // } else {
+                //     p.allListElements[index - 1].presentId = newGuid;
+                //     let newAboveArray: Doc[] = [];
+                //     newAboveArray.push(p.allListElements[index - 1]);
+                //     if (p.groupMappings.has(docGuid)) {
+                //         let docsArray = p.groupMappings.get(docGuid)!;
+                //         docsArray.forEach((doc: Doc) => {
+                //             doc.presentId = newGuid;
+                //             newAboveArray.push(doc);
+                //         });
+                //         p.groupMappings.delete(docGuid);
+                //     } else {
+                //         newAboveArray.push(document);
+                //     }
+                //     document.presentId = newGuid;
+                //     p.groupMappings.set(newGuid, newAboveArray);
+                //     console.log("New Array created");
+
+
+                // }
 
             } else {
                 let curArray = p.groupMappings.get(StrCast(document.presentId, Utils.GenerateGuid()))!;
                 let targetIndex = curArray.indexOf(document);
                 let firstPart = curArray.slice(0, targetIndex);
+                let firstPartNewGuid = Utils.GenerateGuid();
+                firstPart.forEach((doc: Doc) => doc.presentId = firstPartNewGuid);
                 let secondPart = curArray.slice(targetIndex);
                 p.groupMappings.set(StrCast(p.allListElements[index - 1].presentId, Utils.GenerateGuid()), firstPart);
                 p.groupMappings.set(StrCast(document.presentId, Utils.GenerateGuid()), secondPart);

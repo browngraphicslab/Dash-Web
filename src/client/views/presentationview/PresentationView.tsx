@@ -62,6 +62,16 @@ class PresentationViewList extends React.Component<PresListProps> {
         });
     }
 
+    @action
+    initializeGroupIds = (docList: Doc[]) => {
+        docList.forEach((doc: Doc, index: number) => {
+            let docGuid = StrCast(doc.presentId, null);
+            if (docGuid === undefined) {
+                doc.presentId = Utils.GenerateGuid();
+            }
+        });
+    }
+
     // /**
     //  * Renders a single child document. It will just append a list element.
     //  * @param document The document to render.
@@ -109,6 +119,7 @@ class PresentationViewList extends React.Component<PresListProps> {
     render() {
         const children = DocListCast(this.props.Document.data);
         this.initializeGroupArrays(children);
+        this.initializeGroupIds(children);
 
         return (
             <div className="presentationView-listCont">
