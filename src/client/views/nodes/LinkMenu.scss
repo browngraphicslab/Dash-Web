@@ -1,3 +1,5 @@
+@import "../globalCssVariables";
+
 #linkMenu-container {
     width: 100%;
     height: auto;
@@ -19,3 +21,64 @@
     height: 100px;
     overflow-y: scroll;
 }
+
+.link-menu-group {
+    .link-menu-item {
+        border-top: 0.5px solid $light-color-secondary; 
+        padding: 6px;
+        position: relative;
+        display: flex;
+
+        .link-menu-item-content {
+            width: 100%;
+        }
+
+        &:last-child {
+            border-bottom: 0.5px solid $light-color-secondary;
+        }
+        &:hover .link-menu-item-buttons {
+            display: flex;
+        }
+        &:hover .link-menu-item-content {
+            width: calc(100% - 72px);
+        }
+    }
+    .link-menu-item-buttons {
+        display: none;
+        position: absolute;
+        top: 50%;
+        right: 0;
+        transform: translateY(-50%);
+
+        .button {
+            width: 20px;
+            height: 20px;
+            margin: 0;
+            margin-right: 6px;
+            border-radius: 50%;
+            cursor: pointer;
+            pointer-events: auto;
+            background-color: $dark-color;
+            color: $light-color;
+            font-size: 65%;
+            transition: transform 0.2s;
+            text-align: center;
+            position: relative;
+
+            .fa-icon {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+            }
+
+            &:last-child {
+                margin-right: 0;
+            }
+            &:hover {
+                background: $main-accent;
+            }
+        }
+    }
+}
+

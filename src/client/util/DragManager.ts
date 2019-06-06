@@ -4,6 +4,7 @@ import { Cast } from "../../new_fields/Types";
 import { emptyFunction } from "../../Utils";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import * as globalCssVariables from "../views/globalCssVariables.scss";
+import { LinkManager } from "../views/nodes/LinkManager";
 
 export type dropActionType = "alias" | "copy" | undefined;
 export function SetupDrag(_reference: React.RefObject<HTMLElement>, docFunc: () => Doc | Promise<Doc>, moveFunc?: DragManager.MoveFunction, dropAction?: dropActionType) {
@@ -41,14 +42,20 @@ export function SetupDrag(_reference: React.RefObject<HTMLElement>, docFunc: () 
 export async function DragLinksAsDocuments(dragEle: HTMLElement, x: number, y: number, sourceDoc: Doc) {
     let srcTarg = sourceDoc.proto;
     let draggedDocs: Doc[] = [];
-    let draggedFromDocs: Doc[] = [];
+    // let draggedFromDocs: Doc[] = [];
     if (srcTarg) {
-        let linkToDocs = await DocListCastAsync(srcTarg.linkedToDocs);
-        let linkFromDocs = await DocListCastAsync(srcTarg.linkedFromDocs);
-        if (linkToDocs) draggedDocs = linkToDocs.map(linkDoc => Cast(linkDoc.linkedTo, Doc) as Doc);
-        if (linkFromDocs) draggedFromDocs = linkFromDocs.map(linkDoc => Cast(linkDoc.linkedFrom, Doc) as Doc);
+        // let linkToDocs = await DocListCastAsync(srcTarg.linkedToDocs);
+        // let linkFromDocs = await DocListCastAsync(srcTarg.linkedFromDocs);
+        let linkDocs = LinkManager.Instance.findAllRelatedLinks(srcTarg);
+        if (linkDocs) draggedDocs = linkDocs.map(link => {
+            return LinkManager.Instance.findOppositeAnchor(link, sourceDoc);
+        });
+
+
+        // if (linkToDocs) draggedDocs = linkToDocs.map(linkDoc => Cast(linkDoc.linkedTo, Doc) as Doc);
+        // if (linkFromDocs) draggedFromDocs = linkFromDocs.map(linkDoc => Cast(linkDoc.linkedFrom, Doc) as Doc);
     }
-    draggedDocs.push(...draggedFromDocs);
+    // draggedDocs.push(...draggedFromDocs);
     if (draggedDocs.length) {
         let moddrag: Doc[] = [];
         for (const draggedDoc of draggedDocs) {

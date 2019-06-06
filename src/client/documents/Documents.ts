@@ -35,6 +35,7 @@ import { dropActionType } from "../util/DragManager";
 import { DateField } from "../../new_fields/DateField";
 import { UndoManager } from "../util/UndoManager";
 import { RouteStore } from "../../server/RouteStore";
+import { LinkManager } from "../views/nodes/LinkManager";
 var requestImageSize = require('request-image-size');
 var path = require('path');
 
@@ -70,12 +71,12 @@ const delegateKeys = ["x", "y", "width", "height", "panX", "panY"];
 
 export namespace DocUtils {
     export function MakeLink(source: Doc, target: Doc) {
-        let protoSrc = source.proto ? source.proto : source;
-        let protoTarg = target.proto ? target.proto : target;
+        // let protoSrc = source.proto ? source.proto : source;
+        // let protoTarg = target.proto ? target.proto : target;
         UndoManager.RunInBatch(() => {
             let linkDoc = Docs.TextDocument({ width: 100, height: 30, borderRounding: -1 });
             //let linkDoc = new Doc;
-            linkDoc.proto!.title = "-link name-";
+            linkDoc.proto!.title = source.proto!.title + " and " + target.proto!.title;
             linkDoc.proto!.linkDescription = "";
             linkDoc.proto!.linkTags = "Default";
 
@@ -84,17 +85,20 @@ export namespace DocUtils {
             linkDoc.proto!.linkedFrom = source;
             linkDoc.proto!.linkedFromPage = source.curPage;
 
-            let linkedFrom = Cast(protoTarg.linkedFromDocs, listSpec(Doc));
-            if (!linkedFrom) {
-                protoTarg.linkedFromDocs = linkedFrom = new List<Doc>();
-            }
-            linkedFrom.push(linkDoc);
+            // let linkedFrom = Cast(protoTarg.linkedFromDocs, listSpec(Doc));
+            // if (!linkedFrom) {
+            //     protoTarg.linkedFromDocs = linkedFrom = new List<Doc>();
+            // }
+            // linkedFrom.push(linkDoc);
 
-            let linkedTo = Cast(protoSrc.linkedToDocs, listSpec(Doc));
-            if (!linkedTo) {
-                protoSrc.linkedToDocs = linkedTo = new List<Doc>();
-            }
-            linkedTo.push(linkDoc);
+            // let linkedTo = Cast(protoSrc.linkedToDocs, listSpec(Doc));
+            // if (!linkedTo) {
+            //     protoSrc.linkedToDocs = linkedTo = new List<Doc>();
+            // }
+            // linkedTo.push(linkDoc);
+
+            LinkManager.Instance.allLinks.push(linkDoc);
+
             return linkDoc;
         }, "make link");
     }

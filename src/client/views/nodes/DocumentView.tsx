@@ -5,7 +5,7 @@ import { observer } from "mobx-react";
 import { Doc, DocListCast, HeightSym, Opt, WidthSym, DocListCastAsync } from "../../../new_fields/Doc";
 import { List } from "../../../new_fields/List";
 import { ObjectField } from "../../../new_fields/ObjectField";
-import { createSchema, makeInterface } from "../../../new_fields/Schema";
+import { createSchema, makeInterface, listSpec } from "../../../new_fields/Schema";
 import { BoolCast, Cast, FieldValue, StrCast, NumCast } from "../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { emptyFunction, Utils } from "../../../Utils";
@@ -30,6 +30,7 @@ import "./DocumentView.scss";
 import React = require("react");
 import { Id, Copy } from '../../../new_fields/FieldSymbols';
 import { ContextMenuProps } from '../ContextMenuItem';
+import { list, object, createSimpleSchema } from 'serializr';
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 library.add(faTrash);
@@ -47,10 +48,11 @@ library.add(faFingerprint);
 library.add(faCrosshairs);
 library.add(faDesktop);
 
+
 const linkSchema = createSchema({
     title: "string",
     linkDescription: "string",
-    linkTags: "string",
+    linkTags: listSpec("string"),
     linkedTo: Doc,
     linkedFrom: Doc
 });

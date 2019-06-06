@@ -110,7 +110,7 @@ export class CollectionFreeFormLinksView extends React.Component<CollectionViewP
                     }
                     return match || found;
                 }, false)) {
-                    console.log("A" + possiblePair.a[Id] + " B" + possiblePair.b[Id] + " L" + connection.l[Id]);
+                    // console.log("A" + possiblePair.a[Id] + " B" + possiblePair.b[Id] + " L" + connection.l[Id]);
                     drawnPairs.push({ a: possiblePair.a, b: possiblePair.b, l: [connection.l] })
                 }
             });

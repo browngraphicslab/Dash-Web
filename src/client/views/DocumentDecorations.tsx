@@ -28,6 +28,7 @@ import { CollectionView } from "./collections/CollectionView";
 import { DocumentManager } from "../util/DocumentManager";
 import { FormattedTextBox } from "./nodes/FormattedTextBox";
 import { FieldView } from "./nodes/FieldView";
+import { LinkManager } from "./nodes/LinkManager";
 
 library.add(faLink);
 
@@ -510,9 +511,10 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         let linkButton = null;
         if (SelectionManager.SelectedDocuments().length > 0) {
             let selFirst = SelectionManager.SelectedDocuments()[0];
-            let linkToSize = Cast(selFirst.props.Document.linkedToDocs, listSpec(Doc), []).length;
-            let linkFromSize = Cast(selFirst.props.Document.linkedFromDocs, listSpec(Doc), []).length;
-            let linkCount = linkToSize + linkFromSize;
+            // let linkToSize = Cast(selFirst.props.Document.linkedToDocs, listSpec(Doc), []).length;
+            // let linkFromSize = Cast(selFirst.props.Document.linkedFromDocs, listSpec(Doc), []).length;
+            // let linkCount = linkToSize + linkFromSize;
+            let linkCount = LinkManager.Instance.findAllRelatedLinks(selFirst.props.Document).length;
             linkButton = (<Flyout
                 anchorPoint={anchorPoints.RIGHT_TOP}
                 content={<LinkMenu docView={selFirst}

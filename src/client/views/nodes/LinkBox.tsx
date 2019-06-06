@@ -1,5 +1,5 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faEdit, faEye, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { faEdit, faEye, faTimes, faArrowRight } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { observer } from "mobx-react";
 import { DocumentManager } from "../../util/DocumentManager";
@@ -16,6 +16,7 @@ import { action } from 'mobx';
 library.add(faEye);
 library.add(faEdit);
 library.add(faTimes);
+library.add(faArrowRight);
 
 interface Props {
     linkDoc: Doc;
@@ -29,7 +30,7 @@ interface Props {
 export class LinkBox extends React.Component<Props> {
 
     @undoBatch
-    onViewButtonPressed = async (e: React.PointerEvent): Promise<void> => {
+    followLink = async (e: React.PointerEvent): Promise<void> => {
         e.stopPropagation();
         DocumentManager.Instance.jumpToDocument(this.props.pairedDoc, e.altKey);
     }
@@ -62,8 +63,8 @@ export class LinkBox extends React.Component<Props> {
 
         return (
             //<LinkEditor linkBox={this} linkDoc={this.props.linkDoc} />
-            <div className="link-container">
-                <div className="info-container" onPointerDown={this.onViewButtonPressed}>
+            <div className="link-menu-item">
+                <div className="link-menu-item-content">
                     <div className="link-name">
                         <p>{this.props.linkName}</p>
                     </div>
@@ -72,13 +73,15 @@ export class LinkBox extends React.Component<Props> {
                     </div>
                 </div>
 
-                <div className="button-container">
+                <div className="link-menu-item-buttons">
                     {/* <div title="Follow Link" className="button" onPointerDown={this.onViewButtonPressed}>
                         <FontAwesomeIcon className="fa-icon-view" icon="eye" size="sm" /></div> */}
+                    <div title="Follow Link" className="button" onPointerDown={this.followLink}>
+                        <FontAwesomeIcon className="fa-icon" icon="arrow-right" size="sm" /></div>
                     <div title="Edit Link" className="button" onPointerDown={this.onEditButtonPressed}>
-                        <FontAwesomeIcon className="fa-icon-edit" icon="edit" size="sm" /></div>
+                        <FontAwesomeIcon className="fa-icon" icon="edit" size="sm" /></div>
                     <div title="Delete Link" className="button" onPointerDown={this.onDeleteButtonPressed}>
-                        <FontAwesomeIcon className="fa-icon-delete" icon="times" size="sm" /></div>
+                        <FontAwesomeIcon className="fa-icon" icon="times" size="sm" /></div>
                 </div>
             </div>
         );
