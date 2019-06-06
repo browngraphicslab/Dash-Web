@@ -6,6 +6,9 @@ import { Opt } from "../../../new_fields/Doc";
 import "./PDFViewer.scss";
 import "pdfjs-dist/web/pdf_viewer.css";
 import { PDFBox } from "../nodes/PDFBox";
+import { PDFAnnotationLayer } from "./PDFAnnotationLayer";
+import { TSMethodSignature } from "babel-types";
+import { checkPropTypes } from "prop-types";
 
 interface IPDFViewerProps {
     url: string;
@@ -268,15 +271,24 @@ class Page extends React.Component<IPageProps> {
     @observable private _height: number = 0;
     @observable private _page: Opt<Pdfjs.PDFPageProxy>;
     @observable private _currPage: number = this.props.page + 1;
+    @observable private _marqueeX: number = 0;
+    @observable private _marqueeY: number = 0;
+    @observable private _marqueeWidth: number = 0;
+    @observable private _marqueeHeight: number = 0;
 
     private _canvas: React.RefObject<HTMLCanvasElement>;
-    private _currentAnnotations: HTMLDivElement[] = [];
     private _textLayer: React.RefObject<HTMLDivElement>;
+    private _annotationLayer: React.RefObject<HTMLDivElement>;
+    private _marquee: React.RefObject<HTMLDivElement>;
+    private _currentAnnotations: HTMLDivElement[] = [];
+    private _marqueeing: boolean = false;
 
     constructor(props: IPageProps) {
         super(props);
         this._canvas = React.createRef();
         this._textLayer = React.createRef();
+        this._annotationLayer = React.createRef();
+        this._marquee = React.createRef();
     }
 
     componentDidMount() {
@@ -342,9 +354,26 @@ class Page extends React.Component<IPageProps> {
         }
     }
 
+    @action
     onPointerDown = (e: React.PointerEvent) => {
         if (e.button === 0) {
-            e.stopPropagation();
+            let target: any = e.target;
+            if (target && target.parentElement === this._textLayer.current) {
+                e.stopPropagation();
+            }
+            else {
+                e.stopPropagation();
+                runInAction(() => {
+                    let current = this._textLayer.current;
+                    if (current) {
+                        let boundingRect = current.getBoundingClientRect();
+                        this._marqueeX = (e.clientX - boundingRect.left) * (current.offsetWidth / boundingRect.width);
+                        this._marqueeY = (e.clientY - boundingRect.top) * (current.offsetHeight / boundingRect.height);
+                    }
+                });
+                this._marqueeing = true;
+                if (this._marquee.current) this._marquee.current.style.opacity = "0.2";
+            }
             document.addEventListener("pointermove", this.onPointerMove);
             document.addEventListener("pointerup", this.onPointerUp);
             if (!e.ctrlKey) {
@@ -355,8 +384,22 @@ class Page extends React.Component<IPageProps> {
         }
     }
 
+    @action
     onPointerMove = (e: PointerEvent) => {
-        if (e.button === 0) {
+        let target: any = e.target;
+        if (this._marqueeing) {
+            let current = this._textLayer.current;
+            if (current) {
+                let boundingRect = current.getBoundingClientRect();
+                this._marqueeWidth = (e.clientX - boundingRect.left) * (current.offsetWidth / boundingRect.width) - this._marqueeX;
+                this._marqueeHeight = (e.clientY - boundingRect.top) * (current.offsetHeight / boundingRect.height) - this._marqueeY;
+                console.log(this._marqueeWidth);
+                console.log(this._marqueeHeight);
+            }
+            e.stopPropagation();
+            e.preventDefault();
+        }
+        else if (target && target.parentElement === this._textLayer.current) {
             e.stopPropagation();
         }
     }
@@ -369,33 +412,64 @@ class Page extends React.Component<IPageProps> {
         e.stopPropagation();
     }
 
+    @action
     onPointerUp = (e: PointerEvent) => {
-        let sel = window.getSelection();
-        // if selecting over a range of things
-        if (sel && sel.type === "Range") {
-            let clientRects = sel.getRangeAt(0).getClientRects();
-            if (this._textLayer.current) {
-                let boundingRect = this._textLayer.current.getBoundingClientRect();
-                for (let i = 0; i < clientRects.length; i++) {
-                    let rect = clientRects.item(i);
-                    if (rect) {
-                        let annoBox = document.createElement("div");
-                        annoBox.className = "pdfViewer-annotationBox";
-                        // transforms the positions from screen onto the pdf div
-                        annoBox.style.top = ((rect.top - boundingRect.top) * (this._textLayer.current.offsetHeight / boundingRect.height)).toString();
-                        annoBox.style.left = ((rect.left - boundingRect.left) * (this._textLayer.current.offsetWidth / boundingRect.width)).toString();
-                        annoBox.style.width = (rect.width * this._textLayer.current.offsetWidth / boundingRect.width).toString();
-                        annoBox.style.height = (rect.height * this._textLayer.current.offsetHeight / boundingRect.height).toString();
-                        annoBox.ondragstart = this.startAnnotation;
-                        annoBox.onpointerdown = this.pointerDownCancel;
-                        this._textLayer.current.appendChild(annoBox);
-                        this._currentAnnotations.push(annoBox);
+        if (this._marqueeing) {
+            this._marqueeing = false;
+            if (this._marquee.current) {
+                let copy = document.createElement("div");
+                copy.style.left = this._marquee.current.style.left;
+                copy.style.top = this._marquee.current.style.top;
+                copy.style.width = this._marquee.current.style.width;
+                copy.style.height = this._marquee.current.style.height;
+                copy.style.opacity = this._marquee.current.style.opacity;
+                copy.className = this._marquee.current.className;
+                if (this._annotationLayer.current) {
+                    this._annotationLayer.current.append(copy);
+                    this._currentAnnotations.push(copy);
+                }
+                this._marquee.current.style.opacity = "0";
+            }
+
+            this._marqueeHeight = this._marqueeWidth = 0;
+        }
+        else {
+            let sel = window.getSelection();
+            // if selecting over a range of things
+            if (sel && sel.type === "Range") {
+                let clientRects = sel.getRangeAt(0).getClientRects();
+                if (this._textLayer.current) {
+                    let boundingRect = this._textLayer.current.getBoundingClientRect();
+                    for (let i = 0; i < clientRects.length; i++) {
+                        let rect = clientRects.item(i);
+                        if (rect) {
+                            let annoBox = document.createElement("div");
+                            annoBox.className = "pdfViewer-annotationBox";
+                            // transforms the positions from screen onto the pdf div
+                            annoBox.style.top = ((rect.top - boundingRect.top) * (this._textLayer.current.offsetHeight / boundingRect.height)).toString();
+                            annoBox.style.left = ((rect.left - boundingRect.left) * (this._textLayer.current.offsetWidth / boundingRect.width)).toString();
+                            annoBox.style.width = (rect.width * this._textLayer.current.offsetWidth / boundingRect.width).toString();
+                            annoBox.style.height = (rect.height * this._textLayer.current.offsetHeight / boundingRect.height).toString();
+                            annoBox.ondragstart = this.startAnnotation;
+                            annoBox.onpointerdown = this.pointerDownCancel;
+                            if (this._annotationLayer.current) this._annotationLayer.current.append(annoBox);
+                            this._currentAnnotations.push(annoBox);
+                        }
                     }
+                }
+                if (sel.empty) {  // Chrome
+                    sel.empty();
+                } else if (sel.removeAllRanges) {  // Firefox
+                    sel.removeAllRanges();
                 }
             }
         }
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
+    }
+
+    annotationPointerDown = (e: React.PointerEvent) => {
+        console.log("annotation");
     }
 
     render() {
@@ -404,7 +478,10 @@ class Page extends React.Component<IPageProps> {
                 <div className="canvasContainer">
                     <canvas ref={this._canvas} />
                 </div>
-                <div className="textlayer" ref={this._textLayer} style={{ "position": "relative", "top": `-${this._height}px`, "height": `${this._height}px` }} />
+                <div className="pdfAnnotationLayer-cont" ref={this._annotationLayer} style={{ width: "100%", height: "100%", position: "relative", top: "-100%" }}>
+                    <div className="pdfViewer-annotationBox" ref={this._marquee} style={{ left: `${this._marqueeX}px`, top: `${this._marqueeY}px`, width: `${this._marqueeWidth}px`, height: `${this._marqueeHeight}px` }}></div>
+                </div>
+                <div className="textlayer" ref={this._textLayer} style={{ "position": "relative", "top": `-${2 * this._height}px`, "height": `${this._height}px` }} />
             </div>
         );
     }

@@ -13,6 +13,9 @@ import { Id } from "../../../new_fields/FieldSymbols";
 
 @observer
 export class CollectionPDFView extends React.Component<FieldViewProps> {
+    constructor(props: FieldViewProps) {
+        super(props);
+    }
 
     public static LayoutString(fieldKey: string = "data") {
         return FieldView.LayoutString(CollectionPDFView, fieldKey);
