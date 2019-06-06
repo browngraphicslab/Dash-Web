@@ -1,22 +1,11 @@
 import { observer } from "mobx-react";
 import React = require("react");
 import { observable, action, runInAction, computed, IReactionDisposer, reaction } from "mobx";
-import { RouteStore } from "../../../server/RouteStore";
 import * as Pdfjs from "pdfjs-dist";
-import * as htmlToImage from "html-to-image";
-import { Opt, WidthSym } from "../../../new_fields/Doc";
+import { Opt } from "../../../new_fields/Doc";
 import "./PDFViewer.scss";
 import "pdfjs-dist/web/pdf_viewer.css";
-import { number } from "prop-types";
-import { JSXElement } from "babel-types";
 import { PDFBox } from "../nodes/PDFBox";
-import { NumCast, FieldValue, Cast } from "../../../new_fields/Types";
-import { SearchBox } from "../SearchBox";
-import { Utils } from "../../../Utils";
-import { Id } from "../../../new_fields/FieldSymbols";
-import { DocServer } from "../../DocServer";
-import { ImageField, PdfField } from "../../../new_fields/URLField";
-var path = require("path");
 
 interface IPDFViewerProps {
     url: string;
@@ -25,6 +14,9 @@ interface IPDFViewerProps {
     parent: PDFBox;
 }
 
+/**
+ * Wrapper that loads the PDF and cascades the pdf down
+ */
 @observer
 export class PDFViewer extends React.Component<IPDFViewerProps> {
     @observable _pdf: Opt<Pdfjs.PDFDocumentProxy>;
@@ -32,7 +24,6 @@ export class PDFViewer extends React.Component<IPDFViewerProps> {
 
     @action
     componentDidMount() {
-        // const pdfUrl = window.origin + RouteStore.corsProxy + "/https://mozilla.github.io/pdf.js/web/compressed.tracemonkey-pldi-09.pdf";
         const pdfUrl = this.props.url;
         let promise = Pdfjs.getDocument(pdfUrl).promise;
 
@@ -59,30 +50,35 @@ interface IViewerProps {
     url: string;
 }
 
+/**
+ * Handles rendering and virtualization of the pdf
+ */
 @observer
 class Viewer extends React.Component<IViewerProps> {
+    // _visibleElements is the array of JSX elements that gets rendered
     @observable.shallow private _visibleElements: JSX.Element[] = [];
+    // _isPage is an array that tells us whether or not an index is rendered as a page or as a placeholder
     @observable private _isPage: boolean[] = [];
     @observable private _pageSizes: { width: number, height: number }[] = [];
     @observable private _startIndex: number = 0;
     @observable private _endIndex: number = 1;
     @observable private _loaded: boolean = false;
     @observable private _pdf: Opt<Pdfjs.PDFDocumentProxy>;
-    @observable private _renderAsSvg = false;
 
     private _pageBuffer: number = 1;
     private _reactionDisposer?: IReactionDisposer;
-    private _widthReactionDisposer?: IReactionDisposer;
-    private _width: number = 0;
 
     componentDidMount = () => {
         let wasSelected = this.props.parent.props.isSelected();
+        // reaction for when document gets (de)selected
         this._reactionDisposer = reaction(
             () => [this.props.parent.props.isSelected(), this.startIndex],
             () => {
+                // if deselected, render images in place of pdf
                 if (wasSelected && !this.props.parent.props.isSelected()) {
                     this.saveThumbnail();
                 }
+                // if selected, render pdf
                 else if (!wasSelected && this.props.parent.props.isSelected()) {
                     this.renderPages(this.startIndex, this.endIndex, true);
                 }
@@ -91,19 +87,7 @@ class Viewer extends React.Component<IViewerProps> {
             { fireImmediately: true }
         );
 
-        // this._widthReactionDisposer = reaction(
-        //     () => [this._docWidth],
-        //     () => {
-        //         if (this._width !== this._docWidth) {
-        //             this._width = this._docWidth;
-        //             this.renderPages(this.startIndex, this.endIndex, true);
-        //             console.log(this._width);
-        //         }
-        //     },
-        //     { fireImmediately: true }
-        // )
-
-        let numPages = this.props.pdf ? this.props.pdf.numPages : 0;
+        // On load, render pdf
         setTimeout(() => this.renderPages(this.startIndex, this.endIndex, true), 1000);
     }
 
@@ -115,13 +99,15 @@ class Viewer extends React.Component<IViewerProps> {
 
     @action
     saveThumbnail = () => {
+        // file address of the pdf
         const address: string = this.props.url;
-        console.log(address);
         for (let i = 0; i < this._visibleElements.length; i++) {
             if (this._isPage[i]) {
+                // change the address to be the file address of the PNG version of each page
                 let thisAddress = `${address.substring(0, address.length - ".pdf".length)}-${i + 1}.PNG`;
                 let nWidth = this._pageSizes[i].width;
                 let nHeight = this._pageSizes[i].height;
+                // replace page with image
                 this._visibleElements[i] = <img key={thisAddress} style={{ width: `${nWidth}px`, height: `${nHeight}px` }} src={thisAddress} />;
             }
         }
@@ -143,10 +129,16 @@ class Viewer extends React.Component<IViewerProps> {
     componentDidUpdate = (prevProps: IViewerProps) => {
         if (this.scrollY !== prevProps.scrollY || this._pdf !== this.props.pdf) {
             this._pdf = this.props.pdf;
+            // render pages if the scorll position changes
             this.renderPages(this.startIndex, this.endIndex);
         }
     }
 
+    /**
+     * @param startIndex: where to start rendering pages
+     * @param endIndex: where to end rendering pages
+     * @param forceRender: (optional), force pdfs to re-render, even if the page already exists
+     */
     @action
     renderPages = (startIndex: number, endIndex: number, forceRender: boolean = false) => {
         let numPages = this.props.pdf ? this.props.pdf.numPages : 0;
@@ -154,6 +146,7 @@ class Viewer extends React.Component<IViewerProps> {
             return;
         }
 
+        // this is only for an initial render to get all of the pages rendered
         if (this._visibleElements.length !== numPages) {
             let divs = Array.from(Array(numPages).keys()).map(i => (
                 <Page
@@ -170,10 +163,12 @@ class Viewer extends React.Component<IViewerProps> {
             this._isPage.push(...arr);
         }
 
+        // if nothing changed, return
         if (startIndex === this._startIndex && endIndex === this._endIndex && !forceRender) {
             return;
         }
 
+        // unrender pages outside of the pdf by replacing them with empty stand-in divs
         for (let i = 0; i < numPages; i++) {
             if (i < startIndex || i > endIndex) {
                 if (this._isPage[i]) {
@@ -185,6 +180,7 @@ class Viewer extends React.Component<IViewerProps> {
             }
         }
 
+        // render pages for any indices that don't already have pages (force rerender will make these render regardless)
         for (let i = startIndex; i <= endIndex; i++) {
             if (!this._isPage[i] || forceRender) {
                 this._visibleElements[i] = (
@@ -207,6 +203,7 @@ class Viewer extends React.Component<IViewerProps> {
         return;
     }
 
+    // get the page index that the vertical offset passed in is on
     getIndex = (vOffset: number) => {
         if (this._loaded) {
             let numPages = this.props.pdf ? this.props.pdf.numPages : 0;
@@ -221,6 +218,10 @@ class Viewer extends React.Component<IViewerProps> {
         return 0;
     }
 
+    /**
+     * Called by the Page class when it gets rendered, initializes the lists and
+     * puts a placeholder with all of the correct page sizes when all of the pages have been loaded.
+     */
     @action
     pageLoaded = (index: number, page: Pdfjs.PDFPageViewport): void => {
         if (this._loaded) {
@@ -244,22 +245,8 @@ class Viewer extends React.Component<IViewerProps> {
     }
 
     render() {
-        console.log(`START: ${this.startIndex}`);
-        console.log(`END: ${this.endIndex}`)
-        let numPages = this.props.pdf ? this.props.pdf.numPages : 0;
         return (
             <div className="viewer">
-                {/* {Array.from(Array(numPages).keys()).map((i) => (
-                    <Page
-                        pdf={this.props.pdf}
-                        page={i}
-                        numPages={numPages}
-                        key={`${this.props.pdf ? this.props.pdf.fingerprint + `-page${i + 1}` : "undefined"}`}
-                        name={`${this.props.pdf ? this.props.pdf.fingerprint + `-page${i + 1}` : "undefined"}`}
-                        pageLoaded={this.pageLoaded}
-                        {...this.props}
-                    />
-                ))} */}
                 {this._visibleElements}
             </div>
         );
@@ -276,22 +263,23 @@ interface IPageProps {
 
 @observer
 class Page extends React.Component<IPageProps> {
-    @observable _state: string = "N/A";
-    @observable _width: number = 0;
-    @observable _height: number = 0;
-    @observable _page: Opt<Pdfjs.PDFPageProxy>;
-    canvas: React.RefObject<HTMLCanvasElement>;
-    textLayer: React.RefObject<HTMLDivElement>;
-    @observable _currPage: number = this.props.page + 1;
+    @observable private _state: string = "N/A";
+    @observable private _width: number = 0;
+    @observable private _height: number = 0;
+    @observable private _page: Opt<Pdfjs.PDFPageProxy>;
+    @observable private _currPage: number = this.props.page + 1;
+
+    private _canvas: React.RefObject<HTMLCanvasElement>;
+    private _currentAnnotations: HTMLDivElement[] = [];
+    private _textLayer: React.RefObject<HTMLDivElement>;
 
     constructor(props: IPageProps) {
         super(props);
-        this.canvas = React.createRef();
-        this.textLayer = React.createRef();
+        this._canvas = React.createRef();
+        this._textLayer = React.createRef();
     }
 
     componentDidMount() {
-        console.log(this.props.pdf);
         if (this.props.pdf) {
             this.update(this.props.pdf);
         }
@@ -327,8 +315,8 @@ class Page extends React.Component<IPageProps> {
     private renderPage = (page: Pdfjs.PDFPageProxy) => {
         let scale = 1;
         let viewport = page.getViewport(scale);
-        let canvas = this.canvas.current;
-        let textLayer = this.textLayer.current;
+        let canvas = this._canvas.current;
+        let textLayer = this._textLayer.current;
         if (canvas && textLayer) {
             let ctx = canvas.getContext("2d");
             canvas.width = viewport.width;
@@ -337,7 +325,9 @@ class Page extends React.Component<IPageProps> {
             this._height = viewport.height;
             this.props.pageLoaded(this._currPage, viewport);
             if (ctx) {
+                // renders the page onto the canvas context
                 page.render({ canvasContext: ctx, viewport: viewport })
+                // renders text onto the text container
                 page.getTextContent().then((res: Pdfjs.TextContent) => {
                     //@ts-ignore
                     Pdfjs.renderTextLayer({
@@ -345,7 +335,6 @@ class Page extends React.Component<IPageProps> {
                         container: textLayer,
                         viewport: viewport
                     });
-                    // textLayer._render();
                 });
 
                 this._page = page;
@@ -358,6 +347,11 @@ class Page extends React.Component<IPageProps> {
             e.stopPropagation();
             document.addEventListener("pointermove", this.onPointerMove);
             document.addEventListener("pointerup", this.onPointerUp);
+            if (!e.ctrlKey) {
+                for (let anno of this._currentAnnotations) {
+                    anno.remove();
+                }
+            }
         }
     }
 
@@ -367,30 +361,35 @@ class Page extends React.Component<IPageProps> {
         }
     }
 
+    startAnnotation = (e: DragEvent) => {
+        console.log("drag starting");
+    }
+
+    pointerDownCancel = (e: PointerEvent) => {
+        e.stopPropagation();
+    }
+
     onPointerUp = (e: PointerEvent) => {
         let sel = window.getSelection();
+        // if selecting over a range of things
         if (sel && sel.type === "Range") {
-            // console.log(sel.getRangeAt(0));
-            let commonContainer = sel.getRangeAt(0).commonAncestorContainer;
-            let startContainer = sel.getRangeAt(0).startContainer;
-            let endContainer = sel.getRangeAt(0).endContainer;
             let clientRects = sel.getRangeAt(0).getClientRects();
-            console.log(sel.getRangeAt(0));
-            let annoBoxes = [];
-            if (this.textLayer.current) {
-                // let transform = Utils.GetScreenTransform(this.textLayer.current);
-                console.log(transform);
+            if (this._textLayer.current) {
+                let boundingRect = this._textLayer.current.getBoundingClientRect();
                 for (let i = 0; i < clientRects.length; i++) {
                     let rect = clientRects.item(i);
                     if (rect) {
                         let annoBox = document.createElement("div");
                         annoBox.className = "pdfViewer-annotationBox";
-                        annoBox.style.top = rect.top.toString();
-                        annoBox.style.left = rect.left.toString();
-                        annoBox.style.width = rect.width.toString();
-                        annoBox.style.height = rect.height.toString();
-                        // annoBox.style.transform = `scale(${1 / transform.scale}) translate(-${transform.translateX * transform.scale}px, -${transform.translateY * transform.scale}px)`;
-                        this.textLayer.current.appendChild(annoBox);
+                        // transforms the positions from screen onto the pdf div
+                        annoBox.style.top = ((rect.top - boundingRect.top) * (this._textLayer.current.offsetHeight / boundingRect.height)).toString();
+                        annoBox.style.left = ((rect.left - boundingRect.left) * (this._textLayer.current.offsetWidth / boundingRect.width)).toString();
+                        annoBox.style.width = (rect.width * this._textLayer.current.offsetWidth / boundingRect.width).toString();
+                        annoBox.style.height = (rect.height * this._textLayer.current.offsetHeight / boundingRect.height).toString();
+                        annoBox.ondragstart = this.startAnnotation;
+                        annoBox.onpointerdown = this.pointerDownCancel;
+                        this._textLayer.current.appendChild(annoBox);
+                        this._currentAnnotations.push(annoBox);
                     }
                 }
             }
@@ -403,9 +402,9 @@ class Page extends React.Component<IPageProps> {
         return (
             <div onPointerDown={this.onPointerDown} className={this.props.name} style={{ "width": this._width, "height": this._height }}>
                 <div className="canvasContainer">
-                    <canvas ref={this.canvas} />
+                    <canvas ref={this._canvas} />
                 </div>
-                <div className="textlayer" ref={this.textLayer} style={{ "position": "relative", "top": `-${this._height}px`, "height": `${this._height}px` }} />
+                <div className="textlayer" ref={this._textLayer} style={{ "position": "relative", "top": `-${this._height}px`, "height": `${this._height}px` }} />
             </div>
         );
     }
