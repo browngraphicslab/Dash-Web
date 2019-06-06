@@ -54,7 +54,7 @@ export namespace SelectionManager {
     export function SelectedDocuments(): Array<DocumentView> {
         return manager.SelectedDocuments;
     }
-    export function ViewsSortedVertically(): DocumentView[] {
+    export function ViewsSortedHorizontally(): DocumentView[] {
         let sorted = SelectionManager.SelectedDocuments().slice().sort((doc1, doc2) => {
             if (NumCast(doc1.props.Document.x) > NumCast(doc2.props.Document.x)) return 1;
             if (NumCast(doc1.props.Document.x) < NumCast(doc2.props.Document.x)) return -1;
@@ -62,7 +62,7 @@ export namespace SelectionManager {
         });
         return sorted;
     }
-    export function ViewsSortedHorizontally(): DocumentView[] {
+    export function ViewsSortedVertically(): DocumentView[] {
         let sorted = SelectionManager.SelectedDocuments().slice().sort((doc1, doc2) => {
             if (NumCast(doc1.props.Document.y) > NumCast(doc2.props.Document.y)) return 1;
             if (NumCast(doc1.props.Document.y) < NumCast(doc2.props.Document.y)) return -1;
