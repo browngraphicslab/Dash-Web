@@ -52,8 +52,8 @@ export class Timeline extends CollectionSubView(Document) {
     @observable private _currentBarX: number = 0;
     @observable private _onBar: Boolean = false;
     @observable private _keys = ["x", "y"];
-    @observable private _data:Doc[] = []; // 1D list of nodes
-    @observable private _keyframes:Doc[][] = []; //2D list of infos
+    @observable private _data: Doc[] = []; // 1D list of nodes
+    @observable private _keyframes: Doc[][] = []; //2D list of infos
 
     private tempdoc: any = null;
 
@@ -65,60 +65,55 @@ export class Timeline extends CollectionSubView(Document) {
             return;
         }
         let childrenList = (children[Self] as any).__fields;
-        // let keys = ["x", "y"]; //maybe make this an instance var?
 
         const addReaction = (node: Doc) => {
             node = (node as any).value();
             this.tempdoc = node;
-            
+
             return reaction(() => {
                 return this._keys.map(key => FieldValue(node[key]));
-            }, async data => { //where is the data index actually being set?
+            }, async data => { 
                 if (this._inner.current) {
-                    if(this._data.indexOf(node) === -1){
+                    if (this._data.indexOf(node) === -1) {
                         const kf = new List();
                         this._data.push(node);
                         let index = this._data.indexOf(node);
 
-                        let timeandpos = this.setTimeAndPos(node); 
+                        let timeandpos = this.setTimeAndPos(node);
 
-                        let info: Doc[] = new Array(1000);  //////////////////////////////////////////////////// do something
-                        info[this._currentBarX] = timeandpos; 
+                        let info: Doc[] = new Array(1000); //////////////////////////////////////////////////// do something  
+                        info[this._currentBarX] = timeandpos;
 
                         this._keyframes[index] = info;
 
                         //graphcial yellow bar
                         let bar: HTMLDivElement = this.createBar(5, this._currentBarX, "yellow");
                         this._inner.current.appendChild(bar);
-                    
+
                         this._keys.forEach((key, index) => {
-                        
-                        } );
+
+                        });
                     } else {
-                        let index = this._data.indexOf(node); 
-                        if (this._keyframes[index][this._currentBarX] !== null ){ //when node is in data, but doesn't have data for this specific time. 
+                        let index = this._data.indexOf(node);
+                        if (this._keyframes[index][this._currentBarX] !== undefined) { //when node is in data, but doesn't have data for this specific time. 
                             let timeandpos = this.setTimeAndPos(node);
-                            let pos = Position(node); 
-                            timeandpos.position = pos; 
                             let bar: HTMLDivElement = this.createBar(5, this._currentBarX, "yellow");
                             this._inner.current.appendChild(bar);
-                        
-                            this._keyframes[index][this._currentBarX] = timeandpos; 
-                        } else { //when node is in data, and has data for this specfic time
+
+                            this._keyframes[index][this._currentBarX] = timeandpos;
+                        } else { //when node is in data, and has data for this specific time
                             let timeandpos = this.setTimeAndPos(node);
-                            let pos = Position(node); 
-                            timeandpos.position = pos; 
-                            this._keyframes[index][this._currentBarX] = timeandpos; 
+                            this._keyframes[index][this._currentBarX] = timeandpos;
                         }
                     }
-                } 
-                console.log(this._keyframes[this._data.indexOf(node)]); 
+                }
+                // console.log(this._keyframes[this._data.indexOf(node)]); 
 
             });
         };
 
-        
-        
+
+
 
         observe(childrenList as IObservableArray<Doc>, change => {
             if (change.type === "update") {
@@ -131,51 +126,54 @@ export class Timeline extends CollectionSubView(Document) {
         }, true);
 
     }
-    setTimeAndPos = (node:Doc) => {
-        let pos:Position = Position(node); 
-        let timeandpos:TimeAndPosition = TimeAndPosition(node); 
-        timeandpos.position = pos; 
+    setTimeAndPos = (node: Doc) => {
+        let pos: Position = Position(node);
+        let timeandpos = new Doc;
+        const newPos = new Doc;
+        this._keys.forEach(key => newPos[key] = pos[key]);
+        timeandpos.position = newPos;
         timeandpos.time = this._currentBarX;
-        return timeandpos; 
+        return timeandpos;
     }
-    
+
 
     @action
     timeChange = async (time: number) => {
         //const docs = (await DocListCastAsync(this.props.Document[this.props.fieldKey]))!;
         //const kfList:Doc[][] = Cast(this._keyframes, listSpec(Doc), []) as any;
-        const docs = this._data; 
-        const kfList:Doc[][] = this._keyframes; 
+        const docs = this._data;
+        const kfList: Doc[][] = this._keyframes;
 
         const list = await Promise.all(kfList.map(l => Promise.all(l)));
         let isFrame: boolean = false;
 
-        docs.forEach((oneDoc) => {
-            let leftKf!:TimeAndPosition; 
-            let rightKf!:TimeAndPosition; 
-            console.log("adsf")
-
-            let oneKf = this._keyframes[docs.indexOf(oneDoc)]; 
-            console.log(oneKf); 
+        docs.forEach((oneDoc, i) => {
+            let leftKf!: TimeAndPosition;
+            let rightKf!: TimeAndPosition;
+            let oneKf = this._keyframes[i];
             oneKf.forEach((singleKf) => {
-                let leftMin = Infinity;
-                let rightMin = Infinity;
-                if (singleKf.time !== time) { //choose closest time neighbors
-                    if (singleKf.time! <  time){
-                        leftMin = NumCast(singleKf.time); 
-                        leftKf = TimeAndPosition(this._keyframes[docs.indexOf(oneDoc)][leftMin]); 
-                    } else {
-                        rightMin = NumCast(singleKf.time); 
-                        rightKf = TimeAndPosition(this._keyframes[docs.indexOf(oneDoc)][rightMin]); 
+                if (singleKf !== undefined) {
+                    let leftMin = Infinity;
+                    let rightMin = Infinity;
+                    if (singleKf.time !== time) { //choose closest time neighbors
+                        console.log("hello");
+                        if (singleKf.time! < time) { 
+                            console.log("world");
+                            leftMin = NumCast(singleKf.time);
+                            leftKf = TimeAndPosition(this._keyframes[i][leftMin]);
+                        } else { 
+                            rightMin = NumCast(singleKf.time);
+                            rightKf = TimeAndPosition(this._keyframes[i][rightMin]);
+                            console.log("there");
+                        }
                     }
-                } 
-                
+                }
             });
-            if (leftKf && rightKf){
+            if (leftKf && rightKf) {
                 console.log("interpolate"); 
-                this.interpolate(oneDoc, leftKf, rightKf, this._currentBarX); 
+                this.interpolate(oneDoc, leftKf, rightKf, this._currentBarX);
             }
-        }); 
+        });
 
 
 
@@ -225,18 +223,17 @@ export class Timeline extends CollectionSubView(Document) {
      */
     @action
     interpolate = async (doc: Doc, kf1: TimeAndPosition, kf2: TimeAndPosition, time: number) => {
-        const keyFrame1 = Position(await kf1.position);
-        const keyFrame2 = Position(await kf2.position);
+        const keyFrame1 = (await kf1.position)!;
+        const keyFrame2 = (await kf2.position)!;
 
-        const dif_X = NumCast(keyFrame2.X) - NumCast(keyFrame1.X);
-        const dif_Y = NumCast(keyFrame2.Y) - NumCast(keyFrame1.Y);
         const dif_time = kf2.time - kf1.time;
         const ratio = (time - kf1.time) / dif_time;
-        const adjusted_X = dif_X * ratio;
-        const adjusted_Y = dif_Y * ratio;
 
-        doc.X = keyFrame1.x + adjusted_X;
-        doc.Y = keyFrame1.y + adjusted_Y;
+        this._keys.forEach(key => {
+            const diff = NumCast(keyFrame2[key]) - NumCast(keyFrame1[key]);
+            const adjusted = diff * ratio;
+            doc[key] = NumCast(keyFrame1[key]) + adjusted;
+        });
     }
 
 
