@@ -76,3 +76,20 @@
 
     }
 }
+
+.toggle-bar{
+    width: 100%;
+    height: 50px;
+    background-color: $alt-accent;
+    border-radius: 10px;
+    padding: 5px;
+    display: flex;
+    align-items: center;
+
+    .toggle-button{
+        width: 80px;
+        height: 100%;
+        border-radius: 10px;
+        background-color: $light-color;
+    }
+}

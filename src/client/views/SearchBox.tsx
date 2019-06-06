@@ -2,7 +2,7 @@ import * as React from 'react';
 import { observer } from 'mobx-react';
 import { observable, action, runInAction } from 'mobx';
 import "./SearchBox.scss";
-import { faSearch, faFilePdf, faFilm, faImage, faObjectGroup, faStickyNote, faMusic, faLink, faChartBar, faGlobeAsia } from '@fortawesome/free-solid-svg-icons';
+import { faSearch, faFilePdf, faFilm, faImage, faObjectGroup, faStickyNote, faMusic, faLink, faChartBar, faGlobeAsia, faBan } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { library } from '@fortawesome/fontawesome-svg-core';
 import * as rp from 'request-promise';
@@ -16,7 +16,12 @@ import { RouteStore } from '../../server/RouteStore';
 import { NumCast } from '../../new_fields/Types';
 import { SearchUtil } from '../util/SearchUtil';
 import * as anime from 'animejs';
-// import anime from 'animejs';
+// const Anime = ReactAnime.default;
+// import * as anime from '../../../node_modules/@types';
+// const anime = require('lib/anime.js');
+// import anime from 'animejs/lib/anime.es';
+// import anime = require ('lib/anime.min.js');
+// import Anime from 'react-anime';
 
 library.add(faSearch);
 library.add(faObjectGroup);
@@ -28,11 +33,97 @@ library.add(faMusic);
 library.add(faLink);
 library.add(faChartBar);
 library.add(faGlobeAsia);
+library.add(faBan);
+
+export interface ToggleBarProps {
+    //false = right, true = left
+    // status: boolean;
+    changeStatus(value: boolean): void;
+    //addDocTab(doc: Doc, location: string): void;
+}
+
+@observer
+export class ToggleBar extends React.Component<ToggleBarProps>{
+
+    @observable _status: boolean = false;
+
+    // @observable clicked: boolean = true;
+
+    @action.bound
+    toggle() {
+        this._status = !this._status;
+    }
+
+    render() {
+        var timeline = anime.timeline({
+            autoplay:false
+        })
+
+        timeline.add({
+            targets: '.toggle-button',
+            translateX: '100%',
+            direction: 'alternate',
+            easing: 'easeInOutQuad'
+        });
+
+        // var wordQueryToggle = anime({
+        //     targets: '.toggle-button',
+        //     translateX: '100%',
+        //     direction: 'alternate',
+        //     easing: 'easeInOutQuad'
+        // });
+        // document.querySelector('.toggle-button').onClick = wordQueryToggle;
+
+        return (
+            <div className="toggle-bar">
+                <div className = "toggle-button" onClick = {() => timeline.play()}>
+                {/* <div className = "toggle-button"> */}
+                {/* {this._status ? (
+                    <Anime 
+                    loop={false}
+                    autoplay={false}
+                    translateX="100%"
+                    direction="alternate"
+                    easing="easeInOutQuad"
+                >
+                    <div className="toggle-button" onClick = {this.toggle} />
+                </Anime>
+                ) : (
+                    <Anime 
+                    loop={false}
+                    autoplay={true}
+                    translateX="100%"
+                    direction="alternate"
+                    easing="easeInOutQuad"
+                >
+                    <div className="toggle-button" onClick = {this.toggle} />
+                </Anime>
+                )} */}
+
+{/* 
+
+                <Anime 
+                    loop={false}
+                    autoplay={false}
+                    translateX="100%"
+                    direction="alternate"
+                    easing="easeInOutQuad"
+                >
+                    <div className="toggle-button" onClick = {this.toggle} />
+                </Anime> */}
+                {/* </div> */}
+            </div>
+        );
+    };
+}
+
 
 @observer
 export class SearchBox extends React.Component {
     @observable
     searchString: string = "";
+
+    @observable _wordStatus: boolean = true;
 
     @observable private _open: boolean = false;
     @observable private _resultsOpen: boolean = false;
@@ -99,27 +190,28 @@ export class SearchBox extends React.Component {
     handleSearchClick = (e: Event): void => {
         let element = document.getElementsByClassName((e.target as any).className)[0];
         //handles case with filter button
-        if((e.target as any).className.includes("filter")){
+        if ((e.target as any).className.includes("filter")) {
             this._resultsOpen = false;
-            this._open = true;}
-        else if (element && element.parentElement){
+            this._open = true;
+        }
+        else if (element && element.parentElement) {
             //if the filter element is found, show the form and hide the results
-            if(this.findAncestor(element, "filter-form")){
+            if (this.findAncestor(element, "filter-form")) {
                 this._resultsOpen = false;
                 this._open = true;
             }
             //if in main search div, keep results open and close filter
-            else if(this.findAncestor(element, "main-searchDiv")){
+            else if (this.findAncestor(element, "main-searchDiv")) {
                 this._resultsOpen = true;
                 this._open = false;
             }
         }
         //not in either, close both
-        else{
+        else {
             this._resultsOpen = false;
             this._open = false;
         }
-        
+
     }
 
 
@@ -135,11 +227,6 @@ export class SearchBox extends React.Component {
 
     componentWillUnmount() {
         document.removeEventListener('mousedown', this.handleSearchClick, false);
-    }
-
-    @action
-    toggleFilterDisplay = () => {
-        this._open = !this._open;
     }
 
     enter = (e: React.KeyboardEvent) => {
@@ -196,6 +283,9 @@ export class SearchBox extends React.Component {
         return toReturn;
     }
 
+    handleWordQueryChange = (value: boolean) => {
+        this._wordStatus = value;
+    }
 
     // Useful queries:
     // Delegates of a document: {!join from=id to=proto_i}id:{protoId}
@@ -225,12 +315,13 @@ export class SearchBox extends React.Component {
                         <div className="filter-form" id="header">Filter Search Results</div>
                         <div className="filter-form" id="option">
                             <div className="required-words">
-                                temp for making words required
+                                <ToggleBar changeStatus={this.handleWordQueryChange} />
                             </div>
                             <div className="type-of-node">
                                 temp for filtering by a type of node
                                 <div className="icon-bar">
                                     {/* hoping to ultimately animate a reorder when an icon is chosen */}
+                                    <FontAwesomeIcon style={{ order: -2 }} icon={faBan} size="2x" />
                                     <FontAwesomeIcon style={{ order: 0 }} icon={faFilePdf} size="2x" />
                                     <FontAwesomeIcon style={{ order: 1 }} icon={faChartBar} size="2x" />
                                     <FontAwesomeIcon style={{ order: 2 }} icon={faObjectGroup} size="2x" />

@@ -17,7 +17,6 @@ import { CollectionViewType } from "./collections/CollectionBaseView";
 
 export interface SearchItemProps {
     doc: Doc;
-    // addDocTab(doc: Doc, location: string): void
 }
 
 library.add(faCaretUp);
@@ -63,13 +62,8 @@ export class SelectorContextMenu extends React.Component<SearchItemProps> {
                 col.panX = newPanX;
                 col.panY = newPanY;
             }
-            // this.props.addDocTab(col, "inTab");
             CollectionDockingView.Instance.AddRightSplit(col);
         };
-    }
-
-    onClick = () => {
-        console.log("click");
     }
 
     //these all need class names in order to find ancestor - please do not delete
@@ -77,14 +71,8 @@ export class SelectorContextMenu extends React.Component<SearchItemProps> {
         return (
             < div className="parents">
                 <p className = "contexts">Contexts:</p>
-                {this._docs.map(doc => <div onClick={this.onClick} className="collection"><a className= "title" onClick={(e: React.MouseEvent) => {
-                    console.log("clicked");
-                    this.getOnClick(doc)
-                }}>{doc.col.title}</a></div>)}
-                {this._otherDocs.map(doc => <div className="collection"><a className= "title" onClick={(e: React.MouseEvent) => {
-                    console.log("clicked");
-                    this.getOnClick(doc)
-                }}>{doc.col.title}</a></div>)}
+                {this._docs.map(doc => <div className="collection"><a className= "title" onClick={this.getOnClick(doc)}>{doc.col.title}</a></div>)}
+                {this._otherDocs.map(doc => <div className="collection"><a className= "title" onClick={this.getOnClick(doc)}>{doc.col.title}</a></div>)}
             </div>
         );
     }
@@ -97,7 +85,8 @@ export class SearchItem extends React.Component<SearchItemProps> {
     @observable hover = false;
 
     onClick = () => {
-        DocumentManager.Instance.jumpToDocument(this.props.doc);
+        // DocumentManager.Instance.jumpToDocument(this.props.doc);
+        CollectionDockingView.Instance.AddRightSplit(this.props.doc);
     }
 
     public DocumentIcon() {

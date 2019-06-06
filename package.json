@@ -152,6 +152,7 @@
         "pug": "^2.0.3",
         "raw-loader": "^1.0.0",
         "react": "^16.8.4",
+        "react-anime": "^2.2.0",
         "react-bootstrap": "^1.0.0-beta.5",
         "react-bootstrap-dropdown-menu": "^1.1.15",
         "react-color": "^2.17.0",
