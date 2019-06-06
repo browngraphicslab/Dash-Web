@@ -354,18 +354,54 @@ class Page extends React.Component<IPageProps> {
     }
 
     onPointerDown = (e: React.PointerEvent) => {
-        console.log("down");
-        e.stopPropagation();
+        if (e.button === 0) {
+            e.stopPropagation();
+            document.addEventListener("pointermove", this.onPointerMove);
+            document.addEventListener("pointerup", this.onPointerUp);
+        }
     }
 
-    onPointerMove = (e: React.PointerEvent) => {
-        console.log("move")
-        e.stopPropagation();
+    onPointerMove = (e: PointerEvent) => {
+        if (e.button === 0) {
+            e.stopPropagation();
+        }
+    }
+
+    onPointerUp = (e: PointerEvent) => {
+        let sel = window.getSelection();
+        if (sel && sel.type === "Range") {
+            // console.log(sel.getRangeAt(0));
+            let commonContainer = sel.getRangeAt(0).commonAncestorContainer;
+            let startContainer = sel.getRangeAt(0).startContainer;
+            let endContainer = sel.getRangeAt(0).endContainer;
+            let clientRects = sel.getRangeAt(0).getClientRects();
+            console.log(sel.getRangeAt(0));
+            let annoBoxes = [];
+            if (this.textLayer.current) {
+                // let transform = Utils.GetScreenTransform(this.textLayer.current);
+                console.log(transform);
+                for (let i = 0; i < clientRects.length; i++) {
+                    let rect = clientRects.item(i);
+                    if (rect) {
+                        let annoBox = document.createElement("div");
+                        annoBox.className = "pdfViewer-annotationBox";
+                        annoBox.style.top = rect.top.toString();
+                        annoBox.style.left = rect.left.toString();
+                        annoBox.style.width = rect.width.toString();
+                        annoBox.style.height = rect.height.toString();
+                        // annoBox.style.transform = `scale(${1 / transform.scale}) translate(-${transform.translateX * transform.scale}px, -${transform.translateY * transform.scale}px)`;
+                        this.textLayer.current.appendChild(annoBox);
+                    }
+                }
+            }
+        }
+        document.removeEventListener("pointermove", this.onPointerMove);
+        document.removeEventListener("pointerup", this.onPointerUp);
     }
 
     render() {
         return (
-            <div onPointerDown={this.onPointerDown} onPointerMove={this.onPointerMove} className={this.props.name} style={{ "width": this._width, "height": this._height }}>
+            <div onPointerDown={this.onPointerDown} className={this.props.name} style={{ "width": this._width, "height": this._height }}>
                 <div className="canvasContainer">
                     <canvas ref={this.canvas} />
                 </div>
