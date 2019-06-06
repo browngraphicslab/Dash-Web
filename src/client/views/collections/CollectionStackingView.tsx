@@ -19,18 +19,25 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     @computed get gridGap() { return NumCast(this.props.Document.gridGap, 10); }
     @computed get gridSize() { return NumCast(this.props.Document.gridSize, 20); }
     @computed get singleColumn() { return BoolCast(this.props.Document.singleColumn, true); }
-    @computed get columnWidth() { return this.singleColumn ? this.props.PanelWidth() - 4 * this.gridGap : NumCast(this.props.Document.columnWidth, 250); }
+    @computed get columnWidth() { return this.singleColumn ? this.props.PanelWidth() - 4 * this.gridGap : Math.min(this.props.PanelWidth() - 4 * this.gridGap, NumCast(this.props.Document.columnWidth, 250)); }
 
+    singleColDocHeight(d: Doc) {
+        let nw = NumCast(d.nativeWidth);
+        let nh = NumCast(d.nativeHeight);
+        let aspect = nw && nh ? nh / nw : 1;
+        let wid = Math.min(d[WidthSym](), this.columnWidth);
+        return (nw && nh) ? wid * aspect : d[HeightSym]();
+    }
     componentDidMount() {
         this._heightDisposer = reaction(() => [this.props.Document.gridGap, this.gridSize, this.columnWidth, this.childDocs.map(d => [d.height, d.width, d.zoomBasis, d.nativeHeight, d.nativeWidth, d.isMinimized])],
             () => {
                 if (this.singleColumn) {
                     this.props.Document.height = this.childDocs.filter(d => !d.isMinimized).reduce((height, d) => {
-                        let hgt = d[HeightSym]();
-                        let wid = d[WidthSym]();
                         let nw = NumCast(d.nativeWidth);
                         let nh = NumCast(d.nativeHeight);
-                        if (nw && nh) hgt = nh / nw * Math.min(this.columnWidth, wid);
+                        let aspect = nw && nh ? nh / nw : 1;
+                        let wid = Math.min(d[WidthSym](), this.columnWidth);
+                        let hgt = (nw && nh) ? wid * aspect : d[HeightSym]();
                         return height + hgt + 2 * this.gridGap;
                     }, this.gridGap * 2);
                 }
@@ -79,11 +86,11 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             let colWidth = () => d.nativeWidth ? Math.min(d[WidthSym](), this.columnWidth) : this.columnWidth;
             let margin = colWidth() < this.columnWidth ? "auto" : undefined;
             let rowHeight = () => {
-                let hgt = d[HeightSym]();
                 let nw = NumCast(d.nativeWidth);
                 let nh = NumCast(d.nativeHeight);
-                if (nw && nh) hgt = nh / nw * colWidth();
-                return hgt;
+                let aspect = nw && nh ? nh / nw : 1;
+                let wid = Math.min(d[WidthSym](), this.columnWidth);
+                return (nw && nh) ? wid * aspect : d[HeightSym]();
             }
             let dxf = () => this.getDocTransform(d, dref.current!).scale(this.columnWidth / d[WidthSym]());
             return <div className="collectionStackingView-masonryDoc"
@@ -112,7 +119,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         return this.childDocs.filter(d => !d.isMinimized).map(d => {
             let dref = React.createRef<HTMLDivElement>();
             let dxf = () => this.getDocTransform(d, dref.current!);
-            let colSpan = Math.ceil(Math.min(d[WidthSym](), this.columnWidth + this.gridGap) / (this.gridSize + this.gridGap));
+            let colSpan = Math.ceil((this.columnWidth + this.gridGap) / (this.gridSize + this.gridGap));
             let rowSpan = Math.ceil((this.columnWidth / d[WidthSym]() * d[HeightSym]() + this.gridGap) / (this.gridSize + this.gridGap));
             let childFocus = (doc: Doc) => {
                 doc.libraryBrush = true;
@@ -163,7 +170,6 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                         padding: `${topMargin}px 0px 0px ${leftMargin}px`,
                         width: this.singleColumn ? "100%" : `${cells * itemCols * (this.gridSize + this.gridGap) + leftMargin}`,
                         height: "100%",
-                        overflow: "hidden",
                         marginRight: "auto",
                         position: "relative",
                         gridGap: this.gridGap,
