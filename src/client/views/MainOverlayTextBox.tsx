@@ -102,6 +102,6 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
                 </div>
             </ div>;
         }
-        else return (null); Z
+        else return (null);
     }
 }

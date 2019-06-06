@@ -92,7 +92,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                     this.pasteTable(ns, x, y);
                 }
             });
-        } else {
+        } else if (!e.ctrlKey) {
             let newBox = Docs.TextDocument({ width: 200, height: 100, x: x, y: y, title: "-typed text-" });
             this.props.addLiveTextDocument(newBox);
         }
