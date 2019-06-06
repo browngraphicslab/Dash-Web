@@ -106,10 +106,10 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     }
     @computed
     get children() {
-        return this.childDocs.filter(d => !d.isMinimized).map(d => {
+        return this.childDocs.filter(d => !d.isMinimized).map((d, i) => {
             let dref = React.createRef<HTMLDivElement>();
             let dxf = () => this.getDocTransform(d, dref.current!);
-            let colSpan = Math.ceil((this.columnWidth + this.gridGap) / (this._gridSize + this.gridGap));
+            let colSpan = 1;//Math.ceil((this.columnWidth + this.gridGap) / (this._gridSize + this.gridGap));
             let rowSpan = Math.ceil((this.columnWidth / d[WidthSym]() * d[HeightSym]() + this.gridGap) / (this._gridSize + this.gridGap));
             let childFocus = (doc: Doc) => {
                 doc.libraryBrush = true;
@@ -148,22 +148,21 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         })
     }
     render() {
-        let leftMargin = this.xMargin;
-        let topMargin = this.yMargin;
-        let itemCols = Math.floor(this.columnWidth / (this._gridSize + this.gridGap));
-        let cells = Math.floor((this.props.PanelWidth() - 2 * leftMargin) / (itemCols * (this._gridSize + this.gridGap)));
+        let cols = this.singleColumn ? 1 : Math.floor((this.props.PanelWidth() - 2 * this.xMargin) / (this.columnWidth + 2 * this.gridGap));
+        let templatecols = "";
+        for (let i = 0; i < cols; i++) templatecols += `${this.columnWidth}px `;
         return (
             <div className="collectionStackingView" style={{ height: "100%" }}
                 ref={this.createRef} onWheel={(e: React.WheelEvent) => e.stopPropagation()}>
                 <div className={`collectionStackingView-masonry${this.singleColumn ? "Single" : "Grid"}`}
                     style={{
-                        padding: `${topMargin}px 0px 0px 0px`,
+                        padding: `${this.yMargin}px ${this.xMargin}px 0px ${this.xMargin}px`,
                         margin: "auto",
-                        width: this.singleColumn ? "100%" : `${cells * itemCols * (this._gridSize + this.gridGap) + 2 * leftMargin}`,
+                        width: this.singleColumn ? undefined : `${cols * (this.columnWidth + this.gridGap)}px`,
                         height: "100%",
                         position: "relative",
                         gridGap: this.gridGap,
-                        gridTemplateColumns: this.singleColumn ? undefined : `repeat(auto-fill, minmax(${this._gridSize}px,1fr))`,
+                        gridTemplateColumns: this.singleColumn ? undefined : templatecols,
                         gridAutoRows: this.singleColumn ? undefined : `${this._gridSize}px`
                     }}
                 >
