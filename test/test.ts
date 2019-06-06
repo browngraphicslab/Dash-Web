@@ -104,7 +104,7 @@ describe("Schema", () => {
         expect(doc.e).to.equal(undefined);
     });
 
-    it("should do the right thing 2", () => {
+    it("should do the right thing 3", () => {
         const test1 = new Doc;
         const test2 = new Doc;
         const ifield = new ImageField(new URL("http://google.com"));
@@ -121,7 +121,7 @@ describe("Schema", () => {
         expect(doc.e).to.equal(undefined);
     });
 
-    it("should do the right thing 3", () => {
+    it("should do the right thing 4", () => {
         const doc = TestDoc2();
         expect(doc.a).to.equal(true);
         expect(doc.b).to.equal(5);
@@ -146,13 +146,13 @@ describe("Schema", () => {
         expect(doc3.c).to.equal("hello world");
     });
 
-    it("should do the right thing 4", async () => {
+    it("should do the right thing 5", async () => {
         const test1 = new Doc;
         const test2 = new Doc;
         const doc = TestDoc3(test1);
         expect(doc.a).to.equal(undefined);
         test1.a = test2;
-        const doc2 = doc.a as TestDoc2;//(await doc.a)!;
+        const doc2 = (await doc.a)!;
         expect(doc2.a).to.equal(true);
         expect(doc2.b).to.equal(5);
         expect(doc2.c).to.equal("hello world");
