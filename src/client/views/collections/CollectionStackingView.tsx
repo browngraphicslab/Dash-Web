@@ -81,13 +81,12 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             let dref = React.createRef<HTMLDivElement>();
             let script = undefined;
             let colWidth = () => d.nativeWidth ? Math.min(d[WidthSym](), this.columnWidth) : this.columnWidth;
-            let margin = colWidth() < this.columnWidth ? "auto" : undefined;
             let rowHeight = () => this.singleColDocHeight(d);
             let dxf = () => this.getDocTransform(d, dref.current!).scale(this.columnWidth / d[WidthSym]());
             return <div className="collectionStackingView-masonryDoc"
                 key={d[Id]}
                 ref={dref}
-                style={{ marginTop: `${i ? this.yMargin : 0}px`, width: colWidth(), height: rowHeight(), marginLeft: margin, marginRight: margin }} >
+                style={{ marginTop: `${i ? this.yMargin : 0}px`, width: colWidth(), height: rowHeight(), marginLeft: "auto", marginRight: "auto" }} >
                 <CollectionSchemaPreview
                     Document={d}
                     width={colWidth}
@@ -151,15 +150,15 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     render() {
         let leftMargin = this.xMargin;
         let topMargin = this.yMargin;
-        let itemCols = Math.ceil(this.columnWidth / (this._gridSize + this.gridGap));
+        let itemCols = Math.floor(this.columnWidth / (this._gridSize + this.gridGap));
         let cells = Math.floor((this.props.PanelWidth() - 2 * leftMargin) / (itemCols * (this._gridSize + this.gridGap)));
         return (
             <div className="collectionStackingView" style={{ height: "100%" }}
                 ref={this.createRef} onWheel={(e: React.WheelEvent) => e.stopPropagation()}>
                 <div className={`collectionStackingView-masonry${this.singleColumn ? "Single" : "Grid"}`}
                     style={{
-                        padding: `${topMargin}px 0px 0px ${leftMargin}px`,
-                        marginRight: "auto",
+                        padding: `${topMargin}px 0px 0px 0px`,
+                        margin: "auto",
                         width: this.singleColumn ? "100%" : `${cells * itemCols * (this._gridSize + this.gridGap) + 2 * leftMargin}`,
                         height: "100%",
                         position: "relative",
