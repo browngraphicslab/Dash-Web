@@ -146,6 +146,9 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
             }
         });
 
+        //initial
+        //
+
         if (index !== -1) {
             value.splice(index, 1);
 
