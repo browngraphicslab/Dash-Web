@@ -26,13 +26,14 @@ import { PreviewCursor } from './PreviewCursor';
 import { SearchBox } from './SearchBox';
 import { SelectionManager } from '../util/SelectionManager';
 import { FieldResult, Field, Doc, Opt, DocListCast } from '../../new_fields/Doc';
-import { Cast, FieldValue, StrCast } from '../../new_fields/Types';
+import { Cast, FieldValue, StrCast, PromiseValue } from '../../new_fields/Types';
 import { DocServer } from '../DocServer';
 import { listSpec } from '../../new_fields/Schema';
 import { Id } from '../../new_fields/FieldSymbols';
 import { HistoryUtil } from '../util/History';
 import { CollectionBaseView } from './collections/CollectionBaseView';
-
+import { timingSafeEqual } from 'crypto';
+import * as _ from "lodash";
 
 @observer
 export class MainView extends React.Component {
@@ -43,6 +44,14 @@ export class MainView extends React.Component {
     @computed private get mainContainer(): Opt<Doc> {
         return FieldValue(Cast(CurrentUserUtils.UserDocument.activeWorkspace, Doc));
     }
+    @computed private get mainFreeform(): Opt<Doc> {
+        let docs = DocListCast(this.mainContainer!.data);
+        return (docs && docs.length > 1) ? docs[1] : undefined;
+    }
+    private globalDisplayFlags = observable({
+        jumpToVisible: false
+    });
+
     private set mainContainer(doc: Opt<Doc>) {
         if (doc) {
             if (!("presentationView" in doc)) {
@@ -308,6 +317,7 @@ export class MainView extends React.Component {
         this.isSearchVisible = !this.isSearchVisible;
     }
 
+    @action
     globalKeyHandler = (e: KeyboardEvent) => {
         if (e.key === "Control" || !e.ctrlKey) return;
 
@@ -316,9 +326,26 @@ export class MainView extends React.Component {
 
         switch (e.key) {
             case "ArrowRight":
-                CollectionDockingView.Instance.AddRightSplit(this.mainContainer!);
-                console.log("split screen right");
+                if (this.mainFreeform) {
+                    CollectionDockingView.Instance.AddRightSplit(this.mainFreeform!);
+                }
+                break;
+            case "ArrowLeft":
+                if (this.mainFreeform) {
+                    CollectionDockingView.Instance.CloseRightSplit(this.mainFreeform!);
+                }
+                break;
+            case "o":
+                this.globalDisplayFlags.jumpToVisible = true;
+                break;
+            case "escape":
+                _.mapValues(this.globalDisplayFlags, () => false)
+                break;
         }
+    }
+
+    renderJumpTo = () => {
+        return <div>JUMP TO</div>;
     }
 
     render() {
@@ -332,6 +359,7 @@ export class MainView extends React.Component {
                 {this.miscButtons}
                 <InkingControl />
                 <MainOverlayTextBox />
+                {this.globalDisplayFlags.jumpToVisible ? this.renderJumpTo() : (null)}
             </div>
         );
     }

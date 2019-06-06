@@ -44,6 +44,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     private _containerRef = React.createRef<HTMLDivElement>();
     private _flush: boolean = false;
     private _ignoreStateChange = "";
+    private _isPointerDown = false;
 
     constructor(props: SubCollectionViewProps) {
         super(props);
@@ -247,6 +248,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
 
     @action
     onPointerUp = (e: React.PointerEvent): void => {
+        this._isPointerDown = false;
         if (this._flush) {
             this._flush = false;
             setTimeout(() => this.stateChanged(), 10);
@@ -254,6 +256,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     }
     @action
     onPointerDown = (e: React.PointerEvent): void => {
+        this._isPointerDown = true;
         var className = (e.target as any).className;
         if (className === "messageCounter") {
             e.stopPropagation();
@@ -334,6 +337,23 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                     tab.element.append(counter);
                     let upDiv = document.createElement("span");
                     const stack = tab.contentItem.parent;
+                    // console.log("TAB: ", tab);
+                    tab.element[0].onmouseenter = (e: any) => {
+                        if (!this._isPointerDown) return;
+                        var activeContentItem = tab.header.parent.getActiveContentItem();
+                        if (tab.contentItem !== activeContentItem) {
+                            tab.header.parent.setActiveContentItem(tab.contentItem);
+                        }
+                        tab.setActive(true);
+                    }
+                    // tab.element[0].ondragenter = (e: any) => {
+                    //     console.log("DRAGGING OVER DETECTED!");
+                    //     console.log(e);
+                    // }
+                    // tab.element[0].ondrag = (e: any) => {
+                    //     console.log("DRAGGING!");
+                    //     console.log(e);
+                    // }
                     ReactDOM.render(<ParentDocSelector Document={doc} addDocTab={(doc, location) => CollectionDockingView.Instance.AddTab(stack, doc)} />, upDiv);
                     tab.reactComponents = [upDiv];
                     tab.element.append(upDiv);
