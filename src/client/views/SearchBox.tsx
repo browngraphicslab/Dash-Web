@@ -16,12 +16,11 @@ import { RouteStore } from '../../server/RouteStore';
 import { NumCast } from '../../new_fields/Types';
 import { SearchUtil } from '../util/SearchUtil';
 import * as anime from 'animejs';
-// const Anime = ReactAnime.default;
 // import * as anime from '../../../node_modules/@types';
 // const anime = require('lib/anime.js');
 // import anime from 'animejs/lib/anime.es';
 // import anime = require ('lib/anime.min.js');
-// import Anime from 'react-anime';
+import Anime from 'react-anime';
 
 library.add(faSearch);
 library.add(faObjectGroup);
@@ -76,7 +75,7 @@ export class ToggleBar extends React.Component<ToggleBarProps>{
 
         return (
             <div className="toggle-bar">
-                <div className = "toggle-button" onClick = {() => timeline.play()}>
+                {/* <div className = "toggle-button" onClick = {() => timeline.play()}> */}
                 {/* <div className = "toggle-button"> */}
                 {/* {this._status ? (
                     <Anime 
