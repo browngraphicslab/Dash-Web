@@ -20,6 +20,7 @@ interface PresListProps extends PresViewProps {
     deleteDocument(index: number): void;
     gotoDocument(index: number): void;
     groupMappings: Map<String, Doc[]>;
+    presElementsMappings: Map<Doc, PresentationElement>;
 }
 
 
@@ -107,10 +108,10 @@ class PresentationViewList extends React.Component<PresListProps> {
     render() {
         const children = DocListCast(this.props.Document.data);
         this.initializeGroupIds(children);
-
         return (
+
             <div className="presentationView-listCont">
-                {children.map((doc: Doc, index: number) => <PresentationElement key={index} mainDocument={this.props.Document} document={doc} index={index} deleteDocument={this.props.deleteDocument} gotoDocument={this.props.gotoDocument} groupMappings={this.props.groupMappings} allListElements={children} />)}
+                {children.map((doc: Doc, index: number) => <PresentationElement ref={(e) => this.props.presElementsMappings.set(doc, e!)} key={index} mainDocument={this.props.Document} document={doc} index={index} deleteDocument={this.props.deleteDocument} gotoDocument={this.props.gotoDocument} groupMappings={this.props.groupMappings} allListElements={children} />)}
             </div>
         );
     }
@@ -123,6 +124,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
 
     @observable groupedMembers: Doc[][] = [];
     @observable groupMappings: Map<String, Doc[]> = new Map();
+    @observable presElementsMappings: Map<Doc, PresentationElement> = new Map();
 
     //observable means render is re-called every time variable is changed
     @observable
@@ -197,7 +199,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
                     <button className="presentation-button" onClick={this.back}>back</button>
                     <button className="presentation-button" onClick={this.next}>next</button>
                 </div>
-                <PresentationViewList Document={this.props.Document} deleteDocument={this.RemoveDoc} gotoDocument={this.gotoDocument} groupMappings={this.groupMappings} />
+                <PresentationViewList Document={this.props.Document} deleteDocument={this.RemoveDoc} gotoDocument={this.gotoDocument} groupMappings={this.groupMappings} presElementsMappings={this.presElementsMappings} />
             </div>
         );
     }

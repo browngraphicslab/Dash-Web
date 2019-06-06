@@ -3,7 +3,7 @@ import React = require("react");
 import { Doc } from "../../../new_fields/Doc";
 import { NumCast, BoolCast, StrCast } from "../../../new_fields/Types";
 import { Id } from "../../../new_fields/FieldSymbols";
-import { observable, action } from "mobx";
+import { observable, action, computed } from "mobx";
 import "./PresentationView.scss";
 import { Utils } from "../../../Utils";
 
@@ -35,6 +35,10 @@ export default class PresentationElement extends React.Component<PresentationEle
 
     @observable selectedButtons: boolean[] = new Array(6);
 
+    @computed
+    get selected() {
+        return this.selectedButtons;
+    }
 
     @action
     onGroupClick = (document: Doc, index: number, buttonStatus: boolean) => {
@@ -118,16 +122,14 @@ export default class PresentationElement extends React.Component<PresentationEle
         e.stopPropagation();
         if (this.selectedButtons[buttonIndex.HideTillPressed]) {
             this.selectedButtons[buttonIndex.HideTillPressed] = false;
+            this.props.document.opacity = 1;
 
         } else {
             this.selectedButtons[buttonIndex.HideTillPressed] = true;
+            this.props.document.opacity = 0;
+
         }
     }
-
-    hideDocumentIfNotPressed = () => {
-        this.props.allListElements.forEach((doc: Doc) => doc.opacity = 1);
-    }
-
 
 
     render() {
@@ -160,7 +162,7 @@ export default class PresentationElement extends React.Component<PresentationEle
                 <br></br>
                 <button className={this.selectedButtons[buttonIndex.Show] ? "presentation-interaction-selected" : "presentation-interaction"}>A</button>
                 <button className={this.selectedButtons[buttonIndex.Navigate] ? "presentation-interaction-selected" : "presentation-interaction"}>B</button>
-                <button className={this.selectedButtons[buttonIndex.HideTillPressed] ? "presentation-interaction-selected" : "presentation-interaction"} onClick={(e) => { this.onHideDocumentUntilPressClick(e); this.hideDocumentIfNotPressed(); }}>C</button>
+                <button className={this.selectedButtons[buttonIndex.HideTillPressed] ? "presentation-interaction-selected" : "presentation-interaction"} onClick={this.onHideDocumentUntilPressClick}>C</button>
                 <button className={this.selectedButtons[buttonIndex.FadeAfter] ? "presentation-interaction-selected" : "presentation-interaction"}>D</button>
                 <button className={this.selectedButtons[buttonIndex.HideAfter] ? "presentation-interaction-selected" : "presentation-interaction"}>E</button>
                 <button className={this.selectedButtons[buttonIndex.Group] ? "presentation-interaction-selected" : "presentation-interaction"} onClick={(e) => {
