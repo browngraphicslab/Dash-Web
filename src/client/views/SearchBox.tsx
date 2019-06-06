@@ -15,6 +15,8 @@ import { Docs } from '../documents/Documents';
 import { RouteStore } from '../../server/RouteStore';
 import { NumCast } from '../../new_fields/Types';
 import { SearchUtil } from '../util/SearchUtil';
+import * as anime from 'animejs';
+// import anime from 'animejs';
 
 library.add(faSearch);
 library.add(faObjectGroup);
@@ -54,6 +56,7 @@ export class SearchBox extends React.Component {
             this._resultsOpen = true;
             this._results = results;
         });
+
     }
 
     @action
@@ -216,15 +219,16 @@ export class SearchBox extends React.Component {
                             <div className="type-of-node">
                                 temp for filtering by a type of node
                                 <div className="icon-bar">
-                                    <FontAwesomeIcon icon={faFilePdf} size="2x" />
-                                    <FontAwesomeIcon icon={faChartBar} size="2x" />
-                                    <FontAwesomeIcon icon={faObjectGroup} size="2x" />
-                                    <FontAwesomeIcon icon={faImage} size="2x" />
-                                    <FontAwesomeIcon icon={faFilm} size="2x" />
-                                    <FontAwesomeIcon icon={faGlobeAsia} size="2x" />
-                                    <FontAwesomeIcon icon={faLink} size="2x" />
-                                    <FontAwesomeIcon icon={faMusic} size="2x" />
-                                    <FontAwesomeIcon icon={faStickyNote} size="2x" />
+                                    {/* hoping to ultimately animate a reorder when an icon is chosen */}
+                                    <FontAwesomeIcon style={{ order: 0 }} icon={faFilePdf} size="2x" />
+                                    <FontAwesomeIcon style={{ order: 1 }} icon={faChartBar} size="2x" />
+                                    <FontAwesomeIcon style={{ order: 2 }} icon={faObjectGroup} size="2x" />
+                                    <FontAwesomeIcon style={{ order: 3 }} icon={faImage} size="2x" />
+                                    <FontAwesomeIcon style={{ order: 4 }} icon={faFilm} size="2x" />
+                                    <FontAwesomeIcon style={{ order: 5 }} icon={faGlobeAsia} size="2x" />
+                                    <FontAwesomeIcon style={{ order: 6 }} icon={faLink} size="2x" />
+                                    <FontAwesomeIcon style={{ order: 7 }} icon={faMusic} size="2x" />
+                                    <FontAwesomeIcon style={{ order: 8 }} icon={faStickyNote} size="2x" />
                                 </div>
                             </div>
                             <div className="filter-collection">

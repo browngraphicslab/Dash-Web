@@ -2,7 +2,7 @@ import React = require("react");
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faCaretUp, faFilePdf, faFilm, faImage, faObjectGroup, faStickyNote, faMusic, faLink, faChartBar, faGlobeAsia } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { Cast } from "../../new_fields/Types";
+import { Cast, NumCast } from "../../new_fields/Types";
 import { observable, runInAction } from "mobx";
 import { listSpec } from "../../new_fields/Schema";
 import { Doc } from "../../new_fields/Doc";
@@ -13,6 +13,7 @@ import { Id } from "../../new_fields/FieldSymbols";
 import { CollectionDockingView } from "./collections/CollectionDockingView";
 import { observer } from "mobx-react";
 import "./SearchItem.scss";
+import { CollectionViewType } from "./collections/CollectionBaseView";
 
 export interface SearchItemProps {
     doc: Doc;
@@ -54,25 +55,37 @@ export class SelectorContextMenu extends React.Component<SearchItemProps> {
     }
 
     getOnClick({ col, target }: { col: Doc, target: Doc }) {
+        console.log("hello world")
         return () => {
             console.log("returning!")
-            // col = Doc.IsPrototype(col) ? Doc.MakeDelegate(col) : col;
-            // if (NumCast(col.viewType, CollectionViewType.Invalid) === CollectionViewType.Freeform) {
-            //     const newPanX = NumCast(target.x) + NumCast(target.width) / NumCast(target.zoomBasis, 1) / 2;
-            //     const newPanY = NumCast(target.y) + NumCast(target.height) / NumCast(target.zoomBasis, 1) / 2;
-            //     col.panX = newPanX;
-            //     col.panY = newPanY;
-            // }
+            col = Doc.IsPrototype(col) ? Doc.MakeDelegate(col) : col;
+            if (NumCast(col.viewType, CollectionViewType.Invalid) === CollectionViewType.Freeform) {
+                const newPanX = NumCast(target.x) + NumCast(target.width) / NumCast(target.zoomBasis, 1) / 2;
+                const newPanY = NumCast(target.y) + NumCast(target.height) / NumCast(target.zoomBasis, 1) / 2;
+                col.panX = newPanX;
+                col.panY = newPanY;
+            }
             // this.props.addDocTab(col, "inTab");
+            CollectionDockingView.Instance.AddRightSplit(col);
         };
     }
 
     render() {
         return (
-            < div className="parents">
+            < div className="parents" onClick = {() => {console.log("hello there")}}>
                 <p>Contexts:</p>
-                    {this._docs.map(doc => <div className = "collection"><a  onClick={this.getOnClick(doc)}>{doc.col.title}</a></div>)}
-                    {this._otherDocs.map(doc =><div className = "collection"><a onClick={this.getOnClick(doc)}>{doc.col.title}</a></div>)}
+                {this._docs.map(doc => <div className="collection"><a onPointerDown={(e: React.PointerEvent) => {
+                    console.log("pointerdown");
+                    e.preventDefault();
+                    e.stopPropagation()
+                    this.getOnClick(doc)
+                }}>{doc.col.title}</a></div>)}
+                {this._otherDocs.map(doc => <div className="collection"><a onClick={(e: React.MouseEvent) => {
+                    e.preventDefault();
+                    e.stopPropagation()
+                    console.log("clicked");
+                    this.getOnClick(doc)
+                }}>{doc.col.title}</a></div>)}
             </div>
         );
     }
@@ -130,7 +143,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
                             <div className="search-type" >{this.DocumentIcon()}</div>
                         </div>
                     </div>
-                        <div className="found">Where Found: (i.e. title, body, etc)</div>
+                    <div className="found">Where Found: (i.e. title, body, etc)</div>
                 </div>
                 <div className="searchBox-instances">
                     <SelectorContextMenu {...this.props} />
