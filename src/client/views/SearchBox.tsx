@@ -96,34 +96,45 @@ export class SearchBox extends React.Component {
     }
 
     @action
-    handleClickFilter = (e: Event): void => {
-        var className = (e.target as any).className;
-        var id = (e.target as any).id;
-        if (className !== "filter-button" && className !== "filter-form") {
+    handleSearchClick = (e: Event): void => {
+        let element = document.getElementsByClassName((e.target as any).className)[0];
+        //handles case with filter button
+        if((e.target as any).className.includes("filter")){
+            this._resultsOpen = false;
+            this._open = true;}
+        else if (element && element.parentElement){
+            //if the filter element is found, show the form and hide the results
+            if(this.findAncestor(element, "filter-form")){
+                this._resultsOpen = false;
+                this._open = true;
+            }
+            //if in main search div, keep results open and close filter
+            else if(this.findAncestor(element, "main-searchDiv")){
+                this._resultsOpen = true;
+                this._open = false;
+            }
+        }
+        //not in either, close both
+        else{
+            this._resultsOpen = false;
             this._open = false;
         }
-
+        
     }
 
-    @action
-    handleClickResults = (e: Event): void => {
-        var className = (e.target as any).className;
-        var id = (e.target as any).id;
-        if (id !== "result") {
-            this._resultsOpen = false;
-            this._results = [];
-        }
 
+    //finds ancestor div that matches class name passed in, if not found false returned
+    findAncestor(curElement: any, cls: string) {
+        while ((curElement = curElement.parentElement) && !curElement.classList.contains(cls));
+        return curElement;
     }
 
     componentWillMount() {
-        document.addEventListener('mousedown', this.handleClickFilter, false);
-        document.addEventListener('mousedown', this.handleClickResults, false);
+        document.addEventListener('mousedown', this.handleSearchClick, false);
     }
 
     componentWillUnmount() {
-        document.removeEventListener('mousedown', this.handleClickFilter, false);
-        document.removeEventListener('mousedown', this.handleClickResults, false);
+        document.removeEventListener('mousedown', this.handleSearchClick, false);
     }
 
     @action
@@ -131,7 +142,7 @@ export class SearchBox extends React.Component {
         this._open = !this._open;
     }
 
-    enter = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    enter = (e: React.KeyboardEvent) => {
         if (e.key === "Enter") {
             this.submitSearch();
         }
@@ -199,8 +210,8 @@ export class SearchBox extends React.Component {
                         </span>
                         <input value={this.searchString} onChange={this.onChange} type="text" placeholder="Search..."
                             className="searchBox-barChild searchBox-input" onKeyPress={this.enter}
-                            style={{ width: this._resultsOpen ? "500px" : undefined }} />
-                        <button className="searchBox-barChild searchBox-filter" onClick={this.toggleFilterDisplay}>Filter</button>
+                            style={{ width: this._resultsOpen ? "500px" : "100px" }} />
+                        <button className="searchBox-barChild searchBox-filter">Filter</button>
                     </div>
                     {this._resultsOpen ? (
                         <div className="searchBox-results">
@@ -208,11 +219,11 @@ export class SearchBox extends React.Component {
                         </div>
                     ) : null}
                 </div>
+                {/* these all need class names in order to find ancestor - please do not delete */}
                 {this._open ? (
                     <div className="filter-form" id="filter" style={this._open ? { display: "flex" } : { display: "none" }}>
                         <div className="filter-form" id="header">Filter Search Results</div>
                         <div className="filter-form" id="option">
-                            filter by collection, key, type of node
                             <div className="required-words">
                                 temp for making words required
                             </div>
@@ -238,7 +249,6 @@ export class SearchBox extends React.Component {
                                 temp for filtering where in doc the keywords are found
                             </div>
                         </div>
-
                     </div>
                 ) : null}
             </div>

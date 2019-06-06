@@ -55,9 +55,7 @@ export class SelectorContextMenu extends React.Component<SearchItemProps> {
     }
 
     getOnClick({ col, target }: { col: Doc, target: Doc }) {
-        console.log("hello world")
         return () => {
-            console.log("returning!")
             col = Doc.IsPrototype(col) ? Doc.MakeDelegate(col) : col;
             if (NumCast(col.viewType, CollectionViewType.Invalid) === CollectionViewType.Freeform) {
                 const newPanX = NumCast(target.x) + NumCast(target.width) / NumCast(target.zoomBasis, 1) / 2;
@@ -70,19 +68,20 @@ export class SelectorContextMenu extends React.Component<SearchItemProps> {
         };
     }
 
+    onClick = () => {
+        console.log("click");
+    }
+
+    //these all need class names in order to find ancestor - please do not delete
     render() {
         return (
-            < div className="parents" onClick = {() => {console.log("hello there")}}>
-                <p>Contexts:</p>
-                {this._docs.map(doc => <div className="collection"><a onPointerDown={(e: React.PointerEvent) => {
-                    console.log("pointerdown");
-                    e.preventDefault();
-                    e.stopPropagation()
+            < div className="parents">
+                <p className = "contexts">Contexts:</p>
+                {this._docs.map(doc => <div onClick={this.onClick} className="collection"><a className= "title" onClick={(e: React.MouseEvent) => {
+                    console.log("clicked");
                     this.getOnClick(doc)
                 }}>{doc.col.title}</a></div>)}
-                {this._otherDocs.map(doc => <div className="collection"><a onClick={(e: React.MouseEvent) => {
-                    e.preventDefault();
-                    e.stopPropagation()
+                {this._otherDocs.map(doc => <div className="collection"><a className= "title" onClick={(e: React.MouseEvent) => {
                     console.log("clicked");
                     this.getOnClick(doc)
                 }}>{doc.col.title}</a></div>)}
