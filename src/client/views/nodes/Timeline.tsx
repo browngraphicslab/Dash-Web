@@ -16,6 +16,7 @@ import { DocumentManager } from "../../util/DocumentManager";
 import { SelectionManager } from "../../util/SelectionManager";
 import { List } from "../../../new_fields/List";
 import { Self } from "../../../new_fields/FieldSymbols";
+import { node } from "prop-types";
 
 type IndividualDocKeyFrame = List<Doc>; //data?
 type KeyframeList = List<List<Doc>>;
@@ -68,15 +69,16 @@ export class Timeline extends CollectionSubView(Document) {
         let childrenList = (children[Self] as any).__fields;
         // let keys = ["x", "y"]; //maybe make this an instance var?
 
-        const addReaction = (element: Doc) => {
-            element = (element as any).value();
-            this.tempdoc = element;
+        const addReaction = (node: Doc) => {
+            console.log("hi");
+            node = (node as any).value();
+            this.tempdoc = node;
             return reaction(() => {
-                return this._keys.map(key => FieldValue(element[key]));
+                return this._keys.map(key => FieldValue(node[key]));
             }, async data => { //where is the data index actually being set?
                 if (this._inner.current) {
                     let keyFrame: Doc;
-                    const kf = new Doc;
+                    const kf = node;
                     this._data.push(kf);
                     let info = [];
                     let time: number = this._currentBarX; //time that indicates what frame you are in. Whole numbers. 
@@ -87,7 +89,7 @@ export class Timeline extends CollectionSubView(Document) {
                     let exists: boolean = false;
                     // let frames: List<Doc>; //don't know if this should be an instance...
                     this._keyFrames.forEach(async kfs => { //checks if there is a keyframe that is tracking this document. 
-                        if (kfs === element) {
+                        if (kfs === node) {
                             keyFrame = kfs;
                             this._data = (await DocListCastAsync(keyFrame.frames))!; //keyFrame.doc.frames
                             exists = true;
