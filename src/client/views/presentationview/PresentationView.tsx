@@ -19,8 +19,8 @@ export interface PresViewProps {
 interface PresListProps extends PresViewProps {
     deleteDocument(index: number): void;
     gotoDocument(index: number): void;
-    groupedMembers: [Doc[]];
-
+    groupedMembers: Doc[][];
+    groupMappings: Map<String, Doc[]>;
 }
 
 
@@ -112,7 +112,7 @@ class PresentationViewList extends React.Component<PresListProps> {
 
         return (
             <div className="presentationView-listCont">
-                {children.map((doc: Doc, index: number) => <PresentationElement key={index} mainDocument={this.props.Document} document={doc} index={index} deleteDocument={this.props.deleteDocument} gotoDocument={this.props.gotoDocument} groupedMembers={this.props.groupedMembers} allListElements={children} />)}
+                {children.map((doc: Doc, index: number) => <PresentationElement key={index} mainDocument={this.props.Document} document={doc} index={index} deleteDocument={this.props.deleteDocument} gotoDocument={this.props.gotoDocument} groupedMembers={this.props.groupedMembers} groupMappings={this.props.groupMappings} allListElements={children} />)}
             </div>
         );
     }
@@ -124,6 +124,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
     public static Instance: PresentationView;
 
     @observable groupedMembers: Doc[][] = [];
+    @observable groupMappings: Map<String, Doc[]> = new Map();
 
     //observable means render is re-called every time variable is changed
     @observable
@@ -198,7 +199,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
                     <button className="presentation-button" onClick={this.back}>back</button>
                     <button className="presentation-button" onClick={this.next}>next</button>
                 </div>
-                <PresentationViewList Document={this.props.Document} deleteDocument={this.RemoveDoc} gotoDocument={this.gotoDocument} groupedMembers={this.groupedMembers} />
+                <PresentationViewList Document={this.props.Document} deleteDocument={this.RemoveDoc} gotoDocument={this.gotoDocument} groupedMembers={this.groupedMembers} groupMappings={this.groupMappings} />
             </div>
         );
     }

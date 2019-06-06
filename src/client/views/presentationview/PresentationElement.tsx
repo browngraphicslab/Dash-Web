@@ -1,10 +1,11 @@
 import { observer } from "mobx-react";
 import React = require("react");
 import { Doc } from "../../../new_fields/Doc";
-import { NumCast, BoolCast } from "../../../new_fields/Types";
+import { NumCast, BoolCast, StrCast } from "../../../new_fields/Types";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { observable, action } from "mobx";
 import "./PresentationView.scss";
+import { Utils } from "../../../Utils";
 
 
 
@@ -14,8 +15,9 @@ interface PresentationElementProps {
     index: number;
     deleteDocument(index: number): void;
     gotoDocument(index: number): void;
-    groupedMembers: [Doc[]];
+    groupedMembers: Doc[][];
     allListElements: Doc[];
+    groupMappings: Map<String, Doc[]>;
 
 }
 
@@ -33,6 +35,63 @@ enum buttonIndex {
 export default class PresentationElement extends React.Component<PresentationElementProps> {
 
     @observable selectedButtons: boolean[] = new Array(6);
+
+
+    @action
+    onGroupClick = (document: Doc, index: number, buttonStatus: boolean) => {
+        let p = this.props;
+        if (buttonStatus) {
+            if (index >= 1) {
+                let newGuid = Utils.GenerateGuid();
+                let aboveGuid = StrCast(p.allListElements[index - 1].presentId, undefined);
+                let docGuid = StrCast(document.presentId, undefined);
+                if (aboveGuid !== undefined) {
+                    if (p.groupMappings.has(aboveGuid)) {
+                        let aboveArray = p.groupMappings.get(aboveGuid)!;
+                        if (p.groupMappings.has(docGuid)) {
+                            let docsArray = p.groupMappings.get(docGuid)!;
+                            docsArray.forEach((doc: Doc) => {
+                                if (!aboveArray.includes(doc)) {
+                                    aboveArray.push(doc);
+                                }
+                            });
+                        } else {
+                            if (!aboveArray.includes(document)) {
+                                aboveArray.push(document);
+
+                            }
+
+                        }
+                    }
+                    document.presentId = aboveGuid;
+                } else {
+                    p.allListElements[index - 1].presentId = newGuid;
+                    let newAboveArray: Doc[] = [];
+                    if (p.groupMappings.has(docGuid)) {
+                        let docsArray = p.groupMappings.get(docGuid)!;
+                        docsArray.forEach((doc: Doc) => newAboveArray.push(doc));
+                    } else {
+                        newAboveArray.push(document);
+                    }
+                    document.presentId = newGuid;
+                    p.groupMappings.set(newGuid, newAboveArray);
+
+
+                }
+
+            }
+        } else {
+            let curArray = p.groupMappings.get(StrCast(document.presentId, Utils.GenerateGuid()))!;
+            let targetIndex = curArray.indexOf(document);
+            let firstPart = curArray.slice(0, targetIndex);
+            let secondPart = curArray.slice(targetIndex);
+            p.groupMappings.set(StrCast(p.allListElements[index - 1].presentId, Utils.GenerateGuid()), firstPart);
+            p.groupMappings.set(StrCast(document.presentId, Utils.GenerateGuid()), secondPart);
+
+
+        }
+
+    }
 
     @action
     onGroupClickRec = (document: Doc, index: number, buttonStatus: boolean) => {
@@ -117,7 +176,7 @@ export default class PresentationElement extends React.Component<PresentationEle
     }
 
     hideDocumentIfNotPressed = () => {
-        this.props.allListElements.forEach((doc: Doc) => doc.opacity = 0);
+        this.props.allListElements.forEach((doc: Doc) => doc.opacity = 1);
     }
 
 
@@ -158,8 +217,8 @@ export default class PresentationElement extends React.Component<PresentationEle
                 <button className={this.selectedButtons[buttonIndex.Group] ? "presentation-interaction-selected" : "presentation-interaction"} onClick={(e) => {
                     e.stopPropagation();
                     this.changeGroupStatus();
-                    this.onGroupClickRec(p.document, p.index, this.selectedButtons[buttonIndex.Group]);
-                    this.printGroupSizes();
+                    this.onGroupClick(p.document, p.index, this.selectedButtons[buttonIndex.Group]);
+                    //this.printGroupSizes();
                 }}>F</button>
 
             </div>
