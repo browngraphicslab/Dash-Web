@@ -46,38 +46,17 @@ export class ToggleBar extends React.Component<ToggleBarProps>{
 
     @observable _status: boolean = false;
     @observable timeline: any;
-
-    _toggleButton: React.RefObject<HTMLDivElement>;
+    @observable _toggleButton: React.RefObject<HTMLDivElement>;
 
     constructor(props: ToggleBarProps) {
         super(props);
         this._toggleButton = React.createRef();
-
-        // this.timeline = anime.timeline({
-        //     autoplay: true,
-        //     direction: 'alternate',
-        //     loop: true
-        // })
-
-        // this.timeline.add({
-        //     targets: '.toggle-button',
-        //     translateX: '100%',
-        //     direction: 'alternate',
-        //     easing: 'easeInOutQuad'
-        // });
-
-        // if (this.)
-        // this._toggleButton.current.animate({
-        //     translate: {x: 100, y: 0},
-        //     duration: 1000
-        // })
     }
 
     componentDidMount = () => {
-
+        
         let bar = document.getElementById("toggle-bar");
         let tog = document.getElementById("toggle-button");
-        let padding = 0;
         let barwidth = 0;
         let togwidth = 0;
         if (bar && tog) {
@@ -86,40 +65,47 @@ export class ToggleBar extends React.Component<ToggleBarProps>{
         }
         let totalWidth = (barwidth - togwidth - 10);
 
-        let timeline = anime.timeline({
-            autoplay: true,
-            loop: true,
-            direction: 'alternate',
+        this.timeline = anime.timeline({
+            autoplay: false,
+            loop: false,
+            direction: "normal"
         });
 
-        timeline.add({
+        this.timeline.add({
             targets: this._toggleButton.current,
             translateX: totalWidth,
-            easing: "easeInOutQuad", 
+            easing: "easeInOutQuad",
         });
-
-        timeline.play();
-
-        // const animeObject = anime({
-        //     targets: this._toggleButton.current,
-        //     translateX: totalWidth,
-        //     direction: 'alternate',
-        //     easing: 'easeInOutQuad',
-        //     autoplay: false,
-        //     duration: .5,
-        // })
-    }
-
-    @action.bound
-    toggle() {
-        this._status = !this._status;
     }
 
     @action.bound
     onclick() {
         console.log("clicked")
-        // this.timeline.play();
+        this._status = !this._status;
+        if(this._status){
+            console.log("playing normally")
+            this.timeline.play()
+        }
+        else{
+            console.log("playing reverse")
+            this.timeline.play();
+            this.timeline.reverse();
+            this.timeline.pause();
+        }
 
+    }
+
+    @action.bound
+    toggle = (animation: any, open: boolean) => {
+        if(open){
+            animation.play();
+            if(animation.reversed) {
+                animation.reverse();
+            }
+        } else{
+            animation.play();
+
+        }
     }
 
     render() {
