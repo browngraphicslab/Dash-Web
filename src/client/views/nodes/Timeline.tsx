@@ -166,7 +166,7 @@ export class Timeline extends CollectionSubView(Document) {
                         }
                     } else {
                         const keyf = Position(await singleKf.position);
-                        const dif_X = NumCast(keyf.X);
+                        const dif_X = NumCast(keyf.x);
                     }
                 }
             });
