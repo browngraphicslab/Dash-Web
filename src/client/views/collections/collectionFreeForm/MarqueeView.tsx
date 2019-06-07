@@ -147,6 +147,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         this._downY = this._lastY = e.pageY;
         this._commandExecuted = false;
         PreviewCursor.Visible = false;
+        this.cleanupInteractions(true);
         if (e.button === 2 || (e.button === 0 && e.altKey)) {
             if (!this.props.container.props.active()) this.props.selectDocuments([this.props.container.props.Document]);
             document.addEventListener("pointermove", this.onPointerMove, true);
@@ -184,13 +185,19 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     onPointerUp = (e: PointerEvent): void => {
         console.log("pointer up!");
         if (this._visible) {
+            console.log("visible");
             let mselect = this.marqueeSelect();
             if (!e.shiftKey) {
                 SelectionManager.DeselectAll(mselect.length ? undefined : this.props.container.props.Document);
             }
             this.props.selectDocuments(mselect.length ? mselect : [this.props.container.props.Document]);
+            mselect.length ? this.cleanupInteractions(true, false) : this.cleanupInteractions(true);
         }
-        this.cleanupInteractions(true, false);
+        else {
+            console.log("invisible");
+            this.cleanupInteractions(true);
+        }
+
         if (e.altKey) {
             e.preventDefault();
         }

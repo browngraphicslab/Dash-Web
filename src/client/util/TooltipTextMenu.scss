@@ -239,12 +239,13 @@
     border: 1px solid silver;
     border-radius: 15px;
     padding: 2px 10px;
-    margin-bottom: 60px;
-    -webkit-transform: translateX(-50%);
-    transform: translateX(-50%);
+    //margin-bottom: 100px;
+    //-webkit-transform: translateX(-50%);
+    //transform: translateX(-50%);
+    transform: translateY(-50%);
     pointer-events: all;
-    height: 100px;
-    width:500px;
+    height: 125px;
+    width:400px;
     .ProseMirror-example-setup-style hr {
       padding: 2px 10px;
       border: none;

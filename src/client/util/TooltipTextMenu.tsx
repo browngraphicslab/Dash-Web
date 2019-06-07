@@ -234,7 +234,12 @@ export class TooltipTextMenu {
             this.tooltip.appendChild(this.linkEditor);
 
             let starButton = document.createElement("button");
-            starButton.textContent = "ST";
+            // starButton.style.width = '10px';
+            // starButton.style.height = '10px';
+            starButton.style.marginLeft = '10px';
+            starButton.textContent = "Summarize";
+            starButton.style.color = 'black';
+            starButton.style.backgroundColor = 'white';
             starButton.onclick = () => {
                 let state = this.view.state;
                 this.insertStar(state, this.view.dispatch);
@@ -266,16 +271,21 @@ export class TooltipTextMenu {
         link = node && node.marks.find(m => m.type.name === "link");
     }
 
-    insertStar(state: any, dispatch: any) {
+    insertStar(state: EditorState<any>, dispatch: any) {
         console.log("creating star...");
         let type = schema.nodes.star;
-        let { $from } = state.selection;
-        if (!$from.parent.canReplaceWith($from.index(), $from.index(), type)) {
-            return false;
-        }
+        //let {$from} = state.selection;
+        let select = state.selection;
         if (dispatch) {
-            dispatch(state.tr.replaceSelectionWith(type.create()));
+            dispatch(state.tr.setMeta('select.visible', false));
         }
+        // console.log($from);
+        // if (!$from.parent.canReplaceWith($from.index(), $from.index(), type)) {
+        //     return false;
+        // }
+        // if (dispatch) {
+        //     dispatch(state.tr.replaceSelectionWith(type.create()));
+        // }
         return true;
     }
 
