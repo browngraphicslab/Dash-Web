@@ -20,7 +20,7 @@ import * as anime from 'animejs';
 // const anime = require('lib/anime.js');
 // import anime from 'animejs/lib/anime.es';
 // import anime = require ('lib/anime.min.js');
-import Anime from 'react-anime';
+// import Anime from 'react-anime';
 
 library.add(faSearch);
 library.add(faObjectGroup);
@@ -45,72 +45,87 @@ export interface ToggleBarProps {
 export class ToggleBar extends React.Component<ToggleBarProps>{
 
     @observable _status: boolean = false;
+    @observable timeline: any;
 
-    // @observable clicked: boolean = true;
+    _toggleButton: React.RefObject<HTMLDivElement>;
+
+    constructor(props: ToggleBarProps) {
+        super(props);
+        this._toggleButton = React.createRef();
+
+        // this.timeline = anime.timeline({
+        //     autoplay: true,
+        //     direction: 'alternate',
+        //     loop: true
+        // })
+
+        // this.timeline.add({
+        //     targets: '.toggle-button',
+        //     translateX: '100%',
+        //     direction: 'alternate',
+        //     easing: 'easeInOutQuad'
+        // });
+
+        // if (this.)
+        // this._toggleButton.current.animate({
+        //     translate: {x: 100, y: 0},
+        //     duration: 1000
+        // })
+    }
+
+    componentDidMount = () => {
+
+        let bar = document.getElementById("toggle-bar");
+        let tog = document.getElementById("toggle-button");
+        let padding = 0;
+        let barwidth = 0;
+        let togwidth = 0;
+        if (bar && tog) {
+            barwidth = bar.clientWidth;
+            togwidth = tog.clientWidth;
+        }
+        let totalWidth = (barwidth - togwidth - 10);
+
+        let timeline = anime.timeline({
+            autoplay: true,
+            loop: true,
+            direction: 'alternate',
+        });
+
+        timeline.add({
+            targets: this._toggleButton.current,
+            translateX: totalWidth,
+            easing: "easeInOutQuad", 
+        });
+
+        timeline.play();
+
+        // const animeObject = anime({
+        //     targets: this._toggleButton.current,
+        //     translateX: totalWidth,
+        //     direction: 'alternate',
+        //     easing: 'easeInOutQuad',
+        //     autoplay: false,
+        //     duration: .5,
+        // })
+    }
 
     @action.bound
     toggle() {
         this._status = !this._status;
     }
 
+    @action.bound
+    onclick() {
+        console.log("clicked")
+        // this.timeline.play();
+
+    }
+
     render() {
-        var timeline = anime.timeline({
-            autoplay:false
-        })
-
-        timeline.add({
-            targets: '.toggle-button',
-            translateX: '100%',
-            direction: 'alternate',
-            easing: 'easeInOutQuad'
-        });
-
-        // var wordQueryToggle = anime({
-        //     targets: '.toggle-button',
-        //     translateX: '100%',
-        //     direction: 'alternate',
-        //     easing: 'easeInOutQuad'
-        // });
-        // document.querySelector('.toggle-button').onClick = wordQueryToggle;
-
         return (
-            <div className="toggle-bar">
-                {/* <div className = "toggle-button" onClick = {() => timeline.play()}> */}
-                {/* <div className = "toggle-button"> */}
-                {/* {this._status ? (
-                    <Anime 
-                    loop={false}
-                    autoplay={false}
-                    translateX="100%"
-                    direction="alternate"
-                    easing="easeInOutQuad"
-                >
-                    <div className="toggle-button" onClick = {this.toggle} />
-                </Anime>
-                ) : (
-                    <Anime 
-                    loop={false}
-                    autoplay={true}
-                    translateX="100%"
-                    direction="alternate"
-                    easing="easeInOutQuad"
-                >
-                    <div className="toggle-button" onClick = {this.toggle} />
-                </Anime>
-                )} */}
-
-{/* 
-
-                <Anime 
-                    loop={false}
-                    autoplay={false}
-                    translateX="100%"
-                    direction="alternate"
-                    easing="easeInOutQuad"
-                >
-                    <div className="toggle-button" onClick = {this.toggle} />
-                </Anime> */}
-                {/* </div> */}
+            <div className="toggle-bar" id="toggle-bar">
+                <div className="toggle-button" id="toggle-button" ref={this._toggleButton} onClick={this.onclick} />
             </div>
         );
     };
