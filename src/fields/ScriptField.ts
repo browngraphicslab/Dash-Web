@@ -1,101 +1,97 @@
-// import { Field, FieldId } from "./Field";
-// import { Types } from "../server/Message";
-// import { CompileScript, ScriptOptions, CompiledScript } from "../client/util/Scripting";
-// import { Server } from "../client/Server";
-// import { Without } from "../Utils";
+import { ObjectField } from "../new_fields/ObjectField";
+import { CompiledScript, CompileScript } from "../client/util/Scripting";
+import { Copy, ToScriptString, Parent, SelfProxy } from "../new_fields/FieldSymbols";
+import { serializable, createSimpleSchema, map, primitive, object, deserialize, PropSchema, custom, SKIP } from "serializr";
+import { Deserializable } from "../client/util/SerializationHelper";
+import { computed } from "mobx";
 
-// export interface SerializableOptions extends Without<ScriptOptions, "capturedVariables"> {
-//     capturedIds: { [id: string]: string };
-// }
+function optional(propSchema: PropSchema) {
+    return custom(value => {
+        if (value !== undefined) {
+            return propSchema.serializer(value);
+        }
+        return SKIP;
+    }, (jsonValue: any, context: any, oldValue: any, callback: (err: any, result: any) => void) => {
+        if (jsonValue !== undefined) {
+            return propSchema.deserializer(jsonValue, callback, context, oldValue);
+        }
+        return SKIP;
+    });
+}
 
-// export interface ScriptData {
-//     script: string;
-//     options: SerializableOptions;
-// }
+const optionsSchema = createSimpleSchema({
+    requiredType: true,
+    addReturn: true,
+    typecheck: true,
+    params: optional(map(primitive()))
+});
 
-// export class ScriptField extends Field {
-//     private _script?: CompiledScript;
-//     get script(): CompiledScript {
-//         return this._script!;
-//     }
-//     private options?: ScriptData;
+function deserializeScript(script: ScriptField) {
+    const comp = CompileScript(script.scriptString, script.options);
+    if (!comp.compiled) {
+        throw new Error("Couldn't compile loaded script");
+    }
+    (script as any)._script = comp;
+}
 
-//     constructor(script?: CompiledScript, id?: FieldId, save: boolean = true) {
-//         super(id);
+@Deserializable("script", deserializeScript)
+export class ScriptField extends ObjectField {
+    protected readonly _script: CompiledScript;
 
-//         this._script = script;
+    constructor(script: CompiledScript) {
+        super();
 
-//         if (save) {
-//             Server.UpdateField(this);
-//         }
-//     }
+        this._script = script;
+    }
 
-//     ToScriptString() {
-//         return "new ScriptField(...)";
-//     }
+    @serializable(object(optionsSchema))
+    get options() {
+        return this._script.options;
+    }
 
-//     GetValue() {
-//         return this.script;
-//     }
+    @serializable(true)
+    get scriptString(): string {
+        return this._script.originalScript;
+    }
 
-//     TrySetValue(): boolean {
-//         throw new Error("Script fields currently can't be modified");
-//     }
+    //     init(callback: (res: Field) => any) {
+    //         const options = this.options!;
+    //         const keys = Object.keys(options.options.capturedIds);
+    //         Server.GetFields(keys).then(fields => {
+    //             let captured: { [name: string]: Field } = {};
+    //             keys.forEach(key => captured[options.options.capturedIds[key]] = fields[key]);
+    //             const opts: ScriptOptions = {
+    //                 addReturn: options.options.addReturn,
+    //                 params: options.options.params,
+    //                 requiredType: options.options.requiredType,
+    //                 capturedVariables: captured
+    //             };
+    //             const script = CompileScript(options.script, opts);
+    //             if (!script.compiled) {
+    //                 throw new Error("Can't compile script");
+    //             }
+    //             this._script = script;
+    //             callback(this);
+    //         });
+    //     }
 
-//     UpdateFromServer() {
-//         throw new Error("Script fields currently can't be updated");
-//     }
+    [Copy](): ObjectField {
+        return new ScriptField(this._script);
+    }
 
-//     static FromJson(id: string, data: ScriptData): ScriptField {
-//         let field = new ScriptField(undefined, id, false);
-//         field.options = data;
-//         return field;
-//     }
+    [ToScriptString]() {
+        return "script field";
+    }
+}
 
-//     init(callback: (res: Field) => any) {
-//         const options = this.options!;
-//         const keys = Object.keys(options.options.capturedIds);
-//         Server.GetFields(keys).then(fields => {
-//             let captured: { [name: string]: Field } = {};
-//             keys.forEach(key => captured[options.options.capturedIds[key]] = fields[key]);
-//             const opts: ScriptOptions = {
-//                 addReturn: options.options.addReturn,
-//                 params: options.options.params,
-//                 requiredType: options.options.requiredType,
-//                 capturedVariables: captured
-//             };
-//             const script = CompileScript(options.script, opts);
-//             if (!script.compiled) {
-//                 throw new Error("Can't compile script");
-//             }
-//             this._script = script;
-//             callback(this);
-//         });
-//     }
-
-//     ToJson() {
-//         const { options, originalScript } = this.script;
-//         let capturedIds: { [id: string]: string } = {};
-//         for (const capt in options.capturedVariables) {
-//             capturedIds[options.capturedVariables[capt].Id] = capt;
-//         }
-//         const opts: SerializableOptions = {
-//             ...options,
-//             capturedIds
-//         };
-//         delete (opts as any).capturedVariables;
-//         return {
-//             id: this.Id,
-//             type: Types.Script,
-//             data: {
-//                 script: originalScript,
-//                 options: opts,
-//             },
-//         };
-//     }
-
-//     Copy(): Field {
-//         //Script fields are currently immutable, so we can fake copy them
-//         return this;
-//     }
-// }
+@Deserializable("computed")
+export class ComputedField extends ScriptField {
+    @computed
+    get value() {
+        const val = this._script.run({ this: (this[Parent] as any)[SelfProxy] });
+        if (val.success) {
+            return val.result;
+        }
+        return undefined;
+    }
+}
