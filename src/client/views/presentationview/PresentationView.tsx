@@ -190,6 +190,11 @@ export class PresentationView extends React.Component<PresViewProps>  {
                     key.opacity = 0;
                 }
             }
+            if (selectedButtons[buttonIndex.FadeAfter]) {
+                if (this.childrenDocs.indexOf(key) < index) {
+                    key.opacity = 0.5;
+                }
+            }
         });
     }
 
@@ -197,12 +202,20 @@ export class PresentationView extends React.Component<PresViewProps>  {
         this.presElementsMappings.forEach((presElem: PresentationElement, key: Doc) => {
             let selectedButtons: boolean[] = presElem.selected;
             if (selectedButtons[buttonIndex.HideAfter]) {
-                if (this.childrenDocs.indexOf(key) <= index) {
+                if (this.childrenDocs.indexOf(key) >= index) {
+                    console.log("CAlled this right");
+                    key.opacity = 1;
+                }
+            }
+            if (selectedButtons[buttonIndex.FadeAfter]) {
+                if (this.childrenDocs.indexOf(key) >= index) {
                     key.opacity = 1;
                 }
             }
             if (selectedButtons[buttonIndex.HideTillPressed]) {
                 if (this.childrenDocs.indexOf(key) > index) {
+                    console.log("KeyIndex: ", this.childrenDocs.indexOf(key));
+                    console.log("Cur index: ", index);
                     key.opacity = 0;
                 }
             }

@@ -138,7 +138,23 @@ export default class PresentationElement extends React.Component<PresentationEle
         if (this.selectedButtons[buttonIndex.HideAfter]) {
             this.selectedButtons[buttonIndex.HideAfter] = false;
         } else {
+            if (this.selectedButtons[buttonIndex.FadeAfter]) {
+                this.selectedButtons[buttonIndex.FadeAfter] = false;
+            }
             this.selectedButtons[buttonIndex.HideAfter] = true;
+        }
+    }
+
+    @action
+    onFadeDocumentAfterPresentedClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (this.selectedButtons[buttonIndex.FadeAfter]) {
+            this.selectedButtons[buttonIndex.FadeAfter] = false;
+        } else {
+            if (this.selectedButtons[buttonIndex.HideAfter]) {
+                this.selectedButtons[buttonIndex.HideAfter] = false;
+            }
+            this.selectedButtons[buttonIndex.FadeAfter] = true;
         }
     }
 
@@ -174,7 +190,7 @@ export default class PresentationElement extends React.Component<PresentationEle
                 <button className={this.selectedButtons[buttonIndex.Show] ? "presentation-interaction-selected" : "presentation-interaction"}>A</button>
                 <button className={this.selectedButtons[buttonIndex.Navigate] ? "presentation-interaction-selected" : "presentation-interaction"}>B</button>
                 <button className={this.selectedButtons[buttonIndex.HideTillPressed] ? "presentation-interaction-selected" : "presentation-interaction"} onClick={this.onHideDocumentUntilPressClick}>C</button>
-                <button className={this.selectedButtons[buttonIndex.FadeAfter] ? "presentation-interaction-selected" : "presentation-interaction"}>D</button>
+                <button className={this.selectedButtons[buttonIndex.FadeAfter] ? "presentation-interaction-selected" : "presentation-interaction"} onClick={this.onFadeDocumentAfterPresentedClick}>D</button>
                 <button className={this.selectedButtons[buttonIndex.HideAfter] ? "presentation-interaction-selected" : "presentation-interaction"} onClick={this.onHideDocumentAfterPresentedClick}>E</button>
                 <button className={this.selectedButtons[buttonIndex.Group] ? "presentation-interaction-selected" : "presentation-interaction"} onClick={(e) => {
                     e.stopPropagation();
