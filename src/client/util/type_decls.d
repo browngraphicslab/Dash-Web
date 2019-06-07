@@ -162,6 +162,9 @@ declare class ImageField extends URLField { [Copy](): ObjectField; }
 declare class WebField extends URLField { [Copy](): ObjectField; }
 declare class PdfField extends URLField { [Copy](): ObjectField; }
 
+declare const ComputedField: any;
+declare const CompileScript: any;
+
 // @ts-ignore
 declare type Extract<T, U> = T extends U ? T : never;
 declare type Field = number | string | boolean | ObjectField | RefField;

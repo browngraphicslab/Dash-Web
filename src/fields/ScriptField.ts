@@ -44,14 +44,14 @@ export class ScriptField extends ObjectField {
         this._script = script;
     }
 
-    @serializable(object(optionsSchema))
+    @serializable(custom(object(optionsSchema).serializer, () => SKIP))
     get options() {
-        return this._script.options;
+        return this._script && this._script.options;
     }
 
-    @serializable(true)
+    @serializable(custom(primitive().serializer, () => SKIP))
     get scriptString(): string {
-        return this._script.originalScript;
+        return this._script && this._script.originalScript;
     }
 
     //     init(callback: (res: Field) => any) {
@@ -84,7 +84,7 @@ export class ScriptField extends ObjectField {
     }
 }
 
-@Deserializable("computed")
+@Deserializable("computed", deserializeScript)
 export class ComputedField extends ScriptField {
     @computed
     get value() {
