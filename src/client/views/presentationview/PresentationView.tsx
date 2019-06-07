@@ -11,6 +11,12 @@ import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import PresentationElement, { buttonIndex } from "./PresentationElement";
+import { library } from '@fortawesome/fontawesome-svg-core';
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faArrowRight, faArrowLeft } from '@fortawesome/free-solid-svg-icons';
+
+library.add(faArrowLeft);
+library.add(faArrowRight);
 
 export interface PresViewProps {
     Document: Doc;
@@ -328,8 +334,8 @@ export class PresentationView extends React.Component<PresViewProps>  {
                     <button className='presentation-icon' onClick={this.closePresentation}>X</button>
                 </div>
                 <div className="presentation-buttons">
-                    <button className="presentation-button" onClick={this.back}>back</button>
-                    <button className="presentation-button" onClick={this.next}>next</button>
+                    <button className="presentation-button" onClick={this.back}><FontAwesomeIcon icon={"arrow-left"} /></button>
+                    <button className="presentation-button" onClick={this.next}><FontAwesomeIcon icon={"arrow-right"} /></button>
                 </div>
                 <PresentationViewList Document={this.props.Document} deleteDocument={this.RemoveDoc} gotoDocument={this.gotoDocument} groupMappings={this.groupMappings} presElementsMappings={this.presElementsMappings} setChildrenDocs={this.setChildrenDocs} />
             </div>
