@@ -55,8 +55,9 @@ class PresentationViewList extends React.Component<PresListProps> {
     initializeGroupIds = (docList: Doc[]) => {
         docList.forEach((doc: Doc, index: number) => {
             let docGuid = StrCast(doc.presentId, null);
-            if (docGuid === undefined) {
+            if (!this.props.groupMappings.has(docGuid)) {
                 doc.presentId = Utils.GenerateGuid();
+
             }
         });
     }
