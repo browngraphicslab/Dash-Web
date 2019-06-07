@@ -305,6 +305,34 @@ export class MainView extends React.Component {
         this.isSearchVisible = !this.isSearchVisible;
     }
 
+    @action
+    globalKeyHandler = (e: KeyboardEvent) => {
+        if (e.key === "Control" || !e.ctrlKey) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        switch (e.key) {
+            case "ArrowRight":
+                if (this.mainFreeform) {
+                    CollectionDockingView.Instance.AddRightSplit(this.mainFreeform!);
+                }
+                break;
+            case "ArrowLeft":
+                if (this.mainFreeform) {
+                    CollectionDockingView.Instance.CloseRightSplit(this.mainFreeform!);
+                }
+                break;
+            case "o":
+                this.globalDisplayFlags.jumpToVisible = true;
+                break;
+            case "escape":
+                _.mapValues(this.globalDisplayFlags, () => false)
+                break;
+        }
+    }
+
+
     render() {
         return (
             <div id="main-div">
