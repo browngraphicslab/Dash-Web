@@ -130,16 +130,62 @@ export class PresentationView extends React.Component<PresViewProps>  {
     @observable
     collapsed: boolean = false;
     closePresentation = action(() => this.props.Document.width = 0);
-    next = () => {
+    next = async () => {
         const current = NumCast(this.props.Document.selectedDoc);
         // let currentPresId = StrCast(current.presentId);
+        let docAtCurrent = await this.getDocAtIndex(current);
+        if (docAtCurrent === undefined) {
+            return;
+        }
+        let curPresId = StrCast(docAtCurrent.presentId);
+        let nextSelected = current + 1;
+
+        if (this.groupMappings.has(curPresId)) {
+            let currentsArray = this.groupMappings.get(StrCast(docAtCurrent.presentId))!;
+            console.log("It reaches here");
+            console.log("CurArray Len: ", currentsArray.length)
+            //nextSelected = current + currentsArray.length - current - 1;
+            nextSelected = current + currentsArray.length - currentsArray.indexOf(docAtCurrent) - 1;
+            if (nextSelected === current) nextSelected = current + 1;
+        }
+
         // this.groupMappings.get(current.presentId);
-        this.gotoDocument(current + 1);
+        this.gotoDocument(nextSelected);
 
     }
-    back = () => {
+    back = async () => {
         const current = NumCast(this.props.Document.selectedDoc);
-        this.gotoDocument(current - 1);
+        let docAtCurrent = await this.getDocAtIndex(current);
+        if (docAtCurrent === undefined) {
+            return;
+        }
+        let curPresId = StrCast(docAtCurrent.presentId);
+        let prevSelected = current - 1;
+
+        if (this.groupMappings.has(curPresId)) {
+            let currentsArray = this.groupMappings.get(StrCast(docAtCurrent.presentId))!;
+            prevSelected = current - currentsArray.length + (currentsArray.length - currentsArray.indexOf(docAtCurrent));
+            if (prevSelected === current) prevSelected = current - 1;
+
+
+        }
+
+
+        this.gotoDocument(prevSelected);
+    }
+
+    getDocAtIndex = async (index: number) => {
+        const list = FieldValue(Cast(this.props.Document.data, listSpec(Doc)));
+        if (!list) {
+            return undefined;
+        }
+        if (index < 0 || index >= list.length) {
+            return undefined;
+        }
+
+        this.props.Document.selectedDoc = index;
+        const doc = await list[index];
+        return doc;
     }
 
     @action
