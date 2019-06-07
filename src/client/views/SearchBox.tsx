@@ -38,8 +38,12 @@ export interface ToggleBarProps {
     //false = right, true = left
     // status: boolean;
     changeStatus(value: boolean): void;
+    optionOne: string;
+    optionTwo: string;
     //addDocTab(doc: Doc, location: string): void;
 }
+
+//TODO: justify content will align to specific side. Maybe do status passed in and out?
 
 @observer
 export class ToggleBar extends React.Component<ToggleBarProps>{
@@ -67,67 +71,32 @@ export class ToggleBar extends React.Component<ToggleBarProps>{
         }
         let totalWidth = (barwidth - togwidth - 10);
 
-        // this.timeline = anime.timeline({
-        //     autoplay: false,
-        //     loop: false,
-        //     direction: "normal",
-        //     complete:(anim: anime.AnimeInstance) => {
-        //         anim.pause();
-        //         console.log("finished!")
-        //     }
-        // });
-
-        // let test = anime({
-        //     targets: "",
-        //     opacity: 1
-        // })
-
         this.timeline.add({
             targets: this._toggleButton.current,
-            // autoplay: false,
             loop: false,
-            // direction: "normal",
             translateX: totalWidth,
             easing: "easeInOutQuad",
+            duration: 500
         });
     }
     
     @action.bound
     onclick() {
-        console.log("clicked")
         this._status = !this._status;
         this.timeline.play();
         this.timeline.reverse();
-        // if(this._status){
-        //     console.log("playing normally")
-        //     this.timeline.play()
-        // }
-        // else{
-        //     console.log("playing reverse")
-        //     this.timeline.reverse();
-        //     // this.timeline.pause()
-        //     // this.timeline.pause();
-        // }
-
     }
-
-    // @action.bound
-    // toggle = (animation: any, open: boolean) => {
-    //     if(open){
-    //         animation.play();
-    //         if(animation.reversed) {
-    //             animation.reverse();
-    //         }
-    //     } else{
-    //         animation.play();
-
-    //     }
-    // }
 
     render() {
         return (
+            <div>
+            <div className = "toggle-title">
+                <div className = "toggle-option">{this.props.optionOne}</div>
+                <div className = "toggle-option">{this.props.optionTwo}</div>
+            </div>
             <div className="toggle-bar" id="toggle-bar">
                 <div className="toggle-button" id="toggle-button" ref={this._toggleButton} onClick={this.onclick} />
+            </div>
             </div>
         );
     };
@@ -331,7 +300,7 @@ export class SearchBox extends React.Component {
                         <div className="filter-form" id="header">Filter Search Results</div>
                         <div className="filter-form" id="option">
                             <div className="required-words">
-                                <ToggleBar changeStatus={this.handleWordQueryChange} />
+                                <ToggleBar optionOne = {"Include Any Keywords"} optionTwo = {"Include All Keywords"} changeStatus={this.handleWordQueryChange} />
                             </div>
                             <div className="type-of-node">
                                 temp for filtering by a type of node
