@@ -107,6 +107,11 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 e.stopPropagation();
                 return added;
             }
+            else if (de.data instanceof DragManager.AnnotationDragData) {
+                console.log("dropped!");
+                console.log(de.data);
+                return this.props.addDocument(de.data.dropDocument);
+            }
             return false;
         }
 

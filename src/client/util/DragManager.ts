@@ -218,7 +218,7 @@ export namespace DragManager {
         let ys: number[] = [];
 
         const docs: Doc[] =
-            dragData instanceof DocumentDragData ? dragData.draggedDocuments : [];
+            dragData instanceof DocumentDragData ? dragData.draggedDocuments : dragData instanceof AnnotationDragData ? [dragData.dragDocument] : [];
         let dragElements = eles.map(ele => {
             const w = ele.offsetWidth,
                 h = ele.offsetHeight;
