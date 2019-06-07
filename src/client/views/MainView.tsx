@@ -26,13 +26,14 @@ import { PreviewCursor } from './PreviewCursor';
 import { SearchBox } from './SearchBox';
 import { SelectionManager } from '../util/SelectionManager';
 import { FieldResult, Field, Doc, Opt, DocListCast } from '../../new_fields/Doc';
-import { Cast, FieldValue, StrCast } from '../../new_fields/Types';
+import { Cast, FieldValue, StrCast, PromiseValue } from '../../new_fields/Types';
 import { DocServer } from '../DocServer';
 import { listSpec } from '../../new_fields/Schema';
 import { Id } from '../../new_fields/FieldSymbols';
 import { HistoryUtil } from '../util/History';
 import { CollectionBaseView } from './collections/CollectionBaseView';
-
+import { timingSafeEqual } from 'crypto';
+import * as _ from "lodash";
 
 @observer
 export class MainView extends React.Component {
