@@ -45,12 +45,14 @@ export interface ToggleBarProps {
 export class ToggleBar extends React.Component<ToggleBarProps>{
 
     @observable _status: boolean = false;
-    @observable timeline: any;
+    @observable timeline: anime.AnimeTimelineInstance;
     @observable _toggleButton: React.RefObject<HTMLDivElement>;
 
     constructor(props: ToggleBarProps) {
         super(props);
         this._toggleButton = React.createRef();
+        this.timeline = anime.timeline({autoplay: false,
+        direction: "reverse"});
     }
 
     componentDidMount = () => {
@@ -65,48 +67,62 @@ export class ToggleBar extends React.Component<ToggleBarProps>{
         }
         let totalWidth = (barwidth - togwidth - 10);
 
-        this.timeline = anime.timeline({
-            autoplay: false,
-            loop: false,
-            direction: "normal"
-        });
+        // this.timeline = anime.timeline({
+        //     autoplay: false,
+        //     loop: false,
+        //     direction: "normal",
+        //     complete:(anim: anime.AnimeInstance) => {
+        //         anim.pause();
+        //         console.log("finished!")
+        //     }
+        // });
+
+        // let test = anime({
+        //     targets: "",
+        //     opacity: 1
+        // })
 
         this.timeline.add({
             targets: this._toggleButton.current,
+            // autoplay: false,
+            loop: false,
+            // direction: "normal",
             translateX: totalWidth,
             easing: "easeInOutQuad",
         });
     }
-
+    
     @action.bound
     onclick() {
         console.log("clicked")
         this._status = !this._status;
-        if(this._status){
-            console.log("playing normally")
-            this.timeline.play()
-        }
-        else{
-            console.log("playing reverse")
-            this.timeline.play();
-            this.timeline.reverse();
-            this.timeline.pause();
-        }
+        this.timeline.play();
+        this.timeline.reverse();
+        // if(this._status){
+        //     console.log("playing normally")
+        //     this.timeline.play()
+        // }
+        // else{
+        //     console.log("playing reverse")
+        //     this.timeline.reverse();
+        //     // this.timeline.pause()
+        //     // this.timeline.pause();
+        // }
 
     }
 
-    @action.bound
-    toggle = (animation: any, open: boolean) => {
-        if(open){
-            animation.play();
-            if(animation.reversed) {
-                animation.reverse();
-            }
-        } else{
-            animation.play();
+    // @action.bound
+    // toggle = (animation: any, open: boolean) => {
+    //     if(open){
+    //         animation.play();
+    //         if(animation.reversed) {
+    //             animation.reverse();
+    //         }
+    //     } else{
+    //         animation.play();
 
-        }
-    }
+    //     }
+    // }
 
     render() {
         return (
