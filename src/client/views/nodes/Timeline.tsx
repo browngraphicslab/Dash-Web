@@ -165,8 +165,7 @@ export class Timeline extends CollectionSubView(Document) {
                             rightKf = TimeAndPosition(this._keyframes[i][rightMin]);
                         }
                     } else {
-                        const keyf = Position(await singleKf.position);
-                        const dif_X = NumCast(keyf.x);
+                        isFrame = true;
                     }
                 }
             });
@@ -174,11 +173,22 @@ export class Timeline extends CollectionSubView(Document) {
                 this.interpolate(oneDoc, leftKf, rightKf, this._currentBarX);
             }
             if (isFrame) {
-                console.log(isFrame);
-                const keyf = Position(await oneKf[i].position);
-                const dif_X = NumCast(keyf.X);
-                // oneDoc.x = oneKf[i].position.x;
-                // oneDoc.y = oneKf[i].y;
+                if (oneKf[i] !== undefined) {
+                    // console.log(isFrame);
+                    // //@ts-ignore
+                    // oneDoc.x = this._keyframes[i].position.x;
+                    // //@ts-ignore
+                    // oneDoc.y = this._keyframes[i].position.y;
+
+                    //maybe????
+                    let pos: Position = Position(oneDoc);
+                    let timeandpos = new Doc;
+                    const newPos = new Doc;
+                    this._keys.forEach(key => newPos[key] = pos[key]);
+                    timeandpos.position = newPos;
+                    timeandpos.time = this._currentBarX;
+                    this._keyframes[i][this._currentBarX] = timeandpos;
+                }
             }
             isFrame = false;
         });
