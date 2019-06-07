@@ -75,46 +75,44 @@ export class Timeline extends CollectionSubView(Document) {
                 return this._keys.map(key => FieldValue(node[key]));
             }, async data => {
                 if (this._inner.current) {
-                    if (this._data.indexOf(node) === -1) {
-                        const kf = new List();
-                        this._data.push(node);
-                        let index = this._data.indexOf(node);
+                    if (!this._barMoved){
+                        console.log("running"); 
+                        if (this._data.indexOf(node) === -1) {
+                            
+                            const kf = new List();
+                            this._data.push(node);
+                            let index = this._data.indexOf(node);
 
-                        let timeandpos = this.setTimeAndPos(node);
-
-                        let info: Doc[] = new Array(1000); //////////////////////////////////////////////////// do something  
-                        info[this._currentBarX] = timeandpos;
-
-                        this._keyframes[index] = info;
-
-                        //graphcial yellow bar
-                        let bar: HTMLDivElement = this.createBar(5, this._currentBarX, "yellow");
-                        this._inner.current.appendChild(bar);
-
-                        this._keys.forEach((key, index) => {
-
-                        });
-                    } else {
-                        let index = this._data.indexOf(node);
-                        if (this._keyframes[index][this._currentBarX] !== undefined) { //when node is in data, but doesn't have data for this specific time. 
                             let timeandpos = this.setTimeAndPos(node);
+
+                            let info: Doc[] = new Array(1000); //////////////////////////////////////////////////// do something  
+                            info[this._currentBarX] = timeandpos;
+
+                            this._keyframes[index] = info;
+
+                            //graphcial yellow bar
                             let bar: HTMLDivElement = this.createBar(5, this._currentBarX, "yellow");
                             this._inner.current.appendChild(bar);
+                            this._keys.forEach((key, index) => {
 
-                            this._keyframes[index][this._currentBarX] = timeandpos;
-                        } else { //when node is in data, and has data for this specific time
-                            let timeandpos = this.setTimeAndPos(node);
-                            this._keyframes[index][this._currentBarX] = timeandpos;
+                            });
+                        } else {
+                            let index = this._data.indexOf(node);
+                            if (this._keyframes[index][this._currentBarX] !== undefined) { //when node is in data, but doesn't have data for this specific time. 
+                                let timeandpos = this.setTimeAndPos(node);
+                                let bar: HTMLDivElement = this.createBar(5, this._currentBarX, "yellow");
+                                this._inner.current.appendChild(bar);
+                                this._keyframes[index][this._currentBarX] = timeandpos;
+                            } else { //when node is in data, and has data for this specific time
+                                let timeandpos = this.setTimeAndPos(node);
+                                this._keyframes[index][this._currentBarX] = timeandpos;
+                            }
                         }
                     }
+                    
                 }
-                // console.log(this._keyframes[this._data.indexOf(node)]); 
-
             });
         };
-
-
-
 
         observe(childrenList as IObservableArray<Doc>, change => {
             if (change.type === "update") {
@@ -171,53 +169,13 @@ export class Timeline extends CollectionSubView(Document) {
             if (leftKf && rightKf) {
                 this.interpolate(oneDoc, leftKf, rightKf, this._currentBarX);
             }
-        });
-
-
-
-        // for (let i in docs) {
-        //     let oneDoc = docs[i];
-        //     //let oneKf: TimeAndPosition[] = list[i].map(TimeAndPosition);
-        //     let oneKf = this._keyframes[i]
-        //     let leftKf!: TimeAndPosition;
-        //     let rightKf!: TimeAndPosition;
-        //     for (let j in oneKf) {
-        //         let singleKf: TimeAndPosition = oneKf[j];
-        //         let leftMin: Number = Infinity;
-        //         let rightMin: Number = Infinity;
-        //         if (singleKf.time !== time) { //choose closest time neighbors
-        //             for (let k in oneKf) {
-        //                 if (oneKf[k].time < time) {
-        //                     const diff: Number = Math.abs(oneKf[k].time - time);
-        //                     if (diff < leftMin) {
-        //                         leftMin = diff;
-        //                         leftKf = oneKf[k];
-        //                     }
-        //                 } else {
-        //                     const diff: Number = Math.abs(oneKf[k].time - time);
-        //                     if (diff < rightMin) {
-        //                         rightMin = diff;
-        //                         rightKf = oneKf[k];
-        //                     }
-        //                 }
-        //             }
-        //         } else {
-        //             isFrame = true;
-        //         }
-        //     }
-        //     this.interpolate(oneDoc, leftKf, rightKf, time);
-        //     if (isFrame) {
-        //         oneDoc.X = oneKf[i].X;
-        //         oneDoc.Y = oneKf[i].Y;
-        //     }
-        //     isFrame = false;
-        // }
+        }); 
     }
 
-    calcMinLeft = (kfList: Doc[], time: Number): Number => {
-        let leftMin: Number = Infinity;
+    calcMinLeft = (kfList: Doc[], time: number): number => {
+        let leftMin: number = Infinity;
         kfList.forEach((kf) => {
-            const diff: Number = Math.abs(kf.time! - time);
+            const diff:number = Math.abs(NumCast(kf.time) - time);
             if (diff < leftMin) {
                 leftMin = diff;
             }
@@ -225,10 +183,10 @@ export class Timeline extends CollectionSubView(Document) {
         return leftMin;
     }
 
-    calcMinRight = (kfList: Doc[]): Number => {
-        let rightMin: Number = Infinity;
+    calcMinRight = (kfList: Doc[], time:number): number => {
+        let rightMin: number = Infinity;
         kfList.forEach((kf) => {
-            const diff: Number = Math.abs(kf.time! - time);
+            const diff: number = Math.abs(NumCast(kf.time!) - time);
             if (diff < rightMin) {
                 rightMin = diff;
             }
@@ -258,22 +216,11 @@ export class Timeline extends CollectionSubView(Document) {
     }
 
 
-    /**
-     * TEMPORARY
-     */
-    @action
-    onInterpolate = (e: React.MouseEvent) => {
-        this.timeChange(this._currentBarX);
-    }
-
-    @action
-    displayKeyFrames = (dv: DocumentView) => {
-        dv.props.Document;
-    }
-
+    private _barMoved:boolean = false; 
     @action
     onInnerPointerUp = (e: React.PointerEvent) => {
         if (this._inner.current) {
+            this._barMoved = false; 
             this._inner.current.removeEventListener("pointermove", this.onInnerPointerMove);
         }
     }
@@ -284,6 +231,7 @@ export class Timeline extends CollectionSubView(Document) {
         e.stopPropagation();
         if (this._isRecording) {
             if (this._inner.current) {
+                this._barMoved = true; 
                 let mouse = e.nativeEvent;
                 let offsetX = Math.round(mouse.offsetX);
                 this._currentBarX = offsetX;
@@ -299,6 +247,7 @@ export class Timeline extends CollectionSubView(Document) {
     onInnerPointerMove = (e: PointerEvent) => {
         e.preventDefault();
         e.stopPropagation();
+        this._barMoved = true; 
         let offsetX = Math.round(e.offsetX);
         this._currentBarX = offsetX;
         this._currentBar.style.transform = `translate(${offsetX}px)`; //styling should not have to be done this way...maybe done through react??
@@ -348,11 +297,7 @@ export class Timeline extends CollectionSubView(Document) {
                 <div className="timeline-container">
                     <div className="timeline">
                         <div className="inner" ref={this._inner} onPointerDown={this.onInnerPointerDown} onPointerUp={this.onInnerPointerUp}>
-                            {
-                                SelectionManager.SelectedDocuments().map((dv) => {
-                                    this.displayKeyFrames(dv);
-                                })
-                            }
+                            
                         </div>
                     </div>
                     <button onClick={this.onRecord}>Record</button>
