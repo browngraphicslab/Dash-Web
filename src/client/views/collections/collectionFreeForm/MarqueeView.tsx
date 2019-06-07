@@ -45,12 +45,14 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     _commandExecuted = false;
 
     @action
-    cleanupInteractions = (all: boolean = false) => {
+    cleanupInteractions = (all: boolean = false, rem_keydown: boolean = true) => {
         if (all) {
             document.removeEventListener("pointerup", this.onPointerUp, true);
             document.removeEventListener("pointermove", this.onPointerMove, true);
         }
-        document.removeEventListener("keydown", this.marqueeCommand, true);
+        if (rem_keydown) {
+            document.removeEventListener("keydown", this.marqueeCommand, true);
+        }
         this._visible = false;
     }
 
@@ -187,7 +189,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             }
             this.props.selectDocuments(mselect.length ? mselect : [this.props.container.props.Document]);
         }
-        this.cleanupInteractions(true);
+        this.cleanupInteractions(true, false);
         if (e.altKey) {
             e.preventDefault();
         }
