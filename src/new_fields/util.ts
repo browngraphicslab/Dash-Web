@@ -6,7 +6,7 @@ import { FieldValue } from "./Types";
 import { RefField } from "./RefField";
 import { ObjectField } from "./ObjectField";
 import { action } from "mobx";
-import { Parent, OnUpdate, Update, Id } from "./FieldSymbols";
+import { Parent, OnUpdate, Update, Id, SelfProxy } from "./FieldSymbols";
 import { ComputedField } from "../fields/ScriptField";
 
 export const setter = action(function (target: any, prop: string | symbol | number, value: any, receiver: any): boolean {
@@ -18,6 +18,7 @@ export const setter = action(function (target: any, prop: string | symbol | numb
         target[prop] = value;
         return true;
     }
+    value = value[SelfProxy] || value;
     const curValue = target.__fields[prop];
     if (curValue === value || (curValue instanceof ProxyField && value instanceof RefField && curValue.fieldId === value[Id])) {
         // TODO This kind of checks correctly in the case that curValue is a ProxyField and value is a RefField, but technically
@@ -28,11 +29,10 @@ export const setter = action(function (target: any, prop: string | symbol | numb
         value = new ProxyField(value);
     }
     if (value instanceof ObjectField) {
-        //TODO Instead of target, maybe use target[Self]
-        if (value[Parent] && value[Parent] !== target) {
+        if (value[Parent] && value[Parent] !== receiver) {
             throw new Error("Can't put the same object in multiple documents at the same time");
         }
-        value[Parent] = target;
+        value[Parent] = receiver;
         value[OnUpdate] = updateFunction(target, prop, value, receiver);
     }
     if (curValue instanceof ObjectField) {
