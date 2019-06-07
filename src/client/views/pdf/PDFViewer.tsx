@@ -2,13 +2,19 @@ import { observer } from "mobx-react";
 import React = require("react");
 import { observable, action, runInAction, computed, IReactionDisposer, reaction } from "mobx";
 import * as Pdfjs from "pdfjs-dist";
-import { Opt } from "../../../new_fields/Doc";
+import { Opt, Doc, HeightSym, WidthSym, Field, DocListCast } from "../../../new_fields/Doc";
 import "./PDFViewer.scss";
 import "pdfjs-dist/web/pdf_viewer.css";
 import { PDFBox } from "../nodes/PDFBox";
 import { PDFAnnotationLayer } from "./PDFAnnotationLayer";
 import { TSMethodSignature } from "babel-types";
 import { checkPropTypes } from "prop-types";
+import { DragManager } from "../../util/DragManager";
+import { Docs } from "../../documents/Documents";
+import { List } from "../../../new_fields/List";
+import { Cast } from "../../../new_fields/Types";
+import { emptyFunction } from "../../../Utils";
+const Curly = require("./curly.png");
 
 interface IPDFViewerProps {
     url: string;
@@ -159,6 +165,7 @@ class Viewer extends React.Component<IViewerProps> {
                     key={`${this.props.pdf ? this.props.pdf.fingerprint + `-page${i + 1}` : "undefined"}`}
                     name={`${this.props.pdf ? this.props.pdf.fingerprint + `-page${i + 1}` : "undefined"}`}
                     pageLoaded={this.pageLoaded}
+                    parent={this.props.parent}
                     {...this.props} />
             ));
             let arr = Array.from(Array(numPages).keys()).map(i => false);
@@ -194,6 +201,7 @@ class Viewer extends React.Component<IViewerProps> {
                         key={`${this.props.pdf ? this.props.pdf.fingerprint + `-page${i + 1}` : "undefined"}`}
                         name={`${this.props.pdf ? this.props.pdf.fingerprint + `-page${i + 1}` : "undefined"}`}
                         pageLoaded={this.pageLoaded}
+                        parent={this.props.parent}
                         {...this.props} />
                 );
                 this._isPage[i] = true;
@@ -262,6 +270,7 @@ interface IPageProps {
     numPages: number;
     page: number;
     pageLoaded: (index: number, page: Pdfjs.PDFPageViewport) => void;
+    parent: PDFBox;
 }
 
 @observer
@@ -275,11 +284,13 @@ class Page extends React.Component<IPageProps> {
     @observable private _marqueeY: number = 0;
     @observable private _marqueeWidth: number = 0;
     @observable private _marqueeHeight: number = 0;
+    @observable private _rotate: string = "";
 
     private _canvas: React.RefObject<HTMLCanvasElement>;
     private _textLayer: React.RefObject<HTMLDivElement>;
     private _annotationLayer: React.RefObject<HTMLDivElement>;
     private _marquee: React.RefObject<HTMLDivElement>;
+    private _curly: React.RefObject<HTMLImageElement>;
     private _currentAnnotations: HTMLDivElement[] = [];
     private _marqueeing: boolean = false;
 
@@ -289,6 +300,7 @@ class Page extends React.Component<IPageProps> {
         this._textLayer = React.createRef();
         this._annotationLayer = React.createRef();
         this._marquee = React.createRef();
+        this._curly = React.createRef();
     }
 
     componentDidMount() {
@@ -338,7 +350,7 @@ class Page extends React.Component<IPageProps> {
             this.props.pageLoaded(this._currPage, viewport);
             if (ctx) {
                 // renders the page onto the canvas context
-                page.render({ canvasContext: ctx, viewport: viewport })
+                page.render({ canvasContext: ctx, viewport: viewport });
                 // renders text onto the text container
                 page.getTextContent().then((res: Pdfjs.TextContent) => {
                     //@ts-ignore
@@ -354,9 +366,56 @@ class Page extends React.Component<IPageProps> {
         }
     }
 
+    makeAnnotationDocuments = (targetDoc: Doc): Doc[] => {
+        let annoDocs: Doc[] = [];
+        for (let anno of this._currentAnnotations) {
+            let annoDoc = new Doc();
+            annoDoc.x = anno.offsetLeft;
+            annoDoc.y = anno.offsetTop;
+            annoDoc.height = anno.offsetHeight;
+            annoDoc.width = anno.offsetWidth;
+            annoDoc.target = targetDoc;
+            annoDocs.push(annoDoc);
+        }
+        return annoDocs;
+    }
+
+    startDrag = (e: PointerEvent) => {
+        console.log("start drag");
+        e.preventDefault();
+        document.removeEventListener("pointermove", this.startDrag);
+        document.removeEventListener("pointerup", this.endDrag);
+        let thisDoc = this.props.parent.Document;
+        let targetDoc = Docs.TextDocument();
+        let annotationDocs = this.makeAnnotationDocuments(targetDoc);
+        targetDoc.annotations = new List(annotationDocs);
+        let dragData = new DragManager.AnnotationDragData(thisDoc, annotationDocs, targetDoc);
+        DragManager.StartAnnotationDrag(this._currentAnnotations, dragData, e.pageX, e.pageY, {
+            handlers: {
+                dragComplete: action(emptyFunction),
+            },
+            hideSource: false
+        });
+        e.stopPropagation();
+    }
+
+    endDrag = (e: PointerEvent): void => {
+        document.removeEventListener("pointermove", this.startDrag);
+        document.removeEventListener("pointerup", this.endDrag);
+        e.stopPropagation();
+    }
+
     @action
     onPointerDown = (e: React.PointerEvent) => {
-        if (e.button === 0) {
+        if (e.shiftKey && e.button === 0) {
+            e.stopPropagation();
+
+            document.removeEventListener("pointermove", this.startDrag);
+            document.addEventListener("pointermove", this.startDrag);
+            document.removeEventListener("pointerup", this.endDrag);
+            document.addEventListener("pointerup", this.endDrag);
+        }
+        else if (e.button === 0) {
             let target: any = e.target;
             if (target && target.parentElement === this._textLayer.current) {
                 e.stopPropagation();
@@ -374,7 +433,9 @@ class Page extends React.Component<IPageProps> {
                 this._marqueeing = true;
                 if (this._marquee.current) this._marquee.current.style.opacity = "0.2";
             }
+            document.removeEventListener("pointermove", this.onPointerMove);
             document.addEventListener("pointermove", this.onPointerMove);
+            document.removeEventListener("pointerup", this.onPointerUp);
             document.addEventListener("pointerup", this.onPointerUp);
             if (!e.ctrlKey) {
                 for (let anno of this._currentAnnotations) {
@@ -393,8 +454,30 @@ class Page extends React.Component<IPageProps> {
                 let boundingRect = current.getBoundingClientRect();
                 this._marqueeWidth = (e.clientX - boundingRect.left) * (current.offsetWidth / boundingRect.width) - this._marqueeX;
                 this._marqueeHeight = (e.clientY - boundingRect.top) * (current.offsetHeight / boundingRect.height) - this._marqueeY;
-                console.log(this._marqueeWidth);
-                console.log(this._marqueeHeight);
+                if (this._marquee.current && this._curly.current) {
+                    if (this._marqueeWidth > 100 && this._marqueeHeight > 100) {
+                        this._marquee.current.style.background = "red";
+                        this._curly.current.style.opacity = "0";
+                    }
+                    else {
+                        this._marquee.current.style.background = "transparent";
+                        this._curly.current.style.opacity = "1";
+                    }
+
+                    let ratio = this._marqueeWidth / this._marqueeHeight;
+                    if (ratio > 1.5) {
+                        // vertical
+                        this._rotate = "rotate(90deg) scale(1, 2)";
+                    }
+                    else if (ratio < 0.5) {
+                        // horizontal
+                        this._rotate = "scale(2, 1)";
+                    }
+                    else {
+                        // diagonal
+                        this._rotate = "rotate(45deg) scale(1.5, 1.5)";
+                    }
+                }
             }
             e.stopPropagation();
             e.preventDefault();
@@ -472,6 +555,10 @@ class Page extends React.Component<IPageProps> {
         console.log("annotation");
     }
 
+    // imgVisible = () => {
+    //     return this._marqueeWidth < 100 && this._marqueeHeight < 100 ? { opacity: "1" } : { opacity: "0" }
+    // }
+
     render() {
         return (
             <div onPointerDown={this.onPointerDown} className={this.props.name} style={{ "width": this._width, "height": this._height }}>
@@ -479,7 +566,10 @@ class Page extends React.Component<IPageProps> {
                     <canvas ref={this._canvas} />
                 </div>
                 <div className="pdfAnnotationLayer-cont" ref={this._annotationLayer} style={{ width: "100%", height: "100%", position: "relative", top: "-100%" }}>
-                    <div className="pdfViewer-annotationBox" ref={this._marquee} style={{ left: `${this._marqueeX}px`, top: `${this._marqueeY}px`, width: `${this._marqueeWidth}px`, height: `${this._marqueeHeight}px` }}></div>
+                    <div className="pdfViewer-annotationBox" ref={this._marquee}
+                        style={{ left: `${this._marqueeX}px`, top: `${this._marqueeY}px`, width: `${this._marqueeWidth}px`, height: `${this._marqueeHeight}px`, background: "transparent" }}>
+                        <img ref={this._curly} src="https://static.thenounproject.com/png/331760-200.png" style={{ width: "100%", height: "100%", transform: `${this._rotate}` }} />
+                    </div>
                 </div>
                 <div className="textlayer" ref={this._textLayer} style={{ "position": "relative", "top": `-${2 * this._height}px`, "height": `${this._height}px` }} />
             </div>
