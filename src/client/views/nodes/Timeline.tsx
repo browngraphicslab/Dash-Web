@@ -90,7 +90,7 @@ export class Timeline extends CollectionSubView(Document) {
 
                             this._keyframes[index] = info;
 
-                            //graphcial yellow bar
+                            //graphical yellow bar
                             let bar: HTMLDivElement = this.createBar(5, this._currentBarX, "yellow");
                             this._inner.current.appendChild(bar);
                             this._keys.forEach((key, index) => {
@@ -147,7 +147,7 @@ export class Timeline extends CollectionSubView(Document) {
         const list = await Promise.all(kfList.map(l => Promise.all(l)));
         let isFrame: boolean = false;
 
-        docs.forEach((oneDoc, i) => {
+        docs.forEach(async (oneDoc, i) => {
             let leftKf!: TimeAndPosition;
             let rightKf!: TimeAndPosition;
             let oneKf = this._keyframes[i];
@@ -156,39 +156,59 @@ export class Timeline extends CollectionSubView(Document) {
                     let leftMin = Infinity;
                     let rightMin = Infinity;
                     if (singleKf.time !== time) { //choose closest time neighbors
-                        if (singleKf.time! < time) {
-                            leftMin = NumCast(singleKf.time);
+                        leftMin = this.calcMinLeft(oneKf, time);
+                        if (leftMin !== Infinity) {
                             leftKf = TimeAndPosition(this._keyframes[i][leftMin]);
-                        } else {
-                            rightMin = NumCast(singleKf.time);
+                        }
+                        rightMin = this.calcMinRight(oneKf, time);
+                        if (rightMin !== Infinity) {
                             rightKf = TimeAndPosition(this._keyframes[i][rightMin]);
                         }
+                    } else {
+                        const keyf = Position(await singleKf.position);
+                        const dif_X = NumCast(keyf.X);
                     }
                 }
             });
             if (leftKf && rightKf) {
                 this.interpolate(oneDoc, leftKf, rightKf, this._currentBarX);
             }
+            if (isFrame) {
+                console.log(isFrame);
+                const keyf = Position(await oneKf[i].position);
+                const dif_X = NumCast(keyf.X);
+                // oneDoc.x = oneKf[i].position.x;
+                // oneDoc.y = oneKf[i].y;
+            }
+            isFrame = false;
         });
     }
 
-    calcMinLeft = (kfList: Doc[], time: number): number => {
+    calcMinLeft = (kfList: Doc[], time: number): number => { //returns the time of the closet keyframe to the left
+        let counter: number = Infinity;
         let leftMin: number = Infinity;
         kfList.forEach((kf) => {
-            const diff: number = Math.abs(NumCast(kf.time) - time);
-            if (diff < leftMin) {
-                leftMin = diff;
+            if (kf !== undefined && NumCast(kf.time) < time) { //ERROR: "cannot read property time of undefined"
+                let diff: number = Math.abs(NumCast(kf.time) - time);
+                if (diff < counter) {
+                    counter = diff;
+                    leftMin = NumCast(kf.time);
+                }
             }
         });
         return leftMin;
     }
 
-    calcMinRight = (kfList: Doc[], time: number): number => {
+    calcMinRight = (kfList: Doc[], time: number): number => { //returns the time of the closest keyframe to the right 
+        let counter: number = Infinity;
         let rightMin: number = Infinity;
         kfList.forEach((kf) => {
-            const diff: number = Math.abs(NumCast(kf.time!) - time);
-            if (diff < rightMin) {
-                rightMin = diff;
+            if (kf !== undefined && NumCast(kf.time) > time) {
+                let diff: number = Math.abs(NumCast(kf.time!) - time);
+                if (diff < counter) {
+                    counter = diff;
+                    rightMin = NumCast(kf.time);
+                }
             }
         });
         return rightMin;
