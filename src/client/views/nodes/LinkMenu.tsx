@@ -8,7 +8,9 @@ import React = require("react");
 import { Doc, DocListCast } from "../../../new_fields/Doc";
 import { Cast, FieldValue, StrCast } from "../../../new_fields/Types";
 import { Id } from "../../../new_fields/FieldSymbols";
-import { LinkManager } from "./LinkManager";
+import { LinkManager } from "../../util/LinkManager";
+import { number } from "prop-types";
+import { listSpec } from "../../../new_fields/Schema";
 
 interface Props {
     docView: DocumentView;
@@ -29,23 +31,20 @@ export class LinkMenu extends React.Component<Props> {
     //     });
     // }
 
-    renderLinkGroup(links: Doc[]) {
-        console.log("render link group");
+    renderLinkGroupItems(links: Doc[]) {
         let source = this.props.docView.Document;
-        console.log("num links", links.length, typeof links);
         return links.map(link => {
-            let destination = (link["linkedTo"] === source) ? link["linkedFrom"] : link["linkedTo"];
+            // let destination = (link["linkedTo"] === source) ? link["linkedFrom"] : link["linkedTo"];
+            let destination = LinkManager.Instance.findOppositeAnchor(link, source);
             let doc = FieldValue(Cast(destination, Doc));
             if (doc) {
                 console.log(doc[Id] + source[Id], "source is", source[Id]);
-                return <LinkBox key={doc[Id] + source[Id]} linkDoc={link} linkName={StrCast(link.title)} pairedDoc={doc} showEditor={action(() => this._editingLink = link)} type={""} />;
+                return <LinkBox key={doc[Id] + source[Id]} linkDoc={link} linkName={"link"} pairedDoc={doc} showEditor={action(() => this._editingLink = link)} type={""} />;
             }
         });
     }
 
-    renderLinkItems(links: Map<string, Array<Doc>>) {
-        console.log("render link items");
-
+    renderLinkItems = (links: Map<string, Array<Doc>>): Array<JSX.Element> => {
         let linkItems: Array<JSX.Element> = [];
 
         links.forEach((links, group) => {
@@ -54,7 +53,7 @@ export class LinkMenu extends React.Component<Props> {
                 <div key={group} className="link-menu-group">
                     <p className="link-menu-group-name">{group}:</p>
                     <div className="link-menu-group-wrapper">
-                        {this.renderLinkGroup(links)}
+                        {this.renderLinkGroupItems(links)}
                     </div>
                 </div>
             )
@@ -80,8 +79,20 @@ export class LinkMenu extends React.Component<Props> {
                 </div>
             );
         } else {
+            let counter = 0;
+            let groups = new Map<number, Doc>();
+            let groupList = (Doc.AreProtosEqual(this.props.docView.props.Document, Cast(this._editingLink.anchor1, Doc, new Doc))) ?
+                Cast(this._editingLink.anchor1Groups, listSpec(Doc), []) : Cast(this._editingLink.anchor2Groups, listSpec(Doc), []);
+            groupList.forEach(group => {
+                if (group instanceof Doc) {
+                    console.log(counter);
+                    groups.set(counter, group);
+                    counter++;
+                }
+            })
+
             return (
-                <LinkEditor linkDoc={this._editingLink} showLinks={action(() => this._editingLink = undefined)}></LinkEditor>
+                <LinkEditor groups={groups} sourceDoc={this.props.docView.props.Document} linkDoc={this._editingLink} showLinks={action(() => this._editingLink = undefined)}></LinkEditor>
             );
         }
 

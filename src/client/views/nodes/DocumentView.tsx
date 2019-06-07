@@ -52,7 +52,7 @@ library.add(faDesktop);
 const linkSchema = createSchema({
     title: "string",
     linkDescription: "string",
-    linkTags: listSpec("string"),
+    linkTags: "string",
     linkedTo: Doc,
     linkedFrom: Doc
 });

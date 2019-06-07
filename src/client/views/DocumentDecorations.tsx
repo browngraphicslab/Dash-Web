@@ -28,7 +28,7 @@ import { CollectionView } from "./collections/CollectionView";
 import { DocumentManager } from "../util/DocumentManager";
 import { FormattedTextBox } from "./nodes/FormattedTextBox";
 import { FieldView } from "./nodes/FieldView";
-import { LinkManager } from "./nodes/LinkManager";
+import { LinkManager } from "../util/LinkManager";
 
 library.add(faLink);
 

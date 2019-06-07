@@ -35,7 +35,7 @@ import { dropActionType } from "../util/DragManager";
 import { DateField } from "../../new_fields/DateField";
 import { UndoManager } from "../util/UndoManager";
 import { RouteStore } from "../../server/RouteStore";
-import { LinkManager } from "../views/nodes/LinkManager";
+import { LinkManager } from "../util/LinkManager";
 var requestImageSize = require('request-image-size');
 var path = require('path');
 
@@ -69,21 +69,45 @@ export interface DocumentOptions {
 }
 const delegateKeys = ["x", "y", "width", "height", "panX", "panY"];
 
+// export interface LinkData {
+//     anchor1: Doc;
+//     anchor1Page: number;
+//     anchor1Tags: Array<{ tag: string, name: string, description: string }>;
+//     anchor2: Doc;
+//     anchor2Page: number;
+//     anchor2Tags: Array<{ tag: string, name: string, description: string }>;
+// }
+
+// export interface TagData {
+//     tag: string;
+//     name: string;
+//     description: string;
+// }
+
 export namespace DocUtils {
     export function MakeLink(source: Doc, target: Doc) {
         // let protoSrc = source.proto ? source.proto : source;
         // let protoTarg = target.proto ? target.proto : target;
         UndoManager.RunInBatch(() => {
+            let groupDoc = Docs.TextDocument();
+            groupDoc.proto!.type = "*";
+
             let linkDoc = Docs.TextDocument({ width: 100, height: 30, borderRounding: -1 });
             //let linkDoc = new Doc;
-            linkDoc.proto!.title = source.proto!.title + " and " + target.proto!.title;
-            linkDoc.proto!.linkDescription = "";
-            linkDoc.proto!.linkTags = "Default";
+            // linkDoc.proto!.title = source.proto!.title + " and " + target.proto!.title;
+            // linkDoc.proto!.linkDescription = "";
+            linkDoc.proto!.anchor1 = source;
+            linkDoc.proto!.anchor1Page = source.curPage;
+            linkDoc.proto!.anchor1Groups = new List<Doc>([groupDoc]);
 
-            linkDoc.proto!.linkedTo = target;
-            linkDoc.proto!.linkedToPage = target.curPage;
-            linkDoc.proto!.linkedFrom = source;
-            linkDoc.proto!.linkedFromPage = source.curPage;
+            linkDoc.proto!.anchor2 = target;
+            linkDoc.proto!.anchor2Page = target.curPage;
+            linkDoc.proto!.anchor2Groups = new List<Doc>([groupDoc]);
+
+            // linkDoc.proto!.linkedTo = target;
+            // linkDoc.proto!.linkedToPage = target.curPage;
+            // linkDoc.proto!.linkedFrom = source;
+            // linkDoc.proto!.linkedFromPage = source.curPage;
 
             // let linkedFrom = Cast(protoTarg.linkedFromDocs, listSpec(Doc));
             // if (!linkedFrom) {

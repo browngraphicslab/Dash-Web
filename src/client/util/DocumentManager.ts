@@ -9,7 +9,7 @@ import { CollectionView } from '../views/collections/CollectionView';
 import { CollectionPDFView } from '../views/collections/CollectionPDFView';
 import { CollectionVideoView } from '../views/collections/CollectionVideoView';
 import { Id } from '../../new_fields/FieldSymbols';
-import { LinkManager } from '../views/nodes/LinkManager';
+import { LinkManager } from './LinkManager';
 
 
 export class DocumentManager {
@@ -91,7 +91,8 @@ export class DocumentManager {
             if (linksList && linksList.length) {
                 pairs.push(...linksList.reduce((pairs, link) => {
                     if (link) {
-                        let destination = (link["linkedTo"] === dv.props.Document) ? link["linkedFrom"] : link["linkedTo"];
+                        // let destination = (link["linkedTo"] === dv.props.Document) ? link["linkedFrom"] : link["linkedTo"];
+                        let destination = LinkManager.Instance.findOppositeAnchor(link, dv.props.Document);
                         let linkToDoc = FieldValue(Cast(destination, Doc));
                         // let linkToDoc = FieldValue(Cast(link.linkedTo, Doc));
                         if (linkToDoc) {
