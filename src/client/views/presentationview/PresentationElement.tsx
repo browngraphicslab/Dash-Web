@@ -69,18 +69,14 @@ export default class PresentationElement extends React.Component<PresentationEle
                             }
                             doc.presentId = aboveGuid;
                         });
-                        console.log("CAlled first one");
                         p.groupMappings.delete(docGuid);
                     } else {
                         if (!aboveArray.includes(document)) {
                             aboveArray.push(document);
-                            console.log("CAlled this one");
-                            console.log("Doc: ", document);
 
                         }
 
                     }
-                    console.log("AboveArray Size: ", aboveArray.length);
                 } else {
                     let newAboveArray: Doc[] = [];
                     newAboveArray.push(p.allListElements[index - 1]);
@@ -96,9 +92,6 @@ export default class PresentationElement extends React.Component<PresentationEle
 
                     }
                     p.groupMappings.set(aboveGuid, newAboveArray);
-                    console.log("NewABove array size: ", newAboveArray.length);
-
-
 
                 }
                 document.presentId = aboveGuid;

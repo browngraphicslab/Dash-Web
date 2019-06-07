@@ -37,27 +37,6 @@ interface PresListProps extends PresViewProps {
  */
 class PresentationViewList extends React.Component<PresListProps> {
 
-
-    // onGroupClick = (document: Doc, index: number, buttonStatus: boolean[]) => {
-    //     if (buttonStatus[5]) {
-    //         buttonStatus[5] = false;
-    //         if (index >= 1) {
-    //             if (this.groupedMembers[index].length >= 0) {
-    //                 this.groupedMembers[index].forEach((doc: Doc) => this.groupedMembers[index - 1].slice(this.groupedMembers[index - 1].indexOf(doc), 1));
-    //             }
-    //         }
-    //     } else {
-    //         buttonStatus[5] = true;
-    //         console.log("reached!! ", buttonStatus[5]);
-    //         if (index >= 1) {
-    //             if (this.groupedMembers[index].length >= 0) {
-    //                 this.groupedMembers[index].forEach((doc: Doc) => this.groupedMembers[index - 1].push(doc));
-    //             }
-    //             this.groupedMembers[index - 1].push(document);
-    //         }
-    //     }
-    // }
-
     @action
     initializeGroupIds = (docList: Doc[]) => {
         docList.forEach((doc: Doc, index: number) => {
@@ -68,50 +47,6 @@ class PresentationViewList extends React.Component<PresListProps> {
         });
     }
 
-    // /**
-    //  * Renders a single child document. It will just append a list element.
-    //  * @param document The document to render.
-    //  */
-    // renderChild = (document: Doc, index: number) => {
-    //     let title = document.title;
-
-    //     //to get currently selected presentation doc
-    //     let selected = NumCast(this.props.Document.selectedDoc, 0);
-
-    //     let className = "presentationView-item";
-    //     if (selected === index) {
-    //         //this doc is selected
-    //         className += " presentationView-selected";
-    //     }
-    //     let selectedButtons: boolean[] = new Array(6);
-    //     let onEnter = (e: React.PointerEvent) => { document.libraryBrush = true; }
-    //     let onLeave = (e: React.PointerEvent) => { document.libraryBrush = false; }
-    //     return (
-    //         <div className={className} key={document[Id] + index}
-    //             onPointerEnter={onEnter} onPointerLeave={onLeave}
-    //             style={{
-    //                 outlineColor: "maroon",
-    //                 outlineStyle: "dashed",
-    //                 outlineWidth: BoolCast(document.libraryBrush, false) || BoolCast(document.protoBrush, false) ? `1px` : "0px",
-    //             }}
-    //             onClick={e => { this.props.gotoDocument(index); e.stopPropagation(); }}>
-    //             <strong className="presentationView-name">
-    //                 {`${index + 1}. ${title}`}
-    //             </strong>
-    //             <button className="presentation-icon" onClick={e => { this.props.deleteDocument(index); e.stopPropagation(); }}>X</button>
-    //             <br></br>
-    //             <button className={selectedButtons[0] ? "presentation-interaction" : "presentation-interaction-selected"}>A</button>
-    //             <button className={selectedButtons[1] ? "presentation-interaction" : "presentation-interaction-selected"}>B</button>
-    //             <button className={selectedButtons[2] ? "presentation-interaction" : "presentation-interaction-selected"}>C</button>
-    //             <button className={selectedButtons[3] ? "presentation-interaction" : "presentation-interaction-selected"}>D</button>
-    //             <button className={selectedButtons[4] ? "presentation-interaction" : "presentation-interaction-selected"}>E</button>
-    //             <button className={selectedButtons[5] ? "presentation-interaction" : "presentation-interaction-selected"} onClick={() => this.onGroupClick(document, index, selectedButtons)}>F</button>
-
-    //         </div>
-    //     );
-
-    // }
-
     render() {
         const children = DocListCast(this.props.Document.data);
         this.initializeGroupIds(children);
@@ -119,7 +54,7 @@ class PresentationViewList extends React.Component<PresListProps> {
         return (
 
             <div className="presentationView-listCont">
-                {children.map((doc: Doc, index: number) => <PresentationElement ref={(e) => this.props.presElementsMappings.set(doc, e!)} key={index} mainDocument={this.props.Document} document={doc} index={index} deleteDocument={this.props.deleteDocument} gotoDocument={this.props.gotoDocument} groupMappings={this.props.groupMappings} allListElements={children} />)}
+                {children.map((doc: Doc, index: number) => <PresentationElement ref={(e) => { if (e) { this.props.presElementsMappings.set(doc, e); } }} key={index} mainDocument={this.props.Document} document={doc} index={index} deleteDocument={this.props.deleteDocument} gotoDocument={this.props.gotoDocument} groupMappings={this.props.groupMappings} allListElements={children} />)}
             </div>
         );
     }
@@ -141,7 +76,6 @@ export class PresentationView extends React.Component<PresViewProps>  {
     closePresentation = action(() => this.props.Document.width = 0);
     next = async () => {
         const current = NumCast(this.props.Document.selectedDoc);
-        // let currentPresId = StrCast(current.presentId);
         let docAtCurrent = await this.getDocAtIndex(current);
         if (docAtCurrent === undefined) {
             return;
@@ -151,14 +85,10 @@ export class PresentationView extends React.Component<PresViewProps>  {
 
         if (this.groupMappings.has(curPresId)) {
             let currentsArray = this.groupMappings.get(StrCast(docAtCurrent.presentId))!;
-            console.log("It reaches here");
-            console.log("CurArray Len: ", currentsArray.length)
-            //nextSelected = current + currentsArray.length - current - 1;
             nextSelected = current + currentsArray.length - currentsArray.indexOf(docAtCurrent) - 1;
             if (nextSelected === current) nextSelected = current + 1;
         }
 
-        // this.groupMappings.get(current.presentId);
         this.gotoDocument(nextSelected);
 
     }
@@ -209,7 +139,6 @@ export class PresentationView extends React.Component<PresViewProps>  {
             let selectedButtons: boolean[] = presElem.selected;
             if (selectedButtons[buttonIndex.HideAfter]) {
                 if (this.childrenDocs.indexOf(key) >= index) {
-                    console.log("CAlled this right");
                     key.opacity = 1;
                 }
             }
@@ -220,8 +149,6 @@ export class PresentationView extends React.Component<PresViewProps>  {
             }
             if (selectedButtons[buttonIndex.HideTillPressed]) {
                 if (this.childrenDocs.indexOf(key) > index) {
-                    console.log("KeyIndex: ", this.childrenDocs.indexOf(key));
-                    console.log("Cur index: ", index);
                     key.opacity = 0;
                 }
             }
@@ -287,7 +214,6 @@ export class PresentationView extends React.Component<PresViewProps>  {
 
         this.props.Document.selectedDoc = index;
         const doc = await list[index];
-        // DocumentManager.Instance.jumpToDocument(doc);
         this.navigateToElement(doc);
         this.hideIfNotPresented(index);
         this.showAfterPresented(index);
