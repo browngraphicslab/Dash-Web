@@ -43,6 +43,13 @@ export class MainView extends React.Component {
     @computed private get mainContainer(): Opt<Doc> {
         return FieldValue(Cast(CurrentUserUtils.UserDocument.activeWorkspace, Doc));
     }
+    @computed private get mainFreeform(): Opt<Doc> {
+        let docs = DocListCast(this.mainContainer!.data);
+        return (docs && docs.length > 1) ? docs[1] : undefined;
+    }
+    private globalDisplayFlags = observable({
+        jumpToVisible: false
+    });
     private set mainContainer(doc: Opt<Doc>) {
         if (doc) {
             if (!("presentationView" in doc)) {
@@ -308,6 +315,8 @@ export class MainView extends React.Component {
     @action
     globalKeyHandler = (e: KeyboardEvent) => {
         if (e.key === "Control" || !e.ctrlKey) return;
+
+        console.log("keyevent");
 
         e.preventDefault();
         e.stopPropagation();
