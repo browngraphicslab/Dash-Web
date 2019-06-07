@@ -445,11 +445,14 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 doc.y = (doc.y || 0) + dY * (actualdH - height);
                 if (nwidth > 0 && nheight > 0) {
                     if (Math.abs(dW) > Math.abs(dH)) {
-                        doc.zoomBasis = zoomBasis * width / actualdW;
+                        doc.width = zoomBasis * actualdW;
+                        // doc.zoomBasis = zoomBasis * width / actualdW;
                     }
                     else {
-                        doc.zoomBasis = zoomBasis * height / actualdH;
+                        doc.width = nwidth / nheight * zoomBasis * actualdH;
+                        //doc.zoomBasis = zoomBasis * height / actualdH;
                     }
+                    doc.height = nheight / nwidth * doc.width;
                 } else {
                     doc.width = zoomBasis * actualdW;
                     if (docHeightBefore === doc.height) doc.height = zoomBasis * actualdH;
