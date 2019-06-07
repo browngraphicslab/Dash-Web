@@ -222,6 +222,32 @@ export class PresentationView extends React.Component<PresViewProps>  {
         });
     }
 
+    navigateToElement = (curDoc: Doc) => {
+        let docToJump: Doc = curDoc;
+        let curDocPresId = StrCast(curDoc.presentId, null);
+
+        if (curDocPresId !== undefined) {
+            if (this.groupMappings.has(curDocPresId)) {
+                let currentDocGroup = this.groupMappings.get(curDocPresId)!;
+                currentDocGroup.forEach((doc: Doc, index: number) => {
+                    let selectedButtons: boolean[] = this.presElementsMappings.get(doc)!.selected;
+                    if (selectedButtons[buttonIndex.Navigate]) {
+                        docToJump = doc;
+                    }
+                });
+            }
+
+        }
+        if (docToJump === curDoc) {
+            if (this.presElementsMappings.get(curDoc)!.selected[buttonIndex.Navigate]) {
+                DocumentManager.Instance.jumpToDocument(curDoc);
+            } else {
+                return;
+            }
+        }
+        DocumentManager.Instance.jumpToDocument(docToJump);
+    }
+
     getDocAtIndex = async (index: number) => {
         const list = FieldValue(Cast(this.props.Document.data, listSpec(Doc)));
         if (!list) {
@@ -255,7 +281,8 @@ export class PresentationView extends React.Component<PresViewProps>  {
 
         this.props.Document.selectedDoc = index;
         const doc = await list[index];
-        DocumentManager.Instance.jumpToDocument(doc);
+        // DocumentManager.Instance.jumpToDocument(doc);
+        this.navigateToElement(doc);
         this.hideIfNotPresented(index);
         this.showAfterPresented(index);
 

@@ -158,6 +158,17 @@ export default class PresentationElement extends React.Component<PresentationEle
         }
     }
 
+    @action
+    onNavigateDocumentClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (this.selectedButtons[buttonIndex.Navigate]) {
+            this.selectedButtons[buttonIndex.Navigate] = false;
+
+        } else {
+            this.selectedButtons[buttonIndex.Navigate] = true;
+        }
+    }
+
 
     render() {
         let p = this.props;
@@ -188,7 +199,7 @@ export default class PresentationElement extends React.Component<PresentationEle
                 <button className="presentation-icon" onClick={e => { this.props.deleteDocument(p.index); e.stopPropagation(); }}>X</button>
                 <br></br>
                 <button className={this.selectedButtons[buttonIndex.Show] ? "presentation-interaction-selected" : "presentation-interaction"}>A</button>
-                <button className={this.selectedButtons[buttonIndex.Navigate] ? "presentation-interaction-selected" : "presentation-interaction"}>B</button>
+                <button className={this.selectedButtons[buttonIndex.Navigate] ? "presentation-interaction-selected" : "presentation-interaction"} onClick={this.onNavigateDocumentClick}>B</button>
                 <button className={this.selectedButtons[buttonIndex.HideTillPressed] ? "presentation-interaction-selected" : "presentation-interaction"} onClick={this.onHideDocumentUntilPressClick}>C</button>
                 <button className={this.selectedButtons[buttonIndex.FadeAfter] ? "presentation-interaction-selected" : "presentation-interaction"} onClick={this.onFadeDocumentAfterPresentedClick}>D</button>
                 <button className={this.selectedButtons[buttonIndex.HideAfter] ? "presentation-interaction-selected" : "presentation-interaction"} onClick={this.onHideDocumentAfterPresentedClick}>E</button>
