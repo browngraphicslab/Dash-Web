@@ -10,7 +10,7 @@ import { Cast, NumCast, FieldValue, PromiseValue, StrCast, BoolCast } from "../.
 import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
-import PresentationElement from "./PresentationElement";
+import PresentationElement, { buttonIndex } from "./PresentationElement";
 
 export interface PresViewProps {
     Document: Doc;
@@ -21,6 +21,7 @@ interface PresListProps extends PresViewProps {
     gotoDocument(index: number): void;
     groupMappings: Map<String, Doc[]>;
     presElementsMappings: Map<Doc, PresentationElement>;
+    setChildrenDocs: (docList: Doc[]) => void;
 }
 
 
@@ -57,7 +58,6 @@ class PresentationViewList extends React.Component<PresListProps> {
             let docGuid = StrCast(doc.presentId, null);
             if (!this.props.groupMappings.has(docGuid)) {
                 doc.presentId = Utils.GenerateGuid();
-
             }
         });
     }
@@ -109,6 +109,7 @@ class PresentationViewList extends React.Component<PresListProps> {
     render() {
         const children = DocListCast(this.props.Document.data);
         this.initializeGroupIds(children);
+        this.props.setChildrenDocs(children);
         return (
 
             <div className="presentationView-listCont">
@@ -126,6 +127,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
     @observable groupedMembers: Doc[][] = [];
     @observable groupMappings: Map<String, Doc[]> = new Map();
     @observable presElementsMappings: Map<Doc, PresentationElement> = new Map();
+    @observable childrenDocs: Doc[] = [];
 
     //observable means render is re-called every time variable is changed
     @observable
@@ -175,6 +177,26 @@ export class PresentationView extends React.Component<PresViewProps>  {
         this.gotoDocument(prevSelected);
     }
 
+    showAfterPresented = (index: number) => {
+        this.presElementsMappings.forEach((presElem: PresentationElement, key: Doc) => {
+            if (presElem.selected[buttonIndex.HideTillPressed]) {
+                if (this.childrenDocs.indexOf(key) <= index) {
+                    key.opacity = 1;
+                }
+            }
+        });
+    }
+
+    hideIfNotPresented = (index: number) => {
+        this.presElementsMappings.forEach((presElem: PresentationElement, key: Doc) => {
+            if (presElem.selected[buttonIndex.HideTillPressed]) {
+                if (this.childrenDocs.indexOf(key) > index) {
+                    key.opacity = 0;
+                }
+            }
+        });
+    }
+
     getDocAtIndex = async (index: number) => {
         const list = FieldValue(Cast(this.props.Document.data, listSpec(Doc)));
         if (!list) {
@@ -209,6 +231,10 @@ export class PresentationView extends React.Component<PresViewProps>  {
         this.props.Document.selectedDoc = index;
         const doc = await list[index];
         DocumentManager.Instance.jumpToDocument(doc);
+        this.hideIfNotPresented(index);
+        this.showAfterPresented(index);
+
+
     }
 
     //initilize class variables
@@ -233,6 +259,11 @@ export class PresentationView extends React.Component<PresViewProps>  {
         this.props.Document.width = 300;
     }
 
+    @action
+    setChildrenDocs = (docList: Doc[]) => {
+        this.childrenDocs = docList;
+    }
+
     render() {
         let titleStr = StrCast(this.props.Document.title);
         let width = NumCast(this.props.Document.width);
@@ -248,7 +279,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
                     <button className="presentation-button" onClick={this.back}>back</button>
                     <button className="presentation-button" onClick={this.next}>next</button>
                 </div>
-                <PresentationViewList Document={this.props.Document} deleteDocument={this.RemoveDoc} gotoDocument={this.gotoDocument} groupMappings={this.groupMappings} presElementsMappings={this.presElementsMappings} />
+                <PresentationViewList Document={this.props.Document} deleteDocument={this.RemoveDoc} gotoDocument={this.gotoDocument} groupMappings={this.groupMappings} presElementsMappings={this.presElementsMappings} setChildrenDocs={this.setChildrenDocs} />
             </div>
         );
     }

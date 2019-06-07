@@ -20,7 +20,7 @@ interface PresentationElementProps {
 
 }
 
-enum buttonIndex {
+export enum buttonIndex {
     Show = 0,
     Navigate = 1,
     HideTillPressed = 2,
@@ -120,14 +120,15 @@ export default class PresentationElement extends React.Component<PresentationEle
     @action
     onHideDocumentUntilPressClick = (e: React.MouseEvent) => {
         e.stopPropagation();
+        const current = NumCast(this.props.mainDocument.selectedDoc);
         if (this.selectedButtons[buttonIndex.HideTillPressed]) {
             this.selectedButtons[buttonIndex.HideTillPressed] = false;
             this.props.document.opacity = 1;
-
         } else {
             this.selectedButtons[buttonIndex.HideTillPressed] = true;
-            this.props.document.opacity = 0;
-
+            if (this.props.index > current) {
+                this.props.document.opacity = 0;
+            }
         }
     }
 
