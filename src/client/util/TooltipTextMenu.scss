@@ -133,7 +133,7 @@
     position: relative;
     min-height: 1em;
     color: white;
-    padding: 1px 6px;
+    padding: 10px 10px;
     top: 0; left: 0; right: 0;
     border-bottom: 1px solid silver;
     background:$dark-color;
@@ -239,10 +239,12 @@
     border: 1px solid silver;
     border-radius: 15px;
     padding: 2px 10px;
-    margin-bottom: 15px;
+    margin-bottom: 60px;
     -webkit-transform: translateX(-50%);
     transform: translateX(-50%);
     pointer-events: all;
+    height: 100px;
+    width:500px;
     .ProseMirror-example-setup-style hr {
       padding: 2px 10px;
       border: none;

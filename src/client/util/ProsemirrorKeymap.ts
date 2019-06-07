@@ -1,4 +1,4 @@
-import { Schema } from "prosemirror-model";
+import { Schema, NodeType } from "prosemirror-model";
 import {
     wrapIn, setBlockType, chainCommands, toggleMark, exitCode,
     joinUp, joinDown, lift, selectParentNode
@@ -23,6 +23,22 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: 
         }
         keys[key] = cmd;
     }
+
+    function insertStar(state: EditorState<S>, dispatch: ((tr: Transaction<S>) => void)) {
+        console.log("creating star...");
+        let type = schema.nodes.star as NodeType<S>;
+        let { $from } = state.selection;
+        if (!$from.parent.canReplaceWith($from.index(), $from.index(), type)) {
+            return false;
+        }
+        if (dispatch) {
+            dispatch(state.tr.replaceSelectionWith(type.create()));
+        }
+        return true;
+    }
+
+    console.log("star? hullo");
+    bind("Mod-space", insertStar);
 
     bind("Mod-z", undo);
     bind("Shift-Mod-z", redo);
@@ -79,6 +95,7 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: 
     }
     if (type = schema.nodes.paragraph) {
         bind("Shift-Ctrl-0", setBlockType(type));
+        bind("Mod-space", insertStar);
     }
     if (type = schema.nodes.code_block) {
         bind("Shift-Ctrl-\\", setBlockType(type));

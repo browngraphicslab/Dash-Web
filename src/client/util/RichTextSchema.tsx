@@ -26,6 +26,13 @@ export const nodes: { [index: string]: NodeSpec } = {
         toDOM() { return pDOM; }
     },
 
+    star: {
+        inline: true,
+        group: "inline",
+        toDOM() { return ["star", "🟊"]; },
+        parseDOM: [{ tag: "star" }]
+    },
+
     // :: NodeSpec A blockquote (`<blockquote>`) wrapping one or more blocks.
     blockquote: {
         content: "block+",
@@ -222,6 +229,15 @@ export const marks: { [index: string]: MarkSpec } = {
         toDOM: () => ['sup']
     },
 
+    collapse: {
+        parseDOM: [{ style: 'color: blue' }],
+        toDOM() {
+            return ['span', {
+                style: 'color: blue'
+            }]
+        }
+    },
+
 
     // :: MarkSpec Code font mark. Represented as a `<code>` element.
     code: {
@@ -279,6 +295,7 @@ export const marks: { [index: string]: MarkSpec } = {
             style: 'font-family: "Crimson Text", sans-serif;'
         }]
     },
+
 
     /** FONT SIZES */
 

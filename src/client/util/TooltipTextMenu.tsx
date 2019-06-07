@@ -22,12 +22,12 @@ import { throwStatement } from "babel-types";
 import { View } from "@react-pdf/renderer";
 import { DragManager } from "./DragManager";
 import { Doc, Opt, Field } from "../../new_fields/Doc";
-import { Utils } from "../northstar/utils/Utils";
 import { DocServer } from "../DocServer";
 import { CollectionFreeFormDocumentView } from "../views/nodes/CollectionFreeFormDocumentView";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import { DocumentManager } from "./DocumentManager";
 import { Id } from "../../new_fields/FieldSymbols";
+import { Utils } from "../../Utils";
 
 const SVG = "http://www.w3.org/2000/svg";
 
@@ -74,6 +74,7 @@ export class TooltipTextMenu {
             { command: toggleMark(schema.marks.strikethrough), dom: this.icon("S", "strikethrough", "Strikethrough") },
             { command: toggleMark(schema.marks.superscript), dom: this.icon("s", "superscript", "Superscript") },
             { command: toggleMark(schema.marks.subscript), dom: this.icon("s", "subscript", "Subscript") },
+            { command: toggleMark(schema.marks.collapse), dom: this.icon("C", 'collapse', 'Collapse') }
             // { command: wrapInList(schema.nodes.bullet_list), dom: this.icon(":", "bullets") },
             // { command: wrapInList(schema.nodes.ordered_list), dom: this.icon("1)", "bullets") },
             // { command: lift, dom: this.icon("<", "lift") },
@@ -231,6 +232,15 @@ export class TooltipTextMenu {
             this.linkEditor.appendChild(this.linkText);
             this.linkEditor.appendChild(linkBtn);
             this.tooltip.appendChild(this.linkEditor);
+
+            let starButton = document.createElement("button");
+            starButton.textContent = "ST";
+            starButton.onclick = () => {
+                let state = this.view.state;
+                this.insertStar(state, this.view.dispatch);
+            }
+
+            this.tooltip.appendChild(starButton);
         }
 
         let node = this.view.state.selection.$from.nodeAfter;
@@ -254,6 +264,19 @@ export class TooltipTextMenu {
         this.view.dispatch(this.view.state.tr.addMark(this.view.state.selection.from, this.view.state.selection.to, link));
         node = this.view.state.selection.$from.nodeAfter;
         link = node && node.marks.find(m => m.type.name === "link");
+    }
+
+    insertStar(state: any, dispatch: any) {
+        console.log("creating star...");
+        let type = schema.nodes.star;
+        let { $from } = state.selection;
+        if (!$from.parent.canReplaceWith($from.index(), $from.index(), type)) {
+            return false;
+        }
+        if (dispatch) {
+            dispatch(state.tr.replaceSelectionWith(type.create()));
+        }
+        return true;
     }
 
     //will display a remove-list-type button if selection is in list, otherwise will show list type dropdown
@@ -426,6 +449,12 @@ export class TooltipTextMenu {
 
         this.tooltip.style.width = 225 + "px";
         this.tooltip.style.bottom = (box.bottom - start.top) * this.editorProps.ScreenToLocalTransform().Scale + "px";
+        this.tooltip.style.top = "-100px";
+        //this.tooltip.style.height = "100px";
+
+        // let transform = this.editorProps.ScreenToLocalTransform();
+        // this.tooltip.style.width = `${225 / transform.Scale}px`;
+        // Utils
 
         //UPDATE LIST ITEM DROPDOWN
         this.listTypeBtnDom = this.updateListItemDropdown(":", this.listTypeBtnDom!);
