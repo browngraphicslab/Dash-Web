@@ -9,6 +9,7 @@ import { Cast, FieldValue, NumCast, PromiseValue } from '../../../new_fields/Typ
 import { SelectionManager } from '../../util/SelectionManager';
 import { ContextMenu } from '../ContextMenu';
 import { FieldViewProps } from '../nodes/FieldView';
+import './CollectionBaseView.scss';
 
 export enum CollectionViewType {
     Invalid,
@@ -178,8 +179,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         };
         const viewtype = this.collectionViewType;
         return (
-            <div className={this.props.className || "collectionView-cont"}
-                style={{ borderRadius: "inherit", pointerEvents: "all" }}
+            <div id="collectionBaseView" className={this.props.className || "collectionView-cont"}
                 onContextMenu={this.props.onContextMenu} ref={this.props.contentRef}>
                 {viewtype !== undefined ? this.props.children(viewtype, props) : (null)}
             </div>

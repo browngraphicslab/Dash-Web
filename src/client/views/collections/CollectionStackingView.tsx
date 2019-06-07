@@ -32,11 +32,12 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         return (nw && nh) ? wid * aspect : d[HeightSym]();
     }
     componentDidMount() {
-        this._heightDisposer = reaction(() => [this.yMargin, this.columnWidth, this.childDocs.map(d => [d.height, d.width, d.zoomBasis, d.nativeHeight, d.nativeWidth, d.isMinimized])],
+        this._heightDisposer = reaction(() => [this.yMargin, this.gridGap, this.columnWidth, this.childDocs.map(d => [d.height, d.width, d.zoomBasis, d.nativeHeight, d.nativeWidth, d.isMinimized])],
             () => {
                 if (this.singleColumn) {
-                    this.props.Document.height = this.childDocs.filter(d => !d.isMinimized).reduce((height, d) =>
-                        height + this.singleColDocHeight(d) + this.yMargin
+                    let children = this.childDocs.filter(d => !d.isMinimized);
+                    this.props.Document.height = children.reduce((height, d, i) =>
+                        height + this.singleColDocHeight(d) + (i === children.length - 1 ? this.yMargin : this.gridGap)
                         , this.yMargin);
                 }
             }, { fireImmediately: true });
@@ -78,7 +79,8 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
 
     @computed
     get singleColumnChildren() {
-        return this.childDocs.filter(d => !d.isMinimized).map((d, i) => {
+        let children = this.childDocs.filter(d => !d.isMinimized);
+        return children.map((d, i) => {
             let dref = React.createRef<HTMLDivElement>();
             let script = undefined;
             let colWidth = () => d.nativeWidth ? Math.min(d[WidthSym](), this.columnWidth) : this.columnWidth;
@@ -87,7 +89,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             return <div className="collectionStackingView-masonryDoc"
                 key={d[Id]}
                 ref={dref}
-                style={{ marginTop: `${i ? this.yMargin : 0}px`, width: colWidth(), height: rowHeight(), marginLeft: "auto", marginRight: "auto" }} >
+                style={{ width: colWidth(), height: rowHeight(), marginLeft: "auto", marginRight: "auto" }} >
                 <CollectionSchemaPreview
                     Document={d}
                     width={colWidth}
@@ -107,10 +109,10 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     }
     @computed
     get children() {
+        trace();
         return this.childDocs.filter(d => !d.isMinimized).map((d, i) => {
             let dref = React.createRef<HTMLDivElement>();
             let dxf = () => this.getDocTransform(d, dref.current!);
-            let colSpan = 1;//Math.ceil((this.columnWidth + this.gridGap) / (this._gridSize + this.gridGap));
             let rowSpan = Math.ceil((this.columnWidth / d[WidthSym]() * d[HeightSym]() + this.gridGap) / (this._gridSize + this.gridGap));
             let childFocus = (doc: Doc) => {
                 doc.libraryBrush = true;
@@ -124,7 +126,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                     height: NumCast(d.nativeHeight, d[HeightSym]()),
                     transformOrigin: "top left",
                     gridRowEnd: `span ${rowSpan}`,
-                    gridColumnEnd: `span ${colSpan}`,
+                    gridColumnEnd: `span 1`,
                     transform: `scale(${this.columnWidth / NumCast(d.nativeWidth, d[WidthSym]())}, ${this.columnWidth / NumCast(d.nativeWidth, d[WidthSym]())})`
                 }} >
                 <DocumentView key={d[Id]} Document={d}
@@ -157,19 +159,19 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         }
     }
     render() {
-        let cols = this.singleColumn ? 1 : Math.min(this.childDocs.filter(d => !d.isMinimized).length,
-            Math.floor((this.props.PanelWidth() - 2 * this.xMargin) / (this.columnWidth + 2 * this.gridGap)));
+        let cols = this.singleColumn ? 1 : Math.max(1, Math.min(this.childDocs.filter(d => !d.isMinimized).length,
+            Math.floor((this.props.PanelWidth() - 2 * this.xMargin) / (this.columnWidth + this.gridGap))));
         let templatecols = "";
         for (let i = 0; i < cols; i++) templatecols += `${this.columnWidth}px `;
         return (
-            <div className="collectionStackingView" style={{ height: "100%" }}
-                onContextMenu={this.onContextMenu}
-                ref={this.createRef} onWheel={(e: React.WheelEvent) => e.stopPropagation()}>
+            <div className="collectionStackingView">
                 <div className={`collectionStackingView-masonry${this.singleColumn ? "Single" : "Grid"}`}
+                    onContextMenu={this.onContextMenu}
+                    ref={this.createRef} onWheel={(e: React.WheelEvent) => e.stopPropagation()}
                     style={{
-                        padding: `${this.yMargin}px ${this.xMargin}px 0px ${this.xMargin}px`,
+                        padding: this.singleColumn ? `${this.yMargin}px ${this.xMargin}px ${this.yMargin}px ${this.xMargin}px` : `${this.yMargin}px ${this.xMargin}px`,
                         margin: "auto",
-                        width: this.singleColumn ? undefined : `${cols * (this.columnWidth + this.gridGap)}px`,
+                        width: this.singleColumn ? undefined : `${cols * (this.columnWidth + this.gridGap) + 2 * this.xMargin - this.gridGap}px`,
                         height: "100%",
                         position: "relative",
                         gridGap: this.gridGap,
@@ -178,8 +180,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                     }}
                 >
                     {this.singleColumn ? this.singleColumnChildren : this.children}
-                </div>
-            </div>
+                </div></div>
         );
     }
 }

@@ -1,6 +1,6 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faAlignCenter, faCaretSquareRight, faCompressArrowsAlt, faExpandArrowsAlt, faLayerGroup, faSquare, faTrash, faConciergeBell, faFolder, faMapPin, faLink, faFingerprint, faCrosshairs, faDesktop } from '@fortawesome/free-solid-svg-icons';
-import { action, computed, IReactionDisposer, reaction } from "mobx";
+import { action, computed, IReactionDisposer, reaction, trace } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCast, HeightSym, Opt, WidthSym, DocListCastAsync } from "../../../new_fields/Doc";
 import { List } from "../../../new_fields/List";
@@ -439,7 +439,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         var scaling = this.props.ContentScaling();
         var nativeHeight = this.nativeHeight > 0 ? `${this.nativeHeight}px` : "100%";
         var nativeWidth = this.nativeWidth > 0 ? `${this.nativeWidth}px` : "100%";
-
         return (
             <div className={`documentView-node${this.props.isTopMost ? "-topmost" : ""}`}
                 ref={this._mainCont}
