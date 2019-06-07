@@ -68,6 +68,7 @@ export class ToggleBar extends React.Component<ToggleBarProps>{
         if (bar && tog) {
             barwidth = bar.clientWidth;
             togwidth = tog.clientWidth;
+            console.log(togwidth)
         }
         let totalWidth = (barwidth - togwidth - 10);
 
@@ -83,6 +84,8 @@ export class ToggleBar extends React.Component<ToggleBarProps>{
     @action.bound
     onclick() {
         this._status = !this._status;
+        console.log("sttaus should be:", this._status)
+        this.props.changeStatus(this._status);
         this.timeline.play();
         this.timeline.reverse();
     }
@@ -107,7 +110,6 @@ export class ToggleBar extends React.Component<ToggleBarProps>{
 export class SearchBox extends React.Component {
     @observable
     searchString: string = "";
-
     @observable _wordStatus: boolean = true;
 
     @observable private _open: boolean = false;
@@ -270,6 +272,7 @@ export class SearchBox extends React.Component {
 
     handleWordQueryChange = (value: boolean) => {
         this._wordStatus = value;
+        console.log("changed toL:", this._wordStatus)
     }
 
     // Useful queries:
@@ -306,16 +309,16 @@ export class SearchBox extends React.Component {
                                 temp for filtering by a type of node
                                 <div className="icon-bar">
                                     {/* hoping to ultimately animate a reorder when an icon is chosen */}
-                                    <FontAwesomeIcon style={{ order: -2 }} icon={faBan} size="2x" />
-                                    <FontAwesomeIcon style={{ order: 0 }} icon={faFilePdf} size="2x" />
-                                    <FontAwesomeIcon style={{ order: 1 }} icon={faChartBar} size="2x" />
-                                    <FontAwesomeIcon style={{ order: 2 }} icon={faObjectGroup} size="2x" />
-                                    <FontAwesomeIcon style={{ order: 3 }} icon={faImage} size="2x" />
-                                    <FontAwesomeIcon style={{ order: 4 }} icon={faFilm} size="2x" />
-                                    <FontAwesomeIcon style={{ order: 5 }} icon={faGlobeAsia} size="2x" />
-                                    <FontAwesomeIcon style={{ order: 6 }} icon={faLink} size="2x" />
-                                    <FontAwesomeIcon style={{ order: 7 }} icon={faMusic} size="2x" />
-                                    <FontAwesomeIcon style={{ order: 8 }} icon={faStickyNote} size="2x" />
+                                    <FontAwesomeIcon className = "type-icon" style={{ order: -2 }} icon={faBan}  />
+                                    <FontAwesomeIcon className = "type-icon" style={{ order: 0 }} icon={faFilePdf} />
+                                    <FontAwesomeIcon className = "type-icon" style={{ order: 1 }} icon={faChartBar} />
+                                    <FontAwesomeIcon className = "type-icon" style={{ order: 2 }} icon={faObjectGroup}  />
+                                    <FontAwesomeIcon className = "type-icon" style={{ order: 3 }} icon={faImage}  />
+                                    <FontAwesomeIcon className = "type-icon" style={{ order: 4 }} icon={faFilm}  />
+                                    <FontAwesomeIcon className = "type-icon" style={{ order: 5 }} icon={faGlobeAsia}  />
+                                    <FontAwesomeIcon className = "type-icon" style={{ order: 6 }} icon={faLink}  />
+                                    <FontAwesomeIcon className = "type-icon" style={{ order: 7 }} icon={faMusic} />
+                                    <FontAwesomeIcon className = "type-icon" style={{ order: 8 }} icon={faStickyNote} />
                                 </div>
                             </div>
                             <div className="filter-collection">

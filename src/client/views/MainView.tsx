@@ -60,6 +60,15 @@ export class MainView extends React.Component {
         }
     }
 
+    componentWillMount() {
+        document.removeEventListener("keydown", this.globalKeyHandler);
+        document.addEventListener("keydown", this.globalKeyHandler);
+    }
+
+    componentWillUnMount() {
+        document.removeEventListener("keydown", this.globalKeyHandler);
+    }
+
     constructor(props: Readonly<{}>) {
         super(props);
         MainView.Instance = this;
@@ -317,8 +326,6 @@ export class MainView extends React.Component {
     globalKeyHandler = (e: KeyboardEvent) => {
         if (e.key === "Control" || !e.ctrlKey) return;
 
-        console.log("keyevent");
-
         e.preventDefault();
         e.stopPropagation();
 
@@ -339,6 +346,8 @@ export class MainView extends React.Component {
             case "escape":
                 _.mapValues(this.globalDisplayFlags, () => false)
                 break;
+            case "f":
+                this.isSearchVisible = !this.isSearchVisible;
         }
     }
 
