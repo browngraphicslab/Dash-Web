@@ -31,6 +31,7 @@ interface PresentationElementProps {
 
 }
 
+//enum for the all kinds of buttons a doc in presentation can have
 export enum buttonIndex {
     Show = 0,
     Navigate = 1,
@@ -41,26 +42,41 @@ export enum buttonIndex {
 
 }
 
+/**
+ * This class models the view a document added to presentation will have in the presentation.
+ * It involves some functionality for its buttons and options.
+ */
 @observer
 export default class PresentationElement extends React.Component<PresentationElementProps> {
 
     @observable selectedButtons: boolean[] = new Array(6);
 
+    /**
+     * Getter to get the status of the buttons.
+     */
     @computed
     get selected() {
         return this.selectedButtons;
     }
 
+    /**
+     * The function that is called to group docs together. It tries to group a doc
+     * that turned grouping option with the above document. If that doc is grouped with
+     * other documents. Those other documents will be grouped with doc's above document as well.
+     */
     @action
     onGroupClick = (document: Doc, index: number, buttonStatus: boolean) => {
         let p = this.props;
         if (index >= 1) {
+            //checking if options was turned true
             if (buttonStatus) {
-                let newGuid = Utils.GenerateGuid();
+                //getting the id of the above-doc and the doc
                 let aboveGuid = StrCast(p.allListElements[index - 1].presentId, null);
                 let docGuid = StrCast(document.presentId, null);
+                //the case where above-doc is already in group
                 if (p.groupMappings.has(aboveGuid)) {
                     let aboveArray = p.groupMappings.get(aboveGuid)!;
+                    //case where doc is already in group
                     if (p.groupMappings.has(docGuid)) {
                         let docsArray = p.groupMappings.get(docGuid)!;
                         docsArray.forEach((doc: Doc) => {
@@ -70,6 +86,7 @@ export default class PresentationElement extends React.Component<PresentationEle
                             doc.presentId = aboveGuid;
                         });
                         p.groupMappings.delete(docGuid);
+                        //the case where doc was not in group
                     } else {
                         if (!aboveArray.includes(document)) {
                             aboveArray.push(document);
@@ -77,9 +94,12 @@ export default class PresentationElement extends React.Component<PresentationEle
                         }
 
                     }
+                    //the case where above-doc was not in group
                 } else {
                     let newAboveArray: Doc[] = [];
                     newAboveArray.push(p.allListElements[index - 1]);
+
+                    //the case where doc is in group
                     if (p.groupMappings.has(docGuid)) {
                         let docsArray = p.groupMappings.get(docGuid)!;
                         docsArray.forEach((doc: Doc) => {
@@ -87,6 +107,8 @@ export default class PresentationElement extends React.Component<PresentationEle
                             doc.presentId = aboveGuid;
                         });
                         p.groupMappings.delete(docGuid);
+
+                        //the case where doc is not in a group
                     } else {
                         newAboveArray.push(document);
 
@@ -95,6 +117,8 @@ export default class PresentationElement extends React.Component<PresentationEle
 
                 }
                 document.presentId = aboveGuid;
+
+                //when grouping is turned off
             } else {
                 let curArray = p.groupMappings.get(StrCast(document.presentId, Utils.GenerateGuid()))!;
                 let targetIndex = curArray.indexOf(document);
@@ -112,6 +136,9 @@ export default class PresentationElement extends React.Component<PresentationEle
 
     }
 
+    /**
+     * Function that is called on click to change the group status of a docus, by turning the option on/off.
+     */
     @action
     changeGroupStatus = () => {
         if (this.selectedButtons[buttonIndex.Group]) {
@@ -121,6 +148,10 @@ export default class PresentationElement extends React.Component<PresentationEle
         }
     }
 
+    /**
+     * The function that is called on click to turn Hiding document till press option on/off.
+     * It also sets the beginning and end opacitys.
+     */
     @action
     onHideDocumentUntilPressClick = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -136,6 +167,11 @@ export default class PresentationElement extends React.Component<PresentationEle
         }
     }
 
+    /**
+     * The function that is called on click to turn Hiding document after presented option on/off.
+     * It also makes sure that the option swithches from fade-after to this one, since both
+     * can't coexist.
+     */
     @action
     onHideDocumentAfterPresentedClick = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -149,6 +185,11 @@ export default class PresentationElement extends React.Component<PresentationEle
         }
     }
 
+    /**
+     * The function that is called on click to turn fading document after presented option on/off.
+     * It also makes sure that the option swithches from hide-after to this one, since both
+     * can't coexist.
+     */
     @action
     onFadeDocumentAfterPresentedClick = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -162,6 +203,9 @@ export default class PresentationElement extends React.Component<PresentationEle
         }
     }
 
+    /**
+     * The function that is called on click to turn navigation option of docs on/off.
+     */
     @action
     onNavigateDocumentClick = (e: React.MouseEvent) => {
         e.stopPropagation();

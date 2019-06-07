@@ -37,10 +37,17 @@ interface PresListProps extends PresViewProps {
  */
 class PresentationViewList extends React.Component<PresListProps> {
 
+    /**
+     * Method that initializes presentation ids for the
+     * docs that is in the presentation, when presentation list
+     * gets re-rendered. It makes sure to not assign ids to the
+     * docs that are in the group, so that mapping won't be disrupted.
+     */
     @action
     initializeGroupIds = (docList: Doc[]) => {
         docList.forEach((doc: Doc, index: number) => {
             let docGuid = StrCast(doc.presentId, null);
+            //checking if part of group
             if (!this.props.groupMappings.has(docGuid)) {
                 doc.presentId = Utils.GenerateGuid();
             }
@@ -65,9 +72,11 @@ class PresentationViewList extends React.Component<PresListProps> {
 export class PresentationView extends React.Component<PresViewProps>  {
     public static Instance: PresentationView;
 
-    @observable groupedMembers: Doc[][] = [];
+    //Mapping from presentation ids to a list of doc that represent a group
     @observable groupMappings: Map<String, Doc[]> = new Map();
+    //mapping from docs to their rendered component
     @observable presElementsMappings: Map<Doc, PresentationElement> = new Map();
+    //variable that holds all the docs in the presentation
     @observable childrenDocs: Doc[] = [];
 
     //observable means render is re-called every time variable is changed
@@ -76,16 +85,21 @@ export class PresentationView extends React.Component<PresViewProps>  {
     closePresentation = action(() => this.props.Document.width = 0);
     next = async () => {
         const current = NumCast(this.props.Document.selectedDoc);
+        //asking to get document at current index
         let docAtCurrent = await this.getDocAtIndex(current);
         if (docAtCurrent === undefined) {
             return;
         }
+        //asking for it's presentation id
         let curPresId = StrCast(docAtCurrent.presentId);
         let nextSelected = current + 1;
 
+        //if curDoc is in a group, selection slides until last one, if not it's next one
         if (this.groupMappings.has(curPresId)) {
             let currentsArray = this.groupMappings.get(StrCast(docAtCurrent.presentId))!;
             nextSelected = current + currentsArray.length - currentsArray.indexOf(docAtCurrent) - 1;
+
+            //end of grup so go beyond
             if (nextSelected === current) nextSelected = current + 1;
         }
 
@@ -94,16 +108,21 @@ export class PresentationView extends React.Component<PresViewProps>  {
     }
     back = async () => {
         const current = NumCast(this.props.Document.selectedDoc);
+        //requesting for the doc at current index
         let docAtCurrent = await this.getDocAtIndex(current);
         if (docAtCurrent === undefined) {
             return;
         }
+
+        //asking for its presentation id.
         let curPresId = StrCast(docAtCurrent.presentId);
         let prevSelected = current - 1;
 
+        //checking if this presentation id is mapped to a group, if so chosing the first element in group
         if (this.groupMappings.has(curPresId)) {
             let currentsArray = this.groupMappings.get(StrCast(docAtCurrent.presentId))!;
             prevSelected = current - currentsArray.length + (currentsArray.length - currentsArray.indexOf(docAtCurrent));
+            //end of grup so go beyond
             if (prevSelected === current) prevSelected = current - 1;
 
 
@@ -113,9 +132,15 @@ export class PresentationView extends React.Component<PresViewProps>  {
         this.gotoDocument(prevSelected);
     }
 
+    /**
+     * This is the method that checks for the actions that need to be performed
+     * after the document has been presented, which involves 3 button options:
+     * Hide Until Presented, Hide After Presented, Fade After Presented
+     */
     showAfterPresented = (index: number) => {
         this.presElementsMappings.forEach((presElem: PresentationElement, key: Doc) => {
             let selectedButtons: boolean[] = presElem.selected;
+            //the order of cases is aligned based on priority
             if (selectedButtons[buttonIndex.HideTillPressed]) {
                 if (this.childrenDocs.indexOf(key) <= index) {
                     key.opacity = 1;
@@ -134,9 +159,17 @@ export class PresentationView extends React.Component<PresViewProps>  {
         });
     }
 
+    /**
+     * This is the method that checks for the actions that need to be performed
+     * before the document has been presented, which involves 3 button options:
+     * Hide Until Presented, Hide After Presented, Fade After Presented
+     */
     hideIfNotPresented = (index: number) => {
         this.presElementsMappings.forEach((presElem: PresentationElement, key: Doc) => {
             let selectedButtons: boolean[] = presElem.selected;
+
+            //the order of cases is aligned based on priority
+
             if (selectedButtons[buttonIndex.HideAfter]) {
                 if (this.childrenDocs.indexOf(key) >= index) {
                     key.opacity = 1;
@@ -155,10 +188,16 @@ export class PresentationView extends React.Component<PresViewProps>  {
         });
     }
 
+    /**
+     * This method makes sure that cursor navigates to the element that
+     * has the option open and last in the group. If not in the group, and it has
+     * te option open, navigates to that element.
+     */
     navigateToElement = (curDoc: Doc) => {
         let docToJump: Doc = curDoc;
         let curDocPresId = StrCast(curDoc.presentId, null);
 
+        //checking if in group
         if (curDocPresId !== undefined) {
             if (this.groupMappings.has(curDocPresId)) {
                 let currentDocGroup = this.groupMappings.get(curDocPresId)!;
@@ -171,7 +210,9 @@ export class PresentationView extends React.Component<PresViewProps>  {
             }
 
         }
+        //docToJump stayed same meaning, it was not in the group or was the last element in the group
         if (docToJump === curDoc) {
+            //checking if curDoc has navigation open
             if (this.presElementsMappings.get(curDoc)!.selected[buttonIndex.Navigate]) {
                 DocumentManager.Instance.jumpToDocument(curDoc);
             } else {
@@ -181,6 +222,9 @@ export class PresentationView extends React.Component<PresViewProps>  {
         DocumentManager.Instance.jumpToDocument(docToJump);
     }
 
+    /**
+     * Async function that supposedly return the doc that is located at given index.
+     */
     getDocAtIndex = async (index: number) => {
         const list = FieldValue(Cast(this.props.Document.data, listSpec(Doc)));
         if (!list) {
@@ -191,6 +235,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
         }
 
         this.props.Document.selectedDoc = index;
+        //awaiting async call to finish to get Doc instance
         const doc = await list[index];
         return doc;
     }
