@@ -179,9 +179,15 @@ export class PresentationView extends React.Component<PresViewProps>  {
 
     showAfterPresented = (index: number) => {
         this.presElementsMappings.forEach((presElem: PresentationElement, key: Doc) => {
-            if (presElem.selected[buttonIndex.HideTillPressed]) {
+            let selectedButtons: boolean[] = presElem.selected;
+            if (selectedButtons[buttonIndex.HideTillPressed]) {
                 if (this.childrenDocs.indexOf(key) <= index) {
                     key.opacity = 1;
+                }
+            }
+            if (selectedButtons[buttonIndex.HideAfter]) {
+                if (this.childrenDocs.indexOf(key) < index) {
+                    key.opacity = 0;
                 }
             }
         });
@@ -189,7 +195,13 @@ export class PresentationView extends React.Component<PresViewProps>  {
 
     hideIfNotPresented = (index: number) => {
         this.presElementsMappings.forEach((presElem: PresentationElement, key: Doc) => {
-            if (presElem.selected[buttonIndex.HideTillPressed]) {
+            let selectedButtons: boolean[] = presElem.selected;
+            if (selectedButtons[buttonIndex.HideAfter]) {
+                if (this.childrenDocs.indexOf(key) <= index) {
+                    key.opacity = 1;
+                }
+            }
+            if (selectedButtons[buttonIndex.HideTillPressed]) {
                 if (this.childrenDocs.indexOf(key) > index) {
                     key.opacity = 0;
                 }

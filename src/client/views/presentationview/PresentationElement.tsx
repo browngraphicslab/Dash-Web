@@ -132,6 +132,16 @@ export default class PresentationElement extends React.Component<PresentationEle
         }
     }
 
+    @action
+    onHideDocumentAfterPresentedClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (this.selectedButtons[buttonIndex.HideAfter]) {
+            this.selectedButtons[buttonIndex.HideAfter] = false;
+        } else {
+            this.selectedButtons[buttonIndex.HideAfter] = true;
+        }
+    }
+
 
     render() {
         let p = this.props;
@@ -165,7 +175,7 @@ export default class PresentationElement extends React.Component<PresentationEle
                 <button className={this.selectedButtons[buttonIndex.Navigate] ? "presentation-interaction-selected" : "presentation-interaction"}>B</button>
                 <button className={this.selectedButtons[buttonIndex.HideTillPressed] ? "presentation-interaction-selected" : "presentation-interaction"} onClick={this.onHideDocumentUntilPressClick}>C</button>
                 <button className={this.selectedButtons[buttonIndex.FadeAfter] ? "presentation-interaction-selected" : "presentation-interaction"}>D</button>
-                <button className={this.selectedButtons[buttonIndex.HideAfter] ? "presentation-interaction-selected" : "presentation-interaction"}>E</button>
+                <button className={this.selectedButtons[buttonIndex.HideAfter] ? "presentation-interaction-selected" : "presentation-interaction"} onClick={this.onHideDocumentAfterPresentedClick}>E</button>
                 <button className={this.selectedButtons[buttonIndex.Group] ? "presentation-interaction-selected" : "presentation-interaction"} onClick={(e) => {
                     e.stopPropagation();
                     this.changeGroupStatus();
