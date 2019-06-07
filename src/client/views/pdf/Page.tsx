@@ -211,19 +211,19 @@ export default class Page extends React.Component<IPageProps> {
             else {
                 e.stopPropagation();
                 // set marquee x and y positions to the spatially transformed position
-                    let current = this._textLayer.current;
-                    if (current) {
-                        let boundingRect = current.getBoundingClientRect();
-                        this._marqueeX = (e.clientX - boundingRect.left) * (current.offsetWidth / boundingRect.width);
-                        this._marqueeY = (e.clientY - boundingRect.top) * (current.offsetHeight / boundingRect.height);
-                    }
+                let current = this._textLayer.current;
+                if (current) {
+                    let boundingRect = current.getBoundingClientRect();
+                    this._marqueeX = (e.clientX - boundingRect.left) * (current.offsetWidth / boundingRect.width);
+                    this._marqueeY = (e.clientY - boundingRect.top) * (current.offsetHeight / boundingRect.height);
+                }
                 this._marqueeing = true;
                 if (this._marquee.current) this._marquee.current.style.opacity = "0.2";
             }
-            document.removeEventListener("pointermove", this.onPointerMove);
-            document.addEventListener("pointermove", this.onPointerMove);
-            document.removeEventListener("pointerup", this.onPointerUp);
-            document.addEventListener("pointerup", this.onPointerUp);
+            document.removeEventListener("pointermove", this.onSelectStart);
+            document.addEventListener("pointermove", this.onSelectStart);
+            document.removeEventListener("pointerup", this.onSelectEnd);
+            document.addEventListener("pointerup", this.onSelectEnd);
             if (!e.ctrlKey) {
                 for (let anno of this._currentAnnotations) {
                     anno.remove();
@@ -234,37 +234,20 @@ export default class Page extends React.Component<IPageProps> {
     }
 
     @action
-    onPointerMove = (e: PointerEvent) => {
+    onSelectStart = (e: PointerEvent) => {
         let target: any = e.target;
         if (this._marqueeing) {
             let current = this._textLayer.current;
             if (current) {
+                // transform positions and find the width and height to set the marquee to
                 let boundingRect = current.getBoundingClientRect();
                 this._marqueeWidth = (e.clientX - boundingRect.left) * (current.offsetWidth / boundingRect.width) - this._marqueeX;
                 this._marqueeHeight = (e.clientY - boundingRect.top) * (current.offsetHeight / boundingRect.height) - this._marqueeY;
+                let { background, opacity, transform: transform } = this.getCurlyTransform();
                 if (this._marquee.current && this._curly.current) {
-                    if (this._marqueeWidth > 100 && this._marqueeHeight > 100) {
-                        this._marquee.current.style.background = "red";
-                        this._curly.current.style.opacity = "0";
-                    }
-                    else {
-                        this._marquee.current.style.background = "transparent";
-                        this._curly.current.style.opacity = "1";
-                    }
-
-                    let ratio = this._marqueeWidth / this._marqueeHeight;
-                    if (ratio > 1.5) {
-                        // vertical
-                        this._rotate = "rotate(90deg) scale(1, 2)";
-                    }
-                    else if (ratio < 0.5) {
-                        // horizontal
-                        this._rotate = "scale(2, 1)";
-                    }
-                    else {
-                        // diagonal
-                        this._rotate = "rotate(45deg) scale(1.5, 1.5)";
-                    }
+                    this._marquee.current.style.background = background;
+                    this._curly.current.style.opacity = opacity;
+                    this._rotate = transform;
                 }
             }
             e.stopPropagation();
@@ -275,25 +258,62 @@ export default class Page extends React.Component<IPageProps> {
         }
     }
 
-    startAnnotation = () => {
-        console.log("drag starting");
-    }
+    getCurlyTransform = (): { background: string, opacity: string, transform: string } => {
+        let background = "", opacity = "", transform = "";
+        if (this._marquee.current && this._curly.current) {
+            if (this._marqueeWidth > 100 && this._marqueeHeight > 100) {
+                background = "red";
+                opacity = "0";
+            }
+            else {
+                background = "transparent";
+                opacity = "1";
+            }
 
-    pointerDownCancel = (e: PointerEvent) => {
-        e.stopPropagation();
+            // split up for simplicity, could be done in a nested ternary. please do not. -syip2
+            let ratio = this._marqueeWidth / this._marqueeHeight;
+            if (ratio > 1.5) {
+                // vertical
+                transform = "rotate(90deg) scale(1, 2)";
+            }
+            else if (ratio < 0.5) {
+                // horizontal
+                transform = "scale(2, 1)";
+            }
+            else {
+                // diagonal
+                transform = "rotate(45deg) scale(1.5, 1.5)";
+            }
+        }
+        return { background: background, opacity: opacity, transform: transform };
     }
 
     @action
-    onPointerUp = () => {
+    onSelectEnd = () => {
         if (this._marqueeing) {
             this._marqueeing = false;
             if (this._marquee.current) {
                 let copy = document.createElement("div");
+                // make a copy of the marquee
                 copy.style.left = this._marquee.current.style.left;
                 copy.style.top = this._marquee.current.style.top;
                 copy.style.width = this._marquee.current.style.width;
                 copy.style.height = this._marquee.current.style.height;
-                copy.style.opacity = this._marquee.current.style.opacity;
+
+                // apply the appropriate background, opacity, and transform
+                let { background, opacity, transform } = this.getCurlyTransform();
+                copy.style.background = background;
+                // if curly bracing, add a curly brace
+                if (opacity === "1" && this._curly.current) {
+                    copy.style.opacity = opacity;
+                    let img = this._curly.current.cloneNode();
+                    (img as any).style.opacity = opacity;
+                    (img as any).style.transform = transform;
+                    copy.appendChild(img);
+                }
+                else {
+                    copy.style.opacity = this._marquee.current.style.opacity;
+                }
                 copy.className = this._marquee.current.className;
                 if (this._annotationLayer.current) {
                     this._annotationLayer.current.append(copy);
@@ -321,13 +341,12 @@ export default class Page extends React.Component<IPageProps> {
                             annoBox.style.left = ((rect.left - boundingRect.left) * (this._textLayer.current.offsetWidth / boundingRect.width)).toString();
                             annoBox.style.width = (rect.width * this._textLayer.current.offsetWidth / boundingRect.width).toString();
                             annoBox.style.height = (rect.height * this._textLayer.current.offsetHeight / boundingRect.height).toString();
-                            annoBox.ondragstart = this.startAnnotation;
-                            annoBox.onpointerdown = this.pointerDownCancel;
                             if (this._annotationLayer.current) this._annotationLayer.current.append(annoBox);
                             this._currentAnnotations.push(annoBox);
                         }
                     }
                 }
+                // clear selection
                 if (sel.empty) {  // Chrome
                     sel.empty();
                 } else if (sel.removeAllRanges) {  // Firefox
@@ -335,8 +354,8 @@ export default class Page extends React.Component<IPageProps> {
                 }
             }
         }
-        document.removeEventListener("pointermove", this.onPointerMove);
-        document.removeEventListener("pointerup", this.onPointerUp);
+        document.removeEventListener("pointermove", this.onSelectStart);
+        document.removeEventListener("pointerup", this.onSelectEnd);
     }
 
     renderAnnotation = (anno: Doc | undefined): HTMLDivElement => {
@@ -348,18 +367,9 @@ export default class Page extends React.Component<IPageProps> {
             annoBox.style.left = NumCast(anno.y).toString();
             annoBox.style.width = NumCast(anno.width).toString();
             annoBox.style.height = NumCast(anno.height).toString()
-            annoBox.onpointerdown = this.pointerDownCancel;
         }
         return annoBox;
     }
-
-    annotationPointerDown = () => {
-        console.log("annotation");
-    }
-
-    // imgVisible = () => {
-    //     return this._marqueeWidth < 100 && this._marqueeHeight < 100 ? { opacity: "1" } : { opacity: "0" }
-    // }
 
     render() {
         let annotations = this._annotations;
