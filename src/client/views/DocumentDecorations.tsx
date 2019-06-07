@@ -6,7 +6,7 @@ import { observer } from "mobx-react";
 import { Doc } from "../../new_fields/Doc";
 import { List } from "../../new_fields/List";
 import { listSpec } from "../../new_fields/Schema";
-import { Cast, NumCast, StrCast } from "../../new_fields/Types";
+import { Cast, NumCast, StrCast, BoolCast } from "../../new_fields/Types";
 import { emptyFunction, Utils } from "../../Utils";
 import { Docs } from "../documents/Documents";
 import { DocumentManager } from "../util/DocumentManager";
@@ -443,16 +443,30 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 let actualdH = Math.max(height + (dH * scale), 20);
                 doc.x = (doc.x || 0) + dX * (actualdW - width);
                 doc.y = (doc.y || 0) + dY * (actualdH - height);
+                let proto = Doc.GetProto(doc);
+                let fixedAspect = e.ctrlKey || (!BoolCast(proto.ignoreAspect, false) && nwidth && nheight);
+                if (fixedAspect && (!nwidth || !nheight)) {
+                    proto.nativeWidth = doc.width;
+                    proto.nativeHeight = doc.height;
+                    proto.ignoreAspect = true;
+                }
                 if (nwidth > 0 && nheight > 0) {
                     if (Math.abs(dW) > Math.abs(dH)) {
+                        if (!fixedAspect) proto.nativeWidth = zoomBasis * actualdW / (doc.width || 1) * NumCast(proto.nativeWidth);
                         doc.width = zoomBasis * actualdW;
                         // doc.zoomBasis = zoomBasis * width / actualdW;
+                        if (fixedAspect) doc.height = nheight / nwidth * doc.width;
+                        else doc.height = zoomBasis * actualdH;
+                        proto.nativeHeight = (doc.height || 0) / doc.width * NumCast(proto.nativeWidth);
                     }
                     else {
-                        doc.width = nwidth / nheight * zoomBasis * actualdH;
+                        if (!fixedAspect) proto.nativeHeight = zoomBasis * actualdH / (doc.height || 1) * NumCast(proto.nativeHeight);
+                        doc.height = zoomBasis * actualdH;
                         //doc.zoomBasis = zoomBasis * height / actualdH;
+                        if (fixedAspect) doc.width = nwidth / nheight * doc.height;
+                        else doc.width = zoomBasis * actualdW;
+                        proto.nativeWidth = (doc.width || 0) / doc.height * NumCast(proto.nativeHeight);
                     }
-                    doc.height = nheight / nwidth * doc.width;
                 } else {
                     doc.width = zoomBasis * actualdW;
                     if (docHeightBefore === doc.height) doc.height = zoomBasis * actualdH;

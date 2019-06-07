@@ -11,6 +11,7 @@ import { DocumentView } from "../nodes/DocumentView";
 import { CollectionSchemaPreview } from "./CollectionSchemaView";
 import "./CollectionStackingView.scss";
 import { CollectionSubView } from "./CollectionSubView";
+import { ContextMenu } from "../ContextMenu";
 
 @observer
 export class CollectionStackingView extends CollectionSubView(doc => doc) {
@@ -147,12 +148,22 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             </div>);
         })
     }
+    onContextMenu = (e: React.MouseEvent): void => {
+        if (!e.isPropagationStopped() && this.props.Document[Id] !== "mainDoc") { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
+            ContextMenu.Instance.addItem({
+                description: "Toggle multi-column",
+                event: () => this.props.Document.singleColumn = !BoolCast(this.props.Document.singleColumn, false), icon: "file-pdf"
+            });
+        }
+    }
     render() {
-        let cols = this.singleColumn ? 1 : Math.floor((this.props.PanelWidth() - 2 * this.xMargin) / (this.columnWidth + 2 * this.gridGap));
+        let cols = this.singleColumn ? 1 : Math.min(this.childDocs.filter(d => !d.isMinimized).length,
+            Math.floor((this.props.PanelWidth() - 2 * this.xMargin) / (this.columnWidth + 2 * this.gridGap)));
         let templatecols = "";
         for (let i = 0; i < cols; i++) templatecols += `${this.columnWidth}px `;
         return (
             <div className="collectionStackingView" style={{ height: "100%" }}
+                onContextMenu={this.onContextMenu}
                 ref={this.createRef} onWheel={(e: React.WheelEvent) => e.stopPropagation()}>
                 <div className={`collectionStackingView-masonry${this.singleColumn ? "Single" : "Grid"}`}
                     style={{

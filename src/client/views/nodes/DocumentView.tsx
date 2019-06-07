@@ -189,7 +189,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     toggleMinimized = async () => {
         let minimizedDoc = await Cast(this.props.Document.minimizedDoc, Doc);
         if (minimizedDoc) {
-            let scrpt = this.props.ScreenToLocalTransform().inverse().transformPoint(
+            let scrpt = this.props.ScreenToLocalTransform().scale(this.props.ContentScaling()).inverse().transformPoint(
                 NumCast(minimizedDoc.x) - NumCast(this.Document.x), NumCast(minimizedDoc.y) - NumCast(this.Document.y));
             this.props.collapseToPoint && this.props.collapseToPoint(scrpt, await DocListCastAsync(minimizedDoc.maximizedDocs));
         }
@@ -246,7 +246,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                                     this.props.addDocTab(getDispDoc(maxDoc), maxLocation)));
                         }
                     } else {
-                        let scrpt = this.props.ScreenToLocalTransform().inverse().transformPoint(NumCast(this.Document.width) / 2, NumCast(this.Document.height) / 2);
+                        let scrpt = this.props.ScreenToLocalTransform().scale(this.props.ContentScaling()).inverse().transformPoint(NumCast(this.Document.width) / 2, NumCast(this.Document.height) / 2);
                         this.props.collapseToPoint && this.props.collapseToPoint(scrpt, expandedProtoDocs);
                     }
                 }
@@ -374,23 +374,13 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     freezeNativeDimensions = (e: React.MouseEvent): void => {
-        if (NumCast(this.props.Document.nativeWidth)) {
-            let proto = Doc.GetProto(this.props.Document);
-            let nw = proto.nativeWidth;
-            let nh = proto.nativeHeight;
-            proto.nativeWidth = proto.nativeHeight = undefined;
-            this.props.Document.width = this.props.Document.frozenWidth;
-            this.props.Document.height = this.props.Document.frozenHeight;
+        let proto = Doc.GetProto(this.props.Document);
+        if (proto.ignoreAspect === undefined && !proto.nativeWidth) {
+            proto.nativeWidth = this.props.PanelWidth();
+            proto.nativeHeight = this.props.PanelHeight();
+            proto.ignoreAspect = true;
         }
-        else {
-            let scale = this.props.ScreenToLocalTransform().Scale * NumCast(this.props.Document.zoomBasis, 1);
-            let scr = this.screenRect();
-            let proto = Doc.GetProto(this.props.Document);
-            this.props.Document.frozenWidth = this.props.Document.width;
-            this.props.Document.frozenHeight = this.props.Document.height;
-            this.props.Document.height = proto.nativeHeight = scr.height * scale;
-            this.props.Document.width = proto.nativeWidth = scr.width * scale;
-        }
+        proto.ignoreAspect = !BoolCast(proto.ignoreAspect, false);
     }
 
     @action
@@ -412,7 +402,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         subitems.push({ description: "Open Right Alias", event: () => this.props.addDocTab && this.props.addDocTab(Doc.MakeAlias(this.props.Document), "onRight"), icon: "caret-square-right" });
         subitems.push({ description: "Open Fields", event: this.fieldsClicked, icon: "layer-group" });
         cm.addItem({ description: "Open...", subitems: subitems });
-        cm.addItem({ description: NumCast(this.props.Document.nativeWidth) ? "Unfreeze" : "Freeze", event: this.freezeNativeDimensions, icon: "edit" });
+        cm.addItem({ description: BoolCast(this.props.Document.ignoreAspect, false) || !this.props.Document.nativeWidth || !this.props.Document.nativeHeight ? "Freeze" : "Unfreeze", event: this.freezeNativeDimensions, icon: "edit" });
         cm.addItem({ description: "Pin to Pres", event: () => PresentationView.Instance.PinDoc(this.props.Document), icon: "map-pin" });
         cm.addItem({ description: this.props.Document.isButton ? "Remove Button" : "Make Button", event: this.makeBtnClicked, icon: "concierge-bell" });
         cm.addItem({
