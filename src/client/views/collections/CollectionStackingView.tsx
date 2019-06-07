@@ -109,7 +109,6 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     }
     @computed
     get children() {
-        trace();
         return this.childDocs.filter(d => !d.isMinimized).map((d, i) => {
             let dref = React.createRef<HTMLDivElement>();
             let dxf = () => this.getDocTransform(d, dref.current!);

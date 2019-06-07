@@ -29,6 +29,7 @@ export class CurrentUserUtils {
     private static createUserDocument(id: string): Doc {
         let doc = new Doc(id, true);
         doc.viewType = CollectionViewType.Tree;
+        doc.dropAction = "alias";
         doc.layout = CollectionView.LayoutString();
         doc.title = this.email;
         doc.data = new List<Doc>();

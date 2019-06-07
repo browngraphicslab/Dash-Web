@@ -23,6 +23,7 @@ import "./CollectionDockingView.scss";
 import { SubCollectionViewProps } from "./CollectionSubView";
 import { ParentDocSelector } from './ParentDocumentSelector';
 import React = require("react");
+import { MainView } from '../MainView';
 
 @observer
 export class CollectionDockingView extends React.Component<SubCollectionViewProps> {
@@ -457,7 +458,9 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     get previewPanelCenteringOffset() { return (this._panelWidth - this.nativeWidth() * this.contentScaling()) / 2; }
 
     addDocTab = (doc: Doc, location: string) => {
-        if (location === "onRight") {
+        if (doc.dockingConfig) {
+            MainView.Instance.openWorkspace(doc);
+        } else if (location === "onRight") {
             CollectionDockingView.Instance.AddRightSplit(doc);
         } else {
             CollectionDockingView.Instance.AddTab(this._stack, doc);

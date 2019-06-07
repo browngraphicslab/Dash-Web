@@ -18,6 +18,7 @@ import { CollectionVideoView } from "./CollectionVideoView";
 import { CollectionView } from "./CollectionView";
 import React = require("react");
 import { FormattedTextBox } from "../nodes/FormattedTextBox";
+import { Id } from "../../../new_fields/FieldSymbols";
 
 export interface CollectionViewProps extends FieldViewProps {
     addDocument: (document: Doc, allowDuplicates?: boolean) => boolean;
@@ -81,28 +82,15 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
         @action
         protected drop(e: Event, de: DragManager.DropEvent): boolean {
             if (de.data instanceof DragManager.DocumentDragData) {
-                if (de.data.dropAction || de.data.userDropAction) {
-                    ["width", "height", "curPage"].map(key =>
-                        de.data.draggedDocuments.map((draggedDocument: Doc, i: number) =>
-                            PromiseValue(Cast(draggedDocument[key], "number")).then(f => f && (de.data.droppedDocuments[i][key] = f))));
-                }
                 let added = false;
                 if (de.data.dropAction || de.data.userDropAction) {
-                    added = de.data.droppedDocuments.reduce((added: boolean, d) => {
-                        let moved = this.props.addDocument(d);
-                        return moved || added;
-                    }, false);
+                    added = de.data.droppedDocuments.reduce((added: boolean, d) => this.props.addDocument(d) || added, false);
                 } else if (de.data.moveDocument) {
-                    const move = de.data.moveDocument;
-                    added = de.data.droppedDocuments.reduce((added: boolean, d) => {
-                        let moved = move(d, this.props.Document, this.props.addDocument);
-                        return moved || added;
-                    }, false);
+                    let movedDocs = de.data.options === this.props.Document[Id] ? de.data.draggedDocuments : de.data.droppedDocuments;
+                    added = movedDocs.reduce((added: boolean, d) =>
+                        de.data.moveDocument(d, this.props.Document, this.props.addDocument) || added, false);
                 } else {
-                    added = de.data.droppedDocuments.reduce((added: boolean, d) => {
-                        let moved = this.props.addDocument(d);
-                        return moved || added;
-                    }, false);
+                    added = de.data.droppedDocuments.reduce((added: boolean, d) => this.props.addDocument(d) || added, false);
                 }
                 e.stopPropagation();
                 return added;
