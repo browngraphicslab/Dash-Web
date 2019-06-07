@@ -75,10 +75,10 @@ export class Timeline extends CollectionSubView(Document) {
                 return this._keys.map(key => FieldValue(node[key]));
             }, async data => {
                 if (this._inner.current) {
-                    if (!this._barMoved){
-                        console.log("running"); 
+                    if (!this._barMoved) {
+                        console.log("running");
                         if (this._data.indexOf(node) === -1) {
-                            
+
                             const kf = new List();
                             this._data.push(node);
                             let index = this._data.indexOf(node);
@@ -109,7 +109,7 @@ export class Timeline extends CollectionSubView(Document) {
                             }
                         }
                     }
-                    
+
                 }
             });
         };
@@ -169,13 +169,13 @@ export class Timeline extends CollectionSubView(Document) {
             if (leftKf && rightKf) {
                 this.interpolate(oneDoc, leftKf, rightKf, this._currentBarX);
             }
-        }); 
+        });
     }
 
     calcMinLeft = (kfList: Doc[], time: number): number => {
         let leftMin: number = Infinity;
         kfList.forEach((kf) => {
-            const diff:number = Math.abs(NumCast(kf.time) - time);
+            const diff: number = Math.abs(NumCast(kf.time) - time);
             if (diff < leftMin) {
                 leftMin = diff;
             }
@@ -183,7 +183,7 @@ export class Timeline extends CollectionSubView(Document) {
         return leftMin;
     }
 
-    calcMinRight = (kfList: Doc[], time:number): number => {
+    calcMinRight = (kfList: Doc[], time: number): number => {
         let rightMin: number = Infinity;
         kfList.forEach((kf) => {
             const diff: number = Math.abs(NumCast(kf.time!) - time);
@@ -216,11 +216,11 @@ export class Timeline extends CollectionSubView(Document) {
     }
 
 
-    private _barMoved:boolean = false; 
+    private _barMoved: boolean = false;
     @action
     onInnerPointerUp = (e: React.PointerEvent) => {
         if (this._inner.current) {
-            this._barMoved = false; 
+            this._barMoved = false;
             this._inner.current.removeEventListener("pointermove", this.onInnerPointerMove);
         }
     }
@@ -231,7 +231,7 @@ export class Timeline extends CollectionSubView(Document) {
         e.stopPropagation();
         if (this._isRecording) {
             if (this._inner.current) {
-                this._barMoved = true; 
+                this._barMoved = true;
                 let mouse = e.nativeEvent;
                 let offsetX = Math.round(mouse.offsetX);
                 this._currentBarX = offsetX;
@@ -247,7 +247,7 @@ export class Timeline extends CollectionSubView(Document) {
     onInnerPointerMove = (e: PointerEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        this._barMoved = true; 
+        this._barMoved = true;
         let offsetX = Math.round(e.offsetX);
         this._currentBarX = offsetX;
         this._currentBar.style.transform = `translate(${offsetX}px)`; //styling should not have to be done this way...maybe done through react??
@@ -291,13 +291,23 @@ export class Timeline extends CollectionSubView(Document) {
         this._reactionDisposers = [];
     }
 
+    @action
+    displayKeyFrames = (dv: DocumentView) => {
+        console.log(dv);
+        dv.props.Document;
+
+    }
+
     render() {
         return (
             <div>
                 <div className="timeline-container">
                     <div className="timeline">
                         <div className="inner" ref={this._inner} onPointerDown={this.onInnerPointerDown} onPointerUp={this.onInnerPointerUp}>
-                            
+                            {
+                                SelectionManager.SelectedDocuments().map((dv) => {
+                                    this.displayKeyFrames(dv);
+                                })}
                         </div>
                     </div>
                     <button onClick={this.onRecord}>Record</button>
