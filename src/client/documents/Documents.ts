@@ -227,7 +227,7 @@ export namespace Docs {
                     inst.proto!.nativeWidth = size.width;
                 }
                 inst.proto!.nativeHeight = Number(inst.proto!.nativeWidth!) * aspect;
-                inst.proto!.height = NumCast(inst.proto!.width) * aspect;
+                inst.height = NumCast(inst.width) * aspect;
             })
             .catch((err: any) => console.log(err));
         return inst;
