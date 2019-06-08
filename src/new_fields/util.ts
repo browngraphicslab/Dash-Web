@@ -44,7 +44,8 @@ export const setter = action(function (target: any, prop: string | symbol | numb
     } else {
         target.__fields[prop] = value;
     }
-    target[Update]({ '$set': { ["fields." + prop]: value instanceof ObjectField ? SerializationHelper.Serialize(value) : (value === undefined ? null : value) } });
+    if (value === undefined) target[Update]({ '$unset': { ["fields." + prop]: "" } });
+    else target[Update]({ '$set': { ["fields." + prop]: value instanceof ObjectField ? SerializationHelper.Serialize(value) : (value === undefined ? null : value) } });
     UndoManager.AddEvent({
         redo: () => receiver[prop] = value,
         undo: () => receiver[prop] = curValue
