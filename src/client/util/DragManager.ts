@@ -269,6 +269,7 @@ export namespace DragManager {
         let lastX = downX;
         let lastY = downY;
         const moveHandler = (e: PointerEvent) => {
+            e.preventDefault(); // required or dragging text menu link item ends up dragging the link button as native drag/drop
             if (dragData instanceof DocumentDragData) {
                 dragData.userDropAction = e.ctrlKey || e.altKey ? "alias" : undefined;
             }

@@ -1,6 +1,6 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faAlignCenter, faCaretSquareRight, faCompressArrowsAlt, faExpandArrowsAlt, faLayerGroup, faSquare, faTrash, faConciergeBell, faFolder, faMapPin, faLink, faFingerprint, faCrosshairs, faDesktop } from '@fortawesome/free-solid-svg-icons';
-import { action, computed, IReactionDisposer, reaction, trace } from "mobx";
+import { action, computed, IReactionDisposer, reaction, trace, observable } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCast, HeightSym, Opt, WidthSym, DocListCastAsync } from "../../../new_fields/Doc";
 import { List } from "../../../new_fields/List";
@@ -122,6 +122,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
     set templates(templates: List<string>) { this.props.Document.templates = templates; }
     screenRect = (): ClientRect | DOMRect => this._mainCont.current ? this._mainCont.current.getBoundingClientRect() : new DOMRect();
+
+    constructor(props: DocumentViewProps) {
+        super(props);
+        this.selectOnLoad = props.selectOnLoad;
+    }
+
 
     _reactionDisposer?: IReactionDisposer;
     @action
@@ -429,11 +435,15 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     onPointerLeave = (e: React.PointerEvent): void => { this.props.Document.libraryBrush = false; };
 
     isSelected = () => SelectionManager.IsSelected(this);
-    select = (ctrlPressed: boolean) => SelectionManager.SelectDoc(this, ctrlPressed);
+    @action select = (ctrlPressed: boolean) => { this.selectOnLoad = false; SelectionManager.SelectDoc(this, ctrlPressed); }
 
+    @observable selectOnLoad: boolean = false;
     @computed get nativeWidth() { return this.Document.nativeWidth || 0; }
     @computed get nativeHeight() { return this.Document.nativeHeight || 0; }
-    @computed get contents() { return (<DocumentContentsView {...this.props} isSelected={this.isSelected} select={this.select} layoutKey={"layout"} />); }
+    @computed get contents() {
+        return (
+            <DocumentContentsView {...this.props} isSelected={this.isSelected} select={this.select} selectOnLoad={this.selectOnLoad} layoutKey={"layout"} />);
+    }
 
     render() {
         var scaling = this.props.ContentScaling();

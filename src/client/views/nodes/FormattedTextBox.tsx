@@ -52,6 +52,8 @@ library.add(faSmile);
 export interface FormattedTextBoxProps {
     isOverlay?: boolean;
     hideOnLeave?: boolean;
+    height?: string;
+    color?: string;
 }
 
 const richTextSchema = createSchema({
@@ -206,6 +208,11 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
     private setupEditor(config: any, doc?: Doc) {
         let field = doc ? Cast(doc[this.props.fieldKey], RichTextField) : undefined;
+        let startup = StrCast(this.props.Document.documentText);
+        startup = startup.startsWith("@@@") ? startup.replace("@@@", "") : "";
+        if (!startup && !field && doc) {
+            startup = StrCast(doc[this.props.fieldKey]);
+        }
         if (this._proseRef.current) {
             this._editorView = new EditorView(this._proseRef.current, {
                 state: field && field.Data ? EditorState.fromJSON(config, JSON.parse(field.Data)) : EditorState.create(config),
@@ -214,10 +221,9 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     image(node, view, getPos) { return new ImageResizeView(node, view, getPos); }
                 }
             });
-            let text = StrCast(this.props.Document.documentText);
-            if (text.startsWith("@@@")) {
+            if (startup) {
                 this.props.Document.proto!.documentText = undefined;
-                this._editorView.dispatch(this._editorView.state.tr.insertText(text.replace("@@@", "")));
+                this._editorView.dispatch(this._editorView.state.tr.insertText(startup));
             }
         }
 
@@ -380,9 +386,10 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         return (
             <div className={`formattedTextBox-cont-${style}`} ref={this._ref}
                 style={{
+                    height: this.props.height ? this.props.height : undefined,
                     background: this.props.hideOnLeave ? "rgba(0,0,0,0.4)" : undefined,
                     opacity: this.props.hideOnLeave ? (this._entered || this.props.isSelected() || this.props.Document.libraryBrush ? 1 : 0.1) : 1,
-                    color: this.props.hideOnLeave ? "white" : "initial",
+                    color: this.props.color ? this.props.color : this.props.hideOnLeave ? "white" : "initial",
                     pointerEvents: interactive ? "all" : "none",
                 }}
                 // onKeyDown={this.onKeyPress}
