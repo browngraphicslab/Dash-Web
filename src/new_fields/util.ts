@@ -7,7 +7,7 @@ import { RefField } from "./RefField";
 import { ObjectField } from "./ObjectField";
 import { action } from "mobx";
 import { Parent, OnUpdate, Update, Id, SelfProxy } from "./FieldSymbols";
-import { ComputedField } from "../fields/ScriptField";
+import { ComputedField } from "./ScriptField";
 
 export const setter = action(function (target: any, prop: string | symbol | number, value: any, receiver: any): boolean {
     if (SerializationHelper.IsSerializing()) {

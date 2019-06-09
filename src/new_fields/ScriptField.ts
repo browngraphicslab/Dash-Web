@@ -1,6 +1,6 @@
-import { ObjectField } from "../new_fields/ObjectField";
+import { ObjectField } from "./ObjectField";
 import { CompiledScript, CompileScript } from "../client/util/Scripting";
-import { Copy, ToScriptString, Parent, SelfProxy } from "../new_fields/FieldSymbols";
+import { Copy, ToScriptString, Parent, SelfProxy } from "./FieldSymbols";
 import { serializable, createSimpleSchema, map, primitive, object, deserialize, PropSchema, custom, SKIP } from "serializr";
 import { Deserializable } from "../client/util/SerializationHelper";
 import { computed } from "mobx";
@@ -84,7 +84,7 @@ export class ScriptField extends ObjectField {
 export class ComputedField extends ScriptField {
     @computed
     get value() {
-        const val = this.script.run({ this: (this[Parent] as any)[SelfProxy] });
+        const val = this.script.run({ this: this[Parent] });
         if (val.success) {
             return val.result;
         }
