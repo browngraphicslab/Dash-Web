@@ -21,22 +21,11 @@ export namespace SelectionManager {
                 doc.props.whenActiveChanged(true);
             }
         }
-
         @action
         DeselectAll(): void {
             manager.SelectedDocuments.map(dv => dv.props.whenActiveChanged(false));
             manager.SelectedDocuments = [];
             FormattedTextBox.InputBoxOverlay = undefined;
-        }
-        @action
-        ReselectAll() {
-            let sdocs = manager.SelectedDocuments.map(d => d);
-            manager.SelectedDocuments = [];
-            return sdocs;
-        }
-        @action
-        ReselectAll2(sdocs: DocumentView[]) {
-            sdocs.map(s => SelectionManager.SelectDoc(s, true));
         }
     }
 
@@ -62,14 +51,10 @@ export namespace SelectionManager {
         if (found) manager.SelectDoc(found, false);
     }
 
-    export function ReselectAll() {
-        let sdocs = manager.ReselectAll();
-        setTimeout(() => manager.ReselectAll2(sdocs), 0);
-    }
     export function SelectedDocuments(): Array<DocumentView> {
         return manager.SelectedDocuments;
     }
-    export function ViewsSortedVertically(): DocumentView[] {
+    export function ViewsSortedHorizontally(): DocumentView[] {
         let sorted = SelectionManager.SelectedDocuments().slice().sort((doc1, doc2) => {
             if (NumCast(doc1.props.Document.x) > NumCast(doc2.props.Document.x)) return 1;
             if (NumCast(doc1.props.Document.x) < NumCast(doc2.props.Document.x)) return -1;
@@ -77,7 +62,7 @@ export namespace SelectionManager {
         });
         return sorted;
     }
-    export function ViewsSortedHorizontally(): DocumentView[] {
+    export function ViewsSortedVertically(): DocumentView[] {
         let sorted = SelectionManager.SelectedDocuments().slice().sort((doc1, doc2) => {
             if (NumCast(doc1.props.Document.y) > NumCast(doc2.props.Document.y)) return 1;
             if (NumCast(doc1.props.Document.y) < NumCast(doc2.props.Document.y)) return -1;

@@ -1,11 +1,10 @@
 import { observer } from "mobx-react";
-import { Utils } from "../../../../Utils";
+import { Doc, HeightSym, WidthSym } from "../../../../new_fields/Doc";
+import { BoolCast, NumCast, StrCast } from "../../../../new_fields/Types";
+import { InkingControl } from "../../InkingControl";
 import "./CollectionFreeFormLinkView.scss";
 import React = require("react");
 import v5 = require("uuid/v5");
-import { StrCast, NumCast, BoolCast } from "../../../../new_fields/Types";
-import { Doc, WidthSym, HeightSym } from "../../../../new_fields/Doc";
-import { InkingControl } from "../../InkingControl";
 
 export interface CollectionFreeFormLinkViewProps {
     A: Doc;
@@ -44,14 +43,20 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
         let y1 = NumCast(a.y) + (BoolCast(a.isMinimized, false) ? 5 : NumCast(a.height) / NumCast(a.zoomBasis, 1) / 2);
         let x2 = NumCast(b.x) + (BoolCast(b.isMinimized, false) ? 5 : NumCast(b.width) / NumCast(b.zoomBasis, 1) / 2);
         let y2 = NumCast(b.y) + (BoolCast(b.isMinimized, false) ? 5 : NumCast(b.height) / NumCast(b.zoomBasis, 1) / 2);
+        let text = "";
+        this.props.LinkDocs.map(l => text += StrCast(l.title) + "(" + StrCast(l.linkDescription) + "), ");
+        text = text.substr(0, text.length - 2);
         return (
             <>
-                <line key={"linkLine"} className="collectionfreeformlinkview-linkLine"
-                    style={{ strokeWidth: `${35 * l.length / 2}` }}
+                <line key="linkLine" className="collectionfreeformlinkview-linkLine"
+                    style={{ strokeWidth: `${2 * l.length / 2}` }}
                     x1={`${x1}`} y1={`${y1}`}
                     x2={`${x2}`} y2={`${y2}`} />
-                <circle key={"linkCircle"} className="collectionfreeformlinkview-linkCircle"
-                    cx={(x1 + x2) / 2} cy={(y1 + y2) / 2} r={8} onPointerDown={this.onPointerDown} />
+                {/* <circle key="linkCircle" className="collectionfreeformlinkview-linkCircle"
+                    cx={(x1 + x2) / 2} cy={(y1 + y2) / 2} r={8} onPointerDown={this.onPointerDown} /> */}
+                <text key="linkText" textAnchor="middle" className="collectionfreeformlinkview-linkText" x={`${(x1 + x2) / 2}`} y={`${(y1 + y2) / 2}`}>
+                    {text}
+                </text>
             </>
         );
     }

@@ -96,12 +96,12 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
             return <div className="mainOverlayTextBox-textInput" style={{ transform: `translate(${textRect.left}px, ${textRect.top}px) scale(${1 / s},${1 / s})`, width: "auto", height: "auto" }} >
                 <div className="mainOverlayTextBox-textInput" onPointerDown={this.textBoxDown} ref={this._textProxyDiv} onScroll={this.textScroll}
                     style={{ width: `${textRect.width * s}px`, height: `${textRect.height * s}px` }}>
-                    <FormattedTextBox fieldKey={this._textFieldKey} hideOnLeave={this._textHideOnLeave} isOverlay={true} Document={FormattedTextBox.InputBoxOverlay.props.Document} isSelected={returnTrue} select={emptyFunction} isTopMost={true}
+                    <FormattedTextBox color={`${this._textColor}`} fieldKey={this._textFieldKey} hideOnLeave={this._textHideOnLeave} isOverlay={true} Document={FormattedTextBox.InputBoxOverlay.props.Document} isSelected={returnTrue} select={emptyFunction} isTopMost={true}
                         selectOnLoad={true} ContainingCollectionView={undefined} whenActiveChanged={emptyFunction} active={returnTrue}
                         ScreenToLocalTransform={this._textXf} PanelWidth={returnZero} PanelHeight={returnZero} focus={emptyFunction} addDocTab={this.addDocTab} />
                 </div>
             </ div>;
         }
-        else return (null); Z
+        else return (null);
     }
 }

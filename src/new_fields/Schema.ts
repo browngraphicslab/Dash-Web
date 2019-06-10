@@ -1,5 +1,7 @@
 import { Interface, ToInterface, Cast, ToConstructor, HasTail, Head, Tail, ListSpec, ToType, DefaultFieldConstructor } from "./Types";
 import { Doc, Field } from "./Doc";
+import { ObjectField } from "./ObjectField";
+import { RefField } from "./RefField";
 
 type AllToInterface<T extends Interface[]> = {
     1: ToInterface<Head<T>> & AllToInterface<Tail<T>>,
@@ -10,10 +12,16 @@ export const emptySchema = createSchema({});
 export const Document = makeInterface(emptySchema);
 export type Document = makeInterface<[typeof emptySchema]>;
 
+export interface InterfaceFunc<T extends Interface[]> {
+    (docs: Doc[]): makeInterface<T>[];
+    (): makeInterface<T>;
+    (doc: Doc): makeInterface<T>;
+}
+
 export type makeInterface<T extends Interface[]> = AllToInterface<T> & Doc & { proto: Doc | undefined };
 // export function makeInterface<T extends Interface[], U extends Doc>(schemas: T): (doc: U) => All<T, U>;
 // export function makeInterface<T extends Interface, U extends Doc>(schema: T): (doc: U) => makeInterface<T, U>; 
-export function makeInterface<T extends Interface[]>(...schemas: T): (doc?: Doc) => makeInterface<T> {
+export function makeInterface<T extends Interface[]>(...schemas: T): InterfaceFunc<T> {
     let schema: Interface = {};
     for (const s of schemas) {
         for (const key in s) {
@@ -25,10 +33,19 @@ export function makeInterface<T extends Interface[]>(...schemas: T): (doc?: Doc)
             const field = receiver.doc[prop];
             if (prop in schema) {
                 const desc = (schema as any)[prop];
-                if (typeof desc === "object" && "defaultVal" in desc && "type" in desc) {
+                if (typeof desc === "object" && "defaultVal" in desc && "type" in desc) {//defaultSpec
                     return Cast(field, desc.type, desc.defaultVal);
+                } else if (typeof desc === "function" && !ObjectField.isPrototypeOf(desc) && !RefField.isPrototypeOf(desc)) {
+                    const doc = Cast(field, Doc);
+                    if (doc === undefined) {
+                        return undefined;
+                    } else if (doc instanceof Doc) {
+                        return desc(doc);
+                    } else {
+                        return doc.then(doc => doc && desc(doc));
+                    }
                 } else {
-                    return Cast(field, (schema as any)[prop]);
+                    return Cast(field, desc);
                 }
             }
             return field;
@@ -38,13 +55,20 @@ export function makeInterface<T extends Interface[]>(...schemas: T): (doc?: Doc)
             return true;
         }
     });
-    return function (doc?: Doc) {
-        doc = doc || new Doc;
+    const fn = (doc: Doc) => {
         if (!(doc instanceof Doc)) {
             throw new Error("Currently wrapping a schema in another schema isn't supported");
         }
         const obj = Object.create(proto, { doc: { value: doc, writable: false } });
         return obj;
+    };
+    return function (doc?: Doc | Doc[]) {
+        doc = doc || new Doc;
+        if (doc instanceof Doc) {
+            return fn(doc);
+        } else {
+            return doc.map(fn);
+        }
     };
 }
 

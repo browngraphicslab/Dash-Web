@@ -6,7 +6,7 @@ import { CollectionDockingView } from "../views/collections/CollectionDockingVie
 import * as globalCssVariables from "../views/globalCssVariables.scss";
 
 export type dropActionType = "alias" | "copy" | undefined;
-export function SetupDrag(_reference: React.RefObject<HTMLElement>, docFunc: () => Doc | Promise<Doc>, moveFunc?: DragManager.MoveFunction, dropAction?: dropActionType) {
+export function SetupDrag(_reference: React.RefObject<HTMLElement>, docFunc: () => Doc | Promise<Doc>, moveFunc?: DragManager.MoveFunction, dropAction?: dropActionType, options?: any, dontHideOnDrop?: boolean) {
     let onRowMove = async (e: PointerEvent) => {
         e.stopPropagation();
         e.preventDefault();
@@ -16,6 +16,8 @@ export function SetupDrag(_reference: React.RefObject<HTMLElement>, docFunc: () 
         var dragData = new DragManager.DocumentDragData([await docFunc()]);
         dragData.dropAction = dropAction;
         dragData.moveDocument = moveFunc;
+        dragData.options = options;
+        dragData.dontHideOnDrop = dontHideOnDrop;
         DragManager.StartDocumentDrag([_reference.current!], dragData, e.x, e.y);
     };
     let onRowUp = (): void => {
@@ -185,6 +187,7 @@ export namespace DragManager {
     export let AbortDrag: () => void = emptyFunction;
 
     function StartDrag(eles: HTMLElement[], dragData: { [id: string]: any }, downX: number, downY: number, options?: DragOptions, finishDrag?: (dropData: { [id: string]: any }) => void) {
+        eles = eles.filter(e => e);
         if (!dragDiv) {
             dragDiv = document.createElement("div");
             dragDiv.className = "dragManager-dragDiv";
@@ -241,6 +244,13 @@ export namespace DragManager {
             //         pdfBox.replaceChild(img, pdfBox.children[0])
             //     }
             // }
+            let set = dragElement.getElementsByTagName('*');
+            for (let i = 0; i < set.length; i++)
+                if (set[i].hasAttribute("style")) {
+                    let s = set[i];
+                    (s as any).style.pointerEvents = "none";
+                }
+
 
             dragDiv.appendChild(dragElement);
             return dragElement;
@@ -259,8 +269,7 @@ export namespace DragManager {
         let lastX = downX;
         let lastY = downY;
         const moveHandler = (e: PointerEvent) => {
-            e.stopPropagation();
-            e.preventDefault();
+            e.preventDefault(); // required or dragging text menu link item ends up dragging the link button as native drag/drop
             if (dragData instanceof DocumentDragData) {
                 dragData.userDropAction = e.ctrlKey || e.altKey ? "alias" : undefined;
             }
@@ -309,7 +318,7 @@ export namespace DragManager {
     }
 
     function dispatchDrag(dragEles: HTMLElement[], e: PointerEvent, dragData: { [index: string]: any }, options?: DragOptions, finishDrag?: (dragData: { [index: string]: any }) => void) {
-        let removed = dragEles.map(dragEle => {
+        let removed = dragData.dontHideOnDrop ? [] : dragEles.map(dragEle => {
             // let parent = dragEle.parentElement;
             // if (parent) parent.removeChild(dragEle);
             let ret = [dragEle, dragEle.style.width, dragEle.style.height];

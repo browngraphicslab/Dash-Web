@@ -1,8 +1,15 @@
-import { action, computed, trace } from "mobx";
+import { action, computed } from "mobx";
 import { observer } from "mobx-react";
-import { emptyFunction, returnFalse, returnOne } from "../../../../Utils";
+import { Doc, HeightSym, WidthSym } from "../../../../new_fields/Doc";
+import { Id } from "../../../../new_fields/FieldSymbols";
+import { InkField, StrokeData } from "../../../../new_fields/InkField";
+import { createSchema, makeInterface } from "../../../../new_fields/Schema";
+import { BoolCast, Cast, FieldValue, NumCast } from "../../../../new_fields/Types";
+import { emptyFunction, returnOne } from "../../../../Utils";
+import { DocServer } from "../../../DocServer";
 import { DocumentManager } from "../../../util/DocumentManager";
 import { DragManager } from "../../../util/DragManager";
+import { HistoryUtil } from "../../../util/History";
 import { SelectionManager } from "../../../util/SelectionManager";
 import { Transform } from "../../../util/Transform";
 import { undoBatch } from "../../../util/UndoManager";
@@ -11,6 +18,7 @@ import { InkingCanvas } from "../../InkingCanvas";
 import { CollectionFreeFormDocumentView } from "../../nodes/CollectionFreeFormDocumentView";
 import { DocumentContentsView } from "../../nodes/DocumentContentsView";
 import { DocumentViewProps, positionSchema } from "../../nodes/DocumentView";
+import { pageSchema } from "../../nodes/ImageBox";
 import { CollectionSubView } from "../CollectionSubView";
 import { CollectionFreeFormLinksView } from "./CollectionFreeFormLinksView";
 import { CollectionFreeFormRemoteCursors } from "./CollectionFreeFormRemoteCursors";
@@ -20,13 +28,7 @@ import React = require("react");
 import v5 = require("uuid/v5");
 // import { BooleanField } from "../../../../fields/BooleanField";
 import { Timeline } from "../../nodes/Timeline";
-import { createSchema, makeInterface, listSpec } from "../../../../new_fields/Schema";
-import { Doc, WidthSym, HeightSym } from "../../../../new_fields/Doc";
-import { FieldValue, Cast, NumCast, BoolCast } from "../../../../new_fields/Types";
-import { pageSchema } from "../../nodes/ImageBox";
-import { InkField, StrokeData } from "../../../../new_fields/InkField";
-import { HistoryUtil } from "../../../util/History";
-import { Id } from "../../../../new_fields/FieldSymbols";
+import { Docs } from "../../../documents/Documents";
 
 export const panZoomSchema = createSchema({
     panX: "number",
@@ -104,7 +106,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                     }
                     this.bringToFront(d);
                 });
-                SelectionManager.ReselectAll();
             }
             return true;
         }
@@ -350,8 +351,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                     </CollectionFreeFormViewPannableContents>
                 </MarqueeView>
                 <Timeline {...this.props} />
-                <CollectionFreeFormOverlayView {...this.getDocumentViewProps(this.props.Document)} {...this.props} />
-            </div >
+                <CollectionFreeFormOverlayView  {...this.props} {...this.getDocumentViewProps(this.props.Document)} />
+            </div>
         );
     }
 }
