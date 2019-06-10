@@ -91,18 +91,18 @@ export class PresentationView extends React.Component<PresViewProps>  {
     next = async () => {
         const current = NumCast(this.props.Document.selectedDoc);
         //asking to get document at current index
-        let docAtCurrent = await this.getDocAtIndex(current);
-        if (docAtCurrent === undefined) {
+        let docAtCurrentNext = await this.getDocAtIndex(current + 1);
+        if (docAtCurrentNext === undefined) {
             return;
         }
         //asking for it's presentation id
-        let curPresId = StrCast(docAtCurrent.presentId);
+        let curNextPresId = StrCast(docAtCurrentNext.presentId);
         let nextSelected = current + 1;
 
         //if curDoc is in a group, selection slides until last one, if not it's next one
-        if (this.groupMappings.has(curPresId)) {
-            let currentsArray = this.groupMappings.get(StrCast(docAtCurrent.presentId))!;
-            nextSelected = current + currentsArray.length - currentsArray.indexOf(docAtCurrent) - 1;
+        if (this.groupMappings.has(curNextPresId)) {
+            let currentsArray = this.groupMappings.get(StrCast(docAtCurrentNext.presentId))!;
+            nextSelected = current + currentsArray.length - currentsArray.indexOf(docAtCurrentNext);
 
             //end of grup so go beyond
             if (nextSelected === current) nextSelected = current + 1;
@@ -126,7 +126,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
         //checking if this presentation id is mapped to a group, if so chosing the first element in group
         if (this.groupMappings.has(curPresId)) {
             let currentsArray = this.groupMappings.get(StrCast(docAtCurrent.presentId))!;
-            prevSelected = current - currentsArray.length + (currentsArray.length - currentsArray.indexOf(docAtCurrent));
+            prevSelected = current - currentsArray.length + (currentsArray.length - currentsArray.indexOf(docAtCurrent)) - 1;
             //end of grup so go beyond
             if (prevSelected === current) prevSelected = current - 1;
 
@@ -252,7 +252,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
             value.splice(index, 1);
         }
     }
-
+    @action
     public gotoDocument = async (index: number) => {
         const list = FieldValue(Cast(this.props.Document.data, listSpec(Doc)));
         if (!list) {
@@ -261,8 +261,13 @@ export class PresentationView extends React.Component<PresViewProps>  {
         if (index < 0 || index >= list.length) {
             return;
         }
-
         this.props.Document.selectedDoc = index;
+
+        if (!this.presStatus) {
+            this.presStatus = true;
+            this.startPresentation(index);
+        }
+
         const doc = await list[index];
         if (this.presStatus) {
             this.navigateToElement(doc);
@@ -301,9 +306,9 @@ export class PresentationView extends React.Component<PresViewProps>  {
 
     renderPlayPauseButton = () => {
         if (this.presStatus) {
-            return <button className="presentation-button" onClick={this.startOrResetPres}><FontAwesomeIcon icon="stop" /></button>;
+            return <button title="Reset Presentation" className="presentation-button" onClick={this.startOrResetPres}><FontAwesomeIcon icon="stop" /></button>;
         } else {
-            return <button className="presentation-button" onClick={this.startOrResetPres}><FontAwesomeIcon icon="play" /></button>;
+            return <button title="Start Presentation From Start" className="presentation-button" onClick={this.startOrResetPres}><FontAwesomeIcon icon="play" /></button>;
         }
     }
 
@@ -314,7 +319,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
             this.resetPresentation();
         } else {
             this.presStatus = true;
-            this.startPresentation();
+            this.startPresentation(0);
         }
     }
 
@@ -332,17 +337,27 @@ export class PresentationView extends React.Component<PresViewProps>  {
 
     }
 
-    startPresentation = () => {
-        this.props.Document.selectedDoc = 0;
+    startPresentation = (startIndex: number) => {
         let selectedButtons: boolean[];
         this.presElementsMappings.forEach((component: PresentationElement, doc: Doc) => {
             selectedButtons = component.selected;
             if (selectedButtons[buttonIndex.HideTillPressed]) {
-                if (this.childrenDocs.indexOf(doc) > 0) {
+                if (this.childrenDocs.indexOf(doc) > startIndex) {
                     doc.opacity = 0;
                 }
 
             }
+            if (selectedButtons[buttonIndex.HideAfter]) {
+                if (this.childrenDocs.indexOf(doc) < startIndex) {
+                    doc.opacity = 0;
+                }
+            }
+            if (selectedButtons[buttonIndex.FadeAfter]) {
+                if (this.childrenDocs.indexOf(doc) < startIndex) {
+                    doc.opacity = 0.5;
+                }
+            }
+
         });
 
     }
@@ -359,9 +374,9 @@ export class PresentationView extends React.Component<PresViewProps>  {
                     <button className='presentation-icon' onClick={this.closePresentation}>X</button>
                 </div>
                 <div className="presentation-buttons">
-                    <button className="presentation-button" onClick={this.back}><FontAwesomeIcon icon={"arrow-left"} /></button>
+                    <button title="Back" className="presentation-button" onClick={this.back}><FontAwesomeIcon icon={"arrow-left"} /></button>
                     {this.renderPlayPauseButton()}
-                    <button className="presentation-button" onClick={this.next}><FontAwesomeIcon icon={"arrow-right"} /></button>
+                    <button title="Next" className="presentation-button" onClick={this.next}><FontAwesomeIcon icon={"arrow-right"} /></button>
                 </div>
                 <PresentationViewList Document={this.props.Document} deleteDocument={this.RemoveDoc} gotoDocument={this.gotoDocument} groupMappings={this.groupMappings} presElementsMappings={this.presElementsMappings} setChildrenDocs={this.setChildrenDocs} presStatus={this.presStatus} />
             </div>
