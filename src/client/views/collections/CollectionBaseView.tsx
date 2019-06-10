@@ -101,9 +101,9 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
     addDocument(doc: Doc, allowDuplicates: boolean = false): boolean {
         let props = this.props;
         var curPage = NumCast(props.Document.curPage, -1);
-        Doc.SetOnPrototype(doc, "page", curPage);
+        Doc.GetProto(doc).page = curPage;
         if (curPage >= 0) {
-            Doc.SetOnPrototype(doc, "annotationOn", props.Document);
+            Doc.GetProto(doc).annotationOn = props.Document;
         }
         if (!this.createsCycle(doc, props.Document)) {
             //TODO This won't create the field if it doesn't already exist
@@ -141,7 +141,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
                 break;
             }
         }
-        PromiseValue(Cast(doc.annotationOn, Doc)).then((annotationOn) => {
+        PromiseValue(Cast(doc.annotationOn, Doc)).then(annotationOn => {
             if (annotationOn === props.Document) {
                 doc.annotationOn = undefined;
             }

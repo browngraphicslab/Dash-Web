@@ -432,7 +432,6 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
 
             if (rect.width !== 0 && (dX != 0 || dY != 0 || dW != 0 || dH != 0)) {
                 let doc = PositionDocument(element.props.Document);
-                let docHeightBefore = doc.height;
                 let nwidth = doc.nativeWidth || 0;
                 let nheight = doc.nativeHeight || 0;
                 let zoomBasis = NumCast(doc.zoomBasis, 1);
@@ -469,7 +468,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     }
                 } else {
                     doc.width = zoomBasis * actualdW;
-                    if (docHeightBefore === doc.height) doc.height = zoomBasis * actualdH;
+                    doc.height = zoomBasis * actualdH;
                 }
             }
         });

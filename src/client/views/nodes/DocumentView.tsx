@@ -6,7 +6,7 @@ import { Doc, DocListCast, HeightSym, Opt, WidthSym, DocListCastAsync } from "..
 import { List } from "../../../new_fields/List";
 import { ObjectField } from "../../../new_fields/ObjectField";
 import { createSchema, makeInterface } from "../../../new_fields/Schema";
-import { BoolCast, Cast, FieldValue, StrCast, NumCast } from "../../../new_fields/Types";
+import { BoolCast, Cast, FieldValue, StrCast, NumCast, PromiseValue } from "../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { emptyFunction, Utils } from "../../../Utils";
 import { DocServer } from "../../DocServer";
@@ -261,12 +261,17 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                         linkedToDocs.length ? linkedToDocs[0].linkedTo as Doc : linkedFromDocs.length ? linkedFromDocs[0].linkedFrom as Doc : expandedDocs[0],
                         linkedFromDocs.length ? linkedFromDocs[0].linkedFrom as Doc : linkedToDocs.length ? linkedToDocs[0].linkedTo as Doc : expandedDocs[0]];
 
+                    let linkedFwdContextDocs = [
+                        linkedToDocs.length ? await (linkedToDocs[0].linkedToContext) as Doc : linkedFromDocs.length ? await PromiseValue(linkedFromDocs[0].linkedFromContext) as Doc : undefined,
+                        linkedFromDocs.length ? await (linkedFromDocs[0].linkedFromContext) as Doc : linkedToDocs.length ? await PromiseValue(linkedToDocs[0].linkedToContext) as Doc : undefined];
+
                     let linkedFwdPage = [
                         linkedToDocs.length ? NumCast(linkedToDocs[0].linkedToPage, undefined) : linkedFromDocs.length ? NumCast(linkedFromDocs[0].linkedFromPage, undefined) : undefined,
                         linkedFromDocs.length ? NumCast(linkedFromDocs[0].linkedFromPage, undefined) : linkedToDocs.length ? NumCast(linkedToDocs[0].linkedToPage, undefined) : undefined];
+
                     if (!linkedFwdDocs.some(l => l instanceof Promise)) {
                         let maxLocation = StrCast(linkedFwdDocs[altKey ? 1 : 0].maximizeLocation, "inTab");
-                        DocumentManager.Instance.jumpToDocument(linkedFwdDocs[altKey ? 1 : 0], ctrlKey, document => this.props.addDocTab(document, maxLocation), linkedFwdPage[altKey ? 1 : 0]);
+                        DocumentManager.Instance.jumpToDocument(linkedFwdDocs[altKey ? 1 : 0], ctrlKey, document => this.props.addDocTab(document, maxLocation), linkedFwdPage[altKey ? 1 : 0], linkedFwdContextDocs[altKey ? 1 : 0]);
                     }
                 }
             }
@@ -333,6 +338,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             let sourceDoc = de.data.linkSourceDocument;
             let destDoc = this.props.Document;
 
+            e.stopPropagation();
             if (de.mods === "AltKey") {
                 const protoDest = destDoc.proto;
                 const protoSrc = sourceDoc.proto;
@@ -343,10 +349,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 dst.nativeHeight = src.nativeHeight;
             }
             else {
-                DocUtils.MakeLink(sourceDoc, destDoc);
+                const docs = await SearchUtil.Search(`data_l:"${destDoc[Id]}"`, true);
+                const views = docs.map(d => DocumentManager.Instance.getDocumentView(d)).filter(d => d).map(d => d as DocumentView);
+                DocUtils.MakeLink(sourceDoc, destDoc, views.length ? views[0].props.Document : undefined);
                 de.data.droppedDocuments.push(destDoc);
             }
-            e.stopPropagation();
         }
     }
 

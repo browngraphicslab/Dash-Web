@@ -153,7 +153,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         if (!e.isPropagationStopped() && this.props.Document[Id] !== "mainDoc") { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
             ContextMenu.Instance.addItem({
                 description: "Toggle multi-column",
-                event: () => this.props.Document.singleColumn = !BoolCast(this.props.Document.singleColumn, false), icon: "file-pdf"
+                event: () => this.props.Document.singleColumn = !BoolCast(this.props.Document.singleColumn, true), icon: "file-pdf"
             });
         }
     }
