@@ -17,11 +17,12 @@ interface MainOverlayTextBoxProps {
 export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps> {
     public static Instance: MainOverlayTextBox;
     @observable _textXf: () => Transform = () => Transform.Identity();
-    private _textFieldKey: string = "data";
+    public TextFieldKey: string = "data";
     private _textColor: string | null = null;
     private _textHideOnLeave?: boolean;
     private _textTargetDiv: HTMLDivElement | undefined;
     private _textProxyDiv: React.RefObject<HTMLDivElement>;
+    public TextDoc?: Doc;
 
     constructor(props: MainOverlayTextBoxProps) {
         super(props);
@@ -29,9 +30,16 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
         MainOverlayTextBox.Instance = this;
         reaction(() => FormattedTextBox.InputBoxOverlay,
             (box?: FormattedTextBox) => {
-                let sxf = Utils.GetScreenTransform(box ? box.CurrentDiv : undefined);
-                if (box) this.setTextDoc(box.props.fieldKey, box.CurrentDiv, () => new Transform(-sxf.translateX, -sxf.translateY, 1 / sxf.scale));
-                else this.setTextDoc();
+                if (box) {
+                    this.TextDoc = box.props.Document;
+                    let sxf = Utils.GetScreenTransform(box ? box.CurrentDiv : undefined);
+                    let xf = () => { box.props.ScreenToLocalTransform(); return new Transform(-sxf.translateX, -sxf.translateY, 1 / sxf.scale); };
+                    this.setTextDoc(box.props.fieldKey, box.CurrentDiv, xf)
+                }
+                else {
+                    this.TextDoc = undefined;
+                    this.setTextDoc();
+                }
             });
     }
 
@@ -40,7 +48,7 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
         if (this._textTargetDiv) {
             this._textTargetDiv.style.color = this._textColor;
         }
-        this._textFieldKey = textFieldKey!;
+        this.TextFieldKey = textFieldKey!;
         this._textXf = tx ? tx : () => Transform.Identity();
         this._textTargetDiv = div;
         this._textHideOnLeave = FormattedTextBox.InputBoxOverlay && FormattedTextBox.InputBoxOverlay.props.hideOnLeave;
@@ -98,7 +106,7 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
             return <div className="mainOverlayTextBox-textInput" style={{ transform: `translate(${textRect.left}px, ${textRect.top}px) scale(${1 / s},${1 / s})`, width: "auto", height: "auto" }} >
                 <div className="mainOverlayTextBox-textInput" onPointerDown={this.textBoxDown} ref={this._textProxyDiv} onScroll={this.textScroll}
                     style={{ width: `${textRect.width * s}px`, height: auto ? "auto" : `${textRect.height * s}px` }}>
-                    <FormattedTextBox color={`${this._textColor}`} fieldKey={this._textFieldKey} hideOnLeave={this._textHideOnLeave} isOverlay={true} Document={FormattedTextBox.InputBoxOverlay.props.Document} isSelected={returnTrue} select={emptyFunction} isTopMost={true}
+                    <FormattedTextBox color={`${this._textColor}`} fieldKey={this.TextFieldKey} hideOnLeave={this._textHideOnLeave} isOverlay={true} Document={FormattedTextBox.InputBoxOverlay.props.Document} isSelected={returnTrue} select={emptyFunction} isTopMost={true}
                         selectOnLoad={true} ContainingCollectionView={undefined} whenActiveChanged={emptyFunction} active={returnTrue}
                         ScreenToLocalTransform={this._textXf} PanelWidth={returnZero} PanelHeight={returnZero} focus={emptyFunction} addDocTab={this.addDocTab} />
                 </div>

@@ -28,6 +28,7 @@ import { FieldView, FieldViewProps } from "./FieldView";
 import "./FormattedTextBox.scss";
 import React = require("react");
 import { Id } from '../../../new_fields/FieldSymbols';
+import { MainOverlayTextBox } from '../MainOverlayTextBox';
 
 library.add(faEdit);
 library.add(faSmile);
@@ -181,7 +182,9 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     if (this._editorView) {
                         this._editorView.destroy();
                     }
-                    this.setupEditor(config, this.props.Document);// MainOverlayTextBox.Instance.TextDoc); // bcz: not sure why, but the order of events is such that this.props.Document hasn't updated yet, so without forcing the editor to the MainOverlayTextBox, it will display the previously focused textbox
+                    this.setupEditor(config, // bcz: not sure why, but the order of events is such that this.props.Document hasn't updated yet, so without forcing the editor to the MainOverlayTextBox, it will display the previously focused textbox
+                        MainOverlayTextBox.Instance.TextDoc ? MainOverlayTextBox.Instance.TextDoc : this.props.Document,
+                        MainOverlayTextBox.Instance.TextFieldKey ? MainOverlayTextBox.Instance.TextFieldKey : this.props.fieldKey);
                 }
             );
         } else {
@@ -203,15 +206,15 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             field => field && this._editorView && !this._applyingChange &&
                 this._editorView.updateState(EditorState.fromJSON(config, JSON.parse(field)))
         );
-        this.setupEditor(config, this.props.Document);
+        this.setupEditor(config, this.props.Document, this.props.fieldKey);
     }
 
-    private setupEditor(config: any, doc?: Doc) {
-        let field = doc ? Cast(doc[this.props.fieldKey], RichTextField) : undefined;
-        let startup = StrCast(this.props.Document.documentText);
+    private setupEditor(config: any, doc: Doc, fieldKey: string) {
+        let field = doc ? Cast(doc[fieldKey], RichTextField) : undefined;
+        let startup = StrCast(doc.documentText);
         startup = startup.startsWith("@@@") ? startup.replace("@@@", "") : "";
         if (!startup && !field && doc) {
-            startup = StrCast(doc[this.props.fieldKey]);
+            startup = StrCast(doc[fieldKey]);
         }
         if (this._proseRef.current) {
             this._editorView = new EditorView(this._proseRef.current, {
@@ -222,12 +225,13 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 }
             });
             if (startup) {
-                this.props.Document.proto!.documentText = undefined;
+                Doc.GetProto(doc).documentText = undefined;
                 this._editorView.dispatch(this._editorView.state.tr.insertText(startup));
             }
         }
 
         if (this.props.selectOnLoad) {
+            console.log("Sel on load " + this.props.Document.title + " " + doc!.title);
             this.props.select(false);
             this._editorView!.focus();
         }
