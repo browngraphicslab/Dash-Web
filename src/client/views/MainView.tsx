@@ -23,7 +23,7 @@ import "./Main.scss";
 import { MainOverlayTextBox } from './MainOverlayTextBox';
 import { DocumentView } from './nodes/DocumentView';
 import { PreviewCursor } from './PreviewCursor';
-import { SearchBox } from './SearchBox';
+import { SearchBox } from './search/SearchBox';
 import { SelectionManager } from '../util/SelectionManager';
 import { FieldResult, Field, Doc, Opt, DocListCast } from '../../new_fields/Doc';
 import { Cast, FieldValue, StrCast, PromiseValue } from '../../new_fields/Types';

@@ -15,7 +15,7 @@ import { Utils } from '../../../Utils';
 import { DocServer } from "../../DocServer";
 import { DocComponent } from "../DocComponent";
 import { InkingControl } from "../InkingControl";
-import { SearchBox } from "../SearchBox";
+import { SearchBox } from "../search/SearchBox";
 import { Annotation } from './Annotation';
 import { positionSchema } from "./DocumentView";
 import { FieldView, FieldViewProps } from './FieldView';
