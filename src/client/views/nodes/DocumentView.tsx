@@ -349,9 +349,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 dst.nativeHeight = src.nativeHeight;
             }
             else {
-                const docs = await SearchUtil.Search(`data_l:"${destDoc[Id]}"`, true);
-                const views = docs.map(d => DocumentManager.Instance.getDocumentView(d)).filter(d => d).map(d => d as DocumentView);
-                DocUtils.MakeLink(sourceDoc, destDoc, views.length ? views[0].props.Document : undefined);
+                // const docs = await SearchUtil.Search(`data_l:"${destDoc[Id]}"`, true);
+                // const views = docs.map(d => DocumentManager.Instance.getDocumentView(d)).filter(d => d).map(d => d as DocumentView);
+                DocUtils.MakeLink(sourceDoc, destDoc, this.props.ContainingCollectionView ? this.props.ContainingCollectionView.props.Document : undefined);
                 de.data.droppedDocuments.push(destDoc);
             }
         }

@@ -1,4 +1,4 @@
-import { observable, action } from "mobx";
+import { observable, action, runInAction } from "mobx";
 import { Doc } from "../../new_fields/Doc";
 import { DocumentView } from "../views/nodes/DocumentView";
 import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
@@ -6,8 +6,8 @@ import { NumCast } from "../../new_fields/Types";
 
 export namespace SelectionManager {
     class Manager {
-        @observable
-        SelectedDocuments: Array<DocumentView> = [];
+        @observable IsDragging: boolean = false;
+        @observable SelectedDocuments: Array<DocumentView> = [];
 
         @action
         SelectDoc(doc: DocumentView, ctrlPressed: boolean): void {
@@ -50,6 +50,9 @@ export namespace SelectionManager {
         manager.DeselectAll();
         if (found) manager.SelectDoc(found, false);
     }
+
+    export function SetIsDragging(dragging: boolean) { runInAction(() => manager.IsDragging = dragging); }
+    export function GetIsDragging() { return manager.IsDragging; }
 
     export function SelectedDocuments(): Array<DocumentView> {
         return manager.SelectedDocuments;

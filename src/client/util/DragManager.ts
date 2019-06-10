@@ -1,9 +1,10 @@
-import { action, runInAction } from "mobx";
+import { action, runInAction, observable } from "mobx";
 import { Doc, DocListCastAsync } from "../../new_fields/Doc";
 import { Cast } from "../../new_fields/Types";
 import { emptyFunction } from "../../Utils";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import * as globalCssVariables from "../views/globalCssVariables.scss";
+import { SelectionManager } from "./SelectionManager";
 
 export type dropActionType = "alias" | "copy" | undefined;
 export function SetupDrag(_reference: React.RefObject<HTMLElement>, docFunc: () => Doc | Promise<Doc>, moveFunc?: DragManager.MoveFunction, dropAction?: dropActionType, options?: any, dontHideOnDrop?: boolean) {
@@ -194,7 +195,7 @@ export namespace DragManager {
             dragDiv.style.pointerEvents = "none";
             DragManager.Root().appendChild(dragDiv);
         }
-
+        SelectionManager.SetIsDragging(true);
         let scaleXs: number[] = [];
         let scaleYs: number[] = [];
         let xs: number[] = [];
@@ -293,6 +294,7 @@ export namespace DragManager {
         };
 
         let hideDragElements = () => {
+            SelectionManager.SetIsDragging(false);
             dragElements.map(dragElement => dragElement.parentNode === dragDiv && dragDiv.removeChild(dragElement));
             eles.map(ele => (ele.hidden = false));
         };
