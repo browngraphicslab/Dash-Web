@@ -13,10 +13,12 @@ import { CurrentUserUtils } from "../../../server/authentication/models/current_
 import PresentationElement, { buttonIndex } from "./PresentationElement";
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faArrowRight, faArrowLeft } from '@fortawesome/free-solid-svg-icons';
+import { faArrowRight, faArrowLeft, faPlay, faStop } from '@fortawesome/free-solid-svg-icons';
 
 library.add(faArrowLeft);
 library.add(faArrowRight);
+library.add(faPlay);
+library.add(faStop);
 
 export interface PresViewProps {
     Document: Doc;
@@ -28,6 +30,7 @@ interface PresListProps extends PresViewProps {
     groupMappings: Map<String, Doc[]>;
     presElementsMappings: Map<Doc, PresentationElement>;
     setChildrenDocs: (docList: Doc[]) => void;
+    presStatus: boolean;
 }
 
 
@@ -61,7 +64,7 @@ class PresentationViewList extends React.Component<PresListProps> {
         return (
 
             <div className="presentationView-listCont">
-                {children.map((doc: Doc, index: number) => <PresentationElement ref={(e) => { if (e) { this.props.presElementsMappings.set(doc, e); } }} key={index} mainDocument={this.props.Document} document={doc} index={index} deleteDocument={this.props.deleteDocument} gotoDocument={this.props.gotoDocument} groupMappings={this.props.groupMappings} allListElements={children} />)}
+                {children.map((doc: Doc, index: number) => <PresentationElement ref={(e) => { if (e) { this.props.presElementsMappings.set(doc, e); } }} key={index} mainDocument={this.props.Document} document={doc} index={index} deleteDocument={this.props.deleteDocument} gotoDocument={this.props.gotoDocument} groupMappings={this.props.groupMappings} allListElements={children} presStatus={this.props.presStatus} />)}
             </div>
         );
     }
@@ -78,6 +81,8 @@ export class PresentationView extends React.Component<PresViewProps>  {
     @observable presElementsMappings: Map<Doc, PresentationElement> = new Map();
     //variable that holds all the docs in the presentation
     @observable childrenDocs: Doc[] = [];
+    //variable to hold if presentation is started
+    @observable presStatus: boolean = false;
 
     //observable means render is re-called every time variable is changed
     @observable
@@ -259,10 +264,11 @@ export class PresentationView extends React.Component<PresViewProps>  {
 
         this.props.Document.selectedDoc = index;
         const doc = await list[index];
-        this.navigateToElement(doc);
-        this.hideIfNotPresented(index);
-        this.showAfterPresented(index);
-
+        if (this.presStatus) {
+            this.navigateToElement(doc);
+            this.hideIfNotPresented(index);
+            this.showAfterPresented(index);
+        }
 
     }
 
@@ -293,6 +299,54 @@ export class PresentationView extends React.Component<PresViewProps>  {
         this.childrenDocs = docList;
     }
 
+    renderPlayPauseButton = () => {
+        if (this.presStatus) {
+            return <button className="presentation-button" onClick={this.startOrResetPres}><FontAwesomeIcon icon="stop" /></button>;
+        } else {
+            return <button className="presentation-button" onClick={this.startOrResetPres}><FontAwesomeIcon icon="play" /></button>;
+        }
+    }
+
+    @action
+    startOrResetPres = () => {
+        if (this.presStatus) {
+            this.presStatus = false;
+            this.resetPresentation();
+        } else {
+            this.presStatus = true;
+            this.startPresentation();
+        }
+    }
+
+    @action
+    resetPresentation = () => {
+        this.groupMappings = new Map();
+        let selectedButtons: boolean[];
+        this.presElementsMappings.forEach((component: PresentationElement, doc: Doc) => {
+            selectedButtons = component.selected;
+            selectedButtons.forEach((val: boolean, index: number) => selectedButtons[index] = false);
+            doc.presentId = Utils.GenerateGuid();
+            doc.opacity = 1;
+        });
+        this.props.Document.selectedDoc = 0;
+
+    }
+
+    startPresentation = () => {
+        this.props.Document.selectedDoc = 0;
+        let selectedButtons: boolean[];
+        this.presElementsMappings.forEach((component: PresentationElement, doc: Doc) => {
+            selectedButtons = component.selected;
+            if (selectedButtons[buttonIndex.HideTillPressed]) {
+                if (this.childrenDocs.indexOf(doc) > 0) {
+                    doc.opacity = 0;
+                }
+
+            }
+        });
+
+    }
+
     render() {
         let titleStr = StrCast(this.props.Document.title);
         let width = NumCast(this.props.Document.width);
@@ -306,9 +360,10 @@ export class PresentationView extends React.Component<PresViewProps>  {
                 </div>
                 <div className="presentation-buttons">
                     <button className="presentation-button" onClick={this.back}><FontAwesomeIcon icon={"arrow-left"} /></button>
+                    {this.renderPlayPauseButton()}
                     <button className="presentation-button" onClick={this.next}><FontAwesomeIcon icon={"arrow-right"} /></button>
                 </div>
-                <PresentationViewList Document={this.props.Document} deleteDocument={this.RemoveDoc} gotoDocument={this.gotoDocument} groupMappings={this.groupMappings} presElementsMappings={this.presElementsMappings} setChildrenDocs={this.setChildrenDocs} />
+                <PresentationViewList Document={this.props.Document} deleteDocument={this.RemoveDoc} gotoDocument={this.gotoDocument} groupMappings={this.groupMappings} presElementsMappings={this.presElementsMappings} setChildrenDocs={this.setChildrenDocs} presStatus={this.presStatus} />
             </div>
         );
     }

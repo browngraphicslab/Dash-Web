@@ -28,6 +28,8 @@ interface PresentationElementProps {
     gotoDocument(index: number): void;
     allListElements: Doc[];
     groupMappings: Map<String, Doc[]>;
+    presStatus: boolean;
+
 
 }
 
@@ -158,11 +160,15 @@ export default class PresentationElement extends React.Component<PresentationEle
         const current = NumCast(this.props.mainDocument.selectedDoc);
         if (this.selectedButtons[buttonIndex.HideTillPressed]) {
             this.selectedButtons[buttonIndex.HideTillPressed] = false;
-            this.props.document.opacity = 1;
+            if (this.props.index >= current) {
+                this.props.document.opacity = 1;
+            }
         } else {
             this.selectedButtons[buttonIndex.HideTillPressed] = true;
-            if (this.props.index > current) {
-                this.props.document.opacity = 0;
+            if (this.props.presStatus) {
+                if (this.props.index > current) {
+                    this.props.document.opacity = 0;
+                }
             }
         }
     }
@@ -175,13 +181,22 @@ export default class PresentationElement extends React.Component<PresentationEle
     @action
     onHideDocumentAfterPresentedClick = (e: React.MouseEvent) => {
         e.stopPropagation();
+        const current = NumCast(this.props.mainDocument.selectedDoc);
         if (this.selectedButtons[buttonIndex.HideAfter]) {
             this.selectedButtons[buttonIndex.HideAfter] = false;
+            if (this.props.index <= current) {
+                this.props.document.opacity = 1;
+            }
         } else {
             if (this.selectedButtons[buttonIndex.FadeAfter]) {
                 this.selectedButtons[buttonIndex.FadeAfter] = false;
             }
             this.selectedButtons[buttonIndex.HideAfter] = true;
+            if (this.props.presStatus) {
+                if (this.props.index < current) {
+                    this.props.document.opacity = 0;
+                }
+            }
         }
     }
 
@@ -193,13 +208,22 @@ export default class PresentationElement extends React.Component<PresentationEle
     @action
     onFadeDocumentAfterPresentedClick = (e: React.MouseEvent) => {
         e.stopPropagation();
+        const current = NumCast(this.props.mainDocument.selectedDoc);
         if (this.selectedButtons[buttonIndex.FadeAfter]) {
             this.selectedButtons[buttonIndex.FadeAfter] = false;
+            if (this.props.index <= current) {
+                this.props.document.opacity = 1;
+            }
         } else {
             if (this.selectedButtons[buttonIndex.HideAfter]) {
                 this.selectedButtons[buttonIndex.HideAfter] = false;
             }
             this.selectedButtons[buttonIndex.FadeAfter] = true;
+            if (this.props.presStatus) {
+                if (this.props.index < current) {
+                    this.props.document.opacity = 0.5;
+                }
+            }
         }
     }
 
@@ -246,12 +270,12 @@ export default class PresentationElement extends React.Component<PresentationEle
                 </strong>
                 <button className="presentation-icon" onClick={e => { this.props.deleteDocument(p.index); e.stopPropagation(); }}>X</button>
                 <br></br>
-                <button className={this.selectedButtons[buttonIndex.Show] ? "presentation-interaction-selected" : "presentation-interaction"}><FontAwesomeIcon icon={"search"} /></button>
-                <button className={this.selectedButtons[buttonIndex.Navigate] ? "presentation-interaction-selected" : "presentation-interaction"} onClick={this.onNavigateDocumentClick}><FontAwesomeIcon icon={"location-arrow"} /></button>
-                <button className={this.selectedButtons[buttonIndex.HideTillPressed] ? "presentation-interaction-selected" : "presentation-interaction"} onClick={this.onHideDocumentUntilPressClick}><FontAwesomeIcon icon={fileSolid} /></button>
-                <button className={this.selectedButtons[buttonIndex.FadeAfter] ? "presentation-interaction-selected" : "presentation-interaction"} onClick={this.onFadeDocumentAfterPresentedClick}><FontAwesomeIcon icon={fileRegular} color={"gray"} /></button>
-                <button className={this.selectedButtons[buttonIndex.HideAfter] ? "presentation-interaction-selected" : "presentation-interaction"} onClick={this.onHideDocumentAfterPresentedClick}><FontAwesomeIcon icon={fileRegular} /></button>
-                <button className={this.selectedButtons[buttonIndex.Group] ? "presentation-interaction-selected" : "presentation-interaction"} onClick={(e) => {
+                <button title="Zoom" className={this.selectedButtons[buttonIndex.Show] ? "presentation-interaction-selected" : "presentation-interaction"}><FontAwesomeIcon icon={"search"} /></button>
+                <button title="Navigate" className={this.selectedButtons[buttonIndex.Navigate] ? "presentation-interaction-selected" : "presentation-interaction"} onClick={this.onNavigateDocumentClick}><FontAwesomeIcon icon={"location-arrow"} /></button>
+                <button title="Hide Document Till Presented" className={this.selectedButtons[buttonIndex.HideTillPressed] ? "presentation-interaction-selected" : "presentation-interaction"} onClick={this.onHideDocumentUntilPressClick}><FontAwesomeIcon icon={fileSolid} /></button>
+                <button title="Fade Document After Presented" className={this.selectedButtons[buttonIndex.FadeAfter] ? "presentation-interaction-selected" : "presentation-interaction"} onClick={this.onFadeDocumentAfterPresentedClick}><FontAwesomeIcon icon={fileRegular} color={"gray"} /></button>
+                <button title="Hide Document After Presented" className={this.selectedButtons[buttonIndex.HideAfter] ? "presentation-interaction-selected" : "presentation-interaction"} onClick={this.onHideDocumentAfterPresentedClick}><FontAwesomeIcon icon={fileRegular} /></button>
+                <button title="Group With Up" className={this.selectedButtons[buttonIndex.Group] ? "presentation-interaction-selected" : "presentation-interaction"} onClick={(e) => {
                     e.stopPropagation();
                     this.changeGroupStatus();
                     this.onGroupClick(p.document, p.index, this.selectedButtons[buttonIndex.Group]);
