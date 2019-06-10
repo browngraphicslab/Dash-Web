@@ -69,15 +69,15 @@ export interface DocumentOptions {
 const delegateKeys = ["x", "y", "width", "height", "panX", "panY"];
 
 export namespace DocUtils {
-    export function MakeLink(source: Doc, target: Doc) {
+    export function MakeLink(source: Doc, target: Doc, title: string = "-link name-", description: string = "", tags: string = "Default") {
         let protoSrc = source.proto ? source.proto : source;
         let protoTarg = target.proto ? target.proto : target;
         UndoManager.RunInBatch(() => {
             let linkDoc = Docs.TextDocument({ width: 100, height: 30, borderRounding: -1 });
             //let linkDoc = new Doc;
-            linkDoc.proto!.title = "-link name-";
-            linkDoc.proto!.linkDescription = "";
-            linkDoc.proto!.linkTags = "Default";
+            linkDoc.proto!.title = title;
+            linkDoc.proto!.linkDescription = description;
+            linkDoc.proto!.linkTags = tags;
 
             linkDoc.proto!.linkedTo = target;
             linkDoc.proto!.linkedToPage = target.curPage;

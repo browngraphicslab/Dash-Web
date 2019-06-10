@@ -7,10 +7,10 @@ import "./PDFViewer.scss";
 import "pdfjs-dist/web/pdf_viewer.css";
 import { PDFBox } from "../nodes/PDFBox";
 import { DragManager } from "../../util/DragManager";
-import { Docs } from "../../documents/Documents";
+import { Docs, DocUtils } from "../../documents/Documents";
 import { List } from "../../../new_fields/List";
 import { emptyFunction } from "../../../Utils";
-import { Cast, NumCast } from "../../../new_fields/Types";
+import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
 import { listSpec } from "../../../new_fields/Schema";
 import { menuBar } from "prosemirror-menu";
 
@@ -66,6 +66,7 @@ export default class Page extends React.Component<IPageProps> {
                     () => {
                         let annotations = DocListCast(this.props.parent.Document.annotations);
                         if (annotations && annotations.length) {
+                            annotations = annotations.filter(anno => NumCast(anno.page) === this.props.page);
                             this.renderAnnotations(annotations, true);
                         }
                     },
@@ -163,8 +164,10 @@ export default class Page extends React.Component<IPageProps> {
             annoDoc.y = anno.offsetTop;
             annoDoc.height = anno.offsetHeight;
             annoDoc.width = anno.offsetWidth;
+            annoDoc.page = this.props.page;
             annoDoc.target = targetDoc;
             annoDocs.push(annoDoc);
+            DocUtils.MakeLink(annoDoc, targetDoc, `Annotation from ${StrCast(this.props.parent.Document.title)}`, "", StrCast(this.props.parent.Document.title));
             anno.remove();
         }
         this._currentAnnotations = [];
@@ -190,13 +193,14 @@ export default class Page extends React.Component<IPageProps> {
         targetDoc.targetPage = this.props.page;
         // creates annotation documents for current highlights
         let annotationDocs = this.makeAnnotationDocuments(targetDoc);
-        let targetAnnotations = Cast(targetDoc.annotations, listSpec(Doc));
+        console.log(annotationDocs);
+        let targetAnnotations = DocListCast(this.props.parent.Document.annotations);
         if (targetAnnotations) {
             targetAnnotations.push(...annotationDocs);
-            targetDoc.annotations = targetAnnotations;
+            this.props.parent.Document.annotations = new List<Doc>(targetAnnotations);
         }
         else {
-            targetDoc.annotations = new List<Doc>(annotationDocs);
+            this.props.parent.Document.annotations = new List<Doc>(annotationDocs);
         }
         // create dragData and star tdrag
         let dragData = new DragManager.AnnotationDragData(thisDoc, annotationDocs, targetDoc);
@@ -422,10 +426,11 @@ interface IAnnotation {
     width: number;
     height: number;
 }
+
 class RegionAnnotation extends React.Component<IAnnotation> {
     render() {
         return (
-            <div className="pdfViewer-annotationBox" style={{ top: this.props.x, left: this.props.y, width: this.props.width, height: this.props.height }}></div>
+            <div className="pdfViewer-annotationBox" style={{ top: this.props.y, left: this.props.x, width: this.props.width, height: this.props.height }}></div>
         );
     }
 }
