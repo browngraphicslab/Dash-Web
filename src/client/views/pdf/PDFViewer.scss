@@ -29,3 +29,9 @@
     background-color: red;
     opacity: 0.1;
 }
+
+.pdfViewer-annotationLayer {
+    position: absolute;
+    top: 0;
+    overflow: visible hidden;
+}

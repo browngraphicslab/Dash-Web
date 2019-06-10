@@ -2,11 +2,12 @@ import { observer } from "mobx-react";
 import React = require("react");
 import { observable, action, runInAction, computed, IReactionDisposer, reaction } from "mobx";
 import * as Pdfjs from "pdfjs-dist";
-import { Opt } from "../../../new_fields/Doc";
+import { Opt, HeightSym, WidthSym, Doc, DocListCast } from "../../../new_fields/Doc";
 import "./PDFViewer.scss";
 import "pdfjs-dist/web/pdf_viewer.css";
 import { PDFBox } from "../nodes/PDFBox";
 import Page from "./Page";
+import { NumCast } from "../../../new_fields/Types";
 
 interface IPDFViewerProps {
     url: string;
@@ -65,9 +66,11 @@ class Viewer extends React.Component<IViewerProps> {
     @observable private _endIndex: number = 1;
     @observable private _loaded: boolean = false;
     @observable private _pdf: Opt<Pdfjs.PDFDocumentProxy>;
+    @observable private _annotations: Doc[] = [];
 
     private _pageBuffer: number = 1;
     private _reactionDisposer?: IReactionDisposer;
+    private _annotationReactionDisposer?: IReactionDisposer;
 
     componentDidMount = () => {
         let wasSelected = this.props.parent.props.isSelected();
@@ -88,6 +91,19 @@ class Viewer extends React.Component<IViewerProps> {
             { fireImmediately: true }
         );
 
+        if (this.props.parent.Document) {
+            this._annotationReactionDisposer = reaction(
+                () => DocListCast(this.props.parent.Document.annotations),
+                () => {
+                    let annotations = DocListCast(this.props.parent.Document.annotations);
+                    if (annotations && annotations.length) {
+                        this.renderAnnotations(annotations, true);
+                    }
+                },
+                { fireImmediately: true }
+            );
+        }
+
         // On load, render pdf
         setTimeout(() => this.renderPages(this.startIndex, this.endIndex, true), 1000);
     }
@@ -95,6 +111,9 @@ class Viewer extends React.Component<IViewerProps> {
     componentWillUnmount = () => {
         if (this._reactionDisposer) {
             this._reactionDisposer();
+        }
+        if (this._annotationReactionDisposer) {
+            this._annotationReactionDisposer();
         }
     }
 
@@ -135,6 +154,17 @@ class Viewer extends React.Component<IViewerProps> {
         }
     }
 
+    @action
+    private renderAnnotations = (annotations: Doc[], removeOldAnnotations: boolean): void => {
+        if (removeOldAnnotations) {
+            this._annotations = annotations;
+        }
+        else {
+            this._annotations.push(...annotations);
+            this._annotations = new Array<Doc>(...this._annotations);
+        }
+    }
+
     /**
      * @param startIndex: where to start rendering pages
      * @param endIndex: where to end rendering pages
@@ -158,6 +188,7 @@ class Viewer extends React.Component<IViewerProps> {
                     name={`${this.props.pdf ? this.props.pdf.fingerprint + `-page${i + 1}` : "undefined"}`}
                     pageLoaded={this.pageLoaded}
                     parent={this.props.parent}
+                    renderAnnotations={this.renderAnnotations}
                     {...this.props} />
             ));
             let arr = Array.from(Array(numPages).keys()).map(() => false);
@@ -194,6 +225,7 @@ class Viewer extends React.Component<IViewerProps> {
                         name={`${this.props.pdf ? this.props.pdf.fingerprint + `-page${i + 1}` : "undefined"}`}
                         pageLoaded={this.pageLoaded}
                         parent={this.props.parent}
+                        renderAnnotations={this.renderAnnotations}
                         {...this.props} />
                 );
                 this._isPage[i] = true;
@@ -247,11 +279,49 @@ class Viewer extends React.Component<IViewerProps> {
         }
     }
 
+    getPageHeight = (index: number): number => {
+        let counter = 0;
+        if (this.props.pdf && index < this.props.pdf.numPages) {
+            for (let i = 0; i < index; i++) {
+                if (this._pageSizes[i]) {
+                    counter += this._pageSizes[i].height;
+                }
+            }
+        }
+        return counter;
+    }
+
     render() {
         return (
-            <div className="viewer">
-                {this._visibleElements}
+            <div>
+                <div className="viewer">
+                    {this._visibleElements}
+                </div>
+                <div className="pdfViewer-annotationLayer" style={{ height: this.props.parent.Document.nativeHeight }}>
+                    <div className="pdfViewer-annotationLayer-subCont" style={{ transform: `translateY(${-this.scrollY}px)` }}>
+                        {this._annotations.map(anno => <RegionAnnotation x={NumCast(anno.x)} y={NumCast(anno.y) + this.getPageHeight(NumCast(anno.page))} width={anno[WidthSym]()} height={anno[HeightSym]()} />)}
+                    </div>
+                </div>
             </div>
+        );
+    }
+}
+
+interface IAnnotation {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+}
+
+class RegionAnnotation extends React.Component<IAnnotation> {
+    onPointerDown = (e: React.PointerEvent) => {
+        console.log("clicked!");
+    }
+
+    render() {
+        return (
+            <div className="pdfViewer-annotationBox" onPointerDown={this.onPointerDown} style={{ top: this.props.y, left: this.props.x, width: this.props.width, height: this.props.height }}></div>
         );
     }
 }
