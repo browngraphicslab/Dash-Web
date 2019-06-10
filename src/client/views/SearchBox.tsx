@@ -68,19 +68,34 @@ export class IconBar extends React.Component<IconBarProps> {
 
     onClick = (value: string) => {
         let oldIcons = this.props.getIcons()
-        if (value === "none") {
+        if (value === DocTypes.NONE) {
             this.newIcons = [value];
+            //if its none, change the color of all the other circles
+            document.querySelectorAll<HTMLDivElement>(".type-icon").forEach(node => {
+                if (node.id === "none") {
+                    node.style.backgroundColor = "#c2c2c5";
+                }
+                else {
+                    node.style.backgroundColor = "#121721";
+                }
+            }
+            );
         }
         else {
+            //turns "none" button off
+            let noneDoc = document.getElementById(DocTypes.NONE)
+            if(noneDoc){
+                noneDoc.style.backgroundColor = "#121721";
+            }
             if (oldIcons.includes(value)) {
                 this.newIcons = _.remove(oldIcons, value);
                 if (this.newIcons.length === 0) {
-                    this.newIcons = ["none"];
+                    this.newIcons = [DocTypes.NONE];
                 }
             }
             else {
                 this.newIcons = oldIcons;
-                if (this.newIcons.length === 1 && this.newIcons[0] === "none") {
+                if (this.newIcons.length === 1 && this.newIcons[0] === DocTypes.NONE) {
                     this.newIcons = [value]
                 }
                 else { this.newIcons.push(value); }
@@ -95,7 +110,7 @@ export class IconBar extends React.Component<IconBarProps> {
         return (
             <div>
                 <div className="icon-bar">
-                    <div className="type-icon"
+                    <div className="type-icon" id="none"
                         onClick={() => { this.onClick(DocTypes.NONE) }}>
                         <FontAwesomeIcon className="fontawesome-icon" style={{ order: -2 }} icon={faBan} />
                     </div>
@@ -297,7 +312,6 @@ export class SearchBox extends React.Component {
         }
         //not in either, close both
         else {
-            console.log("not either")
             this._resultsOpen = false;
             this._open = false;
         }
