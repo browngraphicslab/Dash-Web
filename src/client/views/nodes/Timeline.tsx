@@ -33,7 +33,7 @@ const Position = makeInterface(PositionSchema);
 
 const TimeAndPositionSchema = createSchema({
     time: defaultSpec("number", 0),
-    position: Doc //Position
+    position: Doc
 });
 
 type TimeAndPosition = makeInterface<[typeof TimeAndPositionSchema]>;
@@ -56,10 +56,13 @@ export class Timeline extends CollectionSubView(Document) {
     @observable private _data: Doc[] = []; // 1D list of nodes
     @observable private _keyframes: Doc[][] = []; //2D list of infos
 
-    private tempdoc: any = null;
-
+    @observable private TEMPNUM = 0; 
     @action
     onRecord = (e: React.MouseEvent) => {
+        if (this._isRecording === true){
+            this._isRecording = false; 
+            return; 
+        }
         this._isRecording = true;
         let children = Cast(this.props.Document[this.props.fieldKey], listSpec(Doc));
         if (!children) {
@@ -69,47 +72,14 @@ export class Timeline extends CollectionSubView(Document) {
 
         const addReaction = (node: Doc) => {
             node = (node as any).value();
-            this.tempdoc = node;
-
             return reaction(() => {
                 return this._keys.map(key => FieldValue(node[key]));
             }, async data => {
-                if (this._inner.current) {
-                    if (!this._barMoved) {
-                        console.log("running");
-                        if (this._data.indexOf(node) === -1) {
-
-                            const kf = new List();
-                            this._data.push(node);
-                            let index = this._data.indexOf(node);
-
-                            let timeandpos = this.setTimeAndPos(node);
-
-                            let info: Doc[] = new Array(1000); //////////////////////////////////////////////////// do something  
-                            info[this._currentBarX] = timeandpos;
-
-                            this._keyframes[index] = info;
-
-                            //graphical yellow bar
-                            let bar: HTMLDivElement = this.createBar(5, this._currentBarX, "yellow");
-                            this._inner.current.appendChild(bar);
-                            this._keys.forEach((key, index) => {
-
-                            });
-                        } else {
-                            let index = this._data.indexOf(node);
-                            if (this._keyframes[index][this._currentBarX] !== undefined) { //when node is in data, but doesn't have data for this specific time. 
-                                let timeandpos = this.setTimeAndPos(node);
-                                let bar: HTMLDivElement = this.createBar(5, this._currentBarX, "yellow");
-                                this._inner.current.appendChild(bar);
-                                this._keyframes[index][this._currentBarX] = timeandpos;
-                            } else { //when node is in data, and has data for this specific time
-                                let timeandpos = this.setTimeAndPos(node);
-                                this._keyframes[index][this._currentBarX] = timeandpos;
-                            }
-                        }
-                    }
-
+                if (this.TEMPNUM === 1){ //very hacky... we want the reaction to run only once
+                    this.storeKeyChange(node); 
+                    this.TEMPNUM = 0; 
+                } else {
+                    this.TEMPNUM = 1; 
                 }
             });
         };
@@ -119,6 +89,7 @@ export class Timeline extends CollectionSubView(Document) {
                 this._reactionDisposers[change.index]();
                 this._reactionDisposers[change.index] = addReaction(change.newValue);
             } else {
+                
                 let removed = this._reactionDisposers.splice(change.index, change.removedCount, ...change.added.map(addReaction));
                 removed.forEach(disp => disp());
             }
@@ -126,10 +97,55 @@ export class Timeline extends CollectionSubView(Document) {
 
     }
 
+
+
+    storeKeyChange = (node:Doc) =>{
+        if (this._inner.current) {
+            if (!this._barMoved) {
+                if (this._data.indexOf(node) === -1) {
+                    const kf = new List();
+                    this._data.push(node);
+                    let index = this._data.indexOf(node);
+                    let timeandpos = this.setTimeAndPos(node);
+
+                    let info: Doc[] = new Array(1000); //////////////////////////////////////////////////// do something  
+                    info[this._currentBarX] = timeandpos;
+
+                    this._keyframes[index] = info;
+
+                    //graphical yellow bar
+                    let bar: HTMLDivElement = this.createBar(5, this._currentBarX, "yellow");
+                    this._inner.current.appendChild(bar);
+                } else {  
+                    let index = this._data.indexOf(node);
+                    if (this._keyframes[index][this._currentBarX] === undefined) { //when node is in data, but doesn't have data for this specific time. 
+                        console.log("does not have specific time"); 
+                        let timeandpos = this.setTimeAndPos(node);
+                        this._keyframes[index][this._currentBarX] = timeandpos;   
+                        let bar: HTMLDivElement = this.createBar(5, this._currentBarX, "yellow");
+                        this._inner.current.appendChild(bar);
+                        //@ts-ignore
+                        console.log(timeandpos.position.y + " stored position" ); 
+                        console.log(node.y + " actual node"); 
+                    } else { //when node is in data, and has data for this specific time
+                        console.log("else"); 
+                        let timeandpos = this.setTimeAndPos(node);
+                        //@ts-ignore
+                        console.log(node.y + " actual node"); 
+                        this._keyframes[index][this._currentBarX] = timeandpos;
+                        //@ts-ignore
+                        console.log(this._keyframes[index][this._currentBarX].position.y + " stored pos"); 
+
+                    }
+                }
+            }
+
+        }
+    }
     setTimeAndPos = (node: Doc) => {
         let pos: Position = Position(node);
-        let timeandpos = new Doc;
-        const newPos = new Doc;
+        let timeandpos = new Doc();
+        const newPos = new Doc();
         this._keys.forEach(key => newPos[key] = pos[key]);
         timeandpos.position = newPos;
         timeandpos.time = this._currentBarX;
@@ -164,33 +180,15 @@ export class Timeline extends CollectionSubView(Document) {
                         if (rightMin !== Infinity) {
                             rightKf = TimeAndPosition(this._keyframes[i][rightMin]);
                         }
-                    } else {
-                        isFrame = true;
                     }
                 }
             });
+            
             if (leftKf && rightKf) {
                 this.interpolate(oneDoc, leftKf, rightKf, this._currentBarX);
+            } else {
+                               
             }
-            if (isFrame) {
-                if (oneKf[i] !== undefined) {
-                    // console.log(isFrame);
-                    // //@ts-ignore
-                    // oneDoc.x = this._keyframes[i].position.x;
-                    // //@ts-ignore
-                    // oneDoc.y = this._keyframes[i].position.y;
-
-                    //maybe????
-                    let pos: Position = Position(oneDoc);
-                    let timeandpos = new Doc;
-                    const newPos = new Doc;
-                    this._keys.forEach(key => newPos[key] = pos[key]);
-                    timeandpos.position = newPos;
-                    timeandpos.time = this._currentBarX;
-                    this._keyframes[i][this._currentBarX] = timeandpos;
-                }
-            }
-            isFrame = false;
         });
     }
 
@@ -248,11 +246,14 @@ export class Timeline extends CollectionSubView(Document) {
 
     private _barMoved: boolean = false;
     @action
-    onInnerPointerUp = (e: React.PointerEvent) => {
+    onInnerPointerUp = (e: React.PointerEvent) => {             
         if (this._inner.current) {
             this._barMoved = false;
             this._inner.current.removeEventListener("pointermove", this.onInnerPointerMove);
         }
+        this._data.forEach((node) => {
+            console.log(node.y); 
+        }); 
     }
 
     @action
@@ -270,6 +271,7 @@ export class Timeline extends CollectionSubView(Document) {
                 this._inner.current.addEventListener("pointermove", this.onInnerPointerMove);
                 this.timeChange(this._currentBarX);
             }
+
         }
     }
 
@@ -322,11 +324,36 @@ export class Timeline extends CollectionSubView(Document) {
     }
 
     @action
-    displayKeyFrames = (dv: DocumentView) => {
-        console.log(dv);
-        dv.props.Document;
+    displayKeyFrames = async (dv: DocumentView) => {
+        console.log("hi"); 
+        let doc:Doc = dv.props.Document;
+        let inner:HTMLDivElement = (await this._inner.current)!;
+        this._data.forEach((node) => {
+            if (node === doc){        
+                this.clearBars(); 
+                const index = this._data.indexOf(node); 
+                this._keyframes[index].forEach((time) => {
+                    if (time !== undefined){
+                        let timeandpos = TimeAndPosition(time);
+                        let bar: HTMLDivElement = this.createBar(5, this._currentBarX, "yellow");
+                        inner.appendChild(bar);
+                    }
+                })
+            }
+        }); 
 
     }
+
+    @action 
+    clearBars = async () => {
+        let inner:HTMLDivElement = (await this._inner.current)!;
+        inner.childNodes.forEach((bar) => {
+            if (bar !== this._currentBar){
+                inner.removeChild(bar);
+            }
+        }); 
+    }
+    
 
     render() {
         return (
