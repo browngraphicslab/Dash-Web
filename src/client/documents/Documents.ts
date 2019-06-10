@@ -38,6 +38,21 @@ import { RouteStore } from "../../server/RouteStore";
 var requestImageSize = require('request-image-size');
 var path = require('path');
 
+export enum DocTypes {
+    NONE = "none",
+    IMG = "image",
+    HIST = "histogram",
+    ICON = "icon",
+    TEXT = "text",
+    PDF = "pdf",
+    WEB = "web",
+    COL = "collection",
+    KVP = "kvp",
+    VID = "video",
+    AUDIO = "audio",
+    LINK = "link"
+}
+
 export interface DocumentOptions {
     x?: number;
     y?: number;
@@ -155,54 +170,54 @@ export namespace Docs {
 
     function CreateImagePrototype(): Doc {
         let imageProto = setupPrototypeOptions(imageProtoId, "IMAGE_PROTO", CollectionView.LayoutString("annotations"),
-            { x: 0, y: 0, nativeWidth: 600, width: 300, backgroundLayout: ImageBox.LayoutString(), curPage: 0, type: "image" });
+            { x: 0, y: 0, nativeWidth: 600, width: 300, backgroundLayout: ImageBox.LayoutString(), curPage: 0, type: DocTypes.IMG });
         return imageProto;
     }
 
     function CreateHistogramPrototype(): Doc {
         let histoProto = setupPrototypeOptions(histoProtoId, "HISTO PROTO", CollectionView.LayoutString("annotations"),
-            { x: 0, y: 0, width: 300, height: 300, backgroundColor: "black", backgroundLayout: HistogramBox.LayoutString(), type: "histogram" });
+            { x: 0, y: 0, width: 300, height: 300, backgroundColor: "black", backgroundLayout: HistogramBox.LayoutString(), type: DocTypes.HIST });
         return histoProto;
     }
     function CreateIconPrototype(): Doc {
         let iconProto = setupPrototypeOptions(iconProtoId, "ICON_PROTO", IconBox.LayoutString(),
-            { x: 0, y: 0, width: Number(MINIMIZED_ICON_SIZE), height: Number(MINIMIZED_ICON_SIZE), type: "icon" });
+            { x: 0, y: 0, width: Number(MINIMIZED_ICON_SIZE), height: Number(MINIMIZED_ICON_SIZE), type: DocTypes.ICON });
         return iconProto;
     }
     function CreateTextPrototype(): Doc {
         let textProto = setupPrototypeOptions(textProtoId, "TEXT_PROTO", FormattedTextBox.LayoutString(),
-            { x: 0, y: 0, width: 300, height: 150, backgroundColor: "#f1efeb", type: "text" });
+            { x: 0, y: 0, width: 300, height: 150, backgroundColor: "#f1efeb", type: DocTypes.TEXT });
         return textProto;
     }
     function CreatePdfPrototype(): Doc {
         let pdfProto = setupPrototypeOptions(pdfProtoId, "PDF_PROTO", CollectionPDFView.LayoutString("annotations"),
-            { x: 0, y: 0, nativeWidth: 1200, width: 300, backgroundLayout: PDFBox.LayoutString(), curPage: 1, type: "pdf" });
+            { x: 0, y: 0, nativeWidth: 1200, width: 300, backgroundLayout: PDFBox.LayoutString(), curPage: 1, type: DocTypes.PDF });
         return pdfProto;
     }
     function CreateWebPrototype(): Doc {
         let webProto = setupPrototypeOptions(webProtoId, "WEB_PROTO", WebBox.LayoutString(),
-            { x: 0, y: 0, width: 300, height: 300, type: "web" });
+            { x: 0, y: 0, width: 300, height: 300, type: DocTypes.WEB });
         return webProto;
     }
     function CreateCollectionPrototype(): Doc {
         let collProto = setupPrototypeOptions(collProtoId, "COLLECTION_PROTO", CollectionView.LayoutString("data"),
-            { panX: 0, panY: 0, scale: 1, width: 500, height: 500, type: "collection" });
+            { panX: 0, panY: 0, scale: 1, width: 500, height: 500, type: DocTypes.COL });
         return collProto;
     }
 
     function CreateKVPPrototype(): Doc {
         let kvpProto = setupPrototypeOptions(kvpProtoId, "KVP_PROTO", KeyValueBox.LayoutString(),
-            { x: 0, y: 0, width: 300, height: 150, type: "kvp" });
+            { x: 0, y: 0, width: 300, height: 150, type: DocTypes.KVP });
         return kvpProto;
     }
     function CreateVideoPrototype(): Doc {
         let videoProto = setupPrototypeOptions(videoProtoId, "VIDEO_PROTO", CollectionVideoView.LayoutString("annotations"),
-            { x: 0, y: 0, nativeWidth: 600, width: 300, backgroundLayout: VideoBox.LayoutString(), curPage: 0, type: "video" });
+            { x: 0, y: 0, nativeWidth: 600, width: 300, backgroundLayout: VideoBox.LayoutString(), curPage: 0, type: DocTypes.VID });
         return videoProto;
     }
     function CreateAudioPrototype(): Doc {
         let audioProto = setupPrototypeOptions(audioProtoId, "AUDIO_PROTO", AudioBox.LayoutString(),
-            { x: 0, y: 0, width: 300, height: 150, type: "audio" });
+            { x: 0, y: 0, width: 300, height: 150, type: DocTypes.AUDIO });
         return audioProto;
     }
 

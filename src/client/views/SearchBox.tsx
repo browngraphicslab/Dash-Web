@@ -11,11 +11,16 @@ import { DocServer } from '../DocServer';
 import { Doc } from '../../new_fields/Doc';
 import { Id } from '../../new_fields/FieldSymbols';
 import { SetupDrag } from '../util/DragManager';
-import { Docs } from '../documents/Documents';
+import { Docs, DocTypes } from '../documents/Documents';
 import { RouteStore } from '../../server/RouteStore';
 import { NumCast } from '../../new_fields/Types';
 import { SearchUtil } from '../util/SearchUtil';
 import * as anime from 'animejs';
+import { updateFunction } from '../../new_fields/util';
+import * as _ from "lodash";
+// import "./globalCssVariables.scss";
+import { findDOMNode } from 'react-dom';
+
 // import * as anime from '../../../node_modules/@types';
 // const anime = require('lib/anime.js');
 // import anime from 'animejs/lib/anime.es';
@@ -34,17 +39,117 @@ library.add(faChartBar);
 library.add(faGlobeAsia);
 library.add(faBan);
 
+export interface IconBarProps {
+    updateIcon(newIcons: string[]): void;
+    getIcons(): string[];
+}
+
+@observer
+export class IconBar extends React.Component<IconBarProps> {
+
+    @observable newIcons: string[] = [];
+
+    //changes colors of buttons on click - not sure if this is the best method (it probably isn't)
+    //but i spent a ton of time on it and this is the only thing i could get to work
+    componentDidMount = () => {
+
+        let buttons = document.querySelectorAll<HTMLDivElement>(".type-icon").forEach(node =>
+            node.addEventListener('click', function () {
+                if (this.style.backgroundColor === "rgb(194, 194, 197)") {
+                    this.style.backgroundColor = "#121721";
+                }
+                else {
+                    this.style.backgroundColor = "#c2c2c5"
+                }
+            })
+        );
+
+    }
+
+    onClick = (value: string) => {
+        let oldIcons = this.props.getIcons()
+        if (value === "none") {
+            this.newIcons = [value];
+        }
+        else {
+            if (oldIcons.includes(value)) {
+                this.newIcons = _.remove(oldIcons, value);
+                if (this.newIcons.length === 0) {
+                    this.newIcons = ["none"];
+                }
+            }
+            else {
+                this.newIcons = oldIcons;
+                if (this.newIcons.length === 1 && this.newIcons[0] === "none") {
+                    this.newIcons = [value]
+                }
+                else { this.newIcons.push(value); }
+            }
+        }
+        this.props.updateIcon(this.newIcons)
+
+    }
+
+    render() {
+
+        return (
+            <div>
+                <div className="icon-bar">
+                    <div className="type-icon"
+                        onClick={() => { this.onClick(DocTypes.NONE) }}>
+                        <FontAwesomeIcon className="fontawesome-icon" style={{ order: -2 }} icon={faBan} />
+                    </div>
+                    <div className="type-icon"
+                        onClick={() => { this.onClick(DocTypes.PDF) }}>
+                        <FontAwesomeIcon className="fontawesome-icon" style={{ order: 0 }} icon={faFilePdf} />
+                    </div>
+                    <div className="type-icon"
+                        onClick={() => { this.onClick(DocTypes.HIST) }}>
+                        <FontAwesomeIcon className="fontawesome-icon" style={{ order: 1 }} icon={faChartBar} />
+                    </div>
+                    <div className="type-icon"
+                        onClick={() => { this.onClick(DocTypes.COL) }}>
+                        <FontAwesomeIcon className="fontawesome-icon" style={{ order: 2 }} icon={faObjectGroup} />
+                    </div>
+                    <div className="type-icon"
+                        onClick={() => { this.onClick(DocTypes.IMG) }}>
+                        <FontAwesomeIcon className="fontawesome-icon" style={{ order: 3 }} icon={faImage} />
+                    </div>
+                    <div className="type-icon"
+                        onClick={() => { this.onClick(DocTypes.VID) }}>
+                        <FontAwesomeIcon className="fontawesome-icon" style={{ order: 4 }} icon={faFilm} />
+                    </div>
+                    <div className="type-icon"
+                        onClick={() => { this.onClick(DocTypes.WEB) }}>
+                        <FontAwesomeIcon className="fontawesome-icon" style={{ order: 5 }} icon={faGlobeAsia} />
+                    </div>
+                    <div className="type-icon"
+                        onClick={() => { this.onClick(DocTypes.LINK) }}>
+                        <FontAwesomeIcon className="fontawesome-icon" style={{ order: 6 }} icon={faLink} />
+                    </div>
+                    <div className="type-icon"
+                        onClick={() => { this.onClick(DocTypes.AUDIO) }}>
+                        <FontAwesomeIcon className="fontawesome-icon" style={{ order: 7 }} icon={faMusic} />
+                    </div>
+                    <div className="type-icon"
+                        onClick={() => { this.onClick(DocTypes.TEXT) }}>
+                        <FontAwesomeIcon className="fontawesome-icon" style={{ order: 8 }} icon={faStickyNote} />
+                    </div>
+                </div>
+            </div>
+        )
+    }
+}
+
 export interface ToggleBarProps {
     //false = right, true = left
     // status: boolean;
     changeStatus(value: boolean): void;
     optionOne: string;
     optionTwo: string;
-    //addDocTab(doc: Doc, location: string): void;
 }
 
 //TODO: justify content will align to specific side. Maybe do status passed in and out?
-
 @observer
 export class ToggleBar extends React.Component<ToggleBarProps>{
 
@@ -55,12 +160,14 @@ export class ToggleBar extends React.Component<ToggleBarProps>{
     constructor(props: ToggleBarProps) {
         super(props);
         this._toggleButton = React.createRef();
-        this.timeline = anime.timeline({autoplay: false,
-        direction: "reverse"});
+        this.timeline = anime.timeline({
+            autoplay: false,
+            direction: "reverse"
+        });
     }
 
     componentDidMount = () => {
-        
+
         let bar = document.getElementById("toggle-bar");
         let tog = document.getElementById("toggle-button");
         let barwidth = 0;
@@ -68,7 +175,6 @@ export class ToggleBar extends React.Component<ToggleBarProps>{
         if (bar && tog) {
             barwidth = bar.clientWidth;
             togwidth = tog.clientWidth;
-            console.log(togwidth)
         }
         let totalWidth = (barwidth - togwidth - 10);
 
@@ -80,11 +186,10 @@ export class ToggleBar extends React.Component<ToggleBarProps>{
             duration: 500
         });
     }
-    
+
     @action.bound
     onclick() {
         this._status = !this._status;
-        console.log("sttaus should be:", this._status)
         this.props.changeStatus(this._status);
         this.timeline.play();
         this.timeline.reverse();
@@ -93,13 +198,13 @@ export class ToggleBar extends React.Component<ToggleBarProps>{
     render() {
         return (
             <div>
-            <div className = "toggle-title">
-                <div className = "toggle-option">{this.props.optionOne}</div>
-                <div className = "toggle-option">{this.props.optionTwo}</div>
-            </div>
-            <div className="toggle-bar" id="toggle-bar">
-                <div className="toggle-button" id="toggle-button" ref={this._toggleButton} onClick={this.onclick} />
-            </div>
+                <div className="toggle-title">
+                    <div className="toggle-option">{this.props.optionOne}</div>
+                    <div className="toggle-option">{this.props.optionTwo}</div>
+                </div>
+                <div className="toggle-bar" id="toggle-bar">
+                    <div className="toggle-button" id="toggle-button" ref={this._toggleButton} onClick={this.onclick} />
+                </div>
             </div>
         );
     };
@@ -108,25 +213,21 @@ export class ToggleBar extends React.Component<ToggleBarProps>{
 
 @observer
 export class SearchBox extends React.Component {
-    @observable
-    searchString: string = "";
+    @observable _searchString: string = "";
     @observable _wordStatus: boolean = true;
-
+    @observable _icons: string[] = ["none"];
     @observable private _open: boolean = false;
     @observable private _resultsOpen: boolean = false;
-
-    @observable
-    private _results: Doc[] = [];
-
+    @observable private _results: Doc[] = [];
 
     @action.bound
     onChange(e: React.ChangeEvent<HTMLInputElement>) {
-        this.searchString = e.target.value;
+        this._searchString = e.target.value;
     }
 
     @action
     submitSearch = async () => {
-        let query = this.searchString;
+        let query = this._searchString;
         //gets json result into a list of documents that can be used
         const results = await this.getResults(query);
 
@@ -176,8 +277,9 @@ export class SearchBox extends React.Component {
     @action
     handleSearchClick = (e: Event): void => {
         let element = document.getElementsByClassName((e.target as any).className)[0];
+        let name: string = (e.target as any).className;
         //handles case with filter button
-        if ((e.target as any).className.includes("filter")) {
+        if (String(name).indexOf("filter") !== -1 || String(name).indexOf("SVG") !== -1) {
             this._resultsOpen = false;
             this._open = true;
         }
@@ -195,12 +297,12 @@ export class SearchBox extends React.Component {
         }
         //not in either, close both
         else {
+            console.log("not either")
             this._resultsOpen = false;
             this._open = false;
         }
 
     }
-
 
     //finds ancestor div that matches class name passed in, if not found false returned
     findAncestor(curElement: any, cls: string) {
@@ -224,7 +326,7 @@ export class SearchBox extends React.Component {
 
     collectionRef = React.createRef<HTMLSpanElement>();
     startDragCollection = async () => {
-        const results = await this.getResults(this.searchString);
+        const results = await this.getResults(this._searchString);
         const docs = results.map(doc => {
             const isProto = Doc.GetT(doc, "isPrototype", "boolean", true);
             if (isProto) {
@@ -257,7 +359,7 @@ export class SearchBox extends React.Component {
                 y += 300;
             }
         }
-        return Docs.FreeformDocument(docs, { width: 400, height: 400, panX: 175, panY: 175, backgroundColor: "grey", title: `Search Docs: "${this.searchString}"` });
+        return Docs.FreeformDocument(docs, { width: 400, height: 400, panX: 175, panY: 175, backgroundColor: "grey", title: `Search Docs: "${this._searchString}"` });
     }
 
     @action
@@ -272,7 +374,16 @@ export class SearchBox extends React.Component {
 
     handleWordQueryChange = (value: boolean) => {
         this._wordStatus = value;
-        console.log("changed toL:", this._wordStatus)
+    }
+
+    @action.bound
+    updateIcon(newArray: string[]) {
+        this._icons = newArray;
+    }
+
+    @action.bound
+    getIcons(): string[] {
+        return this._icons;
     }
 
     // Useful queries:
@@ -286,7 +397,7 @@ export class SearchBox extends React.Component {
                         <span onPointerDown={SetupDrag(this.collectionRef, this.startDragCollection)} ref={this.collectionRef}>
                             <FontAwesomeIcon icon="object-group" className="searchBox-barChild" size="lg" />
                         </span>
-                        <input value={this.searchString} onChange={this.onChange} type="text" placeholder="Search..."
+                        <input value={this._searchString} onChange={this.onChange} type="text" placeholder="Search..."
                             className="searchBox-barChild searchBox-input" onKeyPress={this.enter}
                             style={{ width: this._resultsOpen ? "500px" : "100px" }} />
                         <button className="searchBox-barChild searchBox-filter">Filter</button>
@@ -295,7 +406,7 @@ export class SearchBox extends React.Component {
                         <div className="searchBox-results">
                             {this._results.map(result => <SearchItem doc={result} key={result[Id]} />)}
                         </div>
-                    ) : null}
+                    ) : undefined}
                 </div>
                 {/* these all need class names in order to find ancestor - please do not delete */}
                 {this._open ? (
@@ -303,23 +414,11 @@ export class SearchBox extends React.Component {
                         <div className="filter-form" id="header">Filter Search Results</div>
                         <div className="filter-form" id="option">
                             <div className="required-words">
-                                <ToggleBar optionOne = {"Include Any Keywords"} optionTwo = {"Include All Keywords"} changeStatus={this.handleWordQueryChange} />
+                                <ToggleBar optionOne={"Include Any Keywords"} optionTwo={"Include All Keywords"} changeStatus={this.handleWordQueryChange} />
                             </div>
                             <div className="type-of-node">
                                 temp for filtering by a type of node
-                                <div className="icon-bar">
-                                    {/* hoping to ultimately animate a reorder when an icon is chosen */}
-                                    <FontAwesomeIcon className = "type-icon" style={{ order: -2 }} icon={faBan}  />
-                                    <FontAwesomeIcon className = "type-icon" style={{ order: 0 }} icon={faFilePdf} />
-                                    <FontAwesomeIcon className = "type-icon" style={{ order: 1 }} icon={faChartBar} />
-                                    <FontAwesomeIcon className = "type-icon" style={{ order: 2 }} icon={faObjectGroup}  />
-                                    <FontAwesomeIcon className = "type-icon" style={{ order: 3 }} icon={faImage}  />
-                                    <FontAwesomeIcon className = "type-icon" style={{ order: 4 }} icon={faFilm}  />
-                                    <FontAwesomeIcon className = "type-icon" style={{ order: 5 }} icon={faGlobeAsia}  />
-                                    <FontAwesomeIcon className = "type-icon" style={{ order: 6 }} icon={faLink}  />
-                                    <FontAwesomeIcon className = "type-icon" style={{ order: 7 }} icon={faMusic} />
-                                    <FontAwesomeIcon className = "type-icon" style={{ order: 8 }} icon={faStickyNote} />
-                                </div>
+                               <IconBar updateIcon={this.updateIcon} getIcons={this.getIcons} />
                             </div>
                             <div className="filter-collection">
                                 temp for filtering by collection
@@ -329,7 +428,7 @@ export class SearchBox extends React.Component {
                             </div>
                         </div>
                     </div>
-                ) : null}
+                ) : undefined}
             </div>
         );
     }

@@ -82,12 +82,19 @@
     }
 
     .type-icon{
-        margin-right: 5px;
-        margin-left: 5px;
-        height: 40px;
-        width: 40px;
+        height: 50px;
+        width: 50px;
         color: $light-color;
         border-radius: 50%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background-color: "#121721";
+    }
+
+    .fontawesome-icon{
+        height: 28px;
+        width: 28px;
     }
 
     .type-icon:hover{

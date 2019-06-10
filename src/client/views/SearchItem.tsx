@@ -14,6 +14,7 @@ import { CollectionDockingView } from "./collections/CollectionDockingView";
 import { observer } from "mobx-react";
 import "./SearchItem.scss";
 import { CollectionViewType } from "./collections/CollectionBaseView";
+import { DocTypes } from "../documents/Documents";
 
 export interface SearchItemProps {
     doc: Doc;
@@ -92,15 +93,15 @@ export class SearchItem extends React.Component<SearchItemProps> {
     public DocumentIcon() {
         let layoutresult = Cast(this.props.doc.type, "string", "");
 
-        let button = layoutresult.indexOf("pdf") !== -1 ? faFilePdf :
-            layoutresult.indexOf("image") !== -1 ? faImage :
-                layoutresult.indexOf("text") !== -1 ? faStickyNote :
-                    layoutresult.indexOf("video") !== -1 ? faFilm :
-                        layoutresult.indexOf("collection") !== -1 ? faObjectGroup :
-                            layoutresult.indexOf("audio") !== -1 ? faMusic :
-                                layoutresult.indexOf("link") !== -1 ? faLink :
-                                    layoutresult.indexOf("histogram") !== -1 ? faChartBar :
-                                        layoutresult.indexOf("web") !== -1 ? faGlobeAsia :
+        let button = layoutresult.indexOf(DocTypes.PDF) !== -1 ? faFilePdf :
+            layoutresult.indexOf(DocTypes.IMG) !== -1 ? faImage :
+                layoutresult.indexOf(DocTypes.TEXT) !== -1 ? faStickyNote :
+                    layoutresult.indexOf(DocTypes.VID) !== -1 ? faFilm :
+                        layoutresult.indexOf(DocTypes.COL) !== -1 ? faObjectGroup :
+                            layoutresult.indexOf(DocTypes.AUDIO) !== -1 ? faMusic :
+                                layoutresult.indexOf(DocTypes.LINK) !== -1 ? faLink :
+                                    layoutresult.indexOf(DocTypes.HIST) !== -1 ? faChartBar :
+                                        layoutresult.indexOf(DocTypes.WEB) !== -1 ? faGlobeAsia :
                                             faCaretUp;
         return <FontAwesomeIcon icon={button} size="2x" />;
     }

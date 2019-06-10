@@ -1,6 +1,7 @@
 {
     "compilerOptions": {
         "target": "es5",
+        // "module": "system",
         "removeComments": true,
         "experimentalDecorators": true,
         "allowSyntheticDefaultImports": true,
