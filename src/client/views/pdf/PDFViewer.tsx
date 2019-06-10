@@ -184,7 +184,7 @@ class Viewer extends React.Component<IViewerProps> {
 
         // render pages for any indices that don't already have pages (force rerender will make these render regardless)
         for (let i = startIndex; i <= endIndex; i++) {
-            if (!this._isPage[i] || forceRender) {
+            if (!this._isPage[i] || (this._isPage[i] && forceRender)) {
                 this._visibleElements[i] = (
                     <Page
                         pdf={this.props.pdf}

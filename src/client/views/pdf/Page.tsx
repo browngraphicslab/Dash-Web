@@ -163,6 +163,9 @@ export default class Page extends React.Component<IPageProps> {
             targetAnnotations.push(...annotationDocs);
             targetDoc.annotations = targetAnnotations;
         }
+        else {
+            targetDoc.annotations = new List<Doc>(annotationDocs);
+        }
         // temporary code (currently broken ? 6/7/19) to get annotations to rerender on pdf
         let thisAnnotations = Cast(this.props.parent.Document.annotations, listSpec(Doc));
         if (thisAnnotations) {
