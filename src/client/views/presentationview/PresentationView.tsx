@@ -320,6 +320,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
         } else {
             this.presStatus = true;
             this.startPresentation(0);
+            this.gotoDocument(0);
         }
     }
 
