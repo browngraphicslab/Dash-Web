@@ -3,7 +3,6 @@ import * as ReactDOM from "react-dom";
 import { observer } from "mobx-react";
 import { observable, reaction, action, IReactionDisposer, observe, IObservableArray } from "mobx";
 import "./Timeline.scss";
-import { KeyFrame } from "./KeyFrame";
 import { CollectionViewProps } from "../collections/CollectionBaseView";
 import { CollectionSubView, SubCollectionViewProps } from "../collections/CollectionSubView";
 import { DocumentViewProps, DocumentView } from "./DocumentView";
@@ -76,26 +75,18 @@ export class Timeline extends CollectionSubView(Document) {
             }, async data => {
                 if (this._inner.current) {
                     if (!this._barMoved) {
-                        console.log("running");
                         if (this._data.indexOf(node) === -1) {
-
-                            const kf = new List();
                             this._data.push(node);
                             let index = this._data.indexOf(node);
 
                             let timeandpos = this.setTimeAndPos(node);
-
-                            let info: Doc[] = new Array(1000); //////////////////////////////////////////////////// do something  
+                            let info: Doc[] = new Array(1000); //kinda weird  
                             info[this._currentBarX] = timeandpos;
-
                             this._keyframes[index] = info;
 
                             //graphical yellow bar
                             let bar: HTMLDivElement = this.createBar(5, this._currentBarX, "yellow");
                             this._inner.current.appendChild(bar);
-                            this._keys.forEach((key, index) => {
-
-                            });
                         } else {
                             let index = this._data.indexOf(node);
                             if (this._keyframes[index][this._currentBarX] !== undefined) { //when node is in data, but doesn't have data for this specific time. 
@@ -139,17 +130,11 @@ export class Timeline extends CollectionSubView(Document) {
 
     @action
     timeChange = async (time: number) => {
-        //const docs = (await DocListCastAsync(this.props.Document[this.props.fieldKey]))!;
-        //const kfList:Doc[][] = Cast(this._keyframes, listSpec(Doc), []) as any;
         const docs = this._data;
-        const kfList: Doc[][] = this._keyframes;
-
-        const list = await Promise.all(kfList.map(l => Promise.all(l)));
-        let isFrame: boolean = false;
-
         docs.forEach(async (oneDoc, i) => {
             let leftKf!: TimeAndPosition;
             let rightKf!: TimeAndPosition;
+            let singleFrame: Doc | undefined = undefined;
             let oneKf = this._keyframes[i];
             oneKf.forEach((singleKf) => {
                 if (singleKf !== undefined) {
@@ -165,32 +150,17 @@ export class Timeline extends CollectionSubView(Document) {
                             rightKf = TimeAndPosition(this._keyframes[i][rightMin]);
                         }
                     } else {
-                        isFrame = true;
+                        singleFrame = singleKf;
                     }
                 }
             });
-            if (leftKf && rightKf) {
+            if (singleFrame) {
+                if (true || oneKf[i] !== undefined) {
+                    this._keys.map(key => FieldValue(oneDoc[key]));
+                }
+            } else if (leftKf && rightKf) {
                 this.interpolate(oneDoc, leftKf, rightKf, this._currentBarX);
             }
-            if (isFrame) {
-                if (oneKf[i] !== undefined) {
-                    // console.log(isFrame);
-                    // //@ts-ignore
-                    // oneDoc.x = this._keyframes[i].position.x;
-                    // //@ts-ignore
-                    // oneDoc.y = this._keyframes[i].position.y;
-
-                    //maybe????
-                    let pos: Position = Position(oneDoc);
-                    let timeandpos = new Doc;
-                    const newPos = new Doc;
-                    this._keys.forEach(key => newPos[key] = pos[key]);
-                    timeandpos.position = newPos;
-                    timeandpos.time = this._currentBarX;
-                    this._keyframes[i][this._currentBarX] = timeandpos;
-                }
-            }
-            isFrame = false;
         });
     }
 
@@ -198,7 +168,7 @@ export class Timeline extends CollectionSubView(Document) {
         let counter: number = Infinity;
         let leftMin: number = Infinity;
         kfList.forEach((kf) => {
-            if (kf !== undefined && NumCast(kf.time) < time) { //ERROR: "cannot read property time of undefined"
+            if (kf !== undefined && NumCast(kf.time) < time) {
                 let diff: number = Math.abs(NumCast(kf.time) - time);
                 if (diff < counter) {
                     counter = diff;
@@ -244,7 +214,6 @@ export class Timeline extends CollectionSubView(Document) {
             doc[key] = NumCast(keyFrame1[key]) + adjusted;
         });
     }
-
 
     private _barMoved: boolean = false;
     @action
@@ -323,7 +292,7 @@ export class Timeline extends CollectionSubView(Document) {
 
     @action
     displayKeyFrames = (dv: DocumentView) => {
-        console.log(dv);
+        // console.log(dv);
         dv.props.Document;
 
     }
