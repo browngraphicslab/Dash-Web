@@ -57,6 +57,9 @@ export class Timeline extends CollectionSubView(Document) {
     @observable private _keyframes: Doc[][] = []; //2D list of infos
 
     @observable private TEMPNUM = 0; 
+    @observable private _keyChanged = false; 
+
+
     @action
     onRecord = (e: React.MouseEvent) => {
         if (this._isRecording === true){
@@ -100,6 +103,7 @@ export class Timeline extends CollectionSubView(Document) {
 
 
     storeKeyChange = (node:Doc) =>{
+        this._keyChanged = true; 
         if (this._inner.current) {
             if (!this._barMoved) {
                 if (this._data.indexOf(node) === -1) {
@@ -325,20 +329,27 @@ export class Timeline extends CollectionSubView(Document) {
 
     @action
     displayKeyFrames = async (dv: DocumentView) => {
-        console.log("hi"); 
+        if (this._keyChanged){ //this runs when keyframe has been changed, so it should not delete any bars. 
+            this._keyChanged = false;
+        } else {
+            this.clearBars(); 
+        }
         let doc:Doc = dv.props.Document;
         let inner:HTMLDivElement = (await this._inner.current)!;
         this._data.forEach((node) => {
-            if (node === doc){        
-                this.clearBars(); 
+            console.log(node); 
+            console.log(doc); 
+            if (node === doc){   
+                console.log("hi");     
                 const index = this._data.indexOf(node); 
-                this._keyframes[index].forEach((time) => {
-                    if (time !== undefined){
-                        let timeandpos = TimeAndPosition(time);
-                        let bar: HTMLDivElement = this.createBar(5, this._currentBarX, "yellow");
+                this._keyframes[index].forEach( async (timeandpos) => {
+                    if (timeandpos !== undefined){
+                        timeandpos = TimeAndPosition(timeandpos); 
+                        let time = NumCast(await timeandpos.time); 
+                        let bar: HTMLDivElement = this.createBar(5, time, "yellow");
                         inner.appendChild(bar);
                     }
-                })
+                }); 
             }
         }); 
 
@@ -347,11 +358,14 @@ export class Timeline extends CollectionSubView(Document) {
     @action 
     clearBars = async () => {
         let inner:HTMLDivElement = (await this._inner.current)!;
+        console.log(inner.children); 
         inner.childNodes.forEach((bar) => {
             if (bar !== this._currentBar){
                 inner.removeChild(bar);
             }
+
         }); 
+       
     }
     
 
@@ -364,11 +378,13 @@ export class Timeline extends CollectionSubView(Document) {
                             {
                                 SelectionManager.SelectedDocuments().map((dv) => {
                                     this.displayKeyFrames(dv);
-                                })}
+                            })}
+
+                            
+
                         </div>
                     </div>
                     <button onClick={this.onRecord}>Record</button>
-                    {/* <button onClick={this.onInterpolate}>Inter</button> */}
                     <input placeholder="Time" ref={this._timeInput} onKeyDown={this.onTimeEntered}></input>
                 </div>
             </div>
