@@ -1,8 +1,8 @@
 import { observer } from "mobx-react";
 import React = require("react");
-import { observable, action, runInAction } from "mobx";
+import { observable, action, runInAction, IReactionDisposer, reaction } from "mobx";
 import * as Pdfjs from "pdfjs-dist";
-import { Opt, Doc, FieldResult, Field } from "../../../new_fields/Doc";
+import { Opt, Doc, FieldResult, Field, DocListCast, WidthSym, HeightSym } from "../../../new_fields/Doc";
 import "./PDFViewer.scss";
 import "pdfjs-dist/web/pdf_viewer.css";
 import { PDFBox } from "../nodes/PDFBox";
@@ -12,6 +12,7 @@ import { List } from "../../../new_fields/List";
 import { emptyFunction } from "../../../Utils";
 import { Cast, NumCast } from "../../../new_fields/Types";
 import { listSpec } from "../../../new_fields/Schema";
+import { menuBar } from "prosemirror-menu";
 
 interface IPageProps {
     pdf: Opt<Pdfjs.PDFDocumentProxy>;
@@ -34,7 +35,7 @@ export default class Page extends React.Component<IPageProps> {
     @observable private _marqueeWidth: number = 0;
     @observable private _marqueeHeight: number = 0;
     @observable private _rotate: string = "";
-    @observable private _annotations: List<Doc> = new List<Doc>();
+    @observable private _annotations: Doc[] = [];
 
     private _canvas: React.RefObject<HTMLCanvasElement>;
     private _textLayer: React.RefObject<HTMLDivElement>;
@@ -44,6 +45,7 @@ export default class Page extends React.Component<IPageProps> {
     private _currentAnnotations: HTMLDivElement[] = [];
     private _marqueeing: boolean = false;
     private _dragging: boolean = false;
+    private _reactionDisposer?: IReactionDisposer;
 
     constructor(props: IPageProps) {
         super(props);
@@ -54,19 +56,38 @@ export default class Page extends React.Component<IPageProps> {
         this._curly = React.createRef();
     }
 
-    componentDidMount() {
+    componentDidMount = (): void => {
+        if (this.props.pdf) {
+            this.update(this.props.pdf);
+
+            if (this.props.parent.Document) {
+                this._reactionDisposer = reaction(
+                    () => DocListCast(this.props.parent.Document.annotations),
+                    () => {
+                        let annotations = DocListCast(this.props.parent.Document.annotations);
+                        if (annotations && annotations.length) {
+                            this.renderAnnotations(annotations, true);
+                        }
+                    },
+                    { fireImmediately: true }
+                );
+            }
+        }
+    }
+
+    componentWillUnmount = (): void => {
+        if (this._reactionDisposer) {
+            this._reactionDisposer();
+        }
+    }
+
+    componentDidUpdate = (): void => {
         if (this.props.pdf) {
             this.update(this.props.pdf);
         }
     }
 
-    componentDidUpdate() {
-        if (this.props.pdf) {
-            this.update(this.props.pdf);
-        }
-    }
-
-    private update = (pdf: Pdfjs.PDFDocumentProxy) => {
+    private update = (pdf: Pdfjs.PDFDocumentProxy): void => {
         if (pdf) {
             this.loadPage(pdf);
         }
@@ -75,11 +96,11 @@ export default class Page extends React.Component<IPageProps> {
         }
     }
 
-    private loadPage = (pdf: Pdfjs.PDFDocumentProxy) => {
+    private loadPage = (pdf: Pdfjs.PDFDocumentProxy): void => {
         if (this._state === "rendering" || this._page) return;
 
         pdf.getPage(this._currPage).then(
-            (page: Pdfjs.PDFPageProxy) => {
+            (page: Pdfjs.PDFPageProxy): void => {
                 this._state = "rendering";
                 this.renderPage(page);
             }
@@ -87,7 +108,18 @@ export default class Page extends React.Component<IPageProps> {
     }
 
     @action
-    private renderPage = (page: Pdfjs.PDFPageProxy) => {
+    private renderAnnotations = (annotations: Doc[], removeOldAnnotations: boolean): void => {
+        if (removeOldAnnotations) {
+            this._annotations = annotations;
+        }
+        else {
+            this._annotations.push(...annotations);
+            this._annotations = new Array<Doc>(...this._annotations);
+        }
+    }
+
+    @action
+    private renderPage = (page: Pdfjs.PDFPageProxy): void => {
         // lower scale = easier to read at small sizes, higher scale = easier to read at large sizes
         let scale = 2;
         let viewport = page.getViewport(scale);
@@ -104,7 +136,7 @@ export default class Page extends React.Component<IPageProps> {
                 // renders the page onto the canvas context
                 page.render({ canvasContext: ctx, viewport: viewport });
                 // renders text onto the text container
-                page.getTextContent().then((res: Pdfjs.TextContent) => {
+                page.getTextContent().then((res: Pdfjs.TextContent): void => {
                     //@ts-ignore
                     Pdfjs.renderTextLayer({
                         textContent: res,
@@ -144,7 +176,7 @@ export default class Page extends React.Component<IPageProps> {
      * start a drag event and create or put the necessary info into the drag event.
      */
     @action
-    startDrag = (e: PointerEvent) => {
+    startDrag = (e: PointerEvent): void => {
         // the first 5 lines is a hack to prevent text selection while dragging
         e.preventDefault();
         e.stopPropagation();
@@ -165,15 +197,6 @@ export default class Page extends React.Component<IPageProps> {
         }
         else {
             targetDoc.annotations = new List<Doc>(annotationDocs);
-        }
-        // temporary code (currently broken ? 6/7/19) to get annotations to rerender on pdf
-        let thisAnnotations = Cast(this.props.parent.Document.annotations, listSpec(Doc));
-        if (thisAnnotations) {
-            thisAnnotations.push(...annotationDocs);
-            this.props.parent.Document.annotations = thisAnnotations;
-            let temp = new List<Doc>(thisAnnotations);
-            temp.push(...this._annotations);
-            this._annotations = temp;
         }
         // create dragData and star tdrag
         let dragData = new DragManager.AnnotationDragData(thisDoc, annotationDocs, targetDoc);
@@ -196,7 +219,7 @@ export default class Page extends React.Component<IPageProps> {
     }
 
     @action
-    onPointerDown = (e: React.PointerEvent) => {
+    onPointerDown = (e: React.PointerEvent): void => {
         // if alt+left click, drag and annotate
         if (e.altKey && e.button === 0) {
             e.stopPropagation();
@@ -237,7 +260,7 @@ export default class Page extends React.Component<IPageProps> {
     }
 
     @action
-    onSelectStart = (e: PointerEvent) => {
+    onSelectStart = (e: PointerEvent): void => {
         let target: any = e.target;
         if (this._marqueeing) {
             let current = this._textLayer.current;
@@ -292,7 +315,7 @@ export default class Page extends React.Component<IPageProps> {
     }
 
     @action
-    onSelectEnd = () => {
+    onSelectEnd = (): void => {
         if (this._marqueeing) {
             this._marqueeing = false;
             if (this._marquee.current) {
@@ -375,7 +398,6 @@ export default class Page extends React.Component<IPageProps> {
     }
 
     render() {
-        let annotations = this._annotations;
         return (
             <div onPointerDown={this.onPointerDown} className={this.props.name} style={{ "width": this._width, "height": this._height }}>
                 <div className="canvasContainer">
@@ -386,10 +408,24 @@ export default class Page extends React.Component<IPageProps> {
                         style={{ left: `${this._marqueeX}px`, top: `${this._marqueeY}px`, width: `${this._marqueeWidth}px`, height: `${this._marqueeHeight}px`, background: "transparent" }}>
                         <img ref={this._curly} src="https://static.thenounproject.com/png/331760-200.png" style={{ width: "100%", height: "100%", transform: `${this._rotate}` }} />
                     </div>
-                    {annotations.map(anno => this.renderAnnotation(anno instanceof Doc ? anno : undefined))}
+                    {this._annotations.map(anno => <RegionAnnotation x={NumCast(anno.x)} y={NumCast(anno.y)} width={anno[WidthSym]()} height={anno[HeightSym]()} />)}
                 </div>
                 <div className="textlayer" ref={this._textLayer} style={{ "position": "relative", "top": `-${2 * this._height}px`, "height": `${this._height}px` }} />
             </div>
+        );
+    }
+}
+
+interface IAnnotation {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+}
+class RegionAnnotation extends React.Component<IAnnotation> {
+    render() {
+        return (
+            <div className="pdfViewer-annotationBox" style={{ top: this.props.x, left: this.props.y, width: this.props.width, height: this.props.height }}></div>
         );
     }
 }
