@@ -18,6 +18,7 @@ import { Self } from "../../../new_fields/FieldSymbols";
 import { list } from "serializr";
 import { arrays } from "typescript-collections";
 import { forEach } from "typescript-collections/dist/lib/arrays";
+import { CompileScript } from "../../util/Scripting";
 
 type Data = List<Doc>; //data?
 type Keyframes = List<List<Doc>>;
@@ -45,17 +46,14 @@ export class Timeline extends CollectionSubView(Document) {
     @observable private _timeInput = React.createRef<HTMLInputElement>();
 
     @observable private _isRecording: Boolean = false;
-    @observable private _currentBar: any = null;
-    @observable private _newBar: any = null;
     private _reactionDisposers: IReactionDisposer[] = [];
 
     @observable private _currentBarX: number = 0;
-    @observable private _onBar: Boolean = false;
     @observable private _keys = ["x", "y"];
     @observable private _data: Doc[] = []; // 1D list of nodes
     @observable private _keyframes: Doc[][] = []; //2D list of infos
-    @observable private TEMPNUM = 0;
     @observable private _keyChanged = false;
+    @observable private _bars: HTMLDivElement[] = Array(1000); //////////////////////////////////////////////////////////////////////////change
 
     @action
     onRecord = (e: React.MouseEvent) => {
@@ -77,6 +75,7 @@ export class Timeline extends CollectionSubView(Document) {
             }, async data => {
                 if (this._inner.current) {
                     if (!this._barMoved) {
+                        let bar; 
                         if (this._data.indexOf(node) === -1) {
                             this._data.push(node);
                             let index = this._data.indexOf(node);
@@ -87,14 +86,12 @@ export class Timeline extends CollectionSubView(Document) {
                             this._keyframes[index] = info;
 
                             //graphical yellow bar
-                            let bar: HTMLDivElement = this.createBar(5, this._currentBarX, "yellow");
-                            this._inner.current.appendChild(bar);
+                            bar = this.createBar(5, this._currentBarX, "yellow");
                         } else {
                             let index = this._data.indexOf(node);
                             if (this._keyframes[index][this._currentBarX] !== undefined) { //when node is in data, but doesn't have data for this specific time. 
                                 let timeandpos = this.setTimeAndPos(node);
-                                let bar: HTMLDivElement = this.createBar(5, this._currentBarX, "yellow");
-                                this._inner.current.appendChild(bar);
+                                bar = this.createBar(5, this._currentBarX, "yellow");
                                 this._keyframes[index][this._currentBarX] = timeandpos;
                             } else { //when node is in data, and has data for this specific time
                                 let timeandpos = this.setTimeAndPos(node);
@@ -117,41 +114,6 @@ export class Timeline extends CollectionSubView(Document) {
             }
         }, true);
 
-    }
-
-    storeKeyChange = (node: Doc) => {
-        if (this._inner.current) {
-            if (!this._barMoved) {
-                if (this._data.indexOf(node) === -1) {
-                    const kf = new List();
-                    this._data.push(node);
-                    let index = this._data.indexOf(node);
-                    let timeandpos = this.setTimeAndPos(node);
-
-                    let info: Doc[] = new Array(1000); //////////////////////////////////////////////////// do something  
-                    info[this._currentBarX] = timeandpos;
-
-                    this._keyframes[index] = info;
-
-                    //graphical yellow bar
-                    let bar: HTMLDivElement = this.createBar(5, this._currentBarX, "yellow");
-                    this._inner.current.appendChild(bar);
-                } else {
-                    let index = this._data.indexOf(node);
-                    if (this._keyframes[index][this._currentBarX] === undefined) { //when node is in data, but doesn't have data for this specific time. 
-                        let timeandpos = this.setTimeAndPos(node);
-                        this._keyframes[index][this._currentBarX] = timeandpos;
-                        let bar: HTMLDivElement = this.createBar(5, this._currentBarX, "yellow");
-                        this._inner.current.appendChild(bar);
-                    } else { //when node is in data, and has data for this specific time
-                        let timeandpos = this.setTimeAndPos(node);
-                        this._keyframes[index][this._currentBarX] = timeandpos;
-
-                    }
-                }
-            }
-
-        }
     }
 
     setTimeAndPos = (node: Doc) => {
@@ -273,7 +235,6 @@ export class Timeline extends CollectionSubView(Document) {
                 let mouse = e.nativeEvent;
                 let offsetX = Math.round(mouse.offsetX);
                 this._currentBarX = offsetX;
-                this._currentBar.style.transform = `translate(${offsetX}px)`;
                 this._inner.current.removeEventListener("pointermove", this.onInnerPointerMove); //reset
                 this._inner.current.addEventListener("pointermove", this.onInnerPointerMove);
                 this.timeChange(this._currentBarX);
@@ -289,37 +250,33 @@ export class Timeline extends CollectionSubView(Document) {
         this._barMoved = true;
         let offsetX = Math.round(e.offsetX);
         this._currentBarX = offsetX;
-        this._currentBar.style.transform = `translate(${offsetX}px)`; //styling should not have to be done this way...maybe done through react??
         this.timeChange(this._currentBarX);
     }
 
-    createBar = (width: number, pos: number = 0, color: string = "green"): HTMLDivElement => {
-        let bar = document.createElement("div");
-        bar.style.height = "100%";
-        bar.style.width = `${width}px`;
-        bar.style.backgroundColor = color;
-        bar.style.transform = `translate(${pos}px)`; //repeated code from previous method
-        bar.style.position = "absolute";
-        bar.style.pointerEvents = "none";
-        return bar;
+    createBar = (width: number, pos: number = 0, color: string = "green"):JSX.Element => {
+        return (
+            <div style={{
+                height: "100%",
+                width: `${width}px`,
+                backgroundColor: color, 
+                transform: `translate(${pos}px)`, 
+                position: "absolute",
+                pointerEvents: "none"
+            }}></div>
+        );
     }
 
     onTimeEntered = (e: React.KeyboardEvent) => {
         if (this._timeInput.current) {
             if (e.keyCode === 13) {
                 let input = parseInt(this._timeInput.current.value) || 0;
-                this._currentBar.style.transform = `translate(${input}px)`;
                 this._currentBarX = input;
             }
         }
     }
 
     componentDidMount() {
-        if (this._inner.current && this._currentBar === null) {
-            this._currentBar = this.createBar(5);
-            this._inner.current.appendChild(this._currentBar);
-        }
-
+        
         let doc: Doc = this.props.Document;
         let test = this.props.Document[this.props.fieldKey];
 
@@ -331,46 +288,24 @@ export class Timeline extends CollectionSubView(Document) {
     }
 
     @action
-    displayKeyFrames = async (dv: DocumentView) => {
-        if (this._keyChanged) { //this runs when keyframe has been changed, so it should not delete any bars. 
-            this._keyChanged = false;
-        } else {
-            this.clearBars();
-        }
+    displayKeyFrames = (dv: DocumentView) => {
         let doc: Doc = dv.props.Document;
-        let inner: HTMLDivElement = (await this._inner.current)!;
-        this._data.forEach((node) => {
-            console.log(node);
-            console.log(doc);
+        let views: (JSX.Element | null)[] = [];
+        this._data.forEach((node, i) => {
             if (node === doc) {
-                console.log("hi");
-                const index = this._data.indexOf(node);
-                this._keyframes[index].forEach(async (timeandpos) => {
-                    if (timeandpos !== undefined) {
-                        timeandpos = TimeAndPosition(timeandpos);
-                        let time = NumCast(await timeandpos.time);
-                        let bar: HTMLDivElement = this.createBar(5, time, "yellow");
-                        inner.appendChild(bar);
+                views = this._keyframes[i].map(tp => {
+                    if (tp !== undefined) {
+                        const timeandpos = TimeAndPosition(tp);
+                        let time = timeandpos.time;
+                        let bar = this.createBar(5, time, "yellow");
+                        return bar;
                     }
+                    return null;
                 });
             }
         });
-
+        return views;
     }
-
-    @action
-    clearBars = async () => {
-        let inner: HTMLDivElement = (await this._inner.current)!;
-        console.log(inner.children);
-        inner.childNodes.forEach((bar) => {
-            if (bar !== this._currentBar) {
-                inner.removeChild(bar);
-            }
-
-        });
-
-    }
-
 
     render() {
         return (
@@ -378,13 +313,8 @@ export class Timeline extends CollectionSubView(Document) {
                 <div className="timeline-container">
                     <div className="timeline">
                         <div className="inner" ref={this._inner} onPointerDown={this.onInnerPointerDown} onPointerUp={this.onInnerPointerUp}>
-                            {
-                                SelectionManager.SelectedDocuments().map((dv) => {
-                                    this.displayKeyFrames(dv);
-                                })}
-
-
-
+                            {SelectionManager.SelectedDocuments().map((dv) => this.displayKeyFrames(dv))}
+                            {this.createBar(5, this._currentBarX)}
                         </div>
                     </div>
                     <button onClick={this.onRecord}>Record</button>
