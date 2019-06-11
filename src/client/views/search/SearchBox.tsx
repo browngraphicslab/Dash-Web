@@ -255,6 +255,7 @@ export class SearchBox extends React.Component {
                                 temp for filtering where in doc the keywords are found
                             </div>
                         </div>
+                        <button className = "reset-filter">Reset Filters</button>
                     </div>
                 ) : undefined}
             </div>
