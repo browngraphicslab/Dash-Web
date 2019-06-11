@@ -64,7 +64,7 @@ export class ToggleBar extends React.Component<ToggleBarProps>{
                 translateX: -totalWidth,
                 easing: "easeInOutQuad",
                 duration: 500
-            })
+            });
         }
     }
 
@@ -88,5 +88,5 @@ export class ToggleBar extends React.Component<ToggleBarProps>{
                 </div>
             </div>
         );
-    };
+    }
 }

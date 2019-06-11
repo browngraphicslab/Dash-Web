@@ -90,8 +90,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             let columnDocs = DocListCast(schemaDoc.data);
             if (columnDocs) {
                 let ddoc = columnDocs.find(doc => doc.title === columnName);
-                if (ddoc)
-                    return ddoc;
+                if (ddoc) { return ddoc; }
             }
         }
         return this.props.Document;
@@ -288,7 +287,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     }
 
     getPreviewTransform = (): Transform => this.props.ScreenToLocalTransform().translate(
-        - this.borderWidth - this.DIVIDER_WIDTH - this.tableWidth, - this.borderWidth);
+        - this.borderWidth - this.DIVIDER_WIDTH - this.tableWidth, - this.borderWidth)
 
 
     get documentKeysCheckList() {
@@ -337,7 +336,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             columns={this.tableColumns}
             column={{ ...ReactTableDefaults.column, Cell: this.renderCell, }}
             getTrProps={this.getTrProps}
-        />
+        />;
     }
 
     @computed
@@ -362,7 +361,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             addDocTab={this.props.addDocTab}
             setPreviewScript={this.setPreviewScript}
             previewScript={this.previewScript}
-        />
+        />;
     }
     @action
     setPreviewScript = (script: string) => {
@@ -410,7 +409,7 @@ export class CollectionSchemaPreview extends React.Component<CollectionSchemaPre
     }
     private PanelWidth = () => this.nativeWidth * this.contentScaling();
     private PanelHeight = () => this.nativeHeight * this.contentScaling();
-    private getTransform = () => this.props.getTransform().translate(-this.centeringOffset, 0).scale(1 / this.contentScaling())
+    private getTransform = () => this.props.getTransform().translate(-this.centeringOffset, 0).scale(1 / this.contentScaling());
     get centeringOffset() { return (this.props.width() - this.nativeWidth * this.contentScaling()) / 2; }
     @action
     onPreviewScriptChange = (e: React.ChangeEvent<HTMLInputElement>) => {

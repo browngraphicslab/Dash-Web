@@ -95,6 +95,7 @@ export class IconBar extends React.Component<IconBarProps> {
 
     @action.bound
     unselectAllRefs() {
+        
         this.allRefs.forEach(element => {
             if (element.current) {
                 element.current.setAttribute("data-selected", "false");
@@ -105,16 +106,16 @@ export class IconBar extends React.Component<IconBarProps> {
     @action.bound
     alternateRef(ref: any) {
         if (ref.getAttribute("data-selected") === "true") {
-            ref.setAttribute("data-selected", "false")
+            ref.setAttribute("data-selected", "false");
         }
         else {
-            ref.setAttribute("data-selected", "true")
+            ref.setAttribute("data-selected", "true");
         }
     }
 
     @action.bound
     onClick = (value: string) => {
-        let icons: string[] = this.props.getIcons()
+        let icons: string[] = this.props.getIcons();
         let ref = this.getRef(value);
         this.alternateRef(ref);
         if (value === DocTypes.NONE) {
@@ -150,15 +151,13 @@ export class IconBar extends React.Component<IconBarProps> {
     }
 
     getInitialStatus = (type: string) => {
-        console.log(this.getRef(type))
         if (this.originalFilteredNodes.includes(type)) {
-            return "true"
+            return "true";
         }
-        return "false"
+        return "false";
     }
 
     render() {
-        console.log("rendering")
         return (
             <div>
                 <div className="icon-title">Filter by type of node</div>
@@ -167,7 +166,7 @@ export class IconBar extends React.Component<IconBarProps> {
                         <div className={"type-icon none"}
                             ref={this.noneRef}
                             data-selected={"false"}
-                            onClick={() => { this.onClick(DocTypes.NONE) }}>
+                            onClick={() => { this.onClick(DocTypes.NONE); }}>
                             <FontAwesomeIcon className="fontawesome-icon" style={{ order: -2 }} icon={faBan} />
                         </div>
                         <div className="filter-description">Clear</div>
@@ -176,7 +175,7 @@ export class IconBar extends React.Component<IconBarProps> {
                         <div className={"type-icon " + (this.isRefSelected(this.pdfRef) ? "selected" : "not-selected")}
                             ref={this.pdfRef}
                             data-selected={this.getInitialStatus(DocTypes.PDF)}
-                            onClick={() => { this.onClick(DocTypes.PDF) }}>
+                            onClick={() => { this.onClick(DocTypes.PDF); }}>
                             <FontAwesomeIcon className="fontawesome-icon" style={{ order: 0 }} icon={faFilePdf} />
                         </div>
                         <div className="filter-description">PDF</div>
@@ -185,7 +184,7 @@ export class IconBar extends React.Component<IconBarProps> {
                         <div className={"type-icon " + (this.isRefSelected(this.histRef) ? "selected" : "not-selected")}
                             ref={this.histRef}
                             data-selected={this.getInitialStatus(DocTypes.HIST)}
-                            onClick={() => { this.onClick(DocTypes.HIST) }}>
+                            onClick={() => { this.onClick(DocTypes.HIST); }}>
                             <FontAwesomeIcon className="fontawesome-icon" style={{ order: 1 }} icon={faChartBar} />
                         </div>
                         <div className="filter-description">Histogram</div>
@@ -194,7 +193,7 @@ export class IconBar extends React.Component<IconBarProps> {
                         <div className={"type-icon " + (this.isRefSelected(this.colRef) ? "selected" : "not-selected")}
                             ref={this.colRef}
                             data-selected={this.getInitialStatus(DocTypes.COL)}
-                            onClick={() => { this.onClick(DocTypes.COL) }}>
+                            onClick={() => { this.onClick(DocTypes.COL); }}>
                             <FontAwesomeIcon className="fontawesome-icon" style={{ order: 2 }} icon={faObjectGroup} />
                         </div>
                         <div className="filter-description">Collection</div>
@@ -203,7 +202,7 @@ export class IconBar extends React.Component<IconBarProps> {
                         <div className={"type-icon " + (this.isRefSelected(this.imgRef) ? "selected" : "not-selected")}
                             ref={this.imgRef}
                             data-selected={this.getInitialStatus(DocTypes.IMG)}
-                            onClick={() => { this.onClick(DocTypes.IMG) }}>
+                            onClick={() => { this.onClick(DocTypes.IMG); }}>
                             <FontAwesomeIcon className="fontawesome-icon" style={{ order: 3 }} icon={faImage} />
                         </div>
                         <div className="filter-description">Image</div>
@@ -212,7 +211,7 @@ export class IconBar extends React.Component<IconBarProps> {
                         <div className={"type-icon " + (this.isRefSelected(this.vidRef) ? "selected" : "not-selected")}
                             ref={this.vidRef}
                             data-selected={this.getInitialStatus(DocTypes.VID)}
-                            onClick={() => { this.onClick(DocTypes.VID) }}>
+                            onClick={() => { this.onClick(DocTypes.VID); }}>
                             <FontAwesomeIcon className="fontawesome-icon" style={{ order: 4 }} icon={faFilm} />
                         </div>
                         <div className="filter-description">Video</div>
@@ -221,7 +220,7 @@ export class IconBar extends React.Component<IconBarProps> {
                         <div className={"type-icon " + (this.isRefSelected(this.webRef) ? "selected" : "not-selected")}
                             ref={this.webRef}
                             data-selected={this.getInitialStatus(DocTypes.WEB)}
-                            onClick={() => { this.onClick(DocTypes.WEB) }}>
+                            onClick={() => { this.onClick(DocTypes.WEB); }}>
                             <FontAwesomeIcon className="fontawesome-icon" style={{ order: 5 }} icon={faGlobeAsia} />
                         </div>
                         <div className="filter-description">Web</div>
@@ -230,7 +229,7 @@ export class IconBar extends React.Component<IconBarProps> {
                         <div className={"type-icon " + (this.isRefSelected(this.linkRef) ? "selected" : "not-selected")}
                             ref={this.linkRef}
                             data-selected={this.getInitialStatus(DocTypes.LINK)}
-                            onClick={() => { this.onClick(DocTypes.LINK) }}>
+                            onClick={() => { this.onClick(DocTypes.LINK); }}>
                             <FontAwesomeIcon className="fontawesome-icon" style={{ order: 6 }} icon={faLink} />
                         </div>
                         <div className="filter-description">Link</div>
@@ -239,7 +238,7 @@ export class IconBar extends React.Component<IconBarProps> {
                         <div className={"type-icon " + (this.isRefSelected(this.audioRef) ? "selected" : "not-selected")}
                             ref={this.audioRef}
                             data-selected={this.getInitialStatus(DocTypes.AUDIO)}
-                            onClick={() => { this.onClick(DocTypes.AUDIO) }}>
+                            onClick={() => { this.onClick(DocTypes.AUDIO); }}>
                             <FontAwesomeIcon className="fontawesome-icon" style={{ order: 7 }} icon={faMusic} />
                         </div>
                         <div className="filter-description">Audio</div>
@@ -248,13 +247,13 @@ export class IconBar extends React.Component<IconBarProps> {
                         <div className={"type-icon " + (this.isRefSelected(this.textRef) ? "selected" : "not-selected")}
                             ref={this.textRef}
                             data-selected={this.getInitialStatus(DocTypes.TEXT)}
-                            onClick={() => { this.onClick(DocTypes.TEXT) }}>
+                            onClick={() => { this.onClick(DocTypes.TEXT); }}>
                             <FontAwesomeIcon className="fontawesome-icon" style={{ order: 8 }} icon={faStickyNote} />
                         </div>
                         <div className="filter-description">Text</div>
                     </div>
                 </div>
             </div>
-        )
+        );
     }
 }

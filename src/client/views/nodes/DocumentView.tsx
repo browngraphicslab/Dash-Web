@@ -312,8 +312,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         this._lastTap = Date.now();
     }
 
-    deleteClicked = (): void => { this.props.removeDocument && this.props.removeDocument(this.props.Document); }
-    fieldsClicked = (): void => { this.props.addDocTab(Docs.KVPDocument(this.props.Document, { width: 300, height: 300 }), "onRight") };
+    deleteClicked = (): void => { this.props.removeDocument && this.props.removeDocument(this.props.Document); };
+    fieldsClicked = (): void => { this.props.addDocTab(Docs.KVPDocument(this.props.Document, { width: 300, height: 300 }), "onRight"); };
     makeBtnClicked = (): void => {
         let doc = Doc.GetProto(this.props.Document);
         doc.isButton = !BoolCast(doc.isButton, false);
@@ -442,7 +442,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     onPointerLeave = (e: React.PointerEvent): void => { this.props.Document.libraryBrush = false; };
 
     isSelected = () => SelectionManager.IsSelected(this);
-    @action select = (ctrlPressed: boolean) => { this.selectOnLoad = false; SelectionManager.SelectDoc(this, ctrlPressed); }
+    @action select = (ctrlPressed: boolean) => { this.selectOnLoad = false; SelectionManager.SelectDoc(this, ctrlPressed); };
 
     @observable selectOnLoad: boolean = false;
     @computed get nativeWidth() { return this.Document.nativeWidth || 0; }

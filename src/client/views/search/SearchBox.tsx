@@ -47,14 +47,14 @@ export class SearchBox extends React.Component {
         if(!this._wordStatus){
             let oldWords = query.split(" ");
             let newWords: string[] = [];
-            console.log(oldWords)
+            console.log(oldWords);
             oldWords.forEach(word => {
                 let newWrd = "+" + word;
                 newWords.push(newWrd);
-            })
-            console.log(newWords)
+            });
+            console.log(newWords);
 
-            query = newWords.join(" ")
+            query = newWords.join(" ");
         }
 
         //gets json result into a list of documents that can be used

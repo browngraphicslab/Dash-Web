@@ -41,8 +41,8 @@ class PresentationViewList extends React.Component<PresListProps> {
             //this doc is selected
             className += " presentationView-selected";
         }
-        let onEnter = (e: React.PointerEvent) => { document.libraryBrush = true; }
-        let onLeave = (e: React.PointerEvent) => { document.libraryBrush = false; }
+        let onEnter = (e: React.PointerEvent) => { document.libraryBrush = true; };
+        let onLeave = (e: React.PointerEvent) => { document.libraryBrush = false; };
         return (
             <div className={className} key={document[Id] + index}
                 onPointerEnter={onEnter} onPointerLeave={onLeave}

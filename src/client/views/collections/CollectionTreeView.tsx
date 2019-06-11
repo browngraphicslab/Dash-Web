@@ -67,8 +67,8 @@ class TreeView extends React.Component<TreeViewProps> {
     @undoBatch delete = () => this.props.deleteDoc(this.props.document);
     @undoBatch openRight = async () => this.props.addDocTab(this.props.document, "openRight");
 
-    @action onMouseEnter = () => { this._isOver = true; }
-    @action onMouseLeave = () => { this._isOver = false; }
+    @action onMouseEnter = () => { this._isOver = true; };
+    @action onMouseLeave = () => { this._isOver = false; };
 
     onPointerEnter = (e: React.PointerEvent): void => {
         this.props.active() && (this.props.document.libraryBrush = true);
@@ -89,8 +89,8 @@ class TreeView extends React.Component<TreeViewProps> {
         let bounds = this.props.ScreenToLocalTransform().transformPoint(rect.left, rect.top + rect.height / 2);
         let before = x[1] < bounds[1];
         let inside = x[0] > bounds[0] + 75 || (!before && this._bulletType === BulletType.Collapsible);
-        this._header!.current!.className = "treeViewItem-header"
-        if (inside && this._bulletType != BulletType.List) this._header!.current!.className = "treeViewItem-header-inside";
+        this._header!.current!.className = "treeViewItem-header";
+        if (inside && this._bulletType !== BulletType.List) this._header!.current!.className = "treeViewItem-header-inside";
         else if (before) this._header!.current!.className = "treeViewItem-header-above";
         else if (!before) this._header!.current!.className = "treeViewItem-header-below";
         e.stopPropagation();
@@ -191,7 +191,7 @@ class TreeView extends React.Component<TreeViewProps> {
             if (inside) {
                 let docList = Cast(this.props.document.data, listSpec(Doc));
                 if (docList !== undefined) {
-                    addDoc = (doc: Doc) => { docList && docList.push(doc); return true; }
+                    addDoc = (doc: Doc) => { docList && docList.push(doc); return true; };
                 }
             }
             let added = false;

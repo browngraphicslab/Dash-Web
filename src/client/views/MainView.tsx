@@ -344,7 +344,7 @@ export class MainView extends React.Component {
                 this.globalDisplayFlags.jumpToVisible = true;
                 break;
             case "escape":
-                _.mapValues(this.globalDisplayFlags, () => false)
+                _.mapValues(this.globalDisplayFlags, () => false);
                 break;
             case "f":
                 this.isSearchVisible = !this.isSearchVisible;

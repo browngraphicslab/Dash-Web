@@ -88,7 +88,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
     onPointerDown = (e: React.PointerEvent): void => {
         if (e.shiftKey && e.ctrlKey)
 
-            e.stopPropagation();
+        {e.stopPropagation();}
         // if (Date.now() - this._lastTap < 300) {
         //     if (e.buttons === 1) {
         //         this._downX = e.clientX;
@@ -189,7 +189,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
     @action onError = () => {
         let timeout = this._curSuffix === "_s" ? this._smallRetryCount : this._curSuffix === "_m" ? this._mediumRetryCount : this._largeRetryCount;
         if (timeout < 10)
-            setTimeout(this.retryPath, Math.min(10000, timeout * 5));
+           { setTimeout(this.retryPath, Math.min(10000, timeout * 5));}
     }
     _curSuffix = "_m";
     render() {

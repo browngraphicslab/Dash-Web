@@ -35,7 +35,7 @@ export class DocumentManager {
         let toReturn: DocumentView | null = null;
         let passes = preferredCollection ? [preferredCollection, undefined] : [undefined];
 
-        for (let i = 0; i < passes.length; i++) {
+        for(let i = 0; i < passes.length; i++) {
             DocumentManager.Instance.DocumentViews.map(view => {
                 if (view.props.Document[Id] === id && (!passes[i] || view.props.ContainingCollectionView === preferredCollection)) {
                     toReturn = view;

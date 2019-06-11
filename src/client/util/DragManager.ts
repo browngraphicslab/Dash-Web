@@ -246,11 +246,12 @@ export namespace DragManager {
             //     }
             // }
             let set = dragElement.getElementsByTagName('*');
-            for (let i = 0; i < set.length; i++)
+            for (let i = 0; i < set.length; i++) {
                 if (set[i].hasAttribute("style")) {
                     let s = set[i];
                     (s as any).style.pointerEvents = "none";
                 }
+            }
 
 
             dragDiv.appendChild(dragElement);
