@@ -8,7 +8,8 @@ import * as anime from 'animejs';
 export interface ToggleBarProps {
     //false = right, true = left
     // status: boolean;
-    changeStatus(value: boolean): void;
+    changeStatus(): void;
+    // changeStatus(value: boolean): void;
     optionOne: string;
     optionTwo: string;
 }
@@ -53,8 +54,9 @@ export class ToggleBar extends React.Component<ToggleBarProps>{
 
     @action.bound
     onclick() {
-        this._status = !this._status;
-        this.props.changeStatus(this._status);
+        // this._status = !this._status;
+        // this.props.changeStatus(this._status);
+        this.props.changeStatus();
         this.timeline.play();
         this.timeline.reverse();
     }

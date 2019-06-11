@@ -27,6 +27,7 @@ import { IconBar } from './IconBar';
 @observer
 export class SearchBox extends React.Component {
     @observable _searchString: string = "";
+    //if true, any keywords can be used. if false, all keywords are required.
     @observable _wordStatus: boolean = true;
     @observable _icons: string[] = [];
     @observable private _open: boolean = false;
@@ -42,6 +43,20 @@ export class SearchBox extends React.Component {
     @action
     submitSearch = async () => {
         let query = this._searchString;
+
+        if(!this._wordStatus){
+            let oldWords = query.split(" ");
+            let newWords: string[] = [];
+            console.log(oldWords)
+            oldWords.forEach(word => {
+                let newWrd = "+" + word;
+                newWords.push(newWrd);
+            })
+            console.log(newWords)
+
+            query = newWords.join(" ")
+        }
+
         //gets json result into a list of documents that can be used
         const results = await this.getResults(query);
 
@@ -185,8 +200,9 @@ export class SearchBox extends React.Component {
         return toReturn;
     }
 
-    handleWordQueryChange = (value: boolean) => {
-        this._wordStatus = value;
+    //if true, any keywords can be used. if false, all keywords are required.
+    handleWordQueryChange = () => {
+        this._wordStatus = !this._wordStatus;
     }
 
     @action.bound

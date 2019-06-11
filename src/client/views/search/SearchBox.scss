@@ -57,10 +57,6 @@
     height: 40px;
 }
 
-// #option {
-//     height: 20px;
-// }
-
 .searchBox-results {
     top: 300px;
     display: flex;
@@ -68,8 +64,16 @@
     margin-right: 72px;
 }
 
+.filter-collection{
+    height: 20px;
+}
+
+.where-in-doc{
+    height: 20px;
+}
+
 .type-of-node{
-    height: 60px;
+    height: 90px;
 }
 
 .required-words{
