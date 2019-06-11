@@ -13,6 +13,7 @@ import { emptyFunction } from "../../../Utils";
 import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
 import { listSpec } from "../../../new_fields/Schema";
 import { menuBar } from "prosemirror-menu";
+import { AnnotationTypes } from "./PDFViewer";
 
 interface IPageProps {
     pdf: Opt<Pdfjs.PDFDocumentProxy>;
@@ -22,6 +23,7 @@ interface IPageProps {
     pageLoaded: (index: number, page: Pdfjs.PDFPageViewport) => void;
     parent: PDFBox;
     renderAnnotations: (annotations: Doc[], removeOld: boolean) => void;
+    makePin: (x: number, y: number) => void;
 }
 
 @observer
@@ -142,6 +144,7 @@ export default class Page extends React.Component<IPageProps> {
             annoDoc.width = anno.offsetWidth;
             annoDoc.page = this.props.page;
             annoDoc.target = targetDoc;
+            annoDoc.type = AnnotationTypes.Region;
             annoDocs.push(annoDoc);
             DocUtils.MakeLink(annoDoc, targetDoc, `Annotation from ${StrCast(this.props.parent.Document.title)}`, "", StrCast(this.props.parent.Document.title));
             anno.remove();
@@ -169,7 +172,6 @@ export default class Page extends React.Component<IPageProps> {
         targetDoc.targetPage = this.props.page;
         // creates annotation documents for current highlights
         let annotationDocs = this.makeAnnotationDocuments(targetDoc);
-        console.log(annotationDocs);
         let targetAnnotations = DocListCast(this.props.parent.Document.annotations);
         if (targetAnnotations) {
             targetAnnotations.push(...annotationDocs);
@@ -364,6 +366,22 @@ export default class Page extends React.Component<IPageProps> {
         document.removeEventListener("pointerup", this.onSelectEnd);
     }
 
+    doubleClick = (e: React.MouseEvent) => {
+        let target: any = e.target;
+        // if double clicking text
+        if (target && target.parentElement === this._textLayer.current) {
+            // do something to select the paragraph ideally
+        }
+
+        let current = this._textLayer.current;
+        if (current) {
+            let boundingRect = current.getBoundingClientRect();
+            let x = (e.clientX - boundingRect.left) * (current.offsetWidth / boundingRect.width);
+            let y = (e.clientY - boundingRect.top) * (current.offsetHeight / boundingRect.height);
+            this.props.makePin(x, y);
+        }
+    }
+
     renderAnnotation = (anno: Doc | undefined): HTMLDivElement => {
         let annoBox = document.createElement("div");
         if (anno) {
@@ -379,7 +397,7 @@ export default class Page extends React.Component<IPageProps> {
 
     render() {
         return (
-            <div onPointerDown={this.onPointerDown} className={this.props.name} style={{ "width": this._width, "height": this._height }}>
+            <div onPointerDown={this.onPointerDown} onDoubleClick={this.doubleClick} className={this.props.name} style={{ "width": this._width, "height": this._height }}>
                 <div className="canvasContainer">
                     <canvas ref={this._canvas} />
                 </div>

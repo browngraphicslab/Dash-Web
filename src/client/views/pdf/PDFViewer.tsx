@@ -9,9 +9,11 @@ import { PDFBox } from "../nodes/PDFBox";
 import Page from "./Page";
 import { NumCast, Cast, BoolCast } from "../../../new_fields/Types";
 import { Id } from "../../../new_fields/FieldSymbols";
-import { DocUtils } from "../../documents/Documents";
+import { DocUtils, Docs } from "../../documents/Documents";
 import { DocumentManager } from "../../util/DocumentManager";
 import { SelectionManager } from "../../util/SelectionManager";
+import { List } from "../../../new_fields/List";
+import { DocumentContentsView } from "../nodes/DocumentContentsView";
 
 interface IPDFViewerProps {
     url: string;
@@ -55,6 +57,8 @@ interface IViewerProps {
     mainCont: React.RefObject<HTMLDivElement>;
     url: string;
 }
+
+const PinRadius = 25;
 
 /**
  * Handles rendering and virtualization of the pdf
@@ -193,6 +197,7 @@ class Viewer extends React.Component<IViewerProps> {
                     pageLoaded={this.pageLoaded}
                     parent={this.props.parent}
                     renderAnnotations={this.renderAnnotations}
+                    makePin={this.createPinAnnotation}
                     {...this.props} />
             ));
             let arr = Array.from(Array(numPages).keys()).map(() => false);
@@ -229,6 +234,7 @@ class Viewer extends React.Component<IViewerProps> {
                         name={`${this.props.pdf ? this.props.pdf.fingerprint + `-page${i + 1}` : "undefined"}`}
                         pageLoaded={this.pageLoaded}
                         parent={this.props.parent}
+                        makePin={this.createPinAnnotation}
                         renderAnnotations={this.renderAnnotations}
                         {...this.props} />
                 );
@@ -240,6 +246,33 @@ class Viewer extends React.Component<IViewerProps> {
         this._endIndex = endIndex;
 
         return;
+    }
+
+    createPinAnnotation = (x: number, y: number): void => {
+        let targetDoc = Docs.TextDocument({ title: "New Pin Annotation" });
+
+        let pinAnno = new Doc();
+        pinAnno.x = x;
+        pinAnno.y = y;
+        pinAnno.width = pinAnno.height = PinRadius;
+        pinAnno.page = this.getIndex(y);
+        pinAnno.target = targetDoc;
+        pinAnno.type = AnnotationTypes.Pin;
+        // this._annotations.push(pinAnno);
+        let annotations = DocListCast(this.props.parent.Document.annotations);
+        if (annotations && annotations.length) {
+            annotations.push(pinAnno);
+            this.props.parent.Document.annotations = new List<Doc>(annotations);
+        }
+        else {
+            this.props.parent.Document.annotations = new List<Doc>([pinAnno]);
+        }
+        // let pinAnno = document.createElement("div");
+        // pinAnno.className = "pdfViewer-pinAnnotation";
+        // pinAnno.style.top = (y - (radius / 2)).toString();
+        // pinAnno.style.left = (x - (radius / 2)).toString();
+        // pinAnno.style.height = pinAnno.style.width = radius.toString();
+        // if (this._annotationLayer.current) this._annotationLayer.current.append(pinAnno);
     }
 
     // get the page index that the vertical offset passed in is on
@@ -295,6 +328,18 @@ class Viewer extends React.Component<IViewerProps> {
         return counter;
     }
 
+    renderAnnotation = (anno: Doc): JSX.Element => {
+        let type = NumCast(anno.type);
+        switch (type) {
+            case AnnotationTypes.Pin:
+                return <PinAnnotation document={anno} x={NumCast(anno.x)} y={NumCast(anno.y) + this.getPageHeight(NumCast(anno.page))} width={anno[WidthSym]()} height={anno[HeightSym]()} key={anno[Id]} />;
+            case AnnotationTypes.Region:
+                return <RegionAnnotation document={anno} x={NumCast(anno.x)} y={NumCast(anno.y) + this.getPageHeight(NumCast(anno.page))} width={anno[WidthSym]()} height={anno[HeightSym]()} key={anno[Id]} />;
+            default:
+                return <div></div>;
+        }
+    }
+
     render() {
         return (
             <div>
@@ -303,12 +348,16 @@ class Viewer extends React.Component<IViewerProps> {
                 </div>
                 <div className="pdfViewer-annotationLayer" style={{ height: this.props.parent.Document.nativeHeight, width: `100%`, pointerEvents: "none" }}>
                     <div className="pdfViewer-annotationLayer-subCont" style={{ transform: `translateY(${-this.scrollY}px)` }}>
-                        {this._annotations.map(anno => <RegionAnnotation document={anno} x={NumCast(anno.x)} y={NumCast(anno.y) + this.getPageHeight(NumCast(anno.page))} width={anno[WidthSym]()} height={anno[HeightSym]()} key={anno[Id]} />)}
+                        {this._annotations.map(anno => this.renderAnnotation(anno))}
                     </div>
                 </div>
             </div>
         );
     }
+}
+
+export enum AnnotationTypes {
+    Region, Pin
 }
 
 interface IAnnotationProps {
@@ -317,6 +366,25 @@ interface IAnnotationProps {
     width: number;
     height: number;
     document: Doc;
+}
+
+class PinAnnotation extends React.Component<IAnnotationProps> {
+    @observable private _backgroundColor: string = "red";
+
+    pointerDown = (e: React.PointerEvent) => {
+
+    }
+
+    render() {
+        let targetDoc = Cast(this.props.document.targetDoc, Doc, Docs.TextDocument({ title: "New Pin Annotation" }));
+        return (
+            <div className="pdfViewer-pinAnnotation" onPointerDown={this.pointerDown}
+                style={{ top: this.props.y - PinRadius / 2, left: this.props.x - PinRadius / 2, width: PinRadius, height: PinRadius, pointerEvents: "all", backgroundColor: this._backgroundColor }}>
+                {/* <DocumentContentsView Document={targetDoc}
+                        isSelected={} /> */}
+            </div>
+        );
+    }
 }
 
 class RegionAnnotation extends React.Component<IAnnotationProps> {
