@@ -40,3 +40,45 @@
     background: $main-accent;
     cursor: pointer;
 }
+
+.linkEditor {
+    font-size: 12px; // TODO
+
+    .linkEditor-back {
+        // background-color: $dark-color;
+        // color: $light-color;
+        margin-bottom: 6px;
+    }
+
+    .linkEditor-groupsLabel {
+        display: flex;
+        justify-content: space-between;
+        button {
+            width: 20px;
+            height: 20px;
+            margin-left: 6px;
+            padding: 0;
+            font-size: 14px;
+        }
+    }
+    .linkEditor-linkedTo {
+        border-bottom: 0.5px solid $light-color-secondary; 
+        padding-bottom: 6px;
+        margin-bottom: 6px;
+    }
+    .linkEditor-group {
+        background-color: $light-color-secondary; 
+        padding: 6px;
+        margin: 3px 0;
+        border-radius: 3px;
+    }
+    .linkEditor-group-row {
+        display: flex;
+        .linkEditor-group-row-label {
+            margin-right: 6px;
+        }
+    }
+    .linkEditor-metadata-row {
+        display: flex;
+    }
+}

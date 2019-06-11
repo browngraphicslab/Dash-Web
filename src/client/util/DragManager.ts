@@ -4,7 +4,7 @@ import { Cast } from "../../new_fields/Types";
 import { emptyFunction } from "../../Utils";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import * as globalCssVariables from "../views/globalCssVariables.scss";
-import { LinkManager } from "./LinkManager";
+import { LinkManager, LinkUtils } from "./LinkManager";
 
 export type dropActionType = "alias" | "copy" | undefined;
 export function SetupDrag(_reference: React.RefObject<HTMLElement>, docFunc: () => Doc | Promise<Doc>, moveFunc?: DragManager.MoveFunction, dropAction?: dropActionType) {
@@ -48,7 +48,7 @@ export async function DragLinksAsDocuments(dragEle: HTMLElement, x: number, y: n
         // let linkFromDocs = await DocListCastAsync(srcTarg.linkedFromDocs);
         let linkDocs = LinkManager.Instance.findAllRelatedLinks(srcTarg);
         if (linkDocs) draggedDocs = linkDocs.map(link => {
-            return LinkManager.Instance.findOppositeAnchor(link, sourceDoc);
+            return LinkUtils.findOppositeAnchor(link, sourceDoc);
         });
 
 

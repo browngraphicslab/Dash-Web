@@ -8,9 +8,10 @@ import React = require("react");
 import { Doc, DocListCast } from "../../../new_fields/Doc";
 import { Cast, FieldValue, StrCast } from "../../../new_fields/Types";
 import { Id } from "../../../new_fields/FieldSymbols";
-import { LinkManager } from "../../util/LinkManager";
-import { number } from "prop-types";
+import { LinkManager, LinkUtils } from "../../util/LinkManager";
+import { number, string } from "prop-types";
 import { listSpec } from "../../../new_fields/Schema";
+import { Utils } from "../../../Utils";
 
 interface Props {
     docView: DocumentView;
@@ -34,12 +35,11 @@ export class LinkMenu extends React.Component<Props> {
     renderLinkGroupItems(links: Doc[]) {
         let source = this.props.docView.Document;
         return links.map(link => {
-            // let destination = (link["linkedTo"] === source) ? link["linkedFrom"] : link["linkedTo"];
-            let destination = LinkManager.Instance.findOppositeAnchor(link, source);
+            let destination = LinkUtils.findOppositeAnchor(link, source);
             let doc = FieldValue(Cast(destination, Doc));
             if (doc) {
                 console.log(doc[Id] + source[Id], "source is", source[Id]);
-                return <LinkBox key={doc[Id] + source[Id]} linkDoc={link} linkName={"link"} pairedDoc={doc} showEditor={action(() => this._editingLink = link)} type={""} />;
+                return <LinkBox key={doc[Id] + source[Id]} linkDoc={link} linkName={StrCast(destination.title)} pairedDoc={doc} showEditor={action(() => this._editingLink = link)} type={""} />;
             }
         });
     }
@@ -79,20 +79,28 @@ export class LinkMenu extends React.Component<Props> {
                 </div>
             );
         } else {
-            let counter = 0;
-            let groups = new Map<number, Doc>();
+            let groups = new Map<string, Doc>();
+            let metadata: Map<string, Map<string, Doc>> = new Map();
             let groupList = (Doc.AreProtosEqual(this.props.docView.props.Document, Cast(this._editingLink.anchor1, Doc, new Doc))) ?
                 Cast(this._editingLink.anchor1Groups, listSpec(Doc), []) : Cast(this._editingLink.anchor2Groups, listSpec(Doc), []);
-            groupList.forEach(group => {
-                if (group instanceof Doc) {
-                    console.log(counter);
-                    groups.set(counter, group);
-                    counter++;
+            groupList.forEach(groupDoc => {
+                if (groupDoc instanceof Doc) {
+                    let id = Utils.GenerateGuid();
+                    groups.set(id, groupDoc);
+
+                    let metadataMap = new Map<string, Doc>();
+                    let metadataDocs = Cast(groupDoc.proto!.metadata, listSpec(Doc), []);
+                    metadataDocs.forEach(mdDoc => {
+                        if (mdDoc && mdDoc instanceof Doc) { // TODO: handle promise doc
+                            metadataMap.set(Utils.GenerateGuid(), mdDoc);
+                        }
+                    })
+                    metadata.set(id, metadataMap);
                 }
             })
 
             return (
-                <LinkEditor groups={groups} sourceDoc={this.props.docView.props.Document} linkDoc={this._editingLink} showLinks={action(() => this._editingLink = undefined)}></LinkEditor>
+                <LinkEditor groups={groups} metadata={metadata} sourceDoc={this.props.docView.props.Document} linkDoc={this._editingLink} showLinks={action(() => this._editingLink = undefined)}></LinkEditor>
             );
         }
 

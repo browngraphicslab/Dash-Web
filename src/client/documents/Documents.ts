@@ -91,6 +91,7 @@ export namespace DocUtils {
         UndoManager.RunInBatch(() => {
             let groupDoc = Docs.TextDocument();
             groupDoc.proto!.type = "*";
+            groupDoc.proto!.metadata = new List<Doc>([]);
 
             let linkDoc = Docs.TextDocument({ width: 100, height: 30, borderRounding: -1 });
             //let linkDoc = new Doc;
