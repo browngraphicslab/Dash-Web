@@ -106,7 +106,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         }
         if (!this.createsCycle(doc, props.Document)) {
             //TODO This won't create the field if it doesn't already exist
-            const childDocs = DocListCast(props.Document[props.fieldKey]);
+            const childDocs = Cast(props.Document[props.fieldKey], listSpec(Doc));
             let alreadyAdded = true;
             if (childDocs !== undefined) {
                 // if this is not the first document added to the collection

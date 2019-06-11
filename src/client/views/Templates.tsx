@@ -39,19 +39,19 @@ export class Template {
 export namespace Templates {
     // export const BasicLayout = new Template("Basic layout", "{layout}");
 
-    // export const Caption = new Template("Caption", TemplatePosition.OutterBottom,
-    //     `<div>
-    //         <div style="height:100%; width:100%;position:absolute;">{layout}</div>
-    //         <div style="bottom: 0; font-size:14px; width:100%; position:absolute">
-    //             <FormattedTextBox {...props} fieldKey={"caption"} hideOnLeave={"true"} />
-    //         </div>
-    //     </div>` );
-
     export const Caption = new Template("Caption", TemplatePosition.OutterBottom,
         `<div>
             <div style="height:100%; width:100%;position:absolute;">{layout}</div>
-            <DetailedCaptionToggle {...props}/>
+            <div style="bottom: 0; font-size:14px; width:100%; position:absolute">
+                <FormattedTextBox {...props} fieldKey={"caption"} hideOnLeave={"true"} />
+            </div>
         </div>` );
+
+    // export const Caption = new Template("Caption", TemplatePosition.OutterBottom,
+    //     `<div>
+    //         <div style="height:100%; width:100%;position:absolute;">{layout}</div>
+    //         <DetailedCaptionToggle {...props}/>
+    //     </div>` );
 
     export const TitleOverlay = new Template("TitleOverlay", TemplatePosition.InnerTop,
         `<div>
