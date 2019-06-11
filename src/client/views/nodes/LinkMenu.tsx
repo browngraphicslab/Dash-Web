@@ -8,6 +8,7 @@ import React = require("react");
 import { Doc, DocListCast } from "../../../new_fields/Doc";
 import { Cast, FieldValue, StrCast } from "../../../new_fields/Types";
 import { Id } from "../../../new_fields/FieldSymbols";
+import { DocTypes } from "../../documents/Documents";
 
 interface Props {
     docView: DocumentView;
@@ -23,7 +24,7 @@ export class LinkMenu extends React.Component<Props> {
         return links.map(link => {
             let doc = FieldValue(Cast(link[key], Doc));
             if (doc) {
-                return <LinkBox key={doc[Id]} linkDoc={link} linkName={StrCast(link.title)} pairedDoc={doc} showEditor={action(() => this._editingLink = link)} type={type} />;
+                return <LinkBox key={doc[Id]} linkDoc={link} linkName={StrCast(link.title)} pairedDoc={doc} showEditor={action(() => this._editingLink = link)} type={DocTypes.LINK} />;
             }
         });
     }

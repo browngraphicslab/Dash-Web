@@ -12,7 +12,7 @@
 .search-info {
     display: flex;
     justify-content: flex-end;
-    width: 100%;
+    width: 40%;
 }
 
 .main-search-info {
@@ -29,20 +29,59 @@
 .search-title {
     text-transform: uppercase;
     text-align: left;
-    width: 8vw;
+    width: 80%;
     font-weight: bold;
 }
 
-.link-count {
-    height: 25px;
-    width: 25px;
-    border-radius: 50%;
+.link-container.item {
+    height: 26px;
+    width: 26px;
+    border-radius: 13px;
     background: $dark-color;
     color: $light-color-secondary;
     display: flex;
     justify-content: center;
     align-items: center;
     margin-right: 10px;
+    -webkit-transition: all 0.2s ease-in-out;
+    -moz-transition: all 0.2s ease-in-out;
+    -o-transition: all 0.2s ease-in-out;
+    transition: all 0.2s ease-in-out;
+    transform-origin: top right;
+    overflow: hidden;
+
+    .link-count {
+        opacity: 1;
+        position: absolute;
+        z-index: 1000;
+        -webkit-transition: opacity 0.2s ease-in-out;
+        -moz-transition: opacity 0.2s ease-in-out;
+        -o-transition: opacity 0.2s ease-in-out;
+        transition: opacity 0.2s ease-in-out;
+    }
+
+    .link-extended {
+        opacity: 0;
+        position: absolute;
+        z-index: 500;
+        overflow: hidden;
+        -webkit-transition: opacity 0.2s ease-in-out;
+        -moz-transition: opacity 0.2s ease-in-out;
+        -o-transition: opacity 0.2s ease-in-out;
+        transition: opacity 0.2s ease-in-out;
+    }
+}
+
+.link-container.item:hover{
+    width: 70px;
+}
+
+.link-container.item:hover .link-count{
+    opacity: 0;
+}
+
+.link-container.item:hover .link-extended{
+    opacity: 1;
 }
 
 .search-type {
@@ -85,7 +124,8 @@
 }
 
 .search-item:hover~.searchBox-instances,
-.searchBox-instances:hover,  .searchBox-instances:active{
+.searchBox-instances:hover,
+.searchBox-instances:active {
     opacity: 1;
     background: $lighter-alt-accent;
     -webkit-transform: scale(1);

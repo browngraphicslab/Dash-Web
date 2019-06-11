@@ -3,7 +3,7 @@ import { library } from '@fortawesome/fontawesome-svg-core';
 import { faCaretUp, faFilePdf, faFilm, faImage, faObjectGroup, faStickyNote, faMusic, faLink, faChartBar, faGlobeAsia } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Cast, NumCast } from "../../../new_fields/Types";
-import { observable, runInAction } from "mobx";
+import { observable, runInAction, computed } from "mobx";
 import { listSpec } from "../../../new_fields/Schema";
 import { Doc } from "../../../new_fields/Doc";
 import { DocumentManager } from "../../util/DocumentManager";
@@ -71,9 +71,9 @@ export class SelectorContextMenu extends React.Component<SearchItemProps> {
     render() {
         return (
             < div className="parents">
-                <p className = "contexts">Contexts:</p>
-                {this._docs.map(doc => <div className="collection"><a className= "title" onClick={this.getOnClick(doc)}>{doc.col.title}</a></div>)}
-                {this._otherDocs.map(doc => <div className="collection"><a className= "title" onClick={this.getOnClick(doc)}>{doc.col.title}</a></div>)}
+                <p className="contexts">Contexts:</p>
+                {this._docs.map(doc => <div className="collection"><a className="title" onClick={this.getOnClick(doc)}>{doc.col.title}</a></div>)}
+                {this._otherDocs.map(doc => <div className="collection"><a className="title" onClick={this.getOnClick(doc)}>{doc.col.title}</a></div>)}
             </div>
         );
     }
@@ -87,10 +87,12 @@ export class SearchItem extends React.Component<SearchItemProps> {
 
     onClick = () => {
         // DocumentManager.Instance.jumpToDocument(this.props.doc);
+        console.log(Cast(this.props.doc.type, "string", ""))
         CollectionDockingView.Instance.AddRightSplit(this.props.doc);
     }
 
-    public DocumentIcon() {
+    @computed
+    public get DocumentIcon() {
         let layoutresult = Cast(this.props.doc.type, "string", "");
 
         let button = layoutresult.indexOf(DocTypes.PDF) !== -1 ? faFilePdf :
@@ -117,8 +119,18 @@ export class SearchItem extends React.Component<SearchItemProps> {
         }
     }
 
-    linkCount = () => {
+    @computed
+    get linkCount() {
         return Cast(this.props.doc.linkedToDocs, listSpec(Doc), []).length + Cast(this.props.doc.linkedFromDocs, listSpec(Doc), []).length;
+    }
+
+    @computed
+    get linkString(): string {
+        let num = this.linkCount;
+        if (num === 1) {
+            return num.toString() + " link";
+        }
+        return num.toString() + " links";
     }
 
     render() {
@@ -128,8 +140,11 @@ export class SearchItem extends React.Component<SearchItemProps> {
                     <div className="main-search-info">
                         <div className="search-title" id="result" >{this.props.doc.title}</div>
                         <div className="search-info">
-                            <div className="link-count">{this.linkCount()}</div>
-                            <div className="search-type" >{this.DocumentIcon()}</div>
+                            <div className="link-container item">
+                                <div className="link-count">{this.linkCount}</div>
+                                <div className = "link-extended">{this.linkString}</div>
+                            </div>
+                            <div className="search-type" >{this.DocumentIcon}</div>
                         </div>
                     </div>
                     <div className="found">Where Found: (i.e. title, body, etc)</div>
