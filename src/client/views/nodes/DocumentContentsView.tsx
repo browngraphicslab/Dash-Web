@@ -21,7 +21,7 @@ import { HistogramBox } from "../../northstar/dash-nodes/HistogramBox";
 import React = require("react");
 import { FieldViewProps } from "./FieldView";
 import { Without, OmitKeys } from "../../../Utils";
-import { Cast, StrCast } from "../../../new_fields/Types";
+import { Cast, StrCast, NumCast } from "../../../new_fields/Types";
 import { List } from "../../../new_fields/List";
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
@@ -44,12 +44,19 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
     isSelected: () => boolean,
     select: (ctrl: boolean) => void,
     layoutKey: string,
+    hideOnLeave?: boolean
 }> {
     @computed get layout(): string {
-        return StrCast(this.props.Document[this.props.layoutKey],
-            this.props.Document.data ?
+        const layout = Cast(this.props.Document[this.props.layoutKey], "string");
+        if (layout === undefined) {
+            return this.props.Document.data ?
                 "<FieldView {...props} fieldKey='data' />" :
-                KeyValueBox.LayoutString(this.props.Document.proto ? "proto" : ""));
+                KeyValueBox.LayoutString(this.props.Document.proto ? "proto" : "");
+        } else if (typeof layout === "string") {
+            return layout;
+        } else {
+            return "<p>Loading layout</p>";
+        }
     }
 
     CreateBindings(): JsxBindings {
@@ -76,12 +83,17 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
             (this.props.layoutKey === "layout" && StrCast(this.props.Document.layout).indexOf("CollectionView") === -1)) {
             this.templates.forEach(template => {
                 let self = this;
+                // this scales constants in the markup by the scaling applied to the document, but caps the constants to be smaller
+                // than the width/height of the containing document
                 function convertConstantsToNative(match: string, offset: number, x: string) {
                     let px = Number(match.replace("px", ""));
-                    return `${px * self.props.ScreenToLocalTransform().Scale}px`;
+                    return `${Math.min(NumCast(self.props.Document.height, 0),
+                        Math.min(NumCast(self.props.Document.width, 0),
+                            px * self.props.ScreenToLocalTransform().Scale))}px`;
                 }
-                let nativizedTemplate = template.replace(/([0-9]+)px/g, convertConstantsToNative);
-                layout = nativizedTemplate.replace("{layout}", base);
+                // let nativizedTemplate = template.replace(/([0-9]+)px/g, convertConstantsToNative);
+                // layout = nativizedTemplate.replace("{layout}", base);
+                layout = template.replace("{layout}", base);
                 base = layout;
             });
         }

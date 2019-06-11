@@ -1,0 +1,41 @@
+@import "../globalCssVariables";
+.collectionStackingView {
+    overflow-y: auto;
+
+    .collectionStackingView-docView-container {
+        width: 45%;
+        margin: 5% 2.5%;
+        padding-left: 2.5%;
+        height: auto;
+    }
+
+    .collectionStackingView-flexCont {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .collectionStackingView-masonrySingle, .collectionStackingView-masonryGrid{
+        width:100%;
+        height:100%;
+        position: absolute;
+        display:grid;
+        top: 0;
+        left: 0;
+        width: 100%;
+        position: absolute;
+        
+    }
+
+    .collectionStackingView-description {
+        font-size: 100%;
+        margin-bottom: 1vw;
+        padding: 10px;
+        height: 2vw;
+        width: 100%;
+        font-family: $sans-serif;
+        background: $dark-color;
+        color: $light-color;
+    }
+}

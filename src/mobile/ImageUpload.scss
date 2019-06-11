@@ -1,7 +1,13 @@
+@import "../client/views/globalCssVariables.scss";
+
 .imgupload_cont {
-    height: 100vh;
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+    align-items: center;
     width: 100vw;
-    align-content: center;
+    height: 100vh;
+
     .button_file {
         text-align: center;
         height: 50%;
@@ -9,5 +15,20 @@
         background-color: paleturquoise;
         color: grey;
         font-size: 3em;
+    }
+
+    .input_file {
+        display: none;
+    }
+
+    .upload_label,
+    .upload_button {
+        background: $dark-color;
+        font-size: 500%;
+        font-family: $sans-serif;
+        text-align: center;
+        padding: 5vh;
+        margin-bottom: 20px;
+        color: white;
     }
 }

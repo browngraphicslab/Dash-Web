@@ -1,5 +1,4 @@
 import { observable, action, computed } from "mobx";
-
 import { CirclePicker, ColorResult } from 'react-color';
 import React = require("react");
 import { observer } from "mobx-react";
@@ -35,9 +34,7 @@ export class InkingControl extends React.Component {
     @action
     switchColor = (color: ColorResult): void => {
         this._selectedColor = color.hex;
-        SelectionManager.SelectedDocuments().forEach(doc =>
-            doc.props.ContainingCollectionView && Doc.SetOnPrototype(doc.props.Document, "backgroundColor", color.hex)
-        );
+        SelectionManager.SelectedDocuments().forEach(doc => Doc.GetProto(doc.props.Document).backgroundColor = color.hex);
     }
 
     @action

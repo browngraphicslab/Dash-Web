@@ -1,7 +1,8 @@
-import { ObjectField, Copy, OnUpdate } from "./ObjectField";
+import { ObjectField } from "./ObjectField";
 import { observable } from "mobx";
 import { Deserializable } from "../client/util/SerializationHelper";
-import { serializable, createSimpleSchema, object } from "serializr";
+import { serializable, createSimpleSchema, object, date } from "serializr";
+import { OnUpdate, ToScriptString, Copy } from "./FieldSymbols";
 
 export type CursorPosition = {
     x: number,
@@ -10,7 +11,8 @@ export type CursorPosition = {
 
 export type CursorMetadata = {
     id: string,
-    identifier: string
+    identifier: string,
+    timestamp: number
 };
 
 export type CursorData = {
@@ -25,7 +27,8 @@ const PositionSchema = createSimpleSchema({
 
 const MetadataSchema = createSimpleSchema({
     id: true,
-    identifier: true
+    identifier: true,
+    timestamp: true
 });
 
 const CursorSchema = createSimpleSchema({
@@ -46,10 +49,15 @@ export default class CursorField extends ObjectField {
 
     setPosition(position: CursorPosition) {
         this.data.position = position;
+        this.data.metadata.timestamp = Date.now();
         this[OnUpdate]();
     }
 
     [Copy]() {
         return new CursorField(this.data);
+    }
+
+    [ToScriptString]() {
+        return "invalid";
     }
 }

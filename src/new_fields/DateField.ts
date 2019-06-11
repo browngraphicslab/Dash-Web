@@ -1,6 +1,7 @@
 import { Deserializable } from "../client/util/SerializationHelper";
 import { serializable, date } from "serializr";
-import { ObjectField, Copy } from "./ObjectField";
+import { ObjectField } from "./ObjectField";
+import { Copy, ToScriptString } from "./FieldSymbols";
 
 @Deserializable("date")
 export class DateField extends ObjectField {
@@ -14,5 +15,9 @@ export class DateField extends ObjectField {
 
     [Copy]() {
         return new DateField(this.date);
+    }
+
+    [ToScriptString]() {
+        return `new DateField(new Date(${this.date.toISOString()}))`;
     }
 }

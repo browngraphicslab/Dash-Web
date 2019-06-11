@@ -1,3 +1,5 @@
+import { library } from '@fortawesome/fontawesome-svg-core';
+import { faEdit, faSmile } from '@fortawesome/free-solid-svg-icons';
 import { action, IReactionDisposer, observable, reaction } from "mobx";
 import { observer } from "mobx-react";
 import { baseKeymap } from "prosemirror-commands";
@@ -5,11 +7,12 @@ import { history } from "prosemirror-history";
 import { keymap } from "prosemirror-keymap";
 import { EditorState, Plugin, Transaction } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
-import { Doc, Field, HeightSym, Opt, WidthSym } from "../../../new_fields/Doc";
+import { Doc, Opt } from "../../../new_fields/Doc";
 import { RichTextField } from "../../../new_fields/RichTextField";
 import { createSchema, makeInterface } from "../../../new_fields/Schema";
 import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
 import { DocServer } from "../../DocServer";
+import { DocUtils, Docs } from '../../documents/Documents';
 import { DocumentManager } from "../../util/DocumentManager";
 import { DragManager } from "../../util/DragManager";
 import buildKeymap from "../../util/ProsemirrorExampleTransfer";
@@ -19,15 +22,17 @@ import { SelectionManager } from "../../util/SelectionManager";
 import { TooltipLinkingMenu } from "../../util/TooltipLinkingMenu";
 import { TooltipTextMenu } from "../../util/TooltipTextMenu";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
-import { ContextMenu } from "../../views/ContextMenu";
-import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { DocComponent } from "../DocComponent";
 import { InkingControl } from "../InkingControl";
 import { FieldView, FieldViewProps } from "./FieldView";
 import "./FormattedTextBox.scss";
 import React = require("react");
-import { View } from "@react-pdf/renderer";
-import { NodeType } from "prosemirror-model";
+import { Id } from '../../../new_fields/FieldSymbols';
+import { MainOverlayTextBox } from '../MainOverlayTextBox';
+import { NodeType } from 'prosemirror-model';
+
+library.add(faEdit);
+library.add(faSmile);
 
 // FormattedTextBox: Displays an editable plain text node that maps to a specified Key of a Document
 //
@@ -46,8 +51,11 @@ import { NodeType } from "prosemirror-model";
 //  this will edit the document and assign the new value to that field.
 //]
 
-export interface FormattedTextBoxOverlay {
+export interface FormattedTextBoxProps {
     isOverlay?: boolean;
+    hideOnLeave?: boolean;
+    height?: string;
+    color?: string;
 }
 
 const richTextSchema = createSchema({
@@ -58,36 +66,58 @@ type RichTextDocument = makeInterface<[typeof richTextSchema]>;
 const RichTextDocument = makeInterface(richTextSchema);
 
 @observer
-export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTextBoxOverlay), RichTextDocument>(RichTextDocument) {
+export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTextBoxProps), RichTextDocument>(RichTextDocument) {
     public static LayoutString(fieldStr: string = "data") {
         return FieldView.LayoutString(FormattedTextBox, fieldStr);
     }
     private _ref: React.RefObject<HTMLDivElement>;
-    private _proseRef: React.RefObject<HTMLDivElement>;
+    private _proseRef?: HTMLDivElement;
     private _editorView: Opt<EditorView>;
-    private _gotDown: boolean = false;
-    private _dropDisposer?: DragManager.DragDropDisposer;
+    private _toolTipTextMenu: TooltipTextMenu | undefined = undefined;
+    private _lastState: any = undefined;
+    private _applyingChange: boolean = false;
+    private _linkClicked = "";
     private _reactionDisposer: Opt<IReactionDisposer>;
     private _inputReactionDisposer: Opt<IReactionDisposer>;
     private _proxyReactionDisposer: Opt<IReactionDisposer>;
+    private dropDisposer?: DragManager.DragDropDisposer;
     public get CurrentDiv(): HTMLDivElement { return this._ref.current!; }
+    @observable _entered = false;
 
     @observable public static InputBoxOverlay?: FormattedTextBox = undefined;
     public static InputBoxOverlayScroll: number = 0;
+    public static IsFragment(html: string) {
+        return html.indexOf("data-pm-slice") !== -1;
+    }
+    public static GetHref(html: string): string {
+        let parser = new DOMParser();
+        let parsedHtml = parser.parseFromString(html, 'text/html');
+        if (parsedHtml.body.childNodes.length === 1 && parsedHtml.body.childNodes[0].childNodes.length === 1 &&
+            (parsedHtml.body.childNodes[0].childNodes[0] as any).href) {
+            return (parsedHtml.body.childNodes[0].childNodes[0] as any).href;
+        }
+        return "";
+    }
+    public static GetDocFromUrl(url: string) {
+        if (url.startsWith(document.location.origin)) {
+            let start = url.indexOf(window.location.origin);
+            let path = url.substr(start, url.length - start);
+            let docid = path.replace(DocServer.prepend("/doc/"), "").split("?")[0];
+            return docid;
+        }
+        return "";
+    }
 
     constructor(props: FieldViewProps) {
         super(props);
 
         this._ref = React.createRef();
-        this._proseRef = React.createRef();
         if (this.props.isOverlay) {
             DragManager.StartDragFunctions.push(() => FormattedTextBox.InputBoxOverlay = undefined);
         }
     }
 
-    _applyingChange: boolean = false;
 
-    _lastState: any = undefined;
     dispatchTransaction = (tx: Transaction) => {
         if (this._editorView) {
             const state = this._lastState = this._editorView.state.apply(tx);
@@ -106,33 +136,30 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         }
     }
 
+    protected createDropTarget = (ele: HTMLDivElement) => {
+        this._proseRef = ele;
+        if (this.dropDisposer) {
+            this.dropDisposer();
+        }
+        if (ele) {
+            this.dropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.drop.bind(this) } });
+        }
+    }
+
     @undoBatch
     @action
     drop = async (e: Event, de: DragManager.DropEvent) => {
         // We're dealing with a link to a document
-        if (de.data instanceof DragManager.LinkDragData) {
-            let sourceDoc = de.data.linkSourceDocument;
-            let destDoc = this.props.Document;
-
-            const protoDest = destDoc.proto;
-            const protoSrc = sourceDoc.proto;
-            Doc.MakeLink(protoSrc ? protoSrc : sourceDoc, protoDest ? protoDest : destDoc);
-            de.data.droppedDocuments.push(destDoc);
-            e.stopPropagation();
-        } else if (de.data instanceof DragManager.EmbedDragData) {
+        if (de.data instanceof DragManager.EmbedDragData && de.data.urlField) {
             // We're dealing with an internal document drop
             let url = de.data.urlField.url.href;
             let model: NodeType = (url.includes(".mov") || url.includes(".mp4")) ? schema.nodes.video : schema.nodes.image;
             this._editorView!.dispatch(this._editorView!.state.tr.insert(0, model.create({ src: url })));
+            e.stopPropagation();
         }
     }
 
     componentDidMount() {
-        if (this._ref.current) {
-            this._dropDisposer = DragManager.MakeDropTarget(this._ref.current, {
-                handlers: { drop: this.drop.bind(this) }
-            });
-        }
         const config = {
             schema,
             inpRules, //these currently don't do anything, but could eventually be helpful
@@ -160,7 +187,9 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     if (this._editorView) {
                         this._editorView.destroy();
                     }
-                    this.setupEditor(config, this.props.Document);// MainOverlayTextBox.Instance.TextDoc); // bcz: not sure why, but the order of events is such that this.props.Document hasn't updated yet, so without forcing the editor to the MainOverlayTextBox, it will display the previously focused textbox
+                    this.setupEditor(config, // bcz: not sure why, but the order of events is such that this.props.Document hasn't updated yet, so without forcing the editor to the MainOverlayTextBox, it will display the previously focused textbox
+                        MainOverlayTextBox.Instance.TextDoc ? MainOverlayTextBox.Instance.TextDoc : this.props.Document,
+                        MainOverlayTextBox.Instance.TextFieldKey ? MainOverlayTextBox.Instance.TextFieldKey : this.props.fieldKey);
                 }
             );
         } else {
@@ -182,27 +211,32 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             field => field && this._editorView && !this._applyingChange &&
                 this._editorView.updateState(EditorState.fromJSON(config, JSON.parse(field)))
         );
-        this.setupEditor(config, this.props.Document);
+        this.setupEditor(config, this.props.Document, this.props.fieldKey);
     }
 
-    private setupEditor(config: any, doc?: Doc) {
-        let field = doc ? Cast(doc[this.props.fieldKey], RichTextField) : undefined;
-        if (this._proseRef.current) {
-            this._editorView = new EditorView(this._proseRef.current, {
+    private setupEditor(config: any, doc: Doc, fieldKey: string) {
+        let field = doc ? Cast(doc[fieldKey], RichTextField) : undefined;
+        let startup = StrCast(doc.documentText);
+        startup = startup.startsWith("@@@") ? startup.replace("@@@", "") : "";
+        if (!startup && !field && doc) {
+            startup = StrCast(doc[fieldKey]);
+        }
+        if (this._proseRef) {
+            this._editorView = new EditorView(this._proseRef, {
                 state: field && field.Data ? EditorState.fromJSON(config, JSON.parse(field.Data)) : EditorState.create(config),
                 dispatchTransaction: this.dispatchTransaction,
                 nodeViews: {
                     image(node, view, getPos) { return new ImageResizeView(node, view, getPos); }
                 }
             });
-            let text = StrCast(this.props.Document.documentText);
-            if (text.startsWith("@@@")) {
-                this.props.Document.proto!.documentText = undefined;
-                this._editorView.dispatch(this._editorView.state.tr.insertText(text.replace("@@@", "")));
+            if (startup) {
+                Doc.GetProto(doc).documentText = undefined;
+                this._editorView.dispatch(this._editorView.state.tr.insertText(startup));
             }
         }
 
         if (this.props.selectOnLoad) {
+            console.log("Sel on load " + this.props.Document.title + " " + doc!.title);
             this.props.select(false);
             this._editorView!.focus();
         }
@@ -221,9 +255,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         if (this._proxyReactionDisposer) {
             this._proxyReactionDisposer();
         }
-        if (this._dropDisposer) {
-            this._dropDisposer();
-        }
     }
 
     onPointerDown = (e: React.PointerEvent): void => {
@@ -233,33 +264,39 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 this._toolTipTextMenu.tooltip.style.opacity = "0";
             }
         }
-        if (e.button === 0 && ((!this.props.isSelected() && !e.ctrlKey) || (this.props.isSelected() && e.ctrlKey)) && !e.metaKey) {
-            if (e.target && (e.target as any).href) {
-                let href = (e.target as any).href;
+        this._linkClicked = "";
+        if (e.button === 0 && ((!this.props.isSelected() && !e.ctrlKey) || (this.props.isSelected() && e.ctrlKey)) && !e.metaKey && e.target) {
+            let href = (e.target as any).href;
+            for (let parent = (e.target as any).parentNode; !href && parent; parent = parent.parentNode) {
+                href = parent.childNodes[0].href;
+            }
+            if (href) {
                 if (href.indexOf(DocServer.prepend("/doc/")) === 0) {
-                    let docid = href.replace(DocServer.prepend("/doc/"), "").split("?")[0];
-                    DocServer.GetRefField(docid).then(action((f: Opt<Field>) => {
-                        if (f instanceof Doc) {
-                            if (DocumentManager.Instance.getDocumentView(f)) {
-                                DocumentManager.Instance.getDocumentView(f)!.props.focus(f);
-                            }
-                            else CollectionDockingView.Instance.AddRightSplit(f);
-                        }
-                    }));
+                    this._linkClicked = href.replace(DocServer.prepend("/doc/"), "").split("?")[0];
+                } else {
+                    let webDoc = Docs.WebDocument(href, { x: NumCast(this.props.Document.x, 0) + NumCast(this.props.Document.width, 0), y: NumCast(this.props.Document.y) });
+                    this.props.addDocument && this.props.addDocument(webDoc);
+                    this._linkClicked = webDoc[Id];
                 }
                 e.stopPropagation();
                 e.preventDefault();
             }
-
         }
         if (e.button === 2 || (e.button === 0 && e.ctrlKey)) {
-            this._gotDown = true;
             e.preventDefault();
         }
     }
     onPointerUp = (e: React.PointerEvent): void => {
         if (this._toolTipTextMenu && this._toolTipTextMenu.tooltip) {
             this._toolTipTextMenu.tooltip.style.opacity = "1";
+        }
+        let ctrlKey = e.ctrlKey;
+        if (this._linkClicked) {
+            DocServer.GetRefField(this._linkClicked).then(f => {
+                (f instanceof Doc) && DocumentManager.Instance.jumpToDocument(f, ctrlKey, document => this.props.addDocTab(document, "inTab"));
+            });
+            e.stopPropagation();
+            e.preventDefault();
         }
         if (e.buttons === 1 && this.props.isSelected() && !e.altKey) {
             e.stopPropagation();
@@ -276,29 +313,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             }
         }
     }
-
-    //REPLACE THIS WITH CAPABILITIES SPECIFIC TO THIS TYPE OF NODE
-    textCapability = (e: React.MouseEvent): void => {
-        if (NumCast(this.props.Document.nativeWidth)) {
-            this.props.Document.nativeWidth = undefined;
-            this.props.Document.nativeHeight = undefined;
-
-        } else {
-            this.props.Document.nativeWidth = this.props.Document[WidthSym]();
-            this.props.Document.nativeHeight = this.props.Document[HeightSym]();
-        }
-    }
-    specificContextMenu = (e: React.MouseEvent): void => {
-        if (!this._gotDown) {
-            e.preventDefault();
-            return;
-        }
-        ContextMenu.Instance.addItem({
-            description: NumCast(this.props.Document.nativeWidth) ? "Unfreeze" : "Freeze",
-            event: this.textCapability
-        });
-    }
-
     onPointerWheel = (e: React.WheelEvent): void => {
         if (this.props.isSelected()) {
             e.stopPropagation();
@@ -306,7 +320,11 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     }
 
     onClick = (e: React.MouseEvent): void => {
-        this._proseRef.current!.focus();
+        this._proseRef!.focus();
+        if (this._linkClicked) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
     }
     onMouseDown = (e: React.MouseEvent): void => {
         if (!this.props.isSelected()) { // preventing default allows the onClick to be generated instead of being swallowed by the text box itself
@@ -324,7 +342,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         });
     }
 
-    _toolTipTextMenu: TooltipTextMenu | undefined = undefined;
     tooltipLinkingMenuPlugin() {
         let myprops = this.props;
         return new Plugin({
@@ -359,6 +376,15 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             this._undoTyping = UndoManager.StartBatch("undoTyping");
         }
     }
+
+    @action
+    onPointerEnter = (e: React.PointerEvent) => {
+        this._entered = true;
+    }
+    @action
+    onPointerLeave = (e: React.PointerEvent) => {
+        this._entered = false;
+    }
     render() {
         let style = this.props.isOverlay ? "scroll" : "hidden";
         let rounded = NumCast(this.props.Document.borderRounding) < 0 ? "-rounded" : "";
@@ -366,9 +392,13 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         return (
             <div className={`formattedTextBox-cont-${style}`} ref={this._ref}
                 style={{
+                    height: this.props.height ? this.props.height : undefined,
+                    background: this.props.hideOnLeave ? "rgba(0,0,0,0.4)" : undefined,
+                    opacity: this.props.hideOnLeave ? (this._entered || this.props.isSelected() || this.props.Document.libraryBrush ? 1 : 0.1) : 1,
+                    color: this.props.color ? this.props.color : this.props.hideOnLeave ? "white" : "initial",
                     pointerEvents: interactive ? "all" : "none",
                 }}
-                onKeyDown={this.onKeyPress}
+                // onKeyDown={this.onKeyPress}
                 onKeyPress={this.onKeyPress}
                 onFocus={this.onFocused}
                 onClick={this.onClick}
@@ -376,11 +406,12 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 onPointerUp={this.onPointerUp}
                 onPointerDown={this.onPointerDown}
                 onMouseDown={this.onMouseDown}
-                onContextMenu={this.specificContextMenu}
                 // tfs: do we need this event handler
                 onWheel={this.onPointerWheel}
+                onPointerEnter={this.onPointerEnter}
+                onPointerLeave={this.onPointerLeave}
             >
-                <div className={`formattedTextBox-inner${rounded}`} style={{ pointerEvents: this.props.Document.isButton && !this.props.isSelected() ? "none" : "all" }} ref={this._proseRef} />
+                <div className={`formattedTextBox-inner${rounded}`} ref={this.createDropTarget} style={{ whiteSpace: "pre-wrap", pointerEvents: this.props.Document.isButton && !this.props.isSelected() ? "none" : "all" }} />
             </div>
         );
     }

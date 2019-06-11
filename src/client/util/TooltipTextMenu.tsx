@@ -23,12 +23,12 @@ const { openPrompt, TextField } = require("./ProsemirrorCopy/prompt.js");
 import { View } from "@react-pdf/renderer";
 import { DragManager } from "./DragManager";
 import { Doc, Opt, Field } from "../../new_fields/Doc";
-import { Id } from "../../new_fields/RefField";
 import { Utils } from "../northstar/utils/Utils";
 import { DocServer } from "../DocServer";
 import { CollectionFreeFormDocumentView } from "../views/nodes/CollectionFreeFormDocumentView";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import { DocumentManager } from "./DocumentManager";
+import { Id } from "../../new_fields/FieldSymbols";
 
 const SVG = "http://www.w3.org/2000/svg";
 
@@ -196,7 +196,6 @@ export class TooltipTextMenu {
                 let node = this.view.state.selection.$from.nodeAfter;
                 let link = node && node.marks.find(m => m.type.name === "link");
                 if (link) {
-                    console.log("Link to : " + link.attrs.href);
                     let href: string = link.attrs.href;
                     if (href.indexOf(DocServer.prepend("/doc/")) === 0) {
                         let docid = href.replace(DocServer.prepend("/doc/"), "");
@@ -205,10 +204,11 @@ export class TooltipTextMenu {
                                 if (DocumentManager.Instance.getDocumentView(f)) {
                                     DocumentManager.Instance.getDocumentView(f)!.props.focus(f);
                                 }
-                                else CollectionDockingView.Instance.AddRightSplit(f);
+                                else if (CollectionDockingView.Instance) CollectionDockingView.Instance.AddRightSplit(f);
                             }
                         }));
                     }
+                    // TODO This should have an else to handle external links
                     e.stopPropagation();
                     e.preventDefault();
                 }
@@ -227,7 +227,7 @@ export class TooltipTextMenu {
                     {
                         handlers: {
                             dragComplete: action(() => {
-                                let m = dragData.droppedDocuments as Doc[];
+                                let m = dragData.droppedDocuments;
                                 this.makeLink(DocServer.prepend("/doc/" + m[0][Id]));
                             }),
                         },

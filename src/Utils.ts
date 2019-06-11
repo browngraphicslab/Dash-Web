@@ -15,7 +15,7 @@ export class Utils {
         return v5(seed, v5.URL);
     }
 
-    public static GetScreenTransform(ele: HTMLElement): { scale: number, translateX: number, translateY: number } {
+    public static GetScreenTransform(ele?: HTMLElement): { scale: number, translateX: number, translateY: number } {
         if (!ele) {
             return { scale: 1, translateX: 1, translateY: 1 };
         }
@@ -37,6 +37,19 @@ export class Utils {
         try { document.execCommand('copy'); } catch (err) { }
 
         document.body.removeChild(textArea);
+    }
+
+    public static GetClipboardText(): string {
+        var textArea = document.createElement("textarea");
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+
+        try { document.execCommand('paste'); } catch (err) { }
+
+        const val = textArea.value;
+        document.body.removeChild(textArea);
+        return val;
     }
 
     public static loggingEnabled: Boolean = false;

@@ -1,14 +1,16 @@
-import { action, computed } from 'mobx';
+import { action, computed, observable } from 'mobx';
 import { observer } from 'mobx-react';
 import * as React from 'react';
+import { Doc, DocListCast, Opt } from '../../../new_fields/Doc';
+import { Id } from '../../../new_fields/FieldSymbols';
+import { List } from '../../../new_fields/List';
+import { listSpec } from '../../../new_fields/Schema';
+import { Cast, FieldValue, NumCast, PromiseValue } from '../../../new_fields/Types';
+import { SelectionManager } from '../../util/SelectionManager';
 import { ContextMenu } from '../ContextMenu';
 import { FieldViewProps } from '../nodes/FieldView';
-import { Cast, FieldValue, PromiseValue, NumCast } from '../../../new_fields/Types';
-import { Doc, FieldResult, Opt, DocListCast } from '../../../new_fields/Doc';
-import { listSpec } from '../../../new_fields/Schema';
-import { List } from '../../../new_fields/List';
-import { Id } from '../../../new_fields/RefField';
-import { SelectionManager } from '../../util/SelectionManager';
+import './CollectionBaseView.scss';
+import { DocumentManager } from '../../util/DocumentManager';
 
 export enum CollectionViewType {
     Invalid,
@@ -16,6 +18,7 @@ export enum CollectionViewType {
     Schema,
     Docking,
     Tree,
+    Stacking
 }
 
 export interface CollectionRenderProps {
@@ -36,9 +39,20 @@ export interface CollectionViewProps extends FieldViewProps {
 
 @observer
 export class CollectionBaseView extends React.Component<CollectionViewProps> {
+    @observable private static _safeMode = false;
+    static InSafeMode() { return this._safeMode; }
+    static SetSafeMode(safeMode: boolean) { this._safeMode = safeMode; }
     get collectionViewType(): CollectionViewType | undefined {
         let Document = this.props.Document;
         let viewField = Cast(Document.viewType, "number");
+        if (CollectionBaseView._safeMode) {
+            if (viewField === CollectionViewType.Freeform) {
+                return CollectionViewType.Tree;
+            }
+            if (viewField === CollectionViewType.Invalid) {
+                return CollectionViewType.Freeform;
+            }
+        }
         if (viewField !== undefined) {
             return viewField;
         } else {
@@ -82,15 +96,15 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         }
         return false;
     }
-    @computed get isAnnotationOverlay() { return this.props.fieldKey && this.props.fieldKey === "annotations"; }
+    @computed get isAnnotationOverlay() { return this.props.fieldKey === "annotations"; }
 
     @action.bound
     addDocument(doc: Doc, allowDuplicates: boolean = false): boolean {
         let props = this.props;
         var curPage = NumCast(props.Document.curPage, -1);
-        Doc.SetOnPrototype(doc, "page", curPage);
+        Doc.GetProto(doc).page = curPage;
         if (curPage >= 0) {
-            Doc.SetOnPrototype(doc, "annotationOn", props.Document);
+            Doc.GetProto(doc).annotationOn = props.Document;
         }
         if (!this.createsCycle(doc, props.Document)) {
             //TODO This won't create the field if it doesn't already exist
@@ -108,7 +122,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
             // set the ZoomBasis only if hasn't already been set -- bcz: maybe set/resetting the ZoomBasis should be a parameter to addDocument?
             if (!alreadyAdded && (this.collectionViewType === CollectionViewType.Freeform || this.collectionViewType === CollectionViewType.Invalid)) {
                 let zoom = NumCast(this.props.Document.scale, 1);
-                Doc.SetOnPrototype(doc, "zoomBasis", zoom);
+                // Doc.GetProto(doc).zoomBasis = zoom;
             }
         }
         return true;
@@ -116,6 +130,8 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
 
     @action.bound
     removeDocument(doc: Doc): boolean {
+        let docView = DocumentManager.Instance.getDocumentView(doc, this.props.ContainingCollectionView)
+        docView && SelectionManager.DeselectDoc(docView);
         const props = this.props;
         //TODO This won't create the field if it doesn't already exist
         const value = Cast(props.Document[props.fieldKey], listSpec(Doc), []);
@@ -127,7 +143,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
                 break;
             }
         }
-        PromiseValue(Cast(doc.annotationOn, Doc)).then((annotationOn) => {
+        PromiseValue(Cast(doc.annotationOn, Doc)).then(annotationOn => {
             if (annotationOn === props.Document) {
                 doc.annotationOn = undefined;
             }
@@ -145,11 +161,10 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
 
     @action.bound
     moveDocument(doc: Doc, targetCollection: Doc, addDocument: (doc: Doc) => boolean): boolean {
-        if (this.props.Document === targetCollection) {
+        if (Doc.AreProtosEqual(this.props.Document, targetCollection)) {
             return true;
         }
         if (this.removeDocument(doc)) {
-            SelectionManager.DeselectAll();
             return addDocument(doc);
         }
         return false;
@@ -165,8 +180,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         };
         const viewtype = this.collectionViewType;
         return (
-            <div className={this.props.className || "collectionView-cont"}
-                style={{ borderRadius: "inherit", pointerEvents: "all" }}
+            <div id="collectionBaseView" className={this.props.className || "collectionView-cont"}
                 onContextMenu={this.props.onContextMenu} ref={this.props.contentRef}>
                 {viewtype !== undefined ? this.props.children(viewtype, props) : (null)}
             </div>

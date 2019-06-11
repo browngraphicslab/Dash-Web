@@ -8,7 +8,7 @@ import { FieldView, FieldViewProps } from "../nodes/FieldView";
 import { CollectionRenderProps, CollectionBaseView, CollectionViewType } from "./CollectionBaseView";
 import { emptyFunction } from "../../../Utils";
 import { NumCast } from "../../../new_fields/Types";
-import { Id } from "../../../new_fields/RefField";
+import { Id } from "../../../new_fields/FieldSymbols";
 
 
 @observer
@@ -61,7 +61,7 @@ export class CollectionPDFView extends React.Component<FieldViewProps> {
 
     onContextMenu = (e: React.MouseEvent): void => {
         if (!e.isPropagationStopped() && this.props.Document[Id] !== "mainDoc") { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
-            ContextMenu.Instance.addItem({ description: "PDFOptions", event: emptyFunction });
+            ContextMenu.Instance.addItem({ description: "PDFOptions", event: emptyFunction, icon: "file-pdf" });
         }
     }
 
@@ -70,7 +70,7 @@ export class CollectionPDFView extends React.Component<FieldViewProps> {
         return (
             <>
                 <CollectionFreeFormView {...props} CollectionView={this} />
-                {this.props.isSelected() ? this.uIButtons : (null)}
+                {renderProps.active() ? this.uIButtons : (null)}
             </>
         );
     }

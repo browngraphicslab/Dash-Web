@@ -119,107 +119,88 @@ interface URL {
     username: string;
     toJSON(): string;
 }
+interface PromiseLike<T> {
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): PromiseLike<TResult1 | TResult2>;
+}
+interface Promise<T> {
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): Promise<TResult1 | TResult2>;
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): Promise<T | TResult>;
+}
+
+declare const Update: unique symbol;
+declare const Self: unique symbol;
+declare const SelfProxy: unique symbol;
+declare const HandleUpdate: unique symbol;
+declare const Id: unique symbol;
+declare const OnUpdate: unique symbol;
+declare const Parent: unique symbol;
+declare const Copy: unique symbol;
+declare const ToScriptString: unique symbol;
+
+declare abstract class RefField {
+    readonly [Id]: FieldId;
+
+    constructor();
+}
 
 declare type FieldId = string;
 
-declare abstract class Field {
-    Id: FieldId;
-    abstract ToScriptString(): string;
-    abstract TrySetValue(value: any): boolean;
-    abstract GetValue(): any;
-    abstract Copy(): Field;
+declare abstract class ObjectField {
+    abstract [Copy](): ObjectField;
 }
 
-declare abstract class BasicField<T> extends Field {
-    constructor(data: T);
-    Data: T;
-    TrySetValue(value: any): boolean;
-    GetValue(): any;
+declare abstract class URLField extends ObjectField {
+    readonly url: URL;
+
+    constructor(url: string);
+    constructor(url: URL);
 }
 
-declare class TextField extends BasicField<string>{
-    constructor();
-    constructor(data: string);
-    ToScriptString(): string;
-    Copy(): Field;
-}
-declare class ImageField extends BasicField<URL>{
-    constructor();
-    constructor(data: URL);
-    ToScriptString(): string;
-    Copy(): Field;
-}
-declare class HtmlField extends BasicField<string>{
-    constructor();
-    constructor(data: string);
-    ToScriptString(): string;
-    Copy(): Field;
-}
-declare class NumberField extends BasicField<number>{
-    constructor();
-    constructor(data: number);
-    ToScriptString(): string;
-    Copy(): Field;
-}
-declare class WebField extends BasicField<URL>{
-    constructor();
-    constructor(data: URL);
-    ToScriptString(): string;
-    Copy(): Field;
-}
-declare class ListField<T> extends BasicField<T[]>{
-    constructor();
-    constructor(data: T[]);
-    ToScriptString(): string;
-    Copy(): Field;
-}
-declare class Key extends Field {
-    constructor(name:string);
-    Name: string;
-    TrySetValue(value: any): boolean;
-    GetValue(): any;
-    Copy(): Field;
-    ToScriptString(): string;
-}
-declare type FIELD_WAITING = null;
-declare type Opt<T> = T | undefined;
-declare type FieldValue<T> = Opt<T> | FIELD_WAITING;
+declare class AudioField extends URLField { [Copy](): ObjectField; }
+declare class VideoField extends URLField { [Copy](): ObjectField; }
+declare class ImageField extends URLField { [Copy](): ObjectField; }
+declare class WebField extends URLField { [Copy](): ObjectField; }
+declare class PdfField extends URLField { [Copy](): ObjectField; }
+
+declare const ComputedField: any;
+declare const CompileScript: any;
+
 // @ts-ignore
-declare class Document extends Field {
-    TrySetValue(value: any): boolean;
-    GetValue(): any;
-    Copy(): Field;
-    ToScriptString(): string;
+declare type Extract<T, U> = T extends U ? T : never;
+declare type Field = number | string | boolean | ObjectField | RefField;
+declare type FieldWaiting<T extends RefField = RefField> = T extends undefined ? never : Promise<T | undefined>;
+declare type FieldResult<T extends Field = Field> = Opt<T> | FieldWaiting<Extract<T, RefField>>;
 
-    Width(): number;
-    Height(): number;
-    Scale(): number;
-    Title: string;
+declare type Opt<T> = T | undefined;
+declare class Doc extends RefField {
+    constructor();
 
-    Get(key: Key): FieldValue<Field>;
-    GetAsync(key: Key, callback: (field: Field) => void): boolean;
-    GetOrCreateAsync<T extends Field>(key: Key, ctor: { new(): T }, callback: (field: T) => void): void;
-    GetT<T extends Field>(key: Key, ctor: { new(): T }): FieldValue<T>;
-    GetOrCreate<T extends Field>(key: Key, ctor: { new(): T }): T;
-    GetData<T, U extends Field & { Data: T }>(key: Key, ctor: { new(): U }, defaultVal: T): T;
-    GetHtml(key: Key, defaultVal: string): string;
-    GetNumber(key: Key, defaultVal: number): number;
-    GetText(key: Key, defaultVal: string): string;
-    GetList<T extends Field>(key: Key, defaultVal: T[]): T[];
-    Set(key: Key, field: Field | undefined): void;
-    SetData<T, U extends Field & { Data: T }>(key: Key, value: T, ctor: { new(): U }): void;
-    SetText(key: Key, value: string): void;
-    SetNumber(key: Key, value: number): void;
-    GetPrototype(): FieldValue<Document>;
-    GetAllPrototypes(): Document[];
-    MakeDelegate(): Document;
+    [key: string]: FieldResult;
+    // [ToScriptString](): string;
 }
 
-declare const KeyStore: {
-    [name: string]: Key;
+declare class ListImpl<T extends Field> extends ObjectField {
+    constructor(fields?: T[]);
+    [index: number]: T | (T extends RefField ? Promise<T> : never);
+    [Copy](): ObjectField;
 }
 
 // @ts-ignore
 declare const console: any;
 
-declare const Documents: any;
+interface DocumentOptions { }
+
+declare const Docs: {
+    ImageDocument(url: string, options?: DocumentOptions): Doc;
+    VideoDocument(url: string, options?: DocumentOptions): Doc;
+    // HistogramDocument(url:string, options?:DocumentOptions);
+    TextDocument(options?: DocumentOptions): Doc;
+    PdfDocument(url: string, options?: DocumentOptions): Doc;
+    WebDocument(url: string, options?: DocumentOptions): Doc;
+    HtmlDocument(html: string, options?: DocumentOptions): Doc;
+    KVPDocument(document: Doc, options?: DocumentOptions): Doc;
+    FreeformDocument(documents: Doc[], options?: DocumentOptions): Doc;
+    SchemaDocument(columns: string[], documents: Doc[], options?: DocumentOptions): Doc;
+    TreeDocument(documents: Doc[], options?: DocumentOptions): Doc;
+    StackingDocument(documents: Doc[], options?: DocumentOptions): Doc;
+};

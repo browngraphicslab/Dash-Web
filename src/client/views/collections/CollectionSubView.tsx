@@ -1,24 +1,24 @@
-import { action, runInAction } from "mobx";
-import React = require("react");
-import { undoBatch, UndoManager } from "../../util/UndoManager";
-import { DragManager } from "../../util/DragManager";
-import { Docs, DocumentOptions } from "../../documents/Documents";
-import { RouteStore } from "../../../server/RouteStore";
-import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
-import { FieldViewProps } from "../nodes/FieldView";
+import { action } from "mobx";
 import * as rp from 'request-promise';
-import { CollectionView } from "./CollectionView";
+import CursorField from "../../../new_fields/CursorField";
+import { Doc, DocListCast, Opt } from "../../../new_fields/Doc";
+import { List } from "../../../new_fields/List";
+import { listSpec } from "../../../new_fields/Schema";
+import { Cast, PromiseValue } from "../../../new_fields/Types";
+import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
+import { RouteStore } from "../../../server/RouteStore";
+import { DocServer } from "../../DocServer";
+import { Docs, DocumentOptions } from "../../documents/Documents";
+import { DragManager } from "../../util/DragManager";
+import { undoBatch, UndoManager } from "../../util/UndoManager";
+import { DocComponent } from "../DocComponent";
+import { FieldViewProps } from "../nodes/FieldView";
 import { CollectionPDFView } from "./CollectionPDFView";
 import { CollectionVideoView } from "./CollectionVideoView";
-import { Doc, Opt, FieldResult, DocListCast } from "../../../new_fields/Doc";
-import { DocComponent } from "../DocComponent";
-import { listSpec } from "../../../new_fields/Schema";
-import { Cast, PromiseValue, FieldValue, ListSpec } from "../../../new_fields/Types";
-import { List } from "../../../new_fields/List";
-import { DocServer } from "../../DocServer";
-import { ObjectField } from "../../../new_fields/ObjectField";
-import CursorField, { CursorPosition, CursorMetadata } from "../../../new_fields/CursorField";
-import { url } from "inspector";
+import { CollectionView } from "./CollectionView";
+import React = require("react");
+import { FormattedTextBox } from "../nodes/FormattedTextBox";
+import { Id } from "../../../new_fields/FieldSymbols";
 
 export interface CollectionViewProps extends FieldViewProps {
     addDocument: (document: Doc, allowDuplicates?: boolean) => boolean;
@@ -47,7 +47,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             this.createDropTarget(ele);
         }
 
-        get children() {
+        get childDocs() {
             //TODO tfs: This might not be what we want?
             //This linter error can't be fixed because of how js arguments work, so don't switch this to filter(FieldValue)
             return DocListCast(this.props.Document[this.props.fieldKey]);
@@ -72,7 +72,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 if (cursors.length > 0 && (ind = cursors.findIndex(entry => entry.data.metadata.id === id)) > -1) {
                     cursors[ind].setPosition(pos);
                 } else {
-                    let entry = new CursorField({ metadata: { id: id, identifier: email }, position: pos });
+                    let entry = new CursorField({ metadata: { id: id, identifier: email, timestamp: Date.now() }, position: pos });
                     cursors.push(entry);
                 }
             }
@@ -82,28 +82,15 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
         @action
         protected drop(e: Event, de: DragManager.DropEvent): boolean {
             if (de.data instanceof DragManager.DocumentDragData) {
-                if (de.data.dropAction || de.data.userDropAction) {
-                    ["width", "height", "curPage"].map(key =>
-                        de.data.draggedDocuments.map((draggedDocument: Doc, i: number) =>
-                            PromiseValue(Cast(draggedDocument[key], "number")).then(f => f && (de.data.droppedDocuments[i][key] = f))));
-                }
                 let added = false;
                 if (de.data.dropAction || de.data.userDropAction) {
-                    added = de.data.droppedDocuments.reduce((added: boolean, d) => {
-                        let moved = this.props.addDocument(d);
-                        return moved || added;
-                    }, false);
+                    added = de.data.droppedDocuments.reduce((added: boolean, d) => this.props.addDocument(d) || added, false);
                 } else if (de.data.moveDocument) {
-                    const move = de.data.moveDocument;
-                    added = de.data.droppedDocuments.reduce((added: boolean, d) => {
-                        let moved = move(d, this.props.Document, this.props.addDocument);
-                        return moved || added;
-                    }, false);
+                    let movedDocs = de.data.options === this.props.Document[Id] ? de.data.draggedDocuments : de.data.droppedDocuments;
+                    added = movedDocs.reduce((added: boolean, d) =>
+                        de.data.moveDocument(d, this.props.Document, this.props.addDocument) || added, false);
                 } else {
-                    added = de.data.droppedDocuments.reduce((added: boolean, d) => {
-                        let moved = this.props.addDocument(d);
-                        return moved || added;
-                    }, false);
+                    added = de.data.droppedDocuments.reduce((added: boolean, d) => this.props.addDocument(d) || added, false);
                 }
                 e.stopPropagation();
                 return added;
@@ -131,7 +118,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 options.dropAction = "copy";
             }
             if (type.indexOf("html") !== -1) {
-                if (path.includes('localhost')) {
+                if (path.includes(window.location.hostname)) {
                     let s = path.split('/');
                     let id = s[s.length - 1];
                     DocServer.GetRefField(id).then(field => {
@@ -155,6 +142,10 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
         @undoBatch
         @action
         protected onDrop(e: React.DragEvent, options: DocumentOptions): void {
+            if (e.ctrlKey) {
+                e.stopPropagation(); // bcz: this is a hack to stop propagation when dropping an image on a text document with shift+ctrl
+                return;
+            }
             let html = e.dataTransfer.getData("text/html");
             let text = e.dataTransfer.getData("text/plain");
 
@@ -164,6 +155,25 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             e.stopPropagation();
             e.preventDefault();
 
+            if (html && FormattedTextBox.IsFragment(html)) {
+                let href = FormattedTextBox.GetHref(html);
+                if (href) {
+                    let docid = FormattedTextBox.GetDocFromUrl(href);
+                    if (docid) { // prosemirror text containing link to dash document
+                        DocServer.GetRefField(docid).then(f => {
+                            if (f instanceof Doc) {
+                                if (options.x || options.y) { f.x = options.x; f.y = options.y; } // should be in CollectionFreeFormView
+                                (f instanceof Doc) && this.props.addDocument(f, false);
+                            }
+                        });
+                    } else {
+                        this.props.addDocument && this.props.addDocument(Docs.WebDocument(href, options));
+                    }
+                } else if (text) {
+                    this.props.addDocument && this.props.addDocument(Docs.TextDocument({ ...options, documentText: "@@@" + text }), false);
+                }
+                return;
+            }
             if (html && html.indexOf("<img") !== 0 && !html.startsWith("<a")) {
                 let htmlDoc = Docs.HtmlDocument(html, { ...options, width: 300, height: 300, documentText: text });
                 this.props.addDocument(htmlDoc, false);
@@ -210,7 +220,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                     }).then(async (res: Response) => {
                         (await res.json()).map(action((file: any) => {
                             let path = window.location.origin + file;
-                            let docPromise = this.getDocumentFromType(type, path, { ...options, nativeWidth: 600, width: 300, title: dropFileName });
+                            let docPromise = this.getDocumentFromType(type, path, { ...options, nativeWidth: 300, width: 300, title: dropFileName });
 
                             docPromise.then(doc => doc && this.props.addDocument(doc));
                         }));

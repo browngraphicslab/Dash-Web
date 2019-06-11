@@ -1,12 +1,11 @@
-import { observable, computed, action, trace } from "mobx";
-import React = require("react");
+import { action, observable } from "mobx";
 import { observer } from "mobx-react";
-import './DocumentDecorations.scss';
-import { Template } from "./Templates";
-import { DocumentView } from "./nodes/DocumentView";
-import { List } from "../../new_fields/List";
 import { Doc } from "../../new_fields/Doc";
-import { NumCast } from "../../new_fields/Types";
+import { List } from "../../new_fields/List";
+import './DocumentDecorations.scss';
+import { DocumentView } from "./nodes/DocumentView";
+import { Template } from "./Templates";
+import React = require("react");
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -43,16 +42,16 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
     @action
     toggleTemplate = (event: React.ChangeEvent<HTMLInputElement>, template: Template): void => {
         if (event.target.checked) {
-            if (template.Name == "Bullet") {
+            if (template.Name === "Bullet") {
                 let topDocView = this.props.docs[0];
                 topDocView.addTemplate(template);
-                topDocView.props.Document.subBulletDocs = new List<Doc>(this.props.docs.filter(v => v !== topDocView).map(v => v.props.Document));
+                topDocView.props.Document.subBulletDocs = new List<Doc>(this.props.docs.filter(v => v !== topDocView).map(v => v.props.Document.proto!));
             } else {
                 this.props.docs.map(d => d.addTemplate(template));
             }
             this.props.templates.set(template, true);
         } else {
-            if (template.Name == "Bullet") {
+            if (template.Name === "Bullet") {
                 let topDocView = this.props.docs[0];
                 topDocView.removeTemplate(template);
                 topDocView.props.Document.subBulletDocs = undefined;

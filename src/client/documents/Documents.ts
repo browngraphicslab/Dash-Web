@@ -26,14 +26,17 @@ import { OmitKeys } from "../../Utils";
 import { ImageField, VideoField, AudioField, PdfField, WebField } from "../../new_fields/URLField";
 import { HtmlField } from "../../new_fields/HtmlField";
 import { List } from "../../new_fields/List";
-import { Cast } from "../../new_fields/Types";
+import { Cast, NumCast } from "../../new_fields/Types";
 import { IconField } from "../../new_fields/IconField";
 import { listSpec } from "../../new_fields/Schema";
 import { DocServer } from "../DocServer";
-import { StrokeData, InkField } from "../../new_fields/InkField";
+import { InkField } from "../../new_fields/InkField";
 import { dropActionType } from "../util/DragManager";
 import { DateField } from "../../new_fields/DateField";
-import { schema } from "prosemirror-schema-basic";
+import { UndoManager } from "../util/UndoManager";
+import { RouteStore } from "../../server/RouteStore";
+var requestImageSize = require('request-image-size');
+var path = require('path');
 
 export interface DocumentOptions {
     x?: number;
@@ -60,9 +63,40 @@ export interface DocumentOptions {
     borderRounding?: number;
     schemaColumns?: List<string>;
     dockingConfig?: string;
+    dbDoc?: Doc;
     // [key: string]: Opt<Field>;
 }
 const delegateKeys = ["x", "y", "width", "height", "panX", "panY"];
+
+export namespace DocUtils {
+    export function MakeLink(source: Doc, target: Doc, targetContext?: Doc) {
+        let protoSrc = source.proto ? source.proto : source;
+        let protoTarg = target.proto ? target.proto : target;
+        UndoManager.RunInBatch(() => {
+            let linkDoc = Docs.TextDocument({ width: 100, height: 30, borderRounding: -1 });
+            let linkDocProto = Doc.GetProto(linkDoc);
+            linkDocProto.title = source.title + " to " + target.title;
+            linkDocProto.linkDescription = "";
+            linkDocProto.linkTags = "Default";
+
+            linkDocProto.linkedTo = target;
+            linkDocProto.linkedFrom = source;
+            linkDocProto.linkedToPage = target.curPage;
+            linkDocProto.linkedFromPage = source.curPage;
+            linkDocProto.linkedToContext = targetContext;
+
+            let linkedFrom = Cast(protoTarg.linkedFromDocs, listSpec(Doc));
+            let linkedTo = Cast(protoSrc.linkedToDocs, listSpec(Doc));
+            !linkedFrom && (protoTarg.linkedFromDocs = linkedFrom = new List<Doc>());
+            !linkedTo && (protoSrc.linkedToDocs = linkedTo = new List<Doc>());
+            linkedFrom.push(linkDoc);
+            linkedTo.push(linkDoc);
+            return linkDoc;
+        }, "make link");
+    }
+
+
+}
 
 export namespace Docs {
     let textProto: Doc;
@@ -109,8 +143,8 @@ export namespace Docs {
         deleg.data = value;
         return Doc.assign(deleg, options);
     }
-    function SetDelegateOptions<U extends Field>(doc: Doc, options: DocumentOptions) {
-        const deleg = Doc.MakeDelegate(doc);
+    function SetDelegateOptions(doc: Doc, options: DocumentOptions, id?: string) {
+        const deleg = Doc.MakeDelegate(doc, id);
         return Doc.assign(deleg, options);
     }
 
@@ -167,7 +201,7 @@ export namespace Docs {
         return audioProto;
     }
 
-    function CreateInstance(proto: Doc, data: Field, options: DocumentOptions) {
+    function CreateInstance(proto: Doc, data: Field, options: DocumentOptions, delegId?: string) {
         const { omit: protoProps, extract: delegateProps } = OmitKeys(options, delegateKeys);
         if (!("author" in protoProps)) {
             protoProps.author = CurrentUserUtils.email;
@@ -177,11 +211,22 @@ export namespace Docs {
         }
         protoProps.isPrototype = true;
 
-        return SetDelegateOptions(SetInstanceOptions(proto, protoProps, data), delegateProps);
+        return SetDelegateOptions(SetInstanceOptions(proto, protoProps, data), delegateProps, delegId);
     }
 
     export function ImageDocument(url: string, options: DocumentOptions = {}) {
-        return CreateInstance(imageProto, new ImageField(new URL(url)), options);
+        let inst = CreateInstance(imageProto, new ImageField(new URL(url)), { title: path.basename(url), ...options });
+        requestImageSize(window.origin + RouteStore.corsProxy + "/" + url)
+            .then((size: any) => {
+                let aspect = size.height / size.width;
+                if (!inst.proto!.nativeWidth) {
+                    inst.proto!.nativeWidth = size.width;
+                }
+                inst.proto!.nativeHeight = Number(inst.proto!.nativeWidth!) * aspect;
+                inst.height = NumCast(inst.width) * aspect;
+            })
+            .catch((err: any) => console.log(err));
+        return inst;
         // let doc = SetInstanceOptions(GetImagePrototype(), { ...options, layoutKeys: [KeyStore.Data, KeyStore.Annotations, KeyStore.Caption] },
         //     [new URL(url), ImageField]);
         // doc.SetText(KeyStore.Caption, "my caption...");
@@ -209,7 +254,7 @@ export namespace Docs {
         return CreateInstance(pdfProto, new PdfField(new URL(url)), options);
     }
 
-    export async function DBDocument(url: string, options: DocumentOptions = {}) {
+    export async function DBDocument(url: string, options: DocumentOptions = {}, columnOptions: DocumentOptions = {}) {
         let schemaName = options.title ? options.title : "-no schema-";
         let ctlog = await Gateway.Instance.GetSchema(url, schemaName);
         if (ctlog && ctlog.schemas) {
@@ -231,7 +276,7 @@ export namespace Docs {
                             new AttributeTransformationModel(atmod, AggregateFunction.None),
                             new AttributeTransformationModel(atmod, AggregateFunction.Count),
                             new AttributeTransformationModel(atmod, AggregateFunction.Count));
-                        docs.push(Docs.HistogramDocument(histoOp, { width: 200, height: 200, title: attr.displayName! }));
+                        docs.push(Docs.HistogramDocument(histoOp, { ...columnOptions, width: 200, height: 200, title: attr.displayName! }));
                     }
                 }));
             });
@@ -246,7 +291,7 @@ export namespace Docs {
         return CreateInstance(webProto, new HtmlField(html), options);
     }
     export function KVPDocument(document: Doc, options: DocumentOptions = {}) {
-        return CreateInstance(kvpProto, document, options);
+        return CreateInstance(kvpProto, document, { title: document.title + ".kvp", ...options });
     }
     export function FreeformDocument(documents: Array<Doc>, options: DocumentOptions, makePrototype: boolean = true) {
         if (!makePrototype) {
@@ -260,8 +305,11 @@ export namespace Docs {
     export function TreeDocument(documents: Array<Doc>, options: DocumentOptions) {
         return CreateInstance(collProto, new List(documents), { schemaColumns: new List(["title"]), ...options, viewType: CollectionViewType.Tree });
     }
-    export function DockDocument(documents: Array<Doc>, config: string, options: DocumentOptions) {
-        return CreateInstance(collProto, new List(documents), { ...options, viewType: CollectionViewType.Docking, dockingConfig: config });
+    export function StackingDocument(documents: Array<Doc>, options: DocumentOptions) {
+        return CreateInstance(collProto, new List(documents), { schemaColumns: new List(["title"]), ...options, viewType: CollectionViewType.Stacking });
+    }
+    export function DockDocument(documents: Array<Doc>, config: string, options: DocumentOptions, id?: string) {
+        return CreateInstance(collProto, new List(documents), { ...options, viewType: CollectionViewType.Docking, dockingConfig: config }, id);
     }
 
     export function CaptionDocument(doc: Doc) {

@@ -97,13 +97,13 @@ export const nodes: { [index: string]: NodeSpec } = {
                     title: dom.getAttribute("title"),
                     alt: dom.getAttribute("alt"),
                     width: Math.min(100, Number(dom.getAttribute("width"))),
-                }
+                };
             }
         }],
         // TODO if we don't define toDom, something weird happens: dragging the image will not move it but clone it. Why?
         toDOM(node) {
-            const attrs = { style: `width: ${node.attrs.width}` }
-            return ["img", { ...node.attrs, ...attrs }]
+            const attrs = { style: `width: ${node.attrs.width}` };
+            return ["img", { ...node.attrs, ...attrs }];
         }
     },
 
@@ -401,7 +401,7 @@ export class ImageResizeView {
                 const currentX = e.pageX;
                 const diffInPx = currentX - startX;
                 self._outer.style.width = `${startWidth + diffInPx}`;
-            }
+            };
 
             const onpointerup = () => {
                 document.removeEventListener("pointermove", onpointermove);
@@ -410,11 +410,11 @@ export class ImageResizeView {
                     view.state.tr.setNodeMarkup(getPos(), null,
                         { src: node.attrs.src, width: self._outer.style.width })
                         .setSelection(view.state.selection));
-            }
+            };
 
-            document.addEventListener("pointermove", onpointermove)
-            document.addEventListener("pointerup", onpointerup)
-        }
+            document.addEventListener("pointermove", onpointermove);
+            document.addEventListener("pointerup", onpointerup);
+        };
 
         this._outer.appendChild(this._handle);
         this._outer.appendChild(this._img);

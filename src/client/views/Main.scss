@@ -15,6 +15,9 @@ body {
 
 div {
     user-select: none;
+    -moz-user-select: none;
+    -webkit-user-select: none;
+    -ms-user-select: none;
 }
 
 #dash-title {
@@ -40,7 +43,7 @@ p {
 
 ::-webkit-scrollbar {
     -webkit-appearance: none;
-    height: 5px;
+    height: 10px;
     width: 10px;
 }
 
@@ -95,6 +98,21 @@ button:hover {
     position: absolute;
     width: 150px;
     right: 0px;
+}
+
+.main-notifs-badge {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    color: white;
+    background: #f44b42;
+    font-weight: 300;
+    border-radius: 100%;
+    width: 25px;
+    height: 25px;
+    text-align: center;
+    padding-top: 4px;
+    font-size: 12px;
 }
 
 //toolbar stuff

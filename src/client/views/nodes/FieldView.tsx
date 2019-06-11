@@ -1,24 +1,23 @@
 import React = require("react");
+import { computed } from "mobx";
 import { observer } from "mobx-react";
-import { computed, observable } from "mobx";
-import { FormattedTextBox } from "./FormattedTextBox";
-import { ImageBox } from "./ImageBox";
-import { VideoBox } from "./VideoBox";
-import { AudioBox } from "./AudioBox";
-import { DocumentContentsView } from "./DocumentContentsView";
+import { DateField } from "../../../new_fields/DateField";
+import { Doc, FieldResult, Opt } from "../../../new_fields/Doc";
+import { IconField } from "../../../new_fields/IconField";
+import { List } from "../../../new_fields/List";
+import { RichTextField } from "../../../new_fields/RichTextField";
+import { AudioField, ImageField, VideoField } from "../../../new_fields/URLField";
+import { emptyFunction, returnFalse, returnOne } from "../../../Utils";
 import { Transform } from "../../util/Transform";
-import { returnFalse, emptyFunction, returnOne } from "../../../Utils";
-import { CollectionView } from "../collections/CollectionView";
 import { CollectionPDFView } from "../collections/CollectionPDFView";
 import { CollectionVideoView } from "../collections/CollectionVideoView";
+import { CollectionView } from "../collections/CollectionView";
+import { AudioBox } from "./AudioBox";
+import { DocumentContentsView } from "./DocumentContentsView";
+import { FormattedTextBox } from "./FormattedTextBox";
 import { IconBox } from "./IconBox";
-import { Opt, Doc, FieldResult } from "../../../new_fields/Doc";
-import { List } from "../../../new_fields/List";
-import { ImageField, VideoField, AudioField } from "../../../new_fields/URLField";
-import { IconField } from "../../../new_fields/IconField";
-import { RichTextField } from "../../../new_fields/RichTextField";
-import { DateField } from "../../../new_fields/DateField";
-import { NumCast } from "../../../new_fields/Types";
+import { ImageBox } from "./ImageBox";
+import { VideoBox } from "./VideoBox";
 
 
 //
@@ -35,6 +34,7 @@ export interface FieldViewProps {
     isTopMost: boolean;
     selectOnLoad: boolean;
     addDocument?: (document: Doc, allowDuplicates?: boolean) => boolean;
+    addDocTab: (document: Doc, where: string) => void;
     removeDocument?: (document: Doc) => boolean;
     moveDocument?: (document: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
     ScreenToLocalTransform: () => Transform;
@@ -87,6 +87,7 @@ export class FieldView extends React.Component<FieldViewProps> {
             return (
                 <DocumentContentsView Document={field}
                     addDocument={undefined}
+                    addDocTab={this.props.addDocTab}
                     removeDocument={undefined}
                     ScreenToLocalTransform={Transform.Identity}
                     ContentScaling={returnOne}
@@ -100,7 +101,6 @@ export class FieldView extends React.Component<FieldViewProps> {
                     layoutKey={"layout"}
                     ContainingCollectionView={this.props.ContainingCollectionView}
                     parentActive={this.props.active}
-                    toggleMinimized={emptyFunction}
                     whenActiveChanged={this.props.whenActiveChanged}
                     bringToFront={emptyFunction} />
             );
@@ -115,7 +115,7 @@ export class FieldView extends React.Component<FieldViewProps> {
         //     return <WebBox {...this.props} />
         // }
         else if (!(field instanceof Promise)) {
-            return <p>{JSON.stringify(field)}</p>;
+            return <p>{field.toString()}</p>;
         }
         else {
             return <p> {"Waiting for server..."} </p>;

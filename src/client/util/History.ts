@@ -1,7 +1,7 @@
 import { Doc, Opt, Field } from "../../new_fields/Doc";
 import { DocServer } from "../DocServer";
-import { Main } from "../views/Main";
 import { RouteStore } from "../../server/RouteStore";
+import { MainView } from "../views/MainView";
 
 export namespace HistoryUtil {
     export interface DocInitializerList {
@@ -114,7 +114,7 @@ export namespace HistoryUtil {
         const field = await DocServer.GetRefField(url.docId);
         await Promise.all(Object.keys(url.initializers).map(id => initDoc(id, url.initializers[id])));
         if (field instanceof Doc) {
-            Main.Instance.openWorkspace(field, true);
+            MainView.Instance.openWorkspace(field, true);
         }
     }
 

@@ -1,12 +1,13 @@
 import { observer } from "mobx-react";
+import * as mobxUtils from 'mobx-utils';
+import CursorField from "../../../../new_fields/CursorField";
+import { listSpec } from "../../../../new_fields/Schema";
+import { Cast } from "../../../../new_fields/Types";
+import { CurrentUserUtils } from "../../../../server/authentication/models/current_user_utils";
 import { CollectionViewProps } from "../CollectionSubView";
 import "./CollectionFreeFormView.scss";
 import React = require("react");
 import v5 = require("uuid/v5");
-import { CurrentUserUtils } from "../../../../server/authentication/models/current_user_utils";
-import CursorField from "../../../../new_fields/CursorField";
-import { Cast } from "../../../../new_fields/Types";
-import { listSpec } from "../../../../new_fields/Schema";
 
 @observer
 export class CollectionFreeFormRemoteCursors extends React.Component<CollectionViewProps> {
@@ -21,7 +22,9 @@ export class CollectionFreeFormRemoteCursors extends React.Component<CollectionV
 
         let cursors = Cast(doc.cursors, listSpec(CursorField));
 
-        return (cursors || []).filter(cursor => cursor.data.metadata.id !== id);
+        const now = mobxUtils.now();
+        // const now = Date.now();
+        return (cursors || []).filter(cursor => cursor.data.metadata.id !== id && (now - cursor.data.metadata.timestamp) < 1000);
     }
 
     private crosshairs?: HTMLCanvasElement;
