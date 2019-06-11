@@ -13,7 +13,7 @@ import { Id } from '../../../new_fields/FieldSymbols';
 import { SetupDrag } from '../../util/DragManager';
 import { Docs, DocTypes } from '../../documents/Documents';
 import { RouteStore } from '../../../server/RouteStore';
-import { NumCast } from '../../../new_fields/Types';
+import { NumCast, Cast } from '../../../new_fields/Types';
 import { SearchUtil } from '../../util/SearchUtil';
 import * as anime from 'animejs';
 import { updateFunction } from '../../../new_fields/util';
@@ -22,6 +22,7 @@ import * as _ from "lodash";
 import { findDOMNode } from 'react-dom';
 import { ToggleBar } from './ToggleBar';
 import { IconBar } from './IconBar';
+import { type } from 'os';
 
 
 @observer
@@ -83,7 +84,23 @@ export class SearchBox extends React.Component {
                 docs.push(field);
             }
         }
-        return docs;
+        return this.filterDocs(docs);
+    }
+
+    @action filterDocs(docs: Doc[]){
+        console.log(this._icons)
+        if(this._icons.length === 0){
+            console.log("length is 0")
+            return docs;
+        }
+        let finalDocs: Doc[] = [];
+        docs.forEach(doc => {
+            let layoutresult = Cast(doc.type, "string", "");
+            if(this._icons.includes(layoutresult)){
+                finalDocs.push(doc)
+            }
+        });
+        return finalDocs;
     }
 
     public static async convertDataUri(imageUri: string, returnedFilename: string) {
@@ -110,12 +127,14 @@ export class SearchBox extends React.Component {
         //handles case with filter button
         if (String(name).indexOf("filter") !== -1 || String(name).indexOf("SVG") !== -1) {
             this._resultsOpen = false;
+            this._results = [];
             this._open = true;
         }
         else if (element && element.parentElement) {
             //if the filter element is found, show the form and hide the results
             if (this.findAncestor(element, "filter-form")) {
                 this._resultsOpen = false;
+                this._results = [];
                 this._open = true;
             }
             //if in main search div, keep results open and close filter
@@ -127,6 +146,7 @@ export class SearchBox extends React.Component {
         //not in either, close both
         else {
             this._resultsOpen = false;
+            this._results = [];
             this._open = false;
         }
 
