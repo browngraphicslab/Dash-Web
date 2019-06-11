@@ -16,7 +16,7 @@ import { DocumentManager } from "../../util/DocumentManager";
 import { DragManager } from "../../util/DragManager";
 import buildKeymap from "../../util/ProsemirrorKeymap";
 import { inpRules } from "../../util/RichTextRules";
-import { ImageResizeView, schema } from "../../util/RichTextSchema";
+import { SummarizedView, ImageResizeView, schema } from "../../util/RichTextSchema";
 import { SelectionManager } from "../../util/SelectionManager";
 import { TooltipLinkingMenu } from "../../util/TooltipLinkingMenu";
 import { TooltipTextMenu } from "../../util/TooltipTextMenu";
@@ -29,6 +29,7 @@ import { FieldView, FieldViewProps } from "./FieldView";
 import "./FormattedTextBox.scss";
 import React = require("react");
 import { DocUtils } from '../../documents/Documents';
+import { start } from 'repl';
 
 library.add(faEdit);
 library.add(faSmile);
@@ -189,7 +190,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 state: field && field.Data ? EditorState.fromJSON(config, JSON.parse(field.Data)) : EditorState.create(config),
                 dispatchTransaction: this.dispatchTransaction,
                 nodeViews: {
-                    image(node, view, getPos) { return new ImageResizeView(node, view, getPos); }
+                    image(node, view, getPos) { return new ImageResizeView(node, view, getPos); },
+                    //star(node, view, getPos) { return new SummarizedView(node); }
                 }
             });
             let text = StrCast(this.props.Document.documentText);

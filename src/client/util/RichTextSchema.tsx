@@ -28,6 +28,7 @@ export const nodes: { [index: string]: NodeSpec } = {
 
     star: {
         inline: true,
+        attrs: { oldtext: { default: "suhhhh" } },
         group: "inline",
         toDOM() { return ["star", "🟊"]; },
         parseDOM: [{ tag: "star" }]
@@ -422,6 +423,18 @@ export class ImageResizeView {
         this._img.classList.remove("ProseMirror-selectednode");
 
         this._handle.style.display = "none";
+    }
+}
+
+export class SummarizedView {
+    _collapsed: HTMLElement;
+    _selection: any;
+    constructor(node: any) {
+        this._collapsed = document.createElement("star");
+        this._collapsed.onpointerdown = function (e: any) {
+            console.log("star pressed!");
+        };
+
     }
 }
 // :: Schema

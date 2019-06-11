@@ -1,6 +1,6 @@
 import { action, IReactionDisposer, reaction } from "mobx";
 import { Dropdown, DropdownSubmenu, MenuItem, MenuItemSpec, renderGrouped, icons, } from "prosemirror-menu"; //no import css
-import { baseKeymap, lift } from "prosemirror-commands";
+import { baseKeymap, lift, deleteSelection } from "prosemirror-commands";
 import { history, redo, undo } from "prosemirror-history";
 import { keymap } from "prosemirror-keymap";
 import { EditorState, Transaction, NodeSelection, TextSelection } from "prosemirror-state";
@@ -28,6 +28,7 @@ import { CollectionDockingView } from "../views/collections/CollectionDockingVie
 import { DocumentManager } from "./DocumentManager";
 import { Id } from "../../new_fields/FieldSymbols";
 import { Utils } from "../../Utils";
+// import { wrap } from "module";
 
 const SVG = "http://www.w3.org/2000/svg";
 
@@ -74,7 +75,7 @@ export class TooltipTextMenu {
             { command: toggleMark(schema.marks.strikethrough), dom: this.icon("S", "strikethrough", "Strikethrough") },
             { command: toggleMark(schema.marks.superscript), dom: this.icon("s", "superscript", "Superscript") },
             { command: toggleMark(schema.marks.subscript), dom: this.icon("s", "subscript", "Subscript") },
-            { command: toggleMark(schema.marks.collapse), dom: this.icon("C", 'collapse', 'Collapse') }
+            { command: deleteSelection, dom: this.icon("C", 'collapse', 'Collapse') }
             // { command: wrapInList(schema.nodes.bullet_list), dom: this.icon(":", "bullets") },
             // { command: wrapInList(schema.nodes.ordered_list), dom: this.icon("1)", "bullets") },
             // { command: lift, dom: this.icon("<", "lift") },
@@ -274,18 +275,18 @@ export class TooltipTextMenu {
     insertStar(state: EditorState<any>, dispatch: any) {
         console.log("creating star...");
         let type = schema.nodes.star;
-        //let {$from} = state.selection;
         let select = state.selection;
-        if (dispatch) {
-            dispatch(state.tr.setMeta('select.visible', false));
+        let node = select.$from.nodeAfter;
+        if (node) {
+            console.log("node");
+            console.log(node.type.name);
+            if (node.type.name === "star") {
+                console.log(node.attrs.oldtext);
+            }
         }
-        // console.log($from);
-        // if (!$from.parent.canReplaceWith($from.index(), $from.index(), type)) {
-        //     return false;
-        // }
-        // if (dispatch) {
-        //     dispatch(state.tr.replaceSelectionWith(type.create()));
-        // }
+        if (dispatch) {
+            dispatch(state.tr.replaceSelectionWith(type.create({ attrs: { oldtext: select } })));
+        }
         return true;
     }
 
