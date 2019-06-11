@@ -28,6 +28,7 @@ import { FieldView, FieldViewProps } from "./FieldView";
 import "./FormattedTextBox.scss";
 import React = require("react");
 import { Id } from '../../../new_fields/FieldSymbols';
+import { MainOverlayTextBox } from '../MainOverlayTextBox';
 
 library.add(faEdit);
 library.add(faSmile);
@@ -52,6 +53,8 @@ library.add(faSmile);
 export interface FormattedTextBoxProps {
     isOverlay?: boolean;
     hideOnLeave?: boolean;
+    height?: string;
+    color?: string;
 }
 
 const richTextSchema = createSchema({
@@ -72,7 +75,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     private _toolTipTextMenu: TooltipTextMenu | undefined = undefined;
     private _lastState: any = undefined;
     private _applyingChange: boolean = false;
-    private _dropDisposer?: DragManager.DragDropDisposer;
     private _linkClicked = "";
     private _reactionDisposer: Opt<IReactionDisposer>;
     private _inputReactionDisposer: Opt<IReactionDisposer>;
@@ -133,25 +135,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         }
     }
 
-    @undoBatch
-    @action
-    drop = async (e: Event, de: DragManager.DropEvent) => {
-        if (de.data instanceof DragManager.LinkDragData) {
-            let sourceDoc = de.data.linkSourceDocument;
-            let destDoc = this.props.Document;
-
-            DocUtils.MakeLink(sourceDoc, destDoc);
-            de.data.droppedDocuments.push(destDoc);
-            e.stopPropagation();
-        }
-    }
-
     componentDidMount() {
-        if (this._ref.current) {
-            this._dropDisposer = DragManager.MakeDropTarget(this._ref.current, {
-                handlers: { drop: this.drop.bind(this) }
-            });
-        }
         const config = {
             schema,
             inpRules, //these currently don't do anything, but could eventually be helpful
@@ -179,7 +163,9 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     if (this._editorView) {
                         this._editorView.destroy();
                     }
-                    this.setupEditor(config, this.props.Document);// MainOverlayTextBox.Instance.TextDoc); // bcz: not sure why, but the order of events is such that this.props.Document hasn't updated yet, so without forcing the editor to the MainOverlayTextBox, it will display the previously focused textbox
+                    this.setupEditor(config, // bcz: not sure why, but the order of events is such that this.props.Document hasn't updated yet, so without forcing the editor to the MainOverlayTextBox, it will display the previously focused textbox
+                        MainOverlayTextBox.Instance.TextDoc ? MainOverlayTextBox.Instance.TextDoc : this.props.Document,
+                        MainOverlayTextBox.Instance.TextFieldKey ? MainOverlayTextBox.Instance.TextFieldKey : this.props.fieldKey);
                 }
             );
         } else {
@@ -201,11 +187,16 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             field => field && this._editorView && !this._applyingChange &&
                 this._editorView.updateState(EditorState.fromJSON(config, JSON.parse(field)))
         );
-        this.setupEditor(config, this.props.Document);
+        this.setupEditor(config, this.props.Document, this.props.fieldKey);
     }
 
-    private setupEditor(config: any, doc?: Doc) {
-        let field = doc ? Cast(doc[this.props.fieldKey], RichTextField) : undefined;
+    private setupEditor(config: any, doc: Doc, fieldKey: string) {
+        let field = doc ? Cast(doc[fieldKey], RichTextField) : undefined;
+        let startup = StrCast(doc.documentText);
+        startup = startup.startsWith("@@@") ? startup.replace("@@@", "") : "";
+        if (!startup && !field && doc) {
+            startup = StrCast(doc[fieldKey]);
+        }
         if (this._proseRef.current) {
             this._editorView = new EditorView(this._proseRef.current, {
                 state: field && field.Data ? EditorState.fromJSON(config, JSON.parse(field.Data)) : EditorState.create(config),
@@ -214,14 +205,14 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     image(node, view, getPos) { return new ImageResizeView(node, view, getPos); }
                 }
             });
-            let text = StrCast(this.props.Document.documentText);
-            if (text.startsWith("@@@")) {
-                this.props.Document.proto!.documentText = undefined;
-                this._editorView.dispatch(this._editorView.state.tr.insertText(text.replace("@@@", "")));
+            if (startup) {
+                Doc.GetProto(doc).documentText = undefined;
+                this._editorView.dispatch(this._editorView.state.tr.insertText(startup));
             }
         }
 
         if (this.props.selectOnLoad) {
+            console.log("Sel on load " + this.props.Document.title + " " + doc!.title);
             this.props.select(false);
             this._editorView!.focus();
         }
@@ -239,9 +230,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         }
         if (this._proxyReactionDisposer) {
             this._proxyReactionDisposer();
-        }
-        if (this._dropDisposer) {
-            this._dropDisposer();
         }
     }
 
@@ -380,9 +368,10 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         return (
             <div className={`formattedTextBox-cont-${style}`} ref={this._ref}
                 style={{
+                    height: this.props.height ? this.props.height : undefined,
                     background: this.props.hideOnLeave ? "rgba(0,0,0,0.4)" : undefined,
                     opacity: this.props.hideOnLeave ? (this._entered || this.props.isSelected() || this.props.Document.libraryBrush ? 1 : 0.1) : 1,
-                    color: this.props.hideOnLeave ? "white" : "initial",
+                    color: this.props.color ? this.props.color : this.props.hideOnLeave ? "white" : "initial",
                     pointerEvents: interactive ? "all" : "none",
                 }}
                 // onKeyDown={this.onKeyPress}

@@ -136,12 +136,15 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
             subitems.push({ description: "Copy path", event: () => Utils.CopyText(url), icon: "expand-arrows-alt" });
             subitems.push({
                 description: "Rotate", event: action(() => {
-                    this.props.Document.rotation = (NumCast(this.props.Document.rotation) + 90) % 360;
+                    let proto = Doc.GetProto(this.props.Document);
                     let nw = this.props.Document.nativeWidth;
-                    this.props.Document.nativeWidth = this.props.Document.nativeHeight;
-                    this.props.Document.nativeHeight = nw;
+                    let nh = this.props.Document.nativeHeight;
                     let w = this.props.Document.width;
-                    this.props.Document.width = this.props.Document.height;
+                    let h = this.props.Document.height;
+                    proto.rotation = (NumCast(this.props.Document.rotation) + 90) % 360;
+                    proto.nativeWidth = nh;
+                    proto.nativeHeight = nw;
+                    this.props.Document.width = h;
                     this.props.Document.height = w;
                 }), icon: "expand-arrows-alt"
             });
@@ -198,6 +201,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
 
         let id = (this.props as any).id; // bcz: used to set id = "isExpander" in templates.tsx
         let nativeWidth = FieldValue(this.Document.nativeWidth, pw);
+        let nativeHeight = FieldValue(this.Document.nativeHeight, 0);
         let paths: string[] = ["http://www.cs.brown.edu/~bcz/noImage.png"];
         // this._curSuffix = "";
         // if (w > 20) {
@@ -211,7 +215,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         let interactive = InkingControl.Instance.selectedTool ? "" : "-interactive";
         let rotation = NumCast(this.props.Document.rotation, 0);
         let aspect = (rotation % 180) ? this.props.Document[HeightSym]() / this.props.Document[WidthSym]() : 1;
-        let shift = (rotation % 180) ? (this.props.Document[HeightSym]() - this.props.Document[WidthSym]() / aspect) / 2 : 0;
+        let shift = (rotation % 180) ? (nativeHeight - nativeWidth / aspect) / 2 : 0;
         return (
             <div id={id} className={`imageBox-cont${interactive}`}
                 onPointerDown={this.onPointerDown}

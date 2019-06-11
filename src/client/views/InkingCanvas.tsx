@@ -60,7 +60,7 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
     }
 
     set inkData(value: Map<string, StrokeData>) {
-        Doc.SetOnPrototype(this.props.Document, "ink", new InkField(value));
+        Doc.GetProto(this.props.Document).ink = new InkField(value);
     }
 
     @action
@@ -74,7 +74,7 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
         e.stopPropagation();
         e.preventDefault();
 
-        this.previousState = this.inkData;
+        this.previousState = new Map(this.inkData);
 
         if (InkingControl.Instance.selectedTool !== InkTool.Eraser) {
             // start the new line, saves a uuid to represent the field of the stroke
@@ -106,10 +106,10 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
         const batch = UndoManager.StartBatch("One ink stroke");
         const oldState = this.previousState || new Map;
         this.previousState = undefined;
-        const newState = this.inkData;
+        const newState = new Map(this.inkData);
         UndoManager.AddEvent({
             undo: () => this.inkData = oldState,
-            redo: () => this.inkData = newState,
+            redo: () => this.inkData = newState
         });
         batch.end();
     }
@@ -134,9 +134,13 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
         return { x, y };
     }
 
-    @undoBatch
     @action
     removeLine = (id: string): void => {
+        if (!this.previousState) {
+            this.previousState = new Map(this.inkData);
+            document.addEventListener("pointermove", this.onPointerMove, true);
+            document.addEventListener("pointerup", this.onPointerUp, true);
+        }
         let data = this.inkData;
         data.delete(id);
         this.inkData = data;
