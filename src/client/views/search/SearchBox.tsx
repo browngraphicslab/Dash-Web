@@ -33,7 +33,7 @@ export class SearchBox extends React.Component {
     @observable private _open: boolean = false;
     @observable private _resultsOpen: boolean = false;
     @observable private _results: Doc[] = [];
-    @observable forceReRender: boolean = false;
+    @observable filterBoxStatus: boolean = false;
 
     @action.bound
     onChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -243,7 +243,7 @@ export class SearchBox extends React.Component {
                         <div className="filter-form filter-div" id="header">Filter Search Results</div>
                         <div className="filter-form " id="option">
                             <div className="required-words filter-div">
-                                <ToggleBar optionOne={"Include Any Keywords"} optionTwo={"Include All Keywords"} changeStatus={this.handleWordQueryChange} />
+                                <ToggleBar originalStatus={this._wordStatus} optionOne={"Include Any Keywords"} optionTwo={"Include All Keywords"} changeStatus={this.handleWordQueryChange} />
                             </div>
                             <div className="type-of-node filter-div">
                                <IconBar updateIcon={this.updateIcon} getIcons={this.getIcons}/>
