@@ -7,7 +7,11 @@ import "./PDFViewer.scss";
 import "pdfjs-dist/web/pdf_viewer.css";
 import { PDFBox } from "../nodes/PDFBox";
 import Page from "./Page";
-import { NumCast } from "../../../new_fields/Types";
+import { NumCast, Cast, BoolCast } from "../../../new_fields/Types";
+import { Id } from "../../../new_fields/FieldSymbols";
+import { DocUtils } from "../../documents/Documents";
+import { DocumentManager } from "../../util/DocumentManager";
+import { SelectionManager } from "../../util/SelectionManager";
 
 interface IPDFViewerProps {
     url: string;
@@ -297,9 +301,9 @@ class Viewer extends React.Component<IViewerProps> {
                 <div className="viewer">
                     {this._visibleElements}
                 </div>
-                <div className="pdfViewer-annotationLayer" style={{ height: this.props.parent.Document.nativeHeight }}>
+                <div className="pdfViewer-annotationLayer" style={{ height: this.props.parent.Document.nativeHeight, width: `100%`, pointerEvents: "none" }}>
                     <div className="pdfViewer-annotationLayer-subCont" style={{ transform: `translateY(${-this.scrollY}px)` }}>
-                        {this._annotations.map(anno => <RegionAnnotation x={NumCast(anno.x)} y={NumCast(anno.y) + this.getPageHeight(NumCast(anno.page))} width={anno[WidthSym]()} height={anno[HeightSym]()} />)}
+                        {this._annotations.map(anno => <RegionAnnotation document={anno} x={NumCast(anno.x)} y={NumCast(anno.y) + this.getPageHeight(NumCast(anno.page))} width={anno[WidthSym]()} height={anno[HeightSym]()} key={anno[Id]} />)}
                     </div>
                 </div>
             </div>
@@ -307,21 +311,44 @@ class Viewer extends React.Component<IViewerProps> {
     }
 }
 
-interface IAnnotation {
+interface IAnnotationProps {
     x: number;
     y: number;
     width: number;
     height: number;
+    document: Doc;
 }
 
-class RegionAnnotation extends React.Component<IAnnotation> {
+class RegionAnnotation extends React.Component<IAnnotationProps> {
+    @observable private _backgroundColor: string = "red";
+
+    // private _reactionDisposer?: IReactionDisposer;
+
+    constructor(props: IAnnotationProps) {
+        super(props);
+
+        // this._reactionDisposer = reaction(
+        //     () => { BoolCast(this.props.document.selected); },
+        //     () => { this._backgroundColor = BoolCast(this.props.document.selected) ? "yellow" : "red"; },
+        //     { fireImmediately: true }
+        // )
+    }
+
     onPointerDown = (e: React.PointerEvent) => {
-        console.log("clicked!");
+        let targetDoc = Cast(this.props.document.target, Doc, null);
+        if (targetDoc) {
+            DocumentManager.Instance.jumpToDocument(targetDoc);
+            // let annotations = DocListCast(targetDoc.proto!.linkedFromDocs);
+            // if (annotations && annotations.length) {
+            //     annotations.forEach(anno => anno.selected = true);
+            // }
+        }
     }
 
     render() {
         return (
-            <div className="pdfViewer-annotationBox" onPointerDown={this.onPointerDown} style={{ top: this.props.y, left: this.props.x, width: this.props.width, height: this.props.height }}></div>
+            <div className="pdfViewer-annotationBox" onPointerDown={this.onPointerDown}
+                style={{ top: this.props.y, left: this.props.x, width: this.props.width, height: this.props.height, pointerEvents: "all", backgroundColor: this._backgroundColor }}></div>
         );
     }
 }
