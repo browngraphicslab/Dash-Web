@@ -2,13 +2,14 @@
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import 'react-image-lightbox/style.css'; // This only needs to be imported once in your app
-import { CompileScript } from "../../util/Scripting";
+import { CompileScript, ScriptOptions } from "../../util/Scripting";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./KeyValueBox.scss";
 import { KeyValuePair } from "./KeyValuePair";
 import React = require("react");
 import { NumCast, Cast, FieldValue } from "../../../new_fields/Types";
 import { Doc, Field } from "../../../new_fields/Doc";
+import { ComputedField } from "../../../fields/ScriptField";
 
 @observer
 export class KeyValueBox extends React.Component<FieldViewProps> {
@@ -27,27 +28,37 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
     @action
     onEnterKey = (e: React.KeyboardEvent): void => {
         if (e.key === 'Enter') {
-            if (this._keyInput && this._valueInput) {
-                let doc = this.fieldDocToLayout;
-                if (!doc) {
-                    return;
+            if (this._keyInput && this._valueInput && this.fieldDocToLayout) {
+                if (KeyValueBox.SetField(this.fieldDocToLayout, this._keyInput, this._valueInput)) {
+                    this._keyInput = "";
+                    this._valueInput = "";
                 }
-                let realDoc = doc;
-
-                let script = CompileScript(this._valueInput, { addReturn: true });
-                if (!script.compiled) {
-                    return;
-                }
-                let res = script.run();
-                if (!res.success) return;
-                const field = res.result;
-                if (Field.IsField(field)) {
-                    realDoc[this._keyInput] = field;
-                }
-                this._keyInput = "";
-                this._valueInput = "";
             }
         }
+    }
+    public static SetField(doc: Doc, key: string, value: string) {
+        let eq = value.startsWith("=");
+        value = eq ? value.substr(1) : value;
+        let dubEq = value.startsWith(":=");
+        value = dubEq ? value.substr(2) : value;
+        let options: ScriptOptions = { addReturn: true };
+        if (dubEq) options.typecheck = false;
+        let script = CompileScript(value, options);
+        if (!script.compiled) {
+            return false;
+        }
+        let field = new ComputedField(script);
+        if (!dubEq) {
+            let res = script.run();
+            if (!res.success) return false;
+            field = res.result;
+        }
+        if (Field.IsField(field, true)) {
+            let target = !eq ? doc : Doc.GetProto(doc);
+            target[key] = field;
+            return true;
+        }
+        return false;
     }
 
     onPointerDown = (e: React.PointerEvent): void => {

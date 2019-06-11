@@ -10,6 +10,7 @@ import { SelectionManager } from '../../util/SelectionManager';
 import { ContextMenu } from '../ContextMenu';
 import { FieldViewProps } from '../nodes/FieldView';
 import './CollectionBaseView.scss';
+import { DocumentManager } from '../../util/DocumentManager';
 
 export enum CollectionViewType {
     Invalid,
@@ -101,9 +102,9 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
     addDocument(doc: Doc, allowDuplicates: boolean = false): boolean {
         let props = this.props;
         var curPage = NumCast(props.Document.curPage, -1);
-        Doc.SetOnPrototype(doc, "page", curPage);
+        Doc.GetProto(doc).page = curPage;
         if (curPage >= 0) {
-            Doc.SetOnPrototype(doc, "annotationOn", props.Document);
+            Doc.GetProto(doc).annotationOn = props.Document;
         }
         if (!this.createsCycle(doc, props.Document)) {
             //TODO This won't create the field if it doesn't already exist
@@ -129,7 +130,8 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
 
     @action.bound
     removeDocument(doc: Doc): boolean {
-        SelectionManager.DeselectAll();
+        let docView = DocumentManager.Instance.getDocumentView(doc, this.props.ContainingCollectionView)
+        docView && SelectionManager.DeselectDoc(docView);
         const props = this.props;
         //TODO This won't create the field if it doesn't already exist
         const value = Cast(props.Document[props.fieldKey], listSpec(Doc), []);
@@ -141,7 +143,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
                 break;
             }
         }
-        PromiseValue(Cast(doc.annotationOn, Doc)).then((annotationOn) => {
+        PromiseValue(Cast(doc.annotationOn, Doc)).then(annotationOn => {
             if (annotationOn === props.Document) {
                 doc.annotationOn = undefined;
             }
@@ -163,7 +165,6 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
             return true;
         }
         if (this.removeDocument(doc)) {
-            SelectionManager.DeselectAll();
             return addDocument(doc);
         }
         return false;

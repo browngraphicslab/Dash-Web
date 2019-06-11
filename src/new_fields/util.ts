@@ -6,7 +6,7 @@ import { FieldValue } from "./Types";
 import { RefField } from "./RefField";
 import { ObjectField } from "./ObjectField";
 import { action } from "mobx";
-import { Parent, OnUpdate, Update, Id } from "./FieldSymbols";
+import { Parent, OnUpdate, Update, Id, SelfProxy } from "./FieldSymbols";
 import { ComputedField } from "../fields/ScriptField";
 
 export const setter = action(function (target: any, prop: string | symbol | number, value: any, receiver: any): boolean {
@@ -44,7 +44,8 @@ export const setter = action(function (target: any, prop: string | symbol | numb
     } else {
         target.__fields[prop] = value;
     }
-    target[Update]({ '$set': { ["fields." + prop]: value instanceof ObjectField ? SerializationHelper.Serialize(value) : (value === undefined ? null : value) } });
+    if (value === undefined) target[Update]({ '$unset': { ["fields." + prop]: "" } });
+    else target[Update]({ '$set': { ["fields." + prop]: value instanceof ObjectField ? SerializationHelper.Serialize(value) : (value === undefined ? null : value) } });
     UndoManager.AddEvent({
         redo: () => receiver[prop] = value,
         undo: () => receiver[prop] = curValue
@@ -85,7 +86,7 @@ export function deleteProperty(target: any, prop: string | number | symbol) {
         delete target[prop];
         return true;
     }
-    target[prop] = undefined;
+    target[SelfProxy][prop] = undefined;
     return true;
 }
 
