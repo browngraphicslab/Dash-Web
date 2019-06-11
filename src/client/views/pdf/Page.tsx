@@ -23,7 +23,7 @@ interface IPageProps {
     pageLoaded: (index: number, page: Pdfjs.PDFPageViewport) => void;
     parent: PDFBox;
     renderAnnotations: (annotations: Doc[], removeOld: boolean) => void;
-    makePin: (x: number, y: number) => void;
+    makePin: (x: number, y: number, page: number) => void;
 }
 
 @observer
@@ -378,7 +378,7 @@ export default class Page extends React.Component<IPageProps> {
             let boundingRect = current.getBoundingClientRect();
             let x = (e.clientX - boundingRect.left) * (current.offsetWidth / boundingRect.width);
             let y = (e.clientY - boundingRect.top) * (current.offsetHeight / boundingRect.height);
-            this.props.makePin(x, y);
+            this.props.makePin(x, y, this.props.page);
         }
     }
 

@@ -1,6 +1,6 @@
 import { observer } from "mobx-react";
 import React = require("react");
-import { observable, action, runInAction, computed, IReactionDisposer, reaction } from "mobx";
+import { observable, action, runInAction, computed, IReactionDisposer, reaction, trace } from "mobx";
 import * as Pdfjs from "pdfjs-dist";
 import { Opt, HeightSym, WidthSym, Doc, DocListCast } from "../../../new_fields/Doc";
 import "./PDFViewer.scss";
@@ -14,6 +14,10 @@ import { DocumentManager } from "../../util/DocumentManager";
 import { SelectionManager } from "../../util/SelectionManager";
 import { List } from "../../../new_fields/List";
 import { DocumentContentsView } from "../nodes/DocumentContentsView";
+import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
+import { Transform } from "../../util/Transform";
+import { emptyFunction, returnTrue, returnFalse } from "../../../Utils";
+import { DocumentView } from "../nodes/DocumentView";
 
 interface IPDFViewerProps {
     url: string;
@@ -33,10 +37,14 @@ export class PDFViewer extends React.Component<IPDFViewerProps> {
     @action
     componentDidMount() {
         const pdfUrl = this.props.url;
+        console.log("pdf starting to load")
         let promise = Pdfjs.getDocument(pdfUrl).promise;
 
         promise.then((pdf: Pdfjs.PDFDocumentProxy) => {
-            runInAction(() => this._pdf = pdf);
+            runInAction(() => {
+                console.log("pdf url received");
+                this._pdf = pdf;
+            });
         });
     }
 
@@ -77,8 +85,16 @@ class Viewer extends React.Component<IViewerProps> {
     @observable private _annotations: Doc[] = [];
 
     private _pageBuffer: number = 1;
+    private _annotationLayer: React.RefObject<HTMLDivElement>;
     private _reactionDisposer?: IReactionDisposer;
     private _annotationReactionDisposer?: IReactionDisposer;
+    private _pagesLoaded: number = 0;
+
+    constructor(props: IViewerProps) {
+        super(props);
+
+        this._annotationLayer = React.createRef();
+    }
 
     componentDidMount = () => {
         let wasSelected = this.props.parent.props.isSelected();
@@ -112,8 +128,9 @@ class Viewer extends React.Component<IViewerProps> {
             );
         }
 
-        // On load, render pdf
-        setTimeout(() => this.renderPages(this.startIndex, this.endIndex, true), 1000);
+        setTimeout(() => {
+            this.renderPages(this.startIndex, this.endIndex, true);
+        }, 1000);
     }
 
     componentWillUnmount = () => {
@@ -150,7 +167,7 @@ class Viewer extends React.Component<IViewerProps> {
     }
 
     @computed get endIndex(): number {
-        let width = this._pageSizes.map(i => i.width);
+        let width = this._pageSizes.map(i => i ? i.width : 0);
         return Math.min(this.props.pdf ? this.props.pdf.numPages - 1 : 0, this.getIndex(this.scrollY + Math.max(...width)) + this._pageBuffer);
     }
 
@@ -183,6 +200,10 @@ class Viewer extends React.Component<IViewerProps> {
         let numPages = this.props.pdf ? this.props.pdf.numPages : 0;
         if (!this.props.pdf) {
             return;
+        }
+
+        if (this._pageSizes.length !== numPages) {
+            this._pageSizes = new Array(numPages).map(i => ({ width: 0, height: 0 }));
         }
 
         // this is only for an initial render to get all of the pages rendered
@@ -248,14 +269,14 @@ class Viewer extends React.Component<IViewerProps> {
         return;
     }
 
-    createPinAnnotation = (x: number, y: number): void => {
-        let targetDoc = Docs.TextDocument({ title: "New Pin Annotation" });
+    createPinAnnotation = (x: number, y: number, page: number): void => {
+        let targetDoc = Docs.TextDocument({ width: 100, height: 50, title: "New Pin Annotation" });
 
         let pinAnno = new Doc();
         pinAnno.x = x;
         pinAnno.y = y;
         pinAnno.width = pinAnno.height = PinRadius;
-        pinAnno.page = this.getIndex(y);
+        pinAnno.page = page;
         pinAnno.target = targetDoc;
         pinAnno.type = AnnotationTypes.Pin;
         // this._annotations.push(pinAnno);
@@ -301,18 +322,18 @@ class Viewer extends React.Component<IViewerProps> {
         }
         let numPages = this.props.pdf ? this.props.pdf.numPages : 0;
         this.props.loaded(page.width, page.height);
-        if (index > this._pageSizes.length) {
-            this._pageSizes.push({ width: page.width, height: page.height });
-        }
-        else {
-            this._pageSizes[index - 1] = { width: page.width, height: page.height };
-        }
-        if (index === numPages) {
+        this._pageSizes[index - 1] = { width: page.width, height: page.height };
+        this._pagesLoaded++;
+        if (this._pagesLoaded === numPages) {
             this._loaded = true;
             let divs = Array.from(Array(numPages).keys()).map(i => (
                 <div key={`pdfviewer-placeholder-${i}`} className="pdfviewer-placeholder" style={{ width: this._pageSizes[i] ? this._pageSizes[i].width : 0, height: this._pageSizes[i] ? this._pageSizes[i].height : 0 }} />
             ));
             this._visibleElements = new Array<JSX.Element>(...divs);
+            // On load, render pdf
+            // setTimeout(() => {
+            this.renderPages(this.startIndex, this.endIndex, true);
+            // }, 1000);
         }
     }
 
@@ -332,21 +353,38 @@ class Viewer extends React.Component<IViewerProps> {
         let type = NumCast(anno.type);
         switch (type) {
             case AnnotationTypes.Pin:
-                return <PinAnnotation document={anno} x={NumCast(anno.x)} y={NumCast(anno.y) + this.getPageHeight(NumCast(anno.page))} width={anno[WidthSym]()} height={anno[HeightSym]()} key={anno[Id]} />;
+                return <PinAnnotation parent={this} document={anno} x={NumCast(anno.x)} y={NumCast(anno.y) + this.getPageHeight(NumCast(anno.page))} width={anno[WidthSym]()} height={anno[HeightSym]()} key={anno[Id]} />;
             case AnnotationTypes.Region:
-                return <RegionAnnotation document={anno} x={NumCast(anno.x)} y={NumCast(anno.y) + this.getPageHeight(NumCast(anno.page))} width={anno[WidthSym]()} height={anno[HeightSym]()} key={anno[Id]} />;
+                return <RegionAnnotation parent={this} document={anno} x={NumCast(anno.x)} y={NumCast(anno.y) + this.getPageHeight(NumCast(anno.page))} width={anno[WidthSym]()} height={anno[HeightSym]()} key={anno[Id]} />;
             default:
                 return <div></div>;
         }
     }
 
+    onDrop = (e: React.DragEvent) => {
+        console.log("Dropped!");
+    }
+
+    // ScreenToLocalTransform = (): Transform => {
+    //     if (this._annotationLayer.current) {
+    //         let boundingRect = this._annotationLayer.current.getBoundingClientRect();
+    //         let x = boundingRect.left;
+    //         let y = boundingRect.top;
+    //         let scale = NumCast(this.props.parent.Document.nativeWidth) / boundingRect.width;
+    //         let t = new Transform(x, y, scale);
+    //         return t;
+    //     }
+    //     return Transform.Identity();
+    // }
+
     render() {
+        trace();
         return (
-            <div>
+            <div onDrop={this.onDrop}>
                 <div className="viewer">
                     {this._visibleElements}
                 </div>
-                <div className="pdfViewer-annotationLayer" style={{ height: this.props.parent.Document.nativeHeight, width: `100%`, pointerEvents: "none" }}>
+                <div className="pdfViewer-annotationLayer" ref={this._annotationLayer} style={{ height: this.props.parent.Document.nativeHeight, width: `100%`, pointerEvents: "none" }}>
                     <div className="pdfViewer-annotationLayer-subCont" style={{ transform: `translateY(${-this.scrollY}px)` }}>
                         {this._annotations.map(anno => this.renderAnnotation(anno))}
                     </div>
@@ -365,25 +403,65 @@ interface IAnnotationProps {
     y: number;
     width: number;
     height: number;
+    parent: Viewer;
     document: Doc;
 }
 
+@observer
 class PinAnnotation extends React.Component<IAnnotationProps> {
-    @observable private _backgroundColor: string = "red";
+    @observable private _backgroundColor: string = "green";
+    @observable private _display: string = "initial";
 
+    private _selected: boolean = true;
+
+    @action
     pointerDown = (e: React.PointerEvent) => {
-
+        if (this._selected) {
+            this._backgroundColor = "red";
+            this._display = "none";
+            this._selected = false;
+        }
+        else {
+            this._backgroundColor = "green";
+            this._display = "initial";
+            this._selected = true;
+        }
+        e.preventDefault();
+        e.stopPropagation();
     }
 
     render() {
-        let targetDoc = Cast(this.props.document.targetDoc, Doc, Docs.TextDocument({ title: "New Pin Annotation" }));
-        return (
-            <div className="pdfViewer-pinAnnotation" onPointerDown={this.pointerDown}
-                style={{ top: this.props.y - PinRadius / 2, left: this.props.x - PinRadius / 2, width: PinRadius, height: PinRadius, pointerEvents: "all", backgroundColor: this._backgroundColor }}>
-                {/* <DocumentContentsView Document={targetDoc}
-                        isSelected={} /> */}
-            </div>
-        );
+        let targetDoc = Cast(this.props.document.target, Doc);
+        if (targetDoc instanceof Doc) {
+            return (
+                <div className="pdfViewer-pinAnnotation" onPointerDown={this.pointerDown}
+                    style={{
+                        top: this.props.y - PinRadius / 2, left: this.props.x - PinRadius / 2, width: PinRadius,
+                        height: PinRadius, pointerEvents: "all", backgroundColor: this._backgroundColor
+                    }}>
+                    <div style={{
+                        position: "absolute", top: "25px", left: "25px", transform: "scale(3)", transformOrigin: "top left",
+                        display: this._display, width: targetDoc[WidthSym](), height: targetDoc[HeightSym]()
+                    }}>
+                        <DocumentView Document={targetDoc}
+                            ContainingCollectionView={undefined}
+                            ScreenToLocalTransform={this.props.parent.props.parent.props.ScreenToLocalTransform}
+                            isTopMost={false}
+                            ContentScaling={() => 1}
+                            PanelWidth={() => NumCast(this.props.parent.props.parent.Document.nativeWidth)}
+                            PanelHeight={() => NumCast(this.props.parent.props.parent.Document.nativeHeight)}
+                            focus={emptyFunction}
+                            selectOnLoad={false}
+                            parentActive={this.props.parent.props.parent.props.active}
+                            whenActiveChanged={this.props.parent.props.parent.props.whenActiveChanged}
+                            bringToFront={emptyFunction}
+                            addDocTab={this.props.parent.props.parent.props.addDocTab}
+                        />
+                    </div>
+                </div >
+            );
+        }
+        return null;
     }
 }
 
