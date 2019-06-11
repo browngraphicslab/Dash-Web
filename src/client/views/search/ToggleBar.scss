@@ -1,0 +1,36 @@
+@import "../globalCssVariables";
+
+.toggle{
+    
+}
+
+.toggle-title{
+    display: flex;
+    align-items: center;
+    color: $light-color;
+    text-transform: uppercase;
+    flex-direction: row;
+    justify-content: space-around;
+    padding: 5px;
+
+    .toggle-option{
+        width: 100px;
+        text-align: center;
+    }
+}
+
+.toggle-bar{
+    height: 50px;
+    background-color: $alt-accent;
+    border-radius: 10px;
+    padding: 5px;
+    display: flex;
+    align-items: center;
+
+    .toggle-button{
+        width: 275px;
+        height: 100%;
+        border-radius: 10px;
+        background-color: $light-color;
+    }
+}
