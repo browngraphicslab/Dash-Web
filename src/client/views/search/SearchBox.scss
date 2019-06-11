@@ -57,9 +57,9 @@
     height: 40px;
 }
 
-#option {
-    height: 20px;
-}
+// #option {
+//     height: 20px;
+// }
 
 .searchBox-results {
     top: 300px;
@@ -69,11 +69,14 @@
 }
 
 .type-of-node{
-    height: 50px;
+    height: 60px;
 }
 
 .required-words{
     height: 110px;
+}
+
+.filter-div{
     margin-top: 5px;
     margin-bottom: 5px;
 }

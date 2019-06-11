@@ -24,20 +24,12 @@ library.add(faGlobeAsia);
 library.add(faBan);
 
 export interface IconBarProps {
-    updateIcon(newIcons: string[]): void;
+    updateIcon(icons: string[]): void;
     getIcons(): string[];
 }
 
 @observer
 export class IconBar extends React.Component<IconBarProps> {
-
-    @observable newIcons: string[] = [];
-    // @observable selectedStyle = {
-    //     backgroundColor: "#121721"
-    // }
-    // @observable unselectedStyle = {
-    //     backgroundColor: "#c2c2c5"
-    // }
 
     @observable noneRef = React.createRef<HTMLDivElement>();
     @observable colRef = React.createRef<HTMLDivElement>();
@@ -50,23 +42,6 @@ export class IconBar extends React.Component<IconBarProps> {
     @observable histRef = React.createRef<HTMLDivElement>();
     @observable webRef = React.createRef<HTMLDivElement>();
     @observable allRefs: React.RefObject<HTMLDivElement>[] = [this.colRef, this.imgRef, this.textRef, this.pdfRef, this.vidRef, this.audioRef, this.linkRef, this.histRef, this.webRef];
-
-    //changes colors of buttons on click - not sure if this is the best method (it probably isn't)
-    //but i spent a ton of time on it and this is the only thing i could get to work
-    // componentDidMount = () => {
-
-    //     let buttons = document.querySelectorAll<HTMLDivElement>(".type-icon").forEach(node =>
-    //         node.addEventListener('click', function () {
-    //             if (this.style.backgroundColor === "rgb(194, 194, 197)") {
-    //                 this.style.backgroundColor = "#121721";
-    //             }
-    //             else {
-    //                 this.style.backgroundColor = "#c2c2c5"
-    //             }
-    //         })
-    //     );
-
-    // }
 
     //gets ref associated with given string
     @action.bound
@@ -108,7 +83,6 @@ export class IconBar extends React.Component<IconBarProps> {
                 break;
         }
 
-        // console.log(toReturn)
         return toReturn;
     }
 
@@ -123,78 +97,41 @@ export class IconBar extends React.Component<IconBarProps> {
 
     @action.bound
     alternateRef(ref: any) {
-        // console.log("alternating")
-        // console.log("before")
-        // console.log(ref.getAttribute("data-selected"));
-        // console.log(ref.getAttribute("class"));
-        // console.log(ref)
         if (ref.getAttribute("data-selected") === "true") {
-            // console.log("is true")
             ref.setAttribute("data-selected", "false")
         }
         else {
-            // console.log("is false")
             ref.setAttribute("data-selected", "true")
         }
-        // console.log("after")
-        // console.log(ref.getAttribute("data-selected"));
-        // console.log(ref.getAttribute("class"));
-        // console.log(ref)
     }
 
     @action.bound
     onClick = (value: string) => {
-        // console.log("clicking")
-        let oldIcons = this.props.getIcons()
+        let icons: string[] = this.props.getIcons()
         let ref = this.getRef(value);
         this.alternateRef(ref);
         if (value === DocTypes.NONE) {
-            this.newIcons = [value];
-            this.unselectAllRefs();
-
+            icons = [];
             // if its none, change the color of all the other circles
-            // document.querySelectorAll<HTMLDivElement>(".type-icon").forEach(node => {
-            //     if (node.id === "none") {
-            //         node.style.backgroundColor = "#c2c2c5";
-            //     }
-            //     else {
-            //         node.style.backgroundColor = "#121721";
-            //     }
-            // }
-            // );
+            this.unselectAllRefs();
         }
         else {
-            //turns "none" button off
-            // let noneDoc = document.getElementById(DocTypes.NONE)
-            // if (noneDoc) {
-            //     noneDoc.style.backgroundColor = "#121721";
-            // }
-            if (oldIcons.includes(value)) {
-                this.newIcons = _.remove(oldIcons, value);
-                if (this.newIcons.length === 0) {
-                    this.newIcons = [DocTypes.NONE];
-                    if (this.noneRef.current) {
-                        this.noneRef.current.setAttribute("data-selected", "true");
-                    }
-                }
+            //if it's already selected, unselect it
+            if (icons.includes(value)) {
+                icons = _.without(icons, value);
             }
+            //if it's not yet selected, select it
             else {
-                if (this.noneRef.current) {
-                    this.noneRef.current.setAttribute("data-selected", "false");
-                }
-                this.newIcons = oldIcons;
-                if (this.newIcons.length === 1 && this.newIcons[0] === DocTypes.NONE) {
-                    this.newIcons = [value]
-                }
-                else { this.newIcons.push(value); }
+                icons.push(value);
             }
         }
-        this.props.updateIcon(this.newIcons);
+        this.props.updateIcon(icons);
         //ok i know that this is bad but i dont know how else to get it to rerender and change the classname,
         //any help here is greatly appreciated thanks frens
         this.forceUpdate();
     }
 
+    //checks if option is selected based on the attribute data-selected
     @action.bound
     isRefSelected(ref: React.RefObject<HTMLDivElement>) {
         if (ref.current) {

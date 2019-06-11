@@ -28,7 +28,7 @@ import { IconBar } from './IconBar';
 export class SearchBox extends React.Component {
     @observable _searchString: string = "";
     @observable _wordStatus: boolean = true;
-    @observable _icons: string[] = ["none"];
+    @observable _icons: string[] = [];
     @observable private _open: boolean = false;
     @observable private _resultsOpen: boolean = false;
     @observable private _results: Doc[] = [];
@@ -224,18 +224,18 @@ export class SearchBox extends React.Component {
                 {/* these all need class names in order to find ancestor - please do not delete */}
                 {this._open ? (
                     <div className="filter-form" id="filter" style={this._open ? { display: "flex" } : { display: "none" }}>
-                        <div className="filter-form" id="header">Filter Search Results</div>
-                        <div className="filter-form" id="option">
-                            <div className="required-words">
+                        <div className="filter-form filter-div" id="header">Filter Search Results</div>
+                        <div className="filter-form " id="option">
+                            <div className="required-words filter-div">
                                 <ToggleBar optionOne={"Include Any Keywords"} optionTwo={"Include All Keywords"} changeStatus={this.handleWordQueryChange} />
                             </div>
-                            <div className="type-of-node">
+                            <div className="type-of-node filter-div">
                                <IconBar updateIcon={this.updateIcon} getIcons={this.getIcons}/>
                             </div>
-                            <div className="filter-collection">
+                            <div className="filter-collection filter-div">
                                 temp for filtering by collection
                             </div>
-                            <div className="where-in-doc">
+                            <div className="where-in-doc filter-div">
                                 temp for filtering where in doc the keywords are found
                             </div>
                         </div>
