@@ -48,7 +48,6 @@ export class LinkMenu extends React.Component<Props> {
         let linkItems: Array<JSX.Element> = [];
 
         links.forEach((links, group) => {
-            console.log("category is ", group);
             linkItems.push(
                 <div key={group} className="link-menu-group">
                     <p className="link-menu-group-name">{group}:</p>
@@ -58,6 +57,10 @@ export class LinkMenu extends React.Component<Props> {
                 </div>
             )
         });
+
+        if (linkItems.length === 0) {
+            linkItems.push(<p key="">no links have been created yet</p>);
+        }
 
         return linkItems;
     }
@@ -79,28 +82,28 @@ export class LinkMenu extends React.Component<Props> {
                 </div>
             );
         } else {
-            let groups = new Map<string, Doc>();
-            let metadata: Map<string, Map<string, Doc>> = new Map();
-            let groupList = (Doc.AreProtosEqual(this.props.docView.props.Document, Cast(this._editingLink.anchor1, Doc, new Doc))) ?
-                Cast(this._editingLink.anchor1Groups, listSpec(Doc), []) : Cast(this._editingLink.anchor2Groups, listSpec(Doc), []);
-            groupList.forEach(groupDoc => {
-                if (groupDoc instanceof Doc) {
-                    let id = Utils.GenerateGuid();
-                    groups.set(id, groupDoc);
+            // let groups = new Map<string, Doc>();
+            // let metadata: Map<string, Map<string, Doc>> = new Map();
+            // let groupList = (Doc.AreProtosEqual(this.props.docView.props.Document, Cast(this._editingLink.anchor1, Doc, new Doc))) ?
+            //     Cast(this._editingLink.anchor1Groups, listSpec(Doc), []) : Cast(this._editingLink.anchor2Groups, listSpec(Doc), []);
+            // groupList.forEach(groupDoc => {
+            //     if (groupDoc instanceof Doc) {
+            //         let id = Utils.GenerateGuid();
+            //         groups.set(id, groupDoc);
 
-                    let metadataMap = new Map<string, Doc>();
-                    let metadataDocs = Cast(groupDoc.proto!.metadata, listSpec(Doc), []);
-                    metadataDocs.forEach(mdDoc => {
-                        if (mdDoc && mdDoc instanceof Doc) { // TODO: handle promise doc
-                            metadataMap.set(Utils.GenerateGuid(), mdDoc);
-                        }
-                    })
-                    metadata.set(id, metadataMap);
-                }
-            })
+            //         let metadataMap = new Map<string, Doc>();
+            //         let metadataDocs = Cast(groupDoc.proto!.metadata, listSpec(Doc), []);
+            //         metadataDocs.forEach(mdDoc => {
+            //             if (mdDoc && mdDoc instanceof Doc) { // TODO: handle promise doc
+            //                 metadataMap.set(Utils.GenerateGuid(), mdDoc);
+            //             }
+            //         })
+            //         metadata.set(id, metadataMap);
+            //     }
+            // })
 
             return (
-                <LinkEditor groups={groups} metadata={metadata} sourceDoc={this.props.docView.props.Document} linkDoc={this._editingLink} showLinks={action(() => this._editingLink = undefined)}></LinkEditor>
+                <LinkEditor sourceDoc={this.props.docView.props.Document} linkDoc={this._editingLink} showLinks={action(() => this._editingLink = undefined)}></LinkEditor>
             );
         }
 

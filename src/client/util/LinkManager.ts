@@ -57,7 +57,7 @@ export class LinkManager {
     }
 
     @observable public allLinks: Array<Doc> = [];
-    @observable public allGroups: Map<string, Doc> = new Map();
+    @observable public allGroups: Map<string, Array<string>> = new Map();
 
     public findAllRelatedLinks(anchor: Doc): Array<Doc> {
         return LinkManager.Instance.allLinks.filter(

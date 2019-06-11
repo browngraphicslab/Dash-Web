@@ -80,5 +80,31 @@
     }
     .linkEditor-metadata-row {
         display: flex;
+        justify-content: space-between;
+        input {
+            width: calc(50% - 2px);
+        }
+    }
+}
+
+.linkEditor-dropdown {
+    width: 100%;
+    position: relative;
+    .linkEditor-options-wrapper {
+        width: 100%;
+        position: absolute;
+        top: 19px;
+        left: 0;
+        display: flex;
+        flex-direction: column;
+    }
+    .linkEditor-option {
+        background-color: red;
+        border: 1px solid $intermediate-color;
+        border-top: 0;
+        cursor: pointer;
+        &:hover {
+            background-color:  $light-color-secondary;
+        }
     }
 }
