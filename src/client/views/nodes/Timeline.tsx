@@ -57,6 +57,10 @@ export class Timeline extends CollectionSubView(Document) {
     @observable private _barMoved: boolean = false;
 
     
+    /**
+     * when the record button is pressed
+     * @param e MouseEvent
+     */
     @action
     onRecord = (e: React.MouseEvent) => {
         if (this._isRecording === true) {
@@ -86,13 +90,13 @@ export class Timeline extends CollectionSubView(Document) {
                             info[this._currentBarX] = timeandpos;
                             this._keyframes[index] = info;
                             this._bars = [];
-                            
                             this._bars.push({ x: this._currentBarX, doc: node });
                         } else {
                             let index = this._data.indexOf(node);
                             if (this._keyframes[index][this._currentBarX] !== undefined) { //when node is in data, but doesn't have data for this specific time. 
                                 let timeandpos = this.setTimeAndPos(node);
                                 this._keyframes[index][this._currentBarX] = timeandpos;
+                                //this._bars []; 
                                 this._bars.push({ x: this._currentBarX, doc: node });
                             } else { //when node is in data, and has data for this specific time
                                 let timeandpos = this.setTimeAndPos(node);
@@ -111,7 +115,6 @@ export class Timeline extends CollectionSubView(Document) {
                 this._reactionDisposers[change.index]();
                 this._reactionDisposers[change.index] = addReaction(change.newValue);
             } else {
-
                 let removed = this._reactionDisposers.splice(change.index, change.removedCount, ...change.added.map(addReaction));
                 removed.forEach(disp => disp());
             }
@@ -119,6 +122,10 @@ export class Timeline extends CollectionSubView(Document) {
 
     }
 
+    /**
+     * sets the time and pos schema doc, given a node
+     * @param doc (node)
+     */
     @action
     setTimeAndPos = (node: Doc) => {
         let pos: Position = Position(node);
@@ -130,6 +137,9 @@ export class Timeline extends CollectionSubView(Document) {
         return timeandpos;
     }
 
+    /**
+     * given time, finds the closest left and right keyframes, and if found, interpolates to that position. 
+     */
     @action
     timeChange = async (time: number) => {
         const docs = this._data;
@@ -166,6 +176,11 @@ export class Timeline extends CollectionSubView(Document) {
         });
     }
 
+    /**
+     * calculates the closest left keyframe, if there is one
+     * @param kfList: keyframe list 
+     * @param time 
+     */
     @action
     calcMinLeft = (kfList: Doc[], time: number): number => { //returns the time of the closet keyframe to the left
         let counter: number = Infinity;
@@ -183,7 +198,10 @@ export class Timeline extends CollectionSubView(Document) {
     }
 
     /**
-     * calculates the 
+     * calculates the closest right keyframe, if there is one
+     * @param kfList: keyframe lsit
+     * @param time: time
+
      */
     @action
     calcMinRight = (kfList: Doc[], time: number): number => { //returns the time of the closest keyframe to the right 
@@ -322,7 +340,6 @@ export class Timeline extends CollectionSubView(Document) {
     @action
     displayKeyFrames = (doc: Doc) => {
         let views: (JSX.Element | null)[] = [];
-        //this._bar = undefined; 
         this._data.forEach((node, i) => {
             if (node === doc) {
                 views = this._keyframes[i].map(tp => {
@@ -338,11 +355,6 @@ export class Timeline extends CollectionSubView(Document) {
         });
         return views;
     }
-
-    // @action 
-    // currentKeyFrames = (doc?:Doc) => {
-    //     this.displayKeyFrames(doc!); 
-    // }
 
     render() {
         return (
