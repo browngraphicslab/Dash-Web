@@ -1,7 +1,7 @@
 import { observer } from "mobx-react";
 import React = require("react");
-import { Doc } from "../../../new_fields/Doc";
-import { NumCast, BoolCast, StrCast } from "../../../new_fields/Types";
+import { Doc, DocListCast } from "../../../new_fields/Doc";
+import { NumCast, BoolCast, StrCast, Cast } from "../../../new_fields/Types";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { observable, action, computed } from "mobx";
 import "./PresentationView.scss";
@@ -10,6 +10,8 @@ import { library } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFile as fileSolid, faLocationArrow, faArrowUp, faSearch } from '@fortawesome/free-solid-svg-icons';
 import { faFile as fileRegular } from '@fortawesome/free-regular-svg-icons';
+import { List } from "../../../new_fields/List";
+import { listSpec } from "../../../new_fields/Schema";
 
 
 
@@ -29,6 +31,8 @@ interface PresentationElementProps {
     allListElements: Doc[];
     groupMappings: Map<String, Doc[]>;
     presStatus: boolean;
+    presButtonBackUp: Doc;
+    presGroupBackUp: Doc;
 
 
 }
@@ -59,6 +63,22 @@ export default class PresentationElement extends React.Component<PresentationEle
     @computed
     get selected() {
         return this.selectedButtons;
+    }
+    @action
+    componentDidMount() {
+        // let castedList = Cast(this.props.presButtonBackUp.selectedButtons, listSpec(Doc), null) as any as List<List<boolean>>;
+        let castedList = DocListCast(this.props.presButtonBackUp.selectedButtonDocs);
+        if (castedList.length !== 0) {
+            // this.selectedButtons = castedList;
+            let selectedButtonOfDoc = Cast(castedList[this.props.index].selectedButtons, listSpec("boolean"), null);
+            if (selectedButtonOfDoc !== undefined) {
+                this.selectedButtons = selectedButtonOfDoc;
+            }
+            console.log("Entered!!");
+
+        }
+        console.log("Mounted!!");
+        //this.props.presButtonBackUp.elIndex = this.props.index;
     }
 
     /**
@@ -171,6 +191,16 @@ export default class PresentationElement extends React.Component<PresentationEle
                 }
             }
         }
+        this.autoSaveButtonChange(buttonIndex.HideTillPressed);
+    }
+
+    @action
+    autoSaveButtonChange = (index: buttonIndex) => {
+        // let castedList = Cast(this.props.presButtonBackUp.selectedButtons, listSpec(Doc), null) as any as List<List<boolean>>;
+        let castedList = DocListCast(this.props.presButtonBackUp.selectedButtonDocs);
+        castedList[this.props.index].selectedButtons = new List(this.selectedButtons);
+
+        //this.props.mainDocument.presButtonBackUp = this.props.presButtonBackUp;
     }
 
     /**
@@ -198,6 +228,8 @@ export default class PresentationElement extends React.Component<PresentationEle
                 }
             }
         }
+        this.autoSaveButtonChange(buttonIndex.HideAfter);
+
     }
 
     /**
@@ -225,6 +257,8 @@ export default class PresentationElement extends React.Component<PresentationEle
                 }
             }
         }
+        this.autoSaveButtonChange(buttonIndex.FadeAfter);
+
     }
 
     /**
@@ -239,6 +273,9 @@ export default class PresentationElement extends React.Component<PresentationEle
         } else {
             this.selectedButtons[buttonIndex.Navigate] = true;
         }
+
+        this.autoSaveButtonChange(buttonIndex.Navigate);
+
     }
 
 
