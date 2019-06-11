@@ -19,6 +19,7 @@ import { IconField } from "../../../new_fields/IconField";
 import { RichTextField } from "../../../new_fields/RichTextField";
 import { DateField } from "../../../new_fields/DateField";
 import { NumCast } from "../../../new_fields/Types";
+import ImageCard from "../document_templates/image_card/ImageCard";
 
 
 //

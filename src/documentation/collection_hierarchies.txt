@@ -1,0 +1,50 @@
+** When we drag and drop out a node from MainView.tsx's button menu, what actually happens? **
+
+As you have probably already seen, MainView.tsx renders a line of circular buttons, each of wich can be dragged and dropped to
+create new nodes in the collection acting as the drop target.
+
+These buttons are logically stored as an array of  tuples, currently called 'btns'. Each tuple contains the React reference to
+the actual HTMLDivElement around which the button is made, later used to set up dragging behavior, but most importantly contains the sort of factory function that creates a
+new document (of the relevant type). This document underlies the view that will be added to the collection (something like addImageNode()).
+
+The SetupDrag() function in DragManager.ts creates new DragManager.DocumentDragData and, in it, embeds the newly created document (which may have, for example, an ImageField
+at its data key, which will soon be used to render an ImageBox...). The DragManager then begins the dragging operation, which handles the display of the element as it's
+dragged out onto the canvas and registers the desired drop operation, namely copying the document or creating an alias.
+
+When the document is dropped onto the target collection, the CollectionSubView superclass's drop() method is invoked. Typically, if dropping a single document from one
+of the MainView.tsx node addition buttons, this iterates through the DragData's droppedDocuments and adds them to the collection via an addDocument() function this CollectionSubView
+received with its props. In actuality, this addDocument() function is defined in and passed down from CollectionBaseView, and conditionally adds the document to the
+underlying collection document's data (list of child documents). To actually be added, the document to add cannot create a cycle (for example, you cannot add a collection to one of
+its own children that is itself a collection).
+
+Here is the sequence of function calls:
+
+MainView."round-button add-button" onPointerDown() => DragManager.SetupDrag()
+DragManager.SetupDrag.onRowMove() => DragManager.StartDocumentDrag()
+DragManager.StartDrag()
+
+... (USER IS DRAGGING DOCUMENT AROUND VIA BUTTON)
+... (USER DROPS THE DOCUMENT IN THE TARGET COLLECTION)
+
+CollectionSubView.drop()
+
+<DocumentView>
+    <DocumentContentsView> {
+        Nodes themselves, both base types and collections, are actually always rendered by using a JSXParser to parse a stringified JSX element layout (see
+        FieldView.LayoutString()). Typically, way back in the initial drag phase, where the buttons maintained document creation
+        functions like Documents.ImageDocument(), the layout string will have always been set, because of the way that new node
+        documents are created. The ImageDocument() function creates a delegate from the imageProto (image document prototype) which is itself created at the time
+        Dash is loaded. Since the delegate inherits the prototype's layout string, the layoutKey field will be set and effectively always, the JSXParser will
+        parse the existing layout string to return the appropriate JSX element to be rendered as a child of the collection sub view. On the off chance that this
+        layout field has not been set, the layout() getter just returns a generic FieldView element to the JSXParser, and internally, this component decides based
+        on the nature of the document it receives, which node view to assign. This is basically a fallback.        
+    }
+        <CollectionView>
+            <CollectionBaseView>
+                // all of the below extend <CollectionSubView>
+                <CollectionFreeFormView>
+                <CollectionSchemaView>
+                <CollectionDockingView>
+                <CollectionTreeView>
+                <CollectionStackingView>
+        <FieldView>

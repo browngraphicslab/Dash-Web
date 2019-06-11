@@ -363,7 +363,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 onPointerUp={this.onPointerUp}
                 onPointerDown={this.onPointerDown}
                 onMouseDown={this.onMouseDown}
-                onContextMenu={this.specificContextMenu}
                 // tfs: do we need this event handler
                 onWheel={this.onPointerWheel}
                 onPointerEnter={this.onPointerEnter}
