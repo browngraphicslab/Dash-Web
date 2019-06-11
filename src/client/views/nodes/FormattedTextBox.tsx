@@ -10,7 +10,7 @@ import { EditorView } from "prosemirror-view";
 import { Doc, Opt } from "../../../new_fields/Doc";
 import { RichTextField } from "../../../new_fields/RichTextField";
 import { createSchema, makeInterface } from "../../../new_fields/Schema";
-import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
+import { Cast, NumCast, StrCast, BoolCast } from "../../../new_fields/Types";
 import { DocServer } from "../../DocServer";
 import { DocUtils, Docs } from '../../documents/Documents';
 import { DocumentManager } from "../../util/DocumentManager";
@@ -29,6 +29,9 @@ import "./FormattedTextBox.scss";
 import React = require("react");
 import { Id } from '../../../new_fields/FieldSymbols';
 import { MainOverlayTextBox } from '../MainOverlayTextBox';
+import { Utils } from '../../../Utils';
+import { ContextMenuProps } from '../ContextMenuItem';
+import { ContextMenu } from '../ContextMenu';
 
 library.add(faEdit);
 library.add(faSmile);
@@ -212,8 +215,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         }
 
         if (this.props.selectOnLoad) {
-            console.log("Sel on load " + this.props.Document.title + " " + doc!.title);
-            this.props.select(false);
+            //this.props.select(false);
             this._editorView!.focus();
         }
     }
@@ -351,6 +353,15 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         if (!this._undoTyping) {
             this._undoTyping = UndoManager.StartBatch("undoTyping");
         }
+        if (this.props.isOverlay && this.props.Document.autoHeight) {
+            let xf = this._ref.current!.getBoundingClientRect();
+            let scrBounds = this.props.ScreenToLocalTransform().transformBounds(0, 0, xf.width, xf.height);
+            let nh = NumCast(this.props.Document.nativeHeight, 0);
+            let dh = NumCast(this.props.Document.height, 0);
+            let sh = scrBounds.height;
+            this.props.Document.height = nh ? dh / nh * sh : sh;
+            this.props.Document.proto!.nativeHeight = nh ? sh : undefined;
+        }
     }
 
     @action
@@ -360,6 +371,15 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     @action
     onPointerLeave = (e: React.PointerEvent) => {
         this._entered = false;
+    }
+
+    specificContextMenu = (e: React.MouseEvent): void => {
+        let subitems: ContextMenuProps[] = [];
+        subitems.push({
+            description: BoolCast(this.props.Document.autoHeight, false) ? "Manual Height" : "Auto Height",
+            event: action(() => this.props.Document.autoHeight = !BoolCast(this.props.Document.autoHeight, false)), icon: "expand-arrows-alt"
+        });
+        ContextMenu.Instance.addItem({ description: "Text Funcs...", subitems: subitems });
     }
     render() {
         let style = this.props.isOverlay ? "scroll" : "hidden";
@@ -378,6 +398,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 onKeyPress={this.onKeyPress}
                 onFocus={this.onFocused}
                 onClick={this.onClick}
+                onContextMenu={this.specificContextMenu}
                 onBlur={this.onBlur}
                 onPointerUp={this.onPointerUp}
                 onPointerDown={this.onPointerDown}

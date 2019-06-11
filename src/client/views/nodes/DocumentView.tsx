@@ -317,13 +317,13 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     makeBtnClicked = (): void => {
         let doc = Doc.GetProto(this.props.Document);
         doc.isButton = !BoolCast(doc.isButton, false);
-        if (StrCast(doc.layout).indexOf("Formatted") !== -1) { // only need to freeze the dimensions of text boxes since they don't have a native width and height naturally
-            if (doc.isButton && !doc.nativeWidth) {
+        if (doc.isButton) {
+            if (!doc.nativeWidth) {
                 doc.nativeWidth = this.props.Document[WidthSym]();
                 doc.nativeHeight = this.props.Document[HeightSym]();
-            } else {
-                doc.nativeWidth = doc.nativeHeight = undefined;
             }
+        } else {
+            doc.nativeWidth = doc.nativeHeight = undefined;
         }
     }
     fullScreenClicked = (): void => {

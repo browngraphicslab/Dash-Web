@@ -9,6 +9,8 @@ import "./MainOverlayTextBox.scss";
 import { FormattedTextBox } from './nodes/FormattedTextBox';
 import { CollectionDockingView } from './collections/CollectionDockingView';
 import { Doc } from '../../new_fields/Doc';
+import { BoolCast } from '../../new_fields/Types';
+import { auto } from 'async';
 
 interface MainOverlayTextBoxProps {
 }
@@ -22,6 +24,7 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
     private _textHideOnLeave?: boolean;
     private _textTargetDiv: HTMLDivElement | undefined;
     private _textProxyDiv: React.RefObject<HTMLDivElement>;
+    private _textBottom: boolean | undefined;
     public TextDoc?: Doc;
 
     constructor(props: MainOverlayTextBoxProps) {
@@ -49,10 +52,12 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
             this._textTargetDiv.style.color = this._textColor;
         }
         this.TextFieldKey = textFieldKey!;
-        this._textXf = tx ? tx : () => Transform.Identity();
+        let txf = tx ? tx : () => Transform.Identity();
+        this._textXf = txf;
         this._textTargetDiv = div;
         this._textHideOnLeave = FormattedTextBox.InputBoxOverlay && FormattedTextBox.InputBoxOverlay.props.hideOnLeave;
         if (div) {
+            this._textBottom = textFieldKey === "caption" ? true : false; // (getComputedStyle(div) as any).bottom;
             this._textColor = (getComputedStyle(div) as any).color;
             div.style.color = "transparent";
         }
@@ -102,13 +107,16 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
         if (FormattedTextBox.InputBoxOverlay && this._textTargetDiv) {
             let textRect = this._textTargetDiv.getBoundingClientRect();
             let s = this._textXf().Scale;
-            let auto = FormattedTextBox.InputBoxOverlay.props.height;
-            return <div className="mainOverlayTextBox-textInput" style={{ transform: `translate(${textRect.left}px, ${textRect.top}px) scale(${1 / s},${1 / s})`, width: "auto", height: "auto" }} >
+            let bottom = this._textBottom ? textRect.bottom : textRect.top;
+            let hgt = 0;
+            return <div className="mainOverlayTextBox-textInput" style={{ transform: `translate(${textRect.left}px, ${bottom}px) scale(${1 / s},${1 / s})`, width: "auto", height: hgt }} >
                 <div className="mainOverlayTextBox-textInput" onPointerDown={this.textBoxDown} ref={this._textProxyDiv} onScroll={this.textScroll}
-                    style={{ width: `${textRect.width * s}px`, height: auto ? "auto" : `${textRect.height * s}px` }}>
-                    <FormattedTextBox color={`${this._textColor}`} fieldKey={this.TextFieldKey} hideOnLeave={this._textHideOnLeave} isOverlay={true} Document={FormattedTextBox.InputBoxOverlay.props.Document} isSelected={returnTrue} select={emptyFunction} isTopMost={true}
-                        selectOnLoad={true} ContainingCollectionView={undefined} whenActiveChanged={emptyFunction} active={returnTrue}
-                        ScreenToLocalTransform={this._textXf} PanelWidth={returnZero} PanelHeight={returnZero} focus={emptyFunction} addDocTab={this.addDocTab} />
+                    style={{ width: `${textRect.width * s}px`, height: hgt }}>
+                    <div style={{ height: "auto", width: "100%", position: "absolute", bottom: this._textBottom ? "0px" : undefined }}>
+                        <FormattedTextBox color={`${this._textColor}`} fieldKey={this.TextFieldKey} hideOnLeave={this._textHideOnLeave} isOverlay={true} Document={FormattedTextBox.InputBoxOverlay.props.Document} isSelected={returnTrue} select={emptyFunction} isTopMost={true}
+                            selectOnLoad={true} ContainingCollectionView={undefined} whenActiveChanged={emptyFunction} active={returnTrue}
+                            ScreenToLocalTransform={this._textXf} PanelWidth={returnZero} PanelHeight={returnZero} focus={emptyFunction} addDocTab={this.addDocTab} />
+                    </div>
                 </div>
             </ div>;
         }
