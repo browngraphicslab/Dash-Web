@@ -10,15 +10,23 @@ export namespace SelectionManager {
         @observable SelectedDocuments: Array<DocumentView> = [];
 
         @action
-        SelectDoc(doc: DocumentView, ctrlPressed: boolean): void {
+        SelectDoc(docView: DocumentView, ctrlPressed: boolean): void {
             // if doc is not in SelectedDocuments, add it
             if (!ctrlPressed) {
                 this.DeselectAll();
             }
 
-            if (manager.SelectedDocuments.indexOf(doc) === -1) {
-                manager.SelectedDocuments.push(doc);
-                doc.props.whenActiveChanged(true);
+            if (manager.SelectedDocuments.indexOf(docView) === -1) {
+                manager.SelectedDocuments.push(docView);
+                docView.props.whenActiveChanged(true);
+            }
+        }
+        @action
+        DeselectDoc(docView: DocumentView): void {
+            let ind = manager.SelectedDocuments.indexOf(docView);
+            if (ind !== -1) {
+                manager.SelectedDocuments.splice(ind, 1);
+                docView.props.whenActiveChanged(false);
             }
         }
         @action
@@ -31,8 +39,11 @@ export namespace SelectionManager {
 
     const manager = new Manager();
 
-    export function SelectDoc(doc: DocumentView, ctrlPressed: boolean): void {
-        manager.SelectDoc(doc, ctrlPressed);
+    export function DeselectDoc(docView: DocumentView): void {
+        manager.DeselectDoc(docView);
+    }
+    export function SelectDoc(docView: DocumentView, ctrlPressed: boolean): void {
+        manager.SelectDoc(docView, ctrlPressed);
     }
 
     export function IsSelected(doc: DocumentView): boolean {
