@@ -37,6 +37,7 @@ class LinkGroupsDropdown extends React.Component<{ groupId: string, groupType: s
         this._groupType = value;
     }
 
+    @action
     createGroup(value: string) {
         LinkManager.Instance.allGroups.set(value, []);
         this.props.setGroup(this.props.groupId, value);
@@ -81,12 +82,49 @@ class LinkGroupsDropdown extends React.Component<{ groupId: string, groupType: s
     }
 }
 
+@observer
+class LinkMetadataEditor extends React.Component<{ groupType: string, mdDoc: Doc, mdKey: string, mdValue: string }> {
+    @observable private _key: string = this.props.mdKey;
+    @observable private _value: string = this.props.mdValue;
+
+    @action
+    editMetadataKey = (value: string): void => {
+        // TODO: check that metadata doesnt already exist in group
+        let groupMdKeys = new Array(...LinkManager.Instance.allGroups.get(this.props.groupType)!);
+        if (groupMdKeys) {
+            let index = groupMdKeys.indexOf(this._key);
+            if (index > -1) {
+                groupMdKeys[index] = value;
+            }
+            else {
+                console.log("OLD KEY WAS NOT FOUND", ...groupMdKeys)
+            }
+        }
+
+        this._key = value;
+        LinkManager.Instance.allGroups.set(this.props.groupType, groupMdKeys);
+    }
+
+    @action
+    editMetadataValue = (value: string): void => {
+        this.props.mdDoc[this._key] = value;
+        this._value = value;
+    }
+
+    render() {
+        return (
+            <div className="linkEditor-metadata-row">
+                <input type="text" value={this._key} placeholder="key" onChange={e => this.editMetadataKey(e.target.value)}></input>:
+                <input type="text" value={this._value} placeholder="value" onChange={e => this.editMetadataValue(e.target.value)}></input>
+            </div>
+        )
+    }
+}
+
 
 interface LinkEditorProps {
     sourceDoc: Doc;
     linkDoc: Doc;
-    // groups: Map<string, Doc>;
-    // metadata: Map<string, Map<string, Doc>>;
     showLinks: () => void;
 }
 
@@ -158,7 +196,6 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
     }
 
     renderGroup(groupId: string, groupDoc: Doc) {
-        console.log("testing", groupDoc["strawberry"], groupDoc["type"]);
         return (
             <div key={groupId} className="linkEditor-group">
                 <div className="linkEditor-group-row">
@@ -168,23 +205,28 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
                     {/* <input key={groupId + "-type"} type="text" value={StrCast(groupDoc.proto!.type)} onChange={e => this.editGroup(groupId, e.target.value)}></input> */}
                 </div>
                 {this.renderMetadata(groupId)}
-                <button onClick={() => this.addMetadata(groupId)}>+</button>
+                {groupDoc["type"] === "*" ? <></> : <button onClick={() => this.addMetadata(StrCast(groupDoc.proto!.type))}>add kvp</button>}
+                <button onClick={this.viewGroupAsTable}>view group as table</button>
+                {/* <button onClick={() => this.addMetadata(StrCast(groupDoc.proto!.type))}>+</button> */}
             </div>
         )
+    }
+
+    viewGroupAsTable = (): void => {
+
     }
 
     @action
     addMetadata = (groupType: string): void => {
         let mdKeys = LinkManager.Instance.allGroups.get(groupType);
         if (mdKeys) {
-            if (mdKeys.indexOf("new key") > -1) {
+            if (mdKeys.indexOf("new key") === -1) {
                 mdKeys.push("new key");
             }
         } else {
             mdKeys = ["new key"];
         }
         LinkManager.Instance.allGroups.set(groupType, mdKeys);
-        console.log("md added", groupType, LinkManager.Instance.allGroups.get(groupType), LinkManager.Instance.allGroups);
 
         // // create new metadata doc
         // let mdDoc = Docs.TextDocument();
@@ -239,6 +281,14 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
     //     // set group and link?
     // }
 
+    @action
+    editMetadataKey(groupId: string, value: string) {
+        let groupDoc = this._groups.get(groupId);
+        if (groupDoc) {
+
+        }
+    }
+
     renderMetadata(groupId: string) {
         let metadata: Array<JSX.Element> = [];
         let groupDoc = this._groups.get(groupId);
@@ -246,15 +296,15 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
             let mdDoc = Cast(groupDoc.proto!.metadata, Doc, new Doc);
             let groupType = StrCast(groupDoc.proto!.type);
             let groupMdKeys = LinkManager.Instance.allGroups.get(groupType);
-            console.log("rendering md", groupType, groupMdKeys, LinkManager.Instance.allGroups);
             if (groupMdKeys) {
-                groupMdKeys.forEach(key => {
+                groupMdKeys.forEach((key, index) => {
                     metadata.push(
-                        <div key={key} className="linkEditor-metadata-row">
-                            <input type="text" value={key} placeholder="key"></input>
-                            :
-                            <input type="text" value={(mdDoc[key] === undefined) ? "" : StrCast(mdDoc[key])} placeholder="value"></input>
-                        </div>
+                        <LinkMetadataEditor key={"mded-" + index} groupType={groupType} mdDoc={mdDoc} mdKey={key} mdValue={(mdDoc[key] === undefined) ? "" : StrCast(mdDoc[key])} />
+                        // <div key={key} className="linkEditor-metadata-row">
+                        //     <input type="text" value={key} placeholder="key"></input>
+                        //     :
+                        //     <input type="text" value={(mdDoc[key] === undefined) ? "" : StrCast(mdDoc[key])} placeholder="value"></input>
+                        // </div>
                     )
                 })
             }

@@ -38,7 +38,6 @@ export class LinkMenu extends React.Component<Props> {
             let destination = LinkUtils.findOppositeAnchor(link, source);
             let doc = FieldValue(Cast(destination, Doc));
             if (doc) {
-                console.log(doc[Id] + source[Id], "source is", source[Id]);
                 return <LinkBox key={doc[Id] + source[Id]} linkDoc={link} linkName={StrCast(destination.title)} pairedDoc={doc} showEditor={action(() => this._editingLink = link)} type={""} />;
             }
         });
