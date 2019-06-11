@@ -13,13 +13,10 @@ export interface ToggleBarProps {
     optionTwo: string;
 }
 
-//TODO: justify content will align to specific side. Maybe do status passed in and out?
 @observer
 export class ToggleBar extends React.Component<ToggleBarProps>{
 
-    @observable _wordStatus: boolean = true;
     @observable forwardTimeline: anime.AnimeTimelineInstance;
-    @observable reverseTimeline: anime.AnimeTimelineInstance;
     @observable _toggleButton: React.RefObject<HTMLDivElement>;
     @observable _originalStatus: boolean = this.props.originalStatus;
 
@@ -27,14 +24,10 @@ export class ToggleBar extends React.Component<ToggleBarProps>{
         super(props);
         this._toggleButton = React.createRef();
         this.forwardTimeline = anime.timeline({
+            loop: false,
             autoplay: false,
-            direction: "reverse"
+            direction: "reverse",
         });
-        this.reverseTimeline = anime.timeline({
-            autoplay: false,
-            direction: "reverse"
-        });
-
     }
 
     @computed get totalWidth() { return this.getTotalWidth(); }
@@ -56,38 +49,28 @@ export class ToggleBar extends React.Component<ToggleBarProps>{
 
         let totalWidth = this.totalWidth;
 
-        this.forwardTimeline.add({
-            targets: this._toggleButton.current,
-            loop: false,
-            translateX: totalWidth,
-            easing: "easeInOutQuad",
-            duration: 500,
-        });
-
-        this.reverseTimeline.add({
-            targets: this._toggleButton.current,
-            loop: false,
-            translateX: -totalWidth,
-            easing: "easeInOutQuad",
-            duration: 500,
-        });
-
+        if (this._originalStatus) {
+            this.forwardTimeline.add({
+                targets: this._toggleButton.current,
+                translateX: totalWidth,
+                easing: "easeInOutQuad",
+                duration: 500
+            });
+        }
+        else {
+            this.forwardTimeline.add({
+                targets: this._toggleButton.current,
+                translateX: -totalWidth,
+                easing: "easeInOutQuad",
+                duration: 500
+            })
+        }
     }
 
     @action.bound
     onclick() {
-        console.log(this._originalStatus)
-
-        if (this._originalStatus) {
-            this.forwardTimeline.play();
-            this.forwardTimeline.reverse();
-        }
-        else {
-            this.reverseTimeline.play();
-            this.reverseTimeline.reverse();
-        }
-
-        this._wordStatus = !this._wordStatus;
+        this.forwardTimeline.play();
+        this.forwardTimeline.reverse();
         this.props.changeStatus();
     }
 
