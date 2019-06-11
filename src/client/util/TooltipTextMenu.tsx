@@ -278,14 +278,18 @@ export class TooltipTextMenu {
         let select = state.selection;
         let node = select.$from.nodeAfter;
         if (node) {
-            console.log("node");
-            console.log(node.type.name);
             if (node.type.name === "star") {
-                console.log(node.attrs.oldtext);
+                let oldselection = node.attrs.oldtext;
+                if (dispatch) {
+                    dispatch(state.tr.replaceSelection(oldselection.content()));
+                }
+                return true;
             }
         }
         if (dispatch) {
-            dispatch(state.tr.replaceSelectionWith(type.create({ attrs: { oldtext: select } })));
+            let newNode = type.create();
+            newNode.attrs.oldtext = select;
+            dispatch(state.tr.replaceSelectionWith(newNode));
         }
         return true;
     }
