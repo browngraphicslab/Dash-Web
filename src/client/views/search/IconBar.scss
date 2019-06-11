@@ -19,7 +19,15 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    background-color: "#121721";
+    // background-color: "#121721";
+}
+
+.type-icon.selected{
+    background-color: $alt-accent;
+}
+    
+.type-icon.not-selected{
+    background-color: red;
 }
 
 .fontawesome-icon{
