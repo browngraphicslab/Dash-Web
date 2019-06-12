@@ -38,8 +38,7 @@ export class SearchBox extends React.Component {
     @observable private _resultsOpen: boolean = false;
     @observable private _results: Doc[] = [];
     @observable filterBoxStatus: boolean = false;
-    @observable filterMenuRef: React.RefObject<HTMLDivElement> = React.createRef();
-    @observable filterButtonRef: React.RefObject<HTMLButtonElement> = React.createRef();
+    @observable private _openNoResults: boolean = false;
 
     constructor(props: Readonly<{}>) {
         super(props);
@@ -57,6 +56,11 @@ export class SearchBox extends React.Component {
     @action.bound
     onChange(e: React.ChangeEvent<HTMLInputElement>) {
         this._searchString = e.target.value;
+        
+        if(this._searchString === ""){
+            this._results = [];
+            this._openNoResults = false;
+        }
     }
 
     @action
@@ -82,6 +86,7 @@ export class SearchBox extends React.Component {
         runInAction(() => {
             this._resultsOpen = true;
             this._results = results;
+            this._openNoResults = true;
         });
 
     }
@@ -106,9 +111,7 @@ export class SearchBox extends React.Component {
     }
 
     @action filterDocs(docs: Doc[]) {
-        console.log(this._icons)
         if (this._icons.length === 0) {
-            console.log("length is 0")
             return docs;
         }
         let finalDocs: Doc[] = [];
@@ -137,108 +140,6 @@ export class SearchBox extends React.Component {
             console.log(e);
         }
     }
-
-    // isClickInFilter(curElement: Element) {
-    //     console.log(curElement)
-    //     let name: string = curElement.className;
-    //     if (name.indexOf("filter") !== -1) {
-    //         return true;
-    //     }
-    //     else {
-    //         return this.findAncestor2(name);
-
-    //         // if(curElement.parentElement){
-    //         //     let parentName = curElement.parentElement.className;
-    //         //     if(parentName.indexOf("filter") !== -1){
-    //         //         return true;
-    //         //     }
-    //         // }
-    //     }
-    //     return false;
-    // }
-
-    // findAncestor2(elementName: string){
-
-    //     if(elementName === ""){
-    //         return false;
-    //     }
-
-    //     if(String(elementName).indexOf("filter") !== -1){
-    //         return true;
-    //     }
-
-    //     if(String(elementName).indexOf("SVG")!==-1){
-    //         console.log("is svg")
-    //         return true;
-    //     }
-
-    //     let curElement: Element = document.getElementsByClassName(elementName)[0];
-    //     let name: string;
-    //     while(curElement.parentElement){
-    //         name = curElement.className;
-    //         if(name.indexOf("filter") !== -1){
-    //             return true;
-    //         }
-    //         curElement = curElement.parentElement;
-    //     }
-    //     return false;
-    // }
-
-    // @action
-    // handleSearchClick = (e: MouseEvent): void => {
-
-    //     // console.log(e)
-
-    //     let name: string = (e.target as any).className;
-
-
-
-    //     // console.log((e.target as any).className)
-    //     let element = document.getElementsByClassName((e.target as any).className)[0];
-    //     // console.log(this.findAncestor2(name));
-    //     //handles case with filter button
-    //     if (String(name).indexOf("filter") !== -1 || String(name).indexOf("SVG") !== -1) {
-    //         this._resultsOpen = false;
-    //         this._results = [];
-    //         this._open = true;
-    //         // console.log("name is svg")
-    //     }
-    //     else if (element && element.parentElement) {
-    //         //if the filter element is found, show the form and hide the results
-    //         if (this.findAncestor(element, "filter-form")) {
-    //             this._resultsOpen = false;
-    //             this._results = [];
-    //             this._open = true;
-    //             // console.log("parent is filter form")
-    //         }
-    //         //if in main search div, keep results open and close filter
-    //         else if (this.findAncestor(element, "main-searchDiv")) {
-    //             this._resultsOpen = true;
-    //             this._open = false;
-    //         }
-    //     }
-    //     //not in either, close both
-    //     else {
-    //         this._resultsOpen = false;
-    //         this._results = [];
-    //         this._open = false;
-    //     }
-
-    // }
-
-    // //finds ancestor div that matches class name passed in, if not found false returned
-    // findAncestor(curElement: any, cls: string) {
-    //     while ((curElement = curElement.parentElement) && !curElement.classList.contains(cls));
-    //     return curElement;
-    // }
-
-    // componentWillMount() {
-    //     document.addEventListener('mousedown', this.handleSearchClick, false);
-    // }
-
-    // componentWillUnmount() {
-    //     document.removeEventListener('mousedown', this.handleSearchClick, false);
-    // }
 
     enter = (e: React.KeyboardEvent) => {
         if (e.key === "Enter") {
@@ -333,6 +234,8 @@ export class SearchBox extends React.Component {
     @action.bound
     openSearch(e: React.PointerEvent) {
         e.stopPropagation();
+        this._results = [];
+        this._openNoResults = false;
         this._open = false;
         this._resultsOpen = true;
         this._pointerTime = e.timeStamp;
@@ -352,17 +255,21 @@ export class SearchBox extends React.Component {
                         <input value={this._searchString} onChange={this.onChange} type="text" placeholder="Search..."
                             className="searchBox-barChild searchBox-input" onPointerDown={this.openSearch} onKeyPress={this.enter}
                             style={{ width: this._resultsOpen ? "500px" : "100px" }} />
-                        <button className="searchBox-barChild searchBox-filter" onClick={this.openFilter} onPointerDown={this.stopProp} ref={this.filterButtonRef}>Filter</button>
+                        <button className="searchBox-barChild searchBox-filter" onClick={this.openFilter} onPointerDown={this.stopProp}>Filter</button>
                     </div>
                     {this._resultsOpen ? (
                         <div className="searchBox-results">
-                            {this._results.map(result => <SearchItem doc={result} key={result[Id]} />)}
+                            { (this._results.length !== 0) ? (
+                                this._results.map(result => <SearchItem doc={result} key={result[Id]} />)
+                                ) :
+                                this._openNoResults ? (<div className = "no-result">No Search Results</div>) : null }
+
                         </div>
                     ) : undefined}
                 </div>
                 {/* these all need class names in order to find ancestor - please do not delete */}
                 {this._open ? (
-                    <div className="filter-form" onPointerDown={this.stopProp} ref={this.filterMenuRef} id="filter" style={this._open ? { display: "flex" } : { display: "none" }}>
+                    <div className="filter-form" onPointerDown={this.stopProp} id="filter" style={this._open ? { display: "flex" } : { display: "none" }}>
                         <div className="filter-form filter-div" id="header">Filter Search Results</div>
                         <div className="filter-form " id="option">
                             <div className="required-words filter-div">
