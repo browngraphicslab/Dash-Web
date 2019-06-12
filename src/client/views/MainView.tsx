@@ -200,12 +200,15 @@ export class MainView extends React.Component {
                 whenActiveChanged={emptyFunction}
                 bringToFront={emptyFunction}
                 ContainingCollectionView={undefined} />;
-        const pres = mainCont ? FieldValue(Cast(mainCont.presentationView, Doc)) : undefined;
+        let castRes = mainCont ? FieldValue(Cast(mainCont.presentationView, Doc)) : undefined;
+        console.log("GETTING mainContent()");
+        console.log(castRes instanceof Promise);
+        console.log(castRes);
         return <Measure offset onResize={this.onResize}>
             {({ measureRef }) =>
                 <div ref={measureRef} id="mainContent-div">
                     {content}
-                    {pres ? <PresentationView Document={pres} key="presentation" /> : null}
+                    {castRes ? <PresentationView Document={castRes} key="presentation" /> : null}
                 </div>
             }
         </Measure>;

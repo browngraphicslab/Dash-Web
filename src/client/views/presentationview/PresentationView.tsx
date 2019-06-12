@@ -78,7 +78,7 @@ class PresentationViewList extends React.Component<PresListProps> {
         const children = DocListCast(this.props.Document.data);
         this.initializeGroupIds(children);
         this.props.setChildrenDocs(children);
-        this.initializeSelectedButtonDocs(children);
+        //this.initializeSelectedButtonDocs(children);
         return (
 
             <div className="presentationView-listCont">
@@ -105,23 +105,47 @@ export class PresentationView extends React.Component<PresViewProps>  {
     @observable presGroupBackUp: Doc = new Doc();
     @observable presButtonBackUp: Doc = new Doc();
 
-    @action
+
+
     componentDidMount() {
-        let castedGroupBackUp: Doc = Cast(this.props.Document.presGroupBackUp, Doc, new Doc());
-        let castedButtonBackUp: Doc = Cast(this.props.Document.presButtonBackUp, Doc, new Doc());
-        // if (castedButtonBackUp === undefined) {
-        //     this.props.Document.presButtonBackUp = new Doc();
-        // } else {
-        this.presButtonBackUp = castedButtonBackUp;
-        // }
-        // if (castedGroupBackUp === undefined) {
-        //     this.props.Document.presGroupBackUp = new Doc();
-        // } else {
-        this.presGroupBackUp = castedGroupBackUp;
-        // 
+        // let newDoc = new Doc();
+        // let newDoc2 = new Doc();
+        let castedGroupBackUp = Cast(this.props.Document.presGroupBackUp, Doc);
+        let castedButtonBackUp = Cast(this.props.Document.presButtonBackUp, Doc);
+        if (castedGroupBackUp instanceof Promise) {
+            castedGroupBackUp.then(doc => {
+                let toAssign = doc ? doc : new Doc();
+                this.props.Document.presGroupBackUp = toAssign;
+                runInAction(() => this.presGroupBackUp = toAssign);
+            });
+        } else {
+            runInAction(() => {
+                let toAssign = new Doc();
+                this.presGroupBackUp = toAssign;
+                this.props.Document.presGroupBackUp = toAssign;
 
-        // }
+            });
 
+        }
+
+        if (castedButtonBackUp instanceof Promise) {
+            castedButtonBackUp.then(doc => {
+                let toAssign = doc ? doc : new Doc();
+                this.props.Document.presButtonBackUp = toAssign;
+                runInAction(() => this.presButtonBackUp = toAssign);
+            });
+
+        } else {
+            runInAction(() => {
+                let toAssign = new Doc();
+                this.presButtonBackUp = toAssign;
+                this.props.Document.presButtonBackUp = toAssign;
+            });
+
+        }
+
+        let presStatusBackUp = BoolCast(this.props.Document.presStatus, null);
+        runInAction(() => this.presStatus = presStatusBackUp);
     }
 
     //observable means render is re-called every time variable is changed
@@ -362,6 +386,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
             this.startPresentation(0);
             this.gotoDocument(0);
         }
+        this.props.Document.presStatus = this.presStatus;
     }
 
     @action

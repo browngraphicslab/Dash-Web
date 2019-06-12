@@ -1,9 +1,9 @@
 import { observer } from "mobx-react";
 import React = require("react");
-import { Doc, DocListCast } from "../../../new_fields/Doc";
+import { Doc, DocListCast, DocListCastAsync } from "../../../new_fields/Doc";
 import { NumCast, BoolCast, StrCast, Cast } from "../../../new_fields/Types";
 import { Id } from "../../../new_fields/FieldSymbols";
-import { observable, action, computed } from "mobx";
+import { observable, action, computed, runInAction } from "mobx";
 import "./PresentationView.scss";
 import { Utils } from "../../../Utils";
 import { library } from '@fortawesome/fontawesome-svg-core';
@@ -64,21 +64,33 @@ export default class PresentationElement extends React.Component<PresentationEle
     get selected() {
         return this.selectedButtons;
     }
-    @action
-    componentDidMount() {
-        // let castedList = Cast(this.props.presButtonBackUp.selectedButtons, listSpec(Doc), null) as any as List<List<boolean>>;
-        let castedList = DocListCast(this.props.presButtonBackUp.selectedButtonDocs);
-        if (castedList.length !== 0) {
-            // this.selectedButtons = castedList;
-            let selectedButtonOfDoc = Cast(castedList[this.props.index].selectedButtons, listSpec("boolean"), null);
-            if (selectedButtonOfDoc !== undefined) {
-                this.selectedButtons = selectedButtonOfDoc;
-            }
-            console.log("Entered!!");
 
+    async componentDidMount() {
+        // let castedList = Cast(this.props.presButtonBackUp.selectedButtons, listSpec(Doc), null) as any as List<List<boolean>>;
+        let castedList = Cast(this.props.presButtonBackUp.selectedButtonDocs, listSpec(Doc));
+        if (!castedList) {
+            this.props.presButtonBackUp.selectedButtonDocs = castedList = new List<Doc>();
         }
+        // let castedList = DocListCast(this.props.presButtonBackUp.selectedButtonDocs);
+
         console.log("Mounted!!");
-        //this.props.presButtonBackUp.elIndex = this.props.index;
+        console.log("CastedList Len: ", castedList.length);
+        console.log("Index of doc: ", this.props.index);
+
+        if (castedList.length <= this.props.index) {
+            console.log("Entered here by index : ", this.props.index);
+            castedList.push(new Doc());
+        } else {
+            let curDoc: Doc = await castedList[this.props.index];
+            let selectedButtonOfDoc = Cast(curDoc.selectedButtons, listSpec("boolean"), null);
+            console.log("Entered First Place");
+            if (selectedButtonOfDoc !== undefined) {
+                runInAction(() => this.selectedButtons = selectedButtonOfDoc);
+                console.log("Entered Second Place");
+            }
+        }
+
+
     }
 
     /**
@@ -195,9 +207,9 @@ export default class PresentationElement extends React.Component<PresentationEle
     }
 
     @action
-    autoSaveButtonChange = (index: buttonIndex) => {
+    autoSaveButtonChange = async (index: buttonIndex) => {
         // let castedList = Cast(this.props.presButtonBackUp.selectedButtons, listSpec(Doc), null) as any as List<List<boolean>>;
-        let castedList = DocListCast(this.props.presButtonBackUp.selectedButtonDocs);
+        let castedList = (await DocListCastAsync(this.props.presButtonBackUp.selectedButtonDocs))!;
         castedList[this.props.index].selectedButtons = new List(this.selectedButtons);
 
         //this.props.mainDocument.presButtonBackUp = this.props.presButtonBackUp;
