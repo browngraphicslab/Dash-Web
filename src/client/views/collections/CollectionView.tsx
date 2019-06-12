@@ -14,6 +14,8 @@ import { CollectionFreeFormView } from './collectionFreeForm/CollectionFreeFormV
 import { CollectionSchemaView } from "./CollectionSchemaView";
 import { CollectionStackingView } from './CollectionStackingView';
 import { CollectionTreeView } from "./CollectionTreeView";
+import { CollectionTimelineView } from "./CollectionTimelineView";
+
 export const COLLECTION_BORDER_WIDTH = 2;
 
 library.add(faTh);
@@ -34,6 +36,7 @@ export class CollectionView extends React.Component<FieldViewProps> {
             case CollectionViewType.Docking: return (<CollectionDockingView {...props} CollectionView={this} />);
             case CollectionViewType.Tree: return (<CollectionTreeView {...props} CollectionView={this} />);
             case CollectionViewType.Stacking: return (<CollectionStackingView {...props} CollectionView={this} />);
+            case CollectionViewType.Timeline: return (<CollectionTimelineView {...props} CollectionView={this} />);
             case CollectionViewType.Freeform:
             default:
                 return (<CollectionFreeFormView {...props} CollectionView={this} />);
@@ -53,6 +56,7 @@ export class CollectionView extends React.Component<FieldViewProps> {
             subItems.push({ description: "Schema", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Schema), icon: "th-list" });
             subItems.push({ description: "Treeview", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Tree), icon: "tree" });
             subItems.push({ description: "Stacking", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Stacking), icon: "th-list" });
+            subItems.push({ description: "Timeline", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Timeline), icon: "tree" });
             ContextMenu.Instance.addItem({ description: "View Modes...", subitems: subItems });
         }
     }

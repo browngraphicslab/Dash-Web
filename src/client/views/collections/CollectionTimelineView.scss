@@ -1,0 +1,45 @@
+@import "../globalCssVariables";
+
+.collectionTimelineView {
+    top: 0;
+    left: 0;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    position: absolute;
+    overflow-y: auto;
+    border-width: 0;
+    box-shadow: $intermediate-color 0.2vw 0.2vw 0.8vw;
+    border-color: $light-color-secondary;
+    border-style: solid;
+    border-radius: 0 0 $border-radius $border-radius;
+    box-sizing: border-box;
+
+    button {
+        background: $dark-color;
+        outline: none;
+        border: 0px;
+        color: $light-color;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        font-size: 75%;
+        padding: 10px;
+        transition: transform 0.2s;
+
+    }
+
+
+    button:hover {
+        background: $dark-color;
+        cursor: pointer;
+        z-index:9999;
+        font-size:200%;
+        text-shadow: 2px 2px #000000;
+
+
+
+    }
+
+
+
+}
