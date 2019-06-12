@@ -28,9 +28,9 @@ export const nodes: { [index: string]: NodeSpec } = {
 
     star: {
         inline: true,
-        attrs: { oldtext: { default: "suhhhh" } },
+        attrs: { oldtext: { default: "" } },
         group: "inline",
-        toDOM() { return ["star", "🟊"]; },
+        toDOM() { return ["star", "㊉"]; },
         parseDOM: [{ tag: "star" }]
     },
 
@@ -426,17 +426,17 @@ export class ImageResizeView {
     }
 }
 
-export class SummarizedView {
-    _collapsed: HTMLElement;
-    _selection: any;
-    constructor(node: any) {
-        this._collapsed = document.createElement("star");
-        this._collapsed.onpointerdown = function (e: any) {
-            console.log("star pressed!");
-        };
+// export class SummarizedView {
+//     _collapsed: HTMLElement;
+//     _selection: any;
+//     constructor(node: any) {
+//         this._collapsed = document.createElement("star");
+//         this._collapsed.onpointerdown = function (e: any) {
+//             console.log("star pressed!");
+//         };
 
-    }
-}
+//     }
+// }
 // :: Schema
 // This schema rougly corresponds to the document schema used by
 // [CommonMark](http://commonmark.org/), minus the list elements,
