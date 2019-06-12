@@ -90,6 +90,7 @@ export const nodes: { [index: string]: NodeSpec } = {
         attrs: {
             visibility: { default: false },
             oldtext: { default: undefined },
+            oldtextslice: { default: undefined },
             oldtextlen: { default: 0 }
 
         },
@@ -502,10 +503,9 @@ export const schema = new Schema({ nodes, marks });
 const fromJson = schema.nodeFromJSON;
 
 schema.nodeFromJSON = (json: any) => {
-    if (json.type !== "star") {
-        return fromJson(json);
+    let node = fromJson(json);
+    if (json.type === "star") {
+        node.attrs.oldtext = Slice.fromJSON(schema, node.attrs.oldtextslice);
     }
-    let x = fromJson(json);
-    x.attrs.oldtext = Slice.fromJSON(x.attrs.oldtext);
-    return x;
+    return node;
 }

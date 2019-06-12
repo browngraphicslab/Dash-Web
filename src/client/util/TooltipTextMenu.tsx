@@ -274,7 +274,7 @@ export class TooltipTextMenu {
 
     insertStar(state: EditorState<any>, dispatch: any) {
         console.log("creating star...");
-        let newNode = schema.nodes.star.create({ visibility: false, oldtext: state.selection.content(), oldtextlen: state.selection.to - state.selection.from });
+        let newNode = schema.nodes.star.create({ visibility: false, oldtext: state.selection.content(), oldtextslice: state.selection.content().toJSON(), oldtextlen: state.selection.to - state.selection.from });
         if (dispatch) {
             console.log(newNode.attrs.oldtext.toString());
             dispatch(state.tr.replaceSelectionWith(newNode));
