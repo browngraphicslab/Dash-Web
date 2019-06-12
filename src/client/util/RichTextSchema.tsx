@@ -451,6 +451,7 @@ export class ImageResizeView {
 }
 
 export class SummarizedView {
+    // TODO: highlight 
     _collapsed: HTMLElement;
     constructor(node: any, view: any, getPos: any) {
         this._collapsed = document.createElement("span");
@@ -473,9 +474,10 @@ export class SummarizedView {
                 node.attrs.visibility = !node.attrs.visibility;
                 console.log("content is invisible");
                 let y = getPos();
+                let mark = view.state.schema.mark(view.state.schema.marks.underline);
                 console.log("PASTING " + node.attrs.oldtext.toString());
                 view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.doc, y + 1, y + 1)));
-                view.dispatch(view.state.tr.replaceSelection(node.attrs.oldtext));
+                view.dispatch(view.state.tr.replaceSelection(node.attrs.oldtext).addMark(view.state.selection.from, view.state.selection.from + node.attrs.oldtextlen, mark));
                 //this._collapsed.textContent = "㊉";
             }
             e.preventDefault();
