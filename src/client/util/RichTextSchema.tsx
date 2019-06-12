@@ -1,9 +1,9 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Schema, NodeSpec, MarkSpec, DOMOutputSpecArray, NodeType } from "prosemirror-model";
-import { joinUp, lift, setBlockType, toggleMark, wrapIn } from 'prosemirror-commands';
+import { joinUp, lift, setBlockType, toggleMark, wrapIn, selectNodeForward, deleteSelection } from 'prosemirror-commands';
 import { redo, undo } from 'prosemirror-history';
 import { orderedList, bulletList, listItem, } from 'prosemirror-schema-list';
-import { EditorState, Transaction, NodeSelection, } from "prosemirror-state";
+import { EditorState, Transaction, NodeSelection, TextSelection, Selection, } from "prosemirror-state";
 import { EditorView, } from "prosemirror-view";
 
 const pDOM: DOMOutputSpecArray = ["p", 0], blockquoteDOM: DOMOutputSpecArray = ["blockquote", 0], hrDOM: DOMOutputSpecArray = ["hr"],
@@ -26,13 +26,6 @@ export const nodes: { [index: string]: NodeSpec } = {
         toDOM() { return pDOM; }
     },
 
-    star: {
-        inline: true,
-        attrs: { oldtext: { default: "suhhhh" } },
-        group: "inline",
-        toDOM() { return ["star", "🟊"]; },
-        parseDOM: [{ tag: "star" }]
-    },
 
     // :: NodeSpec A blockquote (`<blockquote>`) wrapping one or more blocks.
     blockquote: {
@@ -85,6 +78,29 @@ export const nodes: { [index: string]: NodeSpec } = {
         group: "inline"
     },
 
+    star: {
+        inline: true,
+        attrs: {
+            visibility: { default: false },
+            oldtext: { default: undefined },
+            oldtextlen: { default: 0 }
+
+        },
+        group: "inline",
+        toDOM(node) {
+            const attrs = { style: `width: 40px` };
+            return ["span", { ...node.attrs, ...attrs }];
+        },
+        parseDOM: [{
+            tag: "span", getAttrs(dom: any) {
+                return {
+                    visibility: dom.getAttribute("visibility"),
+                    oldtext: dom.getAttribute("oldtext"),
+                    oldtextlen: dom.getAttribute("oldtextlen"),
+                }
+            }
+        }]
+    },
     // :: NodeSpec An inline image (`<img>`) node. Supports `src`,
     // `alt`, and `href` attributes. The latter two default to the empty
     // string.
@@ -428,13 +444,37 @@ export class ImageResizeView {
 
 export class SummarizedView {
     _collapsed: HTMLElement;
-    _selection: any;
-    constructor(node: any) {
-        this._collapsed = document.createElement("star");
+    constructor(node: any, view: any, getPos: any) {
+        this._collapsed = document.createElement("span");
+        this._collapsed.textContent = "...";
+        this._collapsed.style.opacity = "0.5";
+        this._collapsed.style.background = "yellow";
+        this._collapsed.style.position = "relative";
+        this._collapsed.style.width = "40px";
+        this._collapsed.style.height = "20px";
         this._collapsed.onpointerdown = function (e: any) {
             console.log("star pressed!");
-        };
+            if (node.attrs.visibility) {
+                let y = getPos();
+                view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.doc, y + 1, y + 1 + node.attrs.oldtextlen)));
+                view.dispatch(view.state.tr.deleteSelection(view.state, () => { }));
 
+            } else {
+                let y = getPos();
+                view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.doc, y + 1, y + 1)));
+                view.dispatch(view.state.tr.replaceSelection(node.attrs.oldtext));
+            }
+            node.attrs.visibility = !node.attrs.visibility;
+            e.preventDefault();
+            e.stopPropagation();
+        };
+        (this as any).dom = this._collapsed;
+
+    }
+    selectNode() {
+    }
+
+    deselectNode() {
     }
 }
 // :: Schema

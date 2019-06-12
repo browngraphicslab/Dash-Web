@@ -191,7 +191,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 dispatchTransaction: this.dispatchTransaction,
                 nodeViews: {
                     image(node, view, getPos) { return new ImageResizeView(node, view, getPos); },
-                    //star(node, view, getPos) { return new SummarizedView(node); }
+                    star(node, view, getPos) { return new SummarizedView(node, view, getPos); }
                 }
             });
             let text = StrCast(this.props.Document.documentText);
