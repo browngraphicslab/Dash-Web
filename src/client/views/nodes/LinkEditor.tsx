@@ -13,6 +13,7 @@ import { faArrowLeft, faEllipsisV } from '@fortawesome/free-solid-svg-icons';
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { string } from "prop-types";
+import { SetupDrag } from "../../util/DragManager";
 
 library.add(faArrowLeft);
 library.add(faEllipsisV);
@@ -176,7 +177,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
             // create new document for group
             let groupDoc = Docs.TextDocument();
             groupDoc.proto!.type = "New Group";
-            groupDoc.proto!.metadata = Docs.TextDocument();
+            // groupDoc.proto!.metadata = Docs.TextDocument();
 
             this._groups.set(Utils.GenerateGuid(), groupDoc);
 
@@ -246,6 +247,55 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
         }
     }
 
+    copyGroup = (groupId: string, groupType: string) => {
+        let oppAnchor = LinkUtils.findOppositeAnchor(this.props.linkDoc, this.props.sourceDoc);
+        let groupList = (Doc.AreProtosEqual(oppAnchor, Cast(this.props.linkDoc.anchor1, Doc, new Doc))) ?
+            Cast(this.props.linkDoc.anchor1Groups, listSpec(Doc), []) : Cast(this.props.linkDoc.anchor2Groups, listSpec(Doc), []);
+        // if group already exists on opposite anchor, copy value
+        let index = groupList.findIndex(groupDoc => {
+            if (groupDoc instanceof Doc) {
+                return StrCast(groupDoc["type"]) === groupType;
+            } else {
+                return false;
+            }
+        })
+        // TODO: clean
+        // if (index > 0) {
+        //     let thisGroupDoc = this._groups.get(groupId);
+        //     let oppGroupDoc = groupList[index];
+        //     let keys = LinkManager.Instance.allGroups.get(groupType);
+        //     if (keys) {
+        //         keys.forEach(key => {
+        //             if (thisGroupDoc && oppGroupDoc instanceof Doc) { // TODO: clean
+        //                 let val = thisGroupDoc[key] === undefined ? "" : StrCast(thisGroupDoc[key]);
+        //                 oppGroupDoc[key] = val;
+        //             }
+        //             //     mdDoc[key] === undefined) ? "" : StrCast(mdDoc[key])
+        //             // oppGroupDoc[key] = thisGroupDoc[key];
+        //         })
+        //     }
+        //     // LinkUtils.setAnchorGroups(this.props.linkDoc, oppAnchor, [oppGroupDoc]);
+        // } else {
+        let thisGroupDoc = this._groups.get(groupId);
+        let newGroupDoc = Docs.TextDocument();
+        newGroupDoc.proto!.type = groupType;
+        let keys = LinkManager.Instance.allGroups.get(groupType);
+        if (keys) {
+            keys.forEach(key => {
+                if (thisGroupDoc) { // TODO: clean
+                    let val = thisGroupDoc[key] === undefined ? "" : StrCast(thisGroupDoc[key]);
+                    newGroupDoc[key] = val;
+                }
+                //     mdDoc[key] === undefined) ? "" : StrCast(mdDoc[key])
+                // oppGroupDoc[key] = thisGroupDoc[key];
+            })
+        }
+        LinkUtils.setAnchorGroups(this.props.linkDoc, oppAnchor, [newGroupDoc]); // TODO: fix to append to list
+        // }
+
+        // else create group on opposite anchor
+    }
+
     renderGroup(groupId: string, groupDoc: Doc) {
         let type = StrCast(groupDoc["type"]);
         if ((type && LinkManager.Instance.allGroups.get(type)) || type === "New Group") {
@@ -259,10 +309,10 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
                     <div className="linkEditor-group-buttons">
                         {groupDoc["type"] === "New Group" ? <button disabled={true} title="Add KVP">+</button> :
                             <button onClick={() => this.addMetadata(StrCast(groupDoc.proto!.type))} title="Add KVP">+</button>}
-                        {/* <button onClick={this.viewGroupAsTable}>view group as table</button> */}
                         <button onClick={() => this.copyGroup(groupId, type)} title="Copy group to opposite anchor">↔</button>
                         <button onClick={() => this.removeGroupFromLink(groupId, type)} title="Remove group from link">x</button>
                         <button onClick={() => this.deleteGroup(groupId, type)} title="Delete group">xx</button>
+                        {this.viewGroupAsTable(groupId, type)}
                     </div>
                 </div>
             )
@@ -271,9 +321,19 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
         }
     }
 
-    viewGroupAsTable = (): void => {
-
+    viewGroupAsTable(groupId: string, groupType: string) {
+        let keys = LinkManager.Instance.allGroups.get(groupType);
+        let groupDoc = this._groups.get(groupId);
+        if (keys && groupDoc) {
+            console.log("keys:", ...keys);
+            let createTable = action(() => Docs.SchemaDocument(keys!, [Cast(groupDoc!["metadata"], Doc, new Doc)], { width: 200, height: 200, title: groupType + " table" }));
+            let ref = React.createRef<HTMLDivElement>();
+            return <div ref={ref}><button onPointerDown={SetupDrag(ref, createTable)}>:)</button></div>
+        } else {
+            return <></>
+        }
     }
+
 
     @action
     addMetadata = (groupType: string): void => {
@@ -286,7 +346,6 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
             mdKeys = ["new key"];
         }
         LinkManager.Instance.allGroups.set(groupType, mdKeys);
-
     }
 
     renderMetadata(groupId: string) {
