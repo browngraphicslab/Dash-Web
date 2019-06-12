@@ -154,14 +154,14 @@ export namespace DragManager {
     }
 
     export class AnnotationDragData {
-        constructor(dragDoc: Doc, annotationDocs: Doc[], dropDoc: Doc) {
+        constructor(dragDoc: Doc, annotationDoc: Doc, dropDoc: Doc) {
             this.dragDocument = dragDoc;
             this.dropDocument = dropDoc;
-            this.annotationDocuments = annotationDocs;
+            this.annotationDocument = annotationDoc;
             this.xOffset = this.yOffset = 0;
         }
         dragDocument: Doc;
-        annotationDocuments: Doc[];
+        annotationDocument: Doc;
         dropDocument: Doc;
         xOffset: number;
         yOffset: number;

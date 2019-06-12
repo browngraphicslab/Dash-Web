@@ -24,6 +24,8 @@ interface IPageProps {
     parent: PDFBox;
     renderAnnotations: (annotations: Doc[], removeOld: boolean) => void;
     makePin: (x: number, y: number, page: number) => void;
+    sendAnnotations: (annotations: HTMLDivElement[], page: number) => void;
+    receiveAnnotations: (page: number) => HTMLDivElement[] | undefined;
 }
 
 @observer
@@ -61,11 +63,19 @@ export default class Page extends React.Component<IPageProps> {
     componentDidMount = (): void => {
         if (this.props.pdf) {
             this.update(this.props.pdf);
+        }
 
+        let received = this.props.receiveAnnotations(this.props.page);
+        this._currentAnnotations = received ? received : [];
+        if (this._annotationLayer.current) {
+            this._annotationLayer.current.append(...this._currentAnnotations);
         }
     }
 
     componentWillUnmount = (): void => {
+        console.log(this._currentAnnotations);
+        this.props.sendAnnotations(this._currentAnnotations, this.props.page);
+
         if (this._reactionDisposer) {
             this._reactionDisposer();
         }
@@ -134,8 +144,9 @@ export default class Page extends React.Component<IPageProps> {
      * This method makes the list of current annotations into documents linked to
      * the parameter passed in.
      */
-    makeAnnotationDocuments = (targetDoc: Doc): Doc[] => {
+    makeAnnotationDocuments = (targetDoc: Doc): Doc => {
         let annoDocs: Doc[] = [];
+
         for (let anno of this._currentAnnotations) {
             let annoDoc = new Doc();
             annoDoc.x = anno.offsetLeft;
@@ -146,11 +157,13 @@ export default class Page extends React.Component<IPageProps> {
             annoDoc.target = targetDoc;
             annoDoc.type = AnnotationTypes.Region;
             annoDocs.push(annoDoc);
-            DocUtils.MakeLink(annoDoc, targetDoc, `Annotation from ${StrCast(this.props.parent.Document.title)}`, "", StrCast(this.props.parent.Document.title));
             anno.remove();
         }
+        let annoDoc = new Doc();
+        annoDoc.annotations = new List<Doc>(annoDocs);
+        DocUtils.MakeLink(annoDoc, targetDoc, `Annotation from ${StrCast(this.props.parent.Document.title)}`, "", StrCast(this.props.parent.Document.title));
         this._currentAnnotations = [];
-        return annoDocs;
+        return annoDoc;
     }
 
     /**
@@ -171,17 +184,17 @@ export default class Page extends React.Component<IPageProps> {
         let targetDoc = Docs.TextDocument({ width: 200, height: 200, title: "New Annotation" });
         targetDoc.targetPage = this.props.page;
         // creates annotation documents for current highlights
-        let annotationDocs = this.makeAnnotationDocuments(targetDoc);
+        let annotationDoc = this.makeAnnotationDocuments(targetDoc);
         let targetAnnotations = DocListCast(this.props.parent.Document.annotations);
         if (targetAnnotations) {
-            targetAnnotations.push(...annotationDocs);
+            targetAnnotations.push(annotationDoc);
             this.props.parent.Document.annotations = new List<Doc>(targetAnnotations);
         }
         else {
-            this.props.parent.Document.annotations = new List<Doc>(annotationDocs);
+            this.props.parent.Document.annotations = new List<Doc>([annotationDoc]);
         }
         // create dragData and star tdrag
-        let dragData = new DragManager.AnnotationDragData(thisDoc, annotationDocs, targetDoc);
+        let dragData = new DragManager.AnnotationDragData(thisDoc, annotationDoc, targetDoc);
         if (this._textLayer.current) {
             DragManager.StartAnnotationDrag([this._textLayer.current], dragData, e.pageX, e.pageY, {
                 handlers: {

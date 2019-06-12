@@ -7,7 +7,7 @@ import "./PDFViewer.scss";
 import "pdfjs-dist/web/pdf_viewer.css";
 import { PDFBox } from "../nodes/PDFBox";
 import Page from "./Page";
-import { NumCast, Cast, BoolCast } from "../../../new_fields/Types";
+import { NumCast, Cast, BoolCast, StrCast } from "../../../new_fields/Types";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { DocUtils, Docs } from "../../documents/Documents";
 import { DocumentManager } from "../../util/DocumentManager";
@@ -18,6 +18,8 @@ import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocum
 import { Transform } from "../../util/Transform";
 import { emptyFunction, returnTrue, returnFalse } from "../../../Utils";
 import { DocumentView } from "../nodes/DocumentView";
+import { DragManager } from "../../util/DragManager";
+import { Dictionary } from "typescript-collections";
 
 interface IPDFViewerProps {
     url: string;
@@ -83,12 +85,15 @@ class Viewer extends React.Component<IViewerProps> {
     @observable private _loaded: boolean = false;
     @observable private _pdf: Opt<Pdfjs.PDFDocumentProxy>;
     @observable private _annotations: Doc[] = [];
+    @observable private _pointerEvents: "all" | "none" = "all";
+    @observable private _savedAnnotations: Dictionary<number, HTMLDivElement[]> = new Dictionary<number, HTMLDivElement[]>();
 
     private _pageBuffer: number = 1;
     private _annotationLayer: React.RefObject<HTMLDivElement>;
     private _reactionDisposer?: IReactionDisposer;
     private _annotationReactionDisposer?: IReactionDisposer;
     private _pagesLoaded: number = 0;
+    private _dropDisposer?: DragManager.DragDropDisposer;
 
     constructor(props: IViewerProps) {
         super(props);
@@ -96,6 +101,7 @@ class Viewer extends React.Component<IViewerProps> {
         this._annotationLayer = React.createRef();
     }
 
+    @action
     componentDidMount = () => {
         let wasSelected = this.props.parent.props.isSelected();
         // reaction for when document gets (de)selected
@@ -105,10 +111,12 @@ class Viewer extends React.Component<IViewerProps> {
                 // if deselected, render images in place of pdf
                 if (wasSelected && !this.props.parent.props.isSelected()) {
                     this.saveThumbnail();
+                    this._pointerEvents = "all";
                 }
                 // if selected, render pdf
                 else if (!wasSelected && this.props.parent.props.isSelected()) {
                     this.renderPages(this.startIndex, this.endIndex, true);
+                    this._pointerEvents = "none";
                 }
                 wasSelected = this.props.parent.props.isSelected();
             },
@@ -131,6 +139,57 @@ class Viewer extends React.Component<IViewerProps> {
         setTimeout(() => {
             this.renderPages(this.startIndex, this.endIndex, true);
         }, 1000);
+    }
+
+    private mainCont = (div: HTMLDivElement | null) => {
+        if (this._dropDisposer) {
+            this._dropDisposer();
+        }
+        if (div) {
+            this._dropDisposer = DragManager.MakeDropTarget(div, {
+                handlers: { drop: this.drop.bind(this) }
+            });
+        }
+    }
+
+    makeAnnotationDocuments = (sourceDoc: Doc): Doc => {
+        let annoDocs: Doc[] = [];
+        this._savedAnnotations.forEach((key: number, value: HTMLDivElement[]) => {
+            for (let anno of value) {
+                let annoDoc = new Doc();
+                if (anno.style.left) annoDoc.x = parseInt(anno.style.left);
+                if (anno.style.top) annoDoc.y = parseInt(anno.style.top);
+                if (anno.style.height) annoDoc.height = parseInt(anno.style.height);
+                if (anno.style.width) annoDoc.width = parseInt(anno.style.width);
+                annoDoc.page = key;
+                annoDoc.target = sourceDoc;
+                annoDoc.type = AnnotationTypes.Region;
+                annoDocs.push(annoDoc);
+                anno.remove();
+            }
+        });
+
+        let annoDoc = new Doc();
+        annoDoc.annotations = new List<Doc>(annoDocs);
+        DocUtils.MakeLink(sourceDoc, annoDoc, `Annotation from ${StrCast(this.props.parent.Document.title)}`, "", StrCast(this.props.parent.Document.title));
+        this._savedAnnotations.clear();
+        return annoDoc;
+    }
+
+    drop = async (e: Event, de: DragManager.DropEvent) => {
+        if (de.data instanceof DragManager.LinkDragData) {
+            let sourceDoc = de.data.linkSourceDocument;
+            let destDoc = this.makeAnnotationDocuments(sourceDoc);
+            let targetAnnotations = DocListCast(this.props.parent.Document.annotations);
+            if (targetAnnotations) {
+                targetAnnotations.push(destDoc);
+                this.props.parent.Document.annotations = new List<Doc>(targetAnnotations);
+            }
+            else {
+                this.props.parent.Document.annotations = new List<Doc>([destDoc]);
+            }
+        }
+        e.stopPropagation();
     }
 
     componentWillUnmount = () => {
@@ -219,6 +278,8 @@ class Viewer extends React.Component<IViewerProps> {
                     parent={this.props.parent}
                     renderAnnotations={this.renderAnnotations}
                     makePin={this.createPinAnnotation}
+                    sendAnnotations={this.receiveAnnotations}
+                    receiveAnnotations={this.sendAnnotations}
                     {...this.props} />
             ));
             let arr = Array.from(Array(numPages).keys()).map(() => false);
@@ -257,6 +318,8 @@ class Viewer extends React.Component<IViewerProps> {
                         parent={this.props.parent}
                         makePin={this.createPinAnnotation}
                         renderAnnotations={this.renderAnnotations}
+                        sendAnnotations={this.receiveAnnotations}
+                        receiveAnnotations={this.sendAnnotations}
                         {...this.props} />
                 );
                 this._isPage[i] = true;
@@ -267,6 +330,15 @@ class Viewer extends React.Component<IViewerProps> {
         this._endIndex = endIndex;
 
         return;
+    }
+
+    @action
+    receiveAnnotations = (annotations: HTMLDivElement[], page: number) => {
+        this._savedAnnotations.setValue(page, annotations);
+    }
+
+    sendAnnotations = (page: number): HTMLDivElement[] | undefined => {
+        return this._savedAnnotations.getValue(page);
     }
 
     createPinAnnotation = (x: number, y: number, page: number): void => {
@@ -280,13 +352,15 @@ class Viewer extends React.Component<IViewerProps> {
         pinAnno.target = targetDoc;
         pinAnno.type = AnnotationTypes.Pin;
         // this._annotations.push(pinAnno);
+        let annoDoc = new Doc();
+        annoDoc.annotations = new List<Doc>([pinAnno]);
         let annotations = DocListCast(this.props.parent.Document.annotations);
         if (annotations && annotations.length) {
-            annotations.push(pinAnno);
+            annotations.push(annoDoc);
             this.props.parent.Document.annotations = new List<Doc>(annotations);
         }
         else {
-            this.props.parent.Document.annotations = new List<Doc>([pinAnno]);
+            this.props.parent.Document.annotations = new List<Doc>([annoDoc]);
         }
         // let pinAnno = document.createElement("div");
         // pinAnno.className = "pdfViewer-pinAnnotation";
@@ -349,20 +423,20 @@ class Viewer extends React.Component<IViewerProps> {
         return counter;
     }
 
-    renderAnnotation = (anno: Doc): JSX.Element => {
-        let type = NumCast(anno.type);
-        switch (type) {
-            case AnnotationTypes.Pin:
-                return <PinAnnotation parent={this} document={anno} x={NumCast(anno.x)} y={NumCast(anno.y) + this.getPageHeight(NumCast(anno.page))} width={anno[WidthSym]()} height={anno[HeightSym]()} key={anno[Id]} />;
-            case AnnotationTypes.Region:
-                return <RegionAnnotation parent={this} document={anno} x={NumCast(anno.x)} y={NumCast(anno.y) + this.getPageHeight(NumCast(anno.page))} width={anno[WidthSym]()} height={anno[HeightSym]()} key={anno[Id]} />;
-            default:
-                return <div></div>;
-        }
-    }
-
-    onDrop = (e: React.DragEvent) => {
-        console.log("Dropped!");
+    renderAnnotation = (anno: Doc): JSX.Element[] => {
+        let annotationDocs = DocListCast(anno.annotations);
+        let res = annotationDocs.map(a => {
+            let type = NumCast(a.type);
+            switch (type) {
+                case AnnotationTypes.Pin:
+                    return <PinAnnotation parent={this} document={a} x={NumCast(a.x)} y={NumCast(a.y) + this.getPageHeight(NumCast(a.page))} width={a[WidthSym]()} height={a[HeightSym]()} key={a[Id]} />;
+                case AnnotationTypes.Region:
+                    return <RegionAnnotation parent={this} document={a} x={NumCast(a.x)} y={NumCast(a.y) + this.getPageHeight(NumCast(a.page))} width={a[WidthSym]()} height={a[HeightSym]()} key={a[Id]} />;
+                default:
+                    return <div></div>;
+            }
+        });
+        return res;
     }
 
     // ScreenToLocalTransform = (): Transform => {
@@ -380,11 +454,11 @@ class Viewer extends React.Component<IViewerProps> {
     render() {
         trace();
         return (
-            <div onDrop={this.onDrop}>
+            <div ref={this.mainCont} style={{ pointerEvents: "all" }}>
                 <div className="viewer">
                     {this._visibleElements}
                 </div>
-                <div className="pdfViewer-annotationLayer" ref={this._annotationLayer} style={{ height: this.props.parent.Document.nativeHeight, width: `100%`, pointerEvents: "none" }}>
+                <div className="pdfViewer-annotationLayer" ref={this._annotationLayer} style={{ height: this.props.parent.Document.nativeHeight, width: `100%`, pointerEvents: this._pointerEvents }}>
                     <div className="pdfViewer-annotationLayer-subCont" style={{ transform: `translateY(${-this.scrollY}px)` }}>
                         {this._annotations.map(anno => this.renderAnnotation(anno))}
                     </div>
