@@ -15,6 +15,7 @@ import { observer } from "mobx-react";
 import "./SearchItem.scss";
 import { CollectionViewType } from "../collections/CollectionBaseView";
 import { DocTypes } from "../../documents/Documents";
+import { SearchBox } from "./SearchBox";
 
 export interface SearchItemProps {
     doc: Doc;
@@ -133,10 +134,16 @@ export class SearchItem extends React.Component<SearchItemProps> {
         return num.toString() + " links";
     }
 
+    pointerDown = (e: React.PointerEvent) => {
+        SearchBox.Instance.openSearch(e);
+    }
+
     render() {
         return (
-            <div className="search-overview">
-                <div className="search-item" ref={this.collectionRef} id="result" onClick={this.onClick} onPointerDown={SetupDrag(this.collectionRef, this.startDocDrag)} >
+            <div className="search-overview" onPointerDown = {this.pointerDown}>
+                <div className="search-item" ref={this.collectionRef} id="result" onClick={this.onClick} onPointerDown={ () => {
+                    this.pointerDown;
+                    SetupDrag(this.collectionRef, this.startDocDrag);}} >
                     <div className="main-search-info">
                         <div className="search-title" id="result" >{this.props.doc.title}</div>
                         <div className="search-info">
