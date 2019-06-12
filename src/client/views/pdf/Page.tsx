@@ -26,6 +26,8 @@ interface IPageProps {
     makePin: (x: number, y: number, page: number) => void;
     sendAnnotations: (annotations: HTMLDivElement[], page: number) => void;
     receiveAnnotations: (page: number) => HTMLDivElement[] | undefined;
+    createAnnotation: (div: HTMLDivElement, page: number) => void;
+    makeAnnotationDocuments: (doc: Doc) => Doc;
 }
 
 @observer
@@ -46,7 +48,6 @@ export default class Page extends React.Component<IPageProps> {
     private _annotationLayer: React.RefObject<HTMLDivElement>;
     private _marquee: React.RefObject<HTMLDivElement>;
     private _curly: React.RefObject<HTMLImageElement>;
-    private _currentAnnotations: HTMLDivElement[] = [];
     private _marqueeing: boolean = false;
     private _dragging: boolean = false;
     private _reactionDisposer?: IReactionDisposer;
@@ -64,18 +65,9 @@ export default class Page extends React.Component<IPageProps> {
         if (this.props.pdf) {
             this.update(this.props.pdf);
         }
-
-        let received = this.props.receiveAnnotations(this.props.page);
-        this._currentAnnotations = received ? received : [];
-        if (this._annotationLayer.current) {
-            this._annotationLayer.current.append(...this._currentAnnotations);
-        }
     }
 
     componentWillUnmount = (): void => {
-        console.log(this._currentAnnotations);
-        this.props.sendAnnotations(this._currentAnnotations, this.props.page);
-
         if (this._reactionDisposer) {
             this._reactionDisposer();
         }
@@ -140,33 +132,6 @@ export default class Page extends React.Component<IPageProps> {
     }
 
     /**
-     * @param targetDoc: Document that annotations are linked to
-     * This method makes the list of current annotations into documents linked to
-     * the parameter passed in.
-     */
-    makeAnnotationDocuments = (targetDoc: Doc): Doc => {
-        let annoDocs: Doc[] = [];
-
-        for (let anno of this._currentAnnotations) {
-            let annoDoc = new Doc();
-            annoDoc.x = anno.offsetLeft;
-            annoDoc.y = anno.offsetTop;
-            annoDoc.height = anno.offsetHeight;
-            annoDoc.width = anno.offsetWidth;
-            annoDoc.page = this.props.page;
-            annoDoc.target = targetDoc;
-            annoDoc.type = AnnotationTypes.Region;
-            annoDocs.push(annoDoc);
-            anno.remove();
-        }
-        let annoDoc = new Doc();
-        annoDoc.annotations = new List<Doc>(annoDocs);
-        DocUtils.MakeLink(annoDoc, targetDoc, undefined, `Annotation from ${StrCast(this.props.parent.Document.title)}`, "", StrCast(this.props.parent.Document.title));
-        this._currentAnnotations = [];
-        return annoDoc;
-    }
-
-    /**
      * This is temporary for creating annotations from highlights. It will
      * start a drag event and create or put the necessary info into the drag event.
      */
@@ -184,7 +149,7 @@ export default class Page extends React.Component<IPageProps> {
         let targetDoc = Docs.TextDocument({ width: 200, height: 200, title: "New Annotation" });
         targetDoc.targetPage = this.props.page;
         // creates annotation documents for current highlights
-        let annotationDoc = this.makeAnnotationDocuments(targetDoc);
+        let annotationDoc = this.props.makeAnnotationDocuments(targetDoc);
         let targetAnnotations = DocListCast(this.props.parent.Document.annotations);
         if (targetAnnotations) {
             targetAnnotations.push(annotationDoc);
@@ -246,10 +211,7 @@ export default class Page extends React.Component<IPageProps> {
             document.removeEventListener("pointerup", this.onSelectEnd);
             document.addEventListener("pointerup", this.onSelectEnd);
             if (!e.ctrlKey) {
-                for (let anno of this._currentAnnotations) {
-                    anno.remove();
-                }
-                this._currentAnnotations = [];
+                this.props.sendAnnotations([], -1);
             }
         }
     }
@@ -336,10 +298,7 @@ export default class Page extends React.Component<IPageProps> {
                     copy.style.opacity = this._marquee.current.style.opacity;
                 }
                 copy.className = this._marquee.current.className;
-                if (this._annotationLayer.current) {
-                    this._annotationLayer.current.append(copy);
-                    this._currentAnnotations.push(copy);
-                }
+                this.props.createAnnotation(copy, this.props.page);
                 this._marquee.current.style.opacity = "0";
             }
 
@@ -362,8 +321,7 @@ export default class Page extends React.Component<IPageProps> {
                             annoBox.style.left = ((rect.left - boundingRect.left) * (this._textLayer.current.offsetWidth / boundingRect.width)).toString();
                             annoBox.style.width = (rect.width * this._textLayer.current.offsetWidth / boundingRect.width).toString();
                             annoBox.style.height = (rect.height * this._textLayer.current.offsetHeight / boundingRect.height).toString();
-                            if (this._annotationLayer.current) this._annotationLayer.current.append(annoBox);
-                            this._currentAnnotations.push(annoBox);
+                            this.props.createAnnotation(annoBox, this.props.page);
                         }
                     }
                 }
@@ -393,19 +351,6 @@ export default class Page extends React.Component<IPageProps> {
             let y = (e.clientY - boundingRect.top) * (current.offsetHeight / boundingRect.height);
             this.props.makePin(x, y, this.props.page);
         }
-    }
-
-    renderAnnotation = (anno: Doc | undefined): HTMLDivElement => {
-        let annoBox = document.createElement("div");
-        if (anno) {
-            annoBox.className = "pdfViewer-annotationBox";
-            // transforms the positions from screen onto the pdf div
-            annoBox.style.top = NumCast(anno.x).toString();
-            annoBox.style.left = NumCast(anno.y).toString();
-            annoBox.style.width = NumCast(anno.width).toString();
-            annoBox.style.height = NumCast(anno.height).toString()
-        }
-        return annoBox;
     }
 
     render() {
