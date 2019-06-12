@@ -1,9 +1,9 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { Schema, NodeSpec, MarkSpec, DOMOutputSpecArray, NodeType } from "prosemirror-model";
-import { joinUp, lift, setBlockType, toggleMark, wrapIn } from 'prosemirror-commands';
+import { Schema, NodeSpec, MarkSpec, DOMOutputSpecArray, NodeType, Slice } from "prosemirror-model";
+import { joinUp, lift, setBlockType, toggleMark, wrapIn, selectNodeForward, deleteSelection } from 'prosemirror-commands';
 import { redo, undo } from 'prosemirror-history';
 import { orderedList, bulletList, listItem, } from 'prosemirror-schema-list';
-import { EditorState, Transaction, NodeSelection, } from "prosemirror-state";
+import { EditorState, Transaction, NodeSelection, TextSelection, Selection, } from "prosemirror-state";
 import { EditorView, } from "prosemirror-view";
 
 const pDOM: DOMOutputSpecArray = ["p", 0], blockquoteDOM: DOMOutputSpecArray = ["blockquote", 0], hrDOM: DOMOutputSpecArray = ["hr"],
@@ -26,13 +26,13 @@ export const nodes: { [index: string]: NodeSpec } = {
         toDOM() { return pDOM; }
     },
 
-    star: {
-        inline: true,
-        attrs: { oldtext: { default: "" } },
-        group: "inline",
-        toDOM() { return ["star", "㊉"]; },
-        parseDOM: [{ tag: "star" }]
-    },
+    // starmine: {
+    //     inline: true,
+    //     attrs: { oldtext: { default: "" } },
+    //     group: "inline",
+    //     toDOM() { return ["star", "㊉"]; },
+    //     parseDOM: [{ tag: "star" }]
+    // },
 
     // :: NodeSpec A blockquote (`<blockquote>`) wrapping one or more blocks.
     blockquote: {
@@ -85,6 +85,29 @@ export const nodes: { [index: string]: NodeSpec } = {
         group: "inline"
     },
 
+    star: {
+        inline: true,
+        attrs: {
+            visibility: { default: false },
+            oldtext: { default: undefined },
+            oldtextlen: { default: 0 }
+
+        },
+        group: "inline",
+        toDOM(node) {
+            const attrs = { style: `width: 40px` };
+            return ["span", { ...node.attrs, ...attrs }];
+        },
+        parseDOM: [{
+            tag: "span", getAttrs(dom: any) {
+                return {
+                    visibility: dom.getAttribute("visibility"),
+                    oldtext: dom.getAttribute("oldtext"),
+                    oldtextlen: dom.getAttribute("oldtextlen"),
+                }
+            }
+        }]
+    },
     // :: NodeSpec An inline image (`<img>`) node. Supports `src`,
     // `alt`, and `href` attributes. The latter two default to the empty
     // string.
@@ -426,17 +449,46 @@ export class ImageResizeView {
     }
 }
 
-// export class SummarizedView {
-//     _collapsed: HTMLElement;
-//     _selection: any;
-//     constructor(node: any) {
-//         this._collapsed = document.createElement("star");
-//         this._collapsed.onpointerdown = function (e: any) {
-//             console.log("star pressed!");
-//         };
+export class SummarizedView {
+    _collapsed: HTMLElement;
+    constructor(node: any, view: any, getPos: any) {
+        this._collapsed = document.createElement("span");
+        this._collapsed.textContent = "㊉";
+        this._collapsed.style.opacity = "0.5";
+        // this._collapsed.style.background = "yellow";
+        this._collapsed.style.position = "relative";
+        this._collapsed.style.width = "40px";
+        this._collapsed.style.height = "20px";
+        this._collapsed.onpointerdown = function (e: any) {
+            console.log("star pressed!");
+            if (node.attrs.visibility) {
+                node.attrs.visibility = !node.attrs.visibility;
+                console.log("content is visible");
+                let y = getPos();
+                view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.doc, y + 1, y + 1 + node.attrs.oldtextlen)));
+                view.dispatch(view.state.tr.deleteSelection(view.state, () => { }));
+                //this._collapsed.textContent = "㊀";
+            } else {
+                node.attrs.visibility = !node.attrs.visibility;
+                console.log("content is invisible");
+                let y = getPos();
+                console.log("PASTING " + node.attrs.oldtext.toString());
+                view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.doc, y + 1, y + 1)));
+                view.dispatch(view.state.tr.replaceSelection(node.attrs.oldtext));
+                //this._collapsed.textContent = "㊉";
+            }
+            e.preventDefault();
+            e.stopPropagation();
+        };
+        (this as any).dom = this._collapsed;
 
-//     }
-// }
+    }
+    selectNode() {
+    }
+
+    deselectNode() {
+    }
+}
 // :: Schema
 // This schema rougly corresponds to the document schema used by
 // [CommonMark](http://commonmark.org/), minus the list elements,
@@ -446,3 +498,14 @@ export class ImageResizeView {
 // To reuse elements from this schema, extend or read from its
 // `spec.nodes` and `spec.marks` [properties](#model.Schema.spec).
 export const schema = new Schema({ nodes, marks });
+
+const fromJson = schema.nodeFromJSON;
+
+schema.nodeFromJSON = (json: any) => {
+    if (json.type !== "star") {
+        return fromJson(json);
+    }
+    let x = fromJson(json);
+    x.attrs.oldtext = Slice.fromJSON(x.attrs.oldtext);
+    return x;
+}

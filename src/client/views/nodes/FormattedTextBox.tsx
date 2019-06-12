@@ -16,7 +16,7 @@ import { DocumentManager } from "../../util/DocumentManager";
 import { DragManager } from "../../util/DragManager";
 import buildKeymap from "../../util/ProsemirrorKeymap";
 import { inpRules } from "../../util/RichTextRules";
-import { ImageResizeView, schema } from "../../util/RichTextSchema";
+import { SummarizedView, ImageResizeView, schema } from "../../util/RichTextSchema";
 import { SelectionManager } from "../../util/SelectionManager";
 import { TooltipLinkingMenu } from "../../util/TooltipLinkingMenu";
 import { TooltipTextMenu } from "../../util/TooltipTextMenu";
@@ -191,7 +191,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 dispatchTransaction: this.dispatchTransaction,
                 nodeViews: {
                     image(node, view, getPos) { return new ImageResizeView(node, view, getPos); },
-                    //star(node, view, getPos) { return new SummarizedView(node); }
+                    star(node, view, getPos) { return new SummarizedView(node, view, getPos); }
                 }
             });
             let text = StrCast(this.props.Document.documentText);
