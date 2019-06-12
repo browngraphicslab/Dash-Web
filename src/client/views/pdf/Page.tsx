@@ -161,7 +161,7 @@ export default class Page extends React.Component<IPageProps> {
         }
         let annoDoc = new Doc();
         annoDoc.annotations = new List<Doc>(annoDocs);
-        DocUtils.MakeLink(annoDoc, targetDoc, `Annotation from ${StrCast(this.props.parent.Document.title)}`, "", StrCast(this.props.parent.Document.title));
+        DocUtils.MakeLink(annoDoc, targetDoc, undefined, `Annotation from ${StrCast(this.props.parent.Document.title)}`, "", StrCast(this.props.parent.Document.title));
         this._currentAnnotations = [];
         return annoDoc;
     }

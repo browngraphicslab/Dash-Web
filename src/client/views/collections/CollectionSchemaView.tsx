@@ -431,14 +431,12 @@ export class CollectionSchemaPreview extends React.Component<CollectionSchemaPre
         }
     }
     render() {
-        trace();
-        console.log(this.props.Document);
         let input = this.props.previewScript === undefined ? (null) :
             <input className="collectionSchemaView-input" value={this.props.previewScript} onChange={this.onPreviewScriptChange}
                 style={{ left: `calc(50% - ${Math.min(75, (this.props.Document ? this.PanelWidth() / 2 : 75))}px)` }} />;
-        return (<div className="collectionSchemaView-previewRegion" style={{ width: this.props.width() }}>
+        return (<div className="collectionSchemaView-previewRegion" style={{ width: this.props.width(), height: "100%" }}>
             {!this.props.Document || !this.props.width ? (null) : (
-                <div className="collectionSchemaView-previewDoc" style={{ transform: `translate(${this.centeringOffset}px, 0px)` }}>
+                <div className="collectionSchemaView-previewDoc" style={{ transform: `translate(${this.centeringOffset}px, 0px)`, height: "100%" }}>
                     <DocumentView Document={this.props.Document} isTopMost={false} selectOnLoad={false}
                         addDocument={this.props.addDocument} removeDocument={this.props.removeDocument}
                         ScreenToLocalTransform={this.getTransform}

@@ -141,17 +141,12 @@ declare abstract class RefField {
     readonly [Id]: FieldId;
 
     constructor();
-    // protected [HandleUpdate]?(diff: any): void;
-
-    // abstract [ToScriptString](): string;
 }
 
-declare abstract class ObjectField {
-    protected [OnUpdate](diff?: any): void;
-    private [Parent]?: RefField | ObjectField;
-    // abstract [Copy](): ObjectField;
+declare type FieldId = string;
 
-    // abstract [ToScriptString](): string;
+declare abstract class ObjectField {
+    abstract [Copy](): ObjectField;
 }
 
 declare abstract class URLField extends ObjectField {
@@ -161,32 +156,51 @@ declare abstract class URLField extends ObjectField {
     constructor(url: URL);
 }
 
-declare class AudioField extends URLField { }
-declare class VideoField extends URLField { }
-declare class ImageField extends URLField { }
-declare class WebField extends URLField { }
-declare class PdfField extends URLField { }
+declare class AudioField extends URLField { [Copy](): ObjectField; }
+declare class VideoField extends URLField { [Copy](): ObjectField; }
+declare class ImageField extends URLField { [Copy](): ObjectField; }
+declare class WebField extends URLField { [Copy](): ObjectField; }
+declare class PdfField extends URLField { [Copy](): ObjectField; }
 
-declare type FieldId = string;
+declare const ComputedField: any;
+declare const CompileScript: any;
 
+// @ts-ignore
+declare type Extract<T, U> = T extends U ? T : never;
 declare type Field = number | string | boolean | ObjectField | RefField;
+declare type FieldWaiting<T extends RefField = RefField> = T extends undefined ? never : Promise<T | undefined>;
+declare type FieldResult<T extends Field = Field> = Opt<T> | FieldWaiting<Extract<T, RefField>>;
 
 declare type Opt<T> = T | undefined;
 declare class Doc extends RefField {
     constructor();
 
-    [key: string]: Field | undefined;
+    [key: string]: FieldResult;
     // [ToScriptString](): string;
 }
 
 declare class ListImpl<T extends Field> extends ObjectField {
     constructor(fields?: T[]);
     [index: number]: T | (T extends RefField ? Promise<T> : never);
-    // [ToScriptString](): string;
-    // [Copy](): ObjectField;
+    [Copy](): ObjectField;
 }
 
 // @ts-ignore
 declare const console: any;
 
-declare const Documents: any;
+interface DocumentOptions { }
+
+declare const Docs: {
+    ImageDocument(url: string, options?: DocumentOptions): Doc;
+    VideoDocument(url: string, options?: DocumentOptions): Doc;
+    // HistogramDocument(url:string, options?:DocumentOptions);
+    TextDocument(options?: DocumentOptions): Doc;
+    PdfDocument(url: string, options?: DocumentOptions): Doc;
+    WebDocument(url: string, options?: DocumentOptions): Doc;
+    HtmlDocument(html: string, options?: DocumentOptions): Doc;
+    KVPDocument(document: Doc, options?: DocumentOptions): Doc;
+    FreeformDocument(documents: Doc[], options?: DocumentOptions): Doc;
+    SchemaDocument(columns: string[], documents: Doc[], options?: DocumentOptions): Doc;
+    TreeDocument(documents: Doc[], options?: DocumentOptions): Doc;
+    StackingDocument(documents: Doc[], options?: DocumentOptions): Doc;
+};

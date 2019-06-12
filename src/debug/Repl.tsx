@@ -4,6 +4,8 @@ import { observer } from 'mobx-react';
 import { observable, computed } from 'mobx';
 import { CompileScript } from '../client/util/Scripting';
 import { makeInterface } from '../new_fields/Schema';
+import { ObjectField } from '../new_fields/ObjectField';
+import { RefField } from '../new_fields/RefField';
 
 @observer
 class Repl extends React.Component {
@@ -42,7 +44,8 @@ class Repl extends React.Component {
             return (
                 <div style={{ marginTop: "5px" }}>
                     <p>{command.command}</p>
-                    <pre>{JSON.stringify(command.result, null, 2)}</pre>
+                    {/* <pre>{JSON.stringify(command.result, null, 2)}</pre> */}
+                    <pre>{command.result instanceof RefField || command.result instanceof ObjectField ? "object" : String(command.result)}</pre>
                 </div>
             );
         });

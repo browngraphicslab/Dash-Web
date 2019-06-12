@@ -1,28 +1,29 @@
 import 'golden-layout/src/css/goldenlayout-base.css';
 import 'golden-layout/src/css/goldenlayout-dark-theme.css';
-import { action, observable, reaction, Lambda } from "mobx";
+import { action, Lambda, observable, reaction } from "mobx";
 import { observer } from "mobx-react";
 import * as ReactDOM from 'react-dom';
 import Measure from "react-measure";
 import * as GoldenLayout from "../../../client/goldenLayout";
-import { Doc, Field, Opt, DocListCast } from "../../../new_fields/Doc";
+import { Doc, DocListCast, Field, Opt } from "../../../new_fields/Doc";
+import { Id } from '../../../new_fields/FieldSymbols';
 import { FieldId } from "../../../new_fields/RefField";
 import { listSpec } from "../../../new_fields/Schema";
 import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
 import { emptyFunction, returnTrue, Utils } from "../../../Utils";
 import { DocServer } from "../../DocServer";
+import { DocumentManager } from '../../util/DocumentManager';
 import { DragLinksAsDocuments, DragManager } from "../../util/DragManager";
+import { SelectionManager } from '../../util/SelectionManager';
 import { Transform } from '../../util/Transform';
 import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { DocumentView } from "../nodes/DocumentView";
+import { CollectionViewType } from './CollectionBaseView';
 import "./CollectionDockingView.scss";
 import { SubCollectionViewProps } from "./CollectionSubView";
-import React = require("react");
 import { ParentDocSelector } from './ParentDocumentSelector';
-import { DocumentManager } from '../../util/DocumentManager';
-import { CollectionViewType } from './CollectionBaseView';
-import { Id } from '../../../new_fields/FieldSymbols';
-import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
+import React = require("react");
+import { MainView } from '../MainView';
 
 @observer
 export class CollectionDockingView extends React.Component<SubCollectionViewProps> {
@@ -357,6 +358,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                 if (doc instanceof Doc) {
                     let theDoc = doc;
                     CollectionDockingView.Instance._removedDocs.push(theDoc);
+                    SelectionManager.DeselectAll();
                 }
                 tab.contentItem.remove();
             });
@@ -456,7 +458,9 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     get previewPanelCenteringOffset() { return (this._panelWidth - this.nativeWidth() * this.contentScaling()) / 2; }
 
     addDocTab = (doc: Doc, location: string) => {
-        if (location === "onRight") {
+        if (doc.dockingConfig) {
+            MainView.Instance.openWorkspace(doc);
+        } else if (location === "onRight") {
             CollectionDockingView.Instance.AddRightSplit(doc);
         } else {
             CollectionDockingView.Instance.AddTab(this._stack, doc);

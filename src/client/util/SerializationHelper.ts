@@ -45,13 +45,17 @@ export namespace SerializationHelper {
             throw Error(`type '${obj.__type}' not registered. Make sure you register it using a @Deserializable decorator`);
         }
 
-        const value = deserialize(serializationTypes[obj.__type], obj);
+        const type = serializationTypes[obj.__type];
+        const value = deserialize(type.ctor, obj);
+        if (type.afterDeserialize) {
+            type.afterDeserialize(value);
+        }
         serializing -= 1;
         return value;
     }
 }
 
-let serializationTypes: { [name: string]: any } = {};
+let serializationTypes: { [name: string]: { ctor: { new(): any }, afterDeserialize?: (obj: any) => void } } = {};
 let reverseMap: { [ctor: string]: string } = {};
 
 export interface DeserializableOpts {
@@ -59,9 +63,9 @@ export interface DeserializableOpts {
     withFields(fields: string[]): Function;
 }
 
-export function Deserializable(name: string): DeserializableOpts;
+export function Deserializable(name: string, afterDeserialize?: (obj: any) => void): DeserializableOpts;
 export function Deserializable(constructor: { new(...args: any[]): any }): void;
-export function Deserializable(constructor: { new(...args: any[]): any } | string): DeserializableOpts | void {
+export function Deserializable(constructor: { new(...args: any[]): any } | string, afterDeserialize?: (obj: any) => void): DeserializableOpts | void {
     function addToMap(name: string, ctor: { new(...args: any[]): any }) {
         const schema = getDefaultModelSchema(ctor) as any;
         if (schema.targetClass !== ctor) {
@@ -69,7 +73,7 @@ export function Deserializable(constructor: { new(...args: any[]): any } | strin
             setDefaultModelSchema(ctor, newSchema);
         }
         if (!(name in serializationTypes)) {
-            serializationTypes[name] = ctor;
+            serializationTypes[name] = { ctor, afterDeserialize };
             reverseMap[ctor.name] = name;
         } else {
             throw new Error(`Name ${name} has already been registered as deserializable`);

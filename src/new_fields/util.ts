@@ -6,7 +6,8 @@ import { FieldValue } from "./Types";
 import { RefField } from "./RefField";
 import { ObjectField } from "./ObjectField";
 import { action } from "mobx";
-import { Parent, OnUpdate, Update, Id } from "./FieldSymbols";
+import { Parent, OnUpdate, Update, Id, SelfProxy } from "./FieldSymbols";
+import { ComputedField } from "../fields/ScriptField";
 
 export const setter = action(function (target: any, prop: string | symbol | number, value: any, receiver: any): boolean {
     if (SerializationHelper.IsSerializing()) {
@@ -43,7 +44,8 @@ export const setter = action(function (target: any, prop: string | symbol | numb
     } else {
         target.__fields[prop] = value;
     }
-    target[Update]({ '$set': { ["fields." + prop]: value instanceof ObjectField ? SerializationHelper.Serialize(value) : (value === undefined ? null : value) } });
+    if (value === undefined) target[Update]({ '$unset': { ["fields." + prop]: "" } });
+    else target[Update]({ '$set': { ["fields." + prop]: value instanceof ObjectField ? SerializationHelper.Serialize(value) : (value === undefined ? null : value) } });
     UndoManager.AddEvent({
         redo: () => receiver[prop] = value,
         undo: () => receiver[prop] = curValue
@@ -60,33 +62,22 @@ export function getter(target: any, prop: string | symbol | number, receiver: an
     }
     return getField(target, prop);
 }
-function getProtoField(protoField: Doc | undefined, prop: string | number, cb?: (field: Field | undefined) => void) {
-    if (!protoField) return undefined;
-    let field = protoField[prop];
-    if (field instanceof Promise) {
-        cb && field.then(cb);
-        return field;
-    } else {
-        cb && cb(field);
-        return field;
-    }
-}
 
-//TODO The callback parameter is never being passed in currently, so we should be able to get rid of it.
-export function getField(target: any, prop: string | number, ignoreProto: boolean = false, callback?: (field: Field | undefined) => void): any {
+export function getField(target: any, prop: string | number, ignoreProto: boolean = false): any {
     const field = target.__fields[prop];
     if (field instanceof ProxyField) {
-        return field.value(callback);
+        return field.value();
+    }
+    if (field instanceof ComputedField) {
+        return field.value;
     }
     if (field === undefined && !ignoreProto && prop !== "proto") {
         const proto = getField(target, "proto", true);
         if (proto instanceof Doc) {
-            return getProtoField(proto, prop, callback);
-        } else if (proto instanceof Promise) {
-            return proto.then(async proto => getProtoField(proto, prop, callback));
+            return proto[prop];
         }
+        return undefined;
     }
-    callback && callback(field);
     return field;
 }
 
@@ -95,7 +86,8 @@ export function deleteProperty(target: any, prop: string | number | symbol) {
         delete target[prop];
         return true;
     }
-    throw new Error("Currently properties can't be deleted from documents, assign to undefined instead");
+    target[SelfProxy][prop] = undefined;
+    return true;
 }
 
 export function updateFunction(target: any, prop: any, value: any, receiver: any) {
