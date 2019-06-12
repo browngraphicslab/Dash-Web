@@ -451,7 +451,7 @@ export class ImageResizeView {
 }
 
 export class SummarizedView {
-    // TODO: highlight 
+    // TODO: highlight text that is summarized. to find end of region, walk along mark
     _collapsed: HTMLElement;
     constructor(node: any, view: any, getPos: any) {
         this._collapsed = document.createElement("span");
