@@ -32,7 +32,7 @@ export class LinkMenu extends React.Component<Props> {
     //     });
     // }
 
-    renderLinkGroupItems(links: Doc[]) {
+    renderGroup(links: Doc[]) {
         let source = this.props.docView.Document;
         return links.map(link => {
             let destination = LinkUtils.findOppositeAnchor(link, source);
@@ -43,7 +43,7 @@ export class LinkMenu extends React.Component<Props> {
         });
     }
 
-    renderLinkItems = (links: Map<string, Array<Doc>>): Array<JSX.Element> => {
+    renderLinks = (links: Map<string, Array<Doc>>): Array<JSX.Element> => {
         let linkItems: Array<JSX.Element> = [];
 
         links.forEach((links, group) => {
@@ -51,7 +51,7 @@ export class LinkMenu extends React.Component<Props> {
                 <div key={group} className="link-menu-group">
                     <p className="link-menu-group-name">{group}:</p>
                     <div className="link-menu-group-wrapper">
-                        {this.renderLinkGroupItems(links)}
+                        {this.renderGroup(links)}
                     </div>
                 </div>
             )
@@ -65,10 +65,7 @@ export class LinkMenu extends React.Component<Props> {
     }
 
     render() {
-        //get list of links from document
-        // let linkFrom = DocListCast(this.props.docView.props.Document.linkedFromDocs);
-        // let linkTo = DocListCast(this.props.docView.props.Document.linkedToDocs);
-        let related = LinkManager.Instance.findRelatedGroupedLinks(this.props.docView.props.Document);
+        let related: Map<string, Doc[]> = LinkManager.Instance.findRelatedGroupedLinks(this.props.docView.props.Document);
         if (this._editingLink === undefined) {
             return (
                 <div id="linkMenu-container">
@@ -76,31 +73,11 @@ export class LinkMenu extends React.Component<Props> {
                     <div id="linkMenu-list">
                         {/* {this.renderLinkItems(linkTo, "linkedTo", "Destination: ")}
                         {this.renderLinkItems(linkFrom, "linkedFrom", "Source: ")} */}
-                        {this.renderLinkItems(related)}
+                        {this.renderLinks(related)}
                     </div>
                 </div>
             );
         } else {
-            // let groups = new Map<string, Doc>();
-            // let metadata: Map<string, Map<string, Doc>> = new Map();
-            // let groupList = (Doc.AreProtosEqual(this.props.docView.props.Document, Cast(this._editingLink.anchor1, Doc, new Doc))) ?
-            //     Cast(this._editingLink.anchor1Groups, listSpec(Doc), []) : Cast(this._editingLink.anchor2Groups, listSpec(Doc), []);
-            // groupList.forEach(groupDoc => {
-            //     if (groupDoc instanceof Doc) {
-            //         let id = Utils.GenerateGuid();
-            //         groups.set(id, groupDoc);
-
-            //         let metadataMap = new Map<string, Doc>();
-            //         let metadataDocs = Cast(groupDoc.proto!.metadata, listSpec(Doc), []);
-            //         metadataDocs.forEach(mdDoc => {
-            //             if (mdDoc && mdDoc instanceof Doc) { // TODO: handle promise doc
-            //                 metadataMap.set(Utils.GenerateGuid(), mdDoc);
-            //             }
-            //         })
-            //         metadata.set(id, metadataMap);
-            //     }
-            // })
-
             return (
                 <LinkEditor sourceDoc={this.props.docView.props.Document} linkDoc={this._editingLink} showLinks={action(() => this._editingLink = undefined)}></LinkEditor>
             );

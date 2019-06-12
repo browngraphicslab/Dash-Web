@@ -74,6 +74,7 @@
     }
     .linkEditor-group-row {
         display: flex;
+        margin-bottom: 6px;
         .linkEditor-group-row-label {
             margin-right: 6px;
         }
@@ -81,8 +82,17 @@
     .linkEditor-metadata-row {
         display: flex;
         justify-content: space-between;
+        margin-bottom: 6px;
         input {
-            width: calc(50% - 2px);
+            width: calc(50% - 18px);
+            height: 20px;
+        }
+        button {
+            width: 20px;
+            height: 20px;
+            margin-left: 6px;
+            padding: 0;
+            font-size: 14px;
         }
     }
 }
@@ -90,6 +100,7 @@
 .linkEditor-dropdown {
     width: 100%;
     position: relative;
+    z-index: 999;
     .linkEditor-options-wrapper {
         width: 100%;
         position: absolute;
@@ -105,6 +116,25 @@
         cursor: pointer;
         &:hover {
             background-color:  $light-color-secondary;
+        }
+    }
+}
+
+.linkEditor-group-buttons {
+    height: 20px;
+    display: flex;
+    justify-content: space-between;
+    button {
+        width: 31%;
+        height: 20px;
+        margin-left: 6px;
+        padding: 0;
+        font-size: 10px;
+        &:first-child { // delete
+            font-size: 14px;
+        }
+        &:disabled { // delete
+            background-color: gray;
         }
     }
 }

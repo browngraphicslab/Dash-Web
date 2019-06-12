@@ -9,6 +9,7 @@ import { StrCast, Cast } from "../../new_fields/Types";
 import { Doc } from "../../new_fields/Doc";
 import { listSpec } from "../../new_fields/Schema";
 import { List } from "../../new_fields/List";
+import { string } from "prop-types";
 
 export namespace LinkUtils {
     export function findOppositeAnchor(link: Doc, anchor: Doc): Doc {
@@ -40,14 +41,48 @@ export namespace LinkUtils {
     // }
 
     export function setAnchorGroups(link: Doc, anchor: Doc, groups: Doc[]) {
+        // console.log("setting groups for anchor", anchor["title"]);
         if (Doc.AreProtosEqual(anchor, Cast(link.anchor1, Doc, new Doc))) {
             link.anchor1Groups = new List<Doc>(groups);
         } else {
             link.anchor2Groups = new List<Doc>(groups);
         }
     }
+
+    export function removeGroupFromAnchor(link: Doc, anchor: Doc, groupType: string) {
+        let groups = [];
+        if (Doc.AreProtosEqual(anchor, Cast(link.anchor1, Doc, new Doc))) {
+            groups = Cast(link["anchor1Groups"], listSpec(Doc), []);
+        } else {
+            groups = Cast(link["anchor2Groups"], listSpec(Doc), []);
+        }
+
+        let newGroups: Doc[] = [];
+        groups.forEach(groupDoc => {
+            if (groupDoc instanceof Doc && StrCast(groupDoc["type"]) !== groupType) {
+                newGroups.push(groupDoc);
+            }
+        })
+        LinkUtils.setAnchorGroups(link, anchor, newGroups);
+    }
 }
 
+/* 
+ * link doc: 
+ * - anchor1: doc
+ * - anchor1page: number
+ * - anchor1groups: list of group docs representing the groups anchor1 categorizes this link/anchor2 in 
+ * - anchor2: doc
+ * - anchor2page: number
+ * - anchor2groups: list of group docs representing the groups anchor2 categorizes this link/anchor1 in 
+ * 
+ * group doc:
+ * - type: string representing the group type/name/category
+ * - metadata: doc representing the metadata kvps
+ * 
+ * metadata doc:
+ * - user defined kvps 
+ */
 export class LinkManager {
     private static _instance: LinkManager;
     public static get Instance(): LinkManager {
@@ -56,60 +91,57 @@ export class LinkManager {
     private constructor() {
     }
 
-    @observable public allLinks: Array<Doc> = [];
-    @observable public allGroups: Map<string, Array<string>> = new Map();
+    @observable public allLinks: Array<Doc> = []; // list of link docs
+    @observable public allGroups: Map<string, Array<string>> = new Map(); // map of group type to list of its metadata keys
 
     public findAllRelatedLinks(anchor: Doc): Array<Doc> {
         return LinkManager.Instance.allLinks.filter(
             link => Doc.AreProtosEqual(anchor, Cast(link.anchor1, Doc, new Doc)) || Doc.AreProtosEqual(anchor, Cast(link.anchor2, Doc, new Doc)));
     }
 
+    // returns map of group type to anchor's links in that group type
     public findRelatedGroupedLinks(anchor: Doc): Map<string, Array<Doc>> {
         let related = this.findAllRelatedLinks(anchor);
 
-        let anchorGroups = new Map();
+        let anchorGroups = new Map<string, Array<Doc>>();
         related.forEach(link => {
-            // get groups of given doc
-            let oppGroups = (Doc.AreProtosEqual(anchor, Cast(link.anchor1, Doc, new Doc))) ? Cast(link.anchor1Groups, listSpec(Doc), []) : Cast(link.anchor2Groups, listSpec(Doc), []);
-            if (oppGroups) {
-                if (oppGroups.length > 0) {
-                    oppGroups.forEach(groupDoc => {
-                        if (groupDoc instanceof Doc) {
-                            let groupType = StrCast(groupDoc.proto!.type);
-                            let group = anchorGroups.get(groupType); // TODO: clean this up lol
-                            if (group) group.push(link);
-                            else group = [link];
-                            anchorGroups.set(groupType, group);
-                        } else {
-                            // promise doc
-                        }
 
-                    })
-                }
-                else {
-                    // if link is in no groups then put it in default group
-                    let group = anchorGroups.get("*");
-                    if (group) group.push(link);
-                    else group = [link];
-                    anchorGroups.set("*", group);
-                }
+            // get groups of given anchor categorizes this link/opposite anchor in
+            let groups = (Doc.AreProtosEqual(anchor, Cast(link.anchor1, Doc, new Doc))) ? Cast(link.anchor1Groups, listSpec(Doc), []) : Cast(link.anchor2Groups, listSpec(Doc), []);
+            if (groups.length > 0) {
+                groups.forEach(groupDoc => {
+                    if (groupDoc instanceof Doc) {
+                        let groupType = StrCast(groupDoc["type"]);
+                        let group = anchorGroups.get(groupType); // TODO: clean this up lol
+                        if (group) group.push(link);
+                        else group = [link];
+                        anchorGroups.set(groupType, group);
+                    } else {
+                        // promise doc
+                    }
+
+                })
+            }
+            else {
+                // if link is in no groups then put it in default group
+                let group = anchorGroups.get("*");
+                if (group) group.push(link);
+                else group = [link];
+                anchorGroups.set("*", group);
             }
 
-
-            //     let anchor = this.findOppositeAnchor(link, source);
-            //     let group = categories.get(link.linkTags);
-            //     if (group) group.push(link);
-            //     else group = [link];
-            //     categories.set(link.linkTags, group);
         })
         return anchorGroups;
     }
 
-
-
-
-    // public findAnchorTags(link: Doc, source: Doc): Doc[] {
-    //     if (source)
-    // }
+    public deleteGroup(groupType: string) {
+        let deleted = LinkManager.Instance.allGroups.delete(groupType);
+        if (deleted) {
+            LinkManager.Instance.allLinks.forEach(linkDoc => {
+                LinkUtils.removeGroupFromAnchor(linkDoc, Cast(linkDoc["anchor1"], Doc, new Doc), groupType);
+                LinkUtils.removeGroupFromAnchor(linkDoc, Cast(linkDoc["anchor2"], Doc, new Doc), groupType);
+            })
+        }
+    }
 
 }

@@ -1,11 +1,7 @@
 import { observable, computed, action } from "mobx";
 import React = require("react");
-import { SelectionManager } from "../../util/SelectionManager";
 import { observer } from "mobx-react";
 import './LinkEditor.scss';
-import { props } from "bluebird";
-import { DocumentView } from "./DocumentView";
-import { link } from "fs";
 import { StrCast, Cast } from "../../../new_fields/Types";
 import { Doc } from "../../../new_fields/Doc";
 import { List } from "../../../new_fields/List";
@@ -21,7 +17,7 @@ import { string } from "prop-types";
 library.add(faArrowLeft);
 library.add(faEllipsisV);
 
-// this dropdown could be generalizeds
+// this dropdown could be generalized
 @observer
 class LinkGroupsDropdown extends React.Component<{ groupId: string, groupType: string, setGroup: (groupId: string, group: string) => void }> {
     @observable private _searchTerm: string = "";
@@ -63,7 +59,7 @@ class LinkGroupsDropdown extends React.Component<{ groupId: string, groupType: s
 
         if (!exactFound && this._searchTerm !== "") {
             options.push(<div key={""} className="linkEditor-option"
-                onClick={() => { this.createGroup(this._searchTerm); this.setGroupType(this._searchTerm); this.setSearchTerm("") }}>Create new "{this._searchTerm}" group</div>)
+                onClick={() => { this.createGroup(this._searchTerm); this.setGroupType(this._searchTerm); this.setSearchTerm("") }}>Define new "{this._searchTerm}" relationship</div>)
         }
 
         return options;
@@ -81,6 +77,8 @@ class LinkGroupsDropdown extends React.Component<{ groupId: string, groupType: s
         )
     }
 }
+
+
 
 @observer
 class LinkMetadataEditor extends React.Component<{ groupType: string, mdDoc: Doc, mdKey: string, mdValue: string }> {
@@ -111,11 +109,28 @@ class LinkMetadataEditor extends React.Component<{ groupType: string, mdDoc: Doc
         this._value = value;
     }
 
+    @action
+    removeMetadata = (): void => {
+        let groupMdKeys = new Array(...LinkManager.Instance.allGroups.get(this.props.groupType)!);
+        if (groupMdKeys) {
+            let index = groupMdKeys.indexOf(this._key);
+            if (index > -1) {
+                groupMdKeys.splice(index, 1);
+            }
+            else {
+                console.log("OLD KEY WAS NOT FOUND", ...groupMdKeys)
+            }
+        }
+        this._key = "";
+        LinkManager.Instance.allGroups.set(this.props.groupType, groupMdKeys);
+    }
+
     render() {
         return (
             <div className="linkEditor-metadata-row">
                 <input type="text" value={this._key} placeholder="key" onChange={e => this.editMetadataKey(e.target.value)}></input>:
                 <input type="text" value={this._value} placeholder="value" onChange={e => this.editMetadataValue(e.target.value)}></input>
+                <button onClick={() => this.removeMetadata()}>X</button>
             </div>
         )
     }
@@ -131,85 +146,129 @@ interface LinkEditorProps {
 @observer
 export class LinkEditor extends React.Component<LinkEditorProps> {
 
-    @observable private _groups: Map<string, Doc> = new Map();
-    @observable private _metadata: Map<string, Map<string, Doc>> = new Map();
+    @observable private _groups: Map<string, Doc> = new Map(); // map of temp group id to the corresponding group doc
 
     constructor(props: LinkEditorProps) {
         super(props);
 
         let groups = new Map<string, Doc>();
-        let metadata: Map<string, Map<string, Doc>> = new Map();
         let groupList = (Doc.AreProtosEqual(props.sourceDoc, Cast(props.linkDoc.anchor1, Doc, new Doc))) ?
             Cast(props.linkDoc.anchor1Groups, listSpec(Doc), []) : Cast(props.linkDoc.anchor2Groups, listSpec(Doc), []);
         groupList.forEach(groupDoc => {
             if (groupDoc instanceof Doc) {
                 let id = Utils.GenerateGuid();
                 groups.set(id, groupDoc);
-
-                let metadataMap = new Map<string, Doc>();
-                let metadataDocs = Cast(groupDoc.proto!.metadata, listSpec(Doc), []);
-                metadataDocs.forEach(mdDoc => {
-                    if (mdDoc && mdDoc instanceof Doc) { // TODO: handle promise doc
-                        metadataMap.set(Utils.GenerateGuid(), mdDoc);
-                    }
-                })
-                metadata.set(id, metadataMap);
             } else {
                 // promise doc
             }
         })
         this._groups = groups;
-        this._metadata = metadata;
-    }
-
-    // @action
-    // editGroup(groupId: string, value: string) {
-    //     let linkDoc = this.props.linkDoc.proto ? this.props.linkDoc.proto : this.props.linkDoc;
-    //     let groupDoc = this._groups.get(groupId);
-    //     if (groupDoc) {
-    //         groupDoc.proto!.type = value;
-    //         LinkUtils.setAnchorGroups(linkDoc, this.props.sourceDoc, [groupDoc]);
-    //     }
-    // }
-
-    @action
-    addGroup = (e: React.MouseEvent): void => {
-        // create new document for group
-        let groupDoc = Docs.TextDocument();
-        groupDoc.proto!.title = "";
-        groupDoc.proto!.metadata = new List<Doc>([]);
-
-        this._groups.set(Utils.GenerateGuid(), groupDoc);
-
-        let linkDoc = this.props.linkDoc.proto ? this.props.linkDoc.proto : this.props.linkDoc;
-        LinkUtils.setAnchorGroups(linkDoc, this.props.sourceDoc, Array.from(this._groups.values()));
     }
 
     @action
-    setGroup = (groupId: string, group: string): void => {
+    addGroup = (): void => {
+        console.log("before adding", ...Array.from(this._groups.keys()));
+
+        let index = Array.from(this._groups.values()).findIndex(groupDoc => {
+            return groupDoc["type"] === "New Group";
+        })
+        if (index === -1) {
+            // create new document for group
+            let groupDoc = Docs.TextDocument();
+            groupDoc.proto!.type = "New Group";
+            groupDoc.proto!.metadata = Docs.TextDocument();
+
+            this._groups.set(Utils.GenerateGuid(), groupDoc);
+
+            let linkDoc = this.props.linkDoc.proto ? this.props.linkDoc.proto : this.props.linkDoc;
+            LinkUtils.setAnchorGroups(linkDoc, this.props.sourceDoc, Array.from(this._groups.values()));
+        }
+
+
+        // console.log("set anchor groups for", this.props.sourceDoc["title"]);
+        console.log("after adding", ...Array.from(this._groups.keys()));
+    }
+
+    @action
+    setGroupType = (groupId: string, groupType: string): void => {
+        console.log("setting for ", groupId);
         let linkDoc = this.props.linkDoc.proto ? this.props.linkDoc.proto : this.props.linkDoc;
         let groupDoc = this._groups.get(groupId);
         if (groupDoc) {
-            groupDoc.proto!.type = group;
-            LinkUtils.setAnchorGroups(linkDoc, this.props.sourceDoc, [groupDoc]);
+            console.log("found group doc");
+            groupDoc.proto!.type = groupType;
+
+            this._groups.set(groupId, groupDoc);
+
+            let gd = this._groups.get(groupId);
+            if (gd)
+                console.log("just created", StrCast(gd["type"]));
+
+            LinkUtils.setAnchorGroups(linkDoc, this.props.sourceDoc, Array.from(this._groups.values()));
+            console.log("set", Array.from(this._groups.values()).length)
+        }
+
+        let anchor1groups: string[] = [];
+        Cast(this.props.linkDoc.anchor1Groups, listSpec(Doc), []).forEach(doc => {
+            if (doc instanceof Doc) {
+                anchor1groups.push(StrCast(doc.proto!.type));
+            } else {
+                console.log("promise");
+            }
+        })
+        let anchor2groups: string[] = [];
+        Cast(this.props.linkDoc.anchor2Groups, listSpec(Doc), []).forEach(doc => {
+            if (doc instanceof Doc) {
+                anchor2groups.push(StrCast(doc.proto!.type));
+            } else {
+                console.log("promise");
+            }
+        })
+        console.log("groups for anchors; anchor1: [", ...anchor1groups, "] ; anchor2: [", ...anchor2groups, "]")
+    }
+
+    removeGroupFromLink = (groupId: string, groupType: string) => {
+        // this._groups.delete(groupId);
+        let groupDoc = this._groups.get(groupId);
+        if (groupDoc) {
+            LinkUtils.removeGroupFromAnchor(this.props.linkDoc, this.props.sourceDoc, groupType);
+            this._groups.delete(groupId);
+        }
+        // LinkUtils.setAnchorGroups(this.props.linkDoc, this.props.sourceDoc, Array.from(this._groups.values()));
+        console.log("\nremoved", groupId, "remaining", ...Array.from(this._groups.keys()), "\n");
+    }
+
+    deleteGroup = (groupId: string, groupType: string) => {
+        let groupDoc = this._groups.get(groupId);
+        if (groupDoc) {
+            LinkManager.Instance.deleteGroup(groupType);
+            this._groups.delete(groupId);
         }
     }
 
     renderGroup(groupId: string, groupDoc: Doc) {
-        return (
-            <div key={groupId} className="linkEditor-group">
-                <div className="linkEditor-group-row">
-                    <p className="linkEditor-group-row-label">type:</p>
-                    <LinkGroupsDropdown groupId={groupId} groupType={StrCast(groupDoc.proto!.type)} setGroup={this.setGroup} />
-                    {/* <input key={groupId + "-type"} type="text" value={StrCast(groupDoc.proto!.type)} onChange={e => this.editGroup(groupId, e.target.value)}></input> */}
-                    {/* <input key={groupId + "-type"} type="text" value={StrCast(groupDoc.proto!.type)} onChange={e => this.editGroup(groupId, e.target.value)}></input> */}
+        let type = StrCast(groupDoc["type"]);
+        if ((type && LinkManager.Instance.allGroups.get(type)) || type === "New Group") {
+            return (
+                <div key={groupId} className="linkEditor-group">
+                    <div className="linkEditor-group-row">
+                        <p className="linkEditor-group-row-label">type:</p>
+                        <LinkGroupsDropdown groupId={groupId} groupType={StrCast(groupDoc.proto!.type)} setGroup={this.setGroupType} />
+                    </div>
+                    {this.renderMetadata(groupId)}
+                    <div className="linkEditor-group-buttons">
+                        {groupDoc["type"] === "New Group" ? <button disabled={true} title="Add KVP">+</button> :
+                            <button onClick={() => this.addMetadata(StrCast(groupDoc.proto!.type))} title="Add KVP">+</button>}
+                        {/* <button onClick={this.viewGroupAsTable}>view group as table</button> */}
+                        <button onClick={() => this.copyGroup(groupId, type)} title="Copy group to opposite anchor">↔</button>
+                        <button onClick={() => this.removeGroupFromLink(groupId, type)} title="Remove group from link">x</button>
+                        <button onClick={() => this.deleteGroup(groupId, type)} title="Delete group">xx</button>
+                    </div>
                 </div>
-                {this.renderMetadata(groupId)}
-                {groupDoc["type"] === "*" ? <></> : <button onClick={() => this.addMetadata(StrCast(groupDoc.proto!.type))}>add kvp</button>}
-                <button onClick={this.viewGroupAsTable}>view group as table</button>
-                {/* <button onClick={() => this.addMetadata(StrCast(groupDoc.proto!.type))}>+</button> */}
-            </div>
-        )
+            )
+        } else {
+            return <></>
+        }
     }
 
     viewGroupAsTable = (): void => {
@@ -228,65 +287,6 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
         }
         LinkManager.Instance.allGroups.set(groupType, mdKeys);
 
-        // // create new metadata doc
-        // let mdDoc = Docs.TextDocument();
-        // mdDoc.proto!.title = "";
-        // mdDoc.proto!.value = "";
-
-        // // append to map
-        // let mdMap = this._metadata.get(groupId);
-        // if (mdMap) {
-        //     mdMap.set(Utils.GenerateGuid(), mdDoc);
-        // } else {
-        //     mdMap = new Map();
-        //     mdMap.set(Utils.GenerateGuid(), mdDoc);
-        // }
-
-        // // add to internal representation of metadata
-        // this._metadata.set(groupId, mdMap);
-
-        // // add to internatal representation of group
-        // let groupDoc = this._groups.get(groupId);
-        // if (groupDoc) {
-        //     groupDoc.proto!.metadata = new List<Doc>(Array.from(mdMap.values()));
-        //     this._groups.set(groupId, groupDoc);
-        // }
-
-        // // add to link doc
-        // let linkDoc = this.props.linkDoc.proto ? this.props.linkDoc.proto : this.props.linkDoc;
-        // LinkUtils.setAnchorGroups(linkDoc, this.props.sourceDoc, Array.from(this._groups.values()));
-    }
-
-    // @action
-    // editMetadataTitle(groupId: string, mdId: string, value: string) {
-    //     let groupMd = this._metadata.get(groupId);
-    //     if (groupMd) {
-    //         let mdDoc = groupMd.get(mdId);
-    //         if (mdDoc) {
-    //             mdDoc.proto!.title = value;
-    //         }
-    //     }
-    //     // set group and link?
-    // }
-
-    // @action
-    // editMetadataValue(groupId: string, mdId: string, value: string) {
-    //     let groupMd = this._metadata.get(groupId);
-    //     if (groupMd) {
-    //         let mdDoc = groupMd.get(mdId);
-    //         if (mdDoc) {
-    //             mdDoc.proto!.value = value;
-    //         }
-    //     }
-    //     // set group and link?
-    // }
-
-    @action
-    editMetadataKey(groupId: string, value: string) {
-        let groupDoc = this._groups.get(groupId);
-        if (groupDoc) {
-
-        }
     }
 
     renderMetadata(groupId: string) {
@@ -300,30 +300,10 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
                 groupMdKeys.forEach((key, index) => {
                     metadata.push(
                         <LinkMetadataEditor key={"mded-" + index} groupType={groupType} mdDoc={mdDoc} mdKey={key} mdValue={(mdDoc[key] === undefined) ? "" : StrCast(mdDoc[key])} />
-                        // <div key={key} className="linkEditor-metadata-row">
-                        //     <input type="text" value={key} placeholder="key"></input>
-                        //     :
-                        //     <input type="text" value={(mdDoc[key] === undefined) ? "" : StrCast(mdDoc[key])} placeholder="value"></input>
-                        // </div>
                     )
                 })
             }
         }
-
-
-        // let metadataMap = this._metadata.get(groupId);
-        // if (metadataMap) {
-        //     metadataMap.forEach((mdDoc, mdId) => {
-        //         metadata.push(
-        //             <div key={mdId} className="linkEditor-metadata-row">
-        //                 <input type="text" value={StrCast(mdDoc.proto!.title)} placeholder="key" onChange={e => this.editMetadataTitle(groupId, mdId, e.target.value)}></input>
-        //                 :
-        //                 <input type="text" value={StrCast(mdDoc.proto!.value)} placeholder="value" onChange={e => this.editMetadataValue(groupId, mdId, e.target.value)}></input>
-        //             </div>
-        //         )
-        //     })
-        // }
-
         return metadata;
     }
 
@@ -340,10 +320,10 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
                 <button className="linkEditor-back" onPointerDown={() => this.props.showLinks()}><FontAwesomeIcon icon="arrow-left" size="sm" /></button>
                 <p className="linkEditor-linkedTo">editing link to: <b>{destination.proto!.title}</b></p>
                 <div className="linkEditor-groupsLabel">
-                    <b>Groups:</b>
-                    <button onClick={this.addGroup} title="Add Group">+</button>
+                    <b>Relationships:</b>
+                    <button onClick={() => this.addGroup()} title="Add Group">+</button>
                 </div>
-                {groups}
+                {groups.length > 0 ? groups : <div className="linkEditor-group">There are currently no relationships associated with this link.</div>}
             </div>
 
         );

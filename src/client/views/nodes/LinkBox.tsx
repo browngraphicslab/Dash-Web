@@ -41,23 +41,23 @@ export class LinkBox extends React.Component<Props> {
         this.props.showEditor();
     }
 
-    @action
-    onDeleteButtonPressed = async (e: React.PointerEvent): Promise<void> => {
-        e.stopPropagation();
-        const [linkedFrom, linkedTo] = await Promise.all([Cast(this.props.linkDoc.linkedFrom, Doc), Cast(this.props.linkDoc.linkedTo, Doc)]);
-        if (linkedFrom) {
-            const linkedToDocs = Cast(linkedFrom.linkedToDocs, listSpec(Doc));
-            if (linkedToDocs) {
-                linkedToDocs.splice(linkedToDocs.indexOf(this.props.linkDoc), 1);
-            }
-        }
-        if (linkedTo) {
-            const linkedFromDocs = Cast(linkedTo.linkedFromDocs, listSpec(Doc));
-            if (linkedFromDocs) {
-                linkedFromDocs.splice(linkedFromDocs.indexOf(this.props.linkDoc), 1);
-            }
-        }
-    }
+    // @action
+    // onDeleteButtonPressed = async (e: React.PointerEvent): Promise<void> => {
+    //     e.stopPropagation();
+    //     const [linkedFrom, linkedTo] = await Promise.all([Cast(this.props.linkDoc.linkedFrom, Doc), Cast(this.props.linkDoc.linkedTo, Doc)]);
+    //     if (linkedFrom) {
+    //         const linkedToDocs = Cast(linkedFrom.linkedToDocs, listSpec(Doc));
+    //         if (linkedToDocs) {
+    //             linkedToDocs.splice(linkedToDocs.indexOf(this.props.linkDoc), 1);
+    //         }
+    //     }
+    //     if (linkedTo) {
+    //         const linkedFromDocs = Cast(linkedTo.linkedFromDocs, listSpec(Doc));
+    //         if (linkedFromDocs) {
+    //             linkedFromDocs.splice(linkedFromDocs.indexOf(this.props.linkDoc), 1);
+    //         }
+    //     }
+    // }
 
     render() {
 
@@ -80,8 +80,8 @@ export class LinkBox extends React.Component<Props> {
                         <FontAwesomeIcon className="fa-icon" icon="arrow-right" size="sm" /></div>
                     <div title="Edit Link" className="button" onPointerDown={this.onEditButtonPressed}>
                         <FontAwesomeIcon className="fa-icon" icon="edit" size="sm" /></div>
-                    <div title="Delete Link" className="button" onPointerDown={this.onDeleteButtonPressed}>
-                        <FontAwesomeIcon className="fa-icon" icon="times" size="sm" /></div>
+                    {/* <div title="Delete Link" className="button" onPointerDown={this.onDeleteButtonPressed}>
+                        <FontAwesomeIcon className="fa-icon" icon="times" size="sm" /></div> */}
                 </div>
             </div>
         );
