@@ -171,7 +171,7 @@ class Viewer extends React.Component<IViewerProps> {
 
         let annoDoc = new Doc();
         annoDoc.annotations = new List<Doc>(annoDocs);
-        DocUtils.MakeLink(sourceDoc, annoDoc, `Annotation from ${StrCast(this.props.parent.Document.title)}`, "", StrCast(this.props.parent.Document.title));
+        DocUtils.MakeLink(sourceDoc, annoDoc, undefined, `Annotation from ${StrCast(this.props.parent.Document.title)}`, "", StrCast(this.props.parent.Document.title));
         this._savedAnnotations.clear();
         return annoDoc;
     }
