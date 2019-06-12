@@ -49,11 +49,22 @@ class PresentationViewList extends React.Component<PresListProps> {
      * docs that are in the group, so that mapping won't be disrupted.
      */
     @action
-    initializeGroupIds = (docList: Doc[]) => {
-        docList.forEach((doc: Doc, index: number) => {
+    initializeGroupIds = async (docList: Doc[]) => {
+        docList.forEach(async (doc: Doc, index: number) => {
             let docGuid = StrCast(doc.presentId, null);
             //checking if part of group
-            if (!this.props.groupMappings.has(docGuid)) {
+            let storedGuids: string[] = [];
+            let castedGroupDocs = await DocListCastAsync(this.props.presGroupBackUp.groupDocs);
+            if (castedGroupDocs !== undefined) {
+                castedGroupDocs.forEach((doc: Doc) => {
+                    let storedGuid = StrCast(doc.presentIdStore, null);
+                    if (storedGuid) {
+                        storedGuids.push(storedGuid);
+                    }
+
+                });
+            }
+            if (!this.props.groupMappings.has(docGuid) && !storedGuids.includes(docGuid)) {
                 doc.presentId = Utils.GenerateGuid();
             }
         });
@@ -117,6 +128,11 @@ export class PresentationView extends React.Component<PresViewProps>  {
                 let toAssign = doc ? doc : new Doc();
                 this.props.Document.presGroupBackUp = toAssign;
                 runInAction(() => this.presGroupBackUp = toAssign);
+                if (doc) {
+                    if (toAssign[Id] === doc[Id]) {
+                        this.retrieveGroupMappings();
+                    }
+                }
             });
         } else {
             runInAction(() => {
@@ -146,6 +162,20 @@ export class PresentationView extends React.Component<PresViewProps>  {
 
         let presStatusBackUp = BoolCast(this.props.Document.presStatus, null);
         runInAction(() => this.presStatus = presStatusBackUp);
+    }
+
+    retrieveGroupMappings = async () => {
+        //runInAction(() => this.groupMappings = new Map());
+        let castedGroupDocs = await DocListCastAsync(this.presGroupBackUp.groupDocs);
+        if (castedGroupDocs !== undefined) {
+            castedGroupDocs.forEach(async (groupDoc: Doc, index: number) => {
+                let castedGrouping = await DocListCastAsync(groupDoc.grouping);
+                let castedKey = StrCast(groupDoc.presentIdStore, null);
+                if (castedGrouping !== undefined && castedKey !== undefined) {
+                    this.groupMappings.set(castedKey, castedGrouping);
+                }
+            });
+        }
     }
 
     //observable means render is re-called every time variable is changed

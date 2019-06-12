@@ -71,22 +71,14 @@ export default class PresentationElement extends React.Component<PresentationEle
         if (!castedList) {
             this.props.presButtonBackUp.selectedButtonDocs = castedList = new List<Doc>();
         }
-        // let castedList = DocListCast(this.props.presButtonBackUp.selectedButtonDocs);
-
-        console.log("Mounted!!");
-        console.log("CastedList Len: ", castedList.length);
-        console.log("Index of doc: ", this.props.index);
 
         if (castedList.length <= this.props.index) {
-            console.log("Entered here by index : ", this.props.index);
             castedList.push(new Doc());
         } else {
             let curDoc: Doc = await castedList[this.props.index];
             let selectedButtonOfDoc = Cast(curDoc.selectedButtons, listSpec("boolean"), null);
-            console.log("Entered First Place");
             if (selectedButtonOfDoc !== undefined) {
                 runInAction(() => this.selectedButtons = selectedButtonOfDoc);
-                console.log("Entered Second Place");
             }
         }
 
@@ -167,6 +159,21 @@ export default class PresentationElement extends React.Component<PresentationEle
             }
 
         }
+        this.autoSaveGroupChanges();
+
+    }
+
+
+    @action
+    autoSaveGroupChanges = () => {
+        let castedList: List<Doc> = new List<Doc>();
+        this.props.presGroupBackUp.groupDocs = castedList;
+        this.props.groupMappings.forEach((docArray: Doc[], id: String) => {
+            let newGroupDoc = new Doc();
+            castedList.push(newGroupDoc);
+            newGroupDoc.presentIdStore = id.toString();
+            newGroupDoc.grouping = new List(docArray);
+        });
 
     }
 
@@ -180,6 +187,8 @@ export default class PresentationElement extends React.Component<PresentationEle
         } else {
             this.selectedButtons[buttonIndex.Group] = true;
         }
+        this.autoSaveButtonChange(buttonIndex.Group);
+
     }
 
     /**
