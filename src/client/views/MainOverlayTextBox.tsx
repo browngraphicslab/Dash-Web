@@ -1,15 +1,15 @@
 import { action, observable, reaction } from 'mobx';
 import { observer } from 'mobx-react';
+import "normalize.css";
 import * as React from 'react';
+import { Doc } from '../../new_fields/Doc';
+import { BoolCast } from '../../new_fields/Types';
 import { emptyFunction, returnTrue, returnZero, Utils } from '../../Utils';
 import { DragManager } from '../util/DragManager';
 import { Transform } from '../util/Transform';
-import "normalize.css";
+import { CollectionDockingView } from './collections/CollectionDockingView';
 import "./MainOverlayTextBox.scss";
 import { FormattedTextBox } from './nodes/FormattedTextBox';
-import { CollectionDockingView } from './collections/CollectionDockingView';
-import { Doc } from '../../new_fields/Doc';
-import { BoolCast } from '../../new_fields/Types';
 
 interface MainOverlayTextBoxProps {
 }
@@ -25,7 +25,7 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
     private _textProxyDiv: React.RefObject<HTMLDivElement>;
     private _textBottom: boolean | undefined;
     private _textAutoHeight: boolean | undefined;
-    public TextDoc?: Doc;
+    @observable public TextDoc?: Doc;
 
     constructor(props: MainOverlayTextBoxProps) {
         super(props);
@@ -105,6 +105,7 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
         }
     }
     render() {
+        this.TextDoc;
         if (FormattedTextBox.InputBoxOverlay && this._textTargetDiv) {
             let textRect = this._textTargetDiv.getBoundingClientRect();
             let s = this._textXf().Scale;
@@ -114,8 +115,9 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
                 <div className="mainOverlayTextBox-textInput" onPointerDown={this.textBoxDown} ref={this._textProxyDiv} onScroll={this.textScroll}
                     style={{ width: `${textRect.width * s}px`, height: "0px" }}>
                     <div style={{ height: hgt, width: "100%", position: "absolute", bottom: this._textBottom ? "0px" : undefined }}>
-                        <FormattedTextBox color={`${this._textColor}`} fieldKey={this.TextFieldKey} hideOnLeave={this._textHideOnLeave} isOverlay={true} Document={FormattedTextBox.InputBoxOverlay.props.Document} isSelected={returnTrue} select={emptyFunction} isTopMost={true}
-                            selectOnLoad={true} ContainingCollectionView={undefined} whenActiveChanged={emptyFunction} active={returnTrue}
+                        <FormattedTextBox color={`${this._textColor}`} fieldKey={this.TextFieldKey} hideOnLeave={this._textHideOnLeave} isOverlay={true} Document={FormattedTextBox.InputBoxOverlay.props.Document}
+                            isSelected={returnTrue} select={emptyFunction} isTopMost={true} selectOnLoad={true}
+                            ContainingCollectionView={undefined} whenActiveChanged={emptyFunction} active={returnTrue}
                             ScreenToLocalTransform={this._textXf} PanelWidth={returnZero} PanelHeight={returnZero} focus={emptyFunction} addDocTab={this.addDocTab} />
                     </div>
                 </div>

@@ -8,11 +8,12 @@ import { keymap } from "prosemirror-keymap";
 import { EditorState, Plugin, Transaction } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { Doc, Opt } from "../../../new_fields/Doc";
+import { Id } from '../../../new_fields/FieldSymbols';
 import { RichTextField } from "../../../new_fields/RichTextField";
 import { createSchema, makeInterface } from "../../../new_fields/Schema";
-import { Cast, NumCast, StrCast, BoolCast } from "../../../new_fields/Types";
+import { BoolCast, Cast, NumCast, StrCast } from "../../../new_fields/Types";
 import { DocServer } from "../../DocServer";
-import { DocUtils, Docs } from '../../documents/Documents';
+import { Docs } from '../../documents/Documents';
 import { DocumentManager } from "../../util/DocumentManager";
 import { DragManager } from "../../util/DragManager";
 import buildKeymap from "../../util/ProsemirrorKeymap";
@@ -21,37 +22,20 @@ import { ImageResizeView, schema } from "../../util/RichTextSchema";
 import { SelectionManager } from "../../util/SelectionManager";
 import { TooltipLinkingMenu } from "../../util/TooltipLinkingMenu";
 import { TooltipTextMenu } from "../../util/TooltipTextMenu";
-import { undoBatch, UndoManager } from "../../util/UndoManager";
+import { UndoManager } from "../../util/UndoManager";
+import { ContextMenu } from '../ContextMenu';
+import { ContextMenuProps } from '../ContextMenuItem';
 import { DocComponent } from "../DocComponent";
 import { InkingControl } from "../InkingControl";
 import { FieldView, FieldViewProps } from "./FieldView";
 import "./FormattedTextBox.scss";
 import React = require("react");
-import { Id } from '../../../new_fields/FieldSymbols';
-import { MainOverlayTextBox } from '../MainOverlayTextBox';
-import { Utils } from '../../../Utils';
-import { ContextMenuProps } from '../ContextMenuItem';
-import { ContextMenu } from '../ContextMenu';
 
 library.add(faEdit);
 library.add(faSmile);
 
 // FormattedTextBox: Displays an editable plain text node that maps to a specified Key of a Document
 //
-//  HTML Markup:  <FormattedTextBox Doc={Document's ID} FieldKey={Key's name}
-//
-//  In Code, the node's HTML is specified in the document's parameterized structure as:
-//        document.SetField(KeyStore.Layout,  "<FormattedTextBox doc={doc} fieldKey={<KEYNAME>Key} />");
-//  and the node's binding to the specified document KEYNAME as:
-//        document.SetField(KeyStore.LayoutKeys, new ListField([KeyStore.<KEYNAME>]));
-//  The Jsx parser at run time will bind:
-//        'fieldKey' property to the Key stored in LayoutKeys
-//    and 'doc' property to the document that is being rendered
-//
-//  When rendered() by React, this extracts the TextController from the Document stored at the
-//  specified Key and assigns it to an HTML input node.  When changes are made to this node,
-//  this will edit the document and assign the new value to that field.
-//]
 
 export interface FormattedTextBoxProps {
     isOverlay?: boolean;
@@ -76,11 +60,9 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     private _proseRef: React.RefObject<HTMLDivElement>;
     private _editorView: Opt<EditorView>;
     private _toolTipTextMenu: TooltipTextMenu | undefined = undefined;
-    private _lastState: any = undefined;
     private _applyingChange: boolean = false;
     private _linkClicked = "";
     private _reactionDisposer: Opt<IReactionDisposer>;
-    private _inputReactionDisposer: Opt<IReactionDisposer>;
     private _proxyReactionDisposer: Opt<IReactionDisposer>;
     public get CurrentDiv(): HTMLDivElement { return this._ref.current!; }
     @observable _entered = false;
@@ -119,10 +101,9 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         }
     }
 
-
     dispatchTransaction = (tx: Transaction) => {
         if (this._editorView) {
-            const state = this._lastState = this._editorView.state.apply(tx);
+            const state = this._editorView.state.apply(tx);
             this._editorView.updateState(state);
             this._applyingChange = true;
             Doc.SetOnPrototype(this.props.Document, this.props.fieldKey, new RichTextField(JSON.stringify(state.toJSON())));
@@ -160,18 +141,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 ]
         };
 
-        if (this.props.isOverlay) {
-            this._inputReactionDisposer = reaction(() => FormattedTextBox.InputBoxOverlay,
-                () => {
-                    if (this._editorView) {
-                        this._editorView.destroy();
-                    }
-                    this.setupEditor(config, // bcz: not sure why, but the order of events is such that this.props.Document hasn't updated yet, so without forcing the editor to the MainOverlayTextBox, it will display the previously focused textbox
-                        MainOverlayTextBox.Instance.TextDoc ? MainOverlayTextBox.Instance.TextDoc : this.props.Document,
-                        MainOverlayTextBox.Instance.TextFieldKey ? MainOverlayTextBox.Instance.TextFieldKey : this.props.fieldKey);
-                }
-            );
-        } else {
+        if (!this.props.isOverlay) {
             this._proxyReactionDisposer = reaction(() => this.props.isSelected(),
                 () => {
                     if (this.props.isSelected()) {
@@ -181,13 +151,12 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 });
         }
 
-
         this._reactionDisposer = reaction(
             () => {
                 const field = this.props.Document ? Cast(this.props.Document[this.props.fieldKey], RichTextField) : undefined;
-                return field ? field.Data : undefined;
+                return field ? field.Data : `{"doc":{"type":"doc","content":[]},"selection":{"type":"text","anchor":0,"head":0}}`;
             },
-            field => field && this._editorView && !this._applyingChange &&
+            field => this._editorView && !this._applyingChange &&
                 this._editorView.updateState(EditorState.fromJSON(config, JSON.parse(field)))
         );
         this.setupEditor(config, this.props.Document, this.props.fieldKey);
@@ -215,8 +184,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         }
 
         if (this.props.selectOnLoad) {
-            //this.props.select(false);
-            this._editorView!.focus();
+            if (!this.props.isOverlay) this.props.select(false);
+            else this._editorView!.focus();
         }
     }
 
@@ -226,9 +195,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         }
         if (this._reactionDisposer) {
             this._reactionDisposer();
-        }
-        if (this._inputReactionDisposer) {
-            this._inputReactionDisposer();
         }
         if (this._proxyReactionDisposer) {
             this._proxyReactionDisposer();
@@ -394,7 +360,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     color: this.props.color ? this.props.color : this.props.hideOnLeave ? "white" : "initial",
                     pointerEvents: interactive ? "all" : "none",
                 }}
-                // onKeyDown={this.onKeyPress}
                 onKeyPress={this.onKeyPress}
                 onFocus={this.onFocused}
                 onClick={this.onClick}
@@ -403,7 +368,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 onPointerUp={this.onPointerUp}
                 onPointerDown={this.onPointerDown}
                 onMouseDown={this.onMouseDown}
-                // tfs: do we need this event handler
                 onWheel={this.onPointerWheel}
                 onPointerEnter={this.onPointerEnter}
                 onPointerLeave={this.onPointerLeave}

@@ -125,9 +125,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     constructor(props: DocumentViewProps) {
         super(props);
-        this.selectOnLoad = props.selectOnLoad;
     }
-
 
     _reactionDisposer?: IReactionDisposer;
     @action
@@ -442,14 +440,13 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     onPointerLeave = (e: React.PointerEvent): void => { this.props.Document.libraryBrush = false; };
 
     isSelected = () => SelectionManager.IsSelected(this);
-    @action select = (ctrlPressed: boolean) => { this.selectOnLoad = false; SelectionManager.SelectDoc(this, ctrlPressed); }
+    @action select = (ctrlPressed: boolean) => { SelectionManager.SelectDoc(this, ctrlPressed); }
 
-    @observable selectOnLoad: boolean = false;
     @computed get nativeWidth() { return this.Document.nativeWidth || 0; }
     @computed get nativeHeight() { return this.Document.nativeHeight || 0; }
     @computed get contents() {
         return (
-            <DocumentContentsView {...this.props} isSelected={this.isSelected} select={this.select} selectOnLoad={this.selectOnLoad} layoutKey={"layout"} />);
+            <DocumentContentsView {...this.props} isSelected={this.isSelected} select={this.select} selectOnLoad={this.props.selectOnLoad} layoutKey={"layout"} />);
     }
 
     render() {
