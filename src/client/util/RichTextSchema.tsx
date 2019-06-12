@@ -99,15 +99,15 @@ export const nodes: { [index: string]: NodeSpec } = {
             const attrs = { style: `width: 40px` };
             return ["span", { ...node.attrs, ...attrs }];
         },
-        parseDOM: [{
-            tag: "span", getAttrs(dom: any) {
-                return {
-                    visibility: dom.getAttribute("visibility"),
-                    oldtext: dom.getAttribute("oldtext"),
-                    oldtextlen: dom.getAttribute("oldtextlen"),
-                }
-            }
-        }]
+        // parseDOM: [{
+        //     tag: "star", getAttrs(dom: any) {
+        //         return {
+        //             visibility: dom.getAttribute("visibility"),
+        //             oldtext: dom.getAttribute("oldtext"),
+        //             oldtextlen: dom.getAttribute("oldtextlen"),
+        //         }
+        //     }
+        // }]
     },
     // :: NodeSpec An inline image (`<img>`) node. Supports `src`,
     // `alt`, and `href` attributes. The latter two default to the empty
