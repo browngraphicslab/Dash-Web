@@ -152,7 +152,7 @@ class Viewer extends React.Component<IViewerProps> {
         }
     }
 
-    makeAnnotationDocuments = (sourceDoc: Doc): Doc => {
+    makeAnnotationDocument = (sourceDoc: Doc): Doc => {
         let annoDocs: Doc[] = [];
         this._savedAnnotations.forEach((key: number, value: HTMLDivElement[]) => {
             for (let anno of value) {
@@ -179,7 +179,7 @@ class Viewer extends React.Component<IViewerProps> {
     drop = async (e: Event, de: DragManager.DropEvent) => {
         if (de.data instanceof DragManager.LinkDragData) {
             let sourceDoc = de.data.linkSourceDocument;
-            let destDoc = this.makeAnnotationDocuments(sourceDoc);
+            let destDoc = this.makeAnnotationDocument(sourceDoc);
             let targetAnnotations = DocListCast(this.props.parent.Document.annotations);
             if (targetAnnotations) {
                 targetAnnotations.push(destDoc);
@@ -280,7 +280,7 @@ class Viewer extends React.Component<IViewerProps> {
                     makePin={this.createPinAnnotation}
                     createAnnotation={this.createAnnotation}
                     sendAnnotations={this.receiveAnnotations}
-                    makeAnnotationDocuments={this.makeAnnotationDocuments}
+                    makeAnnotationDocuments={this.makeAnnotationDocument}
                     receiveAnnotations={this.sendAnnotations}
                     {...this.props} />
             ));
@@ -322,7 +322,7 @@ class Viewer extends React.Component<IViewerProps> {
                         renderAnnotations={this.renderAnnotations}
                         createAnnotation={this.createAnnotation}
                         sendAnnotations={this.receiveAnnotations}
-                        makeAnnotationDocuments={this.makeAnnotationDocuments}
+                        makeAnnotationDocuments={this.makeAnnotationDocument}
                         receiveAnnotations={this.sendAnnotations}
                         {...this.props} />
                 );
@@ -492,21 +492,61 @@ class PinAnnotation extends React.Component<IAnnotationProps> {
     @observable private _backgroundColor: string = "green";
     @observable private _display: string = "initial";
 
-    private _selected: boolean = true;
+    private _mainCont: React.RefObject<HTMLDivElement>;
+
+    constructor(props: IAnnotationProps) {
+        super(props);
+        this._mainCont = React.createRef();
+    }
+
+    componentDidMount = () => {
+        let selected = this.props.document.selected;
+        if (selected && BoolCast(selected)) {
+            runInAction(() => {
+                this._backgroundColor = "green";
+                this._display = "initial";
+            })
+        }
+        else {
+            runInAction(() => {
+                this._backgroundColor = "red";
+                this._display = "none";
+            })
+        }
+    }
 
     @action
     pointerDown = (e: React.PointerEvent) => {
-        if (this._selected) {
+        let selected = this.props.document.selected;
+        if (selected && BoolCast(selected)) {
             this._backgroundColor = "red";
             this._display = "none";
-            this._selected = false;
+            this.props.document.selected = false;
         }
         else {
             this._backgroundColor = "green";
             this._display = "initial";
-            this._selected = true;
+            this.props.document.selected = true;
         }
         e.preventDefault();
+        e.stopPropagation();
+    }
+
+    @action
+    doubleClick = (e: React.MouseEvent) => {
+        if (this._mainCont.current) {
+            let annotations = DocListCast(this.props.parent.props.parent.Document.annotations);
+            if (annotations && annotations.length) {
+                let index = annotations.indexOf(this.props.document);
+                annotations.splice(index, 1);
+                this.props.parent.props.parent.Document.annotations = new List<Doc>(annotations);
+            }
+            // this._mainCont.current.childNodes.forEach(e => e.remove());
+            this._mainCont.current.style.display = "none";
+            // if (this._mainCont.current.parentElement) {
+            //     this._mainCont.current.remove();
+            // }
+        }
         e.stopPropagation();
     }
 
@@ -515,6 +555,7 @@ class PinAnnotation extends React.Component<IAnnotationProps> {
         if (targetDoc instanceof Doc) {
             return (
                 <div className="pdfViewer-pinAnnotation" onPointerDown={this.pointerDown}
+                    onDoubleClick={this.doubleClick} ref={this._mainCont}
                     style={{
                         top: this.props.y - PinRadius / 2, left: this.props.x - PinRadius / 2, width: PinRadius,
                         height: PinRadius, pointerEvents: "all", backgroundColor: this._backgroundColor

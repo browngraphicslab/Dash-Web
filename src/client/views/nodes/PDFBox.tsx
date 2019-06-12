@@ -19,6 +19,7 @@ import { makeInterface } from "../../../new_fields/Schema";
 import { PDFViewer } from "../pdf/PDFViewer";
 import { PdfField } from "../../../new_fields/URLField";
 import { HeightSym, WidthSym } from "../../../new_fields/Doc";
+import { CollectionStackingView } from "../collections/CollectionStackingView";
 
 type PdfDocument = makeInterface<[typeof positionSchema, typeof pageSchema]>;
 const PdfDocument = makeInterface(positionSchema, pageSchema);
@@ -43,6 +44,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     onScroll = (e: React.UIEvent<HTMLDivElement>) => {
         if (e.currentTarget) {
             this._scrollY = e.currentTarget.scrollTop;
+            // e.currentTarget.scrollTo({ top: 1000, behavior: "smooth" });
         }
     }
 
@@ -57,6 +59,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
                 style={{ overflowY: "scroll", overflowX: "hidden", height: `${NumCast(this.props.Document.nativeHeight ? this.props.Document.nativeHeight : 300)}px` }}
                 onWheel={(e: React.WheelEvent) => e.stopPropagation()} className={classname}>
                 <PDFViewer url={pdfUrl.url.href} loaded={this.loaded} scrollY={this._scrollY} parent={this} />
+                {/* <div style={{ width: "100px", height: "300px" }}></div> */}
             </div>
         );
     }
