@@ -244,8 +244,8 @@
     //transform: translateX(-50%);
     transform: translateY(-50%);
     pointer-events: all;
-    height: 125px;
-    width:400px;
+    height: auto;
+    width:inherit;
     .ProseMirror-example-setup-style hr {
       padding: 2px 10px;
       border: none;
@@ -261,28 +261,28 @@
     }
 }
 
-.tooltipMenu:before {
-    content: "";
-    height: 0; width: 0;
-    position: absolute;
-    left: 50%;
-    margin-left: -5px;
-    bottom: -6px;
-    border: 5px solid transparent;
-    border-bottom-width: 0;
-    border-top-color: silver;
-  }
-  .tooltipMenu:after {
-    content: "";
-    height: 0; width: 0;
-    position: absolute;
-    left: 50%;
-    margin-left: -5px;
-    bottom: -4.5px;
-    border: 5px solid transparent;
-    border-bottom-width: 0;
-    border-top-color: $dark-color;
-  }
+// .tooltipMenu:before {
+//     content: "";
+//     height: 0; width: 0;
+//     position: absolute;
+//     left: 50%;
+//     margin-left: -5px;
+//     bottom: -6px;
+//     border: 5px solid transparent;
+//     border-bottom-width: 0;
+//     border-top-color: silver;
+//   }
+//   .tooltipMenu:after {
+//     content: "";
+//     height: 0; width: 0;
+//     position: absolute;
+//     left: 50%;
+//     margin-left: -5px;
+//     bottom: -4.5px;
+//     border: 5px solid transparent;
+//     border-bottom-width: 0;
+//     border-top-color: $dark-color;
+//   }
 
   .menuicon {
     display: inline-block;

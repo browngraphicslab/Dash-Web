@@ -234,13 +234,15 @@ export class TooltipTextMenu {
             this.linkEditor.appendChild(linkBtn);
             this.tooltip.appendChild(this.linkEditor);
 
-            let starButton = document.createElement("button");
+            let starButton = document.createElement("span");
             // starButton.style.width = '10px';
             // starButton.style.height = '10px';
             starButton.style.marginLeft = '10px';
             starButton.textContent = "Summarize";
             starButton.style.color = 'black';
+            starButton.style.height = '20px';
             starButton.style.backgroundColor = 'white';
+            starButton.style.textAlign = 'center';
             starButton.onclick = () => {
                 let state = this.view.state;
                 this.insertStar(state, this.view.dispatch);
@@ -450,7 +452,7 @@ export class TooltipTextMenu {
         let width = Math.abs(start.left - end.left) / 2 * this.editorProps.ScreenToLocalTransform().Scale;
         let mid = Math.min(start.left, end.left) + width;
 
-        this.tooltip.style.width = 225 + "px";
+        //this.tooltip.style.width = 225 + "px";
         this.tooltip.style.bottom = (box.bottom - start.top) * this.editorProps.ScreenToLocalTransform().Scale + "px";
         this.tooltip.style.top = "-100px";
         //this.tooltip.style.height = "100px";
