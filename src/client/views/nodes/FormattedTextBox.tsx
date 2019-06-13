@@ -360,7 +360,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         let subitems: ContextMenuProps[] = [];
         subitems.push({
             description: BoolCast(this.props.Document.autoHeight, false) ? "Manual Height" : "Auto Height",
-            event: action(() => this.props.Document.autoHeight = !BoolCast(this.props.Document.autoHeight, false)), icon: "expand-arrows-alt"
+            event: action(() => Doc.GetProto(this.props.Document).autoHeight = !BoolCast(this.props.Document.autoHeight, false)), icon: "expand-arrows-alt"
         });
         ContextMenu.Instance.addItem({ description: "Text Funcs...", subitems: subitems });
     }
@@ -377,7 +377,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     color: this.props.color ? this.props.color : this.props.hideOnLeave ? "white" : "initial",
                     pointerEvents: interactive ? "all" : "none",
                 }}
-                onKeyPress={this.onKeyPress}
+                onKeyDown={this.onKeyPress}
                 onFocus={this.onFocused}
                 onClick={this.onClick}
                 onContextMenu={this.specificContextMenu}

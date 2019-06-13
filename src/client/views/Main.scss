@@ -126,6 +126,26 @@ button:hover {
         margin-bottom: 10px;
     }
 }
+.toolbar-color-picker {
+    background-color: $light-color;
+    border-radius: 5px;
+    padding: 12px;
+    position: absolute;
+    bottom: 36px;
+    left: -3px;
+    box-shadow: $intermediate-color 0.2vw 0.2vw 0.8vw;
+}
+.toolbar-color-button {
+    border-radius: 11px;
+    width: 22px;
+    height: 22px;
+    cursor: pointer;
+    text-align: center; //   span {
+    //     color: $light-color;
+    //     font-size: 8px;
+    //     user-select: none;
+    //   }
+}
 
 // add nodes menu. Note that the + button is actually an input label, not an actual button.
 #add-nodes-menu {
