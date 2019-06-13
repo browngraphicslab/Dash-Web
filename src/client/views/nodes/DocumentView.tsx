@@ -238,11 +238,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                             expandedProtoDocs.forEach(maxDoc => maxDoc.isMinimized = wasMinimized);
                         }
                     }
-                    if (maxLocation && maxLocation !== "inPlace" && CollectionDockingView.Instance) {
-                        let dataDocs = DocListCast(CollectionDockingView.Instance.props.Document.data);
+                    if (maxLocation && maxLocation !== "inPlace" && CollectionDockingView.TopLevel) {
+                        let dataDocs = DocListCast(CollectionDockingView.TopLevel.props.Document.data);
                         if (dataDocs) {
                             expandedDocs.forEach(maxDoc =>
-                                (!CollectionDockingView.Instance.CloseRightSplit(Doc.GetProto(maxDoc)) &&
+                                (!CollectionDockingView.CloseRightSplit(Doc.GetProto(maxDoc)) &&
                                     this.props.addDocTab(getDispDoc(maxDoc), maxLocation)));
                         }
                     } else {
@@ -270,8 +270,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         this._downX = e.clientX;
         this._downY = e.clientY;
         this._hitExpander = DocListCast(this.props.Document.subBulletDocs).length > 0;
-        if (e.shiftKey && e.buttons === 1 && CollectionDockingView.Instance) {
-            CollectionDockingView.Instance.StartOtherDrag([Doc.MakeAlias(this.props.Document)], e);
+        if (e.shiftKey && e.buttons === 1 && CollectionDockingView.TopLevel) {
+            CollectionDockingView.TopLevel.StartOtherDrag([Doc.MakeAlias(this.props.Document)], e);
             e.stopPropagation();
         } else {
             if (this.active) e.stopPropagation(); // events stop at the lowest document that is active.  
@@ -316,7 +316,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
     }
     fullScreenClicked = (): void => {
-        CollectionDockingView.Instance && CollectionDockingView.Instance.OpenFullScreen(Doc.MakeCopy(this.props.Document, false));
+        CollectionDockingView.TopLevel && CollectionDockingView.OpenFullScreen(Doc.MakeCopy(this.props.Document, false));
         SelectionManager.DeselectAll();
     }
 

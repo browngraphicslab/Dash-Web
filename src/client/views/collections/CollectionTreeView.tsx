@@ -123,7 +123,7 @@ class TreeView extends React.Component<TreeViewProps> {
                     return true;
                 }}
             />);
-        let dataDocs = CollectionDockingView.Instance ? Cast(CollectionDockingView.Instance.props.Document.data, listSpec(Doc), []) : [];
+        let dataDocs = CollectionDockingView.TopLevel ? Cast(CollectionDockingView.TopLevel.props.Document.data, listSpec(Doc), []) : [];
         let openRight = dataDocs && dataDocs.indexOf(this.props.document) !== -1 ? (null) : (
             <div className="treeViewItem-openRight" onPointerDown={this.onPointerDown} onClick={this.openRight}>
                 <FontAwesomeIcon icon="angle-right" size="lg" />

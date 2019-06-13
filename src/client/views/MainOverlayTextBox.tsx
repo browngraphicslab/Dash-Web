@@ -86,7 +86,7 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
 
     addDocTab = (doc: Doc, location: string) => {
         if (true) { // location === "onRight") { need to figure out stack to add "inTab"
-            CollectionDockingView.Instance.AddRightSplit(doc);
+            CollectionDockingView.AddRightSplit(doc);
         }
     }
     render() {
@@ -102,6 +102,6 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
                 </div>
             </ div>;
         }
-        else return (null); Z
+        else return (null);
     }
 }

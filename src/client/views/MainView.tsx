@@ -1,5 +1,5 @@
 import { IconName, library } from '@fortawesome/fontawesome-svg-core';
-import { faFilePdf, faFilm, faFont, faGlobeAsia, faImage, faMusic, faObjectGroup, faPenNib, faRedoAlt, faTable, faTree, faUndoAlt, faBell } from '@fortawesome/free-solid-svg-icons';
+import { faClone, faFilePdf, faFilm, faFont, faGlobeAsia, faImage, faMusic, faObjectGroup, faPenNib, faRedoAlt, faTable, faTree, faUndoAlt, faBell } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, configure, observable, runInAction, trace } from 'mobx';
 import { observer } from 'mobx-react';
@@ -106,6 +106,7 @@ export class MainView extends React.Component {
         library.add(faFilm);
         library.add(faMusic);
         library.add(faTree);
+        library.add(faClone)
         this.initEventListeners();
         this.initAuthenticationRouters();
     }
@@ -151,8 +152,11 @@ export class MainView extends React.Component {
         const list = Cast(CurrentUserUtils.UserDocument.data, listSpec(Doc));
         if (list) {
             let freeformDoc = Docs.FreeformDocument([], { x: 0, y: 400, width: this.pwidth * .7, height: this.pheight, title: `WS collection ${list.length + 1}` });
-            var dockingLayout = { content: [{ type: 'row', content: [CollectionDockingView.makeDocumentConfig(CurrentUserUtils.UserDocument, 150), CollectionDockingView.makeDocumentConfig(freeformDoc, 600)] }] };
-            let mainDoc = Docs.DockDocument([CurrentUserUtils.UserDocument, freeformDoc], JSON.stringify(dockingLayout), { title: `Workspace ${list.length + 1}` }, id);
+            let configs = [
+                { doc: CurrentUserUtils.UserDocument, initialWidth: 150 },
+                { doc: freeformDoc, initialWidth: 600 }
+            ]
+            let mainDoc = Docs.StandardCollectionDockingDocument(configs, { title: `Workspace ${list.length + 1}` }, id);
             list.push(mainDoc);
             // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
             setTimeout(() => {
@@ -183,8 +187,8 @@ export class MainView extends React.Component {
     }
 
     openNotifsCol = () => {
-        if (this._notifsCol && CollectionDockingView.Instance) {
-            CollectionDockingView.Instance.AddRightSplit(this._notifsCol);
+        if (this._notifsCol && CollectionDockingView.TopLevel) {
+            CollectionDockingView.AddRightSplit(this._notifsCol);
         }
     }
 
@@ -240,6 +244,7 @@ export class MainView extends React.Component {
 
         let addTextNode = action(() => Docs.TextDocument({ borderRounding: -1, width: 200, height: 200, title: "a text note" }));
         let addColNode = action(() => Docs.FreeformDocument([], { width: this.pwidth * .7, height: this.pheight, title: "a freeform collection" }));
+        let addDockingNode = action(() => Docs.StandardCollectionDockingDocument([{ doc: addColNode(), initialWidth: 200 }], { width: 200, height: 200, title: "a nested docking freeform collection" }));
         let addSchemaNode = action(() => Docs.SchemaDocument(["title"], [], { width: 200, height: 200, title: "a schema collection" }));
         let addTreeNode = action(() => CurrentUserUtils.UserDocument);
         //let addTreeNode = action(() => Docs.TreeDocument([CurrentUserUtils.UserDocument], { width: 250, height: 400, title: "Library:" + CurrentUserUtils.email, dropAction: "alias" }));
@@ -260,6 +265,7 @@ export class MainView extends React.Component {
             [React.createRef<HTMLDivElement>(), "object-group", "Add Collection", addColNode],
             [React.createRef<HTMLDivElement>(), "tree", "Add Tree", addTreeNode],
             [React.createRef<HTMLDivElement>(), "table", "Add Schema", addSchemaNode],
+            [React.createRef<HTMLDivElement>(), "clone", "Add Docking Frame", addDockingNode]
         ];
 
         return < div id="add-nodes-menu" >
@@ -327,12 +333,12 @@ export class MainView extends React.Component {
         switch (e.key) {
             case "ArrowRight":
                 if (this.mainFreeform) {
-                    CollectionDockingView.Instance.AddRightSplit(this.mainFreeform!);
+                    CollectionDockingView.AddRightSplit(this.mainFreeform!);
                 }
                 break;
             case "ArrowLeft":
                 if (this.mainFreeform) {
-                    CollectionDockingView.Instance.CloseRightSplit(this.mainFreeform!);
+                    CollectionDockingView.CloseRightSplit(this.mainFreeform!);
                 }
                 break;
             case "o":

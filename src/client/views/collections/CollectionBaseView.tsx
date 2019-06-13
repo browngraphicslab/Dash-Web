@@ -16,7 +16,7 @@ export enum CollectionViewType {
     Schema,
     Docking,
     Tree,
-    Stacking
+    Stacking,
 }
 
 export interface CollectionRenderProps {

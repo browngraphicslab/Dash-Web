@@ -35,6 +35,7 @@ import { dropActionType } from "../util/DragManager";
 import { DateField } from "../../new_fields/DateField";
 import { UndoManager } from "../util/UndoManager";
 import { RouteStore } from "../../server/RouteStore";
+import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 var requestImageSize = require('request-image-size');
 var path = require('path');
 
@@ -314,6 +315,23 @@ export namespace Docs {
     }
     export function DockDocument(documents: Array<Doc>, config: string, options: DocumentOptions, id?: string) {
         return CreateInstance(collProto, new List(documents), { ...options, viewType: CollectionViewType.Docking, dockingConfig: config }, id);
+    }
+    export type DocConfig = {
+        doc: Doc,
+        initialWidth?: number
+    }
+    export function StandardCollectionDockingDocument(configs: Array<DocConfig>, options: DocumentOptions, id?: string, type: string = "row") {
+        let layoutConfig = {
+            content: [
+                {
+                    type: type,
+                    content: [
+                        ...configs.map(config => CollectionDockingView.makeDocumentConfig(config.doc, config.initialWidth))
+                    ]
+                }
+            ]
+        };
+        return DockDocument(configs.map(c => c.doc), JSON.stringify(layoutConfig), options, id);
     }
 
     export function CaptionDocument(doc: Doc) {

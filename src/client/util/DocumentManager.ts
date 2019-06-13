@@ -134,7 +134,7 @@ export class DocumentManager {
                 const actualDoc = Doc.MakeAlias(docDelegate);
                 actualDoc.libraryBrush = true;
                 if (linkPage !== undefined) actualDoc.curPage = linkPage;
-                (dockFunc || CollectionDockingView.Instance.AddRightSplit)(actualDoc);
+                (dockFunc || CollectionDockingView.AddRightSplit)(actualDoc);
             } else {
                 let contextView: DocumentView | null;
                 docDelegate.libraryBrush = true;
@@ -142,7 +142,7 @@ export class DocumentManager {
                     contextDoc.panTransformType = "Ease";
                     contextView.props.focus(contextDoc);
                 } else {
-                    (dockFunc || CollectionDockingView.Instance.AddRightSplit)(contextDoc);
+                    (dockFunc || CollectionDockingView.AddRightSplit)(contextDoc);
                 }
             }
         }

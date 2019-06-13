@@ -26,8 +26,8 @@ export function SetupDrag(_reference: React.RefObject<HTMLElement>, docFunc: () 
         // if (this.props.isSelected() || this.props.isTopMost) {
         if (e.button === 0) {
             e.stopPropagation();
-            if (e.shiftKey && CollectionDockingView.Instance) {
-                CollectionDockingView.Instance.StartOtherDrag([await docFunc()], e);
+            if (e.shiftKey && CollectionDockingView.TopLevel) {
+                CollectionDockingView.TopLevel.StartOtherDrag([await docFunc()], e);
             } else {
                 document.addEventListener("pointermove", onRowMove);
                 document.addEventListener("pointerup", onRowUp);
@@ -264,9 +264,9 @@ export namespace DragManager {
             if (dragData instanceof DocumentDragData) {
                 dragData.userDropAction = e.ctrlKey || e.altKey ? "alias" : undefined;
             }
-            if (e.shiftKey && CollectionDockingView.Instance) {
+            if (e.shiftKey && CollectionDockingView.TopLevel) {
                 AbortDrag();
-                CollectionDockingView.Instance.StartOtherDrag(docs, {
+                CollectionDockingView.TopLevel.StartOtherDrag(docs, {
                     pageX: e.pageX,
                     pageY: e.pageY,
                     preventDefault: emptyFunction,

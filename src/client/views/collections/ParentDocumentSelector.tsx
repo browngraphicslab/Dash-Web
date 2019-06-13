@@ -29,8 +29,8 @@ export class SelectorContextMenu extends React.Component<SelectorProps> {
         allDocs.forEach((docs, index) => docs.forEach(doc => map.set(doc, aliases[index])));
         docs.forEach(doc => map.delete(doc));
         runInAction(() => {
-            this._docs = docs.filter(doc => !Doc.AreProtosEqual(doc, CollectionDockingView.Instance.props.Document)).map(doc => ({ col: doc, target: this.props.Document }));
-            this._otherDocs = Array.from(map.entries()).filter(entry => !Doc.AreProtosEqual(entry[0], CollectionDockingView.Instance.props.Document)).map(([col, target]) => ({ col, target }));
+            this._docs = docs.filter(doc => !Doc.AreProtosEqual(doc, CollectionDockingView.TopLevel.props.Document)).map(doc => ({ col: doc, target: this.props.Document }));
+            this._otherDocs = Array.from(map.entries()).filter(entry => !Doc.AreProtosEqual(entry[0], CollectionDockingView.TopLevel.props.Document)).map(([col, target]) => ({ col, target }));
         });
     }
 
