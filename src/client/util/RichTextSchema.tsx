@@ -5,6 +5,7 @@ import { redo, undo } from 'prosemirror-history';
 import { orderedList, bulletList, listItem, } from 'prosemirror-schema-list';
 import { EditorState, Transaction, NodeSelection, TextSelection, Selection, } from "prosemirror-state";
 import { EditorView, } from "prosemirror-view";
+import { View } from '@react-pdf/renderer';
 
 const pDOM: DOMOutputSpecArray = ["p", 0], blockquoteDOM: DOMOutputSpecArray = ["blockquote", 0], hrDOM: DOMOutputSpecArray = ["hr"],
     preDOM: DOMOutputSpecArray = ["pre", ["code", 0]], brDOM: DOMOutputSpecArray = ["br"], ulDOM: DOMOutputSpecArray = ["ul", 0];
@@ -254,11 +255,11 @@ export const marks: { [index: string]: MarkSpec } = {
         toDOM: () => ['sup']
     },
 
-    collapse: {
-        parseDOM: [{ style: 'color: blue' }],
+    highlight: {
+        parseDOM: [{ style: 'background: #9aa8a4' }],
         toDOM() {
             return ['span', {
-                style: 'color: blue'
+                style: 'background: #9aa8a4'
             }];
         }
     },
@@ -453,6 +454,7 @@ export class ImageResizeView {
 export class SummarizedView {
     // TODO: highlight text that is summarized. to find end of region, walk along mark
     _collapsed: HTMLElement;
+    _view: any;
     constructor(node: any, view: any, getPos: any) {
         this._collapsed = document.createElement("span");
         this._collapsed.textContent = "㊉";
@@ -462,6 +464,7 @@ export class SummarizedView {
         this._collapsed.style.width = "40px";
         this._collapsed.style.height = "20px";
         let self = this;
+        this._view = view;
         this._collapsed.onpointerdown = function (e: any) {
             console.log("star pressed!");
             if (node.attrs.visibility) {
@@ -471,17 +474,19 @@ export class SummarizedView {
                 view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.doc, y + 1, y + 1 + node.attrs.oldtextlen)));
                 view.dispatch(view.state.tr.deleteSelection(view.state, () => { }));
                 self._collapsed.textContent = "㊉";
+                self.updateSummarizedText();
             } else {
                 node.attrs.visibility = !node.attrs.visibility;
                 console.log("content is invisible");
                 let y = getPos();
                 console.log(y);
-                let mark = view.state.schema.mark(view.state.schema.marks.underline);
+                let mark = view.state.schema.mark(view.state.schema.marks.highlight);
                 console.log("PASTING " + node.attrs.oldtext.toString());
                 view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.doc, y + 1, y + 1)));
                 const from = view.state.selection.from;
                 view.dispatch(view.state.tr.replaceSelection(node.attrs.oldtext).addMark(from, from + node.attrs.oldtextlen, mark));
                 //view.dispatch(view.state.tr.setSelection(view.state.doc, from + node.attrs.oldtextlen + 1, from + node.attrs.oldtextlen + 1));
+                view.dispatch(view.state.tr.removeStoredMark(mark));
                 self._collapsed.textContent = "㊀";
             }
             e.preventDefault();
@@ -491,6 +496,11 @@ export class SummarizedView {
 
     }
     selectNode() {
+    }
+
+    updateSummarizedText(mark?: any) {
+        console.log(this._view.state.doc.marks);
+        console.log(this._view.state.doc.childCount);
     }
 
     deselectNode() {

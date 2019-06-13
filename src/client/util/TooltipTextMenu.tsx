@@ -179,13 +179,13 @@ export class TooltipTextMenu {
             this.linkText.style.whiteSpace = "nowrap";
             this.linkText.style.width = "150px";
             this.linkText.style.overflow = "hidden";
-            this.linkText.style.color = "black";
+            this.linkText.style.color = "white";
             this.linkText.onpointerdown = (e: PointerEvent) => { e.stopPropagation(); };
             let linkBtn = document.createElement("div");
             linkBtn.textContent = ">>";
             linkBtn.style.width = "10px";
             linkBtn.style.height = "10px";
-            linkBtn.style.color = "black";
+            linkBtn.style.color = "white";
             linkBtn.style.cssFloat = "left";
             linkBtn.onpointerdown = (e: PointerEvent) => {
                 let node = this.view.state.selection.$from.nodeAfter;
@@ -382,7 +382,7 @@ export class TooltipTextMenu {
         span.className = name + " menuicon";
         span.title = title;
         span.textContent = text;
-        span.style.color = "black";
+        span.style.color = "white";
         return span;
     }
 
