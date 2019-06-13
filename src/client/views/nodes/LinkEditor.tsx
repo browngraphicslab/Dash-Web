@@ -175,9 +175,14 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
         })
         if (index === -1) {
             // create new document for group
+            let mdDoc = Docs.TextDocument();
+            mdDoc.proto!.anchor1 = this.props.sourceDoc["title"];
+            mdDoc.proto!.anchor2 = LinkUtils.findOppositeAnchor(this.props.linkDoc, this.props.sourceDoc)["title"];
+
             let groupDoc = Docs.TextDocument();
             groupDoc.proto!.type = "New Group";
-            // groupDoc.proto!.metadata = Docs.TextDocument();
+            groupDoc.proto!.metadata = mdDoc;
+
 
             this._groups.set(Utils.GenerateGuid(), groupDoc);
 
@@ -277,19 +282,23 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
         //     // LinkUtils.setAnchorGroups(this.props.linkDoc, oppAnchor, [oppGroupDoc]);
         // } else {
         let thisGroupDoc = this._groups.get(groupId);
+        let thisMdDoc = Cast(thisGroupDoc!["metadata"], Doc, new Doc);
         let newGroupDoc = Docs.TextDocument();
-        newGroupDoc.proto!.type = groupType;
+        let newMdDoc = Docs.TextDocument();
         let keys = LinkManager.Instance.allGroups.get(groupType);
         if (keys) {
             keys.forEach(key => {
                 if (thisGroupDoc) { // TODO: clean
-                    let val = thisGroupDoc[key] === undefined ? "" : StrCast(thisGroupDoc[key]);
-                    newGroupDoc[key] = val;
+                    let val = thisMdDoc[key] === undefined ? "" : StrCast(thisMdDoc[key]);
+                    newMdDoc[key] = val;
                 }
                 //     mdDoc[key] === undefined) ? "" : StrCast(mdDoc[key])
                 // oppGroupDoc[key] = thisGroupDoc[key];
             })
         }
+        newGroupDoc.proto!.type = groupType;
+        newGroupDoc.proto!.metadata = newMdDoc;
+
         LinkUtils.setAnchorGroups(this.props.linkDoc, oppAnchor, [newGroupDoc]); // TODO: fix to append to list
         // }
 
@@ -326,7 +335,8 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
         let groupDoc = this._groups.get(groupId);
         if (keys && groupDoc) {
             console.log("keys:", ...keys);
-            let createTable = action(() => Docs.SchemaDocument(keys!, [Cast(groupDoc!["metadata"], Doc, new Doc)], { width: 200, height: 200, title: groupType + " table" }));
+            let docs: Doc[] = LinkManager.Instance.findMetadataInGroup(groupType);
+            let createTable = action(() => Docs.SchemaDocument(["anchor1", "anchor2", ...keys!], docs, { width: 200, height: 200, title: groupType + " table" }));
             let ref = React.createRef<HTMLDivElement>();
             return <div ref={ref}><button onPointerDown={SetupDrag(ref, createTable)}>:)</button></div>
         } else {

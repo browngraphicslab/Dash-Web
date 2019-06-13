@@ -134,6 +134,33 @@ export class LinkManager {
         return anchorGroups;
     }
 
+    public findMetadataInGroup(groupType: string) {
+        let md: Doc[] = [];
+        let allLinks = LinkManager.Instance.allLinks;
+        // for every link find its groups
+        // allLinks.forEach(linkDoc => {
+        //     let anchor1groups = LinkManager.Instance.findRelatedGroupedLinks(Cast(linkDoc["anchor1"], Doc, new Doc));
+        //     if (anchor1groups.get(groupType)) {
+        //         md.push(linkDoc["anchor1"]["group"])
+        //     }
+        // })
+        allLinks.forEach(linkDoc => {
+            let anchor1Groups = Cast(linkDoc["anchor1Groups"], listSpec(Doc), []);
+            let anchor2Groups = Cast(linkDoc["anchor2Groups"], listSpec(Doc), []);
+            [...anchor1Groups, ...anchor2Groups].forEach(groupDoc => {
+                if (groupDoc instanceof Doc) {
+                    if (StrCast(groupDoc["type"]) === groupType) {
+                        md.push(Cast(groupDoc["metadata"], Doc, new Doc));
+                    }
+                } else {
+                    // TODO: promise
+                }
+            })
+
+        })
+        return md;
+    }
+
     public deleteGroup(groupType: string) {
         let deleted = LinkManager.Instance.allGroups.delete(groupType);
         if (deleted) {
