@@ -53,16 +53,17 @@ export class Timeline extends CollectionSubView(Document) {
     @observable private _currentBarX: number = 0;
     @observable private _keys = ["x", "y", "width", "height", "panX", "panY", "scale"];
     @observable private _bars: { x: number, doc: Doc }[] = [];
+    @observable private _data = new List<Doc>(); 
     @observable private _barMoved: boolean = false;
 
     @computed private get _keyframes() {
         return Cast(this.props.Document.keyframes, listSpec(Doc)) as any as List<List<Doc>>;
     }
 
-    @computed private get _data() {
-        return Cast(this.props.Document.dataa, listSpec(Doc)) as List<Doc>; 
-        //return Cast(this.props.Document[this.props.fieldKey], listSpec(Doc))!;
-    }
+    // @computed private get _data() {
+    //     return Cast(this.props.Document.dataa, listSpec(Doc)) as List<Doc>; 
+    //     //return Cast(this.props.Document[this.props.fieldKey], listSpec(Doc))!;
+    // }
 
     /**
      * when the record button is pressed
@@ -439,22 +440,54 @@ export class Timeline extends CollectionSubView(Document) {
         this._data.forEach((node, i) => {
             if (node === doc) {
                 console.log(this._keyframes[i].length); 
-                views = this._keyframes[i].map(tp => {
-                    let n:Doc = Cast(tp, Doc) as Doc; 
-                 
-                    console.log(n); 
-                    if (n !== undefined) {
-                        const timeandpos = TimeAndPosition(n);
-                        let time = timeandpos.time;
-                        let bar = this.createBar(5, time, "yellow");
-                        return bar;
+                views = this._keyframes[i].filter((keyframe) => {
+                    if (keyframe === undefined){
+                        return false; 
                     }
-                    return null;
-                });
+                    return true; 
+                }).map((tp) => {
+                    let n:Doc = Cast(tp, Doc) as Doc; 
+                    const timeandpos = TimeAndPosition(n);
+                    let time = timeandpos.time;
+                    let bar = this.createBar(5, time, "yellow");
+                    return bar;
+                }); 
+                // views = this._keyframes[i].map(tp => {
+                //     let n:Doc = Cast(tp, Doc) as Doc; 
+                 
+                //     console.log(n); 
+                //     if (n !== undefined) {
+                //         const timeandpos = TimeAndPosition(n);
+                //         let time = timeandpos.time;
+                //         let bar = this.createBar(5, time, "yellow");
+                //         return bar;
+                //     }
+                //     return null;
+                // });
             }
         });
         return views;
     }
+
+    private inner:(JSX.Element|null) = (
+    <div className="inner" ref={this._inner} onPointerDown={this.onInnerPointerDown} onPointerUp={this.onInnerPointerUp}>  
+        {SelectionManager.SelectedDocuments().map(dv => this.displayKeyFrames(dv.props.Document))}
+        {this._bars.map((data) => {
+            return this.createBar(5, data.x, "yellow");
+        })}
+        {this.createBar(5, this._currentBarX)}
+    </div>
+    );
+
+    private reset:(JSX.Element|null) = (
+    <div className="inner" ref={this._inner} onPointerDown={this.onInnerPointerDown} onPointerUp={this.onInnerPointerUp}>  
+        {SelectionManager.SelectedDocuments().map(dv => this.displayKeyFrames(dv.props.Document))}
+        {this._bars.map((data) => {
+            return this.createBar(5, data.x, "yellow");
+        })}
+        {this.createBar(5, this._currentBarX)}
+    </div>
+    ); 
 
     render() {
         return (
