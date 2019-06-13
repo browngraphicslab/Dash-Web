@@ -110,12 +110,14 @@
         flex-direction: column;
     }
     .linkEditor-option {
-        background-color: red;
+        background-color: $light-color-secondary;
         border: 1px solid $intermediate-color;
         border-top: 0;
+        padding: 3px;
         cursor: pointer;
         &:hover {
-            background-color:  $light-color-secondary;
+            background-color: $intermediate-color;
+            font-weight: bold;
         }
     }
 }
@@ -124,10 +126,10 @@
     height: 20px;
     display: flex;
     justify-content: space-between;
-    button {
-        width: 31%;
+    .linkEditor-groupOpts {
+        width: calc(33% - 3px);
         height: 20px;
-        margin-left: 6px;
+        // margin-left: 6px;
         padding: 0;
         font-size: 10px;
         &:first-child { // delete
@@ -136,5 +138,11 @@
         &:disabled { // delete
             background-color: gray;
         }
+    }
+    .linkEditor-groupOpts button {
+        width: 100%;
+        height: 20px;
+        font-size: 10px;
+        padding: 0;
     }
 }

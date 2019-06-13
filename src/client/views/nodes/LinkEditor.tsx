@@ -9,7 +9,7 @@ import { listSpec } from "../../../new_fields/Schema";
 import { LinkManager, LinkUtils } from "../../util/LinkManager";
 import { Docs } from "../../documents/Documents";
 import { Utils } from "../../../Utils";
-import { faArrowLeft, faEllipsisV } from '@fortawesome/free-solid-svg-icons';
+import { faArrowLeft, faEllipsisV, faTable } from '@fortawesome/free-solid-svg-icons';
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { string } from "prop-types";
@@ -17,6 +17,7 @@ import { SetupDrag } from "../../util/DragManager";
 
 library.add(faArrowLeft);
 library.add(faEllipsisV);
+library.add(faTable);
 
 // this dropdown could be generalized
 @observer
@@ -316,11 +317,11 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
                     </div>
                     {this.renderMetadata(groupId)}
                     <div className="linkEditor-group-buttons">
-                        {groupDoc["type"] === "New Group" ? <button disabled={true} title="Add KVP">+</button> :
-                            <button onClick={() => this.addMetadata(StrCast(groupDoc.proto!.type))} title="Add KVP">+</button>}
-                        <button onClick={() => this.copyGroup(groupId, type)} title="Copy group to opposite anchor">↔</button>
-                        <button onClick={() => this.removeGroupFromLink(groupId, type)} title="Remove group from link">x</button>
-                        <button onClick={() => this.deleteGroup(groupId, type)} title="Delete group">xx</button>
+                        {groupDoc["type"] === "New Group" ? <button className="linkEditor-groupOpts" disabled={true} title="Add KVP">+</button> :
+                            <button className="linkEditor-groupOpts" onClick={() => this.addMetadata(StrCast(groupDoc.proto!.type))} title="Add KVP">+</button>}
+                        <button className="linkEditor-groupOpts" onClick={() => this.copyGroup(groupId, type)} title="Copy group to opposite anchor">↔</button>
+                        {/* <button className="linkEditor-groupOpts" onClick={() => this.removeGroupFromLink(groupId, type)} title="Remove group from link">x</button>
+                        <button className="linkEditor-groupOpts" onClick={() => this.deleteGroup(groupId, type)} title="Delete group">xx</button> */}
                         {this.viewGroupAsTable(groupId, type)}
                     </div>
                 </div>
@@ -338,9 +339,9 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
             let docs: Doc[] = LinkManager.Instance.findMetadataInGroup(groupType);
             let createTable = action(() => Docs.SchemaDocument(["anchor1", "anchor2", ...keys!], docs, { width: 200, height: 200, title: groupType + " table" }));
             let ref = React.createRef<HTMLDivElement>();
-            return <div ref={ref}><button onPointerDown={SetupDrag(ref, createTable)}>:)</button></div>
+            return <div className="linkEditor-groupOpts" ref={ref}><button onPointerDown={SetupDrag(ref, createTable)}><FontAwesomeIcon icon="table" size="sm" /></button></div>
         } else {
-            return <></>
+            return <button className="linkEditor-groupOpts" disabled><FontAwesomeIcon icon="table" size="sm" /></button>
         }
     }
 

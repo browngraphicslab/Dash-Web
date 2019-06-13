@@ -46,7 +46,8 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
         let y2 = NumCast(b.y) + (BoolCast(b.isMinimized, false) ? 5 : NumCast(b.height) / NumCast(b.zoomBasis, 1) / 2);
         let text = "";
         this.props.LinkDocs.map(l => text += StrCast(l.title) + "(" + StrCast(l.linkDescription) + "), ");
-        text = text.substr(0, text.length - 2);
+        // text = text.substr(0, text.length - 2);
+        text = "";
         return (
             <>
                 <line key="linkLine" className="collectionfreeformlinkview-linkLine"
