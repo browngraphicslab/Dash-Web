@@ -6,7 +6,6 @@ import { InkField, StrokeData } from "../../../../new_fields/InkField";
 import { createSchema, makeInterface } from "../../../../new_fields/Schema";
 import { BoolCast, Cast, FieldValue, NumCast } from "../../../../new_fields/Types";
 import { emptyFunction, returnOne } from "../../../../Utils";
-import { DocServer } from "../../../DocServer";
 import { DocumentManager } from "../../../util/DocumentManager";
 import { DragManager } from "../../../util/DragManager";
 import { HistoryUtil } from "../../../util/History";
@@ -103,7 +102,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                     }
                     this.bringToFront(d);
                 });
-                SelectionManager.ReselectAll();
             }
             return true;
         }
@@ -218,6 +216,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     @action
     setPan(panX: number, panY: number) {
+
         this.props.Document.panTransformType = "None";
         var scale = this.getLocalTransform().inverse().Scale;
         const newPanX = Math.min((1 - 1 / scale) * this.nativeWidth, Math.max(0, panX));
@@ -229,24 +228,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     @action
     onDrop = (e: React.DragEvent): void => {
         var pt = this.getTransform().transformPoint(e.pageX, e.pageY);
-        let html = e.dataTransfer.getData("text/html");
-        if (html && html.indexOf(document.location.origin)) {  // prosemirror text containing link to dash document
-            e.stopPropagation();
-            e.preventDefault();
-            let start = html.indexOf(window.location.origin);
-            let path = html.substr(start, html.length - start);
-            let docid = path.substr(0, path.indexOf("\">")).replace(DocServer.prepend("/doc/"), "").split("?")[0];
-            DocServer.GetRefField(docid).then(f => {
-                if (f instanceof Doc) {
-                    f.x = pt[0];
-                    f.y = pt[1];
-                    (f instanceof Doc) && this.props.addDocument(f, false);
-                }
-            });
-            return;
-        } else {
-            super.onDrop(e, { x: pt[0], y: pt[1] });
-        }
+        super.onDrop(e, { x: pt[0], y: pt[1] });
     }
 
     onDragOver = (): void => {
@@ -365,7 +347,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                         <CollectionFreeFormRemoteCursors {...this.props} key="remoteCursors" />
                     </CollectionFreeFormViewPannableContents>
                 </MarqueeView>
-                <CollectionFreeFormOverlayView {...this.getDocumentViewProps(this.props.Document)} {...this.props} />
+                <CollectionFreeFormOverlayView  {...this.props} {...this.getDocumentViewProps(this.props.Document)} />
             </div>
         );
     }

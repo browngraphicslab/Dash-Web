@@ -68,20 +68,21 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
 
     @observable private _currAnno: any = [];
     @observable private _interactive: boolean = false;
-    @observable private _loaded: boolean = false;
 
     @computed private get curPage() { return NumCast(this.Document.curPage, 1); }
     @computed private get thumbnailPage() { return NumCast(this.props.Document.thumbnailPage, -1); }
 
     componentDidMount() {
-        let wasSelected = this.props.isSelected();
+        let wasSelected = this.props.active();
         this._reactionDisposer = reaction(
-            () => [this.props.isSelected(), this.curPage],
+            () => [this.props.active(), this.curPage],
             () => {
-                if (this.curPage > 0 && !this.props.isTopMost && this.curPage !== this.thumbnailPage && wasSelected && !this.props.isSelected()) {
-                    this.saveThumbnail();
-                }
-                wasSelected = this._interactive = this.props.isSelected();
+                setTimeout(action(() => {  // this forces the active() check to happen after all changes in a transaction have occurred.
+                    if (this.curPage > 0 && !this.props.isTopMost && this.curPage !== this.thumbnailPage && wasSelected && !this.props.active()) {
+                        this.saveThumbnail();
+                    }
+                    wasSelected = this._interactive = this.props.active();
+                }), 0);
             },
             { fireImmediately: true });
 
@@ -276,7 +277,6 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
         if (this._perPageInfo.length === 0) { //Makes sure it only runs once
             this._perPageInfo = [...Array(page._transport.numPages)];
         }
-        this._loaded = true;
     }
 
     @action

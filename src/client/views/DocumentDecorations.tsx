@@ -6,7 +6,7 @@ import { observer } from "mobx-react";
 import { Doc } from "../../new_fields/Doc";
 import { List } from "../../new_fields/List";
 import { listSpec } from "../../new_fields/Schema";
-import { Cast, NumCast, StrCast } from "../../new_fields/Types";
+import { Cast, NumCast, StrCast, BoolCast } from "../../new_fields/Types";
 import { emptyFunction, Utils } from "../../Utils";
 import { Docs } from "../documents/Documents";
 import { DocumentManager } from "../util/DocumentManager";
@@ -432,7 +432,6 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
 
             if (rect.width !== 0 && (dX != 0 || dY != 0 || dW != 0 || dH != 0)) {
                 let doc = PositionDocument(element.props.Document);
-                let docHeightBefore = doc.height;
                 let nwidth = doc.nativeWidth || 0;
                 let nheight = doc.nativeHeight || 0;
                 let zoomBasis = NumCast(doc.zoomBasis, 1);
@@ -443,16 +442,34 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 let actualdH = Math.max(height + (dH * scale), 20);
                 doc.x = (doc.x || 0) + dX * (actualdW - width);
                 doc.y = (doc.y || 0) + dY * (actualdH - height);
+                let proto = Doc.GetProto(element.props.Document);
+                let fixedAspect = e.ctrlKey || (!BoolCast(proto.ignoreAspect, false) && nwidth && nheight);
+                if (fixedAspect && (!nwidth || !nheight)) {
+                    proto.nativeWidth = nwidth = doc.width || 0;
+                    proto.nativeHeight = nheight = doc.height || 0;
+                    proto.ignoreAspect = true;
+                }
                 if (nwidth > 0 && nheight > 0) {
                     if (Math.abs(dW) > Math.abs(dH)) {
-                        doc.zoomBasis = zoomBasis * width / actualdW;
+                        if (!fixedAspect) proto.nativeWidth = zoomBasis * actualdW / (doc.width || 1) * NumCast(proto.nativeWidth);
+                        doc.width = zoomBasis * actualdW;
+                        // doc.zoomBasis = zoomBasis * width / actualdW;
+                        if (fixedAspect) doc.height = nheight / nwidth * doc.width;
+                        else doc.height = zoomBasis * actualdH;
+                        proto.nativeHeight = (doc.height || 0) / doc.width * NumCast(proto.nativeWidth);
                     }
                     else {
-                        doc.zoomBasis = zoomBasis * height / actualdH;
+                        if (!fixedAspect) proto.nativeHeight = zoomBasis * actualdH / (doc.height || 1) * NumCast(proto.nativeHeight);
+                        doc.height = zoomBasis * actualdH;
+                        //doc.zoomBasis = zoomBasis * height / actualdH;
+                        if (fixedAspect) doc.width = nwidth / nheight * doc.height;
+                        else doc.width = zoomBasis * actualdW;
+                        proto.nativeWidth = (doc.width || 0) / doc.height * NumCast(proto.nativeHeight);
                     }
                 } else {
                     doc.width = zoomBasis * actualdW;
-                    if (docHeightBefore === doc.height) doc.height = zoomBasis * actualdH;
+                    doc.height = zoomBasis * actualdH;
+                    proto.autoHeight = undefined;
                 }
             }
         });
@@ -463,7 +480,6 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         e.stopPropagation();
         this._resizing = "";
         this.Interacting = false;
-        SelectionManager.ReselectAll();
         if (e.button === 0) {
             e.preventDefault();
             this._isPointerDown = false;
@@ -522,11 +538,11 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
 
         let templates: Map<Template, boolean> = new Map();
         Array.from(Object.values(Templates.TemplateList)).map(template => {
-            let sorted = SelectionManager.ViewsSortedVertically().slice().sort((doc1, doc2) => {
-                if (NumCast(doc1.props.Document.x) > NumCast(doc2.props.Document.x)) return 1;
-                if (NumCast(doc1.props.Document.x) < NumCast(doc2.props.Document.x)) return -1;
-                return 0;
-            });
+            let sorted = SelectionManager.ViewsSortedVertically(); // slice().sort((doc1, doc2) => {
+            //     if (NumCast(doc1.props.Document.y) > NumCast(doc2.props.Document.x)) return 1;
+            //     if (NumCast(doc1.props.Document.x) < NumCast(doc2.props.Document.x)) return -1;
+            //     return 0;
+            // });
             let docTemps = sorted.reduce((res: string[], doc: DocumentView, i) => {
                 let temps = doc.props.Document.templates;
                 if (temps instanceof List) {

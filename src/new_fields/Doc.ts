@@ -211,13 +211,11 @@ export namespace Doc {
         return Array.from(results);
     }
 
-
     export function MakeAlias(doc: Doc) {
-        const alias = new Doc;
         if (!GetT(doc, "isPrototype", "boolean", true)) {
-            alias.proto = doc.proto;
+            return Doc.MakeCopy(doc);
         }
-        return alias;
+        return new Doc;
     }
 
     export function MakeCopy(doc: Doc, copyProto: boolean = false): Doc {
