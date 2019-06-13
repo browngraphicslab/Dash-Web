@@ -133,7 +133,7 @@ button:hover {
     bottom: 22px;
     left: 24px;
 
-    label {
+    > label {
         background: $dark-color;
         color: $light-color;
         display: inline-block;
@@ -155,15 +155,15 @@ button:hover {
         transform: scale(1.15);
     }
 
-    input {
+    > input {
         display: none;
     }
 
-    input:not(:checked)~#add-options-content {
+    > input:not(:checked)~#add-options-content {
         display: none;
     }
 
-    input:checked~label {
+    > input:checked~label {
         transform: rotate(45deg);
         transition: transform 0.5s;
         cursor: pointer;
@@ -207,7 +207,7 @@ ul#add-options-list {
     list-style: none;
     padding: 5 0 0 0;
 
-    li {
+    > li {
         display: inline-block;
         padding: 0;
     }

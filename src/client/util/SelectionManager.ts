@@ -12,11 +12,11 @@ export namespace SelectionManager {
         @action
         SelectDoc(docView: DocumentView, ctrlPressed: boolean): void {
             // if doc is not in SelectedDocuments, add it
-            if (!ctrlPressed) {
-                this.DeselectAll();
-            }
-
             if (manager.SelectedDocuments.indexOf(docView) === -1) {
+                if (!ctrlPressed) {
+                    this.DeselectAll();
+                }
+
                 manager.SelectedDocuments.push(docView);
                 docView.props.whenActiveChanged(true);
             }

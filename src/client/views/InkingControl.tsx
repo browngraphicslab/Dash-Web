@@ -57,16 +57,10 @@ export class InkingControl extends React.Component {
         return this._selectedWidth;
     }
 
-    selected = (tool: InkTool) => {
-        if (this._selectedTool === tool) {
-            return { color: "#61aaa3" };
-        }
-        return {};
-    }
-
     @action
     toggleDisplay = () => {
         this._open = !this._open;
+        this.switchTool(this._open ? InkTool.Pen : InkTool.None);
     }
 
 
@@ -78,14 +72,6 @@ export class InkingControl extends React.Component {
     render() {
         return (
             <ul className="inking-control" style={this._open ? { display: "flex" } : { display: "none" }}>
-                <li className="ink-tools ink-panel">
-                    <div className="ink-tool-buttons">
-                        <button onClick={() => this.switchTool(InkTool.Pen)} style={this.selected(InkTool.Pen)}><FontAwesomeIcon icon="pen" size="lg" title="Pen" /></button>
-                        <button onClick={() => this.switchTool(InkTool.Highlighter)} style={this.selected(InkTool.Highlighter)}><FontAwesomeIcon icon="highlighter" size="lg" title="Highlighter" /></button>
-                        <button onClick={() => this.switchTool(InkTool.Eraser)} style={this.selected(InkTool.Eraser)}><FontAwesomeIcon icon="eraser" size="lg" title="Eraser" /></button>
-                        <button onClick={() => this.switchTool(InkTool.None)} style={this.selected(InkTool.None)}><FontAwesomeIcon icon="ban" size="lg" title="Pointer" /></button>
-                    </div>
-                </li>
                 <li className="ink-color ink-panel">
                     <label>COLOR: </label>
                     <div className="ink-color-display" style={{ backgroundColor: this._selectedColor }}

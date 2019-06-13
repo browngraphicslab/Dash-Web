@@ -170,7 +170,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                         this.props.addDocument && this.props.addDocument(Docs.WebDocument(href, options));
                     }
                 } else if (text) {
-                    this.props.addDocument && this.props.addDocument(Docs.TextDocument({ ...options, documentText: "@@@" + text }), false);
+                    this.props.addDocument && this.props.addDocument(Docs.TextDocument({ ...options, width: 100, height: 25, documentText: "@@@" + text }), false);
                 }
                 return;
             }
