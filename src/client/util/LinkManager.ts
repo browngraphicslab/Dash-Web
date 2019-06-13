@@ -52,17 +52,17 @@ export namespace LinkUtils {
     export function removeGroupFromAnchor(link: Doc, anchor: Doc, groupType: string) {
         let groups = [];
         if (Doc.AreProtosEqual(anchor, Cast(link.anchor1, Doc, new Doc))) {
-            groups = Cast(link["anchor1Groups"], listSpec(Doc), []);
+            groups = Cast(link.proto!.anchor1Groups, listSpec(Doc), []);
         } else {
-            groups = Cast(link["anchor2Groups"], listSpec(Doc), []);
+            groups = Cast(link.proto!.anchor2Groups, listSpec(Doc), []);
         }
 
         let newGroups: Doc[] = [];
         groups.forEach(groupDoc => {
-            if (groupDoc instanceof Doc && StrCast(groupDoc["type"]) !== groupType) {
+            if (groupDoc instanceof Doc && StrCast(groupDoc.type) !== groupType) {
                 newGroups.push(groupDoc);
             }
-        })
+        });
         LinkUtils.setAnchorGroups(link, anchor, newGroups);
     }
 }
@@ -111,7 +111,7 @@ export class LinkManager {
             if (groups.length > 0) {
                 groups.forEach(groupDoc => {
                     if (groupDoc instanceof Doc) {
-                        let groupType = StrCast(groupDoc["type"]);
+                        let groupType = StrCast(groupDoc.type);
                         let group = anchorGroups.get(groupType); // TODO: clean this up lol
                         if (group) group.push(link);
                         else group = [link];
@@ -120,7 +120,7 @@ export class LinkManager {
                         // promise doc
                     }
 
-                })
+                });
             }
             else {
                 // if link is in no groups then put it in default group
@@ -130,7 +130,7 @@ export class LinkManager {
                 anchorGroups.set("*", group);
             }
 
-        })
+        });
         return anchorGroups;
     }
 
@@ -145,28 +145,28 @@ export class LinkManager {
         //     }
         // })
         allLinks.forEach(linkDoc => {
-            let anchor1Groups = Cast(linkDoc["anchor1Groups"], listSpec(Doc), []);
-            let anchor2Groups = Cast(linkDoc["anchor2Groups"], listSpec(Doc), []);
+            let anchor1Groups = Cast(linkDoc.anchor1Groups, listSpec(Doc), []);
+            let anchor2Groups = Cast(linkDoc.anchor2Groups, listSpec(Doc), []);
             anchor1Groups.forEach(groupDoc => {
                 if (groupDoc instanceof Doc) {
-                    if (StrCast(groupDoc["type"]) === groupType) {
-                        md.push(Cast(groupDoc["metadata"], Doc, new Doc));
+                    if (StrCast(groupDoc.type) === groupType) {
+                        md.push(Cast(groupDoc.metadata, Doc, new Doc));
                     }
                 } else {
                     // TODO: promise
                 }
-            })
+            });
             anchor2Groups.forEach(groupDoc => {
                 if (groupDoc instanceof Doc) {
-                    if (StrCast(groupDoc["type"]) === groupType) {
-                        md.push(Cast(groupDoc["metadata"], Doc, new Doc));
+                    if (StrCast(groupDoc.type) === groupType) {
+                        md.push(Cast(groupDoc.metadata, Doc, new Doc));
                     }
                 } else {
                     // TODO: promise
                 }
-            })
+            });
 
-        })
+        });
         return md;
     }
 
@@ -174,9 +174,9 @@ export class LinkManager {
         let deleted = LinkManager.Instance.allGroups.delete(groupType);
         if (deleted) {
             LinkManager.Instance.allLinks.forEach(linkDoc => {
-                LinkUtils.removeGroupFromAnchor(linkDoc, Cast(linkDoc["anchor1"], Doc, new Doc), groupType);
-                LinkUtils.removeGroupFromAnchor(linkDoc, Cast(linkDoc["anchor2"], Doc, new Doc), groupType);
-            })
+                LinkUtils.removeGroupFromAnchor(linkDoc, Cast(linkDoc.anchor1, Doc, new Doc), groupType);
+                LinkUtils.removeGroupFromAnchor(linkDoc, Cast(linkDoc.anchor2, Doc, new Doc), groupType);
+            });
         }
     }
 
