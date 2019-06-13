@@ -478,11 +478,11 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 let actualdH = Math.max(height + (dH * scale), 20);
                 doc.x = (doc.x || 0) + dX * (actualdW - width);
                 doc.y = (doc.y || 0) + dY * (actualdH - height);
-                let proto = Doc.GetProto(doc);
+                let proto = Doc.GetProto(element.props.Document);
                 let fixedAspect = e.ctrlKey || (!BoolCast(proto.ignoreAspect, false) && nwidth && nheight);
                 if (fixedAspect && (!nwidth || !nheight)) {
-                    proto.nativeWidth = doc.width;
-                    proto.nativeHeight = doc.height;
+                    proto.nativeWidth = nwidth = doc.width || 0;
+                    proto.nativeHeight = nheight = doc.height || 0;
                     proto.ignoreAspect = true;
                 }
                 if (nwidth > 0 && nheight > 0) {
@@ -505,6 +505,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 } else {
                     doc.width = zoomBasis * actualdW;
                     doc.height = zoomBasis * actualdH;
+                    proto.autoHeight = undefined;
                 }
             }
         });
