@@ -3,7 +3,7 @@ import { library } from '@fortawesome/fontawesome-svg-core';
 import { faCaretUp, faFilePdf, faFilm, faImage, faObjectGroup, faStickyNote, faMusic, faLink, faChartBar, faGlobeAsia } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Cast, NumCast } from "../../../new_fields/Types";
-import { observable, runInAction, computed } from "mobx";
+import { observable, runInAction, computed, action } from "mobx";
 import { listSpec } from "../../../new_fields/Schema";
 import { Doc } from "../../../new_fields/Doc";
 import { DocumentManager } from "../../util/DocumentManager";
@@ -16,6 +16,7 @@ import "./SearchItem.scss";
 import { CollectionViewType } from "../collections/CollectionBaseView";
 import { DocTypes } from "../../documents/Documents";
 import { SearchBox } from "./SearchBox";
+import { DocumentView } from "../nodes/DocumentView";
 
 export interface SearchItemProps {
     doc: Doc;
@@ -84,11 +85,8 @@ export class SelectorContextMenu extends React.Component<SearchItemProps> {
 export class SearchItem extends React.Component<SearchItemProps> {
 
     @observable _selected: boolean = false;
-    @observable hover = false;
 
     onClick = () => {
-        // DocumentManager.Instance.jumpToDocument(this.props.doc);
-        console.log(Cast(this.props.doc.type, "string", ""))
         CollectionDockingView.Instance.AddRightSplit(this.props.doc);
     }
 
@@ -138,10 +136,24 @@ export class SearchItem extends React.Component<SearchItemProps> {
         SearchBox.Instance.openSearch(e);
     }
 
+    highlightDoc = (e: React.PointerEvent) => {
+        let docViews: DocumentView[] = DocumentManager.Instance.getAllDocumentViews(this.props.doc);
+        docViews.forEach(element => {
+            element.props.Document.libraryBrush = true;
+        });
+    }
+
+    unHighlightDoc = (e: React.PointerEvent) => {
+        let docViews: DocumentView[] = DocumentManager.Instance.getAllDocumentViews(this.props.doc);
+        docViews.forEach(element => {
+            element.props.Document.libraryBrush = false;
+        });
+    }
+
     render() {
         return (
             <div className="search-overview" onPointerDown = {this.pointerDown}>
-                <div className="search-item" ref={this.collectionRef} id="result" onClick={this.onClick} onPointerDown={ () => {
+                <div className="search-item" onPointerEnter={this.highlightDoc} onPointerLeave={this.unHighlightDoc} ref={this.collectionRef} id="result" onClick={this.onClick} onPointerDown={ () => {
                     this.pointerDown;
                     SetupDrag(this.collectionRef, this.startDocDrag);}} >
                     <div className="main-search-info">

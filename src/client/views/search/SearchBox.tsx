@@ -54,6 +54,14 @@ export class SearchBox extends React.Component {
     }
 
     @action.bound
+    resetFilters = () => {
+        ToggleBar.Instance.resetToggle();
+        IconBar.Instance.resetIconFilters();
+        // this._wordStatus = true;
+        this._icons = [];
+    }
+
+    @action.bound
     onChange(e: React.ChangeEvent<HTMLInputElement>) {
         this._searchString = e.target.value;
         
@@ -66,22 +74,24 @@ export class SearchBox extends React.Component {
     @action
     submitSearch = async () => {
         let query = this._searchString;
+        let results: Doc[];
 
         if (!this._wordStatus) {
             let oldWords = query.split(" ");
             let newWords: string[] = [];
-            console.log(oldWords);
             oldWords.forEach(word => {
                 let newWrd = "+" + word;
                 newWords.push(newWrd);
             });
-            console.log(newWords);
-
             query = newWords.join(" ");
         }
 
-        //gets json result into a list of documents that can be used
-        const results = await this.getResults(query);
+        if(query === ""){
+            results = [];
+        }
+        else{
+            //gets json result into a list of documents that can be used
+            results = await this.getResults(query);}
 
         runInAction(() => {
             this._resultsOpen = true;
@@ -151,6 +161,7 @@ export class SearchBox extends React.Component {
     closeSearch = () => {
         this._open = false;
         this._resultsOpen = false;
+        this._results = [];
     }
 
     @action
@@ -227,14 +238,12 @@ export class SearchBox extends React.Component {
 
     stopProp = (e: React.PointerEvent) => {
         e.stopPropagation();
-        console.log('stopping prop')
         this._pointerTime = e.timeStamp;
     }
 
     @action.bound
     openSearch(e: React.PointerEvent) {
         e.stopPropagation();
-        this._results = [];
         this._openNoResults = false;
         this._open = false;
         this._resultsOpen = true;
@@ -285,7 +294,7 @@ export class SearchBox extends React.Component {
                                 temp for filtering where in doc the keywords are found
                             </div>
                         </div>
-                        <button className="reset-filter">Reset Filters</button>
+                        <button className="reset-filter" onClick = {this.resetFilters}>Reset Filters</button>
                     </div>
                 ) : undefined}
             </div>

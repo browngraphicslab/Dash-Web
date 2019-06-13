@@ -34,10 +34,12 @@
 
 .type-icon.selected {
     background-color: $alt-accent;
+    opacity: 1;
 }
 
 .type-icon.not-selected {
     background-color: transparent;
+    opacity: .4;
 }
 
 .fontawesome-icon {
@@ -45,9 +47,20 @@
     width: 28px;
 }
 
-.type-icon:hover {
+.type-icon.filter:hover {
     transform: scale(1.1);
     background-color: $alt-accent;
+    opacity: 1;
+
+    +.filter-description {
+        opacity: 1;
+    }
+}
+
+.type-icon.none:hover {
+    transform: scale(1.1);
+    // background-color: $alt-accent;
+    opacity: 1;
 
     +.filter-description {
         opacity: 1;

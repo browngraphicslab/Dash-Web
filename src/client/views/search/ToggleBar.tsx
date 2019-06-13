@@ -15,6 +15,7 @@ export interface ToggleBarProps {
 
 @observer
 export class ToggleBar extends React.Component<ToggleBarProps>{
+    static Instance: ToggleBar;
 
     @observable forwardTimeline: anime.AnimeTimelineInstance;
     @observable _toggleButton: React.RefObject<HTMLDivElement>;
@@ -23,6 +24,7 @@ export class ToggleBar extends React.Component<ToggleBarProps>{
 
     constructor(props: ToggleBarProps) {
         super(props);
+        ToggleBar.Instance = this;
         this._toggleButton = React.createRef();
         this.forwardTimeline = anime.timeline({
             loop: false,
@@ -76,12 +78,22 @@ export class ToggleBar extends React.Component<ToggleBarProps>{
         this.props.changeStatus();
     }
 
+    @action.bound
+    public resetToggle = () => {
+        if (!this._curStatus) {
+            this.forwardTimeline.play()
+            this.forwardTimeline.reverse();
+            this.props.changeStatus();
+            this._curStatus = true;
+        }
+    }
+
     render() {
         return (
             <div>
                 <div className="toggle-title">
-                    <div className="toggle-option" style = {{ opacity: (this._curStatus ? 1:.4)}}>{this.props.optionOne}</div>
-                    <div className="toggle-option" style = {{ opacity: (this._curStatus ? .4:1)}}>{this.props.optionTwo}</div>
+                    <div className="toggle-option" style={{ opacity: (this._curStatus ? 1 : .4) }}>{this.props.optionOne}</div>
+                    <div className="toggle-option" style={{ opacity: (this._curStatus ? .4 : 1) }}>{this.props.optionTwo}</div>
                 </div>
                 <div className="toggle-bar" id="toggle-bar" style={{ flexDirection: (this._originalStatus ? "row" : "row-reverse") }}>
                     <div className="toggle-button" id="toggle-button" ref={this._toggleButton} onClick={this.onclick} />

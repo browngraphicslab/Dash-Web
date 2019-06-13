@@ -89,11 +89,13 @@ export namespace DocUtils {
         let protoSrc = source.proto ? source.proto : source;
         let protoTarg = target.proto ? target.proto : target;
         UndoManager.RunInBatch(() => {
-            let linkDoc = Docs.TextDocument({ width: 100, height: 30, borderRounding: -1 });
+            let linkDoc = Docs.TextDocument({ width: 100, height: 30, borderRounding: -1});
+            // linkDoc.type = DocTypes.LINK;
             let linkDocProto = Doc.GetProto(linkDoc);
             linkDocProto.title = source.title + " to " + target.title;
             linkDocProto.linkDescription = "";
             linkDocProto.linkTags = "Default";
+            linkDocProto.type = DocTypes.LINK;
 
             linkDocProto.linkedTo = target;
             linkDocProto.linkedFrom = source;
@@ -110,8 +112,6 @@ export namespace DocUtils {
             return linkDoc;
         }, "make link");
     }
-
-
 }
 
 export namespace Docs {

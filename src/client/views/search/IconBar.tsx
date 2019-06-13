@@ -31,6 +31,8 @@ export interface IconBarProps {
 @observer
 export class IconBar extends React.Component<IconBarProps> {
 
+    static Instance: IconBar;
+
     @observable noneRef = React.createRef<HTMLDivElement>();
     @observable colRef = React.createRef<HTMLDivElement>();
     @observable imgRef = React.createRef<HTMLDivElement>();
@@ -45,8 +47,20 @@ export class IconBar extends React.Component<IconBarProps> {
 
     @observable originalFilteredNodes: string[] = this.props.getIcons();
 
+    constructor(props: IconBarProps){
+        super(props);
+        IconBar.Instance = this;
+    }
+
     componentDidMount = () => {
         //i KNOW this is bad i just can't get this to re render eeeeeeeek
+        this.forceUpdate();
+    }
+
+    @action.bound
+    resetIconFilters = () => {
+        this.unselectAllRefs();
+        // lmao sorry
         this.forceUpdate();
     }
 
@@ -163,7 +177,7 @@ export class IconBar extends React.Component<IconBarProps> {
                 <div className="filter icon-title">Filter by type of node</div>
                 <div className="filter icon-bar">
                     <div className="filter type-outer">
-                        <div className={"type-icon filter none"}
+                        <div className={"type-icon none not-selected"}
                             ref={this.noneRef}
                             data-selected={"false"}
                             onClick={() => { this.onClick(DocTypes.NONE); }}>
