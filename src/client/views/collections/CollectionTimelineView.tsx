@@ -75,7 +75,9 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     @observable
     buttonloop() {
         let buttons = [];
+        let range = 1;
         let arr: Doc[] = [];
+        let values = [];
         //Building the array is kinda weird because I reverse engineered something from another class.
         this.childDocs.filter(d => !d.isMinimized).map((d, i) => {
             arr.push(d);
@@ -89,10 +91,46 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
         if (this.sortstate === "x") {
             arr.sort(this.sortx);
+            let i = arr.length
+            while (arr[i] === undefined) {
+                i += -1;
+                if (i === 0) {
+                    break;
+                }
+
+            }
+            range = arr[i].x - arr[0].x;
+            console.log(range);
+            for (let j = 0; j < arr.length; j++) {
+                if (arr[j].x === undefined) {
+                    values[j] = 0;
+                }
+                else {
+                    values[j] = arr[j].x;
+                }
+            }
         }
 
         if (this.sortstate === "y") {
             arr.sort(this.sorty);
+            let i = arr.length
+            while (arr[i] === undefined) {
+                i += -1;
+                if (i === 0) {
+                    break;
+                }
+
+            }
+            range = arr[i].y - arr[0].y;
+            console.log(range);
+            for (let j = 0; j < arr.length; j++) {
+                if (arr[j].x === undefined) {
+                    values[j] = 0;
+                }
+                else {
+                    values[j] = arr[j].y;
+                }
+            }
         }
         if (this.sortstate === "height") {
             arr.sort(this.sortheight);
@@ -106,7 +144,13 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         let returnHundred = () => 100;
         let hover = false;
 
+
         for (let i = 0; i < arr.length; i++) {
+            let color = "darker-color";
+            if (i % 2 == 0) {
+                color = "$intermediate-color";
+            }
+
             let preview = <DocumentContentsView Document={arr[i]}
                 addDocument={undefined}
                 addDocTab={this.props.addDocTab}
@@ -131,8 +175,10 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                         onMouseLeave={function flipp() { hover = false; }}
                         style={{
                             position: "absolute",
-                            top: "50%", left: (i * 100 / len) + "%", width: (5 / (2 * Math.log2((len / 10) + 1))) + "%"
+                            background: color,
+                            top: "50%", left: ((values[i] - values[0]) * 100 / range) + "%", width: (5 / (2 * Math.log2((len / 10) + 1))) + "%"
                         }}>{arr[i].title}</button>
+
 
                 </div>)
         }
@@ -219,7 +265,10 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     }
 
 
+    // documentpreview(doc: Doc) {
 
+    //     return <div style={{}}
+    // }
 
     render() {
         return (
@@ -227,6 +276,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 onWheel={(e: React.WheelEvent) => e.stopPropagation()}>
                 <hr style={{ top: "50%", display: "block", width: "100%", border: "10", position: "absolute" }} />
                 {this.tableOptionsPanel}
+                {this.documentpreview}
                 {this.buttonloop()}
 
 
