@@ -1,7 +1,7 @@
 import * as React from "react";
 import * as ReactDOM from "react-dom";
 import { observer } from "mobx-react";
-import { observable, reaction, action, IReactionDisposer, observe, IObservableArray, computed } from "mobx";
+import { observable, reaction, action, IReactionDisposer, observe, IObservableArray, computed, toJS } from "mobx";
 import "./Timeline.scss";
 import { CollectionViewProps } from "../collections/CollectionBaseView";
 import { CollectionSubView, SubCollectionViewProps } from "../collections/CollectionSubView";
@@ -19,6 +19,7 @@ import { list } from "serializr";
 import { arrays, Dictionary } from "typescript-collections";
 import { forEach } from "typescript-collections/dist/lib/arrays";
 import { CompileScript } from "../../util/Scripting";
+import { FieldView } from "./FieldView";
 
 type Data = List<Doc>;
 type Keyframes = List<List<Doc>>;
@@ -412,7 +413,8 @@ export class Timeline extends CollectionSubView(Document) {
     }
 
 
-    componentDidMount() {
+    async componentDidMount() {
+        console.log(toJS(this.props.Document.proto) || null);        
         if (!this._keyframes) {
             console.log("new data");
             this.props.Document.keyframes = new List<List<Doc>>();
@@ -423,12 +425,10 @@ export class Timeline extends CollectionSubView(Document) {
     /**
      * removes reaction when the component is removed from the timeline
      */
-
     componentWillUnmount() {
         this._reactionDisposers.forEach(disp => disp());
         this._reactionDisposers = [];
     }
-
 
     /**
      * Displays yellow bars per node when selected
@@ -457,41 +457,21 @@ export class Timeline extends CollectionSubView(Document) {
         return views;
     }
 
-    private inner:(JSX.Element|null) = (
-    <div className="inner" ref={this._inner} onPointerDown={this.onInnerPointerDown} onPointerUp={this.onInnerPointerUp}>  
-        {SelectionManager.SelectedDocuments().map(dv => this.displayKeyFrames(dv.props.Document))}
-        {this._bars.map((data) => {
-            return this.createBar(5, data.x, "yellow");
-        })}
-        {this.createBar(5, this._currentBarX)}
-    </div>
-    );
-
-    private reset:(JSX.Element|null) = (
-    <div className="inner" ref={this._inner} onPointerDown={this.onInnerPointerDown} onPointerUp={this.onInnerPointerUp}>  
-        {SelectionManager.SelectedDocuments().map(dv => this.displayKeyFrames(dv.props.Document))}
-        {this._bars.map((data) => {
-            return this.createBar(5, data.x, "yellow");
-        })}
-        {this.createBar(5, this._currentBarX)}
-    </div>
-    ); 
 
     render() {
         return (
             <div>
                 <div className="timeline-container">
                     <div className="timeline">
-                        <div className="inner" ref={this._inner} onPointerDown={this.onInnerPointerDown} onPointerUp={this.onInnerPointerUp}>
+                        <div className="inner" ref={this._inner} onPointerDown={this.onInnerPointerDown} onPointerUp={this.onInnerPointerUp}>  
                             {SelectionManager.SelectedDocuments().map(dv => this.displayKeyFrames(dv.props.Document))}
                             {this._bars.map((data) => {
                                 return this.createBar(5, data.x, "yellow");
-                            })}
+                            })} 
                             {this.createBar(5, this._currentBarX)}
                         </div>
                     </div>
                     <button onClick={this.onRecord}>Record</button>
-
                     <input placeholder={this._currentBarX.toString()} ref={this._timeInput} onKeyDown={this.onTimeEntered} ></input>
                     <button onClick={this.windBackward}> {"<"}</button>
                     <button onClick={this.onPlay} ref={this._playButton}> Play </button>
