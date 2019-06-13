@@ -66,14 +66,15 @@ export default class PresentationElement extends React.Component<PresentationEle
     }
 
     async componentDidMount() {
-        // let castedList = Cast(this.props.presButtonBackUp.selectedButtons, listSpec(Doc), null) as any as List<List<boolean>>;
+        //get the list that stores docs that keep track of buttons
         let castedList = Cast(this.props.presButtonBackUp.selectedButtonDocs, listSpec(Doc));
         if (!castedList) {
             this.props.presButtonBackUp.selectedButtonDocs = castedList = new List<Doc>();
         }
-
+        //if this is the first time this doc mounts, push a doc for it to store
         if (castedList.length <= this.props.index) {
             castedList.push(new Doc());
+            //otherwise update the selected buttons depending on storage.
         } else {
             let curDoc: Doc = await castedList[this.props.index];
             let selectedButtonOfDoc = Cast(curDoc.selectedButtons, listSpec("boolean"), null);
@@ -164,14 +165,20 @@ export default class PresentationElement extends React.Component<PresentationEle
     }
 
 
+    /**
+     * This function is called at the end of each group update to update the group updates.
+     */
     @action
     autoSaveGroupChanges = () => {
         let castedList: List<Doc> = new List<Doc>();
         this.props.presGroupBackUp.groupDocs = castedList;
         this.props.groupMappings.forEach((docArray: Doc[], id: String) => {
+            //create a new doc for each group
             let newGroupDoc = new Doc();
             castedList.push(newGroupDoc);
+            //store the id of the group in the doc
             newGroupDoc.presentIdStore = id.toString();
+            //store the doc array which represents the group in the doc
             newGroupDoc.grouping = new List(docArray);
         });
 
@@ -215,13 +222,14 @@ export default class PresentationElement extends React.Component<PresentationEle
         this.autoSaveButtonChange(buttonIndex.HideTillPressed);
     }
 
+    /**
+     * This function is called to get the updates for the changed buttons.
+     */
     @action
     autoSaveButtonChange = async (index: buttonIndex) => {
-        // let castedList = Cast(this.props.presButtonBackUp.selectedButtons, listSpec(Doc), null) as any as List<List<boolean>>;
         let castedList = (await DocListCastAsync(this.props.presButtonBackUp.selectedButtonDocs))!;
         castedList[this.props.index].selectedButtons = new List(this.selectedButtons);
 
-        //this.props.mainDocument.presButtonBackUp = this.props.presButtonBackUp;
     }
 
     /**

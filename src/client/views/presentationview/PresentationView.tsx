@@ -55,6 +55,7 @@ class PresentationViewList extends React.Component<PresListProps> {
             //checking if part of group
             let storedGuids: string[] = [];
             let castedGroupDocs = await DocListCastAsync(this.props.presGroupBackUp.groupDocs);
+            //making sure the docs that were in groups, which were stored, to not get new guids.
             if (castedGroupDocs !== undefined) {
                 castedGroupDocs.forEach((doc: Doc) => {
                     let storedGuid = StrCast(doc.presentIdStore, null);
@@ -70,26 +71,10 @@ class PresentationViewList extends React.Component<PresListProps> {
         });
     }
 
-    @action
-    initializeSelectedButtonDocs = (docList: Doc[]) => {
-
-        let castedList = DocListCast(this.props.presButtonBackUp.selectedButtonDocs);
-        if (castedList.length === 0) {
-            let newDocArray: List<Doc> = new List();
-            newDocArray.push(new Doc());
-            this.props.presButtonBackUp.selectedButtonDocs = newDocArray;
-        } else {
-            castedList.push(new Doc());
-        }
-
-
-    }
-
     render() {
         const children = DocListCast(this.props.Document.data);
         this.initializeGroupIds(children);
         this.props.setChildrenDocs(children);
-        //this.initializeSelectedButtonDocs(children);
         return (
 
             <div className="presentationView-listCont">
@@ -119,10 +104,10 @@ export class PresentationView extends React.Component<PresViewProps>  {
 
 
     componentDidMount() {
-        // let newDoc = new Doc();
-        // let newDoc2 = new Doc();
+        //getting both backUp documents
         let castedGroupBackUp = Cast(this.props.Document.presGroupBackUp, Doc);
         let castedButtonBackUp = Cast(this.props.Document.presButtonBackUp, Doc);
+        //if instantiated before 
         if (castedGroupBackUp instanceof Promise) {
             castedGroupBackUp.then(doc => {
                 let toAssign = doc ? doc : new Doc();
@@ -134,6 +119,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
                     }
                 }
             });
+            //if never instantiated a store doc yet
         } else {
             runInAction(() => {
                 let toAssign = new Doc();
@@ -143,6 +129,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
             });
 
         }
+        //if instantiated before 
 
         if (castedButtonBackUp instanceof Promise) {
             castedButtonBackUp.then(doc => {
@@ -151,6 +138,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
                 runInAction(() => this.presButtonBackUp = toAssign);
             });
 
+            //if never instantiated a store doc yet
         } else {
             runInAction(() => {
                 let toAssign = new Doc();
@@ -160,12 +148,17 @@ export class PresentationView extends React.Component<PresViewProps>  {
 
         }
 
+
+        //storing the presentation status,ie. whether it was stopped or playing
         let presStatusBackUp = BoolCast(this.props.Document.presStatus, null);
         runInAction(() => this.presStatus = presStatusBackUp);
     }
 
+    /**
+     * This is the function that is called to retrieve the groups that have been stored and
+     * push them to the groupMappings.
+     */
     retrieveGroupMappings = async () => {
-        //runInAction(() => this.groupMappings = new Map());
         let castedGroupDocs = await DocListCastAsync(this.presGroupBackUp.groupDocs);
         if (castedGroupDocs !== undefined) {
             castedGroupDocs.forEach(async (groupDoc: Doc, index: number) => {
