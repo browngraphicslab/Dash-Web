@@ -37,14 +37,14 @@ class LinkGroupsDropdown extends React.Component<{ groupId: string, groupType: s
 
     @action
     createGroup(value: string) {
-        LinkManager.Instance.allGroups.set(value, []);
+        LinkManager.Instance.groupMetadataKeys.set(value, []);
         this.props.setGroup(this.props.groupId, value);
     }
 
     renderOptions = (): JSX.Element[] => {
         let allGroups: string[], searchTerm: string, results: string[], exactFound: boolean;
         if (this._searchTerm !== "") {
-            allGroups = Array.from(LinkManager.Instance.allGroups.keys());
+            allGroups = Array.from(LinkManager.Instance.groupMetadataKeys.keys());
             searchTerm = this._searchTerm.toUpperCase();
             results = allGroups.filter(group => group.toUpperCase().indexOf(searchTerm) > -1);
             exactFound = results.findIndex(group => group.toUpperCase() === searchTerm) > -1;
@@ -90,7 +90,7 @@ class LinkMetadataEditor extends React.Component<{ groupType: string, mdDoc: Doc
     @action
     editMetadataKey = (value: string): void => {
         // TODO: check that metadata doesnt already exist in group
-        let groupMdKeys = new Array(...LinkManager.Instance.allGroups.get(this.props.groupType)!);
+        let groupMdKeys = new Array(...LinkManager.Instance.groupMetadataKeys.get(this.props.groupType)!);
         if (groupMdKeys) {
             let index = groupMdKeys.indexOf(this._key);
             if (index > -1) {
@@ -102,7 +102,7 @@ class LinkMetadataEditor extends React.Component<{ groupType: string, mdDoc: Doc
         }
 
         this._key = value;
-        LinkManager.Instance.allGroups.set(this.props.groupType, groupMdKeys);
+        LinkManager.Instance.groupMetadataKeys.set(this.props.groupType, groupMdKeys);
     }
 
     @action
@@ -113,7 +113,7 @@ class LinkMetadataEditor extends React.Component<{ groupType: string, mdDoc: Doc
 
     @action
     removeMetadata = (): void => {
-        let groupMdKeys = new Array(...LinkManager.Instance.allGroups.get(this.props.groupType)!);
+        let groupMdKeys = new Array(...LinkManager.Instance.groupMetadataKeys.get(this.props.groupType)!);
         if (groupMdKeys) {
             let index = groupMdKeys.indexOf(this._key);
             if (index > -1) {
@@ -124,7 +124,7 @@ class LinkMetadataEditor extends React.Component<{ groupType: string, mdDoc: Doc
             }
         }
         this._key = "";
-        LinkManager.Instance.allGroups.set(this.props.groupType, groupMdKeys);
+        LinkManager.Instance.groupMetadataKeys.set(this.props.groupType, groupMdKeys);
     }
 
     render() {
@@ -132,7 +132,7 @@ class LinkMetadataEditor extends React.Component<{ groupType: string, mdDoc: Doc
             <div className="linkEditor-metadata-row">
                 <input type="text" value={this._key} placeholder="key" onChange={e => this.editMetadataKey(e.target.value)}></input>:
                 <input type="text" value={this._value} placeholder="value" onChange={e => this.editMetadataValue(e.target.value)}></input>
-                <button onClick={() => this.removeMetadata()}>X</button>
+                <button onClick={() => this.removeMetadata()}>x</button>
             </div>
         );
     }
@@ -199,7 +199,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
     @action
     setGroupType = (groupId: string, groupType: string): void => {
         console.log("setting for ", groupId);
-        let linkDoc = this.props.linkDoc.proto ? this.props.linkDoc.proto : this.props.linkDoc;
+        // let linkDoc = this.props.linkDoc.proto ? this.props.linkDoc.proto : this.props.linkDoc;
         let groupDoc = this._groups.get(groupId);
         if (groupDoc) {
             console.log("found group doc");
@@ -208,7 +208,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
             this._groups.set(groupId, groupDoc);
 
 
-            LinkUtils.setAnchorGroups(linkDoc, this.props.sourceDoc, Array.from(this._groups.values()));
+            LinkUtils.setAnchorGroups(this.props.linkDoc, this.props.sourceDoc, Array.from(this._groups.values()));
             console.log("set", Array.from(this._groups.values()).length);
         }
 
@@ -285,7 +285,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
         let newMdDoc = Docs.TextDocument();
         newMdDoc.proto!.anchor1 = StrCast(thisMdDoc.anchor2);
         newMdDoc.proto!.anchor2 = StrCast(thisMdDoc.anchor1);
-        let keys = LinkManager.Instance.allGroups.get(groupType);
+        let keys = LinkManager.Instance.groupMetadataKeys.get(groupType);
         if (keys) {
             keys.forEach(key => {
                 if (thisGroupDoc) { // TODO: clean
@@ -307,7 +307,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
 
     renderGroup(groupId: string, groupDoc: Doc) {
         let type = StrCast(groupDoc.type);
-        if ((type && LinkManager.Instance.allGroups.get(type)) || type === "New Group") {
+        if ((type && LinkManager.Instance.groupMetadataKeys.get(type)) || type === "New Group") {
             return (
                 <div key={groupId} className="linkEditor-group">
                     <div className="linkEditor-group-row">
@@ -319,8 +319,8 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
                         {groupDoc.type === "New Group" ? <button className="linkEditor-groupOpts" disabled={true} title="Add KVP">+</button> :
                             <button className="linkEditor-groupOpts" onClick={() => this.addMetadata(StrCast(groupDoc.proto!.type))} title="Add KVP">+</button>}
                         <button className="linkEditor-groupOpts" onClick={() => this.copyGroup(groupId, type)} title="Copy group to opposite anchor">↔</button>
-                        {/* <button className="linkEditor-groupOpts" onClick={() => this.removeGroupFromLink(groupId, type)} title="Remove group from link">x</button>
-                        <button className="linkEditor-groupOpts" onClick={() => this.deleteGroup(groupId, type)} title="Delete group">xx</button> */}
+                        <button className="linkEditor-groupOpts" onClick={() => this.removeGroupFromLink(groupId, type)} title="Remove group from link">x</button>
+                        <button className="linkEditor-groupOpts" onClick={() => this.deleteGroup(groupId, type)} title="Delete group">xx</button>
                         {this.viewGroupAsTable(groupId, type)}
                     </div>
                 </div>
@@ -331,7 +331,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
     }
 
     viewGroupAsTable(groupId: string, groupType: string) {
-        let keys = LinkManager.Instance.allGroups.get(groupType);
+        let keys = LinkManager.Instance.groupMetadataKeys.get(groupType);
         let groupDoc = this._groups.get(groupId);
         if (keys && groupDoc) {
             console.log("keys:", ...keys);
@@ -347,7 +347,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
 
     @action
     addMetadata = (groupType: string): void => {
-        let mdKeys = LinkManager.Instance.allGroups.get(groupType);
+        let mdKeys = LinkManager.Instance.groupMetadataKeys.get(groupType);
         if (mdKeys) {
             if (mdKeys.indexOf("new key") === -1) {
                 mdKeys.push("new key");
@@ -355,7 +355,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
         } else {
             mdKeys = ["new key"];
         }
-        LinkManager.Instance.allGroups.set(groupType, mdKeys);
+        LinkManager.Instance.groupMetadataKeys.set(groupType, mdKeys);
     }
 
     renderMetadata(groupId: string) {
@@ -364,7 +364,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
         if (groupDoc) {
             let mdDoc = Cast(groupDoc.proto!.metadata, Doc, new Doc);
             let groupType = StrCast(groupDoc.proto!.type);
-            let groupMdKeys = LinkManager.Instance.allGroups.get(groupType);
+            let groupMdKeys = LinkManager.Instance.groupMetadataKeys.get(groupType);
             if (groupMdKeys) {
                 groupMdKeys.forEach((key, index) => {
                     metadata.push(

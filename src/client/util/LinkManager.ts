@@ -20,49 +20,48 @@ export namespace LinkUtils {
         }
     }
 
-    // export function getAnchorGroups(link: Doc, anchor: Doc): Doc[] {
-    //     let groups;
-    //     if (Doc.AreProtosEqual(anchor, Cast(link.anchor1, Doc, new Doc))) {
-    //         groups = Cast(link.anchor1Groups, listSpec(Doc), []);
-    //     } else {
-    //         groups = Cast(link.anchor2Groups, listSpec(Doc), []);
-    //     }
-
-    //     if (groups instanceof Doc[]) {
-    //         return groups;
-    //     } else {
-    //         return [];
-    //     }
-    //     // if (Doc.AreProtosEqual(anchor, Cast(link.anchor1, Doc, new Doc))) {
-    //     //     returnCast(link.anchor1Groups, listSpec(Doc), []);
-    //     // } else {
-    //     //     return Cast(link.anchor2Groups, listSpec(Doc), []);
-    //     // }
-    // }
-
     export function setAnchorGroups(link: Doc, anchor: Doc, groups: Doc[]) {
         // console.log("setting groups for anchor", anchor["title"]);
         if (Doc.AreProtosEqual(anchor, Cast(link.anchor1, Doc, new Doc))) {
             link.anchor1Groups = new List<Doc>(groups);
+
+            let print: string[] = [];
+            Cast(link.anchor1Groups, listSpec(Doc), []).forEach(doc => {
+                if (doc instanceof Doc) {
+                    print.push(StrCast(doc.type));
+                }
+            });
+            console.log("set anchor's groups as", print);
         } else {
             link.anchor2Groups = new List<Doc>(groups);
+
+            let print: string[] = [];
+            Cast(link.anchor2Groups, listSpec(Doc), []).forEach(doc => {
+                if (doc instanceof Doc) {
+                    print.push(StrCast(doc.type));
+                }
+            });
+            console.log("set anchor's groups as", print);
         }
     }
 
     export function removeGroupFromAnchor(link: Doc, anchor: Doc, groupType: string) {
-        let groups = [];
-        if (Doc.AreProtosEqual(anchor, Cast(link.anchor1, Doc, new Doc))) {
-            groups = Cast(link.proto!.anchor1Groups, listSpec(Doc), []);
-        } else {
-            groups = Cast(link.proto!.anchor2Groups, listSpec(Doc), []);
-        }
+        let groups = Doc.AreProtosEqual(anchor, Cast(link.anchor1, Doc, new Doc)) ?
+            Cast(link.proto!.anchor1Groups, listSpec(Doc), []) : Cast(link.proto!.anchor2Groups, listSpec(Doc), []);
 
         let newGroups: Doc[] = [];
         groups.forEach(groupDoc => {
             if (groupDoc instanceof Doc && StrCast(groupDoc.type) !== groupType) {
                 newGroups.push(groupDoc);
-            }
+            } // TODO: promise
         });
+
+        // let grouptypes: string[] = [];
+        // newGroups.forEach(groupDoc => {
+        //     grouptypes.push(StrCast(groupDoc.type));
+        // });
+        // console.log("remove anchor's groups as", grouptypes);
+
         LinkUtils.setAnchorGroups(link, anchor, newGroups);
     }
 }
@@ -92,7 +91,7 @@ export class LinkManager {
     }
 
     @observable public allLinks: Array<Doc> = []; // list of link docs
-    @observable public allGroups: Map<string, Array<string>> = new Map(); // map of group type to list of its metadata keys
+    @observable public groupMetadataKeys: Map<string, Array<string>> = new Map(); // map of group type to list of its metadata keys
 
     public findAllRelatedLinks(anchor: Doc): Array<Doc> {
         return LinkManager.Instance.allLinks.filter(
@@ -171,7 +170,7 @@ export class LinkManager {
     }
 
     public deleteGroup(groupType: string) {
-        let deleted = LinkManager.Instance.allGroups.delete(groupType);
+        let deleted = LinkManager.Instance.groupMetadataKeys.delete(groupType);
         if (deleted) {
             LinkManager.Instance.allLinks.forEach(linkDoc => {
                 LinkUtils.removeGroupFromAnchor(linkDoc, Cast(linkDoc.anchor1, Doc, new Doc), groupType);
