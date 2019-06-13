@@ -86,6 +86,7 @@ const delegateKeys = ["x", "y", "width", "height", "panX", "panY"];
 
 export namespace DocUtils {
     export function MakeLink(source: Doc, target: Doc) {
+        if (LinkManager.Instance.doesLinkExist(source, target)) return;
         // let protoSrc = source.proto ? source.proto : source;
         // let protoTarg = target.proto ? target.proto : target;
         UndoManager.RunInBatch(() => {

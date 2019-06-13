@@ -10,6 +10,7 @@ import { Doc } from "../../new_fields/Doc";
 import { listSpec } from "../../new_fields/Schema";
 import { List } from "../../new_fields/List";
 import { string } from "prop-types";
+import { Docs } from "../documents/Documents";
 
 export namespace LinkUtils {
     export function findOppositeAnchor(link: Doc, anchor: Doc): Doc {
@@ -177,6 +178,15 @@ export class LinkManager {
                 LinkUtils.removeGroupFromAnchor(linkDoc, Cast(linkDoc.anchor2, Doc, new Doc), groupType);
             });
         }
+    }
+
+    public doesLinkExist(anchor1: Doc, anchor2: Doc) {
+        let allLinks = LinkManager.Instance.allLinks;
+        let index = allLinks.findIndex(linkDoc => {
+            return (Doc.AreProtosEqual(Cast(linkDoc.anchor1, Doc, new Doc), anchor1) && Doc.AreProtosEqual(Cast(linkDoc.anchor2, Doc, new Doc), anchor2)) ||
+                (Doc.AreProtosEqual(Cast(linkDoc.anchor1, Doc, new Doc), anchor2) && Doc.AreProtosEqual(Cast(linkDoc.anchor2, Doc, new Doc), anchor1));
+        });
+        return index !== -1;
     }
 
 }
