@@ -33,6 +33,7 @@
         margin-top: 8px;
         transform: scale(1.3, 1.3);
     }
+
     .editableView-container {
         font-weight: bold;
     }
@@ -75,6 +76,7 @@
         display: none;
     }
 }
+
 #docContainer-data {
     margin-top: 5px;
 }
@@ -82,11 +84,12 @@
 .docContainer:hover {
     .treeViewItem-openRight {
         display: inline-block;
-        height:13px;
+        height: 13px;
+
         // display: inline;
         svg {
-            display:block;
-            padding:0px;
+            display: block;
+            padding: 0px;
             margin: 0px;
         }
     }
@@ -95,14 +98,17 @@
 .treeViewItem-header {
     border: transparent 1px solid;
 }
+
 .treeViewItem-header-above {
     border: transparent 1px solid;
     border-top: black 1px solid;
 }
+
 .treeViewItem-header-below {
     border: transparent 1px solid;
     border-bottom: black 1px solid;
 }
+
 .treeViewItem-header-inside {
     border: transparent 1px solid;
     border: black 1px solid;

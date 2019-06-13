@@ -1,5 +1,5 @@
 import React = require("react");
-import { action, computed, IReactionDisposer, reaction, observable, untracked } from "mobx";
+import { action, computed, IReactionDisposer, reaction, observable, untracked, ObservableMap } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, HeightSym, WidthSym, DocListCast, Opt } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
@@ -72,7 +72,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     @observable
     public sortstate: String = "date";
 
-    @observable
+    @action
     buttonloop() {
         let buttons = [];
         let range = 1;
@@ -147,28 +147,28 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
         for (let i = 0; i < arr.length; i++) {
             let color = "darker-color";
-            if (i % 2 == 0) {
+            if (i % 2 === 0) {
                 color = "$intermediate-color";
             }
 
-            let preview = <DocumentContentsView Document={arr[i]}
-                addDocument={undefined}
-                addDocTab={this.props.addDocTab}
-                removeDocument={undefined}
-                ScreenToLocalTransform={Transform.Identity}
-                ContentScaling={returnOne}
-                PanelWidth={returnHundred}
-                PanelHeight={returnHundred}
-                isTopMost={true}
-                selectOnLoad={false}
-                focus={emptyFunction}
-                isSelected={this.props.isSelected}
-                select={returnFalse}
-                layoutKey={"layout"}
-                ContainingCollectionView={this.props.ContainingCollectionView}
-                parentActive={this.props.active}
-                whenActiveChanged={this.props.whenActiveChanged}
-                bringToFront={emptyFunction} />
+            // let preview = <DocumentContentsView Document={arr[i]}
+            //     addDocument={undefined}
+            //     addDocTab={this.props.addDocTab}
+            //     removeDocument={undefined}
+            //     ScreenToLocalTransform={Transform.Identity}
+            //     ContentScaling={returnOne}
+            //     PanelWidth={returnHundred}
+            //     PanelHeight={returnHundred}
+            //     isTopMost={true}
+            //     selectOnLoad={false}
+            //     focus={emptyFunction}
+            //     isSelected={this.props.isSelected}
+            //     select={returnFalse}
+            //     layoutKey={"layout"}
+            //     ContainingCollectionView={this.props.ContainingCollectionView}
+            //     parentActive={this.props.active}
+            //     whenActiveChanged={this.props.whenActiveChanged}
+            //     bringToFront={emptyFunction} />
             buttons.push(
                 <div>
                     <button onMouseOver={function flipp() { hover = true; }}
@@ -176,11 +176,11 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                         style={{
                             position: "absolute",
                             background: color,
-                            top: "50%", left: ((values[i] - values[0]) * 100 / range) + "%", width: (5 / (2 * Math.log2((len / 10) + 1))) + "%"
+                            top: "50%", left: ((NumCast(values[i]) - NumCast(values[0])) * 100 / range) + "%", width: (5 / (2 * Math.log2((len / 10) + 1))) + "%"
                         }}>{arr[i].title}</button>
 
 
-                </div>)
+                </div >)
         }
         return buttons;
     }
@@ -235,36 +235,134 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         console.log(this.sortstate);
     }
 
-
     @action
-    show(hover: boolean, document: Doc) {
-        console.log(document);
-    }
+    buttonloop2() {
+        let buttons = [];
+        let buttons2 = [];
+        let range = 1;
+        let arr: Doc[] = [];
+        let values = [];
+        //Building the array is kinda weird because I reverse engineered something from another class.
+        this.childDocs.filter(d => !d.isMinimized).map((d, i) => {
+            arr.push(d);
+        });
+        if (this.sortstate === "creationDate") {
+            arr.sort(this.sortdate);
+        }
+        if (this.sortstate === "title") {
+            arr.sort(this.sorttitle);
+        }
+
+        if (this.sortstate === "x") {
+            arr.sort(this.sortx);
+            let i = arr.length
+            while (arr[i] === undefined) {
+                i += -1;
+                if (i === 0) {
+                    break;
+                }
+
+            }
+            range = arr[i].x - arr[0].x;
+            console.log(range);
+            for (let j = 0; j < arr.length; j++) {
+                if (arr[j].x === undefined) {
+                    values[j] = 0;
+                }
+                else {
+                    values[j] = arr[j].x;
+                }
+            }
+        }
+
+        if (this.sortstate === "y") {
+            arr.sort(this.sorty);
+            let i = arr.length - 1;
+            while (arr[i] === undefined) {
+                i += -1;
+                if (i === 0) {
+                    break;
+                }
+
+            }
+            range = NumCast(arr[i].y) - NumCast(arr[0].y);
+            console.log(range);
+            for (let j = 0; j < arr.length; j++) {
+                if (arr[j].x === undefined) {
+                    values[j] = 0;
+                }
+                else {
+                    values[j] = arr[j].y;
+                }
+            }
+        }
+        if (this.sortstate === "height") {
+            arr.sort(this.sortheight);
+        }
 
 
-    documentpreview(doc: Doc) {
+
+        var len = arr.length;
+
+
         let returnHundred = () => 100;
-        return <div style={{ padding: "25%" }}>
-            <DocumentContentsView Document={doc}
-                addDocument={undefined}
-                addDocTab={this.props.addDocTab}
-                removeDocument={undefined}
-                ScreenToLocalTransform={Transform.Identity}
-                ContentScaling={returnOne}
-                PanelWidth={returnHundred}
-                PanelHeight={returnHundred}
-                isTopMost={true}
-                selectOnLoad={false}
-                focus={emptyFunction}
-                isSelected={this.props.isSelected}
-                select={returnFalse}
-                layoutKey={"layout"}
-                ContainingCollectionView={this.props.ContainingCollectionView}
-                parentActive={this.props.active}
-                whenActiveChanged={this.props.whenActiveChanged}
-                bringToFront={emptyFunction} />
+        let hover = false;
+
+        for (let i = 0; i < arr.length; i++) {
+            let color = "darker-color";
+            if (i % 2 === 0) {
+                color = "$intermediate-color";
+            }
+
+            buttons.push(
+                <div>
+                    <button onMouseOver={function flipp() { }}
+                        style={{
+                            position: "absolute",
+                            background: color,
+                            top: "50%", left: ((values[i] - values[0]) * 100 / range) + "%", width: (5 / (2 * Math.log2((len / 10) + 1))) + "%"
+                        }}>{arr[i].title}</button>
+                </div>)
+            buttons2.push(
+                <div>
+                    <button onMouseOver={function flipp() { hover = true; }}
+                        onMouseLeave={function flipp() { hover = false; }}
+                        style={{
+                            position: "absolute",
+                            background: color,
+                            top: "50%", left: ((NumCast(values[i]) - NumCast(values[0])) * 100 / range) + "%", width: "0.5%"
+                        }}></button>
+                </div>)
+        }
+        return (<div>
+            <div style={{ top: "5%", left: "33%", right: "33%", bottom: "70%", border: "3px solid", position: "absolute" }}>
+                {this.documentpreview}
+            </div>
+            <div>{buttons}</div>
+            <div style={{ top: "80%", left: "10%", bottom: "10%", right: "10%", border: "3px solid", position: "absolute" }}>
+                <div className="v1" onPointerDown={this.onPointerDown} style={{ left: this.xmovement, height: "100%" }}>
+                    {buttons2}
+                </div>
+            </div>
         </div>
+        );
+
     }
+
+    onPointerDown = (e: React.PointerEvent): void => {
+        document.addEventListener("pointermove", this.onPointerMove);
+    }
+
+    @observable
+    public xmovement = 0;
+    @action
+    onPointerMove = (e: PointerEvent): void => {
+        e.stopPropagation();
+        e.preventDefault();
+        this.xmovement = e.movementX;
+    }
+
+
 
     render() {
         return (
@@ -272,7 +370,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 onWheel={(e: React.WheelEvent) => e.stopPropagation()}>
                 <hr style={{ top: "50%", display: "block", width: "100%", border: "10", position: "absolute" }} />
                 {this.tableOptionsPanel}
-                {this.buttonloop()}
+                {this.buttonloop2()}
             </div>
         );
     }
