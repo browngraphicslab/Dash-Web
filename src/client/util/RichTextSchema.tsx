@@ -259,7 +259,7 @@ export const marks: { [index: string]: MarkSpec } = {
         toDOM() {
             return ['span', {
                 style: 'color: blue'
-            }]
+            }];
         }
     },
 
@@ -461,6 +461,7 @@ export class SummarizedView {
         this._collapsed.style.position = "relative";
         this._collapsed.style.width = "40px";
         this._collapsed.style.height = "20px";
+        let self = this;
         this._collapsed.onpointerdown = function (e: any) {
             console.log("star pressed!");
             if (node.attrs.visibility) {
@@ -469,16 +470,19 @@ export class SummarizedView {
                 let y = getPos();
                 view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.doc, y + 1, y + 1 + node.attrs.oldtextlen)));
                 view.dispatch(view.state.tr.deleteSelection(view.state, () => { }));
-                //this._collapsed.textContent = "㊀";
+                self._collapsed.textContent = "㊉";
             } else {
                 node.attrs.visibility = !node.attrs.visibility;
                 console.log("content is invisible");
                 let y = getPos();
+                console.log(y);
                 let mark = view.state.schema.mark(view.state.schema.marks.underline);
                 console.log("PASTING " + node.attrs.oldtext.toString());
                 view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.doc, y + 1, y + 1)));
-                view.dispatch(view.state.tr.replaceSelection(node.attrs.oldtext).addMark(view.state.selection.from, view.state.selection.from + node.attrs.oldtextlen, mark));
-                //this._collapsed.textContent = "㊉";
+                const from = view.state.selection.from;
+                view.dispatch(view.state.tr.replaceSelection(node.attrs.oldtext).addMark(from, from + node.attrs.oldtextlen, mark));
+                //view.dispatch(view.state.tr.setSelection(view.state.doc, from + node.attrs.oldtextlen + 1, from + node.attrs.oldtextlen + 1));
+                self._collapsed.textContent = "㊀";
             }
             e.preventDefault();
             e.stopPropagation();

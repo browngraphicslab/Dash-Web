@@ -234,19 +234,16 @@ export class TooltipTextMenu {
             this.linkEditor.appendChild(linkBtn);
             this.tooltip.appendChild(this.linkEditor);
 
+            // SUMMARIZE BUTTON
+
             let starButton = document.createElement("span");
-            // starButton.style.width = '10px';
-            // starButton.style.height = '10px';
-            starButton.style.marginLeft = '10px';
-            starButton.textContent = "Summarize";
-            starButton.style.color = 'black';
-            starButton.style.height = '20px';
-            starButton.style.backgroundColor = 'white';
-            starButton.style.textAlign = 'center';
+            starButton.className = "summarize";
+            starButton.textContent = "★";
+            starButton.title = 'Summarize';
             starButton.onclick = () => {
                 let state = this.view.state;
                 this.insertStar(state, this.view.dispatch);
-            }
+            };
 
             this.tooltip.appendChild(starButton);
         }

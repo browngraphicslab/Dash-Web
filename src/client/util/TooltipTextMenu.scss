@@ -244,8 +244,8 @@
     //transform: translateX(-50%);
     transform: translateY(-50%);
     pointer-events: all;
-    height: auto;
-    width:inherit;
+    height: 100;
+    width:250;
     .ProseMirror-example-setup-style hr {
       padding: 2px 10px;
       border: none;
@@ -305,4 +305,11 @@
   .font-size-indicator {
       font-size: 12px;
       padding-right: 0px;
+  }
+  .summarize{
+      margin-left: 15px;
+      color: black;
+      height: 20px;
+      background-color: white;
+      text-align: center;
   }
