@@ -286,6 +286,8 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
         let thisMdDoc = Cast(thisGroupDoc!["metadata"], Doc, new Doc);
         let newGroupDoc = Docs.TextDocument();
         let newMdDoc = Docs.TextDocument();
+        newMdDoc.proto!.anchor1 = StrCast(thisMdDoc["anchor2"]);
+        newMdDoc.proto!.anchor2 = StrCast(thisMdDoc["anchor1"]);
         let keys = LinkManager.Instance.allGroups.get(groupType);
         if (keys) {
             keys.forEach(key => {

@@ -147,7 +147,16 @@ export class LinkManager {
         allLinks.forEach(linkDoc => {
             let anchor1Groups = Cast(linkDoc["anchor1Groups"], listSpec(Doc), []);
             let anchor2Groups = Cast(linkDoc["anchor2Groups"], listSpec(Doc), []);
-            [...anchor1Groups, ...anchor2Groups].forEach(groupDoc => {
+            anchor1Groups.forEach(groupDoc => {
+                if (groupDoc instanceof Doc) {
+                    if (StrCast(groupDoc["type"]) === groupType) {
+                        md.push(Cast(groupDoc["metadata"], Doc, new Doc));
+                    }
+                } else {
+                    // TODO: promise
+                }
+            })
+            anchor2Groups.forEach(groupDoc => {
                 if (groupDoc instanceof Doc) {
                     if (StrCast(groupDoc["type"]) === groupType) {
                         md.push(Cast(groupDoc["metadata"], Doc, new Doc));
