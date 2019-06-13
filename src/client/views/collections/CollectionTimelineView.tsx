@@ -238,37 +238,33 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     @action
     show(hover: boolean, document: Doc) {
-        console.log(document)
-        let returnHundred = () => 100;
-        if (hover) {
-            return (
-                <DocumentContentsView Document={document}
-                    addDocument={undefined}
-                    addDocTab={this.props.addDocTab}
-                    removeDocument={undefined}
-                    ScreenToLocalTransform={Transform.Identity}
-                    ContentScaling={returnOne}
-                    PanelWidth={returnHundred}
-                    PanelHeight={returnHundred}
-                    isTopMost={true}
-                    selectOnLoad={false}
-                    focus={emptyFunction}
-                    isSelected={this.props.isSelected}
-                    select={returnFalse}
-                    layoutKey={"layout"}
-                    ContainingCollectionView={this.props.ContainingCollectionView}
-                    parentActive={this.props.active}
-                    whenActiveChanged={this.props.whenActiveChanged}
-                    bringToFront={emptyFunction} />
-            );
-        }
+        console.log(document);
     }
 
 
-    // documentpreview(doc: Doc) {
-
-    //     return <div style={{}}
-    // }
+    documentpreview(doc: Doc) {
+        let returnHundred = () => 100;
+        return <div style={{ padding: "25%" }}>
+            <DocumentContentsView Document={doc}
+                addDocument={undefined}
+                addDocTab={this.props.addDocTab}
+                removeDocument={undefined}
+                ScreenToLocalTransform={Transform.Identity}
+                ContentScaling={returnOne}
+                PanelWidth={returnHundred}
+                PanelHeight={returnHundred}
+                isTopMost={true}
+                selectOnLoad={false}
+                focus={emptyFunction}
+                isSelected={this.props.isSelected}
+                select={returnFalse}
+                layoutKey={"layout"}
+                ContainingCollectionView={this.props.ContainingCollectionView}
+                parentActive={this.props.active}
+                whenActiveChanged={this.props.whenActiveChanged}
+                bringToFront={emptyFunction} />
+        </div>
+    }
 
     render() {
         return (
@@ -276,10 +272,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 onWheel={(e: React.WheelEvent) => e.stopPropagation()}>
                 <hr style={{ top: "50%", display: "block", width: "100%", border: "10", position: "absolute" }} />
                 {this.tableOptionsPanel}
-                {this.documentpreview}
                 {this.buttonloop()}
-
-
             </div>
         );
     }
