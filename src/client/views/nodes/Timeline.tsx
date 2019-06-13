@@ -452,18 +452,6 @@ export class Timeline extends CollectionSubView(Document) {
                     let bar = this.createBar(5, time, "yellow");
                     return bar;
                 }); 
-                // views = this._keyframes[i].map(tp => {
-                //     let n:Doc = Cast(tp, Doc) as Doc; 
-                 
-                //     console.log(n); 
-                //     if (n !== undefined) {
-                //         const timeandpos = TimeAndPosition(n);
-                //         let time = timeandpos.time;
-                //         let bar = this.createBar(5, time, "yellow");
-                //         return bar;
-                //     }
-                //     return null;
-                // });
             }
         });
         return views;
@@ -500,7 +488,6 @@ export class Timeline extends CollectionSubView(Document) {
                                 return this.createBar(5, data.x, "yellow");
                             })}
                             {this.createBar(5, this._currentBarX)}
-
                         </div>
                     </div>
                     <button onClick={this.onRecord}>Record</button>
