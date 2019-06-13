@@ -152,21 +152,24 @@ export class SearchItem extends React.Component<SearchItemProps> {
 
     render() {
         return (
-            <div className="search-overview" onPointerDown = {this.pointerDown}>
-                <div className="search-item" onPointerEnter={this.highlightDoc} onPointerLeave={this.unHighlightDoc} ref={this.collectionRef} id="result" onClick={this.onClick} onPointerDown={ () => {
+            <div className="search-overview" onPointerDown={this.pointerDown}>
+                <div className="search-item" onPointerEnter={this.highlightDoc} onPointerLeave={this.unHighlightDoc} ref={this.collectionRef} id="result" onClick={this.onClick} onPointerDown={() => {
                     this.pointerDown;
-                    SetupDrag(this.collectionRef, this.startDocDrag);}} >
+                    SetupDrag(this.collectionRef, this.startDocDrag);
+                }} >
                     <div className="main-search-info">
                         <div className="search-title" id="result" >{this.props.doc.title}</div>
                         <div className="search-info">
                             <div className="link-container item">
                                 <div className="link-count">{this.linkCount}</div>
-                                <div className = "link-extended">{this.linkString}</div>
+                                <div className="link-extended">{this.linkString}</div>
                             </div>
-                            <div className="search-type" >{this.DocumentIcon}</div>
+                            <div className="icon">
+                                <div className="search-type" >{this.DocumentIcon}</div>
+                                <div className="search-label">{this.props.doc.type}</div>
+                            </div>
                         </div>
                     </div>
-                    <div className="found">Where Found: (i.e. title, body, etc)</div>
                 </div>
                 <div className="searchBox-instances">
                     <SelectorContextMenu {...this.props} />

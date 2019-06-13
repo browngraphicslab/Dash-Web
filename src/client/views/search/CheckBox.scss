@@ -1,0 +1,34 @@
+@import "../globalCssVariables";    
+
+.checkbox {
+    display: flex;
+
+    .check-box {
+        z-index: 900;
+        position: relative;
+        height: 20px;
+        width: 20px;
+        overflow: visible;
+        background-color: transparent;
+        border-style: solid;
+        border-color: $alt-accent;
+        border-width: 2px;
+    }
+
+    .box:hover {
+        background-color: $intermediate-color;
+    }
+
+    .checkmark {
+        z-index: 1000;
+        position: relative;
+        fill-opacity: 0;
+        stroke-width: 4px;
+        stroke: white;
+    }
+
+}
+
+.checkbox-title {
+    text-transform: uppercase;
+}

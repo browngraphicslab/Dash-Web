@@ -23,7 +23,11 @@ import { findDOMNode } from 'react-dom';
 import { ToggleBar } from './ToggleBar';
 import { IconBar } from './IconBar';
 import { type } from 'os';
+import { CheckBox } from './CheckBox';
 
+export enum Keys {
+    TITLE = "title",
+}
 
 @observer
 export class SearchBox extends React.Component {
@@ -64,8 +68,8 @@ export class SearchBox extends React.Component {
     @action.bound
     onChange(e: React.ChangeEvent<HTMLInputElement>) {
         this._searchString = e.target.value;
-        
-        if(this._searchString === ""){
+
+        if (this._searchString === "") {
             this._results = [];
             this._openNoResults = false;
         }
@@ -86,12 +90,13 @@ export class SearchBox extends React.Component {
             query = newWords.join(" ");
         }
 
-        if(query === ""){
+        if (query === "") {
             results = [];
         }
-        else{
+        else {
             //gets json result into a list of documents that can be used
-            results = await this.getResults(query);}
+            results = await this.getResults(query);
+        }
 
         runInAction(() => {
             this._resultsOpen = true;
@@ -250,6 +255,10 @@ export class SearchBox extends React.Component {
         this._pointerTime = e.timeStamp;
     }
 
+    updateCheckStatus(newStat: boolean) {
+        console.log("updating!")
+    }
+
     // Useful queries:
     // Delegates of a document: {!join from=id to=proto_i}id:{protoId}
     // Documents in a collection: {!join from=data_l to=id}id:{collectionProtoId}
@@ -268,10 +277,10 @@ export class SearchBox extends React.Component {
                     </div>
                     {this._resultsOpen ? (
                         <div className="searchBox-results">
-                            { (this._results.length !== 0) ? (
+                            {(this._results.length !== 0) ? (
                                 this._results.map(result => <SearchItem doc={result} key={result[Id]} />)
-                                ) :
-                                this._openNoResults ? (<div className = "no-result">No Search Results</div>) : null }
+                            ) :
+                                this._openNoResults ? (<div className="no-result">No Search Results</div>) : null}
 
                         </div>
                     ) : undefined}
@@ -285,16 +294,16 @@ export class SearchBox extends React.Component {
                                 <ToggleBar originalStatus={this._wordStatus} optionOne={"Include Any Keywords"} optionTwo={"Include All Keywords"} changeStatus={this.handleWordQueryChange} />
                             </div>
                             <div className="type-of-node filter-div">
-                                <IconBar updateIcon={this.updateIcon} getIcons={this.getIcons} />
+                                <IconBar updateIcon={this.updateIcon} getSelectedTypes={this.getIcons} />
                             </div>
                             <div className="filter-collection filter-div">
                                 temp for filtering by collection
                             </div>
                             <div className="where-in-doc filter-div">
-                                temp for filtering where in doc the keywords are found
+                                <CheckBox originalStatus={true} updateStatus={this.updateCheckStatus} title={Keys.TITLE} />
                             </div>
                         </div>
-                        <button className="reset-filter" onClick = {this.resetFilters}>Reset Filters</button>
+                        <button className="reset-filter" onClick={this.resetFilters}>Reset Filters</button>
                     </div>
                 ) : undefined}
             </div>

@@ -32,7 +32,8 @@
     font-size: 2em;
 }
 
-.type-icon.selected {
+
+.type-icon.add.selected {
     background-color: $alt-accent;
     opacity: 1;
 }
@@ -45,6 +46,10 @@
 .fontawesome-icon {
     height: 28px;
     width: 28px;
+}
+
+.filter-description{
+    text-transform: capitalize;
 }
 
 .type-icon.filter:hover {

@@ -9,7 +9,7 @@ import { faSearch, faFilePdf, faFilm, faImage, faObjectGroup, faStickyNote, faMu
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { library } from '@fortawesome/fontawesome-svg-core';
 import * as _ from "lodash";
-var classNames = require('classnames');
+import $ from 'jquery';
 
 library.add(faSearch);
 library.add(faObjectGroup);
@@ -25,7 +25,8 @@ library.add(faBan);
 
 export interface IconBarProps {
     updateIcon(icons: string[]): void;
-    getIcons(): string[];
+    getSelectedTypes(): string[];
+    getRemovedTypes(): string[];
 }
 
 @observer
@@ -45,12 +46,44 @@ export class IconBar extends React.Component<IconBarProps> {
     @observable webRef = React.createRef<HTMLDivElement>();
     @observable allRefs: React.RefObject<HTMLDivElement>[] = [this.colRef, this.imgRef, this.textRef, this.pdfRef, this.vidRef, this.audioRef, this.linkRef, this.histRef, this.webRef];
 
-    @observable originalFilteredNodes: string[] = this.props.getIcons();
+    @observable originalSelectedNodes: string[] = this.props.getSelectedTypes();
+    @observable originalRemovedNodes: string[] = this.props.getSelectedTypes();
+
+    @observable removeType: boolean = false;
 
     constructor(props: IconBarProps){
         super(props);
         IconBar.Instance = this;
     }
+
+    @action
+    downKeyHandler = (e: KeyboardEvent) => {
+        if (e.key !== "Control") return;
+        this.removeType = true;
+        e.preventDefault();
+        e.stopPropagation();
+
+    }
+
+    @action
+    upKeyHandler = (e: KeyboardEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.removeType = false;
+    }
+
+    componentWillMount() {
+        document.removeEventListener("keydown", this.downKeyHandler);
+        document.addEventListener("keydown", this.downKeyHandler);
+        document.removeEventListener("keyup", this.upKeyHandler);
+        document.addEventListener("keyup", this.upKeyHandler);
+    }
+
+    componentWillUnMount() {
+        document.removeEventListener("keyup", this.upKeyHandler);
+        document.removeEventListener("keydown", this.downKeyHandler);
+    }
+
 
     componentDidMount = () => {
         //i KNOW this is bad i just can't get this to re render eeeeeeeek
@@ -113,25 +146,40 @@ export class IconBar extends React.Component<IconBarProps> {
         this.allRefs.forEach(element => {
             if (element.current) {
                 element.current.setAttribute("data-selected", "false");
+                element.current.setAttribute("data-removed", "false");
             }
         });
     }
 
     @action.bound
-    alternateRef(ref: any) {
+    alternateSelectedRef(ref: any) {
         if (ref.getAttribute("data-selected") === "true") {
             ref.setAttribute("data-selected", "false");
         }
         else {
             ref.setAttribute("data-selected", "true");
+            ref.setAttribute("data-removed", "false")
         }
     }
 
+    //TODO: this needs help
+    @action.bound
+    alternateRemovedRef(ref: any) {
+        if (ref.getAttribute("data-removed") === "true") {
+            ref.setAttribute("data-removed", "false");
+        }
+        else {
+            ref.setAttribute("data-removed", "true");
+            ref.setAttribute("data-selected", "false")
+        }
+    }
+
+    //TODO: this needs help
     @action.bound
     onClick = (value: string) => {
-        let icons: string[] = this.props.getIcons();
+        let icons: string[] = this.props.getSelectedTypes();
         let ref = this.getRef(value);
-        this.alternateRef(ref);
+        this.alternateSelectedRef(ref);
         if (value === DocTypes.NONE) {
             icons = [];
             // if its none, change the color of all the other circles
@@ -164,107 +212,148 @@ export class IconBar extends React.Component<IconBarProps> {
         }
     }
 
-    getInitialStatus = (type: string) => {
-        if (this.originalFilteredNodes.includes(type)) {
+    //checks attribues of ref to return whether or not a type should be specifically included in the search
+    @action.bound
+    getInitialSelectedStatus = (type: string) => {
+        if (this.originalSelectedNodes.includes(type)) {
             return "true";
         }
         return "false";
+    }
+
+    //checks attributes of ref to return whether or not it should be excluded from search results
+    @action.bound
+    isRemoved = (ref: React.RefObject<HTMLDivElement>) => {
+        if(ref.current){
+            if(ref.current.getAttribute("data-removed") === "true") {
+                return true;
+            }
+            return false;
+        }
+    }
+
+    //gets status upon mounting if a doc type should be removed from the results
+    @action.bound
+    getInitialRemovedStatus = (type: string) => {
+        if (this.originalRemovedNodes.includes(type)) {
+            return "true";
+        }
+        return "false";
+    }
+
+    @action.bound
+    changeCursor() {
+        if(!this.removeType)
+            {document.body.style.cursor = 'url(".\noun_Plus_2224963.svg")';}
+        else{
+            {document.body.style.cursor = 'url(".\noun_Plus_2224963.svg")';}
+        }
     }
 
     render() {
         return (
             <div>
                 <div className="filter icon-title">Filter by type of node</div>
-                <div className="filter icon-bar">
+                <div className="filter icon-bar" onMouseOver={this.changeCursor}>
                     <div className="filter type-outer">
                         <div className={"type-icon none not-selected"}
                             ref={this.noneRef}
                             data-selected={"false"}
+                            data-removed = {"false"}
                             onClick={() => { this.onClick(DocTypes.NONE); }}>
                             <FontAwesomeIcon className="fontawesome-icon filter" style={{ order: -2 }} icon={faBan} />
                         </div>
                         <div className="filter-description">Clear</div>
                     </div>
                     <div className="type-outer">
-                        <div className={"type-icon filter " + (this.isRefSelected(this.pdfRef) ? "selected" : "not-selected")}
+                        <div className={"type-icon filter " + (this.isRemoved(this.pdfRef) ? "add" : "remove") + (this.isRefSelected(this.pdfRef) ? "selected" : "not-selected")}
                             ref={this.pdfRef}
-                            data-selected={this.getInitialStatus(DocTypes.PDF)}
+                            data-selected={this.getInitialSelectedStatus(DocTypes.PDF)}
+                            data-removed = {this.getInitialRemovedStatus(DocTypes.PDF)}
                             onClick={() => { this.onClick(DocTypes.PDF); }}>
                             <FontAwesomeIcon className="fontawesome-icon filter" style={{ order: 0 }} icon={faFilePdf} />
                         </div>
-                        <div className="filter-description">PDF</div>
+                        <div className="filter-description">{DocTypes.PDF}</div>
                     </div>
                     <div className="type-outer">
                         <div className={"type-icon filter " + (this.isRefSelected(this.histRef) ? "selected" : "not-selected")}
                             ref={this.histRef}
-                            data-selected={this.getInitialStatus(DocTypes.HIST)}
+                            data-selected={this.getInitialSelectedStatus(DocTypes.HIST)}
+                            data-removed = {this.getInitialRemovedStatus(DocTypes.HIST)}
                             onClick={() => { this.onClick(DocTypes.HIST); }}>
                             <FontAwesomeIcon className="fontawesome-icon filter" style={{ order: 1 }} icon={faChartBar} />
                         </div>
-                        <div className="filter-description">Histogram</div>
+                        <div className="filter-description">{DocTypes.HIST}</div>
                     </div>
                     <div className="type-outer">
                         <div className={"type-icon filter " + (this.isRefSelected(this.colRef) ? "selected" : "not-selected")}
                             ref={this.colRef}
-                            data-selected={this.getInitialStatus(DocTypes.COL)}
+                            data-selected={this.getInitialSelectedStatus(DocTypes.COL)}
+                            data-removed = {this.getInitialRemovedStatus(DocTypes.COL)}
                             onClick={() => { this.onClick(DocTypes.COL); }}>
                             <FontAwesomeIcon className="fontawesome-icon filter" style={{ order: 2 }} icon={faObjectGroup} />
                         </div>
-                        <div className="filter-description">Collection</div>
+                        <div className="filter-description">{DocTypes.COL}</div>
                     </div>
                     <div className="type-outer">
                         <div className={"type-icon filter " + (this.isRefSelected(this.imgRef) ? "selected" : "not-selected")}
                             ref={this.imgRef}
-                            data-selected={this.getInitialStatus(DocTypes.IMG)}
+                            data-selected={this.getInitialSelectedStatus(DocTypes.IMG)}
+                            data-removed = {this.getInitialRemovedStatus(DocTypes.IMG)}
                             onClick={() => { this.onClick(DocTypes.IMG); }}>
                             <FontAwesomeIcon className="fontawesome-icon filter" style={{ order: 3 }} icon={faImage} />
                         </div>
-                        <div className="filter-description">Image</div>
+                        <div className="filter-description">{DocTypes.IMG}</div>
                     </div>
                     <div className="type-outer">
                         <div className={"type-icon filter " + (this.isRefSelected(this.vidRef) ? "selected" : "not-selected")}
                             ref={this.vidRef}
-                            data-selected={this.getInitialStatus(DocTypes.VID)}
+                            data-selected={this.getInitialSelectedStatus(DocTypes.VID)}
+                            data-removed = {this.getInitialRemovedStatus(DocTypes.VID)}
                             onClick={() => { this.onClick(DocTypes.VID); }}>
                             <FontAwesomeIcon className="fontawesome-icon filter" style={{ order: 4 }} icon={faFilm} />
                         </div>
-                        <div className="filter-description">Video</div>
+                        <div className="filter-description">{DocTypes.VID}</div>
                     </div>
                     <div className="type-outer">
                         <div className={"type-icon filter " + (this.isRefSelected(this.webRef) ? "selected" : "not-selected")}
                             ref={this.webRef}
-                            data-selected={this.getInitialStatus(DocTypes.WEB)}
+                            data-selected={this.getInitialSelectedStatus(DocTypes.WEB)}
+                            data-removed = {this.getInitialRemovedStatus(DocTypes.WEB)}
                             onClick={() => { this.onClick(DocTypes.WEB); }}>
                             <FontAwesomeIcon className="fontawesome-icon filter" style={{ order: 5 }} icon={faGlobeAsia} />
                         </div>
-                        <div className="filter-description">Web</div>
+                        <div className="filter-description">{DocTypes.WEB}</div>
                     </div>
                     <div className="type-outer">
                         <div className={"type-icon filter " + (this.isRefSelected(this.linkRef) ? "selected" : "not-selected")}
                             ref={this.linkRef}
-                            data-selected={this.getInitialStatus(DocTypes.LINK)}
+                            data-selected={this.getInitialSelectedStatus(DocTypes.LINK)}
+                            data-removed = {this.getInitialRemovedStatus(DocTypes.LINK)}
                             onClick={() => { this.onClick(DocTypes.LINK); }}>
                             <FontAwesomeIcon className="fontawesome-icon filter" style={{ order: 6 }} icon={faLink} />
                         </div>
-                        <div className="filter-description">Link</div>
+                        <div className="filter-description">{DocTypes.LINK}</div>
                     </div>
                     <div className="type-outer">
                         <div className={"type-icon filter " + (this.isRefSelected(this.audioRef) ? "selected" : "not-selected")}
                             ref={this.audioRef}
-                            data-selected={this.getInitialStatus(DocTypes.AUDIO)}
+                            data-selected={this.getInitialSelectedStatus(DocTypes.AUDIO)}
+                            data-removed = {this.getInitialRemovedStatus(DocTypes.AUDIO)}
                             onClick={() => { this.onClick(DocTypes.AUDIO); }}>
                             <FontAwesomeIcon className="fontawesome-icon filter" style={{ order: 7 }} icon={faMusic} />
                         </div>
-                        <div className="filter-description">Audio</div>
+                        <div className="filter-description">{DocTypes.AUDIO}</div>
                     </div>
                     <div className="type-outer">
                         <div className={"type-icon filter " + (this.isRefSelected(this.textRef) ? "selected" : "not-selected")}
                             ref={this.textRef}
-                            data-selected={this.getInitialStatus(DocTypes.TEXT)}
+                            data-selected={this.getInitialSelectedStatus(DocTypes.TEXT)}
+                            data-removed = {this.getInitialRemovedStatus(DocTypes.TEXT)}
                             onClick={() => { this.onClick(DocTypes.TEXT); }}>
                             <FontAwesomeIcon className="fontawesome-icon filter" style={{ order: 8 }} icon={faStickyNote} />
                         </div>
-                        <div className="filter-description">Text</div>
+                        <div className="filter-description">{DocTypes.TEXT}</div>
                     </div>
                 </div>
             </div>
