@@ -32,6 +32,8 @@ import { listSpec } from '../../new_fields/Schema';
 import { Id } from '../../new_fields/FieldSymbols';
 import { HistoryUtil } from '../util/History';
 import { CollectionBaseView } from './collections/CollectionBaseView';
+import { InkTool } from '../../new_fields/InkField';
+import { InkingCanvas } from './InkingCanvas';
 
 
 @observer
@@ -217,6 +219,14 @@ export class MainView extends React.Component {
         </Measure>;
     }
 
+    selected = (tool: InkTool) => {
+        if (!InkingControl.Instance || InkingControl.Instance.selectedTool === InkTool.None) return { display: "none" };
+        if (InkingControl.Instance.selectedTool === tool) {
+            return { color: "#61aaa3", fontSize: "50%" };
+        }
+        return { fontSize: "50%" };
+    }
+
     /* for the expandable add nodes menu. Not included with the miscbuttons because once it expands it expands the whole div with it, making canvas interactions limited. */
     nodesMenu() {
 
@@ -247,7 +257,11 @@ export class MainView extends React.Component {
                                 <FontAwesomeIcon icon={btn[1]} size="sm" />
                             </button>
                         </div></li>)}
-                    <li key="ink"><button className="toolbar-button round-button" title="Ink" onClick={() => InkingControl.Instance.toggleDisplay()}><FontAwesomeIcon icon="pen-nib" size="sm" /></button></li>
+                    <li key="ink" style={{ paddingRight: "6px" }}><button className="toolbar-button round-button" title="Ink" onClick={() => InkingControl.Instance.toggleDisplay()}><FontAwesomeIcon icon="pen-nib" size="sm" /> </button></li>
+                    <li key="pen"><button onClick={() => InkingControl.Instance.switchTool(InkTool.Pen)} style={this.selected(InkTool.Pen)}><FontAwesomeIcon icon="pen" size="lg" title="Pen" /></button></li>
+                    <li key="marker"><button onClick={() => InkingControl.Instance.switchTool(InkTool.Highlighter)} style={this.selected(InkTool.Highlighter)}><FontAwesomeIcon icon="highlighter" size="lg" title="Pen" /></button></li>
+                    <li key="eraser"><button onClick={() => InkingControl.Instance.switchTool(InkTool.Eraser)} style={this.selected(InkTool.Eraser)}><FontAwesomeIcon icon="eraser" size="lg" title="Pen" /></button></li>
+                    <li key="inkControls"><InkingControl /></li>
                 </ul>
             </div>
         </div >;
@@ -295,7 +309,6 @@ export class MainView extends React.Component {
                 <ContextMenu />
                 {this.nodesMenu()}
                 {this.miscButtons}
-                <InkingControl />
                 <MainOverlayTextBox />
             </div>
         );
