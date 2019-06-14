@@ -132,16 +132,14 @@ export default class Page extends React.Component<IPageProps> {
         }
     }
 
-    highlight = (targetDoc: Doc | undefined) => {
+    highlight = (targetDoc?: Doc) => {
         // creates annotation documents for current highlights
         let annotationDoc = this.props.makeAnnotationDocuments(targetDoc);
-        let targetAnnotations = DocListCast(this.props.parent.Document.annotations);
-        if (targetAnnotations) {
+        let targetAnnotations = Cast(this.props.parent.Document.annotations, listSpec(Doc));
+        if (targetAnnotations === undefined) {
+            Doc.GetProto(this.props.parent.Document).annotations = new List([annotationDoc]);
+        } else {
             targetAnnotations.push(annotationDoc);
-            this.props.parent.Document.annotations = new List<Doc>(targetAnnotations);
-        }
-        else {
-            this.props.parent.Document.annotations = new List<Doc>([annotationDoc]);
         }
         return annotationDoc;
     }
