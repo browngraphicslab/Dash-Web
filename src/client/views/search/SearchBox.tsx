@@ -43,6 +43,7 @@ export class SearchBox extends React.Component {
     @observable private _results: Doc[] = [];
     @observable filterBoxStatus: boolean = false;
     @observable private _openNoResults: boolean = false;
+    allIcons: string[] = [DocTypes.AUDIO, DocTypes.COL, DocTypes.HIST, DocTypes.IMG, DocTypes.LINK, DocTypes.PDF, DocTypes.TEXT, DocTypes.VID, DocTypes.WEB];
 
     constructor(props: Readonly<{}>) {
         super(props);
@@ -62,7 +63,7 @@ export class SearchBox extends React.Component {
         ToggleBar.Instance.resetToggle();
         IconBar.Instance.resetIconFilters();
         // this._wordStatus = true;
-        this._icons = [];
+        this._icons = this.allIcons;
     }
 
     @action.bound
@@ -80,6 +81,7 @@ export class SearchBox extends React.Component {
         let query = this._searchString;
         let results: Doc[];
 
+        //if this._wordstatus is false, all words are required and a + is added before each
         if (!this._wordStatus) {
             let oldWords = query.split(" ");
             let newWords: string[] = [];
@@ -90,9 +92,11 @@ export class SearchBox extends React.Component {
             query = newWords.join(" ");
         }
 
+        //if there is no query there should be no result
         if (query === "") {
             results = [];
         }
+
         else {
             //gets json result into a list of documents that can be used
             results = await this.getResults(query);
@@ -125,15 +129,27 @@ export class SearchBox extends React.Component {
         return this.filterDocs(docs);
     }
 
+    // @action filterDocs2(docs: Doc[]) {
+    //     if (this._icons.length === 0) {
+    //         return docs;
+    //     }
+    //     let finalDocs: Doc[] = [];
+    //     docs.forEach(doc => {
+    //         let layoutresult = Cast(doc.type, "string", "");
+    //         if (this._icons.includes(layoutresult)) {
+    //             finalDocs.push(doc)
+    //         }
+    //     });
+    //     return finalDocs;
+    // }
+
+    //this.icons will now include all the icons that need to be included
     @action filterDocs(docs: Doc[]) {
-        if (this._icons.length === 0) {
-            return docs;
-        }
         let finalDocs: Doc[] = [];
         docs.forEach(doc => {
             let layoutresult = Cast(doc.type, "string", "");
             if (this._icons.includes(layoutresult)) {
-                finalDocs.push(doc)
+                finalDocs.push(doc);
             }
         });
         return finalDocs;
@@ -255,6 +271,7 @@ export class SearchBox extends React.Component {
         this._pointerTime = e.timeStamp;
     }
 
+    //TODO: to be cone with checkmark
     updateCheckStatus(newStat: boolean) {
         console.log("updating!")
     }
@@ -294,7 +311,7 @@ export class SearchBox extends React.Component {
                                 <ToggleBar originalStatus={this._wordStatus} optionOne={"Include Any Keywords"} optionTwo={"Include All Keywords"} changeStatus={this.handleWordQueryChange} />
                             </div>
                             <div className="type-of-node filter-div">
-                                <IconBar updateIcon={this.updateIcon} getSelectedTypes={this.getIcons} />
+                                <IconBar allIcons = {this.allIcons} updateIcon={this.updateIcon} getIcons={this.getIcons} />
                             </div>
                             <div className="filter-collection filter-div">
                                 temp for filtering by collection
