@@ -81,6 +81,8 @@ export class SearchBox extends React.Component {
         let query = this._searchString;
         let results: Doc[];
 
+        console.log(query)
+
         //if this._wordstatus is false, all words are required and a + is added before each
         if (!this._wordStatus) {
             let oldWords = query.split(" ");
@@ -101,6 +103,8 @@ export class SearchBox extends React.Component {
             //gets json result into a list of documents that can be used
             results = await this.getResults(query);
         }
+
+        console.log(results)
 
         runInAction(() => {
             this._resultsOpen = true;
@@ -126,6 +130,7 @@ export class SearchBox extends React.Component {
                 docs.push(field);
             }
         }
+        console.log(docs)
         return this.filterDocs(docs);
     }
 

@@ -343,7 +343,7 @@ export class IconBar extends React.Component<IconBarProps> {
                             data-selected={"false"}
                             data-removed={"false"}
                             onClick={() => { this.onClick(DocTypes.NONE); }}>
-                            <FontAwesomeIcon className="fontawesome-icon filter" style={{ order: -2 }} icon={faBan} />
+                            <FontAwesomeIcon className="fontawesome-icon" style={{ order: -2 }} icon={faBan} />
                         </div>
                         <div className="filter-description">Clear</div>
                     </div>
