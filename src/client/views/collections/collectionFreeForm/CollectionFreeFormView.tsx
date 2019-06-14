@@ -271,8 +271,28 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         newState.initializers[id] = { panX: newPanX, panY: newPanY };
         HistoryUtil.pushState(newState);
         this.setPan(newPanX, newPanY);
+        this.setScaleToZoom(doc);
         this.props.Document.panTransformType = "Ease";
         this.props.focus(this.props.Document);
+    }
+
+    setScaleToZoom = (doc: Doc) => {
+        let p = this.props;
+        let PanelHeight = p.PanelHeight();
+        let panelWidth = p.PanelWidth();
+        // let heightDif: number = PanelHeight - NumCast(doc.height);
+        // let widthDif: number = panelWidth - NumCast(doc.width);
+        let docHeight = NumCast(doc.height);
+        let docWidth = NumCast(doc.width);
+        let targetHeight = 0.8 * PanelHeight;
+        let targetWidth = 0.8 * panelWidth;
+
+        let maxScaleX: number = targetWidth / docWidth;
+        let maxScaleY: number = targetHeight / docHeight;
+        // let maxScaleX: number = NumCast(doc.width) / (panelWidth - 10);
+        // let maxScaleY: number = NumCast(doc.height) / (PanelHeight - 10);
+        let maxApplicableScale = Math.min(maxScaleX, maxScaleY);
+        this.Document.scale = maxApplicableScale;
     }
 
 
