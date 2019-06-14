@@ -21,6 +21,7 @@ import { DocumentView } from "../nodes/DocumentView";
 import { DragManager } from "../../util/DragManager";
 import { Dictionary } from "typescript-collections";
 
+export const scale = 2;
 interface IPDFViewerProps {
     url: string;
     loaded: (nw: number, nh: number, np: number) => void;
@@ -156,10 +157,10 @@ class Viewer extends React.Component<IViewerProps> {
         this._savedAnnotations.forEach((key: number, value: HTMLDivElement[]) => {
             for (let anno of value) {
                 let annoDoc = new Doc();
-                if (anno.style.left) annoDoc.x = parseInt(anno.style.left);
-                if (anno.style.top) annoDoc.y = parseInt(anno.style.top);
-                if (anno.style.height) annoDoc.height = parseInt(anno.style.height);
-                if (anno.style.width) annoDoc.width = parseInt(anno.style.width);
+                if (anno.style.left) annoDoc.x = parseInt(anno.style.left) / scale;
+                if (anno.style.top) annoDoc.y = parseInt(anno.style.top) / scale;
+                if (anno.style.height) annoDoc.height = parseInt(anno.style.height) / scale;
+                if (anno.style.width) annoDoc.width = parseInt(anno.style.width) / scale;
                 annoDoc.page = key;
                 annoDoc.target = sourceDoc;
                 annoDoc.type = AnnotationTypes.Region;
@@ -572,7 +573,7 @@ class PinAnnotation extends React.Component<IAnnotationProps> {
                 <div className="pdfViewer-pinAnnotation" onPointerDown={this.pointerDown}
                     onDoubleClick={this.doubleClick} ref={this._mainCont}
                     style={{
-                        top: this.props.y - PinRadius / 2, left: this.props.x - PinRadius / 2, width: PinRadius,
+                        top: this.props.y * scale - PinRadius / 2, left: this.props.x * scale - PinRadius / 2, width: PinRadius,
                         height: PinRadius, pointerEvents: "all", backgroundColor: this._backgroundColor
                     }}>
                     <div style={{
@@ -614,7 +615,7 @@ class RegionAnnotation extends React.Component<IAnnotationProps> {
     render() {
         return (
             <div className="pdfViewer-annotationBox" onPointerDown={this.onPointerDown}
-                style={{ top: this.props.y, left: this.props.x, width: this.props.width, height: this.props.height, pointerEvents: "all", backgroundColor: this._backgroundColor }}></div>
+                style={{ top: this.props.y * scale, left: this.props.x * scale, width: this.props.width * scale, height: this.props.height * scale, pointerEvents: "all", backgroundColor: this._backgroundColor }}></div>
         );
     }
 }

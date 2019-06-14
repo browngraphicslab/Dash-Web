@@ -13,8 +13,9 @@ import { emptyFunction } from "../../../Utils";
 import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
 import { listSpec } from "../../../new_fields/Schema";
 import { menuBar } from "prosemirror-menu";
-import { AnnotationTypes } from "./PDFViewer";
+import { AnnotationTypes, PDFViewer, scale } from "./PDFViewer";
 import PDFMenu from "./PDFMenu";
+
 
 interface IPageProps {
     pdf: Opt<Pdfjs.PDFDocumentProxy>;
@@ -28,7 +29,7 @@ interface IPageProps {
     sendAnnotations: (annotations: HTMLDivElement[], page: number) => void;
     receiveAnnotations: (page: number) => HTMLDivElement[] | undefined;
     createAnnotation: (div: HTMLDivElement, page: number) => void;
-    makeAnnotationDocuments: (doc: Doc | undefined) => Doc;
+    makeAnnotationDocuments: (doc: Doc | undefined, scale: number) => Doc;
 }
 
 @observer
@@ -103,7 +104,6 @@ export default class Page extends React.Component<IPageProps> {
     @action
     private renderPage = (page: Pdfjs.PDFPageProxy): void => {
         // lower scale = easier to read at small sizes, higher scale = easier to read at large sizes
-        let scale = 2;
         let viewport = page.getViewport(scale);
         let canvas = this._canvas.current;
         let textLayer = this._textLayer.current;
@@ -135,7 +135,7 @@ export default class Page extends React.Component<IPageProps> {
     @action
     highlight = (targetDoc?: Doc) => {
         // creates annotation documents for current highlights
-        let annotationDoc = this.props.makeAnnotationDocuments(targetDoc);
+        let annotationDoc = this.props.makeAnnotationDocuments(targetDoc, scale);
         let targetAnnotations = Cast(this.props.parent.Document.annotations, listSpec(Doc));
         if (targetAnnotations === undefined) {
             Doc.GetProto(this.props.parent.Document).annotations = new List([annotationDoc]);
@@ -307,8 +307,11 @@ export default class Page extends React.Component<IPageProps> {
                 this._marquee.current.style.opacity = "0";
             }
 
+            if (this._marqueeWidth > 10 || this._marqueeHeight > 10) {
+                PDFMenu.Instance.jumpTo(e.clientX, e.clientY);
+            }
+
             this._marqueeHeight = this._marqueeWidth = 0;
-            PDFMenu.Instance.jumpTo(e.clientX, e.clientY);
         }
         else {
             let sel = window.getSelection();

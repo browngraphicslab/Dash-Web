@@ -95,6 +95,7 @@ export default class PDFMenu extends React.Component {
     @action
     togglePin = (e: React.MouseEvent) => {
         this._pinned = !this._pinned;
+        this.Highlighting = this._pinned === false;
     }
 
     @action
