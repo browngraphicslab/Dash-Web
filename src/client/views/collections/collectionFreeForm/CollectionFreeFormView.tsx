@@ -271,9 +271,10 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         newState.initializers[id] = { panX: newPanX, panY: newPanY };
         HistoryUtil.pushState(newState);
         this.setPan(newPanX, newPanY);
-        this.setScaleToZoom(doc);
         this.props.Document.panTransformType = "Ease";
         this.props.focus(this.props.Document);
+        //this.setScaleToZoom(doc);
+
     }
 
     setScaleToZoom = (doc: Doc) => {
