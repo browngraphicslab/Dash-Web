@@ -7,7 +7,7 @@ import { CollectionViewProps } from "../collections/CollectionBaseView";
 import { CollectionSubView, SubCollectionViewProps } from "../collections/CollectionSubView";
 import { DocumentViewProps, DocumentView } from "./DocumentView";
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
-import { Doc, DocListCastAsync } from "../../../new_fields/Doc";
+import { Doc, DocListCastAsync, DocListCast } from "../../../new_fields/Doc";
 import { Document, listSpec, createSchema, makeInterface, defaultSpec } from "../../../new_fields/Schema";
 import { FieldValue, Cast, NumCast, BoolCast } from "../../../new_fields/Types";
 import { emptyStatement, thisExpression, react } from "babel-types";
@@ -20,6 +20,8 @@ import { arrays, Dictionary } from "typescript-collections";
 import { forEach } from "typescript-collections/dist/lib/arrays";
 import { CompileScript } from "../../util/Scripting";
 import { FieldView } from "./FieldView";
+import { promises } from "fs";
+import { Tapable } from "tapable";
 
 type Data = List<Doc>;
 type Keyframes = List<List<Doc>>;
@@ -54,17 +56,16 @@ export class Timeline extends CollectionSubView(Document) {
     @observable private _currentBarX: number = 0;
     @observable private _keys = ["x", "y", "width", "height", "panX", "panY", "scale"];
     @observable private _bars: { x: number, doc: Doc }[] = [];
-    @observable private _data = new List<Doc>(); 
     @observable private _barMoved: boolean = false;
 
     @computed private get _keyframes() {
         return Cast(this.props.Document.keyframes, listSpec(Doc)) as any as List<List<Doc>>;
     }
 
-    // @computed private get _data() {
-    //     return Cast(this.props.Document.dataa, listSpec(Doc)) as List<Doc>; 
-    //     //return Cast(this.props.Document[this.props.fieldKey], listSpec(Doc))!;
-    // }
+    @computed private get _data() {
+        //return Cast(this.props.Document.dataa, listSpec(Doc)) as List<Doc>; 
+        return Cast(this.props.Document[this.props.fieldKey], listSpec(Doc))!;
+    }
 
     /**
      * when the record button is pressed
@@ -72,8 +73,8 @@ export class Timeline extends CollectionSubView(Document) {
      */
     @action
     onRecord = (e: React.MouseEvent) => {
-        console.log(this._data.length + " from record"); 
-        console.log(this._keyframes.length + " from record"); 
+        console.log(this._data.length + " from record");
+        console.log(this._keyframes.length + " from record");
         if (this._isRecording === true) {
             this._isRecording = false;
             return;
@@ -87,27 +88,25 @@ export class Timeline extends CollectionSubView(Document) {
         const addReaction = (node: Doc) => {
             node = (node as any).value();
             return reaction(() => {
-                console.log(this._data.length); 
                 return this._keys.map(key => FieldValue(node[key]));
             }, async data => {
+                console.log(this._data.length + " from here");
+                console.log(this._keyframes.length);
                 if (!this._barMoved) {
-                    console.log(this._keyframes.length + " keyframes length"); 
-                    console.log(this._data.length + " data length"); 
-                    if (this._data.indexOf(node) === -1) { 
+                    if (this._data.indexOf(node) !== -1 && this._keyframes.length < this._data.length) {
                         let timeandpos = this.setTimeAndPos(node);
                         //change it to dictionary here............................................................................                          
                         let dict = new Dictionary<number, Doc>();
-                        this._data.push(node); 
                         let info: List<Doc> = new List<Doc>(new Array<Doc>(1000)); //kinda weird  
                         info[this._currentBarX] = timeandpos;
                         this._keyframes.push(info);
-                        console.log(this._keyframes.length); 
+                        console.log(this._keyframes.length);
                         this._bars = [];
                         this._bars.push({ x: this._currentBarX, doc: node });
                         //...................................................................................................
                     } else {
                         let index = this._data.indexOf(node);
-                        console.log(index); 
+                        console.log(index);
                         if (this._keyframes[index][this._currentBarX] !== undefined) { //when node is in data, but doesn't have data for this specific time. 
                             let timeandpos = this.setTimeAndPos(node);
                             this._keyframes[index][this._currentBarX] = timeandpos;
@@ -126,7 +125,7 @@ export class Timeline extends CollectionSubView(Document) {
             console.log(childrenList + " has been printed");
             if (change.type === "update") {
                 this._reactionDisposers[change.index]();
-                console.log(this._data.length); 
+                console.log(this._data.length);
                 this._reactionDisposers[change.index] = addReaction(change.newValue);
             } else {
                 let removed = this._reactionDisposers.splice(change.index, change.removedCount, ...change.added.map(addReaction));
@@ -157,12 +156,14 @@ export class Timeline extends CollectionSubView(Document) {
     @action
     timeChange = async (time: number) => {
         const docs = this._data;
-        console.log(docs.length +" from time change"); 
         docs.forEach(async (oneDoc, i) => {
             let OD: Doc = await oneDoc;
             let leftKf!: TimeAndPosition;
             let rightKf!: TimeAndPosition;
             let singleFrame: Doc | undefined = undefined;
+            if (i >= this._keyframes.length) {
+                return;
+            }
             let oneKf = this._keyframes[i];
             oneKf.forEach((singleKf) => {
                 singleKf = singleKf as Doc;
@@ -175,8 +176,6 @@ export class Timeline extends CollectionSubView(Document) {
                             let kf = this._keyframes[i][leftMin] as Doc;
                             leftKf = TimeAndPosition(kf);
                         }
-                        console.log(oneKf); 
-                        console.log(time); 
                         rightMin = this.calcMinRight(oneKf, time);
                         if (rightMin !== Infinity) {
                             let kf = this._keyframes[i][rightMin] as Doc;
@@ -194,8 +193,14 @@ export class Timeline extends CollectionSubView(Document) {
                         FieldValue(OD[key]);
                     });
                 }
-            } else if (leftKf && rightKf) {
+            }
+            if (leftKf && rightKf) {
                 this.interpolate(OD, leftKf, rightKf, this._currentBarX);
+            } else if (leftKf){
+
+                this.interpolate(OD, leftKf, leftKf, this._currentBarX);
+            } else if (rightKf){
+                this.interpolate(OD, rightKf, rightKf, this._currentBarX);
             }
         });
     }
@@ -258,20 +263,13 @@ export class Timeline extends CollectionSubView(Document) {
         const keyFrame1 = (await kf1.position)!;
         const keyFrame2 = (await kf2.position)!;
 
-        //e^x exponential 
-        let eExp1 = Math.log(kf2.time);
-        let eExp2 = Math.log(kf1.time);
+        if(keyFrame1 === undefined || keyFrame2 === undefined){
+            return; 
+        }
 
-
-        // e ^ x + pos1, e^x + pos2
-        //const ratio = (time - eExp1) / dif_time; 
-
-
-        //for linaer
         const dif_time = kf2.time - kf1.time;
         const ratio = (time - kf1.time) / dif_time; //linear 
-
-        this._keys.forEach(key => {
+        this._keys.forEach(key => { 
             const diff = NumCast(keyFrame2[key]) - NumCast(keyFrame1[key]);
             const adjusted = diff * ratio;
             doc[key] = NumCast(keyFrame1[key]) + adjusted;
@@ -309,7 +307,6 @@ export class Timeline extends CollectionSubView(Document) {
                 this._inner.current.removeEventListener("pointermove", this.onInnerPointerMove);
                 this._inner.current.addEventListener("pointermove", this.onInnerPointerMove);
                 this.timeChange(this._currentBarX);
-                console.log("from down")
             }
 
         }
@@ -327,7 +324,6 @@ export class Timeline extends CollectionSubView(Document) {
         let offsetX = Math.round(e.offsetX); //currentbarX is rounded so it is indexable
         this._currentBarX = offsetX;
         this.timeChange(this._currentBarX);
-        console.log("from move"); 
     }
 
     @observable private _isPlaying = false;
@@ -351,7 +347,7 @@ export class Timeline extends CollectionSubView(Document) {
 
 
     @action
-    changeCurrentX = async () => {
+    changeCurrentX = () => {
         if (this._currentBarX >= 484 && this._isPlaying === true) {
             this._currentBarX = 0;
         }
@@ -414,11 +410,10 @@ export class Timeline extends CollectionSubView(Document) {
 
 
     async componentDidMount() {
-        console.log(toJS(this.props.Document.proto) || null);        
+        console.log(toJS(this.props.Document.proto) || null);
         if (!this._keyframes) {
             console.log("new data");
             this.props.Document.keyframes = new List<List<Doc>>();
-            this.props.Document.dataa = new List<Doc>(); 
         }
     }
 
@@ -433,25 +428,17 @@ export class Timeline extends CollectionSubView(Document) {
     /**
      * Displays yellow bars per node when selected
      */
-    @action
     displayKeyFrames = (doc: Doc) => {
         let views: (JSX.Element | null)[] = [];
-
-        this._data.forEach((node, i) => {
+        DocListCast(this._data).forEach((node, i) => {
             if (node === doc) {
-                console.log(this._keyframes[i].length); 
-                views = this._keyframes[i].filter((keyframe) => {
-                    if (keyframe === undefined){
-                        return false; 
-                    }
-                    return true; 
-                }).map((tp) => {
-                    let n:Doc = Cast(tp, Doc) as Doc; 
-                    const timeandpos = TimeAndPosition(n);
+                //set it to views
+                views = DocListCast(this._keyframes[i]).map(tp => {
+                    const timeandpos = TimeAndPosition(tp);
                     let time = timeandpos.time;
                     let bar = this.createBar(5, time, "yellow");
                     return bar;
-                }); 
+                });
             }
         });
         return views;
@@ -463,11 +450,11 @@ export class Timeline extends CollectionSubView(Document) {
             <div>
                 <div className="timeline-container">
                     <div className="timeline">
-                        <div className="inner" ref={this._inner} onPointerDown={this.onInnerPointerDown} onPointerUp={this.onInnerPointerUp}>  
+                        <div className="inner" ref={this._inner} onPointerDown={this.onInnerPointerDown} onPointerUp={this.onInnerPointerUp} >
                             {SelectionManager.SelectedDocuments().map(dv => this.displayKeyFrames(dv.props.Document))}
                             {this._bars.map((data) => {
                                 return this.createBar(5, data.x, "yellow");
-                            })} 
+                            })}
                             {this.createBar(5, this._currentBarX)}
                         </div>
                     </div>
@@ -476,6 +463,7 @@ export class Timeline extends CollectionSubView(Document) {
                     <button onClick={this.windBackward}> {"<"}</button>
                     <button onClick={this.onPlay} ref={this._playButton}> Play </button>
                     <button onClick={this.windForward}>{">"}</button>
+                    <button onClick={() => {console.log(this._data + " data, "); console.log(this._keyframes.length + " keyframes");}}>data</button>
                 </div>
             </div>
         );
