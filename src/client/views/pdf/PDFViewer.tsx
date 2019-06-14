@@ -111,14 +111,13 @@ class Viewer extends React.Component<IViewerProps> {
                 // if deselected, render images in place of pdf
                 if (wasSelected && !this.props.parent.props.active()) {
                     this.saveThumbnail();
-                    this._pointerEvents = "all";
                 }
                 // if selected, render pdf
                 else if (!wasSelected && this.props.parent.props.active()) {
                     this.renderPages(this.startIndex, this.endIndex, true);
-                    this._pointerEvents = "none";
                 }
                 wasSelected = this.props.parent.props.active();
+                this._pointerEvents = wasSelected ? "none" : "all";
             },
             { fireImmediately: true }
         );
