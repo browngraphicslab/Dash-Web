@@ -95,15 +95,11 @@ export class Timeline extends CollectionSubView(Document) {
                 if (!this._barMoved) {
                     if (this._data.indexOf(node) !== -1 && this._keyframes.length < this._data.length) {
                         let timeandpos = this.setTimeAndPos(node);
-                        //change it to dictionary here............................................................................                          
-                        let dict = new Dictionary<number, Doc>();
                         let info: List<Doc> = new List<Doc>(new Array<Doc>(1000)); //kinda weird  
                         info[this._currentBarX] = timeandpos;
                         this._keyframes.push(info);
-                        console.log(this._keyframes.length);
                         this._bars = [];
                         this._bars.push({ x: this._currentBarX, doc: node });
-                        //...................................................................................................
                     } else {
                         let index = this._data.indexOf(node);
                         console.log(index);
@@ -156,6 +152,7 @@ export class Timeline extends CollectionSubView(Document) {
     @action
     timeChange = async (time: number) => {
         const docs = this._data;
+        console.log(docs.length + " from time change");
         docs.forEach(async (oneDoc, i) => {
             let OD: Doc = await oneDoc;
             let leftKf!: TimeAndPosition;
@@ -173,34 +170,48 @@ export class Timeline extends CollectionSubView(Document) {
                     if (singleKf.time !== time) { //choose closest time neighbors
                         leftMin = this.calcMinLeft(oneKf, time);
                         if (leftMin !== Infinity) {
+                            console.log("ran here"); 
                             let kf = this._keyframes[i][leftMin] as Doc;
                             leftKf = TimeAndPosition(kf);
                         }
                         rightMin = this.calcMinRight(oneKf, time);
                         if (rightMin !== Infinity) {
+                            console.log("right here"); 
                             let kf = this._keyframes[i][rightMin] as Doc;
                             rightKf = TimeAndPosition(kf);
                         }
                     } else {
                         singleFrame = singleKf;
+                        if (true || oneKf[i] !== undefined) {
+                            console.log("hey"); 
+                            this._keys.map(key => {
+                                let temp = OD[key];
+                                FieldValue(OD[key]);
+                            });
+                        }
                     }
                 }
             });
-            if (singleFrame) {
-                if (true || oneKf[i] !== undefined) {
-                    this._keys.map(key => {
-                        let temp = OD[key];
-                        FieldValue(OD[key]);
-                    });
+            if (!singleFrame) {
+                if (leftKf && rightKf) {
+                            this.interpolate(OD, leftKf, rightKf, this._currentBarX);
+                } else if (leftKf){
+                    this._keys.map(async key => { 
+                        let pos = (await leftKf.position)!; 
+                        if (pos === undefined){ ///something is probably wrong here
+                            return; 
+                        }
+                        OD[key] = pos[key]; 
+                    }); 
+                } else if (rightKf){
+                    this._keys.map(async key => { 
+                        let pos = (await rightKf.position)!;
+                        if (pos === undefined){ //something is probably wrong here
+                            return; 
+                        }
+                        OD[key] = pos[key]; 
+                    }); 
                 }
-            }
-            if (leftKf && rightKf) {
-                this.interpolate(OD, leftKf, rightKf, this._currentBarX);
-            } else if (leftKf){
-
-                this.interpolate(OD, leftKf, leftKf, this._currentBarX);
-            } else if (rightKf){
-                this.interpolate(OD, rightKf, rightKf, this._currentBarX);
             }
         });
     }
@@ -444,13 +455,14 @@ export class Timeline extends CollectionSubView(Document) {
         return views;
     }
 
+    @observable private _test: (string) = "undefined";
 
     render() {
         return (
             <div>
                 <div className="timeline-container">
                     <div className="timeline">
-                        <div className="inner" ref={this._inner} onPointerDown={this.onInnerPointerDown} onPointerUp={this.onInnerPointerUp} >
+                        <div className="inner" ref={this._inner} onPointerDown={this.onInnerPointerDown} onPointerUp={this.onInnerPointerUp} key={this._test}>
                             {SelectionManager.SelectedDocuments().map(dv => this.displayKeyFrames(dv.props.Document))}
                             {this._bars.map((data) => {
                                 return this.createBar(5, data.x, "yellow");
