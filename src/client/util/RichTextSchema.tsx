@@ -1,5 +1,5 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { Schema, NodeSpec, MarkSpec, DOMOutputSpecArray, NodeType, Slice } from "prosemirror-model";
+import { Schema, NodeSpec, MarkSpec, DOMOutputSpecArray, NodeType, Slice, Mark } from "prosemirror-model";
 import { joinUp, lift, setBlockType, toggleMark, wrapIn, selectNodeForward, deleteSelection } from 'prosemirror-commands';
 import { redo, undo } from 'prosemirror-history';
 import { orderedList, bulletList, listItem, } from 'prosemirror-schema-list';
@@ -90,7 +90,7 @@ export const nodes: { [index: string]: NodeSpec } = {
         inline: true,
         attrs: {
             visibility: { default: false },
-            oldtext: { default: undefined },
+            text: { default: undefined },
             oldtextslice: { default: undefined },
             oldtextlen: { default: 0 }
 
@@ -256,10 +256,10 @@ export const marks: { [index: string]: MarkSpec } = {
     },
 
     highlight: {
-        parseDOM: [{ style: 'background: #9aa8a4' }],
+        parseDOM: [{ style: 'background: #d9dbdd' }],
         toDOM() {
             return ['span', {
-                style: 'background: #9aa8a4'
+                style: 'background: #d9dbdd'
             }];
         }
     },
@@ -471,20 +471,23 @@ export class SummarizedView {
                 node.attrs.visibility = !node.attrs.visibility;
                 console.log("content is visible");
                 let y = getPos();
-                view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.doc, y + 1, y + 1 + node.attrs.oldtextlen)));
+                let { from, to } = self.updateSummarizedText(y + 1, view.state.schema.marks.highlight);
+                let length = to - from;
+                let newSelection = TextSelection.create(view.state.doc, y + 1, y + 1 + length);
+                node.attrs.text = newSelection.content();
+                view.dispatch(view.state.tr.setSelection(newSelection));
                 view.dispatch(view.state.tr.deleteSelection(view.state, () => { }));
                 self._collapsed.textContent = "㊉";
-                self.updateSummarizedText();
             } else {
                 node.attrs.visibility = !node.attrs.visibility;
                 console.log("content is invisible");
                 let y = getPos();
                 console.log(y);
                 let mark = view.state.schema.mark(view.state.schema.marks.highlight);
-                console.log("PASTING " + node.attrs.oldtext.toString());
+                console.log("PASTING " + node.attrs.text.toString());
                 view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.doc, y + 1, y + 1)));
                 const from = view.state.selection.from;
-                view.dispatch(view.state.tr.replaceSelection(node.attrs.oldtext).addMark(from, from + node.attrs.oldtextlen, mark));
+                view.dispatch(view.state.tr.replaceSelection(node.attrs.text).addMark(from, from + node.attrs.oldtextlen, mark));
                 //view.dispatch(view.state.tr.setSelection(view.state.doc, from + node.attrs.oldtextlen + 1, from + node.attrs.oldtextlen + 1));
                 view.dispatch(view.state.tr.removeStoredMark(mark));
                 self._collapsed.textContent = "㊀";
@@ -498,9 +501,23 @@ export class SummarizedView {
     selectNode() {
     }
 
-    updateSummarizedText(mark?: any) {
-        console.log(this._view.state.doc.marks);
-        console.log(this._view.state.doc.childCount);
+    updateSummarizedText(start?: any, mark?: any) {
+        let $start = this._view.state.doc.resolve(start);
+        let first_startPos = $start.start(), endPos = first_startPos;
+        while ($start.nodeAfter !== null) {
+            let startIndex = $start.index(), endIndex = $start.indexAfter();
+            while (startIndex > 0 && mark.isInSet($start.parent.child(startIndex - 1).marks)) startIndex--;
+            while (endIndex < $start.parent.childCount && mark.isInSet($start.parent.child(endIndex).marks)) endIndex++;
+            let startPos = $start.start(), endPos = startPos;
+            for (let i = 0; i < endIndex; i++) {
+                let size = $start.parent.child(i).nodeSize;
+                console.log($start.parent.child(i).childCount);
+                if (i < startIndex) startPos += size;
+                endPos += size;
+            }
+            $start = this._view.state.doc.resolve(start + (endPos - startPos) + 1);
+        }
+        return { from: first_startPos, to: endPos };
     }
 
     deselectNode() {
@@ -524,4 +541,4 @@ schema.nodeFromJSON = (json: any) => {
         node.attrs.oldtext = Slice.fromJSON(schema, node.attrs.oldtextslice);
     }
     return node;
-}
+};
