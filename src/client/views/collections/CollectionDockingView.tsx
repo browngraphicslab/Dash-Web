@@ -9,7 +9,7 @@ import { Doc, DocListCast, Field, Opt } from "../../../new_fields/Doc";
 import { Id } from '../../../new_fields/FieldSymbols';
 import { FieldId } from "../../../new_fields/RefField";
 import { listSpec } from "../../../new_fields/Schema";
-import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
+import { Cast, NumCast, StrCast, BoolCast } from "../../../new_fields/Types";
 import { emptyFunction, returnTrue, Utils } from "../../../Utils";
 import { DocServer } from "../../DocServer";
 import { DocumentManager } from '../../util/DocumentManager';
@@ -429,7 +429,11 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     }
 
     nativeWidth = () => NumCast(this._document!.nativeWidth, this._panelWidth);
-    nativeHeight = () => NumCast(this._document!.nativeHeight, this._panelHeight);
+    nativeHeight = () => {
+        let nh = NumCast(this._document!.nativeHeight, this._panelHeight);
+        let res = BoolCast(this._document!.ignoreAspect) ? this._panelHeight : nh;
+        return res;
+    }
     contentScaling = () => {
         const nativeH = this.nativeHeight();
         const nativeW = this.nativeWidth();

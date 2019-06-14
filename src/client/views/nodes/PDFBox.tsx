@@ -33,9 +33,12 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
 
     loaded = (nw: number, nh: number) => {
         if (this.props.Document) {
+            if (this.props.Document.nativeWidth && this.props.Document.nativeHeight) return;
             let doc = this.props.Document.proto ? this.props.Document.proto : this.props.Document;
+            let oldaspect = NumCast(doc.nativeHeight) / NumCast(doc.nativeWidth, 1);
             doc.nativeWidth = nw;
-            doc.nativeHeight = nh;
+            if (doc.nativeHeight) doc.nativeHeight = nw * oldaspect;
+            else doc.nativeHeight = nh;
             let ccv = this.props.ContainingCollectionView;
             if (ccv) {
                 ccv.props.Document.pdfHeight = nh;

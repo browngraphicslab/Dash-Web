@@ -452,8 +452,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     render() {
         var scaling = this.props.ContentScaling();
-        var nativeHeight = this.nativeHeight > 0 ? `${this.nativeHeight}px` : "100%";
         var nativeWidth = this.nativeWidth > 0 ? `${this.nativeWidth}px` : "100%";
+        let ph = this.props.PanelHeight();
+        var nativeHeight = BoolCast(this.props.Document.ignoreAspect) ? this.props.PanelHeight() / this.props.ContentScaling() : this.nativeHeight > 0 ? `${this.nativeHeight}px` : "100%";
         return (
             <div className={`documentView-node${this.props.isTopMost ? "-topmost" : ""}`}
                 ref={this._mainCont}
