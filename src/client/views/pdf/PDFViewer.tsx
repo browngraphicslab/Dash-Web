@@ -586,7 +586,7 @@ class PinAnnotation extends React.Component<IAnnotationProps> {
                             PanelWidth={() => NumCast(this.props.parent.props.parent.Document.nativeWidth)}
                             PanelHeight={() => NumCast(this.props.parent.props.parent.Document.nativeHeight)}
                             focus={emptyFunction}
-                            selectOnLoad={true}
+                            selectOnLoad={false}
                             parentActive={this.props.parent.props.parent.props.active}
                             whenActiveChanged={this.props.parent.props.parent.props.whenActiveChanged}
                             bringToFront={emptyFunction}
