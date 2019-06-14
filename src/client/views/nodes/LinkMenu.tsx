@@ -7,7 +7,7 @@ import './LinkMenu.scss';
 import React = require("react");
 import { Doc, DocListCast } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
-import { LinkManager, LinkUtils } from "../../util/LinkManager";
+import { LinkManager } from "../../util/LinkManager";
 
 interface Props {
     docView: DocumentView;
@@ -22,7 +22,7 @@ export class LinkMenu extends React.Component<Props> {
     renderGroup = (group: Doc[]): Array<JSX.Element> => {
         let source = this.props.docView.Document;
         return group.map(linkDoc => {
-            let destination = LinkUtils.findOppositeAnchor(linkDoc, source);
+            let destination = LinkManager.Instance.findOppositeAnchor(linkDoc, source);
             return <LinkBox key={destination[Id] + source[Id]} linkDoc={linkDoc} sourceDoc={source} destinationDoc={destination} showEditor={action(() => this._editingLink = linkDoc)} />;
         });
     }

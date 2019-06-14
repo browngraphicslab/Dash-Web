@@ -9,7 +9,7 @@ import { CollectionView } from '../views/collections/CollectionView';
 import { CollectionPDFView } from '../views/collections/CollectionPDFView';
 import { CollectionVideoView } from '../views/collections/CollectionVideoView';
 import { Id } from '../../new_fields/FieldSymbols';
-import { LinkManager, LinkUtils } from './LinkManager';
+import { LinkManager } from './LinkManager';
 
 
 export class DocumentManager {
@@ -86,53 +86,19 @@ export class DocumentManager {
     public get LinkedDocumentViews() {
         let linked = DocumentManager.Instance.DocumentViews.filter(dv => dv.isSelected() || BoolCast(dv.props.Document.libraryBrush, false)).reduce((pairs, dv) => {
 
-
             let linksList = LinkManager.Instance.findAllRelatedLinks(dv.props.Document);
             if (linksList && linksList.length) {
                 pairs.push(...linksList.reduce((pairs, link) => {
                     if (link) {
-                        // let destination = (link["linkedTo"] === dv.props.Document) ? link["linkedFrom"] : link["linkedTo"];
-
-                        let destination = LinkUtils.findOppositeAnchor(link, dv.props.Document);
-                        let linkToDoc = FieldValue(Cast(destination, Doc));
-                        // let linkToDoc = FieldValue(Cast(link.linkedTo, Doc));
-                        if (linkToDoc) {
-                            DocumentManager.Instance.getDocumentViews(linkToDoc).map(docView1 =>
+                        let destination = LinkManager.Instance.findOppositeAnchor(link, dv.props.Document);
+                        if (destination) {
+                            DocumentManager.Instance.getDocumentViews(destination).map(docView1 =>
                                 pairs.push({ a: dv, b: docView1, l: link }));
                         }
                     }
                     return pairs;
                 }, [] as { a: DocumentView, b: DocumentView, l: Doc }[]));
             }
-
-            // let linksList = DocListCast(dv.props.Document.linkedToDocs);
-            // console.log("to links", linksList.length);
-            // if (linksList && linksList.length) {
-            //     pairs.push(...linksList.reduce((pairs, link) => {
-            //         if (link) {
-            //             let linkToDoc = FieldValue(Cast(link.linkedTo, Doc));
-            //             if (linkToDoc) {
-            //                 DocumentManager.Instance.getDocumentViews(linkToDoc).map(docView1 =>
-            //                     pairs.push({ a: dv, b: docView1, l: link }));
-            //             }
-            //         }
-            //         return pairs;
-            //     }, [] as { a: DocumentView, b: DocumentView, l: Doc }[]));
-            // }
-            // linksList = DocListCast(dv.props.Document.linkedFromDocs);
-            // console.log("from links", linksList.length);
-            // if (linksList && linksList.length) {
-            //     pairs.push(...linksList.reduce((pairs, link) => {
-            //         if (link) {
-            //             let linkFromDoc = FieldValue(Cast(link.linkedFrom, Doc));
-            //             if (linkFromDoc) {
-            //                 DocumentManager.Instance.getDocumentViews(linkFromDoc).map(docView1 =>
-            //                     pairs.push({ a: dv, b: docView1, l: link }));
-            //             }
-            //         }
-            //         return pairs;
-            //     }, pairs));
-            // }
             return pairs;
         }, [] as { a: DocumentView, b: DocumentView, l: Doc }[]);
         return linked;
