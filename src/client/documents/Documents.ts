@@ -170,7 +170,7 @@ export namespace Docs {
         return textProto;
     }
     function CreatePdfPrototype(): Doc {
-        let pdfProto = setupPrototypeOptions(pdfProtoId, "PDF_PROTO", PDFBox.LayoutString(),
+        let pdfProto = setupPrototypeOptions(pdfProtoId, "PDF_PROTO", CollectionPDFView.LayoutString("annotations"),
             { x: 0, y: 0, width: 300, height: 300, backgroundLayout: PDFBox.LayoutString(), curPage: 1 });
         return pdfProto;
     }

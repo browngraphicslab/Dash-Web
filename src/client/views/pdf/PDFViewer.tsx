@@ -188,8 +188,8 @@ class Viewer extends React.Component<IViewerProps> {
             else {
                 this.props.parent.Document.annotations = new List<Doc>([destDoc]);
             }
+            e.stopPropagation();
         }
-        e.stopPropagation();
     }
 
     componentWillUnmount = () => {
@@ -465,7 +465,7 @@ class Viewer extends React.Component<IViewerProps> {
                     {this._visibleElements}
                 </div>
                 <div className="pdfViewer-annotationLayer" style={{ height: this.props.parent.Document.nativeHeight, width: `100%`, pointerEvents: this._pointerEvents }}>
-                    <div className="pdfViewer-annotationLayer-subCont" style={{ transform: `translateY(${-this.scrollY}px)` }} ref={this._annotationLayer}>
+                    <div className="pdfViewer-annotationLayer-subCont" ref={this._annotationLayer}>
                         {this._annotations.map(anno => this.renderAnnotation(anno))}
                     </div>
                 </div>
@@ -501,17 +501,31 @@ class PinAnnotation extends React.Component<IAnnotationProps> {
 
     componentDidMount = () => {
         let selected = this.props.document.selected;
-        if (selected && BoolCast(selected)) {
+        if (!BoolCast(selected)) {
             runInAction(() => {
-                this._backgroundColor = "green";
-                this._display = "initial";
-            })
+                this._backgroundColor = "red";
+                this._display = "none";
+            });
+        }
+        if (selected) {
+            if (BoolCast(selected)) {
+                runInAction(() => {
+                    this._backgroundColor = "green";
+                    this._display = "initial";
+                });
+            }
+            else {
+                runInAction(() => {
+                    this._backgroundColor = "red";
+                    this._display = "none";
+                });
+            }
         }
         else {
             runInAction(() => {
                 this._backgroundColor = "red";
                 this._display = "none";
-            })
+            });
         }
     }
 
@@ -572,7 +586,7 @@ class PinAnnotation extends React.Component<IAnnotationProps> {
                             PanelWidth={() => NumCast(this.props.parent.props.parent.Document.nativeWidth)}
                             PanelHeight={() => NumCast(this.props.parent.props.parent.Document.nativeHeight)}
                             focus={emptyFunction}
-                            selectOnLoad={false}
+                            selectOnLoad={true}
                             parentActive={this.props.parent.props.parent.props.active}
                             whenActiveChanged={this.props.parent.props.parent.props.whenActiveChanged}
                             bringToFront={emptyFunction}

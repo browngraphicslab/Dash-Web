@@ -36,6 +36,10 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
             let doc = this.props.Document.proto ? this.props.Document.proto : this.props.Document;
             doc.nativeWidth = nw;
             doc.nativeHeight = nh;
+            let ccv = this.props.ContainingCollectionView;
+            if (ccv) {
+                ccv.props.Document.pdfHeight = nh;
+            }
             doc.height = nh * (doc[WidthSym]() / nw);
         }
     }
@@ -45,6 +49,10 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
         if (e.currentTarget) {
             this._scrollY = e.currentTarget.scrollTop;
             // e.currentTarget.scrollTo({ top: 1000, behavior: "smooth" });
+            let ccv = this.props.ContainingCollectionView;
+            if (ccv) {
+                ccv.props.Document.scrollY = this._scrollY;
+            }
         }
     }
 
@@ -56,7 +64,10 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
         let classname = "pdfBox-cont" + (this.props.isSelected() && !InkingControl.Instance.selectedTool && !this._alt ? "-interactive" : "");
         return (
             <div onScroll={this.onScroll}
-                style={{ overflowY: "scroll", overflowX: "hidden", height: `${NumCast(this.props.Document.nativeHeight ? this.props.Document.nativeHeight : 300)}px` }}
+                style={{
+                    overflowY: "scroll", overflowX: "hidden", height: `${NumCast(this.props.Document.nativeHeight ? this.props.Document.nativeHeight : 300)}px`,
+                    marginTop: `${NumCast(this.props.ContainingCollectionView!.props.Document.panY)}px`
+                }}
                 onWheel={(e: React.WheelEvent) => e.stopPropagation()} className={classname}>
                 <PDFViewer url={pdfUrl.url.href} loaded={this.loaded} scrollY={this._scrollY} parent={this} />
                 {/* <div style={{ width: "100px", height: "300px" }}></div> */}

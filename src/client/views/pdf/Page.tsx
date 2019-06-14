@@ -257,7 +257,7 @@ export default class Page extends React.Component<IPageProps> {
             let ratio = this._marqueeWidth / this._marqueeHeight;
             if (ratio > 1.5) {
                 // vertical
-                transform = "rotate(90deg) scale(1, 2)";
+                transform = "rotate(90deg) scale(1, 5)";
             }
             else if (ratio < 0.5) {
                 // horizontal
