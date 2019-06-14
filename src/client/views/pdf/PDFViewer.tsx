@@ -151,7 +151,7 @@ class Viewer extends React.Component<IViewerProps> {
         }
     }
 
-    makeAnnotationDocument = (sourceDoc: Doc): Doc => {
+    makeAnnotationDocument = (sourceDoc: Doc | undefined): Doc => {
         let annoDocs: Doc[] = [];
         this._savedAnnotations.forEach((key: number, value: HTMLDivElement[]) => {
             for (let anno of value) {
@@ -170,7 +170,9 @@ class Viewer extends React.Component<IViewerProps> {
 
         let annoDoc = new Doc();
         annoDoc.annotations = new List<Doc>(annoDocs);
-        DocUtils.MakeLink(sourceDoc, annoDoc, undefined, `Annotation from ${StrCast(this.props.parent.Document.title)}`, "", StrCast(this.props.parent.Document.title));
+        if (sourceDoc) {
+            DocUtils.MakeLink(sourceDoc, annoDoc, undefined, `Annotation from ${StrCast(this.props.parent.Document.title)}`, "", StrCast(this.props.parent.Document.title));
+        }
         this._savedAnnotations.clear();
         return annoDoc;
     }

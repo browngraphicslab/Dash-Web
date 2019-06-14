@@ -14,6 +14,7 @@ import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
 import { listSpec } from "../../../new_fields/Schema";
 import { menuBar } from "prosemirror-menu";
 import { AnnotationTypes } from "./PDFViewer";
+import PDFMenu from "./PDFMenu";
 
 interface IPageProps {
     pdf: Opt<Pdfjs.PDFDocumentProxy>;
@@ -27,7 +28,7 @@ interface IPageProps {
     sendAnnotations: (annotations: HTMLDivElement[], page: number) => void;
     receiveAnnotations: (page: number) => HTMLDivElement[] | undefined;
     createAnnotation: (div: HTMLDivElement, page: number) => void;
-    makeAnnotationDocuments: (doc: Doc) => Doc;
+    makeAnnotationDocuments: (doc: Doc | undefined) => Doc;
 }
 
 @observer
@@ -131,6 +132,20 @@ export default class Page extends React.Component<IPageProps> {
         }
     }
 
+    highlight = (targetDoc: Doc | undefined) => {
+        // creates annotation documents for current highlights
+        let annotationDoc = this.props.makeAnnotationDocuments(targetDoc);
+        let targetAnnotations = DocListCast(this.props.parent.Document.annotations);
+        if (targetAnnotations) {
+            targetAnnotations.push(annotationDoc);
+            this.props.parent.Document.annotations = new List<Doc>(targetAnnotations);
+        }
+        else {
+            this.props.parent.Document.annotations = new List<Doc>([annotationDoc]);
+        }
+        return annotationDoc;
+    }
+
     /**
      * This is temporary for creating annotations from highlights. It will
      * start a drag event and create or put the necessary info into the drag event.
@@ -148,16 +163,7 @@ export default class Page extends React.Component<IPageProps> {
         // document that this annotation is linked to
         let targetDoc = Docs.TextDocument({ width: 200, height: 200, title: "New Annotation" });
         targetDoc.targetPage = this.props.page;
-        // creates annotation documents for current highlights
-        let annotationDoc = this.props.makeAnnotationDocuments(targetDoc);
-        let targetAnnotations = DocListCast(this.props.parent.Document.annotations);
-        if (targetAnnotations) {
-            targetAnnotations.push(annotationDoc);
-            this.props.parent.Document.annotations = new List<Doc>(targetAnnotations);
-        }
-        else {
-            this.props.parent.Document.annotations = new List<Doc>([annotationDoc]);
-        }
+        let annotationDoc = this.highlight(targetDoc);
         // create dragData and star tdrag
         let dragData = new DragManager.AnnotationDragData(thisDoc, annotationDoc, targetDoc);
         if (this._textLayer.current) {
@@ -172,8 +178,8 @@ export default class Page extends React.Component<IPageProps> {
 
     // cleans up events and boolean
     endDrag = (e: PointerEvent): void => {
-        document.removeEventListener("pointermove", this.startDrag);
-        document.removeEventListener("pointerup", this.endDrag);
+        // document.removeEventListener("pointermove", this.startDrag);
+        // document.removeEventListener("pointerup", this.endDrag);
         this._dragging = false;
         e.stopPropagation();
     }
@@ -184,10 +190,10 @@ export default class Page extends React.Component<IPageProps> {
         if (e.altKey && e.button === 0) {
             e.stopPropagation();
 
-            document.removeEventListener("pointermove", this.startDrag);
-            document.addEventListener("pointermove", this.startDrag);
-            document.removeEventListener("pointerup", this.endDrag);
-            document.addEventListener("pointerup", this.endDrag);
+            // document.removeEventListener("pointermove", this.startDrag);
+            // document.addEventListener("pointermove", this.startDrag);
+            // document.removeEventListener("pointerup", this.endDrag);
+            // document.addEventListener("pointerup", this.endDrag);
         }
         else if (e.button === 0) {
             let target: any = e.target;
@@ -271,7 +277,7 @@ export default class Page extends React.Component<IPageProps> {
     }
 
     @action
-    onSelectEnd = (): void => {
+    onSelectEnd = (e: PointerEvent): void => {
         if (this._marqueeing) {
             this._marqueeing = false;
             if (this._marquee.current) {
@@ -298,42 +304,116 @@ export default class Page extends React.Component<IPageProps> {
                 }
                 copy.className = this._marquee.current.className;
                 this.props.createAnnotation(copy, this.props.page);
+                PDFMenu.Instance.StartDrag = this.startDrag;
+                PDFMenu.Instance.Highlight = this.highlight;
                 this._marquee.current.style.opacity = "0";
             }
 
             this._marqueeHeight = this._marqueeWidth = 0;
+            PDFMenu.Instance.Left = e.clientX;
+            PDFMenu.Instance.Top = e.clientY;
         }
         else {
             let sel = window.getSelection();
-            // if selecting over a range of things
             if (sel && sel.type === "Range") {
-                let clientRects = sel.getRangeAt(0).getClientRects();
-                if (this._textLayer.current) {
-                    let boundingRect = this._textLayer.current.getBoundingClientRect();
-                    for (let i = 0; i < clientRects.length; i++) {
-                        let rect = clientRects.item(i);
-                        if (rect) {
-                            let annoBox = document.createElement("div");
-                            annoBox.className = "pdfViewer-annotationBox";
-                            // transforms the positions from screen onto the pdf div
-                            annoBox.style.top = ((rect.top - boundingRect.top) * (this._textLayer.current.offsetHeight / boundingRect.height)).toString();
-                            annoBox.style.left = ((rect.left - boundingRect.left) * (this._textLayer.current.offsetWidth / boundingRect.width)).toString();
-                            annoBox.style.width = (rect.width * this._textLayer.current.offsetWidth / boundingRect.width).toString();
-                            annoBox.style.height = (rect.height * this._textLayer.current.offsetHeight / boundingRect.height).toString();
-                            this.props.createAnnotation(annoBox, this.props.page);
-                        }
-                    }
-                }
-                // clear selection
-                if (sel.empty) {  // Chrome
-                    sel.empty();
-                } else if (sel.removeAllRanges) {  // Firefox
-                    sel.removeAllRanges();
+                PDFMenu.Instance.StartDrag = this.startDrag;
+                PDFMenu.Instance.Highlight = this.highlight;
+                this.createTextAnnotation(sel);
+                PDFMenu.Instance.Left = e.clientX;
+                PDFMenu.Instance.Top = e.clientY;
+            }
+        }
+        // let x = (e.clientX - boundingRect.left) * (current.offsetWidth / boundingRect.width);
+        // let y = (e.clientY - boundingRect.top) * (current.offsetHeight / boundingRect.height);
+        // if (this._marqueeing) {
+        //     this._marqueeing = false;
+        //     if (this._marquee.current) {
+        //         let copy = document.createElement("div");
+        //         // make a copy of the marquee
+        //         copy.style.left = this._marquee.current.style.left;
+        //         copy.style.top = this._marquee.current.style.top;
+        //         copy.style.width = this._marquee.current.style.width;
+        //         copy.style.height = this._marquee.current.style.height;
+
+        //         // apply the appropriate background, opacity, and transform
+        //         let { background, opacity, transform } = this.getCurlyTransform();
+        //         copy.style.background = background;
+        //         // if curly bracing, add a curly brace
+        //         if (opacity === "1" && this._curly.current) {
+        //             copy.style.opacity = opacity;
+        //             let img = this._curly.current.cloneNode();
+        //             (img as any).style.opacity = opacity;
+        //             (img as any).style.transform = transform;
+        //             copy.appendChild(img);
+        //         }
+        //         else {
+        //             copy.style.opacity = this._marquee.current.style.opacity;
+        //         }
+        //         copy.className = this._marquee.current.className;
+        //         this.props.createAnnotation(copy, this.props.page);
+        //         this._marquee.current.style.opacity = "0";
+        //     }
+
+        //     this._marqueeHeight = this._marqueeWidth = 0;
+        // }
+        // else {
+        //     let sel = window.getSelection();
+        //     // if selecting over a range of things
+        //     if (sel && sel.type === "Range") {
+        //         let clientRects = sel.getRangeAt(0).getClientRects();
+        //         if (this._textLayer.current) {
+        //             let boundingRect = this._textLayer.current.getBoundingClientRect();
+        //             for (let i = 0; i < clientRects.length; i++) {
+        //                 let rect = clientRects.item(i);
+        //                 if (rect) {
+        //                     let annoBox = document.createElement("div");
+        //                     annoBox.className = "pdfViewer-annotationBox";
+        //                     // transforms the positions from screen onto the pdf div
+        //                     annoBox.style.top = ((rect.top - boundingRect.top) * (this._textLayer.current.offsetHeight / boundingRect.height)).toString();
+        //                     annoBox.style.left = ((rect.left - boundingRect.left) * (this._textLayer.current.offsetWidth / boundingRect.width)).toString();
+        //                     annoBox.style.width = (rect.width * this._textLayer.current.offsetWidth / boundingRect.width).toString();
+        //                     annoBox.style.height = (rect.height * this._textLayer.current.offsetHeight / boundingRect.height).toString();
+        //                     this.props.createAnnotation(annoBox, this.props.page);
+        //                 }
+        //             }
+        //         }
+        //         // clear selection
+        //         if (sel.empty) {  // Chrome
+        //             sel.empty();
+        //         } else if (sel.removeAllRanges) {  // Firefox
+        //             sel.removeAllRanges();
+        //         }
+        //     }
+        // }
+        document.removeEventListener("pointermove", this.onSelectStart);
+        document.removeEventListener("pointerup", this.onSelectEnd);
+    }
+
+    @action
+    createTextAnnotation = (sel: Selection) => {
+        let clientRects = sel.getRangeAt(0).getClientRects();
+        if (this._textLayer.current) {
+            let boundingRect = this._textLayer.current.getBoundingClientRect();
+            for (let i = 0; i < clientRects.length; i++) {
+                let rect = clientRects.item(i);
+                if (rect) {
+                    let annoBox = document.createElement("div");
+                    annoBox.className = "pdfViewer-annotationBox";
+                    // transforms the positions from screen onto the pdf div
+                    annoBox.style.top = ((rect.top - boundingRect.top) * (this._textLayer.current.offsetHeight / boundingRect.height)).toString();
+                    annoBox.style.left = ((rect.left - boundingRect.left) * (this._textLayer.current.offsetWidth / boundingRect.width)).toString();
+                    annoBox.style.width = (rect.width * this._textLayer.current.offsetWidth / boundingRect.width).toString();
+                    annoBox.style.height = (rect.height * this._textLayer.current.offsetHeight / boundingRect.height).toString();
+                    this.props.createAnnotation(annoBox, this.props.page);
                 }
             }
         }
-        document.removeEventListener("pointermove", this.onSelectStart);
-        document.removeEventListener("pointerup", this.onSelectEnd);
+        // clear selection
+        if (sel.empty) {  // Chrome
+            sel.empty();
+        } else if (sel.removeAllRanges) {  // Firefox
+            sel.removeAllRanges();
+        }
     }
 
     doubleClick = (e: React.MouseEvent) => {

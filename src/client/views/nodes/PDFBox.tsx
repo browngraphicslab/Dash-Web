@@ -30,6 +30,15 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
 
     @observable private _alt = false;
     @observable private _scrollY: number = 0;
+    private _reactionDisposer?: IReactionDisposer;
+    _targetDiv: any = undefined;
+
+    componentDidMount: () => void = () => {
+        if (this._reactionDisposer) this._reactionDisposer();
+        this._reactionDisposer = reaction(() => this.props.Document.scrollY, () =>
+            this._targetDiv && this._targetDiv.scrollTo({ top: NumCast(this.Document.scrollY), behavior: "smooth" })
+        );
+    }
 
     loaded = (nw: number, nh: number) => {
         if (this.props.Document) {
@@ -50,6 +59,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     @action
     onScroll = (e: React.UIEvent<HTMLDivElement>) => {
         if (e.currentTarget) {
+            this._targetDiv = e.currentTarget;
             this._scrollY = e.currentTarget.scrollTop;
             // e.currentTarget.scrollTo({ top: 1000, behavior: "smooth" });
             let ccv = this.props.ContainingCollectionView;
