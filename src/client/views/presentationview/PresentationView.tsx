@@ -26,7 +26,7 @@ export interface PresViewProps {
 
 interface PresListProps extends PresViewProps {
     deleteDocument(index: number): void;
-    gotoDocument(index: number): void;
+    gotoDocument(index: number, fromDoc: number): Promise<void>;
     groupMappings: Map<String, Doc[]>;
     presElementsMappings: Map<Doc, PresentationElement>;
     setChildrenDocs: (docList: Doc[]) => void;
@@ -71,9 +71,24 @@ class PresentationViewList extends React.Component<PresListProps> {
         });
     }
 
+    /**
+     * Initially every document starts with a viewScale 1, which means
+     * that they will be displayed in a canvas with scale 1.
+     */
+    @action
+    initializeScaleViews = (docList: Doc[]) => {
+        docList.forEach((doc: Doc) => {
+            let curScale = NumCast(doc.viewScale, null);
+            if (curScale === undefined) {
+                doc.viewScale = 1;
+            }
+        });
+    }
+
     render() {
         const children = DocListCast(this.props.Document.data);
         this.initializeGroupIds(children);
+        this.initializeScaleViews(children);
         this.props.setChildrenDocs(children);
         return (
 
@@ -100,7 +115,6 @@ export class PresentationView extends React.Component<PresViewProps>  {
     //back-up so that presentation stays the way it's when refreshed
     @observable presGroupBackUp: Doc = new Doc();
     @observable presButtonBackUp: Doc = new Doc();
-
 
 
     componentDidMount() {
@@ -195,7 +209,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
             if (nextSelected === current) nextSelected = current + 1;
         }
 
-        this.gotoDocument(nextSelected);
+        this.gotoDocument(nextSelected, current);
 
     }
     back = async () => {
@@ -209,6 +223,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
         //asking for its presentation id.
         let curPresId = StrCast(docAtCurrent.presentId);
         let prevSelected = current - 1;
+        let zoomOut: boolean = false;
 
         //checking if this presentation id is mapped to a group, if so chosing the first element in group
         if (this.groupMappings.has(curPresId)) {
@@ -217,11 +232,29 @@ export class PresentationView extends React.Component<PresViewProps>  {
             //end of grup so go beyond
             if (prevSelected === current) prevSelected = current - 1;
 
+            //checking if any of the group members had used zooming in
+            currentsArray.forEach((doc: Doc) => {
+                if (this.presElementsMappings.get(doc)!.selected[buttonIndex.Show]) {
+                    zoomOut = true;
+                    return;
+                }
+            });
 
         }
 
+        // if a group set that flag to zero or a single element
+        //If so making sure to zoom out, which goes back to state before zooming action
+        if (zoomOut || this.presElementsMappings.get(docAtCurrent)!.selected[buttonIndex.Show]) {
+            let prevScale = NumCast(this.childrenDocs[prevSelected].viewScale, null);
+            let curScale = DocumentManager.Instance.getScaleOfDocView(this.childrenDocs[current]);
+            if (prevScale !== undefined) {
+                if (prevScale !== curScale) {
+                    DocumentManager.Instance.zoomIntoScale(docAtCurrent, prevScale);
+                }
+            }
+        }
+        this.gotoDocument(prevSelected, current);
 
-        this.gotoDocument(prevSelected);
     }
 
     /**
@@ -285,9 +318,10 @@ export class PresentationView extends React.Component<PresViewProps>  {
      * has the option open and last in the group. If not in the group, and it has
      * te option open, navigates to that element.
      */
-    navigateToElement = (curDoc: Doc) => {
+    navigateToElement = async (curDoc: Doc, fromDoc: number) => {
         let docToJump: Doc = curDoc;
         let curDocPresId = StrCast(curDoc.presentId, null);
+        let willZoom: boolean = false;
 
         //checking if in group
         if (curDocPresId !== undefined) {
@@ -297,6 +331,11 @@ export class PresentationView extends React.Component<PresViewProps>  {
                     let selectedButtons: boolean[] = this.presElementsMappings.get(doc)!.selected;
                     if (selectedButtons[buttonIndex.Navigate]) {
                         docToJump = doc;
+                        willZoom = false;
+                    }
+                    if (selectedButtons[buttonIndex.Show]) {
+                        docToJump = doc;
+                        willZoom = true;
                     }
                 });
             }
@@ -305,13 +344,35 @@ export class PresentationView extends React.Component<PresViewProps>  {
         //docToJump stayed same meaning, it was not in the group or was the last element in the group
         if (docToJump === curDoc) {
             //checking if curDoc has navigation open
-            if (this.presElementsMappings.get(curDoc)!.selected[buttonIndex.Navigate]) {
-                DocumentManager.Instance.jumpToDocument(curDoc);
-            } else {
-                return;
+            let curDocButtons = this.presElementsMappings.get(curDoc)!.selected;
+            if (curDocButtons[buttonIndex.Navigate]) {
+                DocumentManager.Instance.jumpToDocument(curDoc, false);
+            } else if (curDocButtons[buttonIndex.Show]) {
+                let curScale = DocumentManager.Instance.getScaleOfDocView(this.childrenDocs[fromDoc]);
+                //awaiting jump so that new scale can be found, since jumping is async
+                await DocumentManager.Instance.jumpToDocument(curDoc, true);
+                let newScale = DocumentManager.Instance.getScaleOfDocView(curDoc);
+                curDoc.viewScale = newScale;
+
+                //saving the scale user was on before zooming in
+                if (curScale !== 1) {
+                    this.childrenDocs[fromDoc].viewScale = curScale;
+                }
+
             }
+            return;
         }
-        DocumentManager.Instance.jumpToDocument(docToJump);
+        let curScale = DocumentManager.Instance.getScaleOfDocView(this.childrenDocs[fromDoc]);
+
+        //awaiting jump so that new scale can be found, since jumping is async
+        await DocumentManager.Instance.jumpToDocument(docToJump, willZoom);
+        let newScale = DocumentManager.Instance.getScaleOfDocView(curDoc);
+        curDoc.viewScale = newScale;
+        //saving the scale that user was on
+        if (curScale !== 1) {
+            this.childrenDocs[fromDoc].viewScale = curScale;
+        }
+
     }
 
     /**
@@ -340,7 +401,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
         }
     }
     @action
-    public gotoDocument = async (index: number) => {
+    public gotoDocument = async (index: number, fromDoc: number) => {
         const list = FieldValue(Cast(this.props.Document.data, listSpec(Doc)));
         if (!list) {
             return;
@@ -357,7 +418,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
 
         const doc = await list[index];
         if (this.presStatus) {
-            this.navigateToElement(doc);
+            this.navigateToElement(doc, fromDoc);
             this.hideIfNotPresented(index);
             this.showAfterPresented(index);
         }
@@ -407,7 +468,8 @@ export class PresentationView extends React.Component<PresViewProps>  {
         } else {
             this.presStatus = true;
             this.startPresentation(0);
-            this.gotoDocument(0);
+            const current = NumCast(this.props.Document.selectedDoc);
+            this.gotoDocument(0, current);
         }
         this.props.Document.presStatus = this.presStatus;
     }
@@ -423,6 +485,11 @@ export class PresentationView extends React.Component<PresViewProps>  {
             doc.opacity = 1;
         });
         this.props.Document.selectedDoc = 0;
+        if (this.childrenDocs.length === 0) {
+            return;
+        }
+        DocumentManager.Instance.zoomIntoScale(this.childrenDocs[0], 1);
+        this.childrenDocs[0].viewScale = 1;
 
     }
 

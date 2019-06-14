@@ -12,6 +12,7 @@ import { faFile as fileSolid, faLocationArrow, faArrowUp, faSearch } from '@fort
 import { faFile as fileRegular } from '@fortawesome/free-regular-svg-icons';
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
+import { DocumentManager } from "../../util/DocumentManager";
 
 
 
@@ -27,7 +28,7 @@ interface PresentationElementProps {
     document: Doc;
     index: number;
     deleteDocument(index: number): void;
-    gotoDocument(index: number): void;
+    gotoDocument(index: number, fromDoc: number): Promise<void>;
     allListElements: Doc[];
     groupMappings: Map<String, Doc[]>;
     presStatus: boolean;
@@ -300,10 +301,34 @@ export default class PresentationElement extends React.Component<PresentationEle
             this.selectedButtons[buttonIndex.Navigate] = false;
 
         } else {
+            if (this.selectedButtons[buttonIndex.Show]) {
+                this.selectedButtons[buttonIndex.Show] = false;
+            }
             this.selectedButtons[buttonIndex.Navigate] = true;
         }
 
         this.autoSaveButtonChange(buttonIndex.Navigate);
+
+    }
+
+    /**
+    * The function that is called on click to turn zoom option of docs on/off.
+    */
+    @action
+    onZoomDocumentClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (this.selectedButtons[buttonIndex.Show]) {
+            this.selectedButtons[buttonIndex.Show] = false;
+            this.props.document.viewScale = 1;
+
+        } else {
+            if (this.selectedButtons[buttonIndex.Navigate]) {
+                this.selectedButtons[buttonIndex.Navigate] = false;
+            }
+            this.selectedButtons[buttonIndex.Show] = true;
+        }
+
+        this.autoSaveButtonChange(buttonIndex.Show);
 
     }
 
@@ -330,13 +355,13 @@ export default class PresentationElement extends React.Component<PresentationEle
                     outlineStyle: "dashed",
                     outlineWidth: BoolCast(p.document.libraryBrush, false) || BoolCast(p.document.protoBrush, false) ? `1px` : "0px",
                 }}
-                onClick={e => { p.gotoDocument(p.index); e.stopPropagation(); }}>
+                onClick={e => { p.gotoDocument(p.index, NumCast(this.props.mainDocument.selectedDoc)); e.stopPropagation(); }}>
                 <strong className="presentationView-name">
                     {`${p.index + 1}. ${title}`}
                 </strong>
                 <button className="presentation-icon" onClick={e => { this.props.deleteDocument(p.index); e.stopPropagation(); }}>X</button>
                 <br></br>
-                <button title="Zoom" className={this.selectedButtons[buttonIndex.Show] ? "presentation-interaction-selected" : "presentation-interaction"}><FontAwesomeIcon icon={"search"} /></button>
+                <button title="Zoom" className={this.selectedButtons[buttonIndex.Show] ? "presentation-interaction-selected" : "presentation-interaction"} onClick={this.onZoomDocumentClick}><FontAwesomeIcon icon={"search"} /></button>
                 <button title="Navigate" className={this.selectedButtons[buttonIndex.Navigate] ? "presentation-interaction-selected" : "presentation-interaction"} onClick={this.onNavigateDocumentClick}><FontAwesomeIcon icon={"location-arrow"} /></button>
                 <button title="Hide Document Till Presented" className={this.selectedButtons[buttonIndex.HideTillPressed] ? "presentation-interaction-selected" : "presentation-interaction"} onClick={this.onHideDocumentUntilPressClick}><FontAwesomeIcon icon={fileSolid} /></button>
                 <button title="Fade Document After Presented" className={this.selectedButtons[buttonIndex.FadeAfter] ? "presentation-interaction-selected" : "presentation-interaction"} onClick={this.onFadeDocumentAfterPresentedClick}><FontAwesomeIcon icon={fileRegular} color={"gray"} /></button>

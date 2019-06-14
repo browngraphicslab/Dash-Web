@@ -69,13 +69,15 @@ export interface DocumentViewProps {
     ContentScaling: () => number;
     PanelWidth: () => number;
     PanelHeight: () => number;
-    focus: (doc: Doc) => void;
+    focus: (doc: Doc, willZoom: boolean) => void;
     selectOnLoad: boolean;
     parentActive: () => boolean;
     whenActiveChanged: (isActive: boolean) => void;
     bringToFront: (doc: Doc) => void;
     addDocTab: (doc: Doc, where: string) => void;
     collapseToPoint?: (scrpt: number[], expandedDocs: Doc[] | undefined) => void;
+    zoomToScale: (scale: number) => void;
+    getScale: () => number;
 }
 
 const schema = createSchema({
@@ -302,8 +304,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         this._lastTap = Date.now();
     }
 
-    deleteClicked = (): void => { this.props.removeDocument && this.props.removeDocument(this.props.Document); }
-    fieldsClicked = (): void => { this.props.addDocTab(Docs.KVPDocument(this.props.Document, { width: 300, height: 300 }), "onRight") };
+    deleteClicked = (): void => { this.props.removeDocument && this.props.removeDocument(this.props.Document); };
+    fieldsClicked = (): void => { this.props.addDocTab(Docs.KVPDocument(this.props.Document, { width: 300, height: 300 }), "onRight"); };
     makeBtnClicked = (): void => {
         let doc = Doc.GetProto(this.props.Document);
         doc.isButton = !BoolCast(doc.isButton, false);
@@ -422,7 +424,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 this.props.addDocTab && this.props.addDocTab(Docs.SchemaDocument(["title"], aliases, {}), "onRight");
             }, icon: "search"
         });
-        cm.addItem({ description: "Center View", event: () => this.props.focus(this.props.Document), icon: "crosshairs" });
+        cm.addItem({ description: "Center View", event: () => this.props.focus(this.props.Document, false), icon: "crosshairs" });
         cm.addItem({ description: "Copy URL", event: () => Utils.CopyText(DocServer.prepend("/doc/" + this.props.Document[Id])), icon: "link" });
         cm.addItem({ description: "Copy ID", event: () => Utils.CopyText(this.props.Document[Id]), icon: "fingerprint" });
         cm.addItem({ description: "Delete", event: this.deleteClicked, icon: "trash" });

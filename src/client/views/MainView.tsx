@@ -199,7 +199,10 @@ export class MainView extends React.Component {
                 parentActive={returnTrue}
                 whenActiveChanged={emptyFunction}
                 bringToFront={emptyFunction}
-                ContainingCollectionView={undefined} />;
+                ContainingCollectionView={undefined}
+                zoomToScale={emptyFunction}
+                getScale={returnOne}
+            />;
         let castRes = mainCont ? FieldValue(Cast(mainCont.presentationView, Doc)) : undefined;
         console.log("GETTING mainContent()");
         console.log(castRes instanceof Promise);

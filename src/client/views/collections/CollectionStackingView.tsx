@@ -146,6 +146,8 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                     bringToFront={emptyFunction}
                     whenActiveChanged={this.props.whenActiveChanged}
                     collapseToPoint={this.collapseToPoint}
+                    zoomToScale={emptyFunction}
+                    getScale={returnOne}
                 />
             </div>);
         })

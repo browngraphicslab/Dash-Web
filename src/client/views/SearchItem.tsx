@@ -24,7 +24,7 @@ library.add(faFilm);
 export class SearchItem extends React.Component<SearchProps> {
 
     onClick = () => {
-        DocumentManager.Instance.jumpToDocument(this.props.doc);
+        DocumentManager.Instance.jumpToDocument(this.props.doc, false);
     }
 
     //needs help

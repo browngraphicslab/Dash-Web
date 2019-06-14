@@ -7,7 +7,7 @@ import { observer } from "mobx-react";
 import ReactTable, { CellInfo, ComponentPropsGetterR, ReactTableDefaults } from "react-table";
 import { MAX_ROW_HEIGHT } from '../../views/globalCssVariables.scss';
 import "react-table/react-table.css";
-import { emptyFunction, returnFalse, returnZero } from "../../../Utils";
+import { emptyFunction, returnFalse, returnZero, returnOne } from "../../../Utils";
 import { SetupDrag } from "../../util/DragManager";
 import { CompileScript } from "../../util/Scripting";
 import { Transform } from "../../util/Transform";
@@ -451,6 +451,8 @@ export class CollectionSchemaPreview extends React.Component<CollectionSchemaPre
                         bringToFront={emptyFunction}
                         addDocTab={this.props.addDocTab}
                         collapseToPoint={this.collapseToPoint}
+                        zoomToScale={emptyFunction}
+                        getScale={returnOne}
                     />
                 </div>)}
             {input}

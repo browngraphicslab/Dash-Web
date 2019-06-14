@@ -103,7 +103,10 @@ export class FieldView extends React.Component<FieldViewProps> {
                     ContainingCollectionView={this.props.ContainingCollectionView}
                     parentActive={this.props.active}
                     whenActiveChanged={this.props.whenActiveChanged}
-                    bringToFront={emptyFunction} />
+                    bringToFront={emptyFunction}
+                    zoomToScale={emptyFunction}
+                    getScale={returnOne}
+                />
             );
         }
         else if (field instanceof List) {
