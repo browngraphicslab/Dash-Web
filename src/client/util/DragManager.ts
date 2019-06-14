@@ -1,9 +1,11 @@
-import { action, runInAction } from "mobx";
+import { action, runInAction, observable } from "mobx";
 import { Doc, DocListCastAsync } from "../../new_fields/Doc";
 import { Cast } from "../../new_fields/Types";
 import { emptyFunction } from "../../Utils";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import * as globalCssVariables from "../views/globalCssVariables.scss";
+import { URLField } from "../../new_fields/URLField";
+import { SelectionManager } from "./SelectionManager";
 
 export type dropActionType = "alias" | "copy" | undefined;
 export function SetupDrag(_reference: React.RefObject<HTMLElement>, docFunc: () => Doc | Promise<Doc>, moveFunc?: DragManager.MoveFunction, dropAction?: dropActionType, options?: any, dontHideOnDrop?: boolean) {
@@ -180,7 +182,21 @@ export namespace DragManager {
         [id: string]: any;
     }
 
+    export class EmbedDragData {
+        constructor(embeddableSourceDoc: Doc) {
+            this.embeddableSourceDoc = embeddableSourceDoc;
+            this.urlField = embeddableSourceDoc.data instanceof URLField ? embeddableSourceDoc.data : undefined;
+        }
+        embeddableSourceDoc: Doc;
+        urlField?: URLField;
+        [id: string]: any;
+    }
+
     export function StartLinkDrag(ele: HTMLElement, dragData: LinkDragData, downX: number, downY: number, options?: DragOptions) {
+        StartDrag([ele], dragData, downX, downY, options);
+    }
+
+    export function StartEmbedDrag(ele: HTMLElement, dragData: EmbedDragData, downX: number, downY: number, options?: DragOptions) {
         StartDrag([ele], dragData, downX, downY, options);
     }
 
@@ -194,7 +210,7 @@ export namespace DragManager {
             dragDiv.style.pointerEvents = "none";
             DragManager.Root().appendChild(dragDiv);
         }
-
+        SelectionManager.SetIsDragging(true);
         let scaleXs: number[] = [];
         let scaleYs: number[] = [];
         let xs: number[] = [];
@@ -293,6 +309,7 @@ export namespace DragManager {
         };
 
         let hideDragElements = () => {
+            SelectionManager.SetIsDragging(false);
             dragElements.map(dragElement => dragElement.parentNode === dragDiv && dragDiv.removeChild(dragElement));
             eles.map(ele => (ele.hidden = false));
         };

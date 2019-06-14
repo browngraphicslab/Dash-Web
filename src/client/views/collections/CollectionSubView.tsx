@@ -166,6 +166,25 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             e.stopPropagation();
             e.preventDefault();
 
+            if (html && FormattedTextBox.IsFragment(html)) {
+                let href = FormattedTextBox.GetHref(html);
+                if (href) {
+                    let docid = FormattedTextBox.GetDocFromUrl(href);
+                    if (docid) { // prosemirror text containing link to dash document
+                        DocServer.GetRefField(docid).then(f => {
+                            if (f instanceof Doc) {
+                                if (options.x || options.y) { f.x = options.x; f.y = options.y; } // should be in CollectionFreeFormView
+                                (f instanceof Doc) && this.props.addDocument(f, false);
+                            }
+                        });
+                    } else {
+                        this.props.addDocument && this.props.addDocument(Docs.WebDocument(href, options));
+                    }
+                } else if (text) {
+                    this.props.addDocument && this.props.addDocument(Docs.TextDocument({ ...options, width: 100, height: 25, documentText: "@@@" + text }), false);
+                }
+                return;
+            }
             if (html && html.indexOf("<img") !== 0 && !html.startsWith("<a")) {
                 let htmlDoc = Docs.HtmlDocument(html, { ...options, width: 300, height: 300, documentText: text });
                 this.props.addDocument(htmlDoc, false);

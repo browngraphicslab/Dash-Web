@@ -5,6 +5,7 @@
         "experimentalDecorators": true,
         "strict": true,
         "jsx": "react",
+        "allowJs": true,
         "sourceMap": true,
         "outDir": "dist",
         "lib": [

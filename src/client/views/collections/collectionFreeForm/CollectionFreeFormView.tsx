@@ -6,7 +6,6 @@ import { InkField, StrokeData } from "../../../../new_fields/InkField";
 import { createSchema, makeInterface } from "../../../../new_fields/Schema";
 import { BoolCast, Cast, FieldValue, NumCast } from "../../../../new_fields/Types";
 import { emptyFunction, returnOne } from "../../../../Utils";
-import { DocServer } from "../../../DocServer";
 import { DocumentManager } from "../../../util/DocumentManager";
 import { DragManager } from "../../../util/DragManager";
 import { HistoryUtil } from "../../../util/History";
@@ -220,6 +219,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     @action
     setPan(panX: number, panY: number) {
+
         this.props.Document.panTransformType = "None";
         var scale = this.getLocalTransform().inverse().Scale;
         const newPanX = Math.min((1 - 1 / scale) * this.nativeWidth, Math.max(0, panX));

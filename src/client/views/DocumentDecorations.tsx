@@ -24,6 +24,7 @@ import { LinkMenu } from "./nodes/LinkMenu";
 import { TemplateMenu } from "./TemplateMenu";
 import { Template, Templates } from "./Templates";
 import React = require("react");
+import { URLField } from '../../new_fields/URLField';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -41,6 +42,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     private _titleHeight = 20;
     private _linkButton = React.createRef<HTMLDivElement>();
     private _linkerButton = React.createRef<HTMLDivElement>();
+    private _embedButton = React.createRef<HTMLDivElement>();
     private _downX = 0;
     private _downY = 0;
     private _iconDoc?: Doc = undefined;
@@ -329,9 +331,24 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         document.removeEventListener("pointerup", this.onLinkerButtonUp);
         document.addEventListener("pointerup", this.onLinkerButtonUp);
     }
+
+    onEmbedButtonDown = (e: React.PointerEvent): void => {
+        e.stopPropagation();
+        document.removeEventListener("pointermove", this.onEmbedButtonMoved);
+        document.addEventListener("pointermove", this.onEmbedButtonMoved);
+        document.removeEventListener("pointerup", this.onEmbedButtonUp);
+        document.addEventListener("pointerup", this.onEmbedButtonUp);
+    }
+
     onLinkerButtonUp = (e: PointerEvent): void => {
         document.removeEventListener("pointermove", this.onLinkerButtonMoved);
         document.removeEventListener("pointerup", this.onLinkerButtonUp);
+        e.stopPropagation();
+    }
+
+    onEmbedButtonUp = (e: PointerEvent): void => {
+        document.removeEventListener("pointermove", this.onEmbedButtonMoved);
+        document.removeEventListener("pointerup", this.onEmbedButtonUp);
         e.stopPropagation();
     }
 
@@ -345,6 +362,25 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             let dragData = new DragManager.LinkDragData(selDoc.props.Document, container ? [container] : []);
             FormattedTextBox.InputBoxOverlay = undefined;
             DragManager.StartLinkDrag(this._linkerButton.current, dragData, e.pageX, e.pageY, {
+                handlers: {
+                    dragComplete: action(emptyFunction),
+                },
+                hideSource: false
+            });
+        }
+        e.stopPropagation();
+    }
+
+    @action
+    onEmbedButtonMoved = (e: PointerEvent): void => {
+        if (this._embedButton.current !== null) {
+            document.removeEventListener("pointermove", this.onEmbedButtonMoved);
+            document.removeEventListener("pointerup", this.onEmbedButtonUp);
+
+            let dragDocView = SelectionManager.SelectedDocuments()[0];
+            let dragData = new DragManager.EmbedDragData(dragDocView.props.Document);
+
+            DragManager.StartEmbedDrag(dragDocView.ContentDiv!, dragData, e.x, e.y, {
                 handlers: {
                     dragComplete: action(emptyFunction),
                 },
@@ -442,11 +478,11 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 let actualdH = Math.max(height + (dH * scale), 20);
                 doc.x = (doc.x || 0) + dX * (actualdW - width);
                 doc.y = (doc.y || 0) + dY * (actualdH - height);
-                let proto = Doc.GetProto(doc);
+                let proto = Doc.GetProto(element.props.Document);
                 let fixedAspect = e.ctrlKey || (!BoolCast(proto.ignoreAspect, false) && nwidth && nheight);
                 if (fixedAspect && (!nwidth || !nheight)) {
-                    proto.nativeWidth = doc.width;
-                    proto.nativeHeight = doc.height;
+                    proto.nativeWidth = nwidth = doc.width || 0;
+                    proto.nativeHeight = nheight = doc.height || 0;
                     proto.ignoreAspect = true;
                 }
                 if (nwidth > 0 && nheight > 0) {
@@ -469,6 +505,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 } else {
                     doc.width = zoomBasis * actualdW;
                     doc.height = zoomBasis * actualdH;
+                    proto.autoHeight = undefined;
                 }
             }
         });
@@ -509,6 +546,19 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     // buttonOnPointerUp = (e: React.PointerEvent): void => {
     //     e.stopPropagation();
     // }
+
+    considerEmbed = () => {
+        let thisDoc = SelectionManager.SelectedDocuments()[0].props.Document;
+        let canEmbed = thisDoc.data && thisDoc.data instanceof URLField;
+        if (!canEmbed) return (null);
+        return (
+            <div className="linkButtonWrapper">
+                <div style={{ paddingTop: 3, marginLeft: 30 }} title="Drag Embed" className="linkButton-linker" ref={this._embedButton} onPointerDown={this.onEmbedButtonDown}>
+                    <FontAwesomeIcon className="fa-image" icon="image" size="sm" />
+                </div>
+            </div>
+        );
+    }
 
     render() {
         var bounds = this.Bounds;
@@ -604,6 +654,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                         </div>
                     </div>
                     <TemplateMenu docs={SelectionManager.ViewsSortedVertically()} templates={templates} />
+                    {this.considerEmbed()}
                 </div>
             </div >
         </div>
