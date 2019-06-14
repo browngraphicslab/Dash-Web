@@ -10,6 +10,8 @@ import { Doc } from '../../../new_fields/Doc';
 import { StrCast, Cast } from '../../../new_fields/Types';
 import { observable, action } from 'mobx';
 import { LinkManager } from '../../util/LinkManager';
+import { DragLinksAsDocuments } from '../../util/DragManager';
+import { SelectionManager } from '../../util/SelectionManager';
 library.add(faEye, faEdit, faTimes, faArrowRight, faChevronDown, faChevronUp);
 
 
@@ -23,6 +25,7 @@ interface Props {
 
 @observer
 export class LinkBox extends React.Component<Props> {
+    private _drag = React.createRef<HTMLDivElement>();
     @observable private _showMore: boolean = false;
     @action toggleShowMore() { this._showMore = !this._showMore; }
 
@@ -54,6 +57,30 @@ export class LinkBox extends React.Component<Props> {
         return (<div className="link-metadata">{mdRows}</div>);
     }
 
+    onLinkButtonDown = (e: React.PointerEvent): void => {
+        e.stopPropagation();
+        document.removeEventListener("pointermove", this.onLinkButtonMoved);
+        document.addEventListener("pointermove", this.onLinkButtonMoved);
+        document.removeEventListener("pointerup", this.onLinkButtonUp);
+        document.addEventListener("pointerup", this.onLinkButtonUp);
+    }
+
+    onLinkButtonUp = (e: PointerEvent): void => {
+        document.removeEventListener("pointermove", this.onLinkButtonMoved);
+        document.removeEventListener("pointerup", this.onLinkButtonUp);
+        e.stopPropagation();
+    }
+
+    onLinkButtonMoved = async (e: PointerEvent) => {
+        if (this._drag.current !== null && (e.movementX > 1 || e.movementY > 1)) {
+            document.removeEventListener("pointermove", this.onLinkButtonMoved);
+            document.removeEventListener("pointerup", this.onLinkButtonUp);
+
+            DragLinksAsDocuments(this._drag.current, e.x, e.y, SelectionManager.SelectedDocuments()[0].props.Document);
+        }
+        e.stopPropagation();
+    }
+
     render() {
 
         let keys = LinkManager.Instance.groupMetadataKeys.get(this.props.groupType);
@@ -68,13 +95,13 @@ export class LinkBox extends React.Component<Props> {
                             {canExpand ? <div title="Show more" className="button" onPointerDown={() => this.toggleShowMore()}>
                                 <FontAwesomeIcon className="fa-icon" icon={this._showMore ? "chevron-up" : "chevron-down"} size="sm" /></div> : <></>}
                             <div title="Edit link" className="button" onPointerDown={this.onEdit}><FontAwesomeIcon className="fa-icon" icon="edit" size="sm" /></div>
-                            <div title="Follow link" className="button" onPointerDown={this.onFollowLink}><FontAwesomeIcon className="fa-icon" icon="arrow-right" size="sm" /></div>
+                            <div title="Follow link" className="button" ref={this._drag} onPointerDown={this.onLinkButtonDown} onPointerUp={this.onFollowLink}><FontAwesomeIcon className="fa-icon" icon="arrow-right" size="sm" /></div>
                         </div>
                     </div>
                     {this._showMore ? this.renderMetadata() : <></>}
                 </div>
 
-            </div>
+            </div >
         );
     }
 }
