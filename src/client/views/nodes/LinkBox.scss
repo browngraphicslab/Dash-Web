@@ -1,29 +1,43 @@
 @import "../globalCssVariables";
-.link-menu-item {
-    border-top: 0.5px solid $light-color-secondary; 
+.linkMenu-item {
+    border-top: 0.5px solid $main-accent; 
     padding: 6px;
     position: relative;
     display: flex;
     font-size: 12px;
 
-    .link-menu-item-content {
+    .linkMenu-item-content {
         width: 100%;
+    }
+    
+    .link-metadata {
+        margin-top: 6px;
+        padding: 3px;
+        border-top: 0.5px solid $light-color-secondary;
+        .link-metadata-row {
+            margin-left: 6px;
+        }
     }
 
     &:last-child {
-        border-bottom: 0.5px solid $light-color-secondary;
+        border-bottom: 0.5px solid $main-accent;
     }
     &:hover {
-        .link-menu-item-buttons {
+        .linkMenu-item-buttons {
             display: flex;
         }
-        .link-menu-item-content {
-            width: calc(100% - 42px);
+        .linkMenu-item-content {
+            &.expand-two {
+                width: calc(100% - 46px);
+            }
+            &.expand-three {
+                width: calc(100% - 78px);
+            }
         }
     }
 }
 
-.link-menu-item-buttons {
+.linkMenu-item-buttons {
     display: none;
     position: absolute;
     top: 50%;

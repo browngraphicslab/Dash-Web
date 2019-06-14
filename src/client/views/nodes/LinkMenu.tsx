@@ -19,11 +19,11 @@ export class LinkMenu extends React.Component<Props> {
 
     @observable private _editingLink?: Doc;
 
-    renderGroup = (group: Doc[]): Array<JSX.Element> => {
+    renderGroup = (group: Doc[], groupType: string): Array<JSX.Element> => {
         let source = this.props.docView.Document;
         return group.map(linkDoc => {
             let destination = LinkManager.Instance.findOppositeAnchor(linkDoc, source);
-            return <LinkBox key={destination[Id] + source[Id]} linkDoc={linkDoc} sourceDoc={source} destinationDoc={destination} showEditor={action(() => this._editingLink = linkDoc)} />;
+            return <LinkBox key={destination[Id] + source[Id]} groupType={groupType} linkDoc={linkDoc} sourceDoc={source} destinationDoc={destination} showEditor={action(() => this._editingLink = linkDoc)} />;
         });
     }
 
@@ -34,13 +34,13 @@ export class LinkMenu extends React.Component<Props> {
                 <div key={groupType} className="link-menu-group">
                     <p className="link-menu-group-name">{groupType}:</p>
                     <div className="link-menu-group-wrapper">
-                        {this.renderGroup(group)}
+                        {this.renderGroup(group, groupType)}
                     </div>
                 </div>
             );
         });
 
-        // source doc has no links
+        // if source doc has no links push message
         if (linkItems.length === 0) linkItems.push(<p key="">No links have been created yet. Drag the linking button onto another document to create a link.</p>);
 
         return linkItems;
