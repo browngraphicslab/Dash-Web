@@ -103,22 +103,22 @@ class Viewer extends React.Component<IViewerProps> {
 
     @action
     componentDidMount = () => {
-        let wasSelected = this.props.parent.props.isSelected();
+        let wasSelected = this.props.parent.props.active();
         // reaction for when document gets (de)selected
         this._reactionDisposer = reaction(
-            () => [this.props.parent.props.isSelected(), this.startIndex],
+            () => [this.props.parent.props.active(), this.startIndex],
             () => {
                 // if deselected, render images in place of pdf
-                if (wasSelected && !this.props.parent.props.isSelected()) {
+                if (wasSelected && !this.props.parent.props.active()) {
                     this.saveThumbnail();
                     this._pointerEvents = "all";
                 }
                 // if selected, render pdf
-                else if (!wasSelected && this.props.parent.props.isSelected()) {
+                else if (!wasSelected && this.props.parent.props.active()) {
                     this.renderPages(this.startIndex, this.endIndex, true);
                     this._pointerEvents = "none";
                 }
-                wasSelected = this.props.parent.props.isSelected();
+                wasSelected = this.props.parent.props.active();
             },
             { fireImmediately: true }
         );
