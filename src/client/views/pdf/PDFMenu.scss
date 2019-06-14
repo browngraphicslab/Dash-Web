@@ -1,18 +1,25 @@
 .pdfMenu-cont {
     position: absolute;
     z-index: 10000;
-    width: 100px;
-    height: 30px;
+    height: 35px;
     background: #323232;
     box-shadow: 3px 3px 3px rgba(0, 0, 0, 0.25);
-    border-radius: 0px 4px 4px 4px;
+    border-radius: 0px 6px 6px 6px;
     overflow: hidden;
+    display: flex;
 
     .pdfMenu-button {
         background-color: transparent;
+        width: 35px;
+        height: 35px;
     }
 
     .pdfMenu-button:hover {
         background-color: #121212;
+    }
+
+    .pdfMenu-dragger {
+        height: 100%;
+        transition: width .2s;
     }
 }

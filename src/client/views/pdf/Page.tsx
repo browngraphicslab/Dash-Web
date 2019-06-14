@@ -132,6 +132,7 @@ export default class Page extends React.Component<IPageProps> {
         }
     }
 
+    @action
     highlight = (targetDoc: Doc | undefined) => {
         // creates annotation documents for current highlights
         let annotationDoc = this.props.makeAnnotationDocuments(targetDoc);
@@ -196,6 +197,7 @@ export default class Page extends React.Component<IPageProps> {
             // document.addEventListener("pointerup", this.endDrag);
         }
         else if (e.button === 0) {
+            PDFMenu.Instance.fadeOut(true);
             let target: any = e.target;
             if (target && target.parentElement === this._textLayer.current) {
                 e.stopPropagation();
@@ -304,24 +306,27 @@ export default class Page extends React.Component<IPageProps> {
                 }
                 copy.className = this._marquee.current.className;
                 this.props.createAnnotation(copy, this.props.page);
-                PDFMenu.Instance.StartDrag = this.startDrag;
-                PDFMenu.Instance.Highlight = this.highlight;
                 this._marquee.current.style.opacity = "0";
             }
 
             this._marqueeHeight = this._marqueeWidth = 0;
-            PDFMenu.Instance.Left = e.clientX;
-            PDFMenu.Instance.Top = e.clientY;
+            PDFMenu.Instance.jumpTo(e.clientX, e.clientY);
         }
         else {
             let sel = window.getSelection();
             if (sel && sel.type === "Range") {
-                PDFMenu.Instance.StartDrag = this.startDrag;
-                PDFMenu.Instance.Highlight = this.highlight;
                 this.createTextAnnotation(sel);
-                PDFMenu.Instance.Left = e.clientX;
-                PDFMenu.Instance.Top = e.clientY;
+                PDFMenu.Instance.jumpTo(e.clientX, e.clientY);
             }
+        }
+
+
+        if (PDFMenu.Instance.Highlighting) {
+            this.highlight(undefined);
+        }
+        else {
+            PDFMenu.Instance.StartDrag = this.startDrag;
+            PDFMenu.Instance.Highlight = this.highlight;
         }
         // let x = (e.clientX - boundingRect.left) * (current.offsetWidth / boundingRect.width);
         // let y = (e.clientY - boundingRect.top) * (current.offsetHeight / boundingRect.height);
