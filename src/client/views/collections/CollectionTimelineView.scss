@@ -22,6 +22,22 @@
     border-left: 6px solid;
 }
 
+.v2 {
+    border-right: 6px solid;
+}
+
+.bar {
+    background: $intermediate-color;
+}
+
+.backdropscroll {
+    background: $light-color-secondary;
+}
+
+.backdropdocview {
+    // background: $light-color-secondary;
+}
+
 //options menu styling
 #schemaOptionsMenuBtn {
     position: absolute;

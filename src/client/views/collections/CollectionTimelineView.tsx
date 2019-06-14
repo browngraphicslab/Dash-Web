@@ -23,7 +23,8 @@ import { CollectionView } from "./CollectionView";
 import { CollectionPDFView } from "./CollectionPDFView";
 import { CollectionVideoView } from "./CollectionVideoView";
 import { VideoBox } from "../nodes/VideoBox";
-import { faFilePowerpoint } from "@fortawesome/free-solid-svg-icons";
+import { faFilePowerpoint, faShower } from "@fortawesome/free-solid-svg-icons";
+import { throwStatement } from "babel-types";
 
 
 export interface FieldViewProps {
@@ -70,120 +71,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     @computed get previewWidth() { return () => NumCast(this.props.Document.schemaPreviewWidth); }
 
     @observable
-    public sortstate: String = "date";
-
-    @action
-    buttonloop() {
-        let buttons = [];
-        let range = 1;
-        let arr: Doc[] = [];
-        let values = [];
-        //Building the array is kinda weird because I reverse engineered something from another class.
-        this.childDocs.filter(d => !d.isMinimized).map((d, i) => {
-            arr.push(d);
-        });
-        if (this.sortstate === "creationDate") {
-            arr.sort(this.sortdate);
-        }
-        if (this.sortstate === "title") {
-            arr.sort(this.sorttitle);
-        }
-
-        if (this.sortstate === "x") {
-            arr.sort(this.sortx);
-            let i = arr.length
-            while (arr[i] === undefined) {
-                i += -1;
-                if (i === 0) {
-                    break;
-                }
-
-            }
-            range = arr[i].x - arr[0].x;
-            console.log(range);
-            for (let j = 0; j < arr.length; j++) {
-                if (arr[j].x === undefined) {
-                    values[j] = 0;
-                }
-                else {
-                    values[j] = arr[j].x;
-                }
-            }
-        }
-
-        if (this.sortstate === "y") {
-            arr.sort(this.sorty);
-            let i = arr.length
-            while (arr[i] === undefined) {
-                i += -1;
-                if (i === 0) {
-                    break;
-                }
-
-            }
-            range = arr[i].y - arr[0].y;
-            console.log(range);
-            for (let j = 0; j < arr.length; j++) {
-                if (arr[j].x === undefined) {
-                    values[j] = 0;
-                }
-                else {
-                    values[j] = arr[j].y;
-                }
-            }
-        }
-        if (this.sortstate === "height") {
-            arr.sort(this.sortheight);
-        }
-
-
-
-        var len = arr.length;
-
-        let preview: String = "";
-        let returnHundred = () => 100;
-        let hover = false;
-
-
-        for (let i = 0; i < arr.length; i++) {
-            let color = "darker-color";
-            if (i % 2 === 0) {
-                color = "$intermediate-color";
-            }
-
-            // let preview = <DocumentContentsView Document={arr[i]}
-            //     addDocument={undefined}
-            //     addDocTab={this.props.addDocTab}
-            //     removeDocument={undefined}
-            //     ScreenToLocalTransform={Transform.Identity}
-            //     ContentScaling={returnOne}
-            //     PanelWidth={returnHundred}
-            //     PanelHeight={returnHundred}
-            //     isTopMost={true}
-            //     selectOnLoad={false}
-            //     focus={emptyFunction}
-            //     isSelected={this.props.isSelected}
-            //     select={returnFalse}
-            //     layoutKey={"layout"}
-            //     ContainingCollectionView={this.props.ContainingCollectionView}
-            //     parentActive={this.props.active}
-            //     whenActiveChanged={this.props.whenActiveChanged}
-            //     bringToFront={emptyFunction} />
-            buttons.push(
-                <div>
-                    <button onMouseOver={function flipp() { hover = true; }}
-                        onMouseLeave={function flipp() { hover = false; }}
-                        style={{
-                            position: "absolute",
-                            background: color,
-                            top: "50%", left: ((NumCast(values[i]) - NumCast(values[0])) * 100 / range) + "%", width: (5 / (2 * Math.log2((len / 10) + 1))) + "%"
-                        }}>{arr[i].title}</button>
-
-
-                </div >)
-        }
-        return buttons;
-    }
+    private sortstate: String = "date";
 
     sortx(a: Doc, b: Doc) {
         return (a.x - b.x);
@@ -228,6 +116,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 <button id="schemaOptionsMenuBtn" ><FontAwesomeIcon style={{ color: "white" }} icon="cog" size="sm" /></button>
             </Flyout>);
     }
+
     @action
     toggleKey = (key: string) => {
         this.sortstate = key;
@@ -235,13 +124,21 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         console.log(this.sortstate);
     }
 
+    @observable
+    private preview: Doc | undefined;
+
     @action
-    buttonloop2() {
+    show(document: Doc) {
+        this.preview = document;
+    }
+
+    buttonloop() {
         let buttons = [];
         let buttons2 = [];
         let range = 1;
         let arr: Doc[] = [];
         let values = [];
+
         //Building the array is kinda weird because I reverse engineered something from another class.
         this.childDocs.filter(d => !d.isMinimized).map((d, i) => {
             arr.push(d);
@@ -255,7 +152,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
         if (this.sortstate === "x") {
             arr.sort(this.sortx);
-            let i = arr.length
+            let i = arr.length;
             while (arr[i] === undefined) {
                 i += -1;
                 if (i === 0) {
@@ -264,7 +161,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
             }
             range = arr[i].x - arr[0].x;
-            console.log(range);
             for (let j = 0; j < arr.length; j++) {
                 if (arr[j].x === undefined) {
                     values[j] = 0;
@@ -277,7 +173,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
         if (this.sortstate === "y") {
             arr.sort(this.sorty);
-            let i = arr.length - 1;
+            let i = arr.length;
             while (arr[i] === undefined) {
                 i += -1;
                 if (i === 0) {
@@ -285,8 +181,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 }
 
             }
-            range = NumCast(arr[i].y) - NumCast(arr[0].y);
-            console.log(range);
+            range = arr[i].y - arr[0].y;
             for (let j = 0; j < arr.length; j++) {
                 if (arr[j].x === undefined) {
                     values[j] = 0;
@@ -316,61 +211,182 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
             buttons.push(
                 <div>
-                    <button onMouseOver={function flipp() { }}
+                    <button onClick={() => this.show(arr[i])}
                         style={{
                             position: "absolute",
                             background: color,
-                            top: "50%", left: ((values[i] - values[0]) * 100 / range) + "%", width: (5 / (2 * Math.log2((len / 10) + 1))) + "%"
+                            top: "70%", height: "5%", left: ((values[i] - values[0]) * 962 / range) * (962 / (this.xmovement2 - this.xmovement)) - (this.xmovement * 962 / (this.xmovement2 - this.xmovement)) + "px",
                         }}>{arr[i].title}</button>
-                </div>)
+                </div>);
             buttons2.push(
-                <div>
-                    <button onMouseOver={function flipp() { hover = true; }}
-                        onMouseLeave={function flipp() { hover = false; }}
-                        style={{
-                            position: "absolute",
-                            background: color,
-                            top: "50%", left: ((NumCast(values[i]) - NumCast(values[0])) * 100 / range) + "%", width: "0.5%"
-                        }}></button>
-                </div>)
+                <div
+
+                    style={{
+                        position: "absolute",
+                        background: "black",
+                        zIndex: "1",
+                        top: "50%", left: ((values[i] - values[0]) * 962 / range) + "px", width: "1%", border: "3px solid"
+                    }}>
+                </div>);
         }
+
+
         return (<div>
-            <div style={{ top: "5%", left: "33%", right: "33%", bottom: "70%", border: "3px solid", position: "absolute" }}>
-                {this.documentpreview}
+            <div className="backdropdocview" style={{ top: "5%", left: "33%", right: "33%", bottom: "40%", position: "absolute" }}>
+                {this.preview ? this.documentpreview(this.preview) : (null)}
             </div>
             <div>{buttons}</div>
-            <div style={{ top: "80%", left: "10%", bottom: "10%", right: "10%", border: "3px solid", position: "absolute" }}>
-                <div className="v1" onPointerDown={this.onPointerDown} style={{ left: this.xmovement, height: "100%" }}>
-                    {buttons2}
+            <div className="backdropscroll" onPointerDown={this.onPointerDown4} style={{ top: "85%", left: "10%", bottom: "10%", right: "10%", border: "3px solid", position: "absolute" }}>
+                {buttons2}
+                <div className="v1" onPointerDown={this.onPointerDown} style={{ cursor: "ew-resize", position: "absolute", zIndex: "2", left: this.xmovement, height: "100%" }}>
+
                 </div>
+                <div className="v2" onPointerDown={this.onPointerDown2} style={{
+                    cursor: "ew-resize",
+                    position: "absolute", left: this.xmovement2
+                    , height: "100%",
+                    zIndex: "2"
+                }}>
+                </div>
+                <div className="bar" onPointerDown={this.onPointerDown3} style={{ left: this.xmovement, width: this.xmovement2 - this.xmovement, height: "100%", position: "absolute" }}>
+                </div>
+
             </div>
-        </div>
+        </div >
         );
 
     }
 
-    onPointerDown = (e: React.PointerEvent): void => {
-        document.addEventListener("pointermove", this.onPointerMove);
+    documentpreview(document: Doc) {
+        let returnHundred = () => 100;
+        return (<DocumentContentsView Document={document}
+            addDocument={undefined}
+            addDocTab={this.props.addDocTab}
+            removeDocument={undefined}
+            ScreenToLocalTransform={Transform.Identity}
+            ContentScaling={returnOne}
+            PanelWidth={returnHundred}
+            PanelHeight={returnHundred}
+            isTopMost={true}
+            selectOnLoad={false}
+            focus={emptyFunction}
+            isSelected={this.props.isSelected}
+            select={returnFalse}
+            layoutKey={"layout"}
+            ContainingCollectionView={this.props.ContainingCollectionView}
+            parentActive={this.props.active}
+            whenActiveChanged={this.props.whenActiveChanged}
+            bringToFront={emptyFunction} />)
     }
 
+    onPointerDown = (e: React.PointerEvent): void => {
+        document.addEventListener("pointermove", this.onPointerMove);
+        e.stopPropagation();
+        e.preventDefault();
+    }
+
+    onPointerDown2 = (e: React.PointerEvent): void => {
+        document.addEventListener("pointermove", this.onPointerMove2);
+        e.stopPropagation();
+        e.preventDefault();
+    }
+
+    onPointerDown3 = (e: React.PointerEvent): void => {
+        document.addEventListener("pointermove", this.onPointerMove3);
+        console.log("yeet");
+        e.stopPropagation();
+        e.preventDefault();
+    }
+
+    @action
+    onPointerDown4 = (e: React.PointerEvent): void => {
+        let temp = this.xmovement2 - this.xmovement;
+        this.xmovement = e.pageX - 430;
+        this.xmovement2 = temp + this.xmovement;
+        if (this.xmovement2 > 962) {
+            this.xmovement = 962 - (this.xmovement2 - this.xmovement);
+            this.xmovement2 = 962;
+        }
+        e.stopPropagation();
+        e.preventDefault();
+
+
+
+    }
+
+
     @observable
-    public xmovement = 0;
+    private xmovement = 0;
+
+    @observable
+    private xmovement2 = 962;
+
     @action
     onPointerMove = (e: PointerEvent): void => {
         e.stopPropagation();
         e.preventDefault();
-        this.xmovement = e.movementX;
+        this.xmovement += e.movementX;
+        if (this.xmovement < 0) {
+            this.xmovement = 0;
+        }
+        if (this.xmovement > this.xmovement2 - 1) {
+            this.xmovement = this.xmovement2 - 1;
+        }
+        console.log(this.xmovement2 - this.xmovement);
+        document.addEventListener("pointerup", this.onPointerUp);
+
     }
 
+    @action
+    onPointerMove2 = (e: PointerEvent): void => {
+        e.stopPropagation();
+        e.preventDefault();
+        console.log(this.xmovement2);
+        this.xmovement2 += e.movementX;
+        if (this.xmovement2 > 962) {
+            this.xmovement2 = 962;
+        }
+        if (this.xmovement2 < this.xmovement + 1) {
+            this.xmovement2 = this.xmovement + 1;
+        }
 
+        document.addEventListener("pointerup", this.onPointerUp);
+
+    }
+
+    @action
+    onPointerMove3 = (e: PointerEvent): void => {
+        e.stopPropagation();
+        e.preventDefault();
+        console.log(this.xmovement2);
+        this.xmovement2 += e.movementX;
+        this.xmovement += e.movementX;
+        if (this.xmovement2 > 962) {
+            this.xmovement2 = 962;
+            this.xmovement -= e.movementX;
+        }
+        if (this.xmovement < 0) {
+            this.xmovement = 0;
+            this.xmovement2 -= e.movementX;
+        }
+
+        document.addEventListener("pointerup", this.onPointerUp);
+
+    }
+
+    onPointerUp = (e: PointerEvent): void => {
+        document.removeEventListener("pointermove", this.onPointerMove);
+        document.removeEventListener("pointermove", this.onPointerMove2);
+        document.removeEventListener("pointermove", this.onPointerMove3);
+    }
 
     render() {
         return (
             <div className="collectionTimelineView" style={{ height: "100%" }}
                 onWheel={(e: React.WheelEvent) => e.stopPropagation()}>
-                <hr style={{ top: "50%", display: "block", width: "100%", border: "10", position: "absolute" }} />
+                <hr style={{ top: "70%", display: "block", width: "100%", border: "10", position: "absolute" }} />
                 {this.tableOptionsPanel}
-                {this.buttonloop2()}
+                {this.buttonloop()}
             </div>
         );
     }
