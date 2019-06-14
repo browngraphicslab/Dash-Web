@@ -455,14 +455,12 @@ export class Timeline extends CollectionSubView(Document) {
         return views;
     }
 
-    @observable private _test: (string) = "undefined";
-
     render() {
         return (
             <div>
                 <div className="timeline-container">
                     <div className="timeline">
-                        <div className="inner" ref={this._inner} onPointerDown={this.onInnerPointerDown} onPointerUp={this.onInnerPointerUp} key={this._test}>
+                        <div className="inner" ref={this._inner} onPointerDown={this.onInnerPointerDown} onPointerUp={this.onInnerPointerUp}>
                             {SelectionManager.SelectedDocuments().map(dv => this.displayKeyFrames(dv.props.Document))}
                             {this._bars.map((data) => {
                                 return this.createBar(5, data.x, "yellow");
