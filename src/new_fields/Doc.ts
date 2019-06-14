@@ -186,7 +186,8 @@ export namespace Doc {
     }
 
     // compare whether documents or their protos match
-    export function AreProtosEqual(doc: Doc, other: Doc) {
+    export function AreProtosEqual(doc?: Doc, other?: Doc) {
+        if (!doc || !other) return false;
         let r = (doc === other);
         let r2 = (doc.proto === other);
         let r3 = (other.proto === doc);

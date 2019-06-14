@@ -196,7 +196,6 @@ export default class Page extends React.Component<IPageProps> {
                 e.stopPropagation();
             }
             else {
-                e.stopPropagation();
                 // set marquee x and y positions to the spatially transformed position
                 let current = this._textLayer.current;
                 if (current) {
@@ -399,7 +398,7 @@ export default class Page extends React.Component<IPageProps> {
 
     render() {
         return (
-            <div onPointerDown={this.onPointerDown} onDoubleClick={this.doubleClick} className={this.props.name} style={{ "width": this._width, "height": this._height }}>
+            <div onPointerDown={this.onPointerDown} onDoubleClick={this.doubleClick} className={"page-cont"} style={{ "width": this._width, "height": this._height }}>
                 <div className="canvasContainer">
                     <canvas ref={this._canvas} />
                 </div>

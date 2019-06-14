@@ -41,6 +41,12 @@
         pointer-events: none !important;
     }
 }
+.textlayer {
+    span {
+        pointer-events: all !important;
+        user-select: text;
+    }
+}
 
 .pdfBox-cont-interactive {
     pointer-events: all;

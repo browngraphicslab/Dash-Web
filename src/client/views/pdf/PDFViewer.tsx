@@ -103,22 +103,22 @@ class Viewer extends React.Component<IViewerProps> {
 
     @action
     componentDidMount = () => {
-        let wasSelected = this.props.parent.props.isSelected();
+        let wasSelected = this.props.parent.props.active();
         // reaction for when document gets (de)selected
         this._reactionDisposer = reaction(
-            () => [this.props.parent.props.isSelected(), this.startIndex],
+            () => [this.props.parent.props.active(), this.startIndex],
             () => {
                 // if deselected, render images in place of pdf
-                if (wasSelected && !this.props.parent.props.isSelected()) {
+                if (wasSelected && !this.props.parent.props.active()) {
                     this.saveThumbnail();
                     this._pointerEvents = "all";
                 }
                 // if selected, render pdf
-                else if (!wasSelected && this.props.parent.props.isSelected()) {
+                else if (!wasSelected && this.props.parent.props.active()) {
                     this.renderPages(this.startIndex, this.endIndex, true);
                     this._pointerEvents = "none";
                 }
-                wasSelected = this.props.parent.props.isSelected();
+                wasSelected = this.props.parent.props.active();
             },
             { fireImmediately: true }
         );
@@ -586,7 +586,7 @@ class PinAnnotation extends React.Component<IAnnotationProps> {
                             PanelWidth={() => NumCast(this.props.parent.props.parent.Document.nativeWidth)}
                             PanelHeight={() => NumCast(this.props.parent.props.parent.Document.nativeHeight)}
                             focus={emptyFunction}
-                            selectOnLoad={true}
+                            selectOnLoad={false}
                             parentActive={this.props.parent.props.parent.props.active}
                             whenActiveChanged={this.props.parent.props.parent.props.whenActiveChanged}
                             bringToFront={emptyFunction}

@@ -1,0 +1,18 @@
+.pdfMenu-cont {
+    position: absolute;
+    z-index: 10000;
+    width: 100px;
+    height: 30px;
+    background: #323232;
+    box-shadow: 3px 3px 3px rgba(0, 0, 0, 0.25);
+    border-radius: 0px 4px 4px 4px;
+    overflow: hidden;
+
+    .pdfMenu-button {
+        background-color: transparent;
+    }
+
+    .pdfMenu-button:hover {
+        background-color: #121212;
+    }
+}
